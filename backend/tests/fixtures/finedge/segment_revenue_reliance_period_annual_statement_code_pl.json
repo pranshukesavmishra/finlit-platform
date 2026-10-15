@@ -1,0 +1,411 @@
+{
+ "segment_revenues": [
+  {
+   "data": {
+    "interSegmentRevenue": 2750000000,
+    "netOtherUnallocableExpense": -120140000000,
+    "segmentFinanceCosts": 69040000000,
+    "segmentProfitBeforeTax": 540760000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 489660000000,
+    "segmentRevenue": 5471270000000,
+    "segmentRevenueFromOperations": 5468520000000
+   },
+   "header": "Mar 2026",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 349250000000,
+      "segmentRevenue": 5051140000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 134540000000,
+      "segmentRevenue": 237650000000
+     },
+     "name": "Oil and Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 5000000000,
+      "segmentRevenue": 168800000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 860000000,
+      "segmentRevenue": 13620000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 10000000,
+      "segmentRevenue": 60000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 3410000000,
+    "netOtherUnallocableExpense": -64660000000,
+    "segmentFinanceCosts": 100540000000,
+    "segmentProfitBeforeTax": 461280000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 497160000000,
+    "segmentRevenue": 5575040000000,
+    "segmentRevenueFromOperations": 5571630000000
+   },
+   "header": "Mar 2025",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 303660000000,
+      "segmentRevenue": 5128290000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 157770000000,
+      "segmentRevenue": 251010000000
+     },
+     "name": "Oil and Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 34440000000,
+      "segmentRevenue": 182310000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 1160000000,
+      "segmentRevenue": 12790000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 130000000,
+      "segmentRevenue": 640000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 5900000000,
+    "netOtherUnallocableExpense": -63480000000,
+    "segmentFinanceCosts": 134300000000,
+    "segmentProfitBeforeTax": 552730000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 623550000000,
+    "segmentRevenue": 5755460000000,
+    "segmentRevenueFromOperations": 5749560000000
+   },
+   "header": "Mar 2024",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 457990000000,
+      "segmentRevenue": 5079130000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 12020000000,
+      "segmentRevenue": 411200000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 150190000000,
+      "segmentRevenue": 245230000000
+     },
+     "name": "Oil and Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 3060000000,
+      "segmentRevenue": 19160000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 290000000,
+      "segmentRevenue": 740000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 3980000000,
+    "netOtherUnallocableExpense": -51380000000,
+    "segmentFinanceCosts": 126260000000,
+    "segmentProfitBeforeTax": 555720000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 630600000000,
+    "segmentRevenue": 5672030000000,
+    "segmentRevenueFromOperations": 5668050000000
+   },
+   "header": "Mar 2023",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 505950000000,
+      "segmentRevenue": 5449290000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 109020000000,
+      "segmentRevenue": 164630000000
+     },
+     "name": "Oil & Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": -1470000000,
+      "segmentRevenue": 22700000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 2340000000,
+      "segmentRevenue": 19920000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 14450000000,
+      "segmentRevenue": 14640000000
+     },
+     "name": "Financial Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 310000000,
+      "segmentRevenue": 850000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 2730000000,
+    "netOtherUnallocableExpense": -74220000000,
+    "segmentFinanceCosts": 91230000000,
+    "segmentProfitBeforeTax": 467860000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 484870000000,
+    "segmentRevenue": 4666980000000,
+    "segmentRevenueFromOperations": 4664250000000
+   },
+   "header": "Mar 2022",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 444250000000,
+      "segmentRevenue": 4561470000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 24590000000,
+      "segmentRevenue": 63290000000
+     },
+     "name": "Oil & Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": -80000000,
+      "segmentRevenue": 14620000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 13970000000,
+      "segmentRevenue": 13870000000
+     },
+     "name": "Financial Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 1870000000,
+      "segmentRevenue": 12910000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 270000000,
+      "segmentRevenue": 820000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 4310000000,
+    "netOtherUnallocableExpense": -133750000000,
+    "segmentFinanceCosts": 162110000000,
+    "segmentProfitBeforeTax": 272120000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 300480000000,
+    "segmentRevenue": 2793710000000,
+    "segmentRevenueFromOperations": 2789400000000
+   },
+   "header": "Mar 2021",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 286570000000,
+      "segmentRevenue": 2754260000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 11900000000,
+      "segmentRevenue": 11900000000
+     },
+     "name": "Financial Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 1360000000,
+      "segmentRevenue": 9600000000
+     },
+     "name": "Digital Services"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": -150000000,
+      "segmentRevenue": 9020000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 420000000,
+      "segmentRevenue": 7910000000
+     },
+     "name": "Oil & Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 380000000,
+      "segmentRevenue": 1020000000
+     },
+     "name": "Retail"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 793240000000,
+    "netOtherUnallocableExpense": -50210000000,
+    "segmentFinanceCosts": 121050000000,
+    "segmentProfitBeforeTax": 403160000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 474000000000,
+    "segmentRevenue": 4445260000000,
+    "segmentRevenueFromOperations": 3652020000000
+   },
+   "header": "Mar 2020",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 211560000000,
+      "segmentRevenue": 2990790000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 252650000000,
+      "segmentRevenue": 1408960000000
+     },
+     "name": "Petrochemicals"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 1220000000,
+      "segmentRevenue": 22960000000
+     },
+     "name": "Others"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 2410000000,
+      "segmentRevenue": 16390000000
+     },
+     "name": "Oil and Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 6160000000,
+      "segmentRevenue": 6160000000
+     },
+     "name": "Financial Services"
+    }
+   ]
+  },
+  {
+   "data": {
+    "interSegmentRevenue": 919340000000,
+    "netOtherUnallocableExpense": -63470000000,
+    "segmentFinanceCosts": 97510000000,
+    "segmentProfitBeforeTax": 473670000000,
+    "segmentProfitLossBeforeTaxAndFinanceCosts": 507710000000,
+    "segmentRevenue": 4929200000000,
+    "segmentRevenueFromOperations": 4009860000000
+   },
+   "header": "Mar 2019",
+   "segments": [
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 193490000000,
+      "segmentRevenue": 3205470000000
+     },
+     "name": "Oil to Chemicals (O2C)"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 315310000000,
+      "segmentRevenue": 1680750000000
+     },
+     "name": "Petrochemicals"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": -2160000000,
+      "segmentRevenue": 26130000000
+     },
+     "name": "Oil and Gas"
+    },
+    {
+     "data": {
+      "segmentProfitLossBeforeTaxAndFinanceCosts": 1070000000,
+      "segmentRevenue": 16850000000
+     },
+     "name": "Others"
+    }
+   ]
+  }
+ ],
+ "symbol": "RELIANCE"
+}

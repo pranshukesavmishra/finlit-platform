@@ -1,0 +1,235 @@
+{
+ "symbol": "RELIANCE",
+ "price_ratios": [
+  {
+   "average_price": 1389.53,
+   "pe": 47.95,
+   "pb": 3.32,
+   "ptb": 3.61,
+   "ps": 3.22,
+   "pfcf": 41.85,
+   "header": "TTM",
+   "year": 2026
+  },
+  {
+   "average_price": 1431.28,
+   "pe": 44.18,
+   "pb": 3.42,
+   "ptb": 3.71,
+   "ps": 3.54,
+   "pfcf": 43.11,
+   "header": "Mar 2026",
+   "year": 2026
+  },
+  {
+   "average_price": 1379.33,
+   "pe": 52.93,
+   "pb": 3.44,
+   "ptb": 3.79,
+   "ps": 3.4,
+   "pfcf": 44.31,
+   "header": "Mar 2025",
+   "year": 2025
+  },
+  {
+   "average_price": 1303.25,
+   "pe": 73.34,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 4.33,
+   "pfcf": 0,
+   "header": "Dec 2024",
+   "year": 2024
+  },
+  {
+   "average_price": 1507.38,
+   "pe": 133.16,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 7.4,
+   "pfcf": 0,
+   "header": "Sep 2024",
+   "year": 2024
+  },
+  {
+   "average_price": 1275.01,
+   "pe": 41.04,
+   "pb": 3.35,
+   "ptb": 3.78,
+   "ps": 3.08,
+   "pfcf": 43.35,
+   "header": "Mar 2024",
+   "year": 2024
+  },
+  {
+   "average_price": 1193.14,
+   "pe": 52.49,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 3.98,
+   "pfcf": 0,
+   "header": "Dec 2023",
+   "year": 2023
+  },
+  {
+   "average_price": 1259.39,
+   "pe": 81.78,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 6.27,
+   "pfcf": 0,
+   "header": "Sep 2023",
+   "year": 2023
+  },
+  {
+   "average_price": 1252.84,
+   "pe": 38.35,
+   "pb": 3.37,
+   "ptb": 3.59,
+   "ps": 3.06,
+   "pfcf": 86.4,
+   "header": "Mar 2023",
+   "year": 2023
+  },
+  {
+   "average_price": 1277.15,
+   "pe": 56.89,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 4.02,
+   "pfcf": 0,
+   "header": "Dec 2022",
+   "year": 2022
+  },
+  {
+   "average_price": 1256.95,
+   "pe": 77.26,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 5.72,
+   "pfcf": 0,
+   "header": "Sep 2022",
+   "year": 2022
+  },
+  {
+   "average_price": 1149.53,
+   "pe": 39.8,
+   "pb": 3.3,
+   "ptb": 3.53,
+   "ps": 3.39,
+   "pfcf": 31.51,
+   "header": "Mar 2022",
+   "year": 2022
+  },
+  {
+   "average_price": 1247.51,
+   "pe": 60.32,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 5.24,
+   "pfcf": 0,
+   "header": "Dec 2021",
+   "year": 2021
+  },
+  {
+   "average_price": 1111.66,
+   "pe": 84.34,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 7.47,
+   "pfcf": 0,
+   "header": "Sep 2021",
+   "year": 2021
+  },
+  {
+   "average_price": 954.95,
+   "pe": 40.43,
+   "pb": 2.72,
+   "ptb": 2.88,
+   "ps": 4.61,
+   "pfcf": 0,
+   "header": "Mar 2021",
+   "year": 2021
+  },
+  {
+   "average_price": 1018.18,
+   "pe": 56.28,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 7.21,
+   "pfcf": 0,
+   "header": "Dec 2020",
+   "year": 2020
+  },
+  {
+   "average_price": 1042.89,
+   "pe": 89.06,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 11.74,
+   "pfcf": 0,
+   "header": "Sep 2020",
+   "year": 2020
+  },
+  {
+   "average_price": 666.21,
+   "pe": 29.16,
+   "pb": 2.12,
+   "ptb": 2.23,
+   "ps": 2.47,
+   "pfcf": 0,
+   "header": "Mar 2020",
+   "year": 2020
+  },
+  {
+   "average_price": 733.82,
+   "pe": 35.04,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 3.49,
+   "pfcf": 0,
+   "header": "Dec 2019",
+   "year": 2019
+  },
+  {
+   "average_price": 615.07,
+   "pe": 44.38,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 4.37,
+   "pfcf": 0,
+   "header": "Sep 2019",
+   "year": 2019
+  },
+  {
+   "average_price": 551.89,
+   "pe": 21.23,
+   "pb": 1.84,
+   "ptb": 1.91,
+   "ps": 1.89,
+   "pfcf": 0,
+   "header": "Mar 2019",
+   "year": 2019
+  },
+  {
+   "average_price": 550.62,
+   "pe": 27.98,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 2.44,
+   "pfcf": 0,
+   "header": "Dec 2018",
+   "year": 2018
+  },
+  {
+   "average_price": 581.93,
+   "pe": 44.52,
+   "pb": 0,
+   "ptb": 0,
+   "ps": 3.97,
+   "pfcf": 0,
+   "header": "Sep 2018",
+   "year": 2018
+  }
+ ]
+}

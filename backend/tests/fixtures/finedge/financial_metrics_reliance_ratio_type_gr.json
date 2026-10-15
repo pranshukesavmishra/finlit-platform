@@ -1,0 +1,33 @@
+{
+ "financial_metrics": {
+  "EBITDAGrowth3years": -0.001,
+  "EBITDAGrowth5years": 0.0821,
+  "EBITGrowth3years": -0.0366,
+  "EBITGrowth5years": 0.0703,
+  "assetGrowth3years": 0.0842,
+  "assetGrowth5years": 0.0594,
+  "bookValueGrowth3Years": 0.0405,
+  "bookValueGrowth5Years": 0.036,
+  "capexGrowth3years": 0.0628,
+  "cfoGrowth3years": 0.1806,
+  "cogsGrowth3years": -0.0126,
+  "cogsGrowth5years": 0.1664,
+  "dilutedSharesGrowth3years": 0,
+  "dilutedSharesGrowth5years": 0.0006,
+  "epsGrowth3years": -0.0028,
+  "epsGrowth5years": 0.0653,
+  "freeCashFlowGrowth3Years": 0.3181,
+  "grossIncomeGrowth3years": 0.0165,
+  "grossIncomeGrowth5years": 0.1006,
+  "netIncomeGrowth3years": -0.0027,
+  "netIncomeGrowth5years": 0.0654,
+  "operatingIncomeGrowth3years": -0.0366,
+  "operatingIncomeGrowth5years": 0.0703,
+  "revenueGrowth3years": -0.004,
+  "revenueGrowth5years": 0.1437,
+  "tangibleBVGrowth3Years": 0.034,
+  "tangibleBVGrowth5Years": 0.031
+ },
+ "ratio_type": "Growth",
+ "symbol": "RELIANCE"
+}

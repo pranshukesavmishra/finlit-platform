@@ -1,0 +1,46 @@
+[
+ {
+  "stock_symbol": "RELIANCE",
+  "nse_code": "RELIANCE",
+  "bse_code": "500325",
+  "category": "Credit Rating",
+  "description": "Reliance Industries Limited has informed the Exchange about Credit Rating",
+  "announcement_date": "2026-09-25 22:49:04",
+  "timestamp_unix": 1790356744,
+  "pdf_file_link": "https://nsearchives.nseindia.com/corporate/PVIVINMA_25092026224843_SE.pdf",
+  "pdf_file_link_hist": ""
+ },
+ {
+  "stock_symbol": "RELIANCE",
+  "nse_code": "RELIANCE",
+  "bse_code": "500325",
+  "category": "Credit Rating",
+  "description": "Reliance Industries Limited has informed the Exchange about Credit Rating",
+  "announcement_date": "2026-09-25 22:09:04",
+  "timestamp_unix": 1790354344,
+  "pdf_file_link": "https://nsearchives.nseindia.com/corporate/PVIVINMA_25092026220844_SE_CARE_and_CRISIL.pdf",
+  "pdf_file_link_hist": ""
+ },
+ {
+  "stock_symbol": "RELIANCE",
+  "nse_code": "RELIANCE",
+  "bse_code": "500325",
+  "category": "Updates",
+  "description": "This is further to the disclosure dated September 21, 2026 made by the Company. We wish to inform you that the Company executives participated in the Institutional Investors' Meeting - BofA Asia Pacific Conference 2026 and no unpublished price sensitive information was shared/discussed in the said one-on-one meeting.",
+  "announcement_date": "2026-09-24 19:24:20",
+  "timestamp_unix": 1790258060,
+  "pdf_file_link": "https://nsearchives.nseindia.com/corporate/kavinavora_24092026192411_SE_24092026.pdf",
+  "pdf_file_link_hist": ""
+ },
+ {
+  "stock_symbol": "RELIANCE",
+  "nse_code": "RELIANCE",
+  "bse_code": "500325",
+  "category": "Updates",
+  "description": "This is further to the disclosure dated September 17, 2026 made by the Company. We wish to inform you that the Company executives participated in the Institutional Investors' Meeting - CITIC CLSA Investors' Forum 2026 and no unpublished price sensitive information was shared/discussed in the said one-on-one meeting.",
+  "announcement_date": "2026-09-23 18:51:52",
+  "timestamp_unix": 1790169712,
+  "pdf_file_link": "https://nsearchives.nseindia.com/corporate/kavinavora_23092026184956_SE_23092026.pdf",
+  "pdf_file_link_hist": ""
+ }
+]

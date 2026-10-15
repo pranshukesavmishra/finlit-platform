@@ -1,0 +1,162 @@
+{
+ "_source": "FinEdge API probe for RELIANCE (standalone), Sep 2026. Used as offline fixtures; values are real API responses.",
+ "fixtures": [
+  {
+   "path": "/stock-symbols",
+   "match": {},
+   "file": "stock_symbols.json.gz"
+  },
+  {
+   "path": "/company-profile/RELIANCE",
+   "match": {},
+   "file": "company_profile_reliance.json"
+  },
+  {
+   "path": "/peers/RELIANCE",
+   "match": {},
+   "file": "peers_reliance_group_sector.json"
+  },
+  {
+   "path": "/financials/RELIANCE",
+   "match": {
+    "statement_code": "pl",
+    "period": "annual"
+   },
+   "file": "financials_reliance_period_annual_statement_code_pl.json"
+  },
+  {
+   "path": "/financials/RELIANCE",
+   "match": {
+    "statement_code": "bs",
+    "period": "annual"
+   },
+   "file": "financials_reliance_period_annual_statement_code_bs.json"
+  },
+  {
+   "path": "/financials/RELIANCE",
+   "match": {
+    "statement_code": "cf",
+    "period": "annual"
+   },
+   "file": "financials_reliance_period_annual_statement_code_cf.json"
+  },
+  {
+   "path": "/financials/RELIANCE",
+   "match": {
+    "statement_code": "pl",
+    "period": "quarterly"
+   },
+   "file": "financials_reliance_period_quarterly_statement_code_pl.json"
+  },
+  {
+   "path": "/segment-revenue/RELIANCE",
+   "match": {
+    "statement_code": "pl",
+    "period": "annual"
+   },
+   "file": "segment_revenue_reliance_period_annual_statement_code_pl.json"
+  },
+  {
+   "path": "/notes/RELIANCE",
+   "match": {
+    "period": "annual"
+   },
+   "file": "notes_reliance_period_annual.json"
+  },
+  {
+   "path": "/ratios/RELIANCE",
+   "match": {
+    "ratio_type": "pr"
+   },
+   "file": "ratios_reliance_ratio_type_pr.json"
+  },
+  {
+   "path": "/ratios/RELIANCE",
+   "match": {
+    "ratio_type": "le"
+   },
+   "file": "ratios_reliance_ratio_type_le.json"
+  },
+  {
+   "path": "/ratios/RELIANCE",
+   "match": {
+    "ratio_type": "ef"
+   },
+   "file": "ratios_reliance_ratio_type_ef.json"
+  },
+  {
+   "path": "/ratios/RELIANCE",
+   "match": {
+    "ratio_type": "li"
+   },
+   "file": "ratios_reliance_ratio_type_li.json"
+  },
+  {
+   "path": "/financial-metrics/RELIANCE",
+   "match": {
+    "ratio_type": "gr"
+   },
+   "file": "financial_metrics_reliance_ratio_type_gr.json"
+  },
+  {
+   "path": "/basic-financials/RELIANCE",
+   "match": {
+    "statement_code": "pl"
+   },
+   "file": "basic_financials_reliance_statement_code_pl.json"
+  },
+  {
+   "path": "/quote",
+   "match": {
+    "symbol": "RELIANCE"
+   },
+   "file": "quote.json"
+  },
+  {
+   "path": "/daily-quotes/RELIANCE",
+   "match": {},
+   "file": "daily_quotes_reliance.json"
+  },
+  {
+   "path": "/daily-price-ratios/RELIANCE",
+   "match": {},
+   "file": "daily_price_ratios_reliance.json"
+  },
+  {
+   "path": "/annual-price-ratios/RELIANCE",
+   "match": {},
+   "file": "annual_price_ratios_reliance.json"
+  },
+  {
+   "path": "/shareholdings/pattern/RELIANCE",
+   "match": {
+    "period": "quarterly"
+   },
+   "file": "shareholdings_pattern_reliance_period_quarterly.json"
+  },
+  {
+   "path": "/shareholdings/ownership-current/RELIANCE",
+   "match": {},
+   "file": "shareholdings_ownership_current_reliance.json"
+  },
+  {
+   "path": "/corporate-actions/all",
+   "match": {
+    "symbol": "RELIANCE"
+   },
+   "file": "corporate_actions_all.json"
+  },
+  {
+   "path": "/dividend/RELIANCE",
+   "match": {},
+   "file": "dividend_reliance.json"
+  },
+  {
+   "path": "/corp-announcements",
+   "match": {
+    "symbol": "RELIANCE"
+   },
+   "file": "corp_announcements.json"
+  }
+ ]
+}
