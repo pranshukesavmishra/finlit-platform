@@ -252,6 +252,20 @@ class Store:
     async def invalidate_search(self):
         await self.redis.delete(SEARCH_KEY)
 
+    async def peer_rows(self, symbols: List[str], model: str = "v1") -> List[dict]:
+        """Name, sector and (if already scored) score and price for each peer, in the given order."""
+        if not symbols:
+            return []
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT c.symbol, c.name, c.sector, s.overall, s.band, s.price, s.market_cap, s.pe, s.roe
+                   FROM companies c
+                   LEFT JOIN LATERAL (SELECT * FROM scores WHERE symbol = c.symbol AND model = $2
+                                      ORDER BY updated_at DESC LIMIT 1) s ON true
+                   WHERE c.symbol = ANY($1::text[])""", symbols, model)
+        found = {r["symbol"]: {k: (float(v) if hasattr(v, "as_tuple") else v) for k, v in dict(r).items()} for r in rows}
+        return [found.get(s, {"symbol": s, "name": None}) for s in symbols]
+
     async def top_scores(self, model: str = "v1", limit: int = 50) -> List[dict]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(

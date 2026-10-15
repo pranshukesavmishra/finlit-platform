@@ -49,3 +49,28 @@ def test_price_ranges(reliance_sections):
     weekly = reliance_sections["price-MAX"]["series"]
     assert len(weekly["t"]) < len(reliance_sections["price"]["daily"]["t"]) / 4
     assert reliance_sections["price-MAX"]["grain"] == "weekly"
+
+
+def test_corrections_from_page_audit(reliance_sections):
+    s = reliance_sections
+    metrics = {m["key"]: m for m in s["summary"]["keyMetrics"]}
+    # 1. P/E re-priced at the live quote (41.36x at the 28 Sep close of 1,198.50 -> 1,184)
+    assert metrics["pe"]["value"] == 40.86 and metrics["pe"]["period"] == "Today"
+    # 2. FinEdge's TTM ROCE duplicated TTM ROE; we show FY26 ROCE and say so
+    assert metrics["roe"]["value"] != metrics["roce"]["value"] and metrics["roce"]["period"] == "FY26"
+    assert s["summary"]["dataQuality"]["notes"]
+    # 3. One price series: the chart ends at the header price, and returns use the same series
+    one_year = s["price-1Y"]["series"]
+    assert one_year["c"][-1] == s["summary"]["quote"]["price"]
+    # 4. Dividends belong to the year they were declared for, and payout uses the same figures
+    dps = s["events"]["dividendsByFY"]
+    assert dps["periods"][-1] == "FY26" and dps["dps"][-1] == 6.0
+    assert metrics["dividend_payout"]["value"] == 18.52
+    # 5. No duplicate announcements
+    ann = [(a["date"], a["category"], a["description"]) for a in s["events"]["announcements"]]
+    assert len(ann) == len(set(ann))
+    # 6. Ranges longer than the price history are marked incomplete
+    assert s["price-1Y"]["complete"] and not s["price-5Y"]["complete"]
+    assert len(s["price-1Y"]["series"]["ema200"]) == len(one_year["t"])
+    # 9. Tiny segments are folded into Others
+    assert all((seg["sharePct"] or 0) >= 0.5 for seg in s["segments"]["latest"])

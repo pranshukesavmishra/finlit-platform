@@ -95,8 +95,19 @@ def family_rows(family: str, payload: Any) -> Dict[str, Dict[str, Optional[float
     return out
 
 
-def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[float]]] = None) -> dict:
+# Our own figures replace FinEdge's for these keys (computed at the live price or from the statements
+# shown on the page, so every number on the page agrees with every other).
+DERIVED_WINS = {"pe", "pb", "ps", "pfcf", "ev_ebitda", "dividend_yield", "market_cap", "cfo_to_pat", "fcf_to_pat",
+                "liabilities_to_assets", "dividend_payout"}
+# Pairs that are different measures and should never be identical in the same period.
+DISTINCT_PAIRS = [("roe", "roce")]
+
+
+def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[float]]] = None,
+                 derived_periods: Optional[Dict[str, str]] = None) -> dict:
     """payloads: {"pr": ..., "le": ..., "li": ..., "ef": ..., "basic": ..., "gr": ...}."""
+    derived_periods = derived_periods or {}
+    notes: List[str] = []
     by_period: Dict[str, Dict[str, Optional[float]]] = {}
     for family in ("pr", "le", "li", "ef", "basic"):
         for period, values in family_rows(family, payloads.get(family)).items():
@@ -115,19 +126,27 @@ def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[
         if value is not None:
             latest[key] = {"value": value, "period": period}
 
+    # FinEdge's TTM row sometimes repeats one value for two different ratios (RELIANCE: ROE = ROCE =
+    # 6.93% in TTM while every annual row differs). Fall back to the latest full year for the second.
+    for first, second in DISTINCT_PAIRS:
+        a, b = latest.get(first), latest.get(second)
+        if a and b and a["period"] == b["period"] == "TTM" and a["value"] == b["value"] and annual:
+            fy = next((p for p in reversed(annual) if by_period.get(p, {}).get(second) is not None), None)
+            if fy and by_period[fy].get(second) != by_period[fy].get(first):
+                latest[second] = {"value": by_period[fy][second], "period": fy}
+                notes.append(f"Source TTM {second.upper()} repeated TTM {first.upper()}; showing {fy} {second.upper()} instead.")
+
     growth = (payloads.get("gr") or {}).get("financial_metrics") if isinstance(payloads.get("gr"), dict) else None
     for source_key, key in GROWTH_MAP.items():
         value = pct((growth or {}).get(source_key))
         if value is not None:
-            latest[key] = {"value": value, "period": "TTM"}
+            latest[key] = {"value": value, "period": key.rsplit("_", 1)[-1].upper()}  # "5Y" / "3Y"
 
     for key, value in (derived or {}).items():
         if key.endswith("_years"):
             continue
-        if value is not None and key not in latest:
-            latest[key] = {"value": round(value, 2), "period": "latest"}
-        elif value is not None and key in ("pe", "pb", "ps", "pfcf", "ev_ebitda", "dividend_yield", "market_cap", "cfo_to_pat", "fcf_to_pat", "liabilities_to_assets"):
-            latest[key] = {"value": round(value, 2), "period": "latest"}
+        if value is not None and (key not in latest or key in DERIVED_WINS):
+            latest[key] = {"value": round(value, 2), "period": derived_periods.get(key, "Latest")}
 
     for key, entry in latest.items():
         meta = GLOSSARY.get(key, {})
@@ -135,6 +154,7 @@ def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[
 
     history_keys = sorted(k for k in keys if any(by_period.get(p, {}).get(k) is not None for p in annual))
     return {
+        "notes": notes,
         "latest": latest,
         "groups": [{**g, "keys": sorted(k for k, e in latest.items() if e.get("group") == g["id"])} for g in GROUPS],
         "history": {"periods": annual, "rows": {k: [by_period.get(p, {}).get(k) for p in annual] for k in history_keys}},
@@ -149,7 +169,9 @@ def price_ratio_latest(daily_payload: Any) -> Dict[str, Optional[float]]:
     last = rows[-1]
     out = {k: rnd(last.get(k)) for k in ("pe", "pb", "ps", "pfcf")}
     # FinEdge sends 0 when a ratio is undefined (e.g. negative earnings); hide rather than show 0.
-    return {k: (v if v not in (0, 0.0) else None) for k, v in out.items()}
+    out = {k: (v if v not in (0, 0.0) else None) for k, v in out.items()}
+    out["asOf"] = parse_date(last["quote_date"]).isoformat()
+    return out
 
 
 def valuation_history(annual_payload: Any) -> dict:

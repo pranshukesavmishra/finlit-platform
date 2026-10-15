@@ -71,9 +71,24 @@ def corporate_actions(dividend_payload: Any, actions_payload: Any = None) -> Lis
             "adjustedAmount": rnd(adjusted, 4),
             "ratio": row.get("ratio"),
             "paidInFY": fiscal_year_label(when),
+            "forFY": _for_fiscal_year(kind, when),
         })
     out.sort(key=lambda r: r["date"], reverse=True)
     return out
+
+
+def _for_fiscal_year(kind: str, paid: date) -> Optional[str]:
+    """The financial year a dividend belongs to, which is how Indian companies declare it.
+
+    A final dividend is declared with the year's results and paid after the year ends:
+    RELIANCE's ₹6 paid on 5 Jun 2026 (FY27) is the final dividend *for FY26*. Interim and special
+    dividends belong to the year they are paid in."""
+    if not kind.endswith("dividend"):
+        return None
+    if kind == "final_dividend":
+        last_year_end = date(paid.year if paid.month > 3 else paid.year - 1, 3, 31)  # the year whose results it follows
+        return fiscal_year_label(last_year_end)
+    return fiscal_year_label(paid)
 
 
 def _title(kind: str, amount: Optional[float], ratio: Any) -> str:
@@ -101,11 +116,15 @@ def dividends_between(actions: List[dict], start: date, end: date) -> float:
 
 def dividends_by_fiscal_year(actions: List[dict], years: int = 6) -> dict:
     totals: Dict[str, float] = {}
+    unadjusted: Dict[str, float] = {}
     for action in actions:
-        if action["type"].endswith("dividend") and action.get("paidInFY"):
-            totals[action["paidInFY"]] = round(totals.get(action["paidInFY"], 0) + (action.get("adjustedAmount") or 0), 4)
+        fy = action.get("forFY")
+        if action["type"].endswith("dividend") and fy:
+            totals[fy] = round(totals.get(fy, 0) + (action.get("adjustedAmount") or 0), 4)
+            unadjusted[fy] = round(unadjusted.get(fy, 0) + (action.get("amount") or 0), 4)
     periods = sorted(totals, key=lambda p: int(p[2:]))[-years:]
-    return {"periods": periods, "dps": [totals[p] for p in periods]}
+    return {"periods": periods, "dps": [totals[p] for p in periods], "dpsUnadjusted": [unadjusted[p] for p in periods],
+            "basis": "Declared for each financial year, adjusted for later splits and bonuses"}
 
 
 # ---------------------------------------------------------------- announcements
@@ -123,10 +142,12 @@ def announcements(payload: Any, limit: int = 25) -> List[dict]:
         when = parse_date(row.get("announcement_date"))
         category = (row.get("category") or "General").strip()
         link = row.get("pdf_file_link") or None
+        description = " ".join((row.get("description") or "").split())
         key = (when, category, link)
-        if when is None or key in seen or category in NOISE:
+        content_key = (when, category, description.lower())
+        if when is None or key in seen or content_key in seen or category in NOISE:
             continue
-        seen.add(key)
+        seen.update({key, content_key})
         out.append({
             "date": when.isoformat(),
             "time": str(row.get("announcement_date") or "")[11:16] or None,
@@ -192,4 +213,16 @@ def segments(payload: Any, limit: int = 6) -> dict:
             "growthPct": round((now / before - 1) * 100, 2) if now and before else None,
         })
     summary.sort(key=lambda s: s["revenue"] or 0, reverse=True)
-    return {"unit": "Cr", "periods": [p for p, _ in periods], "segments": table, "latest": summary}
+    # Segments under 0.5% of revenue (e.g. a ₹6 Cr line in a ₹5 lakh crore company) are folded into
+    # "Others": their growth rates swing wildly and read as noise.
+    major = [s for s in summary if (s["sharePct"] or 0) >= 0.5 and s["name"].lower() != "others"]
+    minor = [s for s in summary if s not in major]
+    if minor:
+        revenue = sum(s["revenue"] or 0 for s in minor)
+        ebit = sum(s["ebit"] or 0 for s in minor)
+        before = sum((table[s["name"]]["revenue"][-2] or 0) if len(table[s["name"]]["revenue"]) > 1 else 0 for s in minor)
+        major.append({"name": "Others", "revenue": round(revenue, 2), "ebit": round(ebit, 2),
+                      "sharePct": round(revenue / latest_total * 100, 2) if latest_total else None,
+                      "growthPct": round((revenue / before - 1) * 100, 2) if revenue and before else None,
+                      "includes": [s["name"] for s in minor if s["name"].lower() != "others"]})
+    return {"unit": "Cr", "periods": [p for p, _ in periods], "segments": table, "latest": major}

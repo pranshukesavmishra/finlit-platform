@@ -85,6 +85,8 @@ async def test_every_section_and_range(api):
         r = await api.get(f"/api/stocks/RELIANCE/price?range={rng}")
         assert r.status_code == 200 and r.json()["series"]["t"], rng
     assert (await api.get("/api/stocks/RELIANCE/price?range=7Y")).status_code == 404
+    peers = (await api.get("/api/stocks/RELIANCE/peers")).json()
+    assert peers["items"] and peers["items"][0]["name"]  # names come from the stock universe
     assert (await api.get("/api/stocks/RELIANCE/secrets")).status_code == 404
     assert (await api.get("/api/stocks/DROP%20TABLE")).status_code == 400
 

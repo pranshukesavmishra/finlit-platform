@@ -51,6 +51,7 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if checks["status"] == "rejected":
             # Keep serving the last good snapshot; a human reviews the logged issues.
             raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
+        sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
         effective = bundle["statement"]
         row = snapshot.score_row(sections)
         await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])

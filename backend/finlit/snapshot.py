@@ -32,7 +32,7 @@ PRICE_RANGES = {"1M": (31, "daily"), "6M": (183, "daily"), "1Y": (366, "daily"),
 
 # Shown as the headline metric strip on the summary card, in this order.
 KEY_METRICS = ["market_cap", "pe", "pb", "dividend_yield", "roe", "roce", "debt_to_equity",
-               "sales_cagr", "profit_cagr", "opm", "ev_ebitda", "dividend_payout"]
+               "sales_cagr", "profit_cagr", "operating_margin", "ev_ebitda", "dividend_payout"]
 
 
 def _rows(payload: Any, key: str = "financials") -> List[dict]:
@@ -64,9 +64,13 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     prof = market.profile(bundle.get("profile"), bundle.get("symbol_row"))
     live = market.quote(bundle.get("quote"), symbol)
     history = market.price_history(bundle.get("daily_quotes"))
-    last_day = parse_date(history["t"][-1]) if history["t"] else None
+    closes_by_day = dict(zip(history["t"], history["c"]))
     price = live.get("price") or market.latest_close(history)
-    as_of: Optional[date] = parse_date(live.get("asOf")) or last_day
+    as_of: Optional[date] = parse_date(live.get("asOf")) or (parse_date(history["t"][-1]) if history["t"] else None)
+    # The live quote is newer than the last daily bar (end-of-day files land after the close). Add it as
+    # a provisional bar so the header price, chart, returns and technicals all agree with each other.
+    provisional = _append_live_bar(history, live, as_of)
+    last_day = parse_date(history["t"][-1]) if history["t"] else None
     technical = indicators.technical_snapshot(history["c"])
 
     actions = events.corporate_actions(bundle.get("dividends"), bundle.get("corporate_actions"))
@@ -82,8 +86,20 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     first_pass = ratios.build_ratios(family_payloads)
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
     computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield)
-    computed.update(ratios.price_ratio_latest(bundle.get("daily_price_ratios")))
-    ratio_view = ratios.build_ratios(family_payloads, computed)
+    computed.update(_valuation_at_price(bundle.get("daily_price_ratios"), closes_by_day, price))
+    dividends_fy = events.dividends_by_fiscal_year(actions)
+    fy = (pl.get("periods") or [None])[-1]
+    computed["dividend_payout"] = _payout(dividends_fy, pl, fy)
+    years = computed.get("sales_cagr_years")
+    derived_periods = {
+        **{k: "Today" for k in ("pe", "pb", "ps", "pfcf", "market_cap")},
+        "dividend_yield": "TTM", "ev_ebitda": "TTM",
+        **{k: fy for k in ("opm", "npm", "cfo_to_pat", "fcf_to_pat", "sales_growth_latest", "profit_growth_latest",
+                           "dividend_payout") if fy},
+        "liabilities_to_assets": (bs.get("periods") or [None])[-1],
+        "sales_cagr": f"{years}Y" if years else None, "profit_cagr": f"{computed.get('profit_cagr_years')}Y" if computed.get("profit_cagr_years") else None,
+    }
+    ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
 
     metrics: Dict[str, Optional[float]] = {k: v["value"] for k, v in ratio_view["latest"].items()}
     metrics.update({k: v for k, v in computed.items() if v is not None})
@@ -98,6 +114,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
                 "ratios_pr", "shareholding")
     quality = {
         "missing": [k for k in expected if not _present(bundle.get(k))],
+        "notes": ratio_view.get("notes", []),
+        "provisionalLastBar": provisional,
         "removedBadTicks": history["removedBadTicks"],
         "statement": statement,
         "isBank": statements.is_bank(pl_rows),
@@ -153,17 +171,31 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     events_section = {
         "meta": meta,
         "actions": actions,
-        "dividendsByFY": events.dividends_by_fiscal_year(actions),
+        "dividendsByFY": dividends_fy,
         "dividendYieldTtm": dividend_yield,
         "announcements": events.announcements(bundle.get("announcements")),
     }
 
+    # Moving averages are computed once on the full daily history, then sampled on each range's dates,
+    # so a 1M chart still shows a true 200-day average.
+    ema50 = dict(zip(history["t"], indicators.ema(history["c"], 50))) if history["c"] else {}
+    ema200 = dict(zip(history["t"], indicators.ema(history["c"], 200))) if history["c"] else {}
+    first_day = parse_date(history["t"][0]) if history["t"] else None
     ranges = {}
     for label, (days, grain) in PRICE_RANGES.items():
-        cut = market.slice_since(history, (last_day - timedelta(days=days)).isoformat()) if days and last_day else history
+        start = last_day - timedelta(days=days) if days and last_day else first_day
+        cut = market.slice_since(history, start.isoformat()) if days and last_day else history
         series = cut if grain == "daily" else market.weekly(cut)
-        ranges[f"price-{label}"] = {"meta": meta, "range": label, "grain": grain, "technical": technical,
-                                    "series": {k: series[k] for k in ("t", "o", "h", "l", "c", "v") if k in series}}
+        out = {k: series[k] for k in ("t", "o", "h", "l", "c", "v") if k in series}
+        out["ema50"] = [_r(ema50.get(t)) for t in series["t"]]
+        out["ema200"] = [_r(ema200.get(t)) for t in series["t"]]
+        ranges[f"price-{label}"] = {
+            "meta": meta, "range": label, "grain": grain, "technical": technical, "series": out,
+            # False when history does not reach back to the start of the range (e.g. 5Y on a 2-year listing).
+            "complete": bool(first_day and start and first_day <= start + timedelta(days=7)) or label == "MAX",
+            "startsAt": series["t"][0] if series["t"] else None,
+            "provisionalLastBar": provisional,
+        }
 
     sections = {
         **ranges,
@@ -178,6 +210,45 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     summary["dataQuality"]["checks"] = quality_checks.run(sections, today=(now or datetime.now(timezone.utc)).date())
     return sections
+
+
+def _r(value: Optional[float]) -> Optional[float]:
+    return round(value, 2) if value is not None else None
+
+
+def _append_live_bar(history: dict, live: dict, as_of: Optional[date]) -> bool:
+    price = live.get("price")
+    if not price or not as_of or not history["t"] or as_of <= parse_date(history["t"][-1]):
+        return False
+    history["t"].append(as_of.isoformat())
+    history["o"].append(live.get("open") or price)
+    history["h"].append(max(v for v in (live.get("high"), price) if v is not None))
+    history["l"].append(min(v for v in (live.get("low"), price) if v is not None))
+    history["c"].append(price)
+    history["v"].append(live.get("volume"))
+    return True
+
+
+def _valuation_at_price(daily_ratios: Any, closes_by_day: Dict[str, float], price: Optional[float]) -> Dict[str, Optional[float]]:
+    """FinEdge's daily P/E, P/B, P/S and P/FCF are computed at that day's close. Re-price them at the
+    live quote so they agree with the price in the header (RELIANCE: 41.36x at ₹1,198.50 is 40.86x at ₹1,184)."""
+    latest = ratios.price_ratio_latest(daily_ratios)
+    as_of = latest.pop("asOf", None)
+    close = closes_by_day.get(as_of) if as_of else None
+    if not price or not close:
+        return latest
+    factor = price / close
+    return {k: (round(v * factor, 2) if v is not None else None) for k, v in latest.items()}
+
+
+def _payout(dividends_fy: dict, pl: dict, fy: Optional[str]) -> Optional[float]:
+    """Dividend declared for the year ÷ EPS for the same year (RELIANCE FY26: ₹6 ÷ ₹32.40 = 18.5%)."""
+    if not fy or fy not in dividends_fy.get("periods", []):
+        return None
+    dps = dividends_fy["dps"][dividends_fy["periods"].index(fy)]
+    eps_row = dict(zip(pl.get("periods") or [], (pl.get("rows") or {}).get("eps") or []))
+    eps = eps_row.get(fy)
+    return round(dps / eps * 100, 2) if dps and eps and eps > 0 else None
 
 
 def score_row(sections: Dict[str, dict]) -> dict:
