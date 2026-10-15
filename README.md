@@ -45,6 +45,21 @@ and the browser serve repeat views without reaching the server.
 - **Score moved to the server** (model `v1`, identical thresholds and bands to the current site), so every
   user sees the same number. The score is versioned, so a Gold "advanced" model can ship beside it.
 
+## Security and data quality
+
+- **Plan and research:** [`docs/platform-plan.md`](docs/platform-plan.md) covers security layers,
+  data quality, UI, scaling and the login design, with sources.
+- **Server hardening steps:** [`deploy/README.md`](deploy/README.md).
+- **In the code today:**
+  - strict security headers;
+  - per-client rate limits;
+  - trusted hosts;
+  - a production safety switch;
+  - a read-only database role for the API;
+  - hardened containers;
+  - pip-audit, bandit and gitleaks in CI;
+  - a 23-check data quality gate that refuses to publish broken numbers.
+
 ## Layout
 
 ```
@@ -52,6 +67,8 @@ backend/
   finlit/
     normalize/   FinEdge payload -> clean tables (₹ crore, %, ISO dates), glossary of every metric
     analytics/   indicators (EMA, RSI), returns, derived metrics, score v1, plain-English notes
+    quality.py   23 publish-time checks (accounting identities, units, freshness, ranges)
+    security.py  response headers, client IP resolution, Redis rate limiter
     snapshot.py  raw bundle -> sections: summary, financials, ratios, price ranges, ownership, events, segments, peers
     finedge.py   async client: parallel fetch, retries on 429/5xx, consolidated -> standalone fallback, fixture mode
     store.py     Postgres (snapshots, scores, price_daily, companies, runs, queue) + Redis section cache
