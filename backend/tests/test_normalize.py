@@ -74,3 +74,10 @@ def test_segments_merge_spelling(reliance_bundle):
     names = [s["name"].lower().replace("&", "and") for s in seg["latest"]]
     assert names and len(names) == len(set(names))
     assert abs(sum(s["sharePct"] for s in seg["latest"]) - 100) < 0.1
+
+
+def test_quote_time_is_ist_not_utc():
+    assert market.ist_timestamp("2026-09-29T15:59:02Z") == "2026-09-29T15:59:02+05:30"
+    assert market.ist_timestamp("2026-09-29 09:15:00") == "2026-09-29T09:15:00+05:30"
+    assert market.ist_timestamp("2026-09-29T10:00:00+05:30") == "2026-09-29T10:00:00+05:30"
+    assert market.ist_timestamp("garbage") is None and market.ist_timestamp(None) is None

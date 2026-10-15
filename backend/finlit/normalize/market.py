@@ -38,6 +38,22 @@ def profile(payload: Any, symbol_row: Optional[dict] = None) -> dict:
 
 # ---------------------------------------------------------------- quote
 
+def ist_timestamp(value: Any) -> Optional[str]:
+    """FinEdge sends Indian local time with a misleading 'Z' (e.g. '2026-09-29T15:59:02Z' for a trade at
+    15:59 IST, just after the NSE close; read as UTC it would be 21:29 IST, when the market is shut).
+    Re-label it with the real +05:30 offset so every client shows the right time."""
+    if not value:
+        return None
+    text = str(value).strip().replace(" ", "T")
+    match = re.match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?$", text)
+    if not match:
+        return None
+    stamp, zone = match.groups()
+    if zone and zone != "Z":
+        return stamp + zone  # an explicit offset is trusted as sent
+    return stamp + "+05:30"
+
+
 def quote(payload: Any, symbol: str) -> dict:
     data = payload.get(symbol) if isinstance(payload, dict) else None
     if not isinstance(data, dict):
@@ -57,7 +73,7 @@ def quote(payload: Any, symbol: str) -> dict:
         "low52": rnd(data.get("low52")),
         "volume": int(to_number(data.get("volume")) or 0) or None,
         "marketCapCr": rnd(data.get("market_cap")),
-        "asOf": data.get("tradetime"),
+        "asOf": ist_timestamp(data.get("tradetime")),
     }
 
 

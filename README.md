@@ -76,7 +76,8 @@ backend/
     api.py       read-only FastAPI app
   tests/         unit tests + end-to-end tests (worker -> Postgres/Redis -> API)
   scripts/bench.py
-deploy/crontab   VPS schedule (IST)
+design/          tokens.json (IBM Carbon based) -> dist/tokens.css (web) + dist/tokens.ts (React Native app)
+deploy/          crontab (IST) and server hardening guide
 ```
 
 ## API

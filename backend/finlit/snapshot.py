@@ -162,7 +162,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     for label, (days, grain) in PRICE_RANGES.items():
         cut = market.slice_since(history, (last_day - timedelta(days=days)).isoformat()) if days and last_day else history
         series = cut if grain == "daily" else market.weekly(cut)
-        ranges[f"price-{label}"] = {"meta": meta, "range": label, "grain": grain,
+        ranges[f"price-{label}"] = {"meta": meta, "range": label, "grain": grain, "technical": technical,
                                     "series": {k: series[k] for k in ("t", "o", "h", "l", "c", "v") if k in series}}
 
     sections = {

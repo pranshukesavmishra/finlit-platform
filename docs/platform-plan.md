@@ -148,6 +148,10 @@ accounting identities hold exactly:
 
 Tests inject the old site's bugs and confirm each one is caught.
 
+Found and fixed while building the new page: FinEdge sends quote times in Indian local time but labels
+them UTC ("15:59:02Z"). Read literally, that put RELIANCE's last trade at 9:29 pm IST, when NSE is closed.
+`normalize.market.ist_timestamp` now relabels them with `+05:30`, and a test guards it.
+
 ### Next
 
 - **Cross-source reconciliation:** every evening, compare FinEdge closing prices with the NSE bhavcopy
@@ -164,6 +168,18 @@ Tests inject the old site's bugs and confirm each one is caught.
 ---
 
 ## 3. UI improvements (Phase 2)
+
+**Design system decision: IBM Carbon (v11).**
+- Carbon's g100 (dark) and g10 (light) themes, with FinLit gold kept only for the logo, the Gold plan and
+  brand moments.
+- It is built for dense data screens, ships WCAG-tested colour pairs and a data-visualisation palette, and
+  pairs with the IBM Plex fonts we already use.
+- The tokens live in `design/tokens.json`. `python design/build_tokens.py` generates the CSS for the
+  website and a TypeScript file for the mobile app, so both share exact colours, spacing and type.
+- Every text colour is checked at **≥ 4.5:1 contrast on every surface, in both themes**.
+- The redesigned stock page (`stock.html` in the design repo) uses these tokens and renders real
+  RELIANCE data exported from this API (`backend/scripts/export_static.py`). The previous design is kept
+  as `stock-v1.html`.
 
 - **Speed you can feel:**
   - the summary paints first and other sections stream in;
@@ -235,11 +251,53 @@ What users never see: passwords, password resets, or security questions.
 
 ---
 
+## 6. Mobile app (after the website)
+
+Everything built so far is designed to be reused by an iOS and Android app.
+
+| Layer | Shared between web and app |
+|---|---|
+| Data | The same API and the same small, cached JSON sections. Nothing is web-only. |
+| Design | `design/tokens.json` generates `tokens.ts` for React Native: same colours, type, spacing and data-viz palette. |
+| Logic | One TypeScript package for the API client (generated from the OpenAPI schema), number formats (₹ lakh/crore) and chart maths. |
+| Rules | Plan gating, scores and data-quality notes come from the server, so the app can't disagree with the website. |
+
+**Stack:** React Native with Expo (TypeScript), next to the React website in one monorepo:
+- `apps/web`;
+- `apps/mobile`;
+- `packages/tokens`;
+- `packages/api-client`;
+- `packages/core`.
+
+**App sign-in** (cookies don't suit native apps):
+- Same methods as the web: Google, via the native SDK, sends its ID token to the same server check; email
+  OTP; passkeys through the platform APIs against the same WebAuthn server.
+- Tokens:
+  - a short-lived access token (15 min);
+  - a **rotating refresh token** with reuse detection, per the OAuth 2.0 security best practice (RFC 9700).
+- Both are stored in the iOS Keychain or Android Keystore (`expo-secure-store`), never in plain storage.
+- Each refresh token is tied to a device record, so the phone appears under "Signed-in devices" and can be signed out remotely.
+- Abuse protection on OTP: Apple App Attest or Google Play Integrity instead of Turnstile.
+
+**Other app items:**
+- Push notifications for alerts (FCM/APNs).
+- An offline cache of recently viewed reports (ETags already make refreshes cheap).
+- No secrets in the app bundle: the FinEdge key stays on the server.
+
+**Business decision to check early:** Apple, and in some cases Google, require their own in-app purchase
+systems for digital subscriptions. Confirm with Razorpay and app-store guidance before building payments
+into the app.
+
+**Before the first client ships:** move routes under `/api/v1`, so the app and website can be upgraded independently.
+
+---
+
 ## Sources
 
 - OWASP ASVS 5.0, session abuse defences: https://cornucopia.owasp.org/taxonomy/asvs-5.0/07-session-management/05-defenses-against-session-abuse
 - OWASP WSTG, cookie attributes: https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/02-Testing_for_Cookies_Attributes
 - NIST SP 800-63B-4 (final, July 2025): https://csrc.nist.gov/pubs/sp/800/63/b/4/final
+- IBM Carbon Design System themes and colour tokens: https://carbondesignsystem.com/elements/themes/overview/
 - Synced passkeys in 800-63-4: https://www.wwpass.com/blog/phishing-resistant-mfa-in-2025-buyer-s-guide-to-nist-sp-800-63-4-omb-m-22-09/
 - Razorpay webhook validation: https://razorpay.com/docs/webhooks/validate-test.md
 - Webhook vs payment signature: https://dev.to/eventdock/how-to-verify-razorpay-webhook-signatures-and-why-it-is-not-the-payment-signature-1pei
