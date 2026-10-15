@@ -29,6 +29,12 @@ from .store import Store
 log = logging.getLogger("finlit.worker")
 
 
+class DataRejected(Exception):
+    def __init__(self, issues):
+        super().__init__(f"{len(issues)} critical data issue(s)")
+        self.issues = issues
+
+
 async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated") -> dict:
     started, calls_before = time.perf_counter(), client.calls
     symbol = symbol.strip().upper()
@@ -41,6 +47,10 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if not bundle.get("pl_annual") and not bundle.get("daily_quotes"):
             raise FinEdgeError("bundle", 404, "no statements or prices for symbol")
         sections = snapshot.build(bundle)
+        checks = sections["summary"]["dataQuality"]["checks"]
+        if checks["status"] == "rejected":
+            # Keep serving the last good snapshot; a human reviews the logged issues.
+            raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
         effective = bundle["statement"]
         row = snapshot.score_row(sections)
         await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
@@ -48,7 +58,11 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
             await store.save_snapshot(symbol, effective, sections, row)
         prof = sections["summary"]["profile"]
         await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"))
-        status, errors = "ok", bundle.get("errors") or {}
+        status = "ok" if checks["status"] == "ok" else "warnings"
+        errors = {**(bundle.get("errors") or {}), **({"quality": checks["issues"]} if checks["issues"] else {})}
+    except DataRejected as exc:
+        log.warning("ingest %s rejected by quality gate: %s", symbol, exc.issues)
+        status, errors = "rejected", {"quality": exc.issues}
     except Exception as exc:  # one bad stock must never stop a batch
         log.exception("ingest %s failed", symbol)
         status, errors = "failed", {"error": str(exc)[:500]}
@@ -146,7 +160,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 await store.invalidate_search()
                 for r in results:
                     print(f"{r['symbol']:<14} {r['status']:<7} {r['ms']:>6} ms  {r['errors'] or ''}")
-                return 0 if all(r["status"] == "ok" for r in results) else 1
+                return 0 if all(r["status"] in ("ok", "warnings") for r in results) else 1
             elif args.cmd == "refresh-stale":
                 items = await store.snapshot_symbols(args.hours or settings.fundamentals_ttl_hours)
                 await ingest_many(client, store, items)

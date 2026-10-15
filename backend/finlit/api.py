@@ -16,8 +16,11 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .config import Settings, get_settings
+from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
 from .snapshot import PRICE_RANGES, SECTIONS
 from .store import Store
 
@@ -25,22 +28,60 @@ SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 CACHE_STOCK = "public, max-age=60, stale-while-revalidate=600"
 CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
+UNLIMITED_PATHS = ("/api/health",)
+
+
+class RateLimitMiddleware:
+    """Per-client request budget for every API route (health checks excluded)."""
+
+    def __init__(self, app: ASGIApp, settings: Settings):
+        self.app, self.settings = app, settings
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http" or scope["path"].startswith(UNLIMITED_PATHS) or scope["method"] == "OPTIONS":
+            return await self.app(scope, receive, send)
+        state = scope["app"].state
+        ip = client_ip(scope, self.settings.client_ip_header)
+        scope.setdefault("state", {})["client_ip"] = ip
+        allowed, retry = await state.limiter.hit("api", ip, self.settings.rate_limit_per_minute, 60)
+        if not allowed:
+            response = JSONResponse({"status": "rate_limited", "detail": "Too many requests. Please slow down."},
+                                    status_code=429, headers={"Retry-After": str(retry), "Cache-Control": "no-store"})
+            return await response(scope, receive, send)
+        await self.app(scope, receive, send)
 
 
 def create_app(settings: Optional[Settings] = None, store: Optional[Store] = None) -> FastAPI:
     settings = settings or get_settings()
+    problems = settings.validate()
+    if problems:
+        raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.store = store or await Store.connect(settings)
+        app.state.limiter = RateLimiter(app.state.store.redis)
         yield
         if store is None:
             await app.state.store.close()
 
-    app = FastAPI(title="FinLit API", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+    docs = not settings.is_production  # no public schema or Swagger UI in production
+    app = FastAPI(title="FinLit API", version="0.1.0", lifespan=lifespan,
+                  docs_url="/api/docs" if docs else None, redoc_url=None,
+                  openapi_url="/api/openapi.json" if docs else None)
+    # Last added runs first: headers wrap everything, then host check, CORS, rate limit, gzip.
     app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
+    app.add_middleware(RateLimitMiddleware, settings=settings)
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET"],
-                       allow_headers=["If-None-Match"], expose_headers=["ETag", "Server-Timing"])
+                       allow_headers=["If-None-Match"], expose_headers=["ETag", "Server-Timing", "Retry-After"],
+                       allow_credentials=False, max_age=600)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    @app.exception_handler(Exception)
+    async def unhandled(request: Request, exc: Exception):  # never leak internals
+        return JSONResponse({"status": "error", "detail": "Something went wrong."}, status_code=500,
+                            headers={"Cache-Control": "no-store"})
 
     def cached(request: Request, body: bytes, etag: str, cache: str, started: float) -> Response:
         timing = f"app;dur={(time.perf_counter() - started) * 1000:.2f}"
@@ -49,9 +90,15 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             return Response(status_code=304, headers=headers)
         return Response(content=body, media_type="application/json", headers=headers)
 
-    async def missing(symbol: str, statement: str) -> JSONResponse:
+    async def missing(request: Request, symbol: str, statement: str) -> JSONResponse:
         store: Store = app.state.store
         if await store.company(symbol):
+            # Each new stock costs ~21 upstream calls: cap per client and in total, failing closed.
+            ip = request.scope.get("state", {}).get("client_ip") or client_ip(request.scope, settings.client_ip_header)
+            allowed, retry = await app.state.limiter.hit("queue", ip, settings.queue_limit_per_hour, 3600, fail_open=False)
+            if not allowed or await store.queue_length() >= settings.queue_max_pending:
+                return JSONResponse({"status": "busy", "symbol": symbol, "detail": "Please try this stock again shortly."},
+                                    status_code=429, headers={"Retry-After": str(retry or 60), "Cache-Control": "no-store"})
             await store.enqueue(symbol, statement)
             return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
                                 status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
@@ -60,8 +107,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     @app.get("/api/health")
     async def health():
         status = await app.state.store.ping()
-        return JSONResponse({"ok": all(status.values()), **status}, status_code=200 if all(status.values()) else 503,
-                            headers={"Cache-Control": "no-store"})
+        ok = all(status.values())
+        body = {"ok": ok} if settings.is_production else {"ok": ok, **status}  # no internals in production
+        return JSONResponse(body, status_code=200 if ok else 503, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/stocks/search-index")
     async def search_index(request: Request):
@@ -95,7 +143,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             return JSONResponse({"status": "unknown_section", "sections": sorted(allowed)}, status_code=404)
         hit = await app.state.store.get_section(symbol, statement, name)
         if hit is None:
-            return await missing(symbol, statement)
+            return await missing(request, symbol, statement)
         return cached(request, hit[0], hit[1], CACHE_STOCK, started)
 
     @app.get("/api/screener/top")

@@ -1,17 +1,34 @@
 # Local dev and the single-VPS production layout (Stage 1).
 #   cp .env.example .env && docker compose up -d --build
 #   docker compose run --rm worker ingest RELIANCE TCS INFY
+#
+# Hardening: databases listen on 127.0.0.1 only, Redis needs a password, app containers run as a
+# non-root user on a read-only filesystem with no Linux capabilities and no privilege escalation,
+# and the API connects to Postgres as a read-only role (see backend/finlit/migrations/002_api_role.sql).
+
+x-app: &app
+  build: ./backend
+  env_file: .env
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  environment: &app-env
+    DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/finlit
+    REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@redis:6379/0
+
 services:
   db:
     image: timescale/timescaledb:2.17.2-pg16
     environment:
       POSTGRES_USER: finlit
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finlit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: finlit
     volumes: [pgdata:/var/lib/postgresql/data]
     ports: ["127.0.0.1:5432:5432"]
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U finlit"]
+      test: ["CMD-SHELL", "pg_isready -U finlit -d finlit"]
       interval: 5s
       retries: 10
     restart: unless-stopped
@@ -19,33 +36,38 @@ services:
   redis:
     image: redis:7.4-alpine
     # Snapshots are rebuilt from Postgres on a cold cache, so Redis needs no persistence.
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}", "--save", "",
+              "--appendonly", "no", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru",
+              "--rename-command", "FLUSHALL", "", "--rename-command", "CONFIG", "", "--rename-command", "DEBUG", ""]
     ports: ["127.0.0.1:6379:6379"]
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"]
       interval: 5s
       retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     restart: unless-stopped
 
   api:
-    build: ./backend
-    env_file: .env
+    <<: *app
     environment:
-      DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD:-finlit}@db:5432/finlit
-      REDIS_URL: redis://redis:6379/0
+      <<: *app-env
+      # Read-only role in production; falls back to the owner for local development.
+      DATABASE_URL: ${API_DATABASE_URL:-postgresql://finlit:${POSTGRES_PASSWORD}@db:5432/finlit}
     ports: ["127.0.0.1:8000:8000"]
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
       migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 15s
+      retries: 3
     restart: unless-stopped
 
   migrate:
-    build: ./backend
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD:-finlit}@db:5432/finlit
-      REDIS_URL: redis://redis:6379/0
+    <<: *app
     entrypoint: ["python", "-m", "finlit.worker"]
     command: ["migrate"]
     depends_on:
@@ -54,11 +76,7 @@ services:
 
   # Long-running: ingests stocks users open before they have a snapshot.
   worker:
-    build: ./backend
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD:-finlit}@db:5432/finlit
-      REDIS_URL: redis://redis:6379/0
+    <<: *app
     entrypoint: ["python", "-m", "finlit.worker"]
     command: ["drain-queue", "--loop"]
     depends_on:

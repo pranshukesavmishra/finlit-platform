@@ -11,4 +11,4 @@ RUN useradd --create-home finlit
 USER finlit
 EXPOSE 8000
 CMD ["uvicorn", "finlit.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", \
-     "--workers", "2", "--loop", "uvloop", "--http", "httptools", "--no-access-log", "--proxy-headers"]
+     "--workers", "2", "--loop", "uvloop", "--http", "httptools", "--no-access-log", "--no-server-header"]

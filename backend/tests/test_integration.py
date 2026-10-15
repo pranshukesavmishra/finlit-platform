@@ -21,8 +21,9 @@ TEST_DB = os.getenv("TEST_DATABASE_URL", "postgresql://finlit:finlit@localhost:5
 TEST_REDIS = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/15")
 
 
-def make_settings():
-    return Settings(finedge_api_key="test", finedge_mode="fixtures", database_url=TEST_DB, redis_url=TEST_REDIS)
+def make_settings(**overrides):
+    return Settings(**{"finedge_api_key": "test", "finedge_mode": "fixtures", "database_url": TEST_DB,
+                       "redis_url": TEST_REDIS, "rate_limit_per_minute": 100_000, **overrides})
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ async def ingested(store):
     async with FinEdgeClient(make_settings()) as client:
         assert await worker.refresh_universe(client, store) > 5000
         result = await worker.ingest_one(client, store, "RELIANCE")
-    assert result["status"] == "ok", result
+    assert result["status"] in ("ok", "warnings"), result  # fixtures age, so freshness may warn
     return store
 
 
@@ -117,7 +118,7 @@ async def test_prices_and_scores_persisted(ingested):
         days = await conn.fetchval("SELECT count(*) FROM price_daily WHERE symbol = 'RELIANCE'")
         score = await conn.fetchrow("SELECT * FROM scores WHERE symbol = 'RELIANCE'")
         run = await conn.fetchrow("SELECT * FROM ingest_runs ORDER BY id DESC LIMIT 1")
-    assert days > 400 and score["overall"] is not None and run["status"] == "ok" and run["calls"] >= 21
+    assert days > 400 and score["overall"] is not None and run["status"] in ("ok", "warnings") and run["calls"] >= 21
 
 
 async def test_refresh_quotes_patches_summary(ingested):
@@ -143,3 +144,64 @@ async def test_latency_budget(api):
     p95 = statistics.quantiles(samples, n=20)[18]
     print(f"summary p50={statistics.median(samples):.2f} ms p95={p95:.2f} ms")
     assert p95 < 50
+
+
+async def _client(store, **overrides):
+    app = create_app(make_settings(**overrides), store=store)
+    return app, httpx.ASGITransport(app=app)
+
+
+async def test_security_headers(api):
+    r = await api.get("/api/stocks/RELIANCE")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert "default-src 'none'" in r.headers["content-security-policy"]
+    assert r.headers["strict-transport-security"].startswith("max-age=")
+    assert r.headers["x-frame-options"] == "DENY"
+    assert "server" not in r.headers
+    assert (await api.post("/api/stocks/RELIANCE")).status_code == 405  # read-only API
+
+
+async def test_rate_limit_returns_429(ingested):
+    app, transport = await _client(ingested, rate_limit_per_minute=5)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        codes = [(await c.get("/api/stocks/RELIANCE")).status_code for _ in range(7)]
+        assert codes[:5] == [200] * 5 and codes[5:] == [429, 429]
+        assert (await c.get("/api/health")).status_code == 200  # health is never limited
+
+
+async def test_queue_limit_per_client(ingested):
+    app, transport = await _client(ingested, queue_limit_per_hour=1)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        assert (await c.get("/api/stocks/TCS")).status_code == 202
+        r = await c.get("/api/stocks/INFY")
+        assert r.status_code == 429 and r.json()["status"] == "busy"
+
+
+async def test_untrusted_host_rejected(ingested):
+    app, transport = await _client(ingested, allowed_hosts=["api.finlitventures.com"])
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=transport, base_url="http://evil.example") as c:
+            r = await c.get("/api/stocks/RELIANCE")
+            assert r.status_code == 400 and r.headers["x-content-type-options"] == "nosniff"
+        async with httpx.AsyncClient(transport=transport, base_url="http://api.finlitventures.com") as c:
+            assert (await c.get("/api/stocks/RELIANCE")).status_code == 200
+
+
+async def test_rejected_data_is_never_published(ingested, monkeypatch):
+    from finlit import snapshot as snap
+    real_build = snap.build
+
+    def broken_build(bundle, now=None):
+        sections = real_build(bundle, now)
+        sections["summary"]["dataQuality"]["checks"] = {"status": "rejected", "passed": 0, "total": 1,
+                                                        "issues": [{"key": "x", "severity": "critical", "message": "bad"}]}
+        sections["summary"]["quote"]["price"] = -1
+        return sections
+
+    before, _ = await ingested.get_section("RELIANCE", "consolidated", "summary")
+    monkeypatch.setattr(snap, "build", broken_build)
+    async with FinEdgeClient(make_settings()) as client:
+        result = await worker.ingest_one(client, ingested, "RELIANCE")
+    assert result["status"] == "rejected"
+    after, _ = await ingested.get_section("RELIANCE", "consolidated", "summary")
+    assert after == before  # last good snapshot still served

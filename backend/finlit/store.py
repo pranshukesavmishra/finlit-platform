@@ -24,6 +24,21 @@ log = logging.getLogger("finlit.store")
 MIGRATIONS = Path(__file__).parent / "migrations"
 SEARCH_KEY = "search-index"
 
+SCORE_COLUMNS = ("symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
+                 "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
+                 "dividend_yield", "sector")
+SCORE_UPSERT = """
+INSERT INTO scores (symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability,
+                    pillar_balance, pillar_technical, price, market_cap, pe, roe, dividend_yield, sector, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, now())
+ON CONFLICT (symbol, statement, model) DO UPDATE SET
+    overall = EXCLUDED.overall, band = EXCLUDED.band, pillar_quality = EXCLUDED.pillar_quality,
+    pillar_growth = EXCLUDED.pillar_growth, pillar_profitability = EXCLUDED.pillar_profitability,
+    pillar_balance = EXCLUDED.pillar_balance, pillar_technical = EXCLUDED.pillar_technical, price = EXCLUDED.price,
+    market_cap = EXCLUDED.market_cap, pe = EXCLUDED.pe, roe = EXCLUDED.roe, dividend_yield = EXCLUDED.dividend_yield,
+    sector = EXCLUDED.sector, updated_at = now()
+"""
+
 
 def dumps(value: Any) -> bytes:
     return orjson.dumps(value, option=orjson.OPT_NON_STR_KEYS | orjson.OPT_SERIALIZE_NUMPY)
@@ -114,16 +129,7 @@ class Store:
             await pipe.execute()
 
     async def _upsert_score(self, conn, row: dict):
-        cols = ["symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
-                "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
-                "dividend_yield", "sector"]
-        placeholders = ", ".join(f"${i}" for i in range(1, len(cols) + 1))
-        updates = ", ".join(f"{c} = EXCLUDED.{c}" for c in cols[3:])
-        await conn.execute(
-            f"INSERT INTO scores({', '.join(cols)}, updated_at) VALUES({placeholders}, now()) "
-            f"ON CONFLICT (symbol, statement, model) DO UPDATE SET {updates}, updated_at = now()",
-            *[row.get(c) for c in cols],
-        )
+        await conn.execute(SCORE_UPSERT, *[row.get(c) for c in SCORE_COLUMNS])
 
     async def _upsert_prices(self, conn, symbol: str, daily: dict):
         rows = [(symbol, date.fromisoformat(t), daily["o"][i], daily["h"][i], daily["l"][i], daily["c"][i], daily["v"][i])
@@ -174,6 +180,10 @@ class Store:
             await conn.execute(
                 "INSERT INTO ingest_queue(symbol, statement) VALUES($1, $2) ON CONFLICT DO NOTHING",
                 symbol.upper(), statement)
+
+    async def queue_length(self) -> int:
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval("SELECT count(*) FROM ingest_queue")
 
     async def claim(self, limit: int = 10) -> List[Tuple[str, str]]:
         async with self.pool.acquire() as conn, conn.transaction():

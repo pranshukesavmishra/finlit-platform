@@ -17,6 +17,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from . import quality as quality_checks
 from .analytics import derived, indicators, insights, returns, scoring
 from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
@@ -164,7 +165,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         ranges[f"price-{label}"] = {"meta": meta, "range": label, "grain": grain,
                                     "series": {k: series[k] for k in ("t", "o", "h", "l", "c", "v") if k in series}}
 
-    return {
+    sections = {
         **ranges,
         "summary": summary,
         "financials": financials,
@@ -175,6 +176,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "segments": {"meta": meta, **events.segments(bundle.get("segments"))},
         "peers": {"meta": meta, "symbols": peers},
     }
+    summary["dataQuality"]["checks"] = quality_checks.run(sections, today=(now or datetime.now(timezone.utc)).date())
+    return sections
 
 
 def score_row(sections: Dict[str, dict]) -> dict:
