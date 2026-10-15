@@ -38,7 +38,9 @@ async def store():
         await s.close()
         pytest.skip(f"redis not available: {exc}")
     async with s.pool.acquire() as conn:
-        await conn.execute("DROP TABLE IF EXISTS snapshots, scores, price_daily, companies, ingest_runs, "
+        # Timescale refuses to drop a hypertable in the same statement as other tables.
+        await conn.execute("DROP TABLE IF EXISTS price_daily CASCADE")
+        await conn.execute("DROP TABLE IF EXISTS snapshots, scores, companies, ingest_runs, "
                            "ingest_queue, schema_migrations CASCADE")
     await s.redis.flushdb()
     await s.migrate()

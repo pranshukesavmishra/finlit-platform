@@ -19,7 +19,7 @@ jobs:
           POSTGRES_DB: finlit_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U finlit" --health-interval 5s --health-retries 10
+          --health-cmd "pg_isready -U finlit -d finlit_test" --health-interval 5s --health-retries 10
       redis:
         image: redis:7.4-alpine
         ports: ["6379:6379"]
@@ -29,8 +29,8 @@ jobs:
       TEST_DATABASE_URL: postgresql://finlit:finlit@localhost:5432/finlit_test
       TEST_REDIS_URL: redis://localhost:6379/15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
