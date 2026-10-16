@@ -235,3 +235,5 @@
 }
 .steps.six { grid-template-columns: repeat(6, 1fr); } @media (max-width: 1000px) { .steps.six { grid-template-columns: 1fr; } }
 .tools { min-width: 0; } .tools .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .tools .seg::-webkit-scrollbar { display: none; } .tools .seg button { flex: none; }
+
+.demo-bar { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); color: var(--on-gold); text-align: center; font-size: 12.5px; padding: 7px 12px; }

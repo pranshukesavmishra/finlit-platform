@@ -8,6 +8,7 @@ import { SearchPalette } from "./SearchPalette";
 import { Assistant } from "./Assistant";
 import { EnquiryProvider, useEnquiry } from "./Enquiry";
 import { InfoProvider } from "./Info";
+import { DEMO } from "../lib/demo";
 
 const NAV = [
   ["/research", "Research"], ["/services", "Services"], ["/plans", "Plans"], ["/portfolio", "Portfolio"], ["/blog", "Blog"], ["/about", "About"],
@@ -96,6 +97,7 @@ export function Layout() {
     <InfoProvider>
       <EnquiryProvider>
         <a className="skip" href="#main">Skip to content</a>
+        {DEMO && <div className="demo-bar" role="note"><b>Demo preview</b> · saved sample data, no servers. Forms are not sent. The live site loads every stock.</div>}
         <Tape />
         <Header onSearch={() => setSearch(true)} />
         <main id="main"><Outlet /></main>

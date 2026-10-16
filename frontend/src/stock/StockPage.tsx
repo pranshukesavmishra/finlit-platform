@@ -59,6 +59,8 @@ export function StockPage() {
   }
   if (sum.isError || !s) {
     const st = (sum.error as ApiError | null)?.status;
+    const demo = (sum.error as ApiError | null)?.body?.status === "demo";
+    if (demo) return <div className="wrap state"><h2>This demo includes the RELIANCE report</h2><p>The live site opens every listed stock. Try RELIANCE to see the full report.</p><Link className="btn primary" to="/stocks/RELIANCE">Open the RELIANCE report</Link></div>;
     return <div className="wrap state"><h2>{st === 404 ? `We couldn't find “${symbol}”` : "This report is unavailable right now"}</h2><p>{st === 404 ? "Check the ticker, or search by company name." : "Please try again in a moment."}</p><Link className="btn primary" to="/research">Browse research</Link></div>;
   }
   return (

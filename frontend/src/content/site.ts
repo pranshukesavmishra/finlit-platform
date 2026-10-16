@@ -37,7 +37,7 @@ export const FOUNDER = {
   credentials: ["B.Tech, IIT Kanpur", "Minor in Finance, IIT Kanpur", "CFA Level I Cleared", "NISM Certified Research Analyst"],
   bio: "Nishant’s investment approach is rooted in fundamental research, business quality, valuation discipline, margin of safety, thoughtful position sizing and long-term compounding.",
   linkedin: "https://www.linkedin.com/in/nishant-jain-1464071ab/",
-  photo: "/team/nishant.webp",
+  photo: `${import.meta.env.BASE_URL}team/nishant.webp`,
 };
 
 export const PILLARS = [
