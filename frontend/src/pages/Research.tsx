@@ -1,3 +1,4 @@
+import { PageArt } from "../components/PageArt";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type Summary } from "../lib/api";
@@ -15,7 +16,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
   const rows = data?.rows || [];
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.7 }} /><div className="wrap">
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.7 }} /><div className="wrap"><PageArt kind="research" />
         <div className="eyebrow">Stock research</div><h1>Every listed stock, in one honest report.</h1>
         <p>A research score, five-pillar scorecard, statements, ratios, ownership and peers, loaded in a blink.</p>
         <div style={{ marginTop: 28 }}><button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button></div>

@@ -1,3 +1,4 @@
+import { PageArt } from "../components/PageArt";
 import { Link } from "react-router";
 import { FOUNDER, PILLARS, PRINCIPLES } from "../content/site";
 import { Icon } from "../lib/icons";
@@ -8,7 +9,7 @@ export function About() {
   useDocTitle("About", "FinLit Ventures: independent investment research, portfolio reviews and planning, led by Nishant Jain (IIT Kanpur, CFA Level I, NISM RA).");
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><div className="eyebrow">About FinLit</div><h1>Independent thinking, plainly explained.</h1><p>Investment research, portfolio reviews and financial planning with one rule: reasoning you can follow.</p></div></section>
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="about" /><div className="eyebrow">About FinLit</div><h1>Independent thinking, plainly explained.</h1><p>Investment research, portfolio reviews and financial planning with one rule: reasoning you can follow.</p></div></section>
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap founder">
         <Reveal><img src={FOUNDER.photo} alt={`Portrait of ${FOUNDER.name}`} width="560" height="700" /></Reveal>
         <Reveal delay={100}><div className="eyebrow">Investment lead</div><div className="sec-h" style={{ margin: "8px 0 0" }}><h2>{FOUNDER.name}</h2><p>{FOUNDER.role}</p></div><div className="cred">{FOUNDER.credentials.map((c) => <span className="chip gold" key={c}>{c}</span>)}</div><p className="muted">{FOUNDER.bio}</p><a className="btn" href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></Reveal>

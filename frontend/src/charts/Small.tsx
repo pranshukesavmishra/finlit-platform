@@ -18,22 +18,56 @@ export function Spark({ values, color, w = 96, h = 34 }: { values: Series; color
   );
 }
 
-/** RSI half-dial with oversold/neutral/overbought zones and a needle. */
+/** RSI gauge: a glowing progress arc with a marker, tick scale and a plain-English caption.
+ *  Colours say "cold / balanced / hot", not "good / bad": an oversold stock is not automatically a bargain. */
 export function RsiGauge({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(100, value));
+  const zone = v < 30 ? "cold" : v > 70 ? "hot" : "mid";
   const { wrap, svg } = useChart((s) => {
-    s.setAttribute("viewBox", "0 0 260 176");
-    const cx = 130, cy = 118, r = 100;
-    const zone = (a: number, b: number, c: string, o: number) => el("path", { d: arcPath(cx, cy, r, -90 + a * 1.8, -90 + b * 1.8), fill: "none", stroke: css(c), "stroke-width": 16, opacity: o }, s);
-    zone(0.5, 29.5, "--gain", 0.85); zone(30.5, 69.5, "--c5", 0.35); zone(70.5, 99.5, "--loss", 0.85);
-    [0, 30, 70, 100].forEach((t) => { const [x, y] = polar(cx, cy, r + 18, -90 + t * 1.8); el("text", { x, y: y + 4, "text-anchor": "middle", fill: css("--faint"), "font-size": 11, "font-family": "IBM Plex Mono, monospace" }, s).textContent = String(t); });
-    const [nx, ny] = polar(cx, cy, r - 24, -90 + Math.max(0, Math.min(100, value)) * 1.8);
-    el("line", { x1: cx, y1: cy, x2: nx, y2: ny, stroke: css("--text"), "stroke-width": 3, "stroke-linecap": "round" }, s);
-    el("circle", { cx, cy, r: 8, fill: css("--text") }, s); el("circle", { cx, cy, r: 3, fill: css("--s1") }, s);
-    el("text", { x: cx, y: cy + 36, "text-anchor": "middle", "font-family": "Newsreader, Georgia, serif", "font-size": 34, fill: css("--text") }, s).textContent = value.toFixed(1);
-    const zoneTxt = value < 30 ? "OVERSOLD ZONE" : value > 70 ? "OVERBOUGHT ZONE" : "NEUTRAL ZONE";
-    el("text", { x: cx, y: cy + 54, "text-anchor": "middle", "font-size": 10.5, "font-weight": 700, "letter-spacing": ".1em", fill: css(value < 30 ? "--gain" : value > 70 ? "--loss" : "--muted"), "font-family": "IBM Plex Sans, sans-serif" }, s).textContent = zoneTxt;
+    s.setAttribute("viewBox", "0 0 260 170");
+    const cx = 130, cy = 122, r = 104, A0 = -100, A1 = 100, ang = (t: number) => A0 + (t / 100) * (A1 - A0);
+    const cold = css("--info"), hot = css("--warn"), mid = css("--gold"), text = css("--text");
+    const col = zone === "cold" ? cold : zone === "hot" ? hot : mid;
+    const defs = el("defs", {}, s);
+    const g = el("linearGradient", { id: "rsig", gradientUnits: "userSpaceOnUse", x1: cx - r, y1: 0, x2: cx + r, y2: 0 }, defs);
+    const light = document.documentElement.dataset.theme === "light";
+    el("stop", { offset: 0, "stop-color": cold }, g); el("stop", { offset: 0.5, "stop-color": mid }, g); el("stop", { offset: 1, "stop-color": hot }, g);
+    const glow = el("filter", { id: "rsiglow", x: "-30%", y: "-30%", width: "160%", height: "160%" }, defs); el("feGaussianBlur", { stdDeviation: 5 }, glow);
+    // track and faint zone bands
+    el("path", { d: arcPath(cx, cy, r, A0, A1), fill: "none", stroke: css("--s3"), "stroke-width": 16, "stroke-linecap": "round" }, s);
+    el("path", { d: arcPath(cx, cy, r, ang(0), ang(30)), fill: "none", stroke: cold, "stroke-width": 16, "stroke-linecap": "round", opacity: 0.28 }, s);
+    el("path", { d: arcPath(cx, cy, r, ang(70), ang(100)), fill: "none", stroke: hot, "stroke-width": 16, "stroke-linecap": "round", opacity: 0.28 }, s);
+    // progress (glow copy + crisp copy)
+    if (v > 0.5) for (const [w, extra] of (light ? [[16, {}]] : [[16, { filter: "url(#rsiglow)", opacity: 0.55 }], [16, {}]]) as [number, Record<string, string | number>][]) {
+      const p = el("path", { d: arcPath(cx, cy, r, A0, ang(v)), fill: "none", stroke: "url(#rsig)", "stroke-width": w, "stroke-linecap": "round", pathLength: 1, class: "g-prog", ...extra }, s);
+      p.setAttribute("stroke-dasharray", "1");
+    }
+    // ticks
+    for (let t = 0; t <= 100; t += 10) {
+      const major = t === 30 || t === 70 || t === 0 || t === 100, [x0, y0] = polar(cx, cy, r - 15, ang(t)), [x1, y1] = polar(cx, cy, r - (major ? 24 : 20), ang(t));
+      el("line", { x1: x0, y1: y0, x2: x1, y2: y1, stroke: css(major ? "--muted" : "--border-strong"), "stroke-width": major ? 1.8 : 1.2, "stroke-linecap": "round" }, s);
+    }
+    ([[30, "30"], [70, "70"]] as const).forEach(([t, l]) => { const [x, y] = polar(cx, cy, r - 36, ang(t)); el("text", { x, y: y + 4, "text-anchor": "middle", fill: css("--faint"), "font-size": 11, "font-family": "IBM Plex Mono, monospace" }, s).textContent = l; });
+    // marker
+    const [mx, my] = polar(cx, cy, r, ang(v));
+    const m = el("g", { class: "g-knob" }, s);
+    el("circle", { cx: mx, cy: my, r: 15, fill: col, opacity: 0.25 }, m); el("circle", { cx: mx, cy: my, r: 10.5, fill: css("--s1"), stroke: col, "stroke-width": 4 }, m);
+    // value
+    el("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-family": "Newsreader, Georgia, serif", "font-size": 50, "font-weight": 300, fill: text }, s).textContent = v.toFixed(1);
+    el("text", { x: cx, y: cy + 18, "text-anchor": "middle", "font-size": 10.5, "font-weight": 600, "letter-spacing": ".14em", fill: css("--faint"), "font-family": "IBM Plex Sans, sans-serif" }, s).textContent = "RSI · 14 DAYS";
+    ([[0, "0"], [100, "100"]] as const).forEach(([t, l]) => { const [x, y] = polar(cx, cy, r, ang(t)); el("text", { x, y: y + 26, "text-anchor": "middle", "font-size": 10, fill: css("--faint"), "font-family": "IBM Plex Mono, monospace" }, s).textContent = l; });
   }, [value]);
-  return <div className="gauge-wrap" ref={wrap}><svg ref={svg} role="img" aria-label={`RSI ${value.toFixed(1)}`} /></div>;
+  const copy = {
+    cold: ["Oversold", "Sold heavily lately. Prices often bounce from here, but a falling stock can keep falling."],
+    mid: ["Balanced", "Neither stretched up nor down. Momentum alone gives no strong signal."],
+    hot: ["Overbought", "Bought heavily lately. Prices often cool off from here, but strong stocks can stay hot."],
+  }[zone];
+  return (
+    <div className={"rsi rsi-" + zone}>
+      <div className="gauge-wrap" ref={wrap}><svg ref={svg} role="img" aria-label={`RSI ${v.toFixed(1)}, ${copy[0]}`} /></div>
+      <div className="rsi-zone"><b>{copy[0]}</b><span>{copy[1]}</span></div>
+    </div>
+  );
 }
 
 /** Ownership donut. */

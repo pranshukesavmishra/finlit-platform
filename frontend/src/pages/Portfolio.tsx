@@ -1,3 +1,4 @@
+import { PageArt } from "../components/PageArt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPortfolio, type PortfolioReport } from "../lib/siteApi";
@@ -43,7 +44,7 @@ export function Portfolio() {
   const c = data.charts, per = 15, pages = Math.ceil(rows.length / per);
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><div className="eyebrow">Portfolio report</div><h1>Realised results, in the open.</h1><p>{data.profile.reportPeriod} · {data.profile.financialYear} · Capital deployed {data.profile.deployedCapital}. Realised profit and loss from the broker's statement, after all charges.</p></div></section>
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" /><div className="eyebrow">Portfolio report</div><h1>Realised results, in the open.</h1><p>{data.profile.reportPeriod} · {data.profile.financialYear} · Capital deployed {data.profile.deployedCapital}. Realised profit and loss from the broker's statement, after all charges.</p></div></section>
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap">
         <Reveal><div className="kpis-p">{[["Gross P&L", data.headline.grossPnl], ["Net P&L", data.headline.netPnl], ["Gross ROI", data.headline.grossRoi], ["Net ROI", data.headline.netRoi]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
         <Reveal delay={60}><div className="kpis-p" style={{ marginTop: 14 }}>{[["Trades", String(data.summary.tradeCount)], ["Win rate", ((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1) + "%"], ["Winners / losers", `${data.summary.winningTrades} / ${data.summary.losingTrades}`], ["Charges", data.charges.totalFormatted]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>

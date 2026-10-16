@@ -293,3 +293,30 @@
 .pnl-b.up { background: linear-gradient(180deg, var(--gain), color-mix(in srgb, var(--gain) 25%, transparent)); box-shadow: 0 0 24px -6px var(--gain); } .pnl-b.dn { background: linear-gradient(180deg, var(--loss), color-mix(in srgb, var(--loss) 25%, transparent)); }
 .pnl { margin-bottom: 30px; }
 @media (prefers-reduced-motion: reduce) { .term, .art *, .bt-art *, .pnl-b, .ticks li, .speed u { animation: none !important; } .art .draw, .bt-art .draw { stroke-dashoffset: 0; } }
+
+/* RSI gauge */
+.rsi { --rc: var(--gold); } .rsi-cold { --rc: var(--info); } .rsi-hot { --rc: var(--warn); }
+.g-prog { stroke-dashoffset: 0; animation: gauge 1.6s cubic-bezier(.16,1,.3,1) both; }
+@keyframes gauge { from { stroke-dashoffset: 1; } }
+.g-knob { animation: knob .5s 1.2s both; } @keyframes knob { from { opacity: 0; } }
+.rsi-zone { display: grid; gap: 6px; justify-items: center; text-align: center; margin: -2px auto 8px; max-width: 30ch; }
+.rsi-zone b { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 999px; font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 40%, transparent); }
+.rsi-zone b::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rc); box-shadow: 0 0 10px var(--rc); }
+.rsi-zone span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .g-prog, .g-knob { animation: none; } }
+
+/* page header art */
+.pagehead .wrap { position: relative; } .pagehead:has(.pa) { min-height: 330px; display: flex; align-items: center; } .pagehead:has(.pa) > .wrap { width: 100%; }
+.pagehead .pa { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: min(440px, 38%); z-index: -1; filter: drop-shadow(0 30px 50px color-mix(in srgb, var(--gold) 12%, transparent)); }
+.pagehead .pa svg { width: 100%; height: auto; display: block; }
+.pagehead h1, .pagehead p { position: relative; }
+@media (max-width: 1000px) { .pagehead .pa { position: relative; transform: none; width: min(420px, 100%); margin: 0 auto 8px; opacity: .9; z-index: 0; } .pagehead .wrap { display: flex; flex-direction: column-reverse; } }
+.pa-rise { transform-box: fill-box; transform-origin: bottom; animation: growUp 1s cubic-bezier(.16,1,.3,1) both; }
+.pa-draw { stroke-dasharray: 900; stroke-dashoffset: 900; animation: drawLine 2.4s .3s cubic-bezier(.4,0,.2,1) forwards; }
+.pa-draw2 { animation: barIn 1.4s .2s both; }
+.pa-pulse { transform-box: fill-box; transform-origin: center; animation: pulse 2.6s ease-in-out infinite; }
+.pa-float { animation: bob 5s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .pa * { animation: none !important; } .pa-draw { stroke-dashoffset: 0; } }
+.postcard .cover { overflow: hidden; position: relative; } .cover-art { width: 100%; height: 100%; display: block; transition: transform .6s cubic-bezier(.16,1,.3,1); } .postcard:hover .cover-art { transform: scale(1.06); }
+/* fix: only pull the icon up when a service illustration sits above it */
+.feat .fi { margin-top: 0; border: 0; position: static; } .art-wrap ~ .fi { position: relative; margin-top: -42px; border: 3px solid var(--s1); }

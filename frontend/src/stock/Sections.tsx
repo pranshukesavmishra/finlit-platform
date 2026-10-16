@@ -74,7 +74,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
           <div className="card acc" style={{ "--ac": "var(--p-tech)", height: "100%" } as React.CSSProperties}>
             <div className="card-h"><h3><span className="ci"><Icon name="activity" /></span>Momentum</h3><TierChip tier="gold" /></div>
             {t?.rsi14 != null && <RsiGauge value={t.rsi14} />}
-            <div className="mrow" style={{ marginTop: 6 }}><span className="k">RSI (14) <Info g={ratios?.glossary.rsi14} /></span><span className="v">{t?.rsi14 == null ? "—" : num(t.rsi14)}</span></div>
+            <div className="mrow" style={{ marginTop: 6 }}><span className="k">What is RSI? <Info g={ratios?.glossary.rsi14} /></span><span className="v faint" style={{ fontWeight: 400, fontSize: 13 }}>0 to 100 scale</span></div>
             <div className="mrow"><span className="k">vs 50-day average</span><span className={"v " + ((t?.vsEma50Pct ?? 0) < 0 ? "neg" : "pos")}>{signed(t?.vsEma50Pct)}</span></div>
             <div className="mrow"><span className="k">vs 200-day average</span><span className={"v " + ((t?.vsEma200Pct ?? 0) < 0 ? "neg" : "pos")}>{signed(t?.vsEma200Pct)}</span></div>
             <div className="label" style={{ margin: "16px 0 6px" }}>Total return (price + dividends)</div>

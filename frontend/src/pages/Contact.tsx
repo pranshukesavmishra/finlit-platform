@@ -1,3 +1,4 @@
+import { PageArt } from "../components/PageArt";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { COMPANY } from "../content/site";
@@ -20,7 +21,7 @@ export function Contact() {
   };
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><div className="eyebrow">Contact</div><h1>Let's talk about your portfolio.</h1><p>Share what you are looking for and the FinLit team will follow up.</p></div></section>
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="contact" /><div className="eyebrow">Contact</div><h1>Let's talk about your portfolio.</h1><p>Share what you are looking for and the FinLit team will follow up.</p></div></section>
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap two">
         <div className="card">
           {m.isSuccess ? <div className="done"><div className="done-ic"><Icon name="check" /></div><h3 style={{ font: "400 26px var(--serif)" }}>Message sent</h3><p className="muted">Thank you. We usually reply within one working day.</p></div> : (

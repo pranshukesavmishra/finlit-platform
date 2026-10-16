@@ -1,3 +1,4 @@
+import { PageArt } from "../components/PageArt";
 import { PRICING, SERVICES } from "../content/site";
 import { Icon } from "../lib/icons";
 import { Reveal } from "../components/Reveal";
@@ -9,7 +10,7 @@ export function Services() {
   const enquire = useEnquiry();
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><div className="eyebrow">Services</div><h1>Structured help for every stage.</h1><p>Pick a service, or start with a first session and we will work out the rest together.</p></div></section>
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="services" /><div className="eyebrow">Services</div><h1>Structured help for every stage.</h1><p>Pick a service, or start with a first session and we will work out the rest together.</p></div></section>
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap">
         <div className="cards3">{SERVICES.map((s, i) => <Reveal key={s.name} delay={i * 60}><div className="feat" style={{ "--ac": `var(--c${(i % 4) + 1})`, height: "100%" } as React.CSSProperties}><span className="num">{s.n}</span><div className="fi"><Icon name={s.icon} /></div><h3>{s.name}</h3><p className="prop">{s.proposition}</p><p>{s.desc}</p><button className="btn" onClick={() => enquire(s.name)}>Enquire <Icon name="arrow" /></button></div></Reveal>)}</div>
       </div></section>
