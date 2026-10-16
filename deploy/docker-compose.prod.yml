@@ -1,0 +1,124 @@
+# Production stack for ONE VPS (DigitalOcean BLR1, 4 GB). Nothing publishes a port to the internet:
+# cloudflared connects outbound to Cloudflare and forwards api.finlitventures.com to caddy.
+#
+#   cd /opt/finlit && docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d
+name: finlit
+
+x-hardened: &hardened
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  logging: {driver: json-file, options: {max-size: "10m", max-file: "5"}}
+
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: finlit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: finlit
+    command: ["postgres", "-c", "shared_buffers=1GB", "-c", "effective_cache_size=2GB", "-c", "max_connections=60"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [internal]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U finlit -d finlit"], interval: 5s, retries: 12}
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?}", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    networks: [internal]
+    healthcheck: {test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"], interval: 5s, retries: 12}
+    environment: {REDIS_PASSWORD: "${REDIS_PASSWORD}"}
+    security_opt: ["no-new-privileges:true"]
+
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    command: ["mongod", "--auth", "--wiredTigerCacheSizeGB", "0.5", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: finlit
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?}
+    volumes: [mongodata:/data/db]
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+
+  migrate:
+    <<: *hardened
+    restart: "no"
+    image: ${RESEARCH_IMAGE:-ghcr.io/pranshukesavmishra/finlit-research:latest}
+    entrypoint: ["python", "-m", "finlit.worker"]
+    command: ["migrate"]
+    env_file: .env
+    environment: &research-env
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD}@db:5432/finlit
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      ALLOWED_HOSTS: api.finlitventures.com,research-api,localhost
+      CORS_ORIGINS: https://finlitventures.com,https://www.finlitventures.com
+      CLIENT_IP_HEADER: cf-connecting-ip
+    depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
+    networks: [internal]
+
+  research-api:
+    <<: *hardened
+    image: ${RESEARCH_IMAGE:-ghcr.io/pranshukesavmishra/finlit-research:latest}
+    env_file: .env
+    environment:
+      <<: *research-env
+      DATABASE_URL: ${API_DATABASE_URL:-postgresql://finlit:${POSTGRES_PASSWORD}@db:5432/finlit}
+    depends_on: {migrate: {condition: service_completed_successfully}}
+    networks: [internal]
+    healthcheck: {test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"], interval: 15s, retries: 3}
+
+  worker:
+    <<: *hardened
+    image: ${RESEARCH_IMAGE:-ghcr.io/pranshukesavmishra/finlit-research:latest}
+    entrypoint: ["python", "-m", "finlit.worker"]
+    command: ["drain-queue", "--loop"]
+    env_file: .env
+    environment: *research-env
+    depends_on: {migrate: {condition: service_completed_successfully}}
+    networks: [internal]
+
+  # The existing site backend (Financial-Portfolio/backend/server.py), unchanged.
+  site-api:
+    <<: *hardened
+    image: ${SITE_IMAGE:-ghcr.io/pranshukesavmishra/finlit-site-api:latest}
+    env_file: .env
+    environment:
+      MONGO_URL: mongodb://finlit:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
+      DB_NAME: finlit
+      ALLOWED_HOSTS: api.finlitventures.com,site-api,localhost
+      CORS_ORIGINS: https://finlitventures.com,https://www.finlitventures.com
+    volumes: [siteuploads:/app/content_uploads, sitedata:/app/portfolio_data]
+    depends_on: [mongo]
+    networks: [internal]
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro"]
+    depends_on: [research-api, site-api]
+    networks: [internal]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.1
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment: {TUNNEL_TOKEN: "${CF_TUNNEL_TOKEN:?}"}
+    depends_on: [caddy]
+    networks: [internal]
+
+networks:
+  internal: {}
+volumes:
+  pgdata: {}
+  mongodata: {}
+  siteuploads: {}
+  sitedata: {}

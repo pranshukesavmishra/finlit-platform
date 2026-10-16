@@ -1,5 +1,15 @@
 # FinLit platform
 
+**Website** (`frontend/`, React + TypeScript, navy and gold design) · **Research service** (`backend/`, fast stock reports)
+· Existing **site backend** (Financial-Portfolio, unchanged). Launch steps: [`docs/LAUNCH-RUNBOOK.md`](docs/LAUNCH-RUNBOOK.md).
+
+```bash
+# develop the website against both backends
+cd frontend && npm ci && npm run dev            # http://localhost:5173, proxies /api (see vite.config.ts)
+python dev/site_api_dev.py --backend ../financial-portfolio/backend --port 8001   # site backend, in-memory Mongo (dev only)
+# research service: see "Run locally" below, then:  node e2e/smoke.mjs http://127.0.0.1:5173
+```
+
 The rebuild of finlitventures.com. This first slice is the **data layer and speed**: stock research pages
 that load in milliseconds instead of seconds, with the data bugs from the current site fixed at the source.
 

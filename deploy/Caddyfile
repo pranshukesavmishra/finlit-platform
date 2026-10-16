@@ -1,0 +1,32 @@
+# Internal router on the VPS. Cloudflare Tunnel sends api.finlitventures.com here over plain HTTP;
+# TLS is terminated by Cloudflare, so nothing else is exposed to the internet.
+{
+	auto_https off
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+
+	# Research service (fast, precomputed stock reports)
+	@research path /api/stocks/search-index /api/screener/* /api/health
+	handle @research {
+		reverse_proxy research-api:8000
+	}
+	# The old admin-only fundamentals dashboard stays on the site backend
+	@siteStocks path /api/stocks/admin/*
+	handle @siteStocks {
+		reverse_proxy site-api:8001
+	}
+	@stocks path_regexp stocks ^/api/stocks/[A-Za-z0-9&_.-]+(/.*)?$
+	handle @stocks {
+		reverse_proxy research-api:8000
+	}
+	# Everything else under /api: content, portfolio, contact, enquiries, chat, ticker, admin
+	handle /api/* {
+		reverse_proxy site-api:8001
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

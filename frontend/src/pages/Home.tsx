@@ -1,0 +1,105 @@
+import { Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { COMPANY, FOUNDER, PHILOSOPHY, PRICING, PROCESS, SERVICES, TESTIMONIAL } from "../content/site";
+import { Icon } from "../lib/icons";
+import { Reveal, CountUp } from "../components/Reveal";
+import { useEnquiry } from "../components/Enquiry";
+import { getPortfolio, type PortfolioReport } from "../lib/siteApi";
+import { useSummary } from "../lib/api";
+import { useDocTitle } from "../lib/title";
+import { nf } from "../lib/format";
+
+function LiveTerminal() {
+  const { data: s } = useSummary("RELIANCE");
+  if (!s) return <div className="term"><div className="skeleton" style={{ height: 240 }} /></div>;
+  const colors: Record<string, string> = { quality: "--p-quality", growth: "--p-growth", profitability: "--p-profit", balance: "--p-balance", technical: "--p-tech" };
+  const c = s.sparkline.c, mn = Math.min(...c), mx = Math.max(...c);
+  const d = c.map((p, i) => `${i ? "L" : "M"}${(i / (c.length - 1)) * 300},${60 - ((p - mn) / (mx - mn || 1)) * 54}`).join("");
+  const R = 52, circ = 2 * Math.PI * R;
+  return (
+    <Link to="/stocks/RELIANCE" className="term" style={{ display: "block", textDecoration: "none", color: "inherit" }} aria-label="Open the live example report">
+      <span className="float-chip a"><Icon name="check" />Checked before publishing</span>
+      <span className="float-chip b"><Icon name="spark" />Updated daily</span>
+      <div className="term-h"><div><b>{s.profile.name}</b> <span className="tk">{s.profile.nse}</span></div><span className={"chip " + ((s.quote.changePct ?? 0) >= 0 ? "up" : "down")}>₹{nf(s.quote.price ?? 0)}</span></div>
+      <div className="term-score">
+        <div className="term-dial"><svg viewBox="0 0 124 124"><circle cx="62" cy="62" r={R} fill="none" stroke="var(--s3)" strokeWidth="9" /><circle cx="62" cy="62" r={R} fill="none" stroke="url(#tg)" strokeWidth="9" strokeLinecap="round" strokeDasharray={`${(circ * (s.score.overall ?? 0)) / 100} ${circ}`} /><defs><linearGradient id="tg"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs></svg><b>{s.score.overall}</b></div>
+        <div className="term-bars">{s.score.pillars.map((p) => <div key={p.key} style={{ "--pc": `var(${colors[p.key]})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: `${p.score ?? 0}%` }} /></i><span>{p.score}</span></div>)}</div>
+      </div>
+      <div className="term-spark"><svg viewBox="0 0 300 64" preserveAspectRatio="none"><path d={d} fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /></svg></div>
+      <p className="faint" style={{ margin: "10px 0 0", fontSize: 12 }}>Live example · opens the full report →</p>
+    </Link>
+  );
+}
+
+function Performance() {
+  const { data } = useQuery<PortfolioReport>({ queryKey: ["portfolio"], queryFn: getPortfolio, retry: 1, staleTime: 300_000 });
+  if (!data) return null;
+  const months = data.charts.monthlyRealizedPnl, max = Math.max(...months.map((m) => Math.abs(m.realizedPnl)), 1);
+  return (
+    <section className="sec alt"><div className="wrap">
+      <Reveal className="sec-h"><div className="eyebrow">Realised portfolio performance</div><h2>Results, <em>reported openly</em></h2><p>{data.profile.reportPeriod} · {data.profile.financialYear}. Realised profit and loss from the broker statement, after charges.</p></Reveal>
+      <Reveal><div className="kpis-p">
+        {[["Net P&L", data.headline.netPnl], ["Net ROI", data.headline.netRoi], ["Win rate", `${((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1)}%`], ["Realised trades", String(data.summary.tradeCount)]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}
+      </div></Reveal>
+      <Reveal delay={80}><div className="card" style={{ marginTop: 16 }}>
+        <div className="card-h"><h3>Monthly realised P&L</h3><Link className="chip gold" to="/portfolio">Full report →</Link></div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${months.length}, 1fr)`, gap: 12, alignItems: "end", height: 160 }}>
+          {months.map((m) => <div key={m.month} style={{ display: "grid", gap: 6, justifyItems: "center", alignContent: "end", height: "100%" }}><span style={{ fontSize: 12 }} className={m.realizedPnl >= 0 ? "pos" : "neg"}>{nf(m.realizedPnl / 1000, 0)}k</span><div style={{ width: "100%", maxWidth: 54, height: `${(Math.abs(m.realizedPnl) / max) * 100}%`, minHeight: 4, borderRadius: "8px 8px 2px 2px", background: m.realizedPnl >= 0 ? "linear-gradient(180deg,var(--gain),color-mix(in srgb,var(--gain) 40%,transparent))" : "linear-gradient(180deg,var(--loss),color-mix(in srgb,var(--loss) 40%,transparent))" }} /><span className="faint" style={{ fontSize: 11 }}>{m.month}</span></div>)}
+        </div>
+      </div></Reveal>
+    </div></section>
+  );
+}
+
+export function Home() {
+  useDocTitle("Invest with clarity, not noise", "FinLit Ventures: research-led investing, portfolio reviews and financial planning, with a research report for every listed Indian stock.");
+  const enquire = useEnquiry();
+  return (
+    <>
+      <section className="hero-home">
+        <div className="aurora" /><div className="grid-fade" />
+        <div className="wrap hero-cols">
+          <div>
+            <div className="eyebrow">Research · Portfolios · Investing</div>
+            <h1>Invest with <em>clarity</em>, not noise.</h1>
+            <p className="lede-xl">A research report for every listed Indian stock, honest portfolio reviews and financial planning, from people who put their own capital behind their ideas.</p>
+            <div className="cta-row"><Link className="btn primary lg" to="/research">Explore stock research <Icon name="arrow" /></Link><button className="btn lg" onClick={() => enquire()}>Book a ₹99 first session</button></div>
+            <div className="trustrow"><span><Icon name="quality" />Independent research</span><span><Icon name="check" />Every number checked before publishing</span><span><Icon name="lock" />No passwords stored</span></div>
+          </div>
+          <LiveTerminal />
+        </div>
+      </section>
+
+      <div className="marq" aria-hidden="true"><div>{[...PHILOSOPHY, ...PHILOSOPHY].map((p, i) => <span key={i}>{p}</span>)}</div></div>
+
+      <section className="sec"><div className="wrap">
+        <Reveal className="sec-h"><div className="eyebrow">What we do</div><h2>Five ways we <em>help you invest</em></h2><p>From your first investment to a global portfolio.</p></Reveal>
+        <div className="cards3">
+          {SERVICES.map((s, i) => <Reveal key={s.name} delay={i * 70}><div className="feat" style={{ "--ac": `var(--c${(i % 4) + 1})` } as React.CSSProperties}><span className="num">{s.n}</span><div className="fi"><Icon name={s.icon} /></div><h3>{s.name}</h3><p className="prop">{s.proposition}</p><p>{s.desc}</p></div></Reveal>)}
+          <Reveal delay={350}><div className="feat" style={{ "--ac": "var(--gold)", display: "grid", alignContent: "center" } as React.CSSProperties}><h3>First session</h3><div className="price-c best" style={{ textAlign: "left", border: 0, background: "none", padding: 0 }}><div className="p">{PRICING[0].price}</div><div className="n">{PRICING[0].note}</div></div><button className="btn primary" style={{ marginTop: 14 }} onClick={() => enquire()}>Book now</button></div></Reveal>
+        </div>
+      </div></section>
+
+      <Performance />
+
+      <section className="sec"><div className="wrap">
+        <Reveal className="sec-h"><div className="eyebrow">Our process</div><h2>From research to <em>portfolio decisions</em></h2></Reveal>
+        <div className="steps">{PROCESS.map((p, i) => <Reveal key={p.n} delay={i * 60} className="step"><div className="dot"><Icon name={p.icon} /></div><div><b>{p.title}</b><span>{p.detail}</span></div></Reveal>)}</div>
+      </div></section>
+
+      <section className="sec alt"><div className="wrap">
+        <Reveal className="quote"><div className="eyebrow">Client experience</div><blockquote>“{TESTIMONIAL.quote}”</blockquote><div className="muted">{TESTIMONIAL.name}</div></Reveal>
+      </div></section>
+
+      <section className="sec"><div className="wrap founder">
+        <Reveal><img src={FOUNDER.photo} alt={`Portrait of ${FOUNDER.name}`} width="560" height="700" loading="lazy" /></Reveal>
+        <Reveal delay={100}><div className="eyebrow">Meet the founder</div><div className="sec-h" style={{ margin: "8px 0 0" }}><h2>{FOUNDER.name}</h2><p>{FOUNDER.role}</p></div>
+          <div className="cred">{FOUNDER.credentials.map((c) => <span className="chip gold" key={c}>{c}</span>)}</div><p className="muted">{FOUNDER.bio}</p>
+          <div className="cta-row"><Link className="btn" to="/about">About FinLit</Link><a className="btn" href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div></Reveal>
+      </div></section>
+
+      <section className="sec"><div className="wrap"><Reveal><div className="cta-band"><h2>Let's talk about your portfolio</h2><p>Tell us where you are. We'll tell you what we'd look at first. {COMPANY.disclaimer}</p><div className="cta-row" style={{ justifyContent: "center" }}><button className="btn primary lg" onClick={() => enquire()}>Get in touch</button><Link className="btn lg" to="/services">View services & pricing</Link></div></div></Reveal></div></section>
+    </>
+  );
+}
+void CountUp;
