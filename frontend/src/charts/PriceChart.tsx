@@ -11,7 +11,7 @@ export function PriceChart({ data, showEma50, showEma200, showVol }: { data: Pri
   const { wrap, svg } = useChart((svgEl, W, first) => {
     const n = s.t.length;
     if (n < 2) return;
-    const H = W < 520 ? 260 : 340, pl = 4, pr = 56, pt = 16, pb = 28, volH = showVol ? 46 : 0;
+    const H = W < 520 ? 260 : 470, pl = 4, pr = 56, pt = 16, pb = 28, volH = showVol ? 46 : 0;
     svgEl.setAttribute("viewBox", `0 0 ${W} ${H}`); svgEl.style.height = H + "px";
     const vals = [...s.c, ...(showEma50 ? s.ema50 : []), ...(showEma200 ? s.ema200 : [])].filter((v): v is number => v != null);
     let mn = Math.min(...vals), mx = Math.max(...vals); const pad = (mx - mn) * 0.1; mn -= pad; mx += pad;

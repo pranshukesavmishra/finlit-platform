@@ -8,6 +8,8 @@ import { getPortfolio, type PortfolioReport } from "../lib/siteApi";
 import { useSummary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
+import { HeroCanvas } from "../components/HeroCanvas";
+import { ServiceArt, SERVICE_ART } from "../components/Art";
 
 function LiveTerminal() {
   const { data: s } = useSummary("RELIANCE");
@@ -43,8 +45,8 @@ function Performance() {
       </div></Reveal>
       <Reveal delay={80}><div className="card" style={{ marginTop: 16 }}>
         <div className="card-h"><h3>Monthly realised P&L</h3><Link className="chip gold" to="/portfolio">Full report →</Link></div>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${months.length}, 1fr)`, gap: 12, alignItems: "end", height: 160 }}>
-          {months.map((m) => <div key={m.month} style={{ display: "grid", gap: 6, justifyItems: "center", alignContent: "end", height: "100%" }}><span style={{ fontSize: 12 }} className={m.realizedPnl >= 0 ? "pos" : "neg"}>{nf(m.realizedPnl / 1000, 0)}k</span><div style={{ width: "100%", maxWidth: 54, height: `${(Math.abs(m.realizedPnl) / max) * 100}%`, minHeight: 4, borderRadius: "8px 8px 2px 2px", background: m.realizedPnl >= 0 ? "linear-gradient(180deg,var(--gain),color-mix(in srgb,var(--gain) 40%,transparent))" : "linear-gradient(180deg,var(--loss),color-mix(in srgb,var(--loss) 40%,transparent))" }} /><span className="faint" style={{ fontSize: 11 }}>{m.month}</span></div>)}
+        <div className="pnl">
+          {months.map((m, i) => { const h = Math.max(6, (Math.abs(m.realizedPnl) / max) * 150); return <div key={m.month} className="pnl-c"><span className={m.realizedPnl >= 0 ? "pos" : "neg"}>₹{nf(Math.abs(m.realizedPnl) / 1000, 0)}k</span><i className={"pnl-b " + (m.realizedPnl >= 0 ? "up" : "dn")} style={{ height: h, animationDelay: `${i * 90}ms` }} /><em>{m.month}</em></div>; })}
         </div>
       </div></Reveal>
     </div></section>
@@ -57,7 +59,7 @@ export function Home() {
   return (
     <>
       <section className="hero-home">
-        <div className="aurora" /><div className="grid-fade" />
+        <div className="aurora" /><div className="grid-fade" /><HeroCanvas />
         <div className="wrap hero-cols">
           <div>
             <div className="eyebrow">Research · Portfolios · Investing</div>
@@ -72,11 +74,28 @@ export function Home() {
 
       <div className="marq" aria-hidden="true"><div>{[...PHILOSOPHY, ...PHILOSOPHY].map((p, i) => <span key={i}>{p}</span>)}</div></div>
 
+      <section className="statstrip"><div className="wrap">
+        {[[<CountUp to={5700} suffix="+" />, "listed stocks covered"], [<CountUp to={5} />, "pillars scored on every stock"], [<>&lt;<CountUp to={1} /> s</>, "to open a report"], [<CountUp to={84.4} decimals={1} suffix="%" />, "realised win rate, reported openly"]].map(([v, k], i) => <Reveal key={i} delay={i * 80}><div className="ss"><b>{v}</b><span>{k as string}</span></div></Reveal>)}
+      </div></section>
       <section className="sec"><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">What we do</div><h2>Five ways we <em>help you invest</em></h2><p>From your first investment to a global portfolio.</p></Reveal>
         <div className="cards3">
-          {SERVICES.map((s, i) => <Reveal key={s.name} delay={i * 70}><div className="feat" style={{ "--ac": `var(--c${(i % 4) + 1})` } as React.CSSProperties}><span className="num">{s.n}</span><div className="fi"><Icon name={s.icon} /></div><h3>{s.name}</h3><p className="prop">{s.proposition}</p><p>{s.desc}</p></div></Reveal>)}
+          {SERVICES.map((s, i) => <Reveal key={s.name} delay={i * 70}><div className="feat" style={{ "--ac": `var(--c${(i % 4) + 1})` } as React.CSSProperties}><ServiceArt kind={SERVICE_ART[i]} /><span className="num">{s.n}</span><div className="fi"><Icon name={s.icon} /></div><h3>{s.name}</h3><p className="prop">{s.proposition}</p><p>{s.desc}</p></div></Reveal>)}
           <Reveal delay={350}><div className="feat" style={{ "--ac": "var(--gold)", display: "grid", alignContent: "center" } as React.CSSProperties}><h3>First session</h3><div className="price-c best" style={{ textAlign: "left", border: 0, background: "none", padding: 0 }}><div className="p">{PRICING[0].price}</div><div className="n">{PRICING[0].note}</div></div><button className="btn primary" style={{ marginTop: 14 }} onClick={() => enquire()}>Book now</button></div></Reveal>
+        </div>
+      </div></section>
+
+      <section className="sec"><div className="wrap">
+        <Reveal className="sec-h"><div className="eyebrow">Why it feels different</div><h2>Research you can <em>see</em> and trust</h2><p>Every report is built the same way, checked the same way and explained in plain English.</p></Reveal>
+        <div className="bento">
+          <Reveal className="bt b1"><div className="spot"><h3>One score, five pillars</h3><p>Quality, growth, profitability, balance sheet and price trend, each scored 0 to 100 and shown in one glance.</p>
+            <svg className="bt-art" viewBox="0 0 300 130" aria-hidden="true">{[["Quality", "--p-quality", 56], ["Growth", "--p-growth", 44], ["Profitability", "--p-profit", 51], ["Balance sheet", "--p-balance", 75], ["Technical", "--p-tech", 31]].map(([l, c, v], i) => <g key={c as string}><text x="0" y={i * 25 + 13} fontSize="11" fill="var(--muted)">{l}</text><rect x="92" y={i * 25 + 4} width="200" height="12" rx="6" fill="var(--s3)" /><rect className="bar-in" style={{ animationDelay: `${i * 120}ms` }} x="92" y={i * 25 + 4} width={(v as number) * 2} height="12" rx="6" fill={`var(${c})`} /></g>)}</svg></div></Reveal>
+          <Reveal className="bt b2" delay={80}><div className="spot"><h3>Checked before it is published</h3><p>Numbers that fail our checks never reach the page.</p>
+            <ul className="ticks">{["Statements reconcile", "Ratios re-priced at today's quote", "Dates and periods aligned", "Sources recorded"].map((t, i) => <li key={t} style={{ animationDelay: `${i * 160}ms` }}><Icon name="check" />{t}</li>)}</ul></div></Reveal>
+          <Reveal className="bt b3" delay={140}><div className="spot"><h3>Open in under a second</h3><p>Reports are prepared ahead of time, so nothing makes you wait.</p>
+            <div className="speed"><b>&lt; 1</b><span>second to the first summary</span><i><u /></i></div></div></Reveal>
+          <Reveal className="bt b4" delay={200}><div className="spot"><h3>Plain English, with the working shown</h3><p>Every ratio has a one-line meaning and a link to how it is calculated.</p>
+            <svg className="bt-art" viewBox="0 0 300 110" aria-hidden="true"><path className="draw" d="M0 90 40 74 80 80 120 50 160 58 200 28 240 36 300 8" fill="none" stroke="var(--gold)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /><path d="M0 90 40 74 80 80 120 50 160 58 200 28 240 36 300 8V110H0z" fill="url(#bf)" /><defs><linearGradient id="bf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--gold)" stopOpacity=".35" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></linearGradient></defs></svg></div></Reveal>
         </div>
       </div></section>
 
@@ -102,4 +121,3 @@ export function Home() {
     </>
   );
 }
-void CountUp;

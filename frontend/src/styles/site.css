@@ -237,3 +237,59 @@
 .tools { min-width: 0; } .tools .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .tools .seg::-webkit-scrollbar { display: none; } .tools .seg button { flex: none; }
 
 .demo-bar { background: linear-gradient(90deg, var(--gold-deep), var(--gold)); color: var(--on-gold); text-align: center; font-size: 12.5px; padding: 7px 12px; }
+
+/* ---------- Graphics upgrade ---------- */
+.hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent); mask-image: linear-gradient(180deg, #000 55%, transparent); }
+:root[data-theme="light"] .hero-canvas { opacity: .55; }
+.hero-home { min-height: min(86vh, 780px); display: grid; align-items: center; }
+.hero-home h1 { text-shadow: 0 6px 40px color-mix(in srgb, var(--bg) 80%, transparent); }
+.term { backdrop-filter: blur(14px); animation: bob 7s ease-in-out infinite alternate; }
+.term:hover { animation-play-state: paused; }
+
+/* stats strip */
+.statstrip { padding: 8px 0 0; }
+.statstrip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 22px; background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1)); overflow: hidden; }
+.ss { padding: 26px 24px; border-right: 1px solid var(--border); height: 100%; } .statstrip .wrap > div:last-child .ss { border-right: 0; }
+.ss b { display: block; font: 300 clamp(32px, 4vw, 52px)/1 var(--serif); background: linear-gradient(120deg, var(--gold-2), var(--gold) 55%, var(--gold-deep)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ss span { display: block; margin-top: 8px; color: var(--muted); font-size: 13.5px; }
+@media (max-width: 760px) { .statstrip .wrap { grid-template-columns: 1fr 1fr; } .ss:nth-child(odd) { border-right: 1px solid var(--border); } }
+
+/* spotlight cards: a soft glow follows the pointer */
+.feat, .bt .spot, .card.hover-lift { --mx: 50%; --my: 0%; }
+.feat::before, .bt .spot::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(380px circle at var(--mx) var(--my), color-mix(in srgb, var(--ac, var(--gold)) 22%, transparent), transparent 60%); }
+.feat:hover::before, .bt .spot:hover::before { opacity: 1; }
+
+/* service illustrations */
+.art-wrap { margin: -26px -26px 18px; height: 130px; position: relative; overflow: hidden; border-bottom: 1px solid var(--border); background: radial-gradient(80% 120% at 50% 0%, color-mix(in srgb, var(--ac) 18%, transparent), transparent 70%); }
+.art { width: 100%; height: 100%; display: block; }
+.feat .num { z-index: 2; top: 10px; } .feat .fi { position: relative; margin-top: -42px; z-index: 2; border: 3px solid var(--s1); }
+.art .grow { transform-box: fill-box; transform-origin: bottom; animation: growUp .9s cubic-bezier(.16,1,.3,1) both; }
+.art .draw, .bt-art .draw { stroke-dasharray: 700; stroke-dashoffset: 700; animation: drawLine 2.2s .2s cubic-bezier(.4,0,.2,1) forwards; }
+.art .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 3s ease-in-out infinite; }
+.art .orbit { animation: spin 14s linear infinite; transform-origin: 0 0; }
+@keyframes growUp { from { transform: scaleY(0); } } @keyframes drawLine { to { stroke-dashoffset: 0; } }
+@keyframes pulse { 50% { transform: scale(1.25); opacity: .4; } } @keyframes spin { to { transform: rotate(360deg); } }
+
+/* bento showcase */
+.bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.bt .spot { position: relative; height: 100%; overflow: hidden; padding: 28px; border-radius: 24px; border: 1px solid var(--border); background: linear-gradient(160deg, color-mix(in srgb, var(--s2) 80%, transparent), var(--s1)); transition: border-color .3s, transform .3s; }
+.bt .spot:hover { border-color: var(--border-strong); transform: translateY(-3px); }
+.bt h3 { margin: 0 0 8px; font: 400 24px/1.15 var(--serif); } .bt p { margin: 0 0 18px; color: var(--muted); font-size: 14.5px; max-width: 44ch; }
+.b1 { grid-column: span 3; } .b2 { grid-column: span 3; } .b3 { grid-column: span 2; } .b4 { grid-column: span 4; }
+.bt-art { width: 100%; max-width: 420px; display: block; } .bar-in { transform-box: fill-box; transform-origin: left; animation: barIn 1.2s cubic-bezier(.16,1,.3,1) both; } @keyframes barIn { from { transform: scaleX(0); } }
+.ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.ticks li { display: flex; gap: 12px; align-items: center; font-size: 15px; animation: tickIn .6s both; }
+.ticks svg { width: 26px; height: 26px; padding: 5px; border-radius: 50%; color: #052e22; background: var(--gain); flex: none; }
+@keyframes tickIn { from { opacity: 0; transform: translateX(-12px); } }
+.speed { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; } .speed b { font: 300 72px/1 var(--serif); color: var(--gold); } .speed span { color: var(--muted); }
+.speed i { flex-basis: 100%; height: 8px; border-radius: 6px; background: var(--s3); overflow: hidden; margin-top: 12px; } .speed u { display: block; height: 100%; width: 12%; border-radius: 6px; background: linear-gradient(90deg, var(--gold-2), var(--gold-deep)); animation: barIn 1.6s .3s both; }
+@media (max-width: 900px) { .bento { grid-template-columns: 1fr; } .b1, .b2, .b3, .b4 { grid-column: auto; } }
+
+/* monthly P&L chart */
+.pnl { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; align-items: end; padding: 6px 4px 0; border-bottom: 1px solid var(--border); background: repeating-linear-gradient(to top, transparent 0 49px, color-mix(in srgb, var(--border) 70%, transparent) 49px 50px); }
+.pnl-c { display: grid; justify-items: center; gap: 8px; } .pnl-c span { font: 500 12px var(--mono); } .pnl-c em { font-style: normal; font-size: 11px; color: var(--faint); transform: translateY(26px); margin-top: -18px; }
+.pnl-b { width: 100%; max-width: 64px; border-radius: 10px 10px 2px 2px; transform-origin: bottom; animation: growUp 1s cubic-bezier(.16,1,.3,1) both; }
+.pnl-b.up { background: linear-gradient(180deg, var(--gain), color-mix(in srgb, var(--gain) 25%, transparent)); box-shadow: 0 0 24px -6px var(--gain); } .pnl-b.dn { background: linear-gradient(180deg, var(--loss), color-mix(in srgb, var(--loss) 25%, transparent)); }
+.pnl { margin-bottom: 30px; }
+@media (prefers-reduced-motion: reduce) { .term, .art *, .bt-art *, .pnl-b, .ticks li, .speed u { animation: none !important; } .art .draw, .bt-art .draw { stroke-dashoffset: 0; } }

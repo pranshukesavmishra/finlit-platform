@@ -85,6 +85,15 @@ export function Layout() {
   const loc = useLocation();
   useEffect(() => { if (!loc.hash) window.scrollTo({ top: 0 }); }, [loc.pathname, loc.hash]);
   useEffect(() => {
+    // soft glow that follows the pointer on cards (one delegated listener)
+    const mv = (e: PointerEvent) => {
+      const el = (e.target as Element | null)?.closest<HTMLElement>(".feat, .bt .spot"); if (!el) return;
+      const r = el.getBoundingClientRect(); el.style.setProperty("--mx", `${e.clientX - r.left}px`); el.style.setProperty("--my", `${e.clientY - r.top}px`);
+    };
+    document.addEventListener("pointermove", mv, { passive: true });
+    return () => document.removeEventListener("pointermove", mv);
+  }, []);
+  useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const typing = /input|textarea|select/i.test((document.activeElement as HTMLElement | null)?.tagName || "");
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearch(true); }
