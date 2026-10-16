@@ -1,0 +1,28 @@
+# STAGING without a domain: Caddy serves HTTPS directly on a free sslip.io hostname.
+# Set API_HOST in .env to e.g. 203-0-113-5.sslip.io (your server IP with dashes). Needs ports 80 and 443 open.
+{
+	email {$ACME_EMAIL}
+	admin off
+}
+
+{$API_HOST} {
+	encode zstd gzip
+	@research path /api/stocks/search-index /api/screener/* /api/health
+	handle @research {
+		reverse_proxy research-api:8000
+	}
+	@siteStocks path /api/stocks/admin/*
+	handle @siteStocks {
+		reverse_proxy site-api:8001
+	}
+	@stocks path_regexp stocks ^/api/stocks/[A-Za-z0-9&_.-]+(/.*)?$
+	handle @stocks {
+		reverse_proxy research-api:8000
+	}
+	handle /api/* {
+		reverse_proxy site-api:8001
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

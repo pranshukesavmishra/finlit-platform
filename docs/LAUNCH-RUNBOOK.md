@@ -17,6 +17,19 @@ deploy: about half a day. Estimated cost: DigitalOcean about US$24/month, domain
 Temporary hosting before the real domain: use `finlit.pages.dev` for the website and skip the tunnel by
 testing the API from your laptop (see step 9). Sign-in cookies need the real domain, so keep accounts for later.
 
+## Staging without the domain (do this first)
+
+You do not need finlitventures.com to go live for testing.
+1. Skip steps 1 and 3 (domain, tunnel). Open ports 80 and 443 on the DigitalOcean firewall.
+2. In `.env` add `API_HOST=<server-ip-with-dashes>.sslip.io`, `ACME_EMAIL=<company email>`, `STAGING_ORIGIN=https://finlit.pages.dev`.
+3. Start with: `docker compose -f deploy/docker-compose.prod.yml -f deploy/docker-compose.staging.yml --env-file .env up -d`
+4. GitHub variable `VITE_API_BASE=https://<API_HOST>`; the Pages project `finlit` gives `https://finlit.pages.dev`.
+5. Use a throwaway admin password for staging.
+
+**Moving to finlitventures.com later (about 15 minutes, no rebuild):** add the domain to Cloudflare, create the
+tunnel for `api.finlitventures.com`, close ports 80 and 443, change `VITE_API_BASE`, `ALLOWED_HOSTS` and
+`CORS_ORIGINS`, attach the domain to the Pages project, and redeploy.
+
 ## 0. Accounts (use the company email)
 
 Create each with 2FA on (an authenticator app or security key): GitHub org access, Cloudflare, DigitalOcean,
