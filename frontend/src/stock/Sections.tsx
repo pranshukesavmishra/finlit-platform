@@ -6,11 +6,13 @@ import { Gate, TierChip } from "../components/Gate";
 import { Info } from "../components/Info";
 import { PriceChart } from "../charts/PriceChart";
 import { FinChart, type FinKind } from "../charts/FinChart";
-import { Donut, RsiGauge, Spark } from "../charts/Small";
-import { MINUS, cr, dateIN, fmtUnit, initials, nf, num, pct, signed } from "../lib/format";
-import { prefetchStock, usePrice, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments, type Summary, type Table } from "../lib/api";
-import { OWN_COLOR, buckets, finTiles, ownershipSlices, PILLAR_COLOR, yoy } from "./derive";
+import { RsiGauge, Spark } from "../charts/Small";
+import { MINUS, cr, dateIN, fmtUnit, initials, nf, pct, signed } from "../lib/format";
+import { prefetchStock, usePrice, type Financials, type Peers, type Ratios, type Segments, type Summary, type Table } from "../lib/api";
+import { buckets, finTiles, yoy } from "./derive";
 import { useUI } from "../lib/ui";
+import { SegmentCard } from "./Sections2";
+import { Plain } from "../components/Plain";
 
 const css = (v: string) => `var(${v})`;
 export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: string; no: string; icon: string; tier?: "basic" | "bronze" | "gold"; title: string; sub?: string; color: string }) {
@@ -53,6 +55,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
   return (
     <section className="block" style={{ "--sc": "var(--p-tech)" } as React.CSSProperties}>
       <SectionHead id="price" no="02 · Price & technicals" icon="line" tier="basic" title="How the stock has traded" sub="Daily closes up to one year, weekly closes beyond. Hover the chart for detail." color="--p-tech" />
+      {chg != null && <Plain tone={chg >= 0 ? "good" : "warn"}>Over this period the price {chg >= 0 ? "rose" : "fell"} {nf(Math.abs(chg), 1)}%.{t?.vsEma200Pct != null && <> It trades {nf(Math.abs(t.vsEma200Pct), 1)}% {t.vsEma200Pct < 0 ? "below" : "above"} its 200-day average, which {t.vsEma200Pct < 0 ? "suggests the longer trend is weak" : "suggests the longer trend is healthy"}.</>}</Plain>}
       <div className="grid g3">
         <div className="card acc span2" style={{ "--ac": "var(--p-tech)" } as React.CSSProperties}>
           <div className="stats">
@@ -116,6 +119,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
       <SectionHead id="financials" no="03 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
+      {(() => { const [rv, np, , mg] = tiles; return rv.delta != null && np.delta != null ? <Plain tone={np.delta >= 0 ? "good" : "warn"}>Sales {rv.delta >= 0 ? "grew" : "fell"} {nf(Math.abs(rv.delta), 1)}% last year and profit {np.delta >= 0 ? "rose" : "fell"} {nf(Math.abs(np.delta), 1)}%.{typeof mg.value === "number" && <> Out of every ₹100 of sales, about ₹{nf(mg.value, 1)} is kept as profit.</>}</Plain> : null; })()}
       <div className="grid g4" style={{ marginBottom: 16 }}>
         {tiles.map((t) => (
           <div className="ftile hover-lift" key={t.k} style={{ "--fc": css(t.color) } as React.CSSProperties}>
@@ -158,6 +162,7 @@ export function RatiosSection({ r }: { r?: Ratios }) {
   return (
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
       <SectionHead id="ratios" no="04 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
+      <Plain>Ratios turn big numbers into fair comparisons. A lower P/E means you pay less for each rupee of profit. A higher ROE means the company earns more from shareholders' money. Lower debt means more safety.</Plain>
       <Gate tier="bronze" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ marginBottom: 16 }}>
           <div className="label" style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="bronze" /></div>
@@ -214,29 +219,6 @@ function ValuationHistory({ r }: { r: Ratios }) {
   );
 }
 
-/* ---------------- Ownership ---------------- */
-export function OwnershipSection({ o }: { o?: Ownership }) {
-  if (!o) return <section className="block"><SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
-  const prom = o.latest.find((l) => l.key === "promoters"), n = o.periods.length, prevIdx = Math.max(0, n - 5);
-  const bar = (idx: number) => o.latest.map((l) => ({ key: l.key, v: o.series[l.key]?.[idx] ?? 0 }));
-  const stack = (idx: number) => <div className="stack">{bar(idx).map(({ key, v }) => <span key={key} style={{ width: `${v}%`, background: css(OWN_COLOR[key] || "--faint") }} title={`${key} ${nf(v)}%`}>{v > 8 ? nf(v, 1) + "%" : ""}</span>)}</div>;
-  return (
-    <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
-      <div className="card acc own" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-        <Donut slices={ownershipSlices(o.latest)} centerValue={prom?.value == null ? "—" : nf(prom.value) + "%"} centerLabel="PROMOTER HOLDING" />
-        <div>
-          <div className="otiles">{o.latest.map((l) => (
-            <div className="otile" key={l.key} style={{ "--oc": css(OWN_COLOR[l.key] || "--faint") } as React.CSSProperties}>
-              <div className="label">{l.label}</div><div className="v">{pct(l.value)}</div>
-              {l.change1yPts == null ? <span className="chip ghost">Balance</span> : <span className={"chip " + (l.change1yPts >= 0 ? "up" : "down")}>{signed(l.change1yPts, 2, " pts")} in 1Y</span>}</div>))}</div>
-          <div style={{ marginTop: 18 }}><div className="srow"><span className="muted">{o.periods[prevIdx]}</span>{stack(prevIdx)}</div><div className="srow"><b>{o.periods[n - 1]}</b>{stack(n - 1)}</div></div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ---------------- Peers ---------------- */
 export function PeersSection({ p, self }: { p?: Peers; self: string }) {
   const nav = useNavigate(); const qc = useQueryClient();
@@ -266,6 +248,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
       <SectionHead id="insights" no="07 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <Plain>Buckets are quick labels. <b>Size</b> says how big the company is, <b>Style</b> how the market prices it, <b>Income</b> how much it pays out, and <b>Momentum</b> how the price has moved lately. Triggers are the things most worth watching next.</Plain>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>
         <div className="grid g2">
           <div className="card acc" style={{ "--ac": "var(--t-gold)" } as React.CSSProperties}>
@@ -274,87 +257,11 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
             <div className="label" style={{ margin: "22px 0 12px" }}>Key triggers to watch</div>
             <ul className="trig">{[...s.watchouts.slice(0, 2), ...s.strengths.slice(0, 1)].map((n, i) => <li key={n.key} style={{ "--tc": css(["--p-profit", "--p-tech", "--p-balance"][i % 3]) } as React.CSSProperties}><span className="ti"><Icon name={["profit", "activity", "users"][i % 3]} /></span><span><b>{n.title}</b><span className="d">{n.text}</span></span></li>)}</ul>
           </div>
-          <div className="card acc" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
-            <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Revenue segmentation</h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
-            {seg?.latest.length ? seg.latest.map((x, i) => (
-              <div className="hbar" key={x.name} style={{ "--bc": `var(--c${(i % 5) + 1})` } as React.CSSProperties}>
-                <span>{x.name}{x.includes?.length ? <span className="faint" title={x.includes.join(", ")}> (incl. {x.includes.length})</span> : null}</span>
-                <span className="tr"><b style={{ width: `${Math.min(100, (x.sharePct || 0) / Math.max(...seg.latest.map((y) => y.sharePct || 0), 1) * 100)}%` }} /></span>
-                <span className="num">{pct(x.sharePct)}<br /><span className="faint" style={{ fontSize: 11 }}>₹{cr(x.revenue)} Cr · <span className={x.growthPct == null ? "" : x.growthPct >= 0 ? "pos" : "neg"}>{signed(x.growthPct, 1)}</span></span></span></div>
-            )) : <p className="muted">This company does not report revenue by segment.</p>}
-          </div>
+          <SegmentCard seg={seg} />
         </div>
       </Gate>
     </section>
   );
 }
 
-/* ---------------- Company, dividends, method ---------------- */
-export function BusinessSection({ s }: { s: Summary }) {
-  const p = s.profile;
-  const facts: [string, string, string][] = [["map", "Sector", p.sector || "—"], ["factory", "Industry", p.industry || "—"], ["users", "Employees", p.employees ? nf(p.employees, 0) : "—"], ["id", "NSE code", p.nse || "—"], ["tag", "BSE code", p.bse || "—"], ["layers", "Market cap", p.marketCapCr ? "₹" + cr(p.marketCapCr) + " Cr" : "—"]];
-  return (
-    <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="business" no="08 · Company overview" icon="building" tier="basic" title={`What ${p.name.split(" ")[0]} does`} color="--p-growth" />
-      <div className="card acc biz" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
-        <div><p className="muted" style={{ margin: "0 0 14px" }}>{(p.description || "No description available.").replace(/\s+/g, " ")}</p>
-          {p.website && /^[\w.-]+\.[a-z]{2,}/i.test(p.website) && <a className="chip gold" href={`https://${p.website.replace(/^https?:\/\//, "")}`} target="_blank" rel="noopener noreferrer">{p.website}</a>}</div>
-        <div className="facts">{facts.map(([ic, k, v]) => <div className="fact" key={k}><span className="fi"><Icon name={ic} /></span><div style={{ minWidth: 0 }}><div className="label" style={{ fontSize: 10 }}>{k}</div><div className="v">{v}</div></div></div>)}</div>
-      </div>
-    </section>
-  );
-}
-
-export function DividendsSection({ e }: { e?: Events }) {
-  if (!e) return null;
-  const divs = e.actions.filter((a) => a.type.endsWith("dividend")).slice(0, 6);
-  const fy = e.dividendsByFY, max = Math.max(...fy.dps, 1);
-  return (
-    <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="dividends" no="09 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub={`Dividend yield over the last 12 months: ${pct(e.dividendYieldTtm)}. Amounts are adjusted for splits and bonuses.`} color="--gold-deep" />
-      <div className="grid g2">
-        <div className="card acc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-          <div className="card-h"><h3>Dividend per share, by financial year</h3><span className="s">₹</span></div>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${fy.periods.length}, 1fr)`, gap: 10, alignItems: "end", height: 170 }}>
-            {fy.periods.map((p, i) => <div key={p} style={{ display: "grid", gap: 4, justifyItems: "center", alignContent: "end", height: "100%" }}><span style={{ fontSize: 12, fontWeight: 600 }}>₹{nf(fy.dps[i], 2)}</span><div style={{ width: "100%", maxWidth: 52, height: `${(fy.dps[i] / max) * 100}%`, borderRadius: "8px 8px 2px 2px", background: "linear-gradient(180deg,var(--gold-2),var(--gold-deep))" }} /><span className="faint" style={{ fontSize: 11 }}>{p}</span></div>)}
-          </div>
-          <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>{fy.basis}.</p>
-          <div className="divs" style={{ marginTop: 14 }}>{divs.map((d) => <div className="coin" key={d.date + d.amount}><div className="c">₹{nf(d.amount ?? 0, d.amount && d.amount % 1 ? 2 : 0)}</div><div className="t">{d.type === "interim_dividend" ? "Interim" : d.type === "special_dividend" ? "Special" : "Final"}</div><div className="d">{dateIN(d.date)}</div></div>)}</div>
-        </div>
-        <div className="card acc" style={{ "--ac": "var(--info)" } as React.CSSProperties}>
-          <div className="card-h"><h3>Exchange announcements</h3><span className="s">Routine filings hidden</span></div>
-          <ul className="ev">{e.announcements.slice(0, 7).map((a) => <li key={a.date + a.description.slice(0, 30)}><time>{dateIN(a.date, { day: "numeric", month: "short" })}</time><div><div className="cat">{a.category}</div>{a.link && /^https?:\/\//.test(a.link) ? <a href={a.link} target="_blank" rel="noopener noreferrer">{a.description}</a> : a.description}</div></li>)}
-            {!e.announcements.length && <li><span /><span className="muted">No recent announcements.</span></li>}</ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
-  const dq = s.dataQuality, ck = dq.checks;
-  return (
-    <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="10 · Method & data" icon="info" title="How the score works" color="--info" />
-      <div className="grid g2">
-        <div className="card acc" style={{ "--ac": "var(--info)" } as React.CSSProperties}>
-          <p className="muted" style={{ margin: 0 }}>Each pillar is scored 0–100 from the company's own statements, ratios and price history. Every input is mapped to 18, 38, 58, 76 or 92 using four thresholds, a pillar is the average of the inputs available, and the research score is the average of the pillars. {s.score.pillars.map((p) => p.score).filter((x) => x != null).join(" + ")} ÷ {s.score.pillars.filter((p) => p.score != null).length} = {s.score.overall}.</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "16px 0" }}><span className="vd weak">Watch &lt; 45</span><span className="vd mixed">Mixed 45–61</span><span className="vd healthy">Healthy 62–77</span><span className="vd strong">Strong ≥ 78</span></div>
-          <div className="label" style={{ marginBottom: 8 }}>Pillar inputs</div>
-          {(r?.score.pillars || []).map((p) => <div className="mrow" key={p.key} style={{ gridTemplateColumns: "1fr" }}><span className="k" style={{ color: css(PILLAR_COLOR[p.key]) }}>{p.label} · {p.score ?? "—"}</span><span className="d">{p.inputs.map((i) => `${i.label} ${i.value == null ? "n/a" : num(i.value)}`).join(" · ")}</span></div>)}
-        </div>
-        <div className="card acc" style={{ "--ac": ck.status === "ok" ? "var(--gain)" : "var(--warn)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name={ck.status === "ok" ? "check" : "alert"} /></span>Data checks</h3><span className="s">{ck.passed} of {ck.total} passed</span></div>
-          <ul className="dq">
-            {ck.issues.map((i) => <li key={i.key}><span className="w">!</span><span>{i.message}</span></li>)}
-            {dq.notes.map((n) => <li key={n}><span className="w">i</span><span>{n}</span></li>)}
-            {dq.provisionalLastBar && <li><span className="w">i</span><span>The newest price point is the live quote; the daily file for that day is not published yet.</span></li>}
-            <li><span className="w">i</span><span>Statements: {dq.statement}. Prices to {dq.priceAsOf ? dateIN(dq.priceAsOf) : "n/a"}. Latest results {dq.fundamentalsAsOf}. {dq.removedBadTicks.length ? `${dq.removedBadTicks.length} bad price point${dq.removedBadTicks.length > 1 ? "s" : ""} removed.` : ""}</span></li>
-          </ul>
-          <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>Every report is checked before publishing. Reports that fail a critical check are held back.</p>
-        </div>
-      </div>
-    </section>
-  );
-}
 void MINUS;

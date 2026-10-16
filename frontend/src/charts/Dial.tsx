@@ -34,6 +34,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
     const rg = el("radialGradient", { id: "df" }, defs);
     el("stop", { offset: 0, "stop-color": css("--gold"), "stop-opacity": 0.12 }, rg); el("stop", { offset: 1, "stop-color": css("--gold"), "stop-opacity": 0 }, rg);
     el("circle", { cx: C, cy: C, r: 100, fill: "url(#df)" }, s);
+    el("circle", { cx: C, cy: C, r: 79, fill: css("--s1"), opacity: 0.7, stroke: css("--border-strong"), "stroke-width": 1 }, s);
     for (let i = 0; i < 100; i++) {
       const major = i % 25 === 0, mid = i % 5 === 0, lit = i < score;
       const [x0, y0] = polar(C, C, 96, i * 3.6), [x1, y1] = polar(C, C, major ? 85 : mid ? 89 : 92, i * 3.6);

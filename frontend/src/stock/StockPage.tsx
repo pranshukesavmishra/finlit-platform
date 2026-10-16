@@ -4,7 +4,8 @@ import { ApiError, usePrice, useSection, useSummary, type Events, type Financial
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
 import { Hero } from "./Hero";
-import { BusinessSection, DividendsSection, FinancialsSection, InsightsSection, MethodSection, Notes, OwnershipSection, PeersSection, PriceSection, RatiosSection } from "./Sections";
+import { FinancialsSection, InsightsSection, Notes, PeersSection, PriceSection, RatiosSection } from "./Sections";
+import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 

@@ -6,6 +6,7 @@ import App from "./App";
 import { UIProvider } from "./lib/ui";
 import "./styles/finlit.css";
 import "./styles/site.css";
+import "./styles/stock2.css";
 import { installDemo } from "./lib/demo";
 
 installDemo();
