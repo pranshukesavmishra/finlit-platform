@@ -17,14 +17,22 @@ function LiveTerminal() {
   const colors: Record<string, string> = { quality: "--p-quality", growth: "--p-growth", profitability: "--p-profit", balance: "--p-balance", technical: "--p-tech" };
   const c = s.sparkline.c, mn = Math.min(...c), mx = Math.max(...c);
   const d = c.map((p, i) => `${i ? "L" : "M"}${(i / (c.length - 1)) * 300},${60 - ((p - mn) / (mx - mn || 1)) * 54}`).join("");
-  const R = 52, circ = 2 * Math.PI * R;
-  return (
+    return (
     <Link to="/stocks/RELIANCE" className="term" style={{ display: "block", textDecoration: "none", color: "inherit" }} aria-label="Open the live example report">
       <span className="float-chip a"><Icon name="check" />Checked before publishing</span>
       <span className="float-chip b"><Icon name="spark" />Updated daily</span>
       <div className="term-h"><div><b>{s.profile.name}</b> <span className="tk">{s.profile.nse}</span></div><span className={"chip " + ((s.quote.changePct ?? 0) >= 0 ? "up" : "down")}>₹{nf(s.quote.price ?? 0)}</span></div>
       <div className="term-score">
-        <div className="term-dial"><svg viewBox="0 0 124 124"><circle cx="62" cy="62" r={R} fill="none" stroke="var(--s3)" strokeWidth="9" /><circle cx="62" cy="62" r={R} fill="none" stroke="url(#tg)" strokeWidth="9" strokeLinecap="round" strokeDasharray={`${(circ * (s.score.overall ?? 0)) / 100} ${circ}`} /><defs><linearGradient id="tg"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs></svg><b>{s.score.overall}</b></div>
+        <div className="term-dial"><svg viewBox="0 0 140 140" aria-hidden="true">
+          <defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient><radialGradient id="tdisc" cx=".5" cy=".35" r=".8"><stop offset="0" stopColor="var(--gold)" stopOpacity=".22" /><stop offset="1" stopColor="var(--s1)" stopOpacity="0" /></radialGradient></defs>
+          <circle cx="70" cy="70" r="52" fill="url(#tdisc)" />
+          {Array.from({ length: 60 }, (_, i) => { const a = (i / 60) * Math.PI * 2 - Math.PI / 2, lit = i < Math.round(((s.score.overall ?? 0) / 100) * 60), r1 = 63, r2 = i % 5 === 0 ? 57 : 59.5; return <line key={i} x1={70 + r1 * Math.cos(a)} y1={70 + r1 * Math.sin(a)} x2={70 + r2 * Math.cos(a)} y2={70 + r2 * Math.sin(a)} stroke={lit ? "var(--gold)" : "var(--border-strong)"} strokeWidth={i % 5 === 0 ? 1.6 : 1} opacity={lit ? 0.95 : 0.7} />; })}
+          <circle cx="70" cy="70" r="49" fill="none" stroke="var(--s3)" strokeWidth="7" />
+          <circle cx="70" cy="70" r="49" fill="none" stroke="var(--gold)" strokeWidth="12" opacity=".18" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 49 * (s.score.overall ?? 0)) / 100} 400`} transform="rotate(-90 70 70)" />
+          <circle className="ring-in" cx="70" cy="70" r="49" fill="none" stroke="url(#tg)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 49 * (s.score.overall ?? 0)) / 100} 400`} transform="rotate(-90 70 70)" />
+          <text x="70" y="70" dy=".36em" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontWeight="300" fontSize="40" fill="var(--text)">{s.score.overall}</text>
+          <text x="70" y="97" textAnchor="middle" fontSize="7.5" letterSpacing="1.6" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">OUT OF 100</text>
+        </svg></div>
         <div className="term-bars">{s.score.pillars.map((p) => <div key={p.key} style={{ "--pc": `var(${colors[p.key]})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: `${p.score ?? 0}%` }} /></i><span>{p.score}</span></div>)}</div>
       </div>
       <div className="term-spark"><svg viewBox="0 0 300 64" preserveAspectRatio="none"><path d={d} fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" /></svg></div>

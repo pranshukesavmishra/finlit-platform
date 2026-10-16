@@ -4,7 +4,8 @@ import { ApiError, usePrice, useSection, useSummary, type Events, type Financial
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
 import { Hero } from "./Hero";
-import { FinancialsSection, InsightsSection, Notes, PeersSection, PriceSection, RatiosSection } from "./Sections";
+import { FinancialsSection, Notes, PriceSection } from "./Sections";
+import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
@@ -80,10 +81,10 @@ export function StockPage() {
         <FinancialsSection f={fin} />
         <RatiosSection r={ratios} />
         <OwnershipSection o={own} />
-        <PeersSection p={peers} self={symbol} />
+        <PeersSection p={peers} self={symbol} s={s} />
         <InsightsSection s={s} r={ratios} seg={seg} tech={tech} />
         <BusinessSection s={s} />
-        <DividendsSection e={events} />
+        <DividendsSection e={events} price={q?.price} />
         <MethodSection s={s} r={ratios} />
       </div>
       <PlansBand id="plans" />

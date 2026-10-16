@@ -28,6 +28,10 @@ export function PlansBand({ id }: { id?: string }) {
           <p>From essential stock data to advanced intelligence, powered by FinLit's proprietary scoring model.</p>
         </div>
         <div className="trust">{[["bars", "Data-driven insights"], ["spark", "Proprietary scoring model"], ["quality", "Reliable & transparent"], ["users", "Built for every investor"]].map(([i, t]) => <span key={t}><Icon name={i} />{t}</span>)}</div>
+        <div className="who">{([["sprout", "I'm just starting out", "Free data on every listed stock, plus a powerful screener.", "basic"], ["quality", "I want the score and the story", "The five-pillar scorecard, trends and a watchlist.", "bronze"], ["crown", "I invest seriously", "Advanced scoring, full ratio history and technical signals.", "gold"]] as const).map(([ic, t, d, k]) => (
+          <button key={k} className="who-c" style={{ "--tc": `var(${TIER[k].tc})` } as React.CSSProperties} onClick={() => { setPlan(k); toast(`Previewing the ${TIER[k].n} plan.`); }}>
+            <span className="who-i"><Icon name={ic} /></span><b>{t}</b><span>{d}</span><em>{TIER[k].n} plan <Icon name="arrow" /></em>
+          </button>))}</div>
         <div className="pgrid">
           {PLANS.map((p) => (
             <div key={p.k} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>

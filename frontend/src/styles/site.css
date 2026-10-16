@@ -49,9 +49,9 @@
 .term:hover { transform: perspective(1200px) rotateY(0) rotateX(0); }
 .term-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
 .term-h b { font-size: 15px; } .term-h .tk { font-family: var(--mono); font-size: 12px; color: var(--faint); }
-.term-score { display: grid; grid-template-columns: 124px 1fr; gap: 16px; align-items: center; }
-.term-dial { position: relative; width: 124px; height: 124px; }
-.term-dial svg { width: 124px; height: 124px; transform: rotate(-90deg); }
+.term-score { display: grid; grid-template-columns: 140px 1fr; gap: 16px; align-items: center; }
+.term-dial { position: relative; width: 140px; height: 140px; filter: drop-shadow(0 10px 22px color-mix(in srgb, var(--gold) 22%, transparent)); }
+.term-dial svg { width: 100%; height: 100%; }
 .term-dial b { position: absolute; inset: 0; display: grid; place-items: center; font: 300 38px var(--mono); }
 .term-bars { display: grid; gap: 9px; }
 .term-bars div { display: grid; grid-template-columns: 86px 1fr 28px; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }

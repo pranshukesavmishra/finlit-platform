@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { Donut, Spark } from "../charts/Small";
+import { LineChart } from "../charts/LineChart";
 import { cr, dateIN, initials, nf, num, pct, signed } from "../lib/format";
 import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
 import { OWN_COLOR, ownershipSlices, PILLAR_COLOR } from "./derive";
@@ -14,7 +15,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
   if (!o) return <section className="block"><SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
   const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
   const move = [...o.latest].filter((l) => l.change1yPts != null).sort((a, b) => Math.abs(b.change1yPts!) - Math.abs(a.change1yPts!))[0];
-  const keys = o.latest.map((l) => l.key);
+  const trendKeys = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => l.key);
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
       <SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
@@ -39,16 +40,9 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
             </div>
           );
         })}</div>
-        <div className="card acc" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Shareholding over time</h3><span className="s">{o.periods[0]} to {o.periods[n - 1]}</span></div>
-          <div className="hist" style={{ "--n": n } as React.CSSProperties}>
-            {o.periods.map((p, i) => (
-              <div className="hcol" key={p}>
-                <div className="hstack">{[...keys].reverse().map((k) => { const x = o.series[k]?.[i] ?? 0; return <span key={k} title={`${k} ${nf(x, 1)}%`} style={{ height: `${x * 1.9}px`, background: v(OWN_COLOR[k] || "--faint"), animationDelay: `${i * 40}ms` }} />; })}</div>
-                <em>{p.replace(/^(\w{3})\s?(\d{2})(\d{2})$/, "$1 $3")}</em>
-              </div>
-            ))}
-          </div>
+        <div className="card acc own-trend" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
+          <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>How ownership has moved</h3><span className="s">{o.periods[0]} to {o.periods[n - 1]} · hover for each quarter</span></div>
+          <LineChart periods={o.periods.map((p) => p.replace(/^(\w{3})\s?(\d{2})(\d{2})$/, "$1 $3"))} series={trendKeys.map((k) => ({ key: k, label: o.latest.find((l) => l.key === k)!.label.replace(/\s*\(.*\)/, ""), color: v(OWN_COLOR[k] || "--faint"), values: o.series[k] || [] }))} fmt={(x) => nf(x, 0) + "%"} height={280} domain={[0, Math.ceil(Math.max(...trendKeys.flatMap((k) => o.series[k] || []).filter((x): x is number => x != null)) / 10) * 10]} />
         </div>
       </div>
     </section>
@@ -86,7 +80,8 @@ export function BusinessSection({ s }: { s: Summary }) {
 }
 
 /* ---------------- Dividends and announcements ---------------- */
-export function DividendsSection({ e }: { e?: Events }) {
+export function DividendsSection({ e, price }: { e?: Events; price?: number | null }) {
+  const [shares, setShares] = useState(100);
   if (!e) return null;
   const divs = e.actions.filter((a) => a.type.endsWith("dividend")).slice(0, 6);
   const fy = e.dividendsByFY, max = Math.max(...fy.dps, 1), avg = fy.dps.reduce((a, b) => a + b, 0) / Math.max(1, fy.dps.length);
@@ -106,10 +101,20 @@ export function DividendsSection({ e }: { e?: Events }) {
         <div className="card acc dv-chart" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name="bars" /></span>Dividend per share</h3><span className="s">₹ per financial year</span></div>
           <div className="dbars" style={{ "--avg": `${(avg / max) * 150}px` } as React.CSSProperties}>
-            {fy.periods.map((p, i) => <div className="dcol" key={p}><span>₹{nf(fy.dps[i], 2)}</span><i style={{ height: Math.max(6, (fy.dps[i] / max) * 150), animationDelay: `${i * 90}ms` }} /><em>{p}</em></div>)}
+            {fy.periods.map((p, i) => { const prv = fy.dps[i - 1], g = i && prv ? ((fy.dps[i] - prv) / prv) * 100 : null; return <div className="dcol" key={p}>{g != null && <b className={"yoy " + (g >= 0 ? "up" : "down")}>{g >= 0 ? "▲" : "▼"}{nf(Math.abs(g), 0)}%</b>}<span>₹{nf(fy.dps[i], 2)}</span><i style={{ height: Math.max(6, (fy.dps[i] / max) * 150), animationDelay: `${i * 90}ms` }} /><em>{p}</em></div>; })}
             <u className="avgline"><b>average</b></u>
           </div>
           <p className="faint" style={{ fontSize: 12, margin: "14px 0 0" }}>{fy.basis}.</p>
+        </div>
+        <div className="card acc dv-calc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
+          <div className="card-h"><h3><span className="ci"><Icon name="wallet" /></span>What would it pay you?</h3><span className="s">Try your own number</span></div>
+          <label className="dv-in"><span>If you owned</span><input type="number" min={1} max={1000000} value={shares} onChange={(ev) => setShares(Math.max(1, Math.min(1000000, Math.round(Number(ev.target.value) || 1))))} aria-label="Number of shares" /><span>shares</span></label>
+          <div className="dv-out">
+            {price != null && <div><span className="label">You would invest</span><b>₹{nf(shares * price, 0)}</b></div>}
+            <div className="hl"><span className="label">Dividends for {fy.periods[fy.periods.length - 1]}</span><b>₹{nf(shares * fy.dps[fy.dps.length - 1], 0)}</b></div>
+            {price != null && <div><span className="label">Return on that money</span><b>{pct((fy.dps[fy.dps.length - 1] / price) * 100)}</b></div>}
+          </div>
+          <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>Based on the latest declared dividend per share and today's price, before tax. Past dividends do not guarantee future ones.</p>
         </div>
         <div className="card acc dv-coins" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name="coins" /></span>Recent payouts</h3><span className="s">Newest first</span></div>

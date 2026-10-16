@@ -34,7 +34,11 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
     const rg = el("radialGradient", { id: "df" }, defs);
     el("stop", { offset: 0, "stop-color": css("--gold"), "stop-opacity": 0.12 }, rg); el("stop", { offset: 1, "stop-color": css("--gold"), "stop-opacity": 0 }, rg);
     el("circle", { cx: C, cy: C, r: 100, fill: "url(#df)" }, s);
-    el("circle", { cx: C, cy: C, r: 79, fill: css("--s1"), opacity: 0.7, stroke: css("--border-strong"), "stroke-width": 1 }, s);
+    const dg = el("radialGradient", { id: "dd", cx: ".5", cy: ".35", r: ".75" }, defs);
+    el("stop", { offset: 0, "stop-color": "#EBC46A", "stop-opacity": 0.22 }, dg); el("stop", { offset: 0.6, "stop-color": "#0F1C38", "stop-opacity": 0.96 }, dg); el("stop", { offset: 1, "stop-color": "#0A1530", "stop-opacity": 1 }, dg);
+    el("circle", { cx: C, cy: C, r: 79, fill: "url(#dd)", stroke: css("--gold"), "stroke-opacity": 0.35, "stroke-width": 1.2 }, s);
+    el("circle", { cx: C, cy: C, r: 72, fill: "none", stroke: css("--gold"), "stroke-opacity": 0.28, "stroke-width": 1, "stroke-dasharray": "2 6", class: "dial-spin" }, s);
+    el("circle", { cx: C, cy: C, r: 114, fill: "none", stroke: css("--border-strong"), "stroke-width": 1, "stroke-dasharray": "1 7", class: "dial-spin rev" }, s);
     for (let i = 0; i < 100; i++) {
       const major = i % 25 === 0, mid = i % 5 === 0, lit = i < score;
       const [x0, y0] = polar(C, C, 96, i * 3.6), [x1, y1] = polar(C, C, major ? 85 : mid ? 89 : 92, i * 3.6);
@@ -55,7 +59,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
     pillars.forEach((p, i) => {
       const a0 = i * 72 + 3, a1 = (i + 1) * 72 - 3, sc = p.score ?? 0, af = a0 + ((a1 - a0) * sc) / 100;
       const col = css(PILLAR_COLOR[p.key] || "--gold");
-      el("path", { d: arcPath(C, C, 124, a0, a1), fill: "none", stroke: css("--s3"), "stroke-width": 7, "stroke-linecap": "round" }, s);
+      el("path", { d: arcPath(C, C, 124, a0, a1), fill: "none", stroke: "#1A2A48", "stroke-width": 7, "stroke-linecap": "round" }, s);
       const seg = el("path", { d: arcPath(C, C, 124, a0, Math.max(a0 + 0.1, af)), fill: "none", stroke: col, "stroke-width": active === p.key ? 10 : 7, "stroke-linecap": "round", style: "cursor:pointer;transition:stroke-width .2s" }, s);
       if (first && !reduced()) { const len = seg.getTotalLength(); seg.style.strokeDasharray = String(len); seg.style.strokeDashoffset = String(len); seg.style.transition = `stroke-dashoffset 1s cubic-bezier(.16,1,.3,1) ${0.4 + i * 0.08}s, stroke-width .2s`; requestAnimationFrame(() => requestAnimationFrame(() => (seg.style.strokeDashoffset = "0"))); }
       seg.addEventListener("click", () => onPillar(p.key));
@@ -68,7 +72,8 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
   return (
     <div className="dial" ref={wrap} role="img" aria-label={`FinLit research score ${overall ?? "not available"} out of 100, ${bandLabel}. ${pillars.map((p) => `${p.label} ${p.score ?? "n/a"}`).join(", ")}.`}>
       <svg ref={svg} aria-hidden="true" />
-      <div className="dcenter"><div className="n">{overall == null ? "—" : shown}</div><div className="of">OUT OF 100</div><div><span className={"vd " + (bandLabel === "Strong" ? "strong" : bandLabel === "Healthy" ? "healthy" : bandLabel === "Mixed" ? "mixed" : "weak")}>{bandLabel}</span></div></div>
+      <div className="dcenter"><div className="n">{overall == null ? "—" : shown}</div><div className="of">/ 100</div></div>
+      <div className="dial-band"><span className={"vd " + (bandLabel === "Strong" ? "strong" : bandLabel === "Healthy" ? "healthy" : bandLabel === "Mixed" ? "mixed" : "weak")}>{bandLabel}</span><span className="faint">overall research score</span></div>
     </div>
   );
 }
