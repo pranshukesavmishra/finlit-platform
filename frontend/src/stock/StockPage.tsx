@@ -84,7 +84,7 @@ export function StockPage() {
         <PeersSection p={peers} self={symbol} s={s} />
         <InsightsSection s={s} r={ratios} seg={seg} tech={tech} />
         <BusinessSection s={s} />
-        <DividendsSection e={events} price={q?.price} />
+        <DividendsSection e={events} price={q?.price} r={ratios} />
         <MethodSection s={s} r={ratios} />
       </div>
       <PlansBand id="plans" />

@@ -16,7 +16,7 @@ await ctx.addInitScript(() => { localStorage.setItem("finlit-plan", "gold"); loc
 // 1. Home renders, live example loads from the research API
 await page.goto(base, { waitUntil: "networkidle" });
 check("home: headline", await page.locator("h1").innerText().then((t) => /clarity/i.test(t)));
-check("home: live score card from research API", await page.locator(".term-dial b").innerText().then((t) => /^\d+$/.test(t)).catch(() => false));
+check("home: live score card from research API", await page.locator(".term-dial text").innerText().then((t) => /^\d+$/.test(t)).catch(() => false));
 check("home: portfolio performance from site backend", await page.locator("text=Realised portfolio performance").count().then((n) => n > 0));
 
 // 2. Search palette (Ctrl+K), typing, Enter opens the report
