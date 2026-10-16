@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../lib/icons";
-import { Spark } from "../charts/Small";
+import { arcPath } from "../lib/svg";
+
 import { LineChart } from "../charts/LineChart";
 import { cr, dateIN, initials, nf, num, pct, signed } from "../lib/format";
 import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
@@ -11,62 +12,77 @@ import { Plain } from "../components/Plain";
 const v = (n: string) => `var(${n})`;
 
 /* ---------------- Ownership ---------------- */
-/** Splits 100 squares between holders (largest-remainder), so "1 square = 1% of the company". */
-function waffle(latest: { key: string; value: number | null }[]) {
-  const items = latest.filter((l) => (l.value ?? 0) > 0), tot = items.reduce((a, l) => a + (l.value as number), 0) || 1;
-  const raw = items.map((l) => ({ key: l.key, x: ((l.value as number) / tot) * 100 }));
-  const base = raw.map((r) => ({ ...r, n: Math.floor(r.x) }));
-  let left = 100 - base.reduce((a, r) => a + r.n, 0);
-  [...base].sort((a, b) => (b.x - Math.floor(b.x)) - (a.x - Math.floor(a.x))).forEach((r) => { if (left > 0) { r.n++; left--; } });
-  return base.flatMap((r) => Array.from({ length: r.n }, () => r.key));
+const OWN_WORDS: Record<string, string> = { promoters: "Founders and their group", fii: "Foreign funds", dii: "Indian mutual funds, insurers and banks", public: "Everyday investors and others", government: "Government" };
+
+/** Gradient donut with a gap between slices; hover or focus a slice to read it in the centre. */
+function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; value: number }[]; hl: string | null; setHl: (k: string | null) => void }) {
+  const tot = items.reduce((a, i) => a + i.value, 0) || 1, R = 92, W = 30, C = 130;
+  let ang = 0;
+  const arcs = items.map((i) => { const sweep = (i.value / tot) * 360, a0 = ang + 1.6, a1 = ang + sweep - 1.6; ang += sweep; return { ...i, a0, a1: Math.max(a1, a0 + 0.5) }; });
+  const cur = items.find((i) => i.key === hl) || items[0];
+  return (
+    <div className="odn">
+      <svg viewBox="0 0 260 260" role="img" aria-label="Who owns the company">
+        <defs>
+          {items.map((i) => { const col = v(OWN_COLOR[i.key] || "--faint"); return <linearGradient key={i.key} id={`og-${i.key}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" style={{ stopColor: `color-mix(in srgb, ${col} 55%, #fff)` }} /><stop offset="1" style={{ stopColor: `color-mix(in srgb, ${col} 82%, #000)` }} /></linearGradient>; })}
+          <filter id="og-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" /></filter>
+        </defs>
+        <circle cx={C} cy={C} r={R + W / 2 + 14} fill="none" stroke="var(--border)" strokeDasharray="1 6" />
+        <circle cx={C} cy={C} r={R - W / 2 - 12} fill="none" stroke="var(--border)" />
+        {arcs.map((a) => {
+          const on = !hl || hl === a.key, big = hl === a.key;
+          return (
+            <g key={a.key} opacity={on ? 1 : 0.25} style={{ transition: "opacity .25s" }}>
+              {big && <path d={arcPath(C, C, R, a.a0, a.a1)} fill="none" stroke={`url(#og-${a.key})`} strokeWidth={W} strokeLinecap="round" filter="url(#og-glow)" opacity=".55" />}
+              <path className="odn-a" d={arcPath(C, C, R, a.a0, a.a1)} fill="none" stroke={`url(#og-${a.key})`} strokeWidth={big ? W + 8 : W} strokeLinecap="round" tabIndex={0} role="button" aria-label={`${a.label} ${nf(a.value, 1)}%`} onMouseEnter={() => setHl(a.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(a.key)} onBlur={() => setHl(null)} style={{ cursor: "pointer", transition: "stroke-width .2s", outline: "none" }} />
+            </g>
+          );
+        })}
+        <text x={C} y={C - 12} textAnchor="middle" fontSize="11" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif" fontWeight="600">{cur.label.replace(/\s*\(.*\)/, "").toUpperCase().slice(0, 22)}</text>
+        <text x={C} y={C + 28} textAnchor="middle" fontSize="50" fontFamily="Newsreader, Georgia, serif" fill="var(--text)">{nf(cur.value, 1)}<tspan fontSize="24" fill="var(--muted)">%</tspan></text>
+        <text x={C} y={C + 50} textAnchor="middle" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">of all shares</text>
+      </svg>
+    </div>
+  );
 }
 
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
   if (!o) return <section className="block"><SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
   const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
-  const move = [...o.latest].filter((l) => l.change1yPts != null).sort((a, b) => Math.abs(b.change1yPts!) - Math.abs(a.change1yPts!))[0];
-  const cells = waffle(o.latest);
-  const rows = o.latest.filter((l) => (l.value ?? 0) >= 0.5).map((l) => { const sv = (o.series[l.key] || []).find((x) => x != null) ?? null; return { ...l, start: sv as number | null }; });
-  const axis = Math.max(10, Math.ceil(Math.max(...rows.flatMap((r) => [r.value ?? 0, r.start ?? 0])) / 10) * 10);
+  const items = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
-  const hold = hl ? o.latest.find((l) => l.key === hl) : prom;
+  const rows = o.latest.filter((l) => (l.value ?? 0) >= 0.5).map((l) => { const st = (o.series[l.key] || []).find((x) => x != null) ?? null; return { ...l, start: st as number | null }; });
+  const scale = Math.max(...rows.flatMap((r) => [r.value ?? 0, r.start ?? 0]), 1);
+  const then = o.periods[0], now = o.periods[n - 1];
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
       <SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
-      <div className="own3">
-        <div className="card acc own-wf" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="wf-head"><div className="eyebrow">If the company were 100 shares</div><p><b>{hold?.value != null ? nf(hold.value, 0) : "—"}</b> {hold ? `belong to ${label(hold).toLowerCase()}` : ""}</p></div>
-          <div className="wf" onMouseLeave={() => setHl(null)}>{cells.map((k, i) => <i key={i} className={hl && hl !== k ? "dim" : ""} style={{ background: v(OWN_COLOR[k] || "--faint"), animationDelay: `${i * 9}ms` }} onMouseEnter={() => setHl(k)} />)}</div>
-          <div className="wf-leg">{o.latest.map((l) => <button key={l.key} className={hl === l.key ? "on" : ""} onMouseEnter={() => setHl(l.key)} onFocus={() => setHl(l.key)} onMouseLeave={() => setHl(null)}><i style={{ background: v(OWN_COLOR[l.key] || "--faint") }} />{label(l)}<b>{pct(l.value, 1)}</b></button>)}</div>
+      <div className="own4">
+        <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
+          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners today</h3><span className="s">Hover a slice</span></div>
+          <OwnDonut items={items} hl={hl} setHl={setHl} />
+          <div className="odl">{o.latest.map((l) => { const c = v(OWN_COLOR[l.key] || "--faint"); return (
+            <button key={l.key} className={"odl-r" + (hl === l.key ? " on" : "")} style={{ "--oc": c } as React.CSSProperties} onMouseEnter={() => setHl(l.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(l.key)} onBlur={() => setHl(null)}>
+              <i /><span><b>{label(l)}</b><small>{OWN_WORDS[l.key] || ""}</small></span><em>{pct(l.value, 1)}</em>
+            </button>); })}</div>
         </div>
-        <div className="card acc own-db" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>Then and now</h3><span className="s">{o.periods[0]} → {o.periods[n - 1]}</span></div>
-          <div className="db">{rows.map((r) => {
-            const col = v(OWN_COLOR[r.key] || "--faint"), d = r.start == null ? 0 : (r.value as number) - r.start, a = ((r.start ?? 0) / axis) * 100, b = ((r.value ?? 0) / axis) * 100;
+        <div className="card acc own-c" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
+          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold</h3><span className="s">{then} compared with {now}</span></div>
+          <div className="cmpk"><span><i className="k-then" />{then}</span><span><i className="k-now" />{now}</span></div>
+          <div className="cmpl">{rows.map((r) => {
+            const c = v(OWN_COLOR[r.key] || "--faint"), d = r.start == null ? 0 : (r.value as number) - r.start, flat = Math.abs(d) < 0.05;
             return (
-              <div className="db-r" key={r.key} style={{ "--oc": col } as React.CSSProperties}>
-                <span className="db-l">{label(r)}</span>
-                <div className="db-t"><i className="db-bar" style={{ left: `${Math.min(a, b)}%`, width: `${Math.abs(b - a)}%` }} /><i className="db-s" style={{ left: `${a}%` }} title={`${o.periods[0]}: ${nf(r.start ?? 0, 1)}%`} /><i className="db-e" style={{ left: `${b}%` }} title={`${o.periods[n - 1]}: ${nf(r.value ?? 0, 1)}%`} /></div>
-                <span className={"db-d " + (Math.abs(d) < 0.05 ? "" : d > 0 ? "up" : "down")}>{Math.abs(d) < 0.05 ? "no change" : `${d > 0 ? "▲ +" : "▼ −"}${nf(Math.abs(d), 1)} pts`}</span>
+              <div className="cmp-r" key={r.key} style={{ "--oc": c } as React.CSSProperties}>
+                <div className="cr-h"><b>{label(r)}</b><span className={"cmp-d " + (flat ? "" : d > 0 ? "up" : "down")}>{flat ? "Unchanged" : d > 0 ? `▲ Bought ${nf(d, 1)} pts` : `▼ Sold ${nf(Math.abs(d), 1)} pts`}</span></div>
+                <div className="cmp-b"><span className="cb-l">{then}</span><div className="cb-t"><i className="cb then" style={{ width: `${((r.start ?? 0) / scale) * 100}%` }} /></div><span className="cb-v">{nf(r.start ?? 0, 1)}%</span></div>
+                <div className="cmp-b now"><span className="cb-l">{now}</span><div className="cb-t"><i className="cb" style={{ width: `${((r.value ?? 0) / scale) * 100}%` }} /></div><span className="cb-v">{nf(r.value ?? 0, 1)}%</span></div>
               </div>
             );
           })}</div>
-          <div className="db-axis"><span>0%</span><span>{axis / 2}%</span><span>{axis}%</span></div>
-          <p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>○ {o.periods[0]} &nbsp; ● {o.periods[n - 1]}{move ? ` · biggest move in a year: ${label(move)}` : ""}</p>
         </div>
       </div>
-      <div className="otiles2">{o.latest.map((l) => {
-        const col = v(OWN_COLOR[l.key] || "--faint");
-        return (
-          <div className="ot" key={l.key} style={{ "--oc": col } as React.CSSProperties}>
-            <div className="ot-h"><span className="label">{l.label}</span>{l.change1yPts == null ? <span className="chip ghost">Balance</span> : <span className={"chip " + (l.change1yPts >= 0 ? "up" : "down")}>{signed(l.change1yPts, 2, " pts")} 1Y</span>}</div>
-            <div className="ot-v">{pct(l.value)}</div>
-            <Spark values={o.series[l.key] || []} color={col} w={180} h={34} />
-          </div>
-        );
-      })}</div>
     </section>
   );
 }
@@ -123,7 +139,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
       {e.dividendYieldTtm != null && <Plain tone={streak >= 5 && rising >= 3 ? "good" : "info"}>For every ₹100 invested at today's price, this company pays about ₹{nf(e.dividendYieldTtm, 2)} a year. It has paid a dividend for {streak} year{streak === 1 ? "" : "s"} running{rising >= 2 ? ` and raised it ${rising} years in a row` : ""}.{payout != null ? ` It keeps about ${nf(100 - payout, 0)}% of its profit to grow the business.` : ""} {e.dividendYieldTtm < 1 ? "A low yield suggests owning it for growth rather than income." : ""}</Plain>}
       <div className="dvk">
         <div className="dk" style={{ "--dc": "var(--gold)" } as React.CSSProperties}>
-          <div className="dk-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r={R} fill="none" stroke="var(--s3)" strokeWidth="10" /><circle className="ring-in" cx="60" cy="60" r={R} fill="none" stroke="var(--gold)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(C * yld) / 100} ${C}`} transform="rotate(-90 60 60)" /></svg><b>{pct(e.dividendYieldTtm)}</b></div>
+          <div className="dk-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="dvy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFF1C2" /><stop offset=".5" stopColor="var(--gold)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs><circle cx="60" cy="60" r={R} fill="none" stroke="var(--s3)" strokeWidth="10" /><circle className="ring-in" cx="60" cy="60" r={R} fill="none" stroke="var(--gold)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(C * yld) / 100} ${C}`} transform="rotate(-90 60 60)" /></svg><b>{pct(e.dividendYieldTtm)}</b></div>
           <div><span className="label">Dividend yield</span><p>Yearly cash per ₹100 invested. Ring: against a 5% scale.</p></div>
         </div>
         <div className="dk" style={{ "--dc": "var(--c2)" } as React.CSSProperties}>
