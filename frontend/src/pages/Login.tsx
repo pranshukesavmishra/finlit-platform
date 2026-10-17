@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useMutation } from "@tanstack/react-query";
 import { ApiError } from "../lib/api";
 import { resendVerification, signIn, signUp } from "../lib/account";
@@ -71,7 +71,7 @@ export function Login() {
   const setMode = (m: "signin" | "signup") => { setErr(null); setNeedCode(false); setUnverified(false); const p = new URLSearchParams(params); if (m === "signup") p.set("mode", "signup"); else p.delete("mode"); setParams(p, { replace: true }); };
   const busy = login.isPending || register.isPending;
 
-  if (DEMO) return <div className="login"><div className="wrap state"><h1>Accounts</h1><p className="muted">Accounts are switched off in the demo preview.</p><Link className="btn primary" to="/research">Explore research</Link></div></div>;
+  if (DEMO) return <Navigate to="/dashboard" replace />;
   if (user && !sent) return <div className="login"><div className="wrap state"><h1 style={{ font: "400 30px var(--serif)" }}>You are signed in</h1><p className="muted">{user.email}</p><Link className="btn primary" to={next}>Continue</Link></div></div>;
 
   return (

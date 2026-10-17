@@ -18,6 +18,9 @@ export const LIMITS: Record<Plan, Limits> = {
 };
 export const limitsFor = (plan: Plan): Limits => LIMITS[plan];
 
+/** Demo preview only: a pretend member so the dashboard, appearance settings and plan preview can be shown without servers. */
+const DEMO_USER: User = { id: "demo", email: "demo@finlit.example", name: "Demo member", role: "investor", plan: "gold", verified: true, mfa: false, mfaOk: false };
+
 const VISITOR: Me = { user: null, plan: "basic", limits: LIMITS.basic, csrf: null };
 
 type Auth = {
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc, clearPlanData]);
 
   const value = useMemo<Auth>(() => ({
-    ready: DEMO || !q.isPending, user: me.user, plan: me.plan, limits: me.limits, isAdmin: me.user?.role === "admin", refresh, signOut,
+    ready: DEMO || !q.isPending, user: DEMO ? DEMO_USER : me.user, plan: me.plan, limits: me.limits, isAdmin: me.user?.role === "admin", refresh, signOut,
   }), [me, q.isPending, refresh, signOut]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -11,12 +11,12 @@ export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; das
 /** Everything the dashboard can show. `min` is the plan a widget needs (its data is gated on the server too). */
 export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "bronze" | "gold"; size: WidgetSize }[] = [
   { id: "snapshot", label: "Market snapshot", blurb: "Broad market and index moves at a glance.", min: "basic", size: "full" },
-  { id: "movers", label: "Watchlist movers", blurb: "Biggest moves among the stocks you follow.", min: "bronze", size: "half" },
   { id: "results", label: "Latest quarter results", blurb: "Newest quarter for your stocks: year-on-year and quarter-on-quarter.", min: "basic", size: "full" },
+  { id: "movers", label: "Watchlist movers", blurb: "Biggest moves among the stocks you follow.", min: "bronze", size: "half" },
   { id: "second", label: "Worth a second look", blurb: "Strong FinLit scores trading below their usual valuation.", min: "bronze", size: "half" },
   { id: "screens", label: "My saved screens", blurb: "Open a saved screen and see how many companies match today.", min: "basic", size: "half" },
   { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit score bands.", min: "gold", size: "half" },
-  { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "half" },
+  { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "full" },
 ];
 const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, dashboard: WIDGETS.map((w) => ({ id: w.id, on: true, size: w.size })) };
 

@@ -10,6 +10,7 @@ import { prefs, usePrefs } from "../lib/prefs";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { PasswordField } from "./Login";
+import { DEMO } from "../lib/demo";
 
 const TABS = [["", "Profile", "users"], ["security", "Security", "lock"], ["appearance", "Appearance", "spark"], ["plan", "Plan", "crown"]] as const;
 const msg = (e: unknown) => e instanceof ApiError ? e.body.detail || "Something went wrong." : "We could not reach FinLit. Check your connection.";
@@ -32,13 +33,15 @@ export function Account() {
         <div><h1>{user.name || "Your account"}</h1><p className="muted">{user.email} · <span className={"tier " + user.plan}>{TIER[user.plan].n}</span></p></div>
       </header>
       <nav className="acct-tabs" aria-label="Account sections">
-        {TABS.map(([to, label, ic]) => <NavLink key={to} to={to ? `/account/${to}` : "/account"} end className={({ isActive }) => (isActive ? "on" : "")}><Icon name={ic} />{label}</NavLink>)}
+        {TABS.filter(([to]) => !DEMO || to === "appearance").map(([to, label, ic]) => <NavLink key={to} to={to ? `/account/${to}` : "/account"} end className={({ isActive }) => (isActive ? "on" : "")}><Icon name={ic} />{label}</NavLink>)}
         <Link to="/dashboard"><Icon name="table" />Dashboard</Link>
       </nav>
-      {tab === "" && <Profile />}
-      {tab === "security" && <Security />}
+      {DEMO && <div className="card acct-c callout"><b>Demo preview.</b> Sign-in, security, sessions and plan requests are live on the real site; here you can try the appearance settings and the dashboard.</div>}
+      {tab === "" && !DEMO && <Profile />}
+      {tab === "security" && !DEMO && <Security />}
       {tab === "appearance" && <Appearance />}
-      {tab === "plan" && <PlanTab />}
+      {tab === "plan" && !DEMO && <PlanTab />}
+      {DEMO && tab !== "appearance" && <Navigate to="/account/appearance" replace />}
       {!["", "security", "appearance", "plan"].includes(tab) && <Navigate to="/account" replace />}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type Financials } from "../lib/api";
@@ -8,7 +8,8 @@ import { PALETTES, PALETTE_IDS } from "../lib/palettes";
 import { WIDGETS, prefs, usePrefs, type WidgetPref } from "../lib/prefs";
 import { BAND_LABEL, applyFilters, useUniverse, type Row } from "../lib/screener";
 import { useSavedScreens } from "../lib/screens";
-import { useWatchlist } from "../lib/watchlist";
+import { useWatchlist, watch } from "../lib/watchlist";
+import { DEMO } from "../lib/demo";
 import { signals } from "./Watchlist";
 import { MiniBars } from "../charts/MiniBars";
 import { Icon } from "../lib/icons";
@@ -142,6 +143,7 @@ export function Dashboard() {
   const names = useMemo(() => new Map(rows.map((r) => [r.symbol, r.name])), [rows]);
   const followed = useMemo(() => [...new Set(wl.lists.flatMap((l) => l.symbols))], [wl]);
   const items = followed.map((s) => bySym.get(s)).filter((r): r is Row => !!r);
+  useEffect(() => { if (DEMO && !wl.seeded && rows.length) watch.seed([...rows].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)).slice(0, 9).map((r) => r.symbol)); }, [rows, wl.seeded]);
   if (!ready) return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "40px auto" }} /></div>;
   if (!user) return <Navigate to="/login?next=%2Fdashboard" replace />;
 
