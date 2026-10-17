@@ -48,6 +48,8 @@ async def check_alerts(pool, mailer: Mailer, site_url: str) -> int:
                 recent = prev is not None and prev["alerted_at"] is not None and await conn.fetchval("SELECT $1::timestamptz > now() - interval '1 day'", prev["alerted_at"])
                 if crossed and not recent:
                     subject, body = alert_mail(sym, name, price, float(target), f"{site_url}/stocks/{sym}")
+                    await conn.execute("INSERT INTO notifications (user_id, symbol, kind, title, body, link) VALUES ($1, $2, 'alert', $3, $4, $5)",
+                                       u["id"], sym, subject, f"{name} is now ₹{price:,.2f}, {'above' if price >= float(target) else 'below'} your watchlist target of ₹{float(target):,.2f}.", f"/stocks/{sym}")
                     try:
                         await mailer.send(u["email"], subject, body)
                         sent += 1
