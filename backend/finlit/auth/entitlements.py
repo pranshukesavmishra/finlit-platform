@@ -20,9 +20,9 @@ KEEP_TECHNICAL = ("price", "ema50", "vsEma200Pct")
 MODEL_FIELDS = ("overall", "band", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical")
 
 LIMITS = {
-    "basic": {"watchlist_lists": 0, "watchlist_symbols": 0, "screens": 3, "compare": 2},
-    "bronze": {"watchlist_lists": 3, "watchlist_symbols": 30, "screens": 20, "compare": 2},
-    "gold": {"watchlist_lists": 50, "watchlist_symbols": 1000, "screens": 100, "compare": 4},
+    "basic": {"watchlist_lists": 0, "watchlist_symbols": 0, "screens": 3, "compare": 2, "holdings": 0},
+    "bronze": {"watchlist_lists": 3, "watchlist_symbols": 30, "screens": 20, "compare": 2, "holdings": 30},
+    "gold": {"watchlist_lists": 50, "watchlist_symbols": 1000, "screens": 100, "compare": 4, "holdings": 500},
 }
 
 

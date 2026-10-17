@@ -166,6 +166,27 @@ class WList(BaseModel):
         return out
 
 
+class Holding(BaseModel):
+    id: str = Field(pattern=r"^[a-z0-9]{1,16}$")
+    symbol: str
+    qty: float = Field(gt=0, le=1_000_000_000)
+    price: float = Field(ge=0, le=100_000_000)  # average buy price per share
+    date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    note: Optional[str] = Field(default=None, max_length=200)
+
+    @field_validator("symbol")
+    @classmethod
+    def symbol_ok(cls, v: str) -> str:
+        v = v.strip().upper()
+        if not SYMBOL.match(v):
+            raise ValueError("bad symbol")
+        return v
+
+
+class PortfolioIn(BaseModel):
+    holdings: List[Holding] = Field(max_length=500)
+
+
 class WatchlistIn(BaseModel):
     lists: List[WList] = Field(max_length=50)
     meta: Dict[str, WMeta] = Field(default_factory=dict, max_length=1000)
@@ -216,6 +237,8 @@ class PrefsIn(BaseModel):
     palette: Literal["gold", "champagne", "bronze", "graphite", "midnight", "emerald"] = "gold"
     density: Literal["comfortable", "compact"] = "comfortable"
     alerts: bool = True
+    screenAlerts: bool = True
+    digest: bool = False
     dashboard: List[Widget] = Field(default_factory=list, max_length=30)
 
 
@@ -595,14 +618,14 @@ async def delete_account(request: Request, response: Response, body: PasswordIn,
 @router.get("/me/state")
 async def get_state(request: Request, ctx: Ctx = Depends(secure_ctx)):
     async with request.app.state.store.pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT watchlist, screens, prefs FROM user_state WHERE user_id = $1", ctx.user_id)
+        row = await conn.fetchrow("SELECT watchlist, screens, prefs, portfolio FROM user_state WHERE user_id = $1", ctx.user_id)
     parse = lambda v, d: (json.loads(v) if isinstance(v, str) else v) if v else d  # noqa: E731
     return Response(content=json.dumps({"watchlist": parse(row["watchlist"], {}) if row else {}, "screens": parse(row["screens"], []) if row else [],
-                                        "prefs": parse(row["prefs"], {}) if row else {}}), media_type="application/json", headers=NO_STORE)
+                                        "prefs": parse(row["prefs"], {}) if row else {}, "portfolio": parse(row["portfolio"], {}) if row else {}}), media_type="application/json", headers=NO_STORE)
 
 
 async def save_state(request: Request, ctx: Ctx, column: str, value: Any) -> None:
-    sql = {"watchlist": "watchlist", "screens": "screens", "prefs": "prefs"}[column]  # fixed names, never user input
+    sql = {"watchlist": "watchlist", "screens": "screens", "prefs": "prefs", "portfolio": "portfolio"}[column]  # fixed names, never user input
     async with request.app.state.store.pool.acquire() as conn:
         await conn.execute(f"INSERT INTO user_state (user_id, {sql}) VALUES ($1, $2::jsonb) "  # nosec B608 - column is from the fixed map above
                            f"ON CONFLICT (user_id) DO UPDATE SET {sql} = EXCLUDED.{sql}, updated_at = now()", ctx.user_id, json.dumps(value))
@@ -622,6 +645,19 @@ async def put_watchlist(request: Request, body: WatchlistIn, ctx: Ctx = Depends(
         raise fail(422, "duplicate_list")
     meta = {k: v.model_dump() for k, v in body.meta.items() if SYMBOL.match(k)}
     await save_state(request, ctx, "watchlist", {"lists": [lst.model_dump() for lst in body.lists], "meta": meta})
+    return {"status": "saved"}
+
+
+@router.put("/me/portfolio")
+async def put_portfolio(request: Request, body: PortfolioIn, ctx: Ctx = Depends(secure_ctx)):
+    need_plan(ctx, "bronze")
+    cap = limits_for(ctx.plan)["holdings"]
+    if len(body.holdings) > cap:
+        raise fail(403, "plan_limit", f"Your plan includes {cap} holdings.", plan="gold")
+    ids = [h.id for h in body.holdings]
+    if len(set(ids)) != len(ids):
+        raise fail(422, "duplicate_holding")
+    await save_state(request, ctx, "portfolio", {"holdings": [h.model_dump() for h in body.holdings]})
     return {"status": "saved"}
 
 

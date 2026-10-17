@@ -30,6 +30,7 @@ const IpoPage = lazy(() => import("./pages/Ipo").then((m) => ({ default: m.IpoPa
 const ResultsPage = lazy(() => import("./pages/Results").then((m) => ({ default: m.ResultsPage })));
 const NewsPage = lazy(() => import("./pages/News").then((m) => ({ default: m.NewsPage })));
 const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ default: m.DocumentsPage })));
+const HoldingsPage = lazy(() => import("./pages/Holdings").then((m) => ({ default: m.HoldingsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="screener" element={<Screener />} />
             <Route path="compare" element={<Compare />} />
             <Route path="watchlist" element={<WatchlistPage />} />
+            <Route path="holdings" element={<HoldingsPage />} />
             <Route path="ipo" element={<IpoPage />} />
             <Route path="results" element={<ResultsPage />} />
             <Route path="news" element={<NewsPage />} />

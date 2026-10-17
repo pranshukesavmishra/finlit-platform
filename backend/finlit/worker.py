@@ -183,6 +183,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_probe = sub.add_parser("probe", help="check the FinEdge key and every endpoint for one symbol")
     p_probe.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("check-alerts", help="email members whose watchlist stocks crossed their target price")
+    sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
+    sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
@@ -193,6 +195,16 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     try:
         if args.cmd == "migrate":
             print("migrated; timescale =", store.timescale)
+            return 0
+        if args.cmd in ("check-screens", "send-digest"):
+            from .auth.mailer import ConsoleMailer, ResendMailer
+            mailer = ResendMailer(settings.resend_api_key, settings.mail_from) if settings.mail_mode == "resend" and settings.resend_api_key else ConsoleMailer(store.pool)
+            if args.cmd == "check-screens":
+                from .screens import check_screens
+                print(await check_screens(store.pool, mailer, settings.public_site_url), "screen alerts sent")
+            else:
+                from .digest import send_digests
+                print(await send_digests(store.pool, mailer, settings.public_site_url), "digests sent")
             return 0
         if args.cmd == "check-alerts":
             from .alerts import check_alerts

@@ -440,3 +440,57 @@ async def test_feed_admin_add_public_read_and_filters(app, anon):
     assert (await admin.delete(f"/api/admin/feed/{made.json()['id']}")).status_code == 200
     assert (await anon.get("/api/feed?kind=result&upcoming=true")).json()["items"] == []
     await admin.aclose()
+
+
+async def test_portfolio_is_saved_per_plan_and_validated(app):
+    basic = await signed_in(app, "a@example.com")
+    h = {"holdings": [{"id": "h1", "symbol": "reliance", "qty": 10, "price": 1200.5, "date": "2025-01-15"}]}
+    assert (await basic.put("/api/me/portfolio", json=h)).json()["detail"]["status"] == "plan_required"
+    bronze = await signed_in(app, "b@example.com", plan="bronze")
+    assert (await bronze.put("/api/me/portfolio", json=h)).status_code == 200
+    assert (await bronze.get("/api/me/state")).json()["portfolio"]["holdings"][0]["symbol"] == "RELIANCE"
+    for bad in ({"id": "h2", "symbol": "TCS", "qty": 0, "price": 1}, {"id": "h2", "symbol": "A;B", "qty": 1, "price": 1}, {"id": "h2", "symbol": "TCS", "qty": 1, "price": 1, "date": "tomorrow"}):
+        assert (await bronze.put("/api/me/portfolio", json={"holdings": [bad]})).status_code == 422
+    many = {"holdings": [{"id": f"h{i}", "symbol": "TCS", "qty": 1, "price": 1} for i in range(31)]}
+    assert (await bronze.put("/api/me/portfolio", json=many)).json()["detail"]["status"] == "plan_limit"
+    dup = {"holdings": [{"id": "x", "symbol": "TCS", "qty": 1, "price": 1}, {"id": "x", "symbol": "INFY", "qty": 1, "price": 1}]}
+    assert (await bronze.put("/api/me/portfolio", json=dup)).status_code == 422
+    for c in (basic, bronze):
+        await c.aclose()
+
+
+async def test_screen_alert_emails_only_new_matches(app):
+    from finlit.screens import check_screens, matches
+    pool = app.state.store.pool
+    assert matches({"pe": 15, "sector": "IT", "band": "strong", "overall": 80}, {"ranges": {"pe": {"max": 20}}, "sectors": ["IT"], "bands": ["strong"]})
+    assert not matches({"pe": 25}, {"ranges": {"pe": {"max": 20}}}) and not matches({"pe": None}, {"ranges": {"pe": {"max": 20}}})
+    c = await signed_in(app, "b@example.com", plan="bronze")
+    screen = {"screens": [{"name": "Cheap", "state": {"ranges": {"pe": {"max": 30}}, "sectors": [], "bands": []}}]}
+    assert (await c.put("/api/me/screens", json=screen)).status_code == 200
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET pe = 50 WHERE symbol = 'RELIANCE'")
+    assert await check_screens(pool, app.state.mailer, "http://test") == 0      # first look just remembers
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET pe = 20 WHERE symbol = 'RELIANCE'")
+    assert await check_screens(pool, app.state.mailer, "http://test") == 1      # RELIANCE newly matches
+    assert "RELIANCE" in (await last_mail(app, "b@example.com"))["body"]
+    assert await check_screens(pool, app.state.mailer, "http://test") == 0      # nothing new the next time
+    await c.aclose()
+
+
+async def test_weekly_digest_is_opt_in_and_sent_once_a_week(app):
+    from datetime import date, timedelta
+    from finlit.digest import send_digests
+    pool = app.state.store.pool
+    c = await signed_in(app, "b@example.com", plan="bronze")
+    await c.put("/api/me/watchlist", json={"lists": [{"id": "m", "name": "x", "symbols": ["RELIANCE"]}], "meta": {}})
+    async with pool.acquire() as conn:
+        await conn.execute("INSERT INTO feed_items (kind, title, symbol, company, item_date, period) VALUES ('result', 'Board meeting', 'RELIANCE', 'Reliance', $1, 'Q2 FY27')", date.today() + timedelta(days=2))
+    await c.put("/api/me/prefs", json={"palette": "gold", "digest": False})
+    assert await send_digests(pool, app.state.mailer, "http://test") == 0       # nothing unless the member asked for it
+    await c.put("/api/me/prefs", json={"palette": "gold", "digest": True})
+    assert await send_digests(pool, app.state.mailer, "http://test") == 1
+    mail = await last_mail(app, "b@example.com")
+    assert "RESULTS THIS WEEK" in mail["body"] and "RELIANCE" in mail["body"] and "Account" in mail["body"]
+    assert await send_digests(pool, app.state.mailer, "http://test") == 0       # once per week
+    await c.aclose()

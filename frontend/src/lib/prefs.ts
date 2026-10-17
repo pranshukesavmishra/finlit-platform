@@ -6,7 +6,7 @@ import { isPalette, type PaletteId } from "./palettes";
 export type Density = "comfortable" | "compact";
 export type WidgetSize = "half" | "full";
 export type WidgetPref = { id: string; on: boolean; size: WidgetSize };
-export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; dashboard: WidgetPref[] };
+export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; screenAlerts: boolean; digest: boolean; dashboard: WidgetPref[] };
 
 /** Everything the dashboard can show. `min` is the plan a widget needs (its data is gated on the server too). */
 export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "bronze" | "gold"; size: WidgetSize }[] = [
@@ -21,7 +21,7 @@ export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" |
   { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit score bands.", min: "gold", size: "half" },
   { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "half" },
 ];
-const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, dashboard: WIDGETS.map((w) => ({ id: w.id, on: true, size: w.size })) };
+const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, screenAlerts: true, digest: false, dashboard: WIDGETS.map((w) => ({ id: w.id, on: true, size: w.size })) };
 
 const KEY = "finlit-prefs-v1";
 function normalise(raw: Partial<Prefs> | null | undefined): Prefs {
@@ -30,7 +30,7 @@ function normalise(raw: Partial<Prefs> | null | undefined): Prefs {
   const dash: WidgetPref[] = [];
   for (const w of raw?.dashboard ?? []) if (known.has(w.id) && !seen.has(w.id)) { seen.add(w.id); dash.push({ id: w.id, on: !!w.on, size: w.size === "full" ? "full" : "half" }); }
   for (const w of WIDGETS) if (!seen.has(w.id)) dash.push({ id: w.id, on: true, size: w.size }); // new widgets appear for existing members
-  return { palette: isPalette(raw?.palette) ? raw!.palette! : "gold", density: raw?.density === "compact" ? "compact" : "comfortable", alerts: raw?.alerts !== false, dashboard: dash };
+  return { palette: isPalette(raw?.palette) ? raw!.palette! : "gold", density: raw?.density === "compact" ? "compact" : "comfortable", alerts: raw?.alerts !== false, screenAlerts: raw?.screenAlerts !== false, digest: raw?.digest === true, dashboard: dash };
 }
 function read(): Prefs { try { return normalise(JSON.parse(localStorage.getItem(KEY) || "null")); } catch { return normalise(null); } }
 
