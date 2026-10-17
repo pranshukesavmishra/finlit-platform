@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -26,6 +27,7 @@ from .auth.entitlements import has, redact_section, redact_universe, varies_by_p
 from .auth.mailer import ConsoleMailer, ResendMailer
 from .auth.service import current
 from .config import Settings, get_settings
+from .web import mount_frontend
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
 from .snapshot import PRICE_RANGES, SECTIONS
 from .store import Store
@@ -283,5 +285,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         return response
 
     app.include_router(auth_routes.router)
+    if settings.frontend_dist:  # one container serves the website and the API (see finlit/web.py)
+        mount_frontend(app, Path(settings.frontend_dist))
     return app
 

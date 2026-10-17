@@ -6,13 +6,16 @@ import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { Reveal } from "../components/Reveal";
 import { nf } from "../lib/format";
+import { useUI } from "../lib/ui";
 
 type Row = { symbol: string; band: string | null; overall: number | null; price: number | null; sector: string | null; pe: number | null; roe: number | null };
 const FEATURED = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "BPCL", "ITC"];
 
 export function Research({ onSearch }: { onSearch: () => void }) {
   useDocTitle("Stock research", "A FinLit research report for every listed Indian stock: score, scorecard, financials, ratios, ownership and peers.");
-  const { data } = useQuery({ queryKey: ["top"], queryFn: () => apiGet<{ rows: Row[] }>("/api/screener/top?limit=24"), staleTime: 60_000, retry: 1 });
+  const { has } = useUI();
+  // the ranked list is a Silver feature; other visitors see the featured reports without a doomed request
+  const { data } = useQuery({ queryKey: ["top"], queryFn: () => apiGet<{ rows: Row[] }>("/api/screener/top?limit=24"), staleTime: 60_000, retry: 1, enabled: has("silver") });
   const rows = data?.rows || [];
   return (
     <>
