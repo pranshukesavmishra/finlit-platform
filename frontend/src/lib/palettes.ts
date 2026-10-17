@@ -49,8 +49,7 @@ export function paletteVars(id: PaletteId, theme: Mode): Record<string, string> 
   const [la, lb, lc] = p.accent.light;
   const v: Record<string, string> = {
     "--gold": a, "--gold-2": b, "--gold-deep": c, "--gold-soft": soft(a, theme === "dark" ? 0.14 : 0.13),
-    "--p-quality": a, "--p-profit": theme === "dark" ? c : b, "--p-tech": theme === "dark" ? b : c,
-    "--c1": a, "--c3": theme === "dark" ? c : b, "--line": theme === "dark" ? b : "#2E2A20", "--area": a, "--t-gold": a,
+    "--t-gold": a, // chart colours are a separate fixed categorical set (--k1..--k8) and do not follow the palette
     // the always-dark bands and the always-light hero read these
     "--dk-gold": da, "--dk-gold-2": db, "--dk-gold-deep": dc, "--dk-gold-soft": soft(da, 0.14),
     "--lt-gold": la, "--lt-gold-2": lb, "--lt-gold-deep": lc, "--lt-gold-soft": soft(la, 0.13),

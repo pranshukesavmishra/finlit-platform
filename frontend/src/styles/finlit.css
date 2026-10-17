@@ -10,10 +10,9 @@
   --gold: #D4B26A; --gold-2: #E8D29B; --gold-deep: #A8843A; --gold-soft: rgba(212,178,106,.14); --on-gold: #1A1405;
   --gain: #5FB88E; --loss: #E0707A; --warn: #D4B26A; --info: #A39B88;
   --gain-soft: rgba(95,184,142,.14); --loss-soft: rgba(224,112,122,.14); --info-soft: rgba(163,155,136,.16); --warn-soft: rgba(212,178,106,.14);
-  --p-quality: #D4B26A; --p-growth: #EDE6D3; --p-profit: #9C7A30; --p-balance: #A39B88; --p-tech: #E8D29B;
+  --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k6: #008300; --k7: #9085e9; --k8: #e66767; --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --v-strong: #5FB88E; --v-healthy: #EDE6D3; --v-mixed: #D4B26A; --v-weak: #E0707A;
-  --c1: #D4B26A; --c2: #EDE6D3; --c3: #9C7A30; --c4: #A39B88; --c5: #6F6959;
-  --line: #E3CE96; --area: #D4B26A;
+
   --t-basic: #C9C1AE; --t-bronze: #C48A55; --t-gold: #D4B26A;
   --shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.4), 0 22px 44px -26px rgba(0,0,0,.75);
   --lift: 0 1px 2px rgba(0,0,0,.4), 0 28px 50px -24px rgba(0,0,0,.8);
@@ -31,10 +30,9 @@
   --gold: #8A6A25; --gold-2: #C9A24E; --gold-deep: #8A6A25; --gold-soft: rgba(168,132,58,.14); --on-gold: #1A1405;
   --gain: #2F7A58; --loss: #A8392F; --warn: #8A6A25; --info: #5A5444;
   --gain-soft: rgba(47,122,88,.10); --loss-soft: rgba(168,57,47,.09); --info-soft: rgba(90,84,68,.10); --warn-soft: rgba(138,106,37,.10);
-  --p-quality: #8A6A25; --p-growth: #2E2A20; --p-profit: #C0A055; --p-balance: #8A8472; --p-tech: #5F4A1E;
+  --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k5: #e87ba4; --k6: #008300; --k7: #6250d6; --k8: #e34948; --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --v-strong: #2F7A58; --v-healthy: #2E2A20; --v-mixed: #8A6A25; --v-weak: #A8392F;
-  --c1: #A8843A; --c2: #2E2A20; --c3: #C9AC62; --c4: #8A8472; --c5: #B9B1A0;
-  --line: #2E2A20; --area: #A8843A;
+
   --t-basic: #6B6555; --t-bronze: #A8672A; --t-gold: #8A6A25;
   --shadow: 0 1px 2px rgba(51,46,34,.06), 0 14px 32px -18px rgba(51,46,34,.22);
   --lift: 0 2px 4px rgba(51,46,34,.06), 0 26px 46px -22px rgba(51,46,34,.32);
@@ -49,7 +47,7 @@
   --border: rgba(255,255,255,.10); --border-strong: rgba(255,255,255,.2);
   --gold: var(--dk-gold, #D4B26A); --gold-2: var(--dk-gold-2, #E8D29B); --gold-deep: var(--dk-gold-deep, #A8843A); --gold-soft: var(--dk-gold-soft, rgba(212,178,106,.14));
   --gain: #5FB88E; --loss: #E0707A; --gain-soft: rgba(95,184,142,.14); --loss-soft: rgba(224,112,122,.14);
-  --p-quality: var(--dk-gold, #D4B26A); --p-growth: #EDE6D3; --p-profit: var(--dk-gold-deep, #9C7A30); --p-balance: #A39B88; --p-tech: var(--dk-gold-2, #E8D29B);
+  --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k6: #008300; --k7: #9085e9; --k8: #e66767; --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --v-strong: #5FB88E; --v-healthy: #EDE6D3; --v-mixed: #D4B26A; --v-weak: #E0707A;
   --t-basic: #C9C1AE; --t-bronze: #C48A55; --t-gold: var(--dk-gold, #D4B26A);
   color: var(--text); color-scheme: dark; position: relative; isolation: isolate;
@@ -60,7 +58,7 @@
   --s1: #FFFDF8; --s2: #FAF6EC; --s3: #EFE8D8; --border: #E4DAC4; --border-strong: #CFC2A4;
   --gold: var(--lt-gold, #8A6A25); --gold-2: var(--lt-gold-2, #C9A24E); --gold-deep: var(--lt-gold-deep, #8A6A25); --gold-soft: var(--lt-gold-soft, rgba(168,132,58,.14));
   --gain: #2F7A58; --loss: #A8392F; --gain-soft: rgba(47,122,88,.10); --loss-soft: rgba(168,57,47,.09);
-  --p-quality: var(--lt-gold, #8A6A25); --p-growth: #2E2A20; --p-profit: var(--lt-gold-2, #C0A055); --p-balance: #8A8472; --p-tech: var(--lt-gold-deep, #5F4A1E);
+  --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --t-basic: #6B6555; --t-bronze: #A8672A; --t-gold: var(--lt-gold, #8A6A25);
   color-scheme: light;
   background: radial-gradient(900px 520px at 90% -12%, rgba(168,132,58,.24), transparent 62%), radial-gradient(760px 560px at -6% 18%, rgba(193,183,161,.16), transparent 62%), radial-gradient(720px 480px at 55% 105%, rgba(193,183,161,.12), transparent 65%), linear-gradient(180deg, #FBF8F1 0%, #F8F7F4 100%);
@@ -75,7 +73,7 @@
   --border: rgba(255,255,255,.10); --border-strong: rgba(255,255,255,.2);
   --gold: var(--dk-gold, #D4B26A); --gold-2: var(--dk-gold-2, #E8D29B); --gold-deep: var(--dk-gold-deep, #A8843A); --gold-soft: var(--dk-gold-soft, rgba(212,178,106,.14));
   --gain: #5FB88E; --loss: #E0707A; --gain-soft: rgba(95,184,142,.14); --loss-soft: rgba(224,112,122,.14);
-  --p-quality: var(--dk-gold, #D4B26A); --p-growth: #EDE6D3; --p-profit: var(--dk-gold-deep, #9C7A30); --p-balance: #A39B88; --p-tech: var(--dk-gold-2, #E8D29B);
+  --k1: #3987e5; --k2: #d95926; --k3: #199e70; --k4: #c98500; --k5: #d55181; --k6: #008300; --k7: #9085e9; --k8: #e66767; --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --v-strong: #5FB88E; --v-healthy: #EDE6D3; --v-mixed: #D4B26A; --v-weak: #E0707A;
   --t-basic: #C9C1AE; --t-bronze: #C48A55; --t-gold: var(--dk-gold, #D4B26A);
   color: var(--text); color-scheme: dark;
@@ -473,7 +471,7 @@ tbody tr:hover td { background: var(--s2); }
 .plans { margin-top: 96px; padding-block: 72px 64px; overflow: hidden; }
 .plans-h { text-align: center; max-width: 760px; margin: 0 auto 26px; }
 .plans-h h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; }
-.plans-h h2 em { font-style: italic; background: linear-gradient(120deg, var(--p-quality), var(--gold-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.plans-h h2 em { font-style: italic; background: linear-gradient(120deg, var(--gold-deep), var(--gold-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .plans-h p { color: var(--muted); margin: 12px auto 0; font-size: 16px; }
 .trust { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px; margin: 0 0 36px; font-size: 13px; color: var(--muted); }
 .trust span { display: inline-flex; gap: 8px; align-items: center; }

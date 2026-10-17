@@ -222,3 +222,20 @@ async def test_rejected_data_is_never_published(ingested, monkeypatch):
     assert result["status"] == "rejected"
     after, _ = await ingested.get_section("RELIANCE", "consolidated", "summary")
     assert after == before  # last good snapshot still served
+
+
+async def test_ingest_all_works_through_the_universe_in_chunks_and_skips_fresh(store):
+    # The recorded fixtures only cover RELIANCE, so the other companies fail upstream; the run must carry on past them.
+    async with FinEdgeClient(make_settings()) as client:
+        await worker.refresh_universe(client, store)
+        await worker.ingest_one(client, store, "RELIANCE")
+        assert "RELIANCE" not in await store.pending_symbols(limit=50)  # fresh snapshots are skipped
+        result = await worker.ingest_all(client, store, limit=5, chunk=2)
+        assert sum(result.values()) == 5 and result["failed"] == 5  # all five attempted, none aborted the batch
+        assert len(await store.pending_symbols()) > 5000
+
+
+async def test_probe_reports_every_endpoint(store):
+    async with FinEdgeClient(make_settings()) as client:
+        results = await worker.probe(client, "RELIANCE")
+    assert len(results) >= 20 and all(state in ("ok", "empty") for _, state, _ in results)

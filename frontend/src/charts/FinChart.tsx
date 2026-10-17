@@ -41,7 +41,7 @@ export function FinChart({ kind, pl, bs, cf, ql }: { kind: FinKind; pl: Table; b
       axisText(0, 10, "REVENUE · ₹ L Cr", "start", css("--muted"), 600); axisText(0, botT - 10, "NET PROFIT · ₹ '000 Cr", "start", css("--muted"), 600); axisText(W, botT - 10, "NET MARGIN %", "end", css("--c4"), 600);
       [0, 0.5, 1].forEach((f) => { const yy = 20 + (1 - f) * (topH - 20); el("line", { x1: pl_, x2: W - pr, y1: yy, y2: yy, stroke: css("--border"), "stroke-dasharray": "3 5" }, s); axisText(pl_ - 8, yy + 4, nf((rmx * f) / 1e5, 1), "end"); });
       [0, 0.5, 1].forEach((f) => { const yy = botT + (1 - f) * botH; el("line", { x1: pl_, x2: W - pr, y1: yy, y2: yy, stroke: css("--border"), "stroke-dasharray": "3 5" }, s); axisText(pl_ - 8, yy + 4, nf((nmx * f) / 1000, 0), "end"); });
-      [0, 0.5, 1].forEach((f) => axisText(W - pr + 8, botT + (1 - f) * botH + 4, nf(mmx * f, 1), "start", css("--c4")));
+      [0, 0.5, 1].forEach((f) => axisText(W - pr + 8, botT + (1 - f) * botH + 4, nf(mmx * f, 1), "start", css("--faint")));
       let ml = "";
       labels.forEach((lab, i) => {
         const cx = pl_ + step * (i + 0.5), last = i === n - 1, rh = (rev[i] / rmx) * (topH - 20);

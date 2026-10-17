@@ -46,7 +46,7 @@ function PriceTab({ symbol }: { symbol: string }) {
   const rows = useMemo(() => (stats?.monthly?.years || []).map((y) => ({ label: String(y), values: stats!.monthly!.rows[String(y)] })), [stats]);
   return (
     <>
-      <Card title="Price, moving averages and volume" sub="Candles up to a year" full note="Green candles closed higher than they opened, red lower. The dashed line is the 50-day average; the solid line (Gold) is the 200-day average.">
+      <Card title="Price, moving averages and volume" sub="Candles up to a year" full note="Green candles closed higher than they opened, red lower. The orange dashed line is the 50-day average and the green line is the 200-day average.">
         <div className="seg" role="group" aria-label="Candle range" style={{ marginBottom: 10 }}>{["1M", "6M", "1Y"].map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div>
         {px && px.o && px.h && px.l ? <Candles t={px.t} o={px.o} h={px.h} l={px.l} c={px.c} v={px.v} ema50={px.ema50} ema200={px.ema200} /> : <div className="skeleton" style={{ height: 300 }} />}
       </Card>
@@ -99,7 +99,7 @@ function PlTab({ f }: { f?: Financials }) {
         <div className="lg"><span><i style={{ background: "var(--gain)" }} />Net profit</span><span><i style={{ background: C(4) }} />Tax</span><span><i style={{ background: C(3) }} />Depreciation</span><span><i style={{ background: C(5) }} />Interest</span><span><i style={{ background: C(1) }} />Expenses</span></div>
       </Card>
       <Card title="Earnings per share" sub="₹ per share, each year" icon="coins" note="Earnings per share is profit divided by the number of shares. It is the figure most closely tied to the share price.">
-        <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--gold)", values: eps }]} fmt={(x) => "₹" + nf(x, 1)} area height={210} />
+        <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--k1)", values: eps }]} fmt={(x) => "₹" + nf(x, 1)} area height={210} />
       </Card>
       <Card title="Year-on-year growth by line" sub="Percent change on the year before" icon="growth" full note="Green is growth, red is decline. For costs (expenses, interest, tax) green means the cost rose, which can be fine when revenue rose faster.">
         <HeatGrid cols={pl.periods.slice(1)} cap={40} fmt={(x) => sg(x, 0)} label="Year on year growth by line item" rows={growth.map(([label, a]) => ({ label, values: chg(a) }))} />
@@ -153,8 +153,8 @@ function CfTab({ f }: { f?: Financials }) {
         <Waterfall w={560} steps={steps} fmt={crf} height={250} />
       </Card>
       <Card title="Free cash flow against capex" sub="What is left after investing in the business" icon="growth" full note="Free cash flow is cash from operations minus capital spending. It is the money available for dividends, debt repayment or buybacks.">
-        <MiniBars w={1000} mode="group" labels={cf.periods} fmt={crf} height={210} dim={false} series={[{ key: "fcf", label: "Free cash flow", values: g("free_cash_flow"), color: "var(--gold)" }, { key: "cx", label: "Capex", values: g("capex").map((x) => (x == null ? x : -Math.abs(x))), color: C(4) }]} />
-        <div className="lg"><span><i style={{ background: "var(--gold)" }} />Free cash flow</span><span><i style={{ background: C(4) }} />Capex (spending)</span></div>
+        <MiniBars w={1000} mode="group" labels={cf.periods} fmt={crf} height={210} dim={false} series={[{ key: "fcf", label: "Free cash flow", values: g("free_cash_flow"), color: "var(--k1)" }, { key: "cx", label: "Capex", values: g("capex").map((x) => (x == null ? x : -Math.abs(x))), color: C(4) }]} />
+        <div className="lg"><span><i style={{ background: "var(--k1)" }} />Free cash flow</span><span><i style={{ background: C(4) }} />Capex (spending)</span></div>
       </Card>
     </div>
   );

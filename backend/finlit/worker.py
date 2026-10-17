@@ -3,6 +3,8 @@
     python -m finlit.worker migrate
     python -m finlit.worker refresh-universe            # stock list for search
     python -m finlit.worker ingest RELIANCE TCS ...     # build snapshots now
+    python -m finlit.worker probe RELIANCE              # is the key + network + plan good for every endpoint?
+    python -m finlit.worker ingest-all --limit 500      # load the whole universe (resumable; run without --limit for everything)
     python -m finlit.worker refresh-stale --hours 24    # nightly fundamentals refresh
     python -m finlit.worker refresh-quotes              # live price patch, every minute in market hours
     python -m finlit.worker drain-queue --loop          # stocks users opened before they were ingested
@@ -22,7 +24,7 @@ import orjson
 
 from . import snapshot
 from .config import Settings, get_settings
-from .finedge import FinEdgeClient, FinEdgeError
+from .finedge import FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
 from .normalize import market
 from .store import Store
 
@@ -132,6 +134,37 @@ async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, i
         await asyncio.sleep(idle_seconds)
 
 
+async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "consolidated", hours: int = 24, limit: Optional[int] = None,
+                     parallel: int = 3, chunk: int = 30) -> dict:
+    """Fill (or refresh) every company in the universe, in chunks, so a long run can be stopped and restarted safely:
+    each restart picks up whatever has no snapshot yet. Never-loaded companies go first."""
+    pending = await store.pending_symbols(statement, hours, limit)
+    log.info("ingest-all: %d companies to load (%s)", len(pending), statement)
+    done = {"ok": 0, "warnings": 0, "rejected": 0, "failed": 0}
+    for i in range(0, len(pending), chunk):
+        batch = pending[i:i + chunk]
+        for r in await ingest_many(client, store, [(s, statement) for s in batch], parallel=parallel):
+            done[r["status"]] = done.get(r["status"], 0) + 1
+        await store.invalidate_search()
+        log.info("ingest-all: %d / %d  %s  (%d upstream calls)", min(i + chunk, len(pending)), len(pending), done, client.calls)
+    return done
+
+
+async def probe(client: FinEdgeClient, symbol: str = "RELIANCE", statement: str = "consolidated") -> List[Tuple[str, str, float]]:
+    """One request per FinEdge endpoint the site uses: proves the key, the network path and the plan cover everything.
+    Prints only endpoint names and HTTP statuses, never the key."""
+    out = []
+    for key, (path, params, timeout) in bundle_requests(symbol, statement).items():
+        t0 = time.perf_counter()
+        try:
+            payload = await client.get(path, params, timeout=timeout, retries=0)
+            state = "ok" if _has_rows(payload) else "empty"
+        except FinEdgeError as exc:
+            state = f"HTTP {exc.status}" if exc.status else "unreachable"
+        out.append((key, state, (time.perf_counter() - t0) * 1000))
+    return out
+
+
 async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
     parser = argparse.ArgumentParser(prog="finlit.worker")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -142,6 +175,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_ingest.add_argument("--statement", default="consolidated", choices=["consolidated", "standalone"])
     p_stale = sub.add_parser("refresh-stale")
     p_stale.add_argument("--hours", type=int, default=None)
+    p_all = sub.add_parser("ingest-all", help="load every company in the universe (resumable)")
+    p_all.add_argument("--statement", default="consolidated", choices=["consolidated", "standalone"])
+    p_all.add_argument("--hours", type=int, default=24, help="reload snapshots older than this")
+    p_all.add_argument("--limit", type=int, default=None)
+    p_all.add_argument("--parallel", type=int, default=3)
+    p_probe = sub.add_parser("probe", help="check the FinEdge key and every endpoint for one symbol")
+    p_probe.add_argument("symbol", nargs="?", default="RELIANCE")
     sub.add_parser("refresh-quotes")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
@@ -162,6 +202,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 for r in results:
                     print(f"{r['symbol']:<14} {r['status']:<7} {r['ms']:>6} ms  {r['errors'] or ''}")
                 return 0 if all(r["status"] in ("ok", "warnings") for r in results) else 1
+            elif args.cmd == "ingest-all":
+                print(await ingest_all(client, store, args.statement, args.hours, args.limit, args.parallel))
+            elif args.cmd == "probe":
+                results = await probe(client, args.symbol)
+                for key, state, ms in results:
+                    print(f"{key:<22} {state:<12} {ms:>6.0f} ms")
+                return 0 if all(st in ("ok", "empty") for _, st, _ in results) else 1
             elif args.cmd == "refresh-stale":
                 items = await store.snapshot_symbols(args.hours or settings.fundamentals_ttl_hours)
                 await ingest_many(client, store, items)

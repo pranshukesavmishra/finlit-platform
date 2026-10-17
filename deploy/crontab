@@ -5,7 +5,7 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 
 # Live prices into every summary, each minute during market hours (Mon–Fri 09:15–15:30).
 * 9-15 * * 1-5   root $W refresh-quotes  >> /var/log/finlit-quotes.log 2>&1
-# Fundamentals, ratios, holdings, actions: nightly after FinEdge's end-of-day update.
-30 1 * * *       root $W refresh-stale --hours 20 >> /var/log/finlit-ingest.log 2>&1
+# Every company: load the ones never loaded, refresh the rest, nightly after FinEdge's end-of-day update (resumable).
+30 1 * * *       root $W ingest-all --hours 20 >> /var/log/finlit-ingest.log 2>&1
 # Stock universe for search: weekly.
 15 2 * * 0       root $W refresh-universe >> /var/log/finlit-ingest.log 2>&1
