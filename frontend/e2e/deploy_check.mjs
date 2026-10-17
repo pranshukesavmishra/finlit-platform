@@ -12,7 +12,7 @@ const p = await ctx.newPage();
 const errs = [], bad = [];
 p.on("pageerror", (e) => errs.push(String(e).slice(0, 140)));
 p.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 140)); });
-p.on("response", (r) => { const u = new URL(r.url()); if (r.status() >= 400 && u.pathname.startsWith("/api/") && !/market-ticker|portfolio\/report|^\/api\/content|chat|NOPE/.test(u.pathname)) bad.push(`${r.status()} ${u.pathname}`); });
+p.on("response", (r) => { const u = new URL(r.url()); if (r.status() >= 400 && u.pathname.startsWith("/api/") && !/market-ticker|chat|NOPE/.test(u.pathname)) bad.push(`${r.status()} ${u.pathname}`); });
 const text = async () => (await p.locator("main").innerText()).replace(/\s+/g, " ");
 const go = async (path, wait = 900) => { await p.goto(base + path, { waitUntil: "networkidle" }); await p.waitForTimeout(wait); };
 

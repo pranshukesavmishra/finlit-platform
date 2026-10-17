@@ -48,6 +48,8 @@ class Settings:
     resend_api_key: str = field(default_factory=lambda: os.getenv("RESEND_API_KEY", ""))
     mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
     # Free sample reports shown in full to everyone (the home page example).
+    # The separate site backend (blog/CMS, portfolio report, contact forms, chat, ticker). Empty = those /api routes answer 404.
+    site_api_url: str = field(default_factory=lambda: os.getenv("SITE_API_URL", "").rstrip("/"))
     # Folder holding the built website (frontend/dist). Empty = API only (the website is then hosted elsewhere).
     frontend_dist: str = field(default_factory=lambda: os.getenv("FRONTEND_DIST", ""))
     showcase_symbols: List[str] = field(default_factory=lambda: _list(os.getenv("SHOWCASE_SYMBOLS", "RELIANCE")))

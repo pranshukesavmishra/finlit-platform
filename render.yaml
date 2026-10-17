@@ -1,5 +1,6 @@
 # Free, one-click deployment on Render (https://render.com): website + API in one service, free Postgres and Redis.
 # Render dashboard -> New -> Blueprint -> pick this repository. You will be asked for FINEDGE_API_KEY (paste it there; it is never stored in the repo).
+# The site backend (Financial-Portfolio) is a second service, created by hand: see docs/deploy-free.md.
 # After it is live, read DEMO_PASSWORD under the service's Environment tab: it is the password of the demo accounts
 #   demo-basic@finlit-demo.com, demo-silver@finlit-demo.com, demo-gold@finlit-demo.com
 services:
@@ -19,6 +20,9 @@ services:
       - {key: SECRET_KEY, generateValue: true}
       - {key: DEMO_PASSWORD, generateValue: true}
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
+      - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in, then set up the authenticator app
+      - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters; remove this variable once you have signed in and changed it
+      - {key: SITE_API_URL, sync: false}        # address of the site backend service (blog/CMS, portfolio, forms, chat); see docs/deploy-free.md
       - key: DATABASE_URL
         fromDatabase: {name: finlit-db, property: connectionString}
       - key: REDIS_URL

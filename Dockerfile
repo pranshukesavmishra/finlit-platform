@@ -15,8 +15,8 @@ COPY backend/finlit ./finlit
 COPY backend/scripts ./scripts
 COPY backend/tests/fixtures ./tests/fixtures
 COPY --from=web /web/dist ./web
-COPY deploy/render-start.sh ./start.sh
-RUN chmod +x start.sh && useradd --create-home finlit && chown -R finlit /app
+COPY deploy/render-start.sh deploy/scheduler.sh ./
+RUN mv render-start.sh start.sh && chmod +x start.sh scheduler.sh && useradd --create-home finlit && chown -R finlit /app
 USER finlit
 ENV FRONTEND_DIST=/app/web
 EXPOSE 8000

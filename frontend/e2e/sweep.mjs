@@ -1,4 +1,4 @@
-// Endpoints served by the older site backend (blog/CMS, portfolio report, ticker) are not counted: that backend is a separate repo.
+// The market ticker needs an Upstox token on the site backend, so it is not counted.
 // Opens every page as a visitor and as a Gold member; reports page errors, failing API calls and empty pages.
 //   node e2e/sweep.mjs http://127.0.0.1:4173
 import { chromium } from "playwright";
@@ -22,7 +22,7 @@ async function run(label, ctx, pages) {
     await p.goto(base + path, { waitUntil: "networkidle" }).catch(() => {});
     await p.waitForTimeout(500);
     const len = (await p.locator("main, #root").first().innerText().catch(() => "")).trim().length;
-    const notes = [...new Set([...errs, ...bad.filter((b) => !/market-ticker|portfolio\/report|\/api\/content|stocks\/NOPE123/.test(b))])];
+    const notes = [...new Set([...errs, ...bad.filter((b) => !/market-ticker|stocks\/NOPE123/.test(b))])];
     const ok = len > 80 && notes.length === 0;
     if (!ok) failed++;
     console.log(`${ok ? "ok  " : "FAIL"} ${label} ${path}${len <= 80 ? "  (blank page)" : ""}${notes.length ? "  " + notes.join(" | ") : ""}`);

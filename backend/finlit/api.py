@@ -27,6 +27,7 @@ from .auth.entitlements import has, redact_section, redact_universe, varies_by_p
 from .auth.mailer import ConsoleMailer, ResendMailer
 from .auth.service import current
 from .config import Settings, get_settings
+from .siteproxy import register_catch_all, register_stock_admin
 from .web import mount_frontend
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
 from .snapshot import PRICE_RANGES, SECTIONS
@@ -38,6 +39,8 @@ CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
 UNLIMITED_PATHS = ("/api/health",)
 MAX_BODY = 64 * 1024  # every request body in this API is small JSON
+UPLOAD_PREFIXES = ("/api/content/admin/upload", "/api/portfolio/admin/upload")  # forwarded to the site backend, which caps files at 15 MB
+MAX_UPLOAD_BODY = 16 * 1024 * 1024
 CACHE_PRIVATE = "private, no-cache"  # the browser keeps a copy but asks (cheap 304) every time, so a new plan shows at once
 
 
@@ -71,9 +74,10 @@ class BodyLimitMiddleware:
         if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS"):
             return await self.app(scope, receive, send)
         declared = dict(scope["headers"]).get(b"content-length")
+        limit = MAX_UPLOAD_BODY if scope.get("path", "").startswith(UPLOAD_PREFIXES) else self.limit
         too_big = JSONResponse({"status": "too_large", "detail": "Request is too large."}, status_code=413,
                                headers={"Cache-Control": "no-store"})
-        if declared and declared.isdigit() and int(declared) > self.limit:
+        if declared and declared.isdigit() and int(declared) > limit:
             return await too_big(scope, receive, send)
         seen = 0
 
@@ -82,7 +86,7 @@ class BodyLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 seen += len(message.get("body", b""))
-                if seen > self.limit:
+                if seen > limit:
                     raise _TooLarge()
             return message
 
@@ -155,6 +159,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
                                 status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
         return JSONResponse({"status": "not_found", "symbol": symbol}, status_code=404, headers={"Cache-Control": "public, max-age=300"})
+
+    if settings.site_api_url:
+        register_stock_admin(app, settings.site_api_url)  # must come before the /api/stocks/{symbol}/{section} routes
 
     @app.get("/api/health")
     async def health():
@@ -285,6 +292,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         return response
 
     app.include_router(auth_routes.router)
+    if settings.site_api_url:
+        register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own
     if settings.frontend_dist:  # one container serves the website and the API (see finlit/web.py)
         mount_frontend(app, Path(settings.frontend_dist))
     return app

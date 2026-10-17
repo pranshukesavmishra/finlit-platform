@@ -2,6 +2,7 @@
 # Container entrypoint for the free single-service deployment (render.yaml).
 # Migrates, creates the demo accounts, loads company data in the background (resumable), then runs the API + website.
 set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
 export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-${RENDER_EXTERNAL_URL:-http://localhost:8000}}"
@@ -17,11 +18,14 @@ if [ -n "${DEMO_PASSWORD:-}" ]; then
   done
 fi
 
-# Company data: the universe first (names, sectors), then full reports for as many companies as INGEST_LIMIT allows.
-(
-  $PY -m finlit.worker refresh-universe && \
-  $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR && \
-  $PY -m finlit.worker ingest-all --limit "${INGEST_LIMIT:-1500}" --parallel 2
-) > /tmp/ingest.log 2>&1 &
+# The real administrator (set ADMIN_EMAIL and ADMIN_PASSWORD in the service's environment; they are applied at every start).
+# The first sign-in then asks for an authenticator app; admin tools stay closed until it is set up.
+if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
+  FINLIT_ADMIN_PASSWORD="$ADMIN_PASSWORD" $PY -m finlit.auth.cli create-admin --email "$ADMIN_EMAIL" || true
+fi
+
+# Company data and the recurring jobs (quotes, nightly refresh, alerts, emails): see deploy/scheduler.sh
+export APP_DIR="$PWD" PYTHON="$PY"
+nohup "$HERE/scheduler.sh" >> /tmp/scheduler.log 2>&1 &
 
 exec $PY -m uvicorn --factory finlit.api:create_app --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --no-access-log --no-server-header
