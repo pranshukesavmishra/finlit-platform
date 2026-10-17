@@ -105,8 +105,8 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 @media (prefers-reduced-motion: reduce) { .ring-in, .hstack span, .dcol i, .ot-bar b, .pin-bar b, .dq-bar b, .skyline .win, .eq-p, .pay, .bs { animation: none !important; } }
 
 /* plain-language callout */
-.plain { display: flex; gap: 14px; align-items: flex-start; margin: 0 0 18px; padding: 14px 18px; border-radius: 16px; --pl: var(--info); border: 1px solid color-mix(in srgb, var(--pl) 35%, var(--border)); background: linear-gradient(100deg, color-mix(in srgb, var(--pl) 12%, var(--s1)), var(--s1) 70%); }
-.plain.pl-good { --pl: var(--gold); } .plain.pl-warn { --pl: var(--warn); }
+.plain { display: flex; gap: 14px; align-items: flex-start; margin: 0 0 18px; padding: 14px 18px; border-radius: 16px; --pl: var(--k1); border: 1px solid color-mix(in srgb, var(--pl) 35%, var(--border)); background: linear-gradient(100deg, color-mix(in srgb, var(--pl) 7%, var(--s1)), var(--s1) 70%); }
+.plain.pl-good { --pl: var(--gain); } .plain.pl-warn { --pl: var(--k4); }
 .plain-i { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: var(--pl); background: color-mix(in srgb, var(--pl) 18%, transparent); } .plain-i svg { width: 17px; height: 17px; }
 .plain > div > b { display: block; font: 700 10.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--pl); margin-bottom: 3px; }
 .plain p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text); max-width: 90ch; }
@@ -151,7 +151,7 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 
 /* ratio group cards */
 .rg .mrow { transition: background .2s; } .rg .mrow:hover { background: color-mix(in srgb, var(--ac) 7%, transparent); }
-.bt { display: inline-grid; place-items: center; width: 16px; margin-right: 6px; font-size: 9px; font-style: normal; color: var(--faint); } .bt.higher { color: var(--gain); } .bt.lower { color: var(--info); }
+.bttr { display: inline-grid; place-items: center; width: 16px; margin-right: 6px; font-size: 9px; font-style: normal; color: var(--faint); } .bttr.higher { color: var(--gain); } .bttr.lower { color: var(--info); }
 
 /* ratio history table */
 .htab td { transition: background .2s; } .htab th, .htab td { white-space: nowrap; }

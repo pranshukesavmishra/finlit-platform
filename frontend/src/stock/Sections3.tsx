@@ -141,7 +141,7 @@ export function RatiosSection({ r }: { r?: Ratios }) {
               {rows.map((k) => {
                 const e = r.latest[k], gl = r.glossary[k];
                 return (
-                  <div className="mrow" key={k}><span className="k"><i className={"bt " + (e.better || "")} title={e.better ? `${e.better === "higher" ? "Higher" : "Lower"} is usually better` : ""}>{e.better === "higher" ? "▲" : e.better === "lower" ? "▼" : "•"}</i>{e.label} <Info g={gl} /></span><span className="v">{fmtUnit(e.value, e.unit)}<span className="unit" style={{ marginLeft: 6, fontSize: 11 }}>{e.period === "latest" ? "" : e.period}</span></span></div>
+                  <div className="mrow" key={k}><span className="k"><i className={"bttr " + (e.better || "")} title={e.better ? `${e.better === "higher" ? "Higher" : "Lower"} is usually better` : ""}>{e.better === "higher" ? "▲" : e.better === "lower" ? "▼" : "•"}</i>{e.label} <Info g={gl} /></span><span className="v">{fmtUnit(e.value, e.unit)}<span className="unit" style={{ marginLeft: 6, fontSize: 11 }}>{e.period === "latest" ? "" : e.period}</span></span></div>
                 );
               })}
               {gold && keys.length > 2 && <div className="more-gold" role="button" tabIndex={0} onClick={() => upgrade("gold", "Detailed ratio analysis is a Gold feature.")} onKeyDown={(e) => e.key === "Enter" && upgrade("gold", "Detailed ratio analysis is a Gold feature.")}><Icon name="crown" /><span><b>+{keys.length - 2} more ratios</b> in detailed ratio analysis · Gold</span></div>}

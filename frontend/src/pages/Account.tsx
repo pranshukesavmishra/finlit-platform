@@ -98,7 +98,7 @@ function Security() {
           </form>
         ) : setup ? (
           <form className="form" onSubmit={(e) => { e.preventDefault(); enable.mutate(); }}>
-            <ol className="steps"><li>Open your authenticator app and add an account. On a phone, <a href={setup.uri}>tap here to add it automatically</a>.</li>
+            <ol className="mfa-steps"><li>Open your authenticator app and add an account. On a phone, <a href={setup.uri}>tap here to add it automatically</a>.</li>
               <li>Or type this setup key by hand: <code className="key">{setup.secret.replace(/(.{4})/g, "$1 ").trim()}</code></li>
               <li>Enter the 6-digit code the app shows.</li></ol>
             <label>Code<input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} maxLength={8} autoFocus required /></label>

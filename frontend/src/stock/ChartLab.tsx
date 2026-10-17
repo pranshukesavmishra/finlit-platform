@@ -96,7 +96,7 @@ function PlTab({ f }: { f?: Financials }) {
         <MiniBars w={560} mode="stack" labels={pl.periods} fmt={(x) => nf(x, 0) + "%"} height={210} dim={false} series={[
           { key: "np", label: "Net profit", values: share(np).map((x) => (x != null ? Math.max(0, x) : x)), color: "var(--gain)" }, { key: "tax", label: "Tax", values: share(tax), color: C(4) },
           { key: "dep", label: "Depreciation", values: share(dep), color: C(3) }, { key: "fin", label: "Interest", values: share(fin), color: C(5) }, { key: "exp", label: "Expenses", values: share(exp).map((x, i) => (x != null && rev[i] ? Math.min(x, 100) : x)), color: C(1) }]} />
-        <div className="lg"><span><i style={{ background: "var(--gain)" }} />Net profit</span><span><i style={{ background: C(4) }} />Tax</span><span><i style={{ background: C(3) }} />Depreciation</span><span><i style={{ background: C(5) }} />Interest</span><span><i style={{ background: C(1) }} />Expenses</span></div>
+        <div className="clg"><span><i style={{ background: "var(--gain)" }} />Net profit</span><span><i style={{ background: C(4) }} />Tax</span><span><i style={{ background: C(3) }} />Depreciation</span><span><i style={{ background: C(5) }} />Interest</span><span><i style={{ background: C(1) }} />Expenses</span></div>
       </Card>
       <Card title="Earnings per share" sub="₹ per share, each year" icon="coins" note="Earnings per share is profit divided by the number of shares. It is the figure most closely tied to the share price.">
         <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--k1)", values: eps }]} fmt={(x) => "₹" + nf(x, 1)} area height={210} />
@@ -124,11 +124,11 @@ function BsTab({ f }: { f?: Financials }) {
     <div className="cl-grid">
       <Card title="What the company owns" sub="Total assets by kind, ₹ Crore" icon="building" note="Assets are everything the company controls. A big slice of cash and investments gives it room to move; a big slice of work in progress means projects not yet earning.">
         <MiniBars w={560} mode="stack" labels={bs.periods} fmt={crf} height={230} dim={false} series={assets} />
-        <div className="lg">{assets.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
+        <div className="clg">{assets.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
       </Card>
       <Card title="How it is paid for" sub="Share of total assets" icon="balance" note="Owners' money is safe funding. Borrowings must be repaid with interest, so a shrinking red slice lowers risk.">
         <MiniBars w={560} mode="stack" labels={bs.periods} fmt={(x) => nf(x, 0) + "%"} height={230} dim={false} series={pct(funding)} />
-        <div className="lg">{funding.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
+        <div className="clg">{funding.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
       </Card>
       <Card title={`${bs.periods[last]} assets at a glance`} sub="Box size is share of total assets" icon="layers" full>
         {tree.length ? <Treemap items={tree} fmt={(x) => "₹" + crf(x) + " Cr"} /> : <Soon>No breakdown available.</Soon>}
@@ -147,14 +147,14 @@ function CfTab({ f }: { f?: Financials }) {
     <div className="cl-grid">
       <Card title="Operating, investing and financing cash flow" sub="₹ Crore" icon="coins" note="Cash from operations should be positive and healthy. Investing is usually negative because the company spends on growth; financing shows borrowing, repayments and dividends.">
         <MiniBars w={560} mode="group" labels={cf.periods} fmt={crf} height={230} dim={false} series={[{ key: "o", label: "Operations", values: g("operating"), color: "var(--gain)" }, { key: "i", label: "Investing", values: g("investing"), color: C(3) }, { key: "f", label: "Financing", values: g("financing"), color: C(5) }]} />
-        <div className="lg"><span><i style={{ background: "var(--gain)" }} />Operations</span><span><i style={{ background: C(3) }} />Investing</span><span><i style={{ background: C(5) }} />Financing</span></div>
+        <div className="clg"><span><i style={{ background: "var(--gain)" }} />Operations</span><span><i style={{ background: C(3) }} />Investing</span><span><i style={{ background: C(5) }} />Financing</span></div>
       </Card>
       <Card title={`${cf.periods[last]} cash bridge`} sub="₹ Crore" icon="profit" note="How the year's three streams add up to the change in cash.">
         <Waterfall w={560} steps={steps} fmt={crf} height={250} />
       </Card>
       <Card title="Free cash flow against capex" sub="What is left after investing in the business" icon="growth" full note="Free cash flow is cash from operations minus capital spending. It is the money available for dividends, debt repayment or buybacks.">
         <MiniBars w={1000} mode="group" labels={cf.periods} fmt={crf} height={210} dim={false} series={[{ key: "fcf", label: "Free cash flow", values: g("free_cash_flow"), color: "var(--k1)" }, { key: "cx", label: "Capex", values: g("capex").map((x) => (x == null ? x : -Math.abs(x))), color: C(4) }]} />
-        <div className="lg"><span><i style={{ background: "var(--k1)" }} />Free cash flow</span><span><i style={{ background: C(4) }} />Capex (spending)</span></div>
+        <div className="clg"><span><i style={{ background: "var(--k1)" }} />Free cash flow</span><span><i style={{ background: C(4) }} />Capex (spending)</span></div>
       </Card>
     </div>
   );
@@ -174,7 +174,7 @@ function OwnTab({ o }: { o?: Ownership }) {
     <div className="cl-grid">
       <Card title="Who owns the company, quarter by quarter" sub="Share of shares held" icon="users" full note="Each band is one group's share; together they always make 100%. Rising institutional bands often signal growing professional interest.">
         <StackArea periods={o.periods} series={series} />
-        <div className="lg">{series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>
+        <div className="clg">{series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>
       </Card>
       <Card title="Latest ownership mix" sub={o.asOf ? `As of ${o.asOf}` : undefined} icon="pie"><Donut parts={parts} center={nf(parts[0]?.value ?? 0, 1) + "%"} sub={parts[0]?.label} /></Card>
       <Card title={`Change since ${o.periods[0]}`} sub="Share of shares held, then and now" icon="layers">

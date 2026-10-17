@@ -33,7 +33,7 @@
 .acct-tabs a:hover { color: var(--text); background: var(--s2); } .acct-tabs a.on { color: var(--on-gold); background: linear-gradient(135deg, var(--gold-2), var(--gold) 50%, var(--gold-deep)); }
 .acct-c { margin-bottom: 18px; } .acct-c h2 { font: 400 22px var(--serif); margin: 0 0 8px; } .acct-c > .muted { margin: 0 0 14px; }
 .acct-c.danger { border-color: color-mix(in srgb, var(--loss) 35%, var(--border)); } .callout { border-color: var(--gold); background: var(--gold-soft); }
-.steps { padding-left: 20px; display: grid; gap: 8px; margin: 0 0 14px; } .key { display: inline-block; font: 600 15px var(--mono); letter-spacing: .06em; padding: 4px 10px; border-radius: 8px; background: var(--s2); border: 1px solid var(--border); user-select: all; }
+.mfa-steps { padding-left: 20px; display: grid; gap: 8px; margin: 0 0 14px; } .key { display: inline-block; font: 600 15px var(--mono); letter-spacing: .06em; padding: 4px 10px; border-radius: 8px; background: var(--s2); border: 1px solid var(--border); user-select: all; }
 .sess { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 4px; } .sess li { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--border); } .sess li:first-child { border-top: 0; }
 .sess-i { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); } .sess-i svg { width: 17px; height: 17px; } .sess small { display: block; color: var(--faint); font-size: 12.5px; }
 .lim { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 0; margin: 0 0 16px; color: var(--muted); } .lim b { color: var(--text); margin-left: 6px; font-family: var(--mono); }
@@ -83,7 +83,7 @@
 .sl, .sv { list-style: none; padding: 0; margin: 0; display: grid; } .sl li { display: grid; gap: 2px; padding: 9px 0; border-bottom: 1px solid var(--border); } .sl a { color: var(--text); text-decoration: none; display: flex; gap: 8px; align-items: center; } .sl span { color: var(--muted); font-size: 13.5px; }
 .sv a { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; } .sv a:hover b { color: var(--gold); }
 .band-dot { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--s3); } .band-dot.strong { color: var(--v-strong); } .band-dot.watch { color: var(--v-weak); } .band-dot.mixed { color: var(--v-mixed); }
-.bk { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; } .bk li { display: flex; gap: 8px; align-items: center; } .bk i { width: 10px; height: 10px; border-radius: 3px; } .bk b { margin-left: auto; font-family: var(--mono); }
+.bandk { list-style: none; padding: 0; margin: 12px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; } .bandk li { display: flex; gap: 8px; align-items: center; } .bandk i { width: 10px; height: 10px; border-radius: 3px; } .bandk b { margin-left: auto; font-family: var(--mono); }
 .learn h4 { font: 400 24px var(--serif); margin: 10px 0 6px; } .learn p { color: var(--muted); margin: 0 0 12px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; } .learn a { color: var(--gold); font-weight: 600; text-decoration: none; }
 .dash-f { margin-top: 22px; font-size: 12.5px; text-align: center; }
 .console .cs-in, .console select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: inherit; } .console .ra { white-space: nowrap; text-align: right; }
@@ -93,7 +93,7 @@
 :root[data-density="compact"] .block { margin-top: 28px; }
 :root[data-density="compact"] .dgrid { gap: 10px; }
 :root[data-density="compact"] body { font-size: 14px; }
-:root[data-theme="light"] .login .lg-mark { background-image: url("/brand/finlit-logo-on-light.png"); }
+:root[data-theme="light"] .login .clg-mark { background-image: url("/brand/finlit-logo-on-light.png"); }
 .av-btn .av.sm { line-height: 1; padding: 0; }
 
 /* ---- chart lab ---- */
@@ -101,8 +101,8 @@
 .cl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; } .cl-grid > .full, .cl.full { grid-column: 1 / -1; } .cl-grid > .gate { grid-column: 1 / -1; }
 .block > .gate .cl-grid, .block > .card.cl { margin-bottom: 16px; } @media (max-width: 860px) { .cl-grid { grid-template-columns: 1fr; } }
 .cl .mb { margin-top: 6px; } .cl-note { margin: 10px 0 0; color: var(--muted); font-size: 13.5px; } .cl-empty { padding: 14px 4px; }
-.rd { display: flex; flex-wrap: wrap; gap: 4px 14px; min-height: 22px; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; } .rd b { color: var(--text); } .rd span { font-family: var(--mono); display: inline-flex; gap: 5px; align-items: center; } .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.lg { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); } .lg span { display: inline-flex; gap: 6px; align-items: center; } .lg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.rd { display: flex; flex-wrap: wrap; gap: 4px 14px; min-height: 22px; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; } .rd b { color: var(--text); } .rd span { font-family: var(--mono); display: inline-flex; gap: 5px; align-items: center; } .cdot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.clg { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); } .clg span { display: inline-flex; gap: 6px; align-items: center; } .clg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .hg { display: grid; gap: 3px; overflow-x: auto; } .hg-r { display: grid; grid-template-columns: 112px repeat(var(--cols), minmax(38px, 1fr)); gap: 3px; align-items: center; min-width: min-content; }
 .hg-h span { font-size: 11px; color: var(--faint); text-align: center; } .hg-r b { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .hc2 { display: grid; place-items: center; height: 30px; border-radius: 6px; font: 600 11px var(--mono); background: var(--s2); color: var(--text); } .hc2.na { background: transparent; }
@@ -120,5 +120,12 @@
 @media (max-width: 640px) { .dn { grid-template-columns: 1fr; } .db2 li, .db2-k { grid-template-columns: 1fr !important; gap: 4px; } .db2-v { text-align: left; } .rk li { grid-template-columns: 100px 1fr 80px; } }
 .kq { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; } .kq-c ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: var(--muted); } .kq-c li::marker { color: var(--ac); } @media (max-width: 760px) { .kt { grid-template-columns: 1fr; } }
 .sdelta { margin-top: 6px; font: 700 13px var(--mono); text-align: center; color: var(--muted); } .sdelta.up { color: var(--gain); } .sdelta.down { color: var(--loss); } .sdelta small { font: 400 12px var(--sans); color: var(--faint); }
-.hl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; } .hl > div { padding: 14px 16px; border-radius: 14px; background: var(--s2); border: 1px solid var(--border); } .hl b { display: block; font: 400 28px var(--serif); } .hl span { color: var(--faint); font-size: 12.5px; }
+.hstat { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; } .hstat > div { padding: 14px 16px; border-radius: 14px; background: var(--s2); border: 1px solid var(--border); } .hstat b { display: block; font: 400 28px var(--serif); } .hstat span { color: var(--faint); font-size: 12.5px; }
 .prog { height: 10px; border-radius: 99px; background: var(--s3); overflow: hidden; margin: 6px 0 14px; } .prog i { display: block; height: 100%; background: var(--k3); border-radius: 99px; }
+
+/* ---- chart and card frames: a crisp dark outline on white, so every section reads as its own panel ---- */
+:root { --frame: var(--border-strong); }
+:root[data-theme="light"] { --frame: #1A1915; }
+.card, .qt, .ftile, .wk, .rc, .hstat > div, .pl-card { border: 1.5px solid var(--frame); }
+:root[data-theme="light"] .card, :root[data-theme="light"] .qt, :root[data-theme="light"] .ftile { background: #fff; box-shadow: 0 1px 0 rgba(20, 19, 15, .04); }
+:root[data-theme="light"] .report .card, :root[data-theme="light"] .band .card, :root[data-theme="light"] .band .qt { border-color: var(--border-strong); }

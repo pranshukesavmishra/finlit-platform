@@ -114,7 +114,7 @@ function Buckets({ items }: { items: Row[] }) {
   if (!total) return <Empty icon="layers" title="No scored stocks" text="Add stocks to a watchlist to see them grouped by FinLit band." to="/watchlist" cta="Open watchlist" />;
   return (
     <div><div className="breadth big" role="img" aria-label="Watchlist by band">{counts.filter((c) => c.n).map((c) => <i key={c.b} style={{ flex: c.n, background: colour[c.b] }} />)}</div>
-      <ul className="bk">{counts.map((c) => <li key={c.b}><i style={{ background: colour[c.b] }} /><span>{BAND_LABEL[c.b]}</span><b>{c.n}</b></li>)}</ul></div>
+      <ul className="bandk">{counts.map((c) => <li key={c.b}><i style={{ background: colour[c.b] }} /><span>{BAND_LABEL[c.b]}</span><b>{c.n}</b></li>)}</ul></div>
   );
 }
 

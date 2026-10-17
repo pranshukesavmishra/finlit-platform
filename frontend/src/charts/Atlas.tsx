@@ -39,7 +39,7 @@ export function Candles({ t, o, h, l, c, v, ema50, ema200, w: W = 1000 }: { t: s
         {t.map((_, k) => <rect key={k} x={X(k) - step / 2} y={pt} width={step} height={H - pt} fill="transparent" onMouseEnter={() => setHv(k)} />)}
         {hv != null && <line x1={X(hv)} x2={X(hv)} y1={pt} y2={vt + vh} stroke="var(--border-strong)" />}
       </svg>
-      <div className="lg"><span><i style={{ background: "var(--gain)" }} />Up day</span><span><i style={{ background: "var(--loss)" }} />Down day</span>{ema50 && <span><i style={{ background: "var(--c2)" }} />50-day average</span>}{ema200?.some((x) => x != null) && <span><i style={{ background: "var(--c3)" }} />200-day average</span>}</div>
+      <div className="clg"><span><i style={{ background: "var(--gain)" }} />Up day</span><span><i style={{ background: "var(--loss)" }} />Down day</span>{ema50 && <span><i style={{ background: "var(--c2)" }} />50-day average</span>}{ema200?.some((x) => x != null) && <span><i style={{ background: "var(--c3)" }} />200-day average</span>}</div>
     </div>
   );
 }
@@ -240,7 +240,7 @@ export function StackArea({ periods, series, w: W = 1000 }: { periods: string[];
   const every = Math.ceil(n / 8), i = hv ?? n - 1;
   return (
     <div className="mb">
-      <Readout><b>{periods[i]}</b> {series.map((s) => <span key={s.key}><i className="dot" style={{ background: s.color }} />{s.label} {nf(((s.values[i] ?? 0) / tot[i]) * 100, 1)}%</span>)}</Readout>
+      <Readout><b>{periods[i]}</b> {series.map((s) => <span key={s.key}><i className="cdot" style={{ background: s.color }} />{s.label} {nf(((s.values[i] ?? 0) / tot[i]) * 100, 1)}%</span>)}</Readout>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Ownership mix over time" onMouseLeave={() => setHv(null)}>
         {[0, 25, 50, 75, 100].map((p) => <g key={p}><line x1={pl} x2={W - pr} y1={Y(p)} y2={Y(p)} stroke={GRID} /><text x={pl - 6} y={Y(p) + 3.5} textAnchor="end" fontSize="10" fill={AX} fontFamily="var(--mono)">{p}%</text></g>)}
         {areas.map(({ s, d }) => <path key={s.key} d={d} fill={s.color} opacity=".92" />)}
@@ -280,7 +280,7 @@ export function Timeline({ events, w: W = 1000 }: { events: { date: string; labe
         {years.map((y) => <g key={y}><line x1={X(`${y}-01-01`)} x2={X(`${y}-01-01`)} y1={84} y2={96} stroke={AX} /><text x={Math.max(pl, X(`${y}-01-01`))} y={118} fontSize="10" fill={AX} textAnchor="middle">{y}</text></g>)}
         {ev.map((e, i) => <circle key={i} cx={X(e.date)} cy={e.kind === "dividend" ? 90 : 66} r={e.kind === "dividend" ? 5 : 7} fill={color[e.kind] || color.other} stroke="var(--s1)" strokeWidth="2" opacity={hv == null || hv === i ? 1 : 0.5} onMouseEnter={() => setHv(i)} />)}
       </svg>
-      <div className="lg">{[["dividend", "Dividend"], ["bonus", "Bonus"], ["split", "Split"], ["rights", "Rights"]].filter(([k]) => ev.some((e) => e.kind === k)).map(([k, l]) => <span key={k}><i style={{ background: color[k] }} />{l}</span>)}</div>
+      <div className="clg">{[["dividend", "Dividend"], ["bonus", "Bonus"], ["split", "Split"], ["rights", "Rights"]].filter(([k]) => ev.some((e) => e.kind === k)).map(([k, l]) => <span key={k}><i style={{ background: color[k] }} />{l}</span>)}</div>
     </div>
   );
 }
