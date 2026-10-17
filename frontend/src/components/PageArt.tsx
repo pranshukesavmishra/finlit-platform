@@ -6,10 +6,11 @@ const Defs = ({ k }: { k: string }) => (
     <radialGradient id={`pr${k}`} cx=".5" cy=".5" r=".5"><stop offset="0" stopColor="var(--gold)" stopOpacity=".28" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></radialGradient>
   </defs>
 );
-const Rings = ({ k }: { k: string }) => (<g><circle cx="240" cy="170" r="165" fill={`url(#pr${k})`} />{[150, 112, 76].map((r, i) => <circle key={r} cx="240" cy="170" r={r} fill="none" stroke="var(--border-strong)" strokeDasharray={i === 1 ? "2 7" : "none"} opacity={0.7 - i * 0.15} />)}</g>);
+const Rings = ({ k }: { k: string }) => (<g><circle cx="240" cy="170" r="165" fill={`url(#pr${k})`} />{[150, 112, 76].map((r, i) => <circle key={r} cx="240" cy="170" r={r} fill="none" stroke="var(--gold)" strokeDasharray={i === 1 ? "2 7" : "none"} opacity={0.5 - i * 0.12} />)}</g>);
 const chip = (x: number, y: number, t: string, c: string, d = 0) => (
   <g className="pa-float" style={{ animationDelay: `${d}ms` }} transform={`translate(${x} ${y})`}>
-    <rect width={t.length * 6.6 + 30} height="28" rx="14" fill="var(--s1)" stroke="var(--border-strong)" /><circle cx="14" cy="14" r="4" fill={c} /><text x="26" y="18" fontSize="11" fill="var(--text)" fontFamily="IBM Plex Sans, sans-serif">{t}</text>
+    <rect x="1" y="3" width={t.length * 6.8 + 34} height="30" rx="15" fill="#000" opacity=".22" />
+    <rect width={t.length * 6.8 + 34} height="30" rx="15" fill="#fff" /><circle cx="15" cy="15" r="5" fill={c} /><text x="28" y="19.5" fontSize="12" fontWeight="600" fill="#14130F" fontFamily="IBM Plex Sans, sans-serif">{t}</text>
   </g>
 );
 
