@@ -1,0 +1,18 @@
+# Only deliberate, publicly-known dummy values are allowed: the RFC 6238 test vector, development-only placeholders and
+# the fixed test passphrase. Real keys must never be committed; everything else is still scanned.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "dummy values used by tests and local development"
+paths = [
+  '''backend/tests/''',
+  '''frontend/e2e/''',
+  '''dev/site_api_dev\.py''',
+  '''backend/finlit/config\.py''',
+]
+regexes = [
+  '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
+  '''dev-only-secret-key-do-not-use-in-production''',
+  '''a-long-unusual-phrase-42''',
+]
