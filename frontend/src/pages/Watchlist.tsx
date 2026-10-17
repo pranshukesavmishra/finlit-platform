@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertButton } from "../components/AlertComposer";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
 import { PageArt } from "../components/PageArt";
@@ -144,7 +145,7 @@ export function WatchlistPage() {
                             {d != null && <em className={d >= 0 ? "pos" : "neg"}>{d >= 0 ? "▲ " : "▼ "}{nf(Math.abs(d), 1)}% to target</em>}</div>
                           <textarea className="wc-note" rows={2} maxLength={200} placeholder="Add a note: why are you watching this?" value={m.note ?? ""} onChange={(e) => wl.setMeta(r.symbol, { note: e.target.value })} aria-label={`${r.symbol} note`} />
                           <footer>{st.lists.length > 1 && <select aria-label={`Move ${r.symbol} to another list`} value="" onChange={(e) => { if (e.target.value) { wl.move(r.symbol, list.id, e.target.value); toast(`Moved ${r.symbol}.`); } }}><option value="">Move to…</option>{st.lists.filter((l) => l.id !== list.id).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>}
-                            <button className="lnk" onClick={() => { wl.remove(r.symbol, list.id); setSel((x) => x.filter((y) => y !== r.symbol)); }}>Remove</button></footer>
+                            <AlertButton symbol={r.symbol} className="lnk" label="Alert" /> <button className="lnk" onClick={() => { wl.remove(r.symbol, list.id); setSel((x) => x.filter((y) => y !== r.symbol)); }}>Remove</button></footer>
                         </article>);
                     })}</div>
                   </div>);

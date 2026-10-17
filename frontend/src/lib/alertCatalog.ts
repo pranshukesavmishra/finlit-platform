@@ -8,8 +8,8 @@ export const METRICS: Record<string, Metric> = {
   change_pct: { label: "Day change", unit: "%", group: "Price & momentum", live: true, tier: "basic", ops: ["above", "below"], hint: "Today's move against yesterday's close. Use a negative number for a fall.", sample: 3 },
   move_abs: { label: "Move in a day (either way)", unit: "%", group: "Price & momentum", live: true, tier: "basic", ops: ["above"], hint: "Tell me when it moves this much in a day, up or down.", sample: 5 },
   volume_x: { label: "Volume vs 20-day average", unit: "×", group: "Price & momentum", live: false, tier: "basic", ops: ["above"], hint: "A volume spike: today's traded volume as a multiple of the 20-day average.", sample: 3 },
-  from_high52: { label: "Below 52-week high", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits under its 52-week high. 0 means a fresh high.", sample: 2 },
-  from_low52: { label: "Above 52-week low", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits above its 52-week low. 0 means a fresh low.", sample: 3 },
+  from_high52: { label: "Distance from 52-week high", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits under its 52-week high. A target of 2 means within 2% of the high (0 is a fresh high).", sample: 2 },
+  from_low52: { label: "Distance from 52-week low", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits above its 52-week low. A target of 3 means within 3% of the low (0 is a fresh low).", sample: 3 },
   return_1m: { label: "1-month return", unit: "%", group: "Price & momentum", live: false, tier: "silver", ops: ["above", "below"], hint: "Price change over the last month.", sample: 10 },
   return_1y: { label: "1-year return", unit: "%", group: "Price & momentum", live: false, tier: "silver", ops: ["above", "below"], hint: "Price change over the last year.", sample: 30 },
   rsi14: { label: "RSI (14)", unit: "", group: "Technical signals", live: false, tier: "basic", ops: ["above", "below"], hint: "Relative strength index. Below 30 is often read as oversold, above 70 as overbought.", sample: 30 },
@@ -56,7 +56,7 @@ export function describe(a: { metric: string; op: Op; value: number | null; keyw
   if (a.metric === "result_soon") return `Results announced within ${a.value ?? 7} days`;
   if (a.metric === "move_abs") return `Moves ${fmtValue(a.metric, a.value)} or more in a day`;
   if (a.metric === "volume_x") return `Volume reaches ${fmtValue(a.metric, a.value)} its 20-day average`;
-  if (a.metric === "from_high52") return `Falls ${fmtValue(a.metric, a.value)} below its 52-week high`;
+  if (a.metric === "from_high52") return `Within ${fmtValue(a.metric, a.value)} of its 52-week high`;
   if (a.metric === "from_low52") return `Within ${fmtValue(a.metric, a.value)} of its 52-week low`;
   return `${m.label} ${a.op === "above" ? "rises to or above" : "falls to or below"} ${fmtValue(a.metric, a.value)}`;
 }
@@ -69,3 +69,5 @@ export function closeness(a: { metric: string; op: Op; value: number | null; las
   return Math.max(2, Math.min(98, Math.round(100 - Math.min(1, gap / base) * 100)));
 }
 export const LIVE_NOTE = "Price alerts are checked every few minutes while the market is open. Everything else is checked on weekday evenings, once the day's data is in.";
+export const OP_LABEL = (metric: string, op: Op): string =>
+  metric === "move_abs" || metric === "volume_x" ? "Reaches at least" : metric === "from_high52" || metric === "from_low52" ? "Gets within" : op === "above" ? "At or above" : op === "below" ? "At or below" : "Any new item";

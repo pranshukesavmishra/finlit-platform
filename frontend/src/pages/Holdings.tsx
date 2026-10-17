@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { Gate } from "../components/Gate";
@@ -129,7 +130,7 @@ export function HoldingsPage() {
                   <td className={tone(l.pnl)}>{l.pnl != null ? `${l.pnl >= 0 ? "+" : ""}${inr(l.pnl)}` : "—"}<small>{sgn(l.pnlPct)}{l.cagr != null ? ` · ${sgn(l.cagr, 0)}/yr` : ""}</small></td>
                   <td className={tone(l.row?.change_pct ?? null)}>{sgn(l.row?.change_pct ?? null, 2)}</td>
                   <td>{l.row?.overall != null ? <span className={"band-dot " + l.row.band}>{l.row.overall}</span> : "—"}</td>
-                  <td className="ra"><button className="btn" aria-label={`Edit ${l.symbol}`} onClick={() => { setEdit(l.id); setForm({ symbol: l.symbol, qty: String(l.qty), price: String(l.price), date: l.date || "" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Edit</button> <button className="btn" aria-label={`Remove ${l.symbol}`} onClick={() => { portfolio.remove(l.id); toast(`${l.symbol} removed.`); }}>✕</button></td></tr>); })}</tbody></table></div>
+                  <td className="ra"><AlertButton symbol={l.symbol} className="btn" /> <button className="btn" aria-label={`Edit ${l.symbol}`} onClick={() => { setEdit(l.id); setForm({ symbol: l.symbol, qty: String(l.qty), price: String(l.price), date: l.date || "" }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Edit</button> <button className="btn" aria-label={`Remove ${l.symbol}`} onClick={() => { portfolio.remove(l.id); toast(`${l.symbol} removed.`); }}>✕</button></td></tr>); })}</tbody></table></div>
             <p className="faint" style={{ fontSize: 12.5, marginTop: 10 }}>Values use the latest price and your entered average cost; charges and taxes are not included. Per-year returns show for holdings bought at least two months ago. Information only, not investment advice.</p>
           </section></>}
       </Gate>

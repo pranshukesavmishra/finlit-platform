@@ -7,6 +7,7 @@ import { useSavedScreens } from "../lib/screens";
 import { useWatchlist } from "../lib/watchlist";
 import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
+import { useAlerts, useNotices } from "../lib/alerts";
 
 type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean };
 type Group = { title: string; items: Item[] };
@@ -19,6 +20,8 @@ export function AppShell() {
   const wl = useWatchlist();
   const saved = useSavedScreens();
   const held = usePortfolio().holdings.length;
+  const { unread } = useNotices();
+  const live = useAlerts().alerts.filter((a) => a.status === "active").length;
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("finlit-side") === "1"; } catch { return false; } });
   const [open, setOpen] = useState(false); // mobile drawer
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -36,6 +39,7 @@ export function AppShell() {
     { title: "My lists", items: [
       { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
       { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },
+      { to: "/alerts", label: "Alerts", icon: "bell", badge: unread ? `${unread} new` : live ? String(live) : undefined },
     ] },
     { title: "Market", items: [
       { to: "/results", label: "Results calendar", icon: "calendar" },
