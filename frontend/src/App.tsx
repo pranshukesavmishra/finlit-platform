@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
+import { AppShell } from "./components/AppShell";
 import { SearchPalette } from "./components/SearchPalette";
 import { Home } from "./pages/Home";
 import { Research } from "./pages/Research";
@@ -25,6 +26,10 @@ const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ defa
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Console = lazy(() => import("./pages/Console").then((m) => ({ default: m.Console })));
+const IpoPage = lazy(() => import("./pages/Ipo").then((m) => ({ default: m.IpoPage })));
+const ResultsPage = lazy(() => import("./pages/Results").then((m) => ({ default: m.ResultsPage })));
+const NewsPage = lazy(() => import("./pages/News").then((m) => ({ default: m.NewsPage })));
+const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ default: m.DocumentsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -37,12 +42,22 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="research" element={<><Research onSearch={() => setSearch(true)} /><SearchPalette open={search} onClose={() => setSearch(false)} /></>} />
+          <Route element={<AppShell />}>
+            <Route path="research" element={<><Research onSearch={() => setSearch(true)} /><SearchPalette open={search} onClose={() => setSearch(false)} /></>} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="screener" element={<Screener />} />
+            <Route path="compare" element={<Compare />} />
+            <Route path="watchlist" element={<WatchlistPage />} />
+            <Route path="ipo" element={<IpoPage />} />
+            <Route path="results" element={<ResultsPage />} />
+            <Route path="news" element={<NewsPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="glossary" element={<GlossaryPage />} />
+            <Route path="account" element={<Account />} />
+            <Route path="account/:tab" element={<Account />} />
+            <Route path="console" element={<Console />} />
+          </Route>
           <Route path="stocks/:symbol" element={<StockPage />} />
-          <Route path="screener" element={<Screener />} />
-          <Route path="compare" element={<Compare />} />
-          <Route path="glossary" element={<GlossaryPage />} />
-          <Route path="watchlist" element={<WatchlistPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="services" element={<Services />} />
           <Route path="about" element={<About />} />
@@ -56,10 +71,6 @@ export default function App() {
           <Route path="verify-email" element={<VerifyEmail />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="account" element={<Account />} />
-          <Route path="account/:tab" element={<Account />} />
-          <Route path="console" element={<Console />} />
           <Route path="admin" element={<Admin />} />
           <Route path="admin/login" element={<AdminLogin />} />
           <Route path="*" element={<NotFound />} />

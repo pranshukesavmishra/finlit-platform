@@ -119,6 +119,9 @@ class Store:
                 await self._upsert_score(conn, {**score_row, "statement": statement})
             if daily and daily.get("t"):
                 await self._upsert_prices(conn, symbol, daily)
+            if sections.get("events"):
+                from .feed import save_announcements
+                await save_announcements(conn, symbol, sections["summary"]["profile"].get("name") or symbol, sections["events"].get("announcements") or [])
 
         await self._cache(symbol, statement, encoded, etags)
         return etags

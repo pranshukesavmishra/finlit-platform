@@ -40,3 +40,8 @@ export const adminDecline = (id: number) => apiSend("POST", `/api/admin/plan-req
 export const adminAudit = () => apiGet<{ events: AuditRow[] }>("/api/admin/audit");
 export type DataHealth = { universe: number; loaded: number; scored: number; queued: number; lastLoad: string | null; runs24h: Record<string, number>; recentProblems: { symbol: string; status: string; at: string; detail: string }[] };
 export const adminHealth = () => apiGet<DataHealth>("/api/admin/data-health");
+
+export const addIpo = (b: Record<string, unknown>) => apiSend("POST", "/api/admin/ipos", b);
+export const deleteIpo = (id: number) => apiSend("DELETE", `/api/admin/ipos/${id}`);
+export const addFeed = (b: Record<string, unknown>) => apiSend("POST", "/api/admin/feed", b);
+export const deleteFeed = (id: number) => apiSend("DELETE", `/api/admin/feed/${id}`);

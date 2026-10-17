@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ..config import Settings
 from ..security import client_ip
@@ -731,6 +731,191 @@ async def admin_decline(request: Request, rid: int, ctx: Ctx = Depends(admin_ctx
 @router.get("/admin/data-health")
 async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
     return Response(content=json.dumps(await request.app.state.store.health()), media_type="application/json", headers=NO_STORE)
+
+
+# ------------------------------------------------------------------ news, result dates, documents
+class FeedIn(BaseModel):
+    kind: Literal["news", "result", "document"]
+    title: str = Field(min_length=3, max_length=300)
+    symbol: Optional[str] = Field(default=None, max_length=24)
+    company: Optional[str] = Field(default=None, max_length=120)
+    source: Optional[str] = Field(default=None, max_length=80)
+    link: Optional[str] = Field(default=None, max_length=400)
+    item_date: _date
+    category: Optional[str] = Field(default=None, max_length=80)
+    period: Optional[str] = Field(default=None, max_length=24)
+    summary: Optional[str] = Field(default=None, max_length=600)
+
+    @field_validator("link")
+    @classmethod
+    def link_ok(cls, v: Optional[str]) -> Optional[str]:
+        if v and not re.match(r"^https://[^\s<>\"']+$", v):
+            raise ValueError("link must start with https://")
+        return v or None
+
+    @field_validator("symbol")
+    @classmethod
+    def sym_ok(cls, v: Optional[str]) -> Optional[str]:
+        if v and not SYMBOL.match(v.strip().upper()):
+            raise ValueError("bad symbol")
+        return v.strip().upper() if v else None
+
+
+FEED_COLS = "kind, title, symbol, company, source, link, item_date, category, period, summary"
+
+
+def feed_json(r: Any) -> Dict[str, Any]:
+    return {"id": r["id"], "kind": r["kind"], "title": r["title"], "symbol": r["symbol"], "company": r["company"], "source": r["source"], "link": r["link"],
+            "date": r["item_date"].isoformat(), "category": r["category"], "period": r["period"], "summary": r["summary"], "auto": r["auto"]}
+
+
+@router.get("/feed")
+async def feed(request: Request, kind: Literal["news", "result", "document"] = "news", symbol: str = Query("", max_length=200), q: str = Query("", max_length=80),
+               upcoming: bool = False, limit: int = Query(60, ge=1, le=200), before: Optional[_date] = None):
+    """Public. `symbol` may be one symbol or several separated by commas (a watchlist). `upcoming=true` returns dates from today on, soonest first."""
+    syms = [x.strip().upper() for x in symbol.split(",") if x.strip()][:60]
+    if any(not SYMBOL.match(x) for x in syms):
+        raise fail(400, "invalid_symbol")
+    where, args = ["kind = $1"], [kind]
+    if syms:
+        args.append(syms)
+        where.append(f"symbol = ANY(${len(args)}::text[])")
+    if q.strip():
+        args.append(f"%{q.strip().lower()}%")
+        where.append(f"(lower(title) LIKE ${len(args)} OR lower(coalesce(company, '')) LIKE ${len(args)})")
+    if upcoming:
+        where.append("item_date >= CURRENT_DATE")
+    elif before:
+        args.append(before)
+        where.append(f"item_date < ${len(args)}")
+    args.append(limit)
+    order = "item_date ASC, id" if upcoming else "item_date DESC, id DESC"
+    sql = "SELECT * FROM feed_items WHERE " + " AND ".join(where) + f" ORDER BY {order} LIMIT ${len(args)}"  # nosec B608 - fragments are fixed; values are bound
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch(sql, *args)
+    return Response(content=json.dumps({"items": [feed_json(r) for r in rows]}), media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=60, stale-while-revalidate=300"})
+
+
+@router.post("/admin/feed", status_code=201)
+async def feed_create(request: Request, body: FeedIn, ctx: Ctx = Depends(admin_ctx)):
+    async with request.app.state.store.pool.acquire() as conn:
+        new_id = await conn.fetchval(f"INSERT INTO feed_items ({FEED_COLS}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id", *[getattr(body, c) for c in FEED_COLS.split(", ")])  # nosec B608
+    await audit(request.app.state.store.pool, ctx.user_id, "feed_added", str(new_id), ip_of(request), kind=body.kind)
+    return {"id": new_id}
+
+
+@router.delete("/admin/feed/{fid}")
+async def feed_delete(request: Request, fid: int, ctx: Ctx = Depends(admin_ctx)):
+    async with request.app.state.store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM feed_items WHERE id = $1", fid)
+    await audit(request.app.state.store.pool, ctx.user_id, "feed_removed", str(fid), ip_of(request))
+    return {"status": "deleted"}
+
+
+# ------------------------------------------------------------------ IPO calendar
+from datetime import date as _date  # noqa: E402
+
+
+class IpoIn(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    symbol: Optional[str] = Field(default=None, max_length=24)
+    kind: Literal["mainboard", "sme"] = "mainboard"
+    sector: Optional[str] = Field(default=None, max_length=60)
+    open_date: _date
+    close_date: _date
+    listing_date: Optional[_date] = None
+    price_low: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    price_high: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    lot_size: Optional[int] = Field(default=None, ge=1, le=10_000_000)
+    issue_size_cr: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    listing_price: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    note: Optional[str] = Field(default=None, max_length=400)
+    link: Optional[str] = Field(default=None, max_length=300)
+
+    @model_validator(mode="after")
+    def dates_ok(self) -> "IpoIn":
+        if self.close_date < self.open_date:
+            raise ValueError("the issue cannot close before it opens")
+        if self.listing_date and self.listing_date < self.close_date:
+            raise ValueError("listing cannot be before the close")
+        if self.price_low is not None and self.price_high is not None and self.price_high < self.price_low:
+            raise ValueError("price band is the wrong way round")
+        return self
+
+    @field_validator("link")
+    @classmethod
+    def link_ok(cls, v: Optional[str]) -> Optional[str]:
+        if v and not re.match(r"^https://[^\s<>\"']+$", v):
+            raise ValueError("link must start with https://")
+        return v or None
+
+    @field_validator("symbol")
+    @classmethod
+    def sym_ok(cls, v: Optional[str]) -> Optional[str]:
+        if v and not SYMBOL.match(v.strip().upper()):
+            raise ValueError("bad symbol")
+        return v.strip().upper() if v else None
+
+
+def ipo_status(row: Any, today: _date) -> str:
+    if row["open_date"] > today:
+        return "upcoming"
+    if row["close_date"] >= today:
+        return "open"
+    if row["listing_date"] and row["listing_date"] <= today:
+        return "listed"
+    return "closed"
+
+
+def ipo_json(row: Any, today: _date) -> Dict[str, Any]:
+    f = lambda v: float(v) if v is not None else None  # noqa: E731
+    return {"id": row["id"], "name": row["name"], "symbol": row["symbol"], "kind": row["kind"], "sector": row["sector"], "status": ipo_status(row, today),
+            "openDate": row["open_date"].isoformat(), "closeDate": row["close_date"].isoformat(), "listingDate": row["listing_date"].isoformat() if row["listing_date"] else None,
+            "priceLow": f(row["price_low"]), "priceHigh": f(row["price_high"]), "lotSize": row["lot_size"], "issueSizeCr": f(row["issue_size_cr"]),
+            "listingPrice": f(row["listing_price"]), "note": row["note"], "link": row["link"]}
+
+
+IPO_COLS = "name, symbol, kind, sector, open_date, close_date, listing_date, price_low, price_high, lot_size, issue_size_cr, listing_price, note, link"
+
+
+@router.get("/ipos")
+async def list_ipos(request: Request):
+    """Public. Nearest first: open and upcoming issues, then the recent past."""
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM ipos ORDER BY open_date DESC LIMIT 300")
+    today = _date.today()
+    return Response(content=json.dumps({"ipos": [ipo_json(r, today) for r in rows]}), media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=120, stale-while-revalidate=600"})
+
+
+@router.post("/admin/ipos", status_code=201)
+async def ipo_create(request: Request, body: IpoIn, ctx: Ctx = Depends(admin_ctx)):
+    async with request.app.state.store.pool.acquire() as conn:
+        new_id = await conn.fetchval(f"INSERT INTO ipos ({IPO_COLS}) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",  # nosec B608 - fixed column list
+                                     *[getattr(body, c) for c in IPO_COLS.split(", ")])
+    await audit(request.app.state.store.pool, ctx.user_id, "ipo_added", str(new_id), ip_of(request), name=body.name)
+    return {"id": new_id}
+
+
+@router.put("/admin/ipos/{iid}")
+async def ipo_update(request: Request, iid: int, body: IpoIn, ctx: Ctx = Depends(admin_ctx)):
+    cols = IPO_COLS.split(", ")
+    sets = ", ".join(f"{c} = ${i + 2}" for i, c in enumerate(cols))
+    async with request.app.state.store.pool.acquire() as conn:
+        done = await conn.fetchval(f"UPDATE ipos SET {sets}, updated_at = now() WHERE id = $1 RETURNING id", iid, *[getattr(body, c) for c in cols])  # nosec B608 - fixed column list
+    if done is None:
+        raise fail(404, "not_found")
+    await audit(request.app.state.store.pool, ctx.user_id, "ipo_changed", str(iid), ip_of(request), name=body.name)
+    return {"status": "saved"}
+
+
+@router.delete("/admin/ipos/{iid}")
+async def ipo_delete(request: Request, iid: int, ctx: Ctx = Depends(admin_ctx)):
+    async with request.app.state.store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM ipos WHERE id = $1", iid)
+    await audit(request.app.state.store.pool, ctx.user_id, "ipo_removed", str(iid), ip_of(request))
+    return {"status": "deleted"}
 
 
 @router.get("/admin/audit")

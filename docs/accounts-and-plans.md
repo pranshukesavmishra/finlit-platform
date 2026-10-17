@@ -62,3 +62,9 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - **Data health** (admin console): companies in the universe / loaded / scored / queued, last load, last-24-hour results and recent failures.
 - **Target-price alerts:** `python -m finlit.worker check-alerts` (cron every 10 min in market hours). One email when a watchlist stock *crosses* the target the member set, at most once a day per stock; members can switch it off in Account → Appearance.
 - **Installable app:** web manifest, icons, and a small service worker (offline shell; never caches `/api`). Also `robots.txt` and `sitemap.xml`.
+
+## Product shell, calendars, news and documents
+- **Left menu** (`AppShell`) on every product page: Dashboard · Research (stock research, screener, compare) · My lists (watchlist) · Market (results calendar, IPO calendar, news & filings, documents) · Learn · Account (+ admin console). Collapsible, remembers its state, becomes a slide-in drawer on phones. The stock report page keeps its own full-width layout.
+- **IPO calendar** (`/ipo`, `GET /api/ipos`): entered by administrators in Console → Calendar & news; status (upcoming / open / closed / listed), minimum investment and listing gain are worked out automatically.
+- **Results calendar** (`/results`), **news & filings** (`/news`), **documents** (`/documents`) all read `GET /api/feed?kind=result|news|document`. Exchange announcements are added automatically whenever a company is loaded (sorted into results / documents / news, de-duplicated); administrators add result dates and curated news by hand. Once the FinEdge key is connected and `ingest-all` has run, every company's filings flow in with no further work.
+- Dashboard widgets: results dates, news for my stocks, open and upcoming IPOs.
