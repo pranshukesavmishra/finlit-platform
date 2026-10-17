@@ -19,6 +19,24 @@ function Delta({ v, label }: { v: number | null; label: string }) {
   return <span className={"qd " + (v >= 0 ? "up" : "down")}>{v >= 0 ? "▲ +" : "▼ −"}{nf(Math.abs(v), 1)}% <small>{label}</small></span>;
 }
 
+/** Plain-words reading of the latest quarter, worked out from the reported numbers only (no estimates). */
+function readQuarter(q: Table) {
+  const n = q.periods.length, last = n - 1, yoy = n >= 5 ? n - 5 : -1, qoq = last - 1;
+  const rev = row(q, "revenue"), op = row(q, "operating_profit"), np = row(q, "net_profit"), ep = row(q, "eps"), fin = row(q, "finance_costs");
+  const opm = ratio(op, rev), npm = ratio(np, rev);
+  const good: string[] = [], bad: string[] = [];
+  const say = (what: string, v: number | null, ref: string, hi = 5) => { if (v == null) return; if (v >= hi) good.push(`${what} grew ${nf(v, 1)}% ${ref}.`); else if (v <= -hi) bad.push(`${what} fell ${nf(Math.abs(v), 1)}% ${ref}.`); };
+  const y = (a: (number | null)[]) => (yoy >= 0 ? chg(a[last], a[yoy]) : null), qn = (a: (number | null)[]) => chg(a[last], a[qoq]);
+  say("Sales", y(rev), "from a year ago"); say("Net profit", y(np), "from a year ago", 8); say("Earnings per share", y(ep), "from a year ago", 8);
+  say("Sales", qn(rev), "on the previous quarter"); say("Net profit", qn(np), "on the previous quarter", 10);
+  if (yoy >= 0 && opm[last] != null && opm[yoy] != null) { const d = (opm[last] as number) - (opm[yoy] as number); if (d >= 1) good.push(`Operating margin widened by ${nf(d, 1)} points to ${nf(opm[last] as number, 1)}%.`); else if (d <= -1) bad.push(`Operating margin narrowed by ${nf(Math.abs(d), 1)} points to ${nf(opm[last] as number, 1)}%.`); }
+  if (yoy >= 0 && npm[last] != null && npm[yoy] != null) { const d = (npm[last] as number) - (npm[yoy] as number); if (d >= 1) good.push(`Net margin improved by ${nf(d, 1)} points.`); else if (d <= -1) bad.push(`Net margin slipped by ${nf(Math.abs(d), 1)} points.`); }
+  const fy = y(fin); if (fy != null && fy >= 15) bad.push(`Interest cost rose ${nf(fy, 1)}% from a year ago.`);
+  if (np[last] != null && (np[last] as number) < 0) bad.push("The company made a loss this quarter.");
+  const up = [rev, np].filter((a) => a[last] != null && a[qoq] != null && (a[last] as number) > (a[qoq] as number)).length;
+  return { good: good.slice(0, 4), bad: bad.slice(0, 4), up };
+}
+
 /* ============== Latest quarter results ============== */
 export function QuarterSection({ f }: { f?: Financials }) {
   const q = f?.quarterly.pl;
@@ -48,6 +66,13 @@ export function QuarterSection({ f }: { f?: Financials }) {
           <div className="qt-d"><Delta v={chg(t.v[last], yoy >= 0 ? t.v[yoy] : null)} label="vs year ago" /><Delta v={chg(t.v[last], t.v[last - 1])} label="vs last quarter" /></div>
           <MiniBars labels={q.periods.slice(-8)} series={[{ key: t.k, label: t.k, values: t.v.slice(-8), color: t.c }]} fmt={t.bar} height={116} highlight={7 - (t.v.slice(-8).length < 8 ? 8 - t.v.slice(-8).length : 0)} />
         </div>))}</div>
+      {(() => { const k = readQuarter(q); return (k.good.length || k.bad.length) ? (
+        <div className="kt">
+          <div className="card acc kt-c" style={{ "--ac": "var(--gain)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="check" /></span>Key takeaways</h3></div>
+            {k.good.length ? <ul>{k.good.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">Nothing stands out on the upside this quarter.</p>}</div>
+          <div className="card acc kt-c" style={{ "--ac": "var(--loss)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Key risks and red flags</h3></div>
+            {k.bad.length ? <ul>{k.bad.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">No red flags in the reported numbers this quarter.</p>}</div>
+        </div>) : null; })()}
       <div className="card acc qtab" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
         <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Profit and loss for the quarter</h3><span className="s">₹ Crore · change in brackets</span></div>
         <div className="tw"><table className="qtt"><thead><tr><th>Line</th>{cols.map((i, j) => <th key={i} className={j === 0 ? "latest" : ""}>{q.periods[i]}{j === 1 ? " (last quarter)" : j === 2 ? " (year ago)" : ""}</th>)}</tr></thead>
