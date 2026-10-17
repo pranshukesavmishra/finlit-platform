@@ -100,3 +100,13 @@ def test_price_statistics_are_a_silver_feature():
     basic = redact_section("stats", {"available": True, "monthly": {"years": [2024]}}, "basic")
     assert basic == {"available": False, "locked": True}
     assert redact_section("stats", {"available": True, "monthly": 1}, "silver")["monthly"] == 1
+
+
+def test_announcements_are_sorted_into_results_documents_and_news():
+    from finlit.feed import classify, dedupe_key, rows_from_announcements
+    assert classify("Financial Results", "Outcome of board meeting") == "result"
+    assert classify("Analyst / Investor Meet", "Presentation to analysts") == "document"
+    assert classify("Credit Rating", "informed the Exchange about Credit Rating") == "news"
+    a = [{"date": "2026-09-25", "category": "Credit Rating", "description": "Reliance has informed the Exchange about Credit Rating", "link": "https://x.example/a.pdf"}]
+    rows = rows_from_announcements("RELIANCE", "Reliance Industries Ltd", a)
+    assert rows[0][0] == "news" and rows[0][2] == "RELIANCE" and rows[0][-1] == dedupe_key("RELIANCE", "2026-09-25", a[0]["description"], a[0]["link"])

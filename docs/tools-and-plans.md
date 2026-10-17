@@ -1,8 +1,8 @@
 # Research tools: what each plan gets, and where the data comes from
 
-Written against the "FinLit Technical Improvement & Modernization Plan" (Oct 2026). Plan names are Basic (free), Bronze and Gold. The ownership of "silver" in conversation is read as the entry plans (Basic and Bronze).
+Written against the "FinLit Technical Improvement & Modernization Plan" (Oct 2026). Plan names are Basic (free), Silver and Gold.
 
-| Tool | Basic | Bronze | Gold |
+| Tool | Basic | Silver | Gold |
 |---|---|---|---|
 | **Screener** (`/screener`) | Size, returns, valuation, profitability, growth, debt and sector filters; quick screens; save a screen | + CSV download | + **model filters**: FinLit score, band, five pillars; model quick screens; score columns |
 | **Compare** (`/compare`) | 2 companies: Overview, Fundamentals, Spider, Valuation; choose which measures | + model tabs (Quality & Risk, Growth, Technical) and Build your own, pillar radar | up to 4 companies |

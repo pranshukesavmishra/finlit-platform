@@ -391,3 +391,52 @@ async def test_target_price_alert_fires_once_on_a_crossing(app):
     assert await check_alerts(pool, mailer, "http://test") == 0   # crossed back, but only one email a day per stock
     assert (await c.put("/api/me/prefs", json={"palette": "gold", "alerts": False})).status_code == 200
     await c.aclose()
+
+
+async def test_ipo_calendar_public_read_admin_write(app, anon):
+    import time
+    from datetime import date, timedelta
+    d = date.today()
+    ipo = {"name": "Sample Industries Ltd", "kind": "mainboard", "open_date": str(d + timedelta(days=3)), "close_date": str(d + timedelta(days=5)),
+           "listing_date": str(d + timedelta(days=10)), "price_low": 100, "price_high": 105, "lot_size": 140, "issue_size_cr": 500, "link": "https://example.com/rhp"}
+    user = await signed_in(app, "u@example.com")
+    assert (await user.post("/api/admin/ipos", json=ipo)).status_code == 403
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})
+    assert (await admin.post("/api/admin/ipos", json={**ipo, "close_date": str(d)})).status_code == 422   # closes before it opens
+    assert (await admin.post("/api/admin/ipos", json={**ipo, "link": "javascript:alert(1)"})).status_code == 422
+    made = await admin.post("/api/admin/ipos", json=ipo)
+    assert made.status_code == 201
+    rows = (await anon.get("/api/ipos")).json()["ipos"]          # visitors can read it
+    assert len(rows) == 1 and rows[0]["status"] == "upcoming" and rows[0]["priceHigh"] == 105.0
+    iid = made.json()["id"]
+    assert (await admin.put(f"/api/admin/ipos/{iid}", json={**ipo, "open_date": str(d - timedelta(days=1))})).status_code == 200
+    assert (await anon.get("/api/ipos")).json()["ipos"][0]["status"] == "open"
+    assert (await anon.delete(f"/api/admin/ipos/{iid}", headers=ORIGIN)).status_code == 401
+    assert (await admin.delete(f"/api/admin/ipos/{iid}")).status_code == 200
+    assert (await anon.get("/api/ipos")).json()["ipos"] == []
+    for c in (user, admin):
+        await c.aclose()
+
+
+async def test_feed_admin_add_public_read_and_filters(app, anon):
+    import time
+    from datetime import date, timedelta
+    d = date.today()
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})
+    res = {"kind": "result", "title": "Q2 FY27 results", "symbol": "TCS", "company": "Tata Consultancy Services", "item_date": str(d + timedelta(days=4)), "period": "Q2 FY27", "category": "Board meeting"}
+    assert (await anon.post("/api/admin/feed", json=res, headers=ORIGIN)).status_code == 401
+    assert (await admin.post("/api/admin/feed", json={**res, "link": "http://insecure.example"})).status_code == 422
+    made = await admin.post("/api/admin/feed", json=res)
+    assert made.status_code == 201
+    await admin.post("/api/admin/feed", json={"kind": "news", "title": "Sector update for IT services", "item_date": str(d), "source": "FinLit"})
+    up = (await anon.get("/api/feed?kind=result&upcoming=true")).json()["items"]
+    assert len(up) == 1 and up[0]["symbol"] == "TCS" and up[0]["period"] == "Q2 FY27"
+    assert (await anon.get("/api/feed?kind=result&symbol=INFY")).json()["items"] == []
+    assert len((await anon.get("/api/feed?kind=news&q=sector")).json()["items"]) == 1
+    assert (await admin.delete(f"/api/admin/feed/{made.json()['id']}")).status_code == 200
+    assert (await anon.get("/api/feed?kind=result&upcoming=true")).json()["items"] == []
+    await admin.aclose()

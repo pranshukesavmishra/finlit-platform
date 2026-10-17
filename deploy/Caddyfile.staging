@@ -7,7 +7,7 @@
 
 {$API_HOST} {
 	encode zstd gzip
-	@research path /api/stocks/search-index /api/screener/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit
+	@research path /api/stocks/search-index /api/screener/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit /api/ipos /api/feed /api/admin/feed /api/admin/feed/* /api/admin/ipos /api/admin/ipos/* /api/admin/data-health
 	handle @research {
 		reverse_proxy research-api:8000
 	}

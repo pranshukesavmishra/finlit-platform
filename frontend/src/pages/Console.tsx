@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../lib/api";
+import { useIpos } from "../lib/ipo";
+import { useFeed } from "../lib/feed";
 import * as acct from "../lib/account";
 import { useAuth } from "../lib/auth";
 import { TIER, useUI } from "../lib/ui";
@@ -16,7 +18,7 @@ const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.sta
 export function Console() {
   useDocTitle("Admin console", "FinLit administrators: manage members, plans and the audit log.");
   const { user, ready, isAdmin } = useAuth();
-  const [tab, setTab] = useState<"users" | "requests" | "data" | "audit">("requests");
+  const [tab, setTab] = useState<"users" | "requests" | "content" | "data" | "audit">("requests");
   if (!ready) return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "40px auto" }} /></div>;
   if (!user) return <Navigate to="/login?next=%2Fconsole" replace />;
   if (!isAdmin) return <div className="wrap state"><h1 style={{ font: "400 28px var(--serif)" }}>Administrators only</h1><p className="muted">This area is for the FinLit team.</p><Link className="btn" to="/dashboard">Back to your dashboard</Link></div>;
@@ -25,10 +27,11 @@ export function Console() {
     <div className="wrap console">
       <header className="dash-h"><div><div className="eyebrow">Admin</div><h1>Console</h1><p className="muted">Members, plan requests and the audit trail. Content and enquiries are in the <Link to="/admin">CMS</Link>.</p></div></header>
       <div className="seg" role="tablist" aria-label="Console sections" style={{ marginBottom: 18 }}>
-        {([["requests", "Plan requests"], ["users", "Members"], ["data", "Data health"], ["audit", "Audit log"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
+        {([["requests", "Plan requests"], ["users", "Members"], ["content", "Calendar & news"], ["data", "Data health"], ["audit", "Audit log"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
+      {tab === "content" && <ContentAdmin />}
       {tab === "data" && <Health />}
       {tab === "audit" && <Audit />}
     </div>
@@ -106,5 +109,62 @@ function Health() {
       {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
       {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
     </section>
+  );
+}
+
+const num = (v: FormDataEntryValue | null) => (v === null || v === "" ? null : Number(v));
+const txt = (v: FormDataEntryValue | null) => (v === null || String(v).trim() === "" ? null : String(v).trim());
+
+function ContentAdmin() {
+  const qc = useQueryClient();
+  const { toast } = useUI();
+  const ipos = useIpos(true);
+  const [kind, setKind] = useState<"result" | "news" | "document">("result");
+  const items = useFeed(kind, { limit: 60, fresh: true });
+  const done = (m: string) => { toast(m); qc.invalidateQueries({ queryKey: ["ipos"] }); qc.invalidateQueries({ queryKey: ["feed"] }); };
+  const ipo = useMutation({ mutationFn: (b: Record<string, unknown>) => acct.addIpo(b), onSuccess: () => done("IPO added."), onError: (e) => toast(msg(e)) });
+  const rmIpo = useMutation({ mutationFn: (id: number) => acct.deleteIpo(id), onSuccess: () => done("IPO removed."), onError: (e) => toast(msg(e)) });
+  const feed = useMutation({ mutationFn: (b: Record<string, unknown>) => acct.addFeed(b), onSuccess: () => done("Added."), onError: (e) => toast(msg(e)) });
+  const rmFeed = useMutation({ mutationFn: (id: number) => acct.deleteFeed(id), onSuccess: () => done("Removed."), onError: (e) => toast(msg(e)) });
+  const submitIpo = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget;
+    ipo.mutate({ name: txt(f.get("name")), symbol: txt(f.get("symbol")), kind: f.get("kind"), sector: txt(f.get("sector")), open_date: f.get("open"), close_date: f.get("close"), listing_date: txt(f.get("listing")), price_low: num(f.get("low")), price_high: num(f.get("high")), lot_size: num(f.get("lot")), issue_size_cr: num(f.get("size")), listing_price: num(f.get("lp")), note: txt(f.get("note")), link: txt(f.get("link")) }, { onSuccess: () => form.reset() });
+  };
+  const submitFeed = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget;
+    feed.mutate({ kind, title: txt(f.get("title")), symbol: txt(f.get("symbol")), company: txt(f.get("company")), source: txt(f.get("source")), link: txt(f.get("link")), item_date: f.get("date"), category: txt(f.get("category")), period: txt(f.get("period")), summary: txt(f.get("summary")) }, { onSuccess: () => form.reset() });
+  };
+  return (
+    <>
+      <section className="card acct-c">
+        <h2>IPO calendar</h2><p className="muted">Add an issue when it is announced; its status (upcoming, open, closed, listed) follows the dates automatically.</p>
+        <form className="form agrid" onSubmit={submitIpo}>
+          <label>Company<input name="name" required maxLength={120} /></label><label>Symbol <span className="faint">(after listing)</span><input name="symbol" maxLength={24} /></label>
+          <label>Board<select name="kind"><option value="mainboard">Mainboard</option><option value="sme">SME</option></select></label><label>Sector<input name="sector" maxLength={60} /></label>
+          <label>Opens<input type="date" name="open" required /></label><label>Closes<input type="date" name="close" required /></label><label>Listing date<input type="date" name="listing" /></label>
+          <label>Price band low (₹)<input type="number" step="0.01" min="0" name="low" /></label><label>Price band high (₹)<input type="number" step="0.01" min="0" name="high" /></label><label>Lot size (shares)<input type="number" min="1" name="lot" /></label>
+          <label>Issue size (₹ Cr)<input type="number" step="0.01" min="0" name="size" /></label><label>Listing price (₹)<input type="number" step="0.01" min="0" name="lp" /></label>
+          <label className="wide">Offer document link <span className="faint">(https)</span><input name="link" maxLength={300} placeholder="https://" /></label><label className="wide">Note<input name="note" maxLength={400} /></label>
+          <div className="wide"><button className="btn primary" disabled={ipo.isPending}>Add IPO</button></div>
+        </form>
+        {(ipos.data || []).length > 0 && <div className="tw" style={{ marginTop: 14 }}><table className="qtt"><thead><tr><th>Company</th><th>Opens</th><th>Closes</th><th>Status</th><th /></tr></thead><tbody>{ipos.data!.map((r) => <tr key={r.id}><td><b>{r.name}</b></td><td>{r.openDate}</td><td>{r.closeDate}</td><td>{r.status}</td><td className="ra"><button className="btn" onClick={() => rmIpo.mutate(r.id)}>Remove</button></td></tr>)}</tbody></table></div>}
+      </section>
+      <section className="card acct-c">
+        <h2>Result dates, news and documents</h2>
+        <div className="seg" role="group" aria-label="Kind" style={{ marginBottom: 14 }}>{([["result", "Result date"], ["news", "News item"], ["document", "Document"]] as const).map(([k, l]) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{l}</button>)}</div>
+        <form className="form agrid" onSubmit={submitFeed} key={kind}>
+          <label className="wide">{kind === "result" ? "Title (for example: Q2 FY27 results)" : "Headline"}<input name="title" required minLength={3} maxLength={300} /></label>
+          <label>Company symbol<input name="symbol" maxLength={24} placeholder="TCS" /></label><label>Company name<input name="company" maxLength={120} /></label>
+          <label>{kind === "result" ? "Results date" : "Date"}<input type="date" name="date" required /></label>
+          {kind === "result" && <label>Period<input name="period" maxLength={24} placeholder="Q2 FY27" /></label>}
+          <label>Category<input name="category" maxLength={80} placeholder={kind === "document" ? "Annual report" : kind === "result" ? "Board meeting" : "Market news"} /></label><label>Source<input name="source" maxLength={80} /></label>
+          <label className="wide">Link <span className="faint">(https)</span><input name="link" maxLength={400} placeholder="https://" /></label>
+          {kind === "news" && <label className="wide">Summary<input name="summary" maxLength={600} /></label>}
+          <div className="wide"><button className="btn primary" disabled={feed.isPending}>Add</button></div>
+        </form>
+        {(items.data || []).filter((i) => !i.auto).length > 0 && <div className="tw" style={{ marginTop: 14 }}><table className="qtt"><thead><tr><th>Date</th><th>Title</th><th>Company</th><th /></tr></thead><tbody>{items.data!.filter((i) => !i.auto).map((i) => <tr key={i.id}><td>{i.date}</td><td>{i.title}</td><td>{i.symbol || "—"}</td><td className="ra"><button className="btn" onClick={() => rmFeed.mutate(i.id)}>Remove</button></td></tr>)}</tbody></table></div>}
+        <p className="muted" style={{ marginTop: 10 }}>Exchange announcements are added automatically when a company is loaded and are not listed here.</p>
+      </section>
+    </>
   );
 }

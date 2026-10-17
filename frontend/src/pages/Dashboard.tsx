@@ -16,6 +16,8 @@ import { Icon } from "../lib/icons";
 import { MINUS, cr, nf } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import terms from "../content/glossary.json";
+import { dayLabel, useFeed } from "../lib/feed";
+import { useIpos } from "../lib/ipo";
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
 const sgn = (v: number | null | undefined, d = 1) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(v, d) + "%");
@@ -119,6 +121,25 @@ function Buckets({ items }: { items: Row[] }) {
   );
 }
 
+function Dates({ symbols }: { symbols: string[] }) {
+  const { data } = useFeed("result", { symbols, limit: 100 });
+  const today = new Date().toISOString().slice(0, 10);
+  const next = (data || []).filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
+  if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "Result dates appear here as companies announce them."} to="/results" cta="Open results calendar" />;
+  return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{x.symbol || x.company}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;
+}
+function NewsW({ symbols }: { symbols: string[] }) {
+  const { data } = useFeed("news", { symbols, limit: 6 });
+  if (!(data || []).length) return <Empty icon="notes" title="No announcements yet" text={symbols.length ? "Nothing new for your stocks." : "Follow stocks to see their announcements here."} to="/news" cta="Open news" />;
+  return <ul className="sl">{data!.map((x) => <li key={x.id}><Link to="/news"><b>{x.symbol || "Market"}</b><span className="muted">{dayLabel(x.date)}</span></Link><span>{x.title}</span></li>)}</ul>;
+}
+function IposW() {
+  const { data } = useIpos();
+  const live = (data || []).filter((i) => i.status === "open" || i.status === "upcoming").sort((a, b) => a.openDate.localeCompare(b.openDate)).slice(0, 5);
+  if (!live.length) return <Empty icon="calendar" title="No open IPOs" text="Nothing is open or announced right now." to="/ipo" cta="Open IPO calendar" />;
+  return <ul className="sl">{live.map((i) => <li key={i.id}><Link to="/ipo"><b>{i.name}</b><span className={"chip " + (i.status === "open" ? "up" : "")}>{i.status === "open" ? "Open now" : "Opens " + dayLabel(i.openDate)}</span></Link><span>{i.priceHigh ? `Price band up to ₹${i.priceHigh}` : ""}{i.lotSize ? ` · lot ${i.lotSize}` : ""}</span></li>)}</ul>;
+}
+
 function Learn() {
   const t = useMemo(() => { const all = terms as { t: string; d: string; c: string }[]; const day = Math.floor(Date.now() / 86_400_000); return all[day % all.length]; }, []);
   return <div className="learn"><span className="chip gold">{t.c}</span><h4>{t.t}</h4><p>{t.d}</p><Link to="/glossary">Open the glossary <Icon name="arrow" /></Link></div>;
@@ -158,6 +179,9 @@ export function Dashboard() {
     switch (id) {
       case "snapshot": return <Snapshot rows={rows} />;
       case "movers": return <Movers items={items} />;
+      case "dates": return <Dates symbols={followed} />;
+      case "news": return <NewsW symbols={followed} />;
+      case "ipos": return <IposW />;
       case "results": return <Results symbols={followed.length ? followed : ["RELIANCE"]} names={names} />;
       case "second": return <SecondLook items={items} meta={wl.meta} />;
       case "screens": return <Screens rows={rows} />;
@@ -192,7 +216,7 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", learn: "notes" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}</h3>
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
             {body(w.id)}
           </section>))}

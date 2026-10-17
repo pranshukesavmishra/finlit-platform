@@ -11,7 +11,7 @@ export const PALETTES: Record<PaletteId, Spec> = {
     accent: { dark: ["#D4B26A", "#E8D29B", "#A8843A"], light: ["#8A6A25", "#C9A24E", "#8A6A25"] } },
   champagne: { label: "Champagne", blurb: "Softer, paler gold on warm ivory.", swatch: ["#FFFFFF", "#2A2519", "#CDB985"],
     accent: { dark: ["#E3D2A8", "#F1E6C8", "#B9A573"], light: ["#7D6B3E", "#B3A06D", "#7D6B3E"] } },
-  bronze: { label: "Copper", blurb: "Warm copper accents, a warm metallic accent.", swatch: ["#FFFFFF", "#2B1D14", "#B8703F"],
+  bronze: { label: "Copper", blurb: "Warm copper accents.", swatch: ["#FFFFFF", "#2B1D14", "#B8703F"],
     accent: { dark: ["#D08A5B", "#E6B089", "#A5663A"], light: ["#9A5A2E", "#C98A5A", "#9A5A2E"] } },
   graphite: { label: "Graphite", blurb: "Calm, neutral greys with a silver accent.", swatch: ["#F3F4F6", "#14161A", "#8B93A1"],
     accent: { dark: ["#C5C9D0", "#E3E6EA", "#8C919A"], light: ["#4B5360", "#7B8492", "#4B5360"] },

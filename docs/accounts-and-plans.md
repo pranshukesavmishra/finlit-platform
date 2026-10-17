@@ -14,9 +14,9 @@ How sign-in, plans and the member's own settings work in the real site. Everythi
 - A managed provider (the earlier "managed login" decision) can replace this later: the website only talks to `/api/auth/*`, `/api/me/*`.
 
 ## Plans are enforced on the server
-The middle plan was called Bronze until migration `007_plan_silver.sql`; existing Bronze members became Silver. (The "Copper" palette keeps its stored id `bronze`.)
+The middle plan was called Silver until migration `009_plan_silver.sql`; existing Silver members became Silver. (The "Copper" palette keeps its stored id `silver`.)
 Promised but not built yet, shown as "Soon" / "Later" on the plans page: IPO data and portfolio import (Silver), advanced model score (Gold), equity research report (Gold, later).
-| What | Basic / visitor | Bronze | Gold |
+| What | Basic / visitor | Silver | Gold |
 |---|---|---|---|
 | FinLit score, pillar scores, thesis, strengths, watch-outs | removed | yes | yes |
 | Ratio history | 5 key ratios | 5 key ratios | all, plus valuation history |
@@ -62,7 +62,13 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Payments (Razorpay), Google sign-in/passkeys, legal review of the Terms/Privacy text, and connecting the domain are still to do.
 
 ## Added since: score history, data health, alerts, installable app
-- **Score history:** every ingest writes one `score_history` row per day; the report shows "▲ +3 points since …" once there is a reading about a quarter old (`/api/stocks/{symbol}/score-history`, Bronze+).
+- **Score history:** every ingest writes one `score_history` row per day; the report shows "▲ +3 points since …" once there is a reading about a quarter old (`/api/stocks/{symbol}/score-history`, Silver+).
 - **Data health** (admin console): companies in the universe / loaded / scored / queued, last load, last-24-hour results and recent failures.
 - **Target-price alerts:** `python -m finlit.worker check-alerts` (cron every 10 min in market hours). One email when a watchlist stock *crosses* the target the member set, at most once a day per stock; members can switch it off in Account → Appearance.
 - **Installable app:** web manifest, icons, and a small service worker (offline shell; never caches `/api`). Also `robots.txt` and `sitemap.xml`.
+
+## Product shell, calendars, news and documents
+- **Left menu** (`AppShell`) on every product page: Dashboard · Research (stock research, screener, compare) · My lists (watchlist) · Market (results calendar, IPO calendar, news & filings, documents) · Learn · Account (+ admin console). Collapsible, remembers its state, becomes a slide-in drawer on phones. The stock report page keeps its own full-width layout.
+- **IPO calendar** (`/ipo`, `GET /api/ipos`): entered by administrators in Console → Calendar & news; status (upcoming / open / closed / listed), minimum investment and listing gain are worked out automatically.
+- **Results calendar** (`/results`), **news & filings** (`/news`), **documents** (`/documents`) all read `GET /api/feed?kind=result|news|document`. Exchange announcements are added automatically whenever a company is loaded (sorted into results / documents / news, de-duplicated); administrators add result dates and curated news by hand. Once the FinEdge key is connected and `ingest-all` has run, every company's filings flow in with no further work.
+- Dashboard widgets: results dates, news for my stocks, open and upcoming IPOs.

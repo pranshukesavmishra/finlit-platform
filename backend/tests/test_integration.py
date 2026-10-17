@@ -43,7 +43,7 @@ async def store():
         await conn.execute("DROP TABLE IF EXISTS price_daily CASCADE")
         await conn.execute("DROP TABLE IF EXISTS snapshots, scores, companies, ingest_runs, "
                            "ingest_queue, schema_migrations, users, sessions, email_tokens, audit_events, user_state, "
-                           "plan_requests, outbox, score_history, alert_state CASCADE")
+                           "plan_requests, outbox, score_history, alert_state, ipos, feed_items CASCADE")
     await s.redis.flushdb()
     await s.migrate()
     yield s
@@ -249,3 +249,16 @@ async def test_score_history_and_health(api, ingested):
     assert len((await api.get("/api/stocks/RELIANCE/score-history")).json()["points"]) == 1
     health = await ingested.health()
     assert health["universe"] > 5000 and health["loaded"] == 1 and health["scored"] >= 1 and "runs24h" in health
+
+
+async def test_exchange_announcements_become_feed_items(api, ingested):
+    r = await api.get("/api/feed?kind=news&symbol=RELIANCE")
+    items = r.json()["items"]
+    assert r.status_code == 200 and items and all(i["symbol"] == "RELIANCE" and i["auto"] for i in items)
+    await worker.ingest_one(FinEdgeClient(make_settings()), ingested, "RELIANCE")  # loading again must not duplicate anything
+    again = (await api.get("/api/feed?kind=news&symbol=RELIANCE")).json()["items"]
+    assert len(again) == len(items)
+    kinds = {i["kind"] for k in ("news", "result", "document") for i in (await api.get(f"/api/feed?kind={k}&symbol=RELIANCE")).json()["items"]}
+    assert kinds <= {"news", "result", "document"}
+    assert (await api.get("/api/feed?symbol=DROP%20TABLE")).status_code == 400
+    assert (await api.get("/api/feed?kind=other")).status_code == 422

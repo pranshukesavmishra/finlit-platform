@@ -10,4 +10,4 @@ Follows the brand direction in the FinLit Technical Improvement & Modernization 
 | Charcoal / stone | `#2E2A20` / `#8A8472` | `#EDE6D3` / `#A39B88` | Secondary chart series, info |
 | Gain / loss | `#2F7A58` / `#A8392F` | `#5FB88E` / `#E0707A` | Only for up/down and good/bad meaning |
 
-Categorical data (five score pillars, ownership holders, revenue segments) uses gold, charcoal and stone in different lightness, never extra hues. No blue, violet, pink or cyan anywhere. The bronze plan tier is the only warm accent beyond gold.
+Categorical data (five score pillars, ownership holders, revenue segments) uses gold, charcoal and stone in different lightness, never extra hues. No blue, violet, pink or cyan anywhere. The Silver plan tier is a cool grey accent beside gold.
