@@ -55,7 +55,7 @@ function Ring({ v, band }: { v: number | null; band: string | null }) {
 
 export function Compare() {
   useDocTitle("Compare companies", "Put companies side by side on size, valuation, quality, growth and price behaviour. Choose exactly which measures to compare.");
-  const { has, setPlan, toast } = useUI();
+  const { has, upgrade } = useUI();
   const { data, isLoading, isError } = useUniverse();
   const [sp, setSp] = useSearchParams();
   const [same, setSame] = useState(true), [tab, setTab] = useState("overview");
@@ -117,7 +117,7 @@ export function Compare() {
             <div className="pks">
               {Array.from({ length: Math.max(2, picked.length) }, (_, i) => <Picker key={i} label={`Company ${LETTER[i]}`} value={picked[i]} options={optionsFor(i)} taken={ids.filter((_, j) => j !== i)} onPick={(r) => pick(i, r)} onRemove={i >= 2 ? () => setIds(ids.filter((_, j) => j !== i)) : undefined} />)}
               {picked.length < max && picked.length >= 2 && <button className="pk-add" onClick={() => { const r = optionsFor(picked.length).find((x) => !ids.includes(x.symbol)); if (r) setIds([...ids, r.symbol]); }}><Icon name="spark" />Add a company</button>}
-              {!has("gold") && picked.length >= 2 && <button className="pk-add lock" onClick={() => { toast("Comparing up to four companies comes with the Gold plan. Showing Gold."); setPlan("gold"); }}><Icon name="lock" />Compare up to 4 · Gold</button>}
+              {!has("gold") && picked.length >= 2 && <button className="pk-add lock" onClick={() => { upgrade("gold", "Comparing up to four companies comes with the Gold plan."); }}><Icon name="lock" />Compare up to 4 · Gold</button>}
               {picked.length >= 2 && <button className="pk-swap" aria-label="Swap the first two companies" onClick={() => setIds([ids[1], ids[0], ...ids.slice(2)])}><Icon name="arrow" />Swap A and B</button>}
             </div>)}
         </div>

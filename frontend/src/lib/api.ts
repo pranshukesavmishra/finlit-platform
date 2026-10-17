@@ -74,16 +74,45 @@ export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undef
 export const apiUrl = (path: string) => (path.startsWith("/") ? API_BASE + path : path);
 
 export class ApiError extends Error {
-  constructor(public status: number, public body: { status?: string; detail?: string; retryAfter?: number }) {
+  constructor(public status: number, public body: { status?: string; detail?: string; retryAfter?: number; plan?: string }) {
     super(body.detail || body.status || `HTTP ${status}`);
   }
+}
+
+/** FastAPI wraps errors as {detail: {status, detail}} (or a list for validation errors); flatten to one shape. */
+function errorBody(raw: unknown): ApiError["body"] {
+  const r = raw as { detail?: unknown; status?: string } | null;
+  if (!r) return {};
+  if (r.detail && typeof r.detail === "object" && !Array.isArray(r.detail)) return r.detail as ApiError["body"];
+  if (Array.isArray(r.detail)) return { status: "invalid", detail: "Please check what you entered and try again." };
+  return r as ApiError["body"];
+}
+
+/** The signed-in session's CSRF token; set by the auth provider and sent on every state-changing request. */
+let csrf: string | null = null;
+export const setCsrf = (t: string | null) => { csrf = t; };
+
+/** POST/PUT/PATCH/DELETE with the session cookie and CSRF header. */
+export async function apiSend<T = { status?: string }>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (csrf) headers["X-CSRF-Token"] = csrf;
+  const res = await fetch(apiUrl(path), { method, headers, credentials: API_BASE ? "include" : "same-origin", body: body === undefined ? undefined : JSON.stringify(body) });
+  let data: unknown = null;
+  try { data = await res.json(); } catch { /* empty body */ }
+  if (!res.ok) {
+    const b = errorBody(data);
+    b.retryAfter = Number(res.headers.get("Retry-After") || 0) || b.retryAfter;
+    throw new ApiError(res.status, b);
+  }
+  return data as T;
 }
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(apiUrl(path), { headers: { Accept: "application/json" }, credentials: API_BASE ? "include" : "same-origin", ...init });
   if (res.status === 202 || !res.ok) {
     let body: ApiError["body"] = {};
-    try { body = await res.json(); } catch { /* not JSON */ }
+    try { body = errorBody(await res.json()); } catch { /* not JSON */ }
     body.retryAfter = Number(res.headers.get("Retry-After") || 0) || undefined;
     throw new ApiError(res.status, body);
   }

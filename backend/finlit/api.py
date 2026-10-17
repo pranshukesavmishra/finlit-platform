@@ -36,7 +36,7 @@ CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
 UNLIMITED_PATHS = ("/api/health",)
 MAX_BODY = 64 * 1024  # every request body in this API is small JSON
-CACHE_PRIVATE = "private, max-age=60"
+CACHE_PRIVATE = "private, no-cache"  # the browser keeps a copy but asks (cheap 304) every time, so a new plan shows at once
 
 
 class RateLimitMiddleware:
@@ -238,17 +238,37 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/screener/universe")
     async def universe(request: Request):
-        """Every scored company in one cacheable response; the website filters and compares in the browser."""
-        rows = await app.state.store.screener_rows()
-        out = []
-        for r in rows:
-            r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
-            for k, v in list(r.items()):
-                if v is not None and not isinstance(v, (int, str, bool, float)):
-                    r[k] = float(v)
-            out.append(r)
-        out = redact_universe(out, (await current(request)).plan, set(settings.showcase_symbols))
-        return JSONResponse({"rows": out}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
+        """Every scored company in one response; the website filters and compares in the browser.
+        Built once per few minutes and kept in Redis, one copy per access level (model scores are a Bronze feature)."""
+        started = time.perf_counter()
+        level = "bronze" if has((await current(request)).plan, "bronze") else "basic"
+        redis = app.state.store.redis
+        try:
+            hit = await redis.hmget(f"universe:{level}", ["body", "etag"])
+        except Exception:
+            hit = [None, None]
+        if hit[0] is None:
+            rows = await app.state.store.screener_rows()
+            out = []
+            for r in rows:
+                r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
+                for k, v in list(r.items()):
+                    if v is not None and not isinstance(v, (int, str, bool, float)):
+                        r[k] = float(v)
+                out.append(r)
+            out = redact_universe(out, level, set(settings.showcase_symbols))
+            body = orjson.dumps({"rows": out})
+            etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
+            try:
+                await redis.hset(f"universe:{level}", mapping={"body": body, "etag": etag})
+                await redis.expire(f"universe:{level}", 180)
+            except Exception:
+                pass
+        else:
+            body, etag = hit[0], hit[1].decode()
+        response = cached(request, body, etag, CACHE_PRIVATE, started)
+        response.headers["Vary"] = "Cookie"
+        return response
 
     app.include_router(auth_routes.router)
     return app

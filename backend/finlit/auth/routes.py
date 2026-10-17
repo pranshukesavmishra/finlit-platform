@@ -27,7 +27,7 @@ NO_STORE = {"Cache-Control": "no-store"}
 SCREEN_KEYS = {"market_cap", "price", "change_pct", "return_1m", "return_1y", "pe", "pb", "dividend_yield", "roe", "roce", "operating_margin",
                "sales_cagr", "profit_cagr", "debt_to_equity", "overall", "pillar_quality", "pillar_growth", "pillar_profitability",
                "pillar_balance", "pillar_technical"}
-PALETTES = ("gold", "champagne", "bronze", "graphite", "midnight")
+PALETTES = ("gold", "champagne", "bronze", "graphite", "midnight", "emerald")
 
 
 def fail(status: int, code: str, detail: str = "", **extra: Any) -> HTTPException:
@@ -213,7 +213,7 @@ class Widget(BaseModel):
 
 class PrefsIn(BaseModel):
     theme: Optional[Literal["light", "dark"]] = None
-    palette: Literal["gold", "champagne", "bronze", "graphite", "midnight"] = "gold"
+    palette: Literal["gold", "champagne", "bronze", "graphite", "midnight", "emerald"] = "gold"
     density: Literal["comfortable", "compact"] = "comfortable"
     dashboard: List[Widget] = Field(default_factory=list, max_length=30)
 

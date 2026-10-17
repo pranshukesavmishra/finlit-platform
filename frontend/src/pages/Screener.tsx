@@ -4,6 +4,8 @@ import { Icon } from "../lib/icons";
 import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { useUI, TIER } from "../lib/ui";
+import { limitsFor } from "../lib/auth";
+import { screens, useSavedScreens } from "../lib/screens";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
@@ -20,12 +22,10 @@ const COLS: { id: string; label: string; keys: NumKey[] }[] = [
 ];
 const DEFAULT_COLS: NumKey[] = ["market_cap", "price", "change_pct", "return_1y", "pe", "pb", "roe", "roce", "debt_to_equity"];
 const GOLD_COLS: NumKey[] = ["overall", "pillar_quality", "pillar_growth"];
-const SAVED = "finlit-saved-screens";
-const load = (): { name: string; state: State }[] => { try { return JSON.parse(localStorage.getItem(SAVED) || "[]"); } catch { return []; } };
 
 export function Screener() {
   useDocTitle("Stock screener", "Filter every listed Indian stock by size, valuation, profitability, growth and financial health. Gold adds filters built on the FinLit research model.");
-  const { has, setPlan, toast } = useUI();
+  const { has, upgrade, toast, plan } = useUI();
   const nav = useNavigate();
   const { data, isLoading, isError } = useUniverse();
   const [tab, setTab] = useState<"filters" | "quick">("filters");
@@ -37,7 +37,7 @@ export function Screener() {
   const [colMenu, setColMenu] = useState(false);
   const [sort, setSort] = useState<{ key: NumKey | "name"; dir: 1 | -1 }>({ key: "market_cap", dir: -1 });
   const [shown, setShown] = useState(40);
-  const [saved, setSaved] = useState(load);
+  const saved = useSavedScreens();
   const [saveName, setSaveName] = useState("");
   const gold = has("gold");
   useEffect(() => { if (gold) setCols((c) => (c.includes("overall") ? c : [...GOLD_COLS, ...c])); else setCols((c) => c.filter((k) => !METRICS[k].model)); }, [gold]);
@@ -69,14 +69,14 @@ export function Screener() {
     cur[side] = n; return { ...s, ranges: { ...s.ranges, [k]: cur } };
   });
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
-  const lockedTap = () => { toast("FinLit model filters come with the Gold plan. Showing Gold."); setPlan("gold"); };
+  const lockedTap = () => { upgrade("gold", "FinLit model filters come with the Gold plan."); };
   const nActive = activeCount(f);
   const chips: { label: string; clear: () => void }[] = [
     ...Object.entries(f.ranges).filter(([, r]) => r && (r.min != null || r.max != null)).map(([k, r]) => ({ label: `${METRICS[k as NumKey].short} ${r!.min != null ? "≥ " + r!.min : ""}${r!.min != null && r!.max != null ? " and " : ""}${r!.max != null ? "≤ " + r!.max : ""}`, clear: () => setF((s) => ({ ...s, ranges: { ...s.ranges, [k]: {} } })) })),
     ...f.sectors.map((s) => ({ label: s, clear: () => setF((x) => ({ ...x, sectors: x.sectors.filter((y) => y !== s) })) })),
     ...f.bands.map((s) => ({ label: `Band: ${BAND_LABEL[s]}`, clear: () => setF((x) => ({ ...x, bands: x.bands.filter((y) => y !== s) })) })),
   ];
-  const save = () => { const n = saveName.trim(); if (!n || !nActive) { toast("Add a filter and a name first."); return; } const nx = [{ name: n, state: f }, ...saved.filter((s) => s.name !== n)].slice(0, 12); setSaved(nx); try { localStorage.setItem(SAVED, JSON.stringify(nx)); } catch { /* ignore */ } setSaveName(""); toast(`Saved “${n}” in Quick screens.`); };
+  const save = () => { const n = saveName.trim(); if (!n || !nActive) { toast("Add a filter and a name first."); return; } if (saved.length >= limitsFor(plan).screens && !saved.some((s) => s.name === n)) { toast(`Your plan keeps up to ${limitsFor(plan).screens} saved screens. Remove one first.`); return; } screens.save(n, f, limitsFor(plan).screens); setSaveName(""); toast(`Saved “${n}” in Quick screens.`); };
   const download = () => {
     if (!has("bronze")) { toast("Downloads come with the Bronze plan. Showing plans."); nav("/plans"); return; }
     const ks = cols; const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;

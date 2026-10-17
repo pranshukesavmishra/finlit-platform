@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { COMPANY } from "../content/site";
 import { useUI } from "../lib/ui";
 import { Icon } from "../lib/icons";
@@ -9,6 +9,7 @@ import { Assistant } from "./Assistant";
 import { EnquiryProvider, useEnquiry } from "./Enquiry";
 import { InfoProvider } from "./Info";
 import { DEMO } from "../lib/demo";
+import { useAuth } from "../lib/auth";
 
 const NAV = [
   ["/research", "Research"], ["/services", "Services"], ["/plans", "Plans"], ["/portfolio", "Portfolio"], ["/blog", "Blog"], ["/about", "About"],
@@ -17,11 +18,14 @@ const TOOLS = [["/screener", "Stock screener", "Filter every company by your rul
 
 function Header({ onSearch }: { onSearch: () => void }) {
   const { theme, toggleTheme, plan, setPlan } = useUI();
+  const { user, ready, isAdmin, signOut } = useAuth();
+  const nav = useNavigate();
+  const [acct, setAcct] = useState(false);
   const [menu, setMenu] = useState(false);
   const [tools, setTools] = useState(false);
   const loc = useLocation();
   const onStock = loc.pathname.startsWith("/stocks/");
-  useEffect(() => { setMenu(false); setTools(false); }, [loc.pathname]);
+  useEffect(() => { setMenu(false); setTools(false); setAcct(false); }, [loc.pathname]);
   return (
     <header className="top">
       <div className="wrap">
@@ -36,7 +40,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
           <Icon name="table" /><span className="t">Search any stock</span><span className="kbd">Ctrl K</span>
         </button>
-        {onStock && (
+        {DEMO && onStock && (
           <div className="seg planseg" role="group" aria-label="Preview plan">
             <span className="lbl">Preview</span>
             {(["basic", "bronze", "gold"] as const).map((p) => (
@@ -48,14 +52,31 @@ function Header({ onSearch }: { onSearch: () => void }) {
           {theme === "light" ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z" /></svg>
             : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>}
         </button>
-        <Link className="btn primary hide-sm signin" to="/login">Sign in</Link>
+        {user ? (
+          <div className="dd acct-dd">
+            <button className="av-btn" aria-haspopup="true" aria-expanded={acct} aria-label={`Account menu for ${user.email}`} onClick={() => setAcct(!acct)} onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setAcct(false); }}>
+              <span className="av mini" aria-hidden="true">{(user.name || user.email)[0].toUpperCase()}</span><span className={"tier " + plan}>{plan[0].toUpperCase() + plan.slice(1)}</span>
+            </button>
+            <div className={"ddm right" + (acct ? " open" : "")} role="menu">
+              <div className="acct-who"><b>{user.name || "Signed in"}</b><small>{user.email}</small></div>
+              <Link to="/dashboard" role="menuitem"><span className="ddi"><Icon name="table" /></span><span><b>Dashboard</b></span></Link>
+              <Link to="/watchlist" role="menuitem"><span className="ddi"><Icon name="wallet" /></span><span><b>Watchlist</b></span></Link>
+              <Link to="/account" role="menuitem"><span className="ddi"><Icon name="users" /></span><span><b>Account</b></span></Link>
+              <Link to="/account/appearance" role="menuitem"><span className="ddi"><Icon name="spark" /></span><span><b>Appearance</b></span></Link>
+              {isAdmin && <Link to="/console" role="menuitem"><span className="ddi"><Icon name="lock" /></span><span><b>Admin console</b></span></Link>}
+              <button role="menuitem" onClick={async () => { setAcct(false); await signOut(); nav("/"); }}><span className="ddi"><Icon name="arrow" /></span><span><b>Sign out</b></span></button>
+            </div>
+          </div>
+        ) : ready || DEMO ? (
+          <><Link className="btn hide-sm signin-ghost" to="/login">Sign in</Link><Link className="btn primary hide-sm signin" to={DEMO ? "/login" : "/login?mode=signup"}>{DEMO ? "Sign in" : "Create account"}</Link></>
+        ) : <span className="signin-ph" aria-hidden="true" />}
         <button className="icon-btn burger" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
       </div>
       {menu && (
         <nav className="mnav" aria-label="Mobile">
           {NAV.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
           {TOOLS.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
-          <Link to="/contact">Contact</Link><Link to="/login" className="gold">Sign in</Link>
+          <Link to="/contact">Contact</Link>{user ? <><NavLink to="/dashboard">Dashboard</NavLink><NavLink to="/account">Account</NavLink></> : <Link to="/login" className="gold">Sign in</Link>}
         </nav>
       )}
     </header>
@@ -74,7 +95,7 @@ function Footer() {
         <div className="fcols">
           <div><b>Explore</b><Link to="/research">Stock research</Link><Link to="/services">Services</Link><Link to="/plans">Plans</Link><Link to="/portfolio">Portfolio</Link><Link to="/blog">Blog</Link></div>
           <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/contact">Contact</Link><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
-          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link><Link to="/admin/login">Admin</Link></div>
+          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link><Link to="/admin/login">CMS admin</Link></div>
         </div>
         <div className="ffine">
           <span>{COMPANY.name} · Research-led perspectives across Indian and global markets.</span>
@@ -107,7 +128,7 @@ export function Layout() {
     };
     addEventListener("keydown", k); return () => removeEventListener("keydown", k);
   }, []);
-  const bare = loc.pathname === "/login";
+  const bare = ["/login", "/forgot-password", "/reset-password", "/verify-email"].includes(loc.pathname);
   return (
     <InfoProvider>
       <EnquiryProvider>

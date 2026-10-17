@@ -44,7 +44,7 @@ const RANGES = ["1M", "6M", "1Y", "3Y", "5Y", "MAX"];
 export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string; ratios?: Ratios }) {
   const [range, setRange] = useState("1Y");
   const [ind, setInd] = useState({ e50: true, e200: false, vol: true });
-  const { has, setPlan } = useUI();
+  const { has, upgrade } = useUI();
   const { data, isLoading, isError } = usePrice(symbol, range);
   const t = data?.technical, series = data?.series, c = series?.c || [];
   const chg = c.length > 1 ? (c[c.length - 1] / c[0] - 1) * 100 : null;
@@ -62,7 +62,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
             <div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div>
             {gold ? <div className="seg" role="group" aria-label="Indicators">
               <button aria-pressed={ind.e50} onClick={() => setInd((x) => ({ ...x, e50: !x.e50 }))}>EMA 50</button><button aria-pressed={ind.e200} onClick={() => setInd((x) => ({ ...x, e200: !x.e200 }))}>EMA 200</button><button aria-pressed={ind.vol} onClick={() => setInd((x) => ({ ...x, vol: !x.vol }))}>Volume</button></div>
-              : <span className="tier gold" style={{ cursor: "pointer" }} onClick={() => setPlan("gold")}>More indicators in Gold</span>}
+              : <span className="tier gold" style={{ cursor: "pointer" }} onClick={() => upgrade("gold", "More indicators come with Gold.")}>More indicators in Gold</span>}
           </div>
           {isLoading && <div className="skeleton" style={{ height: 340 }} />}
           {isError && <p className="muted">Price history is unavailable right now.</p>}

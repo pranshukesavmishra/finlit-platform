@@ -17,14 +17,14 @@ const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
 ];
 
 export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fin?: Financials; jump: (id: string) => void }) {
-  const { has, toast, plan } = useUI();
+  const { has, toast, plan, upgrade } = useUI();
   const [open, setOpen] = useState<string | null>(null);
   const [dl, setDl] = useState(false);
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0;
   const asOf = q.asOf ? new Date(q.asOf) : null;
-  const need = (tier: "bronze" | "gold", what: string) => { if (has(tier)) return true; toast(`${what} come with the ${TIER[tier].n} plan. Showing plans.`); jump("plans"); return false; };
+  const need = (tier: "bronze" | "gold", what: string) => { if (has(tier)) return true; upgrade(tier, `${what} come with the ${TIER[tier].n} plan.`); return false; };
   const byKey = Object.fromEntries((ratios?.score.pillars || []).map((x) => [x.key, x]));
   const know = [
     ...(s.strengths.slice(0, 2).map((n) => ({ ...n, tone: "good" as const }))), ...(s.watchouts.slice(0, 1).map((n) => ({ ...n, tone: "bad" as const }))),
@@ -32,7 +32,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const toggleWatch = () => {
     if (!need("bronze", "Watchlist and portfolio tracking")) return;
     const on = !watch;
-    if (on) { if (!has("gold") && wl.total() >= 30) { toast("Bronze holds up to 30 stocks. Gold has no limit."); return; } wl.add(p.symbol); } else wl.remove(p.symbol);
+    if (on) { if (!has("gold") && wl.total() >= 30) { upgrade("gold", "Bronze holds up to 30 stocks; Gold holds up to 1,000."); return; } wl.add(p.symbol); } else wl.remove(p.symbol);
     toast(on ? `${p.nse || p.symbol} added to your watchlist.` : `${p.nse || p.symbol} removed from your watchlist.`);
   };
   const download = (kind: "pdf" | "html" | "csv") => {

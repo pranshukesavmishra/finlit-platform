@@ -1,5 +1,8 @@
 import { Icon } from "../lib/icons";
+import { Link } from "react-router";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
+import { useAuth } from "../lib/auth";
+import { DEMO } from "../lib/demo";
 import { useDocTitle } from "../lib/title";
 
 const PLANS: { k: Plan; tag: string; desc: string; price: string; per: string; cta: string; inc: string; feat?: boolean; f: [string, string][] }[] = [
@@ -29,7 +32,10 @@ const CMP: [string, string | null, number?][] = [
 ];
 
 export function PlansBand({ id }: { id?: string }) {
-  const { plan, setPlan, toast } = useUI();
+  const { plan, upgrade } = useUI();
+  const { user } = useAuth();
+  const cta = (k: Plan, label: string) => DEMO ? (plan === k ? "Previewing " + TIER[k].n : label) : plan === k && (user || k === "basic") ? (user ? "Your plan" : "Included for everyone") : k === "basic" ? "Create a free account" : user ? `Request ${TIER[k].n}` : label;
+  const go = (k: Plan) => { if (!DEMO && k === "basic") return; upgrade(k); if (DEMO) window.scrollTo({ top: 0, behavior: "smooth" }); };
   return (
     <section className="band plans" id={id} aria-labelledby="plansTitle">
       <div className="wrap">
@@ -40,30 +46,31 @@ export function PlansBand({ id }: { id?: string }) {
         </div>
         <div className="trust">{[["bars", "Data-driven insights"], ["spark", "Proprietary scoring model"], ["quality", "Reliable & transparent"], ["users", "Built for every investor"]].map(([i, t]) => <span key={t}><Icon name={i} />{t}</span>)}</div>
         <div className="who">{([["sprout", "I'm just starting out", "Free data on every listed stock, plus a powerful screener.", "basic"], ["quality", "I want the score and the story", "The five-pillar scorecard, trends and a watchlist.", "bronze"], ["crown", "I invest seriously", "Advanced scoring, full ratio history and technical signals.", "gold"]] as const).map(([ic, t, d, k]) => (
-          <button key={k} className="who-c" style={{ "--tc": `var(${TIER[k].tc})` } as React.CSSProperties} onClick={() => { setPlan(k); toast(`Previewing the ${TIER[k].n} plan.`); }}>
+          <button key={k} className="who-c" style={{ "--tc": `var(${TIER[k].tc})` } as React.CSSProperties} onClick={() => { if (DEMO) upgrade(k); else document.getElementById(`plan-${k}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
             <span className="who-i"><Icon name={ic} /></span><b>{t}</b><span>{d}</span><em>{TIER[k].n} plan <Icon name="arrow" /></em>
           </button>))}</div>
         <div className="pgrid">
           {PLANS.map((p) => (
-            <div key={p.k} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
+            <div key={p.k} id={`plan-${p.k}`} data-cur={DEMO ? "Previewing" : "Your plan"} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k && (DEMO || user || p.k === "basic") ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
               <PlanArt k={p.k} />
               <div className="plan-top"><div className="plan-name"><span className="pi"><Icon name={TIER[p.k].ic} /></span>{TIER[p.k].n}</div><span className="ribbon">{p.tag}</span></div>
               <p className="plan-desc">{p.desc}</p>
               <div className="price"><b>{p.price}</b><span>{p.per}</span></div>
-              <button className="btn" onClick={() => { setPlan(p.k); toast(`Previewing the ${TIER[p.k].n} plan.${p.k === "gold" ? " Everything is unlocked." : " Locked sections show what upgrading adds."}`); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{plan === p.k ? "Previewing " + TIER[p.k].n : p.cta} <Icon name="arrow" /></button>
+              {!DEMO && p.k === "basic" && !user ? <Link className="btn" to="/login?mode=signup">{cta(p.k, p.cta)} <Icon name="arrow" /></Link>
+                : <button className="btn" disabled={!DEMO && plan === p.k && (!!user || p.k === "basic")} onClick={() => go(p.k)}>{cta(p.k, p.cta)} <Icon name="arrow" /></button>}
               <div className="inc">{p.inc}<span className="inc-n">{p.f.length} features</span></div>
               <ul>{p.f.map(([a, b]) => <li key={a}><span className="ck"><Icon name={fIcon(a)} /></span><span><b>{a}</b><span className="d">{b}</span></span></li>)}</ul>
             </div>
           ))}
         </div>
-        <div className="cmp-h"><h3>Compare every feature</h3><p>Pick a plan to preview it on a stock page.</p></div>
+        <div className="cmp-h"><h3>Compare every feature</h3><p>{DEMO ? "Pick a plan to preview it on a stock page." : "Pricing is announced at launch. Until then, request a plan and we will switch it on for your account."}</p></div>
         <div className="cmp"><div className="cmp-scroll"><table>
           <thead><tr><th>Feature</th>{PLANS.map((p) => <th key={p.k} className={"th-" + p.k + (plan === p.k ? " cur" : "")} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}><span className="th-i"><Icon name={TIER[p.k].ic} /></span><b>{TIER[p.k].n}</b><small>{p.k === "basic" ? "Free" : "Pricing soon"}</small></th>)}</tr></thead>
           <tbody>{CMP.map(([n, d, need]) => d === null ? <tr className="grp" key={n}><td colSpan={4}>{n}</td></tr> :
             <tr key={n}><td><span className="cf"><span className="cf-i"><Icon name={fIcon(n)} /></span><span><b>{n}</b>{d ? <small>{d}</small> : null}</span></span></td>{PLANS.map((p) => RANK[p.k] >= (need ?? 0) ? <td key={p.k} className={"c-" + p.k}><span className="yes" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}><Icon name="check" /></span></td> : <td key={p.k} className={"c-" + p.k}><span className="no">—</span></td>)}</tr>)}</tbody>
           <tfoot><tr><td>Features included</td>{PLANS.map((p) => <td key={p.k} className={"c-" + p.k}><b className="cnt" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>{CMP.filter(([, d, need]) => d !== null && RANK[p.k] >= (need ?? 0)).length}</b></td>)}</tr></tfoot>
         </table></div></div>
-        <p className="plans-note">Plans and features are subject to change. Pricing will be announced at launch. Use “Preview” to see a stock page as each plan.</p>
+        <p className="plans-note">Plans and features are subject to change. Pricing will be announced at launch. {DEMO ? "Use “Preview” to see a stock page as each plan." : "Request a plan from your account and we will confirm it by email."}</p>
       </div>
     </section>
   );

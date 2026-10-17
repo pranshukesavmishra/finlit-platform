@@ -11,6 +11,7 @@ import { Why } from "./pages/Why";
 import { Contact } from "./pages/Contact";
 import { Legal, NotFound } from "./pages/Legal";
 import { Login } from "./pages/Login";
+import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows";
 
 // Heavier pages load on demand so the first visit stays small and fast.
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
@@ -21,6 +22,9 @@ const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
+const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
+const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
+const Console = lazy(() => import("./pages/Console").then((m) => ({ default: m.Console })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -49,6 +53,13 @@ export default function App() {
           <Route path="blog/:slug" element={<BlogPost />} />
           <Route path="legal/:doc" element={<Legal />} />
           <Route path="login" element={<Login />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="account" element={<Account />} />
+          <Route path="account/:tab" element={<Account />} />
+          <Route path="console" element={<Console />} />
           <Route path="admin" element={<Admin />} />
           <Route path="admin/login" element={<AdminLogin />} />
           <Route path="*" element={<NotFound />} />

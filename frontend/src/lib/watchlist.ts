@@ -1,4 +1,5 @@
-// Watchlists live in this browser for now (localStorage). When accounts ship, the same shape syncs to the server so lists follow the user to the app.
+// Watchlists are kept in this browser and, for signed-in Bronze and Gold members, mirrored to their account (see lib/sync.tsx)
+// so lists follow them to other devices and the app.
 import { useSyncExternalStore } from "react";
 
 export type List = { id: string; name: string; symbols: string[] };
@@ -19,12 +20,17 @@ function read(): WState {
 }
 let state = read();
 const subs = new Set<() => void>();
-const emit = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* private mode */ } subs.forEach((f) => f()); };
+let onSave: ((s: WState) => void) | null = null;
+const emit = (remote = false) => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* private mode */ } subs.forEach((f) => f()); if (!remote) onSave?.(state); };
 const set = (fn: (s: WState) => WState) => { state = fn(state); emit(); };
 const uid = () => Math.random().toString(36).slice(2, 8);
 
 export const watch = {
   get: () => state,
+  /** Account sync hooks: `replace` loads the saved copy without echoing it back; `onSave` receives local changes. */
+  replace: (s: WState) => { state = s.lists?.length ? s : fresh(); emit(true); },
+  reset: () => { state = fresh(); emit(true); },
+  onSave: (f: ((s: WState) => void) | null) => { onSave = f; },
   subscribe: (f: () => void) => { subs.add(f); return () => subs.delete(f); },
   has: (sym: string) => state.lists.some((l) => l.symbols.includes(sym)),
   total: () => new Set(state.lists.flatMap((l) => l.symbols)).size,

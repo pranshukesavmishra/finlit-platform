@@ -5,6 +5,7 @@ import { PageArt } from "../components/PageArt";
 import { Gate } from "../components/Gate";
 import { Plain } from "../components/Plain";
 import { useUI } from "../lib/ui";
+import { limitsFor } from "../lib/auth";
 import { useDocTitle } from "../lib/title";
 import { DEMO } from "../lib/demo";
 import { nf } from "../lib/format";
@@ -19,7 +20,7 @@ const size = (c: number | null) => (c == null ? "Unknown" : c >= 100000 ? "Large
 const style = (r: Row) => (r.pe == null ? "Unknown" : r.pe < 15 || (r.pb != null && r.pb < 1.5) ? "Value" : r.pe > 35 ? "Premium growth" : "Blend");
 const keyOf = (g: GroupBy, r: Row) => (g === "sector" ? r.sector || "Other" : g === "size" ? size(r.market_cap) : g === "band" ? (r.band ? BAND_LABEL[r.band] : "Unscored") : g === "style" ? style(r) : "");
 
-function signals(r: Row, target?: number): string[] {
+export function signals(r: Row, target?: number): string[] {
   const out: string[] = [];
   if (r.band === "watch") out.push(`FinLit score is ${r.overall}, in the Watch band`);
   if ((r.pillar_balance ?? 100) <= 35) out.push(`Weak balance sheet (${r.pillar_balance}/100)`);
@@ -43,7 +44,7 @@ function Add({ rows, taken, onAdd }: { rows: Row[]; taken: string[]; onAdd: (r: 
 
 export function WatchlistPage() {
   useDocTitle("Watchlist", "Track your stocks in named lists, bucket them by industry, size or FinLit band, and see what needs attention.");
-  const { has, toast, setPlan } = useUI();
+  const { has, toast, upgrade, plan } = useUI();
   const nav = useNavigate();
   const st = useWatchlist();
   const { data } = useUniverse();
@@ -67,10 +68,10 @@ export function WatchlistPage() {
   const attention = items.map((r) => ({ r, s: signals(r, st.meta[r.symbol]?.target) })).filter((x) => x.s.length);
   const secMix = useMemo(() => { const m = new Map<string, number>(); items.forEach((r) => m.set(r.sector || "Other", (m.get(r.sector || "Other") || 0) + 1)); return [...m.entries()].sort((a, b) => b[1] - a[1]); }, [items]);
   const topShare = items.length ? (secMix[0]?.[1] || 0) / items.length : 0;
-  const MAXL = gold ? 99 : 3;
+  const lim = limitsFor(plan), MAXL = lim.watchlist_lists;
 
-  const addStock = (r: Row) => { if (!gold && wl.total() >= 30 && !wl.has(r.symbol)) { toast("Bronze holds up to 30 stocks. Gold has no limit."); return; } wl.add(r.symbol, list.id); toast(`${r.symbol} added to ${list.name}.`); };
-  const newList = () => { if (st.lists.length >= MAXL) { toast("Bronze includes 3 lists. Gold has unlimited lists. Showing Gold."); setPlan("gold"); return; } const id = wl.create(name || `List ${st.lists.length + 1}`); setLid(id); setName(""); setNaming(false); };
+  const addStock = (r: Row) => { if (wl.total() >= lim.watchlist_symbols && !wl.has(r.symbol)) { if (gold) toast(`Your watchlist is full (${lim.watchlist_symbols} stocks).`); else upgrade("gold", "Bronze holds up to 30 stocks; Gold holds up to 1,000."); return; } wl.add(r.symbol, list.id); toast(`${r.symbol} added to ${list.name}.`); };
+  const newList = () => { if (st.lists.length >= MAXL) { if (gold) toast(`You have reached ${MAXL} lists.`); else upgrade("gold", "Bronze includes 3 lists; Gold has up to 50."); return; } const id = wl.create(name || `List ${st.lists.length + 1}`); setLid(id); setName(""); setNaming(false); };
   const exportCsv = () => { if (!bronze) { toast("Downloads come with the Bronze plan."); nav("/plans"); return; } const esc = (s: string) => `"${s.replace(/"/g, '""')}"`; const ks: NumKey[] = ["price", "change_pct", "market_cap", "pe", "roe", "dividend_yield", "overall"]; saveFile("FinLit-watchlist.csv", [["Symbol", "Company", "Sector", ...ks.map((k) => METRICS[k].label), "Target", "Note"].map(esc).join(","), ...items.map((r) => [r.symbol, r.name || "", r.sector || "", ...ks.map((k) => r[k] ?? ""), st.meta[r.symbol]?.target ?? "", st.meta[r.symbol]?.note ?? ""].map((v) => (typeof v === "string" ? esc(v) : v)).join(","))].join("\n"), "text/csv;charset=utf-8"); toast("Saved FinLit-watchlist.csv."); };
   const toggleSel = (s: string) => setSel((x) => (x.includes(s) ? x.filter((y) => y !== s) : x.length >= (gold ? 4 : 2) ? (toast(gold ? "Compare up to 4 companies." : "Bronze compares 2 companies. Gold compares up to 4."), x) : [...x, s]));
 
@@ -103,7 +104,7 @@ export function WatchlistPage() {
 
           <div className="wl-bar">
             <Add rows={rows} taken={list.symbols} onAdd={addStock} />
-            <label className="wl-sel"><span>Bucket by</span><select value={group} onChange={(e) => { const g = e.target.value as GroupBy; if (GROUPS.find((x) => x.id === g)?.gold && !gold) { toast("Bucketing by FinLit band and style comes with Gold. Showing Gold."); setPlan("gold"); } setGroup(g); }} aria-label="Bucket by">{GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}{g.gold && !gold ? " (Gold)" : ""}</option>)}</select></label>
+            <label className="wl-sel"><span>Bucket by</span><select value={group} onChange={(e) => { const g = e.target.value as GroupBy; if (GROUPS.find((x) => x.id === g)?.gold && !gold) { upgrade("gold", "Bucketing by FinLit band and style comes with Gold."); } setGroup(g); }} aria-label="Bucket by">{GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}{g.gold && !gold ? " (Gold)" : ""}</option>)}</select></label>
             <label className="wl-sel"><span>Sort by</span><select value={sort} onChange={(e) => setSort(e.target.value as NumKey | "name")} aria-label="Sort by">{SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
             <button className="btn" onClick={exportCsv}>Download</button>
           </div>

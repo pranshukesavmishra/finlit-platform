@@ -6,7 +6,7 @@ import { TIER, useUI, type Plan } from "../lib/ui";
 /** Locks content the current plan doesn't include. In production the API never sends locked
  *  data; this overlay is what users see in its place. */
 export function Gate({ tier, title, points, children }: { tier: Plan; title: string; points: string[]; children: ReactNode }) {
-  const { has, setPlan, toast } = useUI();
+  const { has, upgrade } = useUI();
   const locked = !has(tier);
   const t = TIER[tier];
   return (
@@ -18,7 +18,7 @@ export function Gate({ tier, title, points, children }: { tier: Plan; title: str
           <span className={"tier " + tier}><Icon name={t.ic} />{t.n} plan</span>
           <h4>{title}</h4>
           <ul>{points.map((p) => <li key={p}><Icon name="check" /><span>{p}</span></li>)}</ul>
-          <button className="btn" onClick={() => { setPlan(tier); toast(`Previewing the ${t.n} plan.`); }}>
+          <button className="btn" onClick={() => upgrade(tier, `${title} is part of ${t.n}.`)}>
             Unlock with {t.n} <Icon name="arrow" />
           </button>
           <span className="sub">Pricing at launch · <Link to="/plans">Compare plans</Link></span>
