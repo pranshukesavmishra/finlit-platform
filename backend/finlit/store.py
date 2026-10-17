@@ -135,6 +135,36 @@ class Store:
 
     async def _upsert_score(self, conn, row: dict):
         await conn.execute(SCORE_UPSERT, *[row.get(c) for c in SCORE_COLUMNS])
+        if row.get("overall") is not None:
+            await conn.execute(
+                "INSERT INTO score_history (symbol, statement, model, day, overall, pillar_quality, pillar_growth, pillar_profitability, "
+                "pillar_balance, pillar_technical) VALUES ($1, $2, $3, CURRENT_DATE, $4, $5, $6, $7, $8, $9) "
+                "ON CONFLICT (symbol, statement, model, day) DO UPDATE SET overall = EXCLUDED.overall, pillar_quality = EXCLUDED.pillar_quality, "
+                "pillar_growth = EXCLUDED.pillar_growth, pillar_profitability = EXCLUDED.pillar_profitability, "
+                "pillar_balance = EXCLUDED.pillar_balance, pillar_technical = EXCLUDED.pillar_technical",
+                row["symbol"], row["statement"], row.get("model") or "v1", row["overall"], row.get("pillar_quality"), row.get("pillar_growth"),
+                row.get("pillar_profitability"), row.get("pillar_balance"), row.get("pillar_technical"))
+
+    async def score_history(self, symbol: str, statement: str = "consolidated", model: str = "v1", limit: int = 400) -> List[dict]:
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT day, overall, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical FROM score_history "
+                "WHERE symbol = $1 AND statement = $2 AND model = $3 ORDER BY day DESC LIMIT $4", symbol.upper(), statement, model, limit)
+        return [{**dict(r), "day": r["day"].isoformat()} for r in reversed(rows)]
+
+    async def health(self) -> dict:
+        """Counts for the admin data-health panel: how much of the universe is loaded and what recently failed."""
+        async with self.pool.acquire() as conn:
+            universe = await conn.fetchval("SELECT count(*) FROM companies")
+            loaded = await conn.fetchval("SELECT count(DISTINCT symbol) FROM snapshots WHERE section = 'summary'")
+            scored = await conn.fetchval("SELECT count(*) FROM scores WHERE overall IS NOT NULL")
+            queued = await conn.fetchval("SELECT count(*) FROM ingest_queue")
+            last = await conn.fetchval("SELECT max(generated_at) FROM snapshots WHERE section = 'summary'")
+            runs = await conn.fetch("SELECT status, count(*) AS n FROM ingest_runs WHERE started_at > now() - interval '24 hours' GROUP BY status")
+            failed = await conn.fetch("SELECT symbol, status, started_at AS at, errors FROM ingest_runs WHERE status IN ('failed', 'rejected') ORDER BY id DESC LIMIT 15")
+        return {"universe": universe, "loaded": loaded, "scored": scored, "queued": queued, "lastLoad": last.isoformat() if last else None,
+                "runs24h": {r["status"]: r["n"] for r in runs},
+                "recentProblems": [{"symbol": r["symbol"], "status": r["status"], "at": r["at"].isoformat(), "detail": str(r["errors"])[:200]} for r in failed]}
 
     async def _upsert_prices(self, conn, symbol: str, daily: dict):
         rows = [(symbol, date.fromisoformat(t), daily["o"][i], daily["h"][i], daily["l"][i], daily["c"][i], daily["v"][i])

@@ -180,6 +180,18 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def summary(request: Request, symbol: str, statement: str = Query("consolidated")):
         return await section(request, symbol, "summary", statement)
 
+    @app.get("/api/stocks/{symbol}/score-history")
+    async def score_history(request: Request, symbol: str, statement: str = Query("consolidated")):
+        """How the FinLit score has moved (one point per day it was computed). Bronze and above, like the score itself."""
+        symbol = symbol.strip().upper()
+        if not SYMBOL.match(symbol) or statement not in ("consolidated", "standalone"):
+            return JSONResponse({"status": "invalid"}, status_code=400)
+        if symbol not in settings.showcase_symbols and not has((await current(request)).plan, "bronze"):
+            return JSONResponse({"status": "plan_required", "plan": "bronze", "detail": "Score history is part of the Bronze plan."},
+                                status_code=403, headers={"Cache-Control": "no-store"})
+        points = await app.state.store.score_history(symbol, statement)
+        return JSONResponse({"symbol": symbol, "points": points}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
+
     @app.get("/api/stocks/{symbol}/{name}")
     async def section(request: Request, symbol: str, name: str, statement: str = Query("consolidated")):
         started = time.perf_counter()

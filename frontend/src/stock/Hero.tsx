@@ -8,7 +8,7 @@ import { Dial } from "../charts/Dial";
 import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
-import type { Financials, Ratios, Summary } from "../lib/api";
+import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
@@ -18,6 +18,8 @@ const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
 
 export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fin?: Financials; jump: (id: string) => void }) {
   const { has, toast, plan, upgrade } = useUI();
+  const hist = useScoreHistory(s.profile.symbol, has("bronze") && s.score.overall != null);
+  const chg = scoreChange(hist.data?.points);
   const [open, setOpen] = useState<string | null>(null);
   const [dl, setDl] = useState(false);
   const wlState = useWatchlist(); void wlState;
@@ -92,6 +94,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
               <div className="dialcol">
                 <Dial overall={s.score.overall} pillars={s.score.pillars} onPillar={(k) => setOpen((o) => (o === k ? null : k))} active={open} bandLabel={s.score.band.label} />
                 <div className="dcap">Average of five pillars · select a ring segment</div>
+                {chg && <div className={"sdelta " + (chg.delta > 0 ? "up" : chg.delta < 0 ? "down" : "")} title={`Compared with ${dateIN(chg.since)}`}>{chg.delta > 0 ? "▲ +" : chg.delta < 0 ? "▼ −" : "● "}{Math.abs(chg.delta)} points <small>since {dateIN(chg.since, { day: "numeric", month: "short" })}</small></div>}
               </div>
               <div className="readcol">
                 <div><div className="label" style={{ marginBottom: 10 }}>The read</div><p className="thesis">{s.thesis || "Not enough data to summarise this company yet."}</p></div>

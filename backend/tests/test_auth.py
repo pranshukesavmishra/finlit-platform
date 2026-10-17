@@ -352,3 +352,42 @@ async def test_delete_account_removes_everything(app):
 async def test_oversized_bodies_rejected(anon):
     r = await anon.post("/api/auth/login", content=b"x" * 70_000, headers={**ORIGIN, "Content-Type": "application/json"})
     assert r.status_code == 413
+
+
+async def test_score_history_needs_bronze_for_other_companies_and_data_health_is_admin_only(app, anon):
+    app.state.settings.showcase_symbols[:] = ["SOMETHINGELSE"]
+    assert (await anon.get("/api/stocks/RELIANCE/score-history")).status_code == 403
+    bronze = await signed_in(app, "b@example.com", plan="bronze")
+    assert len((await bronze.get("/api/stocks/RELIANCE/score-history")).json()["points"]) == 1
+    assert (await bronze.get("/api/admin/data-health")).status_code == 403
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    import time
+    await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})
+    h = await admin.get("/api/admin/data-health")
+    assert h.status_code == 200 and h.json()["loaded"] == 1
+    for c in (bronze, admin):
+        await c.aclose()
+
+
+async def test_target_price_alert_fires_once_on_a_crossing(app):
+    from finlit.alerts import check_alerts
+    pool = app.state.store.pool
+    c = await signed_in(app, "b@example.com", plan="bronze")
+    wl = {"lists": [{"id": "main", "name": "x", "symbols": ["RELIANCE"]}], "meta": {"RELIANCE": {"target": 1200, "added": 1}}}
+    assert (await c.put("/api/me/watchlist", json=wl)).status_code == 200
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET price = 1100 WHERE symbol = 'RELIANCE'")
+    mailer = app.state.mailer
+    assert await check_alerts(pool, mailer, "http://test") == 0   # first look only records the side
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET price = 1250 WHERE symbol = 'RELIANCE'")
+    assert await check_alerts(pool, mailer, "http://test") == 1   # crossed upward
+    mail = await last_mail(app, "b@example.com")
+    assert "crossed your target" in mail["subject"] and "1,250.00" in mail["body"]
+    assert await check_alerts(pool, mailer, "http://test") == 0   # no repeat while it stays above
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET price = 1100 WHERE symbol = 'RELIANCE'")
+    assert await check_alerts(pool, mailer, "http://test") == 0   # crossed back, but only one email a day per stock
+    assert (await c.put("/api/me/prefs", json={"palette": "gold", "alerts": False})).status_code == 200
+    await c.aclose()

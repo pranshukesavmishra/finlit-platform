@@ -215,6 +215,7 @@ class PrefsIn(BaseModel):
     theme: Optional[Literal["light", "dark"]] = None
     palette: Literal["gold", "champagne", "bronze", "graphite", "midnight", "emerald"] = "gold"
     density: Literal["comfortable", "compact"] = "comfortable"
+    alerts: bool = True
     dashboard: List[Widget] = Field(default_factory=list, max_length=30)
 
 
@@ -725,6 +726,11 @@ async def admin_decline(request: Request, rid: int, ctx: Ctx = Depends(admin_ctx
         await conn.execute("UPDATE plan_requests SET status = 'declined', resolved_at = now() WHERE id = $1 AND status = 'open'", rid)
     await audit(request.app.state.store.pool, ctx.user_id, "plan_request_declined", str(rid), ip_of(request))
     return {"status": "declined"}
+
+
+@router.get("/admin/data-health")
+async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
+    return Response(content=json.dumps(await request.app.state.store.health()), media_type="application/json", headers=NO_STORE)
 
 
 @router.get("/admin/audit")

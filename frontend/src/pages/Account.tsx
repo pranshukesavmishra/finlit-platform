@@ -162,6 +162,9 @@ export function Appearance() {
         <div className="seg" role="group" aria-label="Density">
           {(["comfortable", "compact"] as const).map((d) => <button key={d} aria-pressed={p.density === d} onClick={() => prefs.set({ density: d })}>{d === "comfortable" ? "Comfortable" : "Compact"}</button>)}
         </div>
+        <h2 style={{ marginTop: 22 }}>Price alerts</h2>
+        <label className="sw"><input type="checkbox" checked={p.alerts} onChange={(e) => prefs.set({ alerts: e.target.checked })} /><span aria-hidden="true" /><b>Email me when a watchlist stock crosses its target price</b></label>
+        <p className="muted" style={{ marginTop: 6 }}>Set a target on any stock in your <Link to="/watchlist">watchlist</Link> (Bronze and Gold). You get one email when the price crosses it, at most once a day per stock.</p>
         <p className="muted" style={{ marginTop: 16 }}>Choose which widgets your dashboard shows, and in what order, from the <Link to="/dashboard?edit=1">dashboard</Link>.</p>
         <button className="btn" onClick={() => prefs.reset()}>Reset to the FinLit default</button>
       </section>

@@ -67,10 +67,10 @@ export function QuarterSection({ f }: { f?: Financials }) {
           <MiniBars labels={q.periods.slice(-8)} series={[{ key: t.k, label: t.k, values: t.v.slice(-8), color: t.c }]} fmt={t.bar} height={116} highlight={7 - (t.v.slice(-8).length < 8 ? 8 - t.v.slice(-8).length : 0)} />
         </div>))}</div>
       {(() => { const k = readQuarter(q); return (k.good.length || k.bad.length) ? (
-        <div className="kt">
-          <div className="card acc kt-c" style={{ "--ac": "var(--gain)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="check" /></span>Key takeaways</h3></div>
+        <div className="kq">
+          <div className="card acc kq-c" style={{ "--ac": "var(--gain)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="check" /></span>Key takeaways</h3></div>
             {k.good.length ? <ul>{k.good.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">Nothing stands out on the upside this quarter.</p>}</div>
-          <div className="card acc kt-c" style={{ "--ac": "var(--loss)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Key risks and red flags</h3></div>
+          <div className="card acc kq-c" style={{ "--ac": "var(--loss)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Key risks and red flags</h3></div>
             {k.bad.length ? <ul>{k.bad.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">No red flags in the reported numbers this quarter.</p>}</div>
         </div>) : null; })()}
       <div className="card acc qtab" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>

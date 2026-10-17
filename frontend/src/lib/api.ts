@@ -146,3 +146,18 @@ export const useSearchIndex = (enabled: boolean) =>
 export function prefetchStock(qc: import("@tanstack/react-query").QueryClient, symbol: string) {
   qc.prefetchQuery(sectionQuery<Summary>(symbol, ""));
 }
+
+export type ScorePoint = { day: string; overall: number | null; pillar_quality: number | null; pillar_growth: number | null; pillar_profitability: number | null; pillar_balance: number | null; pillar_technical: number | null };
+/** Score over time. Quietly absent when the plan or the deployment does not offer it. */
+export const useScoreHistory = (symbol: string, enabled = true) =>
+  useQuery<{ points: ScorePoint[] }, ApiError>({ queryKey: ["stock", symbol, "/score-history"], queryFn: () => apiGet(`/api/stocks/${encodeURIComponent(symbol)}/score-history`), enabled, retry: false, staleTime: 300_000 });
+
+/** Change against the reading about a quarter ago (or the oldest one at least a week old); null until there is history. */
+export function scoreChange(points: ScorePoint[] | undefined): { delta: number; since: string } | null {
+  if (!points || points.length < 2) return null;
+  const last = points[points.length - 1];
+  if (last.overall == null) return null;
+  const day = (d: string) => new Date(d + "T00:00:00").getTime(), DAY = 86_400_000;
+  const old = [...points].reverse().find((p) => p.overall != null && day(last.day) - day(p.day) >= 80 * DAY) ?? points.find((p) => p.overall != null && day(last.day) - day(p.day) >= 7 * DAY);
+  return old && old.overall != null ? { delta: last.overall - old.overall, since: old.day } : null;
+}

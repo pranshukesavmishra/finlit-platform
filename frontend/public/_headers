@@ -16,3 +16,7 @@
 
 https://:project.pages.dev/*
   X-Robots-Tag: noindex
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: public, max-age=86400

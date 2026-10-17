@@ -43,7 +43,7 @@ async def store():
         await conn.execute("DROP TABLE IF EXISTS price_daily CASCADE")
         await conn.execute("DROP TABLE IF EXISTS snapshots, scores, companies, ingest_runs, "
                            "ingest_queue, schema_migrations, users, sessions, email_tokens, audit_events, user_state, "
-                           "plan_requests, outbox CASCADE")
+                           "plan_requests, outbox, score_history, alert_state CASCADE")
     await s.redis.flushdb()
     await s.migrate()
     yield s
@@ -239,3 +239,13 @@ async def test_probe_reports_every_endpoint(store):
     async with FinEdgeClient(make_settings()) as client:
         results = await worker.probe(client, "RELIANCE")
     assert len(results) >= 20 and all(state in ("ok", "empty") for _, state, _ in results)
+
+
+async def test_score_history_and_health(api, ingested):
+    h = await api.get("/api/stocks/RELIANCE/score-history")  # showcase symbol: open
+    pts = h.json()["points"]
+    assert h.status_code == 200 and len(pts) == 1 and pts[0]["overall"] is not None
+    await worker.ingest_one(FinEdgeClient(make_settings()), ingested, "RELIANCE")  # same day: still one point
+    assert len((await api.get("/api/stocks/RELIANCE/score-history")).json()["points"]) == 1
+    health = await ingested.health()
+    assert health["universe"] > 5000 and health["loaded"] == 1 and health["scored"] >= 1 and "runs24h" in health

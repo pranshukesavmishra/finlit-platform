@@ -132,6 +132,9 @@ await ap.getByLabel("Code", { exact: true }).fill(totp(secret)); await ap.getByR
 await ap.getByText("On", { exact: true }).waitFor();
 await ap.goto(base + "/console", { waitUntil: "networkidle" });
 check("admin: console opens after two-step", (await ap.getByText("Open requests").count()) === 1);
+await ap.getByRole("tab", { name: "Data health" }).click();
+check("admin: data-health panel shows universe and loaded counts", await ap.getByText("companies in the universe").waitFor({ timeout: 8000 }).then(() => true, () => false));
+await ap.getByRole("tab", { name: "Plan requests" }).click();
 const row = ap.locator("tr", { hasText: email });
 check("admin: sees the member's plan request", (await row.count()) === 1);
 await row.getByRole("button", { name: "Grant 1 year" }).click();

@@ -56,3 +56,9 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Data: only RELIANCE is ingested locally; the full universe needs the FinEdge key and `python -m finlit.worker ingest ...` (polite concurrency).
 - "vs market expectations" in the results dashboard needs consensus-estimate data; "score change vs previous quarter" needs a score-history table.
 - Payments (Razorpay), Google sign-in/passkeys, legal review of the Terms/Privacy text, and connecting the domain are still to do.
+
+## Added since: score history, data health, alerts, installable app
+- **Score history:** every ingest writes one `score_history` row per day; the report shows "▲ +3 points since …" once there is a reading about a quarter old (`/api/stocks/{symbol}/score-history`, Bronze+).
+- **Data health** (admin console): companies in the universe / loaded / scored / queued, last load, last-24-hour results and recent failures.
+- **Target-price alerts:** `python -m finlit.worker check-alerts` (cron every 10 min in market hours). One email when a watchlist stock *crosses* the target the member set, at most once a day per stock; members can switch it off in Account → Appearance.
+- **Installable app:** web manifest, icons, and a small service worker (offline shell; never caches `/api`). Also `robots.txt` and `sitemap.xml`.

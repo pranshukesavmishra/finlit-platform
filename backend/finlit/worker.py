@@ -182,6 +182,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_all.add_argument("--parallel", type=int, default=3)
     p_probe = sub.add_parser("probe", help="check the FinEdge key and every endpoint for one symbol")
     p_probe.add_argument("symbol", nargs="?", default="RELIANCE")
+    sub.add_parser("check-alerts", help="email members whose watchlist stocks crossed their target price")
     sub.add_parser("refresh-quotes")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
@@ -192,6 +193,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     try:
         if args.cmd == "migrate":
             print("migrated; timescale =", store.timescale)
+            return 0
+        if args.cmd == "check-alerts":
+            from .alerts import check_alerts
+            from .auth.mailer import ConsoleMailer, ResendMailer
+            mailer = ResendMailer(settings.resend_api_key, settings.mail_from) if settings.mail_mode == "resend" and settings.resend_api_key else ConsoleMailer(store.pool)
+            print(await check_alerts(store.pool, mailer, settings.public_site_url), "alerts sent")
             return 0
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":

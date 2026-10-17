@@ -38,3 +38,5 @@ export const adminPatch = (id: string, b: { plan?: Plan3; plan_days?: number; ro
 export const adminRequests = () => apiGet<{ requests: PlanRequest[] }>("/api/admin/plan-requests");
 export const adminDecline = (id: number) => apiSend("POST", `/api/admin/plan-requests/${id}/decline`);
 export const adminAudit = () => apiGet<{ events: AuditRow[] }>("/api/admin/audit");
+export type DataHealth = { universe: number; loaded: number; scored: number; queued: number; lastLoad: string | null; runs24h: Record<string, number>; recentProblems: { symbol: string; status: string; at: string; detail: string }[] };
+export const adminHealth = () => apiGet<DataHealth>("/api/admin/data-health");

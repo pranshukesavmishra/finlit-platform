@@ -16,7 +16,7 @@ const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.sta
 export function Console() {
   useDocTitle("Admin console", "FinLit administrators: manage members, plans and the audit log.");
   const { user, ready, isAdmin } = useAuth();
-  const [tab, setTab] = useState<"users" | "requests" | "audit">("requests");
+  const [tab, setTab] = useState<"users" | "requests" | "data" | "audit">("requests");
   if (!ready) return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "40px auto" }} /></div>;
   if (!user) return <Navigate to="/login?next=%2Fconsole" replace />;
   if (!isAdmin) return <div className="wrap state"><h1 style={{ font: "400 28px var(--serif)" }}>Administrators only</h1><p className="muted">This area is for the FinLit team.</p><Link className="btn" to="/dashboard">Back to your dashboard</Link></div>;
@@ -25,10 +25,11 @@ export function Console() {
     <div className="wrap console">
       <header className="dash-h"><div><div className="eyebrow">Admin</div><h1>Console</h1><p className="muted">Members, plan requests and the audit trail. Content and enquiries are in the <Link to="/admin">CMS</Link>.</p></div></header>
       <div className="seg" role="tablist" aria-label="Console sections" style={{ marginBottom: 18 }}>
-        {([["requests", "Plan requests"], ["users", "Members"], ["audit", "Audit log"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
+        {([["requests", "Plan requests"], ["users", "Members"], ["data", "Data health"], ["audit", "Audit log"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
+      {tab === "data" && <Health />}
       {tab === "audit" && <Audit />}
     </div>
   );
@@ -86,5 +87,24 @@ function Audit() {
     <section className="card acct-c"><h2>Recent security events</h2>
       <div className="tw"><table className="qtt"><thead><tr><th>When</th><th>Event</th><th>Target</th><th>IP</th></tr></thead>
         <tbody>{q.data?.events.map((e, i) => <tr key={i}><td>{stamp(e.at)}</td><td>{e.action.replace(/_/g, " ")}</td><td className="mono">{e.target || "—"}</td><td className="mono">{e.ip || "—"}</td></tr>)}</tbody></table></div></section>
+  );
+}
+
+function Health() {
+  const q = useQuery({ queryKey: ["admin-health"], queryFn: acct.adminHealth, retry: false, refetchInterval: 15_000 });
+  if (q.isError) return <div className="formerr">{msg(q.error)}</div>;
+  const h = q.data;
+  if (!h) return <div className="skeleton" style={{ height: 160 }} />;
+  const pct = h.universe ? Math.round((h.loaded / h.universe) * 100) : 0;
+  return (
+    <section className="card acct-c">
+      <h2>Company data</h2>
+      <p className="muted">How much of the market is loaded from FinEdge. Companies load in the background; any company a visitor opens is queued first.</p>
+      <div className="hl"><div><b>{h.universe.toLocaleString("en-IN")}</b><span>companies in the universe</span></div><div><b>{h.loaded.toLocaleString("en-IN")}</b><span>loaded ({pct}%)</span></div><div><b>{h.scored.toLocaleString("en-IN")}</b><span>with a FinLit score</span></div><div><b>{h.queued}</b><span>waiting in the queue</span></div></div>
+      <div className="prog" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of companies loaded"><i style={{ width: `${pct}%` }} /></div>
+      <p className="muted">Last load: {h.lastLoad ? stamp(h.lastLoad) : "never"} · last 24 hours: {Object.entries(h.runs24h).map(([k, v]) => `${v} ${k}`).join(", ") || "no runs"}.</p>
+      {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
+      {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
+    </section>
   );
 }

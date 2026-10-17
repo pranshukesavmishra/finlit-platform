@@ -9,3 +9,5 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 30 1 * * *       root $W ingest-all --hours 20 >> /var/log/finlit-ingest.log 2>&1
 # Stock universe for search: weekly.
 15 2 * * 0       root $W refresh-universe >> /var/log/finlit-ingest.log 2>&1
+# Target-price alerts: every 10 minutes in market hours.
+*/10 9-15 * * 1-5 root $W check-alerts >> /var/log/finlit-alerts.log 2>&1
