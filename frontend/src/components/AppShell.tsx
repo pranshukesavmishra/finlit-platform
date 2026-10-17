@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { TIER, useUI } from "../lib/ui";
 import { useSavedScreens } from "../lib/screens";
 import { useWatchlist } from "../lib/watchlist";
+import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
 
 type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean };
@@ -17,6 +18,7 @@ export function AppShell() {
   const { plan } = useUI();
   const wl = useWatchlist();
   const saved = useSavedScreens();
+  const held = usePortfolio().holdings.length;
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("finlit-side") === "1"; } catch { return false; } });
   const [open, setOpen] = useState(false); // mobile drawer
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -31,7 +33,10 @@ export function AppShell() {
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
       { to: "/compare", label: "Compare companies", icon: "compare" },
     ] },
-    { title: "My lists", items: [{ to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined }] },
+    { title: "My lists", items: [
+      { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
+      { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },
+    ] },
     { title: "Market", items: [
       { to: "/results", label: "Results calendar", icon: "calendar" },
       { to: "/ipo", label: "IPO calendar", icon: "activity" },

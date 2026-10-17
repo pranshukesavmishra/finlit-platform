@@ -168,6 +168,10 @@ export function Appearance() {
         <h2 style={{ marginTop: 22 }}>Price alerts</h2>
         <label className="sw"><input type="checkbox" checked={p.alerts} onChange={(e) => prefs.set({ alerts: e.target.checked })} /><span aria-hidden="true" /><b>Email me when a watchlist stock crosses its target price</b></label>
         <p className="muted" style={{ marginTop: 6 }}>Set a target on any stock in your <Link to="/watchlist">watchlist</Link> (Silver and Gold). You get one email when the price crosses it, at most once a day per stock.</p>
+        <label className="sw" style={{ marginTop: 14 }}><input type="checkbox" checked={p.screenAlerts} onChange={(e) => prefs.set({ screenAlerts: e.target.checked })} /><span aria-hidden="true" /><b>Email me when a company newly matches one of my saved screens</b></label>
+        <h2 style={{ marginTop: 22 }}>Weekly email</h2>
+        <label className="sw"><input type="checkbox" checked={p.digest} onChange={(e) => prefs.set({ digest: e.target.checked })} /><span aria-hidden="true" /><b>Send me “your week ahead” every Sunday</b></label>
+        <p className="muted" style={{ marginTop: 6 }}>Result dates for your stocks, IPOs that are open, your biggest movers and score changes. Off until you switch it on; one email a week at most.</p>
         <p className="muted" style={{ marginTop: 16 }}>Choose which widgets your dashboard shows, and in what order, from the <Link to="/dashboard?edit=1">dashboard</Link>.</p>
         <button className="btn" onClick={() => prefs.reset()}>Reset to the FinLit default</button>
       </section>
@@ -183,7 +187,7 @@ function PlanTab() {
   const req = useMutation({ mutationFn: (p: "silver" | "gold") => acct.requestPlan(p, note.trim() || undefined), onSuccess: () => refresh() });
   const rows: [Plan, string[]][] = [
     ["basic", ["Screener, comparison of 2 companies, glossary, latest quarter, financials, ratios, peers, charts"]],
-    ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "IPO data and portfolio import (Soon)"]],
+    ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "Portfolio tracker (30 holdings) with import", "Saved-screen alerts and the weekly email"]],
     ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks", "Advanced model score (Soon) and equity research reports (Later)"]],
   ];
   return (

@@ -39,8 +39,8 @@ export function Portfolio() {
   const [page, setPage] = useState(0);
   const [q, setQ] = useState("");
   const rows = useMemo(() => (data?.tradeLedger || []).filter((t) => !q || t.security.toLowerCase().includes(q.toLowerCase()) || t.symbol?.toLowerCase().includes(q.toLowerCase())), [data, q]);
-  if (isLoading) return <div className="wrap state"><div className="skeleton" style={{ height: 200 }} /></div>;
-  if (isError || !data) return <div className="wrap state"><h2>The portfolio report is not available yet</h2><p>Please check back soon.</p></div>;
+  if (isLoading) return <div className="wrap state"><h1 className="sr-only">Portfolio</h1><div className="skeleton" style={{ height: 200 }} /></div>;
+  if (isError || !data) return <div className="wrap state"><h1 style={{ font: "300 32px var(--serif)" }}>The portfolio report is not available yet</h1><p>Please check back soon.</p></div>;
   const c = data.charts, per = 15, pages = Math.ceil(rows.length / per);
   return (
     <>

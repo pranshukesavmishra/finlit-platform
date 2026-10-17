@@ -23,9 +23,10 @@ export const mfaDisable = (code: string) => apiSend("POST", "/api/me/mfa/disable
 export const deleteAccount = (password: string) => apiSend("DELETE", "/api/me", { password });
 export const requestPlan = (plan: "silver" | "gold", note?: string) => apiSend("POST", "/api/me/plan-request", { plan, note });
 
-export type SavedState = { watchlist: { lists?: { id: string; name: string; symbols: string[] }[]; meta?: Record<string, { note?: string; target?: number; added: number }> }; screens: { name: string; state: unknown }[]; prefs: Partial<Prefs> };
+export type SavedState = { portfolio?: { holdings?: { id: string; symbol: string; qty: number; price: number; date?: string; note?: string }[] }; watchlist: { lists?: { id: string; name: string; symbols: string[] }[]; meta?: Record<string, { note?: string; target?: number; added: number }> }; screens: { name: string; state: unknown }[]; prefs: Partial<Prefs> };
 export const loadState = () => apiGet<SavedState>("/api/me/state");
 export const saveWatchlist = (b: unknown) => apiSend("PUT", "/api/me/watchlist", b);
+export const savePortfolio = (holdings: unknown) => apiSend("PUT", "/api/me/portfolio", { holdings });
 export const saveScreens = (screens: unknown) => apiSend("PUT", "/api/me/screens", { screens });
 export const savePrefs = (p: Prefs) => apiSend("PUT", "/api/me/prefs", p);
 

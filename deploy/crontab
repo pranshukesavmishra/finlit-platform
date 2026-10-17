@@ -11,3 +11,7 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 15 2 * * 0       root $W refresh-universe >> /var/log/finlit-ingest.log 2>&1
 # Target-price alerts: every 10 minutes in market hours.
 */10 9-15 * * 1-5 root $W check-alerts >> /var/log/finlit-alerts.log 2>&1
+# New matches for members' saved screens: once a day after the nightly load.
+30 7 * * 1-5     root $W check-screens >> /var/log/finlit-alerts.log 2>&1
+# Weekly week-ahead email: Sunday evening.
+30 18 * * 0      root $W send-digest >> /var/log/finlit-alerts.log 2>&1

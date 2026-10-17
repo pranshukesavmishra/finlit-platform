@@ -43,7 +43,7 @@ async def store():
         await conn.execute("DROP TABLE IF EXISTS price_daily CASCADE")
         await conn.execute("DROP TABLE IF EXISTS snapshots, scores, companies, ingest_runs, "
                            "ingest_queue, schema_migrations, users, sessions, email_tokens, audit_events, user_state, "
-                           "plan_requests, outbox, score_history, alert_state, ipos, feed_items CASCADE")
+                           "plan_requests, outbox, score_history, alert_state, ipos, feed_items, screen_state, digest_log CASCADE")
     await s.redis.flushdb()
     await s.migrate()
     yield s

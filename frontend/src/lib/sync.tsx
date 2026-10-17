@@ -5,7 +5,8 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "./auth";
 import { DEMO } from "./demo";
-import { loadState, savePrefs, saveScreens, saveWatchlist } from "./account";
+import { loadState, savePortfolio, savePrefs, saveScreens, saveWatchlist } from "./account";
+import { portfolio } from "./portfolio";
 import { prefs } from "./prefs";
 import { screens } from "./screens";
 import { watch } from "./watchlist";
@@ -22,8 +23,8 @@ export function StateSync() {
   useEffect(() => {
     if (DEMO) return;
     if (!uid) {
-      prefs.onSave(null); watch.onSave(null); screens.onSave(null);
-      if (last.current) { watch.reset(); screens.replace([]); } // signed out: personal lists leave this device
+      prefs.onSave(null); watch.onSave(null); screens.onSave(null); portfolio.onSave(null);
+      if (last.current) { watch.reset(); screens.replace([]); portfolio.reset(); } // signed out: personal lists leave this device
       last.current = null;
       return;
     }
@@ -39,7 +40,10 @@ export function StateSync() {
       const wl = saved.watchlist;
       if (wl?.lists?.length) watch.replace({ lists: wl.lists, meta: wl.meta || {} });
       else if (silver && watch.total() > 0) saveWatchlist({ lists: watch.get().lists, meta: watch.get().meta }).catch(quiet);
+      const pf = saved.portfolio?.holdings;
+      if (pf?.length) portfolio.replace({ holdings: pf }); else if (silver && portfolio.get().holdings.length) savePortfolio(portfolio.get().holdings).catch(quiet);
       last.current = uid;
+      portfolio.onSave(debounce((s) => { if (silver) savePortfolio(s.holdings).catch(quiet); }));
       prefs.onSave(debounce((p) => savePrefs(p).catch(quiet)));
       screens.onSave(debounce((s) => saveScreens(s).catch(quiet)));
       watch.onSave(debounce((s) => { if (silver) saveWatchlist({ lists: s.lists, meta: s.meta }).catch(quiet); }));

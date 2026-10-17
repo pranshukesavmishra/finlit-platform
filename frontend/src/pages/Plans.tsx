@@ -9,7 +9,7 @@ const PLANS: { k: Plan; tag: string; desc: string; price: string; per: string; c
   { k: "basic", tag: "Free", desc: "Start your investing journey with essential data and powerful screeners.", price: "Free", per: "forever", cta: "Get started", inc: "Key features",
     f: [["Stock screener with filters", "Size, returns, valuation, profitability, growth, debt and sector"], ["Company comparison", "Two companies side by side with charts, spider view and valuation"], ["Glossary of finance terms", "95 terms in plain words, with formulas"], ["Latest quarter results & trends", "Newest quarter against last quarter and last year, with trend charts"], ["Company overview & key information", "Business summary, products, market data"], ["Financial statements (historical)", "P&L, balance sheet and cash flow, 5–10 years"], ["Key financial ratios and their history", "Margins and returns over the years, plus valuation, efficiency and leverage"], ["Shareholding pattern", "Promoters, institutions and public, quarter by quarter"], ["Peer comparison", "Compare with industry peers"], ["Basic charts & technical data", "Price chart, volume, moving averages"]] },
   { k: "silver", tag: "Popular to get started", desc: "Structured insights with a stock score from FinLit's proprietary model.", price: "Soon", per: "pricing at launch", cta: "Upgrade to Silver", inc: "Everything in Basic, plus",
-    f: [["Basic stock scoring model", "Overall score on key parameters"], ["Scorecard on each stock page", "Clear, easy-to-read visual scorecard"], ["Detailed parameter view", "How each parameter contributes to the score"], ["Watchlist with lists, notes and targets", "Up to 3 lists and 30 stocks, bucketed by industry and size"], ["Model-based comparison", "Quality & risk, growth and technical views, and build-your-own"], ["Export data", "Download financial data, scorecards and PDF notes"], ["IPO data (Soon)", "Upcoming and recent IPOs with the key numbers"], ["Portfolio import (Soon)", "Bring in your holdings from a broker file"]] },
+    f: [["Basic stock scoring model", "Overall score on key parameters"], ["Scorecard on each stock page", "Clear, easy-to-read visual scorecard"], ["Detailed parameter view", "How each parameter contributes to the score"], ["Watchlist with lists, notes and targets", "Up to 3 lists and 30 stocks, bucketed by industry and size"], ["Model-based comparison", "Quality & risk, growth and technical views, and build-your-own"], ["Export data", "Download financial data, scorecards and PDF notes"], ["Results, IPO and news calendars", "Result dates, open and upcoming IPOs, and company filings (free for everyone)"], ["Portfolio tracker with import", "Holdings, profit and loss, allocation and a health read; paste or upload a broker file"]] },
   { k: "gold", tag: "Most popular", desc: "Deep insights with advanced scoring, in-depth analysis, technical intelligence and stock bucketing.", price: "Soon", per: "pricing at launch", cta: "Upgrade to Gold", inc: "Everything in Silver, plus", feat: true,
     f: [["Advanced stock scoring model (Soon)", "In-depth analysis with more parameters and weightage"], ["Detailed ratio analysis", "Every ratio with its multi-year history"], ["Technical analysis", "Multiple indicators, trend, momentum"], ["Model-based screener filters", "Filter by FinLit score, band and each of the five pillars"], ["Compare up to 4 companies", "Pillar spider chart and full side-by-side view"], ["Smart watchlist", "Unlimited lists, bucket by FinLit band and style, and see what needs a second look"], ["Stock bucketing & triggers", "Size, style, income and momentum scales with key triggers"], ["Revenue insights & segmentation", "By reported segment, with growth"], ["Advanced charts & peer insights", "Sector benchmarking, valuation comparison, key triggers"], ["Equity research report (Later)", "A written, in-depth report on a company"], ["Priority access to new features", "Early access to new tools and models"]] },
 ];
@@ -31,7 +31,8 @@ const CMP: [string, string | null, number?][] = [
   ["Tools", null], ["Watchlist with lists, notes and targets", "3 lists and 30 stocks", 1], ["Smart watchlist: unlimited lists and signals", "Bucket by band and style, second-look flags", 2], ["Export: PDF note, offline copy, CSV", "", 1], ["Priority access to new features", "", 2],
 ];
 
-export function PlansBand({ id }: { id?: string }) {
+export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
+  const H = h1 ? "h1" : "h2";
   const { plan, upgrade } = useUI();
   const { user } = useAuth();
   const cta = (k: Plan, label: string) => DEMO ? (plan === k ? "Previewing " + TIER[k].n : label) : plan === k && (user || k === "basic") ? (user ? "Your plan" : "Included for everyone") : k === "basic" ? "Create a free account" : user ? `Request ${TIER[k].n}` : label;
@@ -41,7 +42,7 @@ export function PlansBand({ id }: { id?: string }) {
       <div className="wrap">
         <div className="plans-h">
           <div className="eyebrow" style={{ marginBottom: 12 }}>FinLit plans</div>
-          <h2 id="plansTitle">Invest smarter with <em>the right plan</em></h2>
+          <H id="plansTitle">Invest smarter with <em>the right plan</em></H>
           <p>From essential stock data to advanced intelligence, powered by FinLit's proprietary scoring model.</p>
         </div>
         <div className="trust">{[["bars", "Data-driven insights"], ["spark", "Proprietary scoring model"], ["quality", "Reliable & transparent"], ["users", "Built for every investor"]].map(([i, t]) => <span key={t}><Icon name={i} />{t}</span>)}</div>
@@ -78,5 +79,5 @@ export function PlansBand({ id }: { id?: string }) {
 
 export function PlansPage() {
   useDocTitle("Plans", "FinLit plans: Basic (free), Silver and Gold, from essential stock data to advanced scoring and technical intelligence.");
-  return <PlansBand />;
+  return <PlansBand h1 />;
 }
