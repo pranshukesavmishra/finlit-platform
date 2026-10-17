@@ -182,7 +182,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_all.add_argument("--parallel", type=int, default=3)
     p_probe = sub.add_parser("probe", help="check the FinEdge key and every endpoint for one symbol")
     p_probe.add_argument("symbol", nargs="?", default="RELIANCE")
-    sub.add_parser("check-alerts", help="email members whose watchlist stocks crossed their target price")
+    p_alerts = sub.add_parser("check-alerts", help="evaluate members' alerts and watchlist targets; notify in the app and by email")
+    p_alerts.add_argument("--kind", choices=["live", "daily", "all"], default="all", help="live: price metrics (market hours); daily: the rest (evenings)")
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
@@ -210,7 +211,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .alerts import check_alerts
             from .auth.mailer import ConsoleMailer, ResendMailer
             mailer = ResendMailer(settings.resend_api_key, settings.mail_from) if settings.mail_mode == "resend" and settings.resend_api_key else ConsoleMailer(store.pool)
-            print(await check_alerts(store.pool, mailer, settings.public_site_url), "alerts sent")
+            from .alertengine import evaluate
+            sent = await evaluate(store.pool, mailer, settings.public_site_url, args.kind)
+            if args.kind != "daily":
+                sent += await check_alerts(store.pool, mailer, settings.public_site_url)
+            print(sent, "alerts sent")
             return 0
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":

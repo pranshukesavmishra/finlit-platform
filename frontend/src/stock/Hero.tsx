@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { MINUS, capSize, dateIN, fmtUnit, initials, nf, num, signed } from "../lib/format";
@@ -66,6 +67,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div>
             <svg className="spark-hero" aria-label="One-year price trend" role="img" viewBox="0 0 150 54"><HeroSpark values={s.sparkline.c} /></svg>
             <div className="actions">
+              <AlertButton symbol={s.profile.symbol} className="btn" label="Set alert" />
               <button className={"btn " + (watch ? "on" : "primary")} aria-pressed={watch} onClick={toggleWatch}><Icon name="spark" /><span>{watch ? "Watching" : "Watchlist"}</span>{!has("silver") && <Icon name="lock" className="lk" />}</button>
               <div className="dl" style={{ position: "relative" }}>
                 <button className="btn" aria-haspopup="menu" aria-expanded={dl} onClick={() => { if (!dl && !need("silver", "Downloads and data export")) return; setDl((d) => !d); }}>

@@ -37,7 +37,8 @@ while true; do
   read -r M H D <<< "$now"; H=$((10#$H)); M=$((10#$M)); D=$((10#$D))   # D: 1=Mon .. 7=Sun
   weekday=$(( D >= 1 && D <= 5 )); market=$(( weekday && H >= 9 && H <= 15 ))
   (( market )) && run light quotes refresh-quotes
-  (( market && M % 10 == 0 )) && run light alerts check-alerts
+  (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
+  (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens

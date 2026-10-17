@@ -86,7 +86,7 @@ Free services sleep after 15 minutes idle (about a minute to wake) and sleeping 
 For heavier traffic or no sleeping, upgrade the two services to Render's paid instance (about $7 each) or use the VPS route in `deploy/README.md`; nothing in the code changes.
 
 ## What runs in the background (main service, Indian time)
-Same as `deploy/crontab`, run by `deploy/scheduler.sh` inside the container: live quotes every minute 09:00–15:59 on weekdays, price-target alerts every 10 minutes then, nightly data refresh at 01:30, company list weekly (Sunday 02:15), saved-screen alert emails 07:30 on weekdays, weekly digest Sunday 18:30. Logs: `/tmp/job-*.log` and `/tmp/scheduler.log` in the container.
+Same as `deploy/crontab`, run by `deploy/scheduler.sh` inside the container: live quotes every minute 09:00–15:59 on weekdays, price and watchlist alerts every 10 minutes then, other alerts (RSI, scores, results, filings) 19:30 on weekdays, nightly data refresh at 01:30, company list weekly (Sunday 02:15), saved-screen alert emails 07:30 on weekdays, weekly digest Sunday 18:30. Logs: `/tmp/job-*.log` and `/tmp/scheduler.log` in the container.
 
 ## Known limits of free tiers
 - The free Postgres database expires after 30 days (Render deletes it). Before that, upgrade it or move to a paid database; export with `pg_dump` first.
