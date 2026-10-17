@@ -162,7 +162,7 @@ export function RatiosSection({ r }: { r?: Ratios }) {
 }
 
 /* ================= Peers ================= */
-const HUES = ["#86A5DC", "#EBC46A", "#C9DAF5", "#F7E4B0", "#9AA9C8", "#D9A93A", "#6F8FCB", "#B7C6E4"];
+const HUES = ["#C1B7A1", "#D4B26A", "#E5E2D9", "#E8D29B", "#BAB5A8", "#B8934A", "#AFA48B", "#D7D1C4"];
 const hue = (s: string) => HUES[[...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7) >>> 0 % HUES.length] || HUES[0];
 
 export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summary }) {

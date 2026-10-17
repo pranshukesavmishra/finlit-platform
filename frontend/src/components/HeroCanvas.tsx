@@ -11,7 +11,7 @@ export function HeroCanvas() {
     let w = 0, h = 0, raf = 0, visible = true, t0 = performance.now();
     const mouse = { x: -999, y: -999 };
     const css = (n: string, f: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
-    let gold = "#e7c56b", blue = "#86a5dc", violet = "#c9daf5";
+    let gold = "#e7c56b", blue = "#C1B7A1", violet = "#E5E2D9";
     const small = () => matchMedia("(max-width: 760px)").matches;
     type P = { x: number; y: number; vx: number; vy: number };
     let pts: P[] = [];

@@ -26,8 +26,8 @@
 .aurora { position: absolute; inset: -20% -10% auto -10%; height: 120%; z-index: -1; pointer-events: none;
   background:
     radial-gradient(40% 50% at 78% 18%, color-mix(in srgb, var(--gold) 26%, transparent), transparent 70%),
-    radial-gradient(34% 44% at 12% 8%, rgba(134,165,220,.22), transparent 70%),
-    radial-gradient(30% 40% at 55% 70%, rgba(134,165,220,.14), transparent 70%);
+    radial-gradient(34% 44% at 12% 8%, rgba(193,183,161,.22), transparent 70%),
+    radial-gradient(30% 40% at 55% 70%, rgba(193,183,161,.14), transparent 70%);
   filter: blur(8px); animation: drift 18s ease-in-out infinite alternate; }
 :root[data-theme="light"] .aurora { opacity: .7; }
 @keyframes drift { to { transform: translate3d(-3%, 4%, 0) scale(1.06); } }
@@ -144,7 +144,7 @@
 .done { text-align: center; padding: 20px 0; } .done-ic { width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; background: var(--gain-soft); color: var(--gain); } .done-ic svg { width: 30px; height: 30px; }
 
 /* assistant */
-.ai-fab { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 55; display: inline-flex; gap: 8px; align-items: center; height: 48px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer; font-weight: 600; color: var(--on-gold); background: linear-gradient(135deg, var(--gold-2), var(--gold) 45%, var(--gold-deep)); box-shadow: 0 16px 34px -12px rgba(235,196,106,.7); transition: transform .2s; }
+.ai-fab { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 55; display: inline-flex; gap: 8px; align-items: center; height: 48px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer; font-weight: 600; color: var(--on-gold); background: linear-gradient(135deg, var(--gold-2), var(--gold) 45%, var(--gold-deep)); box-shadow: 0 16px 34px -12px rgba(212,178,106,.7); transition: transform .2s; }
 .ai-fab:hover { transform: translateY(-2px); } .ai-fab.hide { display: none; } .ai-fab svg { width: 18px; height: 18px; }
 @media (max-width: 560px) { .ai-fab span { display: none; } .ai-fab { width: 52px; padding: 0; justify-content: center; } }
 .ai { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 58; width: min(390px, calc(100% - 24px)); height: min(600px, calc(100dvh - 90px)); display: flex; flex-direction: column; border-radius: 22px; overflow: hidden; background: var(--s1); border: 1px solid var(--border-strong); box-shadow: 0 40px 90px -20px rgba(0,0,0,.7); }

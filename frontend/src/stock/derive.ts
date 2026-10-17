@@ -69,12 +69,12 @@ export function offlineHtml(s: Summary, f: Financials | undefined, r: Ratios | u
   const spark = s.sparkline.c; const mn = Math.min(...spark), mx = Math.max(...spark);
   const pts = spark.map((c, i) => `${(i / (spark.length - 1)) * 600},${80 - ((c - mn) / (mx - mn || 1)) * 70}`).join(" ");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(s.profile.name)} · FinLit research</title>
-<style>body{font:15px/1.55 system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#0B1530}h1{font-weight:400}table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0 24px}th,td{padding:6px 8px;border-bottom:1px solid #E0E6F1;text-align:right}th:first-child,td:first-child{text-align:left}.n{font-size:56px;font-weight:300}.pill{display:inline-block;padding:3px 10px;border-radius:99px;background:#E9EEF8;margin-right:6px}small{color:#5F6B88}</style></head><body>
+<style>body{font:15px/1.55 system-ui,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#232018}h1{font-weight:400}table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0 24px}th,td{padding:6px 8px;border-bottom:1px solid #ECEAE5;text-align:right}th:first-child,td:first-child{text-align:left}.n{font-size:56px;font-weight:300}.pill{display:inline-block;padding:3px 10px;border-radius:99px;background:#F3F2EE;margin-right:6px}small{color:#7C776B}</style></head><body>
 <h1>${esc(s.profile.name)} <small>${esc(s.profile.nse)} · ${esc(s.meta.statement)}</small></h1>
 <p>Price ₹${esc(s.quote.price)} · generated ${esc(s.meta.generatedAt)}</p>
 <div class="n">${esc(s.score.overall ?? "—")}<small> / 100 · ${esc(s.score.band.label)}</small></div><p>${esc(s.thesis || "")}</p>
 <p>${s.score.pillars.map((p) => `<span class="pill">${esc(p.label)} ${esc(p.score ?? "—")}</span>`).join("")}</p>
-<svg viewBox="0 0 600 90" width="100%" height="90"><polyline fill="none" stroke="#9A6A0E" stroke-width="2" points="${pts}"/></svg>
+<svg viewBox="0 0 600 90" width="100%" height="90"><polyline fill="none" stroke="#8A6A25" stroke-width="2" points="${pts}"/></svg>
 <h2>Strengths</h2><ul>${s.strengths.map((n) => `<li><b>${esc(n.title)}</b>: ${esc(n.text)}</li>`).join("")}</ul>
 <h2>Watch-outs</h2><ul>${s.watchouts.map((n) => `<li><b>${esc(n.title)}</b>: ${esc(n.text)}</li>`).join("")}</ul>
 ${f ? t("Profit & loss", f.yearly.pl) + t("Balance sheet", f.yearly.bs) + t("Cash flow", f.yearly.cf) : ""}

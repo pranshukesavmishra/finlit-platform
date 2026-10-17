@@ -1,13 +1,13 @@
 # FinLit colour system
 
-One restrained palette, defined once as CSS variables in `frontend/src/styles/finlit.css`. Everything else (charts, cards, gradients) uses these tokens, so changing a colour there changes the whole site.
+Follows the brand direction in the FinLit Technical Improvement & Modernization Plan (Phase 4.4): **ivory, black and muted gold**, with clear contrast. One palette, defined once as CSS variables in `frontend/src/styles/finlit.css`; every chart, card and gradient uses these tokens. Ivory is the default theme; a warm-black dark theme is available from the toggle.
 
-| Role | Dark theme | Light theme | Used for |
+| Role | Ivory (default) | Warm black (dark) | Used for |
 |---|---|---|---|
-| Background | `#060C1A` navy | `#F1F4FB` | Page |
-| Brand gold | `#EBC46A` (deep `#C9952F`, pale `#F7E4B0`) | `#9A6A0E` | Logo accents, buttons, key numbers, score arc |
-| Steel blue | `#86A5DC` (ice `#C9DAF5`) | `#3B5FA0` | Secondary series, info, "Basic" tier |
-| Slate | `#9AA9C8` | `#6B7A99` | Muted series |
-| Gain / loss | `#34D399` / `#FB7185` | `#047857` / `#BE123C` | Only for up/down and good/bad meaning |
+| Page / surfaces | `#F6F1E7` / `#FFFDF8` | `#0F0E0B` / `#17150F` | Backgrounds |
+| Text | `#16140E` | `#F4EFE3` | Body and headings |
+| Muted gold | `#8A6A25` (light `#C9A24E`) | `#D4B26A` (deep `#A8843A`) | Brand accents, buttons, key numbers, score arc |
+| Charcoal / stone | `#2E2A20` / `#8A8472` | `#EDE6D3` / `#A39B88` | Secondary chart series, info |
+| Gain / loss | `#2F7A58` / `#A8392F` | `#5FB88E` / `#E0707A` | Only for up/down and good/bad meaning |
 
-Categorical data (five score pillars, ownership holders, revenue segments) uses the gold / steel family in different lightness, never extra hues. The bronze tier is the only warm accent beyond gold.
+Categorical data (five score pillars, ownership holders, revenue segments) uses gold, charcoal and stone in different lightness, never extra hues. No blue, violet, pink or cyan anywhere. The bronze plan tier is the only warm accent beyond gold.
