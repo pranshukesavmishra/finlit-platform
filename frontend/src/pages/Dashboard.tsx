@@ -28,12 +28,13 @@ function Empty({ icon, title, text, to, cta }: { icon: string; title: string; te
 /* ---------------- widgets ---------------- */
 function Snapshot({ rows }: { rows: Row[] }) {
   const m = useMemo(() => {
-    const live = rows.filter((r) => r.change_pct != null);
+    // suspended or delisted companies have no price and a -100% "change"; leave them out of breadth and movers
+    const live = rows.filter((r) => r.change_pct != null && (r.price ?? 0) > 0);
     const adv = live.filter((r) => (r.change_pct as number) > 0).length, dec = live.filter((r) => (r.change_pct as number) < 0).length;
     const by = new Map<string, number[]>();
     live.forEach((r) => by.set(r.sector || "Other", [...(by.get(r.sector || "Other") || []), r.change_pct as number]));
     const sectors = [...by.entries()].map(([s, v]) => ({ s, v: v.reduce((a, b) => a + b, 0) / v.length, n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
-    const sorted = [...live].sort((a, b) => (b.change_pct as number) - (a.change_pct as number));
+    const sorted = live.filter((r) => (r.market_cap ?? 0) >= 100).sort((a, b) => (b.change_pct as number) - (a.change_pct as number));
     return { n: live.length, adv, dec, sectors, up: sorted.slice(0, 4), down: sorted.slice(-4).reverse() };
   }, [rows]);
   if (!m.n) return <p className="muted">Market data is on its way.</p>;

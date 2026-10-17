@@ -240,12 +240,12 @@ class Store:
         return [(r["symbol"], r["statement"]) for r in rows]
 
     async def pending_symbols(self, statement: str = "consolidated", older_than_hours: int = 24, limit: Optional[int] = None) -> List[str]:
-        """Universe companies with no snapshot yet (first) or an old one (after), in the order the universe was stored."""
+        """Universe companies with no snapshot yet (first) or an old one (after). NSE tickers come before numeric BSE-only codes (many of those are suspended), then in the order the universe was stored."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT c.symbol FROM companies c LEFT JOIN snapshots s ON s.symbol = c.symbol AND s.statement = $1 AND s.section = 'summary' "
                 "WHERE s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
-                "ORDER BY (s.symbol IS NOT NULL), c.updated_at, c.symbol LIMIT $3", statement, older_than_hours, limit or 100000)
+                "ORDER BY (s.symbol IS NOT NULL), (c.symbol ~ '^[0-9]+$'), c.updated_at, c.symbol LIMIT $3", statement, older_than_hours, limit or 100000)
         return [r["symbol"] for r in rows]
 
     # ------------------------------------------------------------ reads (API)

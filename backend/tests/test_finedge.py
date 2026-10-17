@@ -74,3 +74,21 @@ async def test_token_sent_as_query_param():
 
 async def _no_sleep(_):
     return None
+
+
+def test_has_rows_understands_every_endpoint_shape():
+    from finlit.finedge import _has_rows
+    assert _has_rows({"symbol": "X", "financials": [{"a": 1}]})
+    assert _has_rows({"symbol": "X", "ratios": [{"a": 1}]})
+    assert _has_rows({"symbol": "X", "ratio_type": "growth", "financial_metrics": {"cagr": 1}})
+    assert _has_rows({"RELIANCE": {"price": 1}})
+    assert _has_rows([{"ex_date": "2026-01-01"}])
+    assert not _has_rows({"symbol": "X", "financials": []})
+    assert not _has_rows({"symbol": "X", "ratio_type": "growth"})
+    assert not _has_rows([]) and not _has_rows(None)
+
+
+def test_announcements_request_carries_the_required_date_range():
+    from finlit.finedge import bundle_requests
+    _, params, _ = bundle_requests("RELIANCE", "consolidated")["announcements"]
+    assert params["symbol"] == "RELIANCE" and params["from_date"] < params["to_date"]

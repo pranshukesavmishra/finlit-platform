@@ -63,7 +63,7 @@ def bundle_requests(symbol: str, statement: str) -> Dict[str, Tuple[str, Dict[st
         "shareholding": (f"/shareholdings/pattern/{s}", {"period": "quarterly"}, 10),
         "dividends": (f"/dividend/{s}", {}, 8),
         "corporate_actions": ("/corporate-actions/all", {"symbol": symbol.upper(), "from_date": f"{year - 6}-01-01", "to_date": f"{year + 1}-12-31"}, 10),
-        "announcements": ("/corp-announcements", {"symbol": symbol.upper()}, 8),
+        "announcements": ("/corp-announcements", {"symbol": symbol.upper(), "from_date": f"{year - 1}-01-01", "to_date": f"{year}-12-31"}, 8),
     }
 
 
@@ -73,8 +73,11 @@ STATEMENT_KEYS = {"pl_annual", "bs_annual", "cf_annual", "pl_quarterly", "segmen
 
 
 def _has_rows(payload: Any) -> bool:
-    rows = payload.get("financials") if isinstance(payload, dict) else payload
-    return bool(rows)
+    """True when the payload carries data: a non-empty list, or an object with at least one non-empty value
+    other than the echoed symbol / label fields (each endpoint wraps its rows under a different key)."""
+    if isinstance(payload, dict):
+        return any(bool(v) for k, v in payload.items() if k not in {"symbol", "stock_symbol", "company_name", "ratio_type", "status"})
+    return bool(payload)
 
 
 # ---------------------------------------------------------------- fixture transport
