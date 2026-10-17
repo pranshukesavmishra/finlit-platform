@@ -26,17 +26,22 @@ SEARCH_KEY = "search-index"
 
 SCORE_COLUMNS = ("symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
                  "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
-                 "dividend_yield", "sector")
+                 "dividend_yield", "sector", "name", "pb", "roce", "debt_to_equity", "sales_cagr", "profit_cagr",
+                 "operating_margin", "change_pct", "return_1m", "return_1y")
 SCORE_UPSERT = """
 INSERT INTO scores (symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability,
-                    pillar_balance, pillar_technical, price, market_cap, pe, roe, dividend_yield, sector, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, now())
+                    pillar_balance, pillar_technical, price, market_cap, pe, roe, dividend_yield, sector, name, pb, roce,
+                    debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, now())
 ON CONFLICT (symbol, statement, model) DO UPDATE SET
     overall = EXCLUDED.overall, band = EXCLUDED.band, pillar_quality = EXCLUDED.pillar_quality,
     pillar_growth = EXCLUDED.pillar_growth, pillar_profitability = EXCLUDED.pillar_profitability,
-    pillar_balance = EXCLUDED.pillar_balance, pillar_technical = EXCLUDED.pillar_technical, price = EXCLUDED.price,
-    market_cap = EXCLUDED.market_cap, pe = EXCLUDED.pe, roe = EXCLUDED.roe, dividend_yield = EXCLUDED.dividend_yield,
-    sector = EXCLUDED.sector, updated_at = now()
+    pillar_balance = EXCLUDED.pillar_balance, pillar_technical = EXCLUDED.pillar_technical,
+    price = EXCLUDED.price, market_cap = EXCLUDED.market_cap, pe = EXCLUDED.pe, roe = EXCLUDED.roe,
+    dividend_yield = EXCLUDED.dividend_yield, sector = EXCLUDED.sector, name = EXCLUDED.name, pb = EXCLUDED.pb,
+    roce = EXCLUDED.roce, debt_to_equity = EXCLUDED.debt_to_equity, sales_cagr = EXCLUDED.sales_cagr,
+    profit_cagr = EXCLUDED.profit_cagr, operating_margin = EXCLUDED.operating_margin,
+    change_pct = EXCLUDED.change_pct, return_1m = EXCLUDED.return_1m, return_1y = EXCLUDED.return_1y, updated_at = now()
 """
 
 
@@ -270,6 +275,14 @@ class Store:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT * FROM scores WHERE model = $1 ORDER BY overall DESC NULLS LAST LIMIT $2", model, limit)
+        return [dict(r) for r in rows]
+
+    async def screener_rows(self, model: str = "v1", statement: str = "consolidated", limit: int = 6000) -> List[dict]:
+        """One row per company for the screener and comparison tool (client-side filtering, so no per-click queries)."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT DISTINCT ON (symbol) * FROM scores WHERE model = $1 "
+                "ORDER BY symbol, (statement = $2) DESC, updated_at DESC LIMIT $3", model, statement, limit)
         return [dict(r) for r in rows]
 
     async def ping(self) -> Dict[str, bool]:

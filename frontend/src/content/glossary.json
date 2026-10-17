@@ -1,0 +1,633 @@
+[
+{
+"t": "Amortization",
+"l": "A",
+"d": "Spreading a loan or intangible asset's cost over its life through scheduled payments or write-offs. For loans, each EMI covers interest plus principal.",
+"formula": "EMI = P x r x (1+r)^n / ((1+r)^n - 1)",
+"c": "Company statements"
+},
+{
+"t": "Asset",
+"l": "A",
+"d": "Any resource owned by a person or business that has economic value and can generate future benefit, such as cash, property or investments.",
+"formula": "Assets = Liabilities + Equity",
+"c": "Company statements"
+},
+{
+"t": "Accounts Receivable",
+"l": "A",
+"d": "Money owed to a business by customers for goods or services already delivered but not yet paid for.",
+"c": "Company statements"
+},
+{
+"t": "Annual Percentage Rate (APR)",
+"l": "A",
+"d": "The yearly cost of borrowing, including interest and mandatory fees, expressed as a percentage so loans can be compared.",
+"formula": "APR = ((Interest + Fees) / Principal) / n x 365 x 100",
+"c": "Loans & tax"
+},
+{
+"t": "Balance Sheet",
+"l": "B",
+"d": "A financial statement showing a company's assets, liabilities and equity at a specific date.",
+"formula": "Assets = Liabilities + Shareholders' Equity",
+"c": "Company statements"
+},
+{
+"t": "Break-Even Point",
+"l": "B",
+"d": "The sales level at which total revenue equals total costs, so profit is zero.",
+"formula": "Break-Even Units = Fixed Costs / (Price - Variable Cost per Unit)",
+"c": "Company statements"
+},
+{
+"t": "Book Value",
+"l": "B",
+"d": "The net value of an asset or company as recorded in accounting books: assets minus liabilities, or cost minus accumulated depreciation.",
+"formula": "Book Value = Total Assets - Total Liabilities",
+"c": "Company statements"
+},
+{
+"t": "Bond",
+"l": "B",
+"d": "A debt instrument where an investor lends money to a government or company in return for periodic interest and repayment of principal at maturity.",
+"c": "Investments"
+},
+{
+"t": "Capital Gain",
+"l": "C",
+"d": "Profit earned when an asset is sold for more than its purchase price. Taxed differently for short-term and long-term holdings.",
+"formula": "Capital Gain = Sale Price - Purchase Price",
+"c": "Returns & risk"
+},
+{
+"t": "Compound Interest",
+"l": "C",
+"d": "Interest calculated on both the initial principal and previously accumulated interest.",
+"formula": "A = P x (1 + r/n)^(n x t)",
+"c": "Growth"
+},
+{
+"t": "Current Ratio",
+"l": "C",
+"d": "A liquidity measure showing whether a company can pay its short-term obligations from short-term assets.",
+"formula": "Current Ratio = Current Assets / Current Liabilities",
+"c": "Financial health"
+},
+{
+"t": "CAGR",
+"l": "C",
+"d": "Compound Annual Growth Rate: the smoothed yearly growth rate of an investment over a period longer than one year.",
+"formula": "CAGR = (Ending Value / Beginning Value)^(1/n) - 1",
+"c": "Growth"
+},
+{
+"t": "Depreciation",
+"l": "D",
+"d": "The systematic allocation of a tangible asset's cost over its useful life, reflecting wear and obsolescence.",
+"formula": "Straight-Line = (Cost - Salvage Value) / Useful Life",
+"c": "Company statements"
+},
+{
+"t": "Dividend",
+"l": "D",
+"d": "A portion of company profit distributed to shareholders, usually in cash or additional shares.",
+"formula": "Dividend Yield = Annual Dividend per Share / Share Price",
+"c": "Dividends"
+},
+{
+"t": "Debt-to-Equity Ratio",
+"l": "D",
+"d": "Compares a company's total debt with shareholders' equity to indicate financial leverage and risk.",
+"formula": "D/E = Total Liabilities / Shareholders' Equity",
+"c": "Financial health"
+},
+{
+"t": "Diversification",
+"l": "D",
+"d": "Spreading investments across different assets, sectors or regions to reduce the impact of any single loss.",
+"c": "Returns & risk"
+},
+{
+"t": "EBITDA",
+"l": "E",
+"d": "Earnings Before Interest, Taxes, Depreciation and Amortization. A proxy for operating performance before financing and accounting effects.",
+"formula": "EBITDA = Net Income + Interest + Taxes + Depreciation + Amortization",
+"c": "Profitability"
+},
+{
+"t": "Equity",
+"l": "E",
+"d": "The residual ownership value in a business after liabilities are deducted; also refers to shares of stock.",
+"formula": "Equity = Assets - Liabilities",
+"c": "Company statements"
+},
+{
+"t": "Earnings Per Share (EPS)",
+"l": "E",
+"d": "The portion of a company's profit attributable to each outstanding share of common stock.",
+"formula": "EPS = (Net Income - Preferred Dividends) / Weighted Avg. Shares",
+"c": "Valuation"
+},
+{
+"t": "Expense Ratio",
+"l": "E",
+"d": "The annual fee a fund charges investors, expressed as a percentage of the fund's average assets.",
+"formula": "Expense Ratio = Fund Operating Costs / Average Net Assets",
+"c": "Investments"
+},
+{
+"t": "Fixed Asset",
+"l": "F",
+"d": "A long-term tangible asset used in operations, such as land, machinery or buildings, not meant for resale.",
+"c": "Company statements"
+},
+{
+"t": "Free Cash Flow (FCF)",
+"l": "F",
+"d": "Cash a company generates after paying for operations and capital expenditure; available for debt repayment, dividends or growth.",
+"formula": "FCF = Operating Cash Flow - Capital Expenditure",
+"c": "Company statements"
+},
+{
+"t": "Futures Contract",
+"l": "F",
+"d": "A standardized agreement to buy or sell an asset at a set price on a future date, traded on an exchange.",
+"c": "Investments"
+},
+{
+"t": "Fiscal Year",
+"l": "F",
+"d": "A 12-month period used for accounting and tax reporting. In India it runs from 1 April to 31 March.",
+"c": "Company statements"
+},
+{
+"t": "Gross Profit Margin",
+"l": "G",
+"d": "The percentage of revenue left after subtracting the direct cost of producing goods or services.",
+"formula": "Gross Margin % = (Revenue - COGS) / Revenue x 100",
+"c": "Profitability"
+},
+{
+"t": "Goodwill",
+"l": "G",
+"d": "An intangible asset arising when a company is acquired for more than the fair value of its net identifiable assets.",
+"formula": "Goodwill = Purchase Price - Fair Value of Net Assets",
+"c": "Company statements"
+},
+{
+"t": "Gross Domestic Product (GDP)",
+"l": "G",
+"d": "The total market value of all goods and services produced within a country in a given period.",
+"formula": "GDP = C + I + G + (X - M)",
+"c": "Economy & business"
+},
+{
+"t": "Growth Stock",
+"l": "G",
+"d": "Shares of a company expected to grow revenue and earnings faster than the market, often paying little or no dividend.",
+"c": "Growth"
+},
+{
+"t": "Hedge",
+"l": "H",
+"d": "An investment or position taken to offset potential losses in another asset, for example using options or futures.",
+"c": "Returns & risk"
+},
+{
+"t": "Holding Period Return (HPR)",
+"l": "H",
+"d": "The total return from holding an investment over a period, including income and price change.",
+"formula": "HPR = (Income + (End Value - Begin Value)) / Begin Value",
+"c": "Returns & risk"
+},
+{
+"t": "Hurdle Rate",
+"l": "H",
+"d": "The minimum rate of return a project or investment must earn to be considered acceptable.",
+"c": "Returns & risk"
+},
+{
+"t": "Inflation",
+"l": "I",
+"d": "The rate at which the general price level rises, reducing the purchasing power of money.",
+"formula": "Inflation % = (CPI Now - CPI Previous) / CPI Previous x 100",
+"c": "Economy & business"
+},
+{
+"t": "Internal Rate of Return (IRR)",
+"l": "I",
+"d": "The discount rate at which the net present value of an investment's cash flows equals zero.",
+"formula": "0 = Sum of CF_t / (1 + IRR)^t",
+"c": "Returns & risk"
+},
+{
+"t": "Interest Coverage Ratio",
+"l": "I",
+"d": "Shows how easily a company can pay interest on its debt from operating profit.",
+"formula": "ICR = EBIT / Interest Expense",
+"c": "Financial health"
+},
+{
+"t": "Index Fund",
+"l": "I",
+"d": "A mutual fund or ETF designed to replicate the performance of a market index such as Nifty 50 or Sensex, at low cost.",
+"c": "Investments"
+},
+{
+"t": "Junk Bond",
+"l": "J",
+"d": "A high-yield bond with a lower credit rating and higher default risk, offering higher interest to compensate.",
+"c": "Investments"
+},
+{
+"t": "Journal Entry",
+"l": "J",
+"d": "The first record of a financial transaction in accounting, showing equal debit and credit amounts.",
+"formula": "Total Debits = Total Credits",
+"c": "Company statements"
+},
+{
+"t": "Joint Venture",
+"l": "J",
+"d": "A business arrangement in which two or more parties pool resources for a specific project while staying separate entities.",
+"c": "Economy & business"
+},
+{
+"t": "KYC (Know Your Customer)",
+"l": "K",
+"d": "A mandatory verification process where financial institutions confirm a customer's identity and address to prevent fraud and money laundering.",
+"c": "Loans & tax"
+},
+{
+"t": "KPI (Key Performance Indicator)",
+"l": "K",
+"d": "A measurable value showing how effectively a person, team or company is achieving key objectives.",
+"c": "Economy & business"
+},
+{
+"t": "Kiting",
+"l": "K",
+"d": "An illegal practice of exploiting the delay in fund clearing by moving money between accounts to create artificial balances.",
+"c": "Loans & tax"
+},
+{
+"t": "Liquidity",
+"l": "L",
+"d": "How quickly and easily an asset can be converted to cash without significantly affecting its price.",
+"c": "Financial health"
+},
+{
+"t": "Liability",
+"l": "L",
+"d": "A financial obligation or debt a person or business owes to others.",
+"formula": "Liabilities = Assets - Equity",
+"c": "Company statements"
+},
+{
+"t": "Leverage",
+"l": "L",
+"d": "Using borrowed money to increase the potential return of an investment, which also amplifies risk.",
+"formula": "Leverage Ratio = Total Debt / Total Equity",
+"c": "Financial health"
+},
+{
+"t": "Loan-to-Value (LTV)",
+"l": "L",
+"d": "The ratio of a loan amount to the appraised value of the asset securing it.",
+"formula": "LTV % = Loan Amount / Asset Value x 100",
+"c": "Loans & tax"
+},
+{
+"t": "Market Capitalization",
+"l": "M",
+"d": "The total market value of a company's outstanding shares.",
+"formula": "Market Cap = Share Price x Shares Outstanding",
+"c": "Valuation"
+},
+{
+"t": "Margin",
+"l": "M",
+"d": "Either (1) the borrowed funds used to buy securities, or (2) a profitability percentage such as net margin.",
+"formula": "Net Margin % = Net Income / Revenue x 100",
+"c": "Profitability"
+},
+{
+"t": "Mutual Fund",
+"l": "M",
+"d": "A pooled investment vehicle managed by professionals that invests in stocks, bonds or other assets on behalf of many investors.",
+"c": "Investments"
+},
+{
+"t": "Maturity Date",
+"l": "M",
+"d": "The date on which a bond, deposit or loan's principal becomes due and must be repaid.",
+"c": "Loans & tax"
+},
+{
+"t": "Net Income",
+"l": "N",
+"d": "A company's profit after all expenses, interest and taxes have been deducted from revenue.",
+"formula": "Net Income = Revenue - Total Expenses",
+"c": "Company statements"
+},
+{
+"t": "Net Present Value (NPV)",
+"l": "N",
+"d": "The present value of future cash flows minus the initial investment. Positive NPV signals a value-creating project.",
+"formula": "NPV = Sum of CF_t / (1 + r)^t - Initial Investment",
+"c": "Valuation"
+},
+{
+"t": "Net Worth",
+"l": "N",
+"d": "The total value of what a person or company owns minus what it owes.",
+"formula": "Net Worth = Total Assets - Total Liabilities",
+"c": "Company statements"
+},
+{
+"t": "Net Asset Value (NAV)",
+"l": "N",
+"d": "The per-unit value of a mutual fund, calculated at the end of each trading day.",
+"formula": "NAV = (Assets - Liabilities) / Units Outstanding",
+"c": "Investments"
+},
+{
+"t": "Operating Margin",
+"l": "O",
+"d": "Percentage of revenue remaining after paying operating costs, before interest and taxes.",
+"formula": "Operating Margin % = Operating Income / Revenue x 100",
+"c": "Profitability"
+},
+{
+"t": "Opportunity Cost",
+"l": "O",
+"d": "The value of the next best alternative given up when a choice is made.",
+"formula": "Opportunity Cost = Return on Best Foregone Option - Return on Chosen Option",
+"c": "Company statements"
+},
+{
+"t": "Overdraft",
+"l": "O",
+"d": "A facility allowing an account holder to withdraw more than the available balance, up to an agreed limit, with interest charged.",
+"c": "Loans & tax"
+},
+{
+"t": "Option",
+"l": "O",
+"d": "A contract giving the holder the right, but not the obligation, to buy (call) or sell (put) an asset at a fixed price before expiry.",
+"c": "Investments"
+},
+{
+"t": "Price-to-Earnings (P/E) Ratio",
+"l": "P",
+"d": "Shows how much investors pay per rupee of earnings; used to judge whether a stock is expensive or cheap.",
+"formula": "P/E = Market Price per Share / EPS",
+"c": "Valuation"
+},
+{
+"t": "Principal",
+"l": "P",
+"d": "The original amount of money borrowed or invested, excluding interest or returns.",
+"formula": "Simple Interest = P x R x T / 100",
+"c": "Loans & tax"
+},
+{
+"t": "Profit Margin",
+"l": "P",
+"d": "The percentage of revenue that becomes profit, indicating pricing and cost efficiency.",
+"formula": "Profit Margin % = Net Profit / Revenue x 100",
+"c": "Profitability"
+},
+{
+"t": "Portfolio",
+"l": "P",
+"d": "The collection of financial investments held by an individual or institution.",
+"c": "Investments"
+},
+{
+"t": "Quick Ratio (Acid-Test)",
+"l": "Q",
+"d": "A stricter liquidity test that excludes inventory from current assets.",
+"formula": "Quick Ratio = (Current Assets - Inventory) / Current Liabilities",
+"c": "Financial health"
+},
+{
+"t": "Quarterly Report",
+"l": "Q",
+"d": "A financial statement published by listed companies every three months showing revenue, profit and other results.",
+"c": "Company statements"
+},
+{
+"t": "Quantitative Easing (QE)",
+"l": "Q",
+"d": "A central bank policy of buying government bonds or other securities to inject money into the economy and lower long-term rates.",
+"c": "Economy & business"
+},
+{
+"t": "Return on Investment (ROI)",
+"l": "R",
+"d": "Measures the gain or loss on an investment relative to its cost.",
+"formula": "ROI % = (Net Gain / Cost of Investment) x 100",
+"c": "Profitability"
+},
+{
+"t": "Return on Equity (ROE)",
+"l": "R",
+"d": "Shows how efficiently a company uses shareholders' funds to generate profit.",
+"formula": "ROE % = Net Income / Average Shareholders' Equity x 100",
+"c": "Profitability"
+},
+{
+"t": "Retained Earnings",
+"l": "R",
+"d": "Cumulative profit a company has kept for reinvestment rather than paying out as dividends.",
+"formula": "Retained Earnings = Opening RE + Net Income - Dividends",
+"c": "Company statements"
+},
+{
+"t": "Risk-Free Rate",
+"l": "R",
+"d": "The theoretical return on an investment with zero risk, typically proxied by government treasury yields.",
+"c": "Returns & risk"
+},
+{
+"t": "Stock (Share)",
+"l": "S",
+"d": "A unit of ownership in a company that entitles the holder to a share of profits and, usually, voting rights.",
+"c": "Investments"
+},
+{
+"t": "Simple Interest",
+"l": "S",
+"d": "Interest calculated only on the original principal over the loan or investment period.",
+"formula": "SI = P x R x T / 100",
+"c": "Loans & tax"
+},
+{
+"t": "Securities",
+"l": "S",
+"d": "Tradable financial instruments, including equities, bonds and derivatives.",
+"c": "Investments"
+},
+{
+"t": "Sharpe Ratio",
+"l": "S",
+"d": "Measures risk-adjusted return: excess return earned per unit of total risk.",
+"formula": "Sharpe = (Portfolio Return - Risk-Free Rate) / Std. Deviation",
+"c": "Returns & risk"
+},
+{
+"t": "Total Return",
+"l": "T",
+"d": "The complete gain on an investment, combining price appreciation with income such as dividends or interest.",
+"formula": "Total Return % = (End Value - Begin Value + Income) / Begin Value x 100",
+"c": "Returns & risk"
+},
+{
+"t": "Tax Deduction",
+"l": "T",
+"d": "An amount subtracted from gross income, lowering taxable income (for example Section 80C in India).",
+"formula": "Taxable Income = Gross Income - Deductions",
+"c": "Loans & tax"
+},
+{
+"t": "Treasury Bill (T-Bill)",
+"l": "T",
+"d": "A short-term government security issued at a discount and redeemed at face value, with no periodic interest.",
+"c": "Investments"
+},
+{
+"t": "Asset Turnover Ratio",
+"l": "T",
+"d": "Measures how efficiently a company uses its assets to generate sales.",
+"formula": "Asset Turnover = Revenue / Average Total Assets",
+"c": "Financial health"
+},
+{
+"t": "Underwriting",
+"l": "U",
+"d": "The process by which a bank, insurer or investment firm evaluates risk and agrees to take it on, for example in loans, insurance or IPOs.",
+"c": "Investments"
+},
+{
+"t": "Unrealized Gain/Loss",
+"l": "U",
+"d": "A profit or loss on an investment that is still held and has not yet been sold.",
+"formula": "Unrealized Gain = Current Market Value - Purchase Cost",
+"c": "Returns & risk"
+},
+{
+"t": "Unsecured Loan",
+"l": "U",
+"d": "A loan not backed by collateral, granted on the borrower's creditworthiness; usually carries higher interest.",
+"c": "Loans & tax"
+},
+{
+"t": "Volatility",
+"l": "V",
+"d": "The degree of variation in an asset's price over time; a common measure of risk.",
+"formula": "Volatility = Standard Deviation of Returns",
+"c": "Returns & risk"
+},
+{
+"t": "Valuation",
+"l": "V",
+"d": "The process of estimating the economic worth of an asset or company.",
+"formula": "DCF Value = Sum of FCF_t / (1 + r)^t",
+"c": "Valuation"
+},
+{
+"t": "Variable Cost",
+"l": "V",
+"d": "A cost that changes in proportion to production or sales volume, such as raw materials.",
+"formula": "Total Cost = Fixed Cost + (Variable Cost per Unit x Units)",
+"c": "Company statements"
+},
+{
+"t": "Venture Capital",
+"l": "V",
+"d": "Funding provided to early-stage, high-growth startups in exchange for equity.",
+"c": "Investments"
+},
+{
+"t": "Working Capital",
+"l": "W",
+"d": "The funds available for day-to-day operations; the gap between current assets and current liabilities.",
+"formula": "Working Capital = Current Assets - Current Liabilities",
+"c": "Company statements"
+},
+{
+"t": "WACC",
+"l": "W",
+"d": "Weighted Average Cost of Capital: the blended cost of a company's debt and equity financing.",
+"formula": "WACC = (E/V) x Re + (D/V) x Rd x (1 - Tax Rate)",
+"c": "Valuation"
+},
+{
+"t": "Withholding Tax (TDS)",
+"l": "W",
+"d": "Tax deducted at source by the payer before income is paid to the recipient, then deposited with the government.",
+"c": "Loans & tax"
+},
+{
+"t": "XIRR",
+"l": "X",
+"d": "Extended IRR: annualized return for cash flows occurring on irregular dates, commonly used for SIPs.",
+"formula": "0 = Sum of CF_i / (1 + XIRR)^((d_i - d_0)/365)",
+"c": "Returns & risk"
+},
+{
+"t": "Ex-Dividend Date",
+"l": "X",
+"d": "The cut-off date: buying a stock on or after this date does not entitle the buyer to the upcoming dividend.",
+"c": "Dividends"
+},
+{
+"t": "XBRL",
+"l": "X",
+"d": "eXtensible Business Reporting Language: a standard for tagging and exchanging financial reports digitally.",
+"c": "Company statements"
+},
+{
+"t": "Yield",
+"l": "Y",
+"d": "The income return on an investment, usually expressed as an annual percentage of its cost or current value.",
+"formula": "Current Yield = Annual Income / Current Price",
+"c": "Returns & risk"
+},
+{
+"t": "Yield to Maturity (YTM)",
+"l": "Y",
+"d": "The total annual return expected if a bond is held until maturity, with all payments reinvested at the same rate.",
+"formula": "Price = Sum of C / (1 + YTM)^t + FV / (1 + YTM)^n",
+"c": "Returns & risk"
+},
+{
+"t": "Year-over-Year (YoY) Growth",
+"l": "Y",
+"d": "Compares a metric in one period with the same period a year earlier to show growth or decline.",
+"formula": "YoY % = (Current - Previous Year) / Previous Year x 100",
+"c": "Growth"
+},
+{
+"t": "Zero-Coupon Bond",
+"l": "Z",
+"d": "A bond that pays no periodic interest and is sold at a deep discount, paying face value at maturity.",
+"formula": "Price = Face Value / (1 + r)^n",
+"c": "Investments"
+},
+{
+"t": "Z-Score (Altman)",
+"l": "Z",
+"d": "A score predicting the likelihood of a company's bankruptcy using several financial ratios. Below about 1.8 signals distress.",
+"formula": "Z = 1.2A + 1.4B + 3.3C + 0.6D + 1.0E",
+"c": "Financial health"
+},
+{
+"t": "Zero-Based Budgeting",
+"l": "Z",
+"d": "A budgeting method where every expense must be justified from scratch each period, rather than based on the previous budget.",
+"c": "Economy & business"
+}
+]

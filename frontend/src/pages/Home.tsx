@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { COMPANY, FOUNDER, PHILOSOPHY, PRICING, PROCESS, SERVICES, TESTIMONIAL } from "../content/site";
@@ -8,7 +9,8 @@ import { getPortfolio, type PortfolioReport } from "../lib/siteApi";
 import { useSummary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
-import { HeroCanvas } from "../components/HeroCanvas";
+const HeroCanvas = lazy(() => import("../components/HeroCanvas").then((m) => ({ default: m.HeroCanvas })));
+function LateCanvas() { const [on, setOn] = useState(false); useEffect(() => { const id = (window as unknown as { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback; const t = id ? id(() => setOn(true)) : window.setTimeout(() => setOn(true), 600); return () => { if (!id) clearTimeout(t); }; }, []); return on ? <Suspense fallback={null}><HeroCanvas /></Suspense> : null; }
 import { ServiceArt, SERVICE_ART } from "../components/Art";
 
 function LiveTerminal() {
@@ -30,7 +32,7 @@ function LiveTerminal() {
           <circle cx="70" cy="70" r="49" fill="none" stroke="var(--s3)" strokeWidth="7" />
           <circle cx="70" cy="70" r="49" fill="none" stroke="var(--gold)" strokeWidth="12" opacity=".18" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 49 * (s.score.overall ?? 0)) / 100} 400`} transform="rotate(-90 70 70)" />
           <circle className="ring-in" cx="70" cy="70" r="49" fill="none" stroke="url(#tg)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 49 * (s.score.overall ?? 0)) / 100} 400`} transform="rotate(-90 70 70)" />
-          <text x="70" y="70" dy=".36em" textAnchor="middle" fontFamily="Newsreader, Georgia, serif" fontWeight="300" fontSize="40" fill="var(--text)">{s.score.overall}</text>
+          <text x="70" y="70" dy=".36em" textAnchor="middle" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fontSize="40" fill="var(--text)">{s.score.overall}</text>
           <text x="70" y="97" textAnchor="middle" fontSize="7.5" letterSpacing="1.6" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">OUT OF 100</text>
         </svg></div>
         <div className="term-bars">{s.score.pillars.map((p) => <div key={p.key} style={{ "--pc": `var(${colors[p.key]})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: `${p.score ?? 0}%` }} /></i><span>{p.score}</span></div>)}</div>
@@ -67,7 +69,7 @@ export function Home() {
   return (
     <>
       <section className="hero-home">
-        <div className="aurora" /><div className="grid-fade" /><HeroCanvas />
+        <div className="aurora" /><div className="grid-fade" /><LateCanvas />
         <div className="wrap hero-cols">
           <div>
             <div className="eyebrow">Research · Portfolios · Investing</div>

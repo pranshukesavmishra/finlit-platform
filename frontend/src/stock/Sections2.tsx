@@ -39,7 +39,7 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
           );
         })}
         <text x={C} y={C - 12} textAnchor="middle" fontSize="11" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif" fontWeight="600">{cur.label.replace(/\s*\(.*\)/, "").toUpperCase().slice(0, 22)}</text>
-        <text x={C} y={C + 28} textAnchor="middle" fontSize="50" fontFamily="Newsreader, Georgia, serif" fill="var(--text)">{nf(cur.value, 1)}<tspan fontSize="24" fill="var(--muted)">%</tspan></text>
+        <text x={C} y={C + 28} textAnchor="middle" fontSize="50" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fill="var(--text)">{nf(cur.value, 1)}<tspan fontSize="24" fill="var(--muted)">%</tspan></text>
         <text x={C} y={C + 50} textAnchor="middle" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">of all shares</text>
       </svg>
     </div>
@@ -48,7 +48,7 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
 
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
-  if (!o) return <section className="block"><SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
+  if (!o) return <section className="block"><SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
   const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
   const items = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
@@ -57,7 +57,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
   const then = o.periods[0], now = o.periods[n - 1];
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="05 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
+      <SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
         <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
@@ -100,7 +100,7 @@ export function BusinessSection({ s }: { s: Summary }) {
   ];
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="business" no="08 · Company overview" icon="building" tier="basic" title={`What ${p.name.split(" ")[0]} does`} color="--p-growth" />
+      <SectionHead id="business" no="10 · Company overview" icon="building" tier="basic" title={`What ${p.name.split(" ")[0]} does`} color="--p-growth" />
       <div className="biz2">
         <div className="card acc biz-main" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
           <svg className="skyline" viewBox="0 0 400 120" aria-hidden="true" preserveAspectRatio="xMaxYMax meet">
@@ -135,7 +135,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
   const monthly = (shares * last) / 12;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="dividends" no="09 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
+      <SectionHead id="dividends" no="11 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
       {e.dividendYieldTtm != null && <Plain tone={streak >= 5 && rising >= 3 ? "good" : "info"}>For every ₹100 invested at today's price, this company pays about ₹{nf(e.dividendYieldTtm, 2)} a year. It has paid a dividend for {streak} year{streak === 1 ? "" : "s"} running{rising >= 2 ? ` and raised it ${rising} years in a row` : ""}.{payout != null ? ` It keeps about ${nf(100 - payout, 0)}% of its profit to grow the business.` : ""} {e.dividendYieldTtm < 1 ? "A low yield suggests owning it for growth rather than income." : ""}</Plain>}
       <div className="dvk">
         <div className="dk" style={{ "--dc": "var(--gold)" } as React.CSSProperties}>
@@ -208,7 +208,7 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
   const bands = [["Watch", 0, 45, "--v-weak"], ["Mixed", 45, 62, "--v-mixed"], ["Healthy", 62, 78, "--v-healthy"], ["Strong", 78, 100, "--v-strong"]] as const;
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="10 · Method & data" icon="info" title="How the score works" sub="Open, simple and checkable: you can redo the sum yourself." color="--info" />
+      <SectionHead id="method" no="12 · Method & data" icon="info" title="How the score works" sub="Open, simple and checkable: you can redo the sum yourself." color="--info" />
       <Plain tone={overall >= 62 ? "good" : overall < 45 ? "warn" : "info"}>Think of it as five report cards averaged into one mark. A score of {overall} is "{overall >= 78 ? "strong" : overall >= 62 ? "healthy" : overall >= 45 ? "mixed" : "watch"}": {overall >= 62 ? "most areas look solid." : overall >= 45 ? "some areas are good and some need care." : "several areas need care."} It describes the business today. It is not a buy or sell call.</Plain>
       <div className="mth">
         <div className="card acc mth-eq" style={{ "--ac": "var(--info)" } as React.CSSProperties}>

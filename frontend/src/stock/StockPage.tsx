@@ -6,11 +6,12 @@ import { signed, nf } from "../lib/format";
 import { Hero } from "./Hero";
 import { FinancialsSection, Notes, PriceSection } from "./Sections";
 import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
+import { QuarterSection, TrendsSection } from "./Sections4";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 
-const NAV: [string, string, string][] = [["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["financials", "Financials", "bars"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["business", "Company", "building"], ["dividends", "Dividends", "coins"], ["method", "Method", "info"], ["plans", "Plans", "medal"]];
+const NAV: [string, string, string][] = [["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["business", "Company", "building"], ["dividends", "Dividends", "coins"], ["method", "Method", "info"], ["plans", "Plans", "medal"]];
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
@@ -78,7 +79,9 @@ export function StockPage() {
         <div ref={idrow} />
         <Notes s={s} />
         <PriceSection s={s} symbol={symbol} ratios={ratios} />
+        <QuarterSection f={fin} />
         <FinancialsSection f={fin} />
+        <TrendsSection f={fin} seg={seg} e={events} r={ratios} />
         <RatiosSection r={ratios} />
         <OwnershipSection o={own} />
         <PeersSection p={peers} self={symbol} s={s} />

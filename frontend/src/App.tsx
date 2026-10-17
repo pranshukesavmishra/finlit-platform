@@ -17,6 +17,10 @@ const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default:
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
+const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m.Screener })));
+const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
+const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
+const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -31,6 +35,10 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="research" element={<><Research onSearch={() => setSearch(true)} /><SearchPalette open={search} onClose={() => setSearch(false)} /></>} />
           <Route path="stocks/:symbol" element={<StockPage />} />
+          <Route path="screener" element={<Screener />} />
+          <Route path="compare" element={<Compare />} />
+          <Route path="glossary" element={<GlossaryPage />} />
+          <Route path="watchlist" element={<WatchlistPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="services" element={<Services />} />
           <Route path="about" element={<About />} />

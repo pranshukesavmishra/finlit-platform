@@ -77,6 +77,20 @@ async def test_summary_served_with_etag_and_304(api):
     assert again.status_code == 304 and again.content == b""
 
 
+async def test_screener_universe(api):
+    r = await api.get("/api/screener/universe")
+    assert r.status_code == 200 and r.headers["cache-control"].startswith("public")
+    rows = {x["symbol"]: x for x in r.json()["rows"]}
+    rel = rows["RELIANCE"]
+    assert rel["name"] == "Reliance Industries Ltd" and rel["sector"]
+    # every field the screener and comparison pages read is present and numeric (or null)
+    for k in ("overall", "pe", "pb", "roe", "roce", "debt_to_equity", "sales_cagr", "profit_cagr", "operating_margin",
+              "change_pct", "return_1m", "return_1y", "market_cap", "price", "dividend_yield", "pillar_quality", "pillar_balance"):
+        assert k in rel and (rel[k] is None or isinstance(rel[k], (int, float))), k
+    assert rel["overall"] is not None and rel["band"] in {"strong", "healthy", "mixed", "watch"}
+    assert "statement" not in rel and "updated_at" not in rel
+
+
 async def test_every_section_and_range(api):
     for name in ("financials", "ratios", "ownership", "events", "segments", "peers"):
         r = await api.get(f"/api/stocks/RELIANCE/{name}")

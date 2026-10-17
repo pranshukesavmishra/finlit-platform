@@ -41,6 +41,8 @@ def test_missing_payloads_degrade(reliance_bundle):
 def test_score_row(reliance_sections):
     row = score_row(reliance_sections)
     assert row["symbol"] == "RELIANCE" and row["band"] in {"strong", "healthy", "mixed", "watch"}
+    assert row["name"] == "Reliance Industries Ltd" and row["pb"] and row["roce"] and row["debt_to_equity"] is not None
+    assert row["return_1y"] is not None and row["change_pct"] is not None
 
 
 def test_price_ranges(reliance_sections):
@@ -74,3 +76,14 @@ def test_corrections_from_page_audit(reliance_sections):
     assert len(s["price-1Y"]["series"]["ema200"]) == len(one_year["t"])
     # 9. Tiny segments are folded into Others
     assert all((seg["sharePct"] or 0) >= 0.5 for seg in s["segments"]["latest"])
+
+
+def test_score_upsert_matches_columns():
+    """The upsert SQL is a literal (for the security scanner), so keep it in step with SCORE_COLUMNS."""
+    import re
+    from finlit.store import SCORE_COLUMNS, SCORE_UPSERT
+    head = SCORE_UPSERT.split("VALUES")[0]
+    assert [c.strip() for c in head.split("(", 1)[1].rsplit(")", 1)[0].split(",")][:-1] == list(SCORE_COLUMNS)
+    assert len(set(re.findall(r"\$(\d+)", SCORE_UPSERT))) == len(SCORE_COLUMNS)
+    for c in SCORE_COLUMNS[3:]:
+        assert f"{c} = EXCLUDED.{c}" in SCORE_UPSERT, c

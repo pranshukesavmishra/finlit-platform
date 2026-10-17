@@ -13,19 +13,24 @@ import { DEMO } from "../lib/demo";
 const NAV = [
   ["/research", "Research"], ["/services", "Services"], ["/plans", "Plans"], ["/portfolio", "Portfolio"], ["/blog", "Blog"], ["/about", "About"],
 ] as const;
+const TOOLS = [["/screener", "Stock screener", "Filter every company by your rules", "table"], ["/compare", "Compare companies", "Side by side, in charts", "layers"], ["/watchlist", "Watchlist", "Your lists, bucketed", "wallet"], ["/glossary", "Glossary", "95 terms in plain words", "notes"]] as const;
 
 function Header({ onSearch }: { onSearch: () => void }) {
   const { theme, toggleTheme, plan, setPlan } = useUI();
   const [menu, setMenu] = useState(false);
+  const [tools, setTools] = useState(false);
   const loc = useLocation();
   const onStock = loc.pathname.startsWith("/stocks/");
-  useEffect(() => setMenu(false), [loc.pathname]);
+  useEffect(() => { setMenu(false); setTools(false); }, [loc.pathname]);
   return (
     <header className="top">
       <div className="wrap">
         <Link className="logo" to="/" aria-label="FinLit home"><span className="lg-mark" role="img" aria-label="FinLit" /></Link>
         <nav className="topnav" aria-label="Site">
-          {NAV.map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
+          {NAV.slice(0, 1).map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
+          <div className="dd"><button className={"ddb" + (TOOLS.some(([to]) => loc.pathname.startsWith(to)) ? " hl" : "")} aria-haspopup="true" aria-expanded={tools} onClick={() => setTools(!tools)} onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setTools(false); }}>Tools<Icon name="arrow" /></button>
+            <div className={"ddm" + (tools ? " open" : "")} role="menu">{TOOLS.map(([to, label, sub, ic]) => <Link key={to} to={to} role="menuitem" onClick={() => setTools(false)}><span className="ddi"><Icon name={ic} /></span><span><b>{label}</b><small>{sub}</small></span></Link>)}</div></div>
+          {NAV.slice(1).map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
         </nav>
         <div className="grow" />
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
@@ -49,6 +54,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
       {menu && (
         <nav className="mnav" aria-label="Mobile">
           {NAV.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
+          {TOOLS.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
           <Link to="/contact">Contact</Link><Link to="/login" className="gold">Sign in</Link>
         </nav>
       )}

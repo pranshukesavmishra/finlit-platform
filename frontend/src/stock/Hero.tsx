@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { MINUS, capSize, dateIN, fmtUnit, initials, nf, num, signed } from "../lib/format";
 import { useUI, TIER } from "../lib/ui";
+import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { Dial } from "../charts/Dial";
 import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
@@ -19,7 +20,8 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const { has, toast, plan } = useUI();
   const [open, setOpen] = useState<string | null>(null);
   const [dl, setDl] = useState(false);
-  const [watch, setWatch] = useState(() => { try { return !!localStorage.getItem("finlit-watch-" + s.profile.symbol); } catch { return false; } });
+  const wlState = useWatchlist(); void wlState;
+  const watch = wl.has(s.profile.symbol);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0;
   const asOf = q.asOf ? new Date(q.asOf) : null;
   const need = (tier: "bronze" | "gold", what: string) => { if (has(tier)) return true; toast(`${what} come with the ${TIER[tier].n} plan. Showing plans.`); jump("plans"); return false; };
@@ -29,8 +31,8 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   ];
   const toggleWatch = () => {
     if (!need("bronze", "Watchlist and portfolio tracking")) return;
-    const on = !watch; setWatch(on);
-    try { on ? localStorage.setItem("finlit-watch-" + p.symbol, "1") : localStorage.removeItem("finlit-watch-" + p.symbol); } catch { /* ignore */ }
+    const on = !watch;
+    if (on) { if (!has("gold") && wl.total() >= 30) { toast("Bronze holds up to 30 stocks. Gold has no limit."); return; } wl.add(p.symbol); } else wl.remove(p.symbol);
     toast(on ? `${p.nse || p.symbol} added to your watchlist.` : `${p.nse || p.symbol} removed from your watchlist.`);
   };
   const download = (kind: "pdf" | "html" | "csv") => {

@@ -40,7 +40,7 @@ export function HeroCanvas() {
       ctx.globalAlpha = .5; const step = small() ? 34 : 26;
       for (let x = step; x < w; x += step) {
         const y = h * .8 + wave(x, t, 1) - (x / w) * h * .16, j = Math.sin(x * 12.9898) * 43758.5453, r = j - Math.floor(j);
-        const body = 10 + r * 26, up = r > .42, col = up ? css("--gain", "#34d399") : css("--loss", "#f87171");
+        const body = 10 + r * 26, up = r > .42, col = up ? css("--gain", "#5FB88E") : css("--loss", "#E0707A");
         ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(x, y - body - 10); ctx.lineTo(x, y + body + 10); ctx.stroke();
         ctx.globalAlpha = .38; ctx.fillRect(x - 3.5, y - body / 2, 7, body); ctx.globalAlpha = .5;

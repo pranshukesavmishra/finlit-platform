@@ -157,5 +157,18 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                     r[k] = float(v)
         return JSONResponse({"rows": rows}, headers={"Cache-Control": CACHE_STOCK})
 
+    @app.get("/api/screener/universe")
+    async def universe():
+        """Every scored company in one cacheable response; the website filters and compares in the browser."""
+        rows = await app.state.store.screener_rows()
+        out = []
+        for r in rows:
+            r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
+            for k, v in list(r.items()):
+                if v is not None and not isinstance(v, (int, str, bool, float)):
+                    r[k] = float(v)
+            out.append(r)
+        return JSONResponse({"rows": out}, headers={"Cache-Control": CACHE_STOCK})
+
     return app
 

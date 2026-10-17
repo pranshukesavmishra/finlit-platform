@@ -59,7 +59,7 @@ const scenes: Record<string, (k: string) => React.ReactNode> = {
     <Rings k={k} />
     <g transform="translate(220 160)"><circle r="82" fill="none" stroke="var(--s3)" strokeWidth="18" />
       {[["--p-quality", 0, 0.22], ["--p-growth", 0.22, 0.42], ["--p-profit", 0.42, 0.64], ["--p-balance", 0.64, 0.86], ["--p-tech", 0.86, 1]].map(([c, a, b]) => { const C = 2 * Math.PI * 82; return <circle key={c as string} className="pa-draw2" r="82" fill="none" stroke={`var(${c})`} strokeWidth="18" strokeDasharray={`${((b as number) - (a as number)) * C - 4} ${C}`} strokeDashoffset={-(a as number) * C} transform="rotate(-90)" strokeLinecap="round" />; })}
-      <text y="12" textAnchor="middle" fontSize="46" fontFamily="Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">0–100</text><text y="38" textAnchor="middle" fontSize="10.5" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT SCORE</text></g>
+      <text y="12" textAnchor="middle" fontSize="46" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">0–100</text><text y="38" textAnchor="middle" fontSize="10.5" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT SCORE</text></g>
     <g transform="translate(330 214)"><circle r="30" fill="var(--s1)" fillOpacity=".7" stroke="var(--gold)" strokeWidth="6" /><path d="m22 22 26 26" stroke="var(--gold)" strokeWidth="8" strokeLinecap="round" /></g>
     {chip(30, 60, "5,700+ stocks", "var(--c3)")}{chip(300, 40, "Updated daily", "var(--gold)", 500)}
   </>),

@@ -56,7 +56,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
       const mid = (a0 + a1) / 2, [lx, ly] = polar(C, C, 150, mid), anchor = mid > 20 && mid < 160 ? "start" : mid > 200 && mid < 340 ? "end" : "middle";
       const dy = mid > 100 && mid < 260 ? 10 : mid < 80 || mid > 280 ? -2 : 4;
       const t1 = el("text", { x: lx + (anchor === "start" ? 4 : anchor === "end" ? -4 : 0), y: ly + dy - 8, "text-anchor": anchor, fill: col, "font-size": 10, "font-family": "IBM Plex Sans, sans-serif", "font-weight": 700, "letter-spacing": ".14em" }, s); t1.textContent = SHORT[p.key] || p.label.toUpperCase();
-      const t2 = el("text", { x: lx + (anchor === "start" ? 4 : anchor === "end" ? -4 : 0), y: ly + dy + 10, "text-anchor": anchor, fill: "#F6F5F2", "font-size": 19, "font-family": "Newsreader, Georgia, serif" }, s); t2.textContent = p.score == null ? "—" : String(p.score);
+      const t2 = el("text", { x: lx + (anchor === "start" ? 4 : anchor === "end" ? -4 : 0), y: ly + dy + 10, "text-anchor": anchor, fill: "#F6F5F2", "font-size": 19, "font-family": "Newsreader Variable, Newsreader, Georgia, serif" }, s); t2.textContent = p.score == null ? "—" : String(p.score);
     });
     // tick ring: 100 ticks that light up to the score
     for (let i = 0; i < 100; i++) {

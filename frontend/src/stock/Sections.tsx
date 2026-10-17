@@ -104,7 +104,7 @@ function ReturnBars({ rows }: { rows: Summary["returns"] }) {
 /* ---------------- Financials ---------------- */
 export function FinancialsSection({ f }: { f?: Financials }) {
   const [kind, setKind] = useState<FinKind>("pl");
-  if (!f) return <section className="block"><SectionHead id="financials" no="03 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
+  if (!f) return <section className="block"><SectionHead id="financials" no="04 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
   const tiles = finTiles(f), tbl: Table = kind === "q" ? f.quarterly.pl : f.yearly[kind];
   const ROWS: Record<string, [string, string, boolean?][]> = {
     pl: [["revenue", "Revenue"], ["other_income", "Other income"], ["expenses", "Expenses"], ["operating_profit", "Operating profit", true], ["finance_costs", "Interest"], ["depreciation", "Depreciation"], ["profit_before_tax", "Profit before tax", true], ["tax", "Tax"], ["net_profit", "Net profit", true], ["eps", "EPS (₹)"]],
@@ -115,7 +115,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
   const last = tbl.periods.length - 1;
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="financials" no="03 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
+      <SectionHead id="financials" no="04 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
       {(() => { const [rv, np, , mg] = tiles; return rv.delta != null && np.delta != null ? <Plain tone={np.delta >= 0 ? "good" : "warn"}>Sales {rv.delta >= 0 ? "grew" : "fell"} {nf(Math.abs(rv.delta), 1)}% last year and profit {np.delta >= 0 ? "rose" : "fell"} {nf(Math.abs(np.delta), 1)}%.{typeof mg.value === "number" && <> Out of every ₹100 of sales, about ₹{nf(mg.value, 1)} is kept as profit.</>}</Plain> : null; })()}
       <div className="grid g4" style={{ marginBottom: 16 }}>
         {tiles.map((t) => (
@@ -128,7 +128,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
       </div>
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
         <div className="tools">
-          <div className="seg" role="tablist" aria-label="Statement">{([["pl", "Profit & loss"], ["bs", "Balance sheet"], ["cf", "Cash flow"], ["q", "Quarterly"]] as const).map(([k, l]) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{l}</button>)}</div>
+          <div className="seg" role="group" aria-label="Statement">{([["pl", "Profit & loss"], ["bs", "Balance sheet"], ["cf", "Cash flow"], ["q", "Quarterly"]] as const).map(([k, l]) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{l}</button>)}</div>
           <span className="chip ghost">{tbl.periods[0]} – {tbl.periods[last]}</span>
         </div>
         <FinChart kind={kind} pl={f.yearly.pl} bs={f.yearly.bs} cf={f.yearly.cf} ql={f.quarterly.pl} />

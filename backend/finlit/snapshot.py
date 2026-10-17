@@ -256,6 +256,7 @@ def score_row(sections: Dict[str, dict]) -> dict:
     s = sections["summary"]
     metrics = {m["key"]: m["value"] for m in s["keyMetrics"]}
     pillars = {p["key"]: p["score"] for p in s["score"]["pillars"]}
+    returns = {r["period"]: r.get("price") for r in s.get("returns", [])}
     return {
         "symbol": s["meta"]["symbol"],
         "statement": s["meta"]["statement"],
@@ -269,4 +270,14 @@ def score_row(sections: Dict[str, dict]) -> dict:
         "roe": metrics.get("roe"),
         "dividend_yield": metrics.get("dividend_yield"),
         "sector": s["profile"].get("sector"),
+        "name": s["profile"].get("name"),
+        "pb": metrics.get("pb"),
+        "roce": metrics.get("roce"),
+        "debt_to_equity": metrics.get("debt_to_equity"),
+        "sales_cagr": metrics.get("sales_cagr"),
+        "profit_cagr": metrics.get("profit_cagr"),
+        "operating_margin": metrics.get("operating_margin"),
+        "change_pct": s["quote"].get("changePct"),
+        "return_1m": returns.get("1M"),
+        "return_1y": returns.get("1Y"),
     }

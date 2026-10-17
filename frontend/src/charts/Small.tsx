@@ -53,7 +53,7 @@ export function RsiGauge({ value }: { value: number }) {
     const m = el("g", { class: "g-knob" }, s);
     el("circle", { cx: mx, cy: my, r: 15, fill: col, opacity: 0.25 }, m); el("circle", { cx: mx, cy: my, r: 10.5, fill: css("--s1"), stroke: col, "stroke-width": 4 }, m);
     // value
-    el("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-family": "Newsreader, Georgia, serif", "font-size": 50, "font-weight": 300, fill: text }, s).textContent = v.toFixed(1);
+    el("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-family": "Newsreader Variable, Newsreader, Georgia, serif", "font-size": 50, "font-weight": 300, fill: text }, s).textContent = v.toFixed(1);
     el("text", { x: cx, y: cy + 18, "text-anchor": "middle", "font-size": 10.5, "font-weight": 600, "letter-spacing": ".14em", fill: css("--faint"), "font-family": "IBM Plex Sans, sans-serif" }, s).textContent = "RSI · 14 DAYS";
     ([[0, "0"], [100, "100"]] as const).forEach(([t, l]) => { const [x, y] = polar(cx, cy, r, ang(t)); el("text", { x, y: y + 26, "text-anchor": "middle", "font-size": 10, fill: css("--faint"), "font-family": "IBM Plex Mono, monospace" }, s).textContent = l; });
   }, [value]);
@@ -78,7 +78,7 @@ export function Donut({ slices, centerValue, centerLabel }: { slices: { v: numbe
     el("circle", { cx: C, cy: C, r, fill: "none", stroke: css("--s3"), "stroke-width": 30 }, s);
     slices.forEach(({ v, color }) => { const len = (v / 100) * c; el("circle", { cx: C, cy: C, r, fill: "none", stroke: css(color), "stroke-width": 30, "stroke-dasharray": `${Math.max(0, len - 3)} ${c}`, "stroke-dashoffset": -off, transform: `rotate(-90 ${C} ${C})` }, s); off += len; });
     el("circle", { cx: C, cy: C, r: 70, fill: css("--s1") }, s);
-    el("text", { x: C, y: C - 2, "text-anchor": "middle", "font-family": "Newsreader, Georgia, serif", "font-size": 36, fill: css("--text") }, s).textContent = centerValue;
+    el("text", { x: C, y: C - 2, "text-anchor": "middle", "font-family": "Newsreader Variable, Newsreader, Georgia, serif", "font-size": 36, fill: css("--text") }, s).textContent = centerValue;
     el("text", { x: C, y: C + 20, "text-anchor": "middle", "font-size": 11, "font-weight": 600, "letter-spacing": ".08em", fill: css("--muted"), "font-family": "IBM Plex Sans, sans-serif" }, s).textContent = centerLabel;
   }, [slices, centerValue, centerLabel]);
   return <div className="donut-wrap" ref={wrap} style={{ maxWidth: 260 }}><svg ref={svg} role="img" aria-label={`${centerLabel} ${centerValue}`} style={{ width: "100%", height: "auto" }} /></div>;
