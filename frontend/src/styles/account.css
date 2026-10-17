@@ -19,7 +19,7 @@
 /* ---- account menu ---- */
 .acct-dd { margin-left: 4px; }
 .av-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--s1); border-radius: 999px; padding: 4px 10px 4px 4px; cursor: pointer; }
-.av-btn:hover { border-color: var(--gold); } .av-btn .av.mini { width: 30px; height: 30px; border-radius: 50%; font-size: 12px; background: linear-gradient(135deg, var(--gold-2), var(--gold-deep)); color: var(--on-gold); }
+.av-btn:hover { border-color: var(--gold); } .av-btn .av.sm { width: 30px; height: 30px; border-radius: 50%; font-size: 12px; background: linear-gradient(135deg, var(--gold-2), var(--gold-deep)); color: var(--on-gold); }
 .ddm.right { left: auto; right: -8px; width: 250px; }
 .ddm button { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; width: 100%; } .ddm button:hover { background: var(--gold-soft); }
 .acct-who { padding: 8px 12px 10px; border-bottom: 1px solid var(--border); margin-bottom: 4px; } .acct-who b { display: block; font-size: 14px; } .acct-who small { color: var(--faint); font-size: 12px; word-break: break-all; }
@@ -93,3 +93,5 @@
 :root[data-density="compact"] .block { margin-top: 28px; }
 :root[data-density="compact"] .dgrid { gap: 10px; }
 :root[data-density="compact"] body { font-size: 14px; }
+:root[data-theme="light"] .login .lg-mark { background-image: url("/brand/finlit-logo-on-light.png"); }
+.av-btn .av.sm { line-height: 1; padding: 0; }

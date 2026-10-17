@@ -55,7 +55,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
         {user ? (
           <div className="dd acct-dd">
             <button className="av-btn" aria-haspopup="true" aria-expanded={acct} aria-label={`Account menu for ${user.email}`} onClick={() => setAcct(!acct)} onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setAcct(false); }}>
-              <span className="av mini" aria-hidden="true">{(user.name || user.email)[0].toUpperCase()}</span><span className={"tier " + plan}>{plan[0].toUpperCase() + plan.slice(1)}</span>
+              <span className="av sm" aria-hidden="true">{(user.name || user.email)[0].toUpperCase()}</span><span className={"tier " + plan}>{plan[0].toUpperCase() + plan.slice(1)}</span>
             </button>
             <div className={"ddm right" + (acct ? " open" : "")} role="menu">
               <div className="acct-who"><b>{user.name || "Signed in"}</b><small>{user.email}</small></div>

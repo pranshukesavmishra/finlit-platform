@@ -125,7 +125,7 @@
 .ddm { position: absolute; top: calc(100% + 14px); left: -12px; z-index: 70; width: 290px; display: none; gap: 2px; padding: 8px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--s1); box-shadow: var(--lift); } .ddm.open, .dd:hover .ddm, .dd:focus-within .ddm { display: grid; }
 .ddm a { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; color: var(--text); text-decoration: none; } .ddm a:hover { background: var(--gold-soft); } .ddi { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; color: var(--gold); background: var(--gold-soft); } .ddi svg { width: 16px; height: 16px; } .ddm b { display: block; font-size: 14px; } .ddm small { display: block; font-size: 12px; color: var(--faint); }
 
-.av.mini, .cc-h .av, .pk-b .av { display: grid; place-items: center; line-height: 1; }
+.av.mini, .av.sm, .cc-h .av, .pk-b .av { display: grid; place-items: center; line-height: 1; }
 
 /* keep the footer below the fold while a page loads, so it cannot jump (layout shift) */
 main#main { min-height: 90vh; }
