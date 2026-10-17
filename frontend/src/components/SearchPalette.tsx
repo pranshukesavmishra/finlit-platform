@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { prefetchStock, useSearchIndex, type SearchRow } from "../lib/api";
 import { initials } from "../lib/format";
 
-const COLORS = ["#2563EB", "#EA580C", "#DC2626", "#0891B2", "#7C3AED", "#B45309", "#1D4ED8", "#0F766E", "#4338CA", "#BE123C", "#0369A1", "#15803D"];
+const COLORS = ["#1E3A6E", "#2B4F8F", "#3B5FA0", "#7A5A12", "#9A6A0E", "#B8862B", "#24406F", "#46618F", "#8A6420", "#33507F", "#6B4E10", "#5A7099"];
 const colorOf = (s: string) => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
 const FEATURED = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BPCL", "IOC", "SBIN", "LT", "ITC"];
 

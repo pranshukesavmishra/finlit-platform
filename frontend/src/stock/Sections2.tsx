@@ -146,7 +146,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
           <span className="dk-i"><Icon name="percent" /></span>
           <div><span className="label">Share of profit paid out</span><b className="dk-v">{payout == null ? "—" : nf(payout, 0) + "%"}</b>{safe && <span className={"dk-tag " + safe[1]}>{safe[0]}</span>}<p>{payout == null ? "" : payout < 40 ? "Plenty of room to keep paying." : payout < 70 ? "A balanced split between owners and growth." : "Little left over; the dividend could be harder to sustain."}</p></div>
         </div>
-        <div className="dk" style={{ "--dc": "var(--gain)" } as React.CSSProperties}>
+        <div className="dk" style={{ "--dc": "var(--c3)" } as React.CSSProperties}>
           <span className="dk-i"><Icon name="growth" /></span>
           <div><span className="label">Dividend growth</span><b className="dk-v">{cagr == null ? "—" : (cagr >= 0 ? "+" : "−") + nf(Math.abs(cagr), 1) + "% a year"}</b><p>From ₹{nf(first, 2)} to ₹{nf(last, 2)} per share over {yrs} years.</p></div>
         </div>

@@ -106,7 +106,7 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 
 /* plain-language callout */
 .plain { display: flex; gap: 14px; align-items: flex-start; margin: 0 0 18px; padding: 14px 18px; border-radius: 16px; --pl: var(--info); border: 1px solid color-mix(in srgb, var(--pl) 35%, var(--border)); background: linear-gradient(100deg, color-mix(in srgb, var(--pl) 12%, var(--s1)), var(--s1) 70%); }
-.plain.pl-good { --pl: var(--gain); } .plain.pl-warn { --pl: var(--warn); }
+.plain.pl-good { --pl: var(--gold); } .plain.pl-warn { --pl: var(--warn); }
 .plain-i { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: var(--pl); background: color-mix(in srgb, var(--pl) 18%, transparent); } .plain-i svg { width: 17px; height: 17px; }
 .plain > div > b { display: block; font: 700 10.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--pl); margin-bottom: 3px; }
 .plain p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text); max-width: 90ch; }
@@ -272,8 +272,8 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 .mp-n b { display: block; font-size: 14.5px; } .mp-n span { font: 600 20px var(--mono); color: var(--pc); } .mp-n em { display: block; font-size: 11px; font-style: normal; color: var(--faint); margin-top: 2px; }
 .lad { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; padding-bottom: 22px; }
 .lad > span { position: relative; height: 22px; border-radius: 6px; opacity: .3; display: grid; place-items: center; transition: opacity .3s; } .lad > span em { font: 600 10px var(--mono); font-style: normal; color: #fff; opacity: .85; }
-.lad .z0 { background: var(--loss); } .lad .z1 { background: #F97316; } .lad .z2 { background: var(--warn); } .lad .z3 { background: var(--c3); } .lad .z4 { background: var(--gain); }
-.lad > span.hit { opacity: 1; box-shadow: 0 0 0 2px var(--s1), 0 0 0 4px currentColor, 0 10px 22px -8px currentColor; } .lad .z0.hit { color: var(--loss); } .lad .z1.hit { color: #F97316; } .lad .z2.hit { color: var(--warn); } .lad .z3.hit { color: var(--c3); } .lad .z4.hit { color: var(--gain); }
+.lad .z0 { background: var(--loss); } .lad .z1 { background: #C98A3A; } .lad .z2 { background: var(--warn); } .lad .z3 { background: var(--c2); } .lad .z4 { background: var(--gain); }
+.lad > span.hit { opacity: 1; box-shadow: 0 0 0 2px var(--s1), 0 0 0 4px currentColor, 0 10px 22px -8px currentColor; } .lad .z0.hit { color: var(--loss); } .lad .z1.hit { color: #C98A3A; } .lad .z2.hit { color: var(--warn); } .lad .z3.hit { color: var(--c2); } .lad .z4.hit { color: var(--gain); }
 .lad .hit i { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); } .lad .hit i b { display: block; padding: 2px 8px; border-radius: 8px; background: var(--text); color: var(--bg); font: 700 11px var(--mono); white-space: nowrap; }
 .lad .hit i::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-top-color: var(--text); border-bottom: 0; }
 .lad-th { position: absolute; left: 0; right: 0; bottom: 0; height: 16px; } .lad-th span { position: absolute; transform: translateX(-50%); font: 10px var(--mono); color: var(--faint); white-space: nowrap; }
@@ -307,7 +307,7 @@ a.pr-row:hover, .pr-row.hot { transform: translateX(4px); border-color: color-mi
 @media (max-width: 1100px) { .spc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .trg-bal { display: flex; gap: 4px; height: 8px; margin-bottom: 14px; } .trg-bal span { border-radius: 4px; }
 .trg2 { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.trg2 li { --tg: var(--warn); padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--tg) 7%, var(--s2)); border: 1px solid color-mix(in srgb, var(--tg) 28%, var(--border)); border-left: 4px solid var(--tg); } .trg2 li.good { --tg: var(--gain); }
+.trg2 li { --tg: var(--warn); padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--tg) 7%, var(--s2)); border: 1px solid color-mix(in srgb, var(--tg) 28%, var(--border)); border-left: 4px solid var(--tg); } .trg2 li.good { --tg: var(--info); }
 .trg2-h { display: flex; gap: 12px; align-items: center; } .trg2-h b { display: block; font-size: 15px; } .trg2 p { margin: 8px 0 0; font-size: 13.5px; color: var(--text); }
 .trg2-w { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; } .trg2-w span { padding: 9px 11px; border-radius: 10px; background: color-mix(in srgb, var(--tg) 9%, transparent); font-size: 12.5px; color: var(--muted); line-height: 1.45; } .trg2-w small { display: block; font: 700 9.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--tg); margin-bottom: 3px; }
 @media (max-width: 700px) { .trg2-w { grid-template-columns: 1fr; } }
@@ -338,7 +338,7 @@ a.pr-row:hover, .pr-row.hot { transform: translateX(4px); border-color: color-mi
 /* round-3 fixes */
 .cmp td:first-child .cf { display: flex; } .cmp td:first-child .cf-i { display: grid; } .cmp td:first-child .cf > span:last-child { display: block; } .cmp td:first-child .cf small { display: block; }
 .spc.tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; } .spc.tags .label { margin: 0; } .spc.tags > div { display: flex; flex-wrap: wrap; gap: 10px; } .tagc { min-width: 200px; }
-.trg-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; } .trg-colh { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font: 700 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--warn); } .trg-colh.good { color: var(--gain); } .trg-colh span { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); }
+.trg-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; } .trg-colh { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font: 700 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--warn); } .trg-colh.good { color: var(--info); } .trg-colh span { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, currentColor 16%, transparent); }
 .trg2 li { padding: 12px; } .trg2 p { margin: 6px 0 0; font-size: 13px; } .trg2-w { grid-template-columns: 1fr; gap: 6px; } .trg2-w span { padding: 7px 10px; }
 @media (max-width: 900px) { .trg-cols { grid-template-columns: 1fr; } }
 .seg-l2 { grid-template-columns: repeat(3, minmax(0, 1fr)); } @media (max-width: 900px) { .seg-l2 { grid-template-columns: 1fr; } }
@@ -377,7 +377,7 @@ a.pr-row:hover, .pr-row.hot { transform: translateX(4px); border-color: color-mi
 .spc-t { height: 10px; background: linear-gradient(90deg, color-mix(in srgb, var(--bc) 12%, var(--s3)), color-mix(in srgb, var(--bc) 55%, var(--s3)) 50%, var(--bc)); box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
 .spc-t i { top: -6px; width: 22px; height: 22px; margin-left: -11px; border: 0; background: radial-gradient(circle at 35% 30%, #fff, color-mix(in srgb, var(--bc) 40%, #fff) 45%, var(--bc)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bc) 28%, transparent), 0 6px 16px -4px var(--bc); }
 .tagc { background: linear-gradient(120deg, color-mix(in srgb, var(--bc) 20%, var(--s2)), var(--s2)); border: 1px solid color-mix(in srgb, var(--bc) 30%, transparent); }
-.trg-bal { height: 10px; } .trg-bal span:first-child { background: linear-gradient(90deg, #FDBA74, var(--warn)) !important; } .trg-bal span:last-child { background: linear-gradient(90deg, var(--gain), #2DD4BF) !important; }
+.trg-bal { height: 10px; } .trg-bal span:first-child { background: linear-gradient(90deg, #FDBA74, var(--warn)) !important; } .trg-bal span:last-child { background: linear-gradient(90deg, #C9DAF5, var(--info)) !important; }
 .trg2 li { border: 1px solid color-mix(in srgb, var(--tg) 30%, transparent); border-left: 0; position: relative; overflow: hidden; background: radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--tg) 16%, transparent), transparent 60%), var(--s2); }
 .trg2 li::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, color-mix(in srgb, var(--tg) 45%, #fff), var(--tg)); }
 .trg2 .trg-i { color: #fff; background: linear-gradient(140deg, color-mix(in srgb, var(--tg) 60%, #fff), var(--tg)); box-shadow: 0 8px 18px -8px var(--tg); }
