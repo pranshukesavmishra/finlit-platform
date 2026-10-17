@@ -66,7 +66,10 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     history = market.price_history(bundle.get("daily_quotes"))
     closes_by_day = dict(zip(history["t"], history["c"]))
     price = live.get("price") or market.latest_close(history)
-    as_of: Optional[date] = parse_date(live.get("asOf")) or (parse_date(history["t"][-1]) if history["t"] else None)
+    live_day = parse_date(live.get("asOf"))
+    if live_day and live_day.year < 1990:  # FinEdge sends 0001-01-01 for quotes it has no date for
+        live_day = None
+    as_of: Optional[date] = live_day or (parse_date(history["t"][-1]) if history["t"] else None)
     # The live quote is newer than the last daily bar (end-of-day files land after the close). Add it as
     # a provisional bar so the header price, chart, returns and technicals all agree with each other.
     provisional = _append_live_bar(history, live, as_of)

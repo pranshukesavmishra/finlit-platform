@@ -231,6 +231,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
 
 def cli():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # FinEdge takes the key as a ?token= query parameter, so httpx's request log lines would print it.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     raise SystemExit(asyncio.run(main()))
 
 

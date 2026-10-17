@@ -50,6 +50,8 @@ SITE_PY=/path/to/python-with-old-site-deps SITE_BACKEND=/path/to/Financial-Portf
 cd frontend && node e2e/accounts.mjs http://127.0.0.1:4173      # 60+ browser checks of the real flows
 dev/run_stack.sh stop
 ```
+With real data instead of fixtures (the key is read from `FINEDGE_API_KEY`, never stored): `python -m finlit.worker ingest-all --limit 200` once, then
+`LIVE_DATA=1 dev/run_stack.sh` (no `SITE_BACKEND` needed; only the market ticker, served by the older site API, is then empty) and `node e2e/live_data.mjs http://127.0.0.1:4173`.
 Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` adds fictional `SMP-` companies so the screener has a universe; never run it in production.
 
 ## Known gaps (need input or later work)
