@@ -34,7 +34,7 @@ function Picker({ label, value, options, taken, onPick, onRemove }: { label: str
     <div className="pk" ref={box}>
       <div className="pk-l"><span>{label}</span>{onRemove && <button className="lnk" onClick={onRemove} aria-label={`Remove ${label}`}>Remove</button>}</div>
       <button className="pk-b" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {value ? <><span className="av sm" aria-hidden="true">{(value.name || value.symbol).slice(0, 2).toUpperCase()}</span><span className="pk-n"><b>{value.name}</b><small>{value.symbol}{value.sector ? " · " + value.sector : ""}</small></span></> : <span className="muted">Choose a company</span>}
+        {value ? <><span className="av mini" aria-hidden="true">{(value.name || value.symbol).slice(0, 2).toUpperCase()}</span><span className="pk-n"><b>{value.name}</b><small>{value.symbol}{value.sector ? " · " + value.sector : ""}</small></span></> : <span className="muted">Choose a company</span>}
         <Icon name="arrow" />
       </button>
       {open && (

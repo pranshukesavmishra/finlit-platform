@@ -160,7 +160,7 @@ export function Screener() {
                 </thead>
                 <tbody>{result.slice(0, shown).map((r) => (
                   <tr key={r.symbol} tabIndex={0} onClick={() => openRow(r)} onKeyDown={(e) => e.key === "Enter" && openRow(r)}>
-                    <td className="stick"><span className="co"><span className="av sm" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}</small></span></span></td>
+                    <td className="stick"><span className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}</small></span></span></td>
                     {COLS.flatMap((g) => g.keys).filter((k) => cols.includes(k)).map((k) => <td key={k} className={tone(k, r[k]) + (k === "overall" ? " sc" : "")}>{k === "overall" && r.band ? <span className={"vd " + r.band}>{r.overall}</span> : fmt(METRICS[k], r[k])}</td>)}
                   </tr>))}
                   {!result.length && <tr><td colSpan={cols.length + 1} className="empty">No companies match all of these filters. Try loosening one.</td></tr>}
