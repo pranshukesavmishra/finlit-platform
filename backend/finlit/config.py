@@ -38,6 +38,29 @@ class Settings:
     queue_limit_per_hour: int = field(default_factory=lambda: int(os.getenv("QUEUE_LIMIT_PER_HOUR", "30")))
     queue_max_pending: int = field(default_factory=lambda: int(os.getenv("QUEUE_MAX_PENDING", "500")))
 
+    # ---- accounts
+    # Signs nothing directly; derives the key that encrypts stored authenticator secrets. Must be long and random in production.
+    secret_key: str = field(default_factory=lambda: os.getenv("SECRET_KEY", "dev-only-secret-key-do-not-use-in-production"))
+    # Where emailed links point (the website, not the API).
+    public_site_url: str = field(default_factory=lambda: os.getenv("PUBLIC_SITE_URL", "http://localhost:5173").rstrip("/"))
+    # console = write mails to the outbox table (development); resend = send through Resend.
+    mail_mode: str = field(default_factory=lambda: os.getenv("MAIL_MODE", "console"))
+    resend_api_key: str = field(default_factory=lambda: os.getenv("RESEND_API_KEY", ""))
+    mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
+    # Free sample reports shown in full to everyone (the home page example).
+    showcase_symbols: List[str] = field(default_factory=lambda: _list(os.getenv("SHOWCASE_SYMBOLS", "RELIANCE")))
+    session_days: int = field(default_factory=lambda: int(os.getenv("SESSION_DAYS", "30")))
+    session_idle_days: int = field(default_factory=lambda: int(os.getenv("SESSION_IDLE_DAYS", "7")))
+    admin_session_hours: int = field(default_factory=lambda: int(os.getenv("ADMIN_SESSION_HOURS", "12")))
+
+    # "lax" when the site and API share a registrable domain (production). The domainless staging setup (pages.dev + sslip.io) is
+    # cross-site, so it needs "none"; CSRF tokens and the Origin check still apply.
+    cookie_samesite: str = field(default_factory=lambda: os.getenv("COOKIE_SAMESITE", "lax").lower())
+
+    @property
+    def cookie_secure(self) -> bool:
+        return self.is_production
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
@@ -55,6 +78,12 @@ class Settings:
             problems.append("REDIS_URL has no password (use redis://:PASSWORD@host:6379/0)")
         if "*" in self.allowed_hosts:
             problems.append("ALLOWED_HOSTS must list the real API host names")
+        if len(self.secret_key) < 32 or self.secret_key.startswith("dev-only"):
+            problems.append("SECRET_KEY must be a long random value (32+ characters)")
+        if self.mail_mode != "resend" or not self.resend_api_key:
+            problems.append("MAIL_MODE must be resend with RESEND_API_KEY set (sign-up and reset emails)")
+        if not self.public_site_url.startswith("https://"):
+            problems.append("PUBLIC_SITE_URL must be https:// in production")
         if any(not o.startswith("https://") for o in self.cors_origins):
             problems.append("CORS_ORIGINS must all be https:// in production")
         return problems

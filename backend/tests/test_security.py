@@ -8,7 +8,8 @@ from finlit.security import _bucket_ip, client_ip
 def prod(**kw):
     base = dict(environment="production", finedge_mode="live", finedge_api_key="k",
                 database_url="postgresql://finlit:Str0ng-Secret@db:5432/finlit", redis_url="redis://:pw@redis:6379/0",
-                allowed_hosts=["api.finlitventures.com"], cors_origins=["https://finlitventures.com"])
+                allowed_hosts=["api.finlitventures.com"], cors_origins=["https://finlitventures.com"],
+                secret_key="x" * 48, mail_mode="resend", resend_api_key="re_test", public_site_url="https://finlitventures.com")
     base.update(kw)
     return Settings(**base)
 
@@ -23,6 +24,9 @@ def test_production_settings_ok():
     ({"allowed_hosts": ["*"]}, "ALLOWED_HOSTS"),
     ({"cors_origins": ["http://finlitventures.com"]}, "CORS"),
     ({"finedge_mode": "fixtures"}, "FINEDGE"),
+    ({"secret_key": "dev-only-secret-key-do-not-use-in-production"}, "SECRET_KEY"),
+    ({"mail_mode": "console"}, "MAIL_MODE"),
+    ({"public_site_url": "http://finlitventures.com"}, "PUBLIC_SITE_URL"),
 ])
 def test_unsafe_production_refuses_to_start(override, fragment):
     with pytest.raises(RuntimeError, match=fragment):
@@ -31,7 +35,7 @@ def test_unsafe_production_refuses_to_start(override, fragment):
 
 def test_docs_disabled_in_production():
     app = create_app(prod())
-    paths = {r.path for r in app.routes}
+    paths = {getattr(r, "path", "") for r in app.routes}
     assert "/api/docs" not in paths and "/api/openapi.json" not in paths
 
 

@@ -42,7 +42,8 @@ async def store():
         # Timescale refuses to drop a hypertable in the same statement as other tables.
         await conn.execute("DROP TABLE IF EXISTS price_daily CASCADE")
         await conn.execute("DROP TABLE IF EXISTS snapshots, scores, companies, ingest_runs, "
-                           "ingest_queue, schema_migrations CASCADE")
+                           "ingest_queue, schema_migrations, users, sessions, email_tokens, audit_events, user_state, "
+                           "plan_requests, outbox CASCADE")
     await s.redis.flushdb()
     await s.migrate()
     yield s
@@ -70,7 +71,7 @@ async def api(ingested):
 async def test_summary_served_with_etag_and_304(api):
     r = await api.get("/api/stocks/reliance")
     assert r.status_code == 200
-    assert r.headers["cache-control"].startswith("public")
+    assert r.headers["cache-control"].startswith("private") and "Cookie" in r.headers["vary"]  # plan-dependent section
     body = r.json()
     assert body["meta"]["symbol"] == "RELIANCE" and body["score"]["overall"] is not None
     again = await api.get("/api/stocks/RELIANCE", headers={"If-None-Match": r.headers["etag"]})
@@ -79,7 +80,7 @@ async def test_summary_served_with_etag_and_304(api):
 
 async def test_screener_universe(api):
     r = await api.get("/api/screener/universe")
-    assert r.status_code == 200 and r.headers["cache-control"].startswith("public")
+    assert r.status_code == 200 and r.headers["cache-control"].startswith("private") and "Cookie" in r.headers["vary"]
     rows = {x["symbol"]: x for x in r.json()["rows"]}
     rel = rows["RELIANCE"]
     assert rel["name"] == "Reliance Industries Ltd" and rel["sector"]

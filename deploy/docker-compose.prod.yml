@@ -60,6 +60,11 @@ services:
       ALLOWED_HOSTS: api.finlitventures.com,research-api,localhost
       CORS_ORIGINS: https://finlitventures.com,https://www.finlitventures.com
       CLIENT_IP_HEADER: cf-connecting-ip
+      PUBLIC_SITE_URL: https://finlitventures.com
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      MAIL_MODE: resend
+      RESEND_API_KEY: ${RESEND_API_KEY:?set RESEND_API_KEY in .env}
+      MAIL_FROM: ${MAIL_FROM:-FinLit Ventures <hello@finlitventures.com>}
     depends_on: {db: {condition: service_healthy}, redis: {condition: service_healthy}}
     networks: [internal]
 

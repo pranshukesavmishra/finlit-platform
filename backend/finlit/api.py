@@ -7,11 +7,13 @@ repeat views without reaching the origin at all.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
+import orjson
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -19,6 +21,10 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from .auth import routes as auth_routes
+from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
+from .auth.mailer import ConsoleMailer, ResendMailer
+from .auth.service import current
 from .config import Settings, get_settings
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
 from .snapshot import PRICE_RANGES, SECTIONS
@@ -29,6 +35,8 @@ CACHE_STOCK = "public, max-age=60, stale-while-revalidate=600"
 CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
 UNLIMITED_PATHS = ("/api/health",)
+MAX_BODY = 64 * 1024  # every request body in this API is small JSON
+CACHE_PRIVATE = "private, max-age=60"
 
 
 class RateLimitMiddleware:
@@ -51,6 +59,41 @@ class RateLimitMiddleware:
         await self.app(scope, receive, send)
 
 
+class BodyLimitMiddleware:
+    """Reject oversized request bodies before they are parsed (declared length first, then bytes actually received)."""
+
+    def __init__(self, app: ASGIApp, limit: int = MAX_BODY):
+        self.app, self.limit = app, limit
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS"):
+            return await self.app(scope, receive, send)
+        declared = dict(scope["headers"]).get(b"content-length")
+        too_big = JSONResponse({"status": "too_large", "detail": "Request is too large."}, status_code=413,
+                               headers={"Cache-Control": "no-store"})
+        if declared and declared.isdigit() and int(declared) > self.limit:
+            return await too_big(scope, receive, send)
+        seen = 0
+
+        async def counted():
+            nonlocal seen
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > self.limit:
+                    raise _TooLarge()
+            return message
+
+        try:
+            await self.app(scope, counted, send)
+        except _TooLarge:
+            await too_big(scope, receive, send)
+
+
+class _TooLarge(Exception):
+    pass
+
+
 def create_app(settings: Optional[Settings] = None, store: Optional[Store] = None) -> FastAPI:
     settings = settings or get_settings()
     problems = settings.validate()
@@ -61,6 +104,11 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def lifespan(app: FastAPI):
         app.state.store = store or await Store.connect(settings)
         app.state.limiter = RateLimiter(app.state.store.redis)
+        app.state.settings = settings
+        if settings.mail_mode == "resend" and settings.resend_api_key:
+            app.state.mailer = ResendMailer(settings.resend_api_key, settings.mail_from)
+        else:
+            app.state.mailer = ConsoleMailer(app.state.store.pool)
         yield
         if store is None:
             await app.state.store.close()
@@ -72,9 +120,11 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     # Last added runs first: headers wrap everything, then host check, CORS, rate limit, gzip.
     app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
     app.add_middleware(RateLimitMiddleware, settings=settings)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET"],
-                       allow_headers=["If-None-Match"], expose_headers=["ETag", "Server-Timing", "Retry-After"],
-                       allow_credentials=False, max_age=600)
+    app.add_middleware(BodyLimitMiddleware)
+    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
+                       allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+                       allow_headers=["If-None-Match", "Content-Type", "X-CSRF-Token"],
+                       expose_headers=["ETag", "Server-Timing", "Retry-After"], allow_credentials=True, max_age=600)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(SecurityHeadersMiddleware)
 
@@ -144,10 +194,39 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         hit = await app.state.store.get_section(symbol, statement, name)
         if hit is None:
             return await missing(request, symbol, statement)
-        return cached(request, hit[0], hit[1], CACHE_STOCK, started)
+        if not varies_by_plan(name):
+            return cached(request, hit[0], hit[1], CACHE_STOCK, started)
+        # Plan-dependent: the showcase company is fully open; everything else is trimmed to the caller's plan on the server.
+        plan = "gold" if symbol in settings.showcase_symbols else (await current(request)).plan
+        if plan == "gold":
+            response = cached(request, hit[0], hit[1], CACHE_PRIVATE, started)
+        else:
+            body, etag = await redacted(symbol, statement, name, plan, hit)
+            response = cached(request, body, etag, CACHE_PRIVATE, started)
+        response.headers["Vary"] = "Cookie"
+        return response
+
+    async def redacted(symbol: str, statement: str, name: str, plan: str, hit) -> tuple:
+        etag = '"' + hashlib.sha1(f"{hit[1]}|{plan}".encode()).hexdigest()[:20] + '"'  # nosec B324 - cache key, not security
+        key = f"red:{symbol}:{statement}:{name}:{plan}:{etag}"
+        redis = app.state.store.redis
+        try:
+            body = await redis.get(key)
+        except Exception:
+            body = None
+        if body is None:
+            body = orjson.dumps(redact_section(name, orjson.loads(hit[0]), plan))
+            try:
+                await redis.set(key, body, ex=3600)
+            except Exception:
+                pass
+        return body, etag
 
     @app.get("/api/screener/top")
-    async def top(limit: int = Query(50, ge=1, le=200)):
+    async def top(request: Request, limit: int = Query(50, ge=1, le=200)):
+        if not has((await current(request)).plan, "bronze"):
+            return JSONResponse({"status": "plan_required", "plan": "bronze", "detail": "The ranked list is part of the Bronze plan."},
+                                status_code=403, headers={"Cache-Control": "no-store"})
         rows = await app.state.store.top_scores(limit=limit)
         for r in rows:
             for k, v in list(r.items()):
@@ -155,10 +234,10 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                     r[k] = v.isoformat()
                 elif v is not None and not isinstance(v, (int, str, bool, float)):
                     r[k] = float(v)
-        return JSONResponse({"rows": rows}, headers={"Cache-Control": CACHE_STOCK})
+        return JSONResponse({"rows": rows}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
 
     @app.get("/api/screener/universe")
-    async def universe():
+    async def universe(request: Request):
         """Every scored company in one cacheable response; the website filters and compares in the browser."""
         rows = await app.state.store.screener_rows()
         out = []
@@ -168,7 +247,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 if v is not None and not isinstance(v, (int, str, bool, float)):
                     r[k] = float(v)
             out.append(r)
-        return JSONResponse({"rows": out}, headers={"Cache-Control": CACHE_STOCK})
+        out = redact_universe(out, (await current(request)).plan, set(settings.showcase_symbols))
+        return JSONResponse({"rows": out}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
 
+    app.include_router(auth_routes.router)
     return app
 
