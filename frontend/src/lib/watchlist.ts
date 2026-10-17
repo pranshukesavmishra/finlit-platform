@@ -1,4 +1,4 @@
-// Watchlists are kept in this browser and, for signed-in Bronze and Gold members, mirrored to their account (see lib/sync.tsx)
+// Watchlists are kept in this browser and, for signed-in Silver and Gold members, mirrored to their account (see lib/sync.tsx)
 // so lists follow them to other devices and the app.
 import { useSyncExternalStore } from "react";
 

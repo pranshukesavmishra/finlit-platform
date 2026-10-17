@@ -27,7 +27,7 @@ and financial data. Before payments go live we add an external penetration test.
 | 5 | Database | Parameterised SQL only; API connects as a **read-only role** that cannot change or delete data | ✅ |
 | 6 | Identity | Email OTP + Google + passkeys; no passwords stored anywhere | ⏳ Phase 3 |
 | 7 | Sessions | Opaque session ID in a `__Host-` HttpOnly Secure SameSite cookie; rotation; device list with sign-out | ⏳ Phase 3 |
-| 8 | Authorization | Plans (Basic/Bronze/Gold) enforced on the server for every request | ⏳ Phase 3 |
+| 8 | Authorization | Plans (Basic/Silver/Gold) enforced on the server for every request | ⏳ Phase 3 |
 | 9 | Payments | Razorpay orders created server-side, both signatures verified, webhook idempotency, append-only ledger | ⏳ Phase 3 |
 | 10 | Data protection | TLS everywhere; encrypted backups; minimal personal data; field-level encryption for sensitive IDs | ⏳ Phase 3 |
 | 11 | Supply chain | pip-audit, bandit, gitleaks, Dependabot, read-only CI tokens, pinned versions | ✅ |

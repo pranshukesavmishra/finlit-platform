@@ -207,7 +207,7 @@ async def test_plan_redaction_on_the_server(app, anon):
     body = r.json()
     assert body["score"]["overall"] is None and body["thesis"] is None and body["strengths"] == []
     ratios = (await anon.get("/api/stocks/RELIANCE/ratios")).json()
-    assert ratios["history"]["rows"] == {} and ratios["valuationHistory"]["rows"] == {}
+    assert 0 < len(ratios["history"]["rows"]) <= 5 and ratios["valuationHistory"]["rows"] == {}
     price = (await anon.get("/api/stocks/RELIANCE/price?range=1Y")).json()
     assert "ema200" not in price["series"] and set(price["technical"]) <= {"price", "ema50", "vsEma200Pct"}
     assert (await anon.get("/api/stocks/RELIANCE/segments")).json()["segments"] == {}
@@ -215,21 +215,21 @@ async def test_plan_redaction_on_the_server(app, anon):
     rows = (await anon.get("/api/screener/universe")).json()["rows"]
     assert rows[0]["overall"] is None and rows[0]["pe"] is not None  # plain ratios stay open
 
-    bronze = await signed_in(app, "b@example.com", plan="bronze")
-    s = (await bronze.get("/api/stocks/RELIANCE")).json()
+    silver = await signed_in(app, "b@example.com", plan="silver")
+    s = (await silver.get("/api/stocks/RELIANCE")).json()
     assert s["score"]["overall"] is not None and s["thesis"]
-    hist = (await bronze.get("/api/stocks/RELIANCE/ratios")).json()["history"]["rows"]
+    hist = (await silver.get("/api/stocks/RELIANCE/ratios")).json()["history"]["rows"]
     assert hist and set(hist) <= {"gross_margin", "operating_margin", "net_margin", "roe", "roce"}
-    assert (await bronze.get("/api/screener/top")).status_code == 200
-    assert "ema200" not in (await bronze.get("/api/stocks/RELIANCE/price?range=1Y")).json()["series"]
+    assert (await silver.get("/api/screener/top")).status_code == 200
+    assert "ema200" not in (await silver.get("/api/stocks/RELIANCE/price?range=1Y")).json()["series"]
 
     gold = await signed_in(app, "g@example.com", plan="gold")
     assert len((await gold.get("/api/stocks/RELIANCE/ratios")).json()["history"]["rows"]) > 5
     assert (await gold.get("/api/stocks/RELIANCE/price?range=1Y")).json()["series"].get("ema200")
     # a Gold response never reaches a Basic caller through the cache
     again = await anon.get("/api/stocks/RELIANCE/ratios")
-    assert again.json()["history"]["rows"] == {}
-    for c in (bronze, gold):
+    assert len(again.json()["history"]["rows"]) <= 5
+    for c in (silver, gold):
         await c.aclose()
 
 
@@ -251,31 +251,31 @@ async def test_saved_state_and_plan_limits(app):
     r = await basic.put("/api/me/watchlist", json=lists)
     assert r.status_code == 403 and r.json()["detail"]["status"] == "plan_required"
 
-    bronze = await signed_in(app, "b@example.com", plan="bronze")
-    assert (await bronze.put("/api/me/watchlist", json=lists)).status_code == 200
-    state = (await bronze.get("/api/me/state")).json()
+    silver = await signed_in(app, "b@example.com", plan="silver")
+    assert (await silver.put("/api/me/watchlist", json=lists)).status_code == 200
+    state = (await silver.get("/api/me/state")).json()
     assert state["watchlist"]["lists"][0]["symbols"] == ["RELIANCE", "TCS"] and state["watchlist"]["meta"]["TCS"]["target"] == 4000
     four = {"lists": [{"id": f"l{i}", "name": f"L{i}", "symbols": []} for i in range(4)], "meta": {}}
-    assert (await bronze.put("/api/me/watchlist", json=four)).json()["detail"]["status"] == "plan_limit"
+    assert (await silver.put("/api/me/watchlist", json=four)).json()["detail"]["status"] == "plan_limit"
     bad_symbol = {"lists": [{"id": "x", "name": "x", "symbols": ["A;DROP TABLE"]}], "meta": {}}
-    assert (await bronze.put("/api/me/watchlist", json=bad_symbol)).status_code == 422
+    assert (await silver.put("/api/me/watchlist", json=bad_symbol)).status_code == 422
     screen = {"screens": [{"name": "Quality", "state": {"ranges": {"roe": {"min": 15}}, "sectors": [], "bands": ["strong"]}}]}
-    assert (await bronze.put("/api/me/screens", json=screen)).status_code == 200
+    assert (await silver.put("/api/me/screens", json=screen)).status_code == 200
     unknown = {"screens": [{"name": "x", "state": {"ranges": {"__proto__": {"min": 1}}}}]}
-    assert (await bronze.put("/api/me/screens", json=unknown)).status_code == 422
+    assert (await silver.put("/api/me/screens", json=unknown)).status_code == 422
     assert (await basic.put("/api/me/prefs", json={"palette": "midnight", "density": "compact", "dashboard": [{"id": "movers", "on": True, "size": "full"}]})).status_code == 200
     assert (await basic.get("/api/me/state")).json()["prefs"]["palette"] == "midnight"
     assert (await basic.put("/api/me/prefs", json={"palette": "neon"})).status_code == 422
     # one user never sees another's state
-    assert (await bronze.get("/api/me/state")).json()["prefs"] == {}
-    for c in (basic, bronze):
+    assert (await silver.get("/api/me/state")).json()["prefs"] == {}
+    for c in (basic, silver):
         await c.aclose()
 
 
 async def test_plan_request_is_deduplicated(app):
     c = await signed_in(app)
-    assert (await c.post("/api/me/plan-request", json={"plan": "bronze", "note": "please"})).status_code == 201
-    assert (await c.post("/api/me/plan-request", json={"plan": "bronze"})).status_code == 201
+    assert (await c.post("/api/me/plan-request", json={"plan": "silver", "note": "please"})).status_code == 201
+    assert (await c.post("/api/me/plan-request", json={"plan": "silver"})).status_code == 201
     async with app.state.store.pool.acquire() as conn:
         assert await conn.fetchval("SELECT count(*) FROM plan_requests") == 1
     await c.aclose()
@@ -354,26 +354,26 @@ async def test_oversized_bodies_rejected(anon):
     assert r.status_code == 413
 
 
-async def test_score_history_needs_bronze_for_other_companies_and_data_health_is_admin_only(app, anon):
+async def test_score_history_needs_silver_for_other_companies_and_data_health_is_admin_only(app, anon):
     app.state.settings.showcase_symbols[:] = ["SOMETHINGELSE"]
     assert (await anon.get("/api/stocks/RELIANCE/score-history")).status_code == 403
-    bronze = await signed_in(app, "b@example.com", plan="bronze")
-    assert len((await bronze.get("/api/stocks/RELIANCE/score-history")).json()["points"]) == 1
-    assert (await bronze.get("/api/admin/data-health")).status_code == 403
+    silver = await signed_in(app, "b@example.com", plan="silver")
+    assert len((await silver.get("/api/stocks/RELIANCE/score-history")).json()["points"]) == 1
+    assert (await silver.get("/api/admin/data-health")).status_code == 403
     admin = await make_admin(app)
     secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
     import time
     await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})
     h = await admin.get("/api/admin/data-health")
     assert h.status_code == 200 and h.json()["loaded"] == 1
-    for c in (bronze, admin):
+    for c in (silver, admin):
         await c.aclose()
 
 
 async def test_target_price_alert_fires_once_on_a_crossing(app):
     from finlit.alerts import check_alerts
     pool = app.state.store.pool
-    c = await signed_in(app, "b@example.com", plan="bronze")
+    c = await signed_in(app, "b@example.com", plan="silver")
     wl = {"lists": [{"id": "main", "name": "x", "symbols": ["RELIANCE"]}], "meta": {"RELIANCE": {"target": 1200, "added": 1}}}
     assert (await c.put("/api/me/watchlist", json=wl)).status_code == 200
     async with pool.acquire() as conn:
@@ -446,16 +446,16 @@ async def test_portfolio_is_saved_per_plan_and_validated(app):
     basic = await signed_in(app, "a@example.com")
     h = {"holdings": [{"id": "h1", "symbol": "reliance", "qty": 10, "price": 1200.5, "date": "2025-01-15"}]}
     assert (await basic.put("/api/me/portfolio", json=h)).json()["detail"]["status"] == "plan_required"
-    bronze = await signed_in(app, "b@example.com", plan="bronze")
-    assert (await bronze.put("/api/me/portfolio", json=h)).status_code == 200
-    assert (await bronze.get("/api/me/state")).json()["portfolio"]["holdings"][0]["symbol"] == "RELIANCE"
+    silver = await signed_in(app, "b@example.com", plan="silver")
+    assert (await silver.put("/api/me/portfolio", json=h)).status_code == 200
+    assert (await silver.get("/api/me/state")).json()["portfolio"]["holdings"][0]["symbol"] == "RELIANCE"
     for bad in ({"id": "h2", "symbol": "TCS", "qty": 0, "price": 1}, {"id": "h2", "symbol": "A;B", "qty": 1, "price": 1}, {"id": "h2", "symbol": "TCS", "qty": 1, "price": 1, "date": "tomorrow"}):
-        assert (await bronze.put("/api/me/portfolio", json={"holdings": [bad]})).status_code == 422
+        assert (await silver.put("/api/me/portfolio", json={"holdings": [bad]})).status_code == 422
     many = {"holdings": [{"id": f"h{i}", "symbol": "TCS", "qty": 1, "price": 1} for i in range(31)]}
-    assert (await bronze.put("/api/me/portfolio", json=many)).json()["detail"]["status"] == "plan_limit"
+    assert (await silver.put("/api/me/portfolio", json=many)).json()["detail"]["status"] == "plan_limit"
     dup = {"holdings": [{"id": "x", "symbol": "TCS", "qty": 1, "price": 1}, {"id": "x", "symbol": "INFY", "qty": 1, "price": 1}]}
-    assert (await bronze.put("/api/me/portfolio", json=dup)).status_code == 422
-    for c in (basic, bronze):
+    assert (await silver.put("/api/me/portfolio", json=dup)).status_code == 422
+    for c in (basic, silver):
         await c.aclose()
 
 
@@ -464,7 +464,7 @@ async def test_screen_alert_emails_only_new_matches(app):
     pool = app.state.store.pool
     assert matches({"pe": 15, "sector": "IT", "band": "strong", "overall": 80}, {"ranges": {"pe": {"max": 20}}, "sectors": ["IT"], "bands": ["strong"]})
     assert not matches({"pe": 25}, {"ranges": {"pe": {"max": 20}}}) and not matches({"pe": None}, {"ranges": {"pe": {"max": 20}}})
-    c = await signed_in(app, "b@example.com", plan="bronze")
+    c = await signed_in(app, "b@example.com", plan="silver")
     screen = {"screens": [{"name": "Cheap", "state": {"ranges": {"pe": {"max": 30}}, "sectors": [], "bands": []}}]}
     assert (await c.put("/api/me/screens", json=screen)).status_code == 200
     async with pool.acquire() as conn:
@@ -482,7 +482,7 @@ async def test_weekly_digest_is_opt_in_and_sent_once_a_week(app):
     from datetime import date, timedelta
     from finlit.digest import send_digests
     pool = app.state.store.pool
-    c = await signed_in(app, "b@example.com", plan="bronze")
+    c = await signed_in(app, "b@example.com", plan="silver")
     await c.put("/api/me/watchlist", json={"lists": [{"id": "m", "name": "x", "symbols": ["RELIANCE"]}], "meta": {}})
     async with pool.acquire() as conn:
         await conn.execute("INSERT INTO feed_items (kind, title, symbol, company, item_date, period) VALUES ('result', 'Board meeting', 'RELIANCE', 'Reliance', $1, 'Q2 FY27')", date.today() + timedelta(days=2))

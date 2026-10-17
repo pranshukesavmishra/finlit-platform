@@ -7,10 +7,10 @@ import { applyPalette } from "./palettes";
 import { usePrefs } from "./prefs";
 
 export type { Plan };
-export const RANK: Record<Plan, number> = { basic: 0, bronze: 1, gold: 2 };
+export const RANK: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
 export const TIER: Record<Plan, { n: string; ic: string; tc: string }> = {
   basic: { n: "Basic", ic: "sprout", tc: "--t-basic" },
-  bronze: { n: "Bronze", ic: "medal", tc: "--t-bronze" },
+  silver: { n: "Silver", ic: "medal", tc: "--t-silver" },
   gold: { n: "Gold", ic: "crown", tc: "--t-gold" },
 };
 

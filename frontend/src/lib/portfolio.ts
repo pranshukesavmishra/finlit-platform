@@ -1,4 +1,4 @@
-// Holdings live in this browser and, for signed-in Bronze and Gold members, in their account (see lib/sync.tsx).
+// Holdings live in this browser and, for signed-in Silver and Gold members, in their account (see lib/sync.tsx).
 import { useSyncExternalStore } from "react";
 
 export type Holding = { id: string; symbol: string; qty: number; price: number; date?: string; note?: string };

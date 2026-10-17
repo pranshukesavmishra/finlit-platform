@@ -77,7 +77,7 @@ export function AppShell() {
         <div className="side-foot">
           <div className="side-plan" style={{ "--tc": `var(${TIER[plan].tc})` } as React.CSSProperties}>
             <span className={"tier " + plan}><Icon name={TIER[plan].ic} />{TIER[plan].n}</span>
-            {plan !== "gold" ? <><p>{plan === "basic" ? "Unlock the FinLit score, watchlists and more." : "Gold adds advanced scoring and deeper analysis."}</p><Link className="btn primary" to={user ? "/account/plan?want=" + (plan === "basic" ? "bronze" : "gold") : "/plans"}>{plan === "basic" ? "See Bronze" : "See Gold"}</Link></> : <p>Everything is unlocked.</p>}
+            {plan !== "gold" ? <><p>{plan === "basic" ? "Unlock the FinLit score, watchlists and more." : "Gold adds advanced scoring and deeper analysis."}</p><Link className="btn primary" to={user ? "/account/plan?want=" + (plan === "basic" ? "silver" : "gold") : "/plans"}>{plan === "basic" ? "See Silver" : "See Gold"}</Link></> : <p>Everything is unlocked.</p>}
           </div>
         </div>
       </aside>

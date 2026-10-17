@@ -167,7 +167,7 @@ export function Appearance() {
         </div>
         <h2 style={{ marginTop: 22 }}>Price alerts</h2>
         <label className="sw"><input type="checkbox" checked={p.alerts} onChange={(e) => prefs.set({ alerts: e.target.checked })} /><span aria-hidden="true" /><b>Email me when a watchlist stock crosses its target price</b></label>
-        <p className="muted" style={{ marginTop: 6 }}>Set a target on any stock in your <Link to="/watchlist">watchlist</Link> (Bronze and Gold). You get one email when the price crosses it, at most once a day per stock.</p>
+        <p className="muted" style={{ marginTop: 6 }}>Set a target on any stock in your <Link to="/watchlist">watchlist</Link> (Silver and Gold). You get one email when the price crosses it, at most once a day per stock.</p>
         <label className="sw" style={{ marginTop: 14 }}><input type="checkbox" checked={p.screenAlerts} onChange={(e) => prefs.set({ screenAlerts: e.target.checked })} /><span aria-hidden="true" /><b>Email me when a company newly matches one of my saved screens</b></label>
         <h2 style={{ marginTop: 22 }}>Weekly email</h2>
         <label className="sw"><input type="checkbox" checked={p.digest} onChange={(e) => prefs.set({ digest: e.target.checked })} /><span aria-hidden="true" /><b>Send me “your week ahead” every Sunday</b></label>
@@ -184,11 +184,11 @@ function PlanTab() {
   const [params] = useSearchParams();
   const want = params.get("want");
   const [note, setNote] = useState("");
-  const req = useMutation({ mutationFn: (p: "bronze" | "gold") => acct.requestPlan(p, note.trim() || undefined), onSuccess: () => refresh() });
+  const req = useMutation({ mutationFn: (p: "silver" | "gold") => acct.requestPlan(p, note.trim() || undefined), onSuccess: () => refresh() });
   const rows: [Plan, string[]][] = [
     ["basic", ["Screener, comparison of 2 companies, glossary, latest quarter, financials, ratios, peers, charts"]],
-    ["bronze", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export"]],
-    ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks"]],
+    ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "IPO data and portfolio import (Soon)"]],
+    ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks", "Advanced model score (Soon) and equity research reports (Later)"]],
   ];
   return (
     <section className="card acct-c">
@@ -200,7 +200,7 @@ function PlanTab() {
           <div key={k} className={"plan2" + (plan === k ? " cur" : "") + (want === k ? " want" : "")} style={{ "--tc": `var(${TIER[k].tc})` } as React.CSSProperties}>
             <b><Icon name={TIER[k].ic} />{TIER[k].n}</b>
             <ul>{f.map((x) => <li key={x}><Icon name="check" />{x}</li>)}</ul>
-            {plan === k ? <span className="chip gold">Your plan</span> : k !== "basic" && RANK[k] > RANK[plan] ? <button className="btn" disabled={req.isPending || (req.isSuccess && req.variables === k)} onClick={() => req.mutate(k as "bronze" | "gold")}>{req.isSuccess && req.variables === k ? "Requested" : `Request ${TIER[k].n}`}</button> : null}
+            {plan === k ? <span className="chip gold">Your plan</span> : k !== "basic" && RANK[k] > RANK[plan] ? <button className="btn" disabled={req.isPending || (req.isSuccess && req.variables === k)} onClick={() => req.mutate(k as "silver" | "gold")}>{req.isSuccess && req.variables === k ? "Requested" : `Request ${TIER[k].n}`}</button> : null}
           </div>))}
       </div>
       <label className="form" style={{ display: "block", marginTop: 14 }}><span className="muted" style={{ fontSize: 13 }}>Anything we should know? (optional)</span><textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={2} style={{ width: "100%" }} /></label>

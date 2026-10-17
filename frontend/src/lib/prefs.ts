@@ -9,14 +9,14 @@ export type WidgetPref = { id: string; on: boolean; size: WidgetSize };
 export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; screenAlerts: boolean; digest: boolean; dashboard: WidgetPref[] };
 
 /** Everything the dashboard can show. `min` is the plan a widget needs (its data is gated on the server too). */
-export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "bronze" | "gold"; size: WidgetSize }[] = [
+export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "silver" | "gold"; size: WidgetSize }[] = [
   { id: "snapshot", label: "Market snapshot", blurb: "Broad market and index moves at a glance.", min: "basic", size: "full" },
   { id: "results", label: "Latest quarter results", blurb: "Newest quarter for your stocks: year-on-year and quarter-on-quarter.", min: "basic", size: "full" },
   { id: "dates", label: "Results dates coming up", blurb: "When your stocks, or the market, report quarterly results.", min: "basic", size: "half" },
   { id: "news", label: "News for my stocks", blurb: "The latest exchange announcements for the stocks you follow.", min: "basic", size: "half" },
   { id: "ipos", label: "IPOs open and upcoming", blurb: "Issues you can apply to now or soon.", min: "basic", size: "half" },
-  { id: "movers", label: "Watchlist movers", blurb: "Biggest moves among the stocks you follow.", min: "bronze", size: "half" },
-  { id: "second", label: "Worth a second look", blurb: "Strong FinLit scores trading below their usual valuation.", min: "bronze", size: "half" },
+  { id: "movers", label: "Watchlist movers", blurb: "Biggest moves among the stocks you follow.", min: "silver", size: "half" },
+  { id: "second", label: "Worth a second look", blurb: "Strong FinLit scores trading below their usual valuation.", min: "silver", size: "half" },
   { id: "screens", label: "My saved screens", blurb: "Open a saved screen and see how many companies match today.", min: "basic", size: "half" },
   { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit score bands.", min: "gold", size: "half" },
   { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "half" },

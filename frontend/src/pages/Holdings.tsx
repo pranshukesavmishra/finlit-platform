@@ -90,7 +90,7 @@ export function HoldingsPage() {
     <div className="wrap ipo">
       <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>My portfolio</h1><p className="muted">What you own, what it is worth, and how it is spread. Prices come from the latest FinLit data; nothing here is sent to a broker.</p></div>
         <div className="row"><button className="btn" onClick={() => setPaste(!paste)}><Icon name="table" />Import</button><button className="btn" onClick={exportCsv} disabled={empty}>Export CSV</button></div></header>
-      <Gate tier="bronze" title="Track your portfolio" points={["Value, profit and loss at a glance", "Allocation by stock, sector and FinLit band", "Concentration and health read"]}>
+      <Gate tier="silver" title="Track your portfolio" points={["Value, profit and loss at a glance", "Allocation by stock, sector and FinLit band", "Concentration and health read"]}>
         {paste && <section className="card acct-c"><h2>Import holdings</h2><p className="muted">One per line: <code>symbol, quantity, average buy price, date (optional)</code>. Paste from a spreadsheet, or choose a CSV file.</p>
           <textarea className="imp" rows={5} value={text} onChange={(e) => setText(e.target.value)} placeholder={"RELIANCE, 10, 1250.50, 2025-03-14\nTCS, 5, 3900"} aria-label="Holdings to import" />
           <div className="row" style={{ marginTop: 10 }}><button className="btn primary" onClick={() => importText(text)} disabled={!text.trim()}>Import</button><button className="btn" onClick={() => file.current?.click()}>Choose CSV file…</button>

@@ -1,4 +1,4 @@
-"""Target-price alerts: when a stock on a Bronze or Gold member's watchlist crosses the target price they set, send one email.
+"""Target-price alerts: when a stock on a Silver or Gold member's watchlist crosses the target price they set, send one email.
 
 Runs from the worker every few minutes in market hours. A stock only alerts when it *crosses* its target (the side changes
 since the last check), at most once a day per stock, and never for members who switched alerts off in their preferences.
@@ -26,7 +26,7 @@ async def check_alerts(pool, mailer: Mailer, site_url: str) -> int:
     async with pool.acquire() as conn:
         users = await conn.fetch(
             "SELECT u.id, u.email, s.watchlist, s.prefs FROM user_state s JOIN users u ON u.id = s.user_id "
-            "WHERE u.status = 'active' AND u.email_verified_at IS NOT NULL AND u.plan IN ('bronze', 'gold') "
+            "WHERE u.status = 'active' AND u.email_verified_at IS NOT NULL AND u.plan IN ('silver', 'gold') "
             "AND (u.plan_until IS NULL OR u.plan_until > now()) AND s.watchlist <> '{}'::jsonb")
         sent = 0
         for u in users:

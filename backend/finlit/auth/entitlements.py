@@ -9,19 +9,19 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-RANK = {"basic": 0, "bronze": 1, "gold": 2}
+RANK = {"basic": 0, "silver": 1, "gold": 2}
 PLANS = tuple(RANK)
 
-# The ratio history cards (Bronze) read these five; the full multi-year table (Gold) reads all of them.
-BRONZE_HISTORY_KEYS = ("gross_margin", "operating_margin", "net_margin", "roe", "roce")
+# The ratio history cards (every plan) read these five; the full multi-year table (Gold) reads all of them.
+BASIC_HISTORY_KEYS = ("gross_margin", "operating_margin", "net_margin", "roe", "roce")
 GOLD_RATIO_GROUPS = {"leverage", "liquidity", "efficiency", "quality", "shareholder"}
-# Technical fields a Bronze account may keep (the 50-day average and the 200-day gap show in the free stats row).
+# Technical fields a Silver account may keep (the 50-day average and the 200-day gap show in the free stats row).
 KEEP_TECHNICAL = ("price", "ema50", "vsEma200Pct")
 MODEL_FIELDS = ("overall", "band", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical")
 
 LIMITS = {
     "basic": {"watchlist_lists": 0, "watchlist_symbols": 0, "screens": 3, "compare": 2, "holdings": 0},
-    "bronze": {"watchlist_lists": 3, "watchlist_symbols": 30, "screens": 20, "compare": 2, "holdings": 30},
+    "silver": {"watchlist_lists": 3, "watchlist_symbols": 30, "screens": 20, "compare": 2, "holdings": 30},
     "gold": {"watchlist_lists": 50, "watchlist_symbols": 1000, "screens": 100, "compare": 4, "holdings": 500},
 }
 
@@ -38,9 +38,9 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
     """Return `data` with everything above `plan` removed. `data` is modified in place and returned."""
     if has(plan, "gold"):
         return data
-    bronze = has(plan, "bronze")
+    silver = has(plan, "silver")
     if section == "summary":
-        if not bronze:
+        if not silver:
             score = data.get("score") or {}
             score["overall"] = None
             score["band"] = {"key": "locked", "label": "Locked"}
@@ -53,7 +53,7 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
     elif section == "ratios":
         history = data.get("history") or {}
         rows = history.get("rows") or {}
-        history["rows"] = {} if not bronze else {k: v for k, v in rows.items() if k in BRONZE_HISTORY_KEYS}
+        history["rows"] = {k: v for k, v in rows.items() if k in BASIC_HISTORY_KEYS}
         vh = data.get("valuationHistory") or {}
         vh["rows"] = {}
         vh["periods"] = []
@@ -64,14 +64,14 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
                     latest.pop(key, None)
                 group["keys"] = group["keys"][:2]
         score = data.get("score") or {}
-        if not bronze:
+        if not silver:
             score["overall"] = None
             score["band"] = {"key": "locked", "label": "Locked"}
             for p in score.get("pillars", []):
                 p["score"] = None
                 p["inputs"] = []
     elif section == "stats":
-        if not bronze:  # the price-statistics charts are a Bronze feature
+        if not silver:  # the price-statistics charts are a Silver feature
             data.clear()
             data["available"] = False
             data["locked"] = True
@@ -88,8 +88,8 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
 
 
 def redact_universe(rows: list, plan: str, showcase: set) -> list:
-    """The screener list: model scores are a Bronze feature (the showcase company stays open as the free example)."""
-    if has(plan, "bronze"):
+    """The screener list: model scores are a Silver feature (the showcase company stays open as the free example)."""
+    if has(plan, "silver"):
         return rows
     out = []
     for r in rows:

@@ -138,7 +138,7 @@ class PasswordIn(BaseModel):
 
 
 class PlanRequestIn(BaseModel):
-    plan: Literal["bronze", "gold"]
+    plan: Literal["silver", "gold"]
     note: Optional[str] = Field(default=None, max_length=300)
 
 
@@ -633,7 +633,7 @@ async def save_state(request: Request, ctx: Ctx, column: str, value: Any) -> Non
 
 @router.put("/me/watchlist")
 async def put_watchlist(request: Request, body: WatchlistIn, ctx: Ctx = Depends(secure_ctx)):
-    need_plan(ctx, "bronze")
+    need_plan(ctx, "silver")
     lim = limits_for(ctx.plan)
     if len(body.lists) > lim["watchlist_lists"]:
         raise fail(403, "plan_limit", f"Your plan includes {lim['watchlist_lists']} lists.", plan="gold")
@@ -650,7 +650,7 @@ async def put_watchlist(request: Request, body: WatchlistIn, ctx: Ctx = Depends(
 
 @router.put("/me/portfolio")
 async def put_portfolio(request: Request, body: PortfolioIn, ctx: Ctx = Depends(secure_ctx)):
-    need_plan(ctx, "bronze")
+    need_plan(ctx, "silver")
     cap = limits_for(ctx.plan)["holdings"]
     if len(body.holdings) > cap:
         raise fail(403, "plan_limit", f"Your plan includes {cap} holdings.", plan="gold")
@@ -664,7 +664,7 @@ async def put_portfolio(request: Request, body: PortfolioIn, ctx: Ctx = Depends(
 @router.put("/me/screens")
 async def put_screens(request: Request, body: ScreensIn, ctx: Ctx = Depends(secure_ctx)):
     if len(body.screens) > limits_for(ctx.plan)["screens"]:
-        raise fail(403, "plan_limit", "Your plan has reached its saved-screen limit.", plan="bronze")
+        raise fail(403, "plan_limit", "Your plan has reached its saved-screen limit.", plan="silver")
     await save_state(request, ctx, "screens", [s.model_dump() for s in body.screens])
     return {"status": "saved"}
 
@@ -691,7 +691,7 @@ async def plan_request(request: Request, body: PlanRequestIn, ctx: Ctx = Depends
 
 # ------------------------------------------------------------------ administrators
 class AdminUserPatch(BaseModel):
-    plan: Optional[Literal["basic", "bronze", "gold"]] = None
+    plan: Optional[Literal["basic", "silver", "gold"]] = None
     plan_days: Optional[int] = Field(default=None, ge=1, le=3650)
     role: Optional[Literal["investor", "admin"]] = None
     status: Optional[Literal["active", "disabled"]] = None
@@ -735,7 +735,7 @@ async def admin_patch(request: Request, uid: str, body: AdminUserPatch, ctx: Ctx
         raise fail(422, "nothing_to_change")
     async with pool.acquire() as conn:
         done = await conn.fetchval(f"UPDATE users SET {', '.join(sets)} WHERE id = $1 RETURNING id", *args)  # nosec B608 - fragments are fixed strings
-        if body.plan in ("bronze", "gold"):
+        if body.plan in ("silver", "gold"):
             await conn.execute("UPDATE plan_requests SET status = 'granted', resolved_at = now() WHERE user_id = $1 AND status = 'open' AND plan = $2", uid, body.plan)
     if done is None:
         raise fail(404, "not_found")

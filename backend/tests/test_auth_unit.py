@@ -55,32 +55,32 @@ def _summary():
 
 
 def test_plan_ranking_and_limits():
-    assert has("gold", "bronze") and has("bronze", "bronze") and not has("basic", "bronze") and not has("bronze", "gold")
-    assert LIMITS["basic"]["watchlist_symbols"] == 0 < LIMITS["bronze"]["watchlist_symbols"] < LIMITS["gold"]["watchlist_symbols"]
+    assert has("gold", "silver") and has("silver", "silver") and not has("basic", "silver") and not has("silver", "gold")
+    assert LIMITS["basic"]["watchlist_symbols"] == 0 < LIMITS["silver"]["watchlist_symbols"] < LIMITS["gold"]["watchlist_symbols"]
 
 
 def test_summary_redaction_per_plan():
     basic = redact_section("summary", _summary(), "basic")
     assert basic["score"]["overall"] is None and basic["thesis"] is None and basic["strengths"] == [] and basic["watchouts"] == []
     assert basic["score"]["pillars"][0]["score"] is None
-    bronze = redact_section("summary", _summary(), "bronze")
-    assert bronze["score"]["overall"] == 72 and bronze["thesis"] == "Strong"
+    silver = redact_section("summary", _summary(), "silver")
+    assert silver["score"]["overall"] == 72 and silver["thesis"] == "Strong"
 
 
 def test_ratio_and_price_redaction():
     ratios = {"history": {"rows": {k: [1] for k in ("roe", "roce", "debt_to_equity", "gross_margin")}},
               "valuationHistory": {"rows": {"pe": [1]}, "periods": ["FY24"]}, "latest": {"a": 1},
               "groups": [{"id": "leverage", "keys": ["x", "y", "z"]}], "score": {"overall": 70, "pillars": [{"score": 1, "inputs": [1]}]}}
-    bronze = redact_section("ratios", __import__("copy").deepcopy(ratios), "bronze")
-    assert set(bronze["history"]["rows"]) == {"roe", "roce", "gross_margin"} and bronze["valuationHistory"]["rows"] == {}
+    silver = redact_section("ratios", __import__("copy").deepcopy(ratios), "silver")
+    assert set(silver["history"]["rows"]) == {"roe", "roce", "gross_margin"} and silver["valuationHistory"]["rows"] == {}
     basic = redact_section("ratios", __import__("copy").deepcopy(ratios), "basic")
-    assert basic["history"]["rows"] == {} and basic["score"]["overall"] is None
+    assert set(basic["history"]["rows"]) == {"roe", "roce", "gross_margin"} and basic["score"]["overall"] is None
     gold = redact_section("ratios", __import__("copy").deepcopy(ratios), "gold")
     assert "debt_to_equity" in gold["history"]["rows"]
     price = {"technical": {"price": 1, "ema50": 2, "ema200": 3, "rsi": 50, "vsEma200Pct": 1.2}, "series": {"t": [1], "ema200": [1]}}
-    out = redact_section("price-1Y", price, "bronze")
+    out = redact_section("price-1Y", price, "silver")
     assert set(out["technical"]) == {"price", "ema50", "vsEma200Pct"} and "ema200" not in out["series"]
-    seg = redact_section("segments", {"segments": {"a": 1}, "latest": [1], "periods": ["x"]}, "bronze")
+    seg = redact_section("segments", {"segments": {"a": 1}, "latest": [1], "periods": ["x"]}, "silver")
     assert seg["segments"] == {} and seg["periods"] == []
 
 
@@ -88,18 +88,18 @@ def test_universe_redaction_keeps_showcase():
     rows = [{"symbol": "RELIANCE", "overall": 62, "band": "healthy"}, {"symbol": "TCS", "overall": 80, "band": "strong"}]
     out = redact_universe(rows, "basic", {"RELIANCE"})
     assert out[0]["overall"] == 62 and out[1]["overall"] is None and out[1]["band"] is None
-    assert redact_universe(rows, "bronze", {"RELIANCE"}) == rows
+    assert redact_universe(rows, "silver", {"RELIANCE"}) == rows
 
 
 def test_which_sections_vary():
     assert varies_by_plan("summary") and varies_by_plan("price-5Y") and not varies_by_plan("financials")
 
 
-def test_price_statistics_are_a_bronze_feature():
+def test_price_statistics_are_a_silver_feature():
     assert varies_by_plan("stats")
     basic = redact_section("stats", {"available": True, "monthly": {"years": [2024]}}, "basic")
     assert basic == {"available": False, "locked": True}
-    assert redact_section("stats", {"available": True, "monthly": 1}, "bronze")["monthly"] == 1
+    assert redact_section("stats", {"available": True, "monthly": 1}, "silver")["monthly"] == 1
 
 
 def test_announcements_are_sorted_into_results_documents_and_news():

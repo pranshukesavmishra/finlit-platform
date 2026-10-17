@@ -182,12 +182,12 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/stocks/{symbol}/score-history")
     async def score_history(request: Request, symbol: str, statement: str = Query("consolidated")):
-        """How the FinLit score has moved (one point per day it was computed). Bronze and above, like the score itself."""
+        """How the FinLit score has moved (one point per day it was computed). Silver and above, like the score itself."""
         symbol = symbol.strip().upper()
         if not SYMBOL.match(symbol) or statement not in ("consolidated", "standalone"):
             return JSONResponse({"status": "invalid"}, status_code=400)
-        if symbol not in settings.showcase_symbols and not has((await current(request)).plan, "bronze"):
-            return JSONResponse({"status": "plan_required", "plan": "bronze", "detail": "Score history is part of the Bronze plan."},
+        if symbol not in settings.showcase_symbols and not has((await current(request)).plan, "silver"):
+            return JSONResponse({"status": "plan_required", "plan": "silver", "detail": "Score history is part of the Silver plan."},
                                 status_code=403, headers={"Cache-Control": "no-store"})
         points = await app.state.store.score_history(symbol, statement)
         return JSONResponse({"symbol": symbol, "points": points}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
@@ -236,8 +236,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/screener/top")
     async def top(request: Request, limit: int = Query(50, ge=1, le=200)):
-        if not has((await current(request)).plan, "bronze"):
-            return JSONResponse({"status": "plan_required", "plan": "bronze", "detail": "The ranked list is part of the Bronze plan."},
+        if not has((await current(request)).plan, "silver"):
+            return JSONResponse({"status": "plan_required", "plan": "silver", "detail": "The ranked list is part of the Silver plan."},
                                 status_code=403, headers={"Cache-Control": "no-store"})
         rows = await app.state.store.top_scores(limit=limit)
         for r in rows:
@@ -251,9 +251,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     @app.get("/api/screener/universe")
     async def universe(request: Request):
         """Every scored company in one response; the website filters and compares in the browser.
-        Built once per few minutes and kept in Redis, one copy per access level (model scores are a Bronze feature)."""
+        Built once per few minutes and kept in Redis, one copy per access level (model scores are a Silver feature)."""
         started = time.perf_counter()
-        level = "bronze" if has((await current(request)).plan, "bronze") else "basic"
+        level = "silver" if has((await current(request)).plan, "silver") else "basic"
         redis = app.state.store.redis
         try:
             hit = await redis.hmget(f"universe:{level}", ["body", "etag"])

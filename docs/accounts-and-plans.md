@@ -14,10 +14,12 @@ How sign-in, plans and the member's own settings work in the real site. Everythi
 - A managed provider (the earlier "managed login" decision) can replace this later: the website only talks to `/api/auth/*`, `/api/me/*`.
 
 ## Plans are enforced on the server
-| What | Basic / visitor | Bronze | Gold |
+The middle plan was called Silver until migration `009_plan_silver.sql`; existing Silver members became Silver. (The "Copper" palette keeps its stored id `silver`.)
+Promised but not built yet, shown as "Soon" / "Later" on the plans page: IPO data and portfolio import (Silver), advanced model score (Gold), equity research report (Gold, later).
+| What | Basic / visitor | Silver | Gold |
 |---|---|---|---|
 | FinLit score, pillar scores, thesis, strengths, watch-outs | removed | yes | yes |
-| Ratio history | removed | 5 key ratios | all, plus valuation history |
+| Ratio history | 5 key ratios | 5 key ratios | all, plus valuation history |
 | Detailed ratio groups, segments, EMA200/RSI, price statistics | removed | statistics yes | all |
 | Watchlist | none | 3 lists, 30 stocks | 50 lists, 1,000 stocks |
 | Saved screens | 3 | 20 | 100 |
@@ -60,7 +62,7 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Payments (Razorpay), Google sign-in/passkeys, legal review of the Terms/Privacy text, and connecting the domain are still to do.
 
 ## Added since: score history, data health, alerts, installable app
-- **Score history:** every ingest writes one `score_history` row per day; the report shows "▲ +3 points since …" once there is a reading about a quarter old (`/api/stocks/{symbol}/score-history`, Bronze+).
+- **Score history:** every ingest writes one `score_history` row per day; the report shows "▲ +3 points since …" once there is a reading about a quarter old (`/api/stocks/{symbol}/score-history`, Silver+).
 - **Data health** (admin console): companies in the universe / loaded / scored / queued, last load, last-24-hour results and recent failures.
 - **Target-price alerts:** `python -m finlit.worker check-alerts` (cron every 10 min in market hours). One email when a watchlist stock *crosses* the target the member set, at most once a day per stock; members can switch it off in Account → Appearance.
 - **Installable app:** web manifest, icons, and a small service worker (offline shell; never caches `/api`). Also `robots.txt` and `sitemap.xml`.
@@ -72,6 +74,6 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Dashboard widgets: results dates, news for my stocks, open and upcoming IPOs.
 
 ## Portfolio, saved-screen alerts and the weekly email
-- **My portfolio** (`/holdings`, Bronze 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit score, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
+- **My portfolio** (`/holdings`, Silver 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit score, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
 - **Saved-screen alerts:** `python -m finlit.worker check-screens` (daily on weekdays). Emails only companies that *newly* match a saved screen; the first check just remembers what matches. The filter rules mirror the website screener; model filters are never evaluated for Basic members.
 - **Weekly "week ahead" email:** `python -m finlit.worker send-digest` (Sunday evening), opt-in per member, at most one per ISO week.

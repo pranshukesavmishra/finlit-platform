@@ -84,12 +84,12 @@ export function Compare() {
     setIds(n);
   };
   const T = TABS.find((t) => t.id === tab)!;
-  const locked = T.model && !has("bronze");
+  const locked = T.model && !has("silver");
   const dists = useMemo(() => { const m = new Map<NumKey, Dist | null>(); (Object.keys(METRICS) as NumKey[]).forEach((k) => m.set(k, distOf(rows, k))); return m; }, [rows]);
   const off0 = off[tab] || [];
   const groups = tab === "custom" ? [{ title: "Your measures", keys: custom }] : T.groups.map((g) => ({ ...g, keys: g.keys.filter((k) => !off0.includes(k)) })).filter((g) => g.keys.length);
   const keys: NumKey[] = groups.flatMap((g) => g.keys);
-  const pool: NumKey[] = tab === "custom" ? ALL.filter((k) => has("bronze") || !METRICS[k].model) : T.groups.flatMap((g) => g.keys);
+  const pool: NumKey[] = tab === "custom" ? ALL.filter((k) => has("silver") || !METRICS[k].model) : T.groups.flatMap((g) => g.keys);
   const toggleKey = (k: NumKey) => (tab === "custom" ? setCustom((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k])) : setOff((o) => ({ ...o, [tab]: (o[tab] || []).includes(k) ? (o[tab] || []).filter((x) => x !== k) : [...(o[tab] || []), k] })));
   const win = (k: NumKey): string | null => {
     const m = METRICS[k]; if (m.better === "none") return null;
@@ -122,7 +122,7 @@ export function Compare() {
             </div>)}
         </div>
 
-        <div className="cmp-tabs" role="tablist" aria-label="Comparison areas">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}{t.model && !has("bronze") && <Icon name="lock" />}</button>)}</div>
+        <div className="cmp-tabs" role="tablist" aria-label="Comparison areas">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}{t.model && !has("silver") && <Icon name="lock" />}</button>)}</div>
         <p className="cmp-blurb">{T.blurb}</p>
 
         {picked.length >= 2 && !locked && tab !== "overview" && scored > 0 && (
@@ -136,11 +136,11 @@ export function Compare() {
                 <div className="cc-h"><span className="av" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><div><span className="tk">Company {LETTER[i]} · {r.symbol}</span><b>{r.name}</b><small>{r.sector}</small></div></div>
                 <div className="cc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{fmt(METRICS.change_pct, r.change_pct)}</span></div>
                 <div className="cc-g"><div><span>Market cap</span><b>{fmt(METRICS.market_cap, r.market_cap)}</b></div><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Debt/Equity</span><b>{fmt(METRICS.debt_to_equity, r.debt_to_equity)}</b></div></div>
-                <Gate tier="bronze" title="See the FinLit score" points={["Overall research score", "Five-pillar scorecard"]}>
+                <Gate tier="silver" title="See the FinLit score" points={["Overall research score", "Five-pillar scorecard"]}>
                   <div className="cc-s"><Ring v={r.overall} band={r.band} /><div><span className="label">FinLit score</span><b>{r.overall ?? "—"}<small>/100</small></b>{r.band && <span className={"vd " + r.band}>{BAND_LABEL[r.band]}</span>}</div></div>
                 </Gate>
               </div>))}</div>
-            <Gate tier="bronze" title="Compare the five FinLit pillars" points={["Quality, Growth, Profitability, Balance sheet, Technical", "See where each company is stronger"]}>
+            <Gate tier="silver" title="Compare the five FinLit pillars" points={["Quality, Growth, Profitability, Balance sheet, Technical", "See where each company is stronger"]}>
               <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="quality" /></span>The five FinLit pillars</h3><span className="s">0–100, higher is better</span></div>
                 <div className="pil-grid">
                   <Radar axes={PILLARS.map((k) => METRICS[k].short)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: PILLARS.map((k) => r[k]) }))} />
@@ -166,7 +166,7 @@ export function Compare() {
           </div>
         )}
         {picked.length >= 2 && !["overview", "spider"].includes(tab) && (
-          <Gate tier="bronze" title={`Unlock ${T.label}`} points={["Model-based pillar scores", "Quality, growth and price behaviour side by side", "Build your own comparison"]}>
+          <Gate tier="silver" title={`Unlock ${T.label}`} points={["Model-based pillar scores", "Quality, growth and price behaviour side by side", "Build your own comparison"]}>
             <div className="card cmp-t">
               <div className="cmp-pick"><span className="label">Compare on</span>{pool.map((k) => <button key={k} className={"mchip" + (keys.includes(k) ? " on" : "")} aria-pressed={keys.includes(k)} onClick={() => toggleKey(k)}>{METRICS[k].short}</button>)}</div>
               {!keys.length ? <p className="muted" style={{ padding: 16 }}>Pick at least one measure above.</p> : (

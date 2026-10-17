@@ -141,7 +141,7 @@ python -m pytest -q             # integration tests use finlit_test DB and Redis
 
 1. `/stocks/:symbol` page (React, the approved stock.html design) wired to these sections, with the
    summary painted first, prefetch on search hover, and instant client-side search.
-2. Accounts and plans: email OTP plus Google sign-in, Razorpay, Basic/Bronze/Gold gating enforced on
+2. Accounts and plans: email OTP plus Google sign-in, Razorpay, Basic/Silver/Gold gating enforced on
    the server.
 3. Gold features: advanced model, quarterly ratios, technical score, buckets, segments, triggers.
 4. Tools: screener, watchlist, PDF/CSV export, alerts.

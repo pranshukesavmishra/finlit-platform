@@ -60,10 +60,10 @@ async def check_screens(pool, mailer: Mailer, site_url: str) -> int:
             prefs = json.loads(u["prefs"]) if isinstance(u["prefs"], str) else (u["prefs"] or {})
             if prefs.get("screenAlerts") is False:
                 continue
-            paid = u["plan"] in ("bronze", "gold")
+            paid = u["plan"] in ("silver", "gold")
             for sc in (json.loads(u["screens"]) if isinstance(u["screens"], str) else u["screens"]) or []:
                 state = sc.get("state") or {}
-                # model filters are a Bronze feature; never reveal scores to a Basic member through an email
+                # model filters are a Silver feature; never reveal scores to a Basic member through an email
                 rows = [r for r in universe if paid or not (set((state.get("ranges") or {})) & MODEL or state.get("bands"))]
                 hit = [r for r in rows if matches(r, state)]
                 seen = await conn.fetchval("SELECT seen FROM screen_state WHERE user_id = $1 AND screen_name = $2", u["id"], sc["name"])

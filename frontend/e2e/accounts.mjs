@@ -108,9 +108,9 @@ check("basic: ratio history withheld by the API", Object.keys((await api(p, "/ap
 check("basic: price statistics withheld by the API", (await api(p, "/api/stocks/RELIANCE/stats")).body.locked === true);
 
 // ---------------------------------------------------------------- plan request -> admin grant -> unlocked
-await p.getByText("Unlock with Bronze").first().click();
-await p.waitForURL(/\/account\/plan\?want=bronze/);
-await p.getByRole("button", { name: "Request Bronze" }).click();
+await p.getByText("Unlock with Silver").first().click();
+await p.waitForURL(/\/account\/plan\?want=silver/);
+await p.getByRole("button", { name: "Request Silver" }).click();
 await p.getByText("Request sent").waitFor();
 check("plan: member can request a plan", true);
 
@@ -179,24 +179,24 @@ await ap2.getByLabel("Authenticator code").fill(totp(secret, 1)); await ap2.getB
 await ap2.waitForURL(/\/dashboard/);
 check("admin: right code signs in", true);
 
-// ---------------------------------------------------------------- now Bronze
+// ---------------------------------------------------------------- now Silver
 await p.goto(base + "/stocks/RELIANCE", { waitUntil: "networkidle" });
 const me = await api(p, "/api/auth/me");
-check("granted plan reaches the member without signing in again", me.body.plan === "bronze", me.body.plan);
-check("bronze: score visible, ratio history partial", (await api(p, "/api/stocks/RELIANCE")).body.score.overall != null && Object.keys((await api(p, "/api/stocks/RELIANCE/ratios")).body.history.rows).length === 5);
-check("bronze: detailed ratios still withheld", (await api(p, "/api/stocks/RELIANCE/segments")).body.periods.length === 0);
+check("granted plan reaches the member without signing in again", me.body.plan === "silver", me.body.plan);
+check("silver: score visible, ratio history partial", (await api(p, "/api/stocks/RELIANCE")).body.score.overall != null && Object.keys((await api(p, "/api/stocks/RELIANCE/ratios")).body.history.rows).length === 5);
+check("silver: detailed ratios still withheld", (await api(p, "/api/stocks/RELIANCE/segments")).body.periods.length === 0);
 const st2 = (await api(p, "/api/stocks/RELIANCE/stats")).body;
-check("bronze: price statistics delivered", st2.available === true && st2.monthly.years.length >= 1 && st2.histogram.days > 100);
+check("silver: price statistics delivered", st2.available === true && st2.monthly.years.length >= 1 && st2.histogram.days > 100);
 await p.reload({ waitUntil: "networkidle" });
 const lab = p.locator("#charts").locator("xpath=ancestor::section[1]");
 await lab.scrollIntoViewIfNeeded();
-check("chart lab: candles and price statistics draw for Bronze", (await lab.locator("svg").count()) >= 4 && (await lab.locator(".hg").count()) === 1);
+check("chart lab: candles and price statistics draw for Silver", (await lab.locator("svg").count()) >= 4 && (await lab.locator(".hg").count()) === 1);
 for (const t of ["Profit & loss", "Balance sheet", "Cash flow", "Ownership", "Valuation", "Events & peers"]) {
   await lab.getByRole("button", { name: t, exact: true }).click(); await p.waitForTimeout(250);
   check(`chart lab: ${t} tab renders`, (await lab.locator("svg, .hg, .tm, .db2, .rk, .gate").count()) >= 1);
-  if (t === "Valuation") check("chart lab: valuation against history is Gold-only (locked for Bronze)", (await lab.locator(".gate.is-locked").count()) === 1);
+  if (t === "Valuation") check("chart lab: valuation against history is Gold-only (locked for Silver)", (await lab.locator(".gate.is-locked").count()) === 1);
 }
-check("bronze: stock page has no errors", p.errs.length === 0, p.errs.join(" | "));
+check("silver: stock page has no errors", p.errs.length === 0, p.errs.join(" | "));
 
 // ---------------------------------------------------------------- appearance + dashboard personalisation
 await p.goto(base + "/account/appearance", { waitUntil: "networkidle" });
@@ -224,7 +224,7 @@ await p2.getByRole("button", { name: "Sign in", exact: true }).last().click(); a
 check("sync: palette follows the account to a new device", (await p2.evaluate(() => document.documentElement.dataset.palette)) === "graphite");
 check("sync: dashboard layout follows the account", (await p2.locator(".dw h3", { hasText: "Term of the day" }).count()) === 0);
 
-// ---------------------------------------------------------------- watchlist sync (Bronze)
+// ---------------------------------------------------------------- watchlist sync (Silver)
 await p.goto(base + "/stocks/RELIANCE", { waitUntil: "networkidle" });
 await p.locator("button", { hasText: /Watchlist|Add to watchlist/i }).first().click();
 await p.waitForTimeout(1500);
@@ -234,7 +234,7 @@ await p2.reload({ waitUntil: "networkidle" }); await p2.waitForTimeout(800);
 await p2.goto(base + "/watchlist", { waitUntil: "networkidle" });
 check("watchlist: appears on the other device", (await p2.getByText("RELIANCE").count()) >= 1);
 
-// ---------------------------------------------------------------- portfolio (Bronze) + email preferences
+// ---------------------------------------------------------------- portfolio (Silver) + email preferences
 await p.goto(base + "/holdings", { waitUntil: "networkidle" });
 await p.getByLabel("Symbol").fill("RELIANCE"); await p.getByLabel("Quantity").fill("10"); await p.getByLabel(/Average buy price/).fill("1000");
 await p.getByRole("button", { name: "Add holding" }).click();
