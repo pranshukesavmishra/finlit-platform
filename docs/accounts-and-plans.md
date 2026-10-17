@@ -14,10 +14,12 @@ How sign-in, plans and the member's own settings work in the real site. Everythi
 - A managed provider (the earlier "managed login" decision) can replace this later: the website only talks to `/api/auth/*`, `/api/me/*`.
 
 ## Plans are enforced on the server
+The middle plan was called Bronze until migration `007_plan_silver.sql`; existing Bronze members became Silver. (The "Copper" palette keeps its stored id `bronze`.)
+Promised but not built yet, shown as "Soon" / "Later" on the plans page: IPO data and portfolio import (Silver), advanced model score (Gold), equity research report (Gold, later).
 | What | Basic / visitor | Bronze | Gold |
 |---|---|---|---|
 | FinLit score, pillar scores, thesis, strengths, watch-outs | removed | yes | yes |
-| Ratio history | removed | 5 key ratios | all, plus valuation history |
+| Ratio history | 5 key ratios | 5 key ratios | all, plus valuation history |
 | Detailed ratio groups, segments, EMA200/RSI, price statistics | removed | statistics yes | all |
 | Watchlist | none | 3 lists, 30 stocks | 50 lists, 1,000 stocks |
 | Saved screens | 3 | 20 | 100 |

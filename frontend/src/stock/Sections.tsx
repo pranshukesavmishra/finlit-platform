@@ -12,7 +12,7 @@ import { useUI } from "../lib/ui";
 import { Plain } from "../components/Plain";
 
 const css = (v: string) => `var(${v})`;
-export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: string; no: string; icon: string; tier?: "basic" | "bronze" | "gold"; title: string; sub?: string; color: string }) {
+export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: string; no: string; icon: string; tier?: "basic" | "silver" | "gold"; title: string; sub?: string; color: string }) {
   return (
     <div className="sh" id={id} style={{ "--sc": `var(${color})` } as React.CSSProperties}>
       <div className="sh-l"><div className="sh-ic"><Icon name={icon} /></div><div><div className="no">{no} {tier && <TierChip tier={tier} />}</div><h2>{title}</h2></div></div>
@@ -28,8 +28,8 @@ export function Notes({ s }: { s: Summary }) {
   );
   return (
     <section className="block" style={{ "--sc": "var(--p-quality)" } as React.CSSProperties}>
-      <SectionHead id="notes" no="01 · Scorecard notes" icon="notes" tier="bronze" title="What the numbers say" sub="Plain-language findings from the statements, ratios and price history." color="--p-quality" />
-      <Gate tier="bronze" title="See the full scorecard notes" points={["Strengths and watch-outs in plain English", "What drives each pillar score", "Updated with every result"]}>
+      <SectionHead id="notes" no="01 · Scorecard notes" icon="notes" tier="silver" title="What the numbers say" sub="Plain-language findings from the statements, ratios and price history." color="--p-quality" />
+      <Gate tier="silver" title="See the full scorecard notes" points={["Strengths and watch-outs in plain English", "What drives each pillar score", "Updated with every result"]}>
         <div className="grid g2">
           <div className="card acc note hover-lift" style={{ "--ac": "var(--p-quality)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="check" /></span>Strengths</h3><span className="chip up">{s.strengths.length}</span></div>{list(s.strengths)}</div>
           <div className="card acc note hover-lift" style={{ "--ac": "var(--p-tech)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Watch-outs</h3><span className="chip down">{s.watchouts.length}</span></div>{list(s.watchouts)}</div>

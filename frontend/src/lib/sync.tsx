@@ -17,7 +17,7 @@ export function StateSync() {
   const { user, plan } = useAuth();
   const uid = user?.id ?? null;
   const last = useRef<string | null>(null);
-  const bronze = RANK[plan] >= RANK.bronze;
+  const silver = RANK[plan] >= RANK.silver;
 
   useEffect(() => {
     if (DEMO) return;
@@ -38,13 +38,13 @@ export function StateSync() {
       if (saved.screens?.length) screens.replace(saved.screens as never); else if (screens.get().length) saveScreens(screens.get()).catch(quiet);
       const wl = saved.watchlist;
       if (wl?.lists?.length) watch.replace({ lists: wl.lists, meta: wl.meta || {} });
-      else if (bronze && watch.total() > 0) saveWatchlist({ lists: watch.get().lists, meta: watch.get().meta }).catch(quiet);
+      else if (silver && watch.total() > 0) saveWatchlist({ lists: watch.get().lists, meta: watch.get().meta }).catch(quiet);
       last.current = uid;
       prefs.onSave(debounce((p) => savePrefs(p).catch(quiet)));
       screens.onSave(debounce((s) => saveScreens(s).catch(quiet)));
-      watch.onSave(debounce((s) => { if (bronze) saveWatchlist({ lists: s.lists, meta: s.meta }).catch(quiet); }));
+      watch.onSave(debounce((s) => { if (silver) saveWatchlist({ lists: s.lists, meta: s.meta }).catch(quiet); }));
     })();
     return () => { cancelled = true; };
-  }, [uid, bronze]);
+  }, [uid, silver]);
   return null;
 }

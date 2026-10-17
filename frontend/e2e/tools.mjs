@@ -35,10 +35,10 @@ check("screener: Basic sees the Gold lock, not model inputs", (await p.getByLabe
 check("screener: model columns hidden for Basic", (await p.locator(".scr-t th", { hasText: "Score" }).count()) === 0);
 
 // ---- Compare
-p = await mk("bronze");
+p = await mk("silver");
 await p.goto(base + "/compare", { waitUntil: "networkidle" });
 check("compare: two companies picked by default", (await p.locator(".cc").count()) === 2);
-check("compare: Bronze limited to 2 (Gold prompt shown)", (await p.getByText(/Compare up to 4 · Gold/).count()) === 1);
+check("compare: Silver limited to 2 (Gold prompt shown)", (await p.getByText(/Compare up to 4 · Gold/).count()) === 1);
 await p.getByRole("tab", { name: "Valuation", exact: true }).click(); await p.waitForTimeout(400);
 check("compare: valuation shows strips and percentile dots", (await p.locator(".strip").count()) >= 3 && (await p.locator(".mt-c .dt").count()) >= 6);
 const rowsBefore = await p.locator(".mt-r").count();
@@ -52,7 +52,7 @@ check("compare: build-your-own adds a measure", (await p.locator(".mt-r").count(
 p = await mk("basic");
 await p.goto(base + "/compare", { waitUntil: "networkidle" });
 await p.getByRole("tab", { name: /Quality & Risk/ }).click(); await p.waitForTimeout(300);
-check("compare: Basic sees the Bronze lock on model tabs", (await p.getByText("Unlock Quality & Risk").count()) >= 1);
+check("compare: Basic sees the Silver lock on model tabs", (await p.getByText("Unlock Quality & Risk").count()) >= 1);
 await p.getByRole("tab", { name: "Fundamentals", exact: true }).click(); await p.waitForTimeout(300);
 check("compare: Basic can use Fundamentals", (await p.locator(".mt-r").count()) >= 4);
 

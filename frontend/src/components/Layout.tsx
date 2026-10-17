@@ -43,7 +43,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
         {DEMO && onStock && (
           <div className="seg planseg" role="group" aria-label="Preview plan">
             <span className="lbl">Preview</span>
-            {(["basic", "bronze", "gold"] as const).map((p) => (
+            {(["basic", "silver", "gold"] as const).map((p) => (
               <button key={p} aria-pressed={plan === p} style={{ "--tc": `var(--t-${p})` } as React.CSSProperties} onClick={() => setPlan(p)}><i />{p[0].toUpperCase() + p.slice(1)}</button>
             ))}
           </div>
