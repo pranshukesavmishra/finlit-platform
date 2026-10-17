@@ -36,7 +36,7 @@ export function ResultsPage() {
             <div className="rcal" role="grid" aria-label="Results calendar">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="rcal-h" role="columnheader">{d}</div>)}
               {cells.map((d, i) => { const k = d ? ymd(d) : ""; const its = d ? byDay.get(k) || [] : []; return (
-                <button key={i} role="gridcell" disabled={!d || !its.length} className={"rcal-c" + (!d ? " off" : "") + (k === today ? " today" : "") + (pick === k ? " on" : "") + (its.length ? " has" : "")} onClick={() => setPick(pick === k ? null : k)} aria-label={d ? `${d.toDateString()}: ${its.length} results` : undefined}>
+                !d ? <div key={i} className="rcal-c off" role="gridcell" aria-hidden="true" /> : <button key={i} role="gridcell" disabled={!its.length} className={"rcal-c" + (!d ? " off" : "") + (k === today ? " today" : "") + (pick === k ? " on" : "") + (its.length ? " has" : "")} onClick={() => setPick(pick === k ? null : k)} aria-label={d ? `${d.toDateString()}: ${its.length} results` : undefined}>
                   {d && <><b>{d.getDate()}</b>{its.slice(0, 3).map((x) => <span key={x.id} className={x.date < today ? "done" : ""}>{x.symbol || x.company}</span>)}{its.length > 3 && <em>+{its.length - 3} more</em>}</>}
                 </button>); })}
             </div>)}

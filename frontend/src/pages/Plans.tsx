@@ -31,7 +31,8 @@ const CMP: [string, string | null, number?][] = [
   ["Tools", null], ["Watchlist with lists, notes and targets", "3 lists and 30 stocks", 1], ["Smart watchlist: unlimited lists and signals", "Bucket by band and style, second-look flags", 2], ["Export: PDF note, offline copy, CSV", "", 1], ["Priority access to new features", "", 2],
 ];
 
-export function PlansBand({ id }: { id?: string }) {
+export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
+  const H = h1 ? "h1" : "h2";
   const { plan, upgrade } = useUI();
   const { user } = useAuth();
   const cta = (k: Plan, label: string) => DEMO ? (plan === k ? "Previewing " + TIER[k].n : label) : plan === k && (user || k === "basic") ? (user ? "Your plan" : "Included for everyone") : k === "basic" ? "Create a free account" : user ? `Request ${TIER[k].n}` : label;
@@ -41,7 +42,7 @@ export function PlansBand({ id }: { id?: string }) {
       <div className="wrap">
         <div className="plans-h">
           <div className="eyebrow" style={{ marginBottom: 12 }}>FinLit plans</div>
-          <h2 id="plansTitle">Invest smarter with <em>the right plan</em></h2>
+          <H id="plansTitle">Invest smarter with <em>the right plan</em></H>
           <p>From essential stock data to advanced intelligence, powered by FinLit's proprietary scoring model.</p>
         </div>
         <div className="trust">{[["bars", "Data-driven insights"], ["spark", "Proprietary scoring model"], ["quality", "Reliable & transparent"], ["users", "Built for every investor"]].map(([i, t]) => <span key={t}><Icon name={i} />{t}</span>)}</div>
@@ -78,5 +79,5 @@ export function PlansBand({ id }: { id?: string }) {
 
 export function PlansPage() {
   useDocTitle("Plans", "FinLit plans: Basic (free), Silver and Gold, from essential stock data to advanced scoring and technical intelligence.");
-  return <PlansBand />;
+  return <PlansBand h1 />;
 }
