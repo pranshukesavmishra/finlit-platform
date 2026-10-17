@@ -7,6 +7,7 @@ import { Hero } from "./Hero";
 import { FinancialsSection, Notes, PriceSection } from "./Sections";
 import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
 import { QuarterSection, TrendsSection } from "./Sections4";
+import { ChartLab } from "./ChartLab";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
@@ -82,6 +83,7 @@ export function StockPage() {
         <QuarterSection f={fin} />
         <FinancialsSection f={fin} />
         <TrendsSection f={fin} seg={seg} e={events} r={ratios} />
+        <ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} />
         <RatiosSection r={ratios} />
         <OwnershipSection o={own} />
         <PeersSection p={peers} self={symbol} s={s} />

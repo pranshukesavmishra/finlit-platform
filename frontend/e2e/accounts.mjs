@@ -105,6 +105,8 @@ check("basic: stock page has no page errors with trimmed data", p.errs.length ==
 check("basic: locked sections remain behind unlock cards", (await p.locator(".gate.is-locked").count()) >= 2);
 check("basic: ratio history withheld by the API", Object.keys((await api(p, "/api/stocks/RELIANCE/ratios")).body.history.rows).length === 0);
 
+check("basic: price statistics withheld by the API", (await api(p, "/api/stocks/RELIANCE/stats")).body.locked === true);
+
 // ---------------------------------------------------------------- plan request -> admin grant -> unlocked
 await p.getByText("Unlock with Bronze").first().click();
 await p.waitForURL(/\/account\/plan\?want=bronze/);
@@ -155,6 +157,17 @@ const me = await api(p, "/api/auth/me");
 check("granted plan reaches the member without signing in again", me.body.plan === "bronze", me.body.plan);
 check("bronze: score visible, ratio history partial", (await api(p, "/api/stocks/RELIANCE")).body.score.overall != null && Object.keys((await api(p, "/api/stocks/RELIANCE/ratios")).body.history.rows).length === 5);
 check("bronze: detailed ratios still withheld", (await api(p, "/api/stocks/RELIANCE/segments")).body.periods.length === 0);
+const st2 = (await api(p, "/api/stocks/RELIANCE/stats")).body;
+check("bronze: price statistics delivered", st2.available === true && st2.monthly.years.length >= 1 && st2.histogram.days > 100);
+await p.reload({ waitUntil: "networkidle" });
+const lab = p.locator("#charts").locator("xpath=ancestor::section[1]");
+await lab.scrollIntoViewIfNeeded();
+check("chart lab: candles and price statistics draw for Bronze", (await lab.locator("svg").count()) >= 4 && (await lab.locator(".hg").count()) === 1);
+for (const t of ["Profit & loss", "Balance sheet", "Cash flow", "Ownership", "Valuation", "Events & peers"]) {
+  await lab.getByRole("button", { name: t, exact: true }).click(); await p.waitForTimeout(250);
+  check(`chart lab: ${t} tab renders`, (await lab.locator("svg, .hg, .tm, .db2, .rk, .gate").count()) >= 1);
+  if (t === "Valuation") check("chart lab: valuation against history is Gold-only (locked for Bronze)", (await lab.locator(".gate.is-locked").count()) === 1);
+}
 check("bronze: stock page has no errors", p.errs.length === 0, p.errs.join(" | "));
 
 // ---------------------------------------------------------------- appearance + dashboard personalisation

@@ -31,7 +31,7 @@ def has(plan: str, tier: str) -> bool:
 
 
 def varies_by_plan(section: str) -> bool:
-    return section in ("summary", "ratios", "segments") or section.startswith("price-")
+    return section in ("summary", "ratios", "segments", "stats") or section.startswith("price-")
 
 
 def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, Any]:
@@ -70,6 +70,11 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
             for p in score.get("pillars", []):
                 p["score"] = None
                 p["inputs"] = []
+    elif section == "stats":
+        if not bronze:  # the price-statistics charts are a Bronze feature
+            data.clear()
+            data["available"] = False
+            data["locked"] = True
     elif section == "segments":
         data["segments"], data["latest"], data["periods"] = {}, [], []
     elif section.startswith("price-"):

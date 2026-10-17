@@ -93,3 +93,10 @@ def test_universe_redaction_keeps_showcase():
 
 def test_which_sections_vary():
     assert varies_by_plan("summary") and varies_by_plan("price-5Y") and not varies_by_plan("financials")
+
+
+def test_price_statistics_are_a_bronze_feature():
+    assert varies_by_plan("stats")
+    basic = redact_section("stats", {"available": True, "monthly": {"years": [2024]}}, "basic")
+    assert basic == {"available": False, "locked": True}
+    assert redact_section("stats", {"available": True, "monthly": 1}, "bronze")["monthly"] == 1

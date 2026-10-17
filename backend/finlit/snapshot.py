@@ -18,13 +18,13 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from . import quality as quality_checks
-from .analytics import derived, indicators, insights, returns, scoring
+from .analytics import derived, indicators, insights, pricestats, returns, scoring
 from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
 from .normalize.glossary import describe
 
 SNAPSHOT_VERSION = 1
-SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers")
+SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers", "stats")
 # Chart ranges are cut at ingest time so the API only ever streams stored bytes.
 # Short ranges keep daily candles; long ranges are downsampled to weekly closes.
 PRICE_RANGES = {"1M": (31, "daily"), "6M": (183, "daily"), "1Y": (366, "daily"),
@@ -207,6 +207,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "events": events_section,
         "segments": {"meta": meta, **events.segments(bundle.get("segments"))},
         "peers": {"meta": meta, "symbols": peers},
+        "stats": {"meta": meta, **pricestats.build(history)},
     }
     summary["dataQuality"]["checks"] = quality_checks.run(sections, today=(now or datetime.now(timezone.utc)).date())
     return sections
