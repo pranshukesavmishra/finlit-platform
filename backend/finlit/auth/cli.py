@@ -1,6 +1,6 @@
 """Command-line account tools, run on the server: `python -m finlit.auth.cli create-admin --email you@company.com`.
 
-The password is read from the FINLIT_ADMIN_PASSWORD environment variable or prompted (never passed as an argument,
+The password is read from the FINLIT_ADMIN_PASSWORD environment variable or prompted (FINLIT_MEMBER_PASSWORD for create-member; never passed as an argument,
 so it does not land in shell history or process lists)."""
 
 from __future__ import annotations
@@ -37,6 +37,28 @@ async def create_admin(email: str, password: str) -> None:
         await store.close()
 
 
+async def create_member(email: str, password: str, plan: str, name: str) -> None:
+    """A confirmed member on the given plan (demo and staging accounts, where no email can be sent). Safe to run again."""
+    settings = get_settings()
+    e = crypto.normalise_email(email)
+    if not e:
+        sys.exit("That is not a valid email address.")
+    problem = crypto.password_problem(password, e)
+    if problem:
+        sys.exit(problem)
+    store = await Store.connect(settings, migrate=True)
+    try:
+        pw = await crypto.hash_password(password)
+        async with store.pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO users (email, name, password_hash, role, plan, email_verified_at) VALUES ($1, $2, $3, 'investor', $4, now()) "
+                "ON CONFLICT (lower(email)) DO UPDATE SET plan = EXCLUDED.plan, password_hash = EXCLUDED.password_hash, "
+                "email_verified_at = COALESCE(users.email_verified_at, now()), failed_logins = 0, locked_until = NULL, status = 'active'", e, name, pw, plan)
+        print(f"Member ready: {e} ({plan})")
+    finally:
+        await store.close()
+
+
 async def reset_mfa(email: str) -> None:
     store = await Store.connect(get_settings(), migrate=True)
     try:
@@ -53,12 +75,19 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("create-admin")
     a.add_argument("--email", required=True)
+    m = sub.add_parser("create-member")
+    m.add_argument("--email", required=True)
+    m.add_argument("--plan", choices=["basic", "silver", "gold"], default="basic")
+    m.add_argument("--name", default="Demo member")
     r = sub.add_parser("reset-mfa")
     r.add_argument("--email", required=True)
     args = ap.parse_args()
     if args.cmd == "create-admin":
         pw = os.getenv("FINLIT_ADMIN_PASSWORD") or getpass.getpass("Password (10+ characters): ")
         asyncio.run(create_admin(args.email, pw))
+    elif args.cmd == "create-member":
+        pw = os.getenv("FINLIT_MEMBER_PASSWORD") or getpass.getpass("Password (10+ characters): ")
+        asyncio.run(create_member(args.email, pw, args.plan, args.name))
     else:
         asyncio.run(reset_mfa(args.email))
 

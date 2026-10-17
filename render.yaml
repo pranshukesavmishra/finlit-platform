@@ -1,0 +1,38 @@
+# Free, one-click deployment on Render (https://render.com): website + API in one service, free Postgres and Redis.
+# Render dashboard -> New -> Blueprint -> pick this repository. You will be asked for FINEDGE_API_KEY (paste it there; it is never stored in the repo).
+# After it is live, read DEMO_PASSWORD under the service's Environment tab: it is the password of the demo accounts
+#   demo-basic@finlit-demo.com, demo-silver@finlit-demo.com, demo-gold@finlit-demo.com
+services:
+  - type: web
+    name: finlit
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - {key: ENVIRONMENT, value: staging}      # not "production": production demands a verified mail domain (see docs/accounts-and-plans.md)
+      - {key: FINEDGE_MODE, value: live}
+      - {key: FINEDGE_API_KEY, sync: false}
+      - {key: INGEST_LIMIT, value: "1500"}      # companies loaded in the background after each start (resumable)
+      - {key: SECRET_KEY, generateValue: true}
+      - {key: DEMO_PASSWORD, generateValue: true}
+      - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
+      - key: DATABASE_URL
+        fromDatabase: {name: finlit-db, property: connectionString}
+      - key: REDIS_URL
+        fromService: {type: keyvalue, name: finlit-redis, property: connectionString}
+  - type: keyvalue
+    name: finlit-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []          # reachable only from inside Render
+databases:
+  - name: finlit-db
+    plan: free
+    region: singapore
+    databaseName: finlit
+    postgresMajorVersion: "16"
+    ipAllowList: []          # reachable only from inside Render

@@ -425,3 +425,7 @@ a.pr-row:hover, .pr-row.hot { transform: translateX(4px); border-color: color-mi
 .cmpl { grid-auto-rows: 1fr; align-content: stretch; } .cmp-r { display: flex; flex-direction: column; justify-content: center; } .cmp-b { margin-top: 8px; } .cb-t { height: 14px; }
 :root[data-theme="light"] .sl-h em { background: linear-gradient(120deg, var(--bc), color-mix(in srgb, var(--bc) 60%, #000)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 :root[data-theme="light"] .dcol span { color: var(--gold-deep); }
+
+/* long exchange-announcement titles must wrap, not push the page wider than a phone */
+.tl-b, .tl-b > * { min-width: 0; overflow-wrap: anywhere; }
+.tl-b .chip { max-width: 100%; white-space: normal; height: auto; }

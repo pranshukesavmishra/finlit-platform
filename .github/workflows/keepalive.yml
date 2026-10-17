@@ -1,0 +1,14 @@
+name: Keep the free server awake
+# Free Render services sleep after 15 minutes without traffic, which pauses the background data load and makes the
+# first visitor wait about a minute. This pings the site every 10 minutes. Set the repository variable SITE_URL
+# (Settings -> Secrets and variables -> Actions -> Variables) to e.g. https://finlit.onrender.com ; without it nothing runs.
+on:
+  schedule: [{cron: "*/10 * * * *"}]
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    if: ${{ vars.SITE_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --retry 3 --max-time 90 "${{ vars.SITE_URL }}/api/health"
