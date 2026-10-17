@@ -187,7 +187,7 @@ function PlanTab() {
   const req = useMutation({ mutationFn: (p: "silver" | "gold") => acct.requestPlan(p, note.trim() || undefined), onSuccess: () => refresh() });
   const rows: [Plan, string[]][] = [
     ["basic", ["Screener, comparison of 2 companies, glossary, latest quarter, financials, ratios, peers, charts"]],
-    ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "IPO data and portfolio import (Soon)"]],
+    ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "Portfolio tracker (30 holdings) with import", "Saved-screen alerts and the weekly email"]],
     ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks", "Advanced model score (Soon) and equity research reports (Later)"]],
   ];
   return (

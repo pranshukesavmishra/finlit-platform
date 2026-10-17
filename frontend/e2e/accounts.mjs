@@ -103,7 +103,7 @@ await p.goto(base + "/stocks/RELIANCE", { waitUntil: "networkidle" });
 check("basic: model score not in the page data", (await api(p, "/api/stocks/RELIANCE")).body.score.overall === null);
 check("basic: stock page has no page errors with trimmed data", p.errs.length === 0, p.errs.join(" | "));
 check("basic: locked sections remain behind unlock cards", (await p.locator(".gate.is-locked").count()) >= 2);
-check("basic: ratio history withheld by the API", Object.keys((await api(p, "/api/stocks/RELIANCE/ratios")).body.history.rows).length === 0);
+const bh = (await api(p, "/api/stocks/RELIANCE/ratios")).body; check("basic: ratio history limited to the five key ratios; valuation history withheld", Object.keys(bh.history.rows).length <= 5 && bh.valuationHistory.rows && Object.keys(bh.valuationHistory.rows).length === 0);
 
 check("basic: price statistics withheld by the API", (await api(p, "/api/stocks/RELIANCE/stats")).body.locked === true);
 
