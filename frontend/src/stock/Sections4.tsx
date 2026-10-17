@@ -12,7 +12,7 @@ const eps = (v: number) => (v < 0 ? MINUS : "") + "₹" + nf(v, 1);
 const row = (t: Table | undefined, k: string) => (t?.rows[k] || []) as (number | null)[];
 const chg = (a: number | null | undefined, b: number | null | undefined) => (a == null || b == null || !b ? null : ((a - b) / Math.abs(b)) * 100);
 const ratio = (a: (number | null)[], b: (number | null)[]) => a.map((x, i) => (x != null && b[i] ? (x / (b[i] as number)) * 100 : null));
-const G = "var(--gold)", INK = "var(--c2)", STONE = "var(--c4)", DEEP = "var(--c1)";
+const G = "var(--k3)", INK = "var(--c2)", STONE = "var(--c4)", DEEP = "var(--c1)";
 
 function Delta({ v, label }: { v: number | null; label: string }) {
   if (v == null) return <span className="qd none">{label} —</span>;

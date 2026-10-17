@@ -6,10 +6,11 @@ const Defs = ({ k }: { k: string }) => (
     <radialGradient id={`pr${k}`} cx=".5" cy=".5" r=".5"><stop offset="0" stopColor="var(--gold)" stopOpacity=".28" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></radialGradient>
   </defs>
 );
-const Rings = ({ k }: { k: string }) => (<g><circle cx="240" cy="170" r="165" fill={`url(#pr${k})`} />{[150, 112, 76].map((r, i) => <circle key={r} cx="240" cy="170" r={r} fill="none" stroke="var(--border-strong)" strokeDasharray={i === 1 ? "2 7" : "none"} opacity={0.7 - i * 0.15} />)}</g>);
+const Rings = ({ k }: { k: string }) => (<g><circle cx="240" cy="170" r="165" fill={`url(#pr${k})`} />{[150, 112, 76].map((r, i) => <circle key={r} cx="240" cy="170" r={r} fill="none" stroke="var(--gold)" strokeDasharray={i === 1 ? "2 7" : "none"} opacity={0.5 - i * 0.12} />)}</g>);
 const chip = (x: number, y: number, t: string, c: string, d = 0) => (
   <g className="pa-float" style={{ animationDelay: `${d}ms` }} transform={`translate(${x} ${y})`}>
-    <rect width={t.length * 6.6 + 30} height="28" rx="14" fill="var(--s1)" stroke="var(--border-strong)" /><circle cx="14" cy="14" r="4" fill={c} /><text x="26" y="18" fontSize="11" fill="var(--text)" fontFamily="IBM Plex Sans, sans-serif">{t}</text>
+    <rect x="1" y="3" width={t.length * 6.8 + 34} height="30" rx="15" fill="#000" opacity=".22" />
+    <rect width={t.length * 6.8 + 34} height="30" rx="15" fill="#fff" /><circle cx="15" cy="15" r="5" fill={c} /><text x="28" y="19.5" fontSize="12" fontWeight="600" fill="#14130F" fontFamily="IBM Plex Sans, sans-serif">{t}</text>
   </g>
 );
 
@@ -57,11 +58,14 @@ const scenes: Record<string, (k: string) => React.ReactNode> = {
   </>),
   research: (k) => (<>
     <Rings k={k} />
-    <g transform="translate(220 160)"><circle r="82" fill="none" stroke="var(--s3)" strokeWidth="18" />
-      {[["--p-quality", 0, 0.22], ["--p-growth", 0.22, 0.42], ["--p-profit", 0.42, 0.64], ["--p-balance", 0.64, 0.86], ["--p-tech", 0.86, 1]].map(([c, a, b]) => { const C = 2 * Math.PI * 82; return <circle key={c as string} className="pa-draw2" r="82" fill="none" stroke={`var(${c})`} strokeWidth="18" strokeDasharray={`${((b as number) - (a as number)) * C - 4} ${C}`} strokeDashoffset={-(a as number) * C} transform="rotate(-90)" strokeLinecap="round" />; })}
-      <text y="12" textAnchor="middle" fontSize="46" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">0–100</text><text y="38" textAnchor="middle" fontSize="10.5" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT SCORE</text></g>
-    <g transform="translate(330 214)"><circle r="30" fill="var(--s1)" fillOpacity=".7" stroke="var(--gold)" strokeWidth="6" /><path d="m22 22 26 26" stroke="var(--gold)" strokeWidth="8" strokeLinecap="round" /></g>
-    {chip(30, 60, "5,700+ stocks", "var(--c3)")}{chip(300, 40, "Updated daily", "var(--gold)", 500)}
+    <g transform="translate(240 170)">
+      {[["--p-quality", 56, 104], ["--p-growth", 44, 91], ["--p-profit", 51, 78], ["--p-balance", 75, 65], ["--p-tech", 31, 52]].map(([c, v, r], i) => { const R = r as number, C = 2 * Math.PI * R, len = ((v as number) / 100) * C * 0.75;
+        return <g key={c as string} transform="rotate(135)"><circle r={R} fill="none" stroke="var(--s3)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${C * 0.75} ${C}`} />
+          <circle r={R} fill="none" stroke={`var(${c})`} strokeWidth="7" strokeLinecap="round" strokeDasharray={`${len} ${C}`} style={{ animationDelay: `${i * 140}ms` }} /></g>; })}
+      <text y="8" textAnchor="middle" fontSize="38" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fontWeight="300" fill="var(--text)">51</text>
+      <text y="28" textAnchor="middle" fontSize="8" letterSpacing="1.6" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">FINLIT SCORE</text>
+    </g>
+    {chip(30, 60, "5,700+ stocks", "var(--c3)")}{chip(300, 40, "Updated daily", "var(--gold)", 500)}{chip(318, 292, "5 pillars", "var(--c1)", 900)}
   </>),
 };
 
