@@ -90,6 +90,12 @@ if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
   if (tok.status === 200) {
     const items = await p4.evaluate(async (t) => (await fetch("/api/content/admin/items", { headers: { Authorization: "Bearer " + t } })).status, tok.body.token);
     check("admin: the site backend accepts that token (same secret)", items === 200, String(items));
+    // a visitor's service enquiry is saved even when no email service is configured, and the administrator can read it
+    const marker = "Enquiry " + Date.now().toString(36);
+    const sent = await p4.evaluate(async (m) => (await fetch("/api/service-enquiry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: m, email: "visitor@example.com", phone: "+91 98765 43210", services: ["Wealth Planning"], message: "Please call me about wealth planning." }) })).status, marker);
+    check("forms: a service enquiry is accepted (200, or 503 when email is not configured: it is saved either way)", sent === 200 || sent === 503, String(sent));
+    const list = await p4.evaluate(async ([t, m]) => { const r = await fetch("/api/service-enquiry", { headers: { Authorization: "Bearer " + t } }); const j = await r.json(); return { status: r.status, found: Array.isArray(j) && j.some((x) => x.name === m) }; }, [tok.body.token, marker]);
+    check("forms: the administrator can read the saved enquiry", list.status === 200 && list.found, JSON.stringify(list));
   }
   await p4.goto(base + "/admin", { waitUntil: "networkidle" }); await p4.waitForTimeout(1500);
   check("admin: /admin opens the content tools with no second password", /\/admin$/.test(p4.url()) && (await p4.getByText(/Content|New|Articles|Publish/i).count()) > 0, p4.url());

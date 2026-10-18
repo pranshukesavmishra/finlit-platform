@@ -59,8 +59,9 @@ def test_service_enquiry_rejects_unknown_or_oversized_fields_before_storage(isol
     assert database.service_enquiries.insert_calls == 0
 
 
-def test_enquiries_are_listed_for_the_administrator_only():
-    # the list route exists, answers only to administrators, and returns saved enquiries newest first (email delivery is not involved)
-    from backend import server
-    routes = {(r.path, tuple(sorted(r.methods))) for r in server.app.routes if hasattr(r, "methods")}
-    assert ("/api/service-enquiry", ("GET",)) in routes
+def test_enquiries_are_listed_for_the_administrator_only(isolated_app):
+    app, _database = isolated_app
+    status, _body = asgi_request(app, "GET", "/api/service-enquiry")
+    assert status == 401  # the route exists and refuses callers without an administrator token
+    status, _body = asgi_request(app, "GET", "/api/service-enquiry", headers={"Authorization": "Bearer not-a-real-token"})
+    assert status == 401
