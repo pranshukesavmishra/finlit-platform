@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { adminLogin, type ContentItem } from "../lib/siteApi";
+import { type ContentItem } from "../lib/siteApi";
+import { useAuth } from "../lib/auth";
+import { apiSend } from "../lib/api";
 import { ApiError, apiUrl } from "../lib/api";
 import { dateIN } from "../lib/format";
 import { useDocTitle } from "../lib/title";
@@ -21,28 +23,29 @@ async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+/** Administrators sign in once, on the normal sign-in page. This exchanges that session for the CMS token, then opens the tools. */
+async function openCms(): Promise<boolean> {
+  try { const r = await apiSend<{ token: string }>("POST", "/api/me/cms-token"); sessionStorage.setItem(KEY, r.token); return true; } catch { return false; }
+}
+
 export function AdminLogin() {
-  useDocTitle("Admin sign-in");
-  const nav = useNavigate(); const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState<string | null>(null);
-  const m = useMutation({ mutationFn: () => adminLogin(email.trim(), pw), onSuccess: (r) => { try { sessionStorage.setItem(KEY, r.token); } catch { /* ignore */ } nav("/admin"); }, onError: (e: Error) => setErr(e.message) });
-  return (
-    <section className="sec"><div className="wrap" style={{ maxWidth: 460 }}>
-      <div className="card"><form className="form" onSubmit={(e) => { e.preventDefault(); setErr(null); m.mutate(); }}>
-        <div className="eyebrow">Admin</div><h2 style={{ font: "400 28px var(--serif)", margin: "6px 0 16px" }}>Sign in</h2>
-        <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required /></label>
-        <label>Password<input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" required /></label>
-        {err && <div className="formerr" role="alert">{err}</div>}
-        <button className="btn primary" style={{ width: "100%" }} disabled={m.isPending}>{m.isPending ? "Signing in…" : "Sign in"}</button>
-      </form></div>
-    </div></section>
-  );
+  useDocTitle("Admin");
+  const nav = useNavigate(); const { user, ready, isAdmin } = useAuth(); const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) { nav("/login?next=/admin", { replace: true }); return; }
+    if (!isAdmin) { setErr("This area is for FinLit administrators."); return; }
+    openCms().then((ok) => (ok ? nav("/admin", { replace: true }) : nav("/account/security?setup=1", { replace: true })));
+  }, [ready, user, isAdmin, nav]);
+  return <section className="sec"><div className="wrap" style={{ maxWidth: 460 }}>{err ? <div className="card"><div className="formerr" role="alert">{err}</div></div> : <p className="muted">Opening the content tools…</p>}</div></section>;
 }
 
 export function Admin() {
   useDocTitle("Admin");
   const nav = useNavigate(); const qc = useQueryClient(); const { toast } = useUI();
   const [form, setForm] = useState({ title: "", excerpt: "", body: "" });
-  useEffect(() => { if (!hasSession()) nav("/admin/login"); }, [nav]);
+  const { ready, user } = useAuth();
+  useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
   const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
@@ -59,7 +62,7 @@ export function Admin() {
   return (
     <section className="sec"><div className="wrap">
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}><h1 style={{ font: "300 40px var(--serif)", margin: 0 }}>Research publishing</h1>
-        <div style={{ display: "flex", gap: 8 }}><Link className="btn" to="/blog">View blog</Link><button className="btn" onClick={() => { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } nav("/admin/login"); }}>Sign out</button></div></div>
+        <div style={{ display: "flex", gap: 8 }}><Link className="btn" to="/blog">View blog</Link><button className="btn" onClick={() => { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } nav("/console"); }}>Back to console</button></div></div>
       <div className="grid g2">
         <div className="card"><div className="card-h"><h3>Content</h3><span className="s">{list.data?.length ?? 0} items</span></div>
           <div className="tw"><table className="admin-t"><thead><tr><th>Title</th><th>Status</th><th>Updated</th><th /></tr></thead>

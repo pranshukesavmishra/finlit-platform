@@ -53,12 +53,12 @@ export function NotificationBell() {
 export function AlertToasts() {
   const { user } = useAuth();
   const { items, markRead } = useNotices();
-  useBrowserNotify(user ? items : []);
+  useBrowserNotify(items);
   const seen = useRef<Set<number> | null>(null);
   const [shown, setShown] = useState<Notice[]>([]);
   const nav = useNavigate();
   useEffect(() => {
-    if (!user) { seen.current = null; setShown([]); return; }
+    if (!user) { seen.current = null; setShown((s) => (s.length ? [] : s)); return; }
     if (seen.current === null) { seen.current = new Set(items.map((n) => n.id)); return; } // what was already there when the page opened is not "new"
     const fresh = items.filter((n) => !n.read && !seen.current!.has(n.id));
     if (!fresh.length) return;

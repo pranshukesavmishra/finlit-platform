@@ -6,8 +6,11 @@ must also carry the session's CSRF token and come from an allowed origin.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import hmac
 import json
+import time
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional
@@ -963,3 +966,24 @@ async def admin_audit(request: Request, ctx: Ctx = Depends(admin_ctx)):
 
 
 __all__ = ["router", "PLANS", "PALETTES", "ANON"]
+
+
+# ------------------------------------------------------------------ one sign-in for the website's CMS
+def _b64(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+@router.post("/me/cms-token")
+async def cms_token(request: Request, ctx: Ctx = Depends(admin_ctx)):
+    """Administrators who signed in (with their authenticator code) get an 8-hour token for the blog/CMS tools, so there is no second login.
+    It is the same HS256 token the site backend issues itself; both services share CMS_JWT_SECRET."""
+    secret = request.app.state.settings.cms_jwt_secret
+    if len(secret.encode()) < 32:
+        raise fail(503, "cms_not_configured", "The content tools are not connected yet (CMS_JWT_SECRET is missing).")
+    user = await request.app.state.store.pool.fetchrow("SELECT email FROM users WHERE id = $1", ctx.user_id)
+    now, ttl = int(time.time()), 8 * 3600
+    head = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    body = _b64(json.dumps({"sub": user["email"], "role": "admin", "iat": now, "exp": now + ttl}, separators=(",", ":")).encode())
+    sig = _b64(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).digest())
+    await audit(request.app.state.store.pool, ctx.user_id, "cms_token", None, ip_of(request))
+    return Response(content=json.dumps({"token": f"{head}.{body}.{sig}", "expiresIn": ttl}), media_type="application/json", headers=NO_STORE)

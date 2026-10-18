@@ -49,7 +49,7 @@ export function Login() {
   };
   const login = useMutation({
     mutationFn: () => signIn({ email: email.trim(), password, code: needCode ? code.trim() : undefined }),
-    onSuccess: async (r) => { await refresh(); nav(r.mfaSetupRequired ? "/account/security?setup=1" : next, { replace: true }); },
+    onSuccess: async (r) => { await refresh(); nav(r.mfaSetupRequired ? "/account/security?setup=1" : r.user.role === "admin" && !params.get("next") ? "/console" : next, { replace: true }); },
     onError: (e) => {
       setUnverified(false);
       if (e instanceof ApiError && e.body.status === "mfa_required") { setNeedCode(true); setErr(null); return; }
@@ -79,7 +79,7 @@ export function Login() {
       <div className="aurora" style={{ opacity: 0.8 }} />
       <div className="wrap login-in">
         <div className="login-l">
-          <Link to="/" className="lg-mark" aria-label="FinLit home" style={{ height: 64, marginBottom: 24 }} />
+          <div className="eyebrow" style={{ marginBottom: 14 }}>Members' area</div>
           <h1>Your research, <em>your way</em>.</h1>
           <p className="lede-xl">A free account saves what you follow and keeps your plan, your colours and your dashboard exactly as you left them, on any device.</p>
           <ul className="trustl">

@@ -22,6 +22,7 @@ services:
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
       - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in, then set up the authenticator app
       - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters; remove this variable once you have signed in and changed it
+      - {key: CMS_JWT_SECRET, sync: false}      # the SAME value as on the site backend service: lets administrators open the CMS with their normal sign-in
       - {key: SITE_API_URL, sync: false}        # address of the site backend service (blog/CMS, portfolio, forms, chat); see docs/deploy-free.md
       - key: DATABASE_URL
         fromDatabase: {name: finlit-db, property: connectionString}

@@ -50,6 +50,8 @@ class Settings:
     # Free sample reports shown in full to everyone (the home page example).
     # The separate site backend (blog/CMS, portfolio report, contact forms, chat, ticker). Empty = those /api routes answer 404.
     site_api_url: str = field(default_factory=lambda: os.getenv("SITE_API_URL", "").rstrip("/"))
+    # Same secret the site backend verifies CMS tokens with: signed-in administrators get a CMS session without a second password.
+    cms_jwt_secret: str = field(default_factory=lambda: os.getenv("CMS_JWT_SECRET", ""))
     # Folder holding the built website (frontend/dist). Empty = API only (the website is then hosted elsewhere).
     frontend_dist: str = field(default_factory=lambda: os.getenv("FRONTEND_DIST", ""))
     showcase_symbols: List[str] = field(default_factory=lambda: _list(os.getenv("SHOWCASE_SYMBOLS", "RELIANCE")))

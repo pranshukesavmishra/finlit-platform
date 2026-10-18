@@ -494,3 +494,32 @@ async def test_weekly_digest_is_opt_in_and_sent_once_a_week(app):
     assert "RESULTS THIS WEEK" in mail["body"] and "RELIANCE" in mail["body"] and "Account" in mail["body"]
     assert await send_digests(pool, app.state.mailer, "http://test") == 0       # once per week
     await c.aclose()
+
+
+async def test_admin_gets_a_cms_token_the_site_backend_accepts(ingested):
+    import base64, hashlib, hmac, json, time
+    secret = "s" * 40
+    app = create_app(make_settings(cms_jwt_secret=secret), store=ingested)
+    async with app.router.lifespan_context(app):
+        user = await signed_in(app, "m@example.com")
+        assert (await user.post("/api/me/cms-token")).json()["detail"]["status"] == "forbidden"
+        admin = await make_admin(app, "boss2@example.com")
+        assert (await admin.post("/api/me/cms-token")).json()["detail"]["status"] == "mfa_required"
+        s = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+        await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(s, int(time.time()) // 30)})
+        r = await admin.post("/api/me/cms-token")
+        assert r.status_code == 200, r.text
+        head, body, sig = r.json()["token"].split(".")
+        pad = lambda x: x + "=" * (-len(x) % 4)  # noqa: E731
+        assert base64.urlsafe_b64encode(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode() == sig
+        claims = json.loads(base64.urlsafe_b64decode(pad(body)))
+        assert claims["role"] == "admin" and claims["sub"] == "boss2@example.com" and claims["exp"] > time.time() + 3600
+        for c in (user, admin):
+            await c.aclose()
+    bare = create_app(make_settings(), store=ingested)
+    async with bare.router.lifespan_context(bare):
+        admin = await make_admin(bare, "boss3@example.com")
+        s = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+        await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(s, int(time.time()) // 30)})
+        assert (await admin.post("/api/me/cms-token")).json()["detail"]["status"] == "cms_not_configured"
+        await admin.aclose()

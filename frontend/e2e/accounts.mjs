@@ -176,8 +176,20 @@ await ap2.getByLabel("Authenticator code").waitFor({ timeout: 8000 }).catch(asyn
 await ap2.getByLabel("Authenticator code").fill("000000"); await ap2.getByRole("button", { name: "Verify and sign in" }).click(); await ap2.locator(".formerr").waitFor();
 check("admin: a wrong code is refused", (await ap2.locator(".formerr").count()) === 1);
 await ap2.getByLabel("Authenticator code").fill(totp(secret, 1)); await ap2.getByRole("button", { name: "Verify and sign in" }).click();
-await ap2.waitForURL(/\/dashboard/);
+await ap2.waitForURL(/\/(dashboard|console)/);
 check("admin: right code signs in", true);
+await ap2.goto(base + "/admin", { waitUntil: "networkidle" });
+check("admin: content tools open with the normal sign-in (no second password)", await ap2.getByRole("heading", { name: "Research publishing" }).waitFor({ timeout: 8000 }).then(() => true, () => false), ap2.url());
+await ac2.close();
+const vcx = await ctx(), vpx = await page(vcx);
+await vpx.goto(base + "/admin/login", { waitUntil: "networkidle" });
+check("visitor: /admin/login sends people to the one sign-in page", /\/login\?next=%2Fadmin|\/login\?next=\/admin/.test(vpx.url()), vpx.url());
+await vpx.goto(base + "/", { waitUntil: "networkidle" });
+await vpx.getByRole("button", { name: /^Products/ }).click();
+check("home: Products menu lists the tools", (await vpx.getByRole("menuitem", { name: /Alerts/ }).count()) === 1 && (await vpx.getByRole("menuitem", { name: /Screener/ }).count()) === 1);
+check("home: pricing and FAQ sections present", (await vpx.locator("#pricing").count()) === 1 && (await vpx.locator("#faq details").count()) >= 6);
+check("home: footer has no public admin link", (await vpx.locator("footer").getByText("CMS admin").count()) === 0);
+await vcx.close();
 
 // ---------------------------------------------------------------- now Silver
 await p.goto(base + "/stocks/RELIANCE", { waitUntil: "networkidle" });
