@@ -15,7 +15,7 @@ import { useAuth } from "../lib/auth";
 const NAV = [
   ["/research", "Research"], ["/services", "Services"], ["/plans", "Plans"], ["/portfolio", "Portfolio"], ["/blog", "Blog"], ["/about", "About"],
 ] as const;
-const TOOLS = [["/screener", "Stock screener", "Filter every company by your rules", "table"], ["/compare", "Compare companies", "Side by side, in charts", "layers"], ["/watchlist", "Watchlist", "Your lists, bucketed", "wallet"], ["/glossary", "Glossary", "95 terms in plain words", "notes"]] as const;
+const TOOLS = [["/screener", "Stock screener", "Filter every company by your rules", "table"], ["/compare", "Compare companies", "Side by side, in charts", "layers"], ["/watchlist", "Watchlist", "Your lists, bucketed", "wallet"], ["/ipo", "IPO calendar", "Open and upcoming issues", "calendar"], ["/results", "Results calendar", "Who reports when", "calendar"], ["/news", "News & filings", "Exchange announcements", "notes"], ["/documents", "Documents", "Presentations and transcripts", "layers"], ["/glossary", "Glossary", "95 terms in plain words", "notes"]] as const;
 
 function Header({ onSearch }: { onSearch: () => void }) {
   const { theme, toggleTheme, plan, setPlan } = useUI();
@@ -95,9 +95,11 @@ function Footer() {
           <button className="btn primary" onClick={() => enquire()}>Get in touch</button>
         </div>
         <div className="fcols">
-          <div><b>Explore</b><Link to="/research">Stock research</Link><Link to="/services">Services</Link><Link to="/plans">Plans</Link><Link to="/portfolio">Portfolio</Link><Link to="/blog">Blog</Link></div>
-          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/contact">Contact</Link><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
-          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link><Link to="/admin/login">CMS admin</Link></div>
+          <div><b>Research</b><Link to="/research">Stock research</Link><Link to="/screener">Stock screener</Link><Link to="/compare">Compare companies</Link><Link to="/watchlist">Watchlist</Link><Link to="/glossary">Glossary</Link></div>
+          <div><b>Markets</b><Link to="/ipo">IPO calendar</Link><Link to="/results">Results calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link></div>
+          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/portfolio">Portfolio</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
+          <div><b>Account</b><Link to="/plans">Plans</Link><Link to="/login?mode=signup">Create account</Link><Link to="/login">Sign in</Link><Link to="/dashboard">Dashboard</Link></div>
+          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link></div>
         </div>
         <div className="ffine">
           <span>{COMPANY.name} · Research-led perspectives across Indian and global markets.</span>

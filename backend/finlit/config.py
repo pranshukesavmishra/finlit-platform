@@ -44,6 +44,8 @@ class Settings:
     # Where emailed links point (the website, not the API).
     public_site_url: str = field(default_factory=lambda: os.getenv("PUBLIC_SITE_URL", "http://localhost:5173").rstrip("/"))
     # console = write mails to the outbox table (development); resend = send through Resend.
+    # Staging and test deployments that cannot send mail: new accounts are confirmed at sign-up instead of by emailed link. Never in production.
+    auto_verify_email: bool = field(default_factory=lambda: os.getenv("AUTO_VERIFY_EMAIL", "").lower() in ("1", "true", "yes"))
     mail_mode: str = field(default_factory=lambda: os.getenv("MAIL_MODE", "console"))
     resend_api_key: str = field(default_factory=lambda: os.getenv("RESEND_API_KEY", ""))
     mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
@@ -78,8 +80,11 @@ class Settings:
             problems.append("FINEDGE_MODE must be live with FINEDGE_API_KEY set")
         if "finlit:finlit@" in self.database_url or "change-me" in self.database_url:
             problems.append("DATABASE_URL uses a default password")
-        if "@" not in self.redis_url:
-            problems.append("REDIS_URL has no password (use redis://:PASSWORD@host:6379/0)")
+        redis_host = self.redis_url.split("://", 1)[-1].split("/", 1)[0].rsplit("@", 1)[-1].split(":", 1)[0]
+        if "@" not in self.redis_url and redis_host in ("localhost", "127.0.0.1"):
+            problems.append("REDIS_URL has no password (use redis://:PASSWORD@host:6379/0)")  # a private-network host (e.g. Render's) is fine without one
+        if self.auto_verify_email:
+            problems.append("AUTO_VERIFY_EMAIL must be off in production (members must confirm their email)")
         if "*" in self.allowed_hosts:
             problems.append("ALLOWED_HOSTS must list the real API host names")
         if len(self.secret_key) < 32 or self.secret_key.startswith("dev-only"):

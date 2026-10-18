@@ -144,10 +144,12 @@ export function useAlerts(rows?: Row[]) {
     mutationFn: (id: string) => { if (DEMO) { demo.alerts = demo.alerts.filter((a) => a.id !== id); save(); return Promise.resolve(null); } return apiSend("DELETE", `/api/alerts/${id}`); },
     onSuccess: refresh,
   });
-  const alerts = DEMO ? d.alerts : q.data?.alerts ?? [];
+  const alerts = DEMO ? d.alerts : q.data?.alerts ?? NO_ALERTS;
   return { alerts, limit: DEMO ? LIMITS[plan] : q.data?.limit ?? LIMITS[plan], loading: !DEMO && q.isLoading, error: q.error, create, patch, remove };
 }
 
+const NO_NOTICES: Notice[] = [];
+const NO_ALERTS: AlertRow[] = [];
 export function useNotices() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -156,7 +158,7 @@ export function useNotices() {
     queryKey: alertKeys.notices, enabled: !!user && !DEMO, refetchInterval: POLL, refetchOnWindowFocus: true, staleTime: 10_000, retry: 0,
     queryFn: () => apiGet<{ notifications: Notice[]; unread: number }>("/api/notifications?limit=50", { cache: "reload" }),
   });
-  const items = DEMO ? d.notices : q.data?.notifications ?? [];
+  const items = DEMO ? d.notices : q.data?.notifications ?? NO_NOTICES;  // one shared empty list: a new [] every render would retrigger effects that depend on it
   const unread = DEMO ? d.notices.filter((n) => !n.read).length : q.data?.unread ?? 0;
   const markRead = useCallback(async (ids?: number[]) => {
     if (DEMO) { demo.notices = demo.notices.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)); save(); return; }

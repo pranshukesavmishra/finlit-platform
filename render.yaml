@@ -1,8 +1,15 @@
-# Free, one-click deployment on Render (https://render.com): website + API in one service, free Postgres and Redis.
-# Render dashboard -> New -> Blueprint -> pick this repository. You will be asked for FINEDGE_API_KEY (paste it there; it is never stored in the repo).
-# The site backend (Financial-Portfolio) is a second service, created by hand: see docs/deploy-free.md.
-# After it is live, read DEMO_PASSWORD under the service's Environment tab: it is the password of the demo accounts
+# Free, one-click deployment on Render (https://render.com): the whole site in one Blueprint.
+#   finlit            website + research API + background jobs   (this repo's backend/ and frontend/)
+#   finlit-site-api   blog and CMS, portfolio report, forms, FinLit AI chat, ticker   (this repo's site-api/)
+#   finlit-db / finlit-redis   free Postgres and Redis for finlit
+# The site backend also needs a free MongoDB Atlas database (MONGO_URL); see docs/deploy-free.md.
+# Render dashboard -> New -> Blueprint -> pick this repository. You will be asked for the secrets below; nothing secret is stored in the repo.
+# After it is live, read DEMO_PASSWORD under the finlit service's Environment tab: it is the password of the demo accounts
 #   demo-basic@finlit-demo.com, demo-silver@finlit-demo.com, demo-gold@finlit-demo.com
+envVarGroups:
+  - name: finlit-secrets
+    envVars:
+      - {key: FINEDGE_API_KEY, sync: false}     # FinEdge market data; used by both services
 services:
   - type: web
     name: finlit
@@ -13,20 +20,42 @@ services:
     dockerContext: .
     healthCheckPath: /api/health
     envVars:
+      - fromGroup: finlit-secrets
+      - {key: AUTO_VERIFY_EMAIL, value: "1"}    # staging: no mail service yet, so new accounts are confirmed at sign-up (refused in production)
       - {key: ENVIRONMENT, value: staging}      # not "production": production demands a verified mail domain (see docs/accounts-and-plans.md)
       - {key: FINEDGE_MODE, value: live}
-      - {key: FINEDGE_API_KEY, sync: false}
       - {key: INGEST_LIMIT, value: "1500"}      # companies loaded in the background after each start (resumable)
       - {key: SECRET_KEY, generateValue: true}
       - {key: DEMO_PASSWORD, generateValue: true}
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
       - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in, then set up the authenticator app
       - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters; remove this variable once you have signed in and changed it
-      - {key: SITE_API_URL, sync: false}        # address of the site backend service (blog/CMS, portfolio, forms, chat); see docs/deploy-free.md
+      - key: SITE_API_HOSTPORT                  # the site backend, reached over Render's private network (override with SITE_API_URL for a public address)
+        fromService: {type: web, name: finlit-site-api, property: hostport}
       - key: DATABASE_URL
         fromDatabase: {name: finlit-db, property: connectionString}
       - key: REDIS_URL
         fromService: {type: keyvalue, name: finlit-redis, property: connectionString}
+  - type: web
+    name: finlit-site-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: site-api/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1 --no-server-header
+    healthCheckPath: /api/
+    envVars:
+      - fromGroup: finlit-secrets
+      - {key: PYTHON_VERSION, value: 3.12.7}
+      - {key: DB_NAME, value: finlit}
+      - {key: MONGO_URL, sync: false}           # MongoDB Atlas connection string (free M0 cluster)
+      - {key: CMS_ADMIN_EMAIL, sync: false}     # login for the blog / CMS admin at /admin/login
+      - {key: CMS_ADMIN_PASSWORD, sync: false}  # 10+ characters; hashed in memory, never stored
+      - {key: CMS_JWT_SECRET, generateValue: true}
+      - {key: ALLOWED_HOSTS, value: "finlit-site-api,*.onrender.com"}
+      # Optional, add later in the Environment tab: GEMINI_API_KEY (FinLit AI chat), RESEND_API_KEY + SENDER_EMAIL +
+      # CONTACT_RECIPIENT_EMAIL (contact and enquiry emails), UPSTOX_ACCESS_TOKEN (NIFTY ticker strip).
   - type: keyvalue
     name: finlit-redis
     plan: free

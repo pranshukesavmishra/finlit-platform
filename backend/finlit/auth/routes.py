@@ -313,13 +313,17 @@ async def register(request: Request, body: SignUp):
     pw = await crypto.hash_password(body.password)
     async with pool.acquire() as conn:
         try:
-            uid = await conn.fetchval("INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id", email, name, pw)
+            uid = await conn.fetchval("INSERT INTO users (email, name, password_hash, email_verified_at) VALUES ($1, $2, $3, CASE WHEN $4 THEN now() END) RETURNING id",
+                                      email, name, pw, st.auto_verify_email)
         except Exception:  # a parallel sign-up won the unique index: behave like the existing-account branch
             return Response(content=json.dumps(GENERIC_SIGNUP), status_code=202, media_type="application/json", headers=NO_STORE)
+    await audit(pool, str(uid), "register", email_hash(email), ip, terms=True)
+    if st.auto_verify_email:  # staging only (refused in production): the account is already confirmed
+        return Response(content=json.dumps({"status": "created", "detail": "Your account is ready. Sign in to continue."}), status_code=201,
+                        media_type="application/json", headers=NO_STORE)
     raw = await issue_token(pool, str(uid), "verify", timedelta(hours=24))
     subject, text = mail.verify_mail(f"{st.public_site_url}/verify-email?token={raw}", name)
     await request.app.state.mailer.send(email, subject, text)
-    await audit(pool, str(uid), "register", email_hash(email), ip, terms=True)
     return Response(content=json.dumps(GENERIC_SIGNUP), status_code=202, media_type="application/json", headers=NO_STORE)
 
 

@@ -164,8 +164,9 @@
 .ai-fine { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--faint); text-align: center; }
 
 /* footer extras */
-.fcols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding: 28px 0; border-top: 1px solid var(--border); margin-top: 28px; }
+.fcols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; padding: 28px 0; border-top: 1px solid var(--border); margin-top: 28px; }
 .fcols b { display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); } .fcols a { display: block; padding: 4px 0; color: var(--muted); text-decoration: none; font-size: 14px; } .fcols a:hover { color: var(--gold); }
+@media (max-width: 900px) { .fcols { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px) { .fcols { grid-template-columns: 1fr 1fr; } }
 
 /* about */

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local full stack for development and end-to-end tests: Postgres + Redis, research/accounts API (8000), the older site API (8001),
 # and the website build served on 4173 with /api proxied to both. Needs: postgres, redis-server, the backend venv, node.
-# Set SITE_PY (a python with the old site backend's requirements + mongomock-motor) and SITE_BACKEND (its backend folder).
+# The site backend lives in site-api/backend. Set SITE_PY to a python with its requirements + mongomock-motor (SITE_BACKEND defaults to that folder).
 # Mail goes to the `outbox` table (MAIL_MODE=console); FinEdge runs from recorded fixtures. Stop with: dev/run_stack.sh stop
 # LIVE_DATA=1 dev/run_stack.sh: use the real FinEdge key from the environment and the companies already loaded with
 #   `python -m finlit.worker ingest-all`; no fixtures and no fictional SMP- companies. SITE_BACKEND is then optional.
@@ -28,8 +28,8 @@ if [ "${LIVE_DATA:-}" != "1" ]; then
 fi
 nohup $PY -m uvicorn --factory finlit.api:create_app --port 8000 >"$LOG/research.log" 2>&1 &
 cd "$ROOT"
-if [ -n "${SITE_BACKEND:-}" ] || [ "${LIVE_DATA:-}" != "1" ]; then
-  nohup "${SITE_PY:-python3}" dev/site_api_dev.py --backend "${SITE_BACKEND:?set SITE_BACKEND to the Financial-Portfolio/backend folder}" --port 8001 >"$LOG/site.log" 2>&1 &
+if [ -n "${SITE_PY:-}" ] || [ "${LIVE_DATA:-}" != "1" ]; then
+  nohup "${SITE_PY:-python3}" dev/site_api_dev.py --backend "${SITE_BACKEND:-$ROOT/site-api/backend}" --port 8001 >"$LOG/site.log" 2>&1 &
 fi
 cd "$ROOT/frontend"; VITE_BASE=/ npx vite build >"$LOG/build.log" 2>&1
 nohup npx vite preview --port 4173 --strictPort >"$LOG/preview.log" 2>&1 &

@@ -22,6 +22,15 @@ const nf = await ctx.request.get(base + "/api/nonexistent");
 check("unknown /api path is a JSON 404, not the website", nf.status() === 404 && (nf.headers()["content-type"] || "").includes("json"));
 await go("/");
 check("home page loads", (await p.locator("h1").count()) >= 1 && (await text()).length > 300);
+// in-app navigation (clicking links, no reload) must show the new page, not keep the old one
+await go("/");
+for (const [name, path] of [["Plans", "/plans"], ["Services", "/services"], ["About", "/about"], ["Blog", "/blog"]]) {
+  await p.getByRole("link", { name, exact: true }).first().click(); await p.waitForTimeout(800);
+  check(`clicking ${name} opens ${path} (not the previous page)`, p.url().endsWith(path) && (await p.getByText("Invest with clarity").count()) === 0);
+}
+await p.getByRole("link", { name: "Sign in", exact: true }).first().click(); await p.waitForTimeout(600);
+await p.getByRole("tab", { name: "Create account" }).click(); await p.waitForTimeout(400);
+check("sign-in page: the Create account tab switches", (await p.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true");
 await go("/stocks/TCS", 1500);
 check("deep link works on refresh (/stocks/TCS)", /TCS|Tata Consultancy/i.test(await text()));
 const u = await (await ctx.request.get(base + "/api/screener/universe")).json();
@@ -48,6 +57,26 @@ await go("/compare?c=RELIANCE,TCS", 1200);
 check("compare shows both companies", /RELIANCE/.test(await text()) && /TCS/.test(await text()));
 await go("/ipo"); check("IPO page loads", (await text()).length > 100);
 await go("/news"); check("news page loads", (await text()).length > 100);
+// a brand-new visitor can create an account and sign in (needs AUTO_VERIFY_EMAIL=1 on the server: SIGNUP_TEST=1)
+if (process.env.SIGNUP_TEST === "1") {
+  const c3 = await browser.newContext(); const p3 = await c3.newPage();
+  const email = `visitor-${Date.now().toString(36)}@example.com`, pw = "a-long-unusual-phrase-42";
+  await p3.goto(base + "/login?mode=signup", { waitUntil: "networkidle" });
+  await p3.getByLabel(/^Name/).fill("New Visitor"); await p3.getByLabel("Email address").fill(email); await p3.getByLabel("Password", { exact: true }).fill(pw);
+  await p3.getByLabel(/I agree to the/).check(); await p3.getByRole("button", { name: "Create account" }).click();
+  check("sign-up: new account is ready at once", await p3.getByText("Your account is ready").waitFor({ timeout: 10000 }).then(() => true, () => false));
+  await p3.getByRole("button", { name: "Sign in", exact: true }).first().click();
+  await p3.getByLabel("Email address").fill(email); await p3.getByLabel("Password", { exact: true }).fill(pw);
+  await p3.getByRole("button", { name: "Sign in", exact: true }).last().click();
+  await p3.waitForURL(/\/dashboard/, { timeout: 15000 }).catch(() => {});
+  check("sign-up: new member signs in and reaches the dashboard", /\/dashboard/.test(p3.url()), p3.url());
+  const meNew = await (await c3.request.get(base + "/api/stocks/TCS")).json();
+  check("sign-up: a new member starts on Basic (no model score)", meNew.score && meNew.score.overall == null);
+}
+// the public pages the company site promises
+for (const [path, needle] of [["/blog", ""], ["/portfolio", ""], ["/contact", ""], ["/ipo", ""], ["/results", ""], ["/documents", ""]]) {
+  await go(path, 600); check(`public page ${path} renders`, (await text()).length > 100);
+}
 // the Basic demo member must NOT see scores
 const c2 = await browser.newContext(); const p2 = await c2.newPage();
 await p2.goto(base + "/login", { waitUntil: "networkidle" });

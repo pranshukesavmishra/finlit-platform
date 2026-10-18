@@ -7,6 +7,8 @@ cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
 export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-${RENDER_EXTERNAL_URL:-http://localhost:8000}}"
 export CORS_ORIGINS="${CORS_ORIGINS:-$PUBLIC_SITE_URL}"
+# The site backend (blog/CMS, portfolio, forms, chat): an explicit SITE_API_URL wins, otherwise Render's private-network address.
+if [ -z "${SITE_API_URL:-}" ] && [ -n "${SITE_API_HOSTPORT:-}" ]; then export SITE_API_URL="http://$SITE_API_HOSTPORT"; fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
 
 until $PY -m finlit.worker migrate; do echo "waiting for the database..."; sleep 3; done
