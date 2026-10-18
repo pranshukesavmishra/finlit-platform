@@ -67,7 +67,9 @@ class Settings:
 
     @property
     def cookie_secure(self) -> bool:
-        return self.is_production
+        # Secure cookies in production, and on any site served over https (the free Render address, staging) so a session
+        # cookie is never sent over plain http. Local development over http keeps working.
+        return self.is_production or self.public_site_url.startswith("https://")
 
     @property
     def is_production(self) -> bool:

@@ -13,3 +13,10 @@ def test_pooled_endpoint_turns_the_statement_cache_off():
 
 def test_plain_local_url_is_untouched():
     assert prepare_dsn("postgresql://finlit:finlit@localhost:5432/finlit_dev") == ("postgresql://finlit:finlit@localhost:5432/finlit_dev", {})
+
+
+def test_session_cookie_is_secure_on_any_https_site_but_not_on_local_http():
+    from finlit.config import Settings
+    assert Settings(environment="staging", public_site_url="https://finlit.onrender.com").cookie_secure is True
+    assert Settings(environment="production", public_site_url="https://finlitventures.com").cookie_secure is True
+    assert Settings(environment="development", public_site_url="http://localhost:4173").cookie_secure is False
