@@ -3,7 +3,7 @@
 #   finlit-redis   free Redis (cache only; it may be emptied at any restart and refills itself)
 # Two things are created by hand, because Render's free Postgres is deleted after 30 days and Render has no free MongoDB:
 #   DATABASE_URL  a free Neon Postgres (https://neon.tech)        MONGO_URL  a free MongoDB Atlas M0 cluster
-# Steps with exact clicks: docs/deploy-free.md. Render dashboard -> New -> Blueprint -> pick this repository.
+# Steps with exact clicks: docs/LAUNCH-GUIDE.md. Render dashboard -> New -> Blueprint -> pick this repository.
 # Nothing secret is stored in the repository; values marked sync:false are typed into the Render dashboard.
 # After it is live, read DEMO_PASSWORD under the service's Environment tab: it is the password of the demo accounts
 #   demo-basic@finlit-demo.com, demo-silver@finlit-demo.com, demo-gold@finlit-demo.com
@@ -21,7 +21,7 @@ services:
       - {key: AUTO_VERIFY_EMAIL, value: "1"}    # staging: no mail service yet, so new accounts are confirmed at sign-up (refused in production)
       - {key: FINEDGE_MODE, value: live}
       - {key: FINEDGE_API_KEY, sync: false}     # FinEdge market data
-      - {key: DATABASE_URL, sync: false}        # Neon connection string (direct, not "-pooler"); see docs/deploy-free.md
+      - {key: DATABASE_URL, sync: false}        # Neon connection string (direct, not "-pooler"); see docs/LAUNCH-GUIDE.md
       - {key: MONGO_URL, sync: false}           # MongoDB Atlas connection string, for the blog / portfolio / forms
       - {key: DB_NAME, value: finlit}
       - {key: CMS_JWT_SECRET, generateValue: true}   # signs the blog/CMS admin token; the research API and the site backend share it (same container)

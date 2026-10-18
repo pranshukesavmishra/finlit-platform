@@ -1,3 +1,6 @@
+> **Not the current plan.** This runbook is the paid alternative (a DigitalOcean server, about US$24 a month) for when the site outgrows the free setup.
+> The free launch, which is what is deployed now, is in [LAUNCH-GUIDE.md](LAUNCH-GUIDE.md) (also as a PDF: `FinLit-Launch-Guide.pdf`).
+
 # Launch runbook: from this repo to a live, secure FinLit site
 
 Do the parts in order. Every command assumes the company email owns the accounts. Total time for a first

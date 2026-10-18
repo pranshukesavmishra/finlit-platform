@@ -1,7 +1,7 @@
 # FinLit platform
 
 **Website** (`frontend/`, React + TypeScript, navy and gold design) · **Research service** (`backend/`, fast stock reports)
-· Existing **site backend** (Financial-Portfolio, unchanged). Launch steps: [`docs/LAUNCH-RUNBOOK.md`](docs/LAUNCH-RUNBOOK.md).
+· The company **site backend** (from Financial-Portfolio) lives in `site-api/`. Free launch steps: [`docs/LAUNCH-GUIDE.md`](docs/LAUNCH-GUIDE.md) (PDF: `docs/FinLit-Launch-Guide.pdf`); paid alternative: [`docs/LAUNCH-RUNBOOK.md`](docs/LAUNCH-RUNBOOK.md).
 
 ```bash
 # develop the website against both backends
