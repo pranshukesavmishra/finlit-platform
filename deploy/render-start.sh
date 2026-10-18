@@ -14,11 +14,11 @@ if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; 
   export SITE_API_URL="http://127.0.0.1:8001" DB_NAME="${DB_NAME:-finlit}"
   ( cd "$SITE_DIR" && while true; do
       if [ "${SITE_API_DEV:-}" = "1" ]; then   # local testing only: in-memory MongoDB stand-in (see dev/site_api_dev.py)
-        "$SITE_PY" "$HERE/../dev/site_api_dev.py" --backend "$SITE_DIR" --port 8001 >> /tmp/site-api.log 2>&1
+        "$SITE_PY" "$HERE/../dev/site_api_dev.py" --backend "$SITE_DIR" --port 8001 2>&1 | sed -u "s/^/[site-api] /"
       else
-        MALLOC_ARENA_MAX=2 "$SITE_PY" -m uvicorn server:app --host 127.0.0.1 --port 8001 --workers 1 --no-server-header >> /tmp/site-api.log 2>&1
+        MALLOC_ARENA_MAX=2 "$SITE_PY" -m uvicorn server:app --host 127.0.0.1 --port 8001 --workers 1 --no-server-header 2>&1 | sed -u "s/^/[site-api] /"
       fi
-      echo "site backend stopped; restarting in 3 s" >> /tmp/site-api.log; sleep 3
+      echo "[site-api] stopped; restarting in 3 s"; sleep 3
     done ) &
 fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
