@@ -22,15 +22,27 @@ const nf = await ctx.request.get(base + "/api/nonexistent");
 check("unknown /api path is a JSON 404, not the website", nf.status() === 404 && (nf.headers()["content-type"] || "").includes("json"));
 await go("/");
 check("home page loads", (await p.locator("h1").count()) >= 1 && (await text()).length > 300);
-// in-app navigation (clicking links, no reload) must show the new page, not keep the old one
+// in-app navigation (clicking links, no reload) must show the new page, not keep the old one (compared by page heading)
+const h1 = async () => (await p.locator("h1").first().innerText().catch(() => "")).trim();
 await go("/");
-for (const [name, path] of [["Plans", "/plans"], ["Services", "/services"], ["About", "/about"], ["Blog", "/blog"]]) {
-  await p.getByRole("link", { name, exact: true }).first().click(); await p.waitForTimeout(800);
-  check(`clicking ${name} opens ${path} (not the previous page)`, p.url().endsWith(path) && (await p.getByText("Invest with clarity").count()) === 0);
+for (const [name, path] of [["Pricing", "/plans"], ["Services", "/services"]]) {
+  const before = await h1();
+  await p.getByRole("link", { name, exact: true }).first().click(); await p.waitForTimeout(900);
+  const after = await h1();
+  check(`clicking ${name} opens ${path} (heading changes)`, p.url().endsWith(path) && after !== "" && after !== before, `"${before.slice(0, 25)}" -> "${after.slice(0, 25)}"`);
 }
-await p.getByRole("link", { name: "Sign in", exact: true }).first().click(); await p.waitForTimeout(600);
+for (const [menu, item, path] of [["Company", "About FinLit", "/about"], ["Resources", "Insights & blog", "/blog"], ["Products", "Score screener", "/score-screener"]]) {
+  await go("/"); const before = await h1();
+  await p.getByRole("button", { name: menu, exact: true }).first().click(); await p.getByRole("menuitem", { name: new RegExp("^" + item) }).first().click(); await p.waitForTimeout(900);
+  const after = await h1();
+  check(`menu ${menu} > ${item} opens ${path} (heading changes)`, p.url().includes(path) && after !== "" && after !== before, `"${before.slice(0, 25)}" -> "${after.slice(0, 25)}"`);
+}
+// the sign-in / create-account tabs (an earlier render loop froze them for visitors)
+await p.goto(base + "/login?mode=signup", { waitUntil: "networkidle" }); await p.waitForTimeout(500);
+await p.getByRole("tab", { name: "Sign in" }).click(); await p.waitForTimeout(400);
+check("sign-in page: the Sign in tab switches the heading to 'Welcome back'", (await p.getByRole("heading", { name: "Welcome back" }).count()) === 1);
 await p.getByRole("tab", { name: "Create account" }).click(); await p.waitForTimeout(400);
-check("sign-in page: the Create account tab switches", (await p.getByRole("tab", { name: "Create account" }).getAttribute("aria-selected")) === "true");
+check("sign-in page: the Create account tab switches back", (await p.getByRole("heading", { name: /Create your free account/ }).count()) === 1);
 await go("/stocks/TCS", 1500);
 check("deep link works on refresh (/stocks/TCS)", /TCS|Tata Consultancy/i.test(await text()));
 const u = await (await ctx.request.get(base + "/api/screener/universe")).json();
@@ -57,6 +69,34 @@ await go("/compare?c=RELIANCE,TCS", 1200);
 check("compare shows both companies", /RELIANCE/.test(await text()) && /TCS/.test(await text()));
 await go("/ipo"); check("IPO page loads", (await text()).length > 100);
 await go("/news"); check("news page loads", (await text()).length > 100);
+// one sign-in for administrators: /login (with the authenticator code) opens the blog/CMS tools, no second password
+if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+  const { createHmac } = await import("node:crypto");
+  const b32 = (str) => { const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"; let bits = ""; for (const ch of str.replace(/=+$/, "")) bits += A.indexOf(ch).toString(2).padStart(5, "0"); const out = []; for (let i = 0; i + 8 <= bits.length; i += 8) out.push(parseInt(bits.slice(i, i + 8), 2)); return Buffer.from(out); };
+  const totp = (secret) => { const b = Buffer.alloc(8); b.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000))); const h = createHmac("sha1", b32(secret)).update(b).digest(); const o = h[h.length - 1] & 15; return String(((h.readUInt32BE(o) & 0x7fffffff) % 1000000)).padStart(6, "0"); };
+  const c4 = await browser.newContext(); const p4 = await c4.newPage();
+  await p4.goto(base + "/login", { waitUntil: "networkidle" });
+  await p4.getByLabel("Email address").fill(process.env.ADMIN_EMAIL); await p4.getByLabel("Password", { exact: true }).fill(process.env.ADMIN_PASSWORD);
+  await p4.getByRole("button", { name: "Sign in", exact: true }).last().click();
+  await p4.waitForURL(/\/(dashboard|account\/security)/, { timeout: 15000 }).catch(() => {});
+  const api4 = async (path, method = "GET", body) => p4.evaluate(async ([u, m, b]) => { const csrf = (await (await fetch("/api/auth/me", { credentials: "same-origin" })).json()).csrf; const r = await fetch(u, { method: m, credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf || "" }, body: b ? JSON.stringify(b) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; }, [path, method, body]);
+  const before = await api4("/api/me/cms-token", "POST");
+  check("admin: the CMS token is refused until the authenticator app is set up", before.status === 403 || before.status === 401, String(before.status));
+  const setup = await api4("/api/me/mfa/setup", "POST");
+  const en = await api4("/api/me/mfa/enable", "POST", { code: totp(setup.body.secret) });
+  check("admin: authenticator app set up once (Account > Security)", en.status === 200, String(en.status));
+  const tok = await api4("/api/me/cms-token", "POST");
+  check("admin: after that, /api/me/cms-token issues a CMS token (CMS_JWT_SECRET is set)", tok.status === 200 && !!tok.body.token, tok.status === 503 ? "cms_not_configured: CMS_JWT_SECRET is missing" : String(tok.status));
+  if (tok.status === 200) {
+    const items = await p4.evaluate(async (t) => (await fetch("/api/content/admin/items", { headers: { Authorization: "Bearer " + t } })).status, tok.body.token);
+    check("admin: the site backend accepts that token (same secret)", items === 200, String(items));
+  }
+  await p4.goto(base + "/admin", { waitUntil: "networkidle" }); await p4.waitForTimeout(1500);
+  check("admin: /admin opens the content tools with no second password", /\/admin$/.test(p4.url()) && (await p4.getByText(/Content|New|Articles|Publish/i).count()) > 0, p4.url());
+  await p4.goto(base + "/admin/login", { waitUntil: "networkidle" }); await p4.waitForTimeout(1200);
+  check("admin: /admin/login is no longer a password form", (await p4.locator("input[type=password]").count()) === 0, `${p4.url()} · ${await p4.locator("input[type=password]").count()} password fields`);
+  await c4.close();
+}
 // a brand-new visitor can create an account and sign in (needs AUTO_VERIFY_EMAIL=1 on the server: SIGNUP_TEST=1)
 if (process.env.SIGNUP_TEST === "1") {
   const c3 = await browser.newContext(); const p3 = await c3.newPage();
@@ -74,7 +114,7 @@ if (process.env.SIGNUP_TEST === "1") {
   check("sign-up: a new member starts on Basic (no model score)", meNew.score && meNew.score.overall == null);
 }
 // the public pages the company site promises
-for (const [path, needle] of [["/blog", ""], ["/portfolio", ""], ["/contact", ""], ["/ipo", ""], ["/results", ""], ["/documents", ""]]) {
+for (const [path, needle] of [["/score-screener", ""], ["/blog", ""], ["/portfolio", ""], ["/contact", ""], ["/ipo", ""], ["/results", ""], ["/documents", ""]]) {
   await go(path, 600); check(`public page ${path} renders`, (await text()).length > 100);
 }
 // the Basic demo member must NOT see scores

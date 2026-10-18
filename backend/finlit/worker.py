@@ -120,9 +120,25 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
     return updated
 
 
-async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0) -> int:
-    total = 0
+async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 900.0) -> int:
+    """With loop=True the idle wait watches a Redis flag set by enqueue, and looks at Postgres only when the flag is up (or every
+    `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day."""
+    total, last_db = 0, float("-inf")
     while True:
+        if loop and time.monotonic() - last_db < recheck_seconds:
+            try:
+                flagged = await store.redis.exists(store.QUEUE_FLAG)
+            except Exception:
+                flagged = True  # Redis trouble: fall back to asking Postgres
+            if not flagged:
+                await asyncio.sleep(idle_seconds)
+                continue
+        last_db = time.monotonic()
+        if loop:
+            try:
+                await store.redis.delete(store.QUEUE_FLAG)  # before claiming: an enqueue that arrives meanwhile raises it again
+            except Exception:
+                pass
         items = await store.claim(10)
         if items:
             await ingest_many(client, store, items)

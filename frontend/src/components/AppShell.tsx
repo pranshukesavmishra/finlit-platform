@@ -34,6 +34,7 @@ export function AppShell() {
     { title: "Research", items: [
       { to: "/research", label: "Stock research", icon: "search" },
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
+      { to: "/score-screener", label: "Score screener", icon: "quality" },
       { to: "/compare", label: "Compare companies", icon: "compare" },
     ] },
     { title: "My lists", items: [

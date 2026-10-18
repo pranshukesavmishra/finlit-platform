@@ -1,14 +1,26 @@
 #!/usr/bin/env bash
 # Container entrypoint for the free single-service deployment (render.yaml).
-# Migrates, creates the demo accounts, loads company data in the background (resumable), then runs the API + website.
+# Migrates, creates the demo and administrator accounts, starts the site backend and the background jobs, then runs the research API + website.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
 export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-${RENDER_EXTERNAL_URL:-http://localhost:8000}}"
 export CORS_ORIGINS="${CORS_ORIGINS:-$PUBLIC_SITE_URL}"
-# The site backend (blog/CMS, portfolio, forms, chat): an explicit SITE_API_URL wins, otherwise Render's private-network address.
-if [ -z "${SITE_API_URL:-}" ] && [ -n "${SITE_API_HOSTPORT:-}" ]; then export SITE_API_URL="http://$SITE_API_HOSTPORT"; fi
+# The site backend (blog/CMS, portfolio, forms, chat) runs inside this container, on 127.0.0.1:8001, and the research API forwards to it.
+# An explicit SITE_API_URL (a separately hosted site backend) wins. Without MONGO_URL the site backend is not started and those pages show empty states.
+SITE_DIR="${SITE_API_DIR:-/app/site-api/backend}"; SITE_PY="${SITE_PYTHON:-/opt/site-venv/bin/python}"
+if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; then
+  export SITE_API_URL="http://127.0.0.1:8001" DB_NAME="${DB_NAME:-finlit}"
+  ( cd "$SITE_DIR" && while true; do
+      if [ "${SITE_API_DEV:-}" = "1" ]; then   # local testing only: in-memory MongoDB stand-in (see dev/site_api_dev.py)
+        "$SITE_PY" "$HERE/../dev/site_api_dev.py" --backend "$SITE_DIR" --port 8001 >> /tmp/site-api.log 2>&1
+      else
+        MALLOC_ARENA_MAX=2 "$SITE_PY" -m uvicorn server:app --host 127.0.0.1 --port 8001 --workers 1 --no-server-header >> /tmp/site-api.log 2>&1
+      fi
+      echo "site backend stopped; restarting in 3 s" >> /tmp/site-api.log; sleep 3
+    done ) &
+fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
 
 until $PY -m finlit.worker migrate; do echo "waiting for the database..."; sleep 3; done

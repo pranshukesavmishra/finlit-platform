@@ -1,7 +1,7 @@
 // Phone-width check: no page may scroll sideways.   node e2e/mobile.mjs http://127.0.0.1:4173
 import { chromium } from "playwright";
 const base = (process.argv[2] || "http://127.0.0.1:4173").replace(/\/$/, "");
-const PAGES = ["/", "/research", "/screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/contact", "/blog", "/login", "/stocks/RELIANCE", "/stocks/5PAISA"];
+const PAGES = ["/", "/research", "/screener", "/score-screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/contact", "/blog", "/login", "/stocks/RELIANCE", "/stocks/5PAISA"];
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true });
 const p = await ctx.newPage(); let failed = 0;

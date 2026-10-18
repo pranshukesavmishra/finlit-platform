@@ -15,6 +15,7 @@ if [ "${LIVE_DATA:-}" = "1" ]; then
 else
   export FINEDGE_MODE=fixtures FINEDGE_API_KEY=dev
 fi
+export CMS_JWT_SECRET="dev-only-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 export CORS_ORIGINS="http://localhost:4173,http://127.0.0.1:4173,http://localhost:5173" RATE_LIMIT_PER_MINUTE=100000
 
 if [ "${1:-}" = "stop" ]; then pkill -f "[f]inlit.api:create_app" || true; pkill -f "[s]ite_api_dev" || true; pkill -f "[v]ite preview" || true; exit 0; fi

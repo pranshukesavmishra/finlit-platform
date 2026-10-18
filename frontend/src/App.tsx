@@ -20,6 +20,7 @@ const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default:
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
 const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m.Screener })));
+const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="research" element={<><Research onSearch={() => setSearch(true)} /><SearchPalette open={search} onClose={() => setSearch(false)} /></>} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="screener" element={<Screener />} />
+            <Route path="score-screener" element={<ScoreScreener />} />
             <Route path="compare" element={<Compare />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="holdings" element={<HoldingsPage />} />

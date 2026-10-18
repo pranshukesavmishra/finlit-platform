@@ -12,10 +12,34 @@ import { InfoProvider } from "./Info";
 import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 
-const NAV = [
-  ["/research", "Research"], ["/services", "Services"], ["/plans", "Plans"], ["/portfolio", "Portfolio"], ["/blog", "Blog"], ["/about", "About"],
-] as const;
-const TOOLS = [["/screener", "Stock screener", "Filter every company by your rules", "table"], ["/compare", "Compare companies", "Side by side, in charts", "layers"], ["/watchlist", "Watchlist", "Your lists, bucketed", "wallet"], ["/ipo", "IPO calendar", "Open and upcoming issues", "calendar"], ["/results", "Results calendar", "Who reports when", "calendar"], ["/news", "News & filings", "Exchange announcements", "notes"], ["/documents", "Documents", "Presentations and transcripts", "layers"], ["/glossary", "Glossary", "95 terms in plain words", "notes"]] as const;
+type Item = readonly [to: string, label: string, sub: string, icon: string];
+/** The company site map: what we sell (Products, Services, Pricing), what we publish (Resources) and who we are (Company). */
+export const MENUS: { label: string; wide?: boolean; groups: { title?: string; items: Item[] }[] }[] = [
+  { label: "Products", wide: true, groups: [
+    { title: "Research", items: [["/research", "Stock research", "A report for every listed company", "search"], ["/screener", "Screener", "Filter every company by your rules", "table"], ["/score-screener", "Score screener", "Size, sector and score ranges, simply", "quality"], ["/compare", "Compare companies", "Side by side, in charts", "compare"]] },
+    { title: "Your workspace", items: [["/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"], ["/holdings", "Portfolio tracker", "Value, profit and loss, allocation", "pie"], ["/alerts", "Alerts", "Price, signals, scores and filings", "bell"]] },
+    { title: "Market", items: [["/results", "Results calendar", "Who reports and when", "calendar"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
+  ] },
+  { label: "Resources", groups: [{ items: [["/blog", "Insights & blog", "Research notes and explainers", "spark"], ["/glossary", "Glossary", "95 terms in plain words", "book"], ["/documents", "Documents", "Annual reports and presentations", "layers"], ["/portfolio", "Track record", "Our realised portfolio, reported openly", "growth"]] }] },
+  { label: "Company", groups: [{ items: [["/about", "About FinLit", "Who we are and how we work", "users"], ["/why-we-exist", "Why we exist", "The problem we set out to fix", "quality"], ["/contact", "Contact", "Talk to the team", "notes"]] }] },
+];
+const TOP: [string, string][] = [["/services", "Services"], ["/plans", "Pricing"]];
+
+function Menu({ m, open, setOpen, path }: { m: (typeof MENUS)[number]; open: boolean; setOpen: (v: string | null) => void; path: string }) {
+  const here = m.groups.some((g) => g.items.some(([to]) => path === to || path.startsWith(to + "/")));
+  return (
+    <div className="dd" onMouseLeave={() => open && setOpen(null)}>
+      <button className={"ddb" + (here ? " hl" : "")} aria-haspopup="true" aria-expanded={open} onClick={() => setOpen(open ? null : m.label)} onKeyDown={(e) => e.key === "Escape" && setOpen(null)}
+        onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setOpen(null); }}>{m.label}<Icon name="arrow" /></button>
+      <div className={"ddm" + (open ? " open" : "") + (m.wide ? " wide" : "")} role="menu">
+        {m.groups.map((g, i) => (
+          <div className="ddg" key={i}>{g.title && <span className="ddt">{g.title}</span>}
+            {g.items.map(([to, label, sub, ic]) => <Link key={to} to={to} role="menuitem" onClick={() => setOpen(null)}><span className="ddi"><Icon name={ic} /></span><span><b>{label}</b><small>{sub}</small></span></Link>)}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Header({ onSearch }: { onSearch: () => void }) {
   const { theme, toggleTheme, plan, setPlan } = useUI();
@@ -23,19 +47,18 @@ function Header({ onSearch }: { onSearch: () => void }) {
   const nav = useNavigate();
   const [acct, setAcct] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [tools, setTools] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
   const loc = useLocation();
   const onStock = loc.pathname.startsWith("/stocks/");
-  useEffect(() => { setMenu(false); setTools(false); setAcct(false); }, [loc.pathname]);
+  useEffect(() => { setMenu(false); setOpen(null); setAcct(false); }, [loc.pathname]);
   return (
     <header className="top">
       <div className="wrap">
         <Link className="logo" to="/" aria-label="FinLit home"><span className="lg-mark" role="img" aria-label="FinLit" /></Link>
         <nav className="topnav" aria-label="Site">
-          {NAV.slice(0, 1).map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
-          <div className="dd"><button className={"ddb" + (TOOLS.some(([to]) => loc.pathname.startsWith(to)) ? " hl" : "")} aria-haspopup="true" aria-expanded={tools} onClick={() => setTools(!tools)} onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setTools(false); }}>Tools<Icon name="arrow" /></button>
-            <div className={"ddm" + (tools ? " open" : "")} role="menu">{TOOLS.map(([to, label, sub, ic]) => <Link key={to} to={to} role="menuitem" onClick={() => setTools(false)}><span className="ddi"><Icon name={ic} /></span><span><b>{label}</b><small>{sub}</small></span></Link>)}</div></div>
-          {NAV.slice(1).map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
+          {MENUS.slice(0, 1).map((m) => <Menu key={m.label} m={m} open={open === m.label} setOpen={setOpen} path={loc.pathname} />)}
+          {TOP.map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
+          {MENUS.slice(1).map((m) => <Menu key={m.label} m={m} open={open === m.label} setOpen={setOpen} path={loc.pathname} />)}
         </nav>
         <div className="grow" />
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
@@ -76,9 +99,9 @@ function Header({ onSearch }: { onSearch: () => void }) {
       </div>
       {menu && (
         <nav className="mnav" aria-label="Mobile">
-          {NAV.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
-          {TOOLS.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}
-          <Link to="/contact">Contact</Link>{user ? <><NavLink to="/dashboard">Dashboard</NavLink><NavLink to="/account">Account</NavLink></> : <Link to="/login" className="gold">Sign in</Link>}
+          {MENUS.map((m) => <div key={m.label} className="mg"><span className="mt">{m.label}</span>{m.groups.flatMap((g) => g.items).map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}</div>)}
+          <div className="mg"><span className="mt">More</span>{TOP.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}</div>
+          <div className="mg">{user ? <><NavLink to="/dashboard">Dashboard</NavLink><NavLink to="/account">Account</NavLink></> : <><Link to="/login">Sign in</Link><Link to="/login?mode=signup" className="gold">Create free account</Link></>}</div>
         </nav>
       )}
     </header>
@@ -87,22 +110,23 @@ function Header({ onSearch }: { onSearch: () => void }) {
 
 function Footer() {
   const enquire = useEnquiry();
+  const { user } = useAuth();
   return (
     <footer className="band">
       <div className="wrap">
         <div className="fcta">
-          <div><span className="lg-mark" role="img" aria-label="FinLit" style={{ marginBottom: 18 }} /><h2>Have a question about your portfolio?</h2><p>Talk to the FinLit research team.</p></div>
-          <button className="btn primary" onClick={() => enquire()}>Get in touch</button>
+          <div><span className="lg-mark" role="img" aria-label="FinLit" style={{ marginBottom: 18 }} /><h2>Invest with clarity, not noise.</h2><p>Open a free account to follow stocks, set alerts and read a report for every listed company.</p></div>
+          <div className="cta-row">{!user && <Link className="btn primary" to="/login?mode=signup">Create free account</Link>}<button className="btn" onClick={() => enquire()}>Talk to the team</button></div>
         </div>
-        <div className="fcols">
-          <div><b>Research</b><Link to="/research">Stock research</Link><Link to="/screener">Stock screener</Link><Link to="/compare">Compare companies</Link><Link to="/watchlist">Watchlist</Link><Link to="/glossary">Glossary</Link></div>
-          <div><b>Markets</b><Link to="/ipo">IPO calendar</Link><Link to="/results">Results calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link></div>
-          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/portfolio">Portfolio</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
-          <div><b>Account</b><Link to="/plans">Plans</Link><Link to="/login?mode=signup">Create account</Link><Link to="/login">Sign in</Link><Link to="/dashboard">Dashboard</Link></div>
-          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link></div>
+        <div className="fcols fcols5">
+          <div className="fbrand"><b>{COMPANY.name}</b><p>Research-led perspectives across Indian and global markets, from people who put their own capital behind their ideas.</p>
+            <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
+          <div><b>Products</b><Link to="/research">Stock research</Link><Link to="/screener">Screener</Link><Link to="/score-screener">Score screener</Link><Link to="/compare">Compare</Link><Link to="/watchlist">Watchlists</Link><Link to="/alerts">Alerts</Link><Link to="/holdings">Portfolio tracker</Link></div>
+          <div><b>Market</b><Link to="/results">Results calendar</Link><Link to="/ipo">IPO calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link><Link to="/plans">Pricing</Link></div>
+          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link></div>
+          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
         </div>
         <div className="ffine">
-          <span>{COMPANY.name} · Research-led perspectives across Indian and global markets.</span>
           <span>{COMPANY.disclaimer}</span>
           <span>© {new Date().getFullYear()} {COMPANY.name}. All rights reserved.</span>
         </div>

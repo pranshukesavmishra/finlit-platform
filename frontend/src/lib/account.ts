@@ -35,7 +35,7 @@ type Plan3 = "basic" | "silver" | "gold";
 export type PlanRequest = { id: number; email: string; plan: Plan3; currentPlan: Plan3; note: string | null; createdAt: string; userId: string };
 export type AuditRow = { at: string; actor: string | null; action: string; target: string | null; ip: string | null; meta: Record<string, unknown> };
 export const adminUsers = (q: string, page: number) => apiGet<{ users: AdminUser[]; total: number; page: number }>(`/api/admin/users?q=${encodeURIComponent(q)}&page=${page}`);
-export const adminPatch = (id: string, b: { plan?: Plan3; plan_days?: number; role?: string; status?: string }) => apiSend("PATCH", `/api/admin/users/${id}`, b);
+export const adminPatch = (id: string, b: { plan?: Plan3; plan_days?: number; role?: string; status?: string; verify_email?: boolean }) => apiSend("PATCH", `/api/admin/users/${id}`, b);
 export const adminRequests = () => apiGet<{ requests: PlanRequest[] }>("/api/admin/plan-requests");
 export const adminDecline = (id: number) => apiSend("POST", `/api/admin/plan-requests/${id}/decline`);
 export const adminAudit = () => apiGet<{ events: AuditRow[] }>("/api/admin/audit");

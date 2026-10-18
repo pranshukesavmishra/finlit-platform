@@ -7,7 +7,7 @@ const base = (process.argv[2] || "http://127.0.0.1:4173").replace(/\/$/, "");
 const DB = process.env.DATABASE_URL || "postgresql://finlit:finlit@localhost:5432/finlit_dev";
 const sql = (q) => execFileSync("psql", [DB, "-At", "-c", q], { encoding: "utf8" }).trim();
 try { execFileSync("redis-cli", ["-u", process.env.REDIS_URL || "redis://localhost:6379/14", "flushdb"]); } catch {}
-const PAGES = ["/", "/research", "/screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/login", "/forgot-password", "/stocks/RELIANCE", "/stocks/TCS", "/stocks/5PAISA", "/stocks/NOPE123", "/nonexistent",
+const PAGES = ["/", "/research", "/screener", "/score-screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/login", "/forgot-password", "/stocks/RELIANCE", "/stocks/TCS", "/stocks/5PAISA", "/stocks/NOPE123", "/nonexistent",
   "/dashboard", "/watchlist", "/account", "/account/security", "/account/plan", "/account/appearance"];
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 let failed = 0;
@@ -29,17 +29,22 @@ async function run(label, ctx, pages) {
   }
 }
 await run("visitor", await browser.newContext({ viewport: { width: 1366, height: 900 } }), PAGES.filter((x) => !/dashboard|watchlist|account/.test(x)));
-// Gold member
-const email = `sweep-${Date.now().toString(36)}@example.com`, PW = "a-long-unusual-phrase-42";
+// Gold member: the demo account (DEMO_PASSWORD), or a fresh sign-up when the server mails confirmation links (outbox in development)
 const c = await browser.newContext({ viewport: { width: 1366, height: 900 } }); const p = await c.newPage();
-await p.goto(base + "/login?mode=signup", { waitUntil: "networkidle" });
-await p.getByLabel(/^Name/).fill("Sweep"); await p.getByLabel("Email address").fill(email); await p.getByLabel("Password", { exact: true }).fill(PW); await p.getByLabel(/I agree to the/).check();
-await p.getByRole("button", { name: "Create account" }).click(); await p.getByText("Check your email").waitFor();
-const link = sql(`SELECT body FROM outbox WHERE to_email = '${email}' ORDER BY id DESC LIMIT 1`).match(/http[^\s]*verify-email\?token=[\w-]+/)[0];
-await p.goto(link.replace(/^https?:\/\/[^/]+/, base), { waitUntil: "networkidle" });
-sql(`UPDATE users SET plan = 'gold' WHERE email = '${email}'`);
-await p.goto(base + "/login", { waitUntil: "networkidle" });
-await p.getByLabel("Email address").fill(email); await p.getByLabel("Password", { exact: true }).fill(PW);
+if (process.env.DEMO_PASSWORD) {
+  await p.goto(base + "/login", { waitUntil: "networkidle" });
+  await p.getByLabel("Email address").fill("demo-gold@finlit-demo.com"); await p.getByLabel("Password", { exact: true }).fill(process.env.DEMO_PASSWORD);
+} else {
+  const email = `sweep-${Date.now().toString(36)}@example.com`, PW = "a-long-unusual-phrase-42";
+  await p.goto(base + "/login?mode=signup", { waitUntil: "networkidle" });
+  await p.getByLabel(/^Name/).fill("Sweep"); await p.getByLabel("Email address").fill(email); await p.getByLabel("Password", { exact: true }).fill(PW); await p.getByLabel(/I agree to the/).check();
+  await p.getByRole("button", { name: "Create account" }).click(); await p.getByText("Check your email").waitFor();
+  const link = sql(`SELECT body FROM outbox WHERE to_email = '${email}' ORDER BY id DESC LIMIT 1`).match(/http[^\s]*verify-email\?token=[\w-]+/)[0];
+  await p.goto(link.replace(/^https?:\/\/[^/]+/, base), { waitUntil: "networkidle" });
+  sql(`UPDATE users SET plan = 'gold' WHERE email = '${email}'`);
+  await p.goto(base + "/login", { waitUntil: "networkidle" });
+  await p.getByLabel("Email address").fill(email); await p.getByLabel("Password", { exact: true }).fill(PW);
+}
 await p.getByRole("button", { name: "Sign in", exact: true }).last().click(); await p.waitForURL(/\/dashboard/);
 await p.close();
 await run("gold   ", c, PAGES.filter((x) => /stocks|dashboard|watchlist|account|screener|compare|ipo|results|news|documents/.test(x)));

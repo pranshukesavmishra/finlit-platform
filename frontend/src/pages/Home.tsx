@@ -12,6 +12,8 @@ import { nf } from "../lib/format";
 const HeroCanvas = lazy(() => import("../components/HeroCanvas").then((m) => ({ default: m.HeroCanvas })));
 function LateCanvas() { const [on, setOn] = useState(false); useEffect(() => { const id = (window as unknown as { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback; const t = id ? id(() => setOn(true)) : window.setTimeout(() => setOn(true), 600); return () => { if (!id) clearTimeout(t); }; }, []); return on ? <Suspense fallback={null}><HeroCanvas /></Suspense> : null; }
 import { ServiceArt, SERVICE_ART } from "../components/Art";
+import { PlansBand } from "./Plans";
+import { useAuth } from "../lib/auth";
 
 function LiveTerminal() {
   const { data: s } = useSummary("RELIANCE");
@@ -63,9 +65,45 @@ function Performance() {
   );
 }
 
+
+const PLATFORM: { to: string; icon: string; t: string; d: string; tier: "Free" | "Silver" | "Gold" }[] = [
+  { to: "/research", icon: "search", t: "Stock research", d: "A report for every listed company: statements, ratios, peers, ownership, price and filings.", tier: "Free" },
+  { to: "/screener", icon: "table", t: "Screener", d: "Filter thousands of companies by size, valuation, growth, returns and debt. Save your screens.", tier: "Free" },
+  { to: "/compare", icon: "compare", t: "Compare", d: "Put two to four companies side by side, with charts and the five-pillar view.", tier: "Free" },
+  { to: "/watchlist", icon: "wallet", t: "Watchlists", d: "Named lists with notes and price targets, bucketed by industry, size or FinLit band.", tier: "Silver" },
+  { to: "/holdings", icon: "pie", t: "Portfolio tracker", d: "Value, profit and loss, allocation and a health read of what you own. Import from CSV.", tier: "Silver" },
+  { to: "/alerts", icon: "bell", t: "Alerts", d: "Be told when a price, RSI, score, ratio, result or filing crosses the line you set.", tier: "Free" },
+];
+const FAQ: [string, string][] = [
+  ["What is FinLit?", "FinLit Ventures is a research and technology company. We publish a research report for every listed Indian stock, review portfolios and help people plan their investing."],
+  ["Is this investment advice?", "No. FinLit is not registered with SEBI or AMFI and everything on the site is for information and education. Decisions and risks stay with you."],
+  ["What do I get for free?", "A free account gives you the stock reports, the screener, company comparison, the glossary, the calendars, alerts on the main price and volume signals and your own dashboard. Silver and Gold add the FinLit score, watchlists, the portfolio tracker, more alerts and deeper analysis."],
+  ["Where does the data come from?", "Financial statements, prices and filings come from licensed market-data feeds and exchange disclosures. Every report shows when it was last updated, and numbers that fail our checks are not published."],
+  ["How do alerts work?", "Pick a company and a condition, for example RSI below 30 or a results date announced. You are told in the app, and by email or browser if you choose, the moment it comes true."],
+  ["How do I upgrade or cancel?", "Open Account, then Plan, and request Silver or Gold. Online payment is being added; until then the team activates your plan and you can change it any time."],
+  ["Is my data safe?", "Passwords are stored with modern hashing, sessions can be ended on any device, administrators must use an authenticator app, and we never ask for your broker password."],
+];
+function Faq() {
+  return (
+    <section className="sec" id="faq"><div className="wrap faq-w">
+      <Reveal className="sec-h"><div className="eyebrow">Questions</div><h2>Good things to <em>know first</em></h2></Reveal>
+      <div className="faq">{FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div>
+    </div></section>
+  );
+}
+function Platform() {
+  return (
+    <section className="sec alt" id="platform"><div className="wrap">
+      <Reveal className="sec-h"><div className="eyebrow">The platform</div><h2>One workspace for <em>your research</em></h2><p>Everything you need to find, follow and track companies, in one place.</p></Reveal>
+      <div className="plat">{PLATFORM.map((x, i) => <Reveal key={x.t} delay={i * 50}><Link to={x.to} className="plat-t"><span className="plat-i"><Icon name={x.icon} /></span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span><h3>{x.t}</h3><p>{x.d}</p><span className="plat-m">Open <Icon name="arrow" /></span></Link></Reveal>)}</div>
+    </div></section>
+  );
+}
+
 export function Home() {
   useDocTitle("Invest with clarity, not noise", "FinLit Ventures: research-led investing, portfolio reviews and financial planning, with a research report for every listed Indian stock.");
   const enquire = useEnquiry();
+  const { user } = useAuth();
   return (
     <>
       <section className="hero-home">
@@ -75,7 +113,7 @@ export function Home() {
             <div className="eyebrow">Research · Portfolios · Investing</div>
             <h1>Invest with <em>clarity</em>, not noise.</h1>
             <p className="lede-xl">A research report for every listed Indian stock, honest portfolio reviews and financial planning, from people who put their own capital behind their ideas.</p>
-            <div className="cta-row"><Link className="btn primary lg" to="/research">Explore stock research <Icon name="arrow" /></Link><button className="btn lg" onClick={() => enquire()}>Book a ₹99 first session</button></div>
+            <div className="cta-row">{user ? <Link className="btn primary lg" to="/dashboard">Open your dashboard <Icon name="arrow" /></Link> : <Link className="btn primary lg" to="/login?mode=signup">Create free account <Icon name="arrow" /></Link>}<Link className="btn lg" to="/research">Explore stock research</Link></div>
             <div className="trustrow"><span><Icon name="quality" />Independent research</span><span><Icon name="check" />Every number checked before publishing</span><span><Icon name="lock" />No passwords stored</span></div>
           </div>
           <LiveTerminal />
@@ -87,6 +125,8 @@ export function Home() {
       <section className="statstrip"><div className="wrap">
         {[[<CountUp to={5700} suffix="+" />, "listed stocks covered"], [<CountUp to={5} />, "pillars scored on every stock"], [<>&lt;<CountUp to={1} /> s</>, "to open a report"], [<CountUp to={84.4} decimals={1} suffix="%" />, "realised win rate, reported openly"]].map(([v, k], i) => <Reveal key={i} delay={i * 80}><div className="ss"><b>{v}</b><span>{k as string}</span></div></Reveal>)}
       </div></section>
+      <Platform />
+
       <section className="sec"><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">What we do</div><h2>Five ways we <em>help you invest</em></h2><p>From your first investment to a global portfolio.</p></Reveal>
         <div className="cards3">
@@ -109,6 +149,8 @@ export function Home() {
         </div>
       </div></section>
 
+      <PlansBand id="pricing" compact />
+
       <Performance />
 
       <section className="sec"><div className="wrap">
@@ -126,6 +168,8 @@ export function Home() {
           <div className="cred">{FOUNDER.credentials.map((c) => <span className="chip gold" key={c}>{c}</span>)}</div><p className="muted">{FOUNDER.bio}</p>
           <div className="cta-row"><Link className="btn" to="/about">About FinLit</Link><a className="btn" href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div></Reveal>
       </div></section>
+
+      <Faq />
 
       <section className="sec"><div className="wrap"><Reveal><div className="cta-band"><h2>Let's talk about your portfolio</h2><p>Tell us where you are. We'll tell you what we'd look at first. {COMPANY.disclaimer}</p><div className="cta-row" style={{ justifyContent: "center" }}><button className="btn primary lg" onClick={() => enquire()}>Get in touch</button><Link className="btn lg" to="/services">View services & pricing</Link></div></div></Reveal></div></section>
     </>

@@ -116,6 +116,8 @@ function demoCreate(plan: string, rows: Row[], b: NewAlert): Created {
 
 // ---------------------------------------------------------------- server calls
 const POLL = 45_000;
+// stable empty lists: a fresh [] on every render would re-trigger effects that depend on them
+const NO_NOTICES: Notice[] = [], NO_ALERTS: AlertRow[] = [];
 export const alertKeys = { alerts: ["alerts"], notices: ["notices"], value: (s: string, m: string) => ["alert-value", s, m] };
 
 export function useAlerts(rows?: Row[]) {
@@ -148,8 +150,6 @@ export function useAlerts(rows?: Row[]) {
   return { alerts, limit: DEMO ? LIMITS[plan] : q.data?.limit ?? LIMITS[plan], loading: !DEMO && q.isLoading, error: q.error, create, patch, remove };
 }
 
-const NO_NOTICES: Notice[] = [];
-const NO_ALERTS: AlertRow[] = [];
 export function useNotices() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -158,7 +158,7 @@ export function useNotices() {
     queryKey: alertKeys.notices, enabled: !!user && !DEMO, refetchInterval: POLL, refetchOnWindowFocus: true, staleTime: 10_000, retry: 0,
     queryFn: () => apiGet<{ notifications: Notice[]; unread: number }>("/api/notifications?limit=50", { cache: "reload" }),
   });
-  const items = DEMO ? d.notices : q.data?.notifications ?? NO_NOTICES;  // one shared empty list: a new [] every render would retrigger effects that depend on it
+  const items = DEMO ? d.notices : q.data?.notifications ?? NO_NOTICES;
   const unread = DEMO ? d.notices.filter((n) => !n.read).length : q.data?.unread ?? 0;
   const markRead = useCallback(async (ids?: number[]) => {
     if (DEMO) { demo.notices = demo.notices.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)); save(); return; }

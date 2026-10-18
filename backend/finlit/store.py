@@ -57,6 +57,17 @@ def stock_key(symbol: str, statement: str) -> str:
     return f"stock:{symbol.upper()}:{statement}"
 
 
+def prepare_dsn(url: str) -> tuple:
+    """Managed Postgres hosts (Neon, Supabase...) hand out URLs asyncpg cannot use as they are.
+    Drops options asyncpg does not know (channel_binding), and turns off the prepared-statement cache for pooled endpoints
+    (PgBouncer in transaction mode, host contains "-pooler"). Returns (dsn, extra create_pool keyword arguments)."""
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k.lower() != "channel_binding"]
+    extra = {"statement_cache_size": 0} if "-pooler" in (parts.hostname or "") else {}
+    return urlunsplit(parts._replace(query=urlencode(query))), extra
+
+
 class Store:
     def __init__(self, pool: asyncpg.Pool, redis: aioredis.Redis, timescale: bool = False):
         self.pool, self.redis, self.timescale = pool, redis, timescale
@@ -66,7 +77,9 @@ class Store:
     @classmethod
     async def connect(cls, settings: Optional[Settings] = None, migrate: bool = False) -> "Store":
         settings = settings or get_settings()
-        pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=10, command_timeout=5)
+        dsn, extra = prepare_dsn(settings.database_url)
+        # Idle connections are closed after 60 s: serverless Postgres (Neon) suspends after 5 idle minutes and would otherwise leave dead pooled connections.
+        pool = await asyncpg.create_pool(dsn, min_size=1, max_size=10, command_timeout=10, max_inactive_connection_lifetime=60, **extra)
         redis = aioredis.from_url(settings.redis_url, decode_responses=False, health_check_interval=30)
         store = cls(pool, redis)
         if migrate:
@@ -213,11 +226,17 @@ class Store:
 
     # ------------------------------------------------------------ queue
 
+    QUEUE_FLAG = "ingest:queue:pending"
+
     async def enqueue(self, symbol: str, statement: str):
         async with self.pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO ingest_queue(symbol, statement) VALUES($1, $2) ON CONFLICT DO NOTHING",
                 symbol.upper(), statement)
+        try:  # lets the worker watch Redis instead of polling Postgres, so a serverless database (Neon) can sleep when idle
+            await self.redis.set(self.QUEUE_FLAG, 1, ex=3600)
+        except Exception:
+            pass
 
     async def queue_length(self) -> int:
         async with self.pool.acquire() as conn:

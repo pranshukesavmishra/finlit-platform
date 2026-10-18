@@ -18,6 +18,7 @@ import { useDocTitle } from "../lib/title";
 import terms from "../content/glossary.json";
 import { dayLabel, useFeed } from "../lib/feed";
 import { useIpos } from "../lib/ipo";
+import { useAlerts } from "../lib/alerts";
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
 const sgn = (v: number | null | undefined, d = 1) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(v, d) + "%");
@@ -151,6 +152,34 @@ function Locked({ tier, label }: { tier: Plan; label: string }) {
   return <div className="dw-lock"><span className="dw-ei"><Icon name="lock" /></span><b>{label}</b><p>Part of the {TIER[tier].n} plan.</p><button className="btn" onClick={() => upgrade(tier, `${label} is part of ${TIER[tier].n}.`)}>Unlock with {TIER[tier].n}</button></div>;
 }
 
+
+/** First-visit checklist: shows what to try next and ticks itself off as the member does each thing. */
+function GettingStarted({ followed, palette, plan }: { followed: number; palette: string; plan: string }) {
+  const { alerts } = useAlerts();
+  const [gone, setGone] = useState(() => { try { return localStorage.getItem("finlit-welcome-off") === "1"; } catch { return false; } });
+  const [seen, setSeen] = useState(() => { try { return localStorage.getItem("finlit-welcome-report") === "1"; } catch { return false; } });
+  const mark = () => { setSeen(true); try { localStorage.setItem("finlit-welcome-report", "1"); } catch { /* private mode */ } };
+  const steps: { done: boolean; t: string; d: string; to: string; cta: string; onClick?: () => void }[] = [
+    { done: true, t: "Create your account", d: "You are in. Your plan, lists and colours now follow you across devices.", to: "/account", cta: "Review account" },
+    { done: seen, t: "Open a company report", d: "Every listed stock has one: statements, ratios, peers, ownership and price.", to: "/research", cta: "Find a company", onClick: mark },
+    { done: followed > 0, t: "Follow a stock", d: plan === "basic" ? "Watchlists are part of Silver. Unlock them any time." : "Add stocks to a watchlist to see them here every day.", to: plan === "basic" ? "/plans" : "/watchlist", cta: plan === "basic" ? "See Silver" : "Open watchlist" },
+    { done: alerts.length > 0, t: "Set your first alert", d: "Be told when a price, RSI, score, result or filing crosses your line.", to: "/alerts", cta: "Create an alert" },
+    { done: palette !== "gold", t: "Make it yours", d: "Pick a colour palette and choose the dashboard widgets you want.", to: "/account/appearance", cta: "Open appearance" },
+  ];
+  const n = steps.filter((x) => x.done).length;
+  if (gone || n === steps.length) return null;
+  return (
+    <section className="card gs" aria-label="Getting started">
+      <div className="gs-h"><div><h2>Get started with FinLit</h2><p className="muted">{n} of {steps.length} done. A few minutes to get the most from your account.</p></div>
+        <button className="alx-link" onClick={() => { setGone(true); try { localStorage.setItem("finlit-welcome-off", "1"); } catch { /* private mode */ } }}>Hide</button></div>
+      <div className="gs-bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={n}><i style={{ width: `${(n / steps.length) * 100}%` }} /></div>
+      <ol className="gs-l">{steps.map((x) => (
+        <li key={x.t} className={x.done ? "is-done" : ""}><span className="gs-c" aria-hidden="true">{x.done ? <Icon name="check" /> : null}</span><div><b>{x.t}</b><span>{x.d}</span></div>{!x.done && <Link className="btn" to={x.to} onClick={x.onClick}>{x.cta}</Link>}</li>
+      ))}</ol>
+    </section>
+  );
+}
+
 export function Dashboard() {
   useDocTitle("Dashboard", "Your FinLit dashboard: watchlist moves, latest results, saved screens and signals, arranged your way.");
   const { user, ready } = useAuth();
@@ -199,6 +228,7 @@ export function Dashboard() {
           <button className={"btn" + (edit ? " on" : "")} aria-pressed={edit} onClick={() => { setEdit(!edit); if (params.has("edit")) setParams({}, { replace: true }); }}><Icon name="spark" />{edit ? "Done" : "Customise"}</button>
         </div>
       </header>
+      <GettingStarted followed={followed.length} palette={p.palette} plan={plan} />
       {edit && (
         <section className="card dash-edit" aria-label="Customise your dashboard">
           <h2>Make it yours</h2>

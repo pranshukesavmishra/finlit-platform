@@ -520,3 +520,48 @@ def test_production_refuses_auto_verify_but_accepts_a_private_network_redis():
     assert Settings(**base, redis_url="redis://red-abc123:6379").validate() == []  # Render's internal Redis has no password
     assert any("REDIS_URL" in p for p in Settings(**base, redis_url="redis://localhost:6379/0").validate())
     assert any("AUTO_VERIFY_EMAIL" in p for p in Settings(**base, redis_url="redis://red-abc123:6379", auto_verify_email=True).validate())
+
+async def test_admin_gets_a_cms_token_the_site_backend_accepts(ingested):
+    import base64, hashlib, hmac, json, time
+    secret = "s" * 40
+    app = create_app(make_settings(cms_jwt_secret=secret), store=ingested)
+    async with app.router.lifespan_context(app):
+        user = await signed_in(app, "m@example.com")
+        assert (await user.post("/api/me/cms-token")).json()["detail"]["status"] == "forbidden"
+        admin = await make_admin(app, "boss2@example.com")
+        assert (await admin.post("/api/me/cms-token")).json()["detail"]["status"] == "mfa_required"
+        s = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+        await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(s, int(time.time()) // 30)})
+        r = await admin.post("/api/me/cms-token")
+        assert r.status_code == 200, r.text
+        head, body, sig = r.json()["token"].split(".")
+        pad = lambda x: x + "=" * (-len(x) % 4)  # noqa: E731
+        assert base64.urlsafe_b64encode(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode() == sig
+        claims = json.loads(base64.urlsafe_b64decode(pad(body)))
+        assert claims["role"] == "admin" and claims["sub"] == "boss2@example.com" and claims["exp"] > time.time() + 3600
+        for c in (user, admin):
+            await c.aclose()
+    bare = create_app(make_settings(), store=ingested)
+    async with bare.router.lifespan_context(bare):
+        admin = await make_admin(bare, "boss3@example.com")
+        s = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+        await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(s, int(time.time()) // 30)})
+        assert (await admin.post("/api/me/cms-token")).json()["detail"]["status"] == "cms_not_configured"
+        await admin.aclose()
+
+
+async def test_admin_can_confirm_a_members_email_by_hand(app):
+    import time
+    member = new_client(app)
+    r = await member.post("/api/auth/register", json={"email": "pending@example.com", "password": PW, "accept_terms": True}, headers=ORIGIN)  # not the signup helper: it confirms by mail
+    assert r.status_code == 202
+    assert (await login(member, "pending@example.com")).status_code in (401, 403)  # not confirmed, and no mail service to confirm with
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    assert (await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})).status_code == 200
+    users = (await admin.get("/api/admin/users")).json()["users"]
+    pending = next(u for u in users if u["email"] == "pending@example.com")
+    assert pending["verified"] is False
+    assert (await admin.patch(f"/api/admin/users/{pending['id']}", json={"verify_email": True})).status_code == 200
+    assert (await login(member, "pending@example.com")).status_code == 200  # signs in at once
+    assert next(u for u in (await admin.get("/api/admin/users")).json()["users"] if u["email"] == "pending@example.com")["verified"] is True

@@ -31,7 +31,7 @@ const CMP: [string, string | null, number?][] = [
   ["Tools", null], ["Watchlist with lists, notes and targets", "3 lists and 30 stocks", 1], ["Smart watchlist: unlimited lists and signals", "Bucket by band and style, second-look flags", 2], ["Export: PDF note, offline copy, CSV", "", 1], ["Priority access to new features", "", 2],
 ];
 
-export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
+export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1?: boolean; compact?: boolean }) {
   const H = h1 ? "h1" : "h2";
   const { plan, upgrade } = useUI();
   const { user } = useAuth();
@@ -45,11 +45,13 @@ export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
           <H id="plansTitle">Invest smarter with <em>the right plan</em></H>
           <p>From essential stock data to advanced intelligence, powered by FinLit's proprietary scoring model.</p>
         </div>
+        {!compact && <>
         <div className="trust">{[["bars", "Data-driven insights"], ["spark", "Proprietary scoring model"], ["quality", "Reliable & transparent"], ["users", "Built for every investor"]].map(([i, t]) => <span key={t}><Icon name={i} />{t}</span>)}</div>
         <div className="who">{([["sprout", "I'm just starting out", "Free data on every listed stock, plus a powerful screener.", "basic"], ["quality", "I want the score and the story", "The five-pillar scorecard, trends and a watchlist.", "silver"], ["crown", "I invest seriously", "Advanced scoring, full ratio history and technical signals.", "gold"]] as const).map(([ic, t, d, k]) => (
           <button key={k} className="who-c" style={{ "--tc": `var(${TIER[k].tc})` } as React.CSSProperties} onClick={() => { if (DEMO) upgrade(k); else document.getElementById(`plan-${k}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
             <span className="who-i"><Icon name={ic} /></span><b>{t}</b><span>{d}</span><em>{TIER[k].n} plan <Icon name="arrow" /></em>
           </button>))}</div>
+        </>}
         <div className="pgrid">
           {PLANS.map((p) => (
             <div key={p.k} id={`plan-${p.k}`} data-cur={DEMO ? "Previewing" : "Your plan"} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k && (DEMO || user || p.k === "basic") ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
@@ -64,6 +66,7 @@ export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
             </div>
           ))}
         </div>
+        {compact ? <p className="plans-more"><Link to="/plans">Compare every feature →</Link></p> : <>
         <div className="cmp-h"><h3>Compare every feature</h3><p>{DEMO ? "Pick a plan to preview it on a stock page." : "Pricing is announced at launch. Until then, request a plan and we will switch it on for your account."}</p></div>
         <div className="cmp"><div className="cmp-scroll"><table>
           <thead><tr><th>Feature</th>{PLANS.map((p) => <th key={p.k} className={"th-" + p.k + (plan === p.k ? " cur" : "")} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}><span className="th-i"><Icon name={TIER[p.k].ic} /></span><b>{TIER[p.k].n}</b><small>{p.k === "basic" ? "Free" : "Pricing soon"}</small></th>)}</tr></thead>
@@ -72,6 +75,7 @@ export function PlansBand({ id, h1 = false }: { id?: string; h1?: boolean }) {
           <tfoot><tr><td>Features included</td>{PLANS.map((p) => <td key={p.k} className={"c-" + p.k}><b className="cnt" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>{CMP.filter(([, d, need]) => d !== null && RANK[p.k] >= (need ?? 0)).length}</b></td>)}</tr></tfoot>
         </table></div></div>
         <p className="plans-note">Plans and features are subject to change. Pricing will be announced at launch. {DEMO ? "Use “Preview” to see a stock page as each plan." : "Request a plan from your account and we will confirm it by email."}</p>
+        </>}
       </div>
     </section>
   );
