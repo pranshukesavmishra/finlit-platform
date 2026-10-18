@@ -58,6 +58,7 @@ export function Admin() {
   const { ready, user } = useAuth();
   useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
+  const enquiries = useQuery({ queryKey: ["admin-enquiries"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone: string; services: string[]; message: string; created_at: string }[]>("/api/service-enquiry"), enabled: hasSession(), retry: false });
   const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-content"] });
@@ -88,6 +89,10 @@ export function Admin() {
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Contact messages</h3><span className="s">{leads.data?.length ?? 0}</span></div>
         <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th></tr></thead>
           <tbody>{(leads.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.subject}</td><td style={{ whiteSpace: "normal", maxWidth: 360 }}>{l.message}</td></tr>)}</tbody></table></div></div>
+      <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Service enquiries</h3><span className="s">{enquiries.data?.length ?? 0}</span></div>
+        <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Phone</th><th>Services</th><th>Message</th></tr></thead>
+          <tbody>{(enquiries.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.phone}</td><td style={{ whiteSpace: "normal" }}>{l.services.join(", ")}</td><td style={{ whiteSpace: "normal", maxWidth: 320 }}>{l.message}</td></tr>)}
+            {enquiries.data?.length === 0 && <tr><td colSpan={6} className="muted">No enquiries yet.</td></tr>}</tbody></table></div></div>
     </div></section>
   );
 }

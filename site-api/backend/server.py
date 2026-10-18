@@ -3485,6 +3485,16 @@ async def list_contacts(_admin=Depends(require_admin)):
     return docs
 
 
+@api_router.get("/service-enquiry", response_model=List[ServiceEnquiry])
+async def list_service_enquiries(_admin=Depends(require_admin)):
+    """Enquiries from the Services page are always saved first; this is how an administrator reads them (also when email is not configured)."""
+    docs = await db.service_enquiries.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    for d in docs:
+        if isinstance(d.get('created_at'), str):
+            d['created_at'] = datetime.fromisoformat(d['created_at'])
+    return docs
+
+
 @api_router.post("/service-enquiry", response_model=ServiceEnquiry)
 async def create_service_enquiry(payload: ServiceEnquiryCreate, request: Request):
     if rate_limit_exceeded(_form_attempts, form_rate_limit_key("service-enquiry", request), monotonic(), FORM_MAX_REQUESTS_PER_HOUR, FORM_RATE_WINDOW_SECONDS):

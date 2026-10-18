@@ -2,6 +2,8 @@
 
 You will create three free accounts (Neon, MongoDB Atlas, Render), paste five values, and press Deploy: about 60 minutes of your time plus 15 minutes of waiting. Everything costs 0 for now.
 
+**How people sign in today:** with an email address and a password. Anyone can open the site, click **Create account**, choose an email and a password, and sign in straight away. No email has to be sent or opened. One-time email codes and "Continue with Google" can be added later without changing anyone's account.
+
 Never type a password, key or token into a chat. Secrets go only into the Render, Neon, Atlas and GitHub pages named below. Screen labels on those websites may differ slightly from these words; the order of actions is the same.
 
 ## Before you start
@@ -36,7 +38,7 @@ Everything below is 0 today. The last column says when you would start paying; n
 | MongoDB Atlas, M0 free | Blog, portfolio, forms | 0 | If data passes 512 MB |
 | UptimeRobot, free (optional) | Backup keep-awake check | 0 | Free plan: 50 monitors, checks every 5 minutes |
 | Resend, free | Sign-up and contact emails | 0 | Free plan: 100 emails a day, 3,000 a month |
-| Google AI Studio, free tier | FinLit AI chat | 0 | If the free daily quota is not enough |
+| Google AI Studio, free tier (Gemini 3.8 Flash) | FinLit AI chat | 0 | If the free per-minute or per-day limits (shown in AI Studio) are not enough: then you would turn on billing yourself |
 | Domain finlitventures.com | Your own address | Ask your registrar | When the company signs off. Price depends on the registrar; check before buying |
 
 ## Step 1. Create the main database (Neon)
@@ -118,7 +120,7 @@ Every account signs in at `/login`. There is no separate admin password form: `/
 | Demo Basic | `demo-basic@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Basic badge. Scores are locked on company pages |
 | Demo Silver | `demo-silver@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Silver badge. FinLit scores and watchlists are open |
 | Demo Gold | `demo-gold@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Gold badge. Everything is open, including the Score screener |
-| A new visitor | Any email, using **Create account** on the sign-in page | Their own | "Your account is ready", then they sign in. They start on Basic |
+| A new visitor | Any email and a password of their own choice, using **Create account** on the sign-in page | Their own | "Your account is ready" at once (no email to open), then they sign in. They start on Basic |
 | You, the administrator | The `ADMIN_EMAIL` you typed | The `ADMIN_PASSWORD` you typed | See below |
 
 **First administrator sign-in, once only:**
@@ -176,28 +178,42 @@ export BACKUP_PASSPHRASE='a long sentence only you know'
 
 To restore into an empty database: `openssl enc -d -aes-256-cbc -pbkdf2 -in finlit-DATE.tgz.enc | tar -xz -C restore`, then `pg_restore --no-owner -d "$NEON_URL" restore/postgres.dump` and `mongorestore --uri="$MONGO_URL" --archive=restore/mongo.archive --gzip`. The backup and restore of the main database were tested end to end: a restored copy had the same members and scores as the original.
 
-## Step 9. Switch on the chat and the market ticker (optional)
+## Step 9. Switch on the FinLit AI chat (free Google Gemini key)
 
-In Render open the service, **Environment** tab, **Add Environment Variable**, type the name and value, **Save Changes**. Render redeploys in about 2 minutes each time.
+The chat bubble ("Ask FinLit AI") answers questions about investing basics and the company's services. It uses Google's Gemini. Without a key it politely says it is unavailable, and the rest of the site works.
 
-| Name | Switches on | Where to get the value |
-| --- | --- | --- |
-| `GEMINI_API_KEY` | The FinLit AI chat bubble | https://aistudio.google.com/apikey, click **Create API key**, copy it |
-| `UPSTOX_ACCESS_TOKEN` | The NIFTY ticker strip at the top | Your Upstox developer account. The token expires every day, so the strip hides itself when it has expired |
+**Is it free?** Yes, on Google's free tier. Google's pricing page (read on 18 October 2026) lists the model the site uses, **Gemini 3.8 Flash**, as "Free of charge" for input and output on the Free tier, with no billing needed. Request limits per minute and per day are shown inside Google AI Studio (page "Rate limit"), and the daily limit resets at midnight Pacific time. If the free limit is reached, the chat says it is unavailable until the next reset; nothing is charged unless you switch on billing yourself.
 
-**What you should see:** the chat bubble answers a question instead of saying it is unavailable.
+**Important:** on the free tier Google states that content sent may be used to improve its products. The paid tier does not. So add one line to your Privacy notice (ask the company's legal adviser), and the chat already shows a notice not to share private financial details.
 
-## Step 10. Real emails (needs your own domain)
+1. Open https://aistudio.google.com/apikey and sign in with a Google account (use a company or personal Google account you control).
+2. If it asks you to accept the Terms of Service, read and accept. Google creates a default project for you.
+3. Click **Create API key**. Choose the default project if asked. The key appears: click the copy button.
+4. In Render open the service, **Environment** tab, **Add Environment Variable**. Name: `GEMINI_API_KEY`. Value: the key you just copied. Click **Save Changes**. Render redeploys in about 2 minutes.
+5. Leave `GEMINI_MODEL` unset: the site then uses `gemini-3.8-flash`. Set `GEMINI_MODEL` only if Google ever retires that model; use the new model name from Google's model list, and check that the pricing page shows it as free.
+6. Test: open the site, click **Ask FinLit AI**, type "What is a mutual fund?" and send.
 
-Sign-up confirmation, password reset and contact emails can only reach other people from an email address on a domain you have verified. Until then, the three demo accounts are the way in for demos, and a new visitor's account is confirmed the moment they create it (the setting `AUTO_VERIFY_EMAIL`). Resend's free plan allows 100 emails a day and 3,000 a month.
+**What you should see:** an answer within a few seconds. If you see "temporarily unavailable", see the troubleshooting table.
+
+Never paste the key into a chat or a file in the repository. To replace it later: create a new key in AI Studio, change the value in Render, then delete the old key in AI Studio.
+
+**Optional, the NIFTY ticker strip.** Add `UPSTOX_ACCESS_TOKEN` in the same way, with a token from your Upstox developer account. It expires every day, so the strip hides itself when the token has expired. Skip this if nobody will refresh it.
+
+## Step 10. Real emails (later, needs your own domain)
+
+Creating an account and signing in do **not** need email any more: a new account is confirmed the moment it is created (the setting `AUTO_VERIFY_EMAIL`). Email is only needed for: password-reset links, price and result alerts, the weekly summary, and notification of contact-form messages. Contact and enquiry messages are always saved and are visible to the administrator even without email.
+
+Until this step is done: forgotten passwords cannot be reset by email, so tell a member who is locked out to create a new account with another email, or ask the engineer to set a new password for them. Alert emails are not sent (alerts still show inside the site).
+
+Real email can only be sent from an address on a domain you have verified. Resend's free plan allows 100 emails a day and 3,000 a month.
 
 1. Buy or use the domain `finlitventures.com`. You need access to its DNS settings at your domain registrar.
 2. Open https://resend.com, **Sign up**, then **Domains**, **Add Domain**, enter `finlitventures.com`.
 3. Resend shows a few DNS records (names and values). Add each one in your registrar's DNS page exactly as shown, then click **Verify DNS Records** in Resend. It can take from a few minutes to a day. The domain must show **Verified**.
 4. In Resend open **API Keys**, **Create API Key**, permission **Sending access**, copy the key (it is shown once).
-5. In Render, **Environment**, add or change: `MAIL_MODE` = `resend`, `RESEND_API_KEY` = the key, `MAIL_FROM` = `FinLit <hello@finlitventures.com>`, `SENDER_EMAIL` = `hello@finlitventures.com`, `CONTACT_RECIPIENT_EMAIL` = the address where contact forms should arrive. Delete `AUTO_VERIFY_EMAIL`. Save.
+5. In Render, **Environment**, add or change: `MAIL_MODE` = `resend`, `RESEND_API_KEY` = the key, `MAIL_FROM` = `FinLit <hello@finlitventures.com>`, `SENDER_EMAIL` = `hello@finlitventures.com`, `CONTACT_RECIPIENT_EMAIL` = the address where contact forms should arrive. Delete `AUTO_VERIFY_EMAIL` only if you want new members to confirm their email address first. Save.
 
-**What you should see:** creating a new account now shows "Check your email", and the confirmation link arrives from your domain. The contact form delivers to your recipient address.
+**What you should see:** "Forgot your password?" now sends a real reset link, and the contact form delivers to your recipient address. If you removed `AUTO_VERIFY_EMAIL`, creating an account shows "Check your email" and the confirmation link arrives from your domain.
 
 ## Step 11. Move to finlitventures.com after sign-off
 
@@ -245,7 +261,7 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 | `/admin` sends you to Account, Security | The authenticator app is not set up yet | Finish Step 6 |
 | The server answers `cms_not_configured` | `CMS_JWT_SECRET` is missing or shorter than 32 characters | Add it in Environment and save |
 | Administrator sign-in refused | Wrong password, or the password contains your email name | Set a new `ADMIN_PASSWORD` in Environment and redeploy, then sign in again |
-| The chat says it is unavailable | No `GEMINI_API_KEY` | Step 9 |
+| The chat says it is unavailable | No `GEMINI_API_KEY`, or the free daily limit was reached, or the key was deleted | Step 9. If the limit was reached, wait until it resets (midnight Pacific time) |
 | Company data stops updating | Render suspended the service for the month, or FinEdge limits were reached | Check the Render dashboard banner. Only one free service may run in the workspace |
 | Neon says the compute allowance is used | Background jobs kept the database awake | In Render Environment add `QUOTES_EVERY_MINUTES` = `10`, and look at the Neon usage page |
 
@@ -258,5 +274,6 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 | Buy the domain and verify it with Resend (DNS records) | You, with the registrar | After sign-off |
 | Legal review of the Terms, Privacy notice and research disclosures | The company's legal adviser | Before launch |
 | Payments (Razorpay or similar) | The company and an engineer: not built yet. Until then an administrator grants plans in `/console` after a member requests one | When the company decides |
+| Add a line to the Privacy notice that chat messages may be processed by Google (free tier: used to improve Google products) | The company's legal adviser | Before launch |
 | Weekly backup (Step 8) | You | Every week |
 | Refresh the Upstox token, if the ticker is wanted | Whoever owns the Upstox account | Daily |
