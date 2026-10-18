@@ -1,13 +1,17 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { TIER, useUI, type Plan } from "../lib/ui";
+
+/** True on the page of a free example company: the server already sent everything, so nothing on it is locked. */
+export const OpenAccess = createContext(false);
 
 /** Locks content the current plan doesn't include. In production the API never sends locked
  *  data; this overlay is what users see in its place. */
 export function Gate({ tier, title, points, children }: { tier: Plan; title: string; points: string[]; children: ReactNode }) {
   const { has, upgrade } = useUI();
-  const locked = !has(tier);
+  const open = useContext(OpenAccess);
+  const locked = !open && !has(tier);
   const t = TIER[tier];
   return (
     <div className={"gate" + (locked ? " is-locked" : "")}>

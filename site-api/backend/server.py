@@ -3362,7 +3362,7 @@ async def chat(payload: ChatRequest, request: Request):
         logger.warning("FinLit AI unavailable: GEMINI_API_KEY is not configured")
         raise HTTPException(status_code=503, detail="FinLit AI is temporarily unavailable. Please try again later.")
 
-    model_id = "gemini-3.8-flash"
+    model_id = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-3.8-flash"   # GEMINI_MODEL lets the model be changed without editing code
     bounded_history_length = sum(1 for turn in payload.history[-12:] if turn.content.strip())
     logger.info(
         "FinLit AI Gemini request (model_id=%s, bounded_history_length=%s)",

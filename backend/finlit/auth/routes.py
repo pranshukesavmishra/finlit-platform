@@ -496,7 +496,8 @@ def limits_for(plan: str) -> Dict[str, int]:
 @router.get("/auth/me")
 async def me(request: Request):
     ctx = await current(request)
-    body = {"user": ctx.public() if ctx.authed else None, "plan": ctx.plan, "limits": limits_for(ctx.plan), "csrf": ctx.csrf if ctx.authed else None}
+    body = {"user": ctx.public() if ctx.authed else None, "plan": ctx.plan, "limits": limits_for(ctx.plan), "csrf": ctx.csrf if ctx.authed else None,
+            "showcase": sorted(request.app.state.settings.showcase_symbols)}  # the free example companies: their reports are sent in full to everyone
     return Response(content=json.dumps(body), media_type="application/json", headers={**NO_STORE, "Vary": "Cookie"})
 
 

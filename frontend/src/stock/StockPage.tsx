@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router";
 import { ApiError, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
+import { OpenAccess } from "../components/Gate";
+import { useAuth } from "../lib/auth";
 import { Hero } from "./Hero";
 import { FinancialsSection, Notes, PriceSection } from "./Sections";
 import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
@@ -17,6 +19,7 @@ const NAV: [string, string, string][] = [["notes", "Scorecard", "notes"], ["pric
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
   const symbol = raw.toUpperCase();
+  const { showcase } = useAuth();
   const sum = useSummary(symbol);
   const s = sum.data;
   const ready = !!s;
@@ -68,6 +71,7 @@ export function StockPage() {
     return <div className="wrap state"><h2>{st === 404 ? `We couldn't find “${symbol}”` : "This report is unavailable right now"}</h2><p>{st === 404 ? "Check the ticker, or search by company name." : "Please try again in a moment."}</p><Link className="btn primary" to="/research">Browse research</Link></div>;
   }
   return (
+    <OpenAccess.Provider value={showcase.includes(symbol)}>
     <>
       <Hero s={s} ratios={ratios} fin={fin} jump={jump} />
       <div className={"secnav" + (stuck ? " stuck" : "")} id="secnav">
@@ -94,5 +98,6 @@ export function StockPage() {
       </div>
       <PlansBand id="plans" />
     </>
+    </OpenAccess.Provider>
   );
 }

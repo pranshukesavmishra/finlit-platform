@@ -565,3 +565,8 @@ async def test_admin_can_confirm_a_members_email_by_hand(app):
     assert (await admin.patch(f"/api/admin/users/{pending['id']}", json={"verify_email": True})).status_code == 200
     assert (await login(member, "pending@example.com")).status_code == 200  # signs in at once
     assert next(u for u in (await admin.get("/api/admin/users")).json()["users"] if u["email"] == "pending@example.com")["verified"] is True
+
+
+async def test_session_response_lists_the_free_example_companies(app, anon):
+    me = (await anon.get("/api/auth/me")).json()
+    assert "RELIANCE" in me["showcase"] and me["plan"] == "basic" and me["user"] is None

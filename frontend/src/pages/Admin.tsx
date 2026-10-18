@@ -12,20 +12,25 @@ import { useUI } from "../lib/ui";
 // Admin session: same model as the current site (bearer token in sessionStorage, 8 h, signature checked by the server).
 // The platform plan replaces this with real accounts, passkeys and server-side sessions.
 const KEY = "cms_admin_token";
+const REJECTED = "cms_token_rejected";   // when the content service refused a token a moment ago: do not ask for another one in a loop
 const token = () => { try { return sessionStorage.getItem(KEY); } catch { return null; } };
 const hasSession = () => { const t = token(); if (!t) return false; try { const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.role === "admin" && p.exp * 1000 > Date.now(); } catch { return false; } };
 
 async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(apiUrl(path), { ...init, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token()}`, ...(init.headers || {}) } });
-  if (res.status === 401) { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } throw new ApiError(401, { detail: "Your session expired. Please sign in again." }); }
+  if (res.status === 401) { try { sessionStorage.removeItem(KEY); sessionStorage.setItem(REJECTED, String(Date.now())); } catch { /* ignore */ } throw new ApiError(401, { detail: "Your session expired. Please sign in again." }); }
   const text = await res.text(); let data: any = {}; try { data = text ? JSON.parse(text) : {}; } catch { /* ignore */ }
   if (!res.ok) throw new ApiError(res.status, { detail: typeof data.detail === "string" ? data.detail : "Request failed." });
   return data as T;
 }
 
 /** Administrators sign in once, on the normal sign-in page. This exchanges that session for the CMS token, then opens the tools. */
-async function openCms(): Promise<boolean> {
-  try { const r = await apiSend<{ token: string }>("POST", "/api/me/cms-token"); sessionStorage.setItem(KEY, r.token); return true; } catch { return false; }
+async function openCms(): Promise<{ ok: true } | { ok: false; why: "mfa" | "not_configured" | "other" }> {
+  try { const r = await apiSend<{ token: string }>("POST", "/api/me/cms-token"); sessionStorage.setItem(KEY, r.token); return { ok: true }; }
+  catch (e) {
+    const status = e instanceof ApiError ? String((e.body as { status?: string; detail?: { status?: string } })?.status ?? (e.body as { detail?: { status?: string } })?.detail?.status ?? "") : "";
+    return { ok: false, why: status === "mfa_required" || status === "mfa_setup_required" ? "mfa" : status === "cms_not_configured" ? "not_configured" : "other" };
+  }
 }
 
 export function AdminLogin() {
@@ -35,7 +40,13 @@ export function AdminLogin() {
     if (!ready) return;
     if (!user) { nav("/login?next=/admin", { replace: true }); return; }
     if (!isAdmin) { setErr("This area is for FinLit administrators."); return; }
-    openCms().then((ok) => (ok ? nav("/admin", { replace: true }) : nav("/account/security?setup=1", { replace: true })));
+    let recent = 0; try { recent = Number(sessionStorage.getItem(REJECTED) || 0); } catch { /* ignore */ }
+    if (Date.now() - recent < 60_000) { setErr("The content service did not accept your sign-in. This happens when CMS_JWT_SECRET is not the same on both parts of the site. See the launch guide, then reload."); return; }
+    openCms().then((r) => {
+      if (r.ok) nav("/admin", { replace: true });
+      else if (r.why === "mfa") nav("/account/security?setup=1", { replace: true });
+      else setErr(r.why === "not_configured" ? "The content tools are not connected yet: CMS_JWT_SECRET is missing on the server (see the launch guide)." : "Could not open the content tools. Reload the page; if it keeps happening, sign out and in again.");
+    });
   }, [ready, user, isAdmin, nav]);
   return <section className="sec"><div className="wrap" style={{ maxWidth: 460 }}>{err ? <div className="card"><div className="formerr" role="alert">{err}</div></div> : <p className="muted">Opening the content tools…</p>}</div></section>;
 }

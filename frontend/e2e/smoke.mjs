@@ -13,10 +13,17 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 await ctx.addInitScript(() => { localStorage.setItem("finlit-plan", "gold"); localStorage.setItem("finlit-theme", "dark"); });
 
+// Member-only parts need a signed-in Gold member: the demo account when DEMO_PASSWORD is set.
+if (process.env.DEMO_PASSWORD) {
+  await page.goto(base + "/login", { waitUntil: "networkidle" });
+  await page.getByLabel("Email address").fill("demo-gold@finlit-demo.com"); await page.getByLabel("Password", { exact: true }).fill(process.env.DEMO_PASSWORD);
+  await page.getByRole("button", { name: "Sign in", exact: true }).last().click(); await page.waitForURL(/\/dashboard/);
+}
+
 // 1. Home renders, live example loads from the research API
 await page.goto(base, { waitUntil: "networkidle" });
 check("home: headline", await page.locator("h1").innerText().then((t) => /clarity/i.test(t)));
-check("home: live score card from research API", await page.locator(".term-dial text").innerText().then((t) => /^\d+$/.test(t)).catch(() => false));
+check("home: live score card from research API", await page.locator(".term-dial text").first().textContent().then((t) => /^\d+$/.test((t || "").trim())).catch(() => false));
 check("home: portfolio performance from site backend", await page.locator("text=Realised portfolio performance").count().then((n) => n > 0));
 
 // 2. Search palette (Ctrl+K), typing, Enter opens the report
@@ -46,11 +53,7 @@ check("stock: balance sheet chart", (await page.locator("section:has(#financials
 await page.locator(".kpis .info").first().scrollIntoViewIfNeeded(); await page.locator(".kpis .info").first().hover(); await page.waitForTimeout(250);
 check("stock: glossary popover", await page.locator(".pop:not([hidden]) b").count().then((n) => n > 0));
 
-// 4. Plan gating
-await page.locator(".planseg button", { hasText: "Basic" }).click();
-check("gating: Basic locks the score", (await page.locator(".gate.is-locked").count()) > 0);
-await page.locator(".planseg button", { hasText: "Gold" }).click();
-check("gating: Gold unlocks everything", (await page.locator(".gate.is-locked").count()) === 0);
+// 4. Plan gating is covered against the real server in e2e/accounts.mjs (the demo plan switch does not exist on the real site).
 
 // 5. Downloads
 const [dl] = await Promise.all([page.waitForEvent("download"), (async () => { await page.locator(".actions .btn", { hasText: "Download" }).click(); await page.locator(".dl-menu button", { hasText: "Data · CSV" }).click(); })()]);
@@ -98,17 +101,7 @@ check("blog: article renders", true);
 await page.goto(base + "/portfolio", { waitUntil: "networkidle" });
 check("portfolio: ledger rows", (await page.locator(".tbl tbody tr").count()) > 5);
 
-// 12. Admin sign-in with wrong then right credentials (dev backend)
-await page.goto(base + "/admin/login", { waitUntil: "networkidle" });
-await page.fill("input[type=email]", "admin@finlit-dev.com"); await page.fill("input[type=password]", "wrong");
-await page.locator("form button.primary").click();
-await page.waitForSelector(".formerr");
-check("admin: wrong password rejected", true);
-await page.fill("input[type=password]", "dev-only-password");
-await page.locator("form button.primary").click();
-await page.waitForURL(/\/admin$/);
-await page.waitForSelector(".admin-t tbody tr");
-check("admin: dashboard lists content", true);
+// 12. Admin access (one sign-in, authenticator code, /admin without a second password) is covered in e2e/accounts.mjs and e2e/deploy_check.mjs.
 
 // 13. Unknown stock and 404 page
 await page.goto(base + "/stocks/ZZZZZZ", { waitUntil: "networkidle" });
