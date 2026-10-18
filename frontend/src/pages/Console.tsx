@@ -72,7 +72,7 @@ function Users() {
       {list.isError && <div className="formerr">{msg(list.error)}</div>}
       <div className="tw"><table className="qtt"><thead><tr><th>Member</th><th>Plan</th><th>Until</th><th>Status</th><th>2-step</th><th>Joined</th><th>Last sign-in</th></tr></thead>
         <tbody>{list.data?.users.map((u) => (
-          <tr key={u.id}><td><b>{u.email}</b>{u.name ? <small className="muted"> · {u.name}</small> : null}{u.role === "admin" && <span className="chip gold" style={{ marginLeft: 6 }}>Admin</span>}{!u.verified && <span className="chip" style={{ marginLeft: 6 }}>Unverified</span>}</td>
+          <tr key={u.id}><td><b>{u.email}</b>{u.name ? <small className="muted"> · {u.name}</small> : null}{u.role === "admin" && <span className="chip gold" style={{ marginLeft: 6 }}>Admin</span>}{!u.verified && <><span className="chip" style={{ marginLeft: 6 }}>Unverified</span> <button className="btn" style={{ marginLeft: 6, padding: "2px 10px" }} onClick={() => patch.mutate({ id: u.id, b: { verify_email: true } })}>Confirm email</button></>}</td>
             <td><select aria-label={`Plan for ${u.email}`} value={u.plan} onChange={(e) => patch.mutate({ id: u.id, b: { plan: e.target.value as acct.AdminUser["plan"], plan_days: e.target.value === "basic" ? undefined : 365 } })}>{(["basic", "silver", "gold"] as const).map((p) => <option key={p} value={p}>{TIER[p].n}</option>)}</select></td>
             <td>{day(u.planUntil)}</td>
             <td><button className="btn" onClick={() => patch.mutate({ id: u.id, b: { status: u.status === "active" ? "disabled" : "active" } })}>{u.status === "active" ? "Disable" : "Enable"}</button></td>

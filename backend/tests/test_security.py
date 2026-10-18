@@ -20,7 +20,7 @@ def test_production_settings_ok():
 
 @pytest.mark.parametrize("override, fragment", [
     ({"database_url": "postgresql://finlit:finlit@db:5432/finlit"}, "default password"),
-    ({"redis_url": "redis://redis:6379/0"}, "REDIS_URL"),
+    ({"redis_url": "redis://localhost:6379/0"}, "REDIS_URL"),  # a private-network host without a password is allowed (managed Redis); localhost is not
     ({"allowed_hosts": ["*"]}, "ALLOWED_HOSTS"),
     ({"cors_origins": ["http://finlitventures.com"]}, "CORS"),
     ({"finedge_mode": "fixtures"}, "FINEDGE"),

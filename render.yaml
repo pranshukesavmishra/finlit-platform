@@ -1,31 +1,38 @@
-# Free, one-click deployment on Render (https://render.com): website + API in one service, free Postgres and Redis.
-# Render dashboard -> New -> Blueprint -> pick this repository. You will be asked for FINEDGE_API_KEY (paste it there; it is never stored in the repo).
-# The site backend (Financial-Portfolio) is a second service, created by hand: see docs/deploy-free.md.
+# Free, one-click deployment on Render (https://render.com): the whole site in ONE web service.
+#   finlit   website + research API + the company's site backend (blog/CMS, portfolio, forms, chat) + background jobs
+#   finlit-redis   free Redis (cache only; it may be emptied at any restart and refills itself)
+# Two things are created by hand, because Render's free Postgres is deleted after 30 days and Render has no free MongoDB:
+#   DATABASE_URL  a free Neon Postgres (https://neon.tech)        MONGO_URL  a free MongoDB Atlas M0 cluster
+# Steps with exact clicks: docs/deploy-free.md. Render dashboard -> New -> Blueprint -> pick this repository.
+# Nothing secret is stored in the repository; values marked sync:false are typed into the Render dashboard.
 # After it is live, read DEMO_PASSWORD under the service's Environment tab: it is the password of the demo accounts
 #   demo-basic@finlit-demo.com, demo-silver@finlit-demo.com, demo-gold@finlit-demo.com
 services:
   - type: web
     name: finlit
     runtime: docker
-    plan: free
+    plan: free              # about 750 free instance hours a month per Render workspace: enough for ONE always-on service (hence one container)
     region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    healthCheckPath: /api/health
+    healthCheckPath: /api/ping   # never touches the database, so health checks cannot keep Neon awake
     envVars:
-      - {key: ENVIRONMENT, value: staging}      # not "production": production demands a verified mail domain (see docs/accounts-and-plans.md)
+      - {key: ENVIRONMENT, value: staging}      # not "production": production demands a verified mail domain
+      - {key: AUTO_VERIFY_EMAIL, value: "1"}    # staging: no mail service yet, so new accounts are confirmed at sign-up (refused in production)
       - {key: FINEDGE_MODE, value: live}
-      - {key: FINEDGE_API_KEY, sync: false}
-      - {key: INGEST_LIMIT, value: "1500"}      # companies loaded in the background after each start (resumable)
+      - {key: FINEDGE_API_KEY, sync: false}     # FinEdge market data
+      - {key: DATABASE_URL, sync: false}        # Neon connection string (direct, not "-pooler"); see docs/deploy-free.md
+      - {key: MONGO_URL, sync: false}           # MongoDB Atlas connection string, for the blog / portfolio / forms
+      - {key: DB_NAME, value: finlit}
+      - {key: CMS_JWT_SECRET, generateValue: true}   # signs the blog/CMS admin token; the research API and the site backend share it (same container)
       - {key: SECRET_KEY, generateValue: true}
       - {key: DEMO_PASSWORD, generateValue: true}
+      - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in at /login, then set up the authenticator app
+      - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters, not containing the email name; remove this variable after your first sign-in
+      - {key: INGEST_LIMIT, value: "1500"}      # companies loaded in the background after each start (resumable)
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
-      - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in, then set up the authenticator app
-      - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters; remove this variable once you have signed in and changed it
-      - {key: CMS_JWT_SECRET, sync: false}      # the SAME value as on the site backend service: lets administrators open the CMS with their normal sign-in
-      - {key: SITE_API_URL, sync: false}        # address of the site backend service (blog/CMS, portfolio, forms, chat); see docs/deploy-free.md
-      - key: DATABASE_URL
-        fromDatabase: {name: finlit-db, property: connectionString}
+      # Optional, add later in the Environment tab: GEMINI_API_KEY (FinLit AI chat), RESEND_API_KEY + SENDER_EMAIL +
+      # CONTACT_RECIPIENT_EMAIL (contact and enquiry emails), UPSTOX_ACCESS_TOKEN (NIFTY ticker strip).
       - key: REDIS_URL
         fromService: {type: keyvalue, name: finlit-redis, property: connectionString}
   - type: keyvalue
@@ -33,11 +40,4 @@ services:
     plan: free
     region: singapore
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []          # reachable only from inside Render
-databases:
-  - name: finlit-db
-    plan: free
-    region: singapore
-    databaseName: finlit
-    postgresMajorVersion: "16"
     ipAllowList: []          # reachable only from inside Render

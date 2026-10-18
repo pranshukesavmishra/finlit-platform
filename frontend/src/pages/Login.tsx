@@ -39,6 +39,7 @@ export function Login() {
   const [unverified, setUnverified] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+  const [created, setCreated] = useState(false);  // account was confirmed at sign-up (test deployments without email)
 
   const explain = (e: unknown): string => {
     if (e instanceof ApiError) {
@@ -59,7 +60,7 @@ export function Login() {
   });
   const register = useMutation({
     mutationFn: () => signUp({ email: email.trim(), password, name: name.trim() || undefined, accept_terms: terms }),
-    onSuccess: () => setSent(email.trim()),
+    onSuccess: (r) => { setCreated((r as { status?: string } | undefined)?.status === "created"); setSent(email.trim()); },
     onError: (e) => setErr(explain(e)),
   });
   const resend = useMutation({ mutationFn: () => resendVerification(email.trim()), onSuccess: () => { setErr(null); setUnverified(false); setSent(email.trim()); } });
@@ -90,9 +91,14 @@ export function Login() {
         </div>
         <div className="card login-card">
           {sent ? (
-            <div className="done"><div className="done-ic"><Icon name="check" /></div><h3 style={{ font: "400 26px var(--serif)" }}>Check your email</h3>
-              <p className="muted">If {sent} can be used, we have sent a link to confirm it. It works once and expires in 24 hours.</p>
-              <button className="btn" onClick={() => { setSent(null); setMode("signin"); }}>Back to sign in</button></div>
+            <div className="done"><div className="done-ic"><Icon name="check" /></div>
+              {created ? (<>
+                <h3 style={{ font: "400 26px var(--serif)" }}>Your account is ready</h3>
+                <p className="muted">{sent} is confirmed. Sign in with the password you just chose.</p>
+                <button className="btn primary" onClick={() => { setSent(null); setCreated(false); setPassword(""); setMode("signin"); }}>Sign in</button></>) : (<>
+                <h3 style={{ font: "400 26px var(--serif)" }}>Check your email</h3>
+                <p className="muted">If {sent} can be used, we have sent a link to confirm it. It works once and expires in 24 hours.</p>
+                <button className="btn" onClick={() => { setSent(null); setMode("signin"); }}>Back to sign in</button></>)}</div>
           ) : (
             <form className="form" onSubmit={submit} noValidate>
               <div className="seg authseg" role="tablist" aria-label="Account">

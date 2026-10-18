@@ -38,7 +38,7 @@ SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 CACHE_STOCK = "public, max-age=60, stale-while-revalidate=600"
 CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
-UNLIMITED_PATHS = ("/api/health",)
+UNLIMITED_PATHS = ("/api/health", "/api/ping")
 MAX_BODY = 64 * 1024  # every request body in this API is small JSON
 UPLOAD_PREFIXES = ("/api/content/admin/upload", "/api/portfolio/admin/upload")  # forwarded to the site backend, which caps files at 15 MB
 MAX_UPLOAD_BODY = 16 * 1024 * 1024
@@ -163,6 +163,11 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     if settings.site_api_url:
         register_stock_admin(app, settings.site_api_url)  # must come before the /api/stocks/{symbol}/{section} routes
+
+    @app.get("/api/ping")
+    async def ping():
+        """Always-cheap liveness check: touches no database, so platform health checks and keep-alive pings cannot keep a metered (serverless) database awake."""
+        return JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/health")
     async def health():

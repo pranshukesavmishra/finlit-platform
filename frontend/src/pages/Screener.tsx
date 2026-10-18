@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
 import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
@@ -92,7 +92,7 @@ export function Screener() {
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
         <div className="eyebrow">Stock screener</div><h1>Find the companies that fit your rules.</h1>
-        <p>Filter every listed company by size, valuation, profitability, growth and debt. Gold adds filters built on the FinLit research model.</p></div></section>
+        <p>Filter every listed company by size, valuation, profitability, growth and debt. Gold adds filters built on the FinLit research model. Prefer a simpler start? Try the <Link to="/score-screener">Score screener</Link>.</p></div></section>
       <div className="wrap scr-wrap">
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-) so you can try the filters. The live site screens every listed company.</span></div>}
         <div className="scr">

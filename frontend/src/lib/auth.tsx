@@ -38,7 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const q = useQuery<Me>({
     queryKey: ["me"], enabled: !DEMO, staleTime: 5 * 60_000, retry: 1, refetchOnWindowFocus: true,
-    queryFn: () => apiGet<Me>("/api/auth/me"),
+    // The CSRF token is stored here, the moment the session arrives: a page's own effect (child effects run before this provider's) may
+    // send a request in the very render that flips "ready", and without the token the server answers bad_csrf.
+    queryFn: async () => { const m = await apiGet<Me>("/api/auth/me"); setCsrf(m.csrf); return m; },
   });
   const me = DEMO ? VISITOR : q.data ?? VISITOR;
   useEffect(() => { setCsrf(me.csrf); }, [me.csrf]);

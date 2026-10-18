@@ -131,3 +131,18 @@
 main#main { min-height: 90vh; }
 
 .term { min-height: 340px; }
+
+/* ---- score screener ---- */
+.ss-fs { border: 0; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; } .ss-fs legend { padding: 0; font: 600 13px var(--sans); color: var(--muted); margin-bottom: 4px; }
+.ss-fs label { display: flex; align-items: center; gap: 10px; padding: 5px 2px; font-size: 14px; cursor: pointer; }
+.ss-actions { display: flex; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); } .ss-actions .btn { flex: 1; justify-content: center; }
+.bandc small { margin-left: 6px; color: var(--faint); font-weight: 500; } .bandc.on { border-color: color-mix(in srgb, var(--gold) 60%, var(--border)); }
+.ss-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; } .ss-stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--s2); display: grid; gap: 2px; }
+.ss-stat b { font: 400 26px var(--serif); } .ss-stat small { color: var(--muted); font-size: 12.5px; }
+.ss-how { margin-bottom: 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--border)); background: var(--gold-soft); } .ss-how p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.ssp { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 28px; padding: 0 10px; border-radius: 999px; font: 700 13px var(--mono); }
+.ssp.hi { background: var(--gain-soft); color: var(--gain); } .ssp.mid { background: var(--warn-soft); color: var(--warn); } .ssp.lo { background: var(--loss-soft); color: var(--loss); } .ssp.na { background: var(--s2); color: var(--faint); }
+.ss-act { display: flex; gap: 8px; justify-content: flex-end; font-family: var(--sans); } .ss-act .btn { padding: 4px 12px; min-height: 32px; }
+.ss-foot { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; margin: 14px 2px 4px; } .ss-foot select { margin-left: 8px; height: 34px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); padding: 0 8px; }
+.ss-t .co { text-decoration: none; color: inherit; } .ss-t td:first-child, .ss-t th:first-child { width: 36px; text-align: center; }
+@media (max-width: 700px) { .ss-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

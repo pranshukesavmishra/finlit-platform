@@ -496,6 +496,31 @@ async def test_weekly_digest_is_opt_in_and_sent_once_a_week(app):
     await c.aclose()
 
 
+async def test_auto_verify_email_confirms_new_accounts_at_sign_up_for_staging(ingested):  # noqa: F811
+    app = create_app(make_settings(auto_verify_email=True), store=ingested)
+    async with app.router.lifespan_context(app):
+        async with new_client(app) as c:
+            r = await c.post("/api/auth/register", json={"email": "new@example.com", "password": PW, "name": "New", "accept_terms": True}, headers=ORIGIN)
+            assert r.status_code == 201 and r.json()["status"] == "created"
+            assert await last_mail(app, "new@example.com") is None  # no confirmation mail is needed
+            assert (await login(c, "new@example.com")).status_code == 200  # and the member can sign in at once
+
+
+async def test_without_auto_verify_a_new_member_cannot_sign_in_before_confirming(app, anon):
+    r = await anon.post("/api/auth/register", json={"email": "later@example.com", "password": PW, "accept_terms": True}, headers=ORIGIN)
+    assert r.status_code == 202
+    assert (await login(anon, "later@example.com")).status_code in (401, 403)
+
+
+def test_production_refuses_auto_verify_but_accepts_a_private_network_redis():
+    from finlit.config import Settings
+    base = dict(environment="production", finedge_mode="live", finedge_api_key="k", database_url="postgresql://u:p@db/finlit", secret_key="x" * 40,
+                mail_mode="resend", resend_api_key="r", public_site_url="https://finlitventures.com", cors_origins=["https://finlitventures.com"],
+                allowed_hosts=["finlitventures.com"])
+    assert Settings(**base, redis_url="redis://red-abc123:6379").validate() == []  # Render's internal Redis has no password
+    assert any("REDIS_URL" in p for p in Settings(**base, redis_url="redis://localhost:6379/0").validate())
+    assert any("AUTO_VERIFY_EMAIL" in p for p in Settings(**base, redis_url="redis://red-abc123:6379", auto_verify_email=True).validate())
+
 async def test_admin_gets_a_cms_token_the_site_backend_accepts(ingested):
     import base64, hashlib, hmac, json, time
     secret = "s" * 40
@@ -523,3 +548,20 @@ async def test_admin_gets_a_cms_token_the_site_backend_accepts(ingested):
         await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(s, int(time.time()) // 30)})
         assert (await admin.post("/api/me/cms-token")).json()["detail"]["status"] == "cms_not_configured"
         await admin.aclose()
+
+
+async def test_admin_can_confirm_a_members_email_by_hand(app):
+    import time
+    member = new_client(app)
+    r = await member.post("/api/auth/register", json={"email": "pending@example.com", "password": PW, "accept_terms": True}, headers=ORIGIN)  # not the signup helper: it confirms by mail
+    assert r.status_code == 202
+    assert (await login(member, "pending@example.com")).status_code in (401, 403)  # not confirmed, and no mail service to confirm with
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    assert (await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})).status_code == 200
+    users = (await admin.get("/api/admin/users")).json()["users"]
+    pending = next(u for u in users if u["email"] == "pending@example.com")
+    assert pending["verified"] is False
+    assert (await admin.patch(f"/api/admin/users/{pending['id']}", json={"verify_email": True})).status_code == 200
+    assert (await login(member, "pending@example.com")).status_code == 200  # signs in at once
+    assert next(u for u in (await admin.get("/api/admin/users")).json()["users"] if u["email"] == "pending@example.com")["verified"] is True

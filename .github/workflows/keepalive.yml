@@ -1,8 +1,8 @@
-name: Keep the free servers awake
-# Free Render services sleep after 15 minutes without traffic, which pauses the background data load and makes the first visitor
-# wait about a minute. This pings them every 10 minutes. Set the repository variables SITE_URL (the main service) and
-# SITE_API_PING_URL (the site backend, e.g. https://finlit-site-api.onrender.com/api/) under
-# Settings -> Secrets and variables -> Actions -> Variables. Without them nothing runs.
+name: Keep the free server awake
+# A free Render service sleeps after 15 minutes without traffic (about a minute to wake) and sleeping pauses the background jobs.
+# This pings it every 10 minutes. Set the repository variable SITE_URL (Settings -> Secrets and variables -> Actions -> Variables)
+# to the service address, e.g. https://finlit.onrender.com . Without it nothing runs. /api/ping never touches the database.
+# GitHub runs scheduled jobs on a best-effort basis (delays of a few minutes are normal): add an UptimeRobot monitor as a backup (docs/deploy-free.md).
 on:
   schedule: [{cron: "*/10 * * * *"}]
   workflow_dispatch:
@@ -12,8 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SITE_URL: ${{ vars.SITE_URL }}
-      SITE_API_PING_URL: ${{ vars.SITE_API_PING_URL }}
     steps:
-      - run: |
-          [ -z "$SITE_URL" ] || curl -fsS --retry 3 --max-time 90 "$SITE_URL/api/health"
-          [ -z "$SITE_API_PING_URL" ] || curl -fsS --retry 3 --max-time 90 "$SITE_API_PING_URL" >/dev/null
+      - run: '[ -z "$SITE_URL" ] || curl -fsS --retry 3 --max-time 90 "$SITE_URL/api/ping"'
