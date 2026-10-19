@@ -32,12 +32,13 @@ def rows_of(payload: Any) -> List[dict]:
 def parse_date(v: Any) -> Optional[date]:
     if not v:
         return None
-    s = str(v).strip()[:10]
-    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except ValueError:
-            continue
+    full = " ".join(str(v).split())
+    for s in (full, full[:10]):   # "2026-07-21T00:00:00" and "21-Oct-2026" both appear
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%d-%b-%Y", "%d %b %Y", "%d-%b-%y", "%d %B %Y"):
+            try:
+                return datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
     return None
 
 
@@ -54,7 +55,7 @@ def numbers(text: Any) -> List[float]:
     return out
 
 
-def issue_size_cr(text: Any) -> Optional[float]:
+def issue_size_cr(text: Any, price: Optional[float] = None) -> Optional[float]:
     """Issue size to crore rupees: reads '1,250 Cr', '48 crore', '12.5 lakh' or a plain amount in rupees."""
     n = numbers(text)
     if not n:
@@ -63,8 +64,11 @@ def issue_size_cr(text: Any) -> Optional[float]:
     v = n[0]
     if "lakh" in low:
         v /= 100
-    elif "cr" not in low and v > 1e6:
-        v /= 1e7   # a plain rupee amount
+    elif "cr" not in low and v > 1e5:
+        if price:
+            v = v * price / 1e7   # the provider gives the number of shares offered: size = shares x issue price
+        else:
+            return None
     return round(v, 2) if v > 0 else None
 
 
@@ -96,7 +100,7 @@ def ipo_rows(payload: Any) -> List[tuple]:
         listing = parse_date(r.get("listing_date"))
         ext = hashlib.sha1(f"ipo|{sym or name.lower()}|{start}".encode()).hexdigest()  # nosec B324 - provider key, not security
         note = " · ".join(x for x in (str(r.get("ipo_status") or "").strip(), f"Subscribed {r['subscription']}" if r.get("subscription") else "") if x)[:200] or None
-        out.append((name, sym, kind, None, start, end, listing, min(band) if band else None, max(band) if band else None, None, issue_size_cr(r.get("issue_size")), None, note, ext))
+        out.append((name, sym, kind, None, start, end, listing, min(band) if band else None, max(band) if band else None, None, issue_size_cr(r.get("issue_size"), max(band) if band else None), None, note, ext))
     return out
 
 

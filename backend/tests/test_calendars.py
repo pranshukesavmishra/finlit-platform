@@ -9,7 +9,7 @@ pytestmark = pytest.mark.integration
 
 
 def test_parsing_is_forgiving_about_the_providers_shapes():
-    assert issue_size_cr("₹1,250 Cr") == 1250 and issue_size_cr("48 crore") == 48 and issue_size_cr("12.5 lakh") == 0.12 and issue_size_cr("2500000000") == 250 and issue_size_cr("n/a") is None
+    assert issue_size_cr("₹1,250 Cr") == 1250 and issue_size_cr("48 crore") == 48 and issue_size_cr("12.5 lakh") == 0.12 and issue_size_cr("2,19,69,695", 693) == 1522.5 and issue_size_cr("2500000000") is None and issue_size_cr("n/a") is None
     rows = result_rows({"data": [{"symbol": "tcs", "company_name": "Tata  Consultancy", "expected_result_date": "2026-10-20"}, {"symbol": "TCS", "expected_result_date": "2026-10-20"}, {"symbol": "", "expected_result_date": "2026-10-21"}, {"symbol": "X", "expected_result_date": "bad"}]})
     assert len(rows) == 1 and rows[0][2] == "TCS" and rows[0][6] == date(2026, 10, 20) and rows[0][3] == "Tata Consultancy"
     ipo = ipo_rows([{"company_name": "Acme Ltd", "symbol": None, "security_type": "SME", "ipo_status": "Open", "start_date": "2026-10-19", "end_date": "2026-10-22", "price_range": "₹ 95 - 100", "issue_size": "48 Cr", "exchange": ["NSE"]},
@@ -45,3 +45,13 @@ async def test_refresh_replaces_provider_rows_and_keeps_hand_entered_ipos(store)
     assert await refresh_calendars(store=store, client=f) == {"results": 0, "ipos": 0}      # provider down: old data stays
     async with store.pool.acquire() as conn:
         assert await conn.fetchval("SELECT count(*) FROM feed_items WHERE source = 'FinEdge results calendar'") == 1
+
+
+def test_provider_date_and_band_formats():
+    """The provider writes IPO dates as 21-Oct-2026 and bands as 'Rs.1065 to Rs.1119': both must be read, or the whole calendar comes out empty."""
+    from finlit.calendars import parse_date
+    from datetime import date
+    assert parse_date("21-Oct-2026") == date(2026, 10, 21) and parse_date("2026-07-21T00:00:00") == date(2026, 7, 21)
+    rows = ipo_rows({"data": [{"symbol": "JPL", "company_name": "Jio Platforms Limited", "security_type": "Equity", "ipo_status": "Forthcoming", "start_date": "21-Oct-2026", "end_date": "23-Oct-2026",
+                               "price_range": "Rs.1065 to Rs.1119", "issue_size": "27,00,00,000", "exchange": ["NSE", "BSE"]}]})
+    assert len(rows) == 1 and rows[0][7:9] == (1065.0, 1119.0) and rows[0][10] == 30213.0
