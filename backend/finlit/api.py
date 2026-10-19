@@ -34,7 +34,7 @@ from .config import Settings, get_settings
 from .siteproxy import register_catch_all, register_stock_admin
 from .web import mount_frontend
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
-from .snapshot import PRICE_RANGES, SECTIONS
+from .snapshot import PRICE_RANGES, SECTIONS, SNAPSHOT_VERSION
 from .store import Store
 
 SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
@@ -119,6 +119,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             for k, v in list(r.items()):
                 if v is not None and not isinstance(v, (int, str, bool, float)):
                     r[k] = float(v)
+                if isinstance(r[k], float):
+                    r[k] = round(r[k], 2)   # two decimals is all any list shows; it roughly halves the download
             out.append(r)
         out = redact_universe(out, level, set(settings.showcase_symbols))
         body = orjson.dumps({"rows": out})
@@ -248,9 +250,37 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def price(request: Request, symbol: str, range: str = Query("1Y"), statement: str = Query("consolidated")):
         return await section(request, symbol, f"price-{range.upper()}", statement)
 
+    async def broken(symbol: str, statement: str, body: bytes) -> bool:
+        """True for a stored summary that is unusable (no price) or built by older code, and a rebuild has just been queued or is under way.
+        False once the rebuild has been tried and the stored report is all that exists, so a company the provider has no price for still opens."""
+        try:
+            meta = orjson.loads(body)
+            price = (meta.get("quote") or {}).get("price")
+            stale = price in (None, 0) or int((meta.get("meta") or {}).get("version") or 0) < SNAPSHOT_VERSION
+        except Exception:
+            return False
+        if not stale:
+            return False
+        store, key = app.state.store, f"repair:{symbol}:{statement}"
+        try:
+            if await store.redis.set(key, 1, nx=True, ex=1800):     # first time in half an hour: queue the rebuild and wait for it
+                await store.enqueue(symbol, statement)
+                await store.redis.set(f"pending:{symbol}:{statement}", 1, ex=300)
+                return price in (None, 0)
+            return price in (None, 0) and bool(await store.redis.exists(f"pending:{symbol}:{statement}"))   # rebuild still running: keep waiting
+        except Exception:
+            return False
+
     @app.get("/api/stocks/{symbol}")
     async def summary(request: Request, symbol: str, statement: str = Query("consolidated")):
         asyncio.create_task(app.state.store.note_view(symbol)) if SYMBOL.match(symbol) else None
+        sym = symbol.strip().upper()
+        if SYMBOL.match(sym) and statement in ("consolidated", "standalone"):
+            hit = await app.state.store.get_section(sym, statement, "summary")
+            if hit is not None and await broken(sym, statement, hit[0]):
+                # A report saved while the provider was overloaded (no price or profile) is never shown: it is rebuilt, and the page waits for it.
+                return JSONResponse({"status": "queued", "symbol": sym, "detail": "Refreshing this stock's report."},
+                                    status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
         return await section(request, symbol, "summary", statement)
 
     @app.get("/api/stocks/{symbol}/score-history")

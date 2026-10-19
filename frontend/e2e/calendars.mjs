@@ -6,7 +6,10 @@ const b = await chromium.launch(); const p = await (await b.newContext({ viewpor
 await p.goto(B + "/ipo", { waitUntil: "networkidle" }); await p.waitForTimeout(800);
 const kpis = await p.locator(".ipo-k, .kpis-p .kp, .ipo .kpi").allInnerTexts().catch(() => []);
 const text = await p.locator("main").innerText();
-check("ipo: open issue listed", /Open Issue Ltd/.test(text)); check("ipo: upcoming issue listed", /Soon Issue Ltd/.test(text)); check("ipo: no longer 'kept up to date by the FinLit team'", !/FinLit team/.test(text));
+// Real provider data (run `python -m finlit.worker refresh-calendars` with the live key first): issues that open soon are listed, none twice.
+check("ipo: open or upcoming issues listed", /Open now|Opens|Upcoming/i.test(text));
+const names = await p.locator("main h3, main .ipo-n, main b").allInnerTexts().catch(() => []);
+check("ipo: no issue listed twice", names.filter((n) => /Ltd|Limited/i.test(n)).length === new Set(names.filter((n) => /Ltd|Limited/i.test(n))).size); check("ipo: no longer 'kept up to date by the FinLit team'", !/FinLit team/.test(text));
 check("ipo: not empty", !/No issues listed yet/.test(text));
 await p.goto(B + "/results", { waitUntil: "networkidle" }); await p.waitForTimeout(900);
 const days = async () => p.evaluate(() => [...document.querySelectorAll(".rcal-c:not(.off)")].filter((c) => c.querySelector("span")).map((c) => Number(c.querySelector("b")?.textContent)));

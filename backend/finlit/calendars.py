@@ -86,20 +86,26 @@ def result_rows(payload: Any) -> List[tuple]:
     return out
 
 
+def _subscribed(v: Any) -> str:
+    n = numbers(v)
+    return f"Subscribed {n[0]:,.2f}x".replace(".00x", "x") if n else ""
+
+
 def ipo_rows(payload: Any) -> List[tuple]:
-    out = []
+    out, seen_names = [], set()
     for r in rows_of(payload):
         name = " ".join(str(r.get("company_name") or r.get("name") or "").split())[:160]
         start, end = parse_date(r.get("start_date") or r.get("open_date")), parse_date(r.get("end_date") or r.get("close_date"))
-        if not name or not start or not end or end < start:
+        if not name or not start or not end or end < start or name.lower() in seen_names:   # the provider sometimes lists an issue twice
             continue
+        seen_names.add(name.lower())
         sym = str(r.get("symbol") or "").strip().upper() or None
         band = [x for x in numbers(r.get("price_range")) if x > 0]
         sec = f"{r.get('security_type') or ''} {r.get('exchange') or ''}".lower()
         kind = "sme" if "sme" in sec else "mainboard"
         listing = parse_date(r.get("listing_date"))
         ext = hashlib.sha1(f"ipo|{sym or name.lower()}|{start}".encode()).hexdigest()  # nosec B324 - provider key, not security
-        note = " · ".join(x for x in (str(r.get("ipo_status") or "").strip(), f"Subscribed {r['subscription']}" if r.get("subscription") else "") if x)[:200] or None
+        note = " · ".join(x for x in (str(r.get("ipo_status") or "").strip(), _subscribed(r.get("subscription"))) if x)[:200] or None
         out.append((name, sym, kind, None, start, end, listing, min(band) if band else None, max(band) if band else None, None, issue_size_cr(r.get("issue_size"), max(band) if band else None), None, note, ext))
     return out
 
@@ -125,7 +131,9 @@ async def refresh_calendars(client, store, days_back: int = 30, days_ahead: int 
         payload = await client.get("/ipo-calendar", {"from_date": (today - timedelta(days=ipo_back)).isoformat(), "to_date": (today + timedelta(days=days_ahead)).isoformat()}, timeout=40)
         rows = ipo_rows(payload)
         if rows:
-            async with store.pool.acquire() as conn:
+            async with store.pool.acquire() as conn, conn.transaction():
+                # The provider's list is the truth for its window: replace it, so a moved date never leaves a second copy behind.
+                await conn.execute("DELETE FROM ipos WHERE source = 'FinEdge' AND open_date >= $1", today - timedelta(days=ipo_back))
                 await conn.executemany(
                     "INSERT INTO ipos (name, symbol, kind, sector, open_date, close_date, listing_date, price_low, price_high, lot_size, issue_size_cr, listing_price, note, ext_key, source) "
                     "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'FinEdge') ON CONFLICT (ext_key) WHERE ext_key IS NOT NULL DO UPDATE SET "

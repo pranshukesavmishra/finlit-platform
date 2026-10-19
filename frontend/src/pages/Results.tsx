@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
-import { dayLabel, useFeed, type FeedItem } from "../lib/feed";
+import { dayLabel, useFeed, type FeedItem, who } from "../lib/feed";
 import { useWatchlist } from "../lib/watchlist";
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -26,7 +26,8 @@ export function ResultsPage() {
   const today = ymd(new Date());
   const first = new Date(month.getFullYear(), month.getMonth(), 1), pad = (first.getDay() + 6) % 7, days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const cells = Array.from({ length: Math.ceil((pad + days) / 7) * 7 }, (_, i) => (i < pad || i >= pad + days ? null : new Date(month.getFullYear(), month.getMonth(), i - pad + 1)));
-  const upcoming = soon.slice(0, 40);
+  // Next results date per company, soonest first; meetings that are not about results (e.g. analyst meets) stay off this list.
+  const upcoming = useMemo(() => { const seen = new Set<string>(); return soon.filter((x) => /result/i.test(`${x.category || ""} ${x.title || ""}`) && !seen.has(who(x)) && !!seen.add(who(x))).slice(0, 40); }, [soon]);
   const declared = done.slice(0, 30);
   const sel = pick ? byDay.get(pick) || [] : [];
   return (
@@ -43,14 +44,14 @@ export function ResultsPage() {
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="rcal-h" role="columnheader">{d}</div>)}
               {cells.map((d, i) => { const k = d ? ymd(d) : ""; const its = d ? byDay.get(k) || [] : []; return (
                 !d ? <div key={i} className="rcal-c off" role="gridcell" aria-hidden="true" /> : <button key={i} role="gridcell" disabled={!its.length} className={"rcal-c" + (!d ? " off" : "") + (k === today ? " today" : "") + (pick === k ? " on" : "") + (its.length ? " has" : "")} onClick={() => setPick(pick === k ? null : k)} aria-label={d ? `${d.toDateString()}: ${its.length} results` : undefined}>
-                  {d && <><b>{d.getDate()}</b>{its.slice(0, 3).map((x) => <span key={x.id} className={x.date < today ? "done" : ""}>{x.symbol || x.company}</span>)}{its.length > 3 && <em>+{its.length - 3} more</em>}</>}
+                  {d && <><b>{d.getDate()}</b>{its.slice(0, 3).map((x) => <span key={x.id} className={x.date < today ? "done" : ""}>{who(x)}</span>)}{its.length > 3 && <em>+{its.length - 3} more</em>}</>}
                 </button>); })}
             </div>)}
           {sel.length > 0 && <div className="rcal-sel"><h4>{dayLabel(pick!)}</h4><ul>{sel.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "#"}><b>{x.symbol}</b> {x.company}</Link><span>{x.period || x.category}</span>{x.link && <a href={x.link} target="_blank" rel="noopener noreferrer">Filing ↗</a>}</li>)}</ul></div>}
         </section>
         <aside className="rc-side">
           <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="bell" /></span>Coming up</h3></div>
-            {upcoming.length ? <ul className="feed-l">{upcoming.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><b>{x.symbol || x.company}</b> {x.period ? `· ${x.period}` : ""} <small>{x.category}</small></span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : onlyMine && !mine.length ? "Add stocks to your watchlist to see their dates here." : "No upcoming dates have been added yet. The FinLit team adds them as companies announce."}</p>}</section>
+            {upcoming.length ? <ul className="feed-l">{upcoming.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><b>{who(x)}</b> {x.period ? `· ${x.period}` : ""} <small>{x.category}</small></span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : onlyMine && !mine.length ? "Add stocks to your watchlist to see their dates here." : "No upcoming dates have been added yet. The FinLit team adds them as companies announce."}</p>}</section>
           <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>Recently reported</h3></div>
             {declared.length ? <ul className="feed-l">{declared.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><Link to={x.symbol ? `/stocks/${x.symbol}#quarter` : "#"}><b>{x.symbol}</b></Link> <small>{x.title}</small>{x.link && <> <a href={x.link} target="_blank" rel="noopener noreferrer">Filing ↗</a></>}</span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : "Nothing reported recently."}</p>}</section>
         </aside>

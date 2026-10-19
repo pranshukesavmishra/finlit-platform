@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
 import { AppShell } from "./components/AppShell";
 import { SearchPalette } from "./components/SearchPalette";
@@ -74,6 +74,8 @@ export default function App() {
           </Route>
           <Route path="stocks/:symbol" element={<StockPage />} />
           <Route path="plans" element={<PlansPage />} />
+          <Route path="pricing" element={<Navigate to="/plans" replace />} />
+          <Route path="faq" element={<Navigate to="/#faq" replace />} />
           <Route path="services" element={<Services />} />
           <Route path="about" element={<About />} />
           <Route path="why-we-exist" element={<Why />} />

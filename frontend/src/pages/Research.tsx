@@ -6,10 +6,30 @@ import { useUI } from "../lib/ui";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { Reveal } from "../components/Reveal";
-import { nf } from "../lib/format";
+import { nf, MINUS } from "../lib/format";
+import { useIndices } from "../lib/indices";
+import { useGold } from "../lib/premium";
 
 const FEATURED = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "BPCL", "ITC"];
 const TABS = [["score", "Highest scoring", "Silver"], ["size", "Largest companies", ""], ["up", "Top gainers today", ""], ["down", "Top decliners today", ""]] as const;
+
+/** The market at a glance, at the front of Stock research: the key indices with today's level, move and P/E, refreshed every minute. */
+function IndexBoard() {
+  const { data, isError } = useIndices();
+  const gold = useGold();
+  if (isError || !data) return data === undefined && !isError ? <section className="sec" style={{ paddingBottom: 0 }}><div className="wrap"><div className="skeleton" style={{ height: 96 }} aria-busy="true" /></div></section> : null;
+  const key = data.key.map((c) => data.items.find((r) => r.code === c)).filter((r) => r && r.close != null);
+  if (!key.length) return null;
+  return (
+    <section className="sec" style={{ paddingBottom: 0 }}><div className="wrap">
+      <Reveal className="sec-h"><div className="eyebrow"><span className={"pm-live" + (data.marketOpen ? " on" : "")} />{data.marketOpen ? "Market open · live" : "Market closed · last close"}{data.asOf ? ` · ${new Date(data.asOf + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : ""}</div><h2>The market today</h2></Reveal>
+      <div className="pm-heat ib" aria-label="Index levels">{key.map((r) => { const c = r!.changePct, good = r!.code === "INDVIX" ? (c ?? 0) <= 0 : (c ?? 0) >= 0;
+        return <div key={r!.code} className="pm-tile" style={{ "--tc": c == null ? "var(--faint)" : good ? "var(--gain)" : "var(--loss)", "--ti": c == null ? 0 : 6 + Math.min(Math.abs(c), 3) * 7 } as React.CSSProperties}>
+          <small>{r!.name}</small><b>{nf(r!.close as number)}</b><span>{c == null ? MINUS : (c > 0 ? "▲ +" : c < 0 ? "▼ " + MINUS : "") + nf(Math.abs(c)) + "%"}{r!.points != null ? ` (${r!.points > 0 ? "+" : ""}${nf(r!.points)})` : ""}</span>{r!.pe != null && <em>P/E {nf(r!.pe, 1)}</em>}</div>; })}</div>
+      <p className="faint" style={{ fontSize: 12.5, margin: "10px 2px 0" }}>{gold ? <>All {data.items.length} indices and 5-year valuation history: <Link to="/premium/markets#indices">Market events &amp; index dashboard</Link>.</> : <>NSE and BSE index levels, refreshed every minute while the market is open.</>}</p>
+    </div></section>
+  );
+}
 
 export function Research({ onSearch }: { onSearch: () => void }) {
   useDocTitle("Stock research", "A FinLit research report for every listed Indian stock: score, scorecard, financials, ratios, ownership and peers.");
@@ -30,6 +50,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
         <p>A research score, five-pillar scorecard, statements, ratios, ownership and peers, loaded in a blink.</p>
         <div style={{ marginTop: 28 }}><button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button></div>
       </div></section>
+      <IndexBoard />
       <section className="sec"><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">Start exploring</div><h2>{rows.length ? "Where to look today" : "Popular reports"}</h2></Reveal>
         {rows.length > 0 && (

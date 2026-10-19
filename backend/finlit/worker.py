@@ -77,6 +77,10 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
     except Exception as exc:  # one bad stock must never stop a batch
         log.exception("ingest %s failed", symbol)
         status, errors = "failed", {"error": str(exc)[:500]}
+    try:
+        await store.redis.delete(f"pending:{symbol}:{statement}")   # whoever was waiting on this report asks again now
+    except Exception:
+        pass
     duration = int((time.perf_counter() - started) * 1000)
     await store.log_run(symbol, statement, status, client.calls - calls_before, duration, errors)
     log.info("ingest %s %s %s in %d ms (%d calls)", symbol, statement, status, duration, client.calls - calls_before)

@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
@@ -171,7 +172,7 @@ export function ScoreScreener() {
             {chips.length > 0 && <div className="scr-chips">{chips.map(([k, label]) => <button key={k} className="fchip" onClick={() => drop(k)}>{label}<span aria-hidden="true">×</span><span className="sr">remove</span></button>)}<button className="alx-link" onClick={clear}>Clear all</button></div>}
             {isError ? <div className="state"><h2>The score screener is unavailable right now</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
               <>
-                <div className="tw scr-tw"><table className="scr-t ss-t">
+                <HScroll className="scr-tw" label="results table"><table className="scr-t ss-t">
                   <thead><tr><th><span className="sr">Select</span></th>{head("name", "Stock", "stick")}{head("price", "LTP (₹)")}{head("market_cap", "Market cap")}{head("sector", "Sector")}{head("f", "Fundamental")}{PILLARS.map((x) => <th key={x.k} className="ss-ph" title={x.say}><button onClick={() => sortBy(x.col)} aria-label={`Sort by ${x.label}`}>{x.short} {sort.key === x.col ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button></th>)}{head("t", "Technical")}{head("overall", "Overall")}<th>Action</th></tr></thead>
                   <tbody>{view.map((r) => (
                     <tr key={r.symbol}>
@@ -184,7 +185,7 @@ export function ScoreScreener() {
                     </tr>))}
                     {!rows.length && <tr><td colSpan={13} className="empty">No companies match all of these filters. Try loosening one, or clear them all.</td></tr>}
                   </tbody>
-                </table></div>
+                </table></HScroll>
                 <div className="ss-foot">
                   <label className="muted">Rows per page <select value={size} onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} aria-label="Rows per page">{[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
                   <span className="muted">Page {Math.min(page, pages - 1) + 1} of {pages}</span>

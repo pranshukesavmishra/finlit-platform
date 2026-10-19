@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { MiniBars, type BarSeries } from "../charts/MiniBars";
@@ -56,7 +57,7 @@ export function QuarterSection({ f }: { f?: Financials }) {
   const cols = [last, last - 1, yoy].filter((i) => i >= 0);
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="quarter" no="03 · Latest quarter" icon="notes" tier="basic" title={`Results for ${q.periods[last]}`} sub={`Quarter ended ${end}. Compared with the previous quarter and the same quarter a year earlier.`} color="--gold-deep" />
+      <SectionHead id="quarter" no="04 · Latest quarter" icon="notes" tier="basic" title={`Results for ${q.periods[last]}`} sub={`Quarter ended ${end}. Compared with the previous quarter and the same quarter a year earlier.`} color="--gold-deep" />
       {rvY != null && npY != null && <Plain tone={npY >= 0 ? "good" : "warn"}>In the latest quarter, sales {rvY >= 0 ? "grew" : "fell"} {nf(Math.abs(rvY), 1)}% and profit {npY >= 0 ? "rose" : "fell"} {nf(Math.abs(npY), 1)}% compared with the same quarter last year.{opm[last] != null && opm[yoy] != null ? ` The operating margin ${(opm[last] as number) >= (opm[yoy] as number) ? "widened" : "narrowed"} from ${nf(opm[yoy] as number, 1)}% to ${nf(opm[last] as number, 1)}%.` : ""}</Plain>}
       <div className="qk">{tiles.map((t) => (
         <div className="qt" key={t.k} style={{ "--qc": t.c } as React.CSSProperties}>
@@ -74,10 +75,12 @@ export function QuarterSection({ f }: { f?: Financials }) {
             {k.bad.length ? <ul>{k.bad.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">No red flags in the reported numbers this quarter.</p>}</div>
         </div>) : null; })()}
       <div className="card acc qtab" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-        <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Profit and loss for the quarter</h3><span className="s">₹ Crore · change in brackets</span></div>
-        <div className="tw"><table className="qtt"><thead><tr><th>Line</th>{cols.map((i, j) => <th key={i} className={j === 0 ? "latest" : ""}>{q.periods[i]}{j === 1 ? " (last quarter)" : j === 2 ? " (year ago)" : ""}</th>)}</tr></thead>
-          <tbody>{lines.map(([k, v, b]) => <tr key={k} className={b ? "sub" : ""}><td>{k}</td>{cols.map((i, j) => { const x = v[i], ref = j === 0 ? null : v[last], c = ref != null && x != null ? chg(ref, x) : null; return <td key={i} className={j === 0 ? "latest" : ""}>{x == null ? "—" : num(x, k.startsWith("EPS") ? 2 : 0)}{j > 0 && c != null && <small className={c >= 0 ? "pos" : "neg"}> ({c >= 0 ? "+" : "−"}{nf(Math.abs(c), 1)}%)</small>}</td>; })}</tr>)}</tbody></table></div>
-        <p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Brackets show how much the latest quarter changed compared with that column. Figures are as reported on the exchange filing.</p>
+        <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Profit and loss for the quarter</h3><span className="s">₹ Crore · latest quarter\u2019s change shown under its figure</span></div>
+        <HScroll className="" label="table"><table className="qtt"><thead><tr><th>Line</th>{cols.map((i, j) => <th key={i} className={j === 0 ? "latest" : ""}>{q.periods[i]}{j === 0 ? " (latest)" : j === 1 ? " (last quarter)" : " (year ago)"}</th>)}</tr></thead>
+          <tbody>{lines.map(([k, v, b]) => { const qoq = chg(v[last], v[last - 1]), yoyC = yoy >= 0 ? chg(v[last], v[yoy]) : null;
+            const tag = (c: number | null, label: string) => c == null ? null : <small className={"chg " + (c >= 0 ? "pos" : "neg")} title={label}>{c >= 0 ? "+" : MINUS}{nf(Math.abs(c), 1)}% {label}</small>;
+            return <tr key={k} className={b ? "sub" : ""}><td>{k}</td>{cols.map((i, j) => { const x = v[i]; return <td key={i} className={j === 0 ? "latest" : ""}>{x == null ? "—" : num(x, k.startsWith("EPS") ? 2 : 0)}{j === 0 && <span className="chgs">{tag(qoq, "vs last quarter")}{tag(yoyC, "vs year ago")}</span>}</td>; })}</tr>; })}</tbody></table></HScroll>
+        <p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Under each latest-quarter figure: how much it changed against the previous quarter, and against the same quarter a year earlier. Figures are as reported on the exchange filing.</p>
       </div>
     </section>
   );
@@ -124,7 +127,7 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
   const list = cards[tab];
   return (
     <section className="block" style={{ "--sc": "var(--gold)" } as React.CSSProperties}>
-      <SectionHead id="trends" no="05 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold" />
+      <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold" />
       <div className="tr-bar">
         <div className="seg" role="tablist" aria-label="Trend groups">{([["key", "Key metrics"], ["margin", "Margins and investment"], ["div", "Dividends"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
         <div className="seg" role="group" aria-label="Period"><button aria-pressed={mode === "q"} onClick={() => setMode("q")}>Quarterly</button><button aria-pressed={mode === "a"} onClick={() => setMode("a")}>Annual</button></div>

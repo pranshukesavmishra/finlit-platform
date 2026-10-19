@@ -13,9 +13,9 @@ export type Row = {
 };
 export type NumKey = Exclude<keyof Row, "symbol" | "name" | "sector" | "sample" | "band">;
 
-export function useUniverse() {
+export function useUniverse(enabled = true) {
   return useQuery({
-    queryKey: ["universe"], staleTime: 300_000, retry: 1,
+    queryKey: ["universe"], staleTime: 300_000, retry: 1, enabled,
     queryFn: async () => {
       const d = await apiGet<{ rows: Row[]; sample?: boolean }>("/api/screener/universe");
       const rows: Row[] = d.rows.map((r) => ({ ...r, name: r.name || r.symbol }));

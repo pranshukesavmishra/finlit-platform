@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -42,13 +43,13 @@ function Report({ symbol }: { symbol: string }) {
         <div><h2>Strengths</h2><ul>{d.strengths.map((n) => <li key={n.key}><b>{n.title}.</b> {n.text}</li>)}</ul></div>
         <div><h2>Watch-outs</h2><ul>{d.watchouts.map((n) => <li key={n.key}><b>{n.title}.</b> {n.text}</li>)}</ul></div></div>}
       <h2>Key ratios</h2>
-      {r.isLoading ? <div className="skeleton" style={{ height: 120 }} /> : <div className="tw"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Latest</th><th>Period</th></tr></thead>
-        <tbody>{KEYS.filter((k) => ratios[k]).map((k) => <tr key={k}><td>{ratios[k].label}</td><td className="n">{fmtUnit(ratios[k].value, ratios[k].unit)}</td><td>{ratios[k].period}</td></tr>)}</tbody></table></div>}
+      {r.isLoading ? <div className="skeleton" style={{ height: 120 }} /> : <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Latest</th><th>Period</th></tr></thead>
+        <tbody>{KEYS.filter((k) => ratios[k]).map((k) => <tr key={k}><td>{ratios[k].label}</td><td className="n">{fmtUnit(ratios[k].value, ratios[k].unit)}</td><td>{ratios[k].period}</td></tr>)}</tbody></table></HScroll>}
       <h2>Who owns it</h2>
-      {o.data?.latest?.length ? <div className="tw"><table className="pm-t"><thead><tr><th>Holder group</th><th className="n">Share %</th><th className="n">Change in a year</th></tr></thead>
-        <tbody>{o.data.latest.map((x) => <tr key={x.key}><td>{x.label}</td><td className="n">{x.value != null ? nf(x.value) : MINUS}</td><td className="n">{x.change1yPts != null ? signed(x.change1yPts, 2, " pts") : MINUS}</td></tr>)}</tbody></table></div> : <p className="muted">Shareholding data is not available for this company yet.</p>}
-      {p.data?.items?.length ? <><h2>Peers</h2><div className="tw"><table className="pm-t"><thead><tr><th>Company</th><th className="n">Score</th><th className="n">P/E</th></tr></thead>
-        <tbody>{p.data.items.slice(0, 8).map((x) => <tr key={x.symbol}><td><Link to={`/premium/report/${x.symbol}`}>{x.name || x.symbol}</Link></td><td className="n">{x.overall != null ? Math.round(x.overall) : MINUS}</td><td className="n">{x.pe != null ? nf(x.pe, 1) : MINUS}</td></tr>)}</tbody></table></div></> : null}
+      {o.data?.latest?.length ? <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Holder group</th><th className="n">Share %</th><th className="n">Change in a year</th></tr></thead>
+        <tbody>{o.data.latest.map((x) => <tr key={x.key}><td>{x.label}</td><td className="n">{x.value != null ? nf(x.value) : MINUS}</td><td className="n">{x.change1yPts != null ? signed(x.change1yPts, 2, " pts") : MINUS}</td></tr>)}</tbody></table></HScroll> : <p className="muted">Shareholding data is not available for this company yet.</p>}
+      {p.data?.items?.length ? <><h2>Peers</h2><HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Company</th><th className="n">Score</th><th className="n">P/E</th></tr></thead>
+        <tbody>{p.data.items.slice(0, 8).map((x) => <tr key={x.symbol}><td><Link to={`/premium/report/${x.symbol}`}>{x.name || x.symbol}</Link></td><td className="n">{x.overall != null ? Math.round(x.overall) : MINUS}</td><td className="n">{x.pe != null ? nf(x.pe, 1) : MINUS}</td></tr>)}</tbody></table></HScroll></> : null}
       <p className="faint" style={{ marginTop: 28, fontSize: 13 }}>Prepared from company filings and market data. Scores are research, not a recommendation to buy or sell. General information, not investment advice. Past performance is not a guide to future returns.</p>
     </article>
   );

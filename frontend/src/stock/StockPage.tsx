@@ -15,7 +15,7 @@ import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } fr
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 
-const NAV: [string, string, string][] = [["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["business", "Company", "building"], ["dividends", "Dividends", "coins"], ["method", "Method", "info"], ["plans", "Plans", "medal"]];
+const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Method", "info"], ["plans", "Plans", "medal"]];
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
@@ -88,6 +88,8 @@ export function StockPage() {
       </div>
       <div className="wrap">
         <div ref={idrow} />
+        {/* What the company does comes first: someone who has never heard of it starts here, then the score, then the numbers. */}
+        <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
         <Notes s={s} />
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
@@ -98,7 +100,6 @@ export function StockPage() {
         <ErrorBoundary section="This section"><OwnershipSection o={own} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
-        <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><MethodSection s={s} r={ratios} /></ErrorBoundary>
       </div>

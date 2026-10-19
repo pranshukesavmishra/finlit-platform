@@ -78,7 +78,7 @@ export function AlertsPage() {
   const { user } = useAuth();
   const { plan, upgrade, toast } = useUI();
   const [params] = useSearchParams();
-  const { data } = useUniverse();
+  const { data } = useUniverse(DEMO);   // the company list is only needed by the demo (no server to ask)
   const rows = data?.rows || [];
   const { alerts, limit, loading, error, patch, remove } = useAlerts(rows);
   const { items, unread, markRead, clear } = useNotices();

@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -70,7 +71,7 @@ function HistoryTable({ r }: { r: Ratios }) {
   const hist = r.history;
   const rows = Object.entries(hist.rows).filter(([k]) => r.glossary[k]?.label);
   return (
-    <div className="tw"><table className="htab">
+    <HScroll className="" label="table"><table className="htab">
       <thead><tr><th>Ratio</th>{hist.periods.map((p, i) => <th key={p} className={i === hist.periods.length - 1 ? "latest" : ""}>{p}</th>)}<th>Change</th><th>Trend</th></tr></thead>
       <tbody>{rows.map(([k, vals]) => {
         const nn = vals.filter((x): x is number => x != null), lo = Math.min(...nn), hi = Math.max(...nn), better = r.glossary[k].better || r.latest[k]?.better;
@@ -88,7 +89,7 @@ function HistoryTable({ r }: { r: Ratios }) {
             <td><Spark values={vals} color={sc} w={84} h={30} /></td></tr>
         );
       })}</tbody>
-    </table><p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Green cells are the best years for that ratio, red the weakest. Where "better" depends on the business, cells stay uncoloured.</p></div>
+    </table><p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Green cells are the best years for that ratio, red the weakest. Where "better" depends on the business, cells stay uncoloured.</p></HScroll>
   );
 }
 
@@ -115,12 +116,12 @@ function ValuationHistory({ r }: { r: Ratios }) {
 export function RatiosSection({ r }: { r?: Ratios }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
-  if (!r) return <section className="block"><SectionHead id="ratios" no="06 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
+  if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
   const hist = r.history, meters = METERS.filter((m) => r.latest[m.key]);
   const cur = meters.find((m) => m.key === sel) || meters[0];
   return (
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
-      <SectionHead id="ratios" no="06 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
+      <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
       <Plain>Ratios turn big numbers into fair comparisons. The meters below show where each one sits against common rules of thumb. Zones are a starting point: always compare with companies in the same industry.</Plain>
       <div className="mtr-grid">{meters.map((m) => <Meter key={m.key} m={m} r={r} on={cur?.key === m.key} onSel={() => setSel(m.key)} />)}</div>
       {cur && <p className="mtr-say" aria-live="polite"><b>{r.latest[cur.key].label}</b> {cur.say(r.latest[cur.key].value)}</p>}
@@ -180,7 +181,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
   const N = peers.length, CX = 190, CY = 190, RR = 128;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="peers" no="08 · Peers" icon="layers" tier="basic" title="Companies in the same space" sub="Select a company to open its report." color="--gold-deep" />
+      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title="Companies in the same space" sub="Select a company to open its report." color="--gold-deep" />
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
@@ -242,7 +243,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
-      <SectionHead id="insights" no="09 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>
         <div className="spc-grid">{spec.map(([ic, k, val, c], i) => {

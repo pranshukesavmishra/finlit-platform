@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
@@ -161,7 +162,7 @@ export function ScreenerPro() {
     for (const k of res.data?.columns || []) { const v = rows.map((r) => r.v[k]).filter((x): x is number => x != null).sort((a, b) => a - b); if (v.length > 6) out[k] = [v[Math.floor(v.length * 0.25)], v[Math.floor(v.length * 0.75)]]; }
     return out;
   }, [rows, res.data?.columns]);
-  const tone = (k: string, v: number | null) => { const m = byKey.get(k), h = heat[k]; if (v == null || !m || !h || m.better === "none" || m.unit === "flag" || h[0] === h[1]) return ""; const good = m.better === "higher" ? v >= h[1] : v <= h[0], bad = m.better === "higher" ? v <= h[0] : v >= h[1]; return good ? "hg" : bad ? "hb" : ""; };
+  const tone = (k: string, v: number | null) => { const m = byKey.get(k), h = heat[k]; if (v == null || !m || !h || m.better === "none" || m.unit === "flag" || h[0] === h[1]) return ""; const good = m.better === "higher" ? v >= h[1] : v <= h[0], bad = m.better === "higher" ? v <= h[0] : v >= h[1]; return good ? "tone-good" : bad ? "tone-bad" : ""; };
   const err = res.error as { status?: number; body?: { plan?: string; detail?: string } } | null;
   const total = res.data?.total ?? 0;
 
@@ -262,7 +263,7 @@ export function ScreenerPro() {
               : res.isError ? <div className="state"><h2>That filter is part of a higher plan</h2><p>{err?.body?.detail}</p><button className="btn primary" onClick={() => ask((err?.body?.plan as Plan) || "silver", err?.body?.detail || "")}>See the plan</button></div>
               : !res.data ? <div className="skeleton" style={{ height: 380 }} aria-busy="true" /> : (
                 <>
-                  <div className={"tw scr-tw" + (res.isFetching ? " is-busy" : "")}><table className="scr-t">
+                  <HScroll className={"scr-tw" + (res.isFetching ? " is-busy" : "")} label="results table"><table className="scr-t">
                     <thead><tr><th className="stick"><button onClick={() => sortBy("name")}>Company {sort.key === "name" ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>
                       {res.data.columns.map((k) => { const m = byKey.get(k); return <th key={k}><button onClick={() => sortBy(k)} title={m?.say} aria-label={`Sort by ${m?.label}`}>{m?.label} {sort.key === k ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>; })}</tr></thead>
                     <tbody>{rows.map((r) => (
@@ -271,7 +272,7 @@ export function ScreenerPro() {
                         {res.data!.columns.map((k) => { const m = byKey.get(k), v = r.v[k]; return <td key={k} className={tone(k, v)}>{m ? fmtMetric(m, v) : MINUS}</td>; })}
                       </tr>))}
                       {!rows.length && <tr><td colSpan={res.data.columns.length + 1} className="empty">No companies match all of these filters. Try loosening one, or <button className="alx-link" onClick={() => setF(norm({}))}>clear them all</button>.</td></tr>}
-                    </tbody></table></div>
+                    </tbody></table></HScroll>
                   {res.data.capped ? (
                     <div className="pl-cap"><Icon name="lock" /><span><b>Showing the first {res.data.limit} of {nf(total, 0)} matches.</b> Silver shows every match, lets you download them, and unlocks all {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : 160}+ filters.</span>
                       <button className="btn primary" onClick={() => ask("silver", "See every match and use every filter with Silver.")}>Unlock with Silver</button></div>

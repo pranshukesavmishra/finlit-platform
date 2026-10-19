@@ -16,7 +16,7 @@ import { Icon } from "../lib/icons";
 import { MINUS, cr, nf } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import terms from "../content/glossary.json";
-import { dayLabel, useFeed } from "../lib/feed";
+import { dayLabel, useFeed, who } from "../lib/feed";
 import { useIpos } from "../lib/ipo";
 import { useAlerts } from "../lib/alerts";
 
@@ -127,7 +127,7 @@ function Dates({ symbols }: { symbols: string[] }) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const next = (data || []).filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
   if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "Result dates appear here as companies announce them."} to="/results" cta="Open results calendar" />;
-  return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{x.symbol || x.company}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;
+  return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{who(x)}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;
 }
 function NewsW({ symbols }: { symbols: string[] }) {
   const { data } = useFeed("news", { symbols, limit: 6 });

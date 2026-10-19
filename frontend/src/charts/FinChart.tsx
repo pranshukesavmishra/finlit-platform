@@ -32,8 +32,9 @@ export function FinChart({ kind, pl, bs, cf, ql }: { kind: FinKind; pl: Table; b
 
     if (kind === "pl" || kind === "q") {
       const t = kind === "pl" ? pl : ql, labels = t.periods, n = labels.length;
-      const rev = get(t, "revenue").map(v0), np = get(t, "net_profit").map(v0);
-      const margins = rev.map((r, i) => (r ? (np[i] / r) * 100 : 0));
+      // one value per period even when a line is missing (a row the provider does not report would otherwise draw NaN)
+      const rev = labels.map((_, i) => v0(get(t, "revenue")[i])), np = labels.map((_, i) => v0(get(t, "net_profit")[i]));
+      const margins = rev.map((r, i) => (r && Number.isFinite(np[i] / r) ? (np[i] / r) * 100 : 0));
       const H = small ? 320 : 360; s.setAttribute("viewBox", `0 0 ${W} ${H}`); s.style.height = H + "px";
       const pl_ = 50, pr = 46, step = (W - pl_ - pr) / n, bw = Math.min(54, step * 0.52), topH = H * 0.44, botT = topH + 40, botH = H - botT - 28;
       const rmx = Math.max(...rev) * 1.1 || 1, nmx = Math.max(...np.map(Math.abs), 1) * 1.15, mmx = Math.max(...margins.map(Math.abs), 1) * 1.2;

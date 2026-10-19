@@ -19,3 +19,6 @@ export const docType = (i: FeedItem): string => {
   const s = `${i.category || ""} ${i.title}`.toLowerCase();
   return /annual report|integrated report/.test(s) ? "Annual report" : /presentation|investor|analyst/.test(s) ? "Investor presentation" : /transcript|concall|earnings call/.test(s) ? "Call transcript" : /prospectus|offer document|rhp|drhp/.test(s) ? "Offer document" : /result/.test(s) ? "Results filing" : "Other filing";
 };
+
+/** What to call a feed row: the ticker, except for BSE-only companies whose "ticker" is a number such as 539984; then the name. */
+export const who = (x: { symbol?: string | null; company?: string | null }) => (x.symbol && !/^\d+$/.test(x.symbol) ? x.symbol : x.company || x.symbol || "");

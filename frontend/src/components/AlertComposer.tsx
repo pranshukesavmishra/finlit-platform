@@ -1,3 +1,4 @@
+import { DEMO } from "../lib/demo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -48,7 +49,7 @@ const num = (s: string) => (s.trim() === "" || isNaN(Number(s)) ? null : Number(
 export function AlertComposer({ preset, onDone, compact }: { preset?: Preset; onDone?: (a: Created) => void; compact?: boolean }) {
   const { user } = useAuth();
   const { plan, toast, upgrade } = useUI();
-  const { data: uni } = useUniverse();
+  const { data: uni } = useUniverse(DEMO);   // the company list is only needed by the demo (no server to ask)
   const rows = uni?.rows;
   const { create, alerts, limit } = useAlerts(rows);
   const [symbol, setSymbol] = useState(preset?.symbol || "");

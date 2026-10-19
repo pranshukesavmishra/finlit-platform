@@ -41,7 +41,9 @@ const Soon = ({ children }: { children: ReactNode }) => <p className="muted cl-e
 function PriceTab({ symbol }: { symbol: string }) {
   const [range, setRange] = useState("6M");
   const px = usePrice(symbol, range).data?.series;
-  const stats = useSection<Stats>(symbol, "stats").data;
+  const statsQ = useSection<Stats>(symbol, "stats"), stats = statsQ.data;
+  // Price statistics are a Silver feature: when the server withholds them, say so instead of showing loading boxes for ever.
+  const withheld = statsQ.isError ? <Soon>{statsQ.error?.status === 403 ? "Return patterns, drawdowns and volatility come with the Silver plan." : "These charts are not available for this company yet."}</Soon> : null;
   const ok = stats?.available;
   const rows = useMemo(() => (stats?.monthly?.years || []).map((y) => ({ label: String(y), values: stats!.monthly!.rows[String(y)] })), [stats]);
   return (
@@ -54,16 +56,16 @@ function PriceTab({ symbol }: { symbol: string }) {
         {stats && !ok && !stats.locked ? <Soon>Not enough price history yet for these charts.</Soon> : (
           <div className="cl-grid">
             <Card title="Monthly returns" sub="Green months rose, red months fell" icon="growth" full note={stats?.cagrPct != null ? `Since ${stats?.from?.slice(0, 4)} the price has ${stats.cagrPct >= 0 ? "grown" : "fallen"} about ${pc(Math.abs(stats.cagrPct))} a year.` : undefined}>
-              {rows.length ? <HeatGrid cols={MONTHS} rows={rows} cap={12} fmt={(v) => sg(v, 1).replace("%", "")} label="Monthly returns by year" /> : <div className="skeleton" style={{ height: 180 }} />}
+              {rows.length ? <HeatGrid cols={MONTHS} rows={rows} cap={12} fmt={(v) => sg(v, 1).replace("%", "")} label="Monthly returns by year" /> : (withheld || <div className="skeleton" style={{ height: 180 }} />)}
             </Card>
             <Card title="Distance from the running high" sub="0% means a new high" icon="growth" note={stats?.drawdown ? `Deepest fall from a high: ${pc(stats.drawdown.max.pct ?? 0)} (${stats.drawdown.max.date}). Today the price is ${pc(Math.abs(stats.drawdown.current ?? 0))} below its high.` : undefined}>
-              {stats?.drawdown ? <AreaSeries t={stats.drawdown.t} v={stats.drawdown.dd} fmt={(x) => pc(x, 0)} color="var(--loss)" ceil={0} /> : <div className="skeleton" style={{ height: 200 }} />}
+              {stats?.drawdown ? <AreaSeries t={stats.drawdown.t} v={stats.drawdown.dd} fmt={(x) => pc(x, 0)} color="var(--loss)" ceil={0} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
             <Card title="How bumpy the ride is" sub={`${stats?.volatility?.window ?? 60}-session volatility, a year`} icon="gauge" note={stats?.volatility?.current != null ? `Now ${pc(stats.volatility.current, 0)} a year; the usual level is about ${pc(stats.volatility.median ?? 0, 0)}. Higher means bigger swings.` : undefined}>
-              {stats?.volatility ? <AreaSeries t={stats.volatility.t} v={stats.volatility.vol} fmt={(x) => pc(x, 0)} color="var(--c1)" floor={0} ref={stats.volatility.median != null ? { y: stats.volatility.median, label: "usual" } : undefined} /> : <div className="skeleton" style={{ height: 200 }} />}
+              {stats?.volatility ? <AreaSeries t={stats.volatility.t} v={stats.volatility.vol} fmt={(x) => pc(x, 0)} color="var(--c1)" floor={0} ref={stats.volatility.median != null ? { y: stats.volatility.median, label: "usual" } : undefined} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
             <Card title="How big a typical day's move is" sub="Share of sessions by daily change" icon="bars" note={stats?.histogram ? `${nf(stats.histogram.upShare, 1)}% of sessions closed higher. Best day ${sg(stats.histogram.best, 1)}, worst ${sg(stats.histogram.worst, 1)}.` : undefined}>
-              {stats?.histogram ? <Histo counts={stats.histogram.counts} from={stats.histogram.from} binWidth={stats.histogram.binWidth} /> : <div className="skeleton" style={{ height: 200 }} />}
+              {stats?.histogram ? <Histo counts={stats.histogram.counts} from={stats.histogram.from} binWidth={stats.histogram.binWidth} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
             <Card title="Daily moves by year" sub="Calm years have short boxes" icon="layers">
               {stats?.box ? <Box years={stats.box.years} /> : <div className="skeleton" style={{ height: 240 }} />}

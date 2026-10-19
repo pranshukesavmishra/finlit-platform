@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { PageArt } from "../components/PageArt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -59,8 +60,8 @@ export function Portfolio() {
           <div className="kpis-p">{Object.entries(data.charges.breakdown).map(([k, v]) => <div className="kp" key={k}><div className="k">{k.replace(/([A-Z])/g, " $1").trim()}</div><div className="v" style={{ fontSize: 22 }}>₹{nf(v)}</div></div>)}</div></div></Reveal>
         <Reveal><div className="card" style={{ marginTop: 16 }}>
           <div className="card-h"><h3>Every trade</h3><input className="sbox" placeholder="Search a stock" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} aria-label="Search trades" /></div>
-          <div className="tw"><table className="tbl"><thead><tr><th>Security</th><th>Qty</th><th>Bought</th><th>Sold</th><th>Days</th><th>Realised P&L</th></tr></thead>
-            <tbody>{rows.slice(page * per, page * per + per).map((t, i) => <tr key={i}><td>{t.security}</td><td>{t.quantity}</td><td>{dateIN(t.buyDate, { day: "numeric", month: "short" })}</td><td>{dateIN(t.sellDate, { day: "numeric", month: "short" })}</td><td>{t.holdingDays}</td><td className={t.realizedPnl >= 0 ? "pos" : "neg"}>{signed(t.realizedPnl, 2, "").replace("▲ ", "").replace("▼ ", "")}</td></tr>)}</tbody></table></div>
+          <HScroll className="" label="table"><table className="tbl"><thead><tr><th>Security</th><th>Qty</th><th>Bought</th><th>Sold</th><th>Days</th><th>Realised P&L</th></tr></thead>
+            <tbody>{rows.slice(page * per, page * per + per).map((t, i) => <tr key={i}><td>{t.security}</td><td>{t.quantity}</td><td>{dateIN(t.buyDate, { day: "numeric", month: "short" })}</td><td>{dateIN(t.sellDate, { day: "numeric", month: "short" })}</td><td>{t.holdingDays}</td><td className={t.realizedPnl >= 0 ? "pos" : "neg"}>{signed(t.realizedPnl, 2, "").replace("▲ ", "").replace("▼ ", "")}</td></tr>)}</tbody></table></HScroll>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}><span className="faint">{rows.length} trades · page {page + 1} of {Math.max(1, pages)}</span><div className="seg"><button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Prev</button><button disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)}>Next</button></div></div>
         </div></Reveal>
         <p className="faint" style={{ fontSize: 12.5, marginTop: 18 }}>Source: broker realised P&L statement ({data.sourceFileName}), generated {dateIN(data.generatedAt)}. Past performance does not indicate future results. <Link to="/legal/disclosures">Research disclosures</Link>.</p>

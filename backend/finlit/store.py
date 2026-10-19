@@ -325,6 +325,11 @@ class Store:
                 await conn.execute("DELETE FROM scores WHERE symbol = ANY($1::text[])", drop)
                 await conn.execute("DELETE FROM price_daily WHERE symbol = ANY($1::text[])", drop)
             out["companies"] = len(drop)
+            # scores left behind by reports that are gone (e.g. after a reset): outside the kept set they only make lists heavier
+            out["orphan_scores"] = int((await conn.execute(
+                f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
+                "DELETE FROM scores sc WHERE NOT EXISTS (SELECT 1 FROM snapshots s WHERE s.symbol = sc.symbol AND s.section = 'summary') "
+                "AND NOT EXISTS (SELECT 1 FROM ranked r WHERE r.symbol = sc.symbol AND r.rn <= $1)", keep_top)).split()[-1])
             out["price_days"] = int((await conn.execute("DELETE FROM price_daily WHERE day < current_date - $1::int", price_days)).split()[-1])
             out["feed"] = int((await conn.execute("DELETE FROM feed_items WHERE item_date < current_date - $1::int", feed_days)).split()[-1])
             out["runs"] = int((await conn.execute("DELETE FROM ingest_runs WHERE started_at < now() - interval '30 days'")).split()[-1])

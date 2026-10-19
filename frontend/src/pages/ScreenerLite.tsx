@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
@@ -60,7 +61,7 @@ export function ScreenerLite() {
   const tone = (k: NumKey, v: number | null) => {
     const m = METRICS[k], h = heat[k]; if (v == null || !h || m.better === "none" || k === "price") return "";
     const good = m.better === "higher" ? v >= h[1] : v <= h[0], bad = m.better === "higher" ? v <= h[0] : v >= h[1];
-    return good ? "hg" : bad ? "hb" : "";
+    return good ? "tone-good" : bad ? "tone-bad" : "";
   };
 
   const setRange = (k: NumKey, side: "min" | "max", raw: string) => setF((s) => {
@@ -152,7 +153,7 @@ export function ScreenerLite() {
             </div>
             {chips.length > 0 && <div className="scr-chips">{chips.map((c) => <button key={c.label} className="fchip" onClick={c.clear}>{c.label}<span aria-hidden="true">×</span><span className="sr">remove</span></button>)}</div>}
             {isError ? <div className="state"><h2>The screener is unavailable right now</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
-              <div className="tw scr-tw"><table className="scr-t">
+              <HScroll className="scr-tw" label="results table"><table className="scr-t">
                 <thead>
                   <tr className="gh"><th />{COLS.map((g) => { const n = g.keys.filter((k) => cols.includes(k)).length; return n ? <th key={g.id} colSpan={n} className="grp">{g.label}</th> : null; })}</tr>
                   <tr><th className="stick"><button onClick={() => sortBy("name")}>Company {sort.key === "name" ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button></th>
@@ -167,7 +168,7 @@ export function ScreenerLite() {
                 </tbody>
               </table>
                 {result.length > shown && <div className="more"><button className="btn" onClick={() => setShown((s) => s + 40)}>Show more ({result.length - shown} left)</button></div>}
-              </div>
+              </HScroll>
             )}
             <Plain>Green cells are in the best quarter of the results for that column, red cells the weakest quarter. “Best” means lower for P/E, P/B and debt, higher for returns and profitability.</Plain>
             <p className="faint scr-foot">A screen narrows a long list; it does not say what to buy. Open a company's report to see why a number looks the way it does. {TIER.gold.n} adds model-based filters.</p>

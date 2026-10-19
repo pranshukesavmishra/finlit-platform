@@ -81,6 +81,7 @@ export function Home() {
   useDocTitle("Invest with clarity, not noise", "FinLit Ventures: research-led investing, portfolio reviews and financial planning, with a research report for every listed Indian stock.");
   const enquire = useEnquiry();
   const { user } = useAuth();
+  useEffect(() => { if (location.hash === "#faq") setTimeout(() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }), 200); }, []);   // /faq lands here
   return (
     <>
       <section className="hero-home">

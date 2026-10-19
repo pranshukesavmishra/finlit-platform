@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -53,8 +54,8 @@ function Table({ cols, rows, q, file }: { cols: Col[]; rows: Row[]; q: string; f
   return (
     <>
       {file && <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv(file, cols.map((c) => c.label), shown.map((r) => cols.map((c) => r[c.key] as string | number | null)))}><Icon name="table" /> Export CSV</button></div>}
-      <div className="tw"><table className="pm-t"><thead><tr>{cols.map((c) => <th key={c.key} className={c.num ? "n" : ""}>{c.label}</th>)}</tr></thead>
-        <tbody>{shown.slice(page * PAGE, page * PAGE + PAGE).map((r, i) => <tr key={i}>{cols.map((c) => <td key={c.key} className={(c.num ? "n " : "") + (c.wide ? "wrapc" : "")}>{c.fmt ? c.fmt(r[c.key], r) : txt(r[c.key])}</td>)}</tr>)}</tbody></table></div>
+      <HScroll className="" label="table"><table className="pm-t"><thead><tr>{cols.map((c) => <th key={c.key} className={c.num ? "n" : ""}>{c.label}</th>)}</tr></thead>
+        <tbody>{shown.slice(page * PAGE, page * PAGE + PAGE).map((r, i) => <tr key={i}>{cols.map((c) => <td key={c.key} className={(c.num ? "n " : "") + (c.wide ? "wrapc" : "")}>{c.fmt ? c.fmt(r[c.key], r) : txt(r[c.key])}</td>)}</tr>)}</tbody></table></HScroll>
       <div className="pm-pager"><span>{shown.length} rows</span><button className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page + 1} of {pages}</span><button className="btn" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</button></div>
     </>
   );
@@ -168,11 +169,11 @@ function IndexPrices({ open }: { open: (code: string) => void }) {
       </div>
       {!rows.length ? <div className="pm-empty">No index matches. Clear the search or pick another group.</div> : <>
         <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv("finlit-indices", ["Index", "Code", "Exchange", "Group", "Close", "Change %", "Points", "High", "Low", "P/E", "P/B", "Div. yield %", "Date"], rows.map((r) => [r.name, r.code, r.exchange, r.group, r.close, r.changePct, r.points, r.high, r.low, r.pe, r.pb, r.divYield, r.date]))}><Icon name="table" /> Export CSV</button></div>
-        <div className="tw"><table className="pm-t"><thead><tr>{th("name", "Index", false)}{th("close", "Close")}{th("changePct", "Change")}<th className="n">Points</th><th className="n">Day range</th>{th("pe", "P/E")}{th("pb", "P/B")}{th("divYield", "Div. yield %")}<th><span className="sr">Valuation history</span></th></tr></thead>
+        <HScroll className="" label="table"><table className="pm-t"><thead><tr>{th("name", "Index", false)}{th("close", "Close")}{th("changePct", "Change")}<th className="n">Points</th><th className="n">Day range</th>{th("pe", "P/E")}{th("pb", "P/B")}{th("divYield", "Div. yield %")}<th><span className="sr">Valuation history</span></th></tr></thead>
           <tbody>{rows.slice(page * PAGE, page * PAGE + PAGE).map((r) => (
             <tr key={r.code}><td><b>{r.name}</b><small className="faint" style={{ display: "block" }}>{r.exchange} · {r.group}</small></td><td className="n">{v2(r.close)}</td><td className="n">{chg(r.changePct)}</td><td className="n">{v2(r.points)}</td>
               <td className="n">{r.low != null && r.high != null ? `${nf(r.low)} – ${nf(r.high)}` : MINUS}</td><td className="n">{v2(r.pe, 1)}</td><td className="n">{v2(r.pb)}</td><td className="n">{v2(r.divYield)}</td>
-              <td>{r.pe != null || r.pb != null ? <button className="alx-link" onClick={() => open(r.code)}>History</button> : null}</td></tr>))}</tbody></table></div>
+              <td>{r.pe != null || r.pb != null ? <button className="alx-link" onClick={() => open(r.code)}>History</button> : null}</td></tr>))}</tbody></table></HScroll>
         <div className="pm-pager"><span>{rows.length} indices</span><button className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page + 1} of {pages}</span><button className="btn" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</button></div>
       </>}
     </section>

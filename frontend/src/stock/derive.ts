@@ -7,10 +7,12 @@ export const PILLAR_ICON: Record<string, string> = { quality: "quality", growth:
 export const metric = (s: Summary, key: string) => s.keyMetrics.find((m) => m.key === key);
 export const ratio = (r: Ratios | undefined, key: string) => r?.latest[key];
 
-export function yoy(series: (number | null)[]): number | null {
-  const v = series.filter((x): x is number => x != null);
-  if (v.length < 2 || v[v.length - 2] <= 0 || v[v.length - 1] <= 0) return null;
-  return (v[v.length - 1] / v[v.length - 2] - 1) * 100;
+/** Growth of the latest value over the one `lag` periods earlier (1 = the previous year for yearly data, 4 = the same quarter a year ago).
+ *  Positions count, not values: a missing period is not skipped over. Not meaningful (null) when the earlier figure is zero or negative. */
+export function yoy(series: (number | null)[], lag = 1): number | null {
+  const a = series[series.length - 1], b = series[series.length - 1 - lag];
+  if (a == null || b == null || b <= 0) return null;
+  return (a / b - 1) * 100;
 }
 
 export function finTiles(f: Financials) {

@@ -1,4 +1,4 @@
-// The website changes: 7 features, tagline, coming soon + email, comparison with ✓/✕, FAQ, removed sections, score strip on reports.
+// The website changes: 7 features, tagline, coming soon + email, comparison with ✓/✕, FAQ, removed sections, score in the research report (no extra strip).
 //   PM_PASSWORD=... node e2e/site_changes.mjs http://localhost:4173
 import { chromium } from "playwright";
 const B = process.argv[2] || "http://localhost:4173", OUT = process.env.SHOTS || "/tmp/claude-0/shots";
@@ -39,9 +39,7 @@ async function page(who, w = 1366) {
   await p.goto(B + "/plans", { waitUntil: "networkidle" }); check("plans page: ticks and crosses", (await p.locator(".cmp .yes.ck").count()) > 10 && (await p.locator(".cmp .x-no").count()) > 10); await ctx.close(); }
 { const { ctx, p } = await page("silver");
   await p.goto(B + "/stocks/RELIANCE", { waitUntil: "networkidle" }); await p.waitForTimeout(900);
-  const bars = await p.locator(".sstrip .ss-bars > div").count(); check("report: score strip at the top with five pillar bars", (await p.locator(".sstrip").count()) === 1 && bars === 5, String(bars));
-  const first = await p.locator(".sstrip").evaluate((e) => e.getBoundingClientRect().top); check("report: strip sits right under the price row", first < 520, String(first));
-  check("report: fundamental and technical shown separately", (await p.locator(".ss-split small").allInnerTexts()).join().toLowerCase() === "fundamental,technical");
+  check("report: no separate score strip (the research report below carries the score)", (await p.locator(".sstrip").count()) === 0);
   await p.screenshot({ path: `${OUT}/report-score.png` }); await ctx.close(); }
 { const { ctx, p } = await page("basic");
   await p.goto(B + "/stocks/RELIANCE", { waitUntil: "networkidle" });

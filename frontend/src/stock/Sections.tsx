@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { Gate, TierChip } from "../components/Gate";
@@ -28,7 +29,7 @@ export function Notes({ s }: { s: Summary }) {
   );
   return (
     <section className="block" style={{ "--sc": "var(--p-quality)" } as React.CSSProperties}>
-      <SectionHead id="notes" no="01 · Scorecard notes" icon="notes" tier="silver" title="What the numbers say" sub="Plain-language findings from the statements, ratios and price history." color="--p-quality" />
+      <SectionHead id="notes" no="02 · Scorecard notes" icon="notes" tier="silver" title="What the numbers say" sub="Plain-language findings from the statements, ratios and price history." color="--p-quality" />
       <Gate tier="silver" title="See the full scorecard notes" points={["Strengths and watch-outs in plain English", "What drives each pillar score", "Updated with every result"]}>
         <div className="grid g2">
           <div className="card acc note hover-lift" style={{ "--ac": "var(--p-quality)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="check" /></span>Strengths</h3><span className="chip up">{s.strengths.length}</span></div>{list(s.strengths)}</div>
@@ -51,7 +52,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
   const gold = has("gold"), e = (k: string, on: boolean) => gold ? on : k === "e50" ? true : k === "vol";
   return (
     <section className="block" style={{ "--sc": "var(--p-tech)" } as React.CSSProperties}>
-      <SectionHead id="price" no="02 · Price & technicals" icon="line" tier="basic" title="How the stock has traded" sub="Daily closes up to one year, weekly closes beyond. Hover the chart for detail." color="--p-tech" />
+      <SectionHead id="price" no="03 · Price & technicals" icon="line" tier="basic" title="How the stock has traded" sub="Daily closes up to one year, weekly closes beyond. Hover the chart for detail." color="--p-tech" />
       {chg != null && <Plain tone={chg >= 0 ? "good" : "warn"}>Over this period the price {chg >= 0 ? "rose" : "fell"} {nf(Math.abs(chg), 1)}%.{t?.vsEma200Pct != null && <> It trades {nf(Math.abs(t.vsEma200Pct), 1)}% {t.vsEma200Pct < 0 ? "below" : "above"} its 200-day average, which {t.vsEma200Pct < 0 ? "suggests the longer trend is weak" : "suggests the longer trend is healthy"}.</>}</Plain>}
       <div className="grid g3">
         <div className="card acc span2" style={{ "--ac": "var(--p-tech)" } as React.CSSProperties}>
@@ -104,7 +105,7 @@ function ReturnBars({ rows }: { rows: Summary["returns"] }) {
 /* ---------------- Financials ---------------- */
 export function FinancialsSection({ f }: { f?: Financials }) {
   const [kind, setKind] = useState<FinKind>("pl");
-  if (!f) return <section className="block"><SectionHead id="financials" no="04 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
+  if (!f) return <section className="block"><SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
   const tiles = finTiles(f), tbl: Table = kind === "q" ? f.quarterly.pl : f.yearly[kind];
   const ROWS: Record<string, [string, string, boolean?][]> = {
     pl: [["revenue", "Revenue"], ["other_income", "Other income"], ["expenses", "Expenses"], ["operating_profit", "Operating profit", true], ["finance_costs", "Interest"], ["depreciation", "Depreciation"], ["profit_before_tax", "Profit before tax", true], ["tax", "Tax"], ["net_profit", "Net profit", true], ["eps", "EPS (₹)"]],
@@ -115,7 +116,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
   const last = tbl.periods.length - 1;
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="financials" no="04 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
+      <SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
       {(() => { const [rv, np, , mg] = tiles; return rv.delta != null && np.delta != null ? <Plain tone={np.delta >= 0 ? "good" : "warn"}>Sales {rv.delta >= 0 ? "grew" : "fell"} {nf(Math.abs(rv.delta), 1)}% last year and profit {np.delta >= 0 ? "rose" : "fell"} {nf(Math.abs(np.delta), 1)}%.{typeof mg.value === "number" && <> Out of every ₹100 of sales, about ₹{nf(mg.value, 1)} is kept as profit.</>}</Plain> : null; })()}
       <div className="grid g4" style={{ marginBottom: 16 }}>
         {tiles.map((t) => (
@@ -135,11 +136,11 @@ export function FinancialsSection({ f }: { f?: Financials }) {
         <div className="legend">{kind === "pl" || kind === "q" ? <><span><i style={{ background: "var(--c2)" }} />Revenue</span><span><i style={{ background: "var(--c3)" }} />Net profit</span><span><i className="ln" style={{ background: "var(--c4)" }} />Net margin</span><span><i style={{ background: "var(--c1)" }} />Latest period</span></>
           : kind === "bs" ? <><span><i style={{ background: "var(--c1)" }} />Equity + reserves</span><span><i style={{ background: "var(--c2)" }} />Borrowings</span><span><i style={{ background: "var(--c4)" }} />Other liabilities</span></>
             : <><span><i style={{ background: "var(--c3)" }} />Operating</span><span><i style={{ background: "var(--c2)" }} />Investing</span><span><i style={{ background: "var(--c4)" }} />Financing</span><span><i className="ln" style={{ background: "var(--c1)" }} />Free cash flow</span></>}</div>
-        <div style={{ marginTop: 24 }}><div className="tw"><table>
-          <thead><tr><th>₹ Cr</th>{tbl.periods.map((p, i) => <th key={p} className={i === last ? "latest" : ""}>{p}</th>)}{kind !== "cf" && <th>YoY</th>}<th>Trend</th></tr></thead>
-          <tbody>{rows.map(([k, label, tot]) => { const v = tbl.rows[k], y = yoy(v); return (
-            <tr key={k} className={tot ? "tot" : ""}><td>{label}</td>{v.map((x, i) => <td key={i} className={i === last ? "latest" : ""}>{x == null ? "—" : k === "eps" ? nf(x) : cr(x)}</td>)}{kind !== "cf" && <td className={y == null ? "" : y >= 0 ? "pos" : "neg"}>{y == null ? "—" : signed(y, 1)}</td>}<td><Spark values={v} color="var(--muted)" w={76} h={24} /></td></tr>); })}</tbody>
-        </table></div></div>
+        <div style={{ marginTop: 24 }}><HScroll className="" label="table"><table>
+          <thead><tr><th>₹ Cr</th>{tbl.periods.map((p, i) => <th key={p} className={i === last ? "latest" : ""}>{p}</th>)}{kind === "q" ? <><th>vs last qtr</th><th>vs year ago</th></> : kind !== "cf" && <th>vs last year</th>}<th>Trend</th></tr></thead>
+          <tbody>{rows.map(([k, label, tot]) => { const v = tbl.rows[k], y = yoy(v), y4 = kind === "q" ? yoy(v, 4) : null; const cell = (g: number | null) => <td className={g == null ? "" : g >= 0 ? "pos" : "neg"}>{g == null ? "—" : signed(g, 1)}</td>; return (
+            <tr key={k} className={tot ? "tot" : ""}><td>{label}</td>{v.map((x, i) => <td key={i} className={i === last ? "latest" : ""}>{x == null ? "—" : k === "eps" ? nf(x) : cr(x)}</td>)}{kind === "q" ? <>{cell(y)}{cell(y4)}</> : kind !== "cf" && cell(y)}<td><Spark values={v} color="var(--muted)" w={76} h={24} /></td></tr>); })}</tbody>
+        </table></HScroll></div>
       </div>
     </section>
   );

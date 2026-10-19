@@ -1,3 +1,4 @@
+import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { StackArea } from "../charts/Atlas";
@@ -8,6 +9,7 @@ import { Icon } from "../lib/icons";
 import { dateIN, nf, signed, MINUS } from "../lib/format";
 import { downloadCsv, pushRecent, qs, readRecent, useGold, usePremium, useSlashFocus } from "../lib/premium";
 import { useUniverse } from "../lib/screener";
+import { useSection, type Ratios as StockRatios } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 
@@ -58,7 +60,7 @@ function Statement({ rows, limit, unit, file, growth = true, chart = true }: { r
           <MiniBars labels={asc} series={[{ key: "v", label: name(row), values: vals, color: "var(--gold)" }]} fmt={short} height={190} w={720} highlight={asc.length - 1} />
         </div>)}
       <div className="pm-tools"><button className="alx-link" onClick={csv}><Icon name="table" /> Export CSV</button></div>
-      <div className="tw"><table className="pm-t pm-pick"><thead><tr><th>Item</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
+      <HScroll className="" label="table"><table className="pm-t pm-pick"><thead><tr><th>Item</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
         <tbody>{rows.map((r, i) => {
           const s = series(r, periods), a = s[0], b = s[1];
           const ch = typeof a === "number" && typeof b === "number" && b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null;
@@ -68,7 +70,7 @@ function Statement({ rows, limit, unit, file, growth = true, chart = true }: { r
               <td>{name(r)}</td>{s.map((v, j) => <td key={j} className="n">{val(v)}</td>)}
               {growth && periods.length > 1 && <td className="n" style={{ color: ch == null ? undefined : ch >= 0 ? "var(--gain)" : "var(--loss)", whiteSpace: "nowrap" }}>{ch == null || !Number.isFinite(ch) ? MINUS : signed(ch, 1)}</td>}
             </tr>);
-        })}</tbody></table></div>
+        })}</tbody></table></HScroll>
     </>
   );
 }
@@ -125,22 +127,38 @@ function Snapshot({ d, limit }: { d: Fund; limit: number }) {
   );
 }
 
+/** The eleven yearly margin and return ratios, from FinLit's own stored ratio history (the same provider data the stock page uses;
+ *  complete for every loaded company), newest year first as the statement tables expect. */
+const PROFITABILITY: [string, string][] = [["gross_margin", "Gross margin %"], ["operating_margin", "Operating margin %"], ["ebitda_margin", "EBITDA margin %"], ["ebit_margin", "EBIT margin %"],
+  ["pretax_margin", "Pre-tax margin %"], ["net_margin", "Net margin %"], ["effective_tax_rate", "Effective tax rate %"], ["roe", "Return on equity %"], ["roce", "Return on capital %"],
+  ["roa", "Return on assets %"], ["rota", "Return on tangible assets %"]];
+const fyLabel = (p: string) => (/^FY\d{2}$/.test(p) ? `Mar 20${p.slice(2)}` : p);
+function profitabilityRows(r?: StockRatios): HRow[] {
+  const h = r?.history;
+  if (!h?.periods?.length) return [];
+  return PROFITABILITY.filter(([k]) => h.rows[k]?.some((v) => v != null))
+    .map(([k, label]) => ({ label, history: h.periods.map((p, i) => ({ period: fyLabel(p), value: h.rows[k][i] ?? null })).reverse() }));
+}
+
 function Ratios({ d, limit }: { d: Fund; limit: number }) {
   const rows = d.ratios || [];
+  const sym = (d.instrument?.symbol || "").toUpperCase();
+  const mine = useSection<StockRatios>(sym, "ratios", !!sym);
+  const own = useMemo(() => profitabilityRows(mine.data), [mine.data]);
   return (
     <>
       {rows.length ? (
         <>
           <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv(`${d.instrument?.symbol}-ratios`, ["Ratio", "Company", "Sector"], rows.map((r) => [r.name, r.company_value, r.sector_value]))}><Icon name="table" /> Export CSV</button></div>
-          <div className="tw"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th><th>Company against sector</th></tr></thead>
+          <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th><th>Company against sector</th></tr></thead>
             <tbody>{rows.map((r) => {
               const c = r.company_value, s = r.sector_value, max = Math.max(Math.abs(c ?? 0), Math.abs(s ?? 0), 1e-9);
               return <tr key={r.name}><td>{r.name}</td><td className="n">{val(c)}</td><td className="n">{val(s)}</td>
                 <td style={{ minWidth: 180 }}>{c != null && s != null ? <div className="pm-vs" aria-label={`Company ${val(c)}, sector ${val(s)}`}><span style={{ width: `${(Math.abs(c) / max) * 100}%` }} className="co" /><span style={{ width: `${(Math.abs(s) / max) * 100}%` }} className="se" /></div> : <span className="faint">{MINUS}</span>}</td></tr>;
-            })}</tbody></table></div>
+            })}</tbody></table></HScroll>
           <p className="pm-legend"><i style={{ background: "var(--gold)" }} />Company <i style={{ background: "var(--faint)" }} />Sector</p>
         </>) : <div className="pm-empty">No ratios were reported.</div>}
-      <div className="pm-sec"><h2>Profitability over time</h2><Statement rows={d.profitabilityRatios || []} limit={limit} file={`${d.instrument?.symbol}-profitability`} /></div>
+      <div className="pm-sec"><h2>Profitability over time</h2><Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} /></div>
     </>
   );
 }
@@ -234,7 +252,7 @@ export function FundamentalsPage() {
               <h2 className="pm-h2">Peers</h2>
               {(data.competitors || []).length ? <div className="pm-peers">{data.competitors!.map((c, i) => <button key={i} className="pm-peer" onClick={() => c.symbol && choose(c.symbol)} disabled={!c.symbol}><span className="av mini" aria-hidden="true">{(c.name || c.symbol || "?").slice(0, 2).toUpperCase()}</span><span><b>{c.symbol || MINUS}</b><small>{c.name}</small><small className="faint">{c.sector}</small></span><Icon name="arrow" /></button>)}</div> : <div className="pm-empty">No peers were reported.</div>}
               <div className="pm-sec"><h2>Dividends and corporate actions</h2>
-                {(data.corporateActions || []).length ? <div className="tw"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></div> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
+                {(data.corporateActions || []).length ? <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></HScroll> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
             <p className="pm-meta" style={{ marginTop: 22 }}>Figures come from company filings through FinEdge. Missing values show a dash. General information, not investment advice.</p>
           </>)}
       </div>

@@ -316,3 +316,19 @@ async def test_failed_core_parts_are_retried_and_a_half_loaded_report_is_never_s
     assert out["status"] == "failed" and calls["n"] >= 4   # asked again once before giving up
     assert await store.get_section("RELIANCE", "consolidated", "summary") is None
     assert await store.get_section("RELIANCE", "standalone", "summary") is None
+
+
+async def test_half_loaded_report_is_never_shown_and_is_rebuilt(api, ingested):
+    """A report saved while the provider was overloaded (no price) must not reach a visitor: the page is told to wait, the report is queued, and it
+    opens normally once rebuilt. A second ask inside the repair window does not queue it again."""
+    import orjson
+    cached = await ingested.get_section("RELIANCE", "consolidated", "summary")
+    summary = orjson.loads(cached[0]); summary["quote"] = {"price": None, "asOf": None}
+    await ingested.save_snapshot("RELIANCE", "consolidated", {"summary": summary})
+    r = await api.get("/api/stocks/RELIANCE")
+    assert r.status_code == 202 and r.json()["status"] == "queued"
+    assert await ingested.queue_length() == 1
+    async with FinEdgeClient(make_settings()) as client:
+        await worker.drain_queue(client, ingested)
+    ok = await api.get("/api/stocks/RELIANCE")
+    assert ok.status_code == 200 and ok.json()["quote"]["price"] and ok.json()["meta"]["version"] >= 2

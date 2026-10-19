@@ -49,8 +49,8 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
 
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
-  if (!o) return <section className="block"><SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
-  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
+  if (!o) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
+  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
   const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
   const items = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
@@ -59,7 +59,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
   const then = o.periods[0], now = o.periods[n - 1];
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
+      <SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
         <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
@@ -102,7 +102,7 @@ export function BusinessSection({ s }: { s: Summary }) {
   ];
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="business" no="10 · Company overview" icon="building" tier="basic" title={`What ${p.name.split(" ")[0]} does`} color="--p-growth" />
+      <SectionHead id="business" no="01 · Company overview" icon="building" tier="basic" title={`What ${p.name.split(" ")[0]} does`} color="--p-growth" />
       <div className="biz2">
         <div className="card acc biz-main" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
           <svg className="skyline" viewBox="0 0 400 120" aria-hidden="true" preserveAspectRatio="xMaxYMax meet">
