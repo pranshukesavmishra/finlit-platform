@@ -55,7 +55,7 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
           {isError && <li aria-disabled="true"><span className="muted">Stock search is unavailable right now.</span></li>}
           {!isLoading && !isError && hits.length === 0 && <li aria-disabled="true"><span className="muted">No match. Try a ticker such as RELIANCE or TCS.</span></li>}
           {hits.map((r, i) => (
-            <li key={r[0]} role="option" aria-selected={i === sel} className={i === sel ? "sel" : ""} onMouseEnter={() => { setSel(i); if (r[3]) prefetchStock(qc, r[0]); }} onClick={() => go(r[0])}>
+            <li key={r[0]} role="option" aria-selected={i === sel} className={i === sel ? "sel" : ""} onMouseEnter={() => { setSel(i); if (r[3]) prefetchStock(qc, r[0], 150); }} onClick={() => go(r[0])}>
               <span className="av" style={{ background: colorOf(r[0]) }}>{initials(r[0])}</span>
               <span className="nm">{r[1]}</span><span className="tk">{r[0]}</span>
             </li>

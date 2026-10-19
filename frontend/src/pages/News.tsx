@@ -12,7 +12,7 @@ export function NewsPage() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
-  const { data, isLoading, isError } = useFeed("news", { symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 150 });
+  const { data, isLoading, isError } = useFeed("news", { scoped: onlyMine, symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 150 });
   const cats = useMemo(() => ["All", ...[...new Set((data || []).map((i) => i.category).filter((c): c is string => !!c))].sort()], [data]);
   const shown = (data || []).filter((i) => cat === "All" || i.category === cat);
   const groups = useMemo(() => { const m = new Map<string, FeedItem[]>(); shown.forEach((i) => m.set(i.date, [...(m.get(i.date) || []), i])); return [...m.entries()]; }, [shown]);

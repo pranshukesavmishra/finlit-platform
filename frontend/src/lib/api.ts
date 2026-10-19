@@ -144,8 +144,12 @@ export const useSearchIndex = (enabled: boolean) =>
     queryKey: ["search-index"], queryFn: () => apiGet("/api/stocks/search-index"), enabled, staleTime: 3_600_000, gcTime: Infinity,
   });
 
-export function prefetchStock(qc: import("@tanstack/react-query").QueryClient, symbol: string) {
-  qc.prefetchQuery(sectionQuery<Summary>(symbol, ""));
+/** Warm a report. One try, no polling (an unprepared stock answers 202 and would otherwise be re-asked for minutes per hover; the page itself polls).
+ *  With `dwell`, only the last symbol pointed at is fetched, after the pointer rests on it: sweeping a list asks for nothing. */
+let dwellTimer = 0;
+export function prefetchStock(qc: import("@tanstack/react-query").QueryClient, symbol: string, dwell = 0) {
+  const go = () => { qc.prefetchQuery({ ...sectionQuery<Summary>(symbol, ""), retry: false }); };
+  if (dwell > 0) { window.clearTimeout(dwellTimer); dwellTimer = window.setTimeout(go, dwell); } else go();
 }
 
 export type ScorePoint = { day: string; overall: number | null; pillar_quality: number | null; pillar_growth: number | null; pillar_profitability: number | null; pillar_balance: number | null; pillar_technical: number | null };

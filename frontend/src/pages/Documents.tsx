@@ -15,8 +15,8 @@ export function DocumentsPage() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [type, setType] = useState("All");
   const [q, setQ] = useState("");
-  const docs = useFeed("document", { symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 150 });
-  const res = useFeed("result", { symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 100 });
+  const docs = useFeed("document", { scoped: onlyMine, symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 150 });
+  const res = useFeed("result", { scoped: onlyMine, symbols: onlyMine ? mine : [], q: q.trim().length > 1 ? q.trim() : "", limit: 100 });
   const all = useMemo(() => [...(docs.data || []), ...(res.data || []).filter((r) => r.link)].sort((a, b) => b.date.localeCompare(a.date)), [docs.data, res.data]);
   const shown = all.filter((i) => type === "All" || docType(i) === type);
   const loading = docs.isLoading || res.isLoading;

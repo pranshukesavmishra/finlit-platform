@@ -4,6 +4,9 @@ export const MINUS = "−";
 export const nf = (n: number, d = 2) =>
   Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
 
+/** A text cell for a spreadsheet: one that starts like a formula (= + - @) is stored as plain text so Excel never runs it. Real numbers pass through. */
+export const csvText = (s: string) => (/^[=+\-@\t\r]/.test(s) && Number.isNaN(Number(s)) ? "'" + s : s);
+
 export const num = (n: number | null | undefined, d = 2) => (n == null ? "—" : (n < 0 ? MINUS : "") + nf(n, d));
 
 export const signed = (n: number | null | undefined, d = 2, unit = "%") =>

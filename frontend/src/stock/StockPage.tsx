@@ -90,12 +90,12 @@ export function StockPage() {
         <div ref={idrow} />
         {/* What the company does comes first: someone who has never heard of it starts here, then the score, then the numbers. */}
         <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
-        <Notes s={s} />
+        <ErrorBoundary section="This section"><Notes s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><FinancialsSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><TrendsSection f={fin} seg={seg} e={events} r={ratios} /></ErrorBoundary>
-        <ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} />
+        <ErrorBoundary section="This section"><ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} /></ErrorBoundary>
         <ErrorBoundary section="This section"><RatiosSection r={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><OwnershipSection o={own} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>

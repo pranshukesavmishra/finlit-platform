@@ -40,6 +40,7 @@ async function page(who, w = 1366) {
 { const { ctx, p } = await page("silver");
   await p.goto(B + "/stocks/RELIANCE", { waitUntil: "networkidle" }); await p.waitForTimeout(900);
   check("report: no separate score strip (the research report below carries the score)", (await p.locator(".sstrip").count()) === 0);
+  check("report: FinLit score dial and five pillar bars at the top", (await p.locator(".dcap").count()) === 1 && (await p.locator(".pillars .pt-bar").count()) === 5);
   await p.screenshot({ path: `${OUT}/report-score.png` }); await ctx.close(); }
 { const { ctx, p } = await page("basic");
   await p.goto(B + "/stocks/RELIANCE", { waitUntil: "networkidle" });

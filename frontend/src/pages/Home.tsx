@@ -19,7 +19,7 @@ function LiveTerminal() {
   const { data: s } = useSummary("RELIANCE");
   if (!s) return <div className="term"><div className="skeleton" style={{ height: 240 }} /></div>;
   const colors: Record<string, string> = { quality: "--p-quality", growth: "--p-growth", profitability: "--p-profit", balance: "--p-balance", technical: "--p-tech" };
-  const c = s.sparkline.c, mn = Math.min(...c), mx = Math.max(...c);
+  const c = s.sparkline?.c?.length ? s.sparkline.c : [0, 0], mn = Math.min(...c), mx = Math.max(...c);
   const d = c.map((p, i) => `${i ? "L" : "M"}${(i / (c.length - 1)) * 300},${60 - ((p - mn) / (mx - mn || 1)) * 54}`).join("");
     return (
     <Link to="/stocks/RELIANCE" className="term" style={{ display: "block", textDecoration: "none", color: "inherit" }} aria-label="Open the live example report">

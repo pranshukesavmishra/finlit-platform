@@ -9,7 +9,7 @@ import { useUI } from "../lib/ui";
 import { limitsFor } from "../lib/auth";
 import { useDocTitle } from "../lib/title";
 import { DEMO } from "../lib/demo";
-import { cr, nf } from "../lib/format";
+import { cr, csvText, nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
@@ -73,7 +73,7 @@ export function WatchlistPage() {
 
   const addStock = (r: Row) => { if (wl.total() >= lim.watchlist_symbols && !wl.has(r.symbol)) { if (gold) toast(`Your watchlist is full (${lim.watchlist_symbols} stocks).`); else upgrade("gold", "Silver holds up to 30 stocks; Gold holds up to 1,000."); return; } wl.add(r.symbol, list.id); toast(`${r.symbol} added to ${list.name}.`); };
   const newList = () => { if (st.lists.length >= MAXL) { if (gold) toast(`You have reached ${MAXL} lists.`); else upgrade("gold", "Silver includes 3 lists; Gold has up to 50."); return; } const id = wl.create(name || `List ${st.lists.length + 1}`); setLid(id); setName(""); setNaming(false); };
-  const exportCsv = () => { if (!silver) { toast("Downloads come with the Silver plan."); nav("/plans"); return; } const esc = (s: string) => `"${s.replace(/"/g, '""')}"`; const ks: NumKey[] = ["price", "change_pct", "market_cap", "pe", "roe", "dividend_yield", "overall"]; saveFile("FinLit-watchlist.csv", [["Symbol", "Company", "Sector", ...ks.map((k) => METRICS[k].label), "Target", "Note"].map(esc).join(","), ...items.map((r) => [r.symbol, r.name || "", r.sector || "", ...ks.map((k) => r[k] ?? ""), st.meta[r.symbol]?.target ?? "", st.meta[r.symbol]?.note ?? ""].map((v) => (typeof v === "string" ? esc(v) : v)).join(","))].join("\n"), "text/csv;charset=utf-8"); toast("Saved FinLit-watchlist.csv."); };
+  const exportCsv = () => { if (!silver) { toast("Downloads come with the Silver plan."); nav("/plans"); return; } const esc = (s: string) => `"${csvText(s).replace(/"/g, '""')}"`; const ks: NumKey[] = ["price", "change_pct", "market_cap", "pe", "roe", "dividend_yield", "overall"]; saveFile("FinLit-watchlist.csv", [["Symbol", "Company", "Sector", ...ks.map((k) => METRICS[k].label), "Target", "Note"].map(esc).join(","), ...items.map((r) => [r.symbol, r.name || "", r.sector || "", ...ks.map((k) => r[k] ?? ""), st.meta[r.symbol]?.target ?? "", st.meta[r.symbol]?.note ?? ""].map((v) => (typeof v === "string" ? esc(v) : v)).join(","))].join("\n"), "text/csv;charset=utf-8"); toast("Saved FinLit-watchlist.csv."); };
   const toggleSel = (s: string) => setSel((x) => (x.includes(s) ? x.filter((y) => y !== s) : x.length >= (gold ? 4 : 2) ? (toast(gold ? "Compare up to 4 companies." : "Silver compares 2 companies. Gold compares up to 4."), x) : [...x, s]));
 
   return (

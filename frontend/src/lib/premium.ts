@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery, type QueryClient } from "@tanstack/react-qu
 import { apiGet, type ApiError } from "./api";
 import { useAuth } from "./auth";
 import { useUI } from "./ui";
+import { csvText } from "./format";
 
 /** Gold-plan market and fundamentals data. The server keeps every answer saved, so repeat views come back in milliseconds. */
 export type MarketSection = "ipo" | "results" | "announcements" | "transcripts" | "indices" | "valuations";
@@ -31,7 +32,7 @@ export function prefetchMarkets(qc: QueryClient) {
 
 /** Save a table as a CSV file that opens cleanly in Excel (UTF-8 mark, quoted cells). */
 export function downloadCsv(name: string, head: string[], rows: (string | number | null | undefined)[][]) {
-  const cell = (v: string | number | null | undefined) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const cell = (v: string | number | null | undefined) => { const s = typeof v === "string" ? csvText(v) : v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const text = "﻿" + [head, ...rows].map((r) => r.map(cell).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));

@@ -15,7 +15,7 @@ import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
 import { portfolio, usePortfolio } from "../lib/portfolio";
 import { signals } from "./Watchlist";
 import { saveFile } from "../stock/derive";
-import { MINUS, cr, nf } from "../lib/format";
+import { MINUS, cr, csvText, nf } from "../lib/format";
 
 /** My portfolio as a scorecard: give it the names of the shares you hold (typed, pasted or a CSV file) and it shows each one's
  *  FinLit score and pillars, and the portfolio's average score, band mix and sector spread. No quantities or prices are asked for. */
@@ -104,7 +104,7 @@ export function HoldingsPage() {
     toast([take.length ? `Added ${take.length} ${take.length === 1 ? "share" : "shares"}` : "Nothing new to add", miss.length ? `${miss.length} not recognised (listed below)` : "", fresh.length > room ? `your plan holds up to ${cap}` : ""].filter(Boolean).join(" · ") + ".");
   };
   const exportCsv = () => saveFile("FinLit-portfolio.csv", ["Symbol,Company,Sector,Price,FinLit score,Band,Quality,Growth,Profitability,Balance sheet,Technical",
-    ...lines.map((l) => [l.symbol, `"${(l.name || "").replace(/"/g, '""')}"`, `"${l.row?.sector || ""}"`, l.row?.price ?? "", l.row?.overall ?? "", l.row?.band ? BAND_LABEL[l.row.band] : "", ...PILLARS.map(([k]) => l.row?.[k] ?? "")].join(","))].join("\n"), "text/csv;charset=utf-8");
+    ...lines.map((l) => [l.symbol, `"${csvText(l.name || "").replace(/"/g, '""')}"`, `"${csvText(l.row?.sector || "").replace(/"/g, '""')}"`, l.row?.price ?? "", l.row?.overall ?? "", l.row?.band ? BAND_LABEL[l.row.band] : "", ...PILLARS.map(([k]) => l.row?.[k] ?? "")].join(","))].join("\n"), "text/csv;charset=utf-8");
   const donut = m.sector.slice(0, 7).map(([label, value], i) => ({ label, value, color: K[i % K.length] }));
   const empty = !lines.length;
 
@@ -126,7 +126,7 @@ export function HoldingsPage() {
               <textarea className="imp" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={"RELIANCE\nHDFC Bank\nInfosys Ltd\nTCS"} aria-label="Share names to add, one per line" />
               <div className="row"><button className="btn primary" onClick={() => { add(namesFrom(text)); setText(""); }} disabled={!text.trim()}>Add these</button>
                 <button className="btn" onClick={() => file.current?.click()}><Icon name="table" />Choose CSV file…</button>
-                <input ref={file} type="file" accept=".csv,.txt,text/csv,text/plain" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f && f.size < 500_000) add(namesFrom(await f.text())); e.target.value = ""; }} /></div>
+                <input ref={file} type="file" accept=".csv,.txt,text/csv,text/plain" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f && f.size >= 500_000) toast("That file is too large (limit 500 KB). Paste the names instead, or trim the file."); else if (f) add(namesFrom(await f.text())); e.target.value = ""; }} /></div>
             </div>
           </div>
           {missing.length > 0 && <p className="pf-miss" role="status"><b>Not recognised:</b> {missing.slice(0, 20).join(", ")}{missing.length > 20 ? ` and ${missing.length - 20} more` : ""}. Check the spelling or use the NSE ticker.</p>}

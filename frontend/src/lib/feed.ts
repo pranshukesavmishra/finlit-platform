@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 
 export type FeedItem = { id: number; kind: "news" | "result" | "document"; title: string; symbol: string | null; company: string | null; source: string | null; link: string | null; date: string; category: string | null; period: string | null; summary: string | null; auto: boolean };
-export const useFeed = (kind: FeedItem["kind"], opts: { symbols?: string[]; q?: string; limit?: number; fresh?: boolean; from?: string; to?: string; upcoming?: boolean; before?: string } = {}) => {
-  const sym = (opts.symbols || []).slice(0, 60).join(",");
+export const useFeed = (kind: FeedItem["kind"], opts: { scoped?: boolean; symbols?: string[]; q?: string; limit?: number; fresh?: boolean; from?: string; to?: string; upcoming?: boolean; before?: string } = {}) => {
+  const sym = (opts.symbols || []).slice(0, 60).join(","), none = !!opts.scoped && !sym;   // "only my watchlist" with an empty watchlist is no companies, not all of them
   return useQuery({
-    queryKey: ["feed", kind, sym, opts.q || "", opts.limit || 100, !!opts.fresh, opts.from || "", opts.to || "", !!opts.upcoming, opts.before || ""], staleTime: 60_000, retry: 1,
-    queryFn: () => apiGet<{ items: FeedItem[] }>(`/api/feed?kind=${kind}&limit=${opts.limit || 100}${sym ? `&symbol=${encodeURIComponent(sym)}` : ""}${opts.q ? `&q=${encodeURIComponent(opts.q)}` : ""}${opts.from && opts.to ? `&from_date=${opts.from}&to_date=${opts.to}` : ""}${opts.upcoming ? "&upcoming=true" : ""}${opts.before ? `&before=${opts.before}` : ""}`, opts.fresh ? { cache: "reload" } : undefined).then((d) => d.items),
+    queryKey: ["feed", kind, none ? "(none)" : sym, opts.q || "", opts.limit || 100, !!opts.fresh, opts.from || "", opts.to || "", !!opts.upcoming, opts.before || ""], staleTime: 60_000, retry: 1,
+    queryFn: () => none ? Promise.resolve<FeedItem[]>([]) : apiGet<{ items: FeedItem[] }>(`/api/feed?kind=${kind}&limit=${opts.limit || 100}${sym ? `&symbol=${encodeURIComponent(sym)}` : ""}${opts.q ? `&q=${encodeURIComponent(opts.q)}` : ""}${opts.from && opts.to ? `&from_date=${opts.from}&to_date=${opts.to}` : ""}${opts.upcoming ? "&upcoming=true" : ""}${opts.before ? `&before=${opts.before}` : ""}`, opts.fresh ? { cache: "reload" } : undefined).then((d) => d.items),
   });
 };
 export const dayLabel = (iso: string) => {

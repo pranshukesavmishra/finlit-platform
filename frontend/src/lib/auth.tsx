@@ -34,7 +34,7 @@ type Auth = {
 const Ctx = createContext<Auth | null>(null);
 
 /** Cached API data that differs by plan: drop it whenever the account changes. */
-const PLAN_KEYS = ["stock", "universe", "top", "screener-catalog", "screener-query", "premium", "index-history", "feed"];
+const KEEP_KEYS = new Set(["me", "search-index", "content", "indices", "ipos"]);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const me = DEMO ? VISITOR : q.data ?? VISITOR;
   useEffect(() => { setCsrf(me.csrf); }, [me.csrf]);
 
-  const clearPlanData = useCallback(() => { for (const k of PLAN_KEYS) qc.removeQueries({ queryKey: [k] }); }, [qc]);
+  const clearPlanData = useCallback(() => { qc.removeQueries({ predicate: (q) => !KEEP_KEYS.has(String(q.queryKey[0])) }); }, [qc]);
   const refresh = useCallback(async () => {
     const before = qc.getQueryData<Me>(["me"]);
     const fresh = await qc.fetchQuery<Me>({ queryKey: ["me"], queryFn: () => apiGet<Me>("/api/auth/me"), staleTime: 0 });
