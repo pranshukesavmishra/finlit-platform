@@ -22,6 +22,7 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
 (
   flock 9
   log "start boot-load"
+  $PY -m finlit.worker refresh-calendars               # IPO and results calendars first: light, and visible at once
   $PY -m finlit.worker refresh-universe
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership for the screener's Index filter
