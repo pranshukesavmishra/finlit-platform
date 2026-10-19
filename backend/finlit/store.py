@@ -27,12 +27,12 @@ SEARCH_KEY = "search-index"
 SCORE_COLUMNS = ("symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
                  "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
                  "dividend_yield", "sector", "name", "pb", "roce", "debt_to_equity", "sales_cagr", "profit_cagr",
-                 "operating_margin", "change_pct", "return_1m", "return_1y")
+                 "operating_margin", "change_pct", "return_1m", "return_1y", "industry", "macro_sector", "metrics")
 SCORE_UPSERT = """
 INSERT INTO scores (symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability,
                     pillar_balance, pillar_technical, price, market_cap, pe, roe, dividend_yield, sector, name, pb, roce,
-                    debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, now())
+                    debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, industry, macro_sector, metrics, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29::jsonb, now())
 ON CONFLICT (symbol, statement, model) DO UPDATE SET
     overall = EXCLUDED.overall, band = EXCLUDED.band, pillar_quality = EXCLUDED.pillar_quality,
     pillar_growth = EXCLUDED.pillar_growth, pillar_profitability = EXCLUDED.pillar_profitability,
@@ -41,7 +41,8 @@ ON CONFLICT (symbol, statement, model) DO UPDATE SET
     dividend_yield = EXCLUDED.dividend_yield, sector = EXCLUDED.sector, name = EXCLUDED.name, pb = EXCLUDED.pb,
     roce = EXCLUDED.roce, debt_to_equity = EXCLUDED.debt_to_equity, sales_cagr = EXCLUDED.sales_cagr,
     profit_cagr = EXCLUDED.profit_cagr, operating_margin = EXCLUDED.operating_margin,
-    change_pct = EXCLUDED.change_pct, return_1m = EXCLUDED.return_1m, return_1y = EXCLUDED.return_1y, updated_at = now()
+    change_pct = EXCLUDED.change_pct, return_1m = EXCLUDED.return_1m, return_1y = EXCLUDED.return_1y, industry = EXCLUDED.industry, macro_sector = EXCLUDED.macro_sector,
+    metrics = EXCLUDED.metrics, updated_at = now()
 """
 
 
@@ -150,7 +151,9 @@ class Store:
             await pipe.execute()
 
     async def _upsert_score(self, conn, row: dict):
-        await conn.execute(SCORE_UPSERT, *[row.get(c) for c in SCORE_COLUMNS])
+        vals = [row.get(c) for c in SCORE_COLUMNS]
+        vals[-1] = orjson.dumps(vals[-1]).decode() if vals[-1] else None
+        await conn.execute(SCORE_UPSERT, *vals)
         if row.get("overall") is not None:
             await conn.execute(
                 "INSERT INTO score_history (symbol, statement, model, day, overall, pillar_quality, pillar_growth, pillar_profitability, "

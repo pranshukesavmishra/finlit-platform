@@ -203,6 +203,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
+    p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
+    p_rm.add_argument("--only-missing", action="store_true")
+    sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -232,6 +235,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             if args.kind != "daily":
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
+            return 0
+        if args.cmd in ("rebuild-metrics", "refresh-indices"):
+            from .screener import jobs
+            if args.cmd == "rebuild-metrics":
+                print(await jobs.rebuild_metrics(store, args.only_missing), "companies updated")
+            else:
+                print(await jobs.refresh_indices(store))
             return 0
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":

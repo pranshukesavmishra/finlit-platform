@@ -4,7 +4,7 @@ Written against the "FinLit Technical Improvement & Modernization Plan" (Oct 202
 
 | Tool | Basic | Silver | Gold |
 |---|---|---|---|
-| **Screener** (`/screener`) | Size, returns, valuation, profitability, growth, debt and sector filters; quick screens; save a screen | + CSV download | + **model filters**: FinLit score, band, five pillars; model quick screens; score columns |
+| **Screener** (`/screener`) | **Starter**: 14 core filters (size, returns, P/E, ROE, ROCE, margin, 5Y growth, debt, interest cover, yield), sector, size and index; the first 25 matches | **Full: 160+ filters** in 15 groups (valuation, profitability, growth, quarterly results, financial health, liquidity, solvency, efficiency, ownership, company events, red flags, banks, volume/range/trend), every match, ready-made and saved screens, CSV download, shareable link | + **FinLit model filters**: score, band, five pillars, score movement, strengths/watch-outs counts, Gold screens |
 | **Compare** (`/compare`) | 2 companies: Overview, Fundamentals, Spider, Valuation; choose which measures | + model tabs (Quality & Risk, Growth, Technical) and Build your own, pillar radar | up to 4 companies |
 | **Watchlist** (`/watchlist`) | preview | up to 3 named lists, 30 stocks, notes, target prices, bucket by industry/size, sector mix, compare selected, CSV | unlimited lists, bucket by FinLit band and style, "worth a second look" signals |
 | **Glossary** (`/glossary`) | all 95 terms, A–Z, search, categories, formulas | same | same |
@@ -24,3 +24,15 @@ Plan checks in the browser are a *preview* (the "Preview" switch in the header).
 
 ## Fonts and security
 Fonts are bundled with the site (`@fontsource`), so no request goes to Google Fonts; the Content-Security-Policy no longer allows `fonts.googleapis.com` or `fonts.gstatic.com`.
+
+
+## The screener (how it works)
+
+- **One list of filters:** `backend/finlit/screener/catalog.py` (169 filters: key, label, group, unit, plan). Everything else reads it: the numbers, the plan check, the website.
+- **Numbers:** `screener/compute.py` works every filter out from the stored snapshot sections (no provider calls) and saves it as `scores.metrics` (JSON). A filter that cannot be worked out is left empty and never matches (P/E of a loss-maker is empty, not negative).
+- **Answering:** `POST /api/screener/query` filters, sorts and pages in memory (`screener/data.py`, refreshed every 3 minutes); about 1 ms per query. `GET /api/screener/catalog` lists filters with where companies sit; `POST /api/screener/export` is the CSV (Silver+).
+- **Plans are enforced on the server:** a locked filter, sort or column is refused (403 `plan_required`), so locked data cannot be read through any route. Basic gets 14 filters and the first 25 matches; Silver everything except the FinLit model group; Gold everything.
+- **Index membership** (NIFTY 50, Next 50, 100, 200, 500, Midcap, Smallcap, Bank, IT, FMCG, Pharma, Auto) comes from the free NSE Indices constituent lists: `python -m finlit.worker refresh-indices` (weekly).
+- **Existing data:** `python -m finlit.worker rebuild-metrics` recomputes every company from what is already stored (database only, seconds). The scheduler runs it on start for companies loaded before the screener existed.
+- **Saved-screen emails** use the same rules and only mail filters the member's plan includes.
+- The static demo (`VITE_DEMO=1`) keeps the small client-side screener (`ScreenerLite`); the live site uses `ScreenerPro`.

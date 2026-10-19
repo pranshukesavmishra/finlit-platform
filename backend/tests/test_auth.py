@@ -468,10 +468,10 @@ async def test_screen_alert_emails_only_new_matches(app):
     screen = {"screens": [{"name": "Cheap", "state": {"ranges": {"pe": {"max": 30}}, "sectors": [], "bands": []}}]}
     assert (await c.put("/api/me/screens", json=screen)).status_code == 200
     async with pool.acquire() as conn:
-        await conn.execute("UPDATE scores SET pe = 50 WHERE symbol = 'RELIANCE'")
+        await conn.execute("UPDATE scores SET pe = 50, metrics = jsonb_set(coalesce(metrics, '{}'::jsonb), '{pe}', '50') WHERE symbol = 'RELIANCE'")
     assert await check_screens(pool, app.state.mailer, "http://test") == 0      # first look just remembers
     async with pool.acquire() as conn:
-        await conn.execute("UPDATE scores SET pe = 20 WHERE symbol = 'RELIANCE'")
+        await conn.execute("UPDATE scores SET pe = 20, metrics = jsonb_set(coalesce(metrics, '{}'::jsonb), '{pe}', '20') WHERE symbol = 'RELIANCE'")
     assert await check_screens(pool, app.state.mailer, "http://test") == 1      # RELIANCE newly matches
     assert "RELIANCE" in (await last_mail(app, "b@example.com"))["body"]
     assert await check_screens(pool, app.state.mailer, "http://test") == 0      # nothing new the next time

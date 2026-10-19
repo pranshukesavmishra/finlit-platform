@@ -13,16 +13,20 @@ from typing import Any, Dict, List
 from .auth.mailer import Mailer
 
 log = logging.getLogger("finlit.screens")
-COLUMNS = {"market_cap", "price", "change_pct", "return_1m", "return_1y", "pe", "pb", "dividend_yield", "roe", "roce", "operating_margin", "sales_cagr",
-           "profit_cagr", "debt_to_equity", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"}
-MODEL = {"overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"}
+MODEL = {"overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical", "fundamental_score", "score_change",
+         "strengths_count", "watchouts_count"}
+LEGACY_KEYS = {"change_pct": "ret_1d", "return_1m": "ret_1m", "return_1y": "ret_1y", "sales_cagr": "sales_cagr_5y", "profit_cagr": "profit_cagr_5y"}
 
 
-def matches(row: Dict[str, Any], state: Dict[str, Any]) -> bool:
+def matches(row: Dict[str, Any], state: Dict[str, Any], members: Dict[str, set] = None) -> bool:
+    """Does one company (a `scores` row with its metrics) match a saved screen? Same rules as the screener page."""
+    raw = row.get("metrics")
+    metrics = json.loads(raw) if isinstance(raw, str) else (raw or {})
     for key, rg in (state.get("ranges") or {}).items():
-        if key not in COLUMNS:
-            continue
-        v = row.get(key)
+        key = LEGACY_KEYS.get(key, key)
+        v = metrics.get(key)
+        if v is None:
+            v = row.get({v2: k2 for k2, v2 in LEGACY_KEYS.items()}.get(key, key))
         if v is None:
             return False
         v = float(v)
@@ -31,7 +35,11 @@ def matches(row: Dict[str, Any], state: Dict[str, Any]) -> bool:
         if rg.get("max") is not None and v > rg["max"]:
             return False
     sectors = state.get("sectors") or []
-    if sectors and row.get("sector") not in sectors:
+    if sectors and (row.get("macro_sector") or row.get("sector")) not in sectors:
+        return False
+    if state.get("industries") and row.get("industry") not in state["industries"]:
+        return False
+    if state.get("indices") and members is not None and not any(row["symbol"] in members.get(c, ()) for c in state["indices"]):
         return False
     bands = state.get("bands") or []
     if bands and row.get("band") not in bands:
@@ -56,16 +64,23 @@ async def check_screens(pool, mailer: Mailer, site_url: str) -> int:
         if not users:
             return 0
         universe = [dict(r) for r in await conn.fetch("SELECT DISTINCT ON (symbol) * FROM scores WHERE model = 'v1' ORDER BY symbol, updated_at DESC")]
+        members: Dict[str, set] = {}
+        for r in await conn.fetch("SELECT index_code, symbol FROM index_members"):
+            members.setdefault(r["index_code"], set()).add(r["symbol"])
         for u in users:
             prefs = json.loads(u["prefs"]) if isinstance(u["prefs"], str) else (u["prefs"] or {})
             if prefs.get("screenAlerts") is False:
                 continue
-            paid = u["plan"] in ("silver", "gold")
             for sc in (json.loads(u["screens"]) if isinstance(u["screens"], str) else u["screens"]) or []:
                 state = sc.get("state") or {}
                 # model filters are a Silver feature; never reveal scores to a Basic member through an email
-                rows = [r for r in universe if paid or not (set((state.get("ranges") or {})) & MODEL or state.get("bands"))]
-                hit = [r for r in rows if matches(r, state)]
+                gold = u["plan"] == "gold"
+                from .screener.catalog import BY_KEY, allowed
+                keys = {LEGACY_KEYS.get(k, k) for k in (state.get("ranges") or {})}
+                # members only get alerts for filters their plan includes; never reveal locked data through an email
+                if not all(k in BY_KEY and allowed(u["plan"], BY_KEY[k].tier) for k in keys) or (state.get("bands") and not gold):
+                    continue
+                hit = [r for r in universe if matches(r, state, members)]
                 seen = await conn.fetchval("SELECT seen FROM screen_state WHERE user_id = $1 AND screen_name = $2", u["id"], sc["name"])
                 now = [r["symbol"] for r in hit]
                 if seen is not None:

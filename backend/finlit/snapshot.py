@@ -35,6 +35,9 @@ KEY_METRICS = ["market_cap", "pe", "pb", "dividend_yield", "roe", "roce", "debt_
                "sales_cagr", "profit_cagr", "operating_margin", "ev_ebitda", "dividend_payout"]
 
 
+from .screener import compute as screener_compute  # noqa: E402
+
+
 def _rows(payload: Any, key: str = "financials") -> List[dict]:
     if isinstance(payload, dict):
         value = payload.get(key)
@@ -284,4 +287,7 @@ def score_row(sections: Dict[str, dict]) -> dict:
         "change_pct": s["quote"].get("changePct"),
         "return_1m": returns.get("1M"),
         "return_1y": returns.get("1Y"),
+        "industry": s["profile"].get("industry"),
+        "macro_sector": s["profile"].get("macroSector"),
+        "metrics": screener_compute.compute(sections),
     }

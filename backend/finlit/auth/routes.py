@@ -201,14 +201,21 @@ class Range(BaseModel):
 
 
 class ScreenState(BaseModel):
-    ranges: Dict[str, Range] = Field(default_factory=dict, max_length=25)
+    ranges: Dict[str, Range] = Field(default_factory=dict, max_length=60)
     sectors: List[str] = Field(default_factory=list, max_length=40)
     bands: List[Literal["strong", "healthy", "mixed", "watch"]] = Field(default_factory=list, max_length=4)
+    industries: List[str] = Field(default_factory=list, max_length=60)
+    indices: List[str] = Field(default_factory=list, max_length=20)
+    caps: List[Literal["Large", "Mid", "Small"]] = Field(default_factory=list, max_length=3)
+    sort: Optional[str] = Field(default=None, max_length=40)
+    dir: Optional[Literal["asc", "desc"]] = None
+    cols: List[str] = Field(default_factory=list, max_length=14)
 
     @field_validator("ranges")
     @classmethod
     def keys_ok(cls, v: Dict[str, Range]) -> Dict[str, Range]:
-        if any(k not in SCREEN_KEYS for k in v):
+        from ..screener.catalog import BY_KEY
+        if any(k not in SCREEN_KEYS and k not in BY_KEY for k in v):
             raise ValueError("unknown filter")
         return v
 

@@ -23,6 +23,8 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
   flock 9
   log "start boot-load"
   $PY -m finlit.worker refresh-universe
+  $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
+  $PY -m finlit.worker refresh-indices                  # NIFTY index membership for the screener's Index filter
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
   log "done boot-load"
@@ -42,6 +44,7 @@ while true; do
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
+  (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens
   (( D == 7 && H == 18 && M == 30 )) && run light digest send-digest
   sleep 20

@@ -119,7 +119,7 @@ Every account signs in at `/login`. There is no separate admin password form: `/
 | --- | --- | --- | --- |
 | Demo Basic | `demo-basic@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Basic badge. Scores are locked on every company page except RELIANCE, the free example everyone can see |
 | Demo Silver | `demo-silver@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Silver badge. FinLit scores and watchlists are open |
-| Demo Gold | `demo-gold@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Gold badge. Everything is open, including the Score screener |
+| Demo Gold | `demo-gold@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Gold badge. Everything is open: the FinLit model filters in the Screener, the Score screener and the Gold dashboards |
 | A new visitor | Any email and a password of their own choice, using **Create account** on the sign-in page | Their own | "Your account is ready" at once (no email to open), then they sign in. They start on Basic |
 | You, the administrator | The `ADMIN_EMAIL` you typed | The `ADMIN_PASSWORD` you typed | See below |
 

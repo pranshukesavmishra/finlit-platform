@@ -63,3 +63,15 @@
 @media (max-width: 700px) { .pm-duo { grid-template-columns: 1fr; } }
 .pm-keys { max-width: 340px; }
 @media (max-width: 700px) { .pm-co-a { width: 100%; flex-wrap: nowrap; } .pm-co-a .btn { flex: 1; padding: 0 10px; font-size: 13.5px; } }
+/* screener (Silver/Gold) */
+.pl-i, .pl-tier { border: 0; background: none; color: var(--faint); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: 600 11px var(--sans); padding: 2px; } .pl-i svg { width: 14px; height: 14px; } .pl-tier { color: var(--gold); background: var(--gold-soft); border-radius: 999px; padding: 2px 8px; } .pl-tier svg { width: 11px; height: 11px; } .pl-i:hover { color: var(--gold); }
+.pl-say { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; } .pl-typ { font-size: 11.5px; color: var(--faint); }
+.scr-f.is-locked { opacity: .62; } .scr-f.is-locked input { cursor: not-allowed; }
+.scr-g .dotn { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--gold); color: var(--on-gold); font: 700 11px var(--sans); font-style: normal; }
+.bandc.on { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); } .bandc small { opacity: .7; margin-left: 4px; }
+.qs-row { display: flex; gap: 6px; align-items: stretch; } .qs-row .qs { flex: 1; } .qs-x { width: 34px; border: 1px solid var(--border); border-radius: 12px; background: var(--s1); color: var(--muted); cursor: pointer; font-size: 18px; } .qs-x:hover { color: var(--loss); border-color: var(--loss); }
+.pl-colmenu { width: 300px; max-height: 420px; overflow: auto; } .pl-colmenu label { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font-size: 13.5px; cursor: pointer; } .pl-colmenu label.is-locked { opacity: .55; cursor: not-allowed; } .pl-colmenu label svg { width: 12px; height: 12px; margin-left: auto; }
+.pl-cap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--gold-soft); border: 1px solid var(--gold); } .pl-cap > svg { width: 18px; height: 18px; color: var(--gold); flex: none; } .pl-cap span { flex: 1; min-width: 220px; font-size: 14px; line-height: 1.5; }
+.scr-tw.is-busy { opacity: .6; transition: opacity .15s; } .scr-t th button { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+/* the header must fit a 390px phone for every plan name (Silver is wider than Gold) */
+@media (max-width: 430px) { .av-btn .tier { display: none; } .av-btn { padding-right: 6px; } }
