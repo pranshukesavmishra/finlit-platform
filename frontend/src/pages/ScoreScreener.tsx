@@ -20,7 +20,7 @@ type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
 
 const CAPS: Cap[] = ["Large", "Mid", "Small"];
 const BANDS: Record<Band, { label: string; min: number; max: number }> = {
-  low: { label: "Under 50", min: 0, max: 49 }, mid: { label: "50 to 79", min: 50, max: 79 }, high: { label: "80 and above", min: 80, max: 100 },
+  low: { label: "Under 45 (Watch)", min: 0, max: 44 }, mid: { label: "45 to 77 (Mixed, Healthy)", min: 45, max: 77 }, high: { label: "78 and above (Strong)", min: 78, max: 100 },
 };
 const FUNDAMENTAL = ["pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance"] as const;
 /** The four business pillars that make up the Fundamental score, each filterable on its own (URL keys q, g, p, b). */
@@ -31,7 +31,8 @@ const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; short: st
   { k: "b", col: "pillar_balance", label: "Balance sheet", short: "Balance", say: "Debt, interest cover and liquidity." },
 ];
 const BAND_KEYS: BandKey[] = ["f", "t", "q", "g", "p", "b"];
-const level = (v: number | null) => (v == null ? "na" : v >= 80 ? "hi" : v >= 50 ? "mid" : "lo");
+// the FinLit model's own bands: Strong 78+, Healthy 62+, Mixed 45+, Watch under 45
+const level = (v: number | null) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
 const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
 const parseBands = (s: string | null): Band[] => (s || "").split(",").filter((b): b is Band => b in BANDS);
 
@@ -145,13 +146,13 @@ export function ScoreScreener() {
                   {(Object.keys(BANDS) as Band[]).map((b) => <label key={b}><input type="checkbox" checked={draft[k].includes(b)} onChange={() => toggleBand(k, b)} /><span>{BANDS[b].label}</span></label>)}</fieldset>
               ))}
               <fieldset className="ss-fs ss-pil"><legend>Fundamental, by pillar</legend>
-                <button type="button" className={"bandc ss-all" + (allStrong ? " on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>Strong on all four (80 and above)</button>
+                <button type="button" className={"bandc ss-all" + (allStrong ? " on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>Strong on all four (78 and above)</button>
                 {PILLARS.map((x) => (
                   <div key={x.k} className="ss-prow" role="group" aria-label={`${x.label} score`}>
                     <span className="ss-pn" title={x.say}>{x.label}</span>
                     <span className="ss-seg">{(Object.keys(BANDS) as Band[]).map((b) => (
                       <button key={b} type="button" className={"ss-sb " + b + (draft[x.k].includes(b) ? " on" : "")} aria-pressed={draft[x.k].includes(b)} aria-label={`${x.label} ${BANDS[b].label}`} onClick={() => toggleBand(x.k, b)}>
-                        {b === "low" ? "<50" : b === "mid" ? "50–79" : "80+"}</button>))}</span>
+                        {b === "low" ? "<45" : b === "mid" ? "45–77" : "78+"}</button>))}</span>
                   </div>))}
               </fieldset>
               {(["t"] as const).map((k) => (

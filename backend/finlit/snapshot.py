@@ -23,7 +23,7 @@ from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
 from .normalize.glossary import describe
 
-SNAPSHOT_VERSION = 2   # 2: bank profit lines mapped; half-loaded reports refused. Older reports are reloaded first.
+SNAPSHOT_VERSION = 3   # 3: profit and equity attributable to shareholders, lender handling, calendar return windows, one EV, cash-conversion only for profits. Older reports are rebuilt first.
 SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers", "stats")
 # Chart ranges are cut at ingest time so the API only ever streams stored bytes.
 # Short ranges keep daily candles; long ranges are downsampled to weekly closes.
@@ -91,7 +91,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     first_pass = ratios.build_ratios(family_payloads)
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
-    computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield)
+    lender = statements.is_bank(pl_rows)
+    computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender)
     computed.update(_valuation_at_price(bundle.get("daily_price_ratios"), closes_by_day, price))
     dividends_fy = events.dividends_by_fiscal_year(actions)
     fy = (pl.get("periods") or [None])[-1]
@@ -103,9 +104,11 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         **{k: fy for k in ("opm", "npm", "cfo_to_pat", "fcf_to_pat", "sales_growth_latest", "profit_growth_latest",
                            "dividend_payout") if fy},
         "liabilities_to_assets": (bs.get("periods") or [None])[-1],
+        "revenue_cagr_3y": "3Y", "revenue_cagr_5y": "5Y",
         "sales_cagr": f"{years}Y" if years else None, "profit_cagr": f"{computed.get('profit_cagr_years')}Y" if computed.get("profit_cagr_years") else None,
     }
     ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
+    _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))
 
     metrics: Dict[str, Optional[float]] = {k: v["value"] for k, v in ratio_view["latest"].items()}
     metrics.update({k: v for k, v in computed.items() if v is not None})
@@ -124,7 +127,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "provisionalLastBar": provisional,
         "removedBadTicks": history["removedBadTicks"],
         "statement": statement,
-        "isBank": statements.is_bank(pl_rows),
+        "isBank": lender,
         "priceAsOf": history["t"][-1] if history["t"] else None,
         "fundamentalsAsOf": (pl.get("periods") or [None])[-1],
     }
@@ -217,6 +220,26 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     summary["dataQuality"]["checks"] = quality_checks.run(sections, today=(now or datetime.now(timezone.utc)).date())
     return sections
+
+
+# Ratios that mean nothing for a lender (a bank or NBFC): its "debt" is its raw material, it has no gross margin or working capital,
+# and its operating cash flow moves with deposits and loans. They are neither shown nor scored for lenders.
+NOT_FOR_LENDERS = ("gross_margin", "ebitda_margin", "ebit_margin", "current_ratio", "quick_ratio", "asset_turnover", "debt_to_equity", "lt_debt_to_equity",
+                   "debt_to_assets", "interest_coverage", "debt_to_fcf", "debtor_days", "inventory_days", "payable_days", "cash_conversion_cycle",
+                   "cfo_to_pat", "fcf_to_pat", "ev_ebitda", "pfcf", "liabilities_to_assets")
+# With zero or negative equity these ratios flip sign or explode and say the opposite of the truth.
+NOT_FOR_NEGATIVE_EQUITY = ("roe", "debt_to_equity", "lt_debt_to_equity", "financial_leverage", "pb")
+
+
+def _apply_applicability(ratio_view: dict, lender: bool, equity: Optional[float]) -> None:
+    drop = set(NOT_FOR_LENDERS if lender else ()) | set(NOT_FOR_NEGATIVE_EQUITY if equity is not None and equity <= 0 else ())
+    if not drop:
+        return
+    for k in drop:
+        ratio_view["latest"].pop(k, None)
+        ratio_view["history"]["rows"].pop(k, None)
+    for g in ratio_view.get("groups", []):
+        g["keys"] = [k for k in g["keys"] if k not in drop]
 
 
 def _r(value: Optional[float]) -> Optional[float]:

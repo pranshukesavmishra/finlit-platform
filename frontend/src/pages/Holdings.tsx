@@ -23,7 +23,7 @@ import { MINUS, cr, nf } from "../lib/format";
 const K = ["var(--k1)", "var(--k2)", "var(--k3)", "var(--k7)", "var(--k5)", "var(--k4)", "var(--k6)", "var(--k8)"];
 const BAND_C: Record<string, string> = { strong: "var(--v-strong)", healthy: "var(--k1)", mixed: "var(--k4)", watch: "var(--v-weak)" };
 const PILLARS: [keyof Row, string][] = [["pillar_quality", "Quality"], ["pillar_growth", "Growth"], ["pillar_profitability", "Profit."], ["pillar_balance", "Balance"], ["pillar_technical", "Technical"]];
-const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 80 ? "hi" : v >= 50 ? "mid" : "lo");
+const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
 const pct = (v: number | null | undefined, d = 2) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
 
 /* ---------------------------------------------------------------- reading a list of share names */

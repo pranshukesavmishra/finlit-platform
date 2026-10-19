@@ -67,7 +67,7 @@ def band(score: Optional[float]) -> dict:
 
 def _mean(values: List[Optional[float]]) -> Optional[int]:
     usable = [v for v in values if v is not None]
-    return round(sum(usable) / len(usable)) if usable else None
+    return int(sum(usable) / len(usable) + 0.5) if usable else None   # half up, the same as the website's Math.round
 
 
 def score(metrics: Dict[str, Optional[float]]) -> dict:

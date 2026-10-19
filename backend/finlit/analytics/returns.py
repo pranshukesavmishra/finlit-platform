@@ -9,7 +9,15 @@ from typing import List, Optional
 from ..normalize.common import parse_date
 from ..normalize.events import dividends_between
 
-PERIODS = [("1M", 30), ("3M", 91), ("6M", 182), ("1Y", 365), ("2Y", 730), ("3Y", 1095), ("5Y", 1826)]
+# (label, months back): by the calendar, so 3 years back from 19 Oct 2026 is 19 Oct 2023 whatever leap days lie between
+PERIODS = [("1M", 1), ("3M", 3), ("6M", 6), ("1Y", 12), ("2Y", 24), ("3Y", 36), ("5Y", 60)]
+
+
+def _months_back(d: date, months: int) -> date:
+    y, m = divmod(d.year * 12 + d.month - 1 - months, 12)
+    m += 1
+    last = [31, 29 if (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
+    return date(y, m, min(d.day, last))
 
 
 def _close_on_or_before(dates: List[date], closes: List[float], target: date) -> Optional[tuple]:
@@ -32,17 +40,18 @@ def trailing_returns(history: dict, actions: List[dict]) -> List[dict]:
         return []
     end_date, end_close = dates[-1], closes[-1]
     out = []
-    for label, days in PERIODS:
-        start = _close_on_or_before(dates, closes, end_date - timedelta(days=days))
+    for label, months in PERIODS:
+        target = _months_back(end_date, months)
+        start = _close_on_or_before(dates, closes, target)
         # require real coverage: the first available close must be within a week of the target
-        if not start or (end_date - timedelta(days=days)) - start[0] > timedelta(days=7) or not start[1]:
+        if not start or target - start[0] > timedelta(days=7) or not start[1]:
             out.append({"period": label, "price": None, "dividend": None, "total": None, "annualised": None})
             continue
         start_date, start_close = start
         price_return = (end_close / start_close - 1) * 100
         dividend_return = dividends_between(actions, start_date, end_date) / start_close * 100
         total = price_return + dividend_return
-        years = days / 365.25
+        years = months / 12
         annualised = ((1 + total / 100) ** (1 / years) - 1) * 100 if years > 1 and total > -100 else None
         out.append({
             "period": label,

@@ -30,9 +30,9 @@ await p.getByRole("button", { name: /^Large cap/ }).click(); await p.getByRole("
 const large = Number((await p.locator(".ss-stat b").first().innerText()).replace(/,/g, ""));
 check("gold: Large cap filter applies and shows a chip", large > 0 && large <= 100 && large <= found && (await p.locator(".fchip", { hasText: "Large cap" }).count()) === 1, `${large} of ${found}`);
 check("gold: filters are kept in the address (shareable)", /cap=Large/.test(p.url()), p.url());
-await p.getByRole("group", { name: "Fundamental score" }).getByText("80 and above").click(); await p.getByRole("button", { name: "Apply filters" }).click(); await p.waitForTimeout(600);
+await p.getByRole("group", { name: "Fundamental score" }).getByText(/78 and above/).click(); await p.getByRole("button", { name: "Apply filters" }).click(); await p.waitForTimeout(600);
 const f = await scoreCol(p, 6);
-check("gold: Fundamental 80+ shows only scores of 80 or more", f.length > 0 ? f.every((n) => n >= 80) : (await p.locator(".empty").count()) === 1, JSON.stringify(f.slice(0, 6)));
+check("gold: Fundamental 78+ shows only scores of 78 or more", f.length > 0 ? f.every((n) => n >= 78) : (await p.locator(".empty").count()) === 1, JSON.stringify(f.slice(0, 6)));
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(900);
 check("gold: filters survive a reload", (await p.locator(".fchip").count()) === 2, String(await p.locator(".fchip").count()));
 await p.getByRole("button", { name: "Clear all" }).first().click(); await p.waitForTimeout(500);

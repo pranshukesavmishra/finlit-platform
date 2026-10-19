@@ -122,8 +122,12 @@ def dividends_by_fiscal_year(actions: List[dict], years: int = 6) -> dict:
         if action["type"].endswith("dividend") and fy:
             totals[fy] = round(totals.get(fy, 0) + (action.get("adjustedAmount") or 0), 4)
             unadjusted[fy] = round(unadjusted.get(fy, 0) + (action.get("amount") or 0), 4)
-    periods = sorted(totals, key=lambda p: int(p[2:]))[-years:]
-    return {"periods": periods, "dps": [totals[p] for p in periods], "dpsUnadjusted": [unadjusted[p] for p in periods],
+    today = date.today()
+    ended = today.year if today > date(today.year, 3, 31) else today.year - 1   # the last financial year that has finished (FY26 ends 31 Mar 2026)
+    ordered = sorted(totals, key=lambda p: int(p[2:]))
+    partial = [p for p in ordered if int(p[2:]) + 2000 > ended][-1:]            # e.g. FY27 in October 2026: interim dividends only so far
+    periods = [p for p in ordered if p not in partial][-years:] + partial       # six complete years, then the year still running
+    return {"periods": periods, "dps": [totals[p] for p in periods], "partial": partial, "endedFY": f"FY{ended % 100:02d}", "dpsUnadjusted": [unadjusted[p] for p in periods],
             "basis": "Declared for each financial year, adjusted for later splits and bonuses"}
 
 

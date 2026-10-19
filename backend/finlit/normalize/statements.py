@@ -90,7 +90,7 @@ PL_FIELDS = {
     "exceptional_items": lambda r: crore(r.get("exceptionalItemsBeforeTax")),
     "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax")),
     "tax": lambda r: crore(r.get("taxExpense")),
-    "net_profit": lambda r: crore(_first(r, "profitLossForPeriod", "profitLossForThePeriod")),
+    "net_profit": lambda r: crore(_first(r, "profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod")),   # attributable to the company's shareholders, as EPS is
     "eps": lambda r: rnd(r.get("eps")),
     "diluted_shares_cr": lambda r: crore(r.get("dilutedOutstandingShares")),
 }
@@ -102,27 +102,56 @@ def profit_and_loss(rows: List[Row], period: str = "yearly", limit: Optional[int
 
 # ---------------------------------------------------------------- balance sheet
 
+def _equity(r: Row) -> Optional[float]:
+    """Equity that belongs to the company's own shareholders. Banks report share capital plus reserves instead."""
+    owners = to_number(r.get("equityAttributableToOwnersOfParent"))
+    if owners is not None:
+        return crore(owners)
+    total = to_number(r.get("totalEquity"))
+    if total is not None:
+        return crore(total - (to_number(r.get("nonControllingInterest")) or 0))
+    banked = sum_present(r.get("capital"), r.get("reserves")) if r.get("capital") is not None else None
+    return crore(banked)
+
+
+def _debt(r: Row) -> Optional[float]:
+    """Everything the company has borrowed: bank loans, bonds and debentures, subordinated debt and (for a lender such as an NBFC,
+    which funds itself that way) deposits. A bank's deposits are its raw material, not debt, so they are left out for banks."""
+    parts = [r.get("borrowingsCurrent"), r.get("borrowingsNoncurrent"), r.get("borrowings"), r.get("debtSecurities"), r.get("subordinatedLiabilities")]
+    if r.get("advances") in (None, 0):
+        parts.append(r.get("deposits"))
+    return sum_present(*parts)
+
+
 def _borrowings(r: Row) -> Optional[float]:
-    return crore(sum_present(r.get("borrowingsCurrent"), r.get("borrowingsNoncurrent")))
+    return crore(_debt(r))
+
+
+def _liabilities(r: Row) -> Optional[float]:
+    value = to_number(r.get("liabilities"))
+    if value is None:   # banks give total assets and equity, not liabilities
+        assets, equity = to_number(r.get("assets") or r.get("capitalAndLiabilities")), _equity(r)
+        return crore(assets - equity * 1e7) if assets is not None and equity is not None else None
+    return crore(value)
 
 
 def _other_liabilities(r: Row) -> Optional[float]:
     """Liabilities other than borrowings. FinEdge's `liabilities` already includes borrowings,
     so subtract them to avoid double counting when the funding stack is drawn."""
     liabilities = to_number(r.get("liabilities"))
-    borrowings = sum_present(r.get("borrowingsCurrent"), r.get("borrowingsNoncurrent")) or 0
+    borrowings = _debt(r) or 0
     return None if liabilities is None else crore(liabilities - borrowings)
 
 
 BS_FIELDS = {
-    "equity_capital": lambda r: crore(r.get("equityCapital")),
+    "equity_capital": lambda r: crore(_first(r, "equityCapital", "capital")),
     "reserves": lambda r: crore(r.get("reserves")),
-    "total_equity": lambda r: crore(r.get("totalEquity") or r.get("equityAttributableToOwnersOfParent")),
+    "total_equity": _equity,
     "minority_interest": lambda r: crore(r.get("nonControllingInterest")),
     "borrowings": _borrowings,
     "other_liabilities": _other_liabilities,
-    "total_liabilities": lambda r: crore(r.get("liabilities")),
-    "total_assets": lambda r: crore(r.get("assets") or r.get("equityAndLiabilities")),
+    "total_liabilities": _liabilities,
+    "total_assets": lambda r: crore(r.get("assets") or r.get("equityAndLiabilities") or r.get("capitalAndLiabilities")),
     "fixed_assets": lambda r: crore(r.get("propertyPlantAndEquipment") or r.get("fixedAssets")),
     "cwip": lambda r: crore(r.get("capitalWorkInProgress")),
     "investments": lambda r: crore(sum_present(r.get("currentInvestments"), r.get("noncurrentInvestments"))),
@@ -141,12 +170,10 @@ def balance_sheet(rows: List[Row], period: str = "yearly", limit: Optional[int] 
 # ---------------------------------------------------------------- cash flow
 
 def _capex(r: Row) -> Optional[float]:
-    value = to_number(r.get("purchaseOfPPEClassifiedAsInvesting"))
-    if not value:
-        value = to_number(r.get("purchaseOfFixed&IntangibleAssets"))
-    if value is None:
-        return None
-    return crore(-abs(value))
+    values = [abs(v) for v in (to_number(r.get("purchaseOfPPEClassifiedAsInvesting")), to_number(r.get("purchaseOfFixed&IntangibleAssets"))) if v]
+    if not values:
+        return None if to_number(r.get("purchaseOfPPEClassifiedAsInvesting")) is None and to_number(r.get("purchaseOfFixed&IntangibleAssets")) is None else 0.0
+    return crore(-max(values))
 
 
 def _free_cash_flow(r: Row) -> Optional[float]:
@@ -184,8 +211,11 @@ def latest(table: dict, key: str) -> Optional[float]:
 
 
 def is_bank(pl_rows: List[Row]) -> bool:
-    """Banks and NBFCs report revenue as interest earned."""
+    """A lender: a bank, or an NBFC such as Bajaj Finance. Their income is mostly interest earned, their 'debt' is their raw material
+    and their working capital, gross margin and asset turnover mean nothing, so those are not shown or scored for them."""
     for row in _ordered(pl_rows)[-2:]:
-        if (to_number(row.get("interestEarned")) or 0) > 0 and not to_number(row.get("revenueFromOperations")):
+        interest = to_number(row.get("interestEarned")) or 0
+        base = max(to_number(row.get("revenueFromOperations")) or 0, to_number(row.get("income")) or 0)
+        if interest > 0 and (not to_number(row.get("revenueFromOperations")) or interest >= 0.5 * base):
             return True
     return False

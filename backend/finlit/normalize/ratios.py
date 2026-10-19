@@ -98,7 +98,7 @@ def family_rows(family: str, payload: Any) -> Dict[str, Dict[str, Optional[float
 # Our own figures replace FinEdge's for these keys (computed at the live price or from the statements
 # shown on the page, so every number on the page agrees with every other).
 DERIVED_WINS = {"pe", "pb", "ps", "pfcf", "ev_ebitda", "dividend_yield", "market_cap", "cfo_to_pat", "fcf_to_pat",
-                "liabilities_to_assets", "dividend_payout"}
+                "liabilities_to_assets", "dividend_payout", "revenue_cagr_3y", "revenue_cagr_5y"}
 # Pairs that are different measures and should never be identical in the same period.
 DISTINCT_PAIRS = [("roe", "roce")]
 
@@ -168,8 +168,8 @@ def price_ratio_latest(daily_payload: Any) -> Dict[str, Optional[float]]:
         return {}
     last = rows[-1]
     out = {k: rnd(last.get(k)) for k in ("pe", "pb", "ps", "pfcf")}
-    # FinEdge sends 0 when a ratio is undefined (e.g. negative earnings); hide rather than show 0.
-    out = {k: (v if v not in (0, 0.0) else None) for k, v in out.items()}
+    # FinEdge sends 0 when a ratio is undefined (e.g. negative earnings), and a negative P/E or P/B is not a price to pay: show no number.
+    out = {k: (v if v is not None and v > 0 else None) for k, v in out.items()}
     out["asOf"] = parse_date(last["quote_date"]).isoformat()
     return out
 
@@ -186,7 +186,7 @@ def valuation_history(annual_payload: Any) -> dict:
 
     def clean(v):
         number = to_number(v)
-        return None if not number else round(number, 2)
+        return None if not number or number <= 0 else round(number, 2)
 
     return {
         "periods": [label for label, _ in rows],

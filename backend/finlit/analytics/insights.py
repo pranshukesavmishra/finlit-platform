@@ -42,6 +42,10 @@ def notes(m: Dict[str, Optional[float]], ownership_latest: List[dict]) -> dict:
     if ic is not None and ic < 2:
         add(watchouts, "interest_coverage", "Thin interest cover", f"Operating profit covers interest only {_f(ic)} times.", ic)
 
+    exc = m.get("exceptional_share")
+    if exc is not None and exc >= 50:
+        add(watchouts, "exceptional_share", "Profit includes a large one-off gain", f"One-off items are {_f(exc, 0)}% of pre-tax profit, so this year's profit and the ratios built on it overstate what the business earns regularly.", exc)
+
     sales, profit = m.get("sales_cagr"), m.get("profit_cagr")
     if sales is not None and sales >= 10:
         add(strengths, "sales_cagr", "Steady sales growth", f"Sales compounded at {_f(sales)}% a year over {int(m.get('sales_cagr_years') or 5)} years.", sales)

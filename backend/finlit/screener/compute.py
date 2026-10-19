@@ -86,6 +86,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     stats = sections.get("stats") or {}
     profile, quote = summary.get("profile") or {}, summary.get("quote") or {}
     latest = {k: _n(v.get("value")) for k, v in (ratios.get("latest") or {}).items() if isinstance(v, dict)}
+    spans = {k: v.get("period") for k, v in (ratios.get("latest") or {}).items() if isinstance(v, dict)}   # e.g. "4Y": how many years a growth rate really covers
     hist = (ratios.get("history") or {}).get("rows") or {}
     yearly = fin.get("yearly") or {}
     pl, bs, cf, qpl = yearly.get("pl") or {}, yearly.get("bs") or {}, yearly.get("cf") or {}, (fin.get("quarterly") or {}).get("pl") or {}
@@ -100,6 +101,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     cfo_r, capex_r, fcf_r = _row(cf, "operating"), _row(cf, "capex"), _row(cf, "free_cash_flow")
     rev0, np0, op0 = _last(rev), _last(np_), _last(op)
     eq0, debt0, cash0, assets0 = _last(equity), _last(borrow), _last(cash), _last(assets)
+    if debt0 is None and eq0 is not None:
+        debt0 = 0.0   # a balance sheet that lists no borrowings is a company with none (the provider sends nothing, not zero)
     cfo0, fcf0 = _last(cfo_r), _last(fcf_r)
     capex0 = _n(abs(_last(capex_r))) if _last(capex_r) is not None else None
     market_cap = _n(quote.get("marketCapCr")) or _n(profile.get("marketCapCr")) or latest.get("market_cap")
@@ -111,7 +114,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     shares_row = _row(pl, "diluted_shares_cr")
     shares = _last(shares_row) if _last(shares_row) else _div(np0, _last(eps_row))   # crore shares: reported, else profit / EPS
     out["book_value_ps"] = _div(eq0, shares)
-    net_debt = _sub(debt0, _add(cash0 or 0.0, _last(invest) or 0.0)) if debt0 is not None else None
+    net_debt = _sub(debt0, cash0 or 0.0) if debt0 is not None else None   # borrowings less cash: the same definition the report's EV/EBITDA uses
     out["net_debt"] = net_debt
     out["enterprise_value"] = _add(market_cap, net_debt) if market_cap is not None and net_debt is not None else None
     out["borrowings"], out["cash"], out["equity"], out["fcf"], out["cfo"] = debt0, cash0, eq0, fcf0, cfo0
@@ -175,8 +178,10 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     for k, src in (("roe", "roe"), ("roce", "roce"), ("roa", "roa"), ("rota", "rota"), ("gross_margin", "gross_margin"), ("ebitda_margin", "ebitda_margin"),
                    ("ebit_margin", "ebit_margin"), ("pretax_margin", "pretax_margin"), ("tax_rate", "effective_tax_rate")):
         out[k] = latest.get(src)
-    out["operating_margin"] = latest.get("operating_margin") if latest.get("operating_margin") is not None else latest.get("opm")
-    out["net_margin"] = latest.get("net_margin") if latest.get("net_margin") is not None else latest.get("npm")
+    # the margins the FinLit score uses (operating profit before depreciation and interest, and profit attributable to shareholders, over sales),
+    # so the screener, the report and the score all show the same number
+    out["operating_margin"] = latest.get("opm") if latest.get("opm") is not None else latest.get("operating_margin")
+    out["net_margin"] = latest.get("npm") if latest.get("npm") is not None else latest.get("net_margin")
     opm_series = [_div(o, r, 100) for o, r in zip(op, rev)]
     out["roe_3y"], out["roce_3y"] = _mean(hrow("roe")[-3:]), _mean(hrow("roce")[-3:])
     out["opm_3y"] = _mean(opm_series[-3:])
@@ -186,14 +191,19 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["sales_growth"] = latest.get("sales_growth_latest") if latest.get("sales_growth_latest") is not None else _growth(rev0, _last(rev, 1))
     out["profit_growth"] = latest.get("profit_growth_latest") if latest.get("profit_growth_latest") is not None else _growth(np0, _last(np_, 1))
     out["sales_cagr_3y"] = latest.get("revenue_cagr_3y") if latest.get("revenue_cagr_3y") is not None else _cagr(rev0, _last(rev, 3), 3)
-    out["sales_cagr_5y"] = latest.get("revenue_cagr_5y") if latest.get("revenue_cagr_5y") is not None else (latest.get("sales_cagr") if latest.get("sales_cagr") is not None else _cagr(rev0, _last(rev, 5), 5))
+    out["sales_cagr_5y"] = latest.get("revenue_cagr_5y") if latest.get("revenue_cagr_5y") is not None else (latest.get("sales_cagr") if latest.get("sales_cagr") is not None and spans.get("sales_cagr") in (None, "5Y") else _cagr(rev0, _last(rev, 5), 5))
     out["profit_cagr_3y"] = latest.get("profit_cagr_3y") if latest.get("profit_cagr_3y") is not None else _cagr(np0, _last(np_, 3), 3)
-    out["profit_cagr_5y"] = latest.get("profit_cagr_5y") if latest.get("profit_cagr_5y") is not None else (latest.get("profit_cagr") if latest.get("profit_cagr") is not None else _cagr(np0, _last(np_, 5), 5))
+    out["profit_cagr_5y"] = latest.get("profit_cagr_5y") if latest.get("profit_cagr_5y") is not None else (latest.get("profit_cagr") if latest.get("profit_cagr") is not None and spans.get("profit_cagr") in (None, "5Y") else _cagr(np0, _last(np_, 5), 5))
     out["ebitda_cagr_5y"], out["eps_cagr_5y"], out["cfo_cagr_3y"] = latest.get("ebitda_cagr_5y"), latest.get("eps_cagr_5y"), latest.get("cfo_cagr_3y")
     out["bv_cagr_5y"] = latest.get("book_value_cagr_5y")
-    dps = [_n(x) for x in ((events.get("dividendsByFY") or {}).get("dps") or [])]
-    first_d = next((x for x in dps if x and x > 0), None)
-    out["dps_cagr"] = _cagr(_last(dps), first_d, max(0, len(dps) - 1 - dps.index(first_d))) if first_d is not None and dps else None
+    dv = events.get("dividendsByFY") or {}
+    by_fy = {int(p[2:]): _n(x) for p, x in zip(dv.get("periods") or [], dv.get("dps") or []) if p not in (dv.get("partial") or []) and str(p)[2:].isdigit()}
+    last_fy = int(str(dv.get("endedFY") or "FY0")[2:] or 0)
+    if last_fy and not by_fy.get(last_fy) and today.month <= 8:
+        last_fy -= 1   # the final dividend for the year just ended is usually declared in May to July
+    dps = [by_fy.get(y) or 0.0 for y in range(last_fy - 5, last_fy + 1)] if by_fy and last_fy else []
+    first_y = next((y for y in range(last_fy - 5, last_fy + 1) if (by_fy.get(y) or 0) > 0), None) if dps else None
+    out["dps_cagr"] = _cagr(by_fy.get(last_fy), by_fy.get(first_y), last_fy - first_y) if first_y is not None and last_fy > first_y and (by_fy.get(last_fy) or 0) > 0 else None
     last5 = np_[-6:]
     out["years_profit_up"] = float(sum(1 for a, b in zip(last5[1:], last5[:-1]) if a is not None and b is not None and a > b)) if len([x for x in last5 if x is not None]) >= 4 else None
 
@@ -215,8 +225,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["debt_to_equity"], out["lt_debt_to_equity"] = latest.get("debt_to_equity"), latest.get("lt_debt_to_equity")
     out["interest_coverage"] = latest.get("interest_coverage")
     out["debt_to_fcf"] = latest.get("debt_to_fcf")
-    out["net_debt_to_equity"] = _div(net_debt, eq0)
-    ebitda0 = _add(op0, _last(dep)) if op0 is not None and _last(dep) is not None else op0
+    out["net_debt_to_equity"] = _div(net_debt, eq0) if eq0 is not None and eq0 > 0 else None
+    ebitda0 = op0   # operating profit here is already before depreciation and interest, so it is the EBITDA
     out["net_debt_to_ebitda"] = _div(net_debt, ebitda0) if net_debt is not None and ebitda0 and ebitda0 > 0 else None
     out["cash_to_debt"] = _div(cash0, debt0)
     out["current_ratio"], out["quick_ratio"] = latest.get("current_ratio"), latest.get("quick_ratio")
@@ -231,8 +241,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["fixed_asset_turnover"] = _div(rev0, _last(fixed))
     out["inventory_days"], out["debtor_days"], out["payable_days"] = latest.get("inventory_days"), latest.get("debtor_days"), latest.get("payable_days")
     out["cash_cycle"], out["retention_ratio"] = latest.get("cash_conversion_cycle"), latest.get("retention_ratio")
-    out["cfo_to_pat"] = latest.get("cfo_to_pat") if latest.get("cfo_to_pat") is not None else _div(cfo0, np0, 100)
-    out["fcf_to_pat"] = latest.get("fcf_to_pat") if latest.get("fcf_to_pat") is not None else _div(fcf0, np0, 100)
+    out["cfo_to_pat"] = latest.get("cfo_to_pat") if latest.get("cfo_to_pat") is not None else (_div(cfo0, np0, 100) if np0 and np0 > 0 else None)
+    out["fcf_to_pat"] = latest.get("fcf_to_pat") if latest.get("fcf_to_pat") is not None else (_div(fcf0, np0, 100) if np0 and np0 > 0 else None)
     out["capex_to_sales"], out["capex_to_cfo"] = _div(capex0, rev0, 100), _div(capex0, cfo0, 100)
     emp = _n(profile.get("employees"))
     out["employees"] = emp
@@ -265,7 +275,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     ttm = [a for a, d in past_divs if d <= 365]
     out["div_ttm"] = sum(_n(a.get("adjustedAmount") or a.get("amount")) or 0.0 for a in ttm) if past_divs else None
     out["div_last_days"] = float(min(d for _, d in past_divs)) if past_divs else None
-    out["div_years"] = float(sum(1 for x in dps[-6:] if x and x > 0)) if dps else None
+    out["div_years"] = float(sum(1 for x in dps if x and x > 0)) if dps else None
     out["div_paying"] = _flag(bool(ttm)) if actions or dps else None
     has_data = bool(actions)
     out["bonus_3y"] = _flag(any("bonus" in str(a.get("type", "")) and 0 <= (days_ago(a) or -1) <= 1095 for a in actions)) if has_data else None
@@ -279,7 +289,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     tech = price_sec.get("technical") or {}
     out["volume"] = _n(quote.get("volume")) or _last(vols)
     v20 = [x for x in vols[-21:-1] if x is not None]
-    out["avg_volume_20d"] = sum(v20) / len(v20) if len(v20) >= 10 else None
+    out["avg_volume_20d"] = sorted(v20)[len(v20) // 2] if len(v20) >= 10 else None   # the median day: one huge block-deal day must not set the "usual" volume
     out["volume_vs_avg"] = _div(out["volume"], out["avg_volume_20d"])
     out["turnover_cr"] = _div(_n(price) * out["volume"], 1e7) if price is not None and out["volume"] is not None else None
     hi, lo = _n(quote.get("high52")) or _n((summary.get("range52") or {}).get("high")), _n(quote.get("low52")) or _n((summary.get("range52") or {}).get("low"))
@@ -310,6 +320,13 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["flag_below_trend"] = _flag(out["vs_ema200"] < -20) if out["vs_ema200"] is not None else None
     fl = [out[k] for k in ("flag_loss", "flag_cfo_negative", "flag_cash_gap", "flag_high_debt", "flag_weak_cover", "flag_profit_fall", "flag_promoter_selling", "flag_below_trend")]
     out["flag_count"] = float(sum(1 for x in fl if x)) if sum(1 for x in fl if x is not None) >= 4 else None
+    if is_bank:   # see snapshot.NOT_FOR_LENDERS: a lender's debt, working capital and cash flow are not read like a factory's
+        for k in ("flag_cfo_negative", "flag_cash_gap", "flag_high_debt", "flag_weak_cover", "debt_to_equity", "lt_debt_to_equity", "net_debt", "net_debt_to_equity", "net_debt_to_ebitda",
+                  "enterprise_value", "ev_sales", "ev_cfo", "ev_ebitda", "pfcf", "price_cfo", "fcf_yield", "debt_to_assets", "debt_to_fcf", "interest_coverage", "current_ratio", "quick_ratio",
+                  "cash_to_debt", "cash_to_current_liab", "working_capital", "working_capital_to_sales", "asset_turnover", "fixed_asset_turnover", "gross_margin", "ebitda_margin", "ebit_margin",
+                  "inventory_days", "debtor_days", "payable_days", "cash_cycle", "cfo_to_pat", "fcf_to_pat", "fcf", "cfo", "fcf_ps", "capex_to_sales", "capex_to_cfo", "net_cash_ps", "cash_ps"):
+            out.pop(k, None)
+        out["flag_count"] = None
 
     # ---------------- FinLit model
     score = summary.get("score") or {}
@@ -318,7 +335,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     for k in ("quality", "growth", "profitability", "balance", "technical"):
         out[f"pillar_{k}"] = pill.get(k)
     four = [pill.get(k) for k in ("quality", "growth", "profitability", "balance") if pill.get(k) is not None]
-    out["fundamental_score"] = round(sum(four) / len(four)) if len(four) >= 3 else None
+    out["fundamental_score"] = int(sum(four) / len(four) + 0.5) if len(four) >= 3 else None   # half up, like the website
     out["strengths_count"], out["watchouts_count"] = float(len(summary.get("strengths") or [])), float(len(summary.get("watchouts") or []))
     out["score_change"] = None  # filled in from score history when the screener data is loaded
 
