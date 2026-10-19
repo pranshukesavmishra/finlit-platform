@@ -203,3 +203,10 @@ def test_chat_returns_complete_salary_example_and_follow_up_context(monkeypatch)
     assert not first["response"].startswith("Please note:")
     assert follow_up["response"] == follow_up_answer
     assert [turn["role"] for turn in calls[1]["contents"]] == ["user", "model", "user"]
+
+
+def test_plain_chat_text_strips_markdown():
+    out = server.plain_chat_text("A **mutual fund** pools money.\n\n### How It Works\n\n* **Pooling:** many\n* two")
+    assert "*" not in out.replace("- ", "") and "#" not in out
+    assert out.startswith("A mutual fund pools money.")
+    assert "- Pooling: many" in out

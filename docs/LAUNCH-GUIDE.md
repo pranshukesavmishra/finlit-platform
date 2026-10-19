@@ -117,7 +117,7 @@ Every account signs in at `/login`. There is no separate admin password form: `/
 
 | Account | Email | Password | What you should see after signing in |
 | --- | --- | --- | --- |
-| Demo Basic | `demo-basic@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Basic badge. Scores are locked on company pages |
+| Demo Basic | `demo-basic@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Basic badge. Scores are locked on every company page except RELIANCE, the free example everyone can see |
 | Demo Silver | `demo-silver@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Silver badge. FinLit scores and watchlists are open |
 | Demo Gold | `demo-gold@finlit-demo.com` | `DEMO_PASSWORD` | The dashboard with a Gold badge. Everything is open, including the Score screener |
 | A new visitor | Any email and a password of their own choice, using **Create account** on the sign-in page | Their own | "Your account is ready" at once (no email to open), then they sign in. They start on Basic |
@@ -253,7 +253,7 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 
 | What you see | Likely cause | What to do |
 | --- | --- | --- |
-| The build fails | A typo or a temporary download problem | Click **Manual Deploy**, **Deploy latest commit**. If it fails again, copy the last 30 lines of the log and send them to the engineer |
+| The build fails | A typo or a temporary download problem | Click **Manual Deploy**, **Deploy latest commit**. If it fails again, read the last 30 lines of the log, delete anything that looks like a password, key or web address starting with `postgresql://`, `mongodb`, or `redis://`, then send the rest to the engineer |
 | The site shows a spinner or an error for a minute | The free service was asleep | Wait 60 seconds and reload. Step 7 prevents this |
 | The Screener is empty | The company load has not run yet, or `DATABASE_URL` is wrong | Wait 5 minutes. In Logs look for a database error. Re-copy the Neon string with pooling OFF |
 | Database errors mentioning `-pooler` or prepared statements | The pooled Neon string was used | Use the direct string (Step 1, pooling OFF) |

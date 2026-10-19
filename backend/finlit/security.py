@@ -7,6 +7,7 @@ reaches the origin directly, and nothing here trusts client-supplied headers unl
 from __future__ import annotations
 
 import ipaddress
+import os
 import logging
 import time
 from typing import Tuple
@@ -60,7 +61,12 @@ def client_ip(scope: Scope, header: str = "") -> str:
     if header:
         for key, value in scope.get("headers", []):
             if key.decode("latin-1").lower() == header:
-                candidate = value.decode("latin-1").split(",")[0].strip()
+                parts = [x.strip() for x in value.decode("latin-1").split(",") if x.strip()]
+                # x-forwarded-for: the left end is whatever the caller sent; the proxy we trust appends on the right.
+                hop = int(os.getenv("TRUSTED_PROXY_HOPS", "1") or 1) if header == "x-forwarded-for" else None
+                if not parts:
+                    break
+                candidate = parts[-hop] if hop and hop <= len(parts) else parts[0 if hop is None else -1]
                 try:
                     return str(ipaddress.ip_address(candidate))
                 except ValueError:

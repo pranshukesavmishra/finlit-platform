@@ -47,6 +47,8 @@ def mount_frontend(app: FastAPI, dist: Path) -> bool:
         target = (root / path).resolve()
         if path and target.is_file() and root in target.parents:
             rel = target.relative_to(root).as_posix()
+        elif path.startswith("assets/") or "." in path.rsplit("/", 1)[-1]:
+            return Response("not found", status_code=404, media_type="text/plain", headers={"Cache-Control": "no-store"})
         else:
             target, rel = index, "index.html"  # app shell; the page itself shows its own "not found"
         response: Response = FileResponse(target)

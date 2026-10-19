@@ -5,7 +5,7 @@
 #   BACKUP_PASSPHRASE='a long phrase you will remember'
 #   ./scripts/backup.sh [output-folder]
 # Needs: pg_dump (PostgreSQL client), mongodump (MongoDB Database Tools, optional), and openssl.
-# Restore: see docs/deploy-free.md ("Restoring a backup"). Never commit the output file: it contains member data.
+# Restore: see docs/LAUNCH-GUIDE.md (the backup step). Never commit the output file: it contains member data.
 set -euo pipefail
 : "${NEON_URL:?set NEON_URL to the Neon direct connection string}"
 : "${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE (used to encrypt the backup)}"

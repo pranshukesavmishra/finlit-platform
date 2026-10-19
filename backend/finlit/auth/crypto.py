@@ -49,7 +49,8 @@ def needs_rehash(stored: str) -> bool:
 
 EMAIL = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$")
 COMMON = {"password", "password1", "password123", "123456789", "1234567890", "qwertyuiop", "iloveyou12", "letmein123", "welcome123",
-          "admin12345", "finlit12345", "finlitventures", "11111111111", "0123456789", "abcdefghij", "passw0rd123"}
+          "admin12345", "finlit12345", "finlitventures", "11111111111", "0123456789", "abcdefghij", "passw0rd123", "letmein123456", "passw0rd12345", "qwertyuiop12", "1234567890123", "finlit2026!",
+          "password12345", "welcome12345", "changeme1234", "qwerty123456", "iloveyou1234", "administrator", "123456789012"}
 
 
 def normalise_email(email: str) -> Optional[str]:
@@ -64,7 +65,8 @@ def password_problem(password: str, email: str = "") -> Optional[str]:
     if len(password) > 128:
         return "Use 128 characters or fewer."
     low = password.lower()
-    if low in COMMON or len(set(low)) < 5:
+    stripped = re.sub(r"[^a-z]", "", low)
+    if low in COMMON or len(set(low)) < 5 or stripped in {"password", "qwertyuiop", "letmein", "welcome", "iloveyou", "finlit", "finlitventures", "administrator"}:
         return "That password is too easy to guess."
     local = email.split("@")[0].lower() if email else ""
     if local and len(local) >= 4 and local in low:

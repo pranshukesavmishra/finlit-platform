@@ -50,3 +50,16 @@ def test_client_ip_ignores_headers_unless_configured():
 def test_ipv6_limited_per_slash_64():
     assert _bucket_ip("2001:db8:1:2:aaaa::1") == _bucket_ip("2001:db8:1:2:bbbb::9")
     assert _bucket_ip("2001:db8:1:3::1") != _bucket_ip("2001:db8:1:2::1")
+
+
+def test_xff_uses_rightmost_hop_not_client_supplied():
+    from finlit.security import client_ip
+    scope = {"headers": [(b"x-forwarded-for", b"10.9.9.9, 203.0.113.7")], "client": ("127.0.0.1", 1)}
+    assert client_ip(scope, "x-forwarded-for") == "203.0.113.7"
+
+
+def test_common_passwords_rejected():
+    from finlit.auth.crypto import password_problem
+    for pw in ("qwertyuiop12", "letmein123456", "Passw0rd12345", "Finlit2026!"):
+        assert password_problem(pw, "a@b.co"), pw
+    assert password_problem("blue-harbour-lamp-47", "a@b.co") is None

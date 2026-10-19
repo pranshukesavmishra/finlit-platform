@@ -32,6 +32,7 @@ def _client(app: FastAPI, base_url: str) -> httpx.AsyncClient:
 
 async def forward(request: Request, base_url: str) -> Response:
     headers = {k: v for k, v in request.headers.items() if k.lower() in FORWARD_REQUEST_HEADERS}
+    headers = {k: v for k, v in headers.items() if v.strip() and v.strip().lower() != "bearer"}  # blank Authorization -> 401 upstream, not a 502
     headers["accept-encoding"] = "identity"
     ip = (request.scope.get("state") or {}).get("client_ip")
     if ip:

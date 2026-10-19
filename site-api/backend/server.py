@@ -3327,6 +3327,24 @@ Explain concepts with simple, realistic Indian examples when useful. When a user
   Safety and accuracy: provide general financial education, not personalized buy/sell recommendations. Never guarantee returns or make overly confident claims about investment outcomes. Do not invent live market data, company services, credentials, published pricing, or FinLit performance figures. Do not quote current savings-account rates, fixed-deposit rates, returns, inflation figures, or market statistics unless they are supplied by an approved, verified data source. If asked for current market or performance data and no such source is available, say you cannot verify live figures and direct the visitor to the Portfolio page. Clearly label hypothetical figures as illustrative, not forecasts or recommendations. Explain liquidity accurately: savings-account balances are generally available subject to account terms and transaction limits; fixed deposits are designed for a chosen term and ordinarily pay at maturity. Premature FD withdrawal may be restricted or subject to a penalty or reduced interest under the bank's terms, so do not describe an FD as instantly accessible. If asked what they personally should buy or sell, explain general evaluation factors and invite them to contact the team.
 
 Verified FinLit services: 0 → 1 Investing (help understanding stocks, ETFs, mutual funds and other options, with a strategy aligned to goals and risk); Wealth Planning (strategies to grow, diversify and protect wealth across life stages); Family Financial Planning (a roadmap covering family goals, investments, insurance and future needs); Global Investing (understanding global opportunities alongside the overall portfolio and risk appetite); Portfolio Review & Stock Selection (review of diversification, risk, performance and holdings). Published service pricing starts with a First Session at ₹99; current options are on the Services page. For company-specific enquiries, guide visitors to the website Contact form or Services enquiry form."""
+CHAT_STYLE_RULES = (
+    "\n\nFormat rules (strict): reply in plain text only, no markdown symbols (no asterisks, no # headings, no tables). "
+    "Keep every answer under 110 words: a direct answer in 2-4 short sentences, then at most 3 short lines starting with '- ' if a list helps. "
+    "Offer to go deeper instead of covering everything."
+)
+
+
+def plain_chat_text(text: str) -> str:
+    """Gemini sometimes ignores the no-markdown rule; the chat bubble shows plain text, so strip the symbols."""
+    import re
+    text = re.sub(r"^\s{0,3}#{1,6}\s*", "", text, flags=re.M)
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text, flags=re.S)
+    text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", text)
+    text = re.sub(r"^(\s*)[*\u2022]\s+", r"\1- ", text, flags=re.M)
+    text = text.replace("`", "")
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 CHAT_MAX_REQUESTS_PER_MINUTE = 10
 CHAT_RATE_WINDOW_SECONDS = 60
 CHAT_INITIAL_OUTPUT_TOKENS = 700
@@ -3387,7 +3405,7 @@ async def chat(payload: ChatRequest, request: Request):
                 model=model_id,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=FINLIT_CHAT_SYSTEM_INSTRUCTION,
+                    system_instruction=FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES,
                     max_output_tokens=output_limit,
                 ),
             )
@@ -3422,7 +3440,7 @@ async def chat(payload: ChatRequest, request: Request):
                 status_code=502,
                 detail="FinLit AI couldn’t complete that response. Please try a more focused question.",
             )
-        answer = (result.text or "").strip()
+        answer = plain_chat_text(result.text or "")
         if not answer:
             raise RuntimeError("Gemini returned an empty response")
         logger.info("FinLit AI response ready (finish_reason=%s, response_chars=%s)", finish_reason, len(answer))
