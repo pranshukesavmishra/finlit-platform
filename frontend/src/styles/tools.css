@@ -178,3 +178,7 @@ main#main { min-height: 90vh; }
 @media (max-width: 760px) { .pf-add { grid-template-columns: 1fr; } }
 /* quarter table: the changes sit under the latest figure they describe */
 .qtt .chgs { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; margin-top: 3px; } .qtt .chg { font: 600 11.5px var(--mono); white-space: nowrap; } .qtt .chg.pos { color: var(--gain); } .qtt .chg.neg { color: var(--loss); }
+/* shareholding pattern table */
+.own-t { width: 100%; font-size: 13.5px; border-collapse: collapse; } .own-t th { text-align: right; padding: 8px 12px; color: var(--muted); font: 600 11.5px var(--sans); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; } .own-t th:first-child { text-align: left; }
+.own-t td { text-align: right; padding: 11px 12px; border-top: 1px solid var(--border); font-family: var(--mono); white-space: nowrap; } .own-t td:first-child { text-align: left; font-family: var(--sans); } .own-t td.latest { background: color-mix(in srgb, var(--gold) 9%, transparent); font-weight: 600; }
+.own-t td.pos { color: var(--gain); } .own-t td.neg { color: var(--loss); } .own-t small { color: var(--faint); font-size: 11px; } .own-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 9px; }

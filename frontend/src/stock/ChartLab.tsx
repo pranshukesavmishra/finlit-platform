@@ -3,10 +3,11 @@ import { Icon } from "../lib/icons";
 import { Gate } from "../components/Gate";
 import { MiniBars } from "../charts/MiniBars";
 import { LineChart } from "../charts/LineChart";
-import { AreaSeries, Box, Candles, Donut, Dumbbell, HeatGrid, Histo, RankBars, Slope, StackArea, Timeline, Treemap, Waterfall, type BoxRow, type Step } from "../charts/Atlas";
+import { AreaSeries, Box, Candles, Donut, Dumbbell, HeatGrid, Histo, RankBars, Slope, Timeline, Treemap, Waterfall, type BoxRow, type Step } from "../charts/Atlas";
 import { usePrice, useSection, type Events, type Financials, type Meta, type Ownership, type Peers, type Ratios, type Summary, type Table } from "../lib/api";
 import { MINUS, cr, nf } from "../lib/format";
 import { SectionHead } from "./Sections";
+import { HScroll } from "../components/HScroll";
 
 type N = number | null;
 export type Stats = {
@@ -174,9 +175,19 @@ function OwnTab({ o }: { o?: Ownership }) {
   const changes = o.latest.filter((l) => l.change1yPts != null && OWN[l.key]).map((l) => ({ label: OWN[l.key][0], value: l.change1yPts as number }));
   return (
     <div className="cl-grid">
-      <Card title="Who owns the company, quarter by quarter" sub="Share of shares held" icon="users" full note="Each band is one group's share; together they always make 100%. Rising institutional bands often signal growing professional interest.">
-        <StackArea periods={o.periods} series={series} />
-        <div className="clg">{series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>
+      <Card title="Shareholding pattern, quarter by quarter" sub="% of shares held, every quarter reported" icon="users" full note="Each row is one group of owners. The last two columns show how much its share moved over the last quarter and the last year, in percentage points (pts). Promoters, foreign and Indian institutions together with the public and government make up 100%.">
+        <HScroll className="" label="shareholding table">
+          <table className="own-t"><thead><tr><th>Owners</th>{o.periods.slice(-8).map((p) => <th key={p}>{p}</th>)}<th>vs last quarter</th><th>vs year ago</th></tr></thead>
+            <tbody>{keys.map((k) => { const vals = o.series[k], cur = vals[last], prev = vals[last - 1], ya = vals[last - 4];
+              const d = (a: number | null | undefined, b: number | null | undefined) => (a == null || b == null ? null : a - b);
+              const cell = (x: number | null) => <td className={x == null || Math.abs(x) < 0.05 ? "" : x > 0 ? "pos" : "neg"}>{x == null ? "—" : Math.abs(x) < 0.05 ? "0.0" : (x > 0 ? "+" : MINUS) + nf(Math.abs(x), 2)} <small>pts</small></td>;
+              return <tr key={k}><td><i className="own-dot" style={{ background: OWN[k][1] }} /><b>{OWN[k][0]}</b></td>{vals.slice(-8).map((x, i, a) => <td key={i} className={i === a.length - 1 ? "latest" : ""}>{x == null ? "—" : nf(x, 2) + "%"}</td>)}{cell(d(cur, prev))}{cell(d(cur, ya))}</tr>; })}</tbody></table>
+        </HScroll>
+      </Card>
+      <Card title="How each group's share has moved" sub="One line per group, % of shares held" icon="users" full note="Read each line on its own: a rising line means that group owns more of the company than before. Hover the chart for the exact figure.">
+        <LineChart periods={o.periods} fmt={(x) => nf(x, 1) + "%"} height={300} domain={[0, Math.ceil(Math.max(...series.flatMap((x) => x.values.filter((v): v is number => v != null)), 1) / 10) * 10]}
+          series={series.map((x) => ({ key: x.key, label: x.label, color: x.color, values: x.values }))} />
+        <div className="clg">{series.map((x) => <span key={x.key}><i style={{ background: x.color }} />{x.label}</span>)}</div>
       </Card>
       <Card title="Latest ownership mix" sub={o.asOf ? `As of ${o.asOf}` : undefined} icon="pie"><Donut parts={parts} center={nf(parts[0]?.value ?? 0, 1) + "%"} sub={parts[0]?.label} /></Card>
       <Card title={`Change since ${o.periods[0]}`} sub="Share of shares held, then and now" icon="layers">
