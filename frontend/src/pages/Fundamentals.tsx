@@ -10,6 +10,7 @@ import { dateIN, nf, signed, MINUS } from "../lib/format";
 import { downloadCsv, pushRecent, qs, readRecent, useGold, usePremium, useSlashFocus } from "../lib/premium";
 import { useUniverse } from "../lib/screener";
 import { useSection, type Ratios as StockRatios } from "../lib/api";
+import { ProfitabilityRatios } from "../stock/ProfitabilityRatios";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 
@@ -158,7 +159,7 @@ function Ratios({ d, limit }: { d: Fund; limit: number }) {
             })}</tbody></table></HScroll>
           <p className="pm-legend"><i style={{ background: "var(--gold)" }} />Company <i style={{ background: "var(--faint)" }} />Sector</p>
         </>) : <div className="pm-empty">No ratios were reported.</div>}
-      <div className="pm-sec"><h2>Profitability over time</h2><Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} /></div>
+      <div className="pm-sec"><h2>Profitability ratios</h2>{mine.data?.history?.periods?.length ? <ProfitabilityRatios periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} /> : <Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} />}</div>
     </>
   );
 }

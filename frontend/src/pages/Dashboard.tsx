@@ -6,7 +6,7 @@ import { useAuth } from "../lib/auth";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
 import { PALETTES, PALETTE_IDS } from "../lib/palettes";
 import { WIDGETS, prefs, usePrefs, type WidgetPref } from "../lib/prefs";
-import { BAND_LABEL, applyFilters, useUniverse, type Row } from "../lib/screener";
+import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
 import { useSavedScreens } from "../lib/screens";
 import { useWatchlist, watch } from "../lib/watchlist";
 import { DEMO } from "../lib/demo";
@@ -17,6 +17,7 @@ import { MINUS, cr, nf } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import terms from "../content/glossary.json";
 import { dayLabel, useFeed, who } from "../lib/feed";
+import { encodeState, toBody, useScreen, type PState } from "../lib/proscreen";
 import { useIpos } from "../lib/ipo";
 import { useAlerts } from "../lib/alerts";
 
@@ -104,10 +105,20 @@ function SecondLook({ items, meta }: { items: Row[]; meta: Record<string, { targ
   return <ul className="sl">{flagged.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`}><b>{r.symbol}</b>{r.band && <span className={"band-dot " + r.band}>{BAND_LABEL[r.band]}</span>}</Link><span>{s[0]}</span></li>)}</ul>;
 }
 
-function Screens({ rows }: { rows: Row[] }) {
+/** How many companies a saved screen matches today, asked of the screener itself (the browser's company list does not carry the screener's 170 filters). */
+function ScreenCount({ state }: { state: PState & { sort?: string; dir?: "asc" | "desc" } }) {
+  const q = useScreen(toBody(state, { key: state.sort || "market_cap", dir: state.dir || "desc" } as never, [], "", 0, 1), true);
+  return <span className="muted">{q.data ? `${nf(q.data.total, 0)} match` : q.isError ? "—" : "…"}</span>;
+}
+
+function Screens() {
   const saved = useSavedScreens();
   if (!saved.length) return <Empty icon="table" title="No saved screens" text="Save a set of filters in the screener and track how many companies match." to="/screener" cta="Open screener" />;
-  return <ul className="sv">{saved.slice(0, 6).map((s) => <li key={s.name}><Link to="/screener" state={{ screen: s.name }}><b>{s.name}</b><span className="muted">{rows.length ? applyFilters(rows, s.state).length : "…"} match</span></Link></li>)}</ul>;
+  return <ul className="sv">{saved.slice(0, 6).map((s) => {
+    const st = s.state as unknown as PState & { sort?: string; dir?: "asc" | "desc" };
+    const pro = !!st && typeof st === "object" && !!st.ranges;   // screens saved by the full screener; older ones from the simple screener are opened empty
+    return <li key={s.name}><Link to={pro ? `/screener?s=${encodeState(st, st.sort || "market_cap", st.dir || "desc")}` : "/screener"}><b>{s.name}</b>{pro ? <ScreenCount state={st} /> : <span className="muted">Open</span>}</Link></li>;
+  })}</ul>;
 }
 
 function Buckets({ items }: { items: Row[] }) {
@@ -213,7 +224,7 @@ export function Dashboard() {
       case "ipos": return <IposW />;
       case "results": return <Results symbols={followed.length ? followed : ["RELIANCE"]} names={names} />;
       case "second": return <SecondLook items={items} meta={wl.meta} />;
-      case "screens": return <Screens rows={rows} />;
+      case "screens": return <Screens />;
       case "buckets": return <Buckets items={items} />;
       default: return <Learn />;
     }

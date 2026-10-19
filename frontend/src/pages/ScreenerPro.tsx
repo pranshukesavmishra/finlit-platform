@@ -101,7 +101,7 @@ export function ScreenerPro() {
   const [f, setF] = useState<PState>(init.current.state);
   const [sort, setSort] = useState({ key: init.current.sort || "market_cap", dir: (init.current.dir || "desc") as "asc" | "desc" });
   const [cols, setCols] = useState<string[] | null>(null);
-  const [q, setQ] = useState(""), [page, setPage] = useState(0);
+  const [q, setQ] = useState(""), [pg, setPg] = useState({ k: "", p: 0 });
   const [tab, setTab] = useState<"filters" | "quick">("filters");
   const [pick, setPick] = useState<Record<string, string>>({ valuation: "pe" });
   const [find, setFind] = useState(""), [open, setOpen] = useState<Record<string, boolean>>({ valuation: true });
@@ -114,8 +114,13 @@ export function ScreenerPro() {
   const ask = (tier: Plan, why: string) => upgrade(tier, why);
 
   const dq = useDebounced(f, 250), dsort = useDebounced(sort, 0), dqq = useDebounced(q, 250);
-  useEffect(() => setPage(0), [dq, dsort, dqq]);
-  const body = useMemo(() => toBody(dq, dsort, columns, dqq, page * PAGE, PAGE), [dq, dsort, columns, dqq, page]);
+  // The page belongs to the filters it was chosen under: change a filter, the sort or the search and it is page 1 at once (no request with the old offset).
+  const pkey = JSON.stringify([dq, dsort, dqq]), page = pg.k === pkey ? pg.p : 0, setPage = (p: number) => setPg({ k: pkey, p });
+  // A shared or old link can name a filter or sort the screener does not have: leave those out instead of failing the whole screen.
+  const known = (k: string) => !data || byKey.has(k);
+  const safe = useMemo(() => ({ ...dq, ranges: Object.fromEntries(Object.entries(dq.ranges).filter(([k]) => known(k))) }), [dq, data]); // eslint-disable-line react-hooks/exhaustive-deps
+  const safeSort = known(dsort.key) || dsort.key === "name" || dsort.key === "symbol" ? dsort : { key: "market_cap", dir: "desc" as const };
+  const body = useMemo(() => toBody(safe, safeSort, columns, dqq, page * PAGE, PAGE), [safe, safeSort.key, safeSort.dir, columns, dqq, page]); // eslint-disable-line react-hooks/exhaustive-deps
   const res = useScreen(body, !!data && columns.length > 0);
   const rows = res.data?.rows || [];
   const nActive = activeCount(f);

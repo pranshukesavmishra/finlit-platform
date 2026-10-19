@@ -48,7 +48,7 @@ export function WatchlistPage() {
   const { has, toast, upgrade, plan } = useUI();
   const nav = useNavigate();
   const st = useWatchlist();
-  const { data } = useUniverse();
+  const uniQ = useUniverse(), { data } = uniQ;
   const rows = data?.rows || [], bySym = useMemo(() => new Map(rows.map((r) => [r.symbol, r])), [rows]);
   const [lid, setLid] = useState(st.lists[0].id), [group, setGroup] = useState<GroupBy>("sector"), [sort, setSort] = useState<NumKey | "name">("overall");
   const [sel, setSel] = useState<string[]>([]), [naming, setNaming] = useState(false), [name, setName] = useState(""), [edit, setEdit] = useState<string | null>(null);
@@ -110,7 +110,10 @@ export function WatchlistPage() {
             <button className="btn" onClick={exportCsv}>Download</button>
           </div>
 
-          {items.length === 0 ? (
+          {items.length === 0 && (uniQ.isLoading || uniQ.isError) && list.symbols.length > 0 ? (
+            uniQ.isError ? <div className="state"><h2>Your stocks could not be loaded</h2><p>The company data did not arrive. Your list is safe.</p><button className="btn" onClick={() => uniQ.refetch()}>Try again</button></div>
+              : <div className="skeleton" style={{ height: 220 }} aria-busy="true" aria-label="Loading your stocks" />
+          ) : items.length === 0 ? (
             <div className="state"><h2>This list is empty</h2><p>Search above to add a stock, or tap the star on any company report. Try one of these:</p>
               <div className="wl-sug">{[...rows].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)).slice(0, 6).map((r) => <button key={r.symbol} className="btn" onClick={() => addStock(r)}>+ {r.symbol}</button>)}</div></div>
           ) : (
