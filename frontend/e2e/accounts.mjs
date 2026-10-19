@@ -248,19 +248,15 @@ check("watchlist: appears on the other device", (await p2.getByText("RELIANCE").
 
 // ---------------------------------------------------------------- portfolio (Silver) + email preferences
 await p.goto(base + "/holdings", { waitUntil: "networkidle" });
-await p.getByLabel("Symbol").fill("RELIANCE"); await p.getByLabel("Quantity").fill("10"); await p.getByLabel(/Average buy price/).fill("1000");
-await p.getByRole("button", { name: "Add holding" }).click();
-check("portfolio: a holding is added and valued", await p.getByText("Current value").waitFor({ timeout: 8000 }).then(() => true, () => false) && (await p.locator(".hold tbody tr").count()) === 1);
-check("portfolio: profit and loss is worked out from price and cost", /₹/.test(await p.locator(".pf-k").innerText()));
-await p.getByRole("button", { name: "Import" }).click();
-await p.getByLabel("Holdings to import").fill("RELIANCE, 5, 1100\nBADLINE\nXYZ, -1, 5");
-await p.getByRole("button", { name: "Import", exact: true }).last().click(); await p.waitForTimeout(500);
-check("portfolio: import keeps the readable lines and skips the rest", (await p.locator(".hold tbody tr").count()) === 2);
+await p.locator(".pf-one input").fill("RELIANCE"); await p.locator(".pf-one .btn").click(); await p.waitForTimeout(400);
+await p.locator(".pf-bulk textarea").fill("TCS\nINFY");
+await p.getByRole("button", { name: "Add these" }).click(); await p.waitForTimeout(600);
+check("portfolio: shares are added by name", (await p.locator("table.hold tbody tr").count()) === 3);
 await p.waitForTimeout(1500);
 const pst = await api(p, "/api/me/state");
-check("portfolio: saved to the account", (pst.body.portfolio.holdings || []).length === 2, JSON.stringify(pst.body.portfolio).slice(0, 80));
+check("portfolio: saved to the account", (pst.body.portfolio.holdings || []).length === 3, JSON.stringify(pst.body.portfolio).slice(0, 80));
 await p2.goto(base + "/holdings", { waitUntil: "networkidle" }); await p2.waitForTimeout(800);
-check("portfolio: appears on the other device", (await p2.locator(".hold tbody tr").count()) === 2);
+check("portfolio: appears on the other device", (await p2.locator(".hold tbody tr").count()) === 3);
 await p.goto(base + "/account/appearance", { waitUntil: "networkidle" });
 await p.getByLabel(/Send me .your week ahead/).check({ force: true }); await p.waitForTimeout(1500);
 check("weekly email preference is saved to the account", (await api(p, "/api/me/state")).body.prefs.digest === true);
