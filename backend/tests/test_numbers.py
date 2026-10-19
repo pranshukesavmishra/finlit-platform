@@ -89,3 +89,10 @@ def test_empty_scores_say_why_and_short_annual_history_falls_back_to_quarters():
     q = {"rows": {"revenue": [1559.82, 1436.43, 1621.22, 1894.99, 1896.41], "net_profit": [100.0, 90.0, 110.0, 120.0, 130.0]}}
     d = derived.compute(pl, {"rows": {}}, {"periods": [], "rows": {}}, {}, None, None, None, False, q)
     assert d["sales_growth_latest"] == 21.58 and d["profit_growth_latest"] == 30.0 and d["growth_basis"] == "quarter"
+
+
+def test_equity_survives_provider_zero_for_owners_equity():
+    """Small companies send equityAttributableToOwnersOfParent=0 meaning "not reported": total equity must still show."""
+    from finlit.normalize import statements
+    row = {"period_end": "2025-03-31", "totalEquity": 836379000, "equityAttributableToOwnersOfParent": 0, "nonControllingInterest": 0}
+    assert statements.balance_sheet([row])["rows"]["total_equity"] == [83.64]

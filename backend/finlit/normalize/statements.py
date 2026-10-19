@@ -48,6 +48,8 @@ def _revenue(r: Row) -> Optional[float]:
     value = to_number(r.get("revenueFromOperations"))
     if not value:  # banks/NBFCs report interest earned instead
         value = sum_present(r.get("interestEarned"), r.get("feesAndCommissionIncome"), r.get("otherRevenueFromOperations"))
+    if not value:  # insurers report their operating income (premiums earned plus investment income)
+        value = to_number(r.get("operatingIncome")) or to_number(r.get("income")) or to_number(r.get("premiumEarned")) or to_number(r.get("netPremiumIncome")) or None   # life insurers: total income
     return crore(value)
 
 
@@ -70,6 +72,8 @@ def _operating_profit(r: Row) -> Optional[float]:
     (the Screener.in convention FinLit users already know). For banks: operating profit before provisions."""
     revenue = to_number(r.get("revenueFromOperations"))
     expenses = to_number(r.get("expenses"))
+    if revenue is None and r.get("operatingProfitOrLoss") is not None:   # insurers state their operating result directly
+        return crore(r.get("operatingProfitOrLoss"))
     if (revenue is None or expenses is None) and r.get("expenditureExcludingProvisions") is not None:
         income, cost = to_number(r.get("income")), to_number(r.get("expenditureExcludingProvisions"))
         return crore(income - cost) if income is not None and cost is not None else None
@@ -83,14 +87,14 @@ PL_FIELDS = {
     "revenue": _revenue,
     "other_income": lambda r: crore(r.get("otherIncome")),
     "total_income": lambda r: crore(r.get("income")),
-    "expenses": lambda r: crore(r.get("expenses")) if r.get("expenses") is not None else _bank_expenses(r),
+    "expenses": lambda r: crore(_first(r, "expenses", "operatingExpenses")) if _first(r, "expenses", "operatingExpenses") is not None else _bank_expenses(r),
     "operating_profit": _operating_profit,
     "finance_costs": lambda r: crore(_first(r, "financeCosts", "interestExpended")),
     "depreciation": lambda r: crore(r.get("depreciationAndAmortisation")),
     "exceptional_items": lambda r: crore(r.get("exceptionalItemsBeforeTax")),
-    "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax")),
-    "tax": lambda r: crore(r.get("taxExpense")),
-    "net_profit": lambda r: crore(_first(r, "profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod")),   # attributable to the company's shareholders, as EPS is
+    "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax", "profitOrLossBeforeTax")),
+    "tax": lambda r: crore(_first(r, "taxExpense", "provisionForTax")),
+    "net_profit": lambda r: crore(_first(r, "profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod", "profitLossAfterTax", "profitLossAfterTaxAndExtraordinaryItems", "profitLossAfterTaxBeforeExtraordinaryItems")),   # attributable to the company's shareholders, as EPS is
     "eps": lambda r: rnd(r.get("eps")),
     "diluted_shares_cr": lambda r: crore(r.get("dilutedOutstandingShares")),
 }
@@ -105,10 +109,10 @@ def profit_and_loss(rows: List[Row], period: str = "yearly", limit: Optional[int
 def _equity(r: Row) -> Optional[float]:
     """Equity that belongs to the company's own shareholders. Banks report share capital plus reserves instead."""
     owners = to_number(r.get("equityAttributableToOwnersOfParent"))
-    if owners is not None:
+    if owners:   # the provider sends 0 for "not reported" on many small companies: that must not hide the total
         return crore(owners)
     total = to_number(r.get("totalEquity"))
-    if total is not None:
+    if total:
         return crore(total - (to_number(r.get("nonControllingInterest")) or 0))
     banked = sum_present(r.get("capital"), r.get("reserves")) if r.get("capital") is not None else None
     return crore(banked)

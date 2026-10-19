@@ -14,6 +14,8 @@ Bundle keys (raw FinEdge payloads, any may be missing):
 
 from __future__ import annotations
 
+import logging
+
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -43,6 +45,10 @@ def _rows(payload: Any, key: str = "financials") -> List[dict]:
         value = payload.get(key)
         return value if isinstance(value, list) else []
     return payload if isinstance(payload, list) else []
+
+
+def _ordered_rows(rows: List[dict]) -> List[dict]:
+    return sorted(rows, key=lambda r: r.get("year") or 0)
 
 
 def _present(payload: Any) -> bool:
@@ -152,6 +158,10 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         if entry:
             key_metrics.append({"key": key, "value": entry["value"], "unit": entry.get("unit"),
                                 "label": entry.get("label"), "period": entry.get("period")})
+
+    if pl_rows and not (pl.get("rows") or {}).get("revenue"):   # the provider has results but none of the lines we know for sales: say so, so the mapping can be added
+        quality["notes"] = [*quality.get("notes", []), "Sales could not be read from this company's results format."]
+        logging.getLogger("finlit.snapshot").warning("revenue not mapped for %s; fields: %s", symbol, sorted(k for k, v in _ordered_rows(pl_rows)[-1].items() if v not in (None, 0, ""))[:40])
 
     summary = {
         "meta": meta,
