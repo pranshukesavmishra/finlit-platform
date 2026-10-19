@@ -16,6 +16,7 @@ const OWN_WORDS: Record<string, string> = { promoters: "Founders and their group
 
 /** Gradient donut with a gap between slices; hover or focus a slice to read it in the centre. */
 function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; value: number }[]; hl: string | null; setHl: (k: string | null) => void }) {
+  if (!items.length) return null;
   const tot = items.reduce((a, i) => a + i.value, 0) || 1, R = 92, W = 30, C = 130;
   let ang = 0;
   const arcs = items.map((i) => { const sweep = (i.value / tot) * 360, a0 = ang + 1.6, a1 = ang + sweep - 1.6; ang += sweep; return { ...i, a0, a1: Math.max(a1, a0 + 0.5) }; });
@@ -49,6 +50,7 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
   if (!o) return <section className="block"><SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
+  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="07 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
   const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
   const items = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");

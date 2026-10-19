@@ -6,6 +6,7 @@ import { signed, nf } from "../lib/format";
 import { OpenAccess } from "../components/Gate";
 import { useAuth } from "../lib/auth";
 import { Hero } from "./Hero";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { FinancialsSection, Notes, PriceSection } from "./Sections";
 import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
 import { QuarterSection, TrendsSection } from "./Sections4";
@@ -83,18 +84,18 @@ export function StockPage() {
       <div className="wrap">
         <div ref={idrow} />
         <Notes s={s} />
-        <PriceSection s={s} symbol={symbol} ratios={ratios} />
-        <QuarterSection f={fin} />
-        <FinancialsSection f={fin} />
-        <TrendsSection f={fin} seg={seg} e={events} r={ratios} />
+        <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><FinancialsSection f={fin} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><TrendsSection f={fin} seg={seg} e={events} r={ratios} /></ErrorBoundary>
         <ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} />
-        <RatiosSection r={ratios} />
-        <OwnershipSection o={own} />
-        <PeersSection p={peers} self={symbol} s={s} />
-        <InsightsSection s={s} r={ratios} seg={seg} tech={tech} />
-        <BusinessSection s={s} />
-        <DividendsSection e={events} price={q?.price} r={ratios} />
-        <MethodSection s={s} r={ratios} />
+        <ErrorBoundary section="This section"><RatiosSection r={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><OwnershipSection o={own} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><MethodSection s={s} r={ratios} /></ErrorBoundary>
       </div>
       <PlansBand id="plans" />
     </>

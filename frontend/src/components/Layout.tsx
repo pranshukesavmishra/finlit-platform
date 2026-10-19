@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { COMPANY } from "../content/site";
 import { useUI } from "../lib/ui";
@@ -164,7 +165,7 @@ export function Layout() {
         {DEMO && <div className="demo-bar" role="note"><b>Demo preview</b> · saved sample data, no servers. Forms are not sent. The live site loads every stock.</div>}
         <Tape />
         <Header onSearch={() => setSearch(true)} />
-        <main id="main"><Outlet /></main>
+        <main id="main"><ErrorBoundary><Outlet /></ErrorBoundary></main>
         {!bare && <Footer />}
         <SearchPalette open={search} onClose={() => setSearch(false)} />
         <AlertToasts />
