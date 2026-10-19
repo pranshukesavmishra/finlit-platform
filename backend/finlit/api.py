@@ -147,6 +147,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 await app.state.store.search_index()
                 for level in ("basic", "silver"):
                     await build_universe(level)
+                from .screener.data import get_table
+                await get_table(app.state.store)
             except Exception:
                 logging.getLogger("finlit.api").exception("list warm-up failed")
 

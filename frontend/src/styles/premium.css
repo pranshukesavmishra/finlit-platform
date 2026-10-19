@@ -103,7 +103,7 @@
 @media (max-width: 900px) { .sstrip { grid-template-columns: 1fr; gap: 14px; } .ss-split { grid-template-columns: 1fr 1fr; } }
 @media print { .ss-cta { display: none; } }
 /* screener: chips and the filter card (valuation and every other group) */
-.pl-chips { display: flex; flex-wrap: wrap; gap: 8px; } .pl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--s1); color: var(--text); font: 500 13.5px var(--sans); cursor: pointer; transition: border-color .15s, background .15s; }
+.pl-chips { display: flex; flex-wrap: wrap; gap: 8px; } .pl-more { margin-top: 12px; } .pl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--s1); color: var(--text); font: 500 13.5px var(--sans); cursor: pointer; transition: border-color .15s, background .15s; }
 .pl-chip:hover { border-color: var(--gold); } .pl-chip.open { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-soft); } .pl-chip.on { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); font-weight: 600; } .pl-chip svg { width: 12px; height: 12px; color: var(--gold); } .pl-chip.is-locked { opacity: .7; }
 .pl-card { margin-top: 4px; padding: 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--s2); display: grid; gap: 10px; } .pl-card-h { display: flex; align-items: center; gap: 8px; } .pl-card-h b { font: 600 15px var(--sans); } .pl-rm { margin-left: auto; border: 0; background: none; color: var(--loss); font: 600 13px var(--sans); cursor: pointer; }
 .pl-card .pm-seg { width: 100%; } .pl-card .pm-seg button { flex: 1; padding: 0 6px; }

@@ -198,11 +198,21 @@ export function ScreenerPro() {
                               : <div className="scr-bands" role="group" aria-label="FinLit band">{(data?.bands || []).map((b) => <button key={b.key} className={"bandc " + b.key} aria-pressed={f.bands.includes(b.key)} onClick={() => toggle("bands", b.key)}>{b.label}</button>)}</div>
                             )}
                             {!(model && allLocked) && <>
-                              <div className="pl-chips" role="group" aria-label={`${g.label} filters`}>{shownMetrics.filter((m) => !m.hidden).map((m) => {
-                                const active = m.variants ? Object.values(m.variants).some((k) => f.ranges[k]) : !!f.ranges[m.key];
-                                return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key }))}>{m.label}{m.locked && <Icon name="lock" />}</button>;
-                              })}</div>
-                              {pick[g.id] && byKey.get(pick[g.id]) && <FilterCard key={pick[g.id]} m={byKey.get(pick[g.id])!} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} />}
+                              {(() => {
+                                // The main filters of a group come first, the chart of the chosen filter right under them, then the rest,
+                                // so opening a filter never pushes its chart to the bottom of a long group.
+                                const visible = shownMetrics.filter((m) => !m.hidden), MAIN = visible.length > 8 ? 6 : visible.length;
+                                const chip = (m: MetricInfo) => {
+                                  const active = m.variants ? Object.values(m.variants).some((k) => f.ranges[k]) : !!f.ranges[m.key];
+                                  return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key }))}>{m.label}{m.locked && <Icon name="lock" />}</button>;
+                                };
+                                const card = pick[g.id] && byKey.get(pick[g.id]) && <FilterCard key={pick[g.id]} m={byKey.get(pick[g.id])!} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} />;
+                                return <>
+                                  <div className="pl-chips" role="group" aria-label={`${g.label} filters`}>{visible.slice(0, MAIN).map(chip)}</div>
+                                  {card}
+                                  {visible.length > MAIN && <div className="pl-chips pl-more" role="group" aria-label={`More ${g.label.toLowerCase()} filters`}>{visible.slice(MAIN).map(chip)}</div>}
+                                </>;
+                              })()}
                             </>}
                           </div>)}
                       </div>);

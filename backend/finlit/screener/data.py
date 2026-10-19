@@ -16,7 +16,7 @@ from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import MULTIPLES
 
 NAN = float("nan")
-TTL = 60
+TTL = 60   # older than this, the table is rebuilt in the background on the next request
 # Columns kept on the old scores table before metrics existed: used until a company's metrics are rebuilt.
 LEGACY = {"market_cap": "market_cap", "price": "price", "pe": "pe", "pb": "pb", "roe": "roe", "roce": "roce", "dividend_yield": "dividend_yield",
           "debt_to_equity": "debt_to_equity", "sales_cagr_5y": "sales_cagr", "profit_cagr_5y": "profit_cagr", "operating_margin": "operating_margin",
@@ -166,26 +166,48 @@ _table: Optional[Table] = None
 _lock = asyncio.Lock()
 
 
-async def get_table(store, force: bool = False) -> Table:
+async def _load(store) -> Table:
+    async with store.pool.acquire() as conn:
+        rows = [dict(r) for r in await conn.fetch(
+            "SELECT DISTINCT ON (symbol) * FROM scores WHERE model = 'v1' ORDER BY symbol, (statement = 'consolidated') DESC, updated_at DESC")]
+        mem: Dict[str, List[str]] = {}
+        for r in await conn.fetch("SELECT index_code, symbol FROM index_members"):
+            mem.setdefault(r["index_code"], []).append(r["symbol"])
+        move: Dict[str, float] = {}
+        for r in await conn.fetch(
+                "SELECT DISTINCT ON (h.symbol) h.symbol, s.overall - h.overall AS d FROM score_history h JOIN scores s ON s.symbol = h.symbol AND s.model = h.model "
+                "WHERE h.model = 'v1' AND h.day <= current_date - 80 AND h.overall IS NOT NULL AND s.overall IS NOT NULL ORDER BY h.symbol, h.day DESC"):
+            move[r["symbol"]] = float(r["d"])
+    return Table(rows, mem, move)
+
+
+_refreshing: Optional[asyncio.Task] = None
+
+
+async def _refresh(store) -> None:
     global _table
-    if _table and not force and time.time() - _table.loaded < TTL:
-        return _table
     async with _lock:
-        if _table and not force and time.time() - _table.loaded < TTL:
-            return _table
-        async with store.pool.acquire() as conn:
-            rows = [dict(r) for r in await conn.fetch(
-                "SELECT DISTINCT ON (symbol) * FROM scores WHERE model = 'v1' ORDER BY symbol, (statement = 'consolidated') DESC, updated_at DESC")]
-            mem: Dict[str, List[str]] = {}
-            for r in await conn.fetch("SELECT index_code, symbol FROM index_members"):
-                mem.setdefault(r["index_code"], []).append(r["symbol"])
-            move: Dict[str, float] = {}
-            for r in await conn.fetch(
-                    "SELECT DISTINCT ON (h.symbol) h.symbol, s.overall - h.overall AS d FROM score_history h JOIN scores s ON s.symbol = h.symbol AND s.model = h.model "
-                    "WHERE h.model = 'v1' AND h.day <= current_date - 80 AND h.overall IS NOT NULL AND s.overall IS NOT NULL ORDER BY h.symbol, h.day DESC"):
-                move[r["symbol"]] = float(r["d"])
-        _table = Table(rows, mem, move)
+        _table = await _load(store)
+
+
+async def get_table(store, force: bool = False) -> Table:
+    """The in-memory table. Only the very first request after a start waits for it; after that an old table is served at once
+    while a fresh one is built in the background (stale-while-revalidate), so no visitor waits on the database."""
+    global _refreshing
+    if _table and not force:
+        if time.time() - _table.loaded >= TTL and (_refreshing is None or _refreshing.done()):
+            _refreshing = asyncio.create_task(_refresh(store))
         return _table
+    if force or _table is None:
+        async with _lock:
+            if _table is None or force:
+                await _refresh_locked(store)
+    return _table  # type: ignore[return-value]
+
+
+async def _refresh_locked(store) -> None:
+    global _table
+    _table = await _load(store)
 
 
 def reset() -> None:
