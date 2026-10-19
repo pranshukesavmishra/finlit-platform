@@ -8,6 +8,7 @@ repeat views without reaching the origin at all.
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import time
 from pathlib import Path
@@ -109,6 +110,26 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     if problems:
         raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
 
+    async def build_universe(level: str):
+        """Build the screener list for one access level and keep it in Redis (3 minutes)."""
+        rows = await app.state.store.screener_rows()
+        out = []
+        for r in rows:
+            r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
+            for k, v in list(r.items()):
+                if v is not None and not isinstance(v, (int, str, bool, float)):
+                    r[k] = float(v)
+            out.append(r)
+        out = redact_universe(out, level, set(settings.showcase_symbols))
+        body = orjson.dumps({"rows": out})
+        etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
+        try:
+            await app.state.store.redis.hset(f"universe:{level}", mapping={"body": body, "etag": etag})
+            await app.state.store.redis.expire(f"universe:{level}", 180)
+        except Exception:
+            pass
+        return body, etag
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.store = store or await Store.connect(settings)
@@ -119,7 +140,19 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         else:
             app.state.mailer = ConsoleMailer(app.state.store.pool)
         warm = asyncio.create_task(premium.warmer(app)) if settings.site_api_url and settings.cms_jwt_secret else None
+
+        async def keep_lists_warm():
+            """Search list and screener list are built once at start, so the first visitor does not wait for them. Not repeated on a timer: that would keep the free database awake all day."""
+            try:
+                await app.state.store.search_index()
+                for level in ("basic", "silver"):
+                    await build_universe(level)
+            except Exception:
+                logging.getLogger("finlit.api").exception("list warm-up failed")
+
+        lists = asyncio.create_task(keep_lists_warm())
         yield
+        lists.cancel()
         if warm:
             warm.cancel()
         if store is None:
@@ -280,22 +313,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         except Exception:
             hit = [None, None]
         if hit[0] is None:
-            rows = await app.state.store.screener_rows()
-            out = []
-            for r in rows:
-                r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
-                for k, v in list(r.items()):
-                    if v is not None and not isinstance(v, (int, str, bool, float)):
-                        r[k] = float(v)
-                out.append(r)
-            out = redact_universe(out, level, set(settings.showcase_symbols))
-            body = orjson.dumps({"rows": out})
-            etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
-            try:
-                await redis.hset(f"universe:{level}", mapping={"body": body, "etag": etag})
-                await redis.expire(f"universe:{level}", 180)
-            except Exception:
-                pass
+            body, etag = await build_universe(level)
         else:
             body, etag = hit[0], hit[1].decode()
         response = cached(request, body, etag, CACHE_PRIVATE, started)

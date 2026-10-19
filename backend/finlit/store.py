@@ -23,6 +23,9 @@ from .config import Settings, get_settings
 log = logging.getLogger("finlit.store")
 MIGRATIONS = Path(__file__).parent / "migrations"
 SEARCH_KEY = "search-index"
+# What the website lists for every company. The 170 screener numbers (scores.metrics) are left out on purpose: they are ~2 KB a company and only /api/screener/query needs them.
+LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
+                "pe, pb, roe, roce, dividend_yield, debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, sector, name, updated_at")
 
 SCORE_COLUMNS = ("symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
                  "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
@@ -300,7 +303,7 @@ class Store:
 
     async def search_index(self) -> Tuple[bytes, bytes, str]:
         """Compact list for client-side search, pre-gzipped once (it is ~600 KB raw for ~5,700 stocks).
-        Rows are [symbol, name, bse, ready]; the NSE code is sent only when it differs from the symbol."""
+        Rows are [symbol, name, bse, ready], biggest company first; the NSE code is sent only when it differs from the symbol."""
         cached = await self.redis.hmget(SEARCH_KEY, ["body", "gzip", "etag"])
         if cached[0] is not None and cached[1] is not None:
             return cached[0], cached[1], cached[2].decode()
@@ -308,7 +311,9 @@ class Store:
             rows = await conn.fetch(
                 """SELECT c.symbol, c.name, c.nse_code, c.bse_code,
                           EXISTS(SELECT 1 FROM snapshots s WHERE s.symbol = c.symbol AND s.section = 'summary') AS ready
-                   FROM companies c ORDER BY c.symbol""")
+                   FROM companies c
+                   LEFT JOIN LATERAL (SELECT market_cap FROM scores WHERE symbol = c.symbol AND market_cap IS NOT NULL ORDER BY updated_at DESC LIMIT 1) m ON true
+                   ORDER BY m.market_cap DESC NULLS LAST, c.symbol""")  # biggest companies first: the order of the list is the ranking the search shows
         out = []
         for r in rows:
             row = [r["symbol"], r["name"], r["bse_code"], int(r["ready"])]
@@ -342,14 +347,14 @@ class Store:
     async def top_scores(self, model: str = "v1", limit: int = 50) -> List[dict]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT * FROM scores WHERE model = $1 ORDER BY overall DESC NULLS LAST LIMIT $2", model, limit)
+                f"SELECT {LIST_COLUMNS} FROM scores WHERE model = $1 ORDER BY overall DESC NULLS LAST LIMIT $2", model, limit)  # nosec B608 - fixed column list
         return [dict(r) for r in rows]
 
     async def screener_rows(self, model: str = "v1", statement: str = "consolidated", limit: int = 6000) -> List[dict]:
         """One row per company for the screener and comparison tool (client-side filtering, so no per-click queries)."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT DISTINCT ON (symbol) * FROM scores WHERE model = $1 "
+                f"SELECT DISTINCT ON (symbol) {LIST_COLUMNS} FROM scores WHERE model = $1 "  # nosec B608 - fixed column list
                 "ORDER BY symbol, (statement = $2) DESC, updated_at DESC LIMIT $3", model, statement, limit)
         return [dict(r) for r in rows]
 
