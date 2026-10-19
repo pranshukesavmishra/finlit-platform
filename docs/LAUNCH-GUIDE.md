@@ -263,6 +263,8 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 | Administrator sign-in refused | Wrong password, or the password contains your email name | Set a new `ADMIN_PASSWORD` in Environment and redeploy, then sign in again |
 | The chat says it is unavailable | No `GEMINI_API_KEY`, or the free daily limit was reached, or the key was deleted | Step 9. If the limit was reached, wait until it resets (midnight Pacific time) |
 | Company data stops updating | Render suspended the service for the month, or FinEdge limits were reached | Check the Render dashboard banner. Only one free service may run in the workspace |
+| Neon says storage is 100% full, or reports stop saving | The free database holds 1 GB; too many company reports were stored | In Render Environment set `INGEST_LIMIT` to `500` (index members first, then the largest companies). The nightly `prune` job deletes the rest and reports older than the history window; companies people open are rebuilt on demand. If it is already full, in the Neon SQL editor run `TRUNCATE snapshots;` (reports rebuild by themselves within minutes) |
+| A company page says "Preparing this report" for a long time, or a score pillar is empty | The data provider dropped a call under load, or the company has too little history (recent listing, no results filed yet, banks skip the Balance pillar) | Reports with missing parts are never saved and are rebuilt within minutes; an empty pillar now shows its reason on the page. Nothing to do |
 | Neon says the compute allowance is used | Background jobs kept the database awake | In Render Environment add `QUOTES_EVERY_MINUTES` = `10`, and look at the Neon usage page |
 
 ## What needs a person (cannot be done by the software)

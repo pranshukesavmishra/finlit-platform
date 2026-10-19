@@ -22,3 +22,6 @@ render loop that froze nav/sign-in tabs; CSRF token timing (admin landed on wron
 ## Gotchas when testing
 - killing the site backend alone does not help: deploy/render-start.sh respawns it; `pkill -f "[r]ender-start.sh"` first
 - never put the pkill pattern text elsewhere in the same shell command (it kills its own shell)
+
+## Update (October 2026)
+Live on Render with Neon, Atlas, free Redis. `INGEST_LIMIT` is 500 (Neon free storage). Added since: IPO/results calendars, live index prices and 5-year index valuation history, four-pillar score screener, portfolio import by share name, profitability views, shareholding table, and a numbers audit (profit and equity attributable to shareholders, lenders handled as lenders, calendar return windows, one score band set: Strong 78, Healthy 62, Mixed 45). `SNAPSHOT_VERSION` is 3: older reports are served while they are rebuilt. Reports with failed core parts are rejected, retried and rebuilt; empty score pillars say why. Backend tests: 174.
