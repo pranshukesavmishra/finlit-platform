@@ -45,6 +45,8 @@ while true; do
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices
+  (( H == 6 && M == 45 )) && run light calendars refresh-calendars
+  (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens
   (( D == 7 && H == 18 && M == 30 )) && run light digest send-digest
   sleep 20

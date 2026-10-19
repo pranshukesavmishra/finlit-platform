@@ -48,7 +48,7 @@ export function IpoPage() {
 
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>IPO calendar</h1><p className="muted">Issues that are open, coming up and recently listed, kept up to date by the FinLit team. For information only; read the offer document before you apply.</p></div></header>
+      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>IPO calendar</h1><p className="muted">Issues that are open, coming up and recently listed, updated automatically from exchange data. For information only; read the offer document before you apply.</p></div></header>
       <div className="ipo-k">
         {([["open", "Open now", by("open").length], ["upcoming", "Upcoming", by("upcoming").length], ["listed", "Listed in the last 30 days", month.length]] as const).map(([k, l, n]) => <div key={k} className="card ipo-t" style={{ "--tc": STATUS[k].colour } as React.CSSProperties}><b>{n}</b><span>{l}</span></div>)}
         <div className="card ipo-t" style={{ "--tc": "var(--k3)" } as React.CSSProperties}><b className={avgGain == null ? "" : avgGain >= 0 ? "up" : "down"}>{avgGain == null ? "—" : (avgGain >= 0 ? "+" : MINUS) + nf(Math.abs(avgGain), 1) + "%"}</b><span>Average listing gain (last 30 days)</span></div>

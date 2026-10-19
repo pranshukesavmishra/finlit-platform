@@ -203,6 +203,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
+    sub.add_parser("refresh-calendars", help="IPO and results calendars from the data provider")
     p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
     p_rm.add_argument("--only-missing", action="store_true")
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
@@ -263,6 +264,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 items = await store.snapshot_symbols(args.hours or settings.fundamentals_ttl_hours)
                 await ingest_many(client, store, items)
                 print(len(items), "refreshed")
+            elif args.cmd == "refresh-calendars":
+                from .calendars import refresh_calendars
+                print(await refresh_calendars(client, store))
             elif args.cmd == "refresh-quotes":
                 print(await refresh_quotes(client, store), "quotes updated")
             elif args.cmd == "drain-queue":

@@ -180,8 +180,12 @@ class Store:
             queued = await conn.fetchval("SELECT count(*) FROM ingest_queue")
             last = await conn.fetchval("SELECT max(generated_at) FROM snapshots WHERE section = 'summary'")
             runs = await conn.fetch("SELECT status, count(*) AS n FROM ingest_runs WHERE started_at > now() - interval '24 hours' GROUP BY status")
+            cal_res = await conn.fetchval("SELECT max(created_at) FROM feed_items WHERE source = 'FinEdge results calendar'")
+            cal_res_to = await conn.fetchval("SELECT max(item_date) FROM feed_items WHERE source = 'FinEdge results calendar'")
+            cal_ipo = await conn.fetchval("SELECT max(updated_at) FROM ipos WHERE ext_key IS NOT NULL")
             failed = await conn.fetch("SELECT symbol, status, started_at AS at, errors FROM ingest_runs WHERE status IN ('failed', 'rejected') ORDER BY id DESC LIMIT 15")
         return {"universe": universe, "loaded": loaded, "scored": scored, "queued": queued, "lastLoad": last.isoformat() if last else None,
+                "calendars": {"resultsAt": cal_res.isoformat() if cal_res else None, "resultsThrough": cal_res_to.isoformat() if cal_res_to else None, "ipoAt": cal_ipo.isoformat() if cal_ipo else None},
                 "runs24h": {r["status"]: r["n"] for r in runs},
                 "recentProblems": [{"symbol": r["symbol"], "status": r["status"], "at": r["at"].isoformat(), "detail": str(r["errors"])[:200]} for r in failed]}
 

@@ -825,12 +825,19 @@ def feed_json(r: Any) -> Dict[str, Any]:
 
 @router.get("/feed")
 async def feed(request: Request, kind: Literal["news", "result", "document"] = "news", symbol: str = Query("", max_length=200), q: str = Query("", max_length=80),
-               upcoming: bool = False, limit: int = Query(60, ge=1, le=200), before: Optional[_date] = None):
+               upcoming: bool = False, limit: int = Query(60, ge=1, le=3000), before: Optional[_date] = None,
+               from_date: Optional[_date] = None, to_date: Optional[_date] = None):
     """Public. `symbol` may be one symbol or several separated by commas (a watchlist). `upcoming=true` returns dates from today on, soonest first."""
     syms = [x.strip().upper() for x in symbol.split(",") if x.strip()][:60]
     if any(not SYMBOL.match(x) for x in syms):
         raise fail(400, "invalid_symbol")
+    windowed = from_date is not None and to_date is not None and 0 <= (to_date - from_date).days <= 62
+    if limit > 200 and not windowed:
+        raise fail(400, "bad_request", "A long list needs a date window of two months or less.")
     where, args = ["kind = $1"], [kind]
+    if windowed:
+        args += [from_date, to_date]
+        where.append(f"item_date BETWEEN ${len(args) - 1} AND ${len(args)}")
     if syms:
         args.append(syms)
         where.append(f"symbol = ANY(${len(args)}::text[])")

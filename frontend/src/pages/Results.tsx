@@ -14,14 +14,20 @@ export function ResultsPage() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [pick, setPick] = useState<string | null>(null);
-  const { data, isLoading, isError } = useFeed("result", { limit: 200 });
-  const items = useMemo(() => (data || []).filter((i) => !onlyMine || (i.symbol && mine.includes(i.symbol))), [data, onlyMine, mine]);
+  // the month on screen (plus the days of the neighbouring months shown in its grid), and separately the next dates coming up
+  const winFrom = ymd(new Date(month.getFullYear(), month.getMonth(), 1)), winTo = ymd(new Date(month.getFullYear(), month.getMonth() + 1, 0));
+  const monthQ = useFeed("result", { limit: 3000, from: winFrom, to: winTo }), soonQ = useFeed("result", { upcoming: true, limit: 60 }), doneQ = useFeed("result", { before: ymd(new Date()), limit: 30 });
+  const { isLoading, isError } = monthQ;
+  const keep = (list?: FeedItem[]) => (list || []).filter((i) => !onlyMine || (i.symbol && mine.includes(i.symbol)));
+  const items = useMemo(() => keep(monthQ.data), [monthQ.data, onlyMine, mine]); // eslint-disable-line react-hooks/exhaustive-deps
+  const done = useMemo(() => keep(doneQ.data), [doneQ.data, onlyMine, mine]); // eslint-disable-line react-hooks/exhaustive-deps
+  const soon = useMemo(() => keep(soonQ.data), [soonQ.data, onlyMine, mine]); // eslint-disable-line react-hooks/exhaustive-deps
   const byDay = useMemo(() => { const m = new Map<string, FeedItem[]>(); items.forEach((i) => m.set(i.date, [...(m.get(i.date) || []), i])); return m; }, [items]);
   const today = ymd(new Date());
   const first = new Date(month.getFullYear(), month.getMonth(), 1), pad = (first.getDay() + 6) % 7, days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const cells = Array.from({ length: Math.ceil((pad + days) / 7) * 7 }, (_, i) => (i < pad || i >= pad + days ? null : new Date(month.getFullYear(), month.getMonth(), i - pad + 1)));
-  const upcoming = items.filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 40);
-  const declared = items.filter((i) => i.date < today).slice(0, 30);
+  const upcoming = soon.slice(0, 40);
+  const declared = done.slice(0, 30);
   const sel = pick ? byDay.get(pick) || [] : [];
   return (
     <div className="wrap ipo">
