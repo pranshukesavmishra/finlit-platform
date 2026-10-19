@@ -13,6 +13,7 @@ import json
 import time
 import re
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -25,6 +26,7 @@ from .entitlements import LIMITS, PLANS, has
 from .service import ANON, Ctx, audit, cookie_name, create_session, current, forget_cached, revoke_all
 
 SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
+IST = ZoneInfo("Asia/Kolkata")
 router = APIRouter(prefix="/api")
 NO_STORE = {"Cache-Control": "no-store"}
 SCREEN_KEYS = {"market_cap", "price", "change_pct", "return_1m", "return_1y", "pe", "pb", "dividend_yield", "roe", "roce", "operating_margin",
@@ -824,7 +826,7 @@ def feed_json(r: Any) -> Dict[str, Any]:
 
 
 @router.get("/feed")
-async def feed(request: Request, kind: Literal["news", "result", "document"] = "news", symbol: str = Query("", max_length=200), q: str = Query("", max_length=80),
+async def feed(request: Request, kind: Literal["news", "result", "document"] = "news", symbol: str = Query("", max_length=1200), q: str = Query("", max_length=80),
                upcoming: bool = False, limit: int = Query(60, ge=1, le=3000), before: Optional[_date] = None,
                from_date: Optional[_date] = None, to_date: Optional[_date] = None):
     """Public. `symbol` may be one symbol or several separated by commas (a watchlist). `upcoming=true` returns dates from today on, soonest first."""
@@ -845,7 +847,8 @@ async def feed(request: Request, kind: Literal["news", "result", "document"] = "
         args.append(f"%{q.strip().lower()}%")
         where.append(f"(lower(title) LIKE ${len(args)} OR lower(coalesce(company, '')) LIKE ${len(args)})")
     if upcoming:
-        where.append("item_date >= CURRENT_DATE")
+        args.append(datetime.now(IST).date())
+        where.append(f"item_date >= ${len(args)}")
     elif before:
         args.append(before)
         where.append(f"item_date < ${len(args)}")
@@ -945,7 +948,7 @@ async def list_ipos(request: Request):
     """Public. Nearest first: open and upcoming issues, then the recent past."""
     async with request.app.state.store.pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM ipos ORDER BY open_date DESC LIMIT 300")
-    today = _date.today()
+    today = datetime.now(IST).date()   # India's date: an IPO opening today must read "Open" from midnight IST, not 05:30
     return Response(content=json.dumps({"ipos": [ipo_json(r, today) for r in rows]}), media_type="application/json",
                     headers={"Cache-Control": "public, max-age=120, stale-while-revalidate=600"})
 

@@ -51,11 +51,28 @@ def _revenue(r: Row) -> Optional[float]:
     return crore(value)
 
 
+def _first(r: Row, *keys: str):
+    """The first field the provider filled in: banks and companies name the same line differently."""
+    for k in keys:
+        v = r.get(k)
+        if v not in (None, ""):
+            return v
+    return None
+
+
+def _bank_expenses(r: Row) -> Optional[float]:
+    # banks: interest paid + operating costs (+ provisions), reported as separate lines
+    return crore(sum_present(r.get("expenditureExcludingProvisions"), r.get("provisionsForLoanLoss"))) if r.get("expenditureExcludingProvisions") is not None else None
+
+
 def _operating_profit(r: Row) -> Optional[float]:
     """Revenue - operating expenses, where operating expenses exclude finance costs and depreciation
-    (the Screener.in convention FinLit users already know)."""
+    (the Screener.in convention FinLit users already know). For banks: operating profit before provisions."""
     revenue = to_number(r.get("revenueFromOperations"))
     expenses = to_number(r.get("expenses"))
+    if (revenue is None or expenses is None) and r.get("expenditureExcludingProvisions") is not None:
+        income, cost = to_number(r.get("income")), to_number(r.get("expenditureExcludingProvisions"))
+        return crore(income - cost) if income is not None and cost is not None else None
     if revenue is None or expenses is None:
         return None
     operating_expenses = expenses - (to_number(r.get("financeCosts")) or 0) - (to_number(r.get("depreciationAndAmortisation")) or 0)
@@ -66,14 +83,14 @@ PL_FIELDS = {
     "revenue": _revenue,
     "other_income": lambda r: crore(r.get("otherIncome")),
     "total_income": lambda r: crore(r.get("income")),
-    "expenses": lambda r: crore(r.get("expenses")),
+    "expenses": lambda r: crore(r.get("expenses")) if r.get("expenses") is not None else _bank_expenses(r),
     "operating_profit": _operating_profit,
-    "finance_costs": lambda r: crore(r.get("financeCosts")),
+    "finance_costs": lambda r: crore(_first(r, "financeCosts", "interestExpended")),
     "depreciation": lambda r: crore(r.get("depreciationAndAmortisation")),
     "exceptional_items": lambda r: crore(r.get("exceptionalItemsBeforeTax")),
-    "profit_before_tax": lambda r: crore(r.get("profitBeforeTax")),
+    "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax")),
     "tax": lambda r: crore(r.get("taxExpense")),
-    "net_profit": lambda r: crore(r.get("profitLossForPeriod")),
+    "net_profit": lambda r: crore(_first(r, "profitLossForPeriod", "profitLossForThePeriod")),
     "eps": lambda r: rnd(r.get("eps")),
     "diluted_shares_cr": lambda r: crore(r.get("dilutedOutstandingShares")),
 }

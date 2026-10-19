@@ -137,3 +137,12 @@
 .cmp-setup { position: relative; z-index: 30; overflow: visible; } .cb-chip .av { width: 26px; height: 26px; font-size: 10px; background: var(--gold); color: var(--on-gold); border-radius: 50%; display: grid; place-items: center; font-weight: 700; flex: none; }
 .tagline p { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 2px 0; }
 @media (max-width: 640px) { .tagline .x { display: none; } .tagline p { flex-direction: column; align-items: center; } .tagline p span:not(.x) + span:not(.x)::before { content: ""; } }
+
+/* Indices: live dot, sortable headers, quick index picker, P/E on the key tiles */
+.pm-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); margin-right: 8px; vertical-align: middle; }
+.pm-live.on { background: var(--gain); box-shadow: 0 0 0 0 color-mix(in srgb, var(--gain) 60%, transparent); animation: pmpulse 1.8s infinite; }
+@keyframes pmpulse { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .pm-live.on { animation: none; } }
+.pm-sort { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-transform: inherit; letter-spacing: inherit; }
+.pm-tile em { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.pm-pick { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; max-height: 140px; overflow-y: auto; }

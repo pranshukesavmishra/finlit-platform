@@ -56,7 +56,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
       <div className="grid g3">
         <div className="card acc span2" style={{ "--ac": "var(--p-tech)" } as React.CSSProperties}>
           <div className="stats">
-            {[["52W high", "₹" + nf(s.range52.high ?? 0)], ["52W low", "₹" + nf(s.range52.low ?? 0)], ["Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
+            {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], ["Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
           </div>
           <div className="tools">
             <div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div>

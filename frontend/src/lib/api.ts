@@ -126,17 +126,18 @@ function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryO
     queryKey: ["stock", symbol, path],
     queryFn: () => apiGet<T>(`/api/stocks/${encodeURIComponent(symbol)}${path}`),
     staleTime: SECTION_STALE,
-    // A stock that has never been opened is prepared on demand (202); keep asking until it's ready.
-    retry: (count: number, err: ApiError) => (err.status === 202 ? count < 20 : err.status >= 500 && count < 2),
-    retryDelay: (_: number, err: ApiError) => (err.status === 202 ? (err.body.retryAfter || 3) * 1000 : 1500),
+    // A stock that has never been opened is prepared on demand (202): keep asking (for up to about five minutes; the server counts
+    // only the first request). 429 means many reports are being prepared at once: wait as told and ask again.
+    retry: (count: number, err: ApiError) => (err.status === 202 ? count < 100 : err.status === 429 ? count < 8 : err.status >= 500 && count < 2),
+    retryDelay: (_: number, err: ApiError) => (err.status === 202 ? (err.body.retryAfter || 3) * 1000 : err.status === 429 ? Math.min(30, err.body.retryAfter || 10) * 1000 : 1500),
     ...extra,
   };
 }
 
 export const useSummary = (s: string) => useQuery<Summary, ApiError>(sectionQuery<Summary>(s, ""));
 export const useSection = <T,>(s: string, name: string, enabled = true) => useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`), enabled });
-export const usePrice = (s: string, range: string) =>
-  useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`), placeholderData: (prev) => prev });
+export const usePrice = (s: string, range: string, enabled = true) =>
+  useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`), placeholderData: (prev) => prev, enabled });
 
 export const useSearchIndex = (enabled: boolean) =>
   useQuery<{ fields: string[]; rows: SearchRow[] }, ApiError>({

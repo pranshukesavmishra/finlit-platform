@@ -157,6 +157,18 @@
     "symbol": "RELIANCE"
    },
    "file": "corp_announcements.json"
+  },
+  {
+   "path": "/index/market-price/daily-feed",
+   "match": {},
+   "file": "index_daily_feed.json"
+  },
+  {
+   "path": "/index/valuation/historical",
+   "match": {
+    "index_symbol": "NIF50"
+   },
+   "file": "index_valuation_nif50.json"
   }
  ]
 }

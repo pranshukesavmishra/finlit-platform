@@ -23,7 +23,7 @@ from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
 from .normalize.glossary import describe
 
-SNAPSHOT_VERSION = 1
+SNAPSHOT_VERSION = 2   # 2: bank profit lines mapped; half-loaded reports refused. Older reports are reloaded first.
 SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers", "stats")
 # Chart ranges are cut at ingest time so the API only ever streams stored bytes.
 # Short ranges keep daily candles; long ranges are downsampled to weekly closes.

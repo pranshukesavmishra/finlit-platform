@@ -234,8 +234,10 @@ async def test_ingest_all_works_through_the_universe_in_chunks_and_skips_fresh(s
         await worker.ingest_one(client, store, "RELIANCE")
         assert "RELIANCE" not in await store.pending_symbols(limit=50)  # fresh snapshots are skipped
         result = await worker.ingest_all(client, store, limit=5, chunk=2)
-        assert sum(result.values()) == 5 and result["failed"] == 5  # all five attempted, none aborted the batch
+        # limit is the size of the whole set kept loaded: RELIANCE (biggest, already fresh) is one of the five, so four are attempted
+        assert sum(result.values()) == 4 and result["failed"] == 4  # none aborted the batch
         assert len(await store.pending_symbols()) > 5000
+        assert await store.pending_symbols(limit=5) == (await store.pending_symbols(limit=5))[:4]   # never more than the cap
 
 
 async def test_probe_reports_every_endpoint(store):
@@ -265,3 +267,52 @@ async def test_exchange_announcements_become_feed_items(api, ingested):
     assert kinds <= {"news", "result", "document"}
     assert (await api.get("/api/feed?symbol=DROP%20TABLE")).status_code == 400
     assert (await api.get("/api/feed?kind=other")).status_code == 422
+
+
+async def test_index_members_load_first_and_prune_keeps_the_top_and_recent(store):
+    async with FinEdgeClient(make_settings()) as client:
+        await worker.refresh_universe(client, store)
+        await worker.ingest_one(client, store, "RELIANCE")
+    async with store.pool.acquire() as conn:
+        await conn.execute("INSERT INTO index_members (index_code, symbol) VALUES ('NIFTY50', 'TCS'), ('NIFTY50', 'INFY') ON CONFLICT DO NOTHING")
+    first = await store.pending_symbols(limit=3)
+    assert set(first[:2]) == {"INFY", "TCS"}   # NIFTY members first, whatever their alphabetical place
+    # RELIANCE is outside a top-1 set (TCS/INFY rank above it) and nobody opened it: pruned. Opening it keeps it.
+    await store.note_view("RELIANCE")
+    assert (await store.prune(keep_top=1))["companies"] == 0
+    await store.redis.delete("viewed")
+    out = await store.prune(keep_top=1)
+    assert out["companies"] == 1 and await store.get_section("RELIANCE", "consolidated", "summary") is None
+
+
+def test_live_price_moves_price_based_ratios():
+    from finlit.screener.compute import compute
+    base = {"summary": {"profile": {}, "quote": {"price": 100.0, "refPrice": 100.0, "marketCapCr": 1000.0}, "returns": []},
+            "ratios": {"latest": {"pe": {"value": 20.0}, "pb": {"value": 4.0}, "dividend_yield": {"value": 2.0}}}}
+    a = compute(base)
+    base["summary"]["quote"].update(price=110.0, marketCapCr=1100.0)
+    b = compute(base)
+    assert abs(b["pe"] - a["pe"] * 1.1) < 1e-3 and abs(b["pb"] - a["pb"] * 1.1) < 1e-3   # values are stored to 4 decimals
+    assert abs(b["dividend_yield"] - a["dividend_yield"] / 1.1) < 1e-3
+
+
+async def test_failed_core_parts_are_retried_and_a_half_loaded_report_is_never_saved(store):
+    """The provider dropping calls under load must not produce a report with a 0 price or switch it to standalone."""
+    import httpx
+    from finlit.finedge import fixture_transport
+    inner, calls = fixture_transport(), {"n": 0}
+    def flaky(request):
+        if "/quote" in request.url.path or "/company-profile" in request.url.path:
+            calls["n"] += 1
+            return httpx.Response(503, json={"message": "busy"})
+        return inner.handle_request(request)
+    client = FinEdgeClient(make_settings(), transport=httpx.MockTransport(flaky))
+    client_retries = client.get
+    async def quick(path, params=None, timeout=10, retries=3):
+        return await client_retries(path, params, timeout, retries=0)
+    client.get = quick
+    await worker.refresh_universe(FinEdgeClient(make_settings()), store)
+    out = await worker.ingest_one(client, store, "RELIANCE")
+    assert out["status"] == "failed" and calls["n"] >= 4   # asked again once before giving up
+    assert await store.get_section("RELIANCE", "consolidated", "summary") is None
+    assert await store.get_section("RELIANCE", "standalone", "summary") is None

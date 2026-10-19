@@ -34,7 +34,7 @@ type Auth = {
 const Ctx = createContext<Auth | null>(null);
 
 /** Cached API data that differs by plan: drop it whenever the account changes. */
-const PLAN_KEYS = ["stock", "universe", "top"];
+const PLAN_KEYS = ["stock", "universe", "top", "screener-catalog", "screener-query", "premium", "index-history", "feed"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();

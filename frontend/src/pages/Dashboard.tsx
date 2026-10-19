@@ -123,8 +123,8 @@ function Buckets({ items }: { items: Row[] }) {
 }
 
 function Dates({ symbols }: { symbols: string[] }) {
-  const { data } = useFeed("result", { symbols, limit: 100 });
-  const today = new Date().toISOString().slice(0, 10);
+  const { data } = useFeed("result", { symbols, limit: 100, upcoming: true });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const next = (data || []).filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
   if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "Result dates appear here as companies announce them."} to="/results" cta="Open results calendar" />;
   return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{x.symbol || x.company}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;

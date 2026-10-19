@@ -49,9 +49,10 @@ for (const [who, w, h] of [["gold", 1366, 900], ["gold", 390, 844], ["basic", 13
   check(`${tag} hub shows three tools`, (await p.locator(".pm-card").count()) === 3);
   await p.goto(B + "/premium/markets", { waitUntil: "networkidle" }); await p.waitForTimeout(500);
   if (who === "basic") { check(`${tag} markets locked`, (await p.getByText("This dashboard is part of the Gold plan").count()) > 0); await p.screenshot({ path: `${OUT}/${tag}-locked.png` }); await ctx.close(); continue; }
-  for (const t of ["IPO calendar", "Results calendar", "Announcements", "Call transcripts", "Index prices", "Index valuation", "Commodities"]) {
-    const t0 = Date.now(); await p.getByRole("tab", { name: t }).click(); await p.waitForSelector(".pm-t tbody tr", { timeout: 4000 }).catch(() => null);
-    const ms = Date.now() - t0, rows = await p.locator(".pm-t tbody tr").count();
+  for (const t of ["IPO calendar", "Results calendar", "Announcements", "Call transcripts", "Indices live", "Index valuation history", "Commodities"]) {
+    const sel = t === "Index valuation history" ? ".pm-verdict" : ".pm-t tbody tr";   // the valuation tab is a chart with a verdict, not a table
+    const t0 = Date.now(); await p.getByRole("tab", { name: t }).click(); await p.waitForSelector(sel, { timeout: 4000 }).catch(() => null);
+    const ms = Date.now() - t0, rows = await p.locator(sel).count();
     check(`${tag} ${t}: ${rows} rows in ${ms} ms`, rows > 0 && ms < 1000);
     await p.screenshot({ path: `${OUT}/${tag}-m-${t.replace(/\W+/g, "")}.png`, fullPage: true });
   }

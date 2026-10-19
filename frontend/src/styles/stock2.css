@@ -123,7 +123,7 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 
 /* ownership trend + lines */
 .lc { position: relative; } .lc svg { width: 100%; height: auto; display: block; overflow: visible; }
-.lc-line { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawLine 2s .1s cubic-bezier(.4,0,.2,1) forwards; }
+.lc-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: drawLine 2s .1s cubic-bezier(.4,0,.2,1) forwards; }
 .lc-tip { position: absolute; top: 4px; transform: translateX(-50%); display: grid; gap: 4px; min-width: 150px; padding: 10px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--border-strong); box-shadow: var(--lift); font-size: 12.5px; pointer-events: none; z-index: 3; }
 .lc-tip b { font-size: 12px; color: var(--faint); letter-spacing: .06em; } .lc-tip span { display: flex; align-items: center; gap: 8px; } .lc-tip i { width: 9px; height: 9px; border-radius: 3px; } .lc-tip em { margin-left: auto; font: 600 12.5px var(--mono); font-style: normal; }
 @media (prefers-reduced-motion: reduce) { .lc-line { animation: none; stroke-dashoffset: 0; } }

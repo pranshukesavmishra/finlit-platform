@@ -9,7 +9,7 @@ import { useUI } from "../lib/ui";
 import { limitsFor } from "../lib/auth";
 import { useDocTitle } from "../lib/title";
 import { DEMO } from "../lib/demo";
-import { nf } from "../lib/format";
+import { cr, nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
@@ -139,7 +139,7 @@ export function WatchlistPage() {
                             <div className="wc-n"><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b>{r.symbol}</b></Link><small>{r.name}</small></div>
                             <div className="wc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{(r.change_pct ?? 0) >= 0 ? "▲" : "▼"} {fmt(METRICS.change_pct, r.change_pct).replace("+", "")}</span></div>
                           </header>
-                          <div className="wc-m"><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Mkt cap</span><b>{r.market_cap ? "₹" + nf(r.market_cap / 1000, 0) + "k Cr" : "—"}</b></div>
+                          <div className="wc-m"><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Mkt cap</span><b>{cr(r.market_cap)}</b></div>
                             <div className="wc-s">{r.overall != null && r.band ? <span className={"vd " + r.band}>{r.overall} · {BAND_LABEL[r.band]}</span> : <span className="faint">Not scored</span>}</div></div>
                           <div className="wc-t"><label><span>Target ₹</span><input type="number" inputMode="decimal" min={0} value={m.target ?? ""} placeholder="Set" onChange={(e) => wl.setMeta(r.symbol, { target: e.target.value === "" ? undefined : Math.max(0, Number(e.target.value)) })} aria-label={`${r.symbol} target price`} /></label>
                             {d != null && <em className={d >= 0 ? "pos" : "neg"}>{d >= 0 ? "▲ " : "▼ "}{nf(Math.abs(d), 1)}% to target</em>}</div>

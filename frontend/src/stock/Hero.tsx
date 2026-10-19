@@ -84,7 +84,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
           </div>
           <div className="idr">
             <div>
-              <div className="px"><span className="rs">₹</span>{nf(q.price ?? 0)}</div>
+              <div className="px"><span className="rs">₹</span>{q.price == null ? MINUS : nf(q.price)}</div>
               <div className="px-sub"><span className={"chip " + (good ? "up" : "down")}>{q.change == null ? "" : (q.change > 0 ? "+" : q.change < 0 ? MINUS : "") + nf(q.change)} · {signed(q.changePct)}</span>
                 <span>{asOf && !Number.isNaN(+asOf) ? `NSE · ${dateIN(asOf.toISOString(), { day: "numeric", month: "short" })}, ${asOf.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} IST` : "NSE"}</span></div>
             </div>

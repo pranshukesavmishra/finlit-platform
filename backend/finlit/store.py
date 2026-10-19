@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import json
 import logging
+import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -18,11 +19,14 @@ import asyncpg
 import orjson
 import redis.asyncio as aioredis
 
+from .snapshot import SNAPSHOT_VERSION
 from .config import Settings, get_settings
 
 log = logging.getLogger("finlit.store")
 MIGRATIONS = Path(__file__).parent / "migrations"
 SEARCH_KEY = "search-index"
+STOCK_TTL = 6 * 3600
+VIEWED_KEY = "viewed"   # sorted set: symbol -> last time a member or visitor opened its report (keeps it stored when pruning)
 # What the website lists for every company. The 170 screener numbers (scores.metrics) are left out on purpose: they are ~2 KB a company and only /api/screener/query needs them.
 LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
                 "pe, pb, roe, roce, dividend_yield, debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, sector, name, updated_at")
@@ -146,11 +150,16 @@ class Store:
     async def _cache(self, symbol: str, statement: str, encoded: Dict[str, bytes], etags: Dict[str, str]):
         mapping: Dict[str, bytes] = {}
         for name, body in encoded.items():
+            if name == "price":   # full history: only the worker reads it, from Postgres; the site serves the price-* ranges
+                continue
             mapping[name] = body
             mapping[f"{name}:etag"] = etags[name].encode()
         key = stock_key(symbol, statement)
+        if not mapping:
+            return
         async with self.redis.pipeline(transaction=True) as pipe:
             pipe.hset(key, mapping=mapping)
+            pipe.expire(key, STOCK_TTL)   # the free Redis is small: a stock nobody opens leaves it, and is re-read from Postgres when asked
             await pipe.execute()
 
     async def _upsert_score(self, conn, row: dict):
@@ -271,14 +280,64 @@ class Store:
             rows = await conn.fetch(query + " ORDER BY symbol", *args)
         return [(r["symbol"], r["statement"]) for r in rows]
 
+    RANKED = ("SELECT c.symbol, row_number() OVER (ORDER BY (ix.symbol IS NULL), m.mc DESC NULLS LAST, (c.symbol ~ '^[0-9]+$'), c.symbol) AS rn FROM companies c "
+              "LEFT JOIN (SELECT DISTINCT symbol FROM index_members) ix ON ix.symbol = c.symbol "
+              "LEFT JOIN LATERAL (SELECT market_cap AS mc FROM scores WHERE symbol = c.symbol AND market_cap IS NOT NULL ORDER BY updated_at DESC LIMIT 1) m ON true")
+
     async def pending_symbols(self, statement: str = "consolidated", older_than_hours: int = 24, limit: Optional[int] = None) -> List[str]:
-        """Universe companies with no snapshot yet (first) or an old one (after). NSE tickers come before numeric BSE-only codes (many of those are suspended), then in the order the universe was stored."""
+        """The companies to load or refresh, most important first: members of the NIFTY index lists (NIFTY 50 ... NIFTY 500, midcap and
+        smallcap lists), then by market cap. `limit` is the size of that whole set (INGEST_LIMIT): only its companies are ever loaded by
+        the bulk jobs, missing ones before stale ones. Companies outside it are loaded only when someone opens their report."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT c.symbol FROM companies c LEFT JOIN snapshots s ON s.symbol = c.symbol AND s.statement = $1 AND s.section = 'summary' "
-                "WHERE s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
-                "ORDER BY (s.symbol IS NOT NULL), (c.symbol ~ '^[0-9]+$'), c.updated_at, c.symbol LIMIT $3", statement, older_than_hours, limit or 100000)
+                f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
+                "SELECT r.symbol FROM ranked r LEFT JOIN snapshots s ON s.symbol = r.symbol AND s.statement = $1 AND s.section = 'summary' "
+                "WHERE r.rn <= $3 AND (s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
+                "OR (s.body::jsonb -> 'quote' ->> 'price') IS NULL "   # a report saved without a price (half-loaded) is reloaded at once
+                f"OR coalesce((s.body::jsonb -> 'meta' ->> 'version')::int, 0) < {SNAPSHOT_VERSION}) "   # built by older code: rebuild
+                "ORDER BY (s.symbol IS NOT NULL), r.rn", statement, older_than_hours, limit or 100000)
         return [r["symbol"] for r in rows]
+
+    async def note_view(self, symbol: str) -> None:
+        try:
+            await self.redis.zadd(VIEWED_KEY, {symbol.upper(): time.time()})
+        except Exception:
+            pass
+
+    async def prune(self, keep_top: int, keep_viewed_days: int = 21, price_days: int = 500, feed_days: int = 400) -> Dict[str, int]:
+        """Keep the free database inside its storage limit: drop stored reports of companies outside the top `keep_top` that nobody
+        opened in `keep_viewed_days` (they are rebuilt in seconds if someone asks again), daily prices older than `price_days`,
+        old feed rows and the ingest log. Returns how many rows went."""
+        cutoff = time.time() - keep_viewed_days * 86400
+        try:
+            recent = [m.decode() if isinstance(m, bytes) else m for m in await self.redis.zrangebyscore(VIEWED_KEY, cutoff, "+inf")]
+            await self.redis.zremrangebyscore(VIEWED_KEY, "-inf", cutoff)
+        except Exception:
+            recent = []
+        out: Dict[str, int] = {}
+        async with self.pool.acquire() as conn:
+            drop = [r["symbol"] for r in await conn.fetch(
+                f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
+                "SELECT DISTINCT s.symbol FROM snapshots s LEFT JOIN ranked r ON r.symbol = s.symbol "
+                "WHERE (r.rn IS NULL OR r.rn > $1) AND NOT (s.symbol = ANY($2::text[]))", keep_top, recent)]
+            async with conn.transaction():
+                out["snapshots"] = int((await conn.execute("DELETE FROM snapshots WHERE symbol = ANY($1::text[])", drop)).split()[-1])
+                await conn.execute("DELETE FROM scores WHERE symbol = ANY($1::text[])", drop)
+                await conn.execute("DELETE FROM price_daily WHERE symbol = ANY($1::text[])", drop)
+            out["companies"] = len(drop)
+            out["price_days"] = int((await conn.execute("DELETE FROM price_daily WHERE day < current_date - $1::int", price_days)).split()[-1])
+            out["feed"] = int((await conn.execute("DELETE FROM feed_items WHERE item_date < current_date - $1::int", feed_days)).split()[-1])
+            out["runs"] = int((await conn.execute("DELETE FROM ingest_runs WHERE started_at < now() - interval '30 days'")).split()[-1])
+            out["history"] = int((await conn.execute("DELETE FROM score_history WHERE day < current_date - 800")).split()[-1])
+        for sym in drop:
+            for st in ("consolidated", "standalone"):
+                try:
+                    await self.redis.delete(stock_key(sym, st))
+                except Exception:
+                    pass
+        if drop:
+            await self.invalidate_search()
+        return out
 
     # ------------------------------------------------------------ reads (API)
 
@@ -294,7 +353,14 @@ class Store:
         if not row:
             return None
         body = row["body"].encode()
-        await self.redis.hset(key, mapping={section: body, f"{section}:etag": row["etag"].encode()})
+        if section != "price":
+            try:
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.hset(key, mapping={section: body, f"{section}:etag": row["etag"].encode()})
+                    pipe.expire(key, STOCK_TTL)
+                    await pipe.execute()
+            except Exception:
+                pass
         return body, row["etag"]
 
     async def get_etag(self, symbol: str, statement: str, section: str) -> Optional[str]:

@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import time
 from typing import Iterable, List, Optional, Tuple
 
@@ -37,6 +38,10 @@ class DataRejected(Exception):
         self.issues = issues
 
 
+# Without these a report is not worth showing; if any of them failed to load, the load is retried later instead of saved.
+CORE_PARTS = ("profile", "quote", "pl_annual", "bs_annual", "daily_quotes", "ratios_pr")
+
+
 async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated") -> dict:
     started, calls_before = time.perf_counter(), client.calls
     symbol = symbol.strip().upper()
@@ -48,17 +53,20 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
                                     "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
         if not bundle.get("pl_annual") and not bundle.get("daily_quotes"):
             raise FinEdgeError("bundle", 404, "no statements or prices for symbol")
+        failed_core = sorted(k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404")
+        if failed_core:   # never store a half-loaded report (price 0, empty sections): keep the last good one and try again later
+            raise FinEdgeError("bundle", None, "provider did not answer for " + ", ".join(failed_core))
         sections = snapshot.build(bundle)
         checks = sections["summary"]["dataQuality"]["checks"]
         if checks["status"] == "rejected":
             # Keep serving the last good snapshot; a human reviews the logged issues.
             raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
         sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
-        effective = bundle["statement"]
+        if sections["summary"].get("quote", {}).get("price"):
+            sections["summary"]["quote"]["refPrice"] = sections["summary"]["quote"]["price"]
         row = snapshot.score_row(sections)
+        # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
         await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
-        if effective != statement:  # also serve it under the basis it really is
-            await store.save_snapshot(symbol, effective, sections, row)
         prof = sections["summary"]["profile"]
         await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"))
         status = "ok" if checks["status"] == "ok" else "warnings"
@@ -111,7 +119,7 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         if not live.get("price"):
             return
         summary = orjson.loads(cached[0])
-        if summary["quote"].get("price") == live["price"] and summary["quote"].get("asOf") == live.get("asOf"):
+        if summary["quote"].get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
         summary["quote"] = {**summary["quote"], **{k: v for k, v in live.items() if v is not None}}
         await store.save_snapshot(symbol, statement, {"summary": summary})
@@ -128,7 +136,7 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
     return updated
 
 
-async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 900.0) -> int:
+async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 6 * 3600.0) -> int:
     """With loop=True the idle wait watches a Redis flag set by enqueue, and looks at Postgres only when the flag is up (or every
     `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day."""
     total, last_db = 0, float("-inf")
@@ -147,9 +155,9 @@ async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, i
                 await store.redis.delete(store.QUEUE_FLAG)  # before claiming: an enqueue that arrives meanwhile raises it again
             except Exception:
                 pass
-        items = await store.claim(10)
+        items = await store.claim(3)   # small batches, all at once: a report someone is waiting for never queues behind ten others
         if items:
-            await ingest_many(client, store, items)
+            await ingest_many(client, store, items, parallel=3)
             await store.invalidate_search()
             total += len(items)
             continue
@@ -211,6 +219,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
+    p_prune = sub.add_parser("prune", help="keep the database inside its storage limit (reports outside the top INGEST_LIMIT nobody opened lately, old prices and logs)")
+    p_prune.add_argument("--keep", type=int, default=None, help="companies always kept (default: INGEST_LIMIT, else 500)")
     sub.add_parser("refresh-calendars", help="IPO and results calendars from the data provider")
     p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
     p_rm.add_argument("--only-missing", action="store_true")
@@ -272,6 +282,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 items = await store.snapshot_symbols(args.hours or settings.fundamentals_ttl_hours)
                 await ingest_many(client, store, items)
                 print(len(items), "refreshed")
+            elif args.cmd == "prune":
+                keep = args.keep or int(os.getenv("INGEST_LIMIT") or 0) or 500
+                print(await store.prune(keep))
             elif args.cmd == "refresh-calendars":
                 from .calendars import refresh_calendars
                 print(await refresh_calendars(client, store))

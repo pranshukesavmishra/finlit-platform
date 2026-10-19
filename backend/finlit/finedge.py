@@ -183,8 +183,15 @@ class FinEdgeClient:
         symbol = symbol.strip().upper()
         requests = bundle_requests(symbol, statement)
         bundle, errors = await self._fetch_many(requests)
+        dropped = [k for k, why in errors.items() if why != "404"]   # 404 = the provider has no such data for this company: not a failure
+        if dropped:   # a busy provider drops a few calls: ask once more for just those, a little later
+            await asyncio.sleep(1.5)
+            again, still = await self._fetch_many({k: requests[k] for k in dropped})
+            bundle.update({k: v for k, v in again.items() if v is not None})
+            errors = {**{k: v for k, v in errors.items() if k not in dropped}, **still}
         effective = statement
-        if statement == "consolidated" and not _has_rows(bundle.get("pl_annual")):
+        # Standalone only when the provider answered and has no consolidated accounts, never because the request failed.
+        if statement == "consolidated" and "pl_annual" not in errors and not _has_rows(bundle.get("pl_annual")):
             standalone = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS}
             fallback, fallback_errors = await self._fetch_many(standalone)
             if _has_rows(fallback.get("pl_annual")):

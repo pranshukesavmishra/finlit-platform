@@ -16,7 +16,7 @@ from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import MULTIPLES
 
 NAN = float("nan")
-TTL = 60   # older than this, the table is rebuilt in the background on the next request
+TTL = 600   # older than this, the table is rebuilt in the background on the next request (each rebuild reads the database)
 # Columns kept on the old scores table before metrics existed: used until a company's metrics are rebuilt.
 LEGACY = {"market_cap": "market_cap", "price": "price", "pe": "pe", "pb": "pb", "roe": "roe", "roce": "roce", "dividend_yield": "dividend_yield",
           "debt_to_equity": "debt_to_equity", "sales_cagr_5y": "sales_cagr", "profit_cagr_5y": "profit_cagr", "operating_margin": "operating_margin",

@@ -127,6 +127,16 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     pe, pb, ps = latest.get("pe"), latest.get("pb"), latest.get("ps")
     out.update(pe=pe, pb=pb, ps=ps, pfcf=latest.get("pfcf"), ev_ebitda=latest.get("ev_ebitda"), dividend_yield=latest.get("dividend_yield"),
                dividend_payout=latest.get("dividend_payout"))
+    # The provider's ratios are as of the last full load; between loads the price moves. Scale the price-based ones by how far it moved.
+    ref = _n(quote.get("refPrice"))
+    f = price / ref if price and ref and ref > 0 else None
+    if f and abs(f - 1) > 1e-9:
+        for k in ("pe", "pb", "ps", "pfcf"):
+            out[k] = out[k] * f if out.get(k) is not None else None
+        out["dividend_yield"] = out["dividend_yield"] / f if out.get("dividend_yield") is not None else None
+        if out.get("ev_ebitda") is not None and market_cap and net_debt is not None and market_cap / f + net_debt > 0:
+            out["ev_ebitda"] *= (market_cap + net_debt) / (market_cap / f + net_debt)
+        pe = out["pe"]; pb = out["pb"]
     out["ev_sales"] = _div(out["enterprise_value"], rev0)
     out["ev_cfo"] = _div(out["enterprise_value"], cfo0) if cfo0 and cfo0 > 0 else None
     out["price_cfo"] = _div(market_cap, cfo0) if cfo0 and cfo0 > 0 else None

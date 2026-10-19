@@ -30,7 +30,7 @@ export function StockPage() {
   const peers = useSection<Peers>(symbol, "peers", ready).data;
   const seg = useSection<Segments>(symbol, "segments", ready).data;
   const events = useSection<Events>(symbol, "events", ready).data;
-  const tech = usePrice(symbol, "1Y").data?.technical;
+  const tech = usePrice(symbol, "1Y", ready).data?.technical;   // waits for the summary, so a new stock is asked for once, not twice
   useDocTitle(s ? `${s.profile.name} research` : `${symbol} research`, s ? `FinLit research report for ${s.profile.name}: score ${s.score.overall ?? "n/a"}, financials, ratios, ownership and peers.` : undefined);
 
   const [active, setActive] = useState<string | null>(null);
@@ -61,9 +61,14 @@ export function StockPage() {
   const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 124, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); };
   const q = useMemo(() => s?.quote, [s]);
 
-  if (sum.isLoading || (sum.isError && (sum.error as ApiError).status === 202)) {
+  const waiting = sum.isError && [202, 429].includes((sum.error as ApiError).status);
+  if (sum.isLoading || waiting) {
     const queued = sum.isError || sum.failureCount > 0;
-    return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 220, margin: "0 auto 18px" }} /><h2>{queued ? "Preparing this report" : "Loading the report"}</h2><p>{queued ? "This company hasn't been opened before, so we are building its report now. This takes a few seconds." : "One moment."}</p></div>;
+    const busy = (sum.error as ApiError | null)?.status === 429 || (sum.failureReason as ApiError | null)?.status === 429;
+    const gaveUp = waiting && !sum.isFetching;   // stopped asking after several minutes: offer a manual retry instead of a dead end
+    return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 220, margin: "0 auto 18px" }} /><h2>{queued ? "Preparing this report" : "Loading the report"}</h2>
+      <p>{!queued ? "One moment." : busy ? "Many reports are being prepared right now. Yours is in the queue and will open by itself." : gaveUp ? "This is taking longer than usual. The report is still being built." : "This company hasn't been opened yet, so we are building its report from the latest filings. It usually takes under half a minute and opens by itself."}</p>
+      {gaveUp && <button className="btn primary" onClick={() => sum.refetch()}>Check again</button>}</div>;
   }
   if (sum.isError || !s) {
     const st = (sum.error as ApiError | null)?.status;

@@ -8,7 +8,7 @@ const RESEARCH = process.env.RESEARCH_API || "http://127.0.0.1:8000";
 const SITE = process.env.SITE_API || "http://127.0.0.1:8001";
 const proxy: Record<string, ProxyOptions> = {
   "^/api/stocks/admin": { target: SITE, changeOrigin: true },
-  "^/api/(stocks|screener|health|ping|auth|me|admin|ipos|feed|alerts|notifications|premium|notify)": { target: RESEARCH, changeOrigin: true },
+  "^/api/(stocks|screener|health|ping|auth|me|admin|ipos|feed|alerts|notifications|premium|notify|indices)": { target: RESEARCH, changeOrigin: true },
   "/api": { target: SITE, changeOrigin: true },
 };
 

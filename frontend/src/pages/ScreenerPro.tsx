@@ -4,7 +4,7 @@ import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { Icon } from "../lib/icons";
 import { nf, MINUS } from "../lib/format";
-import { apiUrl } from "../lib/api";
+import { API_BASE, apiUrl } from "../lib/api";
 import { limitsFor } from "../lib/auth";
 import { READY, UNIT_SUFFIX, activeCount, decodeState, encodeState, fmtMetric, norm, toBody, useCatalog, useScreen, type Catalog, type MetricInfo, type PState, type Range } from "../lib/proscreen";
 import { screens, useSavedScreens } from "../lib/screens";
@@ -145,7 +145,7 @@ export function ScreenerPro() {
   const exportCsv = async () => {
     if (!data?.limits.export) { ask("silver", "Downloading results comes with the Silver plan."); return; }
     try {
-      const r = await fetch(apiUrl("/api/screener/export"), { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "text/csv" }, body: JSON.stringify(toBody(f, sort, columns, q, 0, 100)) });
+      const r = await fetch(apiUrl("/api/screener/export"), { method: "POST", credentials: API_BASE ? "include" : "same-origin", headers: { "Content-Type": "application/json", Accept: "text/csv" }, body: JSON.stringify(toBody(f, sort, columns, q, 0, 100)) });
       if (!r.ok) throw new Error(String(r.status));
       saveFile("FinLit-screen.csv", await r.text(), "text/csv;charset=utf-8"); toast("Saved your results as FinLit-screen.csv.");
     } catch { toast("We could not prepare the download. Please try again."); }

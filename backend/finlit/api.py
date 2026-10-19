@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, notify, premium
+from . import alertapi, indices, notify, premium
 from .screener import api as screener_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -149,12 +149,16 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                     await build_universe(level)
                 from .screener.data import get_table
                 await get_table(app.state.store)
+                if settings.finedge_api_key or settings.finedge_mode == "fixtures":
+                    await indices.warm(app)
             except Exception:
                 logging.getLogger("finlit.api").exception("list warm-up failed")
 
         lists = asyncio.create_task(keep_lists_warm())
         yield
         lists.cancel()
+        if getattr(app.state, "index_client", None):
+            await app.state.index_client.aclose()
         if warm:
             warm.cancel()
         if store is None:
@@ -191,11 +195,24 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         store: Store = app.state.store
         if await store.company(symbol):
             # Each new stock costs ~21 upstream calls: cap per client and in total, failing closed.
+            # Already being prepared: the page asks every few seconds while it waits, and those asks must not use up the visitor's allowance.
+            pending = f"pending:{symbol.upper()}:{statement}"
+            try:
+                first = bool(await store.redis.set(pending, 1, nx=True, ex=300))
+            except Exception:
+                first = True
+            if not first:
+                return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
+                                    status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
             ip = request.scope.get("state", {}).get("client_ip") or client_ip(request.scope, settings.client_ip_header)
             allowed, retry = await app.state.limiter.hit("queue", ip, settings.queue_limit_per_hour, 3600, fail_open=False)
             if not allowed or await store.queue_length() >= settings.queue_max_pending:
+                try:
+                    await store.redis.delete(pending)
+                except Exception:
+                    pass
                 return JSONResponse({"status": "busy", "symbol": symbol, "detail": "Please try this stock again shortly."},
-                                    status_code=429, headers={"Retry-After": str(retry or 60), "Cache-Control": "no-store"})
+                                    status_code=429, headers={"Retry-After": str(min(retry or 30, 60)), "Cache-Control": "no-store"})
             await store.enqueue(symbol, statement)
             return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
                                 status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
@@ -233,6 +250,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/stocks/{symbol}")
     async def summary(request: Request, symbol: str, statement: str = Query("consolidated")):
+        asyncio.create_task(app.state.store.note_view(symbol)) if SYMBOL.match(symbol) else None
         return await section(request, symbol, "summary", statement)
 
     @app.get("/api/stocks/{symbol}/score-history")
@@ -325,6 +343,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(auth_routes.router)
     app.include_router(alertapi.router)
     app.include_router(premium.router)
+    app.include_router(indices.router)
     app.include_router(notify.router)
     app.include_router(screener_api.router)
     if settings.site_api_url:
