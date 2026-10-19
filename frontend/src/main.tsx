@@ -19,6 +19,7 @@ import "./styles/finlit.css";
 import "./styles/site.css";
 import "./styles/stock2.css";
 import "./styles/tools.css";
+import "./styles/premium.css";
 import "./styles/account.css";
 import { installDemo } from "./lib/demo";
 

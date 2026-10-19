@@ -37,6 +37,11 @@ export function AppShell() {
       { to: "/score-screener", label: "Score screener", icon: "quality" },
       { to: "/compare", label: "Compare companies", icon: "compare" },
     ] },
+    { title: "Gold dashboards", items: [
+      { to: "/premium/fundamentals", label: "Stock fundamentals", icon: "table" },
+      { to: "/premium/markets", label: "Market events & index", icon: "activity" },
+      { to: "/premium/report", label: "Premium report", icon: "notes" },
+    ] },
     { title: "My lists", items: [
       { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
       { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },

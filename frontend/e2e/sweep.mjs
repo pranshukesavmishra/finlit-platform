@@ -7,7 +7,7 @@ const base = (process.argv[2] || "http://127.0.0.1:4173").replace(/\/$/, "");
 const DB = process.env.DATABASE_URL || "postgresql://finlit:finlit@localhost:5432/finlit_dev";
 const sql = (q) => execFileSync("psql", [DB, "-At", "-c", q], { encoding: "utf8" }).trim();
 try { execFileSync("redis-cli", ["-u", process.env.REDIS_URL || "redis://localhost:6379/14", "flushdb"]); } catch {}
-const PAGES = ["/", "/research", "/screener", "/score-screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/login", "/forgot-password", "/stocks/RELIANCE", "/stocks/TCS", "/stocks/5PAISA", "/stocks/NOPE123", "/nonexistent",
+const PAGES = ["/", "/research", "/screener", "/score-screener", "/premium", "/premium/report/RELIANCE", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/login", "/forgot-password", "/stocks/RELIANCE", "/stocks/TCS", "/stocks/5PAISA", "/stocks/NOPE123", "/nonexistent",
   "/dashboard", "/watchlist", "/account", "/account/security", "/account/plan", "/account/appearance"];
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 let failed = 0;

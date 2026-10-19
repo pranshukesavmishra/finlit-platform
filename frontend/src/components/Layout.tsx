@@ -17,7 +17,7 @@ type Item = readonly [to: string, label: string, sub: string, icon: string];
 /** The company site map: what we sell (Products, Services, Pricing), what we publish (Resources) and who we are (Company). */
 export const MENUS: { label: string; wide?: boolean; groups: { title?: string; items: Item[] }[] }[] = [
   { label: "Products", wide: true, groups: [
-    { title: "Research", items: [["/research", "Stock research", "A report for every listed company", "search"], ["/screener", "Screener", "Filter every company by your rules", "table"], ["/score-screener", "Score screener", "Size, sector and score ranges, simply", "quality"], ["/compare", "Compare companies", "Side by side, in charts", "compare"]] },
+    { title: "Research", items: [["/research", "Stock research", "A report for every listed company", "search"], ["/screener", "Screener", "Filter every company by your rules", "table"], ["/score-screener", "Score screener", "Size, sector and score ranges, simply", "quality"], ["/compare", "Compare companies", "Side by side, in charts", "compare"], ["/premium", "Gold dashboards", "Fundamentals, market events, premium reports", "crown"]] },
     { title: "Your workspace", items: [["/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"], ["/holdings", "Portfolio tracker", "Value, profit and loss, allocation", "pie"], ["/alerts", "Alerts", "Price, signals, scores and filings", "bell"]] },
     { title: "Market", items: [["/results", "Results calendar", "Who reports and when", "calendar"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
   ] },
@@ -122,7 +122,7 @@ function Footer() {
         <div className="fcols fcols5">
           <div className="fbrand"><b>{COMPANY.name}</b><p>Research-led perspectives across Indian and global markets, from people who put their own capital behind their ideas.</p>
             <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
-          <div><b>Products</b><Link to="/research">Stock research</Link><Link to="/screener">Screener</Link><Link to="/score-screener">Score screener</Link><Link to="/compare">Compare</Link><Link to="/watchlist">Watchlists</Link><Link to="/alerts">Alerts</Link><Link to="/holdings">Portfolio tracker</Link></div>
+          <div><b>Products</b><Link to="/research">Stock research</Link><Link to="/screener">Screener</Link><Link to="/score-screener">Score screener</Link><Link to="/compare">Compare</Link><Link to="/premium">Gold dashboards</Link><Link to="/watchlist">Watchlists</Link><Link to="/alerts">Alerts</Link><Link to="/holdings">Portfolio tracker</Link></div>
           <div><b>Market</b><Link to="/results">Results calendar</Link><Link to="/ipo">IPO calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link><Link to="/plans">Pricing</Link></div>
           <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link></div>
           <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>

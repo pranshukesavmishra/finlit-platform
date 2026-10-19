@@ -2,7 +2,7 @@
 // names on buttons/links/inputs.   node e2e/a11y_basic.mjs http://127.0.0.1:8010
 import { chromium } from "playwright";
 const base = (process.argv[2] || "http://127.0.0.1:8010").replace(/\/$/, "");
-const PAGES = ["/", "/research", "/screener", "/score-screener", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/legal/disclosures", "/login", "/forgot-password", "/stocks/RELIANCE"];
+const PAGES = ["/", "/research", "/screener", "/score-screener", "/premium", "/premium/markets", "/premium/fundamentals", "/premium/report", "/compare", "/ipo", "/results", "/news", "/documents", "/glossary", "/plans", "/services", "/about", "/why-we-exist", "/contact", "/portfolio", "/blog", "/legal/terms", "/legal/privacy", "/legal/disclosures", "/login", "/forgot-password", "/stocks/RELIANCE"];
 const b = await chromium.launch({ args: ["--disable-dev-shm-usage"] }); const p = await (await b.newContext({ viewport: { width: 1366, height: 900 } })).newPage();
 const titles = new Map(); let problems = 0;
 for (const path of PAGES) {

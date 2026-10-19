@@ -20,6 +20,10 @@ const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default:
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
 const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m.Screener })));
+const PremiumHub = lazy(() => import("./pages/Premium").then((m) => ({ default: m.PremiumHub })));
+const MarketsPage = lazy(() => import("./pages/Markets").then((m) => ({ default: m.MarketsPage })));
+const FundamentalsPage = lazy(() => import("./pages/Fundamentals").then((m) => ({ default: m.FundamentalsPage })));
+const PremiumReportPage = lazy(() => import("./pages/PremiumReport").then((m) => ({ default: m.PremiumReportPage })));
 const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
@@ -50,6 +54,11 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="screener" element={<Screener />} />
             <Route path="score-screener" element={<ScoreScreener />} />
+            <Route path="premium" element={<PremiumHub />} />
+            <Route path="premium/markets" element={<MarketsPage />} />
+            <Route path="premium/fundamentals" element={<FundamentalsPage />} />
+            <Route path="premium/report" element={<PremiumReportPage />} />
+            <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
             <Route path="compare" element={<Compare />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
