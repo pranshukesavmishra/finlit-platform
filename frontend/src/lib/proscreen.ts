@@ -5,7 +5,8 @@ import { MINUS, cr, nf } from "./format";
 import type { Plan } from "./ui";
 
 export type MetricInfo = { key: string; label: string; unit: string; better: "higher" | "lower" | "none"; tier: Plan; say: string; digits: number; locked: boolean;
-  stats: { min: number; p10: number; p50: number; p90: number; max: number; n: number } | null };
+  stats: { min: number; p10: number; p50: number; p90: number; max: number; n: number; lo?: number; hi?: number; hist?: number[] } | null;
+  hidden?: boolean; variants?: Record<string, string> | null };
 export type GroupInfo = { id: string; label: string; tier: Plan; metrics: MetricInfo[] };
 export type Catalog = {
   plan: Plan; total: number; updatedAt: string; groups: GroupInfo[]; sectors: { name: string; n: number }[]; industries: { name: string; sector: string | null; n: number }[];
@@ -80,7 +81,7 @@ export const READY: Ready[] = [
   { id: "value", label: "Value picks", says: "P/E under 15× and P/B under 2×", tier: "silver", state: r({ pe: { min: 0.1, max: 15 }, pb: { min: 0.1, max: 2 } }) },
   { id: "roe", label: "High return on equity", says: "ROE above 15% and ROCE above 15%", tier: "basic", state: r({ roe: { min: 15 }, roce: { min: 15 } }) },
   { id: "garp", label: "Growth at a fair price", says: "PEG under 1.5, profit growth 5Y above 15%, ROE above 15%", tier: "silver", state: r({ peg: { min: 0.01, max: 1.5 }, profit_cagr_5y: { min: 15 }, roe: { min: 15 } }) },
-  { id: "cheap_own", label: "Cheap against its own history", says: "P/E at least 15% below its own average, profit still growing", tier: "silver", state: r({ pe_vs_avg: { max: -15 }, profit_growth: { min: 0 }, pe: { min: 0.1 } }) },
+  { id: "cheap_own", label: "Cheap against its own history", says: "P/E at least 15% below its own average, profit still growing", tier: "silver", state: r({ pe_vs_median_5y: { max: -15 }, profit_growth: { min: 0 }, pe: { min: 0.1 } }) },
   { id: "cheap_sector", label: "Cheaper than its sector", says: "P/E 20% below the sector median with ROE above 12%", tier: "silver", state: r({ pe_vs_sector: { max: -20 }, roe: { min: 12 } }) },
   { id: "netcash", label: "Net cash balance sheet", says: "More cash and investments than debt, interest cover above 5×", tier: "silver", state: r({ net_debt: { max: 0 }, interest_coverage: { min: 5 } }) },
   { id: "cashrich", label: "Profits backed by cash", says: "Operating cash above 90% of profit, free cash flow positive", tier: "silver", state: r({ cfo_to_pat: { min: 90 }, fcf: { min: 0.01 }, net_profit: { min: 0.01 } }) },

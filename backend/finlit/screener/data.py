@@ -103,7 +103,16 @@ class Table:
         for k, col in self.cols.items():
             xs = sorted(x for x in col if x == x)
             if xs:
-                self.stats[k] = {"min": xs[0], "p10": _pct(xs, .1), "p50": _pct(xs, .5), "p90": _pct(xs, .9), "max": xs[-1], "n": len(xs)}
+                lo, hi = _pct(xs, .02), _pct(xs, .98)    # the bars and slider cover the middle 96%: a few extreme values must not squash the rest
+                if hi <= lo:
+                    lo, hi = xs[0], xs[-1]
+                bins = 28
+                counts = [0] * bins
+                if hi > lo:
+                    for x in xs:
+                        counts[min(bins - 1, max(0, int((x - lo) / (hi - lo) * bins)))] += 1
+                self.stats[k] = {"min": xs[0], "p10": _pct(xs, .1), "p50": _pct(xs, .5), "p90": _pct(xs, .9), "max": xs[-1], "n": len(xs),
+                                 "lo": lo, "hi": hi, "hist": counts}
 
     @staticmethod
     def _facet(vals: List[Optional[str]]) -> List[Tuple[str, int]]:

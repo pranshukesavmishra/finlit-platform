@@ -52,22 +52,41 @@ CATALOG: List[Metric] = [
     M("ret_5y", "5-year return", "returns", "%", "higher", "silver", "Price change over five years.", 1),
     M("ret_1y_total", "1-year total return", "returns", "%", "higher", "silver", "Price change plus dividends received over a year.", 1),
     # ---- Valuation
-    M("pe", "P/E ratio", "valuation", "x", "lower", _B, "Rupees you pay for each rupee of yearly profit.", 1),
-    M("pb", "P/B ratio", "valuation", "x", "lower", "silver", "Price compared with what the books say the company owns.", 2),
-    M("ps", "Price to sales", "valuation", "x", "lower", "silver", "Rupees you pay for each rupee of yearly sales.", 2),
-    M("pfcf", "Price to free cash flow", "valuation", "x", "lower", "silver", "Price for each rupee of spare cash the business makes.", 1),
+    M("pe", "P/E Ratio", "valuation", "x", "lower", _B, "Rupees you pay for each rupee of yearly profit.", 1),
+    M("pb", "P/B Ratio", "valuation", "x", "lower", "silver", "Price compared with what the books say the company owns.", 2),
     M("ev_ebitda", "EV / EBITDA", "valuation", "x", "lower", "silver", "Enterprise value for each rupee of operating earnings.", 1),
+    M("dividend_yield", "Dividend Yield", "valuation", "%", "higher", _B, "Yearly cash dividend for every ₹100 invested.", 2),
+    M("peg", "PEG Ratio", "valuation", "x", "lower", "silver", "P/E divided by yearly profit growth. Under 1 can mean growth is cheap.", 2),
+    M("earnings_yield", "Earnings Yield", "valuation", "%", "higher", "silver", "Yearly profit for every ₹100 of market value (the inverse of P/E).", 1),
+    M("graham_value", "Graham Fair Value", "valuation", "Rs", "none", "silver", "Benjamin Graham's rule of thumb: the square root of 22.5 × earnings per share × book value per share.", 0),
+    M("graham_upside", "Upside to Graham Value", "valuation", "%", "higher", "silver", "How far the share price is below (+) or above (−) the Graham fair value.", 0),
+    M("ev_cfo", "EV / CFO", "valuation", "x", "lower", "silver", "Enterprise value for each rupee of operating cash flow.", 1),
     M("ev_sales", "EV / Sales", "valuation", "x", "lower", "silver", "Enterprise value for each rupee of sales.", 2),
-    M("dividend_yield", "Dividend yield", "valuation", "%", "higher", _B, "Yearly cash dividend for every ₹100 invested.", 2),
-    M("earnings_yield", "Earnings yield", "valuation", "%", "higher", "silver", "Yearly profit for every ₹100 of market value (the inverse of P/E).", 1),
-    M("fcf_yield", "Free cash flow yield", "valuation", "%", "higher", "silver", "Spare cash generated for every ₹100 of market value.", 1),
-    M("peg", "PEG ratio", "valuation", "x", "lower", "silver", "P/E divided by yearly profit growth. Under 1 can mean growth is cheap.", 2),
-    M("pe_vs_avg", "P/E against its own average", "valuation", "%", "lower", "silver", "How far today's P/E is above (+) or below (−) its average of recent years.", 0),
-    M("pb_vs_avg", "P/B against its own average", "valuation", "%", "lower", "silver", "How far today's P/B is above (+) or below (−) its average of recent years.", 0),
-    M("pe_vs_sector", "P/E against sector median", "valuation", "%", "lower", "silver", "How far the P/E is above (+) or below (−) the median of its sector.", 0),
-    M("pb_vs_sector", "P/B against sector median", "valuation", "%", "lower", "silver", "How far the P/B is above (+) or below (−) the median of its sector.", 0),
+    M("ps", "Price / Sales", "valuation", "x", "lower", "silver", "Rupees you pay for each rupee of yearly sales.", 2),
+    M("price_cfo", "Price / CFO", "valuation", "x", "lower", "silver", "Market value for each rupee of operating cash flow.", 1),
+    M("dividend_payout", "Dividend Payout", "valuation", "%", "none", "silver", "Share of profit paid out as dividend.", 0),
+    M("pfcf", "Price / FCF", "valuation", "x", "lower", "silver", "Market value for each rupee of free cash flow.", 1),
+    M("fcf_yield", "FCF Yield", "valuation", "%", "higher", "silver", "Spare cash generated for every ₹100 of market value.", 1),
+    M("sales_ps", "Sales / Share", "valuation", "Rs", "higher", "silver", "Yearly sales for each share.", 1),
+    M("cash_ps", "Cash / Share", "valuation", "Rs", "higher", "silver", "Cash on the balance sheet for each share.", 1),
+    M("net_cash_ps", "Net Cash / Share", "valuation", "Rs", "higher", "silver", "Cash and investments less debt, for each share. Negative means net debt.", 1),
+    M("fcf_ps", "FCF / Share", "valuation", "Rs", "higher", "silver", "Free cash flow for each share.", 1),
+    M("pe_vs_median_5y", "P/E vs own 5Y median", "valuation", "%", "lower", "silver", "How far today's P/E is above (+) or below (−) its own median of the last five years.", 0),
+    M("pe_median_5y", "Median P/E (5Y)", "valuation", "x", "none", "silver", "The middle P/E of the last five yearly readings.", 1),
+    M("pb_vs_median_5y", "P/B vs own 5Y median", "valuation", "%", "lower", "silver", "How far today's P/B is above (+) or below (−) its own median of the last five years.", 0),
+    M("pe_vs_sector", "P/E vs sector median", "valuation", "%", "lower", "silver", "How far the P/E is above (+) or below (−) the median of its sector.", 0),
+    M("pb_vs_sector", "P/B vs sector median", "valuation", "%", "lower", "silver", "How far the P/B is above (+) or below (−) the median of its sector.", 0),
     M("price_to_tangible", "Market cap to total assets", "valuation", "x", "lower", "silver", "Market value for each rupee of assets owned.", 2),
-    M("dividend_payout", "Dividend payout", "valuation", "%", "none", "silver", "Share of profit paid out as dividend.", 0),
+    # averages over the last 3 / 5 / 7 yearly readings: reached from the Now / 3Y / 5Y / 7Y tabs of their base filter, not listed on their own
+    M("pe_avg_3y", "P/E Ratio, 3Y average", "valuation", "x", "lower", "silver", "Average of the last three yearly P/E readings.", 1),
+    M("pe_avg_5y", "P/E Ratio, 5Y average", "valuation", "x", "lower", "silver", "Average of the last five yearly P/E readings.", 1),
+    M("pe_avg_7y", "P/E Ratio, 7Y average", "valuation", "x", "lower", "silver", "Average of the last seven yearly P/E readings.", 1),
+    M("pb_avg_3y", "P/B Ratio, 3Y average", "valuation", "x", "lower", "silver", "Average of the last three yearly P/B readings.", 2),
+    M("pb_avg_5y", "P/B Ratio, 5Y average", "valuation", "x", "lower", "silver", "Average of the last five yearly P/B readings.", 2),
+    M("pb_avg_7y", "P/B Ratio, 7Y average", "valuation", "x", "lower", "silver", "Average of the last seven yearly P/B readings.", 2),
+    M("ps_avg_3y", "Price / Sales, 3Y average", "valuation", "x", "lower", "silver", "Average of the last three yearly P/S readings.", 2),
+    M("ps_avg_5y", "Price / Sales, 5Y average", "valuation", "x", "lower", "silver", "Average of the last five yearly P/S readings.", 2),
+    M("ps_avg_7y", "Price / Sales, 7Y average", "valuation", "x", "lower", "silver", "Average of the last seven yearly P/S readings.", 2),
     # ---- Profitability
     M("roe", "Return on equity", "profitability", "%", "higher", _B, "Profit earned on shareholders' money.", 1),
     M("roce", "Return on capital employed", "profitability", "%", "higher", _B, "Profit earned on all the money used in the business.", 1),
@@ -220,6 +239,9 @@ CATALOG: List[Metric] = [
     M("watchouts_count", "Watch-outs found", "model", "n", "lower", "gold", "How many watch-outs the FinLit model lists for the company.", 0),
 ]
 BY_KEY: Dict[str, Metric] = {m.key: m for m in CATALOG}
+# "Now / 3Y avg / 5Y avg / 7Y avg" tabs: base filter -> the filter behind each tab
+VARIANTS: Dict[str, Dict[str, str]] = {b: {"now": b, "3y": f"{b}_avg_3y", "5y": f"{b}_avg_5y", "7y": f"{b}_avg_7y"} for b in ("pe", "pb", "ps")}
+HIDDEN = {v for tabs in VARIANTS.values() for k, v in tabs.items() if k != "now"}   # shown only through their tabs
 RANK = {"basic": 0, "silver": 1, "gold": 2}
 
 # Non-numeric filters

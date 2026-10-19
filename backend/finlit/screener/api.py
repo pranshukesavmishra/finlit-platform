@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..auth.routes import NO_STORE, fail
 from ..auth.service import current
-from .catalog import BY_KEY, CAPS, CATALOG, GROUP_LABEL, GROUPS, INDEX_LISTS, allowed
+from .catalog import BY_KEY, CAPS, CATALOG, GROUP_LABEL, GROUPS, HIDDEN, INDEX_LISTS, VARIANTS, allowed
 from .data import get_table
 
 router = APIRouter(prefix="/api/screener")
@@ -86,7 +86,7 @@ async def catalog(request: Request):
         ms = [m for m in CATALOG if m.group == gid]
         groups.append({"id": gid, "label": label, "tier": "gold" if gid == "model" else "basic", "metrics": [
             {"key": m.key, "label": m.label, "unit": m.unit, "better": m.better, "tier": m.tier, "say": m.say, "digits": m.digits,
-             "locked": not allowed(plan, m.tier), "stats": t.stats.get(m.key)} for m in ms]})
+             "locked": not allowed(plan, m.tier), "stats": t.stats.get(m.key), "hidden": m.key in HIDDEN, "variants": VARIANTS.get(m.key)} for m in ms]})
     body = {
         "plan": plan, "total": t.n, "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t.loaded)),
         "groups": groups,

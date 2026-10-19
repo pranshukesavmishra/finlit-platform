@@ -41,7 +41,7 @@ export function PremiumHub() {
     <>
       <PremiumHead eyebrow="Gold dashboards" title="The premium research desk."><p>Three tools built for serious investors. They open fast, stay up to date, and every number comes from the same sources our analysts use.</p></PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
-        {!gold && <p className="chip gold" style={{ height: "auto", padding: "8px 14px" }}><Icon name="crown" /> Included with the Gold plan. Open any tool to see how it works.</p>}
+        {!gold && <p className="chip gold" style={{ height: "auto", padding: "8px 14px", whiteSpace: "normal", maxWidth: "100%", lineHeight: 1.4 }}><Icon name="crown" /> Included with the Gold plan. Open any tool to see how it works.</p>}
         <div className="pm-hub">
           {CARDS.map((c) => (
             <Link key={c.to} to={c.to} className="pm-card" onMouseEnter={() => gold && c.to.endsWith("markets") && prefetchMarkets(qc)}>

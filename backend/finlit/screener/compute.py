@@ -11,7 +11,7 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Sequence
 
 Num = Optional[float]
-MULTIPLES = ("pe", "pb", "ps", "pfcf", "ev_ebitda", "ev_sales", "peg", "price_to_tangible")
+MULTIPLES = ("pe", "pb", "ps", "pfcf", "ev_ebitda", "ev_sales", "ev_cfo", "price_cfo", "peg", "price_to_tangible")
 
 
 def _n(v: Any) -> Num:
@@ -60,6 +60,12 @@ def _mean(xs: Sequence[Num]) -> Num:
     return sum(v) / len(v) if v else None
 
 
+def _median(xs: Sequence[float]) -> Num:
+    v = sorted(xs)
+    n = len(v)
+    return None if not n else (v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2)
+
+
 def _flag(cond: Optional[bool]) -> Num:
     return None if cond is None else (1.0 if cond else 0.0)
 
@@ -102,7 +108,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["market_cap"], out["price"] = market_cap, price
     out["revenue"], out["net_profit"], out["total_assets"] = rev0, np0, assets0
     out["eps"] = _last(eps_row)
-    shares = _div(np0, _last(eps_row))  # crore shares implied by profit / EPS
+    shares_row = _row(pl, "diluted_shares_cr")
+    shares = _last(shares_row) if _last(shares_row) else _div(np0, _last(eps_row))   # crore shares: reported, else profit / EPS
     out["book_value_ps"] = _div(eq0, shares)
     net_debt = _sub(debt0, _add(cash0 or 0.0, _last(invest) or 0.0)) if debt0 is not None else None
     out["net_debt"] = net_debt
@@ -121,13 +128,33 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out.update(pe=pe, pb=pb, ps=ps, pfcf=latest.get("pfcf"), ev_ebitda=latest.get("ev_ebitda"), dividend_yield=latest.get("dividend_yield"),
                dividend_payout=latest.get("dividend_payout"))
     out["ev_sales"] = _div(out["enterprise_value"], rev0)
+    out["ev_cfo"] = _div(out["enterprise_value"], cfo0) if cfo0 and cfo0 > 0 else None
+    out["price_cfo"] = _div(market_cap, cfo0) if cfo0 and cfo0 > 0 else None
+    out["sales_ps"] = _div(rev0, shares)
+    out["fcf_ps"] = _div(fcf0, shares)
+    out["cash_ps"] = _div(cash0, shares)
+    out["net_cash_ps"] = _div(-net_debt, shares) if net_debt is not None else None
+    eps0, bvps = _last(eps_row), out["book_value_ps"]
+    graham = (22.5 * eps0 * bvps) ** 0.5 if eps0 and bvps and eps0 > 0 and bvps > 0 else None   # Benjamin Graham: sqrt(22.5 x EPS x book value per share)
+    out["graham_value"] = graham
+    out["graham_upside"] = _div(_sub(graham, price), price, 100) if graham and price else None
     out["earnings_yield"] = _div(1.0, pe, 100) if pe and pe > 0 else None
     out["fcf_yield"] = _div(fcf0, market_cap, 100)
     pcagr = latest.get("profit_cagr_5y") or latest.get("profit_cagr")
     out["peg"] = _div(pe, pcagr) if pe and pe > 0 and pcagr and pcagr > 0 else None
     vh = (ratios.get("valuationHistory") or {}).get("rows") or {}
-    out["pe_vs_avg"] = _pct_diff(pe, _mean([_n(x) for x in vh.get("pe") or [] if _n(x) and _n(x) > 0]))
-    out["pb_vs_avg"] = _pct_diff(pb, _mean([_n(x) for x in vh.get("pb") or [] if _n(x) and _n(x) > 0]))
+    # yearly readings of P/E, P/B and P/S (newest last): averages over the last 3, 5 and 7 years, and the 5-year median
+    medians: Dict[str, Num] = {}
+    for key in ("pe", "pb", "ps"):
+        series = [x for x in (_n(v) for v in vh.get(key) or []) if x is not None and x > 0]
+        for years in (3, 5, 7):
+            if len(series) >= min(years, 3):
+                out[f"{key}_avg_{years}y"] = _mean(series[-years:])
+        if len(series) >= 3:
+            medians[key] = _median(series[-5:])
+    out["pe_median_5y"] = medians.get("pe")
+    out["pe_vs_median_5y"] = _pct_diff(pe, medians.get("pe"))
+    out["pb_vs_median_5y"] = _pct_diff(pb, medians.get("pb"))
     out["price_to_tangible"] = _div(market_cap, assets0)
 
     for k in MULTIPLES:  # a loss-maker's P/E or a negative-equity P/B is not a "cheap" number, it is no number

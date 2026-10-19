@@ -25,10 +25,14 @@ function PlanArt({ k }: { k: Plan }) {
   );
 }
 const CMP: [string, string | null, number?][] = [
-  ["Research data", null], ["Starter stock screener", "14 core filters, first 25 matches", 0], ["Full screener: 160+ filters, every match, download", "Quarterly results, ownership, red flags, ratios, trend and ready-made screens", 1], ["Company comparison (2 companies)", "Overview, fundamentals, spider and valuation", 0], ["Glossary of finance terms", "95 terms with formulas", 0], ["Latest quarter results & trends", "Quarter vs last quarter and last year", 0], ["Company overview", "Business, key facts", 0], ["Financial statements", "P&L, balance sheet, cash flow", 0], ["Key ratios & peer comparison", "", 0], ["Price chart, volume & moving averages", "", 0],
-  ["FinLit scoring", null], ["Research score & five-pillar scorecard", "Quality, Growth, Profitability, Balance sheet, Technical", 1], ["Parameter view & historical trends", "", 1], ["Model-based comparison tabs", "Quality & risk, growth, technical, build your own", 1], ["Advanced scoring model", "More parameters, higher-weight factors", 2],
-  ["Deep analysis", null], ["Detailed ratio analysis", "Every ratio, with history", 2], ["FinLit model screener filters", "FinLit score, band, five pillars, score movement", 2], ["Compare up to 4 companies", "", 2], ["Technical analysis & momentum score", "RSI, EMAs, trend signals", 2], ["Stock bucketing & triggers", "", 2], ["Revenue segmentation", "", 2],
-  ["Tools", null], ["Watchlist with lists, notes and targets", "3 lists and 30 stocks", 1], ["Smart watchlist: unlimited lists and signals", "Bucket by band and style, second-look flags", 2], ["Export: PDF note, offline copy, CSV", "", 1], ["Priority access to new features", "", 2],
+  ["Free for everyone (Basic)", null], ["Financial statements", "Profit and loss, balance sheet, cash flow", 0], ["Key ratios, peers and shareholding", "Valuation, returns, margins, debt and who owns the company", 0], ["Starter screener", "14 core filters, sector, size and index. First 25 matches", 0],
+  ["Compare two companies", "Overview, fundamentals, spider chart and valuation", 0], ["Glossary of finance terms", "95 terms with formulas", 0], ["Results, IPO and news calendars", "Dates, open issues and company filings", 0], ["Price chart, volume and moving averages", "", 0], ["Alerts on price and volume", "", 0],
+  ["Silver: scores and tools", null], ["Full screener: 160+ filters", "Valuation, quarterly results, ownership, red flags, trend and more. Every match, ready-made and saved screens, download", 1],
+  ["FinLit model score across five pillars", "Quality, Growth, Profitability, Balance sheet, Technical", 1], ["Fundamental and technical scores, kept separate", "Read the business and the price trend on their own", 1], ["Parameter view and historical trends", "How each number moves the score", 1],
+  ["Watchlists with notes and targets", "3 lists and 30 stocks", 1], ["Portfolio tracker with CSV import", "Value, profit and loss, allocation and a health read", 1], ["Download: PDF note, offline copy, CSV", "", 1],
+  ["Gold: deeper analysis", null], ["FinLit model screener filters", "Filter by score, band, the five pillars and score movement", 2], ["Advanced scoring model", "More parameters, higher-weight factors", 2], ["Technical analysis and momentum", "RSI, moving averages, trend signals", 2], ["Compare up to four companies", "", 2],
+  ["Gold dashboards", "Stock fundamentals, market events and index dashboard, premium report", 2], ["Smart watchlist: up to 1,000 stocks", "Bucket by band and style, second-look flags", 2], ["Priority access to new features", "", 2],
+  ["Planned", null], ["Equity research report (coming soon)", "Subject to the required licence and approvals", 9],
 ];
 
 export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1?: boolean; compact?: boolean }) {
@@ -52,6 +56,7 @@ export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1
             <span className="who-i"><Icon name={ic} /></span><b>{t}</b><span>{d}</span><em>{TIER[k].n} plan <Icon name="arrow" /></em>
           </button>))}</div>
         </>}
+        {!compact && (
         <div className="pgrid">
           {PLANS.map((p) => (
             <div key={p.k} id={`plan-${p.k}`} data-cur={DEMO ? "Previewing" : "Your plan"} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k && (DEMO || user || p.k === "basic") ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
@@ -66,13 +71,15 @@ export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1
             </div>
           ))}
         </div>
-        {compact ? <p className="plans-more"><Link to="/plans">Compare every feature →</Link></p> : <>
-        <div className="cmp-h"><h3>Compare every feature</h3><p>{DEMO ? "Pick a plan to preview it on a stock page." : "Pricing is announced at launch. Until then, request a plan and we will switch it on for your account."}</p></div>
+        )}
+        {<>
+        <div className="cmp-h"><h3>{compact ? "What each plan includes" : "Compare every feature"}</h3><p>{DEMO ? "Pick a plan to preview it on a stock page." : "Pricing is announced at launch. Until then, request a plan and we will switch it on for your account."}</p></div>
         <div className="cmp"><div className="cmp-scroll"><table>
           <thead><tr><th>Feature</th>{PLANS.map((p) => <th key={p.k} className={"th-" + p.k + (plan === p.k ? " cur" : "")} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}><span className="th-i"><Icon name={TIER[p.k].ic} /></span><b>{TIER[p.k].n}</b><small>{p.k === "basic" ? "Free" : "Pricing soon"}</small></th>)}</tr></thead>
           <tbody>{CMP.map(([n, d, need]) => d === null ? <tr className="grp" key={n}><td colSpan={4}>{n}</td></tr> :
-            <tr key={n}><td><span className="cf"><span className="cf-i"><Icon name={fIcon(n)} /></span><span><b>{n}</b>{d ? <small>{d}</small> : null}</span></span></td>{PLANS.map((p) => RANK[p.k] >= (need ?? 0) ? <td key={p.k} className={"c-" + p.k}><span className="yes" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}><Icon name="check" /></span></td> : <td key={p.k} className={"c-" + p.k}><span className="no">—</span></td>)}</tr>)}</tbody>
-          <tfoot><tr><td>Features included</td>{PLANS.map((p) => <td key={p.k} className={"c-" + p.k}><b className="cnt" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>{CMP.filter(([, d, need]) => d !== null && RANK[p.k] >= (need ?? 0)).length}</b></td>)}</tr></tfoot>
+            <tr key={n}><td><span className="cf"><span className="cf-i"><Icon name={fIcon(n)} /></span><span><b>{n.replace(" (coming soon)", "")}{n.endsWith("(coming soon)") && <span className="soon-tag">Coming soon</span>}</b>{d ? <small>{d}</small> : null}</span></span></td>{PLANS.map((p) => RANK[p.k] >= (need ?? 0) ? <td key={p.k} className={"c-" + p.k}><span className="yes ck" role="img" aria-label="Included"><Icon name="check" /></span></td> : <td key={p.k} className={"c-" + p.k}><span className="x-no" role="img" aria-label="Not included">✕</span></td>)}</tr>)}</tbody>
+          <tfoot><tr><td>Features included</td>{PLANS.map((p) => <td key={p.k} className={"c-" + p.k}><b className="cnt" style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>{CMP.filter(([, d, need]) => d !== null && RANK[p.k] >= (need ?? 0)).length}</b></td>)}</tr>
+            {compact && <tr className="cta-r"><td />{PLANS.map((p) => <td key={p.k} className={"c-" + p.k}>{!DEMO && p.k === "basic" && !user ? <Link className="btn" to="/login?mode=signup">{cta(p.k, p.cta)}</Link> : <button className={"btn" + (p.feat ? " primary" : "")} disabled={!DEMO && plan === p.k && (!!user || p.k === "basic")} onClick={() => go(p.k)}>{cta(p.k, p.cta)}</button>}</td>)}</tr>}</tfoot>
         </table></div></div>
         <p className="plans-note">Plans and features are subject to change. Pricing will be announced at launch. {DEMO ? "Use “Preview” to see a stock page as each plan." : "Request a plan from your account and we will confirm it by email."}</p>
         </>}

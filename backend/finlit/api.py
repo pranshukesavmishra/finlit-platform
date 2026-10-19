@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, premium
+from . import alertapi, notify, premium
 from .screener import api as screener_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -305,6 +305,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(auth_routes.router)
     app.include_router(alertapi.router)
     app.include_router(premium.router)
+    app.include_router(notify.router)
     app.include_router(screener_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

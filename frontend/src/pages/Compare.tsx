@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { PageArt } from "../components/PageArt";
@@ -8,6 +8,7 @@ import { useUI } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { Radar } from "../charts/Radar";
+import { CompareBar } from "../components/CompareBar";
 import { BAND_LABEL, METRICS, distOf, fmt, percentile, useUniverse, type Dist, type NumKey, type Row } from "../lib/screener";
 
 type TabDef = { id: string; label: string; model?: boolean; blurb: string; groups: { title: string; keys: NumKey[] }[] };
@@ -26,28 +27,6 @@ const PILLARS: NumKey[] = ["pillar_quality", "pillar_growth", "pillar_profitabil
 const ALL = Object.keys(METRICS) as NumKey[];
 const LETTER = ["A", "B", "C", "D"];
 
-function Picker({ label, value, options, taken, onPick, onRemove }: { label: string; value: Row | undefined; options: Row[]; taken: string[]; onPick: (r: Row) => void; onRemove?: () => void }) {
-  const [open, setOpen] = useState(false), [q, setQ] = useState(""), box = useRef<HTMLDivElement>(null);
-  useEffect(() => { const h = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
-  const list = options.filter((o) => !taken.includes(o.symbol) && (!q || o.symbol.toLowerCase().includes(q.toLowerCase()) || (o.name || "").toLowerCase().includes(q.toLowerCase()))).slice(0, 8);
-  return (
-    <div className="pk" ref={box}>
-      <div className="pk-l"><span>{label}</span>{onRemove && <button className="lnk" onClick={onRemove} aria-label={`Remove ${label}`}>Remove</button>}</div>
-      <button className="pk-b" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {value ? <><span className="av mini" aria-hidden="true">{(value.name || value.symbol).slice(0, 2).toUpperCase()}</span><span className="pk-n"><b>{value.name}</b><small>{value.symbol}{value.sector ? " · " + value.sector : ""}</small></span></> : <span className="muted">Choose a company</span>}
-        <Icon name="arrow" />
-      </button>
-      {open && (
-        <div className="pk-m" role="listbox">
-          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or code" aria-label="Search companies" />
-          {list.map((o) => <button key={o.symbol} role="option" aria-selected={o.symbol === value?.symbol} onClick={() => { onPick(o); setOpen(false); setQ(""); }}><b>{o.name}</b><small>{o.symbol} · {o.sector}</small></button>)}
-          {!list.length && <p className="muted">No companies match.</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Ring({ v, band }: { v: number | null; band: string | null }) {
   const C = 2 * Math.PI * 34;
   return <div className={"cr " + (band || "")}><svg viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="34" fill="none" stroke="var(--s3)" strokeWidth="8" /><circle className="ring-in" cx="42" cy="42" r="34" fill="none" stroke="var(--gold)" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(C * (v ?? 0)) / 100} ${C}`} transform="rotate(-90 42 42)" /></svg><b>{v ?? "—"}</b></div>;
@@ -55,10 +34,10 @@ function Ring({ v, band }: { v: number | null; band: string | null }) {
 
 export function Compare() {
   useDocTitle("Compare companies", "Put companies side by side on size, valuation, quality, growth and price behaviour. Choose exactly which measures to compare.");
-  const { has, upgrade } = useUI();
+  const { has, upgrade, toast } = useUI();
   const { data, isLoading, isError } = useUniverse();
   const [sp, setSp] = useSearchParams();
-  const [same, setSame] = useState(true), [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("overview");
   const [custom, setCustom] = useState<NumKey[]>(["pe", "roe", "debt_to_equity", "sales_cagr"]);
   const [off, setOff] = useState<Record<string, NumKey[]>>({});
   const rows = data?.rows || [];
@@ -68,21 +47,14 @@ export function Compare() {
 
   // sensible default: Reliance against the best-scoring company in its sector
   useEffect(() => {
-    if (!rows.length || ids.length >= 2) return;
+    if (!rows.length || sp.has("c")) return;   // only when the page is opened with nothing chosen; a member who clears or removes keeps their choice
     const a = bySym.get(ids[0] || "RELIANCE") || rows[0];
     const b = [...rows].filter((r) => r.symbol !== a.symbol && r.sector === a.sector).sort((x, y) => (y.overall ?? 0) - (x.overall ?? 0))[0] || rows.find((r) => r.symbol !== a.symbol);
     if (b) setSp({ c: [a.symbol, b.symbol].join(",") }, { replace: true });
-  }, [rows, ids, bySym, setSp]);
+  }, [rows, sp, bySym, setSp]);
 
   const picked = ids.map((s) => bySym.get(s)!).filter(Boolean);
   const setIds = (n: string[]) => setSp({ c: n.join(",") }, { replace: true });
-  const sectorOf = picked[0]?.sector;
-  const optionsFor = (i: number) => (same && i > 0 && sectorOf ? rows.filter((r) => r.sector === sectorOf) : rows);
-  const pick = (i: number, r: Row) => {
-    const n = [...ids]; n[i] = r.symbol;
-    if (same && i === 0) for (let j = 1; j < n.length; j++) if (bySym.get(n[j])?.sector !== r.sector) { const alt = rows.find((x) => x.sector === r.sector && !n.includes(x.symbol)); n[j] = alt?.symbol || n[j]; }
-    setIds(n);
-  };
   const T = TABS.find((t) => t.id === tab)!;
   const locked = T.model && !has("silver");
   const dists = useMemo(() => { const m = new Map<NumKey, Dist | null>(); (Object.keys(METRICS) as NumKey[]).forEach((k) => m.set(k, distOf(rows, k))); return m; }, [rows]);
@@ -106,20 +78,18 @@ export function Compare() {
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-        <div className="eyebrow">Company comparison</div><h1>Two companies, side by side.</h1>
+        <div className="eyebrow">Company comparison</div><h1>Companies, side by side.</h1>
         <p>Compare size, valuation, quality, growth and price behaviour across listed Indian companies, and choose exactly what to compare.</p></div></section>
       <div className="wrap cmpw">
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-). The live site compares any listed companies.</span></div>}
         <div className="card cmp-setup">
-          <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Comparison setup</h3>
-            <div className="seg" role="group" aria-label="Which companies"><button aria-pressed={same} onClick={() => setSame(true)}>Same sector</button><button aria-pressed={!same} onClick={() => setSame(false)}>Different sectors</button></div></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Choose companies</h3>
+            {picked.length >= 2 && <div className="cmp-acts"><button className="btn" onClick={() => setIds([ids[1], ids[0], ...ids.slice(2)])}><Icon name="arrow" />Swap first two</button><button className="btn" onClick={() => { navigator.clipboard?.writeText(location.href).then(() => toast("Link to this comparison copied."), () => toast(location.href)); }}><Icon name="spark" />Copy link</button></div>}</div>
           {isLoading ? <div className="skeleton" style={{ height: 90 }} /> : (
-            <div className="pks">
-              {Array.from({ length: Math.max(2, picked.length) }, (_, i) => <Picker key={i} label={`Company ${LETTER[i]}`} value={picked[i]} options={optionsFor(i)} taken={ids.filter((_, j) => j !== i)} onPick={(r) => pick(i, r)} onRemove={i >= 2 ? () => setIds(ids.filter((_, j) => j !== i)) : undefined} />)}
-              {picked.length < max && picked.length >= 2 && <button className="pk-add" onClick={() => { const r = optionsFor(picked.length).find((x) => !ids.includes(x.symbol)); if (r) setIds([...ids, r.symbol]); }}><Icon name="spark" />Add a company</button>}
-              {!has("gold") && picked.length >= 2 && <button className="pk-add lock" onClick={() => { upgrade("gold", "Comparing up to four companies comes with the Gold plan."); }}><Icon name="lock" />Compare up to 4 · Gold</button>}
-              {picked.length >= 2 && <button className="pk-swap" aria-label="Swap the first two companies" onClick={() => setIds([ids[1], ids[0], ...ids.slice(2)])}><Icon name="arrow" />Swap A and B</button>}
-            </div>)}
+            <>
+              <CompareBar rows={rows} ids={ids} max={max} onChange={setIds} onLimit={() => { if (!has("gold")) upgrade("gold", "Comparing up to four companies comes with the Gold plan."); else toast("You are comparing the most companies this page can show."); }} />
+              {!has("gold") && <p className="cb-gold"><Icon name="lock" /> Compare up to 4 companies at once with <button className="alx-link" onClick={() => upgrade("gold", "Comparing up to four companies comes with the Gold plan.")}>Gold</button>.</p>}
+            </>)}
         </div>
 
         <div className="cmp-tabs" role="tablist" aria-label="Comparison areas">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}{t.model && !has("silver") && <Icon name="lock" />}</button>)}</div>
@@ -129,6 +99,7 @@ export function Compare() {
           <Plain tone="info">{picked.map((r, i) => `${r.name} leads on ${tally[i]}`).join(" · ")} of {scored} measures. “Leads” means the better value: lower for P/E and debt, higher for returns and growth.</Plain>
         )}
 
+        {picked.length < 2 && !isLoading && <div className="pm-empty" style={{ margin: "18px 0" }}><b>Pick at least two companies to compare.</b><p>Use the search box above: open it to browse every company, or try a popular comparison.</p></div>}
         {picked.length >= 2 && tab === "overview" && (
           <>
             <div className={"cmp-cards n" + picked.length}>{picked.map((r, i) => (
@@ -158,7 +129,7 @@ export function Compare() {
           <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight fundamentals, against every company</h3><span className="s">Each axis: % of all companies beaten</span></div>
             <div className="pil-grid">
               <Radar axes={SPIDER.map((x) => x.label)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: SPIDER.map((x) => pc(r, x.key)) }))} />
-              <div className="sp-t">{SPIDER.map((x) => (
+              <div className="sp-t" style={{ "--n": picked.length } as React.CSSProperties}><div className="sp-h" role="row"><span />{picked.map((r, i) => <span key={r.symbol} title={r.name || r.symbol}><i className={"mk k" + i} /><b>{r.symbol}</b><small>{r.name}</small></span>)}</div>{SPIDER.map((x) => (
                 <div className="sp-r" key={x.key}><span className="pil-l">{x.label}</span>{picked.map((r, i) => { const p = pc(r, x.key); return <span key={r.symbol} className={"sp-v k" + i}><i className={"dt " + dot(p)} />{fmt(METRICS[x.key], r[x.key])}<small>{p == null ? "" : `beats ${p}%`}</small></span>; })}</div>))}</div>
             </div>
             <div className="pil-key">{picked.map((r, i) => <span key={r.symbol}><i className={"mk k" + i} />{r.name}</span>)}</div>

@@ -19,32 +19,59 @@ const VISIBLE_GROUPS = 9;
 
 const useDebounced = <T,>(v: T, ms: number) => { const [d, setD] = useState(v); useEffect(() => { const t = setTimeout(() => setD(v), ms); return () => clearTimeout(t); }, [v, ms]); return d; };
 
-/** One numeric filter: min and max, with where most companies sit as the hint. Yes/no filters are a three-way switch. */
-function FilterRow({ m, r, set, locked, ask }: { m: MetricInfo; r: Range; set: (r: Range) => void; locked: boolean; ask: () => void }) {
-  const [info, setInfo] = useState(false);
-  const st = m.stats, sfx = UNIT_SUFFIX[m.unit] ?? "";
-  const hint = (v: number) => nf(v, Math.abs(v) >= 100 ? 0 : m.digits > 1 ? 2 : 1);
+const TAB_LABEL: Record<string, string> = { now: "Now", "3y": "3Y avg", "5y": "5Y avg", "7y": "7Y avg" };
+const fmtEdge = (v: number, m: MetricInfo) => nf(v, Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 100 ? 1 : m.digits > 1 ? 2 : 1);
+
+/** A bar chart of where every company sits, with a two-handle slider underneath: drag to set the range, or type it in the boxes. */
+function RangeBox({ m, r, set }: { m: MetricInfo; r: Range; set: (r: Range) => void }) {
+  const st = m.stats;
+  if (!st) return <p className="pl-say">Not enough companies report this yet.</p>;
+  const lo = st.lo ?? st.min, hi = st.hi ?? st.max, span = hi - lo || 1, steps = 200;
+  const toPos = (v: number | undefined, dflt: number) => Math.round(((Math.min(hi, Math.max(lo, v ?? dflt)) - lo) / span) * steps);
+  const a = toPos(r.min, lo), b = toPos(r.max, hi);
+  const at = (pos: number) => lo + (pos / steps) * span;
+  const nice = (v: number) => Number(v.toPrecision(3));
   const num = (raw: string) => (raw === "" ? undefined : Number.isFinite(Number(raw)) ? Number(raw) : undefined);
-  if (m.unit === "flag") {
-    const v = r.min === 1 ? "yes" : r.max === 0 ? "no" : "any";
-    return (
-      <div className={"scr-f" + (locked ? " is-locked" : "")}>
-        <div className="scr-fl"><span>{m.label}</span>{locked ? <button className="pl-tier" onClick={ask}><Icon name="lock" />{TIER[m.tier].n}</button> : <button className="pl-i" aria-label="What this means" aria-expanded={info} onClick={() => setInfo(!info)}><Icon name="info" /></button>}</div>
-        {info && <p className="pl-say">{m.say}</p>}
-        <div className="pm-seg" role="group" aria-label={m.label}>{(["any", "yes", "no"] as const).map((o) => <button key={o} aria-pressed={v === o} onClick={() => (locked ? ask() : set(o === "any" ? {} : o === "yes" ? { min: 1 } : { max: 0 }))}>{o === "any" ? "Any" : o === "yes" ? "Yes" : "No"}</button>)}</div>
-      </div>
-    );
-  }
+  const bars = st.hist || [], top = Math.max(1, ...bars);
+  const inside = (i: number) => { const c0 = lo + (i / bars.length) * span, c1 = lo + ((i + 1) / bars.length) * span; return (r.min == null || c1 >= r.min) && (r.max == null || c0 <= r.max); };
   return (
-    <div className={"scr-f" + (locked ? " is-locked" : "")}>
-      <div className="scr-fl"><span>{m.label}</span>{locked ? <button className="pl-tier" onClick={ask}><Icon name="lock" />{TIER[m.tier].n}</button> : <button className="pl-i" aria-label={`What ${m.label} means`} aria-expanded={info} onClick={() => setInfo(!info)}><Icon name="info" /></button>}</div>
-      {info && <p className="pl-say">{m.say}{m.better !== "none" ? ` ${m.better === "higher" ? "Higher" : "Lower"} is usually better.` : ""}</p>}
-      <div className="scr-fi">
-        <input type="number" inputMode="decimal" placeholder={st ? `Min ${hint(st.p10)}` : "Min"} value={r.min ?? ""} disabled={locked} onChange={(e) => set({ ...r, min: num(e.target.value) })} aria-label={`${m.label} minimum`} />
-        <span>to</span>
-        <input type="number" inputMode="decimal" placeholder={st ? `Max ${hint(st.p90)}` : "Max"} value={r.max ?? ""} disabled={locked} onChange={(e) => set({ ...r, max: num(e.target.value) })} aria-label={`${m.label} maximum`} />
+    <>
+      <div className="pl-hist" role="img" aria-label={`How ${m.label} is spread across ${nf(st.n, 0)} companies`}>{bars.map((c, i) => <i key={i} className={inside(i) ? "in" : ""} style={{ height: `${Math.max(3, (c / top) * 100)}%` }} />)}</div>
+      <div className="pl-slider">
+        <input type="range" min={0} max={steps} value={a} aria-label={`${m.label} minimum slider`} onChange={(e) => { const v = Number(e.target.value); set({ ...r, min: v <= 0 ? undefined : Math.min(nice(at(v)), r.max ?? Infinity) }); }} />
+        <input type="range" min={0} max={steps} value={b} aria-label={`${m.label} maximum slider`} onChange={(e) => { const v = Number(e.target.value); set({ ...r, max: v >= steps ? undefined : Math.max(nice(at(v)), r.min ?? -Infinity) }); }} />
+        <span className="pl-track"><span style={{ left: `${(a / steps) * 100}%`, right: `${100 - (b / steps) * 100}%` }} /></span>
       </div>
-      {st && !locked && <small className="pl-typ">Most companies: {hint(st.p10)}{sfx} to {hint(st.p90)}{sfx}</small>}
+      <div className="pl-mm">
+        <label><small>MIN</small><input type="number" inputMode="decimal" placeholder={fmtEdge(st.min, m)} value={r.min ?? ""} onChange={(e) => set({ ...r, min: num(e.target.value) })} aria-label={`${m.label} minimum`} /></label>
+        <label><small>MAX</small><input type="number" inputMode="decimal" placeholder={fmtEdge(st.max, m)} value={r.max ?? ""} onChange={(e) => set({ ...r, max: num(e.target.value) })} aria-label={`${m.label} maximum`} /></label>
+      </div>
+      <small className="pl-typ">Most companies: {fmtEdge(st.p10, m)}{UNIT_SUFFIX[m.unit] ?? ""} to {fmtEdge(st.p90, m)}{UNIT_SUFFIX[m.unit] ?? ""} · {nf(st.n, 0)} companies reported</small>
+    </>
+  );
+}
+
+/** The card that opens under a chip: name, what it means, Now / 3Y / 5Y / 7Y tabs where they exist, the range, and Remove. */
+function FilterCard({ m, byKey, ranges, setRange, ask }: { m: MetricInfo; byKey: Map<string, MetricInfo>; ranges: Record<string, Range>; setRange: (k: string, r: Range) => void; ask: (tier: Plan, why: string) => void }) {
+  const [info, setInfo] = useState(false);
+  const tabs = m.variants ? Object.entries(m.variants) : null;
+  const firstActive = tabs?.find(([, k]) => ranges[k])?.[0] ?? "now";
+  const [tab, setTab] = useState(firstActive);
+  const key = tabs ? m.variants![tab] : m.key, cur = byKey.get(key) || m;
+  const r = ranges[key] || {};
+  const locked = cur.locked;
+  const clearAll = () => (tabs ? tabs.forEach(([, k]) => setRange(k, {})) : setRange(m.key, {}));
+  const any = (tabs ? tabs.some(([, k]) => ranges[k]) : !!ranges[m.key]);
+  return (
+    <div className={"pl-card" + (locked ? " is-locked" : "")}>
+      <div className="pl-card-h"><b>{m.label}</b>{locked ? <button className="pl-tier" onClick={() => ask(m.tier, `${m.label} is part of the ${TIER[m.tier].n} plan.`)}><Icon name="lock" />{TIER[m.tier].n}</button>
+        : <button className="pl-i" aria-label={`What ${m.label} means`} aria-expanded={info} onClick={() => setInfo(!info)}><Icon name="info" /></button>}
+        {any && <button className="pl-rm" onClick={clearAll}>Remove</button>}</div>
+      {info && <p className="pl-say">{m.say}{m.better !== "none" ? ` ${m.better === "higher" ? "Higher" : "Lower"} is usually better.` : ""}</p>}
+      {tabs && <div className="pm-seg" role="tablist" aria-label={`${m.label} period`}>{tabs.map(([t, k]) => <button key={t} role="tab" aria-selected={tab === t} aria-pressed={tab === t} onClick={() => setTab(t)}>{TAB_LABEL[t]}{ranges[k] ? " •" : ""}</button>)}</div>}
+      {cur.unit === "flag" ? (
+        <div className="pm-seg" role="group" aria-label={cur.label}>{(["any", "yes", "no"] as const).map((o) => { const v = r.min === 1 ? "yes" : r.max === 0 ? "no" : "any"; return <button key={o} aria-pressed={v === o} onClick={() => (locked ? ask(cur.tier, `${cur.label} is part of the ${TIER[cur.tier].n} plan.`) : setRange(key, o === "any" ? {} : o === "yes" ? { min: 1 } : { max: 0 }))}>{o === "any" ? "Any" : o === "yes" ? "Yes" : "No"}</button>; })}</div>
+      ) : locked ? <p className="pl-say">Unlock this filter with the {TIER[m.tier].n} plan to set a range.</p> : <RangeBox key={key} m={cur} r={r} set={(nr) => setRange(key, nr)} />}
     </div>
   );
 }
@@ -75,6 +102,7 @@ export function ScreenerPro() {
   const [cols, setCols] = useState<string[] | null>(null);
   const [q, setQ] = useState(""), [page, setPage] = useState(0);
   const [tab, setTab] = useState<"filters" | "quick">("filters");
+  const [pick, setPick] = useState<Record<string, string>>({ valuation: "pe" });
   const [find, setFind] = useState(""), [open, setOpen] = useState<Record<string, boolean>>({ valuation: true });
   const [moreGroups, setMoreGroups] = useState(false), [colMenu, setColMenu] = useState(false), [colFind, setColFind] = useState(""), [saveName, setSaveName] = useState("");
   const saved = useSavedScreens();
@@ -169,7 +197,13 @@ export function ScreenerPro() {
                                 <button className="btn primary" onClick={() => ask("gold", "FinLit model filters come with the Gold plan.")}>Unlock with Gold</button></div>
                               : <div className="scr-bands" role="group" aria-label="FinLit band">{(data?.bands || []).map((b) => <button key={b.key} className={"bandc " + b.key} aria-pressed={f.bands.includes(b.key)} onClick={() => toggle("bands", b.key)}>{b.label}</button>)}</div>
                             )}
-                            {!(model && allLocked) && shownMetrics.map((m) => <FilterRow key={m.key} m={m} r={f.ranges[m.key] || {}} set={(r) => setRange(m.key, r)} locked={m.locked} ask={() => ask(m.tier, `${m.label} is part of the ${TIER[m.tier].n} plan.`)} />)}
+                            {!(model && allLocked) && <>
+                              <div className="pl-chips" role="group" aria-label={`${g.label} filters`}>{shownMetrics.filter((m) => !m.hidden).map((m) => {
+                                const active = m.variants ? Object.values(m.variants).some((k) => f.ranges[k]) : !!f.ranges[m.key];
+                                return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key }))}>{m.label}{m.locked && <Icon name="lock" />}</button>;
+                              })}</div>
+                              {pick[g.id] && byKey.get(pick[g.id]) && <FilterCard key={pick[g.id]} m={byKey.get(pick[g.id])!} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} />}
+                            </>}
                           </div>)}
                       </div>);
                   })}

@@ -17,6 +17,29 @@ const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
   ["dividend_yield", "Div. yield", "coins", "--gold"], ["roe", "ROE", "percent", "--p-quality"], ["roce", "ROCE", "growth", "--p-profit"], ["debt_to_equity", "Debt/Equity", "balance", "--p-balance"],
 ];
 
+/** The score, first thing on every report: the overall number and one bar per pillar, with the business (fundamental) and the price trend (technical) read separately. */
+function ScoreStrip({ s, has, onUnlock }: { s: Summary; has: boolean; onUnlock: () => void }) {
+  const tone = (v: number | null) => (v == null ? "na" : v >= 70 ? "hi" : v >= 50 ? "mid" : "lo");
+  const ps = s.score.pillars, fund = ps.filter((p) => p.key !== "technical" && p.score != null), tech = ps.find((p) => p.key === "technical")?.score ?? null;
+  const fundAvg = fund.length >= 3 ? Math.round(fund.reduce((a, p) => a + (p.score as number), 0) / fund.length) : null;
+  const known = has && s.score.overall != null;
+  return (
+    <div className={"sstrip" + (known ? "" : " locked")} role="group" aria-label="FinLit score">
+      <div className="ss-main">
+        <div className={"ss-num " + tone(known ? s.score.overall : null)}>{known ? Math.round(s.score.overall as number) : <Icon name="lock" />}<small>/100</small></div>
+        <div><b>FinLit score</b><span>{known ? s.score.band.label : "Included with Silver"}</span></div>
+      </div>
+      <div className="ss-bars">{ps.map((p) => (
+        <div key={p.key} style={{ "--pc": `var(${PILLAR_COLOR[p.key]})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: known ? `${p.score ?? 0}%` : "0%" }} /></i><span className="v">{known && p.score != null ? Math.round(p.score) : "–"}</span></div>))}</div>
+      <div className="ss-split">
+        <div><small>Fundamental</small><b className={tone(known ? fundAvg : null)}>{known && fundAvg != null ? fundAvg : "–"}</b></div>
+        <div><small>Technical</small><b className={tone(known ? tech : null)}>{known && tech != null ? Math.round(tech) : "–"}</b></div>
+      </div>
+      {!known && <button className="btn primary ss-cta" onClick={onUnlock}>Unlock the score <Icon name="arrow" /></button>}
+    </div>
+  );
+}
+
 export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fin?: Financials; jump: (id: string) => void }) {
   const { has, toast, plan, upgrade } = useUI();
   const hist = useScoreHistory(s.profile.symbol, has("silver") && s.score.overall != null);
@@ -84,6 +107,8 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div>
           </div>
         </div>
+
+        <ScoreStrip s={s} has={has("silver")} onUnlock={() => upgrade("silver", "The FinLit score comes with the Silver plan.")} />
 
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
           <article className="report" aria-labelledby="reportTitle">

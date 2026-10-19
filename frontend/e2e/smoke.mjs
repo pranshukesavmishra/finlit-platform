@@ -24,7 +24,7 @@ if (process.env.DEMO_PASSWORD) {
 await page.goto(base, { waitUntil: "networkidle" });
 check("home: headline", await page.locator("h1").innerText().then((t) => /clarity/i.test(t)));
 check("home: live score card from research API", await page.locator(".term-dial text").first().textContent().then((t) => /^\d+$/.test((t || "").trim())).catch(() => false));
-check("home: portfolio performance from site backend", await page.locator("text=Realised portfolio performance").count().then((n) => n > 0));
+check("home: removed Results section is gone", await page.locator("text=Realised portfolio performance").count().then((n) => n === 0));
 
 // 2. Search palette (Ctrl+K), typing, Enter opens the report
 await page.keyboard.press("Control+k");

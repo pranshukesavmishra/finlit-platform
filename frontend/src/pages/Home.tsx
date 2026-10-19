@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
-import { COMPANY, FOUNDER, PHILOSOPHY, PRICING, PROCESS, SERVICES, TESTIMONIAL } from "../content/site";
+import { COMPANY, PHILOSOPHY, PRICING, SERVICES, TESTIMONIAL } from "../content/site";
+import { FAQ_GROUPS } from "../content/faq";
+import { NotifyForm } from "../components/NotifyForm";
 import { Icon } from "../lib/icons";
 import { Reveal, CountUp } from "../components/Reveal";
 import { useEnquiry } from "../components/Enquiry";
-import { getPortfolio, type PortfolioReport } from "../lib/siteApi";
 import { useSummary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
@@ -45,57 +45,34 @@ function LiveTerminal() {
   );
 }
 
-function Performance() {
-  const { data } = useQuery<PortfolioReport>({ queryKey: ["portfolio"], queryFn: getPortfolio, retry: 1, staleTime: 300_000 });
-  if (!data) return null;
-  const months = data.charts.monthlyRealizedPnl, max = Math.max(...months.map((m) => Math.abs(m.realizedPnl)), 1);
-  return (
-    <section className="sec alt"><div className="wrap">
-      <Reveal className="sec-h"><div className="eyebrow">Realised portfolio performance</div><h2>Results, <em>reported openly</em></h2><p>{data.profile.reportPeriod} · {data.profile.financialYear}. Realised profit and loss from the broker statement, after charges.</p></Reveal>
-      <Reveal><div className="kpis-p">
-        {[["Net P&L", data.headline.netPnl], ["Net ROI", data.headline.netRoi], ["Win rate", `${((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1)}%`], ["Realised trades", String(data.summary.tradeCount)]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}
-      </div></Reveal>
-      <Reveal delay={80}><div className="card" style={{ marginTop: 16 }}>
-        <div className="card-h"><h3>Monthly realised P&L</h3><Link className="chip gold" to="/portfolio">Full report →</Link></div>
-        <div className="pnl">
-          {months.map((m, i) => { const h = Math.max(6, (Math.abs(m.realizedPnl) / max) * 150); return <div key={m.month} className="pnl-c"><span className={m.realizedPnl >= 0 ? "pos" : "neg"}>₹{nf(Math.abs(m.realizedPnl) / 1000, 0)}k</span><i className={"pnl-b " + (m.realizedPnl >= 0 ? "up" : "dn")} style={{ height: h, animationDelay: `${i * 90}ms` }} /><em>{m.month}</em></div>; })}
-        </div>
-      </div></Reveal>
-    </div></section>
-  );
-}
-
-
-const PLATFORM: { to: string; icon: string; t: string; d: string; tier: "Free" | "Silver" | "Gold" }[] = [
+const PLATFORM: { to: string; icon: string; t: string; d: string; tier: "Free" | "Silver" | "Gold"; math?: React.ReactNode }[] = [
   { to: "/research", icon: "search", t: "Stock research", d: "A report for every listed company: statements, ratios, peers, ownership, price and filings.", tier: "Free" },
-  { to: "/screener", icon: "table", t: "Screener", d: "Filter thousands of companies by size, valuation, growth, returns and debt. Save your screens.", tier: "Free" },
+  { to: "/screener", icon: "table", t: "Screener", d: "Describe the company you want as a few rules, and we return every one that satisfies all of them. 160+ filters, live in milliseconds.", tier: "Free",
+    math: <>{"{"} P/E <i>&lt;</i> 20 {"}"} <i>AND</i> {"{"} ROE <i>&gt;</i> 15% {"}"} <i>AND</i> {"{"} D/E <i>&lt;</i> 0.5 {"}"}<br /><i>→</i> <b>matches</b> out of 2,800+ companies</> },
   { to: "/compare", icon: "compare", t: "Compare", d: "Put two to four companies side by side, with charts and the five-pillar view.", tier: "Free" },
   { to: "/watchlist", icon: "wallet", t: "Watchlists", d: "Named lists with notes and price targets, bucketed by industry, size or FinLit band.", tier: "Silver" },
   { to: "/holdings", icon: "pie", t: "Portfolio tracker", d: "Value, profit and loss, allocation and a health read of what you own. Import from CSV.", tier: "Silver" },
   { to: "/alerts", icon: "bell", t: "Alerts", d: "Be told when a price, RSI, score, ratio, result or filing crosses the line you set.", tier: "Free" },
-];
-const FAQ: [string, string][] = [
-  ["What is FinLit?", "FinLit Ventures is a research and technology company. We publish a research report for every listed Indian stock, review portfolios and help people plan their investing."],
-  ["Is this investment advice?", "No. FinLit is not registered with SEBI or AMFI and everything on the site is for information and education. Decisions and risks stay with you."],
-  ["What do I get for free?", "A free account gives you the stock reports, the screener, company comparison, the glossary, the calendars, alerts on the main price and volume signals and your own dashboard. Silver and Gold add the FinLit score, watchlists, the portfolio tracker, more alerts and deeper analysis."],
-  ["Where does the data come from?", "Financial statements, prices and filings come from licensed market-data feeds and exchange disclosures. Every report shows when it was last updated, and numbers that fail our checks are not published."],
-  ["How do alerts work?", "Pick a company and a condition, for example RSI below 30 or a results date announced. You are told in the app, and by email or browser if you choose, the moment it comes true."],
-  ["How do I upgrade or cancel?", "Open Account, then Plan, and request Silver or Gold. Online payment is being added; until then the team activates your plan and you can change it any time."],
-  ["Is my data safe?", "Passwords are stored with modern hashing, sessions can be ended on any device, administrators must use an authenticator app, and we never ask for your broker password."],
+  { to: "/news", icon: "notes", t: "News", d: "Market news and company-specific updates: filings, announcements and results, filtered by company, category or your watchlist.", tier: "Free" },
 ];
 function Faq() {
   return (
     <section className="sec" id="faq"><div className="wrap faq-w">
-      <Reveal className="sec-h"><div className="eyebrow">Questions</div><h2>Good things to <em>know first</em></h2></Reveal>
-      <div className="faq">{FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div>
+      <Reveal className="sec-h"><div className="eyebrow">Questions</div><h2>Good things to <em>know first</em></h2><p>Tap a question to read the answer.</p></Reveal>
+      {FAQ_GROUPS.map((g) => <div key={g.title}><h3 className="faq-g">{g.title}</h3><div className="faq">{g.items.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></div>)}
     </div></section>
   );
 }
 function Platform() {
   return (
     <section className="sec alt" id="platform"><div className="wrap">
-      <Reveal className="sec-h"><div className="eyebrow">The platform</div><h2>One workspace for <em>your research</em></h2><p>Everything you need to find, follow and track companies, in one place.</p></Reveal>
-      <div className="plat">{PLATFORM.map((x, i) => <Reveal key={x.t} delay={i * 50}><Link to={x.to} className="plat-t"><span className="plat-i"><Icon name={x.icon} /></span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span><h3>{x.t}</h3><p>{x.d}</p><span className="plat-m">Open <Icon name="arrow" /></span></Link></Reveal>)}</div>
+      <Reveal className="sec-h"><div className="eyebrow">The platform</div><h2>Seven tools for <em>your research</em></h2><p>Everything you need to find, follow and track companies, in one place.</p></Reveal>
+      <div className="plat">{PLATFORM.map((x, i) => <Reveal key={x.t} delay={i * 50}><Link to={x.to} className="plat-t"><span className="plat-i"><Icon name={x.icon} /></span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span><h3>{x.t}</h3><p>{x.d}</p>{x.math && <div className="plat-math" aria-label="Example screen">{x.math}</div>}<span className="plat-m">Open <Icon name="arrow" /></span></Link></Reveal>)}</div>
+          <Reveal><div className="split" role="note" aria-label="Fundamental and technical analysis">
+        <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Fundamental</h3><p>The business itself: quality, growth, profitability and balance sheet, from the company's statements.</p></div>
+        <div><h3><span className="mark" style={{ background: "var(--p-tech)" }} />Technical</h3><p>The share price only: trend, momentum and moving averages, from the price chart.</p></div>
+        <p className="split-note"><b>Two different lenses, never blended.</b> Fundamental and technical scores are shown separately, so you can read each on its own.</p>
+      </div></Reveal>
     </div></section>
   );
 }
@@ -122,8 +99,17 @@ export function Home() {
 
       <div className="marq" aria-hidden="true"><div>{[...PHILOSOPHY, ...PHILOSOPHY].map((p, i) => <span key={i}>{p}</span>)}</div></div>
 
+      <section className="tagline" aria-label="Our promise"><div className="wrap"><Reveal><p><span>Quantify the market</span><span className="x" aria-hidden="true">×</span><span>Research deeper</span><span className="x" aria-hidden="true">×</span><span>Track what matters</span></p></Reveal></div></section>
+
+      <section className="wrap" id="coming-soon" aria-labelledby="soonTitle"><Reveal><div className="soon">
+        <div><div className="eyebrow">Coming soon</div><h2 id="soonTitle">Be the first to know</h2>
+          <p>We are adding more. Leave your email and we will tell you the day each one goes live. No spam, and you can ask us to stop at any time.</p>
+          <ul><li>Equity research reports</li><li>Online payments</li><li>Newsletter</li><li>Meet the team</li></ul></div>
+        <div><NotifyForm source="home" /><p className="fine">Equity research reports are subject to the required licence and approvals.</p></div>
+      </div></Reveal></section>
+
       <section className="statstrip"><div className="wrap">
-        {[[<CountUp to={5700} suffix="+" />, "listed stocks covered"], [<CountUp to={5} />, "pillars scored on every stock"], [<>&lt;<CountUp to={1} /> s</>, "to open a report"], [<CountUp to={84.4} decimals={1} suffix="%" />, "realised win rate, reported openly"]].map(([v, k], i) => <Reveal key={i} delay={i * 80}><div className="ss"><b>{v}</b><span>{k as string}</span></div></Reveal>)}
+        {[[<CountUp to={5700} suffix="+" />, "listed stocks covered"], [<CountUp to={5} />, "pillars scored on every stock"], [<>&lt;<CountUp to={1} /> s</>, "to open a report"], [<CountUp to={169} />, "filters in the screener"]].map(([v, k], i) => <Reveal key={i} delay={i * 80}><div className="ss"><b>{v}</b><span>{k as string}</span></div></Reveal>)}
       </div></section>
       <Platform />
 
@@ -151,22 +137,8 @@ export function Home() {
 
       <PlansBand id="pricing" compact />
 
-      <Performance />
-
-      <section className="sec"><div className="wrap">
-        <Reveal className="sec-h"><div className="eyebrow">Our process</div><h2>From research to <em>portfolio decisions</em></h2></Reveal>
-        <div className="steps">{PROCESS.map((p, i) => <Reveal key={p.n} delay={i * 60} className="step"><div className="dot"><Icon name={p.icon} /></div><div><b>{p.title}</b><span>{p.detail}</span></div></Reveal>)}</div>
-      </div></section>
-
       <section className="sec alt"><div className="wrap">
         <Reveal className="quote"><div className="eyebrow">Client experience</div><blockquote>“{TESTIMONIAL.quote}”</blockquote><div className="muted">{TESTIMONIAL.name}</div></Reveal>
-      </div></section>
-
-      <section className="sec"><div className="wrap founder">
-        <Reveal><img src={FOUNDER.photo} alt={`Portrait of ${FOUNDER.name}`} width="560" height="700" loading="lazy" /></Reveal>
-        <Reveal delay={100}><div className="eyebrow">Meet the founder</div><div className="sec-h" style={{ margin: "8px 0 0" }}><h2>{FOUNDER.name}</h2><p>{FOUNDER.role}</p></div>
-          <div className="cred">{FOUNDER.credentials.map((c) => <span className="chip gold" key={c}>{c}</span>)}</div><p className="muted">{FOUNDER.bio}</p>
-          <div className="cta-row"><Link className="btn" to="/about">About FinLit</Link><a className="btn" href={FOUNDER.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div></Reveal>
       </div></section>
 
       <Faq />

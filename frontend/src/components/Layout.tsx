@@ -21,7 +21,7 @@ export const MENUS: { label: string; wide?: boolean; groups: { title?: string; i
     { title: "Your workspace", items: [["/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"], ["/holdings", "Portfolio tracker", "Value, profit and loss, allocation", "pie"], ["/alerts", "Alerts", "Price, signals, scores and filings", "bell"]] },
     { title: "Market", items: [["/results", "Results calendar", "Who reports and when", "calendar"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
   ] },
-  { label: "Resources", groups: [{ items: [["/blog", "Insights & blog", "Research notes and explainers", "spark"], ["/glossary", "Glossary", "95 terms in plain words", "book"], ["/documents", "Documents", "Annual reports and presentations", "layers"], ["/portfolio", "Track record", "Our realised portfolio, reported openly", "growth"]] }] },
+  { label: "Resources", groups: [{ items: [["/blog", "Insights & blog", "Research notes and explainers", "spark"], ["/glossary", "Glossary", "95 terms in plain words", "book"], ["/documents", "Documents", "Annual reports and presentations", "layers"]] }] },
   { label: "Company", groups: [{ items: [["/about", "About FinLit", "Who we are and how we work", "users"], ["/why-we-exist", "Why we exist", "The problem we set out to fix", "quality"], ["/contact", "Contact", "Talk to the team", "notes"]] }] },
 ];
 const TOP: [string, string][] = [["/services", "Services"], ["/plans", "Pricing"]];

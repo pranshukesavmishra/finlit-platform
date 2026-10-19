@@ -31,7 +31,7 @@ def test_metrics_from_a_real_company(reliance_sections):
 
 def test_missing_data_is_left_out_not_guessed():
     assert compute({}) == {} or all(v is not None for v in compute({}).values())
-    assert "pe_vs_avg" not in compute({"summary": {"profile": {}, "quote": {}}})
+    assert "pe_vs_median_5y" not in compute({"summary": {"profile": {}, "quote": {}}})
 
 
 def _row(sym, sector, **metrics):

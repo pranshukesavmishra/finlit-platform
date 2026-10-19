@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "../lib/api";
+import { ApiError, apiGet, apiUrl } from "../lib/api";
 import { useIpos } from "../lib/ipo";
 import { useFeed } from "../lib/feed";
 import * as acct from "../lib/account";
@@ -15,6 +15,22 @@ const stamp = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "num
 const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.status || "Failed" : "Could not reach the server.");
 
 /** Accounts, plan requests and the audit trail. Administrators only; the server re-checks role and two-step sign-in on every call. */
+/** Email addresses people left under "Coming soon: get notified". */
+function NotifyList() {
+  const { data } = useQuery({ queryKey: ["admin-notify"], queryFn: () => apiGet<{ total: number; items: { email: string; source: string; at: string }[] }>("/api/admin/notify"), staleTime: 30_000 });
+  return (
+    <section className="card acct-c">
+      <h2>Launch notification list</h2>
+      <p className="muted">People who asked to be told when new features go live. Keep this list private and only use it for that purpose.</p>
+      {!data ? <div className="skeleton" style={{ height: 60 }} /> : (
+        <>
+          <p><b>{data.total.toLocaleString("en-IN")}</b> {data.total === 1 ? "address" : "addresses"} <a className="btn" style={{ marginLeft: 12 }} href={apiUrl("/api/admin/notify?format=csv")}>Download CSV</a></p>
+          {data.items.length > 0 && <div className="tw"><table className="acct-t"><thead><tr><th>Email</th><th>From</th><th>When</th></tr></thead><tbody>{data.items.slice(0, 20).map((r) => <tr key={r.email}><td>{r.email}</td><td>{r.source}</td><td>{new Date(r.at).toLocaleDateString("en-IN")}</td></tr>)}</tbody></table></div>}
+        </>)}
+    </section>
+  );
+}
+
 export function Console() {
   useDocTitle("Admin console", "FinLit administrators: manage members, plans and the audit log.");
   const { user, ready, isAdmin } = useAuth();
@@ -32,7 +48,7 @@ export function Console() {
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
       {tab === "content" && <ContentAdmin />}
-      {tab === "data" && <Health />}
+      {tab === "data" && <><Health /><NotifyList /></>}
       {tab === "audit" && <Audit />}
     </div>
   );
