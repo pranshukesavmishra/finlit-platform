@@ -9,7 +9,7 @@ import { Icon } from "../lib/icons";
 import { dateIN, nf, signed, MINUS } from "../lib/format";
 import { downloadCsv, pushRecent, qs, readRecent, useGold, usePremium, useSlashFocus } from "../lib/premium";
 import { useUniverse } from "../lib/screener";
-import { useSection, type Ratios as StockRatios } from "../lib/api";
+import { useSection, type Financials, type Ratios as StockRatios, type Table as StockTable } from "../lib/api";
 import { ProfitabilityRatios } from "../stock/ProfitabilityRatios";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
@@ -141,6 +141,20 @@ function profitabilityRows(r?: StockRatios): HRow[] {
     .map(([k, label]) => ({ label, history: h.periods.map((p, i) => ({ period: fyLabel(p), value: h.rows[k][i] ?? null })).reverse() }));
 }
 
+/** FinLit's own stored statements, shaped like the gateway's rows (newest period first). Used when the gateway sends nothing for a statement
+ *  that FinLit already holds, so a tab never says "not reported" for a company whose report has the figures. */
+const STMT: Record<"income" | "balance" | "cash", [string, string][]> = {
+  income: [["revenue", "Revenue"], ["other_income", "Other income"], ["expenses", "Expenses"], ["operating_profit", "Operating profit"], ["finance_costs", "Interest"], ["depreciation", "Depreciation"], ["profit_before_tax", "Profit before tax"], ["tax", "Tax"], ["net_profit", "Net profit"], ["eps", "EPS"]],
+  balance: [["equity_capital", "Equity capital"], ["reserves", "Reserves"], ["total_equity", "Total equity"], ["borrowings", "Borrowings"], ["other_liabilities", "Other liabilities"], ["total_liabilities", "Total liabilities"], ["fixed_assets", "Fixed assets"], ["cwip", "Capital work in progress"], ["investments", "Investments"], ["inventories", "Inventories"], ["receivables", "Receivables"], ["cash", "Cash"], ["total_assets", "Total assets"]],
+  cash: [["operating", "Cash from operations"], ["investing", "Cash from investing"], ["financing", "Cash from financing"], ["net_cash_flow", "Net cash flow"], ["capex", "Capital expenditure"], ["free_cash_flow", "Free cash flow"], ["dividends_paid", "Dividends paid"]],
+};
+function storedRows(f: Financials | undefined, kind: keyof typeof STMT, quarterly: boolean): HRow[] {
+  const t: StockTable | undefined = !f ? undefined : quarterly ? (kind === "income" ? f.quarterly.pl : undefined) : kind === "income" ? f.yearly.pl : kind === "balance" ? f.yearly.bs : f.yearly.cf;
+  if (!t?.periods?.length) return [];
+  return STMT[kind].filter(([k]) => t.rows[k]?.some((x) => x != null))
+    .map(([k, label]) => ({ label, history: t.periods.map((p, i) => ({ period: fyLabel(p), value: t.rows[k][i] ?? null })).reverse() }));
+}
+
 function Ratios({ d, limit }: { d: Fund; limit: number }) {
   const rows = d.ratios || [];
   const sym = (d.instrument?.symbol || "").toUpperCase();
@@ -204,10 +218,13 @@ export function FundamentalsPage() {
   const choose = (sym: string) => { setText(sym); set({ c: sym }); setOpen(false); setActive(0); };
   const { data, isLoading, isError, error, refetch, isFetching } = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period })}`, gold && company.length >= 2);
   useEffect(() => { const s = data?.instrument?.symbol; if (s) { pushRecent(s); setRecent(readRecent()); } }, [data?.instrument?.symbol]);
+  const stored = useSection<Financials>((data?.instrument?.symbol || "").toUpperCase(), "financials", !!data?.instrument?.symbol).data;
   if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
   const limit = period === "quarterly" ? 10 : 8;
   const status = (error as { status?: number } | null)?.status;
   const sym = data?.instrument?.symbol || company;
+  const quarterly = period === "quarterly", unitNote = "₹ crore, from FinLit's stored statements";
+  const gateIncome = data?.incomeStatement?.income_statement || [], gateBalance = data?.balanceSheet?.balance_sheet || [], gateCash = data?.cashFlow?.cash_flow || [];
   return (
     <>
       <PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard"><p>Search any listed company for its full statements, ratios and named shareholders. Press <kbd>/</kbd> to search. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead>
@@ -244,9 +261,9 @@ export function FundamentalsPage() {
             </div>
             <div className="pm-tabs" role="tablist" aria-label="Sections">{SECTIONS.map(([id, label]) => <button key={id} role="tab" aria-selected={sec === id} onClick={() => set({ t: id === "snapshot" ? "" : id })}>{label}</button>)}</div>
             {sec === "snapshot" && <Snapshot d={data} limit={limit} />}
-            {sec === "income" && <Statement rows={data.incomeStatement?.income_statement || []} limit={limit} unit={data.incomeStatement?.units_in} file={`${sym}-income-${period}`} />}
-            {sec === "balance" && <Statement rows={data.balanceSheet?.balance_sheet || []} limit={limit} unit={data.balanceSheet?.units_in} file={`${sym}-balance-${period}`} />}
-            {sec === "cash" && <Statement rows={data.cashFlow?.cash_flow || []} limit={limit} unit={data.cashFlow?.units_in} file={`${sym}-cashflow-${period}`} />}
+            {sec === "income" && <Statement rows={gateIncome.length ? gateIncome : storedRows(stored, "income", quarterly)} limit={limit} unit={gateIncome.length ? data.incomeStatement?.units_in : unitNote} file={`${sym}-income-${period}`} />}
+            {sec === "balance" && <Statement rows={gateBalance.length ? gateBalance : storedRows(stored, "balance", quarterly)} limit={limit} unit={gateBalance.length ? data.balanceSheet?.units_in : unitNote} file={`${sym}-balance-${period}`} />}
+            {sec === "cash" && <Statement rows={gateCash.length ? gateCash : storedRows(stored, "cash", quarterly)} limit={limit} unit={gateCash.length ? data.cashFlow?.units_in : unitNote} file={`${sym}-cashflow-${period}`} />}
             {sec === "ratios" && <Ratios d={data} limit={limit} />}
             {sec === "owners" && <Owners d={data} limit={limit} />}
             {sec === "peers" && (<>

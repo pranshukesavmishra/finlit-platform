@@ -671,3 +671,5 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
   .lg-mark { height: 40px; }
   .otiles { grid-template-columns: 1fr 1fr; }
 }
+.vd.na { color: var(--faint); }
+.pt-ev:empty { display: none; }

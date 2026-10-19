@@ -120,8 +120,8 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                     <div className="pt-top"><span className="pt-ic"><Icon name={PILLAR_ICON[pl.key]} /></span>
                       <span className="ring"><svg viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r={r} fill="none" stroke="var(--s3)" strokeWidth="5" /><circle cx="27" cy="27" r={r} fill="none" stroke={c} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${(circ * (pl.score ?? 0)) / 100} ${circ}`} /></svg><b>{pl.score ?? "—"}</b></span></div>
                     <div className="pt-name">{pl.label}</div>
-                    <span className={"vd " + (pl.band.key === "strong" ? "strong" : pl.band.key === "healthy" ? "healthy" : pl.band.key === "mixed" ? "mixed" : "weak")}>{pl.band.label}</span>
-                    <div className="pt-ev">{(byKey[pl.key]?.inputs || []).filter((x) => x.value != null).slice(0, 2).map((x) => `${x.label} ${num(x.value)}`).join(" · ")}</div>
+                    <span className={"vd " + (pl.score == null ? "na" : pl.band.key === "strong" ? "strong" : pl.band.key === "healthy" ? "healthy" : pl.band.key === "mixed" ? "mixed" : "weak")}>{pl.band.label}</span>
+                    <div className="pt-ev">{pl.score == null && pl.reason ? pl.reason : (byKey[pl.key]?.inputs || []).filter((x) => x.value != null).slice(0, 2).map((x) => `${x.label} ${num(x.value)}`).join(" · ")}</div>
                     <div className="pt-bar"><i style={{ width: `${pl.score ?? 0}%`, animationDelay: `${0.45 + i * 0.08}s` }} /></div>
                   </button>
                 );
@@ -131,10 +131,10 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
               {os && ob && (
                 <div className="pd-in" style={{ "--pc": `var(${PILLAR_COLOR[os.key]})` } as React.CSSProperties}>
                   <div><h4><span className="pt-ic"><Icon name={PILLAR_ICON[os.key]} /></span>{os.label} · {os.score ?? "—"}/100 <span className={"vd " + (os.band.key === "strong" ? "strong" : os.band.key === "healthy" ? "healthy" : os.band.key === "mixed" ? "mixed" : "weak")}>{os.band.label}</span></h4>
-                    <p>Each input scores 18 / 38 / 58 / 76 / 92 against four thresholds; the pillar is the average of the inputs available.</p></div>
+                    <p>{os.score == null && os.reason ? os.reason : "Each input scores 18 / 38 / 58 / 76 / 92 against four thresholds; the pillar is the average of the inputs available."}</p></div>
                   <div className="pd-ev">{ob.inputs.map((x) => (
                     <div key={x.key}><div className="k">{x.label}</div><div className="v">{x.value == null ? "—" : num(x.value)}</div>
-                      <div className="c">{x.score == null ? "No data" : `Scores ${x.score} · ${x.lowerIsBetter ? "≤" : "≥"} ${x.thresholds[3]} is great`}</div></div>
+                      <div className="c">{x.score == null ? "Not reported" : `Scores ${x.score} · ${x.lowerIsBetter ? "≤" : "≥"} ${x.thresholds[3]} is great`}</div></div>
                   ))}</div>
                 </div>
               )}

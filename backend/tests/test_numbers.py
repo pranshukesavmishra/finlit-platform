@@ -70,3 +70,22 @@ def test_negative_and_zero_multiples_are_no_number():
     from finlit.normalize import ratios
     out = ratios.price_ratio_latest({"price_ratios": [{"quote_date": "2026-10-16", "pe": -5.5, "pb": -3.74, "ps": 0, "pfcf": -30.6}]})
     assert out["pe"] is None and out["pb"] is None and out["ps"] is None and out["pfcf"] is None
+
+
+def test_empty_scores_say_why_and_short_annual_history_falls_back_to_quarters():
+    from finlit import snapshot
+    score = {"overall": None, "band": {"key": "insufficient", "label": "x"}, "pillars": [{"key": k, "score": None} for k in ("quality", "growth", "profitability", "balance", "technical")]}
+    snapshot._explain_gaps(score, lender=False, annual=0, quarterly=0, days=10)
+    why = {p["key"]: p["reason"] for p in score["pillars"]}
+    assert "listed recently" in why["quality"] and "10 trading days" in why["technical"] and score["band"]["label"] == "Not scored yet"
+    bank = {"overall": 66, "band": {}, "pillars": [{"key": "balance", "score": None}]}
+    snapshot._explain_gaps(bank, lender=True, annual=8, quarterly=12, days=900)
+    assert "banks and lenders" in bank["pillars"][0]["reason"]
+    one_year = {"overall": 40, "band": {}, "pillars": [{"key": "growth", "score": None}]}
+    snapshot._explain_gaps(one_year, lender=False, annual=1, quarterly=3, days=500)
+    assert "two years" in one_year["pillars"][0]["reason"]
+    # one annual result but five quarters (a recent listing like JSW Cement): growth is the latest quarter against the same quarter a year ago
+    pl = {"periods": ["FY26"], "rows": {"revenue": [6512.46], "net_profit": [900.0]}}
+    q = {"rows": {"revenue": [1559.82, 1436.43, 1621.22, 1894.99, 1896.41], "net_profit": [100.0, 90.0, 110.0, 120.0, 130.0]}}
+    d = derived.compute(pl, {"rows": {}}, {"periods": [], "rows": {}}, {}, None, None, None, False, q)
+    assert d["sales_growth_latest"] == 21.58 and d["profit_growth_latest"] == 30.0 and d["growth_basis"] == "quarter"

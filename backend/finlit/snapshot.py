@@ -92,7 +92,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     first_pass = ratios.build_ratios(family_payloads)
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
     lender = statements.is_bank(pl_rows)
-    computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender)
+    computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender, pl_q)
+    growth_from_quarter = computed.pop("growth_basis", None) == "quarter"
     computed.update(_valuation_at_price(bundle.get("daily_price_ratios"), closes_by_day, price))
     dividends_fy = events.dividends_by_fiscal_year(actions)
     fy = (pl.get("periods") or [None])[-1]
@@ -107,6 +108,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "revenue_cagr_3y": "3Y", "revenue_cagr_5y": "5Y",
         "sales_cagr": f"{years}Y" if years else None, "profit_cagr": f"{computed.get('profit_cagr_years')}Y" if computed.get("profit_cagr_years") else None,
     }
+    if growth_from_quarter:   # growth measured over one quarter says so, instead of passing for a full-year figure
+        derived_periods.update({"sales_growth_latest": "Latest quarter vs year ago", "profit_growth_latest": "Latest quarter vs year ago"})
     ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
     _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))
 
@@ -115,6 +118,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     metrics.update({k: technical.get(k) for k in ("vsEma50Pct", "vsEma200Pct", "rsi14")})
 
     score = scoring.score(metrics)
+    _explain_gaps(score, lender=lender, annual=len(pl.get("periods") or []), quarterly=len(pl_q.get("periods") or []), days=len(history["t"]))
     notes = insights.notes(metrics, holding.get("latest") or [])
     peers = events.peer_symbols(bundle.get("peers"), symbol)
 
@@ -156,7 +160,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "range52": range52,
         "sparkline": {"t": spark["t"], "c": spark["c"]},
         "score": {"overall": score["overall"], "band": score["band"], "model": score["model"],
-                  "pillars": [{k: p[k] for k in ("key", "label", "score", "band", "coverage")} for p in score["pillars"]]},
+                  "pillars": [{k: p[k] for k in ("key", "label", "score", "band", "coverage", "reason") if k in p} for p in score["pillars"]]},
         "thesis": insights.thesis(score, metrics),
         "strengths": notes["strengths"],
         "watchouts": notes["watchouts"],
@@ -240,6 +244,26 @@ def _apply_applicability(ratio_view: dict, lender: bool, equity: Optional[float]
         ratio_view["history"]["rows"].pop(k, None)
     for g in ratio_view.get("groups", []):
         g["keys"] = [k for k in g["keys"] if k not in drop]
+
+
+def _explain_gaps(score: dict, lender: bool, annual: int, quarterly: int, days: int) -> None:
+    """Say why a pillar has no score, in plain words, instead of a bare "insufficient data"."""
+    for p in score["pillars"]:
+        if p["score"] is not None:
+            continue
+        if p["key"] == "balance" and lender:
+            why = "Not scored for banks and lenders: deposits and loans are their business, not debt, so debt and cash-flow tests do not apply."
+        elif p["key"] == "technical":
+            why = (f"Listed only {days} trading days ago: the trend indicators need about three months of prices." if days < 60 else "The price history is too short for the trend indicators.")
+        elif annual == 0 and quarterly == 0:
+            why = "No results have been filed yet. This company was listed recently."
+        elif p["key"] == "growth" and annual < 2 and quarterly < 5:
+            why = "Growth needs two years of results (or five quarters); this company has filed " + ("one year so far." if annual == 1 else "less than that so far.")
+        else:
+            why = "The data provider has not reported the figures this needs."
+        p["reason"] = why
+    if score["overall"] is None:
+        score["band"] = {"key": "insufficient", "label": "Not scored yet"}
 
 
 def _r(value: Optional[float]) -> Optional[float]:

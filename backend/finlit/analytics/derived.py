@@ -40,7 +40,7 @@ def _growth(values: List[Optional[float]]) -> Optional[float]:
 
 
 def compute(pl: dict, bs: dict, cf: dict, ratios_latest: Dict[str, dict], basic_payload, market_cap_cr: Optional[float],
-            dividend_yield: Optional[float], lender: bool = False) -> Dict[str, Optional[float]]:
+            dividend_yield: Optional[float], lender: bool = False, pl_q: Optional[dict] = None) -> Dict[str, Optional[float]]:
     rows = (pl or {}).get("rows", {})
     revenue, profit = rows.get("revenue") or [], rows.get("net_profit") or []
     base = "total_income" if lender and rows.get("total_income") else "revenue"   # a lender's profit is measured against all its income
@@ -50,9 +50,22 @@ def compute(pl: dict, bs: dict, cf: dict, ratios_latest: Dict[str, dict], basic_
         "liabilities_to_assets": None if lender else _latest_ratio(bs, "total_liabilities", "total_assets"),
         "sales_growth_latest": _growth(revenue),
         "profit_growth_latest": _growth(profit),
+        "growth_basis": None,
         "market_cap": market_cap_cr,
         "dividend_yield": dividend_yield,
     }
+
+    # A recently listed company may have a single annual result but several quarters: then growth is the latest quarter against the same
+    # quarter a year earlier (and says so), rather than no growth at all.
+    qrows = (pl_q or {}).get("rows", {})
+    qrev, qprofit = qrows.get("revenue") or [], qrows.get("net_profit") or []
+    if out["sales_growth_latest"] is None and len(qrev) >= 5 and qrev[-1] is not None and qrev[-5] is not None and qrev[-5] > 0:
+        out["sales_growth_latest"] = round((qrev[-1] / qrev[-5] - 1) * 100, 2)
+        out["growth_basis"] = "quarter"
+    if out["profit_growth_latest"] is None and len(qprofit) >= 5 and qprofit[-1] is not None and qprofit[-5] is not None and qprofit[-5] > 0:
+        out["profit_growth_latest"] = round((qprofit[-1] / qprofit[-5] - 1) * 100, 2)
+        out["growth_basis"] = "quarter"
+    out = {k: v for k, v in out.items() if k != "growth_basis" or v}
 
     # Cash conversion: align the latest year that has both CFO and PAT.
     cfo = dict(zip((cf or {}).get("periods", []), (cf or {}).get("rows", {}).get("operating") or []))

@@ -55,7 +55,7 @@ def input_score(value: Optional[float], thresholds, lower_is_better: bool = Fals
 
 def band(score: Optional[float]) -> dict:
     if score is None:
-        return {"key": "insufficient", "label": "Insufficient data"}
+        return {"key": "insufficient", "label": "Not scored yet"}
     if score >= 78:
         return {"key": "strong", "label": "Strong"}
     if score >= 62:

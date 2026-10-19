@@ -26,7 +26,7 @@ export type DataQuality = {
   priceAsOf: string | null; fundamentalsAsOf: string | null;
   checks: { status: "ok" | "warnings" | "rejected"; passed: number; total: number; issues: QualityIssue[] };
 };
-export type PillarSummary = { key: string; label: string; score: number | null; band: Band; coverage: number };
+export type PillarSummary = { key: string; label: string; score: number | null; band: Band; coverage: number; reason?: string };
 export type Summary = {
   meta: Meta; profile: Profile; quote: Quote; range52: { high: number | null; low: number | null };
   sparkline: { t: string[]; c: number[] };

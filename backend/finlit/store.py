@@ -294,6 +294,7 @@ class Store:
                 "SELECT r.symbol FROM ranked r LEFT JOIN snapshots s ON s.symbol = r.symbol AND s.statement = $1 AND s.section = 'summary' "
                 "WHERE r.rn <= $3 AND (s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
                 "OR (s.body::jsonb -> 'quote' ->> 'price') IS NULL "   # a report saved without a price (half-loaded) is reloaded at once
+                "OR (jsonb_array_length(coalesce(s.body::jsonb -> 'dataQuality' -> 'missing', '[]'::jsonb)) > 0 AND s.generated_at < now() - interval '3 hours') "   # a part the provider failed to send: ask again
                 f"OR coalesce((s.body::jsonb -> 'meta' ->> 'version')::int, 0) < {SNAPSHOT_VERSION}) "   # built by older code: rebuild
                 "ORDER BY (s.symbol IS NOT NULL), r.rn", statement, older_than_hours, limit or 100000)
         return [r["symbol"] for r in rows]
