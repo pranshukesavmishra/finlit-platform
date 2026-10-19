@@ -37,6 +37,25 @@ async def rebuild_metrics(store, only_missing: bool = False) -> int:
     return done
 
 
+async def refresh_metrics_for(store, pairs) -> int:
+    """Recompute the screener metrics of the given (symbol, statement) pairs after a live-price patch, in two queries for the whole batch."""
+    pairs = list(pairs)
+    if not pairs:
+        return 0
+    symbols = sorted({s for s, _ in pairs})
+    wanted = set(pairs)
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT symbol, statement, section, body FROM snapshots WHERE symbol = ANY($1::text[]) AND section = ANY($2::text[])", symbols, list(SECTIONS))
+        grouped: Dict[tuple, dict] = {}
+        for r in rows:
+            if (r["symbol"], r["statement"]) in wanted:
+                grouped.setdefault((r["symbol"], r["statement"]), {})[r["section"]] = json.loads(r["body"])
+        updates = [(sym, st, orjson.dumps(compute(sec)).decode()) for (sym, st), sec in grouped.items() if "summary" in sec]
+        if updates:
+            await conn.executemany("UPDATE scores SET metrics = $3::jsonb WHERE symbol = $1 AND statement = $2", updates)
+    return len(updates)
+
+
 async def refresh_indices(store) -> Dict[str, int]:
     """Download the public index constituent lists (NSE Indices) and store which companies belong to which index."""
     counts: Dict[str, int] = {}

@@ -97,6 +97,7 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
     """Patch the live quote into each summary without re-fetching fundamentals."""
     items = symbols or await store.snapshot_symbols()
     updated = 0
+    touched: List[Tuple[str, str]] = []
 
     async def one(symbol: str, statement: str):
         nonlocal updated
@@ -115,8 +116,15 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         summary["quote"] = {**summary["quote"], **{k: v for k, v in live.items() if v is not None}}
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
+        touched.append((symbol, statement))
 
     await asyncio.gather(*(one(s, st) for s, st in items))
+    if touched:  # keep the screener's price-based numbers (P/E, market cap, returns, 52-week position) as fresh as the quote
+        try:
+            from .screener.jobs import refresh_metrics_for
+            await refresh_metrics_for(store, touched)
+        except Exception:
+            log.exception("screener metrics were not refreshed after the quote update")
     return updated
 
 

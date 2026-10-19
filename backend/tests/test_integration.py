@@ -147,6 +147,9 @@ async def test_refresh_quotes_patches_summary(ingested):
         assert await worker.refresh_quotes(client, ingested) == 1
     body, _ = await ingested.get_section("RELIANCE", "consolidated", "summary")
     assert orjson.loads(body)["quote"]["price"] == 1184.0
+    async with ingested.pool.acquire() as conn:  # the screener's price-based numbers follow the live quote
+        metrics = orjson.loads(await conn.fetchval("SELECT metrics::text FROM scores WHERE symbol = 'RELIANCE' AND statement = 'consolidated'"))
+    assert metrics["price"] == 1184.0
 
 
 async def test_latency_budget(api):
