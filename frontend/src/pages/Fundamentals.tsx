@@ -1,17 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { StackArea } from "../charts/Atlas";
+import { Donut } from "../charts/Small";
+import { LineChart } from "../charts/LineChart";
+import { MiniBars } from "../charts/MiniBars";
 import { Icon } from "../lib/icons";
 import { dateIN, nf, signed, MINUS } from "../lib/format";
-import { qs, useGold, usePremium } from "../lib/premium";
+import { downloadCsv, pushRecent, qs, readRecent, useGold, usePremium, useSlashFocus } from "../lib/premium";
 import { useUniverse } from "../lib/screener";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 
 type Pt = { period: string; value: number | null; change?: number | null };
 type HRow = { category?: string; label?: string; unit?: string; history?: Pt[]; children?: HRow[] };
-type Statement = { units_in?: string; income_statement?: HRow[]; cash_flow?: HRow[]; balance_sheet?: HRow[]; history?: Record<string, string | number | null>[] };
+type Statement = { units_in?: string; income_statement?: HRow[]; cash_flow?: HRow[]; balance_sheet?: HRow[] };
 type Fund = {
-  instrument?: { symbol?: string; name?: string }; statementType?: string; generatedAt?: string; sources?: Record<string, string>;
+  instrument?: { symbol?: string; name?: string }; statementType?: string; generatedAt?: string;
   quote?: { price?: number; change?: number; changePct?: number; timestamp?: string };
   highlights?: { label: string; value: number | null; benchmark?: number | null; period?: string }[];
   ratios?: { name: string; company_value: number | null; sector_value?: number | null }[];
@@ -22,30 +26,144 @@ type Fund = {
 };
 
 const SECTIONS = [["snapshot", "Snapshot"], ["income", "Income statement"], ["balance", "Balance sheet"], ["cash", "Cash flow"], ["ratios", "Ratios"], ["owners", "Shareholders"], ["peers", "Peers & actions"]] as const;
-const val = (v: unknown) => (typeof v === "number" ? (v < 0 ? MINUS : "") + nf(v, Math.abs(v) >= 1000 ? 0 : 2) : v == null || v === "" ? MINUS : String(v));
+type Sec = (typeof SECTIONS)[number][0];
+const PALETTE = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)", "var(--k6)", "var(--k7)", "var(--k8)"];
+const val = (v: unknown) => (typeof v === "number" ? (v < 0 ? MINUS : "") + nf(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2) : v == null || v === "" ? MINUS : String(v));
+const short = (v: number) => { const a = Math.abs(v); return (v < 0 ? MINUS : "") + (a >= 1e5 ? nf(a / 1e5, 1) + "L" : a >= 1e3 ? nf(a / 1e3, 1) + "k" : nf(a, a >= 100 ? 0 : 1)); };
 const name = (r: HRow) => (r.label || r.category || "").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+const find = (rows: HRow[] | undefined, re: RegExp) => (rows || []).find((r) => re.test(r.category || "") || re.test(r.label || ""));
 
-/** Rows of {label, history[]} as a table: newest period on the right-hand side of the heading order given by the data. */
-function HistTable({ rows, limit, note, growth = true }: { rows: HRow[]; limit: number; note?: string; growth?: boolean }) {
-  const periods = useMemo(() => { const seen: string[] = []; for (const r of rows) for (const p of r.history || []) if (!seen.includes(p.period)) seen.push(p.period); return seen.slice(0, limit); }, [rows, limit]);
-  if (!rows.length || !periods.length) return <div className="pm-empty">This statement has not been reported for this company.</div>;
+/** Periods as the data gives them (newest first), capped. */
+function periodsOf(rows: HRow[], limit: number) {
+  const seen: string[] = [];
+  for (const r of rows) for (const p of r.history || []) if (!seen.includes(p.period)) seen.push(p.period);
+  return seen.slice(0, limit);
+}
+const series = (r: HRow | undefined, periods: string[]) => { const by = new Map((r?.history || []).map((p) => [p.period, p.value])); return periods.map((p) => by.get(p) ?? null); };
+
+/** A statement table where every line can be charted: click a row and the chart above follows it. */
+function Statement({ rows, limit, unit, file, growth = true, chart = true }: { rows: HRow[]; limit: number; unit?: string; file: string; growth?: boolean; chart?: boolean }) {
+  const periods = useMemo(() => periodsOf(rows, limit), [rows, limit]);
+  const [pick, setPick] = useState(0);
+  useEffect(() => setPick(0), [rows]);
+  if (!rows.length || !periods.length) return <div className="pm-empty">This has not been reported for this company.</div>;
+  const row = rows[Math.min(pick, rows.length - 1)];
+  const asc = [...periods].reverse(), vals = series(row, periods).reverse();
+  const csv = () => downloadCsv(file, ["Item", ...periods], rows.map((r) => [name(r), ...series(r, periods)]));
   return (
-    <div className="tw"><table className="pm-t"><thead><tr><th>{note || "Item"}</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
-      <tbody>{rows.map((r, i) => {
-        const by = new Map((r.history || []).map((p) => [p.period, p.value]));
-        const a = by.get(periods[0]), b = by.get(periods[1]);
-        const ch = typeof a === "number" && typeof b === "number" && b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null;
-        return <tr key={(r.category || r.label || "") + i}><td>{name(r)}</td>{periods.map((p) => <td key={p} className="n">{val(by.get(p))}</td>)}
-          {growth && periods.length > 1 && <td className="n" style={{ color: ch == null ? undefined : ch >= 0 ? "var(--gain)" : "var(--loss)", whiteSpace: "nowrap" }}>{ch == null || !Number.isFinite(ch) ? MINUS : signed(ch, 1)}</td>}</tr>;
-      })}</tbody></table></div>
+    <>
+      {chart && vals.some((v) => v != null) && (
+        <div className="pm-chart card">
+          <div className="pm-chart-h"><div><small>Charting</small><b>{name(row)}</b></div><span className="faint">{unit ? `In ${unit} · ` : ""}Click any line below to chart it</span></div>
+          <MiniBars labels={asc} series={[{ key: "v", label: name(row), values: vals, color: "var(--gold)" }]} fmt={short} height={190} w={720} highlight={asc.length - 1} />
+        </div>)}
+      <div className="pm-tools"><button className="alx-link" onClick={csv}><Icon name="table" /> Export CSV</button></div>
+      <div className="tw"><table className="pm-t pm-pick"><thead><tr><th>Item</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
+        <tbody>{rows.map((r, i) => {
+          const s = series(r, periods), a = s[0], b = s[1];
+          const ch = typeof a === "number" && typeof b === "number" && b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null;
+          return (
+            <tr key={(r.category || r.label || "") + i} className={chart && i === pick ? "on" : ""} onClick={chart ? () => setPick(i) : undefined} tabIndex={chart ? 0 : undefined}
+              onKeyDown={chart ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPick(i); } } : undefined} aria-selected={chart ? i === pick : undefined}>
+              <td>{name(r)}</td>{s.map((v, j) => <td key={j} className="n">{val(v)}</td>)}
+              {growth && periods.length > 1 && <td className="n" style={{ color: ch == null ? undefined : ch >= 0 ? "var(--gain)" : "var(--loss)", whiteSpace: "nowrap" }}>{ch == null || !Number.isFinite(ch) ? MINUS : signed(ch, 1)}</td>}
+            </tr>);
+        })}</tbody></table></div>
+    </>
   );
 }
 
 function Tree({ rows }: { rows: HRow[] }) {
+  const [q, setQ] = useState("");
   if (!rows.length) return <div className="pm-empty">Detailed shareholding is not available for this company.</div>;
-  return <div className="pm-tree">{rows.map((r, i) => (
-    <details key={i}><summary>{name(r)} <span className="faint">· {val(r.history?.[0]?.value)}% in {r.history?.[0]?.period || MINUS}</span></summary>
-      {r.children?.length ? <ul>{r.children.slice(0, 60).map((c, j) => <li key={j}><span>{name(c)}</span><b>{val(c.history?.[0]?.value)}%</b></li>)}</ul> : <p className="faint" style={{ margin: "0 0 8px 18px" }}>No named holders are reported in this category.</p>}</details>))}</div>;
+  const s = q.trim().toLowerCase();
+  return (
+    <>
+      <div className="pm-bar"><label>Find a shareholder<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Life Insurance" /></label></div>
+      <div className="pm-tree">{rows.map((r, i) => {
+        const kids = (r.children || []).filter((c) => !s || name(c).toLowerCase().includes(s));
+        if (s && !kids.length && !name(r).toLowerCase().includes(s)) return null;
+        return (
+          <details key={i} open={!!s}><summary>{name(r)} <span className="faint">· {val(r.history?.[0]?.value)}% in {r.history?.[0]?.period || MINUS}</span></summary>
+            {kids.length ? <ul>{kids.slice(0, 80).map((c, j) => <li key={j}><span>{name(c)}</span><b>{val(c.history?.[0]?.value)}%</b></li>)}</ul> : <p className="faint" style={{ margin: "0 0 8px 18px" }}>No named holders are reported in this category.</p>}
+          </details>);
+      })}</div>
+    </>
+  );
+}
+
+function Snapshot({ d, limit }: { d: Fund; limit: number }) {
+  const pl = d.incomeStatement?.income_statement || [];
+  const rev = find(pl, /^revenue|net_sales|total_income|interest_earned/i), np = find(pl, /net_profit|^pat$/i);
+  const periods = periodsOf([rev, np].filter(Boolean) as HRow[], limit), asc = [...periods].reverse();
+  const r = series(rev, periods).reverse(), p = series(np, periods).reverse();
+  const margin = r.map((v, i) => (v && p[i] != null ? ((p[i] as number) / v) * 100 : null));
+  const unit = d.incomeStatement?.units_in;
+  const mv = margin.filter((v): v is number => v != null), mSpan = mv.length ? Math.max(...mv) - Math.min(...mv) : 0;
+  const cagr = (() => { const f = r.find((v) => v != null && v > 0), l = [...r].reverse().find((v) => v != null && v > 0), n = r.filter((v) => v != null).length - 1; return f && l && n > 0 ? (Math.pow(l / f, 1 / n) - 1) * 100 : null; })();
+  return (
+    <>
+      <div className="pm-cards">{(d.highlights || []).map((h) => {
+        const vs = typeof h.value === "number" && typeof h.benchmark === "number" && h.benchmark !== 0 ? ((h.value - h.benchmark) / Math.abs(h.benchmark)) * 100 : null;
+        return <div className="pm-kpi" key={h.label}><small>{h.label}{h.period ? ` · ${h.period}` : ""}</small><b>{val(h.value)}</b>
+          {h.benchmark != null ? <i>Sector {val(h.benchmark)}{vs != null && <span className="chip ghost" style={{ marginLeft: 6, height: 20 }}>{vs >= 0 ? "above" : "below"} by {nf(Math.abs(vs), 0)}%</span>}</i>
+            : /revenue|profit/i.test(h.label) && unit ? <i>{unit}</i> : null}</div>;
+      })}</div>
+      {!(d.highlights || []).length && <div className="pm-empty">No headline figures were reported.</div>}
+      {asc.length > 1 && (
+        <div className="pm-two">
+          <div className="pm-chart card"><div className="pm-chart-h"><div><small>Growth</small><b>Revenue and net profit</b></div><span className="faint">{unit ? `In ${unit}` : ""}{cagr != null ? ` · revenue ${signed(cagr, 1)} a year` : ""}</span></div>
+            <div className="pm-duo">
+              <div><p className="pm-sub">Revenue</p><MiniBars labels={asc} series={[{ key: "r", label: "Revenue", values: r, color: "var(--c1)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} /></div>
+              <div><p className="pm-sub">Net profit</p><MiniBars labels={asc} series={[{ key: "p", label: "Net profit", values: p, color: "var(--gold)" }]} fmt={short} height={170} w={360} highlight={asc.length - 1} /></div>
+            </div></div>
+          <div className="pm-chart card"><div className="pm-chart-h"><div><small>Quality</small><b>Net margin</b></div><span className="faint">Profit kept from each ₹100 of sales</span></div>
+            <LineChart periods={asc} series={[{ key: "m", label: "Net margin", color: "var(--c3)", values: margin }]} fmt={(x) => nf(x, mSpan < 0.05 ? 3 : mSpan < 1 ? 2 : 1) + "%"} height={200} area /></div>
+        </div>)}
+      <div className="pm-sec"><h2>Revenue by segment</h2><Statement rows={d.revenueSegments || []} limit={limit} unit={unit} file={`${d.instrument?.symbol}-segments`} /></div>
+    </>
+  );
+}
+
+function Ratios({ d, limit }: { d: Fund; limit: number }) {
+  const rows = d.ratios || [];
+  return (
+    <>
+      {rows.length ? (
+        <>
+          <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv(`${d.instrument?.symbol}-ratios`, ["Ratio", "Company", "Sector"], rows.map((r) => [r.name, r.company_value, r.sector_value]))}><Icon name="table" /> Export CSV</button></div>
+          <div className="tw"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th><th>Company against sector</th></tr></thead>
+            <tbody>{rows.map((r) => {
+              const c = r.company_value, s = r.sector_value, max = Math.max(Math.abs(c ?? 0), Math.abs(s ?? 0), 1e-9);
+              return <tr key={r.name}><td>{r.name}</td><td className="n">{val(c)}</td><td className="n">{val(s)}</td>
+                <td style={{ minWidth: 180 }}>{c != null && s != null ? <div className="pm-vs" aria-label={`Company ${val(c)}, sector ${val(s)}`}><span style={{ width: `${(Math.abs(c) / max) * 100}%` }} className="co" /><span style={{ width: `${(Math.abs(s) / max) * 100}%` }} className="se" /></div> : <span className="faint">{MINUS}</span>}</td></tr>;
+            })}</tbody></table></div>
+          <p className="pm-legend"><i style={{ background: "var(--gold)" }} />Company <i style={{ background: "var(--faint)" }} />Sector</p>
+        </>) : <div className="pm-empty">No ratios were reported.</div>}
+      <div className="pm-sec"><h2>Profitability over time</h2><Statement rows={d.profitabilityRatios || []} limit={limit} file={`${d.instrument?.symbol}-profitability`} /></div>
+    </>
+  );
+}
+
+function Owners({ d, limit }: { d: Fund; limit: number }) {
+  const rows = d.shareholding || [];
+  const periods = periodsOf(rows, limit), asc = [...periods].reverse();
+  const parts = rows.map((r, i) => ({ label: name(r), value: r.history?.[0]?.value ?? 0, color: PALETTE[i % PALETTE.length] })).filter((p) => p.value > 0);
+  return (
+    <>
+      {parts.length > 0 && (
+        <div className="pm-two">
+          <div className="pm-chart card"><div className="pm-chart-h"><div><small>Today</small><b>Who owns the company</b></div><span className="faint">{periods[0]}</span></div>
+            <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}><div style={{ width: 190 }}><Donut slices={parts.map((x) => ({ v: x.value, color: x.color.replace(/^var\((.*)\)$/, "$1") }))} centerValue={nf(parts[0].value, 1) + "%"} centerLabel={parts[0].label} /></div>
+              <ul className="pm-keys">{parts.map((p) => <li key={p.label}><i style={{ background: p.color }} />{p.label}<b>{nf(p.value, 2)}%</b></li>)}</ul></div></div>
+          {asc.length > 1 && <div className="pm-chart card"><div className="pm-chart-h"><div><small>Trend</small><b>How ownership has moved</b></div><span className="faint">{asc[0]} to {asc[asc.length - 1]}</span></div>
+            <StackArea periods={asc} series={rows.map((r, i) => ({ key: r.category || String(i), label: name(r), values: series(r, periods).reverse(), color: PALETTE[i % PALETTE.length] }))} w={620} /></div>}
+        </div>)}
+      <div className="pm-sec"><h2>Shareholding pattern</h2><Statement rows={rows} limit={limit} file={`${d.instrument?.symbol}-shareholding`} growth={false} chart={false} /></div>
+      <div className="pm-sec"><h2>Structure summary and promoter pledge</h2><Statement rows={d.ownershipStructure || []} limit={limit} file={`${d.instrument?.symbol}-structure`} growth={false} chart={false} /></div>
+      <div className="pm-sec"><h2>Named shareholders</h2><Tree rows={d.shareholdingDetails || []} /></div>
+    </>
+  );
 }
 
 export function FundamentalsPage() {
@@ -53,61 +171,70 @@ export function FundamentalsPage() {
   const gold = useGold();
   const [params, setParams] = useSearchParams();
   const company = params.get("c") || "", statement = params.get("s") === "standalone" ? "standalone" : "consolidated", period = params.get("p") === "quarterly" ? "quarterly" : "yearly";
-  const [text, setText] = useState(company), [open, setOpen] = useState(false), [sec, setSec] = useState<(typeof SECTIONS)[number][0]>("snapshot");
+  const sec = (SECTIONS.find(([id]) => id === params.get("t"))?.[0] || "snapshot") as Sec;
+  const [text, setText] = useState(company), [open, setOpen] = useState(false), [active, setActive] = useState(0);
+  const [recent, setRecent] = useState<string[]>(readRecent);
+  const box = useRef<HTMLInputElement>(null); useSlashFocus(box);
   const universe = useUniverse();
   const sug = useMemo(() => {
-    const t = text.trim().toLowerCase(); if (t.length < 1 || t === company.toLowerCase()) return [];
-    return (universe.data?.rows || []).filter((r) => r.symbol.toLowerCase().startsWith(t) || (r.name || "").toLowerCase().includes(t)).slice(0, 8);
+    const t = text.trim().toLowerCase(); if (!t || t === company.toLowerCase()) return [];
+    const rows = universe.data?.rows || [];
+    return [...rows.filter((r) => r.symbol.toLowerCase().startsWith(t)), ...rows.filter((r) => !r.symbol.toLowerCase().startsWith(t) && (r.name || "").toLowerCase().includes(t))].slice(0, 8);
   }, [text, company, universe.data]);
   const set = (o: Record<string, string>) => { const n = new URLSearchParams(params); for (const [k, v] of Object.entries(o)) v ? n.set(k, v) : n.delete(k); setParams(n, { replace: true }); };
+  const choose = (sym: string) => { setText(sym); set({ c: sym }); setOpen(false); setActive(0); };
   const { data, isLoading, isError, error, refetch, isFetching } = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period })}`, gold && company.length >= 2);
+  useEffect(() => { const s = data?.instrument?.symbol; if (s) { pushRecent(s); setRecent(readRecent()); } }, [data?.instrument?.symbol]);
   if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
   const limit = period === "quarterly" ? 10 : 8;
   const status = (error as { status?: number } | null)?.status;
+  const sym = data?.instrument?.symbol || company;
   return (
     <>
-      <PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard"><p>Search any listed company for its full statements, ratios and named shareholders. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead>
+      <PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard"><p>Search any listed company for its full statements, ratios and named shareholders. Press <kbd>/</kbd> to search. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         <div className="pm-bar" style={{ alignItems: "center" }}>
           <div className="pm-search" style={{ flex: 1, minWidth: 260 }}><Icon name="search" />
-            <input value={text} onChange={(e) => { setText(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
-              onKeyDown={(e) => { if (e.key === "Enter" && text.trim().length >= 2) { set({ c: sug[0]?.symbol || text.trim() }); setOpen(false); } }}
-              placeholder="Search a company or symbol, for example RELIANCE" aria-label="Search a company" role="combobox" aria-expanded={open && sug.length > 0} aria-controls="pm-sug" />
-            {open && sug.length > 0 && <div className="pm-sug" id="pm-sug" role="listbox">{sug.map((r) => <button key={r.symbol} role="option" aria-selected={false} onMouseDown={(e) => e.preventDefault()} onClick={() => { setText(r.symbol); set({ c: r.symbol }); setOpen(false); }}><b>{r.symbol}</b><small>{r.name}</small></button>)}</div>}</div>
+            <input ref={box} value={text} onChange={(e) => { setText(e.target.value); setOpen(true); setActive(0); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown" && sug.length) { e.preventDefault(); setActive((active + 1) % sug.length); }
+                else if (e.key === "ArrowUp" && sug.length) { e.preventDefault(); setActive((active - 1 + sug.length) % sug.length); }
+                else if (e.key === "Escape") setOpen(false);
+                else if (e.key === "Enter" && text.trim().length >= 2) choose(sug[active]?.symbol || text.trim().toUpperCase());
+              }}
+              placeholder="Search a company or symbol, for example RELIANCE" aria-label="Search a company" role="combobox" aria-expanded={open && sug.length > 0} aria-controls="pm-sug" aria-autocomplete="list"
+              aria-activedescendant={open && sug[active] ? `pm-o-${sug[active].symbol}` : undefined} />
+            {open && sug.length > 0 && <div className="pm-sug" id="pm-sug" role="listbox">{sug.map((r, i) => <button key={r.symbol} id={`pm-o-${r.symbol}`} role="option" aria-selected={i === active} className={i === active ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(r.symbol)}><b>{r.symbol}</b><small>{r.name}</small><small style={{ marginLeft: "auto" }}>{r.sector || ""}</small></button>)}</div>}</div>
           <div className="pm-seg" role="group" aria-label="Statement type">{(["consolidated", "standalone"] as const).map((s) => <button key={s} aria-pressed={statement === s} onClick={() => set({ s: s === "consolidated" ? "" : s })}>{s === "consolidated" ? "Consolidated" : "Standalone"}</button>)}</div>
           <div className="pm-seg" role="group" aria-label="Period">{(["yearly", "quarterly"] as const).map((s) => <button key={s} aria-pressed={period === s} onClick={() => set({ p: s === "yearly" ? "" : s })}>{s === "yearly" ? "Yearly" : "Quarterly"}</button>)}</div>
         </div>
+        {recent.length > 0 && <div className="pm-recent" aria-label="Recently viewed"><span className="faint">Recent</span>{recent.map((s) => <button key={s} className={"fchip" + (s === sym ? " on" : "")} onClick={() => choose(s)}>{s}</button>)}</div>}
         {!company ? (
-          <div className="pm-empty"><b>Pick a company to begin.</b><p>Try <button className="alx-link" onClick={() => { setText("RELIANCE"); set({ c: "RELIANCE" }); }}>RELIANCE</button>, <button className="alx-link" onClick={() => { setText("TCS"); set({ c: "TCS" }); }}>TCS</button> or <button className="alx-link" onClick={() => { setText("HDFCBANK"); set({ c: "HDFCBANK" }); }}>HDFCBANK</button>.</p></div>
+          <div className="pm-empty"><b>Pick a company to begin.</b><p>Try {["RELIANCE", "TCS", "HDFCBANK"].map((s, i) => <span key={s}>{i ? ", " : ""}<button className="alx-link" onClick={() => choose(s)}>{s}</button></span>)}.</p></div>
         ) : isError ? (
           <div className="state"><h2>{status === 404 ? "We could not find that company" : "This company's data is not available right now"}</h2><p>{status === 404 ? "Check the symbol and try again." : "The data provider did not answer. Please try again in a moment."}</p>{status !== 404 && <button className="btn" onClick={() => refetch()}>Try again</button>}</div>
-        ) : isLoading || !data ? <div className="skeleton" style={{ height: 420 }} aria-busy="true" aria-label="Loading company data" /> : (
+        ) : isLoading || !data ? (
+          <div aria-busy="true" aria-label="Loading company data"><div className="pm-cards">{Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton" style={{ height: 96 }} />)}</div><div className="skeleton" style={{ height: 300 }} /></div>
+        ) : (
           <>
-            <div className="pm-meta" style={{ justifyContent: "space-between" }}>
-              <span><b style={{ color: "var(--text)", fontSize: 18 }}>{data.instrument?.name || data.instrument?.symbol}</b> · {data.instrument?.symbol} · {data.statementType === "standalone" ? "Standalone" : "Consolidated"} {period === "quarterly" ? "quarterly" : "yearly"} figures{data.quote?.price ? <> · ₹{nf(data.quote.price)}{typeof data.quote.changePct === "number" && <> <span style={{ color: data.quote.changePct >= 0 ? "var(--gain)" : "var(--loss)" }}>{signed(data.quote.changePct)}</span></>}</> : null}</span>
-              <span>{data.generatedAt ? "Updated " + dateIN(data.generatedAt) : ""}{isFetching ? " · refreshing…" : ""} · <Link to={`/stocks/${data.instrument?.symbol || company}`}>Open full research page</Link></span></div>
-            <div className="pm-tabs" role="tablist" aria-label="Sections">{SECTIONS.map(([id, label]) => <button key={id} role="tab" aria-selected={sec === id} onClick={() => setSec(id)}>{label}</button>)}</div>
-            {sec === "snapshot" && (<>
-              <div className="pm-cards">{(data.highlights || []).map((h) => <div className="pm-kpi" key={h.label}><small>{h.label}{h.period ? ` · ${h.period}` : ""}</small><b>{val(h.value)}</b>{/revenue|profit/i.test(h.label) && data.incomeStatement?.units_in && <i>{data.incomeStatement.units_in}</i>}{h.benchmark != null && <i>Sector: {val(h.benchmark)}</i>}</div>)}</div>
-              {!(data.highlights || []).length && <div className="pm-empty">No headline figures were reported.</div>}
-              <div className="pm-sec"><h2>Revenue by segment</h2><HistTable rows={data.revenueSegments || []} limit={limit} /></div></>)}
-            {sec === "income" && <><p className="pm-meta">Amounts in {data.incomeStatement?.units_in || "the company's reporting unit"}.</p><HistTable rows={data.incomeStatement?.income_statement || []} limit={limit} /></>}
-            {sec === "balance" && <><p className="pm-meta">Amounts in {data.balanceSheet?.units_in || "the company's reporting unit"}.</p><HistTable rows={data.balanceSheet?.balance_sheet || []} limit={limit} /></>}
-            {sec === "cash" && <><p className="pm-meta">Amounts in {data.cashFlow?.units_in || "the company's reporting unit"}.</p><HistTable rows={data.cashFlow?.cash_flow || []} limit={limit} /></>}
-            {sec === "ratios" && (<>
-              <div className="tw"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th></tr></thead>
-                <tbody>{(data.ratios || []).map((r) => <tr key={r.name}><td>{r.name}</td><td className="n">{val(r.company_value)}</td><td className="n">{val(r.sector_value)}</td></tr>)}</tbody></table></div>
-              {!(data.ratios || []).length && <div className="pm-empty">No ratios were reported.</div>}
-              <div className="pm-sec"><h2>Profitability over time</h2><HistTable rows={data.profitabilityRatios || []} limit={limit} /></div></>)}
-            {sec === "owners" && (<>
-              <h2 className="pm-sec" style={{ marginTop: 0, font: "500 22px var(--serif)" }}>Shareholding pattern</h2><HistTable rows={data.shareholding || []} limit={limit} note="Holder group, % held" growth={false} />
-              <div className="pm-sec"><h2>Structure summary and promoter pledge</h2><HistTable rows={data.ownershipStructure || []} limit={limit} growth={false} /></div>
-              <div className="pm-sec"><h2>Named shareholders</h2><Tree rows={data.shareholdingDetails || []} /></div></>)}
+            <div className="pm-co card">
+              <span className="av" aria-hidden="true">{(data.instrument?.name || sym).slice(0, 2).toUpperCase()}</span>
+              <div><h2>{data.instrument?.name || sym}</h2><p className="faint">{sym} · {data.statementType === "standalone" ? "Standalone" : "Consolidated"} · {period === "quarterly" ? "Quarterly" : "Yearly"} figures{data.generatedAt ? " · Updated " + dateIN(data.generatedAt) : ""}{isFetching ? " · refreshing…" : ""}</p></div>
+              {data.quote?.price ? <div className="pm-px"><b>₹{nf(data.quote.price)}</b>{typeof data.quote.changePct === "number" && <span style={{ color: data.quote.changePct >= 0 ? "var(--gain)" : "var(--loss)" }}>{signed(data.quote.changePct)}</span>}</div> : null}
+              <div className="pm-co-a"><Link className="btn" to={`/stocks/${sym}`}><Icon name="search" /> Research page</Link><Link className="btn" to={`/premium/report/${sym}`}><Icon name="notes" /> Premium report</Link></div>
+            </div>
+            <div className="pm-tabs" role="tablist" aria-label="Sections">{SECTIONS.map(([id, label]) => <button key={id} role="tab" aria-selected={sec === id} onClick={() => set({ t: id === "snapshot" ? "" : id })}>{label}</button>)}</div>
+            {sec === "snapshot" && <Snapshot d={data} limit={limit} />}
+            {sec === "income" && <Statement rows={data.incomeStatement?.income_statement || []} limit={limit} unit={data.incomeStatement?.units_in} file={`${sym}-income-${period}`} />}
+            {sec === "balance" && <Statement rows={data.balanceSheet?.balance_sheet || []} limit={limit} unit={data.balanceSheet?.units_in} file={`${sym}-balance-${period}`} />}
+            {sec === "cash" && <Statement rows={data.cashFlow?.cash_flow || []} limit={limit} unit={data.cashFlow?.units_in} file={`${sym}-cashflow-${period}`} />}
+            {sec === "ratios" && <Ratios d={data} limit={limit} />}
+            {sec === "owners" && <Owners d={data} limit={limit} />}
             {sec === "peers" && (<>
-              <h2 className="pm-sec" style={{ marginTop: 0, font: "500 22px var(--serif)" }}>Peers</h2>
-              {(data.competitors || []).length ? <div className="tw"><table className="pm-t"><thead><tr><th>Company</th><th>Symbol</th><th>Sector</th></tr></thead><tbody>{data.competitors!.map((c, i) => <tr key={i}><td>{c.name || MINUS}</td><td>{c.symbol ? <Link to={`/premium/fundamentals?c=${encodeURIComponent(c.symbol)}`} onClick={() => { setText(c.symbol!); }}>{c.symbol}</Link> : MINUS}</td><td>{c.sector || MINUS}</td></tr>)}</tbody></table></div> : <div className="pm-empty">No peers were reported.</div>}
+              <h2 className="pm-h2">Peers</h2>
+              {(data.competitors || []).length ? <div className="pm-peers">{data.competitors!.map((c, i) => <button key={i} className="pm-peer" onClick={() => c.symbol && choose(c.symbol)} disabled={!c.symbol}><span className="av mini" aria-hidden="true">{(c.name || c.symbol || "?").slice(0, 2).toUpperCase()}</span><span><b>{c.symbol || MINUS}</b><small>{c.name}</small><small className="faint">{c.sector}</small></span><Icon name="arrow" /></button>)}</div> : <div className="pm-empty">No peers were reported.</div>}
               <div className="pm-sec"><h2>Dividends and corporate actions</h2>
-                {(data.corporateActions || []).length ? <div className="tw"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td>{a.type || MINUS}</td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></div> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
+                {(data.corporateActions || []).length ? <div className="tw"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></div> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
             <p className="pm-meta" style={{ marginTop: 22 }}>Figures come from company filings through FinEdge. Missing values show a dash. General information, not investment advice.</p>
           </>)}
       </div>

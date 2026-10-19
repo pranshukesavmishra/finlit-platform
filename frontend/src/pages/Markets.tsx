@@ -2,8 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
-import { dateIN, nf, MINUS } from "../lib/format";
-import { prefetchMarkets, qs, useGold, usePremium, type Feed, type MarketSection } from "../lib/premium";
+import { dateIN, nf, num, MINUS } from "../lib/format";
+import { downloadCsv, prefetchMarkets, qs, useGold, usePremium, type Feed, type MarketSection } from "../lib/premium";
+import { LineChart } from "../charts/LineChart";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 
@@ -12,8 +13,9 @@ type Col = { key: string; label: string; num?: boolean; wide?: boolean; fmt?: (v
 
 const txt = (v: unknown) => (v == null || v === "" ? MINUS : String(v));
 const dt = (v: unknown) => (v ? dateIN(String(v).slice(0, 10)) : MINUS);
-const n2 = (v: unknown) => (typeof v === "number" ? nf(v) : MINUS);
+const n2 = (v: unknown) => (typeof v === "number" ? num(v) : MINUS);
 const pc = (v: unknown) => (typeof v === "number" ? <span style={{ color: v >= 0 ? "var(--gain)" : "var(--loss)" }}>{(v > 0 ? "▲ +" : v < 0 ? "▼ " + MINUS : "") + nf(v)}%</span> : MINUS);
+const status = (v: unknown) => { const t = String(v || ""); const k = /open|live|current/i.test(t) ? "up" : /upcoming|forthcoming/i.test(t) ? "gold" : /list/i.test(t) ? "info" : "ghost"; return t ? <span className={"chip " + k}>{t}</span> : MINUS; };
 const doc = (v: unknown) => (v ? <a href={String(v)} target="_blank" rel="noopener noreferrer">Open document</a> : MINUS);
 
 const TABS: { id: MarketSection | "commodities"; label: string }[] = [
@@ -22,7 +24,7 @@ const TABS: { id: MarketSection | "commodities"; label: string }[] = [
 ];
 
 const COLS: Record<string, Col[]> = {
-  ipo: [{ key: "company_name", label: "Company" }, { key: "security_type", label: "Type" }, { key: "ipo_status", label: "Status" }, { key: "start_date", label: "Opens", fmt: dt }, { key: "end_date", label: "Closes", fmt: dt },
+  ipo: [{ key: "company_name", label: "Company" }, { key: "security_type", label: "Type" }, { key: "ipo_status", label: "Status", fmt: status }, { key: "start_date", label: "Opens", fmt: dt }, { key: "end_date", label: "Closes", fmt: dt },
     { key: "price_range", label: "Price band", num: true }, { key: "issue_size", label: "Issue size", num: true }, { key: "subscription", label: "Subscription", num: true }, { key: "exchange", label: "Exchange" }],
   results: [{ key: "symbol", label: "Symbol" }, { key: "company_name", label: "Company" }, { key: "expected_result_date", label: "Expected result date", fmt: dt }],
   announcements: [{ key: "date", label: "Date", fmt: dt }, { key: "symbol", label: "Symbol" }, { key: "category", label: "Category" }, { key: "description", label: "Announcement", wide: true }, { key: "document_url", label: "Document", fmt: doc }],
@@ -41,7 +43,7 @@ function Problem({ e, retry }: { e: unknown; retry: () => void }) {
     {status !== 403 && <button className="btn" onClick={retry}>Try again</button>}</div>;
 }
 
-function Table({ cols, rows, q }: { cols: Col[]; rows: Row[]; q: string }) {
+function Table({ cols, rows, q, file }: { cols: Col[]; rows: Row[]; q: string; file?: string }) {
   const [page, setPage] = useState(0);
   const shown = useMemo(() => { const s = q.trim().toLowerCase(); return s ? rows.filter((r) => Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(s))) : rows; }, [rows, q]);
   useEffect(() => setPage(0), [q, rows]);
@@ -49,9 +51,39 @@ function Table({ cols, rows, q }: { cols: Col[]; rows: Row[]; q: string }) {
   if (!shown.length) return <div className="pm-empty">Nothing matches. Try a wider date range or clear the search.</div>;
   return (
     <>
+      {file && <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv(file, cols.map((c) => c.label), shown.map((r) => cols.map((c) => r[c.key] as string | number | null)))}><Icon name="table" /> Export CSV</button></div>}
       <div className="tw"><table className="pm-t"><thead><tr>{cols.map((c) => <th key={c.key} className={c.num ? "n" : ""}>{c.label}</th>)}</tr></thead>
         <tbody>{shown.slice(page * PAGE, page * PAGE + PAGE).map((r, i) => <tr key={i}>{cols.map((c) => <td key={c.key} className={(c.num ? "n " : "") + (c.wide ? "wrapc" : "")}>{c.fmt ? c.fmt(r[c.key], r) : txt(r[c.key])}</td>)}</tr>)}</tbody></table></div>
       <div className="pm-pager"><span>{shown.length} rows</span><button className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page + 1} of {pages}</span><button className="btn" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</button></div>
+    </>
+  );
+}
+
+/** Every index as a tile tinted by today's move: green up, red down, stronger colour for bigger moves. */
+function Heat({ rows }: { rows: Row[] }) {
+  const max = Math.max(...rows.map((r) => Math.abs(Number(r.change_pct) || 0)), 0.5);
+  if (!rows.length) return null;
+  return (
+    <div className="pm-heat" aria-label="Index moves today">{rows.map((r) => {
+      const c = typeof r.change_pct === "number" ? r.change_pct : null;
+      return <div key={String(r.index_symbol || r.index_name)} className="pm-tile" style={{ "--tc": c == null ? "var(--faint)" : c >= 0 ? "var(--gain)" : "var(--loss)", "--ti": c == null ? 0 : 6 + (Math.abs(c) / max) * 22 } as React.CSSProperties}>
+        <small title={String(r.index_name || "")}>{String(r.index_name || r.index_symbol)}</small><b>{typeof r.close_price === "number" ? nf(r.close_price) : MINUS}</b><span>{c == null ? MINUS : (c > 0 ? "▲ +" : c < 0 ? "▼ " + MINUS : "") + nf(Math.abs(c)) + "%"}</span></div>;
+    })}</div>
+  );
+}
+
+/** P/E through time against its own average, and a plain verdict on where it sits today. */
+function Valuation({ rows, name }: { rows: Row[]; name: string }) {
+  const asc = [...rows].reverse().filter((r) => typeof r.pe === "number");
+  if (asc.length < 2) return null;
+  const pe = asc.map((r) => r.pe as number), avg = pe.reduce((a, b) => a + b, 0) / pe.length, now = pe[pe.length - 1], gap = ((now - avg) / avg) * 100;
+  const word = gap > 10 ? "Expensive against its own history" : gap < -10 ? "Cheap against its own history" : "Close to its usual valuation";
+  return (
+    <>
+      <div className="pm-verdict"><span className={"chip " + (gap > 10 ? "down" : gap < -10 ? "up" : "gold")}>{word}</span>
+        <span><b>P/E {nf(now, 1)}</b> <span className="faint">against an average of {nf(avg, 1)} over this period ({gap >= 0 ? "+" : MINUS}{nf(Math.abs(gap), 0)}%)</span></span></div>
+      <div className="pm-chart card"><div className="pm-chart-h"><div><small>Valuation</small><b>{name} P/E</b></div><span className="faint">Dashed line is the average</span></div>
+        <LineChart periods={asc.map((r) => (r.quote_date ? dateIN(String(r.quote_date).slice(0, 10), { day: "numeric", month: "short" }) : ""))} series={[{ key: "pe", label: "P/E", color: "var(--gold)", values: pe }]} fmt={(x) => nf(x, 1)} height={240} area avg={avg} /></div>
     </>
   );
 }
@@ -81,7 +113,9 @@ function Feed({ section }: { section: MarketSection }) {
       {isError ? <Problem e={error} retry={() => refetch()} /> : isLoading ? <Loading /> : (
         <>
           <p className="pm-meta"><Icon name="check" /> Updated {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "just now"} · Source: {data?.provider || "FinEdge"}{isFetching ? " · refreshing…" : ""}</p>
-          <Table cols={COLS[section]} rows={data?.items || []} q={q} />
+          {section === "indices" && <Heat rows={data?.items || []} />}
+          {section === "valuations" && <Valuation rows={data?.items || []} name={index} />}
+          <Table cols={COLS[section]} rows={data?.items || []} q={q} file={`finlit-${section}${index ? "-" + index : ""}`} />
         </>)}
     </section>
   );
@@ -113,7 +147,9 @@ function Commodities() {
               <div className="pm-cards"><div className="pm-kpi"><small>Latest ({latest?.label || MINUS})</small><b>{latest?.value != null ? nf(latest.value) : MINUS}</b></div>
                 <div className="pm-kpi"><small>Change on last month</small><b>{latest?.value != null && prev?.value ? pc(((latest.value - prev.value) / prev.value) * 100) : MINUS}</b></div></div>
               {hist.data?.changesUnavailable && <p className="pm-meta">Provider percentage changes are unavailable right now. The history below is still correct.</p>}
-              <Table cols={[{ key: "label", label: "Month" }, { key: "value", label: "Index level", num: true, fmt: n2 }]} rows={rows as unknown as Row[]} q="" />
+              {rows.length > 1 && <div className="pm-chart card"><div className="pm-chart-h"><div><small>Trend</small><b>{list.data?.items.find((i) => i.code === code)?.name}</b></div><span className="faint">Monthly index level</span></div>
+                <LineChart periods={[...rows].reverse().map((r) => r.label)} series={[{ key: "v", label: "Index", color: "var(--gold)", values: [...rows].reverse().map((r) => r.value) }]} fmt={(x) => nf(x, 1)} height={230} area /></div>}
+              <Table cols={[{ key: "label", label: "Month" }, { key: "value", label: "Index level", num: true, fmt: n2 }]} rows={rows as unknown as Row[]} q="" file={`finlit-commodity-${code}`} />
             </>)}</div>
         </div>)}
     </section>
