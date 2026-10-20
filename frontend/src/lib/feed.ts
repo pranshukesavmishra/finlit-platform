@@ -10,7 +10,7 @@ export const useFeed = (kind: FeedItem["kind"], opts: { scoped?: boolean; symbol
   });
 };
 export const dayLabel = (iso: string) => {
-  const d = new Date(iso + "T00:00:00"), t = new Date(); t.setHours(0, 0, 0, 0);
+  const d = new Date(iso + "T00:00:00"), t = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) + "T00:00:00");   // "today" is the Indian market day, whatever the browser clock says
   const diff = Math.round((d.getTime() - t.getTime()) / 86_400_000);
   const base = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: d.getFullYear() === t.getFullYear() ? undefined : "numeric" });
   return diff === 0 ? `Today · ${base}` : diff === 1 ? `Tomorrow · ${base}` : diff === -1 ? `Yesterday · ${base}` : base;

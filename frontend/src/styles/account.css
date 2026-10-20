@@ -52,6 +52,7 @@
 
 /* ---- dashboard ---- */
 .dash, .console { padding-top: 30px; padding-bottom: 64px; }
+.console .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .console .seg::-webkit-scrollbar { display: none; } .console .seg button { flex: none; }
 .dash-h { display: flex; justify-content: space-between; gap: 18px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; } .dash-h h1 { font: 300 clamp(30px, 4vw, 44px)/1.08 var(--serif); letter-spacing: -.01em; margin: 4px 0 6px; } .dash-h p { margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .dash-a { display: flex; gap: 14px; align-items: center; }
 .pal-dots { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--s1); } .pal-dots button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--s1); box-shadow: 0 0 0 1px var(--border-strong); cursor: pointer; padding: 0; } .pal-dots button.on { box-shadow: 0 0 0 2px var(--gold); }
