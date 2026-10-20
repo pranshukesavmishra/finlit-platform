@@ -99,20 +99,26 @@ def test_equity_survives_provider_zero_for_owners_equity():
 
 
 def test_profitability_ratios_filled_from_statements_when_provider_leaves_them_out():
-    """Rows the provider omits are worked out from our statements; a provider row is never overwritten, only its blank ROE years are filled."""
+    """Rows the provider omits are worked out from our statements on the provider's own definitions (margins over total income);
+    a provider row is never overwritten, only its blank ROE years are filled."""
     from finlit import snapshot
     view = {"history": {"periods": ["FY24", "FY25"], "rows": {"net_margin": [9.0, 11.0], "roe": [None, 14.0]}}, "notes": []}
-    pl = {"periods": ["FY24", "FY25"], "rows": {"revenue": [1000.0, 1200.0], "net_profit": [90.0, 132.0], "operating_profit": [200.0, 260.0],
-                                                  "depreciation": [40.0, 50.0], "profit_before_tax": [120.0, 170.0], "tax": [30.0, 38.0]}}
+    pl = {"periods": ["FY24", "FY25"], "rows": {"revenue": [1000.0, 1200.0], "other_income": [50.0, 100.0], "total_income": [1050.0, 1300.0], "net_profit": [90.0, 132.0],
+                                                  "operating_profit": [200.0, 260.0], "depreciation": [40.0, 50.0], "finance_costs": [20.0, 10.0],
+                                                  "profit_before_tax": [120.0, 170.0], "tax": [30.0, 38.0]}}
     bs = {"periods": ["FY24", "FY25"], "rows": {"total_equity": [600.0, 700.0], "total_assets": [1500.0, 1700.0], "current_liabilities": [300.0, 350.0]}}
     snapshot._fill_profitability(view, pl, bs, lender=False)
     r = view["history"]["rows"]
-    assert r["net_margin"] == [9.0, 11.0]                      # provider row untouched
-    assert r["roe"] == [15.0, 14.0]                            # blank year filled (90 / 600), provider year kept
-    assert r["pretax_margin"] == [12.0, 14.17] and r["effective_tax_rate"] == [25.0, 22.35]
-    assert r["ebitda_margin"] == [20.0, 21.67] and r["ebit_margin"] == [16.0, 17.5]
-    assert r["roce"] == [round(160 / 1200 * 100, 2), round(210 / 1350 * 100, 2)]
+    assert r["net_margin"] == [9.0, 11.0]                                  # provider row untouched
+    assert r["roe"] == [15.0, 14.0]                                        # blank year filled (90 / 600), provider year kept
+    assert r["pretax_margin"] == [round(120 / 1050 * 100, 2), round(170 / 1300 * 100, 2)]       # over total income
+    assert r["effective_tax_rate"] == [25.0, 22.35]
+    assert r["operating_margin"] == [round((200 - 40 + 50) / 1050 * 100, 2), round((260 - 50 + 100) / 1300 * 100, 2)]
+    assert r["ebit_margin"] == [round(140 / 1050 * 100, 2), round(180 / 1300 * 100, 2)]          # (pre-tax + interest) / total income
+    assert r["ebitda_margin"] == [round(180 / 1050 * 100, 2), round(230 / 1300 * 100, 2)]
+    assert r["roce"] == [round(140 / 1200 * 100, 2), round(180 / 1350 * 100, 2)]                 # (pre-tax + interest) / (assets - current liabilities)
+    assert r["roa"] == [6.0, 7.76]
     assert view["notes"] and "worked out by FinLit" in view["notes"][0]
     lender_view = {"history": {"periods": ["FY24"], "rows": {}}, "notes": []}
-    snapshot._fill_profitability(lender_view, {"periods": ["FY24"], "rows": {"revenue": [500.0], "total_income": [800.0], "net_profit": [80.0], "operating_profit": [300.0]}}, {"periods": ["FY24"], "rows": {"total_equity": [400.0]}}, lender=True)
-    assert lender_view["history"]["rows"]["net_margin"] == [10.0] and "ebitda_margin" not in lender_view["history"]["rows"]   # lenders: over total income, no EBITDA
+    snapshot._fill_profitability(lender_view, {"periods": ["FY24"], "rows": {"revenue": [500.0], "total_income": [800.0], "net_profit": [80.0]}}, {"periods": ["FY24"], "rows": {"total_equity": [400.0]}}, lender=True)
+    assert lender_view["history"]["rows"]["net_margin"] == [10.0] and "ebitda_margin" not in lender_view["history"]["rows"]   # lenders: no EBITDA

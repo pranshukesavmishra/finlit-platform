@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SearchRow } from "./api";
 import { makeMatcher, matchNames, namesFrom } from "./holdingsMatch";
 
-const R = (s: string, n: string, b: string | null, nse?: string): SearchRow => [s, n, b, true, nse] as SearchRow;
+const R = (s: string, n: string, b: string | null, nse?: string): SearchRow => [s, n, b, 1, nse] as SearchRow;
 const INDEX: SearchRow[] = [
   R("RELIANCE", "Reliance Industries Ltd.", "500325"), R("TCS", "Tata Consultancy Services Ltd.", "532540"), R("HDFCBANK", "HDFC Bank Ltd.", "500180"),
   R("HDFCLIFE", "HDFC Life Insurance Company Ltd.", "540777"), R("LT", "Larsen & Toubro Ltd.", "500510"), R("M&M", "Mahindra & Mahindra Ltd.", "500520"),

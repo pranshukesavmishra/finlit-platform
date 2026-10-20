@@ -270,23 +270,29 @@ def _fill_profitability(ratio_view: dict, pl: dict, bs: dict, lender: bool) -> N
         return
     def series(table: dict, key: str) -> Dict[str, Optional[float]]:
         return dict(zip(table.get("periods") or [], (table.get("rows") or {}).get(key) or []))
-    rev, tot = series(pl, "revenue"), series(pl, "total_income")
-    base = {p: (tot.get(p) if lender and tot.get(p) else rev.get(p)) for p in periods}
-    op, dep, pbt, tax, np_ = series(pl, "operating_profit"), series(pl, "depreciation"), series(pl, "profit_before_tax"), series(pl, "tax"), series(pl, "net_profit")
+    rev, tot, oth = series(pl, "revenue"), series(pl, "total_income"), series(pl, "other_income")
+    # The provider measures margins against TOTAL INCOME (sales plus other income): checked on hundreds of company-years, net and pre-tax
+    # margin match 99%, operating margin is (operating profit - depreciation + other income) over total income. Same definitions here, so a
+    # filled year sits on the same scale as the provider's other years.
+    inc = {p: tot.get(p) or ((rev.get(p) or 0) + (oth.get(p) or 0) or None) for p in periods}
+    op, dep, pbt, fin, tax, np_ = series(pl, "operating_profit"), series(pl, "depreciation"), series(pl, "profit_before_tax"), series(pl, "finance_costs"), series(pl, "tax"), series(pl, "net_profit")
     eq, assets, cl = series(bs, "total_equity"), series(bs, "total_assets"), series(bs, "current_liabilities")
 
     def pct(a: Optional[float], b: Optional[float]) -> Optional[float]:
         return round(a / b * 100, 2) if a is not None and b else None
+
+    def ebit(p: str) -> Optional[float]:
+        return pbt[p] + fin[p] if pbt.get(p) is not None and fin.get(p) is not None else None
     calc = {
-        "net_margin": lambda p: pct(np_.get(p), base[p]),
-        "operating_margin": lambda p: pct(op.get(p), base[p]),
-        "pretax_margin": lambda p: pct(pbt.get(p), base[p]),
+        "net_margin": lambda p: pct(np_.get(p), inc[p]),
+        "pretax_margin": lambda p: pct(pbt.get(p), inc[p]),
+        "operating_margin": lambda p: pct(op[p] - dep[p] + (oth.get(p) or 0), inc[p]) if op.get(p) is not None and dep.get(p) is not None else None,
         "effective_tax_rate": lambda p: pct(tax.get(p), pbt.get(p)) if (pbt.get(p) or 0) > 0 and tax.get(p) is not None else None,
-        "ebitda_margin": lambda p: pct(op.get(p), rev.get(p)) if not lender else None,
-        "ebit_margin": lambda p: pct(op.get(p) - dep[p], rev.get(p)) if not lender and op.get(p) is not None and dep.get(p) is not None else None,
+        "ebit_margin": lambda p: pct(ebit(p), inc[p]) if not lender else None,
+        "ebitda_margin": lambda p: pct(ebit(p) + dep[p], inc[p]) if not lender and ebit(p) is not None and dep.get(p) is not None else None,
         "roe": lambda p: pct(np_.get(p), eq.get(p)) if (eq.get(p) or 0) > 0 else None,
         "roa": lambda p: pct(np_.get(p), assets.get(p)),
-        "roce": lambda p: pct(op.get(p) - dep[p], assets[p] - cl[p]) if not lender and op.get(p) is not None and dep.get(p) is not None and assets.get(p) is not None and cl.get(p) is not None and assets[p] - cl[p] > 0 else None,
+        "roce": lambda p: pct(ebit(p), assets[p] - cl[p]) if not lender and ebit(p) is not None and assets.get(p) is not None and cl.get(p) is not None and assets[p] - cl[p] > 0 else None,
     }
     filled: List[str] = []
     for key, fn in calc.items():

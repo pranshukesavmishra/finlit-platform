@@ -18,10 +18,9 @@ const INDEX: SearchRow[] = ([
   ["ONGC", "Oil & Natural Gas Corporation Ltd.", "500312"], ["NTPC", "NTPC Ltd.", "532555"], ["POWERGRID", "Power Grid Corporation of India Ltd.", "532898"],
   ["COALINDIA", "Coal India Ltd.", "533278"], ["ADANIENT", "Adani Enterprises Ltd.", "512599"], ["ZOMATO", "Zomato Ltd.", "543320"],
   ["IRCTC", "Indian Railway Catering and Tourism Corporation Ltd.", "542830"],
-] as [string, string, string][]).map(([s, n, b]) => [s, n, b, true, s] as SearchRow);
+] as [string, string, string][]).map(([s, n, b]) => [s, n, b, 1, s] as SearchRow);
 const matches = makeMatcher(INDEX)!;
 
-const SHARES = ["Reliance Industries", "TCS", "HDFC Bank", "Infosys", "ITC", "Larsen & Toubro", "Tata Motors"];
 const f = (parts: BlobPart[], name: string) => new File(parts, name);
 const book = (sheets: Record<string, unknown[][]>, bookType: "xlsx" | "xls" | "ods", name: string) => {
   const wb = XLSX.utils.book_new();
@@ -29,8 +28,6 @@ const book = (sheets: Record<string, unknown[][]>, bookType: "xlsx" | "xls" | "o
   const out = XLSX.write(wb, { type: "array", bookType }) as ArrayBuffer;
   return f([out], name);
 };
-/** Asserts names resolve to the listed companies (by symbol) and nothing else leaks in. */
-const symbols = (names: string[]) => names.map((n) => INDEX.find((r) => matches(n) && (r[0] === n.toUpperCase() || r[1].toUpperCase().startsWith(tidy(n).toUpperCase().split(" ")[0])))?.[0]);
 
 const zerodhaRows = (): unknown[][] => [
   ["Equity Holdings Statement as on 2024-11-05"], [], ["Client ID", "AB1234"], ["Name", "TEST USER"], [], ["Summary"], [],

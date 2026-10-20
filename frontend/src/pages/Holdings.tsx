@@ -15,6 +15,8 @@ import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
 import { portfolio, usePortfolio } from "../lib/portfolio";
 import { signals } from "./Watchlist";
 import { saveFile } from "../stock/derive";
+import { PortfolioInsights } from "../components/PortfolioInsights";
+import { PortfolioLab } from "../components/PortfolioLab";
 import { ACCEPT, namesFromFile } from "../lib/holdingsFile";
 import { makeMatcher, matchNames, namesFrom } from "../lib/holdingsMatch";
 import { MINUS, cr, csvText, nf } from "../lib/format";
@@ -128,7 +130,9 @@ export function HoldingsPage() {
                   {PILLARS.map(([k, label]) => { const v = l.row?.[k] as number | null | undefined; return <td key={label}><span className={"ssp " + lvl(v)}>{v == null ? MINUS : v}</span></td>; })}
                   <td className="ra"><AlertButton symbol={l.symbol} className="btn" /> <button className="btn" aria-label={`Remove ${l.symbol}`} onClick={() => { st.holdings.filter((h) => h.symbol === l.symbol).forEach((h) => portfolio.remove(h.id)); toast(`${l.symbol} removed.`); }}>✕</button></td></tr>); })}</tbody></table></HScroll>
             <p className="faint" style={{ fontSize: 12.5, marginTop: 10 }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
-          </section></>}
+          </section>
+          <PortfolioInsights lines={lines} />
+          <PortfolioLab lines={lines} universe={uni.data?.rows || []} /></>}
       </Gate>
     </div>
   );
