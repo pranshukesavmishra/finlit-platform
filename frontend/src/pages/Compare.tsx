@@ -84,7 +84,7 @@ export function Compare() {
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-). The live site compares any listed companies.</span></div>}
         <div className="card cmp-setup">
           <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Choose companies</h3>
-            {picked.length >= 2 && <div className="cmp-acts"><button className="btn" onClick={() => setIds([ids[1], ids[0], ...ids.slice(2)])}><Icon name="arrow" />Swap first two</button><button className="btn" onClick={() => { navigator.clipboard?.writeText(location.href).then(() => toast("Link to this comparison copied."), () => toast(location.href)); }}><Icon name="spark" />Copy link</button></div>}</div>
+            {picked.length >= 2 && <div className="cmp-acts"><button className="btn" onClick={() => { navigator.clipboard?.writeText(location.href).then(() => toast("Link to this comparison copied."), () => toast(location.href)); }}><Icon name="spark" />Copy link</button></div>}</div>
           {isLoading ? <div className="skeleton" style={{ height: 90 }} /> : (
             <>
               <CompareBar rows={rows} ids={ids} max={max} onChange={setIds} onLimit={() => { if (!has("gold")) upgrade("gold", "Comparing up to four companies comes with the Gold plan."); else toast("You are comparing the most companies this page can show."); }} />

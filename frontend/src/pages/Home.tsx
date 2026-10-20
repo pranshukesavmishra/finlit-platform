@@ -84,6 +84,7 @@ export function Home() {
   useEffect(() => { if (location.hash === "#faq") setTimeout(() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }), 200); }, []);   // /faq lands here
   return (
     <>
+      <section className="tagline" aria-label="Our promise"><div className="wrap"><Reveal><p><span>Quantify the market</span><span className="x" aria-hidden="true">×</span><span>Research deeper</span><span className="x" aria-hidden="true">×</span><span>Track what matters</span></p></Reveal></div></section>
       <section className="hero-home">
         <div className="aurora" /><div className="grid-fade" /><LateCanvas />
         <div className="wrap hero-cols">
@@ -91,7 +92,7 @@ export function Home() {
             <div className="eyebrow">Research · Portfolios · Investing</div>
             <h1>Invest with <em>clarity</em>, not noise.</h1>
             <p className="lede-xl">A research report for every listed Indian stock, honest portfolio reviews and financial planning, from people who put their own capital behind their ideas.</p>
-            <div className="cta-row">{user ? <Link className="btn primary lg" to="/dashboard">Open your dashboard <Icon name="arrow" /></Link> : <Link className="btn primary lg" to="/login?mode=signup">Create free account <Icon name="arrow" /></Link>}<Link className="btn lg" to="/research">Explore stock research</Link></div>
+            <div className="cta-row">{user ? <Link className="btn primary lg" to="/dashboard">Open your dashboard <Icon name="arrow" /></Link> : <Link className="btn primary lg" to="/login?mode=signup">Create free account <Icon name="arrow" /></Link>}<Link className="btn lg" to="/research">Explore stock research</Link><button type="button" className="btn lg" onClick={() => { const el = document.getElementById("coming-soon"); el?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => el?.querySelector<HTMLInputElement>("input[type=email]")?.focus({ preventScroll: true }), 500); }}><Icon name="bell" /> Notify me</button></div>
             <div className="trustrow"><span><Icon name="quality" />Independent research</span><span><Icon name="check" />Every number checked before publishing</span><span><Icon name="lock" />No passwords stored</span></div>
           </div>
           <LiveTerminal />
@@ -100,7 +101,6 @@ export function Home() {
 
       <div className="marq" aria-hidden="true"><div>{[...PHILOSOPHY, ...PHILOSOPHY].map((p, i) => <span key={i}>{p}</span>)}</div></div>
 
-      <section className="tagline" aria-label="Our promise"><div className="wrap"><Reveal><p><span>Quantify the market</span><span className="x" aria-hidden="true">×</span><span>Research deeper</span><span className="x" aria-hidden="true">×</span><span>Track what matters</span></p></Reveal></div></section>
 
       <section className="wrap" id="coming-soon" aria-labelledby="soonTitle"><Reveal><div className="soon">
         <div><div className="eyebrow">Coming soon</div><h2 id="soonTitle">Be the first to know</h2>
