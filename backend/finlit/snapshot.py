@@ -25,7 +25,7 @@ from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
 from .normalize.glossary import describe
 
-SNAPSHOT_VERSION = 3   # 3: profit and equity attributable to shareholders, lender handling, calendar return windows, one EV, cash-conversion only for profits. Older reports are rebuilt first.
+SNAPSHOT_VERSION = 4   # 4: since-listing return, profitability ratios filled on the provider's definitions, discontinued-operations profit kept out of P/E, ROE and margins. 3: profit and equity attributable to shareholders, lender handling, calendar return windows, one EV. Older reports are rebuilt first.
 SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers", "stats")
 # Chart ranges are cut at ingest time so the API only ever streams stored bytes.
 # Short ranges keep daily candles; long ranges are downsampled to weekly closes.
@@ -98,7 +98,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     first_pass = ratios.build_ratios(family_payloads)
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
     lender = statements.is_bank(pl_rows)
-    computed = derived.compute(pl, bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender, pl_q)
+    computed = derived.compute(statements.calc_view(pl), bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender, statements.calc_view(pl_q))
     growth_from_quarter = computed.pop("growth_basis", None) == "quarter"
     computed.update(_valuation_at_price(bundle.get("daily_price_ratios"), closes_by_day, price))
     dividends_fy = events.dividends_by_fiscal_year(actions)
@@ -118,6 +118,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         derived_periods.update({"sales_growth_latest": "Latest quarter vs year ago", "profit_growth_latest": "Latest quarter vs year ago"})
     ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
     _fill_profitability(ratio_view, pl, bs, lender)
+    _adjust_for_discontinued(ratio_view, pl, pl_q, bs, market_cap)
     _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))
 
     metrics: Dict[str, Optional[float]] = {k: v["value"] for k, v in ratio_view["latest"].items()}
@@ -308,6 +309,58 @@ def _fill_profitability(ratio_view: dict, pl: dict, bs: dict, lender: bool) -> N
             filled.append(key)
     if filled:
         ratio_view.setdefault("notes", []).append("Some profitability ratios were worked out by FinLit from the company's own statements because the data provider did not send them: " + ", ".join(k.replace("_", " ") for k in filled) + ".")
+
+
+def _adjust_for_discontinued(ratio_view: dict, pl: dict, pl_q: dict, bs: dict, market_cap: Optional[float]) -> None:
+    """When profit from discontinued operations is material (a demerger gain, a sold business), the provider's P/E, return on equity, return on
+    assets and net margin are inflated by profit that will not come back (Tata Motors FY26: a P/E of 1.3 and ROE of 71% on a loss-making
+    continuing business). Replace those years with the continuing-operations figure and say so."""
+    rows = pl.get("rows") or {}
+    cont = rows.get("net_profit_continuing")
+    if not cont:
+        return
+    hist = ratio_view.get("history") or {}
+    periods, hrows = hist.get("periods") or [], hist.setdefault("rows", {})
+    ppl = pl.get("periods") or []
+    np_c = dict(zip(ppl, cont)); np_r = dict(zip(ppl, rows.get("net_profit") or []))
+    changed: List[str] = []
+    for p in periods:
+        if p not in np_c or np_c[p] == np_r.get(p):
+            continue
+        for key, base in (("roe", dict(zip(bs.get("periods") or [], (bs.get("rows") or {}).get("total_equity") or []))),
+                          ("roa", dict(zip(bs.get("periods") or [], (bs.get("rows") or {}).get("total_assets") or [])))):
+            if key in hrows and base.get(p):
+                hrows[key][periods.index(p)] = round(np_c[p] / base[p] * 100, 2) if (key != "roe" or base[p] > 0) else None
+        inc = dict(zip(ppl, (rows.get("total_income") or rows.get("revenue") or [])))
+        if "net_margin" in hrows and inc.get(p):
+            hrows["net_margin"][periods.index(p)] = round(np_c[p] / inc[p] * 100, 2)
+        changed.append(p)
+    if not changed:
+        return
+    latest = ratio_view.get("latest") or {}
+    for key in ("roe", "roa", "net_margin"):
+        if key in latest and key in hrows and periods and periods[-1] in changed:
+            v = hrows[key][-1]
+            if v is None:
+                latest.pop(key, None)
+            else:
+                latest[key]["value"] = v
+    # P/E on the last four quarters' continuing profit (a loss means no P/E at all)
+    qrows = pl_q.get("rows") or {}
+    qn, qd = (qrows.get("net_profit") or [])[-4:], (qrows.get("discontinued_profit") or [])[-4:]
+    if "pe" in latest and market_cap and len(qn) == 4 and None not in qn:
+        ttm = sum(qn) - sum(x or 0 for x in qd)
+        if sum(x or 0 for x in qd) and abs(sum(x or 0 for x in qd)) >= MATERIAL_DISCONTINUED_PE * abs(sum(qn)):
+            if ttm > 0:
+                latest["pe"]["value"] = round(market_cap / ttm, 2)
+            else:
+                latest.pop("pe", None)
+    ratio_view.setdefault("notes", []).append(
+        f"Profit from discontinued operations is excluded from return on equity, return on assets, net margin and P/E for {', '.join(changed)} "
+        "(a one-off such as a demerger gain does not repeat). The reported net profit is unchanged in the statements.")
+
+
+MATERIAL_DISCONTINUED_PE = 0.15
 
 
 def _explain_gaps(score: dict, lender: bool, annual: int, quarterly: int, days: int) -> None:

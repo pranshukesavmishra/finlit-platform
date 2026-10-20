@@ -22,8 +22,8 @@ if (process.env.DEMO_PASSWORD) {
 
 // 1. Home renders, live example loads from the research API
 await page.goto(base, { waitUntil: "networkidle" });
-check("home: headline", await page.locator("h1").innerText().then((t) => /clarity/i.test(t)));
-check("home: live score card from research API", await page.locator(".term-dial text").first().textContent().then((t) => /^\d+$/.test((t || "").trim())).catch(() => false));
+check("home: headline", await page.locator("h1").innerText().then((t) => /research report/i.test(t)));
+check("home: live score card from research API", await page.locator(".hh-card .hh-dial-n").first().textContent().then((t) => /^\d+$/.test((t || "").trim())).catch(() => false));
 check("home: removed Results section is gone", await page.locator("text=Realised portfolio performance").count().then((n) => n === 0));
 
 // 2. Search palette (Ctrl+K), typing, Enter opens the report
@@ -88,7 +88,7 @@ check("contact: message saved by site backend", true);
 await page.goto(base, { waitUntil: "networkidle" });
 await page.locator(".ai-fab").click();
 await page.locator(".chips button", { hasText: "Explore Services" }).click();
-check("assistant: guided menu answers", await page.locator(".bub.bot", { hasText: "structured investing" }).count().then((n) => n > 0));
+check("assistant: guided menu answers", await page.locator(".bub.bot", { hasText: "five services" }).count().then((n) => n > 0));
 
 // 10. Blog list + article from site backend
 await page.goto(base + "/blog", { waitUntil: "networkidle" });
@@ -107,7 +107,7 @@ check("portfolio: ledger rows", (await page.locator(".tbl tbody tr").count()) > 
 await page.goto(base + "/stocks/ZZZZZZ", { waitUntil: "networkidle" });
 check("stock: unknown ticker handled", await page.locator("h2", { hasText: /couldn't find/i }).count().then((n) => n > 0));
 await page.goto(base + "/no-such-page", { waitUntil: "networkidle" });
-check("404 page", await page.locator("h2", { hasText: /can't find/i }).count().then((n) => n > 0));
+check("404 page", await page.locator("h2", { hasText: /cannot find/i }).count().then((n) => n > 0));
 
 check("no uncaught JS errors", errors.length === 0, errors.join(" | "));
 await browser.close();

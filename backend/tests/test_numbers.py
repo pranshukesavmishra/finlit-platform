@@ -134,3 +134,22 @@ def test_recent_listing_gets_a_since_listing_return():
     assert last["period"] == "Since listing" and last["price"] == round((hist["c"][-1] / 100.0 - 1) * 100, 2) and last["from"] == days[0]
     full = returns.trailing_returns({"t": [f"{y}-{m:02d}-15" for y in range(2019, 2027) for m in range(1, 13)], "c": [50.0 + i for i in range(96)]}, [])
     assert all(r["period"] != "Since listing" for r in full)                                  # a long history needs no extra row
+
+
+def test_discontinued_operations_profit_is_kept_out_of_pe_roe_and_margin():
+    """Tata Motors FY26 shape: reported profit 82,390 cr includes 84,022 cr from a demerged business; continuing operations lost money."""
+    from finlit import snapshot
+    from finlit.normalize import statements
+    pl = statements.with_continuing({"periods": ["FY25", "FY26"], "rows": {"revenue": [439695.0, 335582.0], "total_income": [445939.0, 341369.0],
+                                                                         "net_profit": [27830.0, 82390.0], "discontinued_profit": [4871.0, 84022.0]}})
+    assert pl["rows"]["net_profit_continuing"] == [22959.0, -1632.0] and pl["rows"]["net_profit"] == [27830.0, 82390.0]
+    small = statements.with_continuing({"periods": ["FY26"], "rows": {"net_profit": [1000.0], "discontinued_profit": [50.0]}})
+    assert "net_profit_continuing" not in small["rows"]                      # 5% is not material
+    pl_q = {"periods": ["Q1", "Q2", "Q3", "Q4"], "rows": {"net_profit": [775.0, 76170.0, -3486.0, 5783.0], "discontinued_profit": [0.0, 82616.0, 0.0, 0.0]}}
+    view = {"history": {"periods": ["FY25", "FY26"], "rows": {"roe": [30.0, 70.71], "roa": [5.0, 15.0], "net_margin": [6.0, 24.0]}},
+            "latest": {"pe": {"value": 1.3}, "roe": {"value": 70.71}, "roa": {"value": 15.0}, "net_margin": {"value": 24.0}}, "notes": []}
+    bs = {"periods": ["FY25", "FY26"], "rows": {"total_equity": [100000.0, 110000.0], "total_assets": [300000.0, 320000.0]}}
+    snapshot._adjust_for_discontinued(view, pl, pl_q, bs, 102891.0)
+    assert view["history"]["rows"]["roe"][1] == round(-1632 / 110000 * 100, 2)
+    assert "pe" not in view["latest"]                                        # continuing profit is a loss: no P/E at all
+    assert view["latest"]["roe"]["value"] == round(-1632 / 110000 * 100, 2) and any("discontinued" in n for n in view["notes"])

@@ -142,6 +142,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
 
     # ---------------- statements, latest year
     rev, np_, op, ebt, fcost, dep = (_row(pl, k) for k in ("revenue", "net_profit", "operating_profit", "profit_before_tax", "finance_costs", "depreciation"))
+    if _row(pl, "net_profit_continuing"):   # profit that will not repeat (a demerger gain) is not what the business earns: judge it on continuing profit
+        np_ = _row(pl, "net_profit_continuing")
     eps_row = _row(pl, "eps")
     equity, borrow, cash, cur_a, cur_l, assets, inv, recv, fixed, invest = (_row(bs, k) for k in ("total_equity", "borrowings", "cash", "current_assets", "current_liabilities", "total_assets", "inventories", "receivables", "fixed_assets", "investments"))
     cfo_r, capex_r, fcf_r = _row(cf, "operating"), _row(cf, "capex"), _row(cf, "free_cash_flow")
@@ -156,9 +158,12 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
 
     out["market_cap"], out["price"] = market_cap, price
     out["revenue"], out["net_profit"], out["total_assets"] = rev0, np0, assets0
+    np_rep0 = _last(_row(pl, "net_profit"))
     out["eps"] = _last(eps_row)
+    if _row(pl, "net_profit_continuing") and np_rep0 and _last(eps_row) is not None:
+        out["eps"] = round(_last(eps_row) * np0 / np_rep0, 2) if np0 is not None else None   # EPS on continuing profit, the same share count
     shares_row = _row(pl, "diluted_shares_cr")
-    shares = _last(shares_row) if _last(shares_row) else _div(np0, _last(eps_row))   # crore shares: reported, else profit / EPS
+    shares = _last(shares_row) if _last(shares_row) else _div(np_rep0, _last(eps_row))   # crore shares: reported, else profit / EPS
     out["book_value_ps"] = _div(eq0, shares)
     net_debt = _sub(debt0, cash0 or 0.0) if debt0 is not None else None   # borrowings less cash: the same definition the report's EV/EBITDA uses
     out["net_debt"] = net_debt
@@ -193,7 +198,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["fcf_ps"] = _div(fcf0, shares)
     out["cash_ps"] = _div(cash0, shares)
     out["net_cash_ps"] = _div(-net_debt, shares) if net_debt is not None else None
-    eps0, bvps = _last(eps_row), out["book_value_ps"]
+    eps0, bvps = out["eps"], out["book_value_ps"]
     graham = (22.5 * eps0 * bvps) ** 0.5 if eps0 and bvps and eps0 > 0 and bvps > 0 else None   # Benjamin Graham: sqrt(22.5 x EPS x book value per share)
     out["graham_value"] = graham
     out["graham_upside"] = _div(_sub(graham, price), price, 100) if graham and price else None

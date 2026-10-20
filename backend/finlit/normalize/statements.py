@@ -102,7 +102,37 @@ PL_FIELDS = {
 
 
 def profit_and_loss(rows: List[Row], period: str = "yearly", limit: Optional[int] = None) -> dict:
-    return _table(rows, period, PL_FIELDS, limit or (10 if period == "yearly" else 12))
+    return with_continuing(_table(rows, period, PL_FIELDS, limit or (10 if period == "yearly" else 12)))
+
+
+MATERIAL_DISCONTINUED = 0.15   # profit from discontinued operations this large against net profit changes what the year's profit means
+
+
+def with_continuing(table: dict) -> dict:
+    """Adds `net_profit_continuing` (net profit without profit from discontinued operations, such as the gain when Tata Motors split off its
+    commercial-vehicle business) when a period's discontinued profit is material. Reported net profit is left untouched: it is what the company
+    announced. Ratios that judge the business (P/E, return on equity, margins, growth, score) use the continuing figure."""
+    rows = table.get("rows") or {}
+    np_, disc = rows.get("net_profit"), rows.get("discontinued_profit")
+    if not np_ or not disc:
+        return table
+    cont, material = [], False
+    for n, d in zip(np_, disc):
+        if n is not None and d not in (None, 0) and abs(d) >= MATERIAL_DISCONTINUED * abs(n):
+            cont.append(round(n - d, 2)); material = True
+        else:
+            cont.append(n)
+    if material:
+        rows["net_profit_continuing"] = cont
+    return table
+
+
+def calc_view(table: dict) -> dict:
+    """The same table with net profit replaced by the continuing figure, for the calculations that judge the business."""
+    rows = table.get("rows") or {}
+    if "net_profit_continuing" not in rows:
+        return table
+    return {**table, "rows": {**rows, "net_profit": rows["net_profit_continuing"]}}
 
 
 # ---------------------------------------------------------------- balance sheet
