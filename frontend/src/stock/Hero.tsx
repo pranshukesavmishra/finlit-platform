@@ -92,7 +92,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             <div className="rhead">
               <div className="l"><span className="eyebrow" id="reportTitle">FinLit Research Report</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span>
                 {plan === "gold" ? <span className="tier gold">Advanced model</span> : <span className="tier silver">Basic model</span>}<span className="live">Updated {dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}</span></div>
-              <div className="meta">Model {s.score.model} · <a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>How we score →</a></div>
+              <div className="meta">Model {s.score.model} · <a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros & cons →</a></div>
             </div>
             <div className="rmain">
               <div className="dialcol">

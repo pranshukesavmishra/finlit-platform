@@ -204,13 +204,15 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
 /* ---------------- How the score works ---------------- */
 export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
   const [tab, setTab] = useState(0);
-  const dq = s.dataQuality, ck = dq.checks, ps = s.score.pillars, overall = s.score.overall ?? 0;
-  const R = 54, C = 2 * Math.PI * R;
+  const dq = s.dataQuality, ck = dq.checks;
   const passPct = ck.total ? (ck.passed / ck.total) * 100 : 100;
-  const bands = [["Watch", 0, 45, "--v-weak"], ["Mixed", 45, 62, "--v-mixed"], ["Healthy", 62, 78, "--v-healthy"], ["Strong", 78, 100, "--v-strong"]] as const;
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what is weak in each of the five areas. The method is kept below, folded away." color="--info" />
+      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall and in each of the five areas." color="--info" />
+      <div className="pc-g pc-all">
+        <div className="pc pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
+        <div className="pc con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
+      </div>
       <div className="mth">
         {(() => {
           const pls = r?.score.pillars || [], cur = pls[Math.min(tab, pls.length - 1)];
@@ -218,7 +220,7 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
           const col = v(PILLAR_COLOR[cur.key] || "--gold"), scored = cur.inputs.filter((i) => i.score != null);
           return (
             <div className="card acc mp" style={{ "--ac": col, "--pc": col } as React.CSSProperties}>
-              <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Pros and cons</h3><span className="s">Pick a pillar</span></div>
+              <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Pros and cons by area</h3><span className="s">Pick a pillar</span></div>
               <div className="mp-tabs" role="tablist">{pls.map((p, i) => <button key={p.key} role="tab" aria-selected={i === tab} className={i === tab ? "on" : ""} style={{ "--pc": v(PILLAR_COLOR[p.key] || "--gold") } as React.CSSProperties} onClick={() => setTab(i)}><b>{p.score ?? "—"}</b><span>{p.label}</span></button>)}</div>
               {(() => {
                 const say = (i: (typeof cur.inputs)[number]) => <li key={i.key}><b>{i.label}</b> <span className="mono">{i.value == null ? "n/a" : num(i.value)}</span><small>{i.lowerIsBetter ? "lower is better" : "higher is better"} · {i.score} points</small></li>;
@@ -229,48 +231,12 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
                     <div className="pc pro"><h4><Icon name="check" /> Pros</h4>{pro.length ? <ul>{pro.map(say)}</ul> : <p className="faint">Nothing stands out as strong here.</p>}</div>
                     <div className="pc con"><h4><Icon name="alert" /> Cons</h4>{con.length ? <ul>{con.map(say)}</ul> : <p className="faint">Nothing stands out as weak here.</p>}</div>
                   </div>
-                  <p className="faint" style={{ fontSize: 12.5, margin: "12px 0 0" }}>{cur.label}: {pro.length} strong, {con.length} weak{mid > 0 ? `, ${mid} in between` : ""}{missing > 0 ? `, ${missing} not available for this company` : ""}. Information only, not investment advice.</p>
+                  <p className="faint" style={{ fontSize: 12.5, margin: "12px 0 0" }}>{cur.label}: {pro.length} strong, {con.length} weak{mid > 0 ? `, ${mid} in between` : ""}{missing > 0 ? `, ${missing} not available for this company` : ""}. Each input is scored 18 to 92 against fixed thresholds and averaged into the area score. Information only, not investment advice.</p>
                 </>);
               })()}
-              <details className="mp-more"><summary>How each input was scored (method)</summary>
-              <div className="mp-sum">{scored.length > 1 ? <>({scored.map((i) => i.score).join(" + ")}) ÷ {scored.length} = <b>{cur.score}</b></> : <>Score <b>{cur.score}</b></>}<span className="faint"> · {cur.label} is the average of its inputs</span></div>
-              <div className="mp-rows">{cur.inputs.map((i) => {
-                const SC = [18, 38, 58, 76, 92], idx = i.score == null ? -1 : SC.indexOf(i.score), th = i.lowerIsBetter ? [...i.thresholds].reverse() : i.thresholds;
-                return (
-                  <div className="mp-r" key={i.key}>
-                    <div className="mp-n"><b>{i.label}</b><span>{i.value == null ? "n/a" : num(i.value)}</span><em>{i.lowerIsBetter ? "lower is better" : "higher is better"}</em></div>
-                    <div className="lad" role="img" aria-label={`${i.label} ${i.value == null ? "not available" : num(i.value)}, scored ${i.score ?? "n/a"}`}>
-                      {SC.map((sc, k) => <span key={sc} className={"z" + k + (k === idx ? " hit" : "")}>{k === idx && <i><b>{num(i.value ?? 0)}</b></i>}<em>{sc}</em></span>)}
-                      <div className="lad-th">{th.map((t, k) => <span key={k} style={{ left: `${(k + 1) * 20}%` }}>{i.lowerIsBetter ? "≤" : "≥"}{t}</span>)}</div>
-                    </div>
-                    <div className="mp-p">{i.score ?? "—"}<small>points</small></div>
-                  </div>
-                );
-              })}</div>
-              <p className="faint" style={{ fontSize: 12, margin: "14px 0 0" }}>Each bar runs from the weakest band (left, 18 points) to the strongest (right, 92 points). The bright band is where this company's number lands.</p>
-              </details>
             </div>
           );
         })()}
-        <details className="card mth-more"><summary>How the score is worked out (method)</summary>
-      <Plain tone={overall >= 62 ? "good" : overall < 45 ? "warn" : "info"}>Think of it as five report cards averaged into one mark. A score of {overall} is "{overall >= 78 ? "strong" : overall >= 62 ? "healthy" : overall >= 45 ? "mixed" : "watch"}": {overall >= 62 ? "most areas look solid." : overall >= 45 ? "some areas are good and some need care." : "several areas need care."} It describes the business today. It is not a buy or sell call.</Plain>
-        <div className="card acc mth-eq" style={{ "--ac": "var(--info)" } as React.CSSProperties}>
-          <div className="steps3">
-            <div className="st"><span className="stn">1</span><b>Score every input</b><span>Each ratio is mapped to 18, 38, 58, 76 or 92 using four thresholds.</span></div>
-            <div className="st"><span className="stn">2</span><b>Average into pillars</b><span>A pillar is the average of the inputs available for it.</span></div>
-            <div className="st"><span className="stn">3</span><b>Average the pillars</b><span>The research score is the plain average of the five pillars.</span></div>
-          </div>
-          <div className="eq">
-            {ps.map((p, i) => <><div className="eq-p" key={p.key} style={{ "--pc": v(PILLAR_COLOR[p.key]), animationDelay: `${i * 90}ms` } as React.CSSProperties}><b>{p.score ?? "—"}</b><span>{p.label}</span></div>{i < ps.length - 1 && <span className="eq-op" key={"o" + i}>+</span>}</>)}
-            <span className="eq-op">÷ {ps.filter((p) => p.score != null).length}</span><span className="eq-op">=</span>
-            <div className="eq-ring"><svg viewBox="0 0 130 130" aria-hidden="true"><circle cx="65" cy="65" r={R} fill="none" stroke="var(--s3)" strokeWidth="10" /><circle className="ring-in" cx="65" cy="65" r={R} fill="none" stroke="url(#eqg)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(C * overall) / 100} ${C}`} transform="rotate(-90 65 65)" /><defs><linearGradient id="eqg"><stop offset="0" stopColor="var(--gold-2)" /><stop offset="1" stopColor="var(--gold-deep)" /></linearGradient></defs></svg><b>{s.score.overall ?? "—"}</b></div>
-          </div>
-          <div className="mscale" role="img" aria-label={`Score ${overall} on a scale from 0 to 100`}>
-            <div className="mscale-bar">{bands.map(([l, a, b, c]) => <span key={l} style={{ left: `${a}%`, width: `${b - a}%`, background: v(c) }}><em>{l}</em></span>)}<i className="marker" style={{ left: `${overall}%` }}><b>{overall}</b></i></div>
-            <div className="mscale-n"><span>0</span><span style={{ left: "45%" }}>45</span><span style={{ left: "62%" }}>62</span><span style={{ left: "78%" }}>78</span><span style={{ left: "100%" }}>100</span></div>
-          </div>
-        </div>
-        </details>
         <div className="card acc mth-dq" style={{ "--ac": ck.status === "ok" ? "var(--gain)" : "var(--warn)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name={ck.status === "ok" ? "check" : "alert"} /></span>Data checks before publishing</h3><span className="s">{ck.passed} of {ck.total} passed</span></div>
           <div className="dq-bar"><b style={{ width: `${passPct}%` }} /></div>
