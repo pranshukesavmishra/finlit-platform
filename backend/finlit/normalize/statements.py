@@ -92,6 +92,7 @@ PL_FIELDS = {
     "finance_costs": lambda r: crore(_first(r, "financeCosts", "interestExpended")),
     "depreciation": lambda r: crore(r.get("depreciationAndAmortisation")),
     "exceptional_items": lambda r: crore(r.get("exceptionalItemsBeforeTax")),
+    "discontinued_profit": lambda r: crore(r.get("profitLossFromDiscontinuedOperationsAfterTax")),   # e.g. ITC FY25 (hotels demerger): profit that will not repeat
     "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax", "profitOrLossBeforeTax")),
     "tax": lambda r: crore(_first(r, "taxExpense", "provisionForTax")),
     "net_profit": lambda r: crore(_first(r, "profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod", "profitLossAfterTax", "profitLossAfterTaxAndExtraordinaryItems", "profitLossAfterTaxBeforeExtraordinaryItems")),   # attributable to the company's shareholders, as EPS is

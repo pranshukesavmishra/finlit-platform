@@ -11,6 +11,7 @@ import { downloadCsv, pushRecent, qs, readRecent, useGold, usePremium, useSlashF
 import { useUniverse } from "../lib/screener";
 import { useSection, type Financials, type Ratios as StockRatios, type Table as StockTable } from "../lib/api";
 import { ProfitabilityRatios } from "../stock/ProfitabilityRatios";
+import { DuPont } from "../stock/DuPont";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 import { ChartHelp } from "../components/ChartHelp";
@@ -174,7 +175,7 @@ function Ratios({ d, limit }: { d: Fund; limit: number }) {
             })}</tbody></table></HScroll>
           <p className="pm-legend"><i style={{ background: "var(--gold)" }} />Company <i style={{ background: "var(--faint)" }} />Sector</p>
         </>) : <div className="pm-empty">No ratios were reported.</div>}
-      <div className="pm-sec"><h2>Profitability ratios <ChartHelp id="profit-ratios" /></h2>{mine.data?.history?.periods?.length ? <ProfitabilityRatios periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} /> : <Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} />}</div>
+      <div className="pm-sec"><h2>Profitability ratios <ChartHelp id="profit-ratios" /></h2>{mine.data?.history?.periods?.length ? <ProfitabilityRatios periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} />  : <Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} />}</div>{mine.data?.history?.periods?.length ? <DuPont symbol={sym} periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} lender={false} /> : null}
     </>
   );
 }

@@ -320,3 +320,28 @@ footer.band { border-top: 1px solid #3A362D; --band-a: #1B1915; }
 :root:root .kbd { border-radius: var(--r-s); white-space: nowrap; }
 :root:root .search .kbd, :root:root .stk-search .kbd { white-space: nowrap; flex: none; }
 :root:root .tag, :root:root [class*="chip"] { border-radius: var(--r-s); }
+
+/* ---- pills -> small-radius tags; gradient icon tiles -> outlined ---- */
+:root:root .cb-chip, :root:root .cb-p, :root:root .cb-t, :root:root .chips button, :root:root .cmp .soon-tag, :root:root .cmp-d, :root:root .dchip, :root:root .dcol .yoy, :root:root .dk-tag, :root:root .mtr-pill, :root:root .pl-chip, :root:root .pl-tier, :root:root .ribbon, :root:root .rsi-zone b, :root:root .trg-colh span, :root:root .wf-leg button, :root:root .soon li { border-radius: var(--r-s); }
+:root:root .plan.current::after { border-radius: var(--r-s); }
+:root:root .ribbon { background: transparent; border: 1px solid var(--tc); color: var(--tc); height: 24px; }
+:root:root .plan-name .pi, :root:root .who-i { background: transparent; border: 1px solid var(--tc); color: var(--tc); border-radius: var(--r-m); }
+:root:root .pl-art { display: none; }
+:root:root .plan-desc { min-height: 0; }
+:root:root .plan-name { font-family: var(--serif); }
+:root:root .plan .btn, :root:root .plan .btn.primary { background: var(--tc, var(--gold)); border: 1px solid var(--tc, var(--gold)); color: #181714; box-shadow: none; }
+:root:root .plan .btn:hover { background: color-mix(in srgb, var(--tc, var(--gold)) 82%, #fff); }
+:root:root .biz-main { background: var(--s1); }
+:root:root .biz-av { background: var(--s3); color: var(--text); border: 1px solid var(--border-strong); box-shadow: none; border-radius: var(--r-m); font-family: var(--serif); font-weight: 500; }
+.skyline { display: none; }
+
+/* ---- contrast fixes found by the rendered-page audit (4.5:1 for text under 24px) ---- */
+.sh .no { color: var(--muted); }
+.note li .n { color: var(--text); background: var(--s3); }
+.x-no { color: color-mix(in srgb, var(--loss) 80%, #fff); }
+.skip { background: var(--btn-bg); color: var(--btn-fg); border-radius: var(--r-m); }
+.nt-n { color: var(--on-gold); }
+:root[data-theme="light"] .nt-n { color: #fff; }
+:root:root .x-no { color: color-mix(in srgb, var(--loss) 80%, #fff); }
+:root:root .nt-n { color: var(--on-gold); }
+:root[data-theme="light"]:root .nt-n { color: #fff; }

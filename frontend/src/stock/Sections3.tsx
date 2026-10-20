@@ -15,6 +15,7 @@ import { buckets, metric } from "./derive";
 import { useUI } from "../lib/ui";
 import { SectionHead } from "./Sections";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
+import { DuPont } from "./DuPont";
 import { SegmentCard } from "./Sections2";
 
 const v = (n: string) => `var(${n})`;
@@ -115,7 +116,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
   );
 }
 
-export function RatiosSection({ r }: { r?: Ratios }) {
+export function RatiosSection({ r, lender = false }: { r?: Ratios; lender?: boolean }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
   if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
@@ -131,6 +132,7 @@ export function RatiosSection({ r }: { r?: Ratios }) {
         <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Profitability ratios<ChartHelp id="profit-ratios" /></h3><span className="chip ghost">Annual · 8 years</span></div>
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
+      <DuPont symbol={r.meta.symbol} periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} lender={lender} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ margin: "24px 0 16px" }}>
           <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /><ChartHelp id="ratio-trend" /></div>
