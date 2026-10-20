@@ -19,7 +19,7 @@ export const MENUS: { label: string; wide?: boolean; groups: { title?: string; i
   { label: "Products", wide: true, groups: [
     { title: "Research", items: [["/research", "Stock research", "A report for every listed company", "search"], ["/screener", "Screener", "Filter every company by your rules", "table"], ["/score-screener", "Score screener", "Size, sector and score ranges, simply", "quality"], ["/compare", "Compare companies", "Side by side, in charts", "compare"], ["/premium", "Gold dashboards", "Fundamentals, market events, premium reports", "crown"]] },
     { title: "Your workspace", items: [["/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"], ["/holdings", "Portfolio tracker", "Value, profit and loss, allocation", "pie"], ["/alerts", "Alerts", "Price, signals, scores and filings", "bell"]] },
-    { title: "Market", items: [["/results", "Results calendar", "Who reports and when", "calendar"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
+    { title: "Market", items: [["/results", "Results calendar", "Who reports and when", "calendar"], ["/results/quarter", "Quarter results", "Every company, newest first", "notes"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
   ] },
   { label: "Resources", groups: [{ items: [["/blog", "Insights & blog", "Research notes and explainers", "spark"], ["/glossary", "Glossary", "95 terms in plain words", "book"], ["/documents", "Documents", "Annual reports and presentations", "layers"]] }] },
   { label: "Company", groups: [{ items: [["/about", "About FinLit", "Who we are and how we work", "users"], ["/why-we-exist", "Why we exist", "The problem we set out to fix", "quality"], ["/contact", "Contact", "Talk to the team", "notes"]] }] },
@@ -116,14 +116,14 @@ function Footer() {
     <footer className="band">
       <div className="wrap">
         <div className="fcta">
-          <div><span className="lg-mark" role="img" aria-label="FinLit" style={{ marginBottom: 18 }} /><h2>Invest with clarity, not noise.</h2><p>Open a free account to follow stocks, set alerts and read a report for every listed company.</p></div>
+          <div><span className="lg-mark" role="img" aria-label="FinLit" style={{ marginBottom: 18 }} /><h2>Follow the numbers, not the noise.</h2><p>Open a free account to follow stocks, set alerts and read the research reports we have built so far.</p></div>
           <div className="cta-row">{!user && <Link className="btn primary" to="/login?mode=signup">Create free account</Link>}<button className="btn" onClick={() => enquire()}>Talk to the team</button></div>
         </div>
         <div className="fcols fcols5">
-          <div className="fbrand"><b>{COMPANY.name}</b><p>Research-led perspectives across Indian and global markets, from people who put their own capital behind their ideas.</p>
+          <div className="fbrand"><b>{COMPANY.name}</b><p>Research and tools for Indian stocks. We are a technology company and are not registered with SEBI or AMFI.</p>
             <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
           <div><b>Products</b><Link to="/research">Stock research</Link><Link to="/screener">Screener</Link><Link to="/score-screener">Score screener</Link><Link to="/compare">Compare</Link><Link to="/premium">Gold dashboards</Link><Link to="/watchlist">Watchlists</Link><Link to="/alerts">Alerts</Link><Link to="/holdings">Portfolio tracker</Link></div>
-          <div><b>Market</b><Link to="/results">Results calendar</Link><Link to="/ipo">IPO calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link><Link to="/plans">Pricing</Link></div>
+          <div><b>Market</b><Link to="/results">Results calendar</Link><Link to="/results/quarter">Quarter results</Link><Link to="/ipo">IPO calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link><Link to="/plans">Pricing</Link></div>
           <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link></div>
           <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
         </div>

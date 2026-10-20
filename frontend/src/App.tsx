@@ -33,6 +33,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default:
 const Console = lazy(() => import("./pages/Console").then((m) => ({ default: m.Console })));
 const IpoPage = lazy(() => import("./pages/Ipo").then((m) => ({ default: m.IpoPage })));
 const ResultsPage = lazy(() => import("./pages/Results").then((m) => ({ default: m.ResultsPage })));
+const QuarterResultsPage = lazy(() => import("./pages/QuarterResults").then((m) => ({ default: m.QuarterResultsPage })));
 const NewsPage = lazy(() => import("./pages/News").then((m) => ({ default: m.NewsPage })));
 const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ default: m.DocumentsPage })));
 const AlertsPage = lazy(() => import("./pages/Alerts").then((m) => ({ default: m.AlertsPage })));
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="ipo" element={<IpoPage />} />
             <Route path="results" element={<ResultsPage />} />
+            <Route path="results/quarter" element={<QuarterResultsPage />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="glossary" element={<GlossaryPage />} />

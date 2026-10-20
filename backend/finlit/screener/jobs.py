@@ -19,9 +19,12 @@ SECTIONS = ("summary", "financials", "ratios", "ownership", "events", "price", "
 
 
 async def rebuild_metrics(store, only_missing: bool = False) -> int:
-    """Recompute metrics for every company that has a stored snapshot. Database work only: no data-provider calls."""
+    """Recompute metrics for every company that has a stored snapshot. Database work only: no data-provider calls.
+    `only_missing` picks up companies with no metrics yet AND companies whose metrics predate `q_period_end` (the quarter the q_* figures are for,
+    which the quarter-results page needs to tell this quarter's numbers from last quarter's)."""
     async with store.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT symbol, statement FROM scores WHERE model = 'v1'" + (" AND metrics IS NULL" if only_missing else ""))
+        rows = await conn.fetch("SELECT symbol, statement FROM scores WHERE model = 'v1'"
+                                + (" AND (metrics IS NULL OR (metrics ? 'q_revenue' AND NOT metrics ? 'q_period_end'))" if only_missing else ""))
         done = 0
         for r in rows:
             snaps = await conn.fetch("SELECT section, body FROM snapshots WHERE symbol = $1 AND statement = $2 AND section = ANY($3::text[])", r["symbol"], r["statement"], list(SECTIONS))

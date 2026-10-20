@@ -110,7 +110,7 @@ def ipo_rows(payload: Any) -> List[tuple]:
     return out
 
 
-async def refresh_calendars(client, store, days_back: int = 30, days_ahead: int = 120, ipo_back: int = 90) -> Dict[str, int]:
+async def refresh_calendars(client, store, days_back: int = 100, days_ahead: int = 120, ipo_back: int = 90) -> Dict[str, int]:
     """Pull results dates and IPOs; returns how many of each were stored. A provider failure leaves the old data in place."""
     today = date.today()
     counts = {"results": 0, "ipos": 0}

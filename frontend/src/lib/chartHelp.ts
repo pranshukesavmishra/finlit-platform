@@ -652,6 +652,30 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     read: "Paired bars compare reported and normalized profit: a big gap means part of the profit may not repeat. Cash conversion is operating cash flow divided by net profit; below 80% marks a gap year. A flag marks one-offs at 15% or more of profit, and receivables or inventory growing 10 or more points faster than revenue.",
     why: "Profit is an accounting opinion; cash is what arrives. When profit jumps from a one-off gain, or keeps running ahead of cash, the headline number may overstate what the business earns year after year.",
   },
+  "qr-table": {
+    title: "Quarter results table",
+    what: "Every company's results for one quarter, grouped by the day it declared, the most recent day first. Each row gives revenue, operating profit, net profit, margins and EPS, with growth against the same quarter last year (YoY) and the quarter before (QoQ).",
+    x: "The measures, left to right: revenue, operating profit and its margin (OPM), net profit and its margin (NPM), then EPS.",
+    y: "Companies, one row each, under the day they declared. Amounts are in rupees crore; EPS is in rupees per share.",
+    read: "Green is growth and red is a fall. A blank growth figure means last year's quarter was a loss, so a percentage would mislead. A company whose date has passed but whose report has not been refreshed yet shows the date and a note, never last quarter's figures.",
+    why: "Results are when a business shows its progress. Seeing the whole market's quarter in one place shows who is growing, whose margins are moving, and how the season is going.",
+  },
+  "qr-scoreboard": {
+    title: "Results scoreboard",
+    what: "A summary of the quarter so far: how many companies have declared and how many are still due, the middle growth in revenue and profit, and the share of companies whose profit and net margin rose.",
+    x: "Each tile is one measure.",
+    y: "Per cent against the same quarter last year, except the first tile which counts companies.",
+    read: "Medians are the middle company, so a few huge jumps do not distort them. Only companies with figures loaded are counted, and the line under the tiles says how many that is. The tiles follow your filters.",
+    why: "It tells you whether a quarter is strong or weak overall, so one company's result can be read against its peers.",
+  },
+  "qr-gap": {
+    title: "Profit and sales moved apart",
+    what: "A red flag on a company whose net profit growth and revenue growth, each against the same quarter last year, differ by 15 percentage points or more.",
+    x: "Not a chart. The gap is the difference between the two growth rates, in percentage points.",
+    y: "Not a chart. Sales up 37% with profit down 36% is a gap of 73 points.",
+    read: "A big gap can come from costs, a one-off gain or loss, tax, or a change in how the business earns. It is a prompt to open the company report, not a verdict. You can set an alert to be told when a company you follow shows it.",
+    why: "Sales and profit usually move in the same direction. When they do not, the headline number may be hiding something worth understanding.",
+  },
 };
 
 export const CHART_HELP_IDS = Object.keys(CHART_HELP);

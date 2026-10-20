@@ -163,6 +163,10 @@ async def load_values(conn, symbols: List[str], needed: set) -> Dict[str, Dict[s
                     vals = [x for x in rows.get(key) or [] if x is not None]
                     out[r["symbol"]][col] = float(vals[-1]) if vals else None
                 g = quarter_gap(rows)
+                if g:
+                    qpl = (body.get("quarterly") or {}).get("pl") or {}
+                    g["period"] = (qpl.get("periods") or [None])[-1]
+                    g["end"] = (qpl.get("periodEnds") or [None])[-1]
                 out[r["symbol"]]["rev_profit_gap"] = g["gap"] if g else None
                 out[r["symbol"]]["_gap_detail"] = g
             else:
@@ -218,6 +222,74 @@ async def deliver(conn, mailer: Mailer, site_url: str, user: Dict[str, Any], a: 
             await mailer.send(user["email"], subject, text)
         except Exception:  # mail trouble must not stop the other members' alerts
             log.exception("alert email failed")
+
+
+# ------------------------------------------------------------------ built-in alert: revenue and profit moved apart
+AUTO_GAP_LIMIT = 15.0     # percentage points
+AUTO_GAP_RECENT_DAYS = 120   # only for a quarter that ended lately: an old result is not news
+AUTO_GAP_PER_RUN = 10     # at most this many per member per run, so a first run cannot flood anyone
+
+
+def watchlist_symbols(raw: Any) -> List[str]:
+    """Every symbol on every list of a member's saved watchlist."""
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else (raw or {})
+    except ValueError:
+        return []
+    out: List[str] = []
+    for lst in (data.get("lists") or []) if isinstance(data, dict) else []:
+        for sym in (lst.get("symbols") or []) if isinstance(lst, dict) else []:
+            if isinstance(sym, str) and sym and sym.upper() not in out:
+                out.append(sym.upper())
+    return out
+
+
+async def auto_profit_gap(pool, mailer: Mailer, site_url: str, today: Optional[date] = None) -> int:
+    """Silver and Gold members are told, once per company and quarter, when a company on their watchlist reported revenue growth and
+    net-profit growth (each against the same quarter last year) at least AUTO_GAP_LIMIT points apart. A member can switch it off
+    with the preference profitGap = false."""
+    today = today or date.today()
+    sent = 0
+    async with pool.acquire() as conn:
+        users = await conn.fetch(
+            "SELECT u.id, u.email, s.watchlist, s.prefs FROM users u JOIN user_state s ON s.user_id = u.id "
+            "WHERE u.status = 'active' AND u.email_verified_at IS NOT NULL AND u.plan IN ('silver', 'gold') "
+            "AND (u.plan_until IS NULL OR u.plan_until > now())")
+        wl = {u["id"]: watchlist_symbols(u["watchlist"]) for u in users}
+        symbols = sorted({x for v in wl.values() for x in v})
+        if not symbols:
+            return 0
+        values = await load_values(conn, symbols, {"rev_profit_gap"})
+        for u in users:
+            prefs = json.loads(u["prefs"]) if isinstance(u["prefs"], str) else (u["prefs"] or {})
+            if prefs.get("profitGap") is False:
+                continue
+            n = 0
+            for sym in wl[u["id"]]:
+                d = (values.get(sym) or {}).get("_gap_detail")
+                if not d or d["gap"] < AUTO_GAP_LIMIT or not d.get("period") or not d.get("end"):
+                    continue
+                try:
+                    if (today - date.fromisoformat(str(d["end"])[:10])).days > AUTO_GAP_RECENT_DAYS:
+                        continue
+                except ValueError:
+                    continue
+                if n >= AUTO_GAP_PER_RUN:
+                    break
+                try:
+                    fresh = await conn.fetchval("INSERT INTO auto_alert_sent (user_id, symbol, kind, period) VALUES ($1, $2, 'profit_gap', $3) ON CONFLICT DO NOTHING RETURNING 1",
+                                                u["id"], sym, str(d["period"]))
+                    if not fresh:
+                        continue
+                    title, body = headline({"symbol": sym, "metric": "rev_profit_gap", "op": "above", "value": AUTO_GAP_LIMIT}, d["gap"], d)
+                    await deliver(conn, mailer, site_url, {"id": u["id"], "email": u["email"], "prefs": u["prefs"]},
+                                  {"id": None, "symbol": sym, "channels": ["app", "browser"]}, title, body, f"/stocks/{sym}#quarter")
+                    n += 1
+                    sent += 1
+                except Exception:   # one member's trouble must not stop the rest
+                    log.exception("built-in profit-gap alert failed for %s", sym)
+    log.info("built-in profit-gap alerts: %d sent", sent)
+    return sent
 
 
 # ------------------------------------------------------------------ the worker run
@@ -278,4 +350,9 @@ async def evaluate(pool, mailer: Mailer, site_url: str, kind: str = "all") -> in
             except Exception:  # one broken alert must not stop the rest
                 log.exception("alert %s failed", a["id"])
     log.info("alerts (%s): %d fired", kind, fired)
+    if kind in ("daily", "all"):
+        try:
+            fired += await auto_profit_gap(pool, mailer, site_url)
+        except Exception:
+            log.exception("built-in alerts failed")
     return fired

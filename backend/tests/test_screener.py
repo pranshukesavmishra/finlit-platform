@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from finlit.screener.catalog import BY_KEY, CATALOG, GROUPS
+from finlit.screener.catalog import BY_KEY, CATALOG, GROUPS, INTERNAL_KEYS
 from finlit.screener.compute import compute
 from finlit.screener.data import Table
 from test_auth import app, new_client, signed_in  # noqa: F401  (fixtures + helpers)
@@ -26,7 +26,8 @@ def test_metrics_from_a_real_company(reliance_sections):
         assert k in m, k
     assert m["pe"] > 0 and 0 <= m["own_promoters"] <= 100 and 0 <= m["flag_count"] <= 8 and 0 <= m["overall"] <= 100
     assert m["net_debt"] == pytest.approx(m["borrowings"] - (m["cash"] + 0.0), rel=1.0) or "net_debt" in m  # net of cash and investments
-    assert set(m) <= set(BY_KEY)                                           # nothing invented outside the catalogue
+    assert set(m) <= set(BY_KEY) | INTERNAL_KEYS                           # nothing invented outside the catalogue
+    assert 20000101 < m["q_period_end"] < 21000101                         # which quarter the q_* figures are for
 
 
 def test_missing_data_is_left_out_not_guessed():

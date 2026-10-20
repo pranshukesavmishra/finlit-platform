@@ -97,8 +97,8 @@ function ResultCard({ symbol, name }: { symbol: string; name: string | null }) {
   );
 }
 function Results({ symbols, names }: { symbols: string[]; names: Map<string, string | null> }) {
-  if (!symbols.length) return <Empty icon="notes" title="Pick stocks to follow" text="Your watchlist's newest quarterly results appear here, compared with last quarter and last year." to="/watchlist" cta="Build a watchlist" />;
-  return <div className="rcs">{symbols.slice(0, 4).map((s) => <ResultCard key={s} symbol={s} name={names.get(s) ?? null} />)}</div>;
+  if (!symbols.length) return <><Empty icon="notes" title="Pick stocks to follow" text="Your watchlist's newest quarterly results appear here, compared with last quarter and last year." to="/watchlist" cta="Build a watchlist" /><p className="rcs-all"><Link to="/results/quarter">See all quarter results <Icon name="arrow" /></Link></p></>;
+  return <><div className="rcs">{symbols.slice(0, 4).map((s) => <ResultCard key={s} symbol={s} name={names.get(s) ?? null} />)}</div><p className="rcs-all"><Link to="/results/quarter">See all quarter results <Icon name="arrow" /></Link></p></>;
 }
 
 function SecondLook({ items, meta }: { items: Row[]; meta: Record<string, { target?: number }> }) {

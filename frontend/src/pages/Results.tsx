@@ -34,6 +34,7 @@ export function ResultsPage() {
   return (
     <div className="wrap ipo">
       <header className="dash-h"><div><div className="eyebrow">Market</div><h1>Results calendar</h1><p className="muted">Board-meeting dates for quarterly results, and the filings once they are out. Dates are as announced to the exchanges.</p></div>
+        <Link className="btn primary" to="/results/quarter"><Icon name="notes" /> See all quarter results</Link>
         <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
       {isError && <div className="formerr">The calendar could not be loaded. Please try again shortly.</div>}
       <div className="rc-grid">
@@ -54,7 +55,8 @@ export function ResultsPage() {
           <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="bell" /></span>Coming up</h3></div>
             {upcoming.length ? <ul className="feed-l">{upcoming.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><b>{who(x)}</b> {x.period ? `· ${x.period}` : ""} <small>{x.category}</small></span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : onlyMine && !mine.length ? "Add stocks to your watchlist to see their dates here." : "No upcoming dates have been added yet. The FinLit team adds them as companies announce."}</p>}</section>
           <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>Recently reported</h3></div>
-            {declared.length ? <ul className="feed-l">{declared.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><Link to={x.symbol ? `/stocks/${x.symbol}#quarter` : "#"}><b>{x.symbol}</b></Link> <small>{x.title}</small>{x.link && <> <a href={x.link} target="_blank" rel="noopener noreferrer">Filing ↗</a></>}</span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : "Nothing reported recently."}</p>}</section>
+            {declared.length ? <ul className="feed-l">{declared.map((x) => <li key={x.id}><span className="feed-d">{dayLabel(x.date)}</span><span className="feed-t"><Link to={x.symbol ? `/stocks/${x.symbol}#quarter` : "#"}><b>{x.symbol}</b></Link> <small>{x.title}</small>{x.link && <> <a href={x.link} target="_blank" rel="noopener noreferrer">Filing ↗</a></>}</span></li>)}</ul> : <p className="muted">{isLoading ? "Loading…" : "Nothing reported recently."}</p>}
+            <p className="rcs-all"><Link to="/results/quarter">See every company's quarter results <Icon name="arrow" /></Link></p></section>
         </aside>
       </div>
     </div>

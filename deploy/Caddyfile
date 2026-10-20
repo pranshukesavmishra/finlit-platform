@@ -9,7 +9,7 @@
 	encode zstd gzip
 
 	# Research service (fast, precomputed stock reports)
-	@research path /api/stocks/search-index /api/screener/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit /api/ipos /api/feed /api/admin/feed /api/admin/feed/* /api/admin/ipos /api/admin/ipos/* /api/admin/data-health
+	@research path /api/stocks/search-index /api/screener/* /api/results/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit /api/ipos /api/feed /api/admin/feed /api/admin/feed/* /api/admin/ipos /api/admin/ipos/* /api/admin/data-health
 	handle @research {
 		reverse_proxy research-api:8000
 	}

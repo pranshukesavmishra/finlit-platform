@@ -382,7 +382,7 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(bear
 
 @api_router.get("/")
 async def root():
-    return {"message": "Nishant Jain PMS API"}
+    return {"message": "FinLit Ventures site API"}
 
 
 @api_router.get("/content")

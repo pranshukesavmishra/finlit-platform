@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 Num = Optional[float]
 MULTIPLES = ("pe", "pb", "ps", "pfcf", "ev_ebitda", "ev_sales", "ev_cfo", "price_cfo", "peg", "price_to_tangible")
@@ -72,6 +72,52 @@ def _flag(cond: Optional[bool]) -> Num:
 
 def _pct_diff(now: Num, avg: Num) -> Num:
     return None if now is None or avg is None or avg <= 0 else (now - avg) / avg * 100
+
+
+QUARTER_KEYS = ("q_revenue", "q_net_profit", "q_operating_profit", "q_eps", "q_sales_yoy", "q_profit_yoy", "q_sales_qoq", "q_profit_qoq", "q_opm", "q_npm", "q_period_end")
+
+
+def _ymd(v: Any) -> Num:
+    """'2026-09-30' -> 20260930.0 (a number, so it sits in the metrics beside the rest and compares with < and >)."""
+    try:
+        d = datetime.strptime(str(v)[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    return float(d.year * 10000 + d.month * 100 + d.day)
+
+
+def quarter_block(qpl: Dict[str, Any], at: Optional[date] = None, tolerance_days: int = 10) -> Dict[str, Num]:
+    """The quarterly-results figures (revenue, profit, margins, growth against last year and last quarter) for ONE quarter of a company's
+    quarterly profit & loss table: the newest one, or the one ending on `at` (within `tolerance_days`). `q_period_end` says which quarter
+    these numbers are for (yyyymmdd), so a reader can tell last quarter's figures from this quarter's. Empty when `at` is not in the table."""
+    ends = [str(e)[:10] if e else None for e in (qpl or {}).get("periodEnds") or []]
+    qrev, qnp, qop, qeps = (_row(qpl, k) for k in ("revenue", "net_profit", "operating_profit", "eps"))
+    if at is None:
+        i = (len(ends) or len(qrev)) - 1
+    else:
+        best: Optional[Tuple[int, int]] = None
+        for j, e in enumerate(ends):
+            try:
+                gap = abs((datetime.strptime(e, "%Y-%m-%d").date() - at).days) if e else None
+            except ValueError:
+                gap = None
+            if gap is not None and gap <= tolerance_days and (best is None or gap < best[0]):
+                best = (gap, j)
+        if best is None:
+            return {}
+        i = best[1]
+
+    def at_(xs: Sequence[Num], back: int = 0) -> Num:
+        j = i - back
+        return xs[j] if 0 <= j < len(xs) else None
+
+    return {
+        "q_revenue": at_(qrev), "q_net_profit": at_(qnp), "q_operating_profit": at_(qop), "q_eps": at_(qeps),
+        "q_sales_yoy": _growth(at_(qrev), at_(qrev, 4)), "q_profit_yoy": _growth(at_(qnp), at_(qnp, 4)),
+        "q_sales_qoq": _growth(at_(qrev), at_(qrev, 1)), "q_profit_qoq": _growth(at_(qnp), at_(qnp, 1)),
+        "q_opm": _div(at_(qop), at_(qrev), 100), "q_npm": _div(at_(qnp), at_(qrev), 100),
+        "q_period_end": _ymd(ends[i]) if 0 <= i < len(ends) else None,
+    }
 
 
 def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str, Num]:
@@ -208,11 +254,8 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["years_profit_up"] = float(sum(1 for a, b in zip(last5[1:], last5[:-1]) if a is not None and b is not None and a > b)) if len([x for x in last5 if x is not None]) >= 4 else None
 
     # ---------------- quarterly results
-    qrev, qnp, qop, qeps, qfin = (_row(qpl, k) for k in ("revenue", "net_profit", "operating_profit", "eps", "finance_costs"))
-    out["q_revenue"], out["q_net_profit"], out["q_operating_profit"], out["q_eps"] = _last(qrev), _last(qnp), _last(qop), _last(qeps)
-    out["q_sales_yoy"], out["q_profit_yoy"] = _growth(_last(qrev), _last(qrev, 4)), _growth(_last(qnp), _last(qnp, 4))
-    out["q_sales_qoq"], out["q_profit_qoq"] = _growth(_last(qrev), _last(qrev, 1)), _growth(_last(qnp), _last(qnp, 1))
-    out["q_opm"], out["q_npm"] = _div(_last(qop), _last(qrev), 100), _div(_last(qnp), _last(qrev), 100)
+    qrev, qnp, qop, qeps = (_row(qpl, k) for k in ("revenue", "net_profit", "operating_profit", "eps"))
+    out.update(quarter_block(qpl))
     out["ttm_revenue"] = sum(qrev[-4:]) if len(qrev) >= 4 and None not in qrev[-4:] else None  # type: ignore[arg-type]
     out["ttm_net_profit"] = sum(qnp[-4:]) if len(qnp) >= 4 and None not in qnp[-4:] else None  # type: ignore[arg-type]
     out["ttm_eps"] = sum(qeps[-4:]) if len(qeps) >= 4 and None not in qeps[-4:] else None  # type: ignore[arg-type]

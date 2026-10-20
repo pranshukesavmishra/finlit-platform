@@ -82,7 +82,11 @@ export function AlertsPage() {
   const rows = data?.rows || [];
   const { alerts, limit, loading, error, patch, remove } = useAlerts(rows);
   const { items, unread, markRead, clear } = useNotices();
-  const [preset, setPreset] = useState<Preset>(() => (params.get("symbol") ? { symbol: params.get("symbol")!.toUpperCase() } : {}));
+  const [preset, setPreset] = useState<Preset>(() => {
+    const sym = params.get("symbol"), metric = params.get("metric"), value = Number(params.get("value"));   // e.g. from the quarter results page: /alerts?symbol=DLF&metric=rev_profit_gap&value=15
+    if (!sym) return {};
+    return { symbol: sym.toUpperCase(), ...(metric && METRICS[metric] ? { metric, op: METRICS[metric].ops[0], ...(Number.isFinite(value) && params.get("value") ? { value } : {}) } : {}) };
+  });
   const [tab, setTab] = useState<Tab>("mine"), [f, setF] = useState<Filter>("all"), [q, setQ] = useState("");
 
   const counts = useMemo(() => ({ all: alerts.length, active: alerts.filter((a) => a.status === "active").length, paused: alerts.filter((a) => a.status === "paused").length, done: alerts.filter((a) => a.status === "done").length }), [alerts]);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Row } from "./screener";
-import { applySwaps, bandOf, buildReportHtml, capTier, findGaps, resilience, statsOf, stressView, suggestSwaps, type Holding } from "./portfolioLab";
+import { bandOf, buildReportHtml, capTier, findGaps, resilience, statsOf, stressView, type Holding } from "./portfolioLab";
 
 const mk = (symbol: string, sector: string | null, overall: number | null, o: Partial<Row> = {}): Row => ({
   symbol, name: symbol + " Ltd", sector, overall, band: bandOf(overall) === "none" ? null : bandOf(overall),
@@ -28,61 +28,6 @@ describe("statsOf", () => {
   it("handles empty", () => {
     const s = statsOf([]);
     expect(s.score).toBeNull(); expect(s.sectors).toEqual([]); expect(Number.isNaN(s.band.strong)).toBe(false);
-  });
-});
-
-describe("suggestSwaps", () => {
-  const mine = [mk("W1", "Banks", 40, { market_cap: 50_000 }), mk("W2", "IT", 50), mk("OK", "Pharma", 80)].map(H);
-  const uni = [
-    ...mine.map((h) => h.row!),
-    mk("B1", "Banks", 60, { pillar_balance: 90, pillar_quality: 90 }),   // best fit
-    mk("B2", "Banks", 70, { pillar_balance: 50, pillar_quality: 50 }),   // higher score, weaker balance/quality
-    mk("B3", "Banks", 47),                                              // gain 7 < 8
-    mk("B4", "Banks", 90, { market_cap: 1_000 }),                       // smaller tier
-    mk("B5", "Banks", 85, { market_cap: null }),                        // unknown cap: not similar-or-larger
-    mk("I1", "IT", 80),                                                 // other sector for W1
-    mk("N1", null, 95),
-  ];
-  const g = suggestSwaps(mine, uni);
-  it("picks the weakest first and stays in sector", () => {
-    expect(g.map((x) => x.from.symbol)).toEqual(["W1", "W2", "OK"]);
-    expect(g[0].suggestions.every((s) => s.row.sector === "Banks")).toBe(true);
-  });
-  it("enforces gain, tier and ranks by balance and quality", () => {
-    const ids = g[0].suggestions.map((s) => s.row.symbol);
-    expect(ids).toEqual(["B1", "B2"]);
-    expect(ids).not.toContain("B3"); expect(ids).not.toContain("B4"); expect(ids).not.toContain("B5");
-  });
-  it("before/after math", () => {
-    // before: (40+50+80)/3 = 56.67 -> 57 ; after W1->B1: (60+50+80)/3 = 63.33 -> 63
-    const s = g[0].suggestions[0];
-    expect(s.before).toBe(57); expect(s.after).toBe(63); expect(s.delta).toBe(6);
-    expect(s.gain).toBe(20);
-  });
-  it("W2 gets same-sector IT only; strong holding gets none", () => {
-    expect(g[1].suggestions.map((s) => s.row.symbol)).toEqual(["I1"]);
-    expect(g[2].suggestions).toEqual([]);
-  });
-  it("never suggests a held share and limits to 3", () => {
-    const many = Array.from({ length: 6 }, (_, i) => mk("X" + i, "Banks", 70 + i));
-    const r = suggestSwaps([H(mk("W", "Banks", 30))], [...many, mk("W", "Banks", 30)]);
-    expect(r[0].suggestions).toHaveLength(3);
-    expect(r[0].suggestions.some((s) => s.row.symbol === "W")).toBe(false);
-  });
-  it("edge cases: empty, tiny universe, unscored, no sector", () => {
-    expect(suggestSwaps([], [])).toEqual([]);
-    expect(suggestSwaps([{ symbol: "Z" }], uni)).toEqual([]);
-    expect(suggestSwaps([H(mk("S", null, 20))], uni)[0].suggestions).toEqual([]);
-    expect(suggestSwaps(mine, [])[0].suggestions).toEqual([]);
-  });
-});
-
-describe("applySwaps", () => {
-  const a = H(mk("A", "IT", 40)), b = H(mk("B", "IT", 50)), n = mk("N", "IT", 70);
-  it("replaces and ignores held or repeated targets", () => {
-    expect(applySwaps([a, b], { A: n }).map((h) => h.symbol)).toEqual(["N", "B"]);
-    expect(applySwaps([a, b], { A: n, B: n }).map((h) => h.symbol)).toEqual(["N", "B"]);
-    expect(applySwaps([a, b], { A: b.row })).toEqual([a, b]);
   });
 });
 

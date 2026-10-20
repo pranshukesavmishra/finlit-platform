@@ -33,6 +33,6 @@ Fonts are bundled with the site (`@fontsource`), so no request goes to Google Fo
 - **Answering:** `POST /api/screener/query` filters, sorts and pages in memory (`screener/data.py`, refreshed every 3 minutes); about 1 ms per query. `GET /api/screener/catalog` lists filters with where companies sit; `POST /api/screener/export` is the CSV (Silver+).
 - **Plans are enforced on the server:** a locked filter, sort or column is refused (403 `plan_required`), so locked data cannot be read through any route. Basic gets 14 filters and the first 25 matches; Silver everything except the FinLit model group; Gold everything.
 - **Index membership** (NIFTY 50, Next 50, 100, 200, 500, Midcap, Smallcap, Bank, IT, FMCG, Pharma, Auto) comes from the free NSE Indices constituent lists: `python -m finlit.worker refresh-indices` (weekly).
-- **Existing data:** `python -m finlit.worker rebuild-metrics` recomputes every company from what is already stored (database only, seconds). The scheduler runs it on start for companies loaded before the screener existed.
+- **Existing data:** `python -m finlit.worker rebuild-metrics` recomputes every company from what is already stored (database only, seconds). The scheduler runs it on start (`--only-missing`) for companies loaded before the screener existed or before a newer metric such as `q_period_end` was added.
 - **Saved-screen emails** use the same rules and only mail filters the member's plan includes.
 - The static demo (`VITE_DEMO=1`) keeps the small client-side screener (`ScreenerLite`); the live site uses `ScreenerPro`.

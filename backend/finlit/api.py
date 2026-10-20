@@ -25,6 +25,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import alertapi, indices, notify, premium
+from . import results as results_api
 from .screener import api as screener_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -376,6 +377,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(indices.router)
     app.include_router(notify.router)
     app.include_router(screener_api.router)
+    app.include_router(results_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own
     if settings.frontend_dist:  # one container serves the website and the API (see finlit/web.py)

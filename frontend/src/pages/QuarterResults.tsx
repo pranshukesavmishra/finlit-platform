@@ -1,0 +1,258 @@
+import { useMemo, useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router";
+import { Icon } from "../lib/icons";
+import { useDocTitle } from "../lib/title";
+import { useAuth } from "../lib/auth";
+import { useUI } from "../lib/ui";
+import { ApiError, apiGet } from "../lib/api";
+import { dayLabel } from "../lib/feed";
+import { MINUS, nf } from "../lib/format";
+import { GAP_LABEL, PAGE, csvOf, gapAlertLink, headline, queryString, signedPct, useQuarterResults, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { saveFile } from "../stock/derive";
+import { ChartHelp } from "../components/ChartHelp";
+import { HScroll } from "../components/HScroll";
+import "../styles/qresults.css";
+
+const SORTS: [string, string, boolean][] = [   // value, label, needs Silver
+  ["date", "Date declared", false], ["marketCap", "Market cap", false], ["revenueYoY", "Revenue growth (YoY)", true], ["profitYoY", "Profit growth (YoY)", true],
+  ["marginChange", "Net margin change", true], ["gap", "Sales vs profit gap", true], ["revenue", "Revenue", true], ["netProfit", "Net profit", true],
+];
+const INDICES: [string, string][] = [["NIFTY50", "NIFTY 50"], ["NIFTY100", "NIFTY 100"], ["NIFTY500", "NIFTY 500"]];
+const STATUSES: [string, string][] = [["", "Any status"], ["declared", "Figures in"], ["awaiting", "Report being updated"], ["due", "Due"]];
+const CAPS = [["", "Any size"], ["Large", "Large cap"], ["Mid", "Mid cap"], ["Small", "Small cap"]];
+const COLS = 11;
+
+const money = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, Math.abs(v) >= 1000 ? 0 : 2));
+const pc1 = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, 1) + "%");
+const Chg = ({ v }: { v: number | null }) => <span className={"qr-chg" + (v == null ? "" : v > 0 ? " pos" : v < 0 ? " neg" : "")}>{signedPct(v)}</span>;
+
+function Tile({ label, value, sub, help, locked, tone }: { label: string; value: ReactNode; sub?: ReactNode; help?: string; locked?: boolean; tone?: "up" | "down" }) {
+  return (
+    <div className="qr-tile card">
+      <small>{label}{help && <ChartHelp id={help} />}</small>
+      <b className={tone || ""}>{locked ? <span className="qr-lock"><Icon name="lock" /> Silver</span> : value}</b>
+      {sub && <span>{sub}</span>}
+    </div>
+  );
+}
+
+function Scoreboard({ s, all, locked, q }: { s: QSummary; all: QSummary; locked: boolean; q: QResp }) {
+  const share = (v: number | null) => (v == null ? "—" : `${nf(v, 0)}%`);
+  const filtered = s.companies !== all.companies;
+  return (
+    <section className="qr-tiles" aria-label="Scoreboard">
+      <Tile label="Declared" value={<>{nf(all.declared, 0)} <em>of {nf(all.companies, 0)}</em></>} sub={`${nf(all.due, 0)} still due${all.awaiting ? ` · ${nf(all.awaiting, 0)} being updated` : ""}`} help="qr-scoreboard" />
+      <Tile label="Median revenue growth" locked={locked} tone={s.medianRevenueYoY == null ? undefined : s.medianRevenueYoY >= 0 ? "up" : "down"} value={signedPct(s.medianRevenueYoY)} sub={`vs a year ago · ${nf(s.nRevenue || 0, 0)} companies`} />
+      <Tile label="Median profit growth" locked={locked} tone={s.medianProfitYoY == null ? undefined : s.medianProfitYoY >= 0 ? "up" : "down"} value={signedPct(s.medianProfitYoY)} sub={`vs a year ago · ${nf(s.nProfit || 0, 0)} companies`} />
+      <Tile label="Profit up" locked={locked} value={share(s.profitUpShare)} sub="of companies, vs a year ago" />
+      <Tile label="Net margin up" locked={locked} value={share(s.marginUpShare)} sub="of companies, vs a year ago" />
+      <Tile label="Sales and profit apart" locked={locked} value={s.flagged == null ? "—" : nf(s.flagged, 0)} sub={`${GAP_LABEL.toLowerCase()} by 15+ points`} help="qr-gap" />
+      <p className="qr-cover muted">
+        Figures are in for <b>{nf(s.withNumbers, 0)}</b> of {nf(s.companies, 0)} companies{filtered ? " in this view" : ""}. We hold full numbers for roughly the 500 largest companies; the rest show the date only.
+        {q.updatedAt ? ` Updated ${new Date(q.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.` : ""}{filtered ? " The scoreboard follows your filters." : ""}
+      </p>
+    </section>
+  );
+}
+
+function Copy({ text }: { text: string }) {
+  const { toast } = useUI();
+  const [done, setDone] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); } catch {
+      const t = document.createElement("textarea"); t.value = text; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); } catch { toast("Copy is not available in this browser."); t.remove(); return; }
+      t.remove();
+    }
+    setDone(true); toast("Summary copied."); window.setTimeout(() => setDone(false), 1800);
+  };
+  return <button type="button" className="btn qr-copy" onClick={copy} aria-label="Copy this summary">{done ? "Copied" : "Copy"}</button>;
+}
+
+function Company({ r }: { r: QRow }) {
+  return (
+    <div className="qr-co">
+      <Link to={`/stocks/${r.symbol}#quarter`} className="qr-sym"><b>{/^\d+$/.test(r.symbol) ? r.name : r.symbol}</b></Link>
+      <small>{r.name}{r.sector ? ` · ${r.sector}` : ""}</small>
+      <span className="qr-tags">
+        {r.indices.includes("NIFTY50") ? <i>N50</i> : r.indices.includes("NIFTY100") ? <i>N100</i> : r.indices.includes("NIFTY500") ? <i>N500</i> : null}
+        {r.cap && <i>{r.cap}</i>}
+        {r.loss && <i className="neg">Loss</i>}
+      </span>
+    </div>
+  );
+}
+
+function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void }) {
+  const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
+  const note = r.status === "awaiting" ? <>Declared on {dayLabel(r.date)}. <b>Report is being updated.</b> Figures appear here as soon as the company's report is refreshed.</>
+    : r.status === "due" ? <>Results due on {dayLabel(r.date)}{r.confirmed ? "" : " (board-meeting date)"}.</>
+    : r.status === "missing" ? <>Declared on {dayLabel(r.date)}. This quarter's figures are no longer stored{r.loadedPeriodEnd ? ` (we hold the quarter to ${new Date(r.loadedPeriodEnd + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })})` : ""}.</>
+    : null;
+  return (
+    <>
+      <tr className={"qr-r" + (r.flagged ? " flag" : "")}>
+        <td><Company r={r} /></td>
+        {note ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky">{note}</span></td>
+          : locked ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
+          : <>
+            <td>{money(r.revenue)}</td><td><Chg v={r.revenueYoY} /></td><td><Chg v={r.revenueQoQ} /></td>
+            <td>{money(r.operatingProfit)}</td><td>{pc1(r.opm)}</td>
+            <td><b>{money(r.netProfit)}</b></td><td><Chg v={r.profitYoY} /></td><td><Chg v={r.profitQoQ} /></td><td>{pc1(r.npm)}</td>
+            <td>{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
+          </>}
+      </tr>
+      {(line || r.flagged) && (
+        <tr className={"qr-sub" + (r.flagged ? " flag" : "")}>
+          <td colSpan={COLS}>
+            <div className="qr-sticky qr-lines">
+              {line && <p className="qr-line"><code>{line}</code><Copy text={line} /></p>}
+              {r.flagged && (
+                <p className="qr-flag"><span className="chip down"><Icon name="alert" /> {GAP_LABEL}</span>
+                  <span>Revenue {signedPct(r.revenueYoY, 0)}, profit {signedPct(r.profitYoY, 0)}: {nf(r.gap || 0, 0)} points apart.</span>
+                  <Link to={gapAlertLink(r.symbol)}>Set the alert</Link><Link to={`/stocks/${r.symbol}#quarter`}>Open the report</Link></p>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+export function QuarterResultsPage() {
+  useDocTitle("Quarter results", "Every company's results for the latest quarter, newest declaration first: revenue, profit, margins, growth against last year and last quarter, with a one-line summary to copy.");
+  const { user } = useAuth();
+  const { plan, upgrade, toast } = useUI();
+  const [sp, setSp] = useSearchParams();
+  const silver = plan !== "basic";
+  const [f, setF] = useState<QParams>({ scope: "all", sort: "date", dir: "desc" });
+  const [offset, setOffset] = useState(0);
+  const [query, setQuery] = useState("");
+  const quarter = sp.get("quarter") || undefined;
+  const p: QParams = { ...f, quarter, q: f.q, offset };
+  const res = useQuarterResults(p);
+  const d = res.data;
+  const set = (patch: Partial<QParams>) => { setF((x) => ({ ...x, ...patch })); setOffset(0); };
+  const need = (why: string) => upgrade("silver", why);
+  const locked = !!d?.locked;
+
+  const setSort = (v: string) => {
+    if (SORTS.find((s) => s[0] === v)?.[2] && !silver) return need("Sorting by growth and margin is part of the Silver plan.");
+    set({ sort: v, dir: v === "date" || v === "marketCap" || v.endsWith("YoY") || v === "gap" || v === "revenue" || v === "netProfit" || v === "marginChange" ? "desc" : "asc" });
+  };
+  const setScope = (scope: "all" | "watchlist" | "portfolio") => {
+    if (scope !== "all" && !user) return need("Sign in to see only your watchlist or portfolio.");
+    set({ scope });
+  };
+  const exportCsv = async () => {
+    if (!silver) return need("Downloading the quarter's results is part of the Silver plan.");
+    try {
+      const u = queryString({ ...p, quarter: d?.quarter?.key || p.quarter, offset: 0, limit: undefined });
+      const out = await apiGet<{ rows: QRow[]; quarter: { label: string; fiscal: string } | null }>(`/api/results/quarter/export?${u}`);
+      saveFile(`FinLit-results-${d?.quarter?.key || "quarter"}.csv`, csvOf(out.rows, out.quarter ? `${out.quarter.label} (${out.quarter.fiscal})` : ""), "text/csv;charset=utf-8");
+      toast(`Saved ${out.rows.length} companies as a CSV.`);
+    } catch (e) { toast(e instanceof ApiError && e.body.detail ? e.body.detail : "We could not prepare the download. Please try again."); }
+  };
+
+  const days = useMemo(() => new Map((d?.days || []).map((x) => [x.date, x.n])), [d?.days]);
+  const grouped = (f.sort || "date") === "date";
+  const total = d?.total || 0;
+  const q = d?.quarter;
+  const nFilters = [f.sector, f.cap, f.index, f.status, f.q, f.flagged, f.scope !== "all" ? f.scope : ""].filter(Boolean).length;
+  const body = useMemo(() => {
+    const out: ReactNode[] = [];
+    let last = "", coming = false;
+    for (const r of d?.rows || []) {
+      if (grouped && !coming && r.date > (d?.today || "9999")) {
+        coming = true;
+        out.push(<tr key="coming" className="qr-up"><td colSpan={COLS}><div className="qr-sticky"><b>Still to declare</b><span>Board-meeting dates, soonest first</span></div></td></tr>);
+      }
+      if (grouped && r.date !== last) {
+        last = r.date;
+        out.push(<tr key={"d" + r.date} className="qr-day"><td colSpan={COLS}><div className="qr-sticky"><b>{dayLabel(r.date)}</b><span>{days.get(r.date) || ""} {days.get(r.date) === 1 ? "company" : "companies"}</span></div></td></tr>);
+      }
+      out.push(<Row key={r.symbol} r={r} fiscal={q?.fiscal} locked={locked} onUnlock={() => need("Results figures, growth and margin are part of the Silver plan.")} />);
+    }
+    return out;
+  }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="wrap ipo qr">
+      <header className="dash-h">
+        <div>
+          <div className="eyebrow">Market</div>
+          <h1>Quarter results{q ? <> <span className="qr-q">{q.fiscal}</span></> : null}</h1>
+          <p className="muted">{q ? `Quarter ended ${new Date(q.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. ` : ""}Every company's results, the most recently declared first, back to the first of the quarter.<ChartHelp id="qr-table" /></p>
+        </div>
+        <label className="wl-sel"><span>Quarter</span>
+          <select aria-label="Quarter" value={q?.key || ""} onChange={(e) => { setSp(e.target.value ? { quarter: e.target.value } : {}); setOffset(0); }}>
+            {(d?.quarters || []).map((x) => <option key={x.key} value={x.key}>{x.label} · {x.fiscal} ({x.declared} out)</option>)}
+            {!d?.quarters?.length && <option value="">Loading…</option>}
+          </select></label>
+      </header>
+
+      {res.isError && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
+      {d && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
+
+      {locked && (
+        <div className="pl-cap qr-cap"><Icon name="lock" /><span><b>Basic shows who declared and when.</b> Silver shows every figure, growth against last year and last quarter, margins, the copy-ready summary line, the sales-and-profit flag, all the sorting and filters, and a CSV download.</span>
+          <button type="button" className="btn primary" onClick={() => need("Quarter results figures are part of the Silver plan.")}>See Silver</button></div>
+      )}
+
+      <section className="card qr-filters" aria-label="Filters">
+        <div className="qr-f1">
+          <div className="chips" role="group" aria-label="Whose results">
+            {([["all", "All companies"], ["watchlist", "My watchlist"], ["portfolio", "My portfolio"]] as const).map(([k, l]) => <button key={k} type="button" className={f.scope === k ? "on" : ""} aria-pressed={f.scope === k} onClick={() => setScope(k)}>{l}</button>)}
+            <span className="qr-sep" aria-hidden="true" />
+            {INDICES.map(([k, l]) => <button key={k} type="button" className={f.index === k ? "on" : ""} aria-pressed={f.index === k} onClick={() => set({ index: f.index === k ? "" : k })}>{l}</button>)}
+          </div>
+          <form className="qr-search" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: query.trim() }); }}>
+            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); if (!e.target.value) set({ q: "" }); }} placeholder="Search company or symbol" aria-label="Search company or symbol" maxLength={60} />
+            <button className="btn" type="submit">Search</button>
+          </form>
+        </div>
+        <div className="qr-f2">
+          <label className="wl-sel"><span>Sector</span>
+            <select value={f.sector || ""} onChange={(e) => set({ sector: e.target.value })} aria-label="Sector"><option value="">All sectors</option>{(d?.facets.sectors || []).map((s) => <option key={s.name} value={s.name}>{s.name} ({s.n})</option>)}</select></label>
+          <label className="wl-sel"><span>Market cap</span>
+            <select value={f.cap || ""} onChange={(e) => set({ cap: e.target.value })} aria-label="Market cap band">{CAPS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          <label className="wl-sel"><span>Status</span>
+            <select value={f.status || ""} onChange={(e) => set({ status: e.target.value })} aria-label="Status">{STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          <label className="wl-sel"><span>Sort by</span>
+            <select value={f.sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">{SORTS.map(([v, l, s]) => <option key={v} value={v}>{l}{s && !silver ? " (Silver)" : ""}</option>)}</select></label>
+          <button type="button" className="btn qr-dir" aria-label={f.dir === "desc" ? "Highest first" : "Lowest first"} onClick={() => set({ dir: f.dir === "desc" ? "asc" : "desc" })}>{grouped ? (f.dir === "desc" ? "Newest first" : "Oldest first") : f.dir === "desc" ? "High to low" : "Low to high"}</button>
+          <span className="qr-flagged"><label className="sw"><input type="checkbox" checked={!!f.flagged} onChange={(e) => (silver ? set({ flagged: e.target.checked }) : need("The sales-and-profit flag is part of the Silver plan."))} /><span aria-hidden="true" /><b>Only flagged</b></label><ChartHelp id="qr-gap" /></span>
+          <button type="button" className="btn qr-csv" onClick={exportCsv}><Icon name="table" /> CSV{silver ? "" : " (Silver)"}</button>
+          {nFilters > 0 && <button type="button" className="alx-link" onClick={() => { setF({ scope: "all", sort: "date", dir: "desc" }); setQuery(""); setOffset(0); }}>Clear filters</button>}
+        </div>
+      </section>
+
+      <section className="card qr-card">
+        <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>{q ? `${q.label}` : "Results"}<span className="muted qr-count"> · {nf(total, 0)} {total === 1 ? "company" : "companies"}</span></h3>
+          <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span></div>
+        {res.isLoading && !d ? <div className="skeleton" style={{ height: 360 }} /> : !d?.rows.length ? (
+          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? "Try removing a filter." : "Results dates appear here as companies announce them."}</p>
+            {f.scope === "watchlist" && <Link className="btn" to="/watchlist">Build a watchlist</Link>}{f.scope === "portfolio" && <Link className="btn" to="/holdings">Add holdings</Link>}</div>
+        ) : (
+          <HScroll label="results table" className="qr-scroll">
+            <table className="qtt qr-t">
+              <thead>
+                <tr><th scope="col">Company</th><th scope="col">Revenue</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">Op. profit</th><th scope="col">OPM</th><th scope="col">Net profit</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">NPM</th><th scope="col">EPS</th></tr>
+              </thead>
+              <tbody>{body}</tbody>
+            </table>
+          </HScroll>
+        )}
+        {total > PAGE && (
+          <nav className="qr-pager" aria-label="Pages">
+            <button type="button" className="btn" disabled={offset === 0} onClick={() => { setOffset(Math.max(0, offset - PAGE)); window.scrollTo({ top: 0 }); }}>← Previous</button>
+            <span className="muted">{nf(offset + 1, 0)} to {nf(Math.min(total, offset + PAGE), 0)} of {nf(total, 0)}</span>
+            <button type="button" className="btn" disabled={offset + PAGE >= total} onClick={() => { setOffset(offset + PAGE); window.scrollTo({ top: 0 }); }}>Next →</button>
+          </nav>
+        )}
+        <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it is left blank when the earlier quarter was a loss. Dates come from exchange filings and announced board meetings. Not investment advice. <Link to="/results">Results calendar</Link></p>
+      </section>
+    </div>
+  );
+}

@@ -48,7 +48,8 @@ export function AppShell() {
       { to: "/alerts", label: "Alerts", icon: "bell", badge: unread ? `${unread} new` : live ? String(live) : undefined },
     ] },
     { title: "Market", items: [
-      { to: "/results", label: "Results calendar", icon: "calendar" },
+      { to: "/results", label: "Results calendar", icon: "calendar", end: true },
+      { to: "/results/quarter", label: "Quarter results", icon: "notes" },
       { to: "/ipo", label: "IPO calendar", icon: "activity" },
       { to: "/news", label: "News & filings", icon: "notes" },
       { to: "/documents", label: "Documents", icon: "layers" },

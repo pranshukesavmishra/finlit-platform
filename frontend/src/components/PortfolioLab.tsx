@@ -1,55 +1,26 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import type { Row } from "../lib/screener";
-import { nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
-import { BAND_NAMES, applySwaps, buildReportHtml, findGaps, resilience, statsOf, stressView, suggestSwaps, type Holding } from "../lib/portfolioLab";
+import { buildReportHtml, findGaps, resilience, statsOf, stressView, type Holding } from "../lib/portfolioLab";
 
-/** Portfolio lab: what-if swaps, gaps, stress view and a printable report. Everything is simulated in the browser and nothing is saved
- *  unless the page wires `onSwap` and the person presses "Apply to my portfolio". */
+/** Portfolio lab: gaps, stress view and a printable report. Everything is worked out in the browser; nothing is saved. */
 export type PortfolioLabProps = {
   lines: { symbol: string; name?: string | null; row?: Row }[];
   universe: Row[];
-  /** Called when the person presses "Apply to my portfolio" on a suggestion. */
-  onSwap?: (removeSymbol: string, addSymbol: string) => void;
 };
 
-const BAND_C: Record<string, string> = { strong: "var(--v-strong)", healthy: "var(--k1)", mixed: "var(--k4)", watch: "var(--v-weak)", none: "var(--s3)" };
 const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
 const sg = (d: number | null) => (d == null ? "—" : d > 0 ? `+${d}` : d < 0 ? `−${Math.abs(d)}` : "0");
 const show = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? "—" : String(Math.round(v)));
 
-function Mix({ s }: { s: ReturnType<typeof statsOf> }) {
-  return (
-    <div className="pl-mix">
-      <div className="breadth big" role="img" aria-label="Portfolio by FinLit band">{(["strong", "healthy", "mixed", "watch", "none"] as const).filter((b) => s.band[b] > 0).map((b) => <i key={b} style={{ flex: s.band[b], background: BAND_C[b] }} />)}</div>
-      <ul className="pl-bk">{(["strong", "healthy", "mixed", "watch", "none"] as const).filter((b) => s.band[b] > 0).map((b) => <li key={b}><i style={{ background: BAND_C[b] }} />{BAND_NAMES[b]} <b>{nf(s.band[b], 0)}%</b></li>)}</ul>
-    </div>
-  );
-}
-
-export function PortfolioLab({ lines, universe, onSwap }: PortfolioLabProps) {
+export function PortfolioLab({ lines, universe }: PortfolioLabProps) {
   const held: Holding[] = useMemo(() => (lines || []).map((l) => ({ symbol: l.symbol, name: l.name, row: l.row })), [lines]);
   const uni = universe || [];
-  const [pick, setPick] = useState<Record<string, string>>({});   // fromSymbol -> toSymbol (simulated)
   const base = useMemo(() => statsOf(held), [held]);
-  const groups = useMemo(() => suggestSwaps(held, uni), [held, uni]);
   const gaps = useMemo(() => findGaps(held, uni), [held, uni]);
   const stress = useMemo(() => stressView(held), [held]);
   const res = useMemo(() => resilience(held), [held]);
-  const bySym = useMemo(() => new Map(uni.map((r) => [r.symbol, r])), [uni]);
-
-  const swaps = useMemo(() => {
-    const o: Record<string, Row | undefined> = {};
-    Object.entries(pick).forEach(([f, t]) => { if (held.some((h) => h.symbol === f)) o[f] = bySym.get(t); });
-    return o;
-  }, [pick, bySym, held]);
-  const sim = useMemo(() => statsOf(applySwaps(held, swaps)), [held, swaps]);
-  const active = Object.values(swaps).filter(Boolean).length;
-  const delta = base.score != null && sim.score != null ? sim.score - base.score : null;
-
-  const toggle = (from: string, to: string) => setPick((p) => { const n = { ...p }; if (n[from] === to) delete n[from]; else n[from] = to; return n; });
-  const apply = (from: string, to: string) => { onSwap?.(from, to); setPick((p) => { const n = { ...p }; delete n[from]; return n; }); };
 
   const download = () => saveFile("FinLit-portfolio-report.html", buildReportHtml(held), "text/html;charset=utf-8");
   const print = () => {
@@ -61,8 +32,8 @@ export function PortfolioLab({ lines, universe, onSwap }: PortfolioLabProps) {
   };
 
   if (!held.length) return (
-    <section className="card pl" aria-label="Portfolio lab"><div className="card-h"><h3>Portfolio lab</h3><span className="s">Try changes before you make them</span></div>
-      <p className="muted">Add a few shares and the lab will show what a swap would do to your portfolio score, which areas are missing and how it holds up under a stress test.</p></section>
+    <section className="card pl" aria-label="Portfolio lab"><div className="card-h"><h3>Portfolio lab</h3><span className="s">Gaps, stress view and report</span></div>
+      <p className="muted">Add a few shares and the lab will show which areas are missing and how the list holds up under a stress test.</p></section>
   );
   if (!base.scored) return (
     <section className="card pl" aria-label="Portfolio lab"><div className="card-h"><h3>Portfolio lab</h3><span className="s">Preparing</span></div>
@@ -71,47 +42,9 @@ export function PortfolioLab({ lines, universe, onSwap }: PortfolioLabProps) {
 
   return (
     <section className="card pl" aria-label="Portfolio lab">
-      <div className="card-h"><h3>Portfolio lab</h3><span className="s">Simulated, not saved</span></div>
-      <p className="muted pl-lead">Try swaps and stress tests on your own list. Scores come from company data; they are not recommendations. All shares count equally.</p>
+      <div className="card-h"><h3>Portfolio lab</h3><span className="s">Information only</span></div>
+      <p className="muted pl-lead">Gaps and stress tests on your own list. Scores come from company data; they are not recommendations. All shares count equally.</p>
       {base.unscored > 0 && <p className="pl-note" role="status">{base.unscored} {base.unscored === 1 ? "share is" : "shares are"} still being prepared and left out of the maths.</p>}
-
-      {/* 1. What-if swaps */}
-      <div className="pl-sec">
-        <h4>What if you swapped</h4>
-        <div className={"pl-hero" + (active ? " on" : "")} aria-live="polite">
-          <div className="pl-sc"><small>Now</small><b className={"ssp-t " + lvl(base.score)}>{show(base.score)}</b></div>
-          <div className="pl-arrow" aria-hidden="true">→</div>
-          <div className="pl-sc"><small>{active ? `With ${active} ${active === 1 ? "swap" : "swaps"}` : "No swaps picked"}</small><b className={"ssp-t " + lvl(sim.score)}>{show(sim.score)}</b></div>
-          <div className={"pl-d " + (delta == null || delta === 0 ? "" : delta > 0 ? "up" : "down")}>{active ? sg(delta) + " pts" : "Pick a company below"}</div>
-          {active > 0 && <button className="btn" onClick={() => setPick({})}>Reset</button>}
-        </div>
-        {active > 0 && <div className="pl-two">
-          <div><small className="pl-k">Band mix after</small><Mix s={sim} /></div>
-          <div><small className="pl-k">Sector spread after</small>
-            <ul className="pl-sectors">{sim.sectors.slice(0, 6).map((x) => <li key={x.name}><span>{x.name}</span><i style={{ width: Math.max(2, Math.min(100, x.pct)) + "%" }} /><b>{nf(x.pct, 0)}%</b></li>)}</ul></div>
-        </div>}
-        {!uni.length ? <p className="muted">The company list is still loading, so suggestions will appear in a moment.</p> :
-          groups.map((g) => (
-            <div className="pl-grp" key={g.from.symbol}>
-              <div className="pl-from"><span className="muted">Lowest scoring</span> <Link to={`/stocks/${g.from.symbol}`}><b>{g.from.symbol}</b></Link> <span className={"ssp " + lvl(g.score)}>{g.score}</span> <small className="muted">{g.from.row?.sector || ""}</small></div>
-              {g.suggestions.length === 0 ? <p className="faint pl-none">No higher-scored company of similar or larger size was found in the same sector.</p> :
-                <ul className="pl-opts">{g.suggestions.map((s) => {
-                  const on = pick[g.from.symbol] === s.row.symbol;
-                  return (
-                    <li key={s.row.symbol} className={on ? "on" : ""}>
-                      <div className="pl-who"><Link to={`/stocks/${s.row.symbol}`}><b>{s.row.symbol}</b></Link><small className="muted">{s.row.name || ""}</small></div>
-                      <div className="pl-nums"><span className={"ssp " + lvl(s.row.overall)}>{show(s.row.overall)}</span><small>+{s.gain} pts</small>
-                        <small>Balance <b>{show(s.row.pillar_balance)}</b> · Quality <b>{show(s.row.pillar_quality)}</b></small></div>
-                      <div className="pl-ba">Portfolio {show(s.before)} → <b>{show(s.after)}</b> <small className={s.delta != null && s.delta > 0 ? "up" : ""}>({sg(s.delta)})</small></div>
-                      <div className="pl-act">
-                        <button className={"btn" + (on ? " on" : "")} aria-pressed={on} onClick={() => toggle(g.from.symbol, s.row.symbol)}>{on ? "Simulating" : "Simulate"}</button>
-                        {onSwap && <button className="btn primary" onClick={() => apply(g.from.symbol, s.row.symbol)} title={`Remove ${g.from.symbol} and add ${s.row.symbol} in My portfolio`}>Apply to my portfolio</button>}
-                      </div>
-                    </li>);
-                })}</ul>}
-            </div>))}
-        <p className="faint pl-fine">Same sector, similar or larger market cap, at least 8 points higher, ranked with extra weight on Balance sheet and Quality. A comparison tool, not advice.</p>
-      </div>
 
       {/* 2. Gaps */}
       <div className="pl-sec">

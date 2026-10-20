@@ -122,3 +122,26 @@ def test_revenue_profit_gap_metric_and_message():
     assert "The anticipated difference between revenue and profit is >= 15 percent thus please check the report thoroughly." in body
     assert "37%" in body and "-36%" in body and "WAAREERTL" in title
     assert ae.allowed("basic", "rev_profit_gap") is False and ae.allowed("silver", "rev_profit_gap") and ae.allowed("gold", "rev_profit_gap")
+
+
+async def test_builtin_profit_gap_alert_goes_to_silver_watchlists_once_per_quarter(app):
+    import json
+    from datetime import date, timedelta
+    c = await signed_in(app, "gap@example.com", plan="silver")
+    basic = await signed_in(app, "gapbasic@example.com", plan="basic")
+    lists = {"lists": [{"id": "main", "name": "Main", "symbols": ["RELIANCE"]}], "meta": {}}
+    assert (await c.put("/api/me/watchlist", json=lists)).status_code == 200
+    end = (date.today() - timedelta(days=20)).isoformat()
+    async with app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT statement, body FROM snapshots WHERE symbol = 'RELIANCE' AND section = 'financials'")
+        for r in rows:
+            d = json.loads(r["body"])
+            d["quarterly"]["pl"].update({"periods": ["Q1", "Q2", "Q3", "Q4", "Q5"], "periodEnds": ["a", "b", "c", "d", end],
+                                         "rows": {**d["quarterly"]["pl"]["rows"], "revenue": [772, 800, 900, 929, 1057.8], "net_profit": [115.5, 100, 90, 115.3, 73.9]}})
+            await conn.execute("UPDATE snapshots SET body = $2 WHERE symbol = 'RELIANCE' AND section = 'financials' AND statement = $1", r["statement"], json.dumps(d))
+    assert await eng.auto_profit_gap(app.state.store.pool, app.state.mailer, "http://test") == 1
+    n = (await c.get("/api/notifications")).json()["notifications"][0]
+    assert "revenue and profit growth are" in n["title"] and "check the report thoroughly" in n["body"]
+    assert (await basic.get("/api/notifications")).json()["notifications"] == []          # Basic gets none
+    assert await eng.auto_profit_gap(app.state.store.pool, app.state.mailer, "http://test") == 0   # once per company and quarter
+    await c.aclose(); await basic.aclose()

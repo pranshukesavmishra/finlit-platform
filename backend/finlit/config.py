@@ -60,6 +60,8 @@ class Settings:
     session_days: int = field(default_factory=lambda: int(os.getenv("SESSION_DAYS", "30")))
     session_idle_days: int = field(default_factory=lambda: int(os.getenv("SESSION_IDLE_DAYS", "7")))
     admin_session_hours: int = field(default_factory=lambda: int(os.getenv("ADMIN_SESSION_HOURS", "12")))
+    # "0" lets administrators in with the password alone (an account that already has an authenticator is still asked for its code). Default: required.
+    admin_require_mfa: bool = field(default_factory=lambda: os.getenv("ADMIN_REQUIRE_MFA", "1").strip().lower() not in ("0", "false", "no", "off"))
 
     # "lax" when the site and API share a registrable domain (production). The domainless staging setup (pages.dev + sslip.io) is
     # cross-site, so it needs "none"; CSRF tokens and the Origin check still apply.

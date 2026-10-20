@@ -250,6 +250,7 @@ class PrefsIn(BaseModel):
     density: Literal["comfortable", "compact"] = "comfortable"
     alerts: bool = True
     screenAlerts: bool = True
+    profitGap: bool = True
     digest: bool = False
     dashboard: List[Widget] = Field(default_factory=list, max_length=30)
 
@@ -421,6 +422,8 @@ async def login(request: Request, response: Response, body: SignIn):
         async with pool.acquire() as conn:
             await conn.execute("UPDATE users SET totp_last_step = $2 WHERE id = $1", u["id"], step)
         mfa_ok = True
+    elif u["role"] == "admin" and not request.app.state.settings.admin_require_mfa:
+        mfa_ok = True   # the owner chose to run without the authenticator for now (ADMIN_REQUIRE_MFA=0)
     async with pool.acquire() as conn:
         await conn.execute("UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = now() WHERE id = $1", u["id"])
     if crypto.needs_rehash(u["password_hash"]):
@@ -432,7 +435,7 @@ async def login(request: Request, response: Response, body: SignIn):
     await audit(pool, str(u["id"]), "login", None, ip, mfa=mfa_ok)
     plan = u["plan"] if not (u["plan_until"] and u["plan_until"] < now) else "basic"
     user = {**public_user(u), "plan": plan, "mfaOk": mfa_ok}
-    return {"user": user, "csrf": csrf, "mfaSetupRequired": u["role"] == "admin" and not u["totp_enabled_at"]}
+    return {"user": user, "csrf": csrf, "mfaSetupRequired": u["role"] == "admin" and not u["totp_enabled_at"] and request.app.state.settings.admin_require_mfa}
 
 
 @router.post("/auth/logout")

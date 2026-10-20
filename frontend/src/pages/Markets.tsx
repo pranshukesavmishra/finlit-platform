@@ -112,7 +112,7 @@ function Feed({ section }: { section: MarketSection }) {
         {section !== "indices" && (from || to || symbol) && <button className="btn" type="button" onClick={() => { setFrom(""); setTo(""); setSymbol(""); setApplied({ from: "", to: "", symbol: "" }); }}>Reset</button>}
         <label style={{ marginLeft: "auto" }}>Search these rows<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type to filter" /></label>
       </form>
-      {section !== "indices" && <p className="pm-meta">{short ? "Up to 7 days at a time." : `Up to ${maxDays > 300 ? "a year" : maxDays + " days"} at a time.`} {section === "results" || section === "ipo" ? "Showing the next two weeks unless you choose dates." : ""}</p>}
+      {section !== "indices" && <p className="pm-meta">{short ? "Up to 7 days at a time." : `Up to ${maxDays > 300 ? "a year" : maxDays + " days"} at a time.`} {section === "results" || section === "ipo" ? "Showing the next two weeks unless you choose dates." : ""}{section === "results" && <> <Link to="/results/quarter">See every company's quarter results, newest first</Link>.</>}</p>}
       {isError ? <Problem e={error} retry={() => refetch()} /> : isLoading ? <Loading /> : (
         <>
           <p className="pm-meta"><Icon name="check" /> Updated {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "just now"} · Source: {data?.provider || "FinEdge"}{isFetching ? " · refreshing…" : ""}{section === "indices" && <> <ChartHelp id="idx-tiles" /></>}</p>

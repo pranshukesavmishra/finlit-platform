@@ -16,7 +16,6 @@ const fin = (v: unknown): v is number => typeof v === "number" && Number.isFinit
 export const scoreOf = (h: Holding): number | null => (fin(h.row?.overall) ? (h.row!.overall as number) : null);
 export const bandOf = (s: number | null | undefined): "strong" | "healthy" | "mixed" | "watch" | "none" =>
   !fin(s) ? "none" : s >= 78 ? "strong" : s >= 62 ? "healthy" : s >= 45 ? "mixed" : "watch";
-const secKey = (s: string | null | undefined) => (s || "").trim().toLowerCase();
 
 /** Market-cap tier (₹ Cr): 0 small, 1 mid, 2 large, 3 very large. -1 when unknown. */
 export function capTier(mc: number | null | undefined): number {
@@ -60,49 +59,6 @@ export function statsOf(items: Holding[]): Stats {
 
 /* ------------------------------------------------------------------ what-if swaps */
 
-export type Suggestion = { row: Row; gain: number; before: number | null; after: number | null; delta: number | null };
-export type SwapGroup = { from: Holding; score: number; suggestions: Suggestion[] };
-
-const fit = (r: Row) => (r.overall as number) + 0.5 * (fin(r.pillar_balance) ? r.pillar_balance : 0) + 0.5 * (fin(r.pillar_quality) ? r.pillar_quality : 0);
-
-/** Replace holdings per `swaps` (fromSymbol to a Row). A target already held, or used twice, is ignored. */
-export function applySwaps(items: Holding[], swaps: Record<string, Row | undefined>): Holding[] {
-  const list = uniqueHoldings(items), held = new Set(list.map((h) => h.symbol)), used = new Set<string>();
-  return list.map((h) => {
-    const to = swaps[h.symbol];
-    if (!to || held.has(to.symbol) || used.has(to.symbol)) return h;
-    used.add(to.symbol);
-    return { symbol: to.symbol, name: to.name, row: to };
-  });
-}
-
-/** Candidates that could replace `from`: same sector, similar or larger size, at least MIN_GAIN points higher, not already held.
- *  Ranked by score with extra weight on Balance sheet and Quality. */
-export function candidatesFor(from: Holding, universe: Row[], held: Set<string>, max = 3): Row[] {
-  const s = scoreOf(from), sec = secKey(from.row?.sector);
-  if (s == null || !sec) return [];
-  const tier = capTier(from.row?.market_cap);
-  return (universe || [])
-    .filter((r) => r && fin(r.overall) && !held.has(r.symbol) && secKey(r.sector) === sec && (r.overall as number) - s >= MIN_GAIN
-      && (tier < 0 || capTier(r.market_cap) >= tier))
-    .sort((a, b) => fit(b) - fit(a) || (b.overall as number) - (a.overall as number) || a.symbol.localeCompare(b.symbol))
-    .slice(0, max);
-}
-
-export function suggestSwaps(lines: Holding[], universe: Row[], opts: { weakest?: number; perHolding?: number } = {}): SwapGroup[] {
-  const list = uniqueHoldings(lines), held = new Set(list.map((h) => h.symbol));
-  const base = statsOf(list).score;
-  const weak = list.filter((h) => scoreOf(h) != null)
-    .sort((a, b) => (scoreOf(a) as number) - (scoreOf(b) as number) || a.symbol.localeCompare(b.symbol))
-    .slice(0, opts.weakest ?? 3);
-  return weak.map((from) => ({
-    from, score: scoreOf(from) as number,
-    suggestions: candidatesFor(from, universe, held, opts.perHolding ?? 3).map((row) => {
-      const after = statsOf(applySwaps(list, { [from.symbol]: row })).score;
-      return { row, gain: (row.overall as number) - (scoreOf(from) as number), before: base, after, delta: base != null && after != null ? after - base : null };
-    }),
-  }));
-}
 
 /* ------------------------------------------------------------------ gaps */
 
