@@ -10,6 +10,7 @@ import { PILLAR_COLOR } from "../stock/derive";
 import { useUniverse } from "../lib/screener";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
+import { ChartHelp } from "../components/ChartHelp";
 
 const KEYS = ["pe", "pb", "roe", "roce", "operating_margin", "net_margin", "debt_to_equity", "current_ratio", "dividend_yield"];
 
@@ -27,7 +28,7 @@ function Report({ symbol }: { symbol: string }) {
         <div><p className="faint" style={{ margin: 0, letterSpacing: ".14em", textTransform: "uppercase", fontSize: 11, fontWeight: 700, color: "var(--gold)" }}>FinLit Ventures · Premium report · {dateIN(new Date().toISOString())}</p>
           <h1 style={{ margin: "8px 0 4px", font: "400 clamp(28px, 4vw, 40px)/1.1 var(--serif)" }}>{d.profile.name}</h1>
           <p className="muted" style={{ margin: 0 }}>{d.profile.symbol} · {d.profile.sector || MINUS}{d.profile.industry ? ` · ${d.profile.industry}` : ""} · {d.meta.statement === "standalone" ? "Standalone" : "Consolidated"} figures</p></div>
-        {d.sparkline.c.length > 1 && <div className="spk" aria-label="Price over the last year"><Spark values={d.sparkline.c} color={d.sparkline.c[d.sparkline.c.length - 1] >= d.sparkline.c[0] ? "var(--gain)" : "var(--loss)"} w={220} h={70} /><p className="faint" style={{ margin: 0, fontSize: 12, textAlign: "right" }}>Price, last 12 months</p></div>}
+        {d.sparkline.c.length > 1 && <div className="spk" aria-label="Price over the last year"><Spark values={d.sparkline.c} color={d.sparkline.c[d.sparkline.c.length - 1] >= d.sparkline.c[0] ? "var(--gain)" : "var(--loss)"} w={220} h={70} /><p className="faint" style={{ margin: 0, fontSize: 12, textAlign: "right" }}>Price, last 12 months <ChartHelp id="report-spark" /></p></div>}
       </header>
       <div className="pm-cards" style={{ marginTop: 18 }}>
         <div className="pm-kpi"><small>Price</small><b>{q.price != null ? "₹" + nf(q.price) : MINUS}</b><i>{signed(q.changePct)} today</i></div>
@@ -36,7 +37,7 @@ function Report({ symbol }: { symbol: string }) {
         <div className="pm-kpi"><small>FinLit score · {d.score.band.label}</small><b>{d.score.overall != null ? Math.round(d.score.overall) : MINUS}<span className="faint" style={{ fontSize: 14 }}> / 100</span></b></div>
       </div>
       {d.thesis && <><h2>Summary</h2><p style={{ lineHeight: 1.65 }}>{d.thesis}</p></>}
-      <h2>What drives the score</h2>
+      <h2>What drives the score <ChartHelp id="report-pillars" /></h2>
       <div className="pm-pillars">{d.score.pillars.map((x) => <div className="pm-pillar" key={x.key}><span>{x.label} <small className="faint">· {x.band.label}</small></span>
         <span className="tr" role="img" aria-label={`${x.label} ${x.score != null ? Math.round(x.score) : "not scored"} out of 100`}><i style={{ width: `${x.score ?? 0}%`, background: `var(${(PILLAR_COLOR as Record<string, string>)[x.key] || "--gold"})` }} /></span><b>{x.score != null ? Math.round(x.score) : MINUS}</b></div>)}</div>
       {(d.strengths.length > 0 || d.watchouts.length > 0) && <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>

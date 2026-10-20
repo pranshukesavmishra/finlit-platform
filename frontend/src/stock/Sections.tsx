@@ -6,6 +6,7 @@ import { Info } from "../components/Info";
 import { PriceChart } from "../charts/PriceChart";
 import { FinChart, type FinKind } from "../charts/FinChart";
 import { RsiGauge, Spark } from "../charts/Small";
+import { ChartHelp } from "../components/ChartHelp";
 import { MINUS, cr, dateIN, nf, signed } from "../lib/format";
 import { usePrice, type Financials, type Ratios, type Summary, type Table } from "../lib/api";
 import { finTiles, yoy } from "./derive";
@@ -60,7 +61,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
             {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], ["Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
           </div>
           <div className="tools">
-            <div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div><ChartHelp id="price-section" /></div>
             {gold ? <div className="seg" role="group" aria-label="Indicators">
               <button aria-pressed={ind.e50} onClick={() => setInd((x) => ({ ...x, e50: !x.e50 }))}>EMA 50</button><button aria-pressed={ind.e200} onClick={() => setInd((x) => ({ ...x, e200: !x.e200 }))}>EMA 200</button><button aria-pressed={ind.vol} onClick={() => setInd((x) => ({ ...x, vol: !x.vol }))}>Volume</button></div>
               : <span className="tier gold" style={{ cursor: "pointer" }} onClick={() => upgrade("gold", "More indicators come with Gold.")}>More indicators in Gold</span>}
@@ -73,7 +74,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
         </div>
         <Gate tier="gold" title="Advanced technical score" points={["RSI momentum gauge and trend signals", "Price vs 50- and 200-day averages", "Returns across every holding period"]}>
           <div className="card acc" style={{ "--ac": "var(--p-tech)", height: "100%" } as React.CSSProperties}>
-            <div className="card-h"><h3><span className="ci"><Icon name="activity" /></span>Momentum</h3><TierChip tier="gold" /></div>
+            <div className="card-h"><h3><span className="ci"><Icon name="activity" /></span>Momentum<ChartHelp id="momentum" /></h3><TierChip tier="gold" /></div>
             {t?.rsi14 != null && <RsiGauge value={t.rsi14} />}
             <div className="mrow" style={{ marginTop: 6 }}><span className="k">What is RSI? <Info g={ratios?.glossary.rsi14} /></span><span className="v faint" style={{ fontWeight: 400, fontSize: 13 }}>0 to 100 scale</span></div>
             <div className="mrow"><span className="k">vs 50-day average</span><span className={"v " + ((t?.vsEma50Pct ?? 0) < 0 ? "neg" : "pos")}>{signed(t?.vsEma50Pct)}</span></div>

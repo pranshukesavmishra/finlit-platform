@@ -10,6 +10,7 @@ import { nf } from "../lib/format";
 import { Radar } from "../charts/Radar";
 import { CompareBar } from "../components/CompareBar";
 import { BAND_LABEL, METRICS, distOf, fmt, percentile, useUniverse, type Dist, type NumKey, type Row } from "../lib/screener";
+import { ChartHelp } from "../components/ChartHelp";
 
 type TabDef = { id: string; label: string; model?: boolean; blurb: string; groups: { title: string; keys: NumKey[] }[] };
 const TABS: TabDef[] = [
@@ -112,7 +113,7 @@ export function Compare() {
                 </Gate>
               </div>))}</div>
             <Gate tier="silver" title="Compare the five FinLit pillars" points={["Quality, Growth, Profitability, Balance sheet, Technical", "See where each company is stronger"]}>
-              <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="quality" /></span>The five FinLit pillars</h3><span className="s">0–100, higher is better</span></div>
+              <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="quality" /></span>The five FinLit pillars<ChartHelp id="cmp-pillars" /></h3><span className="s">0–100, higher is better</span></div>
                 <div className="pil-grid">
                   <Radar axes={PILLARS.map((k) => METRICS[k].short)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: PILLARS.map((k) => r[k]) }))} />
                   <div>{PILLARS.map((k) => { const w = win(k); return (
@@ -126,7 +127,7 @@ export function Compare() {
         )}
 
         {picked.length >= 2 && tab === "spider" && (
-          <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight fundamentals, against every company</h3><span className="s">Each axis: % of all companies beaten</span></div>
+          <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight fundamentals, against every company<ChartHelp id="cmp-fundamentals" /></h3><span className="s">Each axis: % of all companies beaten</span></div>
             <div className="pil-grid">
               <Radar axes={SPIDER.map((x) => x.label)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: SPIDER.map((x) => pc(r, x.key)) }))} />
               <div className="sp-t" style={{ "--n": picked.length } as React.CSSProperties}><div className="sp-h" role="row"><span />{picked.map((r, i) => <span key={r.symbol} title={r.name || r.symbol}><i className={"mk k" + i} /><b>{r.symbol}</b><small>{r.name}</small></span>)}</div>{SPIDER.map((x) => (

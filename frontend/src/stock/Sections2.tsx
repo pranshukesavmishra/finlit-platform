@@ -8,6 +8,7 @@ import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
 import { OWN_COLOR, PILLAR_COLOR } from "./derive";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
+import { ChartHelp } from "../components/ChartHelp";
 
 const v = (n: string) => `var(${n})`;
 
@@ -63,7 +64,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
         <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners today</h3><span className="s">Hover a slice</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners today<ChartHelp id="own-donut" /></h3><span className="s">Hover a slice</span></div>
           <OwnDonut items={items} hl={hl} setHl={setHl} />
           <div className="odl">{o.latest.map((l) => { const c = v(OWN_COLOR[l.key] || "--faint"); return (
             <button key={l.key} className={"odl-r" + (hl === l.key ? " on" : "")} style={{ "--oc": c } as React.CSSProperties} onMouseEnter={() => setHl(l.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(l.key)} onBlur={() => setHl(null)}>
@@ -71,7 +72,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
             </button>); })}</div>
         </div>
         <div className="card acc own-c" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold</h3><span className="s">{then} compared with {now}</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold<ChartHelp id="own-bought-sold" /></h3><span className="s">{then} compared with {now}</span></div>
           <div className="cmpk"><span><i className="k-then" />{then}</span><span><i className="k-now" />{now}</span></div>
           <div className="cmpl">{rows.map((r) => {
             const c = v(OWN_COLOR[r.key] || "--faint"), d = r.start == null ? 0 : (r.value as number) - r.start, flat = Math.abs(d) < 0.05;
@@ -159,7 +160,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
       </div>
       <div className="div3">
         <div className="card acc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="bars" /></span>Dividend per share</h3><span className="s">₹ per financial year</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="bars" /></span>Dividend per share<ChartHelp id="div-dps" /></h3><span className="s">₹ per financial year</span></div>
           <div className="dbars" style={{ "--avg": `${(avg / max) * 150}px` } as React.CSSProperties}>
             {fy.periods.map((p, i) => { const prv = fy.dps[i - 1], g = i && prv ? ((fy.dps[i] - prv) / prv) * 100 : null; return <div className="dcol" key={p}>{g != null && <b className={"yoy " + (g >= 0 ? "up" : "down")}>{g >= 0 ? "▲" : "▼"}{nf(Math.abs(g), 0)}%</b>}<span>₹{nf(fy.dps[i], 2)}</span><i style={{ height: Math.max(6, (fy.dps[i] / max) * 150), animationDelay: `${i * 90}ms` }} /><em>{p}</em></div>; })}
             <u className="avgline"><b>average</b></u>
@@ -167,13 +168,13 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
           <p className="faint" style={{ fontSize: 12, margin: "14px 0 0" }}>{fy.basis}.</p>
         </div>
         <div className="card acc" style={{ "--ac": "var(--c2)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="percent" /></span>Payout ratio over time</h3><span className="s">% of profit paid as dividends</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="percent" /></span>Payout ratio over time<ChartHelp id="payout" /></h3><span className="s">% of profit paid as dividends</span></div>
           {payHist.filter((x) => x != null).length > 1 ? <LineChart periods={r!.history.periods} series={[{ key: "payout", label: "Payout", color: "var(--c2)", values: payHist }]} fmt={(x) => nf(x, 0) + "%"} area height={300} /> : <p className="muted">Not enough history to chart.</p>}
         </div>
       </div>
       <div className="div3">
         <div className="card acc dv-calc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="wallet" /></span>What would it pay you?</h3><span className="s">Drag or type</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="wallet" /></span>What would it pay you?<ChartHelp id="div-calc" /></h3><span className="s">Drag or type</span></div>
           <label className="dv-in"><span>If you owned</span><input type="number" min={1} max={1000000} value={shares} onChange={(ev) => setShares(Math.max(1, Math.min(1000000, Math.round(Number(ev.target.value) || 1))))} aria-label="Number of shares" /><span>shares</span></label>
           <input className="dv-rng" type="range" min={1} max={1000} value={Math.min(shares, 1000)} onChange={(ev) => setShares(Number(ev.target.value))} aria-label="Shares slider" />
           <div className="dv-out">
@@ -184,7 +185,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
           <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>Based on the latest declared dividend per share and today's price, before tax. Past dividends do not guarantee future ones.</p>
         </div>
         <div className="card acc" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="coins" /></span>When it usually pays</h3><span className="s">Months with past payouts</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="coins" /></span>When it usually pays<ChartHelp id="div-months" /></h3><span className="s">Months with past payouts</span></div>
           <div className="cal">{MONTHS.map((m, i) => <span key={m} className={paidMonths.has(i) ? "on" : ""}>{m}</span>)}</div>
           <div className="payouts">{recent.map((d, i) => <div className="pay" key={d.date + d.amount} style={{ animationDelay: `${i * 70}ms` }}><div className="pc">₹{nf(d.amount ?? 0, d.amount && d.amount % 1 ? 2 : 0)}</div><div><b>{d.type === "interim_dividend" ? "Interim" : d.type === "special_dividend" ? "Special" : "Final"}</b><span>{dateIN(d.date)}</span></div></div>)}</div>
         </div>
@@ -259,7 +260,7 @@ export function SegmentCard({ seg }: { seg?: Segments }) {
   const top = latest[0], conc = top?.sharePct ?? 0;
   return (
     <div className="card acc" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
-      <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Where the revenue comes from</h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
+      <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Where the revenue comes from<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
       {latest.length ? (
         <>
           <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x, i) => <span key={x.name} style={{ flex: Math.max(x.sharePct || 0, 4), background: `var(--c${(i % 5) + 1})` }}><b>{(x.sharePct || 0) >= 12 ? pct(x.sharePct, 0) : ""}</b></span>)}</div>

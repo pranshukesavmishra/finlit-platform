@@ -9,6 +9,7 @@ import { LineChart } from "../charts/LineChart";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 import { useIndexHistory, useIndices, type IndexRow, type Stat } from "../lib/indices";
+import { ChartHelp } from "../components/ChartHelp";
 
 type Row = Record<string, string | number | null | undefined>;
 type Col = { key: string; label: string; num?: boolean; wide?: boolean; fmt?: (v: string | number | null | undefined, r: Row) => React.ReactNode };
@@ -84,7 +85,7 @@ function Valuation({ rows, name }: { rows: Row[]; name: string }) {
     <>
       <div className="pm-verdict"><span className={"chip " + (gap > 10 ? "down" : gap < -10 ? "up" : "gold")}>{word}</span>
         <span><b>P/E {nf(now, 1)}</b> <span className="faint">against an average of {nf(avg, 1)} over this period ({gap >= 0 ? "+" : MINUS}{nf(Math.abs(gap), 0)}%)</span></span></div>
-      <div className="pm-chart card"><div className="pm-chart-h"><div><small>Valuation</small><b>{name} P/E</b></div><span className="faint">Dashed line is the average</span></div>
+      <div className="pm-chart card"><div className="pm-chart-h"><div><small>Valuation</small><b>{name} P/E <ChartHelp id="idx-pe-history" /></b></div><span className="faint">Dashed line is the average</span></div>
         <LineChart periods={asc.map((r) => (r.quote_date ? dateIN(String(r.quote_date).slice(0, 10), { day: "numeric", month: "short" }) : ""))} series={[{ key: "pe", label: "P/E", color: "var(--gold)", values: pe }]} fmt={(x) => nf(x, 1)} height={240} area avg={avg} /></div>
     </>
   );
@@ -114,7 +115,7 @@ function Feed({ section }: { section: MarketSection }) {
       {section !== "indices" && <p className="pm-meta">{short ? "Up to 7 days at a time." : `Up to ${maxDays > 300 ? "a year" : maxDays + " days"} at a time.`} {section === "results" || section === "ipo" ? "Showing the next two weeks unless you choose dates." : ""}</p>}
       {isError ? <Problem e={error} retry={() => refetch()} /> : isLoading ? <Loading /> : (
         <>
-          <p className="pm-meta"><Icon name="check" /> Updated {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "just now"} · Source: {data?.provider || "FinEdge"}{isFetching ? " · refreshing…" : ""}</p>
+          <p className="pm-meta"><Icon name="check" /> Updated {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "just now"} · Source: {data?.provider || "FinEdge"}{isFetching ? " · refreshing…" : ""}{section === "indices" && <> <ChartHelp id="idx-tiles" /></>}</p>
           {section === "indices" && <Heat rows={data?.items || []} />}
           {section === "valuations" && <Valuation rows={data?.items || []} name={index} />}
           <Table cols={COLS[section]} rows={data?.items || []} q={q} file={`finlit-${section}${index ? "-" + index : ""}`} />
@@ -154,7 +155,7 @@ function IndexPrices({ open }: { open: (code: string) => void }) {
   const th = (k: IKey, label: string, n = true) => <th className={n ? "n" : ""}><button className="pm-sort" onClick={() => setSort((s) => ({ k, d: s?.k === k ? (s.d === 1 ? -1 : 1) : k === "name" ? 1 : -1 }))}>{label} {sort?.k === k ? (sort.d > 0 ? "▲" : "▼") : ""}</button></th>;
   return (
     <section aria-label="Index prices">
-      <p className="pm-meta"><span className={"pm-live" + (data.marketOpen ? " on" : "")} />{data.marketOpen ? "Market open · prices refresh every minute" : "Market closed · last prices"}{data.asOf ? ` · as of ${dateIN(data.asOf)}` : ""} · updated {new Date(dataUpdatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+      <p className="pm-meta"><span className={"pm-live" + (data.marketOpen ? " on" : "")} />{data.marketOpen ? "Market open · prices refresh every minute" : "Market closed · last prices"}{data.asOf ? ` · as of ${dateIN(data.asOf)}` : ""} · updated {new Date(dataUpdatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} <ChartHelp id="idx-tiles" /></p>
       <div className="pm-heat" aria-label="Key indices">{key.map((r) => {
         const c = r.changePct;
         return <button key={r.code} className="pm-tile" onClick={() => r.code !== "INDVIX" && open(r.code)} title={r.code === "INDVIX" ? r.name : `Open ${r.name} valuation history`}
@@ -220,7 +221,7 @@ function IndexValuation({ code, setCode }: { code: string; setCode: (c: string) 
             <div className="pm-kpi"><small>Usual range (±1 sd)</small><b style={{ fontSize: 21 }}>{f(Math.max(0, st.median - st.sd))} – {f(st.median + st.sd)}</b><i>Two days in three fall here</i></div>
             <div className="pm-kpi"><small>Low · High</small><b style={{ fontSize: 21 }}>{f(st.min)} · {f(st.max)}</b><i>{nf(st.n, 0)} trading days</i></div>
           </div>
-          <div className="pm-chart card"><div className="pm-chart-h"><div><small>{MEASURES[m].say}</small><b>{data.name} {MEASURES[m].label}, last {years} year{years > 1 ? "s" : ""}</b></div><span className="faint">Dashed: median · faint lines: usual range</span></div>
+          <div className="pm-chart card"><div className="pm-chart-h"><div><small>{MEASURES[m].say}</small><b>{data.name} {MEASURES[m].label}, last {years} year{years > 1 ? "s" : ""} <ChartHelp id="idx-valuation" /></b></div><span className="faint">Dashed: median · faint lines: usual range</span></div>
             <LineChart periods={rows.map((r) => dateIN(r.d, { day: "numeric", month: "short", year: "2-digit" }))} fmt={(x) => nf(x, MEASURES[m].d)} height={280} avg={st.median} avgLabel="Median"
               series={[{ key: m, label: MEASURES[m].label, color: "var(--gold)", values: series },
                 { key: "hi", label: "Upper usual", color: "color-mix(in srgb, var(--muted) 45%, transparent)", values: rows.map(() => st.median + st.sd) },
@@ -258,7 +259,7 @@ function Commodities() {
               <div className="pm-cards"><div className="pm-kpi"><small>Latest ({latest?.label || MINUS})</small><b>{latest?.value != null ? nf(latest.value) : MINUS}</b></div>
                 <div className="pm-kpi"><small>Change on last month</small><b>{latest?.value != null && prev?.value ? pc(((latest.value - prev.value) / prev.value) * 100) : MINUS}</b></div></div>
               {hist.data?.changesUnavailable && <p className="pm-meta">Provider percentage changes are unavailable right now. The history below is still correct.</p>}
-              {rows.length > 1 && <div className="pm-chart card"><div className="pm-chart-h"><div><small>Trend</small><b>{list.data?.items.find((i) => i.code === code)?.name}</b></div><span className="faint">Monthly index level</span></div>
+              {rows.length > 1 && <div className="pm-chart card"><div className="pm-chart-h"><div><small>Trend</small><b>{list.data?.items.find((i) => i.code === code)?.name} <ChartHelp id="commodity-trend" /></b></div><span className="faint">Monthly index level</span></div>
                 <LineChart periods={[...rows].reverse().map((r) => r.label)} series={[{ key: "v", label: "Index", color: "var(--gold)", values: [...rows].reverse().map((r) => r.value) }]} fmt={(x) => nf(x, 1)} height={230} area /></div>}
               <Table cols={[{ key: "label", label: "Month" }, { key: "value", label: "Index level", num: true, fmt: n2 }]} rows={rows as unknown as Row[]} q="" file={`finlit-commodity-${code}`} />
             </>)}</div>

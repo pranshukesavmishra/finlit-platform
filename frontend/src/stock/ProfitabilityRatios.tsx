@@ -30,7 +30,7 @@ const pp = (v: number, d = 2) => (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.ab
 /** How far each year sits from the row's usual level, and which years are far enough from the others to be called unusual. */
 function analyse(vals: Series) {
   const have = vals.filter((x): x is number => x != null);
-  if (have.length < 4) return { med: null as number | null, lo: 0, hi: 0, odd: new Set<number>(), spread: 0 };
+  if (have.length < 4) return { med: null as number | null, lo: have.length ? Math.min(...have) : 0, hi: have.length ? Math.max(...have) : 0, odd: new Set<number>(), spread: 0 };   // too few years for a median, but the bars still need the real range
   const med = median(have), mad = median(have.map((x) => Math.abs(x - med))) * 1.4826 || Math.max(Math.abs(med) * 0.05, 0.01);
   const odd = new Set<number>();
   vals.forEach((x, i) => { if (x != null && Math.abs(x - med) / mad > 2.5 && Math.abs(x - med) > Math.abs(med) * 0.15) odd.add(i); });
@@ -91,7 +91,7 @@ function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string,
       </HScroll>
       <div className="pr-sel">
         <div className="card pr-chart"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>
-          <div className="pr-bars" role="img" aria-label={`${cur.label} by year`}>{vals.map((x, i) => { const hi = Math.max(an.hi, 0.01), lo = Math.min(an.lo, 0), h = x == null ? 0 : ((Math.max(x, 0) - 0) / (hi - lo || 1)) * 100;
+          <div className="pr-bars" role="img" aria-label={`${cur.label} by year`}>{vals.map((x, i) => { const hi = Math.max(an.hi, 0.01), lo = Math.min(an.lo, 0), h = x == null ? 0 : Math.min(100, ((Math.max(x, 0) - 0) / (hi - lo || 1)) * 100);
             return <div key={i} className={"pr-bar" + (i === last ? " now" : "")} title={`${monthLabel(periods[i])}: ${x == null ? "—" : nf(x, 2) + "%"}`}><i style={{ height: `${h}%` }} /><span>{periods[i]}</span></div>; })}
             {an.med != null && <u className="pr-line" style={{ bottom: `calc(${(Math.max(an.med, 0) / (Math.max(an.hi, 0.01) - Math.min(an.lo, 0) || 1)) * 100}% * .86 + 22px)` }} />}</div></div>
         <div className="card pr-say">
@@ -151,6 +151,7 @@ export function ProfitabilityRatios({ periods, rows }: { periods: string[]; rows
         {([["table", "Table"], ["lines", "Trend lines"], ["change", "Then vs now"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}</div>
         <span className="faint">Annual · {monthLabel(periods[0])} – {monthLabel(periods[periods.length - 1])}{view === "table" ? " · tap a row to chart it" : view === "lines" ? " · tap a ratio to show or hide it" : " · pick any two years"}</span></div>
       {view === "table" ? <Heat periods={periods} rows={rows} defs={defs} /> : view === "lines" ? <Lines periods={periods} rows={rows} defs={defs} /> : <ThenNow periods={periods} rows={rows} defs={defs} />}
+      {defs.length < DEFS.length && <p className="faint pr-miss">Not shown for this company: {DEFS.filter((d) => !defs.includes(d)).map((d) => d.label).join(", ")}. Banks and lenders are not measured on gross, EBITDA or EBIT margin (their interest is their trade, not a cost of making goods), and a ratio also stays out when the company's statements do not hold what it needs.</p>}
       {read && view !== "table" && <div className="card pr-read"><span className="chip gold">{read.head}</span>{read.lines.map(([k, t]) => <p key={k}><b>{k}:</b> {t}</p>)}</div>}
     </div>
   );

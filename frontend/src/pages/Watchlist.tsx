@@ -13,6 +13,7 @@ import { cr, csvText, nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
+import { ChartHelp } from "../components/ChartHelp";
 
 type GroupBy = "none" | "sector" | "size" | "band" | "style";
 const GROUPS: { id: GroupBy; label: string; gold?: boolean }[] = [{ id: "none", label: "No grouping" }, { id: "sector", label: "Industry" }, { id: "size", label: "Company size" }, { id: "band", label: "FinLit band", gold: true }, { id: "style", label: "Style", gold: true }];
@@ -119,13 +120,13 @@ export function WatchlistPage() {
           ) : (
             <>
               {items.length > 1 && (
-                <div className="card wl-mix"><div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Where your list is concentrated</h3><span className="s">By industry</span></div>
+                <div className="card wl-mix"><div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Where your list is concentrated<ChartHelp id="wl-concentration" /></h3><span className="s">By industry</span></div>
                   <div className="rib" role="img" aria-label="Industry mix">{secMix.map(([s, c], i) => <span key={s} style={{ flex: c, background: ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"][i % 5] }} title={`${s}: ${c}`}><b>{c / items.length >= 0.14 ? Math.round((c / items.length) * 100) + "%" : ""}</b></span>)}</div>
                   <div className="wl-leg">{secMix.map(([s, c], i) => <span key={s}><i style={{ background: ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"][i % 5] }} />{s} <b>{c}</b></span>)}</div>
                   <p className={"seg-note" + (topShare >= 0.5 ? " warn" : "")}>{topShare >= 0.5 ? `${Math.round(topShare * 100)}% of this list is in ${secMix[0][0]}. A downturn in one industry would hit most of it.` : "This list is spread across several industries, which spreads the risk."}</p></div>
               )}
               {gold && attention.length > 0 && (
-                <div className="card acc wl-att" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Worth a second look</h3><span className="s">Based on the FinLit model and your targets</span></div>
+                <div className="card acc wl-att" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Worth a second look<ChartHelp id="wl-second" /></h3><span className="s">Based on the FinLit model and your targets</span></div>
                   <ul>{attention.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b>{r.symbol}</b></Link><span>{s.join(" · ")}</span></li>)}</ul></div>
               )}
               {buckets.map(([k, rs]) => {

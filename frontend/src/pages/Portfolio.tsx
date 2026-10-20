@@ -9,6 +9,7 @@ import { css, drawIn, el, niceTicks, vgrad } from "../lib/svg";
 import { dateIN, MINUS, nf, signed } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import { Link } from "react-router";
+import { ChartHelp } from "../components/ChartHelp";
 
 const inr = (n: number) => (n < 0 ? MINUS : "") + "₹" + nf(Math.abs(n), 0);
 
@@ -49,14 +50,14 @@ export function Portfolio() {
       <section className="sec" style={{ paddingTop: 16 }}><div className="wrap">
         <Reveal><div className="kpis-p">{[["Gross P&L", data.headline.grossPnl], ["Net P&L", data.headline.netPnl], ["Gross ROI", data.headline.grossRoi], ["Net ROI", data.headline.netRoi]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
         <Reveal delay={60}><div className="kpis-p" style={{ marginTop: 14 }}>{[["Trades", String(data.summary.tradeCount)], ["Win rate", ((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1) + "%"], ["Winners / losers", `${data.summary.winningTrades} / ${data.summary.losingTrades}`], ["Charges", data.charges.totalFormatted]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
-        <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Cumulative realised P&L</h3><span className="s">Gross, ₹</span></div><CumulativeLine data={c.cumulativeRealizedPnl} /></div></Reveal>
+        <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Cumulative realised P&L<ChartHelp id="pf-cumulative" /></h3><span className="s">Gross, ₹</span></div><CumulativeLine data={c.cumulativeRealizedPnl} /></div></Reveal>
         <div className="grid g2" style={{ marginTop: 16 }}>
-          <Reveal><div className="card acc"><div className="card-h"><h3>Monthly realised P&L</h3></div><HBars rows={c.monthlyRealizedPnl.map((m) => ({ label: m.month, value: m.realizedPnl }))} /></div></Reveal>
-          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Top contributors</h3><span className="s">By stock</span></div><HBars rows={c.pnlAttribution.map((m) => ({ label: m.stock, value: m.realizedPnl }))} /></div></Reveal>
-          <Reveal><div className="card acc"><div className="card-h"><h3>Trade outcomes</h3></div><HBars color={false} rows={c.outcomes.map((o) => ({ label: o.outcome, value: o.trades }))} /></div></Reveal>
-          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Holding period</h3><span className="s">Trades</span></div><HBars color={false} rows={c.holdingPeriodDistribution.map((o) => ({ label: o.bucket, value: o.trades }))} /></div></Reveal>
+          <Reveal><div className="card acc"><div className="card-h"><h3>Monthly realised P&L<ChartHelp id="pf-monthly" /></h3></div><HBars rows={c.monthlyRealizedPnl.map((m) => ({ label: m.month, value: m.realizedPnl }))} /></div></Reveal>
+          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Top contributors<ChartHelp id="pf-contrib" /></h3><span className="s">By stock</span></div><HBars rows={c.pnlAttribution.map((m) => ({ label: m.stock, value: m.realizedPnl }))} /></div></Reveal>
+          <Reveal><div className="card acc"><div className="card-h"><h3>Trade outcomes<ChartHelp id="pf-outcomes" /></h3></div><HBars color={false} rows={c.outcomes.map((o) => ({ label: o.outcome, value: o.trades }))} /></div></Reveal>
+          <Reveal delay={60}><div className="card acc"><div className="card-h"><h3>Holding period<ChartHelp id="pf-holding" /></h3><span className="s">Trades</span></div><HBars color={false} rows={c.holdingPeriodDistribution.map((o) => ({ label: o.bucket, value: o.trades }))} /></div></Reveal>
         </div>
-        <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Charges breakdown</h3><span className="s">Total {data.charges.totalFormatted}</span></div>
+        <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Charges breakdown<ChartHelp id="pf-charges" /></h3><span className="s">Total {data.charges.totalFormatted}</span></div>
           <div className="kpis-p">{Object.entries(data.charges.breakdown).map(([k, v]) => <div className="kp" key={k}><div className="k">{k.replace(/([A-Z])/g, " $1").trim()}</div><div className="v" style={{ fontSize: 22 }}>₹{nf(v)}</div></div>)}</div></div></Reveal>
         <Reveal><div className="card" style={{ marginTop: 16 }}>
           <div className="card-h"><h3>Every trade</h3><input className="sbox" placeholder="Search a stock" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} aria-label="Search trades" /></div>

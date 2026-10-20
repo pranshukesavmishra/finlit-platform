@@ -8,6 +8,7 @@ import { usePrice, useSection, type Events, type Financials, type Meta, type Own
 import { MINUS, cr, nf } from "../lib/format";
 import { SectionHead } from "./Sections";
 import { HScroll } from "../components/HScroll";
+import { ChartHelp } from "../components/ChartHelp";
 
 type N = number | null;
 export type Stats = {
@@ -28,10 +29,10 @@ const sg = (v: number, d = 0) => (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(v, d) +
 const row = (t: Table | undefined, k: string) => (t?.rows[k] || []) as N[];
 const C = (n: number) => `var(--c${n})`;
 
-function Card({ title, sub, icon = "line", children, full, note }: { title: string; sub?: string; icon?: string; children: ReactNode; full?: boolean; note?: ReactNode }) {
+function Card({ title, sub, icon = "line", children, full, note, help }: { title: string; sub?: string; icon?: string; children: ReactNode; full?: boolean; note?: ReactNode; help?: string }) {
   return (
     <div className={"card acc cl" + (full ? " full" : "")} style={{ "--ac": "var(--gold)" } as CSSProperties}>
-      <div className="card-h"><h3><span className="ci"><Icon name={icon} /></span>{title}</h3>{sub && <span className="s">{sub}</span>}</div>
+      <div className="card-h"><h3><span className="ci"><Icon name={icon} /></span>{title}{help && <ChartHelp id={help} />}</h3>{sub && <span className="s">{sub}</span>}</div>
       {children}{note && <p className="cl-note">{note}</p>}
     </div>
   );
@@ -49,26 +50,26 @@ function PriceTab({ symbol }: { symbol: string }) {
   const rows = useMemo(() => (stats?.monthly?.years || []).map((y) => ({ label: String(y), values: stats!.monthly!.rows[String(y)] })), [stats]);
   return (
     <>
-      <Card title="Price, moving averages and volume" sub="Candles up to a year" full note="Green candles closed higher than they opened, red lower. The orange dashed line is the 50-day average and the green line is the 200-day average.">
+      <Card help="price-candles" title="Price, moving averages and volume" sub="Candles up to a year" full note="Green candles closed higher than they opened, red lower. The orange dashed line is the 50-day average and the green line is the 200-day average.">
         <div className="seg" role="group" aria-label="Candle range" style={{ marginBottom: 10 }}>{["1M", "6M", "1Y"].map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div>
         {px && px.o && px.h && px.l ? <Candles t={px.t} o={px.o} h={px.h} l={px.l} c={px.c} v={px.v} ema50={px.ema50} ema200={px.ema200} /> : <div className="skeleton" style={{ height: 300 }} />}
       </Card>
       <Gate tier="silver" title="Price statistics" points={["Monthly returns calendar", "Drawdown and volatility", "How big a typical day's move is"]}>
         {stats && !ok && !stats.locked ? <Soon>Not enough price history yet for these charts.</Soon> : (
           <div className="cl-grid">
-            <Card title="Monthly returns" sub="Green months rose, red months fell" icon="growth" full note={stats?.cagrPct != null ? `Since ${stats?.from?.slice(0, 4)} the price has ${stats.cagrPct >= 0 ? "grown" : "fallen"} about ${pc(Math.abs(stats.cagrPct))} a year.` : undefined}>
+            <Card help="monthly-returns" title="Monthly returns" sub="Green months rose, red months fell" icon="growth" full note={stats?.cagrPct != null ? `Since ${stats?.from?.slice(0, 4)} the price has ${stats.cagrPct >= 0 ? "grown" : "fallen"} about ${pc(Math.abs(stats.cagrPct))} a year.` : undefined}>
               {rows.length ? <HeatGrid cols={MONTHS} rows={rows} cap={12} fmt={(v) => sg(v, 1).replace("%", "")} label="Monthly returns by year" /> : (withheld || <div className="skeleton" style={{ height: 180 }} />)}
             </Card>
-            <Card title="Distance from the running high" sub="0% means a new high" icon="growth" note={stats?.drawdown ? `Deepest fall from a high: ${pc(stats.drawdown.max.pct ?? 0)} (${stats.drawdown.max.date}). Today the price is ${pc(Math.abs(stats.drawdown.current ?? 0))} below its high.` : undefined}>
+            <Card help="drawdown" title="Distance from the running high" sub="0% means a new high" icon="growth" note={stats?.drawdown ? `Deepest fall from a high: ${pc(stats.drawdown.max.pct ?? 0)} (${stats.drawdown.max.date}). Today the price is ${pc(Math.abs(stats.drawdown.current ?? 0))} below its high.` : undefined}>
               {stats?.drawdown ? <AreaSeries t={stats.drawdown.t} v={stats.drawdown.dd} fmt={(x) => pc(x, 0)} color="var(--loss)" ceil={0} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
-            <Card title="How bumpy the ride is" sub={`${stats?.volatility?.window ?? 60}-session volatility, a year`} icon="gauge" note={stats?.volatility?.current != null ? `Now ${pc(stats.volatility.current, 0)} a year; the usual level is about ${pc(stats.volatility.median ?? 0, 0)}. Higher means bigger swings.` : undefined}>
+            <Card help="volatility" title="How bumpy the ride is" sub={`${stats?.volatility?.window ?? 60}-session volatility, a year`} icon="gauge" note={stats?.volatility?.current != null ? `Now ${pc(stats.volatility.current, 0)} a year; the usual level is about ${pc(stats.volatility.median ?? 0, 0)}. Higher means bigger swings.` : undefined}>
               {stats?.volatility ? <AreaSeries t={stats.volatility.t} v={stats.volatility.vol} fmt={(x) => pc(x, 0)} color="var(--c1)" floor={0} ref={stats.volatility.median != null ? { y: stats.volatility.median, label: "usual" } : undefined} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
-            <Card title="How big a typical day's move is" sub="Share of sessions by daily change" icon="bars" note={stats?.histogram ? `${nf(stats.histogram.upShare, 1)}% of sessions closed higher. Best day ${sg(stats.histogram.best, 1)}, worst ${sg(stats.histogram.worst, 1)}.` : undefined}>
+            <Card help="daily-histogram" title="How big a typical day's move is" sub="Share of sessions by daily change" icon="bars" note={stats?.histogram ? `${nf(stats.histogram.upShare, 1)}% of sessions closed higher. Best day ${sg(stats.histogram.best, 1)}, worst ${sg(stats.histogram.worst, 1)}.` : undefined}>
               {stats?.histogram ? <Histo counts={stats.histogram.counts} from={stats.histogram.from} binWidth={stats.histogram.binWidth} /> : (withheld || <div className="skeleton" style={{ height: 200 }} />)}
             </Card>
-            <Card title="Daily moves by year" sub="Calm years have short boxes" icon="layers">
+            <Card help="daily-box" title="Daily moves by year" sub="Calm years have short boxes" icon="layers">
               {stats?.box ? <Box years={stats.box.years} /> : <div className="skeleton" style={{ height: 240 }} />}
             </Card>
           </div>
@@ -92,19 +93,19 @@ function PlTab({ f }: { f?: Financials }) {
   const growth: [string, N[]][] = [["Revenue", rev], ["Expenses", exp], ["Operating profit", op], ["Other income", oi], ["Interest", fin], ["Depreciation", dep], ["Profit before tax", pbt], ["Tax", tax], ["Net profit", np], ["EPS", eps]];
   return (
     <div className="cl-grid">
-      <Card title={`From ${pl.periods[last]} revenue to net profit`} sub={`₹ Crore · ${pl.periods[last]}`} icon="profit" full note="Blue bars are totals, green adds to profit and red takes away. The steps show exactly where each rupee of revenue goes before it becomes profit.">
+      <Card help="pl-waterfall" title={`From ${pl.periods[last]} revenue to net profit`} sub={`₹ Crore · ${pl.periods[last]}`} icon="profit" full note="Blue bars are totals, green adds to profit and red takes away. The steps show exactly where each rupee of revenue goes before it becomes profit.">
         <Waterfall steps={steps} fmt={crf} />
       </Card>
-      <Card title="Where each ₹100 of revenue goes" sub="Share of revenue by year" icon="pie" note="The green slice is what is left as profit. A growing green slice means the business keeps more of each sale.">
+      <Card help="pl-margin-split" title="Where each ₹100 of revenue goes" sub="Share of revenue by year" icon="pie" note="The green slice is what is left as profit. A growing green slice means the business keeps more of each sale.">
         <MiniBars w={560} mode="stack" labels={pl.periods} fmt={(x) => nf(x, 0) + "%"} height={210} dim={false} series={[
           { key: "np", label: "Net profit", values: share(np).map((x) => (x != null ? Math.max(0, x) : x)), color: "var(--gain)" }, { key: "tax", label: "Tax", values: share(tax), color: C(4) },
           { key: "dep", label: "Depreciation", values: share(dep), color: C(3) }, { key: "fin", label: "Interest", values: share(fin), color: C(5) }, { key: "exp", label: "Expenses", values: share(exp).map((x, i) => (x != null && rev[i] ? Math.min(x, 100) : x)), color: C(1) }]} />
         <div className="clg"><span><i style={{ background: "var(--gain)" }} />Net profit</span><span><i style={{ background: C(4) }} />Tax</span><span><i style={{ background: C(3) }} />Depreciation</span><span><i style={{ background: C(5) }} />Interest</span><span><i style={{ background: C(1) }} />Expenses</span></div>
       </Card>
-      <Card title="Earnings per share" sub="₹ per share, each year" icon="coins" note="Earnings per share is profit divided by the number of shares. It is the figure most closely tied to the share price.">
+      <Card help="eps" title="Earnings per share" sub="₹ per share, each year" icon="coins" note="Earnings per share is profit divided by the number of shares. It is the figure most closely tied to the share price.">
         <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--k1)", values: eps }]} fmt={(x) => "₹" + nf(x, 1)} area height={210} />
       </Card>
-      <Card title="Year-on-year growth by line" sub="Percent change on the year before" icon="growth" full note="Green is growth, red is decline. For costs (expenses, interest, tax) green means the cost rose, which can be fine when revenue rose faster.">
+      <Card help="yoy-growth" title="Year-on-year growth by line" sub="Percent change on the year before" icon="growth" full note="Green is growth, red is decline. For costs (expenses, interest, tax) green means the cost rose, which can be fine when revenue rose faster.">
         <HeatGrid cols={pl.periods.slice(1)} cap={40} fmt={(x) => sg(x, 0)} label="Year on year growth by line item" rows={growth.map(([label, a]) => ({ label, values: chg(a) }))} />
       </Card>
     </div>
@@ -125,15 +126,15 @@ function BsTab({ f }: { f?: Financials }) {
   const tree = assets.map((a) => ({ label: a.label, value: Math.max(0, (a.values[last] as number) ?? 0), color: a.color })).filter((x) => x.value > 0);
   return (
     <div className="cl-grid">
-      <Card title="What the company owns" sub="Total assets by kind, ₹ Crore" icon="building" note="Assets are everything the company controls. A big slice of cash and investments gives it room to move; a big slice of work in progress means projects not yet earning.">
+      <Card help="bs-assets" title="What the company owns" sub="Total assets by kind, ₹ Crore" icon="building" note="Assets are everything the company controls. A big slice of cash and investments gives it room to move; a big slice of work in progress means projects not yet earning.">
         <MiniBars w={560} mode="stack" labels={bs.periods} fmt={crf} height={230} dim={false} series={assets} />
         <div className="clg">{assets.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
       </Card>
-      <Card title="How it is paid for" sub="Share of total assets" icon="balance" note="Owners' money is safe funding. Borrowings must be repaid with interest, so a shrinking red slice lowers risk.">
+      <Card help="bs-funding" title="How it is paid for" sub="Share of total assets" icon="balance" note="Owners' money is safe funding. Borrowings must be repaid with interest, so a shrinking red slice lowers risk.">
         <MiniBars w={560} mode="stack" labels={bs.periods} fmt={(x) => nf(x, 0) + "%"} height={230} dim={false} series={pct(funding)} />
         <div className="clg">{funding.map((a) => <span key={a.key}><i style={{ background: a.color }} />{a.label}</span>)}</div>
       </Card>
-      <Card title={`${bs.periods[last]} assets at a glance`} sub="Box size is share of total assets" icon="layers" full>
+      <Card help="bs-treemap" title={`${bs.periods[last]} assets at a glance`} sub="Box size is share of total assets" icon="layers" full>
         {tree.length ? <Treemap items={tree} fmt={(x) => "₹" + crf(x) + " Cr"} /> : <Soon>No breakdown available.</Soon>}
       </Card>
     </div>
@@ -148,14 +149,14 @@ function CfTab({ f }: { f?: Financials }) {
   const steps: Step[] = [{ label: "Operations", value: v("operating") }, { label: "Investing", value: v("investing") }, { label: "Financing", value: v("financing") }, { label: "Net change in cash", value: v("net_cash_flow"), total: true }];
   return (
     <div className="cl-grid">
-      <Card title="Operating, investing and financing cash flow" sub="₹ Crore" icon="coins" note="Cash from operations should be positive and healthy. Investing is usually negative because the company spends on growth; financing shows borrowing, repayments and dividends.">
+      <Card help="cf-streams" title="Operating, investing and financing cash flow" sub="₹ Crore" icon="coins" note="Cash from operations should be positive and healthy. Investing is usually negative because the company spends on growth; financing shows borrowing, repayments and dividends.">
         <MiniBars w={560} mode="group" labels={cf.periods} fmt={crf} height={230} dim={false} series={[{ key: "o", label: "Operations", values: g("operating"), color: "var(--gain)" }, { key: "i", label: "Investing", values: g("investing"), color: C(3) }, { key: "f", label: "Financing", values: g("financing"), color: C(5) }]} />
         <div className="clg"><span><i style={{ background: "var(--gain)" }} />Operations</span><span><i style={{ background: C(3) }} />Investing</span><span><i style={{ background: C(5) }} />Financing</span></div>
       </Card>
-      <Card title={`${cf.periods[last]} cash bridge`} sub="₹ Crore" icon="profit" note="How the year's three streams add up to the change in cash.">
+      <Card help="cf-bridge" title={`${cf.periods[last]} cash bridge`} sub="₹ Crore" icon="profit" note="How the year's three streams add up to the change in cash.">
         <Waterfall w={560} steps={steps} fmt={crf} height={250} />
       </Card>
-      <Card title="Free cash flow against capex" sub="What is left after investing in the business" icon="growth" full note="Free cash flow is cash from operations minus capital spending. It is the money available for dividends, debt repayment or buybacks.">
+      <Card help="cf-fcf" title="Free cash flow against capex" sub="What is left after investing in the business" icon="growth" full note="Free cash flow is cash from operations minus capital spending. It is the money available for dividends, debt repayment or buybacks.">
         <MiniBars w={1000} mode="group" labels={cf.periods} fmt={crf} height={210} dim={false} series={[{ key: "fcf", label: "Free cash flow", values: g("free_cash_flow"), color: "var(--k1)" }, { key: "cx", label: "Capex", values: g("capex").map((x) => (x == null ? x : -Math.abs(x))), color: C(4) }]} />
         <div className="clg"><span><i style={{ background: "var(--k1)" }} />Free cash flow</span><span><i style={{ background: C(4) }} />Capex (spending)</span></div>
       </Card>
@@ -175,7 +176,7 @@ function OwnTab({ o }: { o?: Ownership }) {
   const changes = o.latest.filter((l) => l.change1yPts != null && OWN[l.key]).map((l) => ({ label: OWN[l.key][0], value: l.change1yPts as number }));
   return (
     <div className="cl-grid">
-      <Card title="Shareholding pattern, quarter by quarter" sub="% of shares held, every quarter reported" icon="users" full note="Each row is one group of owners. The last two columns show how much its share moved over the last quarter and the last year, in percentage points (pts). Promoters, foreign and Indian institutions together with the public and government make up 100%.">
+      <Card help="own-table" title="Shareholding pattern, quarter by quarter" sub="% of shares held, every quarter reported" icon="users" full note="Each row is one group of owners. The last two columns show how much its share moved over the last quarter and the last year, in percentage points (pts). Promoters, foreign and Indian institutions together with the public and government make up 100%.">
         <HScroll className="" label="shareholding table">
           <table className="own-t"><thead><tr><th>Owners</th>{o.periods.slice(-8).map((p) => <th key={p}>{p}</th>)}<th>vs last quarter</th><th>vs year ago</th></tr></thead>
             <tbody>{keys.map((k) => { const vals = o.series[k], cur = vals[last], prev = vals[last - 1], ya = vals[last - 4];
@@ -184,16 +185,16 @@ function OwnTab({ o }: { o?: Ownership }) {
               return <tr key={k}><td><i className="own-dot" style={{ background: OWN[k][1] }} /><b>{OWN[k][0]}</b></td>{vals.slice(-8).map((x, i, a) => <td key={i} className={i === a.length - 1 ? "latest" : ""}>{x == null ? "—" : nf(x, 2) + "%"}</td>)}{cell(d(cur, prev))}{cell(d(cur, ya))}</tr>; })}</tbody></table>
         </HScroll>
       </Card>
-      <Card title="How each group's share has moved" sub="One line per group, % of shares held" icon="users" full note="Read each line on its own: a rising line means that group owns more of the company than before. Hover the chart for the exact figure.">
+      <Card help="own-lines" title="How each group's share has moved" sub="One line per group, % of shares held" icon="users" full note="Read each line on its own: a rising line means that group owns more of the company than before. Hover the chart for the exact figure.">
         <LineChart periods={o.periods} fmt={(x) => nf(x, 1) + "%"} height={300} domain={[0, Math.ceil(Math.max(...series.flatMap((x) => x.values.filter((v): v is number => v != null)), 1) / 10) * 10]}
           series={series.map((x) => ({ key: x.key, label: x.label, color: x.color, values: x.values }))} />
         <div className="clg">{series.map((x) => <span key={x.key}><i style={{ background: x.color }} />{x.label}</span>)}</div>
       </Card>
-      <Card title="Latest ownership mix" sub={o.asOf ? `As of ${o.asOf}` : undefined} icon="pie"><Donut parts={parts} center={nf(parts[0]?.value ?? 0, 1) + "%"} sub={parts[0]?.label} /></Card>
-      <Card title={`Change since ${o.periods[0]}`} sub="Share of shares held, then and now" icon="layers">
+      <Card help="own-mix" title="Latest ownership mix" sub={o.asOf ? `As of ${o.asOf}` : undefined} icon="pie"><Donut parts={parts} center={nf(parts[0]?.value ?? 0, 1) + "%"} sub={parts[0]?.label} /></Card>
+      <Card help="own-slope" title={`Change since ${o.periods[0]}`} sub="Share of shares held, then and now" icon="layers">
         <Slope aLabel={o.periods[0]} bLabel={o.periods[last]} fmt={(x) => nf(x, 1) + "%"} rows={keys.map((k) => ({ label: OWN[k][0], a: first(k), b: (o.series[k][last] as number) ?? 0, color: OWN[k][1] }))} />
       </Card>
-      {changes.length > 0 && <Card title="Change over the last year" sub="Percentage points" icon="growth" full><RankBars diverging rows={changes} fmt={(x) => (x > 0 ? "+" : x < 0 ? MINUS : "") + nf(x, 2) + " pts"} /></Card>}
+      {changes.length > 0 && <Card help="own-change-1y" title="Change over the last year" sub="Percentage points" icon="growth" full><RankBars diverging rows={changes} fmt={(x) => (x > 0 ? "+" : x < 0 ? MINUS : "") + nf(x, 2) + " pts"} /></Card>}
     </div>
   );
 }
@@ -209,7 +210,7 @@ function ValTab({ r }: { r?: Ratios }) {
   return (
     <div className="cl-grid">
       <Gate tier="gold" title="Valuation against its own history" points={["Today's multiples against the multi-year median", "Spot cheap and expensive stretches", "P/E, P/B and P/S side by side"]}>
-        <Card title="Today against the usual level" sub="Multi-year median → now" icon="tag" full note="If the new value sits to the right of the old one, the stock is dearer than it has usually been; to the left, cheaper. Cheap is not always good: check the quality scores too.">
+        <Card help="val-dumbbell" title="Today against the usual level" sub="Multi-year median → now" icon="tag" full note="If the new value sits to the right of the old one, the stock is dearer than it has usually been; to the left, cheaper. Cheap is not always good: check the quality scores too.">
           {rows.length ? <Dumbbell rows={rows} aLabel="Usual (median)" bLabel="Now" fmt={(x) => nf(x, 1) + "×"} /> : <Soon>Valuation history is not available yet.</Soon>}
         </Card>
       </Gate>
@@ -226,11 +227,11 @@ function EvTab({ e, p, s }: { e?: Events; p?: Peers; s: Summary }) {
   const bars = self ? [...peers, { label: s.profile.symbol, value: self, self: true }].sort((a, b) => b.value - a.value) : peers;
   return (
     <div className="cl-grid">
-      <Card title="Dividends, bonus and splits" sub="Corporate actions over time" icon="coins" full note="Gold dots on the line are cash dividends; larger dots above it are bonus issues, splits or rights offers.">
+      <Card help="events-timeline" title="Dividends, bonus and splits" sub="Corporate actions over time" icon="coins" full note="Gold dots on the line are cash dividends; larger dots above it are bonus issues, splits or rights offers.">
         {events.length ? <Timeline events={events} /> : <Soon>No corporate actions on record.</Soon>}
       </Card>
-      <Card title="Market value against peers" sub="₹ Crore" icon="layers">{bars.length > 1 ? <RankBars rows={bars} fmt={(x) => "₹" + crf(x)} /> : <Soon>Peer values appear once the peer companies are loaded.</Soon>}</Card>
-      <Card title="Share of the group's value" sub="Box size is market value" icon="pie">{bars.length > 1 ? <Treemap height={230} items={bars.map((b, i) => ({ label: b.label, value: b.value, color: "self" in b ? "var(--gold)" : C((i % 4) + 2) }))} fmt={(x) => "₹" + crf(x) + " Cr"} /> : <Soon>Peer values appear once the peer companies are loaded.</Soon>}</Card>
+      <Card help="peers-mcap" title="Market value against peers" sub="₹ Crore" icon="layers">{bars.length > 1 ? <RankBars rows={bars} fmt={(x) => "₹" + crf(x)} /> : <Soon>Peer values appear once the peer companies are loaded.</Soon>}</Card>
+      <Card help="peers-treemap" title="Share of the group's value" sub="Box size is market value" icon="pie">{bars.length > 1 ? <Treemap height={230} items={bars.map((b, i) => ({ label: b.label, value: b.value, color: "self" in b ? "var(--gold)" : C((i % 4) + 2) }))} fmt={(x) => "₹" + crf(x) + " Cr"} /> : <Soon>Peer values appear once the peer companies are loaded.</Soon>}</Card>
     </div>
   );
 }

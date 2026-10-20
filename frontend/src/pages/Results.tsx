@@ -4,6 +4,7 @@ import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { dayLabel, useFeed, type FeedItem, who } from "../lib/feed";
 import { useWatchlist } from "../lib/watchlist";
+import { ChartHelp } from "../components/ChartHelp";
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -37,7 +38,7 @@ export function ResultsPage() {
       {isError && <div className="formerr">The calendar could not be loaded. Please try again shortly.</div>}
       <div className="rc-grid">
         <section className="card">
-          <div className="card-h"><h3><span className="ci"><Icon name="calendar" /></span>{month.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</h3>
+          <div className="card-h"><h3><span className="ci"><Icon name="calendar" /></span>{month.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}<ChartHelp id="results-calendar" /></h3>
             <span className="row"><button className="btn" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>←</button><button className="btn" onClick={() => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}>Today</button><button className="btn" aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>→</button></span></div>
           {isLoading ? <div className="skeleton" style={{ height: 320 }} /> : (
             <div className="rcal" role="grid" aria-label="Results calendar">

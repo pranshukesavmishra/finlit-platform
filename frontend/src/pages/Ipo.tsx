@@ -3,6 +3,7 @@ import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { listingGain, minInvest, useIpos, type Ipo } from "../lib/ipo";
 import { MINUS, nf } from "../lib/format";
+import { ChartHelp } from "../components/ChartHelp";
 
 const DAY = 86_400_000;
 const d0 = (iso: string) => new Date(iso + "T00:00:00").getTime();
@@ -53,7 +54,7 @@ export function IpoPage() {
         {([["open", "Open now", by("open").length], ["upcoming", "Upcoming", by("upcoming").length], ["listed", "Listed in the last 30 days", month.length]] as const).map(([k, l, n]) => <div key={k} className="card ipo-t" style={{ "--tc": STATUS[k].colour } as React.CSSProperties}><b>{n}</b><span>{l}</span></div>)}
         <div className="card ipo-t" style={{ "--tc": "var(--k3)" } as React.CSSProperties}><b className={avgGain == null ? "" : avgGain >= 0 ? "up" : "down"}>{avgGain == null ? "—" : (avgGain >= 0 ? "+" : MINUS) + nf(Math.abs(avgGain), 1) + "%"}</b><span>Average listing gain (last 30 days)</span></div>
       </div>
-      <section className="card ipo-s"><div className="card-h"><h3><span className="ci"><Icon name="calendar" /></span>Next seven weeks</h3><span className="s">Bar = application window</span></div>{isLoading ? <div className="skeleton" style={{ height: 160 }} /> : <Strip rows={rows} />}
+      <section className="card ipo-s"><div className="card-h"><h3><span className="ci"><Icon name="calendar" /></span>Next seven weeks<ChartHelp id="ipo-timeline" /></h3><span className="s">Bar = application window</span></div>{isLoading ? <div className="skeleton" style={{ height: 160 }} /> : <Strip rows={rows} />}
         <div className="clg">{(Object.keys(STATUS) as Ipo["status"][]).map((s) => <span key={s}><i style={{ background: STATUS[s].colour }} />{STATUS[s].label}</span>)}</div></section>
       <div className="ipo-bar2">
         <div className="seg" role="group" aria-label="Status">{FILTERS.map(([k, l]) => <button key={k} aria-pressed={f === k} onClick={() => setF(k)}>{l}</button>)}</div>

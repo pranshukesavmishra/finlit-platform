@@ -128,8 +128,8 @@ function Footer() {
           <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
         </div>
         <div className="ffine">
-          <span>{COMPANY.disclaimer}</span>
-          <span>© {new Date().getFullYear()} {COMPANY.name}. All rights reserved.</span>
+          <span>{COMPANY.disclaimer} Market data may be delayed. Past performance does not indicate future results.</span>
+          <span>© {new Date().getFullYear()} {COMPANY.name}<br /><Link to="/legal/terms">Terms</Link> · <Link to="/legal/privacy">Privacy</Link> · <Link to="/legal/disclosures">Disclosures</Link></span>
         </div>
       </div>
     </footer>

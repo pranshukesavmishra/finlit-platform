@@ -1,4 +1,5 @@
 import { HScroll } from "../components/HScroll";
+import { ChartHelp } from "../components/ChartHelp";
 import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { MiniBars, type BarSeries } from "../charts/MiniBars";
@@ -75,7 +76,7 @@ export function QuarterSection({ f }: { f?: Financials }) {
             {k.bad.length ? <ul>{k.bad.map((t) => <li key={t}>{t}</li>)}</ul> : <p className="muted">No red flags in the reported numbers this quarter.</p>}</div>
         </div>) : null; })()}
       <div className="card acc qtab" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
-        <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Profit and loss for the quarter</h3><span className="s">₹ Crore · latest quarter\u2019s change shown under its figure</span></div>
+        <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Profit and loss for the quarter<ChartHelp id="quarter-table" /></h3><span className="s">₹ Crore · latest quarter\u2019s change shown under its figure</span></div>
         <HScroll className="" label="table"><table className="qtt"><thead><tr><th>Line</th>{cols.map((i, j) => <th key={i} className={j === 0 ? "latest" : ""}>{q.periods[i]}{j === 0 ? " (latest)" : j === 1 ? " (last quarter)" : " (year ago)"}</th>)}</tr></thead>
           <tbody>{lines.map(([k, v, b]) => { const qoq = chg(v[last], v[last - 1]), yoyC = yoy >= 0 ? chg(v[last], v[yoy]) : null;
             const tag = (c: number | null, label: string) => c == null ? null : <small className={"chg " + (c >= 0 ? "pos" : "neg")} title={label}>{c >= 0 ? "+" : MINUS}{nf(Math.abs(c), 1)}% {label}</small>;
@@ -137,7 +138,7 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
         const open = big === c.id;
         return (
           <div className={"card tr-c" + (open ? " big" : "")} key={c.id}>
-            <div className="tr-h"><h3>{c.title}</h3>{c.annualOnly && mode === "q" && <span className="chip ghost">Annual</span>}
+            <div className="tr-h"><h3>{c.title} <ChartHelp id={"trend-" + c.id} /></h3>{c.annualOnly && mode === "q" && <span className="chip ghost">Annual</span>}
               <button className="tr-x" aria-label={open ? `Shrink ${c.title}` : `Expand ${c.title}`} aria-pressed={open} onClick={() => setBig(open ? null : c.id)}><Icon name="arrow" /></button></div>
             <MiniBars labels={d.labels} series={d.series} mode={d.mode} fmt={d.fmt} height={open ? 240 : 150} w={open ? 900 : 300} highlight={d.labels.length - 1} />
             {d.series.length > 1 && <div className="tr-key">{d.series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>}

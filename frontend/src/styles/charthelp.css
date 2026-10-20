@@ -6,7 +6,7 @@
 /* A larger invisible hit area for touch, without changing the 18px look */
 .chh-b { position: relative; } .chh-b::after { content: ""; position: absolute; inset: -9px; }
 
-.chh-p { position: fixed; z-index: 400; box-sizing: border-box; width: min(340px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; padding: 12px 14px 4px; border-radius: 12px; background: var(--s1); color: var(--text); border: 1px solid var(--border-strong); box-shadow: var(--lift); text-align: left; font: 400 13px/1.5 var(--sans); letter-spacing: 0; text-transform: none; white-space: normal; }
+.chh-p { position: fixed; z-index: 400; box-sizing: border-box; width: min(400px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain; padding: 12px 14px 4px; border-radius: 12px; background: var(--s1); color: var(--text); border: 1px solid var(--border-strong); box-shadow: var(--lift); text-align: left; font: 400 13px/1.5 var(--sans); letter-spacing: 0; text-transform: none; white-space: normal; }
 .chh-p[hidden] { display: none; }
 .chh-p::before { content: ""; position: absolute; left: var(--ax, 20px); top: -6px; width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); background: var(--s1); border-left: 1px solid var(--border-strong); border-top: 1px solid var(--border-strong); }
 .chh-p.up::before { top: auto; bottom: -6px; transform: rotate(225deg); }

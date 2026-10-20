@@ -20,6 +20,7 @@ import { dayLabel, useFeed, who } from "../lib/feed";
 import { encodeState, toBody, useScreen, type PState } from "../lib/proscreen";
 import { useIpos } from "../lib/ipo";
 import { useAlerts } from "../lib/alerts";
+import { ChartHelp } from "../components/ChartHelp";
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
 const sgn = (v: number | null | undefined, d = 1) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(v, d) + "%");
@@ -59,6 +60,8 @@ function Snapshot({ rows }: { rows: Row[] }) {
     </div>
   );
 }
+
+const HELP: Record<string, string> = { snapshot: "dash-snapshot", results: "dash-results", movers: "dash-movers", second: "dash-second", buckets: "dash-buckets" };
 
 function Movers({ items }: { items: Row[] }) {
   const top = [...items].filter((r) => r.change_pct != null).sort((a, b) => Math.abs(b.change_pct as number) - Math.abs(a.change_pct as number)).slice(0, 7);
@@ -257,7 +260,7 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
             {body(w.id)}
           </section>))}

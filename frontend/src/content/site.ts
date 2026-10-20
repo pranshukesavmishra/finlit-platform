@@ -10,47 +10,48 @@ export const COMPANY = {
 };
 
 export const SERVICES = [
-  { n: "01", name: "0 → 1 Investing", icon: "sprout", proposition: "Start investing from zero, with confidence.",
-    desc: "We help you understand stocks, ETFs, mutual funds and other investment options to build a strategy aligned with your goals and risk profile." },
-  { n: "02", name: "Wealth Planning", icon: "growth", proposition: "Turn your income and savings into long-term wealth.",
-    desc: "We create personalized strategies to grow, diversify and protect your wealth across different life stages." },
-  { n: "03", name: "Family Financial Planning", icon: "users", proposition: "Plan for what matters most.",
-    desc: "From your children's education to major life goals and financial security, we bring your family's goals, investments, insurance and future needs into one clear financial roadmap." },
-  { n: "04", name: "Global Investing", icon: "map", proposition: "Look beyond borders to diversify your wealth.",
-    desc: "We help you understand and access global investment opportunities while aligning them with your overall portfolio and risk appetite." },
-  { n: "05", name: "Portfolio Review & Stock Selection", icon: "gauge", proposition: "Already investing? Get an objective view of your portfolio.",
-    desc: "We evaluate diversification, risk, performance and individual holdings to help you make smarter, more informed investment decisions." },
+  { n: "01", name: "0 → 1 Investing", icon: "sprout", proposition: "Never invested? Start here.",
+    desc: "We explain stocks, ETFs and mutual funds in plain language, work out how much risk you can live with, and help you pick an amount to start with. You leave with a simple plan you can follow on your own." },
+  { n: "02", name: "Wealth Planning", icon: "growth", proposition: "A plan for the money you already earn and save.",
+    desc: "We look at your income, savings and goals, then talk through how to split money between equity, debt, gold and cash you can reach in an emergency. We show the trade-offs. We do not promise returns." },
+  { n: "03", name: "Family Financial Planning", icon: "users", proposition: "One page for the whole family's money.",
+    desc: "Children's education, a home, parents' health cover, retirement. We put your goals, your investments and your insurance side by side and point out what is missing." },
+  { n: "04", name: "Global Investing", icon: "map", proposition: "Thinking about investing outside India?",
+    desc: "We explain the ways an Indian resident can get foreign exposure, such as international funds and ETFs, what they cost and which tax questions to check with a tax professional. We also help you decide how much, if anything, belongs in your portfolio." },
+  { n: "05", name: "Portfolio Review & Stock Selection", icon: "gauge", proposition: "Already investing? Get a second pair of eyes.",
+    desc: "Send us your holdings. We check how concentrated they are, where funds overlap, and what the numbers say about each company. Then we explain what we see and how we would research a new stock. We do not give buy or sell calls. You decide." },
 ] as const;
 export type ServiceName = (typeof SERVICES)[number]["name"];
 
+/** `months` lets the Services page show the price per month. */
 export const PRICING = [
-  { plan: "First Session", price: "₹99", note: "A one-time conversation to understand your goals" },
-  { plan: "1 Month", price: "₹299", note: "" },
-  { plan: "3 Months", price: "₹699", note: "" },
-  { plan: "6 Months", price: "₹1,299", note: "" },
-  { plan: "1 Year", price: "₹2,499", note: "Best value" },
+  { plan: "First Session", price: "₹99", months: 0, note: "One conversation, so we can understand your goals" },
+  { plan: "1 Month", price: "₹299", months: 1, note: "" },
+  { plan: "3 Months", price: "₹699", months: 3, note: "" },
+  { plan: "6 Months", price: "₹1,299", months: 6, note: "" },
+  { plan: "1 Year", price: "₹2,499", months: 12, note: "Lowest per month" },
 ];
 
 export const FOUNDER = {
   name: "Nishant Jain",
   role: "Independent Equity Investor & Researcher",
   credentials: ["B.Tech, IIT Kanpur", "Minor in Finance, IIT Kanpur", "CFA Level I Cleared", "NISM Certified Research Analyst"],
-  bio: "Nishant’s investment approach is rooted in fundamental research, business quality, valuation discipline, margin of safety, thoughtful position sizing and long-term compounding.",
+  bio: "Nishant studied engineering at IIT Kanpur, with a minor in finance. He looks for good businesses at sensible prices, keeps each position small enough that one mistake does not hurt, and thinks in years rather than weeks. These are his credentials, not a SEBI registration: FinLit is not registered with SEBI or AMFI.",
   linkedin: "https://www.linkedin.com/in/nishant-jain-1464071ab/",
   photo: `${import.meta.env.BASE_URL}team/nishant.webp`,
 };
 
 export const PILLARS = [
-  { title: "Research", icon: "notes", text: "Fundamental, sectoral and company-level analysis built around business quality, valuation and long-term opportunity." },
-  { title: "Portfolio Thinking", icon: "layers", text: "A disciplined view of conviction, allocation, diversification, risk and long-term portfolio construction." },
-  { title: "Investor Understanding", icon: "users", text: "Helping investors better understand businesses, markets, portfolio decisions and the reasoning behind investment choices." },
-  { title: "Global Perspective", icon: "map", text: "Exploring domestic and international opportunities, including equities, ETFs and broader market exposure." },
+  { title: "Research", icon: "notes", text: "We read the numbers behind a company: how it earns, how much debt it carries, and whether the price asks too much." },
+  { title: "Portfolio thinking", icon: "layers", text: "One good stock is not a portfolio. We look at how much you hold in each name, how the holdings overlap and what could go wrong together." },
+  { title: "Explaining", icon: "users", text: "If we cannot explain why we looked at something in plain words, we do not think it is ready to show you." },
+  { title: "Beyond India", icon: "map", text: "Some investors want a part of their money abroad. We explain the options, the costs and the risks, without pushing any of them." },
 ];
 
 export const PRINCIPLES = [
-  { title: "Independent Thinking", text: "Research before consensus." },
-  { title: "Clarity Over Complexity", text: "Investment reasoning should be understandable, structured and evidence-led." },
-  { title: "Discipline Over Noise", text: "Process, risk management and long-term thinking matter more than short-term market excitement." },
+  { title: "Think for yourself", text: "We do our own reading before we look at what everyone else is saying." },
+  { title: "Keep it simple", text: "If the reasoning needs jargon to hold together, it probably does not hold together." },
+  { title: "Stay steady", text: "A sound process and a position size you can sleep with matter more than this week's excitement." },
 ];
 
 export const PROCESS = [
@@ -71,28 +72,27 @@ export const TESTIMONIAL = {
 };
 
 export const WHY = {
-  kpis: [
-    { value: 144, prefix: "", suffix: "cr", label: "India's population", source: "Govt. est. 2026" },
-    { value: 39, prefix: "", suffix: "cr", label: "Financially literate", source: "NCFE 2026" },
-    { value: 12.5, prefix: "~", suffix: "cr", label: "Investing, portfolios under ₹30L", source: "NSE · AMFI 2026" },
-    { value: 38.5, prefix: "~", suffix: "cr", label: "Addressable audience", source: "FinLit estimate", gold: true },
+  story: [
+    "A lot of people in India already invest. Many started with a friend's tip, a few SIPs and a demat account, and never sat down to ask what the money is for.",
+    "We saw three kinds of investor again and again. Some have a handful of random SIPs and no plan. Some want to start but do not know where. Some earn well and have never written down a goal.",
+    "FinLit is our attempt to help with that. The website gives you free data and tools to look at companies yourself. The sessions give you a person to talk to. Neither tells you what to buy.",
   ],
   people: [
-    { n: "01", title: "Scattered", text: "Random SIPs, no plan.", icon: "layers" },
-    { n: "02", title: "Stuck at Zero", text: "Ready, doesn't know how.", icon: "sprout" },
-    { n: "03", title: "Unstructured", text: "Earning well, no goals.", icon: "tag" },
+    { n: "01", title: "Scattered", text: "A few SIPs here, a stock there, and no plan tying them together.", icon: "layers" },
+    { n: "02", title: "Stuck at zero", text: "Ready to start, but not sure how, how much or where.", icon: "sprout" },
+    { n: "03", title: "Earning, no goals", text: "Income is fine. Nobody has asked what the savings are for.", icon: "tag" },
   ],
   suite: [
-    { n: "01", title: "Research", text: "A clearer frame for the questions worth asking." },
-    { n: "02", title: "Portfolio Reviews", text: "See how your investments work together." },
-    { n: "03", title: "Financial Planning", text: "Connect financial decisions to life goals." },
-    { n: "04", title: "Wealth Planning", text: "Evolve a long-term plan as life changes." },
+    { n: "01", title: "Research tools", text: "Free company data, a screener and a score to help you ask better questions." },
+    { n: "02", title: "Portfolio review", text: "A look at how your holdings fit together." },
+    { n: "03", title: "Financial planning", text: "Tie your money decisions to goals such as a home or a child's education." },
+    { n: "04", title: "Wealth planning", text: "Revisit the plan as your income and life change." },
   ],
-  loop: ["Discover", "Diagnose", "Learn", "Act", "Review", "Upgrade"],
+  loop: ["Look at where you are", "Spot the gaps", "Learn what you need", "Act", "Review", "Adjust"],
   principles: [
-    { title: "Goals before products", text: "Start with what the money needs to accomplish." },
-    { title: "Portfolio before individual picks", text: "Evaluate how investments work together." },
-    { title: "Review before reaction", text: "Let the plan evolve deliberately instead of reacting to noise." },
+    { title: "Goals first", text: "Start with what the money is for, then pick products." },
+    { title: "Portfolio before picks", text: "A stock matters for how it sits with everything else you own." },
+    { title: "Review before reacting", text: "Change the plan on purpose, not because of one bad week." },
   ],
 };
 
@@ -104,8 +104,8 @@ const enq = (service?: string): Action => ({ type: "enquire", service });
 const menu = (target: string): Action => ({ type: "menu", target });
 export const ASSISTANT: Record<string, AssistantNode> = {
   main: {
-    greeting: "Welcome to FinLit AI.\nExplore investing, financial planning, and market concepts with clarity.",
-    prompt: "How can I help you today?",
+    greeting: "Hi, this is the FinLit assistant.\nI can point you to the right page. I cannot give investment advice.",
+    prompt: "What are you looking for?",
     options: [
       { label: "Explore Services", action: menu("services") }, { label: "Portfolio Review", action: menu("portfolio-review") },
       { label: "Financial Planning", action: menu("financial-planning") }, { label: "Global Investing", action: menu("global-investing") },
@@ -115,30 +115,30 @@ export const ASSISTANT: Record<string, AssistantNode> = {
       { label: "Pricing & Consultation", action: menu("pricing") }, { label: "Contact the Team", action: menu("contact") },
     ],
   },
-  "financial-planning": { answer: "FinLit’s financial planning services include Wealth Planning and Family Financial Planning. Choose a topic to explore what each covers.", backLabel: "Back to Main Menu",
+  "financial-planning": { answer: "We offer two planning services: Wealth Planning (your own money and goals) and Family Financial Planning (the whole household). Pick one to read more.", backLabel: "Back to Main Menu",
     options: [{ label: "Wealth Planning", action: menu("wealth-planning") }, { label: "Family Financial Planning", action: menu("family-planning") }] },
-  services: { answer: "FinLit Ventures offers structured investing and financial planning services designed around different stages of an investor’s journey.", backLabel: "Back to Main Menu",
+  services: { answer: "We offer five services, from first-time investing to a review of what you already hold. Pick one to read more.", backLabel: "Back to Main Menu",
     options: [{ label: "0→1 Investing", action: menu("zero-to-one") }, { label: "Wealth Planning", action: menu("wealth-planning") }, { label: "Family Financial Planning", action: menu("family-planning") }, { label: "Global Investing", action: menu("global-service") }, { label: "Portfolio Review & Stock Selection", action: menu("portfolio-service") }] },
-  "zero-to-one": { answer: "0→1 Investing is designed for individuals who want to start investing with greater clarity and structure. The focus is on understanding goals, risk profile, capital allocation, and building a disciplined investment approach.", backLabel: "Back to Services",
+  "zero-to-one": { answer: "0→1 Investing is for people who have not started yet. We go through your goals, how much risk you can handle and how much to put in, and end with a simple plan.", backLabel: "Back to Services",
     options: [{ label: "View Services", action: nav("/services") }, { label: "Enquire About This Service", action: enq("0 → 1 Investing") }] },
-  "wealth-planning": { answer: "Wealth Planning focuses on aligning investments with long-term financial goals, capital requirements, risk preferences, and overall portfolio structure.", backLabel: "Back to Services",
+  "wealth-planning": { answer: "Wealth Planning matches your investments to your goals and to how much risk you can live with, and shows how the pieces fit together.", backLabel: "Back to Services",
     options: [{ label: "View Services", action: nav("/services") }, { label: "Enquire", action: enq("Wealth Planning") }] },
-  "family-planning": { answer: "Family Financial Planning helps structure financial decisions across family goals such as wealth creation, major expenses, long-term planning, and portfolio organization.", backLabel: "Back to Services",
+  "family-planning": { answer: "Family Financial Planning puts the household's goals, investments and insurance on one page: education, a home, retirement, big expenses.", backLabel: "Back to Services",
     options: [{ label: "View Services", action: nav("/services") }, { label: "Enquire", action: enq("Family Financial Planning") }] },
-  "global-investing": { answer: "Global Investing helps investors understand opportunities beyond domestic markets and evaluate international exposure as part of a broader portfolio strategy.", backLabel: "Back to Main Menu",
+  "global-investing": { answer: "Global Investing explains how Indian residents can get foreign exposure, what it costs, and how much of a portfolio it might make up.", backLabel: "Back to Main Menu",
     options: [{ label: "View Global Investing Service", action: nav("/services") }, { label: "Enquire", action: enq("Global Investing") }] },
-  "global-service": { answer: "Global Investing helps investors understand opportunities beyond domestic markets and evaluate international exposure as part of a broader portfolio strategy.", backLabel: "Back to Services",
+  "global-service": { answer: "Global Investing explains how Indian residents can get foreign exposure, what it costs, and how much of a portfolio it might make up.", backLabel: "Back to Services",
     options: [{ label: "View Global Investing Service", action: nav("/services") }, { label: "Enquire", action: enq("Global Investing") }] },
-  "portfolio-service": { answer: "Portfolio Review & Stock Selection focuses on reviewing an existing portfolio, understanding its composition, identifying areas that may require attention, and supporting research-driven stock selection.", backLabel: "Back to Services",
+  "portfolio-service": { answer: "Portfolio Review & Stock Selection looks at what you already hold, flags parts that need attention and shows how to research a new stock. We do not give buy or sell calls.", backLabel: "Back to Services",
     options: [{ label: "View Portfolio", action: nav("/portfolio") }, { label: "Enquire About Portfolio Review", action: enq("Portfolio Review & Stock Selection") }] },
-  "portfolio-review": { answer: "FinLit can help review an existing portfolio from a structured research and portfolio-construction perspective. The review may cover portfolio composition, concentration, allocation, and the reasoning behind holdings.", backLabel: "Back to Main Menu",
+  "portfolio-review": { answer: "We can review what you already hold: how much sits in each stock and sector, where holdings overlap, and why you own each one.", backLabel: "Back to Main Menu",
     options: [{ label: "View Portfolio", action: nav("/portfolio") }, { label: "Explore Portfolio Review Service", action: menu("portfolio-service") }, { label: "Enquire", action: enq("Portfolio Review & Stock Selection") }] },
-  performance: { answer: "You can review FinLit’s latest reported portfolio performance, realised P&L, ROI, win rate, holding period, realised trades, and supporting portfolio analytics on the Portfolio page.", backLabel: "Back to Main Menu",
+  performance: { answer: "The Portfolio page shows our own realised trades from a broker statement: profit and loss, win rate and holding periods. Past results do not promise future returns.", backLabel: "Back to Main Menu",
     options: [{ label: "View Performance", action: nav("/portfolio") }] },
-  about: { answer: "FinLit Ventures focuses on investment research, portfolio reviews, financial planning, and structured discussions around Indian equities, mutual funds, ETFs, and global investing.", backLabel: "Back to Main Menu",
+  about: { answer: "FinLit Ventures does investment research, portfolio reviews and financial planning conversations, mostly around Indian stocks, mutual funds and ETFs.", backLabel: "Back to Main Menu",
     options: [{ label: "About FinLit", action: nav("/about") }, { label: "Meet the Founder", action: nav("/about") }] },
-  pricing: { answer: `FinLit’s published engagement options start with ${PRICING[0].plan} at ${PRICING[0].price}. The services page lists the current options and prices.`, backLabel: "Back to Main Menu",
+  pricing: { answer: `A ${PRICING[0].plan} costs ${PRICING[0].price}. Longer plans are listed on the services page. The website plans (Basic, Silver, Gold) are separate and are on the Plans page.`, backLabel: "Back to Main Menu",
     options: [{ label: "View Services & Pricing", action: nav("/services") }, { label: "Enquire", action: enq() }] },
-  contact: { answer: "You can reach the FinLit team through the website contact form. Share the service you’re interested in and the team can follow up with you.", backLabel: "Back to Main Menu",
+  contact: { answer: "Use the contact form and tell us which service you are interested in. We usually reply within one working day.", backLabel: "Back to Main Menu",
     options: [{ label: "Open Contact Form", action: nav("/contact") }, { label: "Explore Services", action: menu("services") }] },
 };

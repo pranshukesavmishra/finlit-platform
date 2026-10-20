@@ -19,7 +19,7 @@ export function ChartHelp({ id }: { id: string }) {
   const leave = useRef<number>(0);
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);       // opened by a click or tap, so leaving the button does not close it
-  const [pos, setPos] = useState<{ left: number; top: number; above: boolean; arrow: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; above: boolean; arrow: number; maxH: number } | null>(null);
 
   const close = useCallback(() => { window.clearTimeout(leave.current); setOpen(false); setPinned(false); }, []);
 
@@ -28,12 +28,13 @@ export function ChartHelp({ id }: { id: string }) {
     const b = btn.current, p = pop.current;
     if (!b || !p) return;
     const r = b.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
-    const w = Math.min(p.offsetWidth, vw - EDGE * 2), h = p.offsetHeight;
+    const w = Math.min(p.offsetWidth, vw - EDGE * 2);
     const below = vh - r.bottom - GAP - EDGE, above = r.top - GAP - EDGE;
-    const flip = h > below && above > below;
+    const flip = p.offsetHeight > below && above > below;
+    const h = Math.min(p.offsetHeight, Math.max(flip ? above : below, 120));   // too tall for either side: scroll inside it rather than cover the "?"
     const left = Math.max(EDGE, Math.min(r.left + r.width / 2 - w / 2, vw - w - EDGE));
     const top = flip ? Math.max(EDGE, r.top - GAP - h) : Math.min(r.bottom + GAP, Math.max(EDGE, vh - h - EDGE));
-    setPos({ left, top, above: flip, arrow: Math.max(12, Math.min(w - 12, r.left + r.width / 2 - left)) });
+    setPos({ left, top, above: flip, arrow: Math.max(12, Math.min(w - 12, r.left + r.width / 2 - left)), maxH: h });
   }, []);
 
   useLayoutEffect(() => { if (open) place(); else setPos(null); }, [open, place]);
@@ -81,7 +82,7 @@ export function ChartHelp({ id }: { id: string }) {
           role="tooltip"
           hidden={!open}
           className={"chh-p" + (pos?.above ? " up" : "")}
-          style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: pos ? "visible" : "hidden", ["--ax" as string]: (pos?.arrow ?? 20) + "px" }}
+          style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, maxHeight: pos ? pos.maxH : undefined, visibility: pos ? "visible" : "hidden", ["--ax" as string]: (pos?.arrow ?? 20) + "px" }}
           onMouseEnter={hold}
           onMouseLeave={release}
         >

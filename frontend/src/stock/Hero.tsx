@@ -9,6 +9,7 @@ import { Dial } from "../charts/Dial";
 import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
+import { ChartHelp } from "../components/ChartHelp";
 import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
 
@@ -97,7 +98,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             <div className="rmain">
               <div className="dialcol">
                 <Dial overall={s.score.overall} pillars={s.score.pillars} onPillar={(k) => setOpen((o) => (o === k ? null : k))} active={open} bandLabel={s.score.band.label} />
-                <div className="dcap">Average of five pillars · select a ring segment</div>
+                <div className="dcap">Average of five pillars · select a ring segment <ChartHelp id="score-dial" /></div>
                 {chg && <div className={"sdelta " + (chg.delta > 0 ? "up" : chg.delta < 0 ? "down" : "")} title={`Compared with ${dateIN(chg.since)}`}>{chg.delta > 0 ? "▲ +" : chg.delta < 0 ? "▼ −" : "● "}{Math.abs(chg.delta)} points <small>since {dateIN(chg.since, { day: "numeric", month: "short" })}</small></div>}
               </div>
               <div className="readcol">
@@ -112,6 +113,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                 <div className="disc"><Icon name="info" /><span>Research summary, not a recommendation to buy or sell. FinLit Ventures is a technology company and is not registered with SEBI or AMFI.</span></div>
               </div>
             </div>
+            <div className="label" style={{ margin: "18px 0 8px", display: "flex", alignItems: "center", gap: 8 }}>The five pillars <ChartHelp id="score-pillars" /></div>
             <div className="pillars" role="group" aria-label="Five pillars">
               {s.score.pillars.map((pl, i) => {
                 const c = `var(${PILLAR_COLOR[pl.key]})`, r = 22, circ = 2 * Math.PI * r;

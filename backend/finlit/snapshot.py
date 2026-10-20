@@ -117,6 +117,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     if growth_from_quarter:   # growth measured over one quarter says so, instead of passing for a full-year figure
         derived_periods.update({"sales_growth_latest": "Latest quarter vs year ago", "profit_growth_latest": "Latest quarter vs year ago"})
     ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
+    _fill_profitability(ratio_view, pl, bs, lender)
     _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))
 
     metrics: Dict[str, Optional[float]] = {k: v["value"] for k, v in ratio_view["latest"].items()}
@@ -254,6 +255,53 @@ def _apply_applicability(ratio_view: dict, lender: bool, equity: Optional[float]
         ratio_view["history"]["rows"].pop(k, None)
     for g in ratio_view.get("groups", []):
         g["keys"] = [k for k in g["keys"] if k not in drop]
+
+
+PROFIT_FILL_CELLS = ("roe",)   # same definition as the provider's (profit over closing equity), so single missing years can be filled safely
+
+
+def _fill_profitability(ratio_view: dict, pl: dict, bs: dict, lender: bool) -> None:
+    """The provider leaves some margin and return ratios out for some companies (and some single years). Where our own statements hold the
+    figures, work them out, so the profitability table is as complete as the company's statements allow. A row the provider supplies is never
+    replaced: its blank years are filled only for ratios defined the same way (return on equity); an absent row is filled whole."""
+    hist = ratio_view.get("history") or {}
+    periods, rows = hist.get("periods") or [], hist.setdefault("rows", {})
+    if not periods:
+        return
+    def series(table: dict, key: str) -> Dict[str, Optional[float]]:
+        return dict(zip(table.get("periods") or [], (table.get("rows") or {}).get(key) or []))
+    rev, tot = series(pl, "revenue"), series(pl, "total_income")
+    base = {p: (tot.get(p) if lender and tot.get(p) else rev.get(p)) for p in periods}
+    op, dep, pbt, tax, np_ = series(pl, "operating_profit"), series(pl, "depreciation"), series(pl, "profit_before_tax"), series(pl, "tax"), series(pl, "net_profit")
+    eq, assets, cl = series(bs, "total_equity"), series(bs, "total_assets"), series(bs, "current_liabilities")
+
+    def pct(a: Optional[float], b: Optional[float]) -> Optional[float]:
+        return round(a / b * 100, 2) if a is not None and b else None
+    calc = {
+        "net_margin": lambda p: pct(np_.get(p), base[p]),
+        "operating_margin": lambda p: pct(op.get(p), base[p]),
+        "pretax_margin": lambda p: pct(pbt.get(p), base[p]),
+        "effective_tax_rate": lambda p: pct(tax.get(p), pbt.get(p)) if (pbt.get(p) or 0) > 0 and tax.get(p) is not None else None,
+        "ebitda_margin": lambda p: pct(op.get(p), rev.get(p)) if not lender else None,
+        "ebit_margin": lambda p: pct(op.get(p) - dep[p], rev.get(p)) if not lender and op.get(p) is not None and dep.get(p) is not None else None,
+        "roe": lambda p: pct(np_.get(p), eq.get(p)) if (eq.get(p) or 0) > 0 else None,
+        "roa": lambda p: pct(np_.get(p), assets.get(p)),
+        "roce": lambda p: pct(op.get(p) - dep[p], assets[p] - cl[p]) if not lender and op.get(p) is not None and dep.get(p) is not None and assets.get(p) is not None and cl.get(p) is not None and assets[p] - cl[p] > 0 else None,
+    }
+    filled: List[str] = []
+    for key, fn in calc.items():
+        have = rows.get(key)
+        if have and any(v is not None for v in have):
+            if key not in PROFIT_FILL_CELLS:
+                continue
+            new = [v if v is not None else fn(p) for v, p in zip(have, periods)]
+        else:
+            new = [fn(p) for p in periods]
+        if any(v is not None for v in new) and new != (have or []):
+            rows[key] = new
+            filled.append(key)
+    if filled:
+        ratio_view.setdefault("notes", []).append("Some profitability ratios were worked out by FinLit from the company's own statements because the data provider did not send them: " + ", ".join(k.replace("_", " ") for k in filled) + ".")
 
 
 def _explain_gaps(score: dict, lender: bool, annual: int, quarterly: int, days: int) -> None:

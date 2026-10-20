@@ -4,9 +4,9 @@
    pillars, the read, key numbers); every later section reuses the pillar colours so evidence links back to the score.
    Content is tiered Basic / Silver / Gold; locked sections stay visible behind an unlock card. */
 :root, :root[data-theme="dark"] {
-  --bg: #0F0E0B; --s1: #17150F; --s2: #1E1B14; --s3: #2A261C;
-  --border: rgba(231,214,170,.12); --border-strong: rgba(231,214,170,.26);
-  --text: #F4EFE3; --muted: #BDB6A4; --faint: #8F8979;
+  --bg: #121110; --s1: #191816; --s2: #201E1B; --s3: #2B2823;
+  --border: #34302A; --border-strong: #4E483E;
+  --text: #EDE8DC; --muted: #BDB6A4; --faint: #9C9583;
   --gold: #D4B26A; --gold-2: #E8D29B; --gold-deep: #A8843A; --gold-soft: rgba(212,178,106,.14); --on-gold: #1A1405;
   --gain: #5FB88E; --loss: #E0707A; --warn: #D4B26A; --info: #A39B88;
   --gain-soft: rgba(95,184,142,.14); --loss-soft: rgba(224,112,122,.14); --info-soft: rgba(163,155,136,.16); --warn-soft: rgba(212,178,106,.14);
@@ -14,30 +14,32 @@
   --v-strong: #5FB88E; --v-healthy: #EDE6D3; --v-mixed: #D4B26A; --v-weak: #E0707A;
 
   --t-basic: #C9C1AE; --t-silver: #B4BAC4; --t-gold: #D4B26A;
-  --shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.4), 0 22px 44px -26px rgba(0,0,0,.75);
-  --lift: 0 1px 2px rgba(0,0,0,.4), 0 28px 50px -24px rgba(0,0,0,.8);
-  --header: rgba(19,17,13,.97);
-  --page-glow: radial-gradient(900px 600px at 100% 0%, rgba(193,183,161,.06), transparent 60%);
+  --shadow: none;
+  --lift: 0 2px 8px rgba(0,0,0,.35);
+  --header: #121110;
+  --page-glow: none;
+  --focus: #F4EFE3;
   color-scheme: dark;
   --serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 :root[data-theme="light"] {
-  --bg: #FFFFFF; --s1: #FFFFFF; --s2: #F7F6F2; --s3: #ECEAE3;
-  --border: #E7E5DE; --border-strong: #CFCBBE;
-  --text: #14130F; --muted: #46443C; --faint: #6A675C;
-  --gold: #8A6A25; --gold-2: #C9A24E; --gold-deep: #8A6A25; --gold-soft: rgba(168,132,58,.14); --on-gold: #1A1405;
-  --gain: #2F7A58; --loss: #A8392F; --warn: #8A6A25; --info: #5A5444;
+  --bg: #F7F3EA; --s1: #FCFAF5; --s2: #EFE9DB; --s3: #E5DDCA;
+  --border: #DBD2BE; --border-strong: #B9AE95;
+  --text: #1C1A15; --muted: #4A463B; --faint: #675F50;
+  --gold: #7A5B16; --gold-2: #C9A24E; --gold-deep: #8A6A25; --gold-soft: rgba(168,132,58,.14); --on-gold: #1A1405;
+  --gain: #1F6B49; --loss: #A12E26; --warn: #7A5B16; --info: #5A5444;
   --gain-soft: rgba(47,122,88,.10); --loss-soft: rgba(168,57,47,.09); --info-soft: rgba(90,84,68,.10); --warn-soft: rgba(138,106,37,.10);
   --k1: #2a78d6; --k2: #eb6834; --k3: #1baf7a; --k4: #eda100; --k5: #e87ba4; --k6: #008300; --k7: #6250d6; --k8: #e34948; --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
-  --v-strong: #2F7A58; --v-healthy: #2E2A20; --v-mixed: #8A6A25; --v-weak: #A8392F;
+  --v-strong: #1F6B49; --v-healthy: #2E2A20; --v-mixed: #7A5B16; --v-weak: #A12E26;
 
-  --t-basic: #6B6555; --t-silver: #6E7480; --t-gold: #8A6A25;
-  --shadow: 0 1px 2px rgba(51,46,34,.06), 0 14px 32px -18px rgba(51,46,34,.22);
-  --lift: 0 2px 4px rgba(51,46,34,.06), 0 26px 46px -22px rgba(51,46,34,.32);
-  --header: rgba(255,255,255,.97);
-  --page-glow: radial-gradient(900px 500px at 100% 0%, rgba(168,132,58,.045), transparent 60%);
+  --t-basic: #6B6555; --t-silver: #6E7480; --t-gold: #7A5B16;
+  --shadow: none;
+  --lift: 0 2px 8px rgba(51,46,34,.12);
+  --header: #F7F3EA;
+  --page-glow: none;
+  --focus: #1C1A15;
   color-scheme: light;
 }
 /* Rich bands (hero, plans, footer) keep their own palette in both themes */
@@ -54,9 +56,9 @@
   background: radial-gradient(900px 520px at 88% -8%, color-mix(in srgb, var(--dk-gold, #D4B26A) 20%, transparent), transparent 62%), radial-gradient(800px 620px at -8% 30%, rgba(193,183,161,.18), transparent 60%), radial-gradient(700px 520px at 55% 125%, rgba(193,183,161,.10), transparent 60%), linear-gradient(180deg, var(--band-a, #221E16), var(--band-b, #13110D));
 }
 :root[data-theme="light"] .band.hero, :root[data-theme="light"] .band.plans {
-  --text: #14130F; --muted: #46443C; --faint: #6A675C;
-  --s1: #FFFFFF; --s2: #F7F6F2; --s3: #ECEAE3; --border: #E7E5DE; --border-strong: #CFCBBE;
-  --gold: var(--lt-gold, #8A6A25); --gold-2: var(--lt-gold-2, #C9A24E); --gold-deep: var(--lt-gold-deep, #8A6A25); --gold-soft: var(--lt-gold-soft, rgba(168,132,58,.14));
+  --text: #1C1A15; --muted: #4A463B; --faint: #675F50;
+  --s1: #FCFAF5; --s2: #EFE9DB; --s3: #E5DDCA; --border: #DBD2BE; --border-strong: #B9AE95;
+  --gold: var(--lt-gold, #7A5B16); --gold-2: var(--lt-gold-2, #C9A24E); --gold-deep: var(--lt-gold-deep, #8A6A25); --gold-soft: var(--lt-gold-soft, rgba(168,132,58,.14));
   --gain: #2F7A58; --loss: #A8392F; --gain-soft: rgba(47,122,88,.10); --loss-soft: rgba(168,57,47,.09);
   --c1: var(--k1); --c2: var(--k2); --c3: var(--k3); --c4: var(--k7); --c5: var(--k5); --p-quality: var(--k1); --p-growth: var(--k3); --p-profit: var(--k2); --p-balance: var(--k7); --p-tech: var(--k5); --line: var(--k1); --area: var(--k1);
   --t-basic: #6B6555; --t-silver: #6E7480; --t-gold: var(--lt-gold, #8A6A25);

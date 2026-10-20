@@ -10,6 +10,7 @@ import { useUniverse, type Row } from "../lib/screener";
 import { useUI } from "../lib/ui";
 import { useWatchlist, watch } from "../lib/watchlist";
 import { cr, nf, MINUS } from "../lib/format";
+import { ChartHelp } from "../components/ChartHelp";
 
 /** Score screener: size, sector and score-range filters on the live company universe (the same database-backed list the Screener and Compare pages use). */
 type Cap = "Large" | "Mid" | "Small";
@@ -111,7 +112,7 @@ export function ScoreScreener() {
     ...BAND_KEYS.map((k) => applied[k].length && [k, `${NAMES[k]} ${applied[k].map((b) => BANDS[b].label.toLowerCase()).join(", ")}`]),
   ].filter(Boolean) as ["cap" | "sector" | BandKey, string][];
   const sortBy = (key: SortKey) => setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : key === "name" || key === "sector" ? 1 : -1 }));
-  const head = (key: SortKey, label: string, cls = "") => <th className={cls}><button onClick={() => sortBy(key)} aria-label={`Sort by ${label}`}>{label} {sort.key === key ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button></th>;
+  const head = (key: SortKey, label: string, cls = "", help?: string) => <th className={cls}><button onClick={() => sortBy(key)} aria-label={`Sort by ${label}`}>{label} {sort.key === key ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button>{help && <ChartHelp id={help} />}</th>;
   const togglePick = (s: string) => setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : p.length >= maxCompare ? (toast(has("gold") ? "Compare up to 4 companies." : "Compare up to 2 companies. Gold compares 4."), p) : [...p, s]));
   const addWatch = (s: string) => {
     if (!silver) { upgrade("silver", "Watchlists come with the Silver plan."); return; }
@@ -147,7 +148,7 @@ export function ScoreScreener() {
                 <fieldset key={k} className="ss-fs"><legend>Fundamental score</legend>
                   {(Object.keys(BANDS) as Band[]).map((b) => <label key={b}><input type="checkbox" checked={draft[k].includes(b)} onChange={() => toggleBand(k, b)} /><span>{BANDS[b].label}</span></label>)}</fieldset>
               ))}
-              <fieldset className="ss-fs ss-pil"><legend>Fundamental, by pillar</legend>
+              <fieldset className="ss-fs ss-pil"><legend>Fundamental, by pillar <ChartHelp id="score-filter" /></legend>
                 <button type="button" className={"bandc ss-all" + (allStrong ? " on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>Strong on all four (78 and above)</button>
                 {PILLARS.map((x) => (
                   <div key={x.k} className="ss-prow" role="group" aria-label={`${x.label} score`}>
@@ -177,7 +178,7 @@ export function ScoreScreener() {
             {isError ? <div className="state"><h2>The score screener is unavailable right now</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
               <>
                 <HScroll className="scr-tw" label="results table"><table className="scr-t ss-t">
-                  <thead><tr><th><span className="sr">Select</span></th>{head("name", "Stock", "stick")}{head("price", "LTP (₹)")}{head("market_cap", "Market cap")}{head("sector", "Sector")}{head("f", "Fundamental")}{PILLARS.map((x) => <th key={x.k} className="ss-ph" title={x.say}><button onClick={() => sortBy(x.col)} aria-label={`Sort by ${x.label}`}>{x.short} {sort.key === x.col ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button></th>)}{head("t", "Technical")}{head("overall", "Overall")}<th>Action</th></tr></thead>
+                  <thead><tr><th><span className="sr">Select</span></th>{head("name", "Stock", "stick")}{head("price", "LTP (₹)")}{head("market_cap", "Market cap")}{head("sector", "Sector")}{head("f", "Fundamental", "", "score-table")}{PILLARS.map((x) => <th key={x.k} className="ss-ph" title={x.say}><button onClick={() => sortBy(x.col)} aria-label={`Sort by ${x.label}`}>{x.short} {sort.key === x.col ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</button></th>)}{head("t", "Technical")}{head("overall", "Overall")}<th>Action</th></tr></thead>
                   <tbody>{view.map((r) => (
                     <tr key={r.symbol}>
                       <td><input type="checkbox" checked={picked.includes(r.symbol)} onChange={() => togglePick(r.symbol)} aria-label={`Select ${r.symbol} to compare`} /></td>

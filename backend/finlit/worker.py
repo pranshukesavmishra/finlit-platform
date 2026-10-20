@@ -87,12 +87,28 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
     return {"symbol": symbol, "status": status, "ms": duration, "errors": errors}
 
 
-async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2) -> List[dict]:
+async def _step_aside(store: Store, patience: float = 240.0) -> None:
+    """The bulk loader waits while a visitor is waiting on a report: on a small free server, the two would share one slow CPU and the one
+    request somebody is staring at would crawl. A hard cap keeps the bulk load moving even if the flag is never cleared."""
+    waited = 0.0
+    while waited < patience:
+        try:
+            if not await store.redis.exists(store.READER_FLAG):
+                return
+        except Exception:
+            return
+        await asyncio.sleep(2.0)
+        waited += 2.0
+
+
+async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2, yield_to_readers: bool = False) -> List[dict]:
     # Each stock already fans out ~21 requests; a couple of stocks at a time keeps us inside rate limits.
     sem = asyncio.Semaphore(parallel)
 
     async def run(symbol, statement):
         async with sem:
+            if yield_to_readers:
+                await _step_aside(store)
             return await ingest_one(client, store, symbol, statement)
 
     return await asyncio.gather(*(run(s, st) for s, st in items))
@@ -140,6 +156,26 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
     return updated
 
 
+async def _retry_dropped(store: Store, results: List[dict], attempts: int = 2) -> None:
+    """A report somebody asked for that failed only because the provider did not answer is put back in the queue (twice at most), so the
+    visitor's wait ends in a report instead of an error. Rejections and companies the provider does not have are not retried."""
+    again = []
+    for r in results:
+        if r.get("status") != "failed" or "did not answer" not in str((r.get("errors") or {}).get("error", "")):
+            continue
+        key = f"ingest:retry:{r['symbol']}"
+        try:
+            n = int(await store.redis.incr(key)); await store.redis.expire(key, 900)
+        except Exception:
+            n = attempts + 1
+        if n <= attempts:
+            again.append(r["symbol"])
+    if again:
+        await asyncio.sleep(3.0)
+        for sym in again:
+            await store.enqueue(sym, "consolidated")
+
+
 async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 6 * 3600.0) -> int:
     """With loop=True the idle wait watches a Redis flag set by enqueue, and looks at Postgres only when the flag is up (or every
     `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day."""
@@ -161,7 +197,12 @@ async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, i
                 pass
         items = await store.claim(3)   # small batches, all at once: a report someone is waiting for never queues behind ten others
         if items:
-            await ingest_many(client, store, items, parallel=3)
+            try:
+                await store.redis.set(store.READER_FLAG, 1, ex=120)   # tells the bulk loader to wait while these are prepared
+            except Exception:
+                pass
+            results = await ingest_many(client, store, items, parallel=3)
+            await _retry_dropped(store, results)
             await store.invalidate_search()
             total += len(items)
             continue
@@ -179,7 +220,7 @@ async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "cons
     done = {"ok": 0, "warnings": 0, "rejected": 0, "failed": 0}
     for i in range(0, len(pending), chunk):
         batch = pending[i:i + chunk]
-        for r in await ingest_many(client, store, [(s, statement) for s in batch], parallel=parallel):
+        for r in await ingest_many(client, store, [(s, statement) for s in batch], parallel=parallel, yield_to_readers=True):
             done[r["status"]] = done.get(r["status"], 0) + 1
         await store.invalidate_search()
         log.info("ingest-all: %d / %d  %s  (%d upstream calls)", min(i + chunk, len(pending)), len(pending), done, client.calls)

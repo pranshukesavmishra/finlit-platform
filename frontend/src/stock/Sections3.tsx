@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Icon } from "../lib/icons";
 import { Gate, TierChip } from "../components/Gate";
 import { Info } from "../components/Info";
+import { ChartHelp } from "../components/ChartHelp";
 import { Plain } from "../components/Plain";
 import { Spark } from "../charts/Small";
 import { LineChart } from "../charts/LineChart";
@@ -102,7 +103,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
   const name = { pe: "P/E", pb: "P/B", ps: "P/S" }[k];
   return (
     <div className="vh">
-      <div className="tools"><div><div className="label">Valuation history</div><p className="faint" style={{ margin: "4px 0 0", fontSize: 12.5 }}>How much investors paid over the years</p></div><div className="seg">{(["pe", "pb", "ps"] as const).map((x) => <button key={x} aria-pressed={k === x} onClick={() => setK(x)}>{x === "pe" ? "P/E" : x === "pb" ? "P/B" : "P/S"}</button>)}</div></div>
+      <div className="tools"><div><div className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>Valuation history<ChartHelp id="valuation-history" /></div><p className="faint" style={{ margin: "4px 0 0", fontSize: 12.5 }}>How much investors paid over the years</p></div><div className="seg">{(["pe", "pb", "ps"] as const).map((x) => <button key={x} aria-pressed={k === x} onClick={() => setK(x)}>{x === "pe" ? "P/E" : x === "pb" ? "P/B" : "P/S"}</button>)}</div></div>
       <div className="vh-top">
         <div className="vh-k"><span className="label">{name} in {vh.periods[vh.periods.length - 1]}</span><b>{nf(now, 1)}×</b></div>
         <div className="vh-k"><span className="label">{vh.periods.length}-year average</span><b>{nf(mean, 1)}×</b></div>
@@ -127,12 +128,12 @@ export function RatiosSection({ r }: { r?: Ratios }) {
       <div className="mtr-grid">{meters.map((m) => <Meter key={m.key} m={m} r={r} on={cur?.key === m.key} onSel={() => setSel(m.key)} />)}</div>
       {cur && <p className="mtr-say" aria-live="polite"><b>{r.latest[cur.key].label}</b> {cur.say(r.latest[cur.key].value)}</p>}
       <div className="card acc" style={{ margin: "24px 0 8px", "--ac": "var(--p-profit)" } as React.CSSProperties}>
-        <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Profitability ratios</h3><span className="chip ghost">Annual · 8 years</span></div>
+        <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Profitability ratios<ChartHelp id="profit-ratios" /></h3><span className="chip ghost">Annual · 8 years</span></div>
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ margin: "24px 0 16px" }}>
-          <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /></div>
+          <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /><ChartHelp id="ratio-trend" /></div>
           <div className="trc-grid">{TREND_KEYS.filter(([k]) => hist.rows[k]).map(([k, label, col]) => <TrendCard key={k} k={k} label={label} col={col} vals={hist.rows[k]} better="higher" />)}</div>
         </div>
       </Gate>
@@ -158,7 +159,7 @@ export function RatiosSection({ r }: { r?: Ratios }) {
       <p className="faint" style={{ fontSize: 12, margin: "10px 2px 0" }}>▲ higher is usually better · ▼ lower is usually better</p>
       <Gate tier="gold" title="Detailed ratio analysis" points={["Every ratio with its history", "Quality, growth, solvency and efficiency", "Full multi-year table"]}>
         <div className="card acc" style={{ marginTop: 16, "--ac": "var(--p-profit)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Ratio history</h3><TierChip tier="gold" /></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Ratio history<ChartHelp id="ratio-history" /></h3><TierChip tier="gold" /></div>
           <HistoryTable r={r} />
           <ValuationHistory r={r} />
         </div>

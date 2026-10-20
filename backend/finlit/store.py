@@ -246,6 +246,7 @@ class Store:
     # ------------------------------------------------------------ queue
 
     QUEUE_FLAG = "ingest:queue:pending"
+    READER_FLAG = "ingest:reader:waiting"   # somebody is waiting on a report right now: the bulk loader steps aside (expires by itself)
 
     async def enqueue(self, symbol: str, statement: str):
         async with self.pool.acquire() as conn:
@@ -254,6 +255,7 @@ class Store:
                 symbol.upper(), statement)
         try:  # lets the worker watch Redis instead of polling Postgres, so a serverless database (Neon) can sleep when idle
             await self.redis.set(self.QUEUE_FLAG, 1, ex=3600)
+            await self.redis.set(self.READER_FLAG, 1, ex=120)
         except Exception:
             pass
 

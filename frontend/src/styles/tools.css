@@ -268,3 +268,5 @@ main#main { min-height: 90vh; }
 .pc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .pc li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; } .pc li small { flex-basis: 100%; color: var(--faint); font-size: 12px; }
 .mp-more { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; } .mp-more summary { cursor: pointer; font: 600 13.5px var(--sans); color: var(--muted); }
 .mth-more { padding: 14px 18px; } .mth-more > summary { cursor: pointer; font: 600 14px var(--sans); }
+.pr-miss { font-size: 12.5px; margin: 10px 0 0; max-width: 78ch; }
+.pr-bars { overflow: hidden; }

@@ -13,6 +13,7 @@ import { screens, useSavedScreens } from "../lib/screens";
 import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
+import { ChartHelp } from "../components/ChartHelp";
 
 const TIER_ORDER: Plan[] = ["basic", "silver", "gold"];
 const PAGE = 50;
@@ -66,7 +67,7 @@ function FilterCard({ m, byKey, ranges, setRange, ask }: { m: MetricInfo; byKey:
   const any = (tabs ? tabs.some(([, k]) => ranges[k]) : !!ranges[m.key]);
   return (
     <div className={"pl-card" + (locked ? " is-locked" : "")}>
-      <div className="pl-card-h"><b>{m.label}</b>{locked ? <button className="pl-tier" onClick={() => ask(m.tier, `${m.label} is part of the ${TIER[m.tier].n} plan.`)}><Icon name="lock" />{TIER[m.tier].n}</button>
+      <div className="pl-card-h"><b>{m.label}</b>{!locked && cur.unit !== "flag" && cur.stats && <ChartHelp id={tabs && tab !== "now" ? "screener-avg" : "screener-range"} />}{locked ? <button className="pl-tier" onClick={() => ask(m.tier, `${m.label} is part of the ${TIER[m.tier].n} plan.`)}><Icon name="lock" />{TIER[m.tier].n}</button>
         : <button className="pl-i" aria-label={`What ${m.label} means`} aria-expanded={info} onClick={() => setInfo(!info)}><Icon name="info" /></button>}
         {any && <button className="pl-rm" onClick={clearAll}>Remove</button>}</div>
       {info && <p className="pl-say">{m.say}{m.better !== "none" ? ` ${m.better === "higher" ? "Higher" : "Lower"} is usually better.` : ""}</p>}
