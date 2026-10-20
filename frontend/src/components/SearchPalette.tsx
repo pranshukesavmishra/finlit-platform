@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { prefetchStock, useSearchIndex, type SearchRow } from "../lib/api";
 import { initials } from "../lib/format";
+import { useMyCompanies } from "../lib/mycompanies";
 
 const COLORS = ["#544C38", "#70644A", "#827659", "#7A5A12", "#8A6A25", "#B8862B", "#584F3B", "#79705C", "#8A6420", "#685F4A", "#6B4E10", "#867F6D"];
 const colorOf = (s: string) => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
@@ -18,6 +19,8 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
   const qc = useQueryClient();
   const { data, isLoading, isError } = useSearchIndex(true);   // fetched as soon as the page is up, so the palette opens with the list already here
   const [limit, setLimit] = useState(SHOWN);
+  const mine = useMyCompanies();
+  const mineRank = useMemo(() => new Map(mine.symbols.map((x, i) => [x, i])), [mine.symbols]);
 
   useEffect(() => { if (open) { setQ(""); setSel(0); setLimit(SHOWN); setTimeout(() => input.current?.focus(), 30); } }, [open]);
 
@@ -25,12 +28,13 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
   const all = useMemo<SearchRow[]>(() => {
     const rows = data?.rows || [];
     const s = q.trim().toUpperCase();
-    if (!s) return rows;
+    const own = (r: SearchRow) => mineRank.get(r[0]) ?? 1e9;   // the companies this person follows or opened come first among equal matches
+    if (!s) { const by = new Map(rows.map((r) => [r[0], r])); const head = mine.symbols.slice(0, 8).map((x) => by.get(x)).filter((r): r is SearchRow => !!r); return [...head, ...rows.filter((r) => !head.includes(r))]; }
     const score = (r: SearchRow) => (r[0] === s ? 0 : r[0].startsWith(s) ? 1 : r[1].toUpperCase().startsWith(s) ? 2 : r[2] === s ? 3 : 4);
     const pos = new Map(rows.map((r, i) => [r[0], i]));
     return rows.filter((r) => r[0].includes(s) || r[1].toUpperCase().includes(s) || r[2] === s || (r[4] || "").toUpperCase().includes(s))
-      .sort((a, b) => score(a) - score(b) || (pos.get(a[0]) ?? 0) - (pos.get(b[0]) ?? 0));
-  }, [data, q]);
+      .sort((a, b) => score(a) - score(b) || own(a) - own(b) || (pos.get(a[0]) ?? 0) - (pos.get(b[0]) ?? 0));
+  }, [data, q, mineRank, mine.symbols]);
   const hits = useMemo(() => all.slice(0, limit), [all, limit]);
 
   const go = (sym: string) => { onClose(); nav(`/stocks/${encodeURIComponent(sym)}`); };
@@ -57,7 +61,7 @@ export function SearchPalette({ open, onClose }: { open: boolean; onClose: () =>
           {hits.map((r, i) => (
             <li key={r[0]} role="option" aria-selected={i === sel} className={i === sel ? "sel" : ""} onMouseEnter={() => { setSel(i); if (r[3]) prefetchStock(qc, r[0], 150); }} onClick={() => go(r[0])}>
               <span className="av" style={{ background: colorOf(r[0]) }}>{initials(r[0])}</span>
-              <span className="nm">{r[1]}</span><span className="tk">{r[0]}</span>
+              <span className="nm">{r[1]}</span><span className="tk">{r[0]}</span>{mineRank.has(r[0]) && <span className="tag-mine" title="You follow or have opened this company: it opens instantly">Yours</span>}{!r[3] && !mineRank.has(r[0]) && <span className="tag-new" title="Built the first time it is opened (a few seconds), then kept ready for you">first open takes a few seconds</span>}
             </li>
           ))}
         </ul>

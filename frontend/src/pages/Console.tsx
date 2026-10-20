@@ -137,7 +137,7 @@ function ContentAdmin() {
   const { toast } = useUI();
   const ipos = useIpos(true);
   const [kind, setKind] = useState<"result" | "news" | "document">("result");
-  const items = useFeed(kind, { limit: 60, fresh: true });
+  const items = useFeed(kind, { limit: 60, fresh: true, manual: true });
   const done = (m: string) => { toast(m); qc.invalidateQueries({ queryKey: ["ipos"] }); qc.invalidateQueries({ queryKey: ["feed"] }); };
   const ipo = useMutation({ mutationFn: (b: Record<string, unknown>) => acct.addIpo(b), onSuccess: () => done("IPO added."), onError: (e) => toast(msg(e)) });
   const rmIpo = useMutation({ mutationFn: (id: number) => acct.deleteIpo(id), onSuccess: () => done("IPO removed."), onError: (e) => toast(msg(e)) });

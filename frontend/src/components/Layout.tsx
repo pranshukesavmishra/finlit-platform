@@ -6,6 +6,7 @@ import { useUI } from "../lib/ui";
 import { Icon } from "../lib/icons";
 import { Tape } from "./Tape";
 import { SearchPalette } from "./SearchPalette";
+import { useWarmMyCompanies } from "../lib/mycompanies";
 import { AlertToasts, NotificationBell } from "./Notifications";
 import { Assistant } from "./Assistant";
 import { EnquiryProvider, useEnquiry } from "./Enquiry";
@@ -137,6 +138,7 @@ function Footer() {
 }
 
 export function Layout() {
+  useWarmMyCompanies();
   const [search, setSearch] = useState(false);
   const loc = useLocation();
   useEffect(() => { if (!loc.hash) window.scrollTo({ top: 0 }); }, [loc.pathname, loc.hash]);

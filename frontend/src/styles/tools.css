@@ -270,3 +270,7 @@ main#main { min-height: 90vh; }
 .mth-more { padding: 14px 18px; } .mth-more > summary { cursor: pointer; font: 600 14px var(--sans); }
 .pr-miss { font-size: 12.5px; margin: 10px 0 0; max-width: 78ch; }
 .pr-bars { overflow: hidden; }
+
+/* search palette: companies that are yours, and those built on first open */
+.palette li .tag-mine { margin-left: auto; font: 600 10.5px var(--sans); letter-spacing: .04em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 1px 6px; }
+.palette li .tag-new { margin-left: auto; font: 500 11px var(--sans); color: var(--faint); white-space: nowrap; }

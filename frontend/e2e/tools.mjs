@@ -38,7 +38,7 @@ check("screener: model columns hidden for Basic", (await p.locator(".scr-t th", 
 p = await mk("silver");
 await p.goto(base + "/compare", { waitUntil: "networkidle" });
 check("compare: two companies picked by default", (await p.locator(".cc").count()) === 2);
-check("compare: Silver limited to 2 (Gold prompt shown)", (await p.getByText(/Compare up to 4 · Gold/).count()) === 1);
+check("compare: Silver limited to 2 (Gold prompt shown)", (await p.getByText(/Compare up to 4 companies at once with/).count()) === 1);
 await p.getByRole("tab", { name: "Valuation", exact: true }).click(); await p.waitForTimeout(400);
 check("compare: valuation shows strips and percentile dots", (await p.locator(".strip").count()) >= 3 && (await p.locator(".mt-c .dt").count()) >= 6);
 const rowsBefore = await p.locator(".mt-r").count();

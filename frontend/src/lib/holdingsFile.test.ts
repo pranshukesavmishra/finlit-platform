@@ -342,4 +342,8 @@ describe("limits and bad files", () => {
     expect(names.length).toBeLessThanOrEqual(5000);
     expect(Date.now() - t).toBeLessThan(8000);
   }, 15_000);
+  it("a file with only Qty/Price/Value columns has no share names, even if a company is called Value 360", () => {
+    const idx = [...INDEX, ["VALUE360", "Value 360 Communications Ltd.", "540000"]] as SearchRow[];
+    expect(namesFromGrid(gridFromText("Qty,Price,Value\n10,3900,39000\n5,1500,7500"), makeMatcher(idx))).toEqual([]);
+  });
 });

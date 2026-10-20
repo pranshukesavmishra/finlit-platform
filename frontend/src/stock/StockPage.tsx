@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { canon } from "../lib/aliases";
+import { recents } from "../lib/mycompanies";
+import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
@@ -22,11 +24,13 @@ export function StockPage() {
   const { symbol: raw = "" } = useParams();
   const symbol = canon(raw.toUpperCase());
   const nav = useNavigate();
+  const queryClient = useQueryClient();
   useEffect(() => { if (symbol !== raw.toUpperCase()) nav(`/stocks/${symbol}`, { replace: true }); }, [symbol, raw]); // eslint-disable-line react-hooks/exhaustive-deps
   const { showcase } = useAuth();
   const sum = useSummary(symbol);
   const s = sum.data;
   const ready = !!s;
+  useEffect(() => { if (s?.meta.symbol) { recents.add(s.meta.symbol); queryClient.invalidateQueries({ queryKey: ["my-companies"] }); } }, [s?.meta.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
   const ratios = useSection<Ratios>(symbol, "ratios", ready).data;
   const fin = useSection<Financials>(symbol, "financials", ready).data;
   const own = useSection<Ownership>(symbol, "ownership", ready).data;
@@ -70,7 +74,7 @@ export function StockPage() {
     const busy = (sum.error as ApiError | null)?.status === 429 || (sum.failureReason as ApiError | null)?.status === 429;
     const gaveUp = waiting && !sum.isFetching;   // stopped asking after several minutes: offer a manual retry instead of a dead end
     return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 220, margin: "0 auto 18px" }} /><h2>{queued ? "Preparing this report" : "Loading the report"}</h2>
-      <p>{!queued ? "One moment." : busy ? "Many reports are being prepared right now. Yours is in the queue and will open by itself." : gaveUp ? "This is taking longer than usual. The report is still being built." : "This company hasn't been opened yet, so we are building its report from the latest filings. It usually takes under half a minute and opens by itself."}</p>
+      <p>{!queued ? "One moment." : busy ? "Many reports are being prepared right now. Yours is in the queue and will open by itself." : gaveUp ? "This is taking longer than usual. The report is still being built." : "This company is not in our always-ready set, so we are building its report from the latest filings. This takes a few seconds, once. After that it stays stored and refreshed for you, and opens instantly every time."}</p>
       {gaveUp && <button className="btn primary" onClick={() => sum.refetch()}>Check again</button>}</div>;
   }
   if (sum.isError || !s) {

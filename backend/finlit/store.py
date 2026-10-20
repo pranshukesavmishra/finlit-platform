@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import asyncpg
+import os
+
 import orjson
 import redis.asyncio as aioredis
 
@@ -290,16 +292,96 @@ class Store:
         """The companies to load or refresh, most important first: members of the NIFTY index lists (NIFTY 50 ... NIFTY 500, midcap and
         smallcap lists), then by market cap. `limit` is the size of that whole set (INGEST_LIMIT): only its companies are ever loaded by
         the bulk jobs, missing ones before stale ones. Companies outside it are loaded only when someone opens their report."""
+        pinned = await self.pinned_symbols() if limit is not None else []   # what members use outside the top set is refreshed too
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
                 "SELECT r.symbol FROM ranked r LEFT JOIN snapshots s ON s.symbol = r.symbol AND s.statement = $1 AND s.section = 'summary' "
-                "WHERE r.rn <= $3 AND (s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
+                "WHERE (r.rn <= $3 OR r.symbol = ANY($4::text[])) AND (s.symbol IS NULL OR s.generated_at < now() - make_interval(hours => $2) "
                 "OR (s.body::jsonb -> 'quote' ->> 'price') IS NULL "   # a report saved without a price (half-loaded) is reloaded at once
                 "OR (jsonb_array_length(coalesce(s.body::jsonb -> 'dataQuality' -> 'missing', '[]'::jsonb)) > 0 AND s.generated_at < now() - interval '3 hours') "   # a part the provider failed to send: ask again
                 f"OR coalesce((s.body::jsonb -> 'meta' ->> 'version')::int, 0) < {SNAPSHOT_VERSION}) "   # built by older code: rebuild
-                "ORDER BY (s.symbol IS NOT NULL), r.rn", statement, older_than_hours, limit or 100000)
+                "ORDER BY (s.symbol IS NOT NULL), r.rn", statement, older_than_hours, limit or 100000, pinned)
         return [r["symbol"] for r in rows]
+
+    # ------------------------------------------------------------------ members' own companies (kept stored, kept fresh, opened instantly)
+    USER_KEEP = 100          # companies remembered per member (most recent first)
+    PINNED_DAYS = 120        # a company nobody has opened for this long stops being kept for its members
+
+    async def touch_user_company(self, user_id: str, symbol: str) -> None:
+        """Remember that this member opened this company. At most one database write per member and company every half hour."""
+        symbol = symbol.strip().upper()
+        try:
+            if not await self.redis.set(f"uc:{user_id}:{symbol}", 1, ex=1800, nx=True):
+                return
+        except Exception:
+            pass
+        async with self.pool.acquire() as conn:
+            if not await conn.fetchval("SELECT 1 FROM companies WHERE symbol = $1", symbol):
+                return
+            await conn.execute(
+                "INSERT INTO user_companies (user_id, symbol) VALUES ($1, $2) ON CONFLICT (user_id, symbol) DO UPDATE SET last_opened = now(), opens = user_companies.opens + 1",
+                user_id, symbol)
+            await conn.execute(
+                "DELETE FROM user_companies WHERE user_id = $1 AND symbol IN (SELECT symbol FROM user_companies WHERE user_id = $1 ORDER BY last_opened DESC OFFSET $2)",
+                user_id, self.USER_KEEP)
+
+    @staticmethod
+    def _followed(watchlist: Any, portfolio: Any) -> List[str]:
+        """Symbols on a member's watchlists and portfolio, in saved order."""
+        out: List[str] = []
+
+        def load(v):
+            if isinstance(v, str):
+                try:
+                    return orjson.loads(v)
+                except ValueError:
+                    return {}
+            return v or {}
+        wl, pf = load(watchlist), load(portfolio)
+        for lst in (wl.get("lists") or []) if isinstance(wl, dict) else []:
+            for sym in (lst.get("symbols") or []) if isinstance(lst, dict) else []:
+                if isinstance(sym, str) and sym.upper() not in out:
+                    out.append(sym.upper())
+        for h in (pf.get("holdings") or []) if isinstance(pf, dict) else []:
+            sym = h.get("symbol") if isinstance(h, dict) else None
+            if isinstance(sym, str) and sym.upper() not in out:
+                out.append(sym.upper())
+        return out
+
+    async def pinned_symbols(self, limit: Optional[int] = None) -> List[str]:
+        """Companies kept stored and refreshed because members use them: first what members follow (watchlist, portfolio), then what the most
+        members opened lately, then the most recently opened. Capped (PINNED_LIMIT, default 300) so a few members cannot fill the free database."""
+        cap = limit if limit is not None else int(os.getenv("PINNED_LIMIT") or 300)
+        if cap <= 0:
+            return []
+        out: List[str] = []
+        async with self.pool.acquire() as conn:
+            followed: Dict[str, int] = {}
+            for r in await conn.fetch("SELECT s.watchlist, s.portfolio FROM user_state s JOIN users u ON u.id = s.user_id WHERE u.status = 'active'"):
+                for sym in self._followed(r["watchlist"], r["portfolio"]):
+                    followed[sym] = followed.get(sym, 0) + 1
+            out.extend(sorted(followed, key=lambda k: (-followed[k], k)))
+            for r in await conn.fetch(
+                    "SELECT uc.symbol FROM user_companies uc JOIN users u ON u.id = uc.user_id WHERE u.status = 'active' AND uc.last_opened > now() - make_interval(days => $1) "
+                    "GROUP BY uc.symbol ORDER BY count(DISTINCT uc.user_id) DESC, max(uc.last_opened) DESC LIMIT $2", self.PINNED_DAYS, cap):
+                if r["symbol"] not in out:
+                    out.append(r["symbol"])
+            known = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM companies WHERE symbol = ANY($1::text[])", out[:cap * 2])} if out else set()
+        return [s for s in out if s in known][:cap]
+
+    async def my_companies(self, user_id: str, limit: int = 60) -> List[dict]:
+        """What this member follows and has opened, most recent first, each with whether its report is stored (opens instantly)."""
+        async with self.pool.acquire() as conn:
+            state = await conn.fetchrow("SELECT watchlist, portfolio FROM user_state WHERE user_id = $1", user_id)
+            opened = await conn.fetch("SELECT symbol, last_opened, opens FROM user_companies WHERE user_id = $1 ORDER BY last_opened DESC LIMIT $2", user_id, limit)
+            followed = self._followed(state["watchlist"], state["portfolio"]) if state else []
+            order = [r["symbol"] for r in opened] + [s for s in followed if s not in {r["symbol"] for r in opened}]
+            order = order[:limit]
+            names = {r["symbol"]: r["name"] for r in await conn.fetch("SELECT symbol, name FROM companies WHERE symbol = ANY($1::text[])", order)}
+            ready = {r["symbol"] for r in await conn.fetch("SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary' AND symbol = ANY($1::text[])", order)}
+        when = {r["symbol"]: r["last_opened"].isoformat() for r in opened}
+        return [{"symbol": s, "name": names.get(s), "ready": s in ready, "followed": s in followed, "lastOpened": when.get(s)} for s in order if s in names]
 
     async def note_view(self, symbol: str) -> None:
         try:
@@ -317,6 +399,7 @@ class Store:
             await self.redis.zremrangebyscore(VIEWED_KEY, "-inf", cutoff)
         except Exception:
             recent = []
+        recent = list({*recent, *await self.pinned_symbols()})   # what members follow or opened lately stays, whatever its rank
         out: Dict[str, int] = {}
         async with self.pool.acquire() as conn:
             drop = [r["symbol"] for r in await conn.fetch(

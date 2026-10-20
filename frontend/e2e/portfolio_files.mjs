@@ -16,7 +16,7 @@ async function run(width, email, tag) {
   const clear = async () => { for (let i = 0; i < 60 && (await p.locator("table.hold tbody tr").count()); i++) { await p.locator("table.hold tbody tr").first().getByRole("button", { name: /Remove/ }).click(); await p.waitForTimeout(120); } };
   const toastText = async () => (await p.locator('[role=status], .toast').allInnerTexts()).join(" | ");
   const imp = async (file, label, exp, junk = [], opts = {}) => {
-    await clear(); await p.evaluate(() => { document.querySelector(".pf-miss")?.remove?.(); });
+    await clear();
     await p.locator("input[type=file]").setInputFiles(F + file); await p.waitForTimeout(1800);
     const got = await syms(); const miss = await p.locator(".pf-miss").innerText().catch(() => "");
     check(`[${tag}] ${label}: exactly the share names land (${exp.join(",")})`, same(got, exp), "got " + got.join(","));

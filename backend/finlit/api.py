@@ -13,6 +13,7 @@ import re
 import time
 from pathlib import Path
 import asyncio
+from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -271,6 +272,14 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         except Exception:
             return False
         if not stale:
+            # A company outside the always-refreshed set that somebody opens after a day: it opens at once as it is, and is rebuilt in the background
+            # (at most once an hour), so the next visit has the newest quarter.
+            try:
+                made = datetime.fromisoformat(str((meta.get("meta") or {}).get("generatedAt")).replace("Z", "+00:00"))
+                if (datetime.now(made.tzinfo) - made).total_seconds() > 24 * 3600 and await app.state.store.redis.set(f"refresh:{symbol}:{statement}", 1, nx=True, ex=3600):
+                    await app.state.store.enqueue(symbol, statement)
+            except Exception:
+                pass
             return False
         store, key = app.state.store, f"repair:{symbol}:{statement}"
         try:
@@ -286,6 +295,10 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def summary(request: Request, symbol: str, statement: str = Query("consolidated")):
         asyncio.create_task(app.state.store.note_view(symbol)) if SYMBOL.match(symbol) else None
         sym = symbol.strip().upper()
+        if SYMBOL.match(sym):
+            who = await current(request)
+            if who.user_id:   # a signed-in member opening a company: it is kept stored and refreshed for them from now on
+                asyncio.create_task(app.state.store.touch_user_company(who.user_id, sym))
         if SYMBOL.match(sym) and statement in ("consolidated", "standalone"):
             hit = await app.state.store.get_section(sym, statement, "summary")
             if hit is not None and await broken(sym, statement, hit[0]):
@@ -293,6 +306,15 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 return JSONResponse({"status": "queued", "symbol": sym, "detail": "Refreshing this stock's report."},
                                     status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
         return await section(request, symbol, "summary", statement)
+
+    @app.get("/api/me/companies")
+    async def my_companies(request: Request):
+        """The companies this member follows (watchlist, portfolio) and has opened, most recent first, and whether each is ready to open instantly."""
+        who = await current(request)
+        if not who.user_id:
+            return JSONResponse({"status": "unauthenticated"}, status_code=401, headers={"Cache-Control": "no-store"})
+        rows = await app.state.store.my_companies(who.user_id)
+        return JSONResponse({"companies": rows}, headers={"Cache-Control": "private, no-store", "Vary": "Cookie"})
 
     @app.get("/api/stocks/{symbol}/score-history")
     async def score_history(request: Request, symbol: str, statement: str = Query("consolidated")):

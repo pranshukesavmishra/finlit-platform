@@ -14,6 +14,8 @@ const COMPANY_END = /\b(ltd|limited|corp|corporation|inc|co|company|bank|industr
 const BARE_HEAD = /^(symbol|trading ?symbol|ticker|scrip( ?name)?|stock( ?name| ?symbol)?|share( ?name)?|instrument( ?name)?|security( ?name)?|company( ?name)?|name|nse|bse|isin|isin ?(code|no\.?|number)?|symbol ?name)$/i;
 /** Other words that mark a header row (quantity, price, value, P&L ...). */
 const HEAD_WORDS = /^(qty|quantity|units?|shares?|avg|average|price|ltp|cmp|cur|current|value|val|p ?& ?l|pnl|profit|loss|net chg|day chg|change|chg|buy|sell|cost|closing|invested|market|exchange|series|holdings?|returns?|unrealised|realised|amount|balance|free|pledged|collateral|t ?\+ ?1|dp)\b/i;
+/** A column heading on its own ("Qty", "Value", "Avg price"): never a share name, even when a company is called "Value 360". */
+const HEAD_ONLY = /^(qty|quantity|units?|avg|average|price|ltp|cmp|value|val|amount|balance|cost|invested|returns?|change|chg|series|exchange|market|closing|buy|sell|free|pledged|collateral|pnl|profit|loss)(\s+(price|value|qty|quantity|cost|amount|balance|chg|change|%|cost))*$/i;
 const NUMERIC = /^[\s\d.,₹$%()+\-/:]*$/;
 const ISIN = /^[A-Z]{2}[A-Z0-9]{9}\d$/;
 const MAX_ROWS = 5000;
@@ -23,7 +25,7 @@ export function plausibleName(s: string): boolean {
   const t = s.trim();
   if (t.length < 2 || t.length > 80) return false;
   if (NUMERIC.test(t) && !/^\d{6}$/.test(t)) return false;       // a six-digit BSE code is allowed
-  if (BARE_HEAD.test(t)) return false;
+  if (BARE_HEAD.test(t) || HEAD_ONLY.test(t)) return false;
   if (NOT_NAME.test(t) && !(COMPANY_END.test(t) && !/^(total|grand total|sub ?total)\b/i.test(t))) return false;
   if (ISIN.test(t)) return false;                                // an ISIN says which company, but is not a name; the name column is used
   return true;

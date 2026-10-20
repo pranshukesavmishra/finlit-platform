@@ -830,7 +830,7 @@ def feed_json(r: Any) -> Dict[str, Any]:
 
 @router.get("/feed")
 async def feed(request: Request, kind: Literal["news", "result", "document"] = "news", symbol: str = Query("", max_length=1200), q: str = Query("", max_length=80),
-               upcoming: bool = False, limit: int = Query(60, ge=1, le=3000), before: Optional[_date] = None,
+               upcoming: bool = False, manual: bool = False, limit: int = Query(60, ge=1, le=3000), before: Optional[_date] = None,
                from_date: Optional[_date] = None, to_date: Optional[_date] = None):
     """Public. `symbol` may be one symbol or several separated by commas (a watchlist). `upcoming=true` returns dates from today on, soonest first."""
     syms = [x.strip().upper() for x in symbol.split(",") if x.strip()][:60]
@@ -849,6 +849,8 @@ async def feed(request: Request, kind: Literal["news", "result", "document"] = "
     if q.strip():
         args.append(f"%{q.strip().lower()}%")
         where.append(f"(lower(title) LIKE ${len(args)} OR lower(coalesce(company, '')) LIKE ${len(args)})")
+    if manual:
+        where.append("NOT auto")   # only what an administrator added (the console list; automatic exchange items would crowd it out)
     if upcoming:
         args.append(datetime.now(IST).date())
         where.append(f"item_date >= ${len(args)}")

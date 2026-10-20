@@ -150,7 +150,9 @@ await vp.goto(base + "/ipo", { waitUntil: "networkidle" });
 check("visitor: IPO calendar shows the new issue with its status", (await vp.getByText(`Test Issue ${run} Ltd`).count()) >= 1 && (await vp.getByText("Upcoming").count()) >= 1);
 check("visitor: IPO minimum investment is worked out (₹120 x 100)", (await vp.getByText("₹12,000").count()) >= 1);
 await vp.goto(base + "/results", { waitUntil: "networkidle" });
-check("visitor: results calendar lists the new date", (await vp.getByText("Q2 FY27").count()) >= 1 && (await vp.getByText("TCS").count()) >= 1);
+// the real calendar holds hundreds of dates per week, so the new date is found by opening its day in the month grid
+await vp.getByRole("gridcell", { name: new RegExp("^" + new Date(soon(3) + "T00:00:00").toDateString().replace(/ 0(\d)$/, " $1") + ":") }).click();
+check("visitor: results calendar lists the new date", (await vp.locator(".rcal-sel").getByText("Q2 FY27").count()) >= 1 && (await vp.locator(".rcal-sel").getByText("TCS").count()) >= 1);
 await vp.goto(base + "/news?x=1", { waitUntil: "networkidle" });
 check("visitor: news page shows exchange announcements loaded automatically", (await vp.locator(".feed-n li").count()) >= 1, String(await vp.locator(".feed-n li").count()));
 await vp.goto(base + "/documents", { waitUntil: "networkidle" });

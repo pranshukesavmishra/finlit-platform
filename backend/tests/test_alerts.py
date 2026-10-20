@@ -145,3 +145,30 @@ async def test_builtin_profit_gap_alert_goes_to_silver_watchlists_once_per_quart
     assert (await basic.get("/api/notifications")).json()["notifications"] == []          # Basic gets none
     assert await eng.auto_profit_gap(app.state.store.pool, app.state.mailer, "http://test") == 0   # once per company and quarter
     await c.aclose(); await basic.aclose()
+
+
+async def test_members_own_companies_are_remembered_kept_and_refreshed(app):
+    """A company a member opens or follows stays stored and refreshed outside the always-loaded top set, and is listed for that member only."""
+    import asyncio
+    c = await signed_in(app, "mine@example.com", plan="silver")
+    other = await signed_in(app, "other@example.com", plan="silver")
+    store = app.state.store
+    assert (await c.get("/api/stocks/RELIANCE")).status_code == 200
+    await asyncio.sleep(0.5)                                               # the remembering runs in the background
+    mine = (await c.get("/api/me/companies")).json()["companies"]
+    assert [x["symbol"] for x in mine] == ["RELIANCE"] and mine[0]["ready"] is True and mine[0]["lastOpened"]
+    assert (await other.get("/api/me/companies")).json()["companies"] == []          # personal: another member sees nothing of it
+    assert (await app_anon(app).get("/api/me/companies")).status_code == 401
+    lists = {"lists": [{"id": "main", "name": "Main", "symbols": ["TCS"]}], "meta": {}}
+    assert (await c.put("/api/me/watchlist", json=lists)).status_code == 200
+    pinned = await store.pinned_symbols()
+    assert "TCS" in pinned and "RELIANCE" in pinned                         # followed first, then opened
+    todo = await store.pending_symbols("consolidated", 24, 1)               # the always-loaded set is just one company here
+    assert "TCS" in todo                                                    # the followed company is refreshed although it is outside that set
+    assert await store.pinned_symbols(0) == []
+    await c.aclose(); await other.aclose()
+
+
+def app_anon(app):
+    from test_auth import new_client
+    return new_client(app)
