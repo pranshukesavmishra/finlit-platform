@@ -26,7 +26,7 @@
 .biz2 { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
 .biz-main { position: relative; overflow: hidden; background: radial-gradient(70% 90% at 100% 0%, color-mix(in srgb, var(--p-growth) 14%, transparent), transparent 70%), var(--s1); }
 .skyline { position: absolute; right: 0; bottom: 0; width: 62%; height: 70%; opacity: .75; pointer-events: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%); }
-.skyline .win { animation: tw 4s ease-in-out infinite alternate; } @keyframes tw { 0%, 40% { opacity: .15; } 60%, 100% { opacity: .8; } }
+.skyline .win { opacity: .6; } @keyframes tw { 0%, 40% { opacity: .15; } 60%, 100% { opacity: .8; } }
 .biz-id { display: flex; gap: 14px; align-items: center; position: relative; margin-bottom: 18px; } .biz-id b { font: 400 22px var(--serif); }
 .biz-av { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font: 700 20px var(--sans); color: #fff; background: linear-gradient(140deg, var(--p-growth), var(--p-profit)); box-shadow: 0 14px 28px -12px var(--p-growth); }
 .biz-tags { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
@@ -118,7 +118,7 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 .dcenter .of { position: absolute; left: 0; right: 0; top: calc(50% + 40px); font: 600 11px var(--mono); letter-spacing: .2em; color: var(--faint); text-align: center; }
 .dial-band { position: absolute; left: 0; right: 0; bottom: -34px; display: flex; gap: 10px; align-items: center; justify-content: center; font-size: 12px; }
 .dial { margin-bottom: 34px; }
-.dial-spin { transform-box: view-box; transform-origin: 150px 150px; animation: spin 40s linear infinite; } .dial-spin.rev { animation-duration: 70s; animation-direction: reverse; }
+.dial-spin { transform-box: view-box; transform-origin: 150px 150px;  } .dial-spin.rev { animation-duration: 70s; animation-direction: reverse; }
 @media (prefers-reduced-motion: reduce) { .dial-spin { animation: none; } }
 
 /* ownership trend + lines */
