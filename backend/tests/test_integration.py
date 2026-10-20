@@ -332,3 +332,9 @@ async def test_half_loaded_report_is_never_shown_and_is_rebuilt(api, ingested):
         await worker.drain_queue(client, ingested)
     ok = await api.get("/api/stocks/RELIANCE")
     assert ok.status_code == 200 and ok.json()["quote"]["price"] and ok.json()["meta"]["version"] >= 2
+
+
+def test_retired_symbol_maps_to_its_successor():
+    """TATAMOTORS (demerged Oct 2025) resolves to TMPV so old links and saved lists keep working."""
+    from finlit.aliases import canonical
+    assert canonical("tatamotors") == "TMPV" and canonical("RELIANCE") == "RELIANCE"

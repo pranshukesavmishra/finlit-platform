@@ -55,3 +55,12 @@ describe("namesFrom (pasted text)", () => {
   });
   it("a one-column list with a heading drops the heading", () => { expect(namesFrom("Symbol\nTCS\nINFY", m)).toEqual(["TCS", "INFY"]); });
 });
+
+
+describe("demerged companies", () => {
+  const idx: SearchRow[] = [R("TMPV", "Tata Motors Passenger Vehicles Ltd.", "500570"), R("TMCV", "Tata Motors Ltd.", "544569"), R("TCS", "Tata Consultancy Services Ltd.", "532540")];
+  it("an old Tata Motors line becomes both of its parts; the retired ticker maps to TMPV", () => {
+    expect(matchNames(["Tata Motors Ltd", "TATAMOTORS-EQ", "TCS"], idx).found.map((f) => f.symbol)).toEqual(["TMPV", "TMCV", "TMPV", "TMCV", "TCS"]);
+    expect(makeMatcher(idx)!("Tata Motors")).toBe(true);
+  });
+});

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
+import { canon } from "../lib/aliases";
 import { ApiError, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
@@ -19,7 +20,9 @@ const NAV: [string, string, string][] = [["business", "Company", "building"], ["
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
-  const symbol = raw.toUpperCase();
+  const symbol = canon(raw.toUpperCase());
+  const nav = useNavigate();
+  useEffect(() => { if (symbol !== raw.toUpperCase()) nav(`/stocks/${symbol}`, { replace: true }); }, [symbol, raw]); // eslint-disable-line react-hooks/exhaustive-deps
   const { showcase } = useAuth();
   const sum = useSummary(symbol);
   const s = sum.data;

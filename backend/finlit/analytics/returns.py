@@ -60,6 +60,17 @@ def trailing_returns(history: dict, actions: List[dict]) -> List[dict]:
             "total": round(total, 2),
             "annualised": round(annualised, 2) if annualised is not None else None,
         })
+    # A company listed less than five years ago (a recent IPO, or a demerged business such as Tata Motors' commercial-vehicle company) has
+    # blank long periods: say what it did since it started trading, instead of leaving the table empty.
+    if len(dates) >= 20 and any(r["price"] is None for r in out) and dates[0] < end_date and closes[0]:
+        start_close = closes[0]
+        price_return = (end_close / start_close - 1) * 100
+        dividend_return = dividends_between(actions, dates[0], end_date) / start_close * 100
+        total = price_return + dividend_return
+        years = (end_date - dates[0]).days / 365.25
+        annualised = ((1 + total / 100) ** (1 / years) - 1) * 100 if years >= 1 and total > -100 else None
+        out.append({"period": "Since listing", "price": round(price_return, 2), "dividend": round(dividend_return, 2), "total": round(total, 2),
+                    "annualised": round(annualised, 2) if annualised is not None else None, "from": dates[0].isoformat()})
     return out
 
 

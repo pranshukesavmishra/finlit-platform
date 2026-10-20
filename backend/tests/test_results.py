@@ -218,3 +218,15 @@ async def test_days_are_counted_for_the_page_headings(app, seeded):  # noqa: F81
     async with new_client(app) as anon:
         body = (await anon.get(f"/api/results/quarter?quarter={seeded['quarter']}")).json()
     assert sum(d["n"] for d in body["days"]) == body["total"] and [d["date"] for d in body["days"]] == sorted((d["date"] for d in body["days"]), reverse=True)
+
+
+@pytest.mark.integration
+async def test_results_refresh_picks_companies_that_reported_but_are_a_quarter_behind(app, seeded):  # noqa: F811
+    from finlit import worker
+    store = app.state.store
+    today = seeded["when"] + timedelta(days=1)
+    found = await worker.results_candidates(store, today=today)
+    assert "LATEX" in found and "OLDX" in found           # reported, stored report still on an older (or unknown) quarter
+    assert "RELIANCE" not in found                         # its stored report already holds the quarter
+    assert "NOSCORE" not in found and "LATER" not in found   # no report held / date still to come
+    assert await worker.results_candidates(store, today=today + timedelta(days=30)) == []   # an old declaration is not chased forever

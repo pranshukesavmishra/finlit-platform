@@ -1,4 +1,5 @@
 import type { SearchRow } from "./api";
+import { SPLIT_NAMES, canon } from "./aliases";
 import { gridFromText, namesFromGrid, tidy, type NameMatcher } from "./holdingsFile";
 
 /** Turning what a person typed, pasted or exported into listed companies. */
@@ -30,13 +31,20 @@ function lookup(index: SearchRow[]) {
 export function makeMatcher(index: SearchRow[]): NameMatcher | undefined {
   if (!index.length) return undefined;
   const find = lookup(index);
-  return (name) => !!find(name);
+  return (name) => !!find(name) || !!SPLIT_NAMES[tidy(name).toUpperCase().replace(/\s+/g, " ")];
 }
 
 /** Match each name to a listed company. The search list is biggest company first, so an ambiguous name picks the larger company. */
 export function matchNames(names: string[], index: SearchRow[]): { found: { input: string; symbol: string; name: string }[]; missing: string[] } {
   const find = lookup(index);
   const found: { input: string; symbol: string; name: string }[] = [], missing: string[] = [];
-  for (const input of names) { const hit = find(input); if (hit) found.push({ input, symbol: hit[0], name: hit[1] }); else missing.push(input); }
+  const bySymbol = new Map(index.map((r) => [r[0], r]));
+  for (const input of names) {
+    const split = SPLIT_NAMES[tidy(input).toUpperCase().replace(/\s+/g, " ")];
+    const parts = split ? split.map((sym) => bySymbol.get(sym)).filter((r): r is SearchRow => !!r) : [];
+    if (parts.length) { parts.forEach((r) => found.push({ input, symbol: r[0], name: r[1] })); continue; }   // a demerged company: the old share is now all of its parts
+    const hit = find(input) || bySymbol.get(canon(tidy(input).toUpperCase()));
+    if (hit) found.push({ input, symbol: hit[0], name: hit[1] }); else missing.push(input);
+  }
   return { found, missing };
 }

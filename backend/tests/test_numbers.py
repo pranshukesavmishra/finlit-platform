@@ -122,3 +122,15 @@ def test_profitability_ratios_filled_from_statements_when_provider_leaves_them_o
     lender_view = {"history": {"periods": ["FY24"], "rows": {}}, "notes": []}
     snapshot._fill_profitability(lender_view, {"periods": ["FY24"], "rows": {"revenue": [500.0], "total_income": [800.0], "net_profit": [80.0]}}, {"periods": ["FY24"], "rows": {"total_equity": [400.0]}}, lender=True)
     assert lender_view["history"]["rows"]["net_margin"] == [10.0] and "ebitda_margin" not in lender_view["history"]["rows"]   # lenders: no EBITDA
+
+
+def test_recent_listing_gets_a_since_listing_return():
+    from finlit.analytics import returns
+    days = [f"2026-{m:02d}-{d:02d}" for m in range(1, 7) for d in range(1, 29, 2)]
+    hist = {"t": days, "c": [100.0 + i for i in range(len(days))]}
+    out = returns.trailing_returns(hist, [])
+    assert out[3]["period"] == "1Y" and out[3]["price"] is None                              # too young for a year
+    last = out[-1]
+    assert last["period"] == "Since listing" and last["price"] == round((hist["c"][-1] / 100.0 - 1) * 100, 2) and last["from"] == days[0]
+    full = returns.trailing_returns({"t": [f"{y}-{m:02d}-15" for y in range(2019, 2027) for m in range(1, 13)], "c": [50.0 + i for i in range(96)]}, [])
+    assert all(r["period"] != "Since listing" for r in full)                                  # a long history needs no extra row

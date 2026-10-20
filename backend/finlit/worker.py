@@ -19,7 +19,8 @@ import asyncio
 import logging
 import os
 import time
-from typing import Iterable, List, Optional, Tuple
+from datetime import date, timedelta
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import orjson
 
@@ -227,6 +228,65 @@ async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "cons
     return done
 
 
+async def results_candidates(store: Store, today: Optional[date] = None, max_age_days: int = 4) -> List[str]:
+    """Companies that have declared quarterly results (a filing, or a board-meeting date that has passed) within the last `max_age_days`
+    and whose stored report is still on an older quarter: biggest first. Only companies the site keeps in full (the top INGEST_LIMIT
+    set, or any with a stored report) are returned."""
+    from . import results
+    today = today or results.today_ist()
+    decls = await results.get_declarations(store, force=True)
+    recent: Dict[str, date] = {}
+    for qk, by_sym in decls.items():
+        for sym, d in by_sym.items():
+            if d.date <= today and (today - d.date).days <= max_age_days:
+                recent[sym] = max(d.date, recent.get(sym, d.date))
+    if not recent:
+        return []
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"WITH ranked AS ({store.RANKED}) "  # nosec B608 - fixed SQL
+            "SELECT x.symbol, r.rn, (SELECT s.metrics->>'q_period_end' FROM scores s WHERE s.symbol = x.symbol AND s.model = 'v1' ORDER BY (s.statement = 'consolidated') DESC, s.updated_at DESC LIMIT 1) AS qpe, "
+            "EXISTS (SELECT 1 FROM snapshots n WHERE n.symbol = x.symbol) AS held "
+            "FROM unnest($1::text[]) AS x(symbol) LEFT JOIN ranked r ON r.symbol = x.symbol", sorted(recent))
+    out = []
+    for r in rows:
+        d = recent[r["symbol"]]
+        e = results.quarter_end_before(d)
+        try:
+            have = results.ymd_to_date(float(r["qpe"])) if r["qpe"] else None
+        except ValueError:
+            have = None
+        if have is not None and have >= e - timedelta(days=10):
+            continue                                  # the stored report already holds this quarter
+        rn = int(r["rn"]) if r["rn"] is not None else 10 ** 9
+        if r["held"] or rn <= (int(os.getenv("INGEST_LIMIT") or 0) or 100000):
+            out.append((rn, r["symbol"]))
+    return [sym for _, sym in sorted(out)]
+
+
+async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120, retry_minutes: int = 50) -> dict:
+    """Run every hour: a company that has just reported is rebuilt from the provider, so its new quarter shows on the site within hours
+    (the provider usually has it within a few hours of the filing). A company the provider has not updated yet is tried again an hour
+    later, and for up to four days after its declaration."""
+    todo = []
+    for sym in await results_candidates(store):
+        try:
+            if await store.redis.set(f"results:try:{sym}", 1, ex=retry_minutes * 60, nx=True):
+                todo.append(sym)
+        except Exception:
+            todo.append(sym)
+        if len(todo) >= limit:
+            break
+    done = {"candidates": len(todo), "ok": 0, "failed": 0}
+    for i in range(0, len(todo), 30):
+        for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3):
+            done["ok" if r["status"] in ("ok", "warnings") else "failed"] += 1
+    if todo:
+        await store.invalidate_search()
+    log.info("refresh-results: %s", done)
+    return done
+
+
 async def probe(client: FinEdgeClient, symbol: str = "RELIANCE", statement: str = "consolidated") -> List[Tuple[str, str, float]]:
     """One request per FinEdge endpoint the site uses: proves the key, the network path and the plan cover everything.
     Prints only endpoint names and HTTP statuses, never the key."""
@@ -264,6 +324,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
+    sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_prune = sub.add_parser("prune", help="keep the database inside its storage limit (reports outside the top INGEST_LIMIT nobody opened lately, old prices and logs)")
     p_prune.add_argument("--keep", type=int, default=None, help="companies always kept (default: INGEST_LIMIT, else 500)")
     sub.add_parser("refresh-calendars", help="IPO and results calendars from the data provider")
@@ -335,6 +396,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 print(await refresh_calendars(client, store))
             elif args.cmd == "refresh-quotes":
                 print(await refresh_quotes(client, store), "quotes updated")
+            elif args.cmd == "refresh-results":
+                print(await refresh_results(client, store))
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:

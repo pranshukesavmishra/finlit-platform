@@ -25,6 +25,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import alertapi, indices, notify, premium
+from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
 from .auth import routes as auth_routes
@@ -181,6 +182,15 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                        expose_headers=["ETag", "Server-Timing", "Retry-After"], allow_credentials=True, max_age=600)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(SecurityHeadersMiddleware)
+
+    @app.middleware("http")
+    async def retired_symbols(request: Request, call_next):
+        """/api/stocks/TATAMOTORS is answered from TMPV: old links, bookmarks and saved lists keep working after a demerger or a rename."""
+        parts = request.scope.get("path", "").split("/")
+        if len(parts) > 3 and parts[1] == "api" and parts[2] == "stocks" and parts[3].upper() in SYMBOL_ALIASES:
+            parts[3] = SYMBOL_ALIASES[parts[3].upper()]
+            request.scope["path"] = "/".join(parts)
+        return await call_next(request)
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):  # never leak internals
