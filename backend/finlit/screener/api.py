@@ -18,7 +18,7 @@ from .data import get_table
 router = APIRouter(prefix="/api/screener")
 BASIC_ROWS = 25
 DEFAULT_COLUMNS = ["market_cap", "price", "ret_1d", "pe", "roe", "roce", "debt_to_equity", "sales_cagr_5y"]
-GOLD_COLUMNS = ["market_cap", "price", "pe", "roe", "roce", "overall", "pillar_quality", "pillar_growth"]
+GOLD_COLUMNS = ["market_cap", "price", "pe", "roe", "roce", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"]
 
 
 class Rng(BaseModel):
