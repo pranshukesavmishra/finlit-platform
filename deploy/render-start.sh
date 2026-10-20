@@ -38,6 +38,12 @@ if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
   FINLIT_ADMIN_PASSWORD="$ADMIN_PASSWORD" $PY -m finlit.auth.cli create-admin --email "$ADMIN_EMAIL" || true
 fi
 
+# Lost or handed-over authenticator (the free plan has no shell): set RESET_MFA_EMAIL to that account's email, save, and after the restart
+# its two-step sign-in is cleared (the next sign-in sets up a new authenticator). Then DELETE the variable.
+if [ -n "${RESET_MFA_EMAIL:-}" ]; then
+  $PY -m finlit.auth.cli reset-mfa --email "$RESET_MFA_EMAIL" || true
+fi
+
 # Company data and the recurring jobs (quotes, nightly refresh, alerts, emails): see deploy/scheduler.sh
 export APP_DIR="$PWD" PYTHON="$PY"
 nohup "$HERE/scheduler.sh" >> /tmp/scheduler.log 2>&1 &

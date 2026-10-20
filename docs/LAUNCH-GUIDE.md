@@ -258,6 +258,7 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 | The Screener is empty | The company load has not run yet, or `DATABASE_URL` is wrong | Wait 5 minutes. In Logs look for a database error. Re-copy the Neon string with pooling OFF |
 | Database errors mentioning `-pooler` or prepared statements | The pooled Neon string was used | Use the direct string (Step 1, pooling OFF) |
 | Blog, portfolio or forms are empty, or Logs show Mongo errors | `MONGO_URL` is wrong or Atlas does not allow `0.0.0.0/0` | Re-check Step 2 items 3, 4 and 6 |
+| Authenticator lost, or handed to someone else | The code on the phone no longer exists | In Render, Environment, add `RESET_MFA_EMAIL` = that account's email, Save (the service restarts). Sign in with the password; the site asks for a new authenticator. Then delete `RESET_MFA_EMAIL` |
 | `/admin` sends you to Account, Security | The authenticator app is not set up yet | Finish Step 6 |
 | The server answers `cms_not_configured` | `CMS_JWT_SECRET` is missing or shorter than 32 characters | Add it in Environment and save |
 | Administrator sign-in refused | Wrong password, or the password contains your email name | Set a new `ADMIN_PASSWORD` in Environment and redeploy, then sign in again |
