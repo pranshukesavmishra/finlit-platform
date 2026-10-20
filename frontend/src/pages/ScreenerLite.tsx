@@ -1,3 +1,4 @@
+import { SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -25,6 +26,7 @@ const DEFAULT_COLS: NumKey[] = ["market_cap", "price", "change_pct", "return_1y"
 const GOLD_COLS: NumKey[] = ["overall", "pillar_quality", "pillar_growth"];
 
 export function ScreenerLite() {
+  const [sideW, setSide] = useSideWidth("lite");
   useDocTitle("Stock screener", "Filter every listed Indian stock by size, valuation, profitability, growth and financial health. Gold adds filters built on the FinLit research model.");
   const { has, upgrade, toast, plan } = useUI();
   const nav = useNavigate();
@@ -96,8 +98,8 @@ export function ScreenerLite() {
         <p>Filter every listed company by size, valuation, profitability, growth and debt. Gold adds filters built on the FinLit research model. Prefer a simpler start? Try the <Link to="/score-screener">Score screener</Link>.</p></div></section>
       <div className="wrap scr-wrap">
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-) so you can try the filters. The live site screens every listed company.</span></div>}
-        <div className="scr">
-          <aside className="scr-side card" aria-label="Filters">
+        <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+          <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0}>
             <div className="seg scr-tabs" role="tablist"><button role="tab" aria-selected={tab === "filters"} onClick={() => setTab("filters")}>Filters{nActive ? <i className="dotn">{nActive}</i> : null}</button><button role="tab" aria-selected={tab === "quick"} onClick={() => setTab("quick")}>Quick screens</button></div>
             {tab === "filters" ? (
               <>
@@ -139,6 +141,7 @@ export function ScreenerLite() {
               </div>
             )}
           </aside>
+          <SplitDivider width={sideW} set={setSide} />
 
           <section className="scr-main card" aria-label="Results">
             <div className="scr-top">

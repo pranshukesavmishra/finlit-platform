@@ -10,11 +10,13 @@ import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
 import { limitsFor } from "../lib/auth";
 import { DEMO } from "../lib/demo";
-import { prefetchStock, useSearchIndex, type SearchRow } from "../lib/api";
+import { prefetchStock, useSearchIndex } from "../lib/api";
 import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
 import { portfolio, usePortfolio } from "../lib/portfolio";
 import { signals } from "./Watchlist";
 import { saveFile } from "../stock/derive";
+import { ACCEPT, namesFromFile } from "../lib/holdingsFile";
+import { makeMatcher, matchNames, namesFrom } from "../lib/holdingsMatch";
 import { MINUS, cr, csvText, nf } from "../lib/format";
 
 /** My portfolio as a scorecard: give it the names of the shares you hold (typed, pasted or a CSV file) and it shows each one's
@@ -25,39 +27,6 @@ const BAND_C: Record<string, string> = { strong: "var(--v-strong)", healthy: "va
 const PILLARS: [keyof Row, string][] = [["pillar_quality", "Quality"], ["pillar_growth", "Growth"], ["pillar_profitability", "Profit."], ["pillar_balance", "Balance"], ["pillar_technical", "Technical"]];
 const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
 const pct = (v: number | null | undefined, d = 2) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
-
-/* ---------------------------------------------------------------- reading a list of share names */
-
-const norm = (s: string) => s.toUpperCase().replace(/&/g, " AND ").replace(/\b(LIMITED|LTD|THE|CO|COMPANY|CORPORATION|CORP|INC)\b\.?/g, " ").replace(/[^A-Z0-9]+/g, " ").trim();
-const HEADER = /^(symbol|ticker|scrip|stock|share|name|company|instrument|security|nse|bse)/i;
-
-/** The names or tickers in pasted text or a CSV: the column headed symbol/stock/name/company if there is one, else the first column. */
-export function namesFrom(text: string): string[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (!lines.length) return [];
-  const split = (l: string) => l.split(/[,\t;|]/).map((x) => x.trim().replace(/^"|"$/g, "").trim());
-  const head = split(lines[0]);
-  const col = Math.max(0, head.findIndex((h) => HEADER.test(h)));
-  const body = head.some((h) => HEADER.test(h)) ? lines.slice(1) : lines;
-  return [...new Set(body.map((l) => split(l)[col] || "").filter((x) => x && !/^[\d.,\s₹-]+$/.test(x) || /^\d{6}$/.test(x)))];
-}
-
-/** Match each name to a listed company: exact ticker, NSE or BSE code first, then the company name (ignoring Ltd/Limited/&), then a
- *  name that starts the same way. The search list is biggest company first, so an ambiguous name picks the larger company. */
-export function matchNames(names: string[], index: SearchRow[]): { found: { input: string; symbol: string; name: string }[]; missing: string[] } {
-  const byCode = new Map<string, SearchRow>(), byName = new Map<string, SearchRow>();
-  for (const r of index) {
-    for (const c of [r[0], r[2], r[4]]) if (c && !byCode.has(c.toUpperCase())) byCode.set(c.toUpperCase(), r);
-    const n = norm(r[1]); if (n && !byName.has(n)) byName.set(n, r);
-  }
-  const found: { input: string; symbol: string; name: string }[] = [], missing: string[] = [];
-  for (const input of names) {
-    const up = input.toUpperCase().replace(/\.(NS|BO)$/, "").replace(/^(NSE|BSE):/, "").trim(), n = norm(input);
-    const hit = byCode.get(up) || byName.get(n) || (n.length >= 4 ? index.find((r) => norm(r[1]).startsWith(n + " ") || norm(r[1]) === n) : undefined);
-    if (hit) found.push({ input, symbol: hit[0], name: hit[1] }); else missing.push(input);
-  }
-  return { found, missing };
-}
 
 /* ---------------------------------------------------------------- page */
 
@@ -71,7 +40,8 @@ export function HoldingsPage() {
   const index = idx.data?.rows || [];
   const cap = limitsFor(plan).holdings;
   const [text, setText] = useState(""), [one, setOne] = useState(""), [missing, setMissing] = useState<string[]>([]);
-  const file = useRef<HTMLInputElement>(null);
+  const file = useRef<HTMLInputElement>(null), [busy, setBusy] = useState(false);
+  const matcher = useMemo(() => makeMatcher(index), [index]);
 
   const symbols = useMemo(() => [...new Set(st.holdings.map((h) => h.symbol))], [st.holdings]);
   const lines = useMemo(() => symbols.map((s) => ({ symbol: s, row: by.get(s), id: st.holdings.find((h) => h.symbol === s)!.id, name: by.get(s)?.name || index.find((r) => r[0] === s)?.[1] || "" })), [symbols, by, st.holdings, index]);
@@ -93,8 +63,8 @@ export function HoldingsPage() {
     return { avg, pill, scored: scored.length, sector: [...sector.entries()].sort((a, b) => b[1] - a[1]), band };
   }, [lines]);
 
-  const add = (names: string[]) => {
-    if (!names.length) { toast("No share names found. Put one name or ticker per line, or a CSV with a Symbol or Name column."); return; }
+  const add = (names: string[], from?: string) => {
+    if (!names.length) { toast(from ? `No share names found in ${from}. It should have a column with the share names (Symbol, Stock, Instrument or Company).` : "No share names found. Put one name or ticker per line, or paste the Name column from your broker."); return; }
     if (!index.length) { toast("The company list is still loading. Try again in a moment."); return; }
     const { found, missing: miss } = matchNames(names, index);
     const fresh = [...new Map(found.filter((f) => !symbols.includes(f.symbol)).map((f) => [f.symbol, f])).values()];
@@ -115,7 +85,7 @@ export function HoldingsPage() {
       <Gate tier="silver" title="Score your portfolio" points={["FinLit score and pillars for every share you hold", "Average score, band mix and sector spread", "Import a CSV of share names"]}>
         <section className="card acct-c pf-in">
           <h2>Add your shares</h2>
-          <p className="muted">Type a name or ticker, paste a list (one per line), or choose a CSV file. Company names work too, such as <code>Reliance Industries</code>, <code>HDFC Bank Ltd</code> or <code>500325</code>; any column headed Symbol, Stock or Name is read.</p>
+          <p className="muted">Type a name or ticker, paste a list, or choose the file you downloaded from your broker (Excel .xlsx or .xls, or .csv). Only the share names are taken: quantities, prices and dates in the file are ignored, and the sheet's other columns do not matter. Names such as <code>Reliance Industries</code>, <code>HDFC Bank Ltd</code>, <code>TCS-EQ</code> or <code>500325</code> all work.</p>
           <div className="pf-add">
             <form className="pf-one" onSubmit={(e) => { e.preventDefault(); add([one.trim()].filter(Boolean)); setOne(""); }}>
               <input list="pf-names" value={one} onChange={(e) => setOne(e.target.value)} placeholder="e.g. RELIANCE or Infosys" aria-label="Share name or ticker" autoComplete="off" maxLength={80} />
@@ -124,9 +94,10 @@ export function HoldingsPage() {
             </form>
             <div className="pf-bulk">
               <textarea className="imp" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={"RELIANCE\nHDFC Bank\nInfosys Ltd\nTCS"} aria-label="Share names to add, one per line" />
-              <div className="row"><button className="btn primary" onClick={() => { add(namesFrom(text)); setText(""); }} disabled={!text.trim()}>Add these</button>
-                <button className="btn" onClick={() => file.current?.click()}><Icon name="table" />Choose CSV file…</button>
-                <input ref={file} type="file" accept=".csv,.txt,text/csv,text/plain" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f && f.size >= 500_000) toast("That file is too large (limit 500 KB). Paste the names instead, or trim the file."); else if (f) add(namesFrom(await f.text())); e.target.value = ""; }} /></div>
+              <div className="row"><button className="btn primary" onClick={() => { add(namesFrom(text, matcher)); setText(""); }} disabled={!text.trim()}>Add these</button>
+                <button className="btn" onClick={() => file.current?.click()} disabled={busy}><Icon name="table" />{busy ? "Reading…" : "Choose Excel or CSV file…"}</button>
+                <input ref={file} type="file" accept={ACCEPT} hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; setBusy(true);
+                  try { add(await namesFromFile(f, matcher), f.name); } catch (err) { toast(err instanceof Error && err.message.startsWith("That file") ? err.message : "That file could not be read. Save it as .xlsx or .csv, or paste the share names instead."); } finally { setBusy(false); } }} /></div>
             </div>
           </div>
           {missing.length > 0 && <p className="pf-miss" role="status"><b>Not recognised:</b> {missing.slice(0, 20).join(", ")}{missing.length > 20 ? ` and ${missing.length - 20} more` : ""}. Check the spelling or use the NSE ticker.</p>}

@@ -1,4 +1,5 @@
 import { HScroll } from "../components/HScroll";
+import { SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
@@ -52,6 +53,7 @@ const Score = ({ v, locked }: { v: number | null; locked: boolean }) =>
   v == null ? <span className="ssp na" title={locked ? "Scores are part of the Silver plan" : "Not enough data to score"}>{locked ? <Icon name="lock" /> : MINUS}</span> : <span className={"ssp " + level(v)}>{v}</span>;
 
 export function ScoreScreener() {
+  const [sideW, setSide] = useSideWidth("score");
   useDocTitle("Score screener", "Filter every listed company by size, sector and its FinLit fundamental and technical scores.");
   const { data, isLoading, isError } = useUniverse();
   const { has, upgrade, toast } = useUI();
@@ -122,8 +124,8 @@ export function ScoreScreener() {
         <div className="eyebrow">Score screener</div><h1>Find strong businesses by score.</h1>
         <p>Pick a size, a sector and the score range you want. Every company is scored from its latest statements and prices. Need more rules? Use the <Link to="/screener">full screener</Link>.</p></div></section>
       <div className="wrap scr-wrap">
-        <div className="scr">
-          <aside className="scr-side card" aria-label="Score screener filters">
+        <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+          <aside className="scr-side card" aria-label="Score screener filters" hidden={sideW === 0}>
             <div className="label">Market cap</div>
             <div className="scr-bands" role="group" aria-label="Market cap size">
               <button className={"bandc" + (!draft.cap ? " on" : "")} aria-pressed={!draft.cap} onClick={() => setDraft({ ...draft, cap: null })}>All</button>
@@ -162,6 +164,7 @@ export function ScoreScreener() {
             </>)}
             <div className="ss-actions"><button className="btn primary" onClick={apply}>Apply filters</button><button className="btn" onClick={clear}>Clear all</button></div>
           </aside>
+          <SplitDivider width={sideW} set={setSide} />
 
           <section className="scr-main card" aria-label="Results">
             {how && <div id="ss-how" className="ss-how" role="note"><b>How scores work</b>
