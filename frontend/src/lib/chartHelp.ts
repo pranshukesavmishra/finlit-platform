@@ -644,6 +644,14 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     read: "Higher numbers are better. Select a column heading to sort by it.",
     why: "It shows where each company is strong or weak, and a score screen narrows a long list rather than telling you what to buy.",
   },
+  "profit-reality": {
+    title: "Profit Reality Check",
+    what: "Tests whether reported profit is real, repeatable and backed by cash. It sets reported profit beside a normalized profit (without discontinued operations, exceptional items and unusually high other income), operating cash flow, and the growth of receivables and inventory against sales.",
+    x: "Financial year (April to March), up to eight years.",
+    y: "Rupees crore for profit and cash flow, per cent for cash conversion, one-off shares and growth.",
+    read: "Paired bars compare reported and normalized profit: a big gap means part of the profit may not repeat. Cash conversion is operating cash flow divided by net profit; below 80% marks a gap year. A flag marks one-offs at 15% or more of profit, and receivables or inventory growing 10 or more points faster than revenue.",
+    why: "Profit is an accounting opinion; cash is what arrives. When profit jumps from a one-off gain, or keeps running ahead of cash, the headline number may overstate what the business earns year after year.",
+  },
 };
 
 export const CHART_HELP_IDS = Object.keys(CHART_HELP);

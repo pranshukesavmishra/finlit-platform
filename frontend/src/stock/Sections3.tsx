@@ -16,6 +16,7 @@ import { useUI } from "../lib/ui";
 import { SectionHead } from "./Sections";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
 import { DuPont } from "./DuPont";
+import { ProfitReality } from "./ProfitReality";
 import { SegmentCard } from "./Sections2";
 
 const v = (n: string) => `var(${n})`;
@@ -133,6 +134,7 @@ export function RatiosSection({ r, lender = false }: { r?: Ratios; lender?: bool
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
       <DuPont symbol={r.meta.symbol} periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} lender={lender} />
+      <ProfitReality symbol={r.meta.symbol} lender={lender} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ margin: "24px 0 16px" }}>
           <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /><ChartHelp id="ratio-trend" /></div>

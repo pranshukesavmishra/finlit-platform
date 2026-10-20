@@ -1,0 +1,27 @@
+/* Profit Reality Check (stock/ProfitReality.tsx) */
+.pr-card { padding: 18px 20px; margin: 16px 0 8px; }
+.pr-verdict { border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; padding: 12px 16px; display: grid; gap: 4px; }
+.pr-verdict .k { font: 600 11.5px var(--mono); letter-spacing: .04em; color: var(--muted); text-transform: uppercase; } .pr-verdict b { font: 600 20px var(--serif); }
+.pr-verdict ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80ch; } .pr-verdict p { margin: 4px 0 0; max-width: 80ch; }
+.pr-verdict.good { border-left-color: var(--gain); } .pr-verdict.mid, .pr-verdict.none { border-left-color: var(--warn); } .pr-verdict.bad { border-left-color: var(--loss, var(--v-weak)); }
+.pr-rules { margin: 10px 0 0; } .pr-rules summary { cursor: pointer; color: var(--muted); font-size: 13.5px; }
+.pr-rules ul { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; } .pr-rules li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; max-width: 90ch; }
+.pr-rules .m { flex: none; width: 20px; text-align: center; font-weight: 700; } .pr-rules .ok .m { color: var(--gain); } .pr-rules .warn .m, .pr-rules .flag .m { color: var(--warn); } .pr-rules .na { color: var(--muted); } .pr-rules small { color: var(--muted); font-size: 12.5px; }
+.pr-h { display: flex; align-items: center; gap: 6px; margin: 22px 0 6px; font: 600 15px var(--sans); }
+.pr-say { margin: 0 0 10px; max-width: 80ch; color: var(--muted); font-size: 13.5px; } .pr-note { font-size: 12.5px; margin: 10px 0 0; max-width: 80ch; }
+.pr-chart { display: flex; gap: 6px; height: 150px; align-items: stretch; border-bottom: 1px solid var(--border-strong); overflow: hidden; }
+.pr-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; } .pr-bars { flex: 1 1 auto; min-height: 0; display: flex; gap: 3px; align-items: flex-end; justify-content: center; }
+.pr-chart.neg .pr-bars { align-items: center; }
+.pr-bar { display: block; flex: 0 1 18px; min-width: 4px; max-height: 100%; border-radius: 2px 2px 0 0; } .pr-bar.none { background: transparent; height: 0; }
+.pr-bar.rep { background: color-mix(in srgb, var(--text) 38%, transparent); } .pr-bar.nrm { background: var(--gold); }
+.pr-bar.neg { opacity: .55; } .pr-x { flex: none; text-align: center; font: 11px var(--mono); color: var(--muted); padding-top: 4px; margin-bottom: -22px; transform: translateY(0); }
+.pr-chart { margin-bottom: 26px; }
+.pr-legend { display: flex; gap: 14px; align-items: center; font-size: 12.5px; color: var(--muted); margin: 0 0 12px; } .pr-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: -8px; } .pr-legend i.rep { background: color-mix(in srgb, var(--text) 38%, transparent); } .pr-legend i.nrm { background: var(--gold); }
+.pr-t { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; } .pr-t th, .pr-t td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.pr-t th:first-child, .pr-t td:first-child { text-align: left; position: sticky; left: 0; background: var(--s1); } .pr-t th { font: 600 11.5px var(--mono); letter-spacing: .04em; color: var(--muted); }
+.pr-t tr.sub td { color: var(--muted); font-size: 13px; } .pr-t tr.sub td:first-child { padding-left: 24px; } .pr-t tr.tot td { font-weight: 700; border-top: 1.5px solid var(--text); }
+.pr-t td.warn { color: var(--warn); font-weight: 600; } .pr-flag { color: var(--warn); margin-left: 3px; cursor: help; }
+.pr-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; } @media (max-width: 700px) { .pr-tiles { grid-template-columns: 1fr; } }
+.pr-tile { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; gap: 3px; min-width: 0; } .pr-tile .k { font-size: 12.5px; color: var(--muted); } .pr-tile b { font: 600 15px var(--mono); overflow-wrap: anywhere; } .pr-tile small { font-size: 12.5px; color: var(--muted); }
+.pr-tile.warn { border-color: color-mix(in srgb, var(--warn) 50%, var(--border)); }
+@media (max-width: 480px) { .pr-card { padding: 14px; } .pr-chart { gap: 3px; } .pr-bar { min-width: 3px; } }
