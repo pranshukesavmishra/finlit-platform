@@ -31,6 +31,7 @@ export const METRICS: Record<string, Metric> = {
   pillar_technical: { label: "Technical score", unit: "", group: "FinLit score", live: false, tier: "silver", ops: ["above", "below"], hint: "The Technical pillar, 0–100.", sample: 60 },
   q_net_profit: { label: "Net profit (latest quarter)", unit: "Cr", group: "Results & ownership", live: false, tier: "silver", ops: ["above", "below"], hint: "Net profit of the newest reported quarter, in crore rupees. Checked when new results are loaded.", sample: 1000 },
   q_revenue: { label: "Revenue (latest quarter)", unit: "Cr", group: "Results & ownership", live: false, tier: "silver", ops: ["above", "below"], hint: "Revenue of the newest reported quarter, in crore rupees.", sample: 10000 },
+  rev_profit_gap: { label: "Revenue vs profit growth gap", unit: "pp", group: "Results & ownership", live: false, tier: "silver", ops: ["above"], hint: "Tell me when the latest quarter's revenue growth and net-profit growth (each against the same quarter last year) are this many percentage points apart. Sales up 37% while profit falls 36% is a gap of 73. Worth a close look at the report.", sample: 15 },
   promoter_chg: { label: "Promoter holding change", unit: "pp", group: "Results & ownership", live: false, tier: "silver", ops: ["above", "below"], hint: "Change in promoter holding against the previous quarter, in percentage points. Use a negative number for a fall.", sample: 1 },
   fii_chg: { label: "FII holding change", unit: "pp", group: "Results & ownership", live: false, tier: "silver", ops: ["above", "below"], hint: "Change in foreign institutional holding against the previous quarter, in percentage points.", sample: 1 },
   result_soon: { label: "Results due within (days)", unit: "days", group: "Results & ownership", live: false, tier: "basic", ops: ["event"], hint: "Tell me when a results date or board meeting for the company is announced inside this many days.", sample: 7 },
@@ -54,6 +55,7 @@ export function describe(a: { metric: string; op: Op; value: number | null; keyw
   if (a.metric === "news_keyword") return `News or a filing mentions “${a.keyword}”`;
   if (a.metric === "new_filing") return "A new filing is published";
   if (a.metric === "result_soon") return `Results announced within ${a.value ?? 7} days`;
+  if (a.metric === "rev_profit_gap") return `Revenue and profit growth are ${fmtValue(a.metric, a.value)} or more apart`;
   if (a.metric === "move_abs") return `Moves ${fmtValue(a.metric, a.value)} or more in a day`;
   if (a.metric === "volume_x") return `Volume reaches ${fmtValue(a.metric, a.value)} its 20-day average`;
   if (a.metric === "from_high52") return `Within ${fmtValue(a.metric, a.value)} of its 52-week high`;
@@ -70,4 +72,4 @@ export function closeness(a: { metric: string; op: Op; value: number | null; las
 }
 export const LIVE_NOTE = "Price alerts are checked every few minutes while the market is open. Everything else is checked on weekday evenings, once the day's data is in.";
 export const OP_LABEL = (metric: string, op: Op): string =>
-  metric === "move_abs" || metric === "volume_x" ? "Reaches at least" : metric === "from_high52" || metric === "from_low52" ? "Gets within" : op === "above" ? "At or above" : op === "below" ? "At or below" : "Any new item";
+  metric === "move_abs" || metric === "volume_x" || metric === "rev_profit_gap" ? "Reaches at least" : metric === "from_high52" || metric === "from_low52" ? "Gets within" : op === "above" ? "At or above" : op === "below" ? "At or below" : "Any new item";

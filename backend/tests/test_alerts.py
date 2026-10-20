@@ -109,3 +109,16 @@ async def test_score_event_and_technical_metrics_evaluate_from_stored_data(app):
     assert "Board declares interim dividend" in n["title"]
     assert await run(app, "daily") == 0
     await c.aclose()
+
+
+def test_revenue_profit_gap_metric_and_message():
+    from finlit import alertengine as ae
+    g = ae.quarter_gap({"revenue": [772, 800, 900, 929, 1057.8], "net_profit": [115.5, 100, 90, 115.3, 73.9]})   # Waaree-style: sales +37%, profit -36%
+    assert g and round(g["rev"]) == 37 and round(g["profit"]) == -36 and g["gap"] > 70
+    assert ae.quarter_gap({"revenue": [100, 110, 120, 130, 140], "net_profit": [10, 11, 12, 13, 14.5]})["gap"] == 5.0
+    assert ae.quarter_gap({"revenue": [100, 1, 1, 1, 140], "net_profit": [-5, 1, 1, 1, 9]}) is None          # growth on a loss is not meaningful
+    assert ae.quarter_gap({"revenue": [100, 110], "net_profit": [10, 11]}) is None                           # fewer than five quarters
+    title, body = ae.headline({"symbol": "WAAREERTL", "metric": "rev_profit_gap", "op": "above", "value": 15}, g["gap"], g)
+    assert "The anticipated difference between revenue and profit is >= 15 percent thus please check the report thoroughly." in body
+    assert "37%" in body and "-36%" in body and "WAAREERTL" in title
+    assert ae.allowed("basic", "rev_profit_gap") is False and ae.allowed("silver", "rev_profit_gap") and ae.allowed("gold", "rev_profit_gap")

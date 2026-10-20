@@ -48,6 +48,7 @@ METRICS: Dict[str, M] = {
     "debt_to_equity": dict(label="Debt to equity", unit="×", live=False, tier="silver", ops=("above", "below")),
     "q_net_profit":   dict(label="Net profit (latest quarter)", unit="Cr", live=False, tier="silver", ops=("above", "below")),
     "q_revenue":      dict(label="Revenue (latest quarter)", unit="Cr", live=False, tier="silver", ops=("above", "below")),
+    "rev_profit_gap": dict(label="Revenue vs profit growth gap", unit="pp", live=False, tier="silver", ops=("above",)),
     "promoter_chg":   dict(label="Promoter holding change", unit="pp", live=False, tier="silver", ops=("above", "below")),
     "fii_chg":        dict(label="FII holding change", unit="pp", live=False, tier="silver", ops=("above", "below")),
     "news_keyword":   dict(label="News or filing mentions", unit="", live=False, tier="basic", ops=("event",)),
@@ -57,7 +58,7 @@ METRICS: Dict[str, M] = {
 SCORE_COLUMNS = {"price", "change_pct", "return_1m", "return_1y", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance",
                  "pillar_technical", "pe", "pb", "dividend_yield", "market_cap", "roe", "roce", "operating_margin", "debt_to_equity"}
 TECH = {"rsi14", "ema50_gap", "ema200_gap", "volume_x", "from_high52", "from_low52"}
-SNAP = {"q_net_profit", "q_revenue", "promoter_chg", "fii_chg"}
+SNAP = {"q_net_profit", "q_revenue", "rev_profit_gap", "promoter_chg", "fii_chg"}
 EVENTS = {"news_keyword", "new_filing", "result_soon"}
 CHANNELS = ("app", "email", "browser")
 ALERT_LIMITS = {"basic": 3, "silver": 30, "gold": 300}
@@ -82,9 +83,30 @@ def fmt(metric: str, v: float) -> str:
     return f"{sign}{n}"
 
 
-def headline(a: Dict[str, Any], v: Optional[float]) -> Tuple[str, str]:
+GAP_TEXT = "The anticipated difference between revenue and profit is >= {limit} percent thus please check the report thoroughly."
+
+
+def quarter_gap(rows: Dict[str, Any]) -> Optional[Dict[str, float]]:
+    """Revenue growth against net-profit growth, latest quarter over the same quarter a year earlier (the newest result is the last entry).
+    Needs five quarters and a positive base for both, since a growth rate on a loss or zero is meaningless. gap is the absolute difference in points."""
+    rev, prof = rows.get("revenue") or [], rows.get("net_profit") or []
+    if len(rev) < 5 or len(prof) < 5:
+        return None
+    r1, r0, p1, p0 = rev[-1], rev[-5], prof[-1], prof[-5]
+    if None in (r1, r0, p1, p0) or r0 <= 0 or p0 <= 0:
+        return None
+    rg, pg = (r1 / r0 - 1) * 100, (p1 / p0 - 1) * 100
+    return {"gap": round(abs(rg - pg), 2), "rev": round(rg, 1), "profit": round(pg, 1)}
+
+
+def headline(a: Dict[str, Any], v: Optional[float], extra: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
     """(title, body) of the notification for a threshold alert that just crossed."""
     meta = METRICS[a["metric"]]
+    if a["metric"] == "rev_profit_gap" and v is not None:
+        d = extra or {}
+        detail = f" Revenue {d['rev']:+.0f}% and net profit {d['profit']:+.0f}% against the same quarter last year." if "rev" in d and "profit" in d else ""
+        return (f"{a['symbol']} – revenue and profit growth are {v:.0f} points apart",
+                GAP_TEXT.format(limit=f"{float(a['value']):g}") + detail)
     side = "above" if a["op"] == "above" else "below"
     title = f"{a['symbol']} – {meta['label']} is now {fmt(a['metric'], v)}, {side} your target of {fmt(a['metric'], float(a['value']))}"
     return title, f"{meta['label']} for {a['symbol']} crossed {fmt(a['metric'], float(a['value']))} ({side}). It is {fmt(a['metric'], v)} now."
@@ -140,6 +162,9 @@ async def load_values(conn, symbols: List[str], needed: set) -> Dict[str, Dict[s
                 for key, col in (("net_profit", "q_net_profit"), ("revenue", "q_revenue")):
                     vals = [x for x in rows.get(key) or [] if x is not None]
                     out[r["symbol"]][col] = float(vals[-1]) if vals else None
+                g = quarter_gap(rows)
+                out[r["symbol"]]["rev_profit_gap"] = g["gap"] if g else None
+                out[r["symbol"]]["_gap_detail"] = g
             else:
                 series = body.get("series") or {}
                 for key, col in (("promoters", "promoter_chg"), ("fii", "fii_chg")):
@@ -243,7 +268,7 @@ async def evaluate(pool, mailer: Mailer, site_url: str, kind: str = "all") -> in
                 cooled = a["last_fired_at"] is None or await conn.fetchval("SELECT $1::timestamptz < now() - make_interval(hours => $2)", a["last_fired_at"], COOLDOWN_HOURS)
                 fire = crossed and cooled
                 if fire:
-                    title, body = headline(a, v)
+                    title, body = headline(a, v, values.get(a["symbol"], {}).get("_gap_detail"))
                     await deliver(conn, mailer, site_url, user, a, title, body, link)
                     fired += 1
                 await conn.execute(
