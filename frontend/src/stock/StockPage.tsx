@@ -15,7 +15,7 @@ import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } fr
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 
-const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Method", "info"], ["plans", "Plans", "medal"]];
+const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Pros & cons", "info"], ["plans", "Plans", "medal"]];
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();

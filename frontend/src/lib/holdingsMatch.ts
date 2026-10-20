@@ -17,10 +17,12 @@ function lookup(index: SearchRow[]) {
     for (const c of [r[0], r[2], r[4]]) if (c && !byCode.has(c.toUpperCase())) byCode.set(c.toUpperCase(), r);
     const n = norm(r[1]); if (n && !byName.has(n)) byName.set(n, r);
   }
-  const find = (input: string): SearchRow | undefined => {
+  const one = (input: string): SearchRow | undefined => {
     const t = tidy(input), up = t.toUpperCase(), n = norm(t);
     return byCode.get(up) || byName.get(n) || (n.length >= 4 ? index.find((r) => norm(r[1]).startsWith(n + " ") || norm(r[1]) === n) : undefined);
   };
+  // "Larsen & Toubro Ltd., Mumbai": a broker's registered-office tail after a comma is not part of the name.
+  const find = (input: string): SearchRow | undefined => one(input) || (input.includes(",") ? one(input.slice(0, input.indexOf(","))) : undefined);
   return find;
 }
 
