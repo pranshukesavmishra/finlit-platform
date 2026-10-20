@@ -13,6 +13,7 @@ import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
 
+const SIDE_DEFAULT = 330, SIDE_MIN = 240, SIDE_MAX = 620;   // the filters panel's width in px, changed by dragging the divider
 const TIER_ORDER: Plan[] = ["basic", "silver", "gold"];
 const PAGE = 50;
 const MAX_COLS = 12;
@@ -94,6 +95,11 @@ function Checks({ items, picked, toggle, search }: { items: { key: string; label
 export function ScreenerPro() {
   useDocTitle("Stock screener", "Filter every listed Indian stock with 160+ filters: valuation, profitability, growth, quarterly results, financial health, ownership, red flags and trend. Gold adds FinLit model filters.");
   const { upgrade, toast, plan: uiPlan } = useUI();
+  const [sideW, setSideW] = useState<number>(() => { try { const v = Number(localStorage.getItem("finlit.scr.side")); return Number.isFinite(v) && v >= 0 && v <= SIDE_MAX ? v : SIDE_DEFAULT; } catch { return SIDE_DEFAULT; } });
+  const setSide = (w: number, snap = false) => {   // a drag below the minimum folds the panel away; the stored width survives reloads
+    const v = w < (snap ? SIDE_MIN / 2 : 1) ? 0 : Math.max(SIDE_MIN, Math.min(SIDE_MAX, Math.round(w)));
+    setSideW(v); try { localStorage.setItem("finlit.scr.side", String(v)); } catch { /* private mode: it simply is not remembered */ }
+  };
   const nav = useNavigate();
   const cat = useCatalog();
   const [params, setParams] = useSearchParams();
@@ -177,8 +183,8 @@ export function ScreenerPro() {
         <div className="eyebrow">Stock screener</div><h1>Find the companies that fit your rules.</h1>
         <p>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Score screener</Link>.</p></div></section>
       <div className="wrap scr-wrap">
-        <div className="scr">
-          <aside className="scr-side card" aria-label="Filters">
+        <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+          <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0}>
             <div className="seg scr-tabs" role="tablist"><button role="tab" aria-selected={tab === "filters"} onClick={() => setTab("filters")}>Filters{nActive ? <i className="dotn">{nActive}</i> : null}</button><button role="tab" aria-selected={tab === "quick"} onClick={() => setTab("quick")}>Quick screens</button></div>
             {tab === "filters" ? (
               <>
@@ -249,6 +255,13 @@ export function ScreenerPro() {
               </div>
             )}
           </aside>
+          <div className={"scr-split" + (sideW === 0 ? " shut" : "")} role="separator" aria-orientation="vertical" aria-label="Resize the filters panel (drag, use the arrow keys, or double-click to hide)" aria-valuemin={0} aria-valuemax={SIDE_MAX} aria-valuenow={sideW} tabIndex={0}
+            onPointerDown={(e) => { e.preventDefault(); const x0 = e.clientX, w0 = sideW || SIDE_MIN; const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+              const move = (ev: PointerEvent) => setSide(w0 + ev.clientX - x0, true); const up = () => { el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); }; el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); }}
+            onDoubleClick={() => setSide(sideW === 0 ? SIDE_DEFAULT : 0)}
+            onKeyDown={(e) => { if (e.key === "ArrowLeft") { e.preventDefault(); setSide(sideW - 30, true); } else if (e.key === "ArrowRight") { e.preventDefault(); setSide((sideW || 0) + 30); } else if (e.key === "Enter") setSide(sideW === 0 ? SIDE_DEFAULT : 0); }}>
+            <button type="button" className="scr-split-btn" tabIndex={-1} aria-hidden="true" onPointerDown={(e) => e.stopPropagation()} onClick={() => setSide(sideW === 0 ? SIDE_DEFAULT : 0)} title={sideW === 0 ? "Show filters" : "Hide filters"}>{sideW === 0 ? "›" : "‹"}</button>
+          </div>
 
           <section className="scr-main card" aria-label="Results">
             <div className="scr-top">
