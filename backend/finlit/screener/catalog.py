@@ -92,7 +92,8 @@ CATALOG: List[Metric] = [
     M("roce", "Return on capital employed", "profitability", "%", "higher", _B, "Profit earned on all the money used in the business.", 1),
     M("roa", "Return on assets", "profitability", "%", "higher", "silver", "Profit earned on everything the company owns.", 1),
     M("rota", "Return on tangible assets", "profitability", "%", "higher", "silver", "Profit earned on physical assets.", 1),
-    M("operating_margin", "Operating margin", "profitability", "%", "higher", _B, "Profit from the core business out of every ₹100 of sales.", 1),
+    M("operating_margin", "Operating margin, annual (latest year)", "profitability", "%", "higher", _B, "Annual: operating profit from the core business out of every ₹100 of sales, latest financial year.", 1),
+    M("op_profit", "Operating profit, annual (latest year)", "profitability", "Cr", "higher", "silver", "Annual: profit from the core business in the latest financial year, before depreciation and interest.", 0),
     M("net_margin", "Net margin", "profitability", "%", "higher", "silver", "Final profit out of every ₹100 of sales.", 1),
     M("gross_margin", "Gross margin", "profitability", "%", "higher", "silver", "Sales left after the direct cost of goods.", 1),
     M("ebitda_margin", "EBITDA margin", "profitability", "%", "higher", "silver", "Operating earnings before depreciation, out of every ₹100 of sales.", 1),
@@ -101,11 +102,14 @@ CATALOG: List[Metric] = [
     M("tax_rate", "Effective tax rate", "profitability", "%", "none", "silver", "Share of pre-tax profit paid as tax.", 1),
     M("roe_3y", "ROE, 3-year average", "profitability", "%", "higher", "silver", "Average return on equity over the last three years.", 1),
     M("roce_3y", "ROCE, 3-year average", "profitability", "%", "higher", "silver", "Average return on capital over the last three years.", 1),
-    M("opm_3y", "Operating margin, 3-year average", "profitability", "%", "higher", "silver", "Average operating margin over the last three years.", 1),
-    M("opm_change", "Operating margin change (1 year)", "profitability", "pts", "higher", "silver", "Percentage points the operating margin moved in the latest year.", 1),
+    M("opm_3y", "Operating margin, annual, 3-year average", "profitability", "%", "higher", "silver", "Average operating margin over the last three years.", 1),
+    M("opm_change", "Operating margin change, annual (1 year)", "profitability", "pts", "higher", "silver", "Annual: percentage points the operating margin moved in the latest financial year.", 1),
     # ---- Growth
     M("sales_growth", "Sales growth (latest year)", "growth", "%", "higher", "silver", "How much sales grew in the latest year.", 1),
     M("profit_growth", "Profit growth (latest year)", "growth", "%", "higher", "silver", "How much profit grew in the latest year.", 1),
+    M("op_profit_growth", "Operating profit growth, annual (year on year)", "growth", "%", "higher", "silver", "Annual: how much operating profit grew in the latest financial year against the year before. Blank when last year was a loss.", 1),
+    M("op_profit_cagr_3y", "Operating profit growth, annual, 3 years a year (CAGR)", "growth", "%", "higher", "silver", "Annual: yearly operating profit growth over three financial years. Blank unless both ends are profits.", 1),
+    M("op_profit_cagr_5y", "Operating profit growth, annual, 5 years a year (CAGR)", "growth", "%", "higher", "silver", "Annual: yearly operating profit growth over five financial years. Blank unless both ends are profits.", 1),
     M("sales_cagr_3y", "Sales growth, 3 years a year", "growth", "%", "higher", "silver", "Yearly sales growth over three years.", 1),
     M("sales_cagr_5y", "Sales growth, 5 years a year", "growth", "%", "higher", _B, "Yearly sales growth over five years.", 1),
     M("profit_cagr_3y", "Profit growth, 3 years a year", "growth", "%", "higher", "silver", "Yearly profit growth over three years.", 1),
@@ -119,13 +123,13 @@ CATALOG: List[Metric] = [
     # ---- Quarterly Results
     M("q_revenue", "Latest quarter sales", "quarterly", "Cr", "higher", "silver", "Sales in the most recent quarter.", 0),
     M("q_net_profit", "Latest quarter profit", "quarterly", "Cr", "higher", "silver", "Net profit in the most recent quarter.", 0),
-    M("q_operating_profit", "Latest quarter operating profit", "quarterly", "Cr", "higher", "silver", "Operating profit in the most recent quarter.", 0),
+    M("q_operating_profit", "Operating profit, quarterly (latest quarter)", "quarterly", "Cr", "higher", "silver", "Quarterly: operating profit in the most recent quarter.", 0),
     M("q_eps", "Latest quarter EPS", "quarterly", "Rs", "higher", "silver", "Earnings per share in the most recent quarter.", 2),
     M("q_sales_yoy", "Sales growth vs same quarter last year", "quarterly", "%", "higher", "silver", "Latest quarter's sales against the same quarter a year ago.", 1),
     M("q_profit_yoy", "Profit growth vs same quarter last year", "quarterly", "%", "higher", "silver", "Latest quarter's profit against the same quarter a year ago.", 1),
     M("q_sales_qoq", "Sales growth vs previous quarter", "quarterly", "%", "higher", "silver", "Latest quarter's sales against the quarter before.", 1),
     M("q_profit_qoq", "Profit growth vs previous quarter", "quarterly", "%", "higher", "silver", "Latest quarter's profit against the quarter before.", 1),
-    M("q_opm", "Latest quarter operating margin", "quarterly", "%", "higher", "silver", "Operating margin in the most recent quarter.", 1),
+    M("q_opm", "Operating margin, quarterly (latest quarter)", "quarterly", "%", "higher", "silver", "Operating margin in the most recent quarter.", 1),
     M("q_npm", "Latest quarter net margin", "quarterly", "%", "higher", "silver", "Net margin in the most recent quarter.", 1),
     M("ttm_revenue", "Sales, last 12 months", "quarterly", "Cr", "higher", "silver", "Sum of the last four quarters' sales.", 0),
     M("ttm_net_profit", "Profit, last 12 months", "quarterly", "Cr", "higher", "silver", "Sum of the last four quarters' profit.", 0),
@@ -242,7 +246,7 @@ BY_KEY: Dict[str, Metric] = {m.key: m for m in CATALOG}
 # "Now / 3Y avg / 5Y avg / 7Y avg" tabs: base filter -> the filter behind each tab
 VARIANTS: Dict[str, Dict[str, str]] = {b: {"now": b, "3y": f"{b}_avg_3y", "5y": f"{b}_avg_5y", "7y": f"{b}_avg_7y"} for b in ("pe", "pb", "ps")}
 # Stored beside the filters in `scores.metrics` but not a filter: which quarter q_revenue and the other q_* figures are for (yyyymmdd).
-INTERNAL_KEYS = {"q_period_end"}
+INTERNAL_KEYS = {"q_period_end", "m_ver"}
 HIDDEN = {v for tabs in VARIANTS.values() for k, v in tabs.items() if k != "now"}   # shown only through their tabs
 RANK = {"basic": 0, "silver": 1, "gold": 2}
 

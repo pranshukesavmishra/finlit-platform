@@ -8,11 +8,25 @@ Output shape (oldest period first, so charts can draw left to right):
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from .common import crore, fiscal_year_label, parse_date, quarter_label, rnd, sum_present, to_number
 
 Row = Dict[str, Any]
+log = logging.getLogger("finlit.statements")
+
+# ONE set of definitions for the whole site (stock page, quarter results, screener, ratios, exports, FinLit score). They follow the
+# Indian convention (the one Screener.in and company filings use), and the stock page explains them next to the numbers:
+#   Revenue          = revenue from operations (a lender: interest earned plus fees; an insurer: premiums and investment income)
+#   Total expenses   = every cost the company reports, INCLUDING interest and depreciation (as the provider and the filing give it)
+#   Operating profit = Revenue - (Total expenses - Interest - Depreciation). Before interest, depreciation and other income: the EBITDA.
+#                      Other income is NOT in it. A lender's: total income - operating expenses, before provisions.
+#   Profit before tax = Total income - Total expenses + Exceptional items          (so Operating profit + Other income - Interest
+#                       - Depreciation + Exceptional items)
+#   Net profit       = the profit that belongs to the company's shareholders (after minorities); EPS is on the same basis.
+# Signs: costs (expenses, interest, depreciation, tax) are stored as positive amounts; a tax CREDIT is negative; profits are signed
+# (a loss is negative, shown with a true minus); exceptional items are signed (a loss is negative); EPS carries the sign of net profit.
 
 
 def _ordered(rows: List[Row]) -> List[Row]:
@@ -67,6 +81,35 @@ def _bank_expenses(r: Row) -> Optional[float]:
     return crore(sum_present(r.get("expenditureExcludingProvisions"), r.get("provisionsForLoanLoss"))) if r.get("expenditureExcludingProvisions") is not None else None
 
 
+def _net_profit(r: Row) -> Optional[float]:
+    """Net profit attributable to the company's shareholders, in rupees (the same basis EPS is quoted on)."""
+    for key in ("profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod", "profitLossAfterTax",
+                "profitLossAfterTaxAndExtraordinaryItems", "profitLossAfterTaxBeforeExtraordinaryItems"):
+        v = r.get(key)
+        if v not in (None, ""):
+            return to_number(v)
+    return None
+
+
+EPS_TOLERANCE = 0.25   # on 805 recorded company-years the provider's EPS x shares was within 25% of attributable profit every time
+
+
+def eps_checked(r: Row) -> tuple:
+    """(EPS, repaired). EPS must carry the sign of the profit it is earned on. If the provider's sign contradicts the profit (never seen on
+    805 sampled company-years, but a wrong sign is the worst kind of wrong) the sign is taken from the profit, and only when the magnitude
+    agrees with profit / shares, so a figure is never guessed: no share count or no agreement means the provider's figure stays as sent."""
+    eps, profit, shares = to_number(r.get("eps")), _net_profit(r), to_number(r.get("dilutedOutstandingShares"))
+    if eps is None:
+        return None, False
+    if not eps or not profit or (eps > 0) == (profit > 0):
+        return round(eps, 2), False
+    if shares and shares > 0:
+        implied = abs(profit) / shares
+        if abs(abs(eps) - implied) <= EPS_TOLERANCE * implied:
+            return round(-eps, 2), True
+    return round(eps, 2), False
+
+
 def _operating_profit(r: Row) -> Optional[float]:
     """Revenue - operating expenses, where operating expenses exclude finance costs and depreciation
     (the Screener.in convention FinLit users already know). For banks: operating profit before provisions."""
@@ -95,14 +138,90 @@ PL_FIELDS = {
     "discontinued_profit": lambda r: crore(r.get("profitLossFromDiscontinuedOperationsAfterTax")),   # e.g. ITC FY25 (hotels demerger): profit that will not repeat
     "profit_before_tax": lambda r: crore(_first(r, "profitBeforeTax", "profitLossBeforeTax", "profitOrLossBeforeTax")),
     "tax": lambda r: crore(_first(r, "taxExpense", "provisionForTax")),
-    "net_profit": lambda r: crore(_first(r, "profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod", "profitLossAfterTax", "profitLossAfterTaxAndExtraordinaryItems", "profitLossAfterTaxBeforeExtraordinaryItems")),   # attributable to the company's shareholders, as EPS is
-    "eps": lambda r: rnd(r.get("eps")),
+    "net_profit": lambda r: crore(_net_profit(r)),   # attributable to the company's shareholders, as EPS is
+    "eps": lambda r: eps_checked(r)[0],
     "diluted_shares_cr": lambda r: crore(r.get("dilutedOutstandingShares")),
 }
 
 
 def profit_and_loss(rows: List[Row], period: str = "yearly", limit: Optional[int] = None) -> dict:
-    return with_continuing(_table(rows, period, PL_FIELDS, limit or (10 if period == "yearly" else 12)))
+    table = with_continuing(_table(rows, period, PL_FIELDS, limit or (10 if period == "yearly" else 12)))
+    ordered = _ordered(rows)[-(limit or (10 if period == "yearly" else 12)):]
+    fixed = [table["periods"][i] for i, r in enumerate(ordered) if eps_checked(r)[1]]
+    if fixed:   # shown nowhere to users; the quality report and the log carry it
+        table["epsSignRepaired"] = fixed
+        log.warning("EPS sign taken from net profit for %s", ", ".join(fixed))
+    return table
+
+
+# ---------------------------------------------------------------- cross-checks (used by the tests, the audit and the ingest log)
+
+def reconcile_row(r: Row, tolerance: float = 0.02) -> Dict[str, Any]:
+    """Recompute operating profit, profit before tax, profit after tax and EPS from the company's own components and compare them with
+    what the provider states. Returns {check: {"computed", "reported", "ok"}} in rupees (EPS in rupees per share), only for the checks the
+    row has the data for. Lenders (no revenue from operations / total expenses) are skipped."""
+    def f(key):
+        return to_number(r.get(key)) or 0.0
+    out: Dict[str, Any] = {}
+    revenue, expenses, income = to_number(r.get("revenueFromOperations")), to_number(r.get("expenses")), to_number(r.get("income"))
+    if revenue is None or expenses is None:
+        return out
+
+    def close(a, b, floor=2e5):
+        return abs(a - b) <= max(tolerance * abs(b), floor)
+    # Operating profit is a FinLit-defined line (no provider figure to compare with): it must tie to PBT through the stated identity.
+    op = revenue - (expenses - f("financeCosts") - f("depreciationAndAmortisation"))
+    pbt_reported = to_number(r.get("profitBeforeTax"))
+    if pbt_reported is not None:
+        via_op = op + f("otherIncome") - f("financeCosts") - f("depreciationAndAmortisation") + f("exceptionalItemsBeforeTax")
+        out["operating_profit"] = {"computed": op, "reported": None, "ok": close(via_op, pbt_reported)}
+        computed_pbt = (income if income is not None else revenue + f("otherIncome")) - expenses + f("exceptionalItemsBeforeTax")
+        out["profit_before_tax"] = {"computed": computed_pbt, "reported": pbt_reported, "ok": close(computed_pbt, pbt_reported)}
+        tax, pat = to_number(r.get("taxExpense")), to_number(r.get("profitLossForPeriod"))
+        if tax is not None and pat is not None:
+            computed_pat = pbt_reported - tax + f("profitOrLossOfAssociates") + f("profitLossFromDiscontinuedOperationsAfterTax")
+            # some filers show the share of associates' profit above the "profit for the period" line, some only in the owners' line
+            without_associates = pbt_reported - tax + f("profitLossFromDiscontinuedOperationsAfterTax")
+            out["profit_after_tax"] = {"computed": computed_pat, "reported": pat, "ok": close(computed_pat, pat) or close(without_associates, pat)}
+    profit, shares, eps = _net_profit(r), to_number(r.get("dilutedOutstandingShares")), to_number(r.get("eps"))
+    if profit is not None and shares and eps is not None:
+        computed_eps = profit / shares
+        out["eps"] = {"computed": round(computed_eps, 2), "reported": eps,
+                      "ok": ((eps > 0) == (computed_eps > 0) or not eps or abs(computed_eps) < 0.005) and abs(abs(eps) - abs(computed_eps)) <= EPS_TOLERANCE * abs(computed_eps) + 0.01}
+    return out
+
+
+def reconcile(rows: List[Row], tolerance: float = 0.02) -> List[dict]:
+    """Every period whose statements do not tie out: [{"period": "FY25", "check": "eps", "computed": .., "reported": ..}]."""
+    problems: List[dict] = []
+    for r in _ordered(rows):
+        for check, v in reconcile_row(r, tolerance).items():
+            if not v["ok"]:
+                problems.append({"period": fiscal_year_label(r.get("period_end"), r.get("year")), "check": check, "computed": v["computed"], "reported": v["reported"]})
+    return problems
+
+
+REVENUE_BASIS_GAP = 0.01   # consolidated and standalone revenue further apart than this is flagged
+
+
+def basis_gaps(consolidated: List[Row], standalone: List[Row], tolerance: float = REVENUE_BASIS_GAP) -> List[dict]:
+    """Years where consolidated and standalone revenue differ by more than `tolerance` (1%). A parent with subsidiaries legitimately differs:
+    this is not an error, but a screen that mixes the two bases (one year consolidated, the next standalone) is wrong, so every such year is
+    reported and the ingest logs it. [{"period": "FY24", "consolidated": 247.82, "standalone": 189.61, "gapPct": 30.7}], oldest first."""
+    stand = {parse_date(r.get("period_end")) or None: r for r in _ordered(standalone)}
+    gaps: List[dict] = []
+    for r in _ordered(consolidated):
+        end = parse_date(r.get("period_end"))
+        other = stand.get(end)
+        if other is None:
+            continue
+        a, b = _revenue(r), _revenue(other)
+        if a is None or b is None or not a or not b:
+            continue
+        gap = abs(a - b) / max(abs(a), abs(b))
+        if gap > tolerance:
+            gaps.append({"period": fiscal_year_label(r.get("period_end"), r.get("year")), "consolidated": a, "standalone": b, "gapPct": round(gap * 100, 1)})
+    return gaps
 
 
 MATERIAL_DISCONTINUED = 0.15   # profit from discontinued operations this large against net profit changes what the year's profit means

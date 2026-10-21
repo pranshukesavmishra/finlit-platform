@@ -198,7 +198,7 @@ a.tl-b:hover { border-color: var(--info); transform: translateX(3px); } .tl-b .c
 @media (max-width: 1000px) { .dv-calc, .dv-coins { grid-column: auto; } .dv-out { grid-template-columns: 1fr; } .tl { grid-template-columns: 1fr; } .vh-top { grid-template-columns: 1fr; } }
 
 /* plans band polish */
-.plan.feat { background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 14%, #252119), #231F17) padding-box, conic-gradient(from var(--ang, 0deg), var(--tc), color-mix(in srgb, var(--tc) 20%, transparent), #fff, var(--tc)) border-box; animation: borderSpin 6s linear infinite; }
+.plan.feat { background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 14%, var(--rep-a, #252119)), var(--rep-b, #231F17)) padding-box, conic-gradient(from var(--ang, 0deg), var(--tc), color-mix(in srgb, var(--tc) 20%, transparent), #fff, var(--tc)) border-box; }
 @property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; } @keyframes borderSpin { to { --ang: 360deg; } }
 .plan.current::after { top: -13px; left: 50%; right: auto; transform: translateX(-50%); z-index: 3; }
 .plan .price b { background: linear-gradient(120deg, var(--text), color-mix(in srgb, var(--tc) 70%, var(--text))); -webkit-background-clip: text; background-clip: text; color: transparent; }

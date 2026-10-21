@@ -1,6 +1,8 @@
 """The screener's in-memory table: one column of numbers per filter, so any filter combination answers in milliseconds.
 
-Loaded from the `scores` table (+ index membership and score history) and kept for a few minutes. A column is a list of floats with
+Loaded from the `scores` table (+ index membership and score history) and kept for a few minutes. Every listed company is in it: the ones whose full
+report is stored carry all their figures; the rest carry what the nightly listing refresh stores (price, market cap, day change, 52-week range, volume)
+and nothing else, so every other figure is unknown (a dash) for them and they are left out of a filter only when that filter is on a figure they lack. A column is a list of floats with
 NaN where a value is unknown; a company with an unknown value never matches a filter on it (it is not guessed).
 """
 
@@ -14,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import MULTIPLES
+from .listing import metrics_of
 
 NAN = float("nan")
 TTL = 600   # older than this, the table is rebuilt in the background on the next request (each rebuild reads the database)
@@ -50,6 +53,7 @@ class Table:
         self.sector: List[Optional[str]] = []
         self.industry: List[Optional[str]] = []
         self.band: List[Optional[str]] = []
+        self.full: List[bool] = []   # True: the company's full report is stored; False: only the light listing row (quote figures)
         self.cols: Dict[str, List[float]] = {m.key: [] for m in CATALOG}
         for r in rows:
             raw = r.get("metrics")
@@ -59,6 +63,7 @@ class Table:
             self.sector.append(r.get("macro_sector") or r.get("sector"))
             self.industry.append(r.get("industry"))
             self.band.append(r.get("band"))
+            self.full.append(bool(r.get("full", True)))
             for k, col in self.cols.items():
                 v = m.get(k)
                 if v is None and k in LEGACY and not m:
@@ -67,6 +72,7 @@ class Table:
                 col.append(NAN if v == v and k in MULTIPLES and v <= 0 else v)
         n = len(self.symbols)
         self.n = n
+        self.n_full = sum(self.full)
         self.pos = {s: i for i, s in enumerate(self.symbols)}
         # size bucket by SEBI's rule: the 100 largest are Large, the next 150 Mid, the rest Small
         order = sorted((i for i in range(n) if self.cols["market_cap"][i] == self.cols["market_cap"][i] and self.cols["market_cap"][i] > 0), key=lambda i: -self.cols["market_cap"][i])
@@ -158,7 +164,7 @@ class Table:
         return sorted(known, key=lambda i: col[i], reverse=desc) + rest
 
     def row(self, i: int, columns: List[str]) -> dict:
-        return {"symbol": self.symbols[i], "name": self.name[i], "sector": self.sector[i], "cap": self.cap[i], "band": self.band[i],
+        return {"symbol": self.symbols[i], "name": self.name[i], "sector": self.sector[i], "cap": self.cap[i], "band": self.band[i], "full": self.full[i],
                 "v": {k: (None if self.cols[k][i] != self.cols[k][i] else round(self.cols[k][i], 4)) for k in columns}}
 
 
@@ -170,6 +176,12 @@ async def _load(store) -> Table:
     async with store.pool.acquire() as conn:
         rows = [dict(r) for r in await conn.fetch(
             "SELECT DISTINCT ON (symbol) * FROM scores WHERE model = 'v1' ORDER BY symbol, (statement = 'consolidated') DESC, updated_at DESC")]
+        # every other listed company: its name and sector from the symbol list, its price figures from the nightly listing refresh
+        light = [dict(r) for r in await conn.fetch(
+            "SELECT c.symbol, c.name, c.sector, c.industry, l.price, l.change_pct, l.market_cap, l.high52, l.low52, l.volume "
+            "FROM companies c LEFT JOIN listing_quotes l ON l.symbol = c.symbol "
+            "WHERE NOT EXISTS (SELECT 1 FROM scores s WHERE s.symbol = c.symbol AND s.model = 'v1')")]
+        quotes = {r["symbol"]: dict(r) for r in await conn.fetch("SELECT symbol, price, market_cap FROM listing_quotes WHERE symbol = ANY($1::text[])", [r["symbol"] for r in rows])}
         mem: Dict[str, List[str]] = {}
         for r in await conn.fetch("SELECT index_code, symbol FROM index_members"):
             mem.setdefault(r["index_code"], []).append(r["symbol"])
@@ -178,7 +190,20 @@ async def _load(store) -> Table:
                 "SELECT DISTINCT ON (h.symbol) h.symbol, s.overall - h.overall AS d FROM score_history h JOIN scores s ON s.symbol = h.symbol AND s.model = h.model "
                 "WHERE h.model = 'v1' AND h.day <= current_date - 80 AND h.overall IS NOT NULL AND s.overall IS NOT NULL ORDER BY h.symbol, h.day DESC"):
             move[r["symbol"]] = float(r["d"])
-    return Table(rows, mem, move)
+    for r in rows:   # a stored report that lacks the price or market cap (half-loaded) takes them from the listing row, where we hold them
+        q = quotes.get(r["symbol"])
+        if q:
+            raw = r.get("metrics")
+            m = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
+            if m and any(m.get(k) is None and q.get(k) is not None for k in ("price", "market_cap")):
+                r["metrics"] = {**m, **{k: float(q[k]) for k in ("price", "market_cap") if m.get(k) is None and q.get(k) is not None}}
+    return Table(rows + [with_listing(r) for r in light], mem, move)
+
+
+def with_listing(r: dict) -> dict:
+    """Row shape the Table reads. A company with no stored report gets its quote figures only (`full` False); no figure is ever made up."""
+    return {"symbol": r["symbol"], "name": r.get("name"), "sector": r.get("sector"), "industry": r.get("industry"), "band": None, "full": False,
+            "metrics": metrics_of(r)}
 
 
 _refreshing: Optional[asyncio.Task] = None

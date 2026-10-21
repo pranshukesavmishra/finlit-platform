@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { GAP_LABEL, PAGE, csvOf, gapAlertLink, headline, queryString, signedPct, useQuarterResults, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
@@ -20,11 +20,14 @@ const SORTS: [string, string, boolean][] = [   // value, label, needs Silver
 const INDICES: [string, string][] = [["NIFTY50", "NIFTY 50"], ["NIFTY100", "NIFTY 100"], ["NIFTY500", "NIFTY 500"]];
 const STATUSES: [string, string][] = [["", "Any status"], ["declared", "Figures in"], ["awaiting", "Report being updated"], ["due", "Due"]];
 const CAPS = [["", "Any size"], ["Large", "Large cap"], ["Mid", "Mid cap"], ["Small", "Small cap"]];
-const COLS = 11;
+const COLS = 13;
 
 const money = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, Math.abs(v) >= 1000 ? 0 : 2));
 const pc1 = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, 1) + "%");
-const Chg = ({ v }: { v: number | null }) => <span className={"qr-chg" + (v == null ? "" : v > 0 ? " pos" : v < 0 ? " neg" : "")}>{signedPct(v)}</span>;
+const Chg = ({ v, why }: { v: number | null; why?: string | null }) =>
+  v == null && why ? <abbr className="qr-chg qr-na" title={why} tabIndex={0} aria-label={`Not available. ${why}`}>—</abbr>
+    : <span className={"qr-chg" + (v == null ? "" : v > 0 ? " pos" : v < 0 ? " neg" : "")}>{signedPct(v)}</span>;
+const Plain = ({ text, why }: { text: string; why?: string | null }) => (text === "—" && why ? <abbr className="qr-na" title={why} tabIndex={0} aria-label={`Not available. ${why}`}>—</abbr> : <>{text}</>);
 
 function Tile({ label, value, sub, help, locked, tone }: { label: string; value: ReactNode; sub?: ReactNode; help?: string; locked?: boolean; tone?: "up" | "down" }) {
   return (
@@ -97,7 +100,7 @@ function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked
           : locked ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
           : <>
             <td>{money(r.revenue)}</td><td><Chg v={r.revenueYoY} /></td><td><Chg v={r.revenueQoQ} /></td>
-            <td>{money(r.operatingProfit)}</td><td>{pc1(r.opm)}</td>
+            <td><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td><Chg v={r.opYoY} why={r.opYoYWhy} /></td><td><Chg v={r.opQoQ} why={r.opQoQWhy} /></td><td><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
             <td><b>{money(r.netProfit)}</b></td><td><Chg v={r.profitYoY} /></td><td><Chg v={r.profitQoQ} /></td><td>{pc1(r.npm)}</td>
             <td>{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
           </>}
@@ -120,6 +123,27 @@ function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked
   );
 }
 
+function DateEmpty({ dates, sel, today, quarterLabel, filtersOn, onPick, onQuarter, onClearFilters }: {
+  dates: QDates; sel: DateSel; today: string; quarterLabel: string; filtersOn: boolean; onPick: (day: string) => void; onQuarter: (key: string) => void; onClearFilters: () => void;
+}) {
+  const what = describeSel(sel, today);
+  const early = dates.coverage.earliest && dates.from < dates.coverage.earliest;
+  return (
+    <div className="dw-empty qr-dempty" role="status">
+      <span className="dw-ei"><Icon name="calendar" /></span>
+      <b>{dates.inQuarter ? "No company matches" : `No ${quarterLabel} results ${what}`}</b>
+      {dates.inQuarter ? <p>Some companies {what} in this quarter, but none match your other filters.</p>
+        : <>
+          {dates.single && isWeekend(dates.from) && <p>{longDay(dates.from)} is a {weekdayName(dates.from)}, when exchanges are closed and few companies announce.</p>}
+          {dates.quarters.length > 0 && <p>Other quarters were announced in this window: {dates.quarters.map((x) => <button key={x.key} type="button" className="alx-link" onClick={() => onQuarter(x.key)}>{x.label} ({x.n})</button>)}</p>}
+          {!dates.quarters.length && <p>We hold no results announcements for this {dates.single ? "day" : "window"}{early ? `; our records of announcement dates start on ${longDay(dates.coverage.earliest as string)}` : ""}.</p>}
+          {dates.nearest.length > 0 && <p>Nearest days with {quarterLabel} results: {dates.nearest.map((x) => <button key={x.date} type="button" className="alx-link" onClick={() => onPick(x.date)}>{longDay(x.date)} ({x.n})</button>)}</p>}
+        </>}
+      {filtersOn && <button type="button" className="btn" onClick={onClearFilters}>Clear other filters</button>}
+    </div>
+  );
+}
+
 export function QuarterResultsPage() {
   useDocTitle("Quarter results", "Every company's results for the latest quarter, newest declaration first: revenue, profit, margins, growth against last year and last quarter, with a one-line summary to copy.");
   const { user } = useAuth();
@@ -130,10 +154,27 @@ export function QuarterResultsPage() {
   const [offset, setOffset] = useState(0);
   const [query, setQuery] = useState("");
   const quarter = sp.get("quarter") || undefined;
-  const p: QParams = { ...f, quarter, q: f.q, offset };
+  const sel = useMemo(() => dateFromParams(sp), [sp]);
+  const hasDate = !!(sel.date || sel.from || sel.to);
+  const p: QParams = { ...f, quarter, q: f.q, offset, ...sel };
   const res = useQuarterResults(p);
   const d = res.data;
+  const dateErr = res.error instanceof ApiError && res.error.status === 400 ? res.error.message : null;   // a bad or future date in the address: say so, never show a blank
+  const today = d?.today || todayIST();
+  const [msg, setMsg] = useState("");
+  const [draft, setDraft] = useState({ from: sel.from || "", to: sel.to || "" });
+  useEffect(() => { setDraft({ from: sel.from || "", to: sel.to || "" }); }, [sel.date, sel.from, sel.to]);
   const set = (patch: Partial<QParams>) => { setF((x) => ({ ...x, ...patch })); setOffset(0); };
+  /** Change the date in the address (so it can be shared); `keepQuarter` leaves a chosen quarter alone, otherwise the server picks the quarter the date belongs to. */
+  const setDates = (next: DateSel | null, keepQuarter = false) => {
+    const n = new URLSearchParams(sp);
+    for (const k of ["date", "from", "to"]) n.delete(k);
+    if (!keepQuarter) n.delete("quarter");
+    for (const [k, v] of Object.entries(next || {})) if (v) n.set(k, v);
+    setSp(n); setOffset(0); setMsg("");
+  };
+  const apply = (next: DateSel) => { const bad = dateProblem(next, today); if (bad) setMsg(bad); else setDates(next); };
+  const chips = dateChips(today), chipOn = activeChip(sel, today);
   const need = (why: string) => upgrade("silver", why);
   const locked = !!d?.locked;
 
@@ -160,6 +201,8 @@ export function QuarterResultsPage() {
   const total = d?.total || 0;
   const q = d?.quarter;
   const nFilters = [f.sector, f.cap, f.index, f.status, f.q, f.flagged, f.scope !== "all" ? f.scope : ""].filter(Boolean).length;
+  const filtersOn = nFilters > 0;
+  const clearFilters = () => { setF({ scope: "all", sort: "date", dir: "desc" }); setQuery(""); setOffset(0); };
   const body = useMemo(() => {
     const out: ReactNode[] = [];
     let last = "", coming = false;
@@ -186,14 +229,15 @@ export function QuarterResultsPage() {
           <p className="muted">{q ? `Quarter ended ${new Date(q.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. ` : ""}Every company's results, the most recently declared first, back to the first of the quarter.<ChartHelp id="qr-table" /></p>
         </div>
         <label className="wl-sel"><span>Quarter</span>
-          <select aria-label="Quarter" value={q?.key || ""} onChange={(e) => { setSp(e.target.value ? { quarter: e.target.value } : {}); setOffset(0); }}>
+          <select aria-label="Quarter" value={q?.key || ""} onChange={(e) => { const n = new URLSearchParams(sp); if (e.target.value) n.set("quarter", e.target.value); else n.delete("quarter"); setSp(n); setOffset(0); }}>
             {(d?.quarters || []).map((x) => <option key={x.key} value={x.key}>{x.label} · {x.fiscal} ({x.declared} out)</option>)}
             {!d?.quarters?.length && <option value="">Loading…</option>}
           </select></label>
       </header>
 
-      {res.isError && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
-      {d && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
+      {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}
+      {res.isError && !dateErr && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
+      {d && !dateErr && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
 
       {locked && (
         <div className="pl-cap qr-cap"><Icon name="lock" /><span><b>Basic shows who declared and when.</b> Silver shows every figure, growth against last year and last quarter, margins, the copy-ready summary line, the sales-and-profit flag, all the sorting and filters, and a CSV download.</span>
@@ -201,6 +245,23 @@ export function QuarterResultsPage() {
       )}
 
       <section className="card qr-filters" aria-label="Filters">
+        <div className="qr-fd" role="group" aria-label="Announcement date">
+          <div className="chips" role="group" aria-label="Quick dates">
+            {chips.map((c) => <button key={c.id} type="button" className={chipOn === c.id ? "on" : ""} aria-pressed={chipOn === c.id} onClick={() => (chipOn === c.id ? setDates(null) : apply(c.sel))}>{c.label}</button>)}
+          </div>
+          <div className="qr-dates">
+            <label className="wl-sel"><span>Day</span>
+              <input type="date" max={today} value={sel.date || ""} aria-describedby="qr-datenote" onChange={(e) => (e.target.value ? apply({ date: e.target.value }) : setDates(null))} /></label>
+            <span className="qr-or" aria-hidden="true">or</span>
+            <label className="wl-sel"><span>From</span>
+              <input type="date" max={draft.to || today} value={draft.from} aria-describedby="qr-datenote" onChange={(e) => { setDraft({ ...draft, from: e.target.value }); if (e.target.value) apply({ from: e.target.value, to: draft.to || undefined }); else if (hasDate) setDates(null); }} /></label>
+            <label className="wl-sel"><span>To</span>
+              <input type="date" min={draft.from || undefined} max={today} value={draft.to} aria-describedby="qr-datenote" onChange={(e) => { setDraft({ ...draft, to: e.target.value }); if (draft.from) apply({ from: draft.from, to: e.target.value || undefined }); else if (e.target.value) setMsg("Choose the from date as well as the to date."); }} /></label>
+            {hasDate && <button type="button" className="alx-link qr-dclear" onClick={() => { setDates(null); setDraft({ from: "", to: "" }); }}>Clear dates</button>}
+          </div>
+          <p id="qr-datenote" className="qr-datenote muted">{d?.dateMeaning || DATE_MEANING} Pick a day, or a from and to range (both days included), up to today.</p>
+          {msg && <p className="qr-dmsg" role="alert">{msg}</p>}
+        </div>
         <div className="qr-f1">
           <div className="chips" role="group" aria-label="Whose results">
             {([["all", "All companies"], ["watchlist", "My watchlist"], ["portfolio", "My portfolio"]] as const).map(([k, l]) => <button key={k} type="button" className={f.scope === k ? "on" : ""} aria-pressed={f.scope === k} onClick={() => setScope(k)}>{l}</button>)}
@@ -224,21 +285,31 @@ export function QuarterResultsPage() {
           <button type="button" className="btn qr-dir" aria-label={f.dir === "desc" ? "Highest first" : "Lowest first"} onClick={() => set({ dir: f.dir === "desc" ? "asc" : "desc" })}>{grouped ? (f.dir === "desc" ? "Newest first" : "Oldest first") : f.dir === "desc" ? "High to low" : "Low to high"}</button>
           <span className="qr-flagged"><label className="sw"><input type="checkbox" checked={!!f.flagged} onChange={(e) => (silver ? set({ flagged: e.target.checked }) : need("The sales-and-profit flag is part of the Silver plan."))} /><span aria-hidden="true" /><b>Only flagged</b></label><ChartHelp id="qr-gap" /></span>
           <button type="button" className="btn qr-csv" onClick={exportCsv}><Icon name="table" /> CSV{silver ? "" : " (Silver)"}</button>
-          {nFilters > 0 && <button type="button" className="alx-link" onClick={() => { setF({ scope: "all", sort: "date", dir: "desc" }); setQuery(""); setOffset(0); }}>Clear filters</button>}
+          {filtersOn && <button type="button" className="alx-link" onClick={clearFilters}>Clear filters</button>}
         </div>
       </section>
 
       <section className="card qr-card">
         <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>{q ? `${q.label}` : "Results"}<span className="muted qr-count"> · {nf(total, 0)} {total === 1 ? "company" : "companies"}</span></h3>
           <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span></div>
-        {res.isLoading && !d ? <div className="skeleton" style={{ height: 360 }} /> : !d?.rows.length ? (
+        {hasDate && d && !dateErr && (
+          <p className="qr-active" role="status">
+            Showing companies {describeSel(sel, today)}{q ? ` for ${q.label}` : ""}: <b>{nf(total, 0)}</b>{filtersOn ? " after your filters" : ""}.
+            {d.dates && d.dates.quarters.filter((x) => x.key !== q?.key).map((x) => <span key={x.key}> {nf(x.n, 0)} announced {x.label} results in this window: <button type="button" className="alx-link" onClick={() => { const n = new URLSearchParams(sp); n.set("quarter", x.key); setSp(n); setOffset(0); }}>view</button>.</span>)}
+          </p>
+        )}
+        {dateErr ? null : res.isLoading && !d ? <div className="skeleton" style={{ height: 360 }} /> : !d?.rows.length && hasDate && d?.dates ? (
+          <DateEmpty dates={d.dates} sel={sel} today={today} quarterLabel={q?.label || "quarter"} filtersOn={filtersOn} onPick={(day) => setDates({ date: day }, true)}
+            onQuarter={(key) => { const n = new URLSearchParams(sp); n.set("quarter", key); setSp(n); setOffset(0); }} onClearFilters={clearFilters} />
+        ) : !d?.rows.length ? (
           <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? "Try removing a filter." : "Results dates appear here as companies announce them."}</p>
             {f.scope === "watchlist" && <Link className="btn" to="/watchlist">Build a watchlist</Link>}{f.scope === "portfolio" && <Link className="btn" to="/holdings">Add holdings</Link>}</div>
         ) : (
           <HScroll label="results table" className="qr-scroll">
             <table className="qtt qr-t">
               <thead>
-                <tr><th scope="col">Company</th><th scope="col">Revenue</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">Op. profit</th><th scope="col">OPM</th><th scope="col">Net profit</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">NPM</th><th scope="col">EPS</th></tr>
+                <tr className="qr-grp"><th rowSpan={2} scope="col">Company</th><th colSpan={3} scope="colgroup">Revenue</th><th colSpan={4} scope="colgroup">Operating profit</th><th colSpan={4} scope="colgroup">Net profit</th><th rowSpan={2} scope="col">EPS</th></tr>
+                <tr><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">OPM</th><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">NPM</th></tr>
               </thead>
               <tbody>{body}</tbody>
             </table>
@@ -251,7 +322,7 @@ export function QuarterResultsPage() {
             <button type="button" className="btn" disabled={offset + PAGE >= total} onClick={() => { setOffset(offset + PAGE); window.scrollTo({ top: 0 }); }}>Next →</button>
           </nav>
         )}
-        <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it is left blank when the earlier quarter was a loss. Dates come from exchange filings and announced board meetings. Not investment advice. <Link to="/results">Results calendar</Link></p>
+        <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it shows a dash, with the reason on hover or focus, when the earlier quarter was zero or a loss or is not in our statements. Operating profit is revenue less operating expenses before interest and depreciation (for banks, before provisions), the same figure as on the stock page and in the screener; OPM is operating profit over revenue. Dates come from exchange filings and announced board meetings. Not investment advice. <Link to="/results">Results calendar</Link></p>
       </section>
     </div>
   );

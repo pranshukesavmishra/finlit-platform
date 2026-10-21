@@ -22,7 +22,6 @@
 .qr-card { padding-bottom: 8px; }
 .qr-count { font-weight: 400; } .qr-unit { font-size: 12px; }
 .qr-scroll { margin: 0 -2px; }
-.qr-t { min-width: 940px; }
 .qr-t thead th { position: static; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 .qr-t td { vertical-align: middle; font-variant-numeric: tabular-nums; }
 .qr-t td:first-child, .qr-t th:first-child { position: sticky; left: 0; z-index: 1; background: var(--s1); min-width: 190px; max-width: 230px; white-space: normal; }
@@ -57,4 +56,28 @@
   .qr-sep { display: none; }
   .qr-t td:first-child, .qr-t th:first-child { min-width: 150px; max-width: 160px; }
   .qr-line { flex-direction: column; }
+}
+
+/* announcement date controls */
+.qr-fd { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.qr-fd .chips { gap: 6px; flex-wrap: wrap; } .qr-fd .chips button { padding: 7px 12px; } .qr-fd .chips button.on { background: var(--gold-soft); border-color: var(--gold); color: var(--text); font-weight: 600; }
+.qr-dates { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.qr-dates .wl-sel input[type="date"] { height: 40px; min-width: 150px; padding: 0 10px; border-radius: var(--r-s, 6px); border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 14px var(--sans); color-scheme: light dark; }
+.qr-dates .wl-sel input[type="date"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qr-or { align-self: center; padding-top: 18px; color: var(--faint); font-size: 12.5px; }
+.qr-dclear { height: 40px; }
+.qr-datenote { margin: 0; font-size: 12.5px; max-width: 95ch; }
+.qr-dmsg, .qr-derr { margin: 0; color: var(--loss); font-size: 13px; }
+.qr-derr { margin-bottom: 16px; }
+.qr-active { margin: 0; padding: 10px 2px 12px; font-size: 13.5px; color: var(--muted); } .qr-active b { color: var(--text); }
+.qr-dempty p { margin: 4px 0; max-width: 70ch; } .qr-dempty .alx-link { margin: 0 8px 0 4px; }
+.qr-t thead tr.qr-grp th { text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.qr-t thead tr.qr-grp th:first-child { text-align: left; vertical-align: bottom; }
+abbr.qr-na { text-decoration: none; cursor: help; border-bottom: 1px dotted var(--faint); }
+abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qr-t { min-width: 1180px; }
+@media (max-width: 640px) {
+  .qr-dates .wl-sel { flex: 1 1 calc(50% - 8px); } .qr-dates .wl-sel input[type="date"] { width: 100%; min-width: 0; }
+  .qr-dates .wl-sel:first-child { flex-basis: 100%; } .qr-or { display: none; }
+  .qr-fd .chips button { padding: 8px 10px; }
 }

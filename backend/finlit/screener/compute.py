@@ -11,6 +11,7 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 Num = Optional[float]
+METRICS_VERSION = 2.0   # 2: annual operating profit metrics
 MULTIPLES = ("pe", "pb", "ps", "pfcf", "ev_ebitda", "ev_sales", "ev_cfo", "price_cfo", "peg", "price_to_tangible")
 
 
@@ -245,6 +246,11 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["sales_cagr_5y"] = latest.get("revenue_cagr_5y") if latest.get("revenue_cagr_5y") is not None else (latest.get("sales_cagr") if latest.get("sales_cagr") is not None and spans.get("sales_cagr") in (None, "5Y") else _cagr(rev0, _last(rev, 5), 5))
     out["profit_cagr_3y"] = latest.get("profit_cagr_3y") if latest.get("profit_cagr_3y") is not None else _cagr(np0, _last(np_, 3), 3)
     out["profit_cagr_5y"] = latest.get("profit_cagr_5y") if latest.get("profit_cagr_5y") is not None else (latest.get("profit_cagr") if latest.get("profit_cagr") is not None and spans.get("profit_cagr") in (None, "5Y") else _cagr(np0, _last(np_, 5), 5))
+    # operating profit, ANNUAL (the quarterly one is q_operating_profit): straight from the yearly P&L, so it agrees with the report
+    out["op_profit"] = op0
+    out["op_profit_growth"] = _growth(op0, _last(op, 1))
+    out["op_profit_cagr_3y"] = _cagr(op0, _last(op, 3), 3)
+    out["op_profit_cagr_5y"] = _cagr(op0, _last(op, 5), 5)
     out["ebitda_cagr_5y"], out["eps_cagr_5y"], out["cfo_cagr_3y"] = latest.get("ebitda_cagr_5y"), latest.get("eps_cagr_5y"), latest.get("cfo_cagr_3y")
     out["bv_cagr_5y"] = latest.get("book_value_cagr_5y")
     dv = events.get("dividendsByFY") or {}
@@ -387,4 +393,5 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["strengths_count"], out["watchouts_count"] = float(len(summary.get("strengths") or [])), float(len(summary.get("watchouts") or []))
     out["score_change"] = None  # filled in from score history when the screener data is loaded
 
+    out["m_ver"] = METRICS_VERSION   # which version of this file worked the figures out: a rebuild is due when it is older
     return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in out.items() if v is not None}

@@ -25,6 +25,7 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars first: light, and visible at once
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
   $PY -m finlit.worker refresh-universe
+  $PY -m finlit.worker refresh-listing                  # every listed company's price and market cap (skipped if it ran in the last 6 hours)
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership: also decides which companies load first
   $PY -m finlit.worker prune                            # stay inside the free database's storage: top INGEST_LIMIT + recently opened
@@ -46,6 +47,7 @@ while true; do
   (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 5 )) && run heavy prune prune
+  (( H == 20 && M == 10 )) && run light listing refresh-listing   # nightly, after the close: all ~5,800 companies' prices in two provider calls and one short write, then the database may sleep
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe

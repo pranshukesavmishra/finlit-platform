@@ -1,0 +1,1714 @@
+{
+ "about": "Shared by frontend/src/lib/plFlags.test.ts and backend/tests/test_plflags.py. expect = sorted flag keys case:scope:period.",
+ "cases": [
+  {
+   "name": "1 profit growth over 3x revenue growth",
+   "expect": [
+    "1:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "1 not when profit growth is only 2x",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "1 not when revenue growth is nearly flat and profit up under 30 (rule 5 band, below 30)",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      101
+     ],
+     "net_profit": [
+      10,
+      11.5
+     ]
+    }
+   }
+  },
+  {
+   "name": "1 not when growth is proportionate",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      108
+     ],
+     "net_profit": [
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "1 needs a positive profit base",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      -10,
+      -2
+     ]
+    }
+   }
+  },
+  {
+   "name": "1 revenue growth just over the flat band, profit more than 3x",
+   "expect": [
+    "1:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      105.5
+     ],
+     "net_profit": [
+      10,
+      13.1
+     ]
+    }
+   }
+  },
+  {
+   "name": "2 revenue down profit up",
+   "expect": [
+    "2:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      95
+     ],
+     "net_profit": [
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "2 loss to profit counts as profit rising",
+   "expect": [
+    "2:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      90
+     ],
+     "net_profit": [
+      -10,
+      5
+     ]
+    }
+   }
+  },
+  {
+   "name": "2 not when revenue flat inside the dead band",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      99.8
+     ],
+     "net_profit": [
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "3 revenue up profit down",
+   "expect": [
+    "3:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      9
+     ]
+    }
+   }
+  },
+  {
+   "name": "3 profit to loss",
+   "expect": [
+    "3:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      -2
+     ]
+    }
+   }
+  },
+  {
+   "name": "3 loss widens",
+   "expect": [
+    "3:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      -10,
+      -12
+     ]
+    }
+   }
+  },
+  {
+   "name": "3 loss narrows is not a flag",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      -10,
+      -8
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 revenue over 20 and profit barely up",
+   "expect": [
+    "4:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      10,
+      10.1
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 profit up exactly 2 is still near zero",
+   "expect": [
+    "4:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      10,
+      10.2
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 profit up 3 is not near zero",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      10,
+      10.3
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 supersedes 3 when profit falls",
+   "expect": [
+    "4:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      130
+     ],
+     "net_profit": [
+      10,
+      9
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 zero profit base stays zero",
+   "expect": [
+    "4:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 zero profit base turns negative",
+   "expect": [
+    "4:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      0,
+      -3
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 zero profit base turns positive is no flag",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      125
+     ],
+     "net_profit": [
+      0,
+      3
+     ]
+    }
+   }
+  },
+  {
+   "name": "4 revenue exactly 20 is not above 20",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      120
+     ],
+     "net_profit": [
+      10,
+      10
+     ]
+    }
+   }
+  },
+  {
+   "name": "5 profit up over 30 on flat revenue",
+   "expect": [
+    "5:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      105
+     ],
+     "net_profit": [
+      10,
+      13.1
+     ]
+    }
+   }
+  },
+  {
+   "name": "5 supersedes 2 and 1",
+   "expect": [
+    "5:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      98
+     ],
+     "net_profit": [
+      10,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "5 profit up exactly 30 is not over 30",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      103
+     ],
+     "net_profit": [
+      10,
+      13
+     ]
+    }
+   }
+  },
+  {
+   "name": "5 loss to profit on flat revenue",
+   "expect": [
+    "5:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      101
+     ],
+     "net_profit": [
+      -5,
+      4
+     ]
+    }
+   }
+  },
+  {
+   "name": "5 revenue just outside the flat band",
+   "expect": [
+    "1:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      105.5
+     ],
+     "net_profit": [
+      10,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "6 both fall",
+   "expect": [
+    "6:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      90
+     ],
+     "net_profit": [
+      10,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "6 both fall with a loss that widens",
+   "expect": [
+    "6:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      90
+     ],
+     "net_profit": [
+      -5,
+      -8
+     ]
+    }
+   }
+  },
+  {
+   "name": "6 revenue falls and profit turns to a loss",
+   "expect": [
+    "6:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      90
+     ],
+     "net_profit": [
+      10,
+      -1
+     ]
+    }
+   }
+  },
+  {
+   "name": "6 revenue within the dead band is not a fall",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      99.8
+     ],
+     "net_profit": [
+      10,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "7 net profit up operating profit down",
+   "expect": [
+    "7:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      12
+     ],
+     "operating_profit": [
+      20,
+      18
+     ]
+    }
+   }
+  },
+  {
+   "name": "7 operating profit flat",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      12
+     ],
+     "operating_profit": [
+      20,
+      20.05
+     ]
+    }
+   }
+  },
+  {
+   "name": "7 operating profit row missing",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "7 works without a revenue row",
+   "expect": [
+    "7:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "net_profit": [
+      10,
+      12
+     ],
+     "operating_profit": [
+      20,
+      18
+     ]
+    }
+   }
+  },
+  {
+   "name": "7 operating profit on a negative base moving further down",
+   "expect": [
+    "7:annual:FY26"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      -5,
+      2
+     ],
+     "operating_profit": [
+      -3,
+      -6
+     ]
+    }
+   }
+  },
+  {
+   "name": "missing latest net profit",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "name": "missing previous revenue",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      null,
+      110
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "zero previous revenue",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      0,
+      110
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "negative previous revenue",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      -100,
+      110
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "single year",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY26"
+    ],
+    "periodEnds": [
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      110
+     ],
+     "net_profit": [
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "two years apart is not a year on year",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY24",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2024-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "null revenue latest",
+   "expect": [],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      null
+     ],
+     "net_profit": [
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "empty",
+   "expect": []
+  },
+  {
+   "name": "quarter yoy case 1",
+   "expect": [
+    "1:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      0,
+      0,
+      0,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      0,
+      0,
+      0,
+      10,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter on quarter case 1",
+   "expect": [
+    "1:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110,
+      100,
+      100,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      16,
+      10,
+      10,
+      10,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter qoq only case 1: a qoq revenue fall with profit rise is season, not a flag",
+   "expect": [],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      95,
+      95,
+      95,
+      95,
+      100,
+      95
+     ],
+     "net_profit": [
+      12,
+      12,
+      12,
+      12,
+      10,
+      12
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter yoy case 3 single quarter",
+   "expect": [
+    "3:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 two quarters in a row supersedes 3",
+   "expect": [
+    "8:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      110,
+      112
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      8,
+      7
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 revenue falling profit rising",
+   "expect": [
+    "8:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      90,
+      92
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      12,
+      13
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 three quarters in a row",
+   "expect": [
+    "8:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Jun 2024",
+     "Sep 2024",
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-06-30",
+     "2024-09-30",
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      110,
+      112,
+      115
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      8,
+      7,
+      6
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 not when the earlier quarter moved together",
+   "expect": [
+    "3:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      110,
+      112
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      12,
+      7
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 not when the earlier quarter was flat",
+   "expect": [
+    "3:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      110,
+      112
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      7
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 8 broken by a missing quarter",
+   "expect": [
+    "3:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      112
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      7
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 6 both fall yoy",
+   "expect": [
+    "6:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      90
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter 7",
+   "expect": [
+    "7:quarterly:Mar 2026"
+   ],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      12
+     ],
+     "operating_profit": [
+      20,
+      20,
+      20,
+      20,
+      20,
+      18
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter needs a quarter a year earlier",
+   "expect": [],
+   "quarterly": {
+    "periods": [
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110,
+      120
+     ],
+     "net_profit": [
+      10,
+      5,
+      3
+     ]
+    }
+   }
+  },
+  {
+   "name": "annual and quarterly are separate flags",
+   "expect": [
+    "3:annual:FY26",
+    "3:quarterly:Mar 2026"
+   ],
+   "annual": {
+    "periods": [
+     "FY25",
+     "FY26"
+    ],
+    "periodEnds": [
+     "2025-03-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      9
+     ]
+    }
+   },
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "quarter with a missing latest profit",
+   "expect": [],
+   "quarterly": {
+    "periods": [
+     "Dec 2024",
+     "Mar 2025",
+     "Jun 2025",
+     "Sep 2025",
+     "Dec 2025",
+     "Mar 2026"
+    ],
+    "periodEnds": [
+     "2024-12-31",
+     "2025-03-31",
+     "2025-06-30",
+     "2025-09-30",
+     "2025-12-31",
+     "2026-03-31"
+    ],
+    "rows": {
+     "revenue": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      110
+     ],
+     "net_profit": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      null
+     ]
+    }
+   }
+  }
+ ]
+}

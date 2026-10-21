@@ -1,14 +1,14 @@
 // Quarter results: the rows the server sends (GET /api/results/quarter), the Telegram-style one-line summary, and the CSV.
 // The server decides what a plan may see and whether a company's figures are for THIS quarter; this file only formats what it is sent.
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { apiGet } from "./api";
+import { ApiError, apiGet } from "./api";
 import { MINUS, csvText, nf } from "./format";
 
 export type QStatus = "declared" | "awaiting" | "due" | "missing";
 export type QRow = {
   date: string; symbol: string; name: string; sector: string | null; marketCap: number | null; cap: "Large" | "Mid" | "Small" | null; indices: string[];
   confirmed: boolean; periodEnd: string; loadedPeriodEnd: string | null; status: QStatus; awaiting: boolean; hasNumbers: boolean; locked: boolean;
-  revenue: number | null; revenueYoY: number | null; revenueQoQ: number | null; operatingProfit: number | null; opm: number | null;
+  revenue: number | null; revenueYoY: number | null; revenueQoQ: number | null; operatingProfit: number | null; opYoY: number | null; opQoQ: number | null; opYoYWhy: string | null; opQoQWhy: string | null; opm: number | null;
   netProfit: number | null; profitYoY: number | null; profitQoQ: number | null; npm: number | null; npmChange: number | null; eps: number | null;
   gap: number | null; flagged: boolean; loss: boolean;
 };
@@ -21,10 +21,17 @@ export type QResp = {
   plan: "basic" | "silver" | "gold"; locked: boolean; today: string; quarter: QInfo | null; quarters: (QInfo & { total: number; declared: number; due: number })[];
   total: number; offset: number; limit: number; summary: QSummary; totals: QSummary; rows: QRow[]; days: { date: string; n: number }[];
   facets: { sectors: { name: string; n: number }[]; indices: { code: string; n: number }[] }; gapFlag?: number; updatedAt?: string;
+  dates?: QDates | null; dateMeaning?: string;
+};
+/** What the server found for a date filter, before the other filters: the quarters announced in range, the nearest days with results, what we hold. */
+export type QDates = {
+  from: string; to: string; single: boolean; inQuarter: boolean; quarters: { key: string; label: string; fiscal: string; n: number }[];
+  nearest: { date: string; n: number }[]; coverage: { earliest: string | null; latest: string | null };
 };
 export type QParams = {
   quarter?: string; q?: string; sector?: string; cap?: string; index?: string; scope?: "all" | "watchlist" | "portfolio"; flagged?: boolean; status?: string;
   sort?: string; dir?: "asc" | "desc"; offset?: number; limit?: number;
+  date?: string; from?: string; to?: string;   // the announcement date (one day) or a from-to range, India dates as YYYY-MM-DD
 };
 
 export const PAGE = 50;
@@ -38,12 +45,72 @@ export const queryString = (p: QParams) => {
 };
 
 export const useQuarterResults = (p: QParams) => useQuery({
-  queryKey: ["quarter-results", queryString(p)], staleTime: 60_000, retry: 1, placeholderData: keepPreviousData,
+  queryKey: ["quarter-results", queryString(p)], staleTime: 60_000, retry: (n, e) => !(e instanceof ApiError && e.status < 500) && n < 1, placeholderData: keepPreviousData,
   queryFn: () => apiGet<QResp>(`/api/results/quarter?${queryString({ limit: PAGE, ...p })}`),
 });
 
 /** The alert for this gap, ready to create: /alerts reads symbol, metric and value from the link. */
 export const gapAlertLink = (symbol: string) => `/alerts?symbol=${encodeURIComponent(symbol)}&metric=rev_profit_gap&value=${GAP_FLAG}`;
+
+// ------------------------------------------------------------ dates
+// "Date" on this page means the day the company ANNOUNCED its results (the exchange filing's date, or the board-meeting date until the filing is out),
+// as an Indian calendar date. Everything here works on plain YYYY-MM-DD text so the browser's own time zone can never move a day.
+export const DATE_MEANING = "Date means the day the company announced (declared) its results: the date on its exchange filing, or its board-meeting date until the filing is out. All dates are Indian (IST) calendar dates.";
+export const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export const todayIST = (now: Date = new Date()) => now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+export const isRealDay = (v: string) => ISO_DAY.test(v) && new Date(v + "T00:00:00Z").toISOString().slice(0, 10) === v;
+export const addDays = (iso: string, n: number) => new Date(new Date(iso + "T00:00:00Z").getTime() + n * 86_400_000).toISOString().slice(0, 10);
+const weekday = (iso: string) => new Date(iso + "T00:00:00Z").getUTCDay();   // 0 = Sunday
+export const isWeekend = (iso: string) => weekday(iso) === 0 || weekday(iso) === 6;
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const weekdayName = (iso: string) => DAYS[weekday(iso)];
+export const longDay = (iso: string) => `${DAYS[weekday(iso)].slice(0, 3)}, ${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;   // fixed wording: the same in every browser
+export const mondayOf = (iso: string) => addDays(iso, -((weekday(iso) + 6) % 7));
+export const quarterStartOf = (iso: string) => `${iso.slice(0, 4)}-${String(Math.floor((Number(iso.slice(5, 7)) - 1) / 3) * 3 + 1).padStart(2, "0")}-01`;   // calendar quarter: Jan, Apr, Jul, Oct
+
+export type DateSel = { date?: string; from?: string; to?: string };
+export type DateChip = { id: string; label: string; sel: { date: string } | { from: string; to: string } };
+
+/** The quick choices, worked out from today's Indian date. "This quarter" is the calendar quarter's announcements so far (1 Oct to today, in October). */
+export const dateChips = (today: string): DateChip[] => [
+  { id: "today", label: "Today", sel: { date: today } },
+  { id: "yesterday", label: "Yesterday", sel: { date: addDays(today, -1) } },
+  { id: "week", label: "This week", sel: { from: mondayOf(today), to: today } },
+  { id: "last7", label: "Last 7 days", sel: { from: addDays(today, -6), to: today } },
+  { id: "quarter", label: "This quarter", sel: { from: quarterStartOf(today), to: today } },
+];
+
+/** Which chip the current selection is exactly (so it can show as pressed). A single day that is also a one-day range counts as the same. */
+export const activeChip = (sel: DateSel, today: string): string | null => {
+  const from = sel.date || sel.from, to = sel.date || sel.to || (sel.from ? today : undefined);
+  if (!from || !to) return null;
+  for (const c of dateChips(today)) {
+    const cf = "date" in c.sel ? c.sel.date : c.sel.from, ct = "date" in c.sel ? c.sel.date : c.sel.to;
+    if (cf === from && ct === to) return c.id;
+  }
+  return null;
+};
+
+/** A plain-words problem with a date choice, or null when it is fine. The server checks the same rules; this only saves a round trip. */
+export function dateProblem(sel: DateSel, today: string): string | null {
+  const bad = (v?: string) => !!v && !isRealDay(v);
+  if (bad(sel.date) || bad(sel.from) || bad(sel.to)) return "Enter a real date as day, month and year.";
+  if (sel.to && !sel.from) return "Choose the from date as well as the to date.";
+  const hi = [sel.date, sel.from, sel.to].filter(Boolean).sort().pop();
+  if (hi && hi > today) return `Results can be looked up for dates up to today (${longDay(today)}, India time).`;
+  if (sel.from && sel.to && sel.from > sel.to) return "The from date is after the to date.";
+  return null;
+}
+
+/** The selection a page address carries (?date= or ?from=&to=). A single day wins over a range. */
+export const dateFromParams = (sp: URLSearchParams): DateSel => {
+  const date = sp.get("date") || "", from = sp.get("from") || "", to = sp.get("to") || "";
+  return date ? { date } : from || to ? { from: from || undefined, to: to || undefined } : {};
+};
+
+export const describeSel = (sel: DateSel, today: string) =>
+  sel.date ? `announced on ${longDay(sel.date)}` : sel.from ? (sel.from === (sel.to || today) ? `announced on ${longDay(sel.from)}` : `announced from ${longDay(sel.from)} to ${longDay(sel.to || today)}`) : "";
 
 // ------------------------------------------------------------ text
 const rs = (v: number) => `Rs${nf(Math.abs(v), 2)} CR`;
@@ -77,14 +144,14 @@ const cell = (v: string | number | boolean | null | undefined) => {
   const s = csvText(String(v));
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
-export const CSV_HEAD = ["Declared on", "Symbol", "Company", "Sector", "Market cap (Rs Cr)", "Status", "Revenue (Rs Cr)", "Revenue YoY %", "Revenue QoQ %", "Operating profit (Rs Cr)", "OPM %",
+export const CSV_HEAD = ["Declared on", "Symbol", "Company", "Sector", "Market cap (Rs Cr)", "Status", "Revenue (Rs Cr)", "Revenue YoY %", "Revenue QoQ %", "Operating profit (Rs Cr)", "Operating profit YoY %", "Operating profit QoQ %", "OPM %",
   "Net profit (Rs Cr)", "Profit YoY %", "Profit QoQ %", "NPM %", "Net margin change YoY (pts)", "EPS (Rs)", "Revenue vs profit gap (pts)", "Profit and sales moved apart"];
 const STATUS_TEXT: Record<QStatus, string> = { declared: "Declared", awaiting: "Declared, report being updated", due: "Due", missing: "Figures not stored" };
 
 export function csvOf(rows: QRow[], quarterLabel: string): string {
   const lines = [[`Quarter: ${quarterLabel}`], CSV_HEAD].map((l) => l.map(cell).join(","));
   for (const r of rows) {
-    lines.push([r.date, r.symbol, r.name, r.sector, r.marketCap, STATUS_TEXT[r.status], r.revenue, r.revenueYoY, r.revenueQoQ, r.operatingProfit, r.opm, r.netProfit, r.profitYoY, r.profitQoQ, r.npm, r.npmChange, r.eps, r.gap,
+    lines.push([r.date, r.symbol, r.name, r.sector, r.marketCap, STATUS_TEXT[r.status], r.revenue, r.revenueYoY, r.revenueQoQ, r.operatingProfit, r.opYoY, r.opQoQ, r.opm, r.netProfit, r.profitYoY, r.profitQoQ, r.npm, r.npmChange, r.eps, r.gap,
       r.hasNumbers ? (r.flagged ? "Yes" : "No") : ""].map(cell).join(","));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";

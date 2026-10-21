@@ -17,8 +17,8 @@ from .data import get_table
 
 router = APIRouter(prefix="/api/screener")
 BASIC_ROWS = 25
-DEFAULT_COLUMNS = ["market_cap", "price", "ret_1d", "pe", "roe", "roce", "debt_to_equity", "sales_cagr_5y"]
-GOLD_COLUMNS = ["market_cap", "price", "pe", "roe", "roce", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"]
+# The table opens with company, market cap and price only; the website adds a column for each filter the visitor adds (and takes it away with the filter).
+DEFAULT_COLUMNS = ["market_cap", "price"]
 
 
 class Rng(BaseModel):
@@ -44,8 +44,8 @@ class Query_(BaseModel):
     cats: Cats = Field(default_factory=Cats)
     q: str = Field(default="", max_length=60)
     sort: Sort = Field(default_factory=Sort)
-    columns: List[str] = Field(default_factory=list, max_length=14)
-    offset: int = Field(default=0, ge=0, le=6000)
+    columns: List[str] = Field(default_factory=list, max_length=40)
+    offset: int = Field(default=0, ge=0, le=10000)
     limit: int = Field(default=50, ge=1, le=100)
 
     @field_validator("filters")
@@ -88,7 +88,7 @@ async def catalog(request: Request):
             {"key": m.key, "label": m.label, "unit": m.unit, "better": m.better, "tier": m.tier, "say": m.say, "digits": m.digits,
              "locked": not allowed(plan, m.tier), "stats": t.stats.get(m.key), "hidden": m.key in HIDDEN, "variants": VARIANTS.get(m.key)} for m in ms]})
     body = {
-        "plan": plan, "total": t.n, "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t.loaded)),
+        "plan": plan, "total": t.n, "withReport": t.n_full, "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t.loaded)),
         "groups": groups,
         "sectors": [{"name": n, "n": c} for n, c in t.sectors],
         "industries": [{"name": n, "sector": s, "n": c} for n, s, c in t.industries],
@@ -96,14 +96,14 @@ async def catalog(request: Request):
         "caps": [{"name": c, "n": sum(1 for x in t.cap if x == c)} for c in CAPS],
         "bands": [{"key": b, "label": b.title(), "locked": not allowed(plan, "gold")} for b in ("strong", "healthy", "mixed", "watch")],
         "limits": {"rows": BASIC_ROWS if plan == "basic" else None, "export": allowed(plan, "silver")},
-        "defaultColumns": GOLD_COLUMNS if allowed(plan, "gold") else DEFAULT_COLUMNS,
+        "defaultColumns": DEFAULT_COLUMNS,
     }
     return Response(content=__import__("json").dumps(body, separators=(",", ":")), media_type="application/json", headers={**NO_STORE, "Vary": "Cookie"})
 
 
 def _run(t, body: Query_, plan: str):
     filters = {k: v.model_dump() for k, v in body.filters.items() if v.min is not None or v.max is not None}
-    cols = [c for c in (body.columns or (GOLD_COLUMNS if allowed(plan, "gold") else DEFAULT_COLUMNS))]
+    cols = [c for c in (body.columns or DEFAULT_COLUMNS)]
     bad = [c for c in cols if c not in BY_KEY]
     if bad:
         raise fail(400, "bad_request", "Unknown column.")
@@ -147,7 +147,7 @@ async def export(request: Request, body: Query_):
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["Symbol", "Company", "Sector", "Size"] + [BY_KEY[c].label + (f" ({BY_KEY[c].unit})" if BY_KEY[c].unit not in ("flag", "n", "pts") else "") for c in cols])
-    for i in idx[:5000]:
+    for i in idx[:10000]:
         r = t.row(i, cols)
         w.writerow([r["symbol"], r["name"], r["sector"] or "", r["cap"] or ""] + ["" if r["v"][c] is None else r["v"][c] for c in cols])
     return Response(content="﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",

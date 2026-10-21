@@ -23,6 +23,7 @@ import "./styles/charthelp.css";
 import "./styles/premium.css";
 import "./styles/account.css";
 import "./styles/human-pages.css";
+import "./styles/theme.css";
 import { installDemo } from "./lib/demo";
 
 installDemo();

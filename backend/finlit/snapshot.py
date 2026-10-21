@@ -143,7 +143,16 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "isBank": lender,
         "priceAsOf": history["t"][-1] if history["t"] else None,
         "fundamentalsAsOf": (pl.get("periods") or [None])[-1],
+        # Cross-checks of the statements against their own components (empty when everything ties out), see normalize/statements.py
+        "plReconcile": statements.reconcile(pl_rows),
+        "epsSignRepaired": pl.get("epsSignRepaired") or [],
+        # Years where consolidated and standalone revenue differ by more than 1% (the worker fetches the other basis when it can)
+        "basisGaps": statements.basis_gaps(pl_rows, _rows(bundle.get("pl_annual_standalone"))) if statement == "consolidated" and bundle.get("pl_annual_standalone") else [],
     }
+    if quality["plReconcile"]:
+        logging.getLogger("finlit.snapshot").warning("P&L does not tie out for %s: %s", symbol, quality["plReconcile"][:6])
+    if quality["basisGaps"]:
+        logging.getLogger("finlit.snapshot").warning("consolidated vs standalone revenue differ >1%% for %s: %s", symbol, quality["basisGaps"])
 
     meta = {"symbol": symbol, "statement": statement, "generatedAt": generated_at,
             "version": SNAPSHOT_VERSION, "scoreModel": score["model"]}

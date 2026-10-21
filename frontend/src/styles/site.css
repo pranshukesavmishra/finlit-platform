@@ -103,7 +103,7 @@
 
 /* marquee */
 .marq { overflow: hidden; border-block: 1px solid var(--border); padding: 18px 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
-.marq div { display: flex; gap: 48px; width: max-content; animation: tape 40s linear infinite; font: 300 clamp(22px, 3vw, 34px) var(--serif); color: var(--muted); }
+.marq div { display: flex; gap: 48px; width: max-content; animation: none; font: 300 clamp(22px, 3vw, 34px) var(--serif); color: var(--muted); }
 .marq span::after { content: "✦"; color: var(--gold); margin-left: 48px; font-size: .6em; vertical-align: .2em; }
 
 /* quote, cta band */
@@ -154,7 +154,7 @@
 .bub { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
 .bub.bot { background: var(--s2); border: 1px solid var(--border); border-bottom-left-radius: 4px; align-self: flex-start; }
 .bub.me { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: var(--on-gold); border-bottom-right-radius: 4px; align-self: flex-end; }
-.typing { display: flex; gap: 4px; } .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: blink 1s infinite; } .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+.typing { display: flex; gap: 4px; } .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: none; } .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
 @keyframes blink { 50% { opacity: .25; } }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 .chips button { border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); padding: 8px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; transition: border-color .15s, background .15s; }
@@ -197,7 +197,7 @@
 .bigsearch { display: flex; align-items: center; gap: 12px; width: min(620px, 100%); height: 60px; padding: 0 20px; border-radius: 18px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--faint); cursor: pointer; box-shadow: var(--shadow); font-size: 16px; transition: border-color .2s; } .bigsearch:hover { border-color: var(--gold); } .bigsearch .kbd { margin-left: auto; }
 
 /* states */
-.skeleton { background: linear-gradient(90deg, var(--s2) 0, var(--s3) 40%, var(--s2) 80%); background-size: 200% 100%; animation: sk 1.2s linear infinite; border-radius: 12px; }
+.skeleton { background: linear-gradient(90deg, var(--s2) 0, var(--s3) 40%, var(--s2) 80%); background-size: 200% 100%; animation: none; border-radius: 12px; }
 @keyframes sk { to { background-position: -200% 0; } }
 .state { text-align: center; padding: 80px 20px; } .state h2 { font: 300 32px var(--serif); margin: 0 0 8px; } .state p { color: var(--muted); }
 .legal { max-width: 760px; margin: 0 auto; line-height: 1.75; } .legal h2 { font: 400 24px var(--serif); margin: 2em 0 .4em; } .legal p, .legal li { color: var(--muted); }

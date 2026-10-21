@@ -52,6 +52,12 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if company:
             bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
                                     "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
+        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual"):   # for the consolidated-vs-standalone revenue guard; best effort
+            try:
+                path, params, _t = bundle_requests(symbol, "standalone")["pl_annual"]
+                bundle["pl_annual_standalone"] = await client.get(path, params, timeout=12, retries=1)
+            except Exception:
+                pass
         if not bundle.get("pl_annual") and not bundle.get("daily_quotes"):
             raise FinEdgeError("bundle", 404, "no statements or prices for symbol")
         failed_core = sorted(k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404")
@@ -371,6 +377,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
     p_rm.add_argument("--only-missing", action="store_true")
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
+    p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
+    p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -450,6 +458,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "prune":
                 keep = args.keep or int(os.getenv("INGEST_LIMIT") or 0) or 500
                 print(await store.prune(keep))
+            elif args.cmd == "refresh-listing":
+                from .screener.listing import refresh_listing
+                print(await refresh_listing(client, store, force=args.force))
             elif args.cmd == "refresh-calendars":
                 from .calendars import refresh_calendars
                 print(await refresh_calendars(client, store))

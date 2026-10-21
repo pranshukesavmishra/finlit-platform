@@ -103,7 +103,7 @@ function PlTab({ f }: { f?: Financials }) {
         <div className="clg"><span><i style={{ background: "var(--gain)" }} />Net profit</span><span><i style={{ background: C(4) }} />Tax</span><span><i style={{ background: C(3) }} />Depreciation</span><span><i style={{ background: C(5) }} />Interest</span><span><i style={{ background: C(1) }} />Expenses</span></div>
       </Card>
       <Card help="eps" title="Earnings per share" sub="₹ per share, each year" icon="coins" note="Earnings per share is profit divided by the number of shares. It is the figure most closely tied to the share price.">
-        <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--k1)", values: eps }]} fmt={(x) => "₹" + nf(x, 1)} area height={210} />
+        <LineChart periods={pl.periods} series={[{ key: "eps", label: "EPS", color: "var(--k1)", values: eps }]} fmt={(x) => (x < 0 ? MINUS : "") + "₹" + nf(x, 1)} area height={210} />
       </Card>
       <Card help="yoy-growth" title="Year-on-year growth by line" sub="Percent change on the year before" icon="growth" full note="Green is growth, red is decline. For costs (expenses, interest, tax) green means the cost rose, which can be fine when revenue rose faster.">
         <HeatGrid cols={pl.periods.slice(1)} cap={40} fmt={(x) => sg(x, 0)} label="Year on year growth by line item" rows={growth.map(([label, a]) => ({ label, values: chg(a) }))} />

@@ -11,6 +11,8 @@ import { Radar } from "../charts/Radar";
 import { CompareBar } from "../components/CompareBar";
 import { BAND_LABEL, METRICS, distOf, fmt, percentile, useUniverse, type Dist, type NumKey, type Row } from "../lib/screener";
 import { ChartHelp } from "../components/ChartHelp";
+import { CompareCustom } from "../components/CompareCustom";
+import { decodeKeys, encodeKeys } from "../lib/compareSets";
 
 type TabDef = { id: string; label: string; model?: boolean; blurb: string; groups: { title: string; keys: NumKey[] }[] };
 const TABS: TabDef[] = [
@@ -21,11 +23,10 @@ const TABS: TabDef[] = [
   { id: "quality", label: "Quality & Risk", model: true, blurb: "How well the business earns, and how much debt it carries.", groups: [{ title: "Returns on money", keys: ["roe", "roce"] }, { title: "Safety", keys: ["debt_to_equity", "pillar_balance"] }, { title: "FinLit quality", keys: ["pillar_quality"] }] },
   { id: "growth", label: "Growth", model: true, blurb: "How fast sales and profit have grown.", groups: [{ title: "Business growth", keys: ["sales_cagr", "profit_cagr", "pillar_growth"] }, { title: "The market's verdict", keys: ["return_1y"] }] },
   { id: "technical", label: "Technical", model: true, blurb: "How the share price has been behaving.", groups: [{ title: "Price moves", keys: ["change_pct", "return_1m", "return_1y"] }, { title: "FinLit technical", keys: ["pillar_technical"] }] },
-  { id: "custom", label: "Build your own", model: true, blurb: "Pick any measures you like.", groups: [] },
+  { id: "custom", label: "Build your own", blurb: "Pick from every measure the screener offers, save your sets and share the link.", groups: [] },
 ];
 const SPIDER: { label: string; key: NumKey }[] = [{ label: "ROE", key: "roe" }, { label: "ROCE", key: "roce" }, { label: "Margin", key: "operating_margin" }, { label: "Sales growth", key: "sales_cagr" }, { label: "Profit growth", key: "profit_cagr" }, { label: "Low debt", key: "debt_to_equity" }, { label: "Low P/E", key: "pe" }, { label: "Dividend", key: "dividend_yield" }];
 const PILLARS: NumKey[] = ["pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"];
-const ALL = Object.keys(METRICS) as NumKey[];
 const LETTER = ["A", "B", "C", "D"];
 
 function Ring({ v, band }: { v: number | null; band: string | null }) {
@@ -38,8 +39,7 @@ export function Compare() {
   const { has, upgrade, toast } = useUI();
   const { data, isLoading, isError } = useUniverse();
   const [sp, setSp] = useSearchParams();
-  const [tab, setTab] = useState("overview");
-  const [custom, setCustom] = useState<NumKey[]>(["pe", "roe", "debt_to_equity", "sales_cagr"]);
+  const [tab, setTab] = useState(() => (sp.has("m") ? "custom" : "overview"));
   const [off, setOff] = useState<Record<string, NumKey[]>>({});
   const rows = data?.rows || [];
   const max = has("gold") ? 4 : 2;
@@ -51,19 +51,21 @@ export function Compare() {
     if (!rows.length || sp.has("c")) return;   // only when the page is opened with nothing chosen; a member who clears or removes keeps their choice
     const a = bySym.get(ids[0] || "RELIANCE") || rows[0];
     const b = [...rows].filter((r) => r.symbol !== a.symbol && r.sector === a.sector).sort((x, y) => (y.overall ?? 0) - (x.overall ?? 0))[0] || rows.find((r) => r.symbol !== a.symbol);
-    if (b) setSp({ c: [a.symbol, b.symbol].join(",") }, { replace: true });
+    if (b) setSp((p) => { const n = new URLSearchParams(p); n.set("c", [a.symbol, b.symbol].join(",")); return n; }, { replace: true });
   }, [rows, sp, bySym, setSp]);
 
   const picked = ids.map((s) => bySym.get(s)!).filter(Boolean);
-  const setIds = (n: string[]) => setSp({ c: n.join(",") }, { replace: true });
+  const setIds = (n: string[]) => setSp((p) => { const q = new URLSearchParams(p); q.set("c", n.join(",")); return q; }, { replace: true });
+  const customKeys = useMemo(() => (sp.has("m") ? decodeKeys(sp.get("m")) : null), [sp]);   // no link parameter = the default set; an empty one = the member cleared it
+  const setCustomKeys = (k: string[]) => setSp((p) => { const q = new URLSearchParams(p); if (k.length) q.set("m", encodeKeys(k)); else q.set("m", ""); return q; }, { replace: true });
   const T = TABS.find((t) => t.id === tab)!;
   const locked = T.model && !has("silver");
   const dists = useMemo(() => { const m = new Map<NumKey, Dist | null>(); (Object.keys(METRICS) as NumKey[]).forEach((k) => m.set(k, distOf(rows, k))); return m; }, [rows]);
   const off0 = off[tab] || [];
-  const groups = tab === "custom" ? [{ title: "Your measures", keys: custom }] : T.groups.map((g) => ({ ...g, keys: g.keys.filter((k) => !off0.includes(k)) })).filter((g) => g.keys.length);
+  const groups = T.groups.map((g) => ({ ...g, keys: g.keys.filter((k) => !off0.includes(k)) })).filter((g) => g.keys.length);
   const keys: NumKey[] = groups.flatMap((g) => g.keys);
-  const pool: NumKey[] = tab === "custom" ? ALL.filter((k) => has("silver") || !METRICS[k].model) : T.groups.flatMap((g) => g.keys);
-  const toggleKey = (k: NumKey) => (tab === "custom" ? setCustom((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k])) : setOff((o) => ({ ...o, [tab]: (o[tab] || []).includes(k) ? (o[tab] || []).filter((x) => x !== k) : [...(o[tab] || []), k] })));
+  const pool: NumKey[] = T.groups.flatMap((g) => g.keys);
+  const toggleKey = (k: NumKey) => setOff((o) => ({ ...o, [tab]: (o[tab] || []).includes(k) ? (o[tab] || []).filter((x) => x !== k) : [...(o[tab] || []), k] }));
   const win = (k: NumKey): string | null => {
     const m = METRICS[k]; if (m.better === "none") return null;
     const v = picked.map((r) => r[k]); if (v.filter((x) => x != null).length < 2) return null;
@@ -96,7 +98,7 @@ export function Compare() {
         <div className="cmp-tabs" role="tablist" aria-label="Comparison areas">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}{t.model && !has("silver") && <Icon name="lock" />}</button>)}</div>
         <p className="cmp-blurb">{T.blurb}</p>
 
-        {picked.length >= 2 && !locked && tab !== "overview" && scored > 0 && (
+        {picked.length >= 2 && !locked && tab !== "overview" && tab !== "custom" && scored > 0 && (
           <Plain tone="info">{picked.map((r, i) => `${r.name} leads on ${tally[i]}`).join(" · ")} of {scored} measures. “Leads” means the better value: lower for P/E and debt, higher for returns and growth.</Plain>
         )}
 
@@ -137,8 +139,11 @@ export function Compare() {
             <p className="faint cmp-foot">“Beats 82%” means the company's value is better than 82% of companies in the list, where better is lower for debt and P/E and higher for everything else.</p>
           </div>
         )}
-        {picked.length >= 2 && !["overview", "spider"].includes(tab) && (
-          <Gate tier="silver" title={`Unlock ${T.label}`} points={["Model-based pillar scores", "Quality, growth and price behaviour side by side", "Build your own comparison"]}>
+        {picked.length >= 2 && tab === "custom" && (
+          <div className="card cmp-t"><CompareCustom companies={picked.map((r) => ({ symbol: r.symbol, name: r.name || r.symbol }))} keysParam={customKeys} onKeys={setCustomKeys} /></div>
+        )}
+        {picked.length >= 2 && !["overview", "spider", "custom"].includes(tab) && (
+          <Gate tier="silver" title={`Unlock ${T.label}`} points={["Model-based pillar scores", "Quality, growth and price behaviour side by side"]}>
             <div className="card cmp-t">
               <div className="cmp-pick"><span className="label">Compare on</span>{pool.map((k) => <button key={k} className={"mchip" + (keys.includes(k) ? " on" : "")} aria-pressed={keys.includes(k)} onClick={() => toggleKey(k)}>{METRICS[k].short}</button>)}</div>
               {!keys.length ? <p className="muted" style={{ padding: 16 }}>Pick at least one measure above.</p> : (

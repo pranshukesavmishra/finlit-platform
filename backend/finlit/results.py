@@ -44,6 +44,8 @@ GAP_FLAG = 15.0            # percentage points between revenue growth and profit
 TTL_LATEST, TTL_OLD = 180, 3600   # seconds a quarter's rows are served before they are rebuilt in the background
 DECL_TTL = 120
 EXPORT_ROWS = 4000
+DATE_MEANING = ("The date is the day the company announced (declared) its results: the date on the exchange filing, or the board-meeting date from the results calendar until the filing appears. "
+                "It is an Indian calendar date (IST).")
 PAGE = 50
 INDEX_FLAGS = ("NIFTY50", "NIFTY100", "NIFTY500")
 FILING_SOURCE = "Exchange filing"
@@ -52,7 +54,8 @@ QUARTER_RE = re.compile(r"^\d{4}-(03|06|09|12)$")
 NUMERIC_SORTS = {"revenueYoY": "revenueYoY", "profitYoY": "profitYoY", "marginChange": "npmChange", "gap": "gap", "revenue": "revenue", "netProfit": "netProfit"}
 SORTS = {"date", "marketCap", *NUMERIC_SORTS}
 # every figure a row carries that Basic must not see
-FIGURES = ("revenue", "revenueYoY", "revenueQoQ", "operatingProfit", "opm", "netProfit", "profitYoY", "profitQoQ", "npm", "npmChange", "eps", "gap")
+FIGURES = ("revenue", "revenueYoY", "revenueQoQ", "operatingProfit", "opYoY", "opQoQ", "opYoYWhy", "opQoQWhy", "opm", "netProfit", "profitYoY", "profitQoQ", "npm", "npmChange", "eps", "gap")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 METRIC_KEYS = ("q_revenue", "q_net_profit", "q_operating_profit", "q_eps", "q_sales_yoy", "q_profit_yoy", "q_sales_qoq", "q_profit_qoq", "q_opm", "q_npm", "q_period_end")
 
 
@@ -194,7 +197,7 @@ def status_of(decl_date: date, today: date, has_numbers: bool, loaded_end: Optio
     return "awaiting" if decl_date <= today else "due"
 
 
-def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e: date, today: date, cap: Optional[str], indices: List[str]) -> dict:
+def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e: date, today: date, cap: Optional[str], indices: List[str], opg: Optional[Dict[str, Any]] = None) -> dict:
     """One row. `m` holds the q_* figures ALREADY checked to belong to quarter `e`; an empty/None-filled `m` means no figures."""
     rev, np_, op = m.get("q_revenue"), m.get("q_net_profit"), m.get("q_operating_profit")
     has_numbers = rev is not None or np_ is not None
@@ -211,14 +214,90 @@ def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e
         "cap": cap, "indices": indices, "confirmed": decl.confirmed, "periodEnd": e.isoformat(),
         "loadedPeriodEnd": loaded_end.isoformat() if loaded_end else None, "status": status, "awaiting": status == "awaiting",
         "hasNumbers": has_numbers, "locked": False,
-        "revenue": _r(rev), "revenueYoY": _r(ry, 1), "revenueQoQ": _r(m.get("q_sales_qoq"), 1), "operatingProfit": _r(op), "opm": _r(m.get("q_opm"), 1),
+        "revenue": _r(rev), "revenueYoY": _r(ry, 1), "revenueQoQ": _r(m.get("q_sales_qoq"), 1), "operatingProfit": _r(op), "opYoY": None, "opQoQ": None, "opYoYWhy": None, "opQoQWhy": None, "opm": _r(m.get("q_opm"), 1),
         "netProfit": _r(np_), "profitYoY": _r(py, 1), "profitQoQ": _r(m.get("q_profit_qoq"), 1), "npm": _r(npm, 1), "npmChange": _r(npm_change, 1),
         "eps": _r(m.get("q_eps")), "gap": _r(gap, 1), "flagged": bool(gap is not None and gap >= GAP_FLAG), "loss": bool(np_ is not None and np_ < 0),
     }
+    if has_numbers:
+        g = opg if opg is not None else {}
+        if op is None:
+            g = {"opYoYWhy": "no_data", "opQoQWhy": "no_data"}
+        row.update({"opYoY": _r(g.get("opYoY"), 1), "opQoQ": _r(g.get("opQoQ"), 1),
+                    "opYoYWhy": OP_WHY.get(g.get("opYoYWhy") or ("" if g.get("opYoY") is not None else "no_prior")), "opQoQWhy": OP_WHY.get(g.get("opQoQWhy") or ("" if g.get("opQoQ") is not None else "no_prior"))})
     if not has_numbers:
         row.update({k: None for k in FIGURES})
         row["flagged"] = row["loss"] = False
     return row
+
+
+# ------------------------------------------------------------------ operating profit growth
+# Operating profit is the quarterly `operating_profit` row of the stored statements: the same line (and the same definition, see
+# normalize/statements.py _operating_profit) the screener's q_operating_profit and the stock page use. Growth follows the screener's rule
+# (_growth): undefined when the base period was zero or a loss, never guessed. The earlier quarter must really be a year / a quarter before.
+OP_WHY = {"loss_base": "The earlier quarter's operating profit was zero or a loss, so a percentage change is not meaningful.",
+          "no_prior": "The earlier quarter is not in the stored statements.", "no_data": "Operating profit is not reported for this company.",
+          "mismatch": "Withheld: the stored operating profit does not match the statement for this quarter."}
+_ops: Dict[Tuple[str, str], Tuple[Any, Optional[dict]]] = {}     # (symbol, statement) -> (snapshot generated_at, {"ends": [...], "op": [...]})
+
+
+def _growth(a: Optional[float], b: Optional[float]) -> Optional[float]:
+    return None if a is None or b is None or b <= 0 else (a - b) / b * 100
+
+
+def op_growth(ends: List[Any], ops: List[Any], e: date, stored_op: Optional[float] = None, tolerance_days: int = 10) -> Dict[str, Any]:
+    """Operating profit growth for the quarter ending `e` from a company's quarterly statement rows. Returns opYoY / opQoQ (percent or None)
+    and opYoYWhy / opQoQWhy (a key of OP_WHY when the figure is missing). `stored_op` (the screener's q_operating_profit) must agree with the statement."""
+    dates: List[Optional[date]] = []
+    for x in ends:
+        try:
+            dates.append(date.fromisoformat(str(x)[:10]) if x else None)
+        except ValueError:
+            dates.append(None)
+    best: Optional[Tuple[int, int]] = None
+    for j, d in enumerate(dates):
+        if d is not None and abs((d - e).days) <= tolerance_days and (best is None or abs((d - e).days) < best[0]):
+            best = (abs((d - e).days), j)
+    vals = [_f(v) for v in ops]
+    if best is None or best[1] >= len(vals) or vals[best[1]] is None:
+        return {"opYoY": None, "opQoQ": None, "opYoYWhy": "no_data", "opQoQWhy": "no_data"}
+    i = best[1]
+    cur = vals[i]
+    if stored_op is not None and abs(stored_op - cur) > 0.01 + 0.005 * abs(cur):
+        return {"opYoY": None, "opQoQ": None, "opYoYWhy": "mismatch", "opQoQWhy": "mismatch"}
+
+    def one(back: int, lo: int, hi: int) -> Tuple[Optional[float], Optional[str]]:
+        j = i - back
+        if j < 0 or j >= len(vals) or vals[j] is None or dates[j] is None or dates[i] is None or not lo <= (dates[i] - dates[j]).days <= hi:   # type: ignore[operator]
+            return None, "no_prior"
+        g = _growth(cur, vals[j])
+        return (None, "loss_base") if g is None else (g, None)
+    yoy, yw = one(4, 350, 380)
+    qoq, qw = one(1, 80, 105)
+    return {"opYoY": yoy, "opQoQ": qoq, "opYoYWhy": yw, "opQoQWhy": qw}
+
+
+async def _op_histories(conn, pairs: List[Tuple[str, str]]) -> Dict[Tuple[str, str], Optional[dict]]:
+    """Quarterly period ends and operating profit per (symbol, statement), read from the stored statements as small JSON slices.
+    Cached per snapshot version, so a rebuild only re-reads companies whose report was refreshed."""
+    if not pairs:
+        return {}
+    stamps = {(r["symbol"], r["statement"]): r["generated_at"] for r in await conn.fetch(
+        "SELECT symbol, statement, generated_at FROM snapshots WHERE section = 'financials' AND symbol = ANY($1::text[])", sorted({s for s, _ in pairs}))}
+    stale = [k for k in pairs if k in stamps and (k not in _ops or _ops[k][0] != stamps[k])]
+    if stale:
+        for r in await conn.fetch(
+                "SELECT symbol, statement, body::jsonb #> '{quarterly,pl,periodEnds}' AS ends, body::jsonb #> '{quarterly,pl,rows,operating_profit}' AS op FROM snapshots "
+                "WHERE section = 'financials' AND symbol = ANY($1::text[])", sorted({s for s, _ in stale})):
+            k = (r["symbol"], r["statement"])
+            if k not in stale:
+                continue
+            try:
+                ends = json.loads(r["ends"]) if isinstance(r["ends"], str) else r["ends"]
+                op = json.loads(r["op"]) if isinstance(r["op"], str) else r["op"]
+                _ops[k] = (stamps[k], {"ends": ends, "op": op} if isinstance(ends, list) and isinstance(op, list) else None)
+            except (ValueError, TypeError):
+                _ops[k] = (stamps[k], None)
+    return {k: (_ops[k][1] if k in _ops else None) for k in pairs}
 
 
 @dataclass
@@ -266,6 +345,7 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
                 metrics[sym] = {}                                  # older than this quarter: not reported (to us) yet, show the date alone
             else:
                 need.append((sym, r["statement"]))                 # no stored quarter-end (older row) or a later one: read this quarter from the statements
+        hist = await _op_histories(conn, [(r["symbol"], r["statement"]) for r in scored])
         if need:
             wanted = set(need)
             for r in await conn.fetch("SELECT symbol, statement, body FROM snapshots WHERE section = 'financials' AND symbol = ANY($1::text[])", [s for s, _ in need]):
@@ -286,7 +366,14 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
     except Exception:
         log.warning("size bands unavailable for the results page")
         cap_of = lambda s: None   # noqa: E731
-    rows = [build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, []))) for s, d in decls.items()]
+    stmt_of = {r["symbol"]: r["statement"] for r in scored}
+
+    def growth(s: str) -> Optional[Dict[str, Any]]:
+        m, h = metrics.get(s) or {}, hist.get((s, stmt_of.get(s, "")))
+        if not h or (m.get("q_revenue") is None and m.get("q_net_profit") is None):
+            return None
+        return op_growth(h["ends"], h["op"], e, m.get("q_operating_profit"))
+    rows = [build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, [])), growth(s)) for s, d in decls.items()]
     counts: Dict[str, int] = {}
     for r in rows:
         if r["sector"]:
@@ -306,6 +393,7 @@ def reset() -> None:
     _decl = None
     _entries.clear()
     _tasks.clear()
+    _ops.clear()
 
 
 async def get_declarations(store, force: bool = False) -> Dict[str, Dict[str, Decl]]:
@@ -403,8 +491,10 @@ def strip_figures(r: dict) -> dict:
 
 
 def select(rows: List[dict], *, q: str = "", sector: str = "", cap: str = "", index: str = "", symbols: Optional[set] = None, flagged: bool = False, status: str = "",
-           sort: str = "date", desc: bool = True, today: str = "9999-12-31") -> List[dict]:
+           sort: str = "date", desc: bool = True, today: str = "9999-12-31", date_from: str = "", date_to: str = "") -> List[dict]:
     out = rows
+    if date_from or date_to:   # the announcement date, as ISO text (which sorts like a date)
+        out = [r for r in out if (not date_from or r["date"] >= date_from) and (not date_to or r["date"] <= date_to)]
     if q.strip():
         t = q.strip().lower()
         out = [r for r in out if t in r["symbol"].lower() or t in (r["name"] or "").lower()]
@@ -451,7 +541,59 @@ async def _symbols_of(request: Request, ctx, scope: str) -> Optional[set]:
     return {str(h.get("symbol", "")).upper() for h in parse(row["portfolio"]).get("holdings") or []}
 
 
-async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str, index: str, scope: str, flagged: bool, status: str, sort: str, dir_: str):
+def parse_range(on: str, frm: str, to: str, today: date) -> Optional[Tuple[date, date]]:
+    """`date=` (one day) or `from=`+`to=` (a range, both ends included), as India dates. None when no date was asked for. Raises a 400 with a plain message."""
+    if not (on or frm or to):
+        return None
+    if on and (frm or to):
+        raise fail(400, "bad_request", "Use either one date or a from and to range, not both.")
+    if to and not frm:
+        raise fail(400, "bad_request", "A range needs a from date as well as a to date.")
+    vals = []
+    for label, v in (("date", on), ("from", frm), ("to", to)):
+        if not v:
+            continue
+        try:
+            if not DATE_RE.match(v):
+                raise ValueError
+            vals.append(date.fromisoformat(v))
+        except ValueError:
+            raise fail(400, "bad_request", f"The {label} must look like {today.isoformat()} (year-month-day) and be a real calendar date.")
+    start = vals[0]
+    end = vals[0] if on else (vals[1] if len(vals) > 1 else today)
+    if max(start, end) > today:
+        raise fail(400, "future_date", f"Results can be looked up for dates up to today ({today.strftime('%a %d %b %Y')}, India time). Dates still to come are listed under 'Still to declare' for the quarter.", today=today.isoformat())
+    if start > end:
+        raise fail(400, "bad_request", "The from date is after the to date.")
+    return start, end
+
+
+def date_facts(decls: Dict[str, Dict[str, Decl]], rng: Tuple[date, date], qkey: Optional[str]) -> Dict[str, Any]:
+    """What the date filter found in the declarations (before any other filter): per quarter in range, and the nearest days with results around it."""
+    lo, hi = rng
+    in_range: Dict[str, int] = {}
+    per_day: Dict[date, int] = {}
+    for qk, by_sym in decls.items():
+        for d in by_sym.values():
+            if lo <= d.date <= hi:
+                in_range[qk] = in_range.get(qk, 0) + 1
+            if qk == qkey:
+                per_day[d.date] = per_day.get(d.date, 0) + 1
+    quarters = []
+    for qk, n in sorted(in_range.items(), reverse=True):
+        e = parse_quarter(qk)
+        if e is not None:
+            quarters.append({"key": qk, "label": quarter_info(e)["label"], "fiscal": quarter_info(e)["fiscal"], "n": n})
+    before = max((d for d in per_day if d < lo), default=None)
+    after = min((d for d in per_day if d > hi), default=None)
+    every = [d.date for by in decls.values() for d in by.values()]
+    return {"from": lo.isoformat(), "to": hi.isoformat(), "single": lo == hi, "quarters": quarters, "inQuarter": sum(1 for d in per_day if lo <= d <= hi) > 0,
+            "nearest": [{"date": d.isoformat(), "n": per_day[d]} for d in (before, after) if d is not None],
+            "coverage": {"earliest": min(every).isoformat() if every else None, "latest": max(every).isoformat() if every else None}}
+
+
+async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str, index: str, scope: str, flagged: bool, status: str, sort: str, dir_: str,
+                  on: str = "", frm: str = "", to: str = ""):
     ctx = await current(request)
     plan = ctx.plan if ctx.authed else "basic"
     silver = has(plan, "silver")
@@ -459,17 +601,30 @@ async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str,
         raise fail(403, "plan_required", "Sorting and filtering by results figures is part of the Silver plan.", plan="silver")
     store = request.app.state.store
     today = today_ist()
+    rng = parse_range(on, frm, to, today)
     decls = await get_declarations(store)
     quarters = list_quarters(decls, today)
-    qkey = quarter or default_quarter(quarters, today)
+    qkey = quarter or None
+    if qkey is None and rng is not None:
+        # no quarter chosen: the quarter most of the range's announcements belong to (a late-October day is mostly about the September quarter)
+        counts: Dict[str, int] = {}
+        for qk, by_sym in decls.items():
+            counts[qk] = sum(1 for d in by_sym.values() if rng[0] <= d.date <= rng[1])
+        best = max(counts.items(), key=lambda kv: (kv[1], kv[0]), default=(None, 0))
+        qkey = best[0] if best[1] else None
+        if qkey is None:
+            guess = quarter_key(quarter_end_before(rng[1]))
+            qkey = guess if guess in {x["key"] for x in quarters} else None
+    qkey = qkey or default_quarter(quarters, today)
     if qkey is None:
-        return ctx, plan, quarters, None, [], [], today
+        return ctx, plan, quarters, None, [], [], today, None
     if parse_quarter(qkey) is None:
         raise fail(400, "bad_request", "Quarter must look like 2026-09 (a quarter-end month: 03, 06, 09 or 12).")
     entry = await get_entry(store, qkey)
     syms = await _symbols_of(request, ctx, scope)
-    rows = select(entry.rows, q=q, sector=sector, cap=cap, index=index, symbols=syms, flagged=flagged, status=status, sort=sort, desc=dir_ == "desc", today=today.isoformat())
-    return ctx, plan, quarters, entry, rows, entry.rows, today
+    rows = select(entry.rows, q=q, sector=sector, cap=cap, index=index, symbols=syms, flagged=flagged, status=status, sort=sort, desc=dir_ == "desc", today=today.isoformat(),
+                  date_from=rng[0].isoformat() if rng else "", date_to=rng[1].isoformat() if rng else "")
+    return ctx, plan, quarters, entry, rows, entry.rows, today, (date_facts(decls, rng, qkey) if rng else None)
 
 
 def _dump(body: dict) -> Response:
@@ -481,16 +636,17 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
                           cap: str = Query("", pattern="^(Large|Mid|Small)?$"), index: str = Query("", pattern="^(NIFTY50|NIFTY100|NIFTY500)?$"),
                           scope: str = Query("all", pattern="^(all|watchlist|portfolio)$"), flagged: bool = False,
                           status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
-                          offset: int = Query(0, ge=0, le=20000), limit: int = Query(PAGE, ge=1, le=100)):
+                          offset: int = Query(0, ge=0, le=20000), limit: int = Query(PAGE, ge=1, le=100),
+                          on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10)):
     """One quarter's results, newest declaration first. Without `quarter` the latest quarter with declarations is used."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     started = time.perf_counter()
-    ctx, plan, quarters, entry, rows, all_rows, today = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir)
+    ctx, plan, quarters, entry, rows, all_rows, today, dates = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to)
     silver = has(plan, "silver")
     if entry is None:
         return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": None, "quarters": quarters, "rows": [], "total": 0, "offset": 0, "limit": limit,
-                      "summary": summarize([], today), "totals": summarize([], today), "days": [], "facets": {"sectors": [], "indices": []}})
+                      "summary": summarize([], today), "totals": summarize([], today), "days": [], "facets": {"sectors": [], "indices": []}, "dates": dates})
     page = rows[offset: offset + limit]
     out_rows = page if silver else [strip_figures(r) for r in page]
     summary = summarize(rows, today)
@@ -505,19 +661,20 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
     return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": entry.quarter, "quarters": quarters, "total": len(rows), "offset": offset, "limit": limit,
                   "summary": summary, "totals": totals, "rows": out_rows, "days": [{"date": d, "n": n} for d, n in sorted(per_day.items(), reverse=True)], "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(entry.loaded)),
                   "facets": {"sectors": [{"name": n, "n": c} for n, c in entry.sectors], "indices": [{"code": c, "n": n} for c, n in idx_counts.items()]},
-                  "gapFlag": GAP_FLAG, "took": round((time.perf_counter() - started) * 1000, 1)})
+                  "dates": dates, "dateMeaning": DATE_MEANING, "gapFlag": GAP_FLAG, "took": round((time.perf_counter() - started) * 1000, 1)})
 
 
 @router.get("/quarter/export")
 async def quarter_export(request: Request, quarter: str = Query("", max_length=7), q: str = Query("", max_length=60), sector: str = Query("", max_length=80),
                          cap: str = Query("", pattern="^(Large|Mid|Small)?$"), index: str = Query("", pattern="^(NIFTY50|NIFTY100|NIFTY500)?$"),
                          scope: str = Query("all", pattern="^(all|watchlist|portfolio)$"), flagged: bool = False,
-                         status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$")):
+                         status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
+                         on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10)):
     """The same rows without paging, as JSON the website turns into a CSV (Silver and Gold)."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     ctx = await current(request)
     if not has(ctx.plan if ctx.authed else "basic", "silver"):
         raise fail(403, "plan_required", "Downloading the quarter's results is part of the Silver plan.", plan="silver")
-    _, _, _, entry, rows, _, today = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir)
+    _, _, _, entry, rows, _, today, _ = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to)
     return _dump({"quarter": entry.quarter if entry else None, "today": today.isoformat(), "rows": rows[:EXPORT_ROWS]})

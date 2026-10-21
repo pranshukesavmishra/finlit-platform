@@ -126,7 +126,7 @@
 .prog { height: 10px; border-radius: 99px; background: var(--s3); overflow: hidden; margin: 6px 0 14px; } .prog i { display: block; height: 100%; background: var(--k3); border-radius: 99px; }
 
 /* ---- chart and card frames: a crisp dark outline on white, so every section reads as its own panel ---- */
-:root { --frame: var(--border-strong); }
+:root { --frame: color-mix(in srgb, var(--border-strong) 65%, var(--border)); }
 :root[data-theme="light"] { --frame: #1A1915; }
 .card, .qt, .ftile, .wk, .rc, .hstat > div, .pl-card { border: 1.5px solid var(--frame); }
 :root[data-theme="light"] .card, :root[data-theme="light"] .qt, :root[data-theme="light"] .ftile { background: #fff; box-shadow: 0 1px 0 rgba(20, 19, 15, .04); }

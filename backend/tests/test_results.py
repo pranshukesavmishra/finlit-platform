@@ -230,3 +230,100 @@ async def test_results_refresh_picks_companies_that_reported_but_are_a_quarter_b
     assert "RELIANCE" not in found                         # its stored report already holds the quarter
     assert "NOSCORE" not in found and "LATER" not in found   # no report held / date still to come
     assert await worker.results_candidates(store, today=today + timedelta(days=30)) == []   # an old declaration is not chased forever
+
+
+# ---------------------------------------------------------------- operating profit growth, the date filter
+OPQ = ["2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30", "2026-09-30"]
+
+
+def test_operating_profit_growth_uses_the_statement_rows_and_says_why_it_is_missing():
+    g = R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 30.0, 33.0], E, 33.0)
+    assert g["opYoY"] == pytest.approx(50.0) and g["opQoQ"] == pytest.approx(10.0) and g["opYoYWhy"] is None and g["opQoQWhy"] is None
+    assert R.op_growth(OPQ, [20.0, -22.0, 24.0, 26.0, 30.0, 33.0], E, 33.0)["opYoYWhy"] == "loss_base"                 # a year ago was a loss: no percentage
+    assert R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 0.0, 33.0], E, 33.0)["opQoQWhy"] == "loss_base"                   # a zero base is not growth either
+    neg = R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 30.0, -5.0], E, -5.0)
+    assert neg["opYoY"] == pytest.approx(-122.7273, rel=1e-4) and neg["opQoQ"] == pytest.approx(-116.6667, rel=1e-4)   # a loss now against a profit before is real, negative growth
+    gap = ["2025-06-30", "2025-09-30", "2026-03-31", "2026-06-30", "2026-09-30"]                                          # a quarter missing: five rows back is NOT a year ago
+    assert R.op_growth(gap, [20.0, 22.0, 26.0, 30.0, 33.0], E, 33.0)["opYoYWhy"] == "no_prior"
+    assert R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 30.0, 33.0], E, 40.0)["opYoYWhy"] == "mismatch"                    # disagrees with the screener's stored figure: withheld
+    assert R.op_growth(OPQ, [20.0, None, 24.0, 26.0, 30.0, 33.0], E, 33.0)["opYoYWhy"] == "no_prior"
+    assert R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 30.0, 33.0], D(2026, 8, 15))["opYoYWhy"] == "no_data"              # the quarter asked for is not in the table
+    assert R.op_growth([], [], E)["opYoY"] is None
+
+
+def test_row_carries_operating_profit_growth_and_basic_never_sees_it():
+    r = _row(m=FIG, opg=None) if False else R.build_row("AAA", R.Decl(D(2026, 10, 14), True), {"name": "Aaa", "sector": "IT", "market_cap": 1.0}, FIG, E, TODAY, "Large", [],
+                                                         R.op_growth(OPQ, [20.0, 22.0, 24.0, 26.0, 30.0, 33.0], E, 33.0))
+    assert r["opYoY"] == 50.0 and r["opQoQ"] == 10.0 and r["opYoYWhy"] is None and r["operatingProfit"] == 33 and r["opm"] == 20
+    lost = R.build_row("AAA", R.Decl(D(2026, 10, 14), True), {}, FIG, E, TODAY, None, [], R.op_growth(OPQ, [20.0, -1.0, 24.0, 26.0, 30.0, 33.0], E, 33.0))
+    assert lost["opYoY"] is None and "loss" in lost["opYoYWhy"] and lost["opQoQ"] == 10.0 and lost["opQoQWhy"] is None
+    none = _row(m={**FIG, "q_operating_profit": None, "q_opm": None})
+    assert none["operatingProfit"] is None and none["opYoY"] is None and "not reported" in none["opYoYWhy"]
+    assert _row(m=FIG)["opYoY"] is None and _row(m=FIG)["opYoYWhy"]                       # no statement history at all: a dash with a reason, not a guess
+    assert _row(m={})["opYoYWhy"] is None and _row(m={})["opYoY"] is None
+    locked = R.strip_figures(r)
+    assert locked["opYoY"] is None and locked["opQoQ"] is None and locked["opYoYWhy"] is None and locked["operatingProfit"] is None
+
+
+def test_date_range_is_validated_in_india_time():
+    t = D(2026, 10, 21)
+    assert R.parse_range("", "", "", t) is None
+    assert R.parse_range("2026-10-21", "", "", t) == (t, t) and R.parse_range("", "2026-10-14", "2026-10-21", t) == (D(2026, 10, 14), t)
+    assert R.parse_range("", "2026-10-14", "", t) == (D(2026, 10, 14), t)                 # an open end means "up to today"
+    for args, code in ((("2026-10-22", "", ""), "future_date"), (("", "2026-10-01", "2026-12-31"), "future_date"), (("", "2026-10-20", "2026-10-01"), "bad_request"), (("2026-13-01", "", ""), "bad_request"),
+                       (("2026-02-30", "", ""), "bad_request"), (("21/10/2026", "", ""), "bad_request"), (("2026-10-01", "2026-10-01", ""), "bad_request"), (("", "", "2026-10-01"), "bad_request")):
+        with pytest.raises(Exception) as ex:
+            R.parse_range(*args, t)
+        assert ex.value.detail["status"] == code, args
+    assert "India time" in _raises(lambda: R.parse_range("2026-10-22", "", "", t)).detail["detail"]
+
+
+def _raises(fn):
+    with pytest.raises(Exception) as ex:
+        fn()
+    return ex.value
+
+
+def test_select_filters_by_announcement_date_inclusive():
+    rows = [_row("A", D(2026, 10, 14), FIG), _row("B", D(2026, 10, 15), FIG), _row("C", D(2026, 10, 17), {}), _row("D", D(2026, 10, 18), FIG)]
+    sym = lambda rs: [r["symbol"] for r in rs]   # noqa: E731
+    assert sym(R.select(rows, date_from="2026-10-15", date_to="2026-10-17", today="2026-10-20")) == ["C", "B"]
+    assert sym(R.select(rows, date_from="2026-10-14", date_to="2026-10-14", today="2026-10-20")) == ["A"]
+    assert R.select(rows, date_from="2026-10-19", date_to="2026-10-19") == []
+    assert sym(R.select(rows, date_from="2026-10-15", date_to="2026-10-18", flagged=True, today="2026-10-20")) == ["D", "B"]
+
+
+def test_date_facts_name_the_quarters_and_the_nearest_days():
+    decls = {"2026-09": {"A": R.Decl(D(2026, 10, 14), True), "B": R.Decl(D(2026, 10, 14), True), "C": R.Decl(D(2026, 10, 9), True), "D": R.Decl(D(2026, 10, 30), False)},
+             "2026-06": {"E": R.Decl(D(2026, 10, 14), True), "F": R.Decl(D(2026, 8, 1), True)}}
+    f = R.date_facts(decls, (D(2026, 10, 14), D(2026, 10, 14)), "2026-09")
+    assert f["single"] and [(x["key"], x["n"]) for x in f["quarters"]] == [("2026-09", 2), ("2026-06", 1)] and f["inQuarter"]
+    e = R.date_facts(decls, (D(2026, 10, 12), D(2026, 10, 13)), "2026-09")
+    assert not e["inQuarter"] and e["quarters"] == [] and [(x["date"], x["n"]) for x in e["nearest"]] == [("2026-10-09", 1), ("2026-10-14", 2)]
+    assert e["coverage"] == {"earliest": "2026-08-01", "latest": "2026-10-30"}
+    assert R.date_facts({}, (D(2026, 10, 12), D(2026, 10, 12)), None)["coverage"]["earliest"] is None
+
+
+@pytest.mark.integration
+async def test_endpoint_date_filter_deep_link_and_errors(app, seeded):  # noqa: F811
+    today = R.today_ist()
+    when, q = seeded["when"], seeded["quarter"]
+    if when > today:
+        pytest.skip("fixture quarter ends too recently for a past announcement date")
+    silver = await signed_in(app, "res-date@example.com", plan="silver")
+    one = (await silver.get(f"/api/results/quarter?date={when.isoformat()}")).json()                   # no quarter given: found from the date
+    assert one["quarter"]["key"] == q and {x["symbol"] for x in one["rows"]} >= {"RELIANCE", "LATEX"} and all(x["date"] == when.isoformat() for x in one["rows"])
+    assert one["dates"]["single"] and one["dates"]["quarters"][0]["key"] == q and "announced" in one["dateMeaning"]
+    rng = (await silver.get(f"/api/results/quarter?quarter={q}&from={(when - timedelta(days=5)).isoformat()}&to={(when - timedelta(days=3)).isoformat()}")).json()
+    assert {x["symbol"] for x in rng["rows"]} == {"OLDX", "NOSCORE"} and rng["total"] == 2
+    empty = (await silver.get(f"/api/results/quarter?quarter={q}&date={(when - timedelta(days=1)).isoformat()}")).json()
+    assert empty["rows"] == [] and empty["total"] == 0 and empty["dates"]["nearest"] and empty["dates"]["coverage"]["earliest"]    # never a blank: says where results are
+    assert (await silver.get(f"/api/results/quarter?date={(today + timedelta(days=1)).isoformat()}")).status_code == 400
+    assert (await silver.get("/api/results/quarter?date=nonsense")).status_code == 400 and (await silver.get("/api/results/quarter?from=2026-10-02&to=2026-10-01")).status_code == 400
+    exp = (await silver.get(f"/api/results/quarter/export?quarter={q}&date={when.isoformat()}")).json()
+    assert {x["symbol"] for x in exp["rows"]} >= {"RELIANCE"} and all(x["date"] == when.isoformat() for x in exp["rows"])
+    async with new_client(app) as anon:                                                                     # Basic keeps dates and names, no figures, also through a date link
+        b = (await anon.get(f"/api/results/quarter?date={when.isoformat()}")).json()
+        assert b["rows"] and all(x[k] is None for x in b["rows"] for k in R.FIGURES)
+    full = {x["symbol"]: x for x in (await silver.get(f"/api/results/quarter?quarter={q}")).json()["rows"]}
+    assert "opYoY" in full["RELIANCE"] and (full["RELIANCE"]["opYoY"] is not None or full["RELIANCE"]["opYoYWhy"])

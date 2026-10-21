@@ -10,6 +10,7 @@ import { ChartHelp } from "../components/ChartHelp";
 import { MINUS, cr, dateIN, nf, signed } from "../lib/format";
 import { usePrice, type Financials, type Ratios, type Summary, type Table } from "../lib/api";
 import { finTiles, yoy } from "./derive";
+import { PL_INFO, PL_LABEL, plCell } from "./plDefinitions";
 import { useUI } from "../lib/ui";
 import { Plain } from "../components/Plain";
 
@@ -140,7 +141,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
         <div style={{ marginTop: 24 }}><HScroll className="" label="table"><table>
           <thead><tr><th>₹ Cr</th>{tbl.periods.map((p, i) => <th key={p} className={i === last ? "latest" : ""}>{p}</th>)}{kind === "q" ? <><th>vs last qtr</th><th>vs year ago</th></> : kind !== "cf" && <th>vs last year</th>}<th>Trend</th></tr></thead>
           <tbody>{rows.map(([k, label, tot]) => { const v = tbl.rows[k], y = yoy(v), y4 = kind === "q" ? yoy(v, 4) : null; const cell = (g: number | null) => <td className={g == null ? "" : g >= 0 ? "pos" : "neg"}>{g == null ? "—" : signed(g, 1)}</td>; return (
-            <tr key={k} className={tot ? "tot" : ""}><td>{label}</td>{v.map((x, i) => <td key={i} className={i === last ? "latest" : ""}>{x == null ? "—" : k === "eps" ? nf(x) : cr(x)}</td>)}{kind === "q" ? <>{cell(y)}{cell(y4)}</> : kind !== "cf" && cell(y)}<td><Spark values={v} color="var(--muted)" w={76} h={24} /></td></tr>); })}</tbody>
+            <tr key={k} className={tot ? "tot" : ""} data-row-key={k}><td>{kind === "bs" || kind === "cf" ? label : (PL_LABEL[k] ?? label)}{(kind === "pl" || kind === "q") && PL_INFO[k] && <> <Info g={PL_INFO[k]} /></>}</td>{v.map((x, i) => <td key={i} className={i === last ? "latest" : ""}>{plCell(k, x)}</td>)}{kind === "q" ? <>{cell(y)}{cell(y4)}</> : kind !== "cf" && cell(y)}<td><Spark values={v} color="var(--muted)" w={76} h={24} /></td></tr>); })}</tbody>
         </table></HScroll></div>
       </div>
     </section>

@@ -1,0 +1,105 @@
+/* Global theme layer (loaded last). Owns: header alignment, the dark-theme surface system, tables, inputs, popovers, skeletons.
+   Every colour comes from the variables in finlit.css, so palettes and the light theme keep working.
+   No looping motion anywhere; reveals run once. */
+
+/* ---------- Header: logo flush with the left gutter, actions flush with the right gutter ---------- */
+.top .wrap { max-width: 1760px; margin-inline: auto; padding-inline: max(20px, env(safe-area-inset-left, 0px)) max(20px, env(safe-area-inset-right, 0px)); gap: 12px; }
+.top .logo { margin-left: -2px; }
+.topnav { margin-left: 14px; }
+.top .grow { min-width: 8px; }
+.top .search { flex: 0 1 280px; }
+@media (min-width: 1500px) { .top .wrap { padding-inline: 28px; } }
+@media (max-width: 1100px) { .topnav { margin-left: 6px; } }
+@media (max-width: 640px) { .top .wrap { padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); gap: 6px; } .top .logo { margin-left: 0; } .lg-mark { height: 44px; } .mnav { padding-inline: max(16px, env(safe-area-inset-left, 0px)); } }
+.ddm.wide { left: 0; }
+@media (max-width: 1000px) { .ddm.wide { left: -40px; } }
+
+/* ---------- Dark theme surface system ---------- */
+:root:not([data-theme="light"]) {
+  --page-glow: radial-gradient(1100px 420px at 50% -160px, rgba(130,150,210,.075), transparent 70%);
+}
+:root:not([data-theme="light"]) body { background: var(--page-glow), var(--bg); background-color: var(--bg); background-repeat: no-repeat; }
+:root:not([data-theme="light"]) ::selection { background: var(--sel); color: var(--text); }
+:root:not([data-theme="light"]) .top { box-shadow: 0 1px 0 rgba(255,255,255,.03), 0 10px 30px -20px rgba(0,0,0,.8); }
+:root:not([data-theme="light"]) .demo-bar { background: var(--s2); color: var(--muted); border-bottom: 1px solid var(--border); }
+:root:not([data-theme="light"]) .demo-bar b { color: var(--gold); }
+
+/* cards: a hair lighter at the top, soft contact shadow, clear but quiet border */
+:root:not([data-theme="light"]) .card,
+:root:not([data-theme="light"]) .qt,
+:root:not([data-theme="light"]) .ftile,
+:root:not([data-theme="light"]) .kpi,
+:root:not([data-theme="light"]) .feat,
+:root:not([data-theme="light"]) .bk,
+:root:not([data-theme="light"]) .spc,
+:root:not([data-theme="light"]) .bs,
+:root:not([data-theme="light"]) .pay,
+:root:not([data-theme="light"]) .term,
+:root:not([data-theme="light"]) .pl-card,
+:root:not([data-theme="light"]) .wk,
+:root:not([data-theme="light"]) .rc,
+:root:not([data-theme="light"]) .hstat > div,
+:root:not([data-theme="light"]) .faq details { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 120px); box-shadow: var(--shadow); }
+:root:not([data-theme="light"]) .card.acc::before { opacity: .9; }
+:root:not([data-theme="light"]) .side { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 50%, var(--s1)), var(--s1)); box-shadow: var(--shadow); }
+:root:not([data-theme="light"]) .side-i.on { background: var(--s3); }
+:root:not([data-theme="light"]) .report, :root:not([data-theme="light"]) .plan, :root:not([data-theme="light"]) .cmp { box-shadow: var(--shadow); }
+:root:not([data-theme="light"]) .plan, :root:not([data-theme="light"]) .plan.feat { background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 180px) !important; }
+:root:not([data-theme="light"]) .band, :root:not([data-theme="light"]) footer.band { background: linear-gradient(180deg, var(--band-a), var(--band-b)); }
+:root:not([data-theme="light"]) footer.band { border-top: 1px solid var(--border); background: linear-gradient(180deg, var(--foot-a), var(--foot-b)); }
+:root:not([data-theme="light"]) .band .lock-card, :root:not([data-theme="light"]) .report .lock-card, :root:not([data-theme="light"]) .lock-card { background: var(--s2); }
+
+/* tables: header rule, readable zebra and hover, sticky first column keeps the row tint */
+:root:not([data-theme="light"]) th { color: var(--muted); border-bottom: 1px solid var(--border-strong); background: color-mix(in srgb, var(--s2) 70%, transparent); }
+:root:not([data-theme="light"]) td { border-bottom-color: var(--border); }
+:root:not([data-theme="light"]) tbody tr:nth-child(even) td { background-image: linear-gradient(var(--zebra), var(--zebra)); }
+:root:not([data-theme="light"]) tbody tr:hover td { background-color: var(--s2); background-image: linear-gradient(var(--row-hover), var(--row-hover)); }
+:root:not([data-theme="light"]) tr.tot td { border-top-color: var(--border-strong); background-color: var(--s2); }
+:root:not([data-theme="light"]) td.latest { background-color: var(--gold-soft); box-shadow: none; }
+:root:not([data-theme="light"]) .cmp th, :root:not([data-theme="light"]) .cmp thead th { background-color: var(--rep-a); }
+:root:not([data-theme="light"]) .cmp tbody tr:nth-child(even):not(.grp) td { background-image: linear-gradient(var(--zebra), var(--zebra)); }
+:root:not([data-theme="light"]) .cmp tbody tr:hover td { background-color: var(--rep-a); background-image: linear-gradient(var(--row-hover), var(--row-hover)); }
+
+/* inputs: raised well, clear border, gold focus ring */
+:root:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+:root:not([data-theme="light"]) select,
+:root:not([data-theme="light"]) textarea { background-color: var(--s2); border-color: var(--border-strong); color: var(--text); }
+:root:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+:root:not([data-theme="light"]) select:hover, :root:not([data-theme="light"]) textarea:hover { border-color: color-mix(in srgb, var(--border-strong) 60%, var(--faint)); }
+:root:not([data-theme="light"]) input:focus, :root:not([data-theme="light"]) select:focus, :root:not([data-theme="light"]) textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); outline: none; }
+:root:not([data-theme="light"]) input:disabled, :root:not([data-theme="light"]) select:disabled { opacity: .55; }
+:root:not([data-theme="light"]) .search, :root:not([data-theme="light"]) .icon-btn, :root:not([data-theme="light"]) .seg { background: var(--s1); border-color: var(--border-strong); }
+:root:not([data-theme="light"]) .search:hover, :root:not([data-theme="light"]) .icon-btn:hover { border-color: var(--gold); }
+:root:not([data-theme="light"]) .btn:not(.primary) { background: var(--s2); border-color: var(--border-strong); color: var(--text); }
+:root:not([data-theme="light"]) .btn:not(.primary):hover { background: var(--s3); border-color: var(--gold); }
+:root:not([data-theme="light"]) .btn.on { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+:root:not([data-theme="light"]) .tag, :root:not([data-theme="light"]) .kbd { background: var(--s2); border-color: var(--border-strong); }
+:root:not([data-theme="light"]) :focus-visible { outline-color: var(--gold-2); box-shadow: 0 0 0 4px rgba(11,12,15,.9); }
+
+/* popovers, menus, modals: one step above the cards, with a deep shadow */
+:root:not([data-theme="light"]) .ddm,
+:root:not([data-theme="light"]) .nt-p,
+:root:not([data-theme="light"]) .palette,
+:root:not([data-theme="light"]) .pk-m,
+:root:not([data-theme="light"]) .scr-colmenu,
+:root:not([data-theme="light"]) .alx-modal,
+:root:not([data-theme="light"]) .alx-toast,
+:root:not([data-theme="light"]) .cb-menu,
+:root:not([data-theme="light"]) .chh-p { background: var(--s2); border: 1px solid var(--border-strong); box-shadow: var(--lift); }
+:root:not([data-theme="light"]) .ddm a:hover, :root:not([data-theme="light"]) .ddm button:hover { background: var(--s3); }
+:root:not([data-theme="light"]) .ddi { background: var(--s3); border-color: var(--border-strong); }
+:root:not([data-theme="light"]) .scrim { background: rgba(3,4,7,.72); }
+:root:not([data-theme="light"]) .pop, :root:not([data-theme="light"]) .dl-menu, :root:not([data-theme="light"]) .toast { border-color: var(--border-strong); box-shadow: var(--lift); }
+:root:not([data-theme="light"]) .tape { border-bottom-color: var(--border); }
+
+/* charts: quiet grid, readable axis text */
+:root:not([data-theme="light"]) svg .grid, :root:not([data-theme="light"]) svg .gl { stroke: var(--border); }
+:root:not([data-theme="light"]) svg text { fill: var(--muted); }
+
+/* ---------- Skeletons: static (no shimmer), one soft one-time fade in ---------- */
+.skeleton { animation: none !important; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--border); border-radius: 12px; }
+:root[data-theme="light"] .skeleton { background: var(--s2); }
+
+/* ---------- No looping or wobbling motion, in any theme ---------- */
+.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip, .term, .skyline .win, .bt-art *, .art * { animation-iteration-count: 1 !important; }
+.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip { animation: none !important; }
