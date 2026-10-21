@@ -69,6 +69,7 @@ async def test_one_year_five_year_and_one_day_match_the_raw_candles(api):
         assert head["1d"]["from"]["date"] == ds[-2].isoformat() and head["1d"]["to"]["date"] == ds[-1].isoformat()
         for key, months in (("1y", 12), ("5y", 60)):
             want = indep_return(ds, cs, months)
+            want = None if want is not None and abs(want) < 0.005 else want   # a flat price return is withheld
             if want is None:
                 assert head[key]["value"] is None and head[key]["why"], (sym, key)
             else:
@@ -88,6 +89,7 @@ async def test_every_etf_matches_the_independent_calculation_or_says_why(api):
         if it["breakDate"] is None:
             for key, months in (("ret1y", 12), ("ret5y", 60)):
                 want = indep_return(ds, cs, months)
+                want = None if want is not None and abs(want) < 0.005 else want
                 assert (it[key] is None) == (want is None), (sym, key)
                 if want is not None:
                     assert it[key] == round(want, 2), (sym, key)

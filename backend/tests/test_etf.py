@@ -556,7 +556,7 @@ async def test_search_filters_and_sort(api):
     assert (await syms("category=bogus,gold")) == ["GOLDBEES"]                                    # unknown values are ignored, never an error
     hi = (await api.get("/api/etf?ret1yMin=10")).json()
     assert {i["symbol"] for i in hi["items"]} >= {"GOLDBEES", "SILVERBEES"} and all(i["ret1y"] >= 10 for i in hi["items"])
-    assert hi["excluded"] == 3 and hi["universe"] == 17                                           # ETFs with no 1-year figure are counted as left out, never hidden silently
+    assert hi["excluded"] == 4 and hi["universe"] == 17                                           # ETFs with no 1-year figure are counted as left out, never hidden silently
     assert (await api.get("/api/etf?ret1yMin=abc&ret1yMax=nan")).json()["total"] == 17           # unusable bounds are ignored
     asc = (await api.get("/api/etf?sort=ret1y&order=asc")).json()["items"]
     vals = [i["ret1y"] for i in asc]

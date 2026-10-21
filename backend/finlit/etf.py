@@ -695,6 +695,9 @@ async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem) -> None:
     if m.get("break_date") == ds[-1]:                            # the newest move is itself the suspected split / bad price
         change = None
         m["reasons"]["change"] = "Price jumped by more than %d%% on %s (suspected split or bad price), so the 1-day change is withheld" % (BREAK_MOVE * 100, ds[-1].strftime("%d %b %Y"))
+    for k in ("ret_1m", "ret_6m", "ret_1y", "ret_3y", "ret_5y", "cagr_3y", "cagr_5y"):   # stored empty, so sorting and filters agree with what the page shows
+        if m.get(k) is not None and abs(m[k]) < 0.005:
+            m[k], m["reasons"][k] = None, FLAT_WHY
     await conn.execute(
         """UPDATE etf_funds SET price=$2, prev_close=$3, change_pct=$4, price_date=$5, volume=$6, avg_turnover=$7,
              ret_1m=$8, ret_6m=$9, ret_1y=$10, ret_3y=$11, ret_5y=$12, cagr_3y=$13, cagr_5y=$14, vol_1y=$15, mdd_1y=$16, mdd_3y=$17, mdd_5y=$18,
