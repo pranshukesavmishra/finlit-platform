@@ -445,15 +445,17 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             return 0
         if args.cmd == "backfill-mf":
             from .mf import backfill
-            print(await backfill(store, settings, args.amc, force=args.force))
-            return 0
+            result = await backfill(store, settings, args.amc, force=args.force)
+            print(result)
+            return 0 if result.get("status") == "ok" else 1
         if args.cmd in ("refresh-etf", "refresh-mf"):
             if args.cmd == "refresh-etf":
                 from .etf import refresh as refresh_funds
             else:
                 from .mf import refresh as refresh_funds
-            print(await refresh_funds(store, settings))
-            return 0
+            result = await refresh_funds(store, settings)
+            print(result)
+            return 0 if result.get("status") == "ok" else 1   # a refused or empty answer is a failure, so the boot chain stops
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
             from .screener import jobs
             if args.cmd == "rebuild-metrics":

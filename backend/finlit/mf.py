@@ -751,8 +751,11 @@ async def apply_navall(store, parsed: Parsed, newest: date) -> dict:
             days, navs = merge_points((days, navs), ([nd], [r["nav"]]))
             items.append((r["code"], days, navs, bool(r["complete"])))
             appended += 1
-        for i in range(0, len(items), 300):
-            await _write_series(conn, items[i:i + 300])
+            if len(items) >= 300:   # written in batches: holding every series as Python lists at once needs hundreds of MB
+                await _write_series(conn, items)
+                items = []
+        if items:
+            await _write_series(conn, items)
         # Whole days were missed only when the previous run's newest date is itself more than 4 days old: then many schemes show the same hole.
         prev_newest = date.fromisoformat(prev_meta["navDate"]) if prev_meta.get("navDate") else None
         if not (prev_newest and (newest - prev_newest).days > 4):
@@ -896,7 +899,7 @@ async def _backfill_one(store, client, key: str, name: str, amc_id: int, schemes
                                "ON CONFLICT (amc_key) DO UPDATE SET note = EXCLUDED.note, done_at = now()", key, name, amc_id, "AMFI returned no history rows; the mirror fallback serves its schemes")
             return {"amc": name, "schemes": 0, "points": 0, "bytes": total_bytes}
         existing = {r["code"]: r for r in await conn.fetch("SELECT code, blob, d0 FROM mf_history WHERE code = ANY($1::int[])", list(pieces))}
-        items, points, mismatches = [], 0, 0
+        items, points, mismatches, written = [], 0, 0, 0
         latest = {s["code"]: s for s in schemes}
         for code, parts in pieces.items():
             ps = [(p[0], p[1]) for p in parts]
@@ -909,13 +912,17 @@ async def _backfill_one(store, client, key: str, name: str, amc_id: int, schemes
                 mismatches += 1
             items.append((code, days, navs, True))
             points += len(days)
-        for i in range(0, len(items), 200):
-            await _write_series(conn, items[i:i + 200])
+            written += 1
+            if len(items) >= 200:   # batches keep the memory flat on a small host
+                await _write_series(conn, items)
+                items = []
+        if items:
+            await _write_series(conn, items)
         await conn.execute("INSERT INTO mf_backfill (amc_key, amc, amc_id, schemes, points, bytes, note) VALUES ($1, $2, $3, $4, $5, $6, $7) "
                            "ON CONFLICT (amc_key) DO UPDATE SET amc = EXCLUDED.amc, amc_id = EXCLUDED.amc_id, schemes = EXCLUDED.schemes, points = EXCLUDED.points, "
                            "bytes = EXCLUDED.bytes, note = EXCLUDED.note, done_at = now()",
-                           key, name, amc_id, len(items), points, total_bytes, f"{ok_windows} yearly downloads; {mismatches} newest-NAV mismatches against NAVAll")
-    return {"amc": name, "schemes": len(items), "points": points, "bytes": total_bytes, "mismatches": mismatches, "windows": ok_windows}
+                           key, name, amc_id, written, points, total_bytes, f"{ok_windows} yearly downloads; {mismatches} newest-NAV mismatches against NAVAll")
+    return {"amc": name, "schemes": written, "points": points, "bytes": total_bytes, "mismatches": mismatches, "windows": ok_windows}
 
 
 # ====================================================================================== the mirror (fallback only)

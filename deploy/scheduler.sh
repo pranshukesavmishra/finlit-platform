@@ -18,6 +18,24 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
     log "start $name"; $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
 }
 
+# Waits (up to 10 minutes) until the web server answers, so the loads below never compete with it while it starts.
+wait_web() {
+  for _ in $(seq 1 120); do
+    $PY -c "import sys,urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT:-8000}/api/health', timeout=3)" >/dev/null 2>&1 && return 0
+    sleep 5
+  done
+  return 1
+}
+
+# One step of the ETF / mutual fund load: run it, log ONE line with its result, and report failure so the next step is not started.
+fund_step() {  # fund_step <label> <worker args...>
+  local label="$1"; shift
+  local out rc
+  out="$(MALLOC_ARENA_MAX=2 $PY -m finlit.worker "$@" 2>&1)"; rc=$?
+  log "$label rc=$rc $(printf '%s' "$out" | tail -n 1 | cut -c1-300)"
+  return $rc
+}
+
 # First start: universe, the biggest companies first, then as many as INGEST_LIMIT allows. Resumable.
 (
   flock 9
@@ -29,6 +47,13 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership: also decides which companies load first
   $PY -m finlit.worker prune                            # stay inside the free database's storage: top INGEST_LIMIT + recently opened
+  # ETFs, then funds, then 5 years of fund history: strictly one after the other, each only if the one before it worked, and only once the web server is up.
+  # Each is resumable (the fund history skips fund houses already done) and none of them runs on a timer, so a restart loses nothing and the database may sleep.
+  if wait_web; then
+    fund_step boot-etf refresh-etf && fund_step boot-mf refresh-mf && fund_step boot-mf-history backfill-mf
+  else
+    log "boot-etf skipped: the web server did not answer within 10 minutes"
+  fi
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
   log "done boot-load"
