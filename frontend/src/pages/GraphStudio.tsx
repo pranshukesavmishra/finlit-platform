@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { apiGet, apiSend, useSearchIndex, ApiError } from "../lib/api";
-import { useAuth } from "../lib/auth";
+import { useAuth, type Plan } from "../lib/auth";
 import { DEMO } from "../lib/demo";
 import { Icon } from "../lib/icons";
 import { useUI, useThemeKey } from "../lib/ui";
@@ -51,7 +51,7 @@ function useBundles(view: View, count: number) {
 type RS = { sp: SeriesSpec; mt: Metric; ex: Extracted; label: string; color: string; sym: string; err?: string };
 const name = (rows: [string, string][] | undefined, s: string) => rows?.find((r) => r[0] === s)?.[1] ?? s;
 
-function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan, c, names, picked }: { i: number; cell: CellSpec; view: View; bundles: ReturnType<typeof useBundles>; active: boolean; onActive: () => void; onChange: (n: CellSpec) => void; onDrop: (m: string) => void; plan: ReturnType<typeof useAuth>["plan"]; c: Colors; names: [string, string][] | undefined; picked: string[] }) {
+function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan, c, names, picked }: { i: number; cell: CellSpec; view: View; bundles: ReturnType<typeof useBundles>; active: boolean; onActive: () => void; onChange: (n: CellSpec) => void; onDrop: (m: string) => void; plan: Plan; c: Colors; names: [string, string][] | undefined; picked: string[] }) {
   const { ref, w } = useWidth();
   const { upgrade } = useUI();
   const lim = graphLimits(plan);
@@ -147,8 +147,8 @@ function AddSeries({ onAdd, picked, names, cell }: { onAdd: (m: string, s: strin
 
 export function GraphStudio() {
   useDocTitle("Graph Studio", "Put several graphs side by side: choose companies and measures, pick a chart type for each, and compare patterns and correlation.");
-  const { plan, user } = useAuth();
-  const { toast, upgrade } = useUI();
+  const { user } = useAuth();
+  const { plan, toast, upgrade } = useUI();
   const theme = useThemeKey();
   const lim = graphLimits(plan);
   const [sp, setSp] = useSearchParams();
