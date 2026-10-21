@@ -53,9 +53,10 @@ export function HoldingsPage() {
   const waiting = lines.filter((l) => l.row?.overall == null).map((l) => l.symbol);
   useEffect(() => {
     if (DEMO || !waiting.length) return;
-    waiting.slice(0, 25).forEach((s) => prefetchStock(qc, s));
+    // Each unprepared company is a build on the server: ask for them one by one (the server limits how many one visitor may start at once)
+    const starts = waiting.slice(0, 12).map((s, i) => window.setTimeout(() => prefetchStock(qc, s), i * 1500));
     const t = setInterval(() => qc.invalidateQueries({ queryKey: ["universe"] }), 20_000);
-    return () => clearInterval(t);
+    return () => { starts.forEach((x) => window.clearTimeout(x)); clearInterval(t); };
   }, [waiting.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const m = useMemo(() => {

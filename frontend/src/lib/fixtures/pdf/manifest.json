@@ -1,0 +1,830 @@
+{
+ "abbreviated_names.pdf": {
+  "check": [],
+  "expected": [
+   "INFY",
+   "KOTAKBANK"
+  ],
+  "missing": [
+   "TATA CONSULTANCY SERV LTD",
+   "RELIANCE INDS LTD",
+   "BHARAT ELECTRONIX LTD",
+   "STATE BK OF INDIA"
+  ],
+  "mode": "table",
+  "note": "broker abbreviations are not guessed; they are listed under 'not matched'"
+ },
+ "angelone_holdings.pdf": {
+  "check": [],
+  "expected": [
+   "ADANIENT",
+   "BHARTIARTL",
+   "BRITANNIA",
+   "EICHERMOT",
+   "HDFCBANK",
+   "HINDUNILVR",
+   "INFY",
+   "KOTAKBANK",
+   "LT",
+   "NESTLEIND",
+   "PFC",
+   "TATASTEEL",
+   "TITAN",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "mix of upper-case full names (LARSEN & TOUBRO LTD) and tickers with -EQ"
+ },
+ "bank_footer_noise.pdf": {
+  "check": [],
+  "expected": [
+   "BRITANNIA",
+   "HCLTECH",
+   "INFY",
+   "ITC",
+   "LT",
+   "MARUTI",
+   "NTPC",
+   "ONGC",
+   "RELIANCE",
+   "SBIN",
+   "TCS",
+   "TECHM",
+   "TITAN",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "bank names in title, key-value rows and the footer (HDFC Bank, ICICI Bank, Axis Bank) are not holdings; every company listed twice (28 rows)"
+ },
+ "blank_cells.pdf": {
+  "check": [],
+  "expected": [
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "RELIANCE",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "some ISIN and Pledged cells are empty, so cell counts differ between rows"
+ },
+ "cdsl_holdings.pdf": {
+  "check": [],
+  "expected": [
+   "ADANIPORTS",
+   "HINDUNILVR",
+   "INFY",
+   "POWERGRID",
+   "TITAN",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "ISIN and Security in separate columns; ETF, G-Sec in the table; separate Mutual Fund Folios table"
+ },
+ "duplicates.pdf": {
+  "check": [],
+  "expected": [
+   "INFY",
+   "ITC",
+   "RELIANCE",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "same company on NSE and BSE, as ticker, name and BSE code"
+ },
+ "fivepaisa_dhan.pdf": {
+  "check": [],
+  "expected": [
+   "HCLTECH",
+   "HDFCBANK",
+   "INFY",
+   "LTIM",
+   "RELIANCE",
+   "TCS",
+   "TECHM",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "Trading Symbol + Company Name columns"
+ },
+ "groww_holdings.pdf": {
+  "check": [],
+  "expected": [
+   "20MICRONS",
+   "3MINDIA",
+   "ADANIPORTS",
+   "AXISBANK",
+   "BAJAJ-AUTO",
+   "BAJFINANCE",
+   "DRREDDY",
+   "HCLTECH",
+   "HDFCBANK",
+   "HINDZINC",
+   "INFOEDGE",
+   "INFY",
+   "ITC",
+   "JSWSTEEL",
+   "LT",
+   "LTF",
+   "M&M",
+   "MRF",
+   "NESTLEIND",
+   "ONGC",
+   "PAGEIND",
+   "POWERGRID",
+   "RELIANCE",
+   "SBILIFE",
+   "SBIN",
+   "TATAPOWER",
+   "TCS",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "cover page + summary table (Equity/Mutual funds/Total) + 3-page grid table, shaded header repeated, names wrapped in a 36 mm column, footer Page n of m"
+ },
+ "groww_landscape.pdf": {
+  "check": [],
+  "expected": [
+   "3MINDIA",
+   "BAJAJ-AUTO",
+   "DRREDDY",
+   "HDFCBANK",
+   "HINDZINC",
+   "INFOEDGE",
+   "INFY",
+   "JSWSTEEL",
+   "LT",
+   "LTF",
+   "M&M",
+   "RELIANCE",
+   "TCS",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "landscape page, wide name column"
+ },
+ "groww_large_66.pdf": {
+  "check": [
+   "TMCV"
+  ],
+  "expected": [
+   "20MICRONS",
+   "3MINDIA",
+   "ADANIENT",
+   "ADANIPORTS",
+   "ADANIPOWER",
+   "ASIANPAINT",
+   "AXISBANK",
+   "AXISCAP",
+   "BAJAJ-AUTO",
+   "BAJAJFINSV",
+   "BAJAJHLDNG",
+   "BAJFINANCE",
+   "BANKBARODA",
+   "BHARTIARTL",
+   "BRITANNIA",
+   "COALINDIA",
+   "DRREDDY",
+   "EICHERMOT",
+   "HCLTECH",
+   "HDFCAMC",
+   "HDFCBANK",
+   "HDFCLIFE",
+   "HEROMOTOCO",
+   "HINDUNILVR",
+   "HINDZINC",
+   "ICICIBANK",
+   "ICICIPRULI",
+   "INFOEDGE",
+   "INFY",
+   "IOC",
+   "ITC",
+   "ITCHOTELS",
+   "JSWENERGY",
+   "JSWSTEEL",
+   "KOTAKBANK",
+   "LT",
+   "LTF",
+   "LTIM",
+   "M&M",
+   "M&MFIN",
+   "MARUTI",
+   "MRF",
+   "NESTLEIND",
+   "NTPC",
+   "ONGC",
+   "PAGEIND",
+   "PFC",
+   "PNB",
+   "POWERGRID",
+   "RELIANCE",
+   "SBICARD",
+   "SBILIFE",
+   "SBIN",
+   "SUNPHARMA",
+   "TATACONSUM",
+   "TATAELXSI",
+   "TATAPOWER",
+   "TATASTEEL",
+   "TCS",
+   "TECHM",
+   "TITAN",
+   "TMPV",
+   "ULTRACEMCO",
+   "VEDL",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "66 rows, 4+ pages"
+ },
+ "groww_wrapped_middle.pdf": {
+  "check": [],
+  "expected": [
+   "3MINDIA",
+   "ADANIPORTS",
+   "AXISBANK",
+   "BAJAJ-AUTO",
+   "BAJFINANCE",
+   "DRREDDY",
+   "HDFCBANK",
+   "HINDZINC",
+   "INFOEDGE",
+   "INFY",
+   "ITC",
+   "JSWSTEEL",
+   "LT",
+   "LTF",
+   "M&M",
+   "POWERGRID",
+   "RELIANCE",
+   "SBILIFE",
+   "SBIN",
+   "TATAPOWER",
+   "TCS",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "names wrapped to 3 lines in a 30 mm column, cells vertically centred so the numbers sit between the name lines"
+ },
+ "hdfcsec_holdings.pdf": {
+  "check": [],
+  "expected": [
+   "ASIANPAINT",
+   "HCLTECH",
+   "HDFCBANK",
+   "HINDUNILVR",
+   "MARUTI",
+   "RELIANCE",
+   "SBIN",
+   "SUNPHARMA",
+   "TATACONSUM",
+   "TCS",
+   "ULTRACEMCO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "upper-case names + ISIN column"
+ },
+ "header_wrapped.pdf": {
+  "check": [],
+  "expected": [
+   "INFY",
+   "ITC",
+   "RELIANCE",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "column headings that wrap onto 2-3 lines"
+ },
+ "icicidirect_portfolio.pdf": {
+  "check": [],
+  "expected": [
+   "ADANIPOWER",
+   "AXISBANK",
+   "BHARTIARTL",
+   "COALINDIA",
+   "HDFCBANK",
+   "ICICIBANK",
+   "INFY",
+   "ITC",
+   "RELIANCE",
+   "SBIN",
+   "TCS",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "a broker's own short symbol column (RELIND, HDFBAN, ...) next to the company name column"
+ },
+ "isin_first.pdf": {
+  "check": [],
+  "expected": [
+   "BAJAJ-AUTO",
+   "HDFCBANK",
+   "INFY",
+   "LT",
+   "M&M",
+   "RELIANCE",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "serial no and ISIN columns before the name"
+ },
+ "kotak_holdings.pdf": {
+  "check": [],
+  "expected": [
+   "AXISBANK",
+   "BAJAJFINSV",
+   "INFY",
+   "ITC",
+   "KOTAKBANK",
+   "LT",
+   "NTPC",
+   "ONGC",
+   "POWERGRID",
+   "RELIANCE",
+   "TCS",
+   "TITAN"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "Symbol + Security Name columns, footer names its parent bank"
+ },
+ "large_150_rows.pdf": {
+  "check": [
+   "TMCV"
+  ],
+  "expected": [
+   "20MICRONS",
+   "3MINDIA",
+   "ADANIENT",
+   "ADANIPORTS",
+   "ADANIPOWER",
+   "ASIANPAINT",
+   "AXISBANK",
+   "AXISCAP",
+   "BAJAJ-AUTO",
+   "BAJAJFINSV",
+   "BAJAJHLDNG",
+   "BAJFINANCE",
+   "BANKBARODA",
+   "BHARTIARTL",
+   "BRITANNIA",
+   "COALINDIA",
+   "DMART",
+   "DRREDDY",
+   "EICHERMOT",
+   "HCLTECH",
+   "HDFCAMC",
+   "HDFCBANK",
+   "HDFCLIFE",
+   "HEROMOTOCO",
+   "HINDUNILVR",
+   "HINDZINC",
+   "ICICIBANK",
+   "ICICIPRULI",
+   "INFOEDGE",
+   "INFY",
+   "IOC",
+   "ITC",
+   "ITCHOTELS",
+   "JSWENERGY",
+   "JSWSTEEL",
+   "KOTAKBANK",
+   "LT",
+   "LTF",
+   "LTIM",
+   "M&M",
+   "M&MFIN",
+   "MARUTI",
+   "MRF",
+   "NESTLEIND",
+   "NTPC",
+   "ONGC",
+   "PAGEIND",
+   "PFC",
+   "PNB",
+   "POWERGRID",
+   "RELIANCE",
+   "SBICARD",
+   "SBILIFE",
+   "SBIN",
+   "SUNPHARMA",
+   "TATACONSUM",
+   "TATAELXSI",
+   "TATAPOWER",
+   "TATASTEEL",
+   "TCS",
+   "TECHM",
+   "TITAN",
+   "TMPV",
+   "ULTRACEMCO",
+   "VEDL",
+   "WIPRO"
+  ],
+  "missing": [
+   "Alpha"
+  ],
+  "mode": "table",
+  "note": "150 rows (66 listed + 84 unknown small companies), 5 pages, must read in << 5 s"
+ },
+ "lookalikes_1.pdf": {
+  "check": [],
+  "expected": [
+   "ADANIPORTS",
+   "AXISBANK",
+   "BAJAJ-AUTO",
+   "BAJFINANCE",
+   "HDFCBANK",
+   "ITC",
+   "POWERGRID",
+   "SBILIFE",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "siblings must not be confused: only the named ones"
+ },
+ "lookalikes_2.pdf": {
+  "check": [
+   "TMCV",
+   "TMPV"
+  ],
+  "expected": [
+   "ADANIPOWER",
+   "AXISCAP",
+   "BAJAJFINSV",
+   "HDFCAMC",
+   "ITCHOTELS",
+   "PFC",
+   "SBICARD"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "the OTHER sibling of each pair; 'Tata Motors Ltd' is ambiguous after the demerger: shown for checking, not ticked"
+ },
+ "lookalikes_abbrev.pdf": {
+  "check": [
+   "AXISBANK",
+   "BAJAJ-AUTO",
+   "BAJFINANCE",
+   "HDFCBANK",
+   "POWERGRID",
+   "SBIN"
+  ],
+  "expected": [
+   "BAJAJFINSV",
+   "HDFCAMC",
+   "ITCHOTELS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "names cut short: 'Power Grid' is ok to offer but unticked; 'HDFC' must never be ticked"
+ },
+ "mixed_case_ticker_words.pdf": {
+  "check": [],
+  "expected": [
+   "20MICRONS",
+   "BANKBARODA",
+   "DRREDDY",
+   "INFOEDGE",
+   "PAGEIND",
+   "PNB",
+   "POWERGRID"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "'Page 2 of 5' inside the table is not Page Industries; apostrophes, brackets, digit-leading names"
+ },
+ "name_list_only.pdf": {
+  "check": [
+   "HDFCBANK",
+   "INFY",
+   "RELIANCE",
+   "TCS"
+  ],
+  "expected": [],
+  "missing": [],
+  "mode": "text",
+  "note": "names only, no numbers, no table: found but never ticked"
+ },
+ "name_suffixes.pdf": {
+  "check": [],
+  "expected": [
+   "BAJAJ-AUTO",
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "M&M",
+   "RELIANCE",
+   "TCS",
+   "TITAN",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "-EQ, (NSE), EQ, '.', limited/and, lower case, NSE:/BSE: prefixes, BSE code, /EQ"
+ },
+ "nsdl_cas.pdf": {
+  "check": [],
+  "expected": [
+   "BAJFINANCE",
+   "HDFCAMC",
+   "HDFCBANK",
+   "ITC",
+   "LT",
+   "M&M",
+   "RELIANCE",
+   "SBIN",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "ISIN and NAME in one cell; section rows for mutual fund units and bonds (NCDs of Bajaj Finance and L&T must not become holdings)"
+ },
+ "numbers_touching.pdf": {
+  "check": [],
+  "expected": [
+   "3MINDIA",
+   "BAJAJ-AUTO",
+   "HINDZINC",
+   "INFY",
+   "ITC",
+   "LT"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "quantity printed 1.5 pt after the name, no visible column gap"
+ },
+ "page_subtotals.pdf": {
+  "check": [],
+  "expected": [
+   "BHARTIARTL",
+   "HCLTECH",
+   "HDFCBANK",
+   "ICICIBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "MARUTI",
+   "NESTLEIND",
+   "NTPC",
+   "ONGC",
+   "POWERGRID",
+   "RELIANCE",
+   "SBIN",
+   "TCS",
+   "TECHM",
+   "TITAN",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "a 'Sub total' row at the end of every page's table; the table continues on the next page"
+ },
+ "protected_cas.pdf": {
+  "check": [],
+  "expected": [
+   "ICICIBANK",
+   "INFY",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "encrypted, password ABCPM1234F"
+ },
+ "rupee_symbol.pdf": {
+  "check": [],
+  "expected": [
+   "HDFCBANK",
+   "HINDZINC",
+   "LTF",
+   "M&M",
+   "RELIANCE",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "unicode rupee signs in an embedded TrueType font"
+ },
+ "text_lines.pdf": {
+  "check": [
+   "BAJAJ-AUTO",
+   "HDFCBANK",
+   "INFY",
+   "LT",
+   "M&M"
+  ],
+  "expected": [],
+  "missing": [],
+  "mode": "text",
+  "note": "no table: lines of text; RELIANCE appears only in a note without an amount and is not a holding"
+ },
+ "two_tables_all_sold_only.pdf": {
+  "check": [],
+  "expected": [
+   "NTPC",
+   "WIPRO"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "heading 'Portfolio' vs 'Sell transactions'"
+ },
+ "two_tables_holdings_first.pdf": {
+  "check": [],
+  "expected": [
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "RELIANCE",
+   "TCS",
+   "TITAN"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "'Current Holdings' table then 'Sold / Realised trades' table with other companies: only the first"
+ },
+ "two_tables_overlap.pdf": {
+  "check": [],
+  "expected": [
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "RELIANCE",
+   "TCS",
+   "TITAN"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "a company sold in part (also in holdings) appears in both tables: still one holding"
+ },
+ "two_tables_sold_first.pdf": {
+  "check": [],
+  "expected": [
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "RELIANCE",
+   "TCS",
+   "TITAN"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "sold table printed BEFORE the holdings table"
+ },
+ "two_tables_unlabelled.pdf": {
+  "check": [
+   "AXISBANK",
+   "COALINDIA",
+   "HDFCBANK",
+   "INFY",
+   "ITC",
+   "LT",
+   "NTPC",
+   "RELIANCE",
+   "SUNPHARMA",
+   "TCS",
+   "TITAN",
+   "WIPRO"
+  ],
+  "expected": [],
+  "missing": [],
+  "mode": "table",
+  "note": "two tables with no usable headings: cannot tell which is the holdings: all shown, none ticked"
+ },
+ "upstox_series_suffix.pdf": {
+  "check": [],
+  "expected": [
+   "3MINDIA",
+   "BAJAJ-AUTO",
+   "HDFCBANK",
+   "HINDZINC",
+   "ICICIBANK",
+   "INFY",
+   "ITC",
+   "JSWSTEEL",
+   "LT",
+   "M&M",
+   "MARUTI",
+   "RELIANCE",
+   "SBIN",
+   "TATAPOWER",
+   "TCS"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "RELIANCE-EQ, TCS - EQ, HDFCBANK.NS, M&M-BE, NSE:..., 'ITC EQ' style names"
+ },
+ "wrap_hazard_middle.pdf": {
+  "check": [
+   "HDFCBANK",
+   "ITC",
+   "TATASTEEL",
+   "TMCV",
+   "TMPV"
+  ],
+  "expected": [
+   "ADANIPOWER",
+   "AXISBANK",
+   "AXISCAP",
+   "BAJAJFINSV",
+   "BAJFINANCE",
+   "HDFCAMC",
+   "HDFCBANK",
+   "ITC",
+   "ITCHOTELS",
+   "PFC",
+   "SBICARD",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "24 mm name column: ITC / Hotels Ltd, Tata Motors / Passenger Vehicles Ltd ...; unlisted names that START with a listed name (Tata Motors Finance, ITC Infotech, Tata Steel Long Products, HDFC Bank Ltd Flexi Cap Fund) must not become the listed company"
+ },
+ "wrap_hazard_top.pdf": {
+  "check": [
+   "HDFCBANK",
+   "ITC",
+   "TATASTEEL",
+   "TMCV",
+   "TMPV"
+  ],
+  "expected": [
+   "ADANIPOWER",
+   "AXISBANK",
+   "AXISCAP",
+   "BAJAJFINSV",
+   "BAJFINANCE",
+   "HDFCAMC",
+   "HDFCBANK",
+   "ITC",
+   "ITCHOTELS",
+   "PFC",
+   "SBICARD",
+   "TMPV"
+  ],
+  "missing": [],
+  "mode": "table",
+  "note": "24 mm name column: ITC / Hotels Ltd, Tata Motors / Passenger Vehicles Ltd ...; unlisted names that START with a listed name (Tata Motors Finance, ITC Infotech, Tata Steel Long Products, HDFC Bank Ltd Flexi Cap Fund) must not become the listed company"
+ },
+ "zerodha_console.pdf": {
+  "check": [],
+  "expected": [
+   "ADANIPORTS",
+   "ASIANPAINT",
+   "AXISBANK",
+   "BAJAJ-AUTO",
+   "BHARTIARTL",
+   "COALINDIA",
+   "HDFCBANK",
+   "HEROMOTOCO",
+   "HINDUNILVR",
+   "ICICIBANK",
+   "INFY",
+   "ITC",
+   "JSWSTEEL",
+   "KOTAKBANK",
+   "LT",
+   "M&M",
+   "MARUTI",
+   "NTPC",
+   "POWERGRID",
+   "RELIANCE",
+   "SBIN",
+   "SUNPHARMA",
+   "TATASTEEL",
+   "TCS",
+   "TECHM",
+   "TITAN",
+   "TMCV",
+   "TMPV",
+   "ULTRACEMCO",
+   "VEDL",
+   "WIPRO"
+  ],
+  "missing": [
+   "GOLDBEES",
+   "NIFTYBEES",
+   "LIQUIDBEES"
+  ],
+  "mode": "table",
+  "note": "Console layout, plain tickers, no grid, ETFs (not companies), retired TATAMOTORS ticker = both demerged parts"
+ }
+}

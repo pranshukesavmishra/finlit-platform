@@ -3,21 +3,18 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { SearchRow } from "./api";
-import { PdfNoTextError, PdfPasswordError, gridFromPdfItems, joinWrappedNames, readPdfHoldings, setPdfLoader, type PdfItem } from "./holdingsPdf";
+import { PdfNoTextError, PdfPasswordError, findHoldings, gridFromPdfItems, isSure, joinWrappedNames, readPdfHoldings, rowsFromPdfItems, setPdfLoader, type PdfFinds, type PdfItem } from "./holdingsPdf";
 import { makeLookup } from "./holdingsMatch";
 
-const R = (s: string, n: string, b: string) => [s, n, b, 1, s] as unknown as SearchRow;
-const INDEX: SearchRow[] = [
-  R("RELIANCE", "Reliance Industries Ltd.", "500325"), R("TCS", "Tata Consultancy Services Ltd.", "532540"), R("HDFCBANK", "HDFC Bank Ltd.", "500180"), R("INFY", "Infosys Ltd.", "500209"),
-  R("ITC", "ITC Ltd.", "500875"), R("LT", "Larsen & Toubro Ltd.", "500510"), R("ICICIBANK", "ICICI Bank Ltd.", "532174"), R("SBIN", "State Bank of India", "500112"),
-  R("BHARTIARTL", "Bharti Airtel Ltd.", "532454"), R("TMPV", "Tata Motors Passenger Vehicles Ltd.", "500570"), R("TMCV", "Tata Motors Ltd.", "544569"), R("WIPRO", "Wipro Ltd.", "507685"),
-  R("ASIANPAINT", "Asian Paints Ltd.", "500820"), R("HINDUNILVR", "Hindustan Unilever Ltd.", "500696"), R("MARUTI", "Maruti Suzuki India Ltd.", "532500"), R("SUNPHARMA", "Sun Pharmaceutical Industries Ltd.", "524715"),
-  R("TITAN", "Titan Company Ltd.", "500114"), R("NTPC", "NTPC Ltd.", "532555"), R("POWERGRID", "Power Grid Corporation of India Ltd.", "532898"), R("COALINDIA", "Coal India Ltd.", "533278"),
-  R("ADANIPORTS", "Adani Ports and Special Economic Zone Ltd.", "532921"), R("AXISBANK", "Axis Bank Ltd.", "532215"), R("KOTAKBANK", "Kotak Mahindra Bank Ltd.", "500247"),
-];
+/** ~67 listed companies, with look-alikes on purpose (Tata Motors / Tata Motors Passenger Vehicles, HDFC Bank / HDFC AMC / HDFC Life, Bajaj Finance / Finserv / Auto, ...). */
 const dir = new URL("./fixtures/pdf/", import.meta.url);
+type Manifest = Record<string, { expected: string[]; check: string[]; missing: string[]; note: string; mode: string }>;
+const MAN: Manifest = JSON.parse(readFileSync(new URL("manifest.json", dir), "utf8"));
+const INDEX: SearchRow[] = Object.entries(JSON.parse(readFileSync(new URL("index.json", dir), "utf8")) as Record<string, { name: string; bse: string }>).map(([s, v]) => [s, v.name, v.bse, 1, s] as unknown as SearchRow);
 const file = (name: string) => new File([readFileSync(new URL(name, dir))], name, { type: "application/pdf" });
 const syms = (f: { found: { symbol: string }[] }) => f.found.map((x) => x.symbol).sort();
+const sure = (f: PdfFinds) => f.found.filter(isSure).map((x) => x.symbol).sort();
+const unsure = (f: PdfFinds) => f.found.filter((x) => !isSure(x)).map((x) => x.symbol).sort();
 
 beforeAll(() => {
   const require = createRequire(import.meta.url);
@@ -72,5 +69,117 @@ describe("real PDFs, read by pdf.js", () => {
   });
   it("a file that is not a PDF is refused", async () => {
     await expect(readPdfHoldings(new File(["hello"], "x.pdf"), INDEX)).rejects.toThrow();
+  });
+});
+
+/* ------------------------------------------------------------------ every generated statement: the exact set, nothing more, nothing less */
+
+describe("generated broker and depository statements (fixtures/pdf/manifest.json)", () => {
+  const names = Object.keys(MAN).sort();
+  it("has a broad set of layouts", () => { expect(names.length).toBeGreaterThanOrEqual(35); });
+  for (const name of names) {
+    const m = MAN[name];
+    it(`${name}: ${m.note}`, async () => {
+      const f = await readPdfHoldings(file(name), INDEX, name.startsWith("protected") ? "ABCPM1234F" : undefined);
+      expect(sure(f)).toEqual([...m.expected].sort());                       // every held company, ticked; no other company ticked
+      for (const u of unsure(f)) expect(m.check, `${u} must not be offered`).toContain(u);   // anything else offered is "please check", and only the listed ones
+      expect(f.mode).toBe(m.mode);
+      for (const want of m.missing) expect(f.missing.some((x) => x.includes(want)), `"${want}" listed as not matched`).toBe(true);
+    });
+  }
+});
+
+describe("precision: look-alike companies are never confused", () => {
+  it("HDFC Bank is not HDFC Asset Management or HDFC Life, and the other way round", async () => {
+    const f1 = await readPdfHoldings(file("lookalikes_1.pdf"), INDEX);
+    expect(sure(f1)).toContain("HDFCBANK"); expect(sure(f1)).not.toContain("HDFCAMC"); expect(sure(f1)).not.toContain("HDFCLIFE");
+    const f2 = await readPdfHoldings(file("lookalikes_2.pdf"), INDEX);
+    expect(sure(f2)).toContain("HDFCAMC"); expect(f2.found.map((x) => x.symbol)).not.toContain("HDFCBANK");
+  });
+  it("Bajaj Finance, Bajaj Finserv, Bajaj Auto; Adani Ports, Adani Power; Power Grid, Power Finance; SBI, SBI Life, SBI Cards; ITC, ITC Hotels; Axis Bank, Axis Capital", async () => {
+    const one = sure(await readPdfHoldings(file("lookalikes_1.pdf"), INDEX)), two = sure(await readPdfHoldings(file("lookalikes_2.pdf"), INDEX));
+    for (const s of ["BAJFINANCE", "BAJAJ-AUTO", "ADANIPORTS", "POWERGRID", "SBILIFE", "ITC", "AXISBANK"]) { expect(one).toContain(s); expect(two).not.toContain(s); }
+    for (const s of ["BAJAJFINSV", "ADANIPOWER", "PFC", "SBICARD", "ITCHOTELS", "AXISCAP"]) { expect(two).toContain(s); expect(one).not.toContain(s); }
+    expect(one).not.toContain("SBIN");                                      // "SBI Life Insurance Company Ltd" is not State Bank of India
+  });
+  it("names cut short are offered for checking but never ticked ('HDFC' is never HDFC Bank)", async () => {
+    const f = await readPdfHoldings(file("lookalikes_abbrev.pdf"), INDEX);
+    expect(sure(f)).toEqual(["HDFCAMC", "BAJAJFINSV", "ITCHOTELS"].sort());
+    for (const x of f.found.filter((y) => ["HDFCBANK", "SBIN", "AXISBANK"].includes(y.symbol))) expect(isSure(x)).toBe(false);
+  });
+  it("Tata Motors: the retired ticker is both parts; the plain name is ambiguous and is not ticked; the full new name is exact", async () => {
+    const z = await readPdfHoldings(file("zerodha_console.pdf"), INDEX);
+    expect(sure(z)).toEqual(expect.arrayContaining(["TMPV", "TMCV"]));
+    const l = await readPdfHoldings(file("lookalikes_2.pdf"), INDEX);
+    expect(unsure(l)).toEqual(["TMCV", "TMPV"]);
+    expect(sure(await readPdfHoldings(file("lookalikes_1.pdf"), INDEX))).toContain("TMPV");
+    expect(sure(await readPdfHoldings(file("lookalikes_1.pdf"), INDEX))).not.toContain("TMCV");
+  });
+  it("a listed name at the start of an unlisted one (Tata Motors Finance, ITC Infotech, Tata Steel Long Products, an HDFC Bank fund) is not taken, wrapped or not", async () => {
+    for (const name of ["wrap_hazard_top.pdf", "wrap_hazard_middle.pdf"]) {
+      const f = await readPdfHoldings(file(name), INDEX);
+      expect(sure(f)).not.toContain("TMCV"); expect(sure(f)).not.toContain("TATASTEEL");
+      expect(f.found.filter((x) => x.symbol === "ITC").every((x) => isSure(x))).toBe(true);        // the real "ITC Ltd" row is still ticked
+    }
+  });
+});
+
+describe("tables: which table is the holdings", () => {
+  it("rule: with several tables only the one headed Holdings / Portfolio is read; a table headed or labelled sold / trades / realised is ignored", async () => {
+    const a = await readPdfHoldings(file("two_tables_holdings_first.pdf"), INDEX), b = await readPdfHoldings(file("two_tables_sold_first.pdf"), INDEX);
+    expect(sure(a)).toEqual(sure(b));
+    expect(a.found.map((x) => x.symbol).sort()).toEqual(["HDFCBANK", "INFY", "ITC", "LT", "RELIANCE", "TCS", "TITAN"]);   // WIPRO, NTPC, COALINDIA, SUNPHARMA, AXISBANK were sold: not offered at all
+    expect(a.notes.join(" ")).toMatch(/more than one table/);
+  });
+  it("a table without a clue is not guessed: two unlabelled tables are all shown, none ticked, with a note", async () => {
+    const f = await readPdfHoldings(file("two_tables_unlabelled.pdf"), INDEX);
+    expect(sure(f)).toEqual([]); expect(unsure(f)).toHaveLength(12); expect(f.notes.join(" ")).toMatch(/cannot be told which one/);
+  });
+  it("a company sold in part and still held is one holding; the same company on NSE and BSE, as ticker, name and code, is one", async () => {
+    expect(sure(await readPdfHoldings(file("two_tables_overlap.pdf"), INDEX))).toEqual(["HDFCBANK", "INFY", "ITC", "LT", "RELIANCE", "TCS", "TITAN"]);
+    const d = await readPdfHoldings(file("duplicates.pdf"), INDEX);
+    expect(d.found.map((x) => x.symbol).sort()).toEqual(["INFY", "ITC", "RELIANCE", "TCS"]);
+  });
+  it("funds, ETFs, bonds and government securities in a depository statement are not shares; a bond's issuer is not a holding", async () => {
+    const f = await readPdfHoldings(file("nsdl_cas.pdf"), INDEX);
+    expect(sure(f).filter((s) => s === "LT")).toHaveLength(1);              // LT comes from the equity line only (its NCD line is in the Bonds section)
+    expect(f.missing.join("|")).not.toMatch(/Dividend Yield Fund|Bluechip/); // fund lines in the demat statement are skipped, not reported as unmatched shares
+  });
+});
+
+describe("rows and cells: layout details", () => {
+  const it_ = (str: string, x: number, y: number, w = str.length * 5): PdfItem => ({ str, x, y, w, h: 9 });
+  it("a quantity that touches the name column is still its own cell", () => {
+    const g = gridFromPdfItems([[it_("Infosys Ltd", 40, 700), it_("30", 40 + 55 + 1.5, 700, 10), it_("1,234.50", 400, 700)]]);
+    expect(g).toEqual([["Infosys Ltd", "30", "1,234.50"]]);
+  });
+  it("tightly packed columns (about 6 pt apart) are separate cells, words inside a name are not", () => {
+    const g = rowsFromPdfItems([[it_("MOTOCORP LTD", 100, 700, 62), it_("HEROMOTOCO", 168, 700, 50), it_("Tata", 300, 700, 20), it_("Power", 323, 700, 25)]]);
+    expect(g[0].cells.map((c) => c.t)).toEqual(["MOTOCORP LTD", "HEROMOTOCO", "Tata Power"]);
+  });
+  it("a gap-free grid (no positions) still reads: findHoldings on cell texts", () => {
+    const f = findHoldings([["Stock Name", "Qty", "Value"], ["Infosys Ltd", "10", "14,500.00"], ["TCS", "5", "17,751.25"], ["Sub total", "", "32,251.25"]], INDEX);
+    expect(sure(f)).toEqual(["INFY", "TCS"]);
+  });
+  it("text mode never ticks: a name inside a sentence is not a holding, a holding line is offered for checking", async () => {
+    const f = await readPdfHoldings(file("text_lines.pdf"), INDEX);
+    expect(sure(f)).toEqual([]); expect(unsure(f)).toEqual(["BAJAJ-AUTO", "HDFCBANK", "INFY", "LT", "M&M"]);     // RELIANCE only appears in a note
+    const n = await readPdfHoldings(file("name_list_only.pdf"), INDEX);
+    expect(sure(n)).toEqual([]); expect(unsure(n)).toEqual(["HDFCBANK", "INFY", "RELIANCE", "TCS"]);
+  });
+  it("with the real list of ~6000 companies a 150-row statement with 84 unknown lines still reads in well under 5 seconds", async () => {
+    const filler: SearchRow[] = Array.from({ length: 6000 }, (_, i) => [`ZZ${i}`, `Zeta ${["Alpha", "Beta", "Gamma", "Delta"][i % 4]} ${i} Industries Ltd`, String(600000 + i), 0, `ZZ${i}`] as unknown as SearchRow);
+    const t0 = performance.now();
+    const f = await readPdfHoldings(file("large_150_rows.pdf"), [...INDEX, ...filler]);
+    const ms = performance.now() - t0;
+    expect(sure(f)).toHaveLength(MAN["large_150_rows.pdf"].expected.length);
+    expect(ms).toBeLessThan(2500);
+  });
+  it("a 150-row, 5-page statement reads in well under 5 seconds", async () => {
+    const t0 = performance.now();
+    const f = await readPdfHoldings(file("large_150_rows.pdf"), INDEX);
+    const ms = performance.now() - t0;
+    expect(sure(f)).toHaveLength(MAN["large_150_rows.pdf"].expected.length);
+    expect(ms).toBeLessThan(2500);
   });
 });

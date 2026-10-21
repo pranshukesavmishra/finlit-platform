@@ -36,7 +36,7 @@ describe("makeMatcher", () => {
 describe("matchNames", () => {
   it("splits found and missing, preserving order and input", () => {
     const r = matchNames(["Tata Motors Ltd", "No Such Co", "ITC-EQ"], INDEX);
-    expect(r.found).toEqual([{ input: "Tata Motors Ltd", symbol: "TATAMOTORS", name: "Tata Motors Ltd." }, { input: "ITC-EQ", symbol: "ITC", name: "ITC Ltd." }]);
+    expect(r.found).toMatchObject([{ input: "Tata Motors Ltd", symbol: "TATAMOTORS", name: "Tata Motors Ltd." }, { input: "ITC-EQ", symbol: "ITC", name: "ITC Ltd." }]);
     expect(r.missing).toEqual(["No Such Co"]);
   });
   it("an ambiguous prefix picks the first (largest) company", () => {

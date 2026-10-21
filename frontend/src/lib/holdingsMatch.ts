@@ -23,10 +23,13 @@ export function makeLookup(index: SearchRow[]) {
     const n = norm(r[1]); if (n && !byName.has(n)) byName.set(n, r);
   }
   const exact = (input: string): SearchRow | undefined => { const t = tidy(input); return byCode.get(t.toUpperCase()) || byName.get(norm(t)); };
+  // normalised names, worked out once and only when a "starts the same way" search is first needed (norm on 6000 names for every unmatched line was seconds on a long statement)
+  let norms: string[] | undefined;
   const one = (input: string): { row: SearchRow; how: "exact" | "close" } | undefined => {
     const e = exact(input); if (e) return { row: e, how: "exact" };
     const n = norm(tidy(input));
-    const c = n.length >= 4 ? index.find((r) => norm(r[1]).startsWith(n + " ") || norm(r[1]) === n) : undefined;
+    let c: SearchRow | undefined;
+    if (n.length >= 4) { norms ??= index.map((r) => norm(r[1])); const i = norms.findIndex((m) => m === n || m.startsWith(n + " ")); c = i >= 0 ? index[i] : undefined; }
     return c ? { row: c, how: "close" } : undefined;
   };
   // "Larsen & Toubro Ltd., Mumbai": a broker's registered-office tail after a comma is not part of the name.

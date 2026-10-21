@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SearchRow } from "../lib/api";
 import type { Found } from "../lib/holdingsMatch";
-import { PdfPasswordError, readPdfHoldings, type PdfFinds } from "../lib/holdingsPdf";
+import { PdfPasswordError, isSure, readPdfHoldings, type PdfFinds, type PdfFound } from "../lib/holdingsPdf";
 import "../styles/pdfimport.css";
 
-const WHY: Record<Found["how"], { label: string; sure: boolean }> = {
-  exact: { label: "Exact match", sure: true },
-  alias: { label: "Old ticker, same company", sure: true },
-  split: { label: "Demerged: you now hold all its parts", sure: true },
-  close: { label: "Name starts the same: please check", sure: false },
-  scan: { label: "Found in the text: please check", sure: false },
+const WHY: Record<Found["how"], { label: string }> = {
+  exact: { label: "Exact match" },
+  alias: { label: "Old ticker, same company" },
+  split: { label: "Demerged: you now hold all its parts" },
+  close: { label: "Name starts the same: please check" },
+  scan: { label: "Found in the text: please check" },
 };
+/** The words shown beside a find: the reason it needs checking when there is one. */
+const tagOf = (f: PdfFound) => f.unsure || WHY[f.how].label;
 
 /** Reads a holdings PDF in the browser and shows what it found next to the PDF's own words, so nothing is added until the person confirms.
  *  The file and any password stay on the device. */
@@ -23,7 +25,7 @@ export function PdfImport({ file, index, held, room, onAdd, onClose }: { file: F
     setState("reading");
     try {
       const r = await readPdfHoldings(file, index, password);
-      setFinds(r); setPick(Object.fromEntries(r.found.map((f) => [f.symbol, WHY[f.how].sure && !held.includes(f.symbol)]))); setState("review");
+      setFinds(r); setPick(Object.fromEntries(r.found.map((f) => [f.symbol, isSure(f) && !held.includes(f.symbol)]))); setState("review");
     } catch (e) {
       if (e instanceof PdfPasswordError) { setWrong(e.wrong); setState("password"); return; }
       setMsg(e instanceof Error ? e.message : "That PDF could not be read."); setState("error");
@@ -53,15 +55,16 @@ export function PdfImport({ file, index, held, room, onAdd, onClose }: { file: F
     <section className="pdfi card" aria-label="Review companies found in the PDF">
       <div className="card-h"><h3>Found {finds.found.length} {finds.found.length === 1 ? "company" : "companies"} in {file.name}</h3>
         <span className="s">{finds.mode === "table" ? "Read from the statement's table" : "Found in the text of the statement"}</span></div>
+      {finds.notes.length > 0 && <p className="pdfi-note" role="note">{finds.notes.join(" ")}</p>}
       <p className="muted">Check each line against your statement, then add them. Only the company names are used: quantities, prices and everything else in the PDF are ignored and nothing leaves your device. Lines marked "please check" are not ticked.</p>
       <div className="pdfi-list" role="list">{finds.found.map((f) => {
-        const already = held.includes(f.symbol), why = WHY[f.how];
+        const already = held.includes(f.symbol), sure = isSure(f);
         return (
-          <label className={"pdfi-row" + (why.sure ? "" : " warn") + (already ? " done" : "")} key={f.symbol} role="listitem">
+          <label className={"pdfi-row" + (sure ? "" : " warn") + (already ? " done" : "")} key={f.symbol} role="listitem">
             <input type="checkbox" checked={!!pick[f.symbol] && !already} disabled={already} onChange={(e) => setPick({ ...pick, [f.symbol]: e.target.checked })} />
             <span className="in" title="The words in your PDF">{f.input}</span><span aria-hidden="true">→</span>
             <span className="co"><b>{f.symbol}</b> <small>{f.name}</small></span>
-            <span className="tag">{already ? "Already in your portfolio" : why.label}</span>
+            <span className="tag">{already ? "Already in your portfolio" : tagOf(f)}</span>
           </label>);
       })}</div>
       {finds.missing.length > 0 && <details className="pdfi-miss"><summary>{finds.missing.length} {finds.missing.length === 1 ? "line" : "lines"} in the table not matched to a listed company</summary>

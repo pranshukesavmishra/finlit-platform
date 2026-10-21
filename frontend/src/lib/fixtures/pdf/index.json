@@ -1,0 +1,270 @@
+{
+ "RELIANCE": {
+  "name": "Reliance Industries Ltd.",
+  "bse": "500325"
+ },
+ "TCS": {
+  "name": "Tata Consultancy Services Ltd.",
+  "bse": "532540"
+ },
+ "HDFCBANK": {
+  "name": "HDFC Bank Ltd.",
+  "bse": "500180"
+ },
+ "HDFCAMC": {
+  "name": "HDFC Asset Management Company Ltd.",
+  "bse": "541729"
+ },
+ "HDFCLIFE": {
+  "name": "HDFC Life Insurance Company Ltd.",
+  "bse": "540777"
+ },
+ "INFY": {
+  "name": "Infosys Ltd.",
+  "bse": "500209"
+ },
+ "ITC": {
+  "name": "ITC Ltd.",
+  "bse": "500875"
+ },
+ "ITCHOTELS": {
+  "name": "ITC Hotels Ltd.",
+  "bse": "544252"
+ },
+ "LT": {
+  "name": "Larsen & Toubro Ltd.",
+  "bse": "500510"
+ },
+ "LTF": {
+  "name": "L&T Finance Ltd.",
+  "bse": "533519"
+ },
+ "ICICIBANK": {
+  "name": "ICICI Bank Ltd.",
+  "bse": "532174"
+ },
+ "ICICIPRULI": {
+  "name": "ICICI Prudential Life Insurance Company Ltd.",
+  "bse": "540133"
+ },
+ "SBIN": {
+  "name": "State Bank of India",
+  "bse": "500112"
+ },
+ "SBILIFE": {
+  "name": "SBI Life Insurance Company Ltd.",
+  "bse": "540719"
+ },
+ "SBICARD": {
+  "name": "SBI Cards and Payment Services Ltd.",
+  "bse": "543066"
+ },
+ "BHARTIARTL": {
+  "name": "Bharti Airtel Ltd.",
+  "bse": "532454"
+ },
+ "TMPV": {
+  "name": "Tata Motors Passenger Vehicles Ltd.",
+  "bse": "500570"
+ },
+ "TMCV": {
+  "name": "Tata Motors Ltd.",
+  "bse": "544569"
+ },
+ "WIPRO": {
+  "name": "Wipro Ltd.",
+  "bse": "507685"
+ },
+ "ASIANPAINT": {
+  "name": "Asian Paints Ltd.",
+  "bse": "500820"
+ },
+ "HINDUNILVR": {
+  "name": "Hindustan Unilever Ltd.",
+  "bse": "500696"
+ },
+ "MARUTI": {
+  "name": "Maruti Suzuki India Ltd.",
+  "bse": "532500"
+ },
+ "SUNPHARMA": {
+  "name": "Sun Pharmaceutical Industries Ltd.",
+  "bse": "524715"
+ },
+ "TITAN": {
+  "name": "Titan Company Ltd.",
+  "bse": "500114"
+ },
+ "NTPC": {
+  "name": "NTPC Ltd.",
+  "bse": "532555"
+ },
+ "POWERGRID": {
+  "name": "Power Grid Corporation of India Ltd.",
+  "bse": "532898"
+ },
+ "PFC": {
+  "name": "Power Finance Corporation Ltd.",
+  "bse": "532810"
+ },
+ "COALINDIA": {
+  "name": "Coal India Ltd.",
+  "bse": "533278"
+ },
+ "ADANIPORTS": {
+  "name": "Adani Ports and Special Economic Zone Ltd.",
+  "bse": "532921"
+ },
+ "ADANIPOWER": {
+  "name": "Adani Power Ltd.",
+  "bse": "533096"
+ },
+ "ADANIENT": {
+  "name": "Adani Enterprises Ltd.",
+  "bse": "512599"
+ },
+ "AXISBANK": {
+  "name": "Axis Bank Ltd.",
+  "bse": "532215"
+ },
+ "AXISCAP": {
+  "name": "Axis Capital Ltd.",
+  "bse": "599901"
+ },
+ "KOTAKBANK": {
+  "name": "Kotak Mahindra Bank Ltd.",
+  "bse": "500247"
+ },
+ "BAJFINANCE": {
+  "name": "Bajaj Finance Ltd.",
+  "bse": "500034"
+ },
+ "BAJAJFINSV": {
+  "name": "Bajaj Finserv Ltd.",
+  "bse": "532978"
+ },
+ "BAJAJ-AUTO": {
+  "name": "Bajaj Auto Ltd.",
+  "bse": "532977"
+ },
+ "BAJAJHLDNG": {
+  "name": "Bajaj Holdings & Investment Ltd.",
+  "bse": "500490"
+ },
+ "3MINDIA": {
+  "name": "3M India Ltd.",
+  "bse": "523395"
+ },
+ "HINDZINC": {
+  "name": "Hindustan Zinc Ltd.",
+  "bse": "500188"
+ },
+ "JSWSTEEL": {
+  "name": "JSW Steel Ltd.",
+  "bse": "500228"
+ },
+ "JSWENERGY": {
+  "name": "JSW Energy Ltd.",
+  "bse": "533148"
+ },
+ "TATASTEEL": {
+  "name": "Tata Steel Ltd.",
+  "bse": "500470"
+ },
+ "TATAPOWER": {
+  "name": "Tata Power Company Ltd.",
+  "bse": "500400"
+ },
+ "TATACONSUM": {
+  "name": "Tata Consumer Products Ltd.",
+  "bse": "500800"
+ },
+ "TATAELXSI": {
+  "name": "Tata Elxsi Ltd.",
+  "bse": "500408"
+ },
+ "M&M": {
+  "name": "Mahindra & Mahindra Ltd.",
+  "bse": "500520"
+ },
+ "M&MFIN": {
+  "name": "Mahindra & Mahindra Financial Services Ltd.",
+  "bse": "532720"
+ },
+ "HEROMOTOCO": {
+  "name": "Hero MotoCorp Ltd.",
+  "bse": "500182"
+ },
+ "EICHERMOT": {
+  "name": "Eicher Motors Ltd.",
+  "bse": "505200"
+ },
+ "ULTRACEMCO": {
+  "name": "UltraTech Cement Ltd.",
+  "bse": "532538"
+ },
+ "ONGC": {
+  "name": "Oil & Natural Gas Corporation Ltd.",
+  "bse": "500312"
+ },
+ "IOC": {
+  "name": "Indian Oil Corporation Ltd.",
+  "bse": "530965"
+ },
+ "HCLTECH": {
+  "name": "HCL Technologies Ltd.",
+  "bse": "532281"
+ },
+ "TECHM": {
+  "name": "Tech Mahindra Ltd.",
+  "bse": "532755"
+ },
+ "DRREDDY": {
+  "name": "Dr. Reddy's Laboratories Ltd.",
+  "bse": "500124"
+ },
+ "NESTLEIND": {
+  "name": "Nestle India Ltd.",
+  "bse": "500790"
+ },
+ "BRITANNIA": {
+  "name": "Britannia Industries Ltd.",
+  "bse": "500825"
+ },
+ "INFOEDGE": {
+  "name": "Info Edge (India) Ltd.",
+  "bse": "532777"
+ },
+ "PAGEIND": {
+  "name": "Page Industries Ltd.",
+  "bse": "532827"
+ },
+ "20MICRONS": {
+  "name": "20 Microns Ltd.",
+  "bse": "533022"
+ },
+ "MRF": {
+  "name": "MRF Ltd.",
+  "bse": "500290"
+ },
+ "VEDL": {
+  "name": "Vedanta Ltd.",
+  "bse": "500295"
+ },
+ "BANKBARODA": {
+  "name": "Bank of Baroda",
+  "bse": "532134"
+ },
+ "PNB": {
+  "name": "Punjab National Bank",
+  "bse": "532461"
+ },
+ "LTIM": {
+  "name": "LTIMindtree Ltd.",
+  "bse": "540005"
+ },
+ "DMART": {
+  "name": "Avenue Supermarts Ltd.",
+  "bse": "540376"
+ }
+}

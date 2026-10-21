@@ -6,5 +6,6 @@
 .pdfi-row:last-child { border-bottom: 0; } .pdfi-row .in { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .pdfi-row .co small { color: var(--muted); margin-left: 6px; } .pdfi-row .tag { font-size: 12px; color: var(--muted); text-align: right; }
 .pdfi-row.warn { background: color-mix(in srgb, var(--warn) 8%, transparent); } .pdfi-row.warn .tag { color: var(--warn); font-weight: 600; } .pdfi-row.done { opacity: .6; cursor: default; }
+.pdfi-note { margin: 0 0 8px; font-size: 13px; color: var(--warn); }
 .pdfi-miss { margin: 4px 0 12px; font-size: 13px; } .pdfi-miss summary { cursor: pointer; color: var(--muted); }
 @media (max-width: 700px) { .pdfi-row { grid-template-columns: 22px minmax(0, 1fr); } .pdfi-row .in, .pdfi-row .tag { grid-column: 2; text-align: left; } .pdfi-row > span[aria-hidden] { display: none; } }
