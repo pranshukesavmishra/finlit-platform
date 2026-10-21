@@ -1,0 +1,140 @@
+/* ETFs section. Colours come only from the theme variables, so light, dark and the palettes all work. No motion beyond hover colour changes. */
+.etf-page { padding-bottom: 56px; position: relative; }
+.etf-page .card { margin-top: 18px; }
+.etf-page .card:first-child { margin-top: 0; }
+.etf-tools { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 12px; align-items: center; }
+.etf-search { flex: 1 1 280px; min-width: 0; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); color: var(--muted); }
+.etf-search:focus-within { border-color: var(--gold); outline: 2px solid var(--focus); outline-offset: 2px; }
+.etf-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 15px; outline: none; height: 100%; }
+.etf-search .ico { width: 18px; height: 18px; flex: none; }
+.etf-colwrap { position: relative; }
+.etf-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: min(380px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 14px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--s1); box-shadow: var(--lift); }
+.etf-pop-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.etf-check { display: flex; gap: 10px; padding: 8px 4px; cursor: pointer; align-items: flex-start; }
+.etf-check input { margin-top: 4px; width: 16px; height: 16px; accent-color: var(--gold); flex: none; }
+.etf-check span { display: flex; flex-direction: column; font-size: 14px; min-width: 0; }
+.etf-check small { color: var(--faint); font-size: 12.5px; line-height: 1.4; }
+.etf-filters { display: grid; gap: 18px; margin-bottom: 14px; }
+.etf-fgroup h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.etf-fgroup h3 small { font-weight: 400; color: var(--faint); margin-left: 6px; }
+.etf-fgroup .chip-b small { opacity: .7; margin-left: 2px; }
+.etf-ranges { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.etf-range { border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px 10px; margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.etf-range legend { font-size: 12.5px; color: var(--muted); padding: 0 6px; }
+.etf-range input { width: 78px; height: 36px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--s1); color: var(--text); padding: 0 8px; font: inherit; font-family: var(--mono); font-size: 14px; }
+.etf-range input[aria-invalid="true"] { border-color: var(--loss); }
+.etf-count { margin: 6px 0 12px; color: var(--muted); font-size: 14px; min-height: 20px; }
+.etf-count b { color: var(--text); }
+.etf-tw { position: relative; border: 1px solid var(--border); border-radius: 14px; margin: 0; padding: 0; overflow-x: auto; max-width: 100%; background: var(--s1); }
+.etf-tw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.etf-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; min-width: 640px; }
+.etf-table th, .etf-table td { padding: 10px 12px; white-space: nowrap; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border); background: var(--s1); font-weight: 400; }
+.etf-table thead th { font-size: 12.5px; font-weight: 600; color: var(--muted); position: sticky; top: 0; background: var(--s2); }
+.etf-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 13.5px; }
+.etf-table thead .num { font-family: var(--sans); }
+.etf-table td.etf-txt { font-size: 13px; color: var(--muted); max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.etf-table tbody tr:hover th, .etf-table tbody tr:hover td { background: var(--s2); }
+.etf-first { position: sticky; left: 0; z-index: 2; min-width: 190px; max-width: 280px; box-shadow: 1px 0 0 var(--border); }
+.etf-name { white-space: normal; }
+.etf-name a { color: var(--text); font-weight: 600; text-decoration: none; line-height: 1.3; display: block; }
+.etf-name a:hover { color: var(--gold); text-decoration: underline; }
+.etf-sub { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 12px; color: var(--faint); }
+.mono { font-family: var(--mono); }
+.etf-add { border: 1px solid var(--border-strong); background: none; color: var(--muted); border-radius: 99px; padding: 3px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.etf-add:hover:not(:disabled) { border-color: var(--gold); color: var(--text); }
+.etf-add.on { background: var(--gold-soft); border-color: var(--gold); color: var(--text); }
+.etf-add:disabled { opacity: .45; cursor: not-allowed; }
+.etf-sort { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.etf-sort:hover { color: var(--gold); }
+.etf-sort:focus-visible, .etf-add:focus-visible, .etf-x:focus-visible, .etf-chips button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.etf-table th .info { margin-left: 5px; }
+.etf-blank { color: var(--faint); cursor: help; }
+.etf-tone.up { color: var(--gain); } .etf-tone.down { color: var(--loss); }
+.etf-foot { margin: 10px 2px 0; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 90ch; }
+.etf-pager { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin: 16px 0; flex-wrap: wrap; }
+.etf-pager span { color: var(--muted); font-size: 14px; }
+.etf-skel { display: grid; gap: 8px; }
+.etf-state { text-align: center; padding: 56px 16px; border: 1px dashed var(--border-strong); border-radius: 16px; margin: 12px 0; }
+.etf-state.small { padding: 26px 16px; }
+.etf-state h2 { font: 300 26px var(--serif); margin: 0 0 8px; }
+.etf-state p { color: var(--muted); margin: 0 auto 14px; max-width: 56ch; }
+.etf-note { margin-top: 26px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--s2); color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+.etf-note p { margin: 0 0 6px; } .etf-note p:last-child { margin: 0; } .etf-note b { color: var(--text); } .etf-note a { color: var(--gold); }
+/* compare tray */
+.etf-tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 10px max(16px, env(safe-area-inset-left, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--s1); border-top: 1px solid var(--border-strong); box-shadow: var(--lift); }
+.etf-tray-in { max-width: 1260px; margin: 0 auto; padding-right: 150px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.etf-tray-l { font-weight: 600; font-size: 14px; }
+.etf-tray ul, .etf-chips { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.etf-tray li, .etf-chips li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-strong); border-radius: 99px; padding: 3px 4px 3px 12px; font-size: 13px; background: var(--s2); }
+.etf-chips li.faint { border: 0; background: none; padding: 0; }
+.etf-tray li button, .etf-chips li button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 17px; line-height: 1; width: 24px; height: 24px; border-radius: 50%; }
+.etf-tray li button:hover, .etf-chips li button:hover { color: var(--loss); background: var(--loss-soft); }
+.etf-tray .btn { height: 38px; margin-left: auto; }
+/* detail */
+.etf-crumb { margin: 20px 0 10px; font-size: 14px; } .etf-crumb a { color: var(--muted); text-decoration: none; } .etf-crumb a:hover { color: var(--gold); }
+.etf-head { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
+.etf-head h1 { font: 300 clamp(26px, 5vw, 38px)/1.15 var(--serif); margin: 0 0 12px; max-width: 24ch; text-wrap: balance; }
+.etf-ids { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.etf-quote { text-align: right; display: grid; gap: 4px; justify-items: end; }
+.etf-price { font: 400 clamp(30px, 6vw, 42px)/1 var(--mono); }
+.etf-chg { font-size: 15px; } .etf-asof { font-size: 13px; }
+.etf-link { color: var(--gold); font-size: 14px; text-decoration: none; font-weight: 600; } .etf-link:hover { text-decoration: underline; }
+.etf-sec { min-width: 0; }
+.etf-ranges-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-b:disabled { opacity: .45; cursor: not-allowed; }
+.etf-chart { position: relative; width: 100%; min-width: 0; }
+.etf-chart.empty { padding: 40px 0; text-align: center; color: var(--faint); }
+.etf-chart-focus { position: relative; outline: none; border-radius: 10px; }
+.etf-chart-focus:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.etf-chart svg { display: block; max-width: 100%; touch-action: pan-y; }
+.etf-tip { position: absolute; top: 6px; transform: translateX(-50%); pointer-events: none; background: var(--pop-bg); color: #F9F8F5; border-radius: 10px; padding: 8px 11px; font-size: 12.5px; display: grid; gap: 3px; min-width: 130px; box-shadow: var(--lift); z-index: 3; }
+.etf-tip b { font-weight: 600; } .etf-tip span { display: flex; align-items: center; gap: 6px; } .etf-tip i { width: 9px; height: 9px; border-radius: 50%; flex: none; } .etf-tip em { margin-left: auto; font-style: normal; font-family: var(--mono); padding-left: 10px; }
+.etf-datatable { margin-top: 10px; font-size: 13.5px; } .etf-datatable summary { cursor: pointer; color: var(--muted); padding: 4px 0; } .etf-datatable .tw { margin: 8px 0 0; padding: 0; position: relative; }
+.etf-cap { font-size: 13px; margin: 10px 0 0; line-height: 1.5; }
+.etf-warn, .etf-info { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.5; }
+.etf-warn { background: var(--warn-soft); color: var(--text); } .etf-info { background: var(--info-soft); color: var(--text); }
+.etf-warn .ico, .etf-info .ico { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.etf-ret { width: 100%; border-collapse: collapse; font-size: 15px; }
+.etf-ret th, .etf-ret td { padding: 10px 6px; border-bottom: 1px solid var(--border); text-align: left; font-weight: 400; }
+.etf-ret thead th { font-size: 12.5px; color: var(--muted); font-weight: 600; } .etf-ret .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.etf-ret thead .num { font-family: var(--sans); }
+.etf-why { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.etf-h2 { font: 300 24px var(--serif); margin: 30px 0 4px; }
+.etf-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; } .etf-grid3 .card { margin-top: 14px; }
+.etf-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.etf-big { font: 400 32px/1.1 var(--mono); margin: 6px 0 10px; } .etf-big small { font: 400 14px var(--sans); color: var(--faint); }
+.etf-say { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--text); } .etf-small { font-size: 12.5px; margin: 8px 0 0; }
+.etf-mini { width: 100%; border-collapse: collapse; font-size: 15px; } .etf-mini th, .etf-mini td { padding: 6px 0; font-weight: 400; text-align: left; border-bottom: 1px solid var(--border); } .etf-mini .num { text-align: right; font-family: var(--mono); }
+.etf-bar { position: relative; height: 8px; border-radius: 99px; background: var(--s3); margin: 18px 6px 8px; } .etf-bar i { position: absolute; top: -5px; width: 4px; height: 18px; border-radius: 2px; background: var(--gold); transform: translateX(-50%); }
+.etf-bar-l { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 14px; } .etf-bar-l small { display: block; font: 400 12px var(--sans); color: var(--faint); }
+.etf-navrow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .etf-navrow b { display: block; font: 400 24px var(--mono); margin: 4px 0; } .etf-navrow small { color: var(--faint); font-size: 12.5px; } .etf-navrow .label { font-size: 12.5px; color: var(--muted); }
+.etf-facts { margin: 0; display: grid; gap: 0; } .etf-facts > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; } .etf-facts dt { color: var(--muted); } .etf-facts dt small { color: var(--faint); } .etf-facts dd { margin: 0; text-align: right; font-family: var(--mono); font-size: 13.5px; overflow-wrap: anywhere; } .etf-facts dd small { font-family: var(--sans); display: block; }
+.etf-na { border-style: dashed; } .etf-na p { margin: 0 0 8px; line-height: 1.6; }
+/* compare */
+.etf-picker { display: grid; gap: 12px; }
+.etf-hits { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.etf-hits li { border-bottom: 1px solid var(--border); } .etf-hits li:last-child { border: 0; }
+.etf-hits button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-align: left; padding: 10px 14px; border: 0; background: var(--s1); color: var(--text); cursor: pointer; font: inherit; font-size: 14px; }
+.etf-hits button:hover, .etf-hits button:focus-visible { background: var(--s2); outline: none; }
+.etf-hits .mono { font-size: 12px; grid-column: 1; } .etf-addl { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--gold); font-weight: 600; font-size: 13px; }
+.etf-nohit { padding: 12px 14px; }
+.etf-legend { list-style: none; margin: 12px 0 0; padding: 0; display: flex; gap: 8px 22px; flex-wrap: wrap; font-size: 14px; } .etf-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.etf-cmp thead th { white-space: normal; min-width: 140px; vertical-align: top; position: relative; padding-right: 30px; } .etf-cmp thead th small { display: block; font-weight: 400; color: var(--faint); font-size: 11.5px; margin-top: 2px; line-height: 1.3; } .etf-cmp thead a { color: var(--text); font-weight: 600; }
+.etf-cmp thead .etf-first { vertical-align: bottom; }
+.etf-x { position: absolute; top: 6px; right: 4px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 17px; width: 24px; height: 24px; border-radius: 50%; } .etf-x:hover { color: var(--loss); background: var(--loss-soft); }
+.etf-grp th { background: var(--s2) !important; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--gold) !important; position: static !important; }
+.etf-cmp tbody th.etf-first { font-size: 13.5px; color: var(--muted); }
+.etf-blanks { margin-top: 12px; font-size: 13.5px; color: var(--muted); } .etf-blanks summary { cursor: pointer; } .etf-blanks ul { padding-left: 18px; line-height: 1.7; }
+@media (max-width: 900px) { .etf-grid3, .etf-grid2 { grid-template-columns: 1fr; } .etf-quote { text-align: left; justify-items: start; } }
+@media (max-width: 640px) {
+  .etf-page .card { padding: 16px; }
+  .etf-tw { margin: 0; }
+  .etf-first { min-width: 150px; max-width: 170px; }
+  .etf-navrow { grid-template-columns: 1fr; }
+  .etf-tray .btn { margin-left: 0; }
+  .etf-tray-in { padding-right: 64px; }
+  .etf-head { gap: 14px; }
+  .etf-range input { width: 70px; }
+  .etf-colwrap { position: static; } .etf-tools { position: relative; } .etf-pop { left: 0; right: 0; width: auto; }
+  .etf-tray { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}

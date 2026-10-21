@@ -140,7 +140,7 @@ const bound = (v: string | null): number | null => {
 export function parseState(sp: URLSearchParams): ListState {
   const sort = sp.get("sort") || "";
   const s: ListState = {
-    ...DEFAULT_STATE,
+    ...DEFAULT_STATE, bounds: {},
     q: (sp.get("q") || "").slice(0, 60),
     category: (sp.get("category") || "").split(",").filter(Boolean).slice(0, 30),
     asset: (sp.get("asset") || "").split(",").filter(Boolean).slice(0, 10),
@@ -206,7 +206,7 @@ export function useTray() {
   }, []);
   const set = (next: string[]) => { memory = parseSymbols(next.join(",")); writeTray(memory); setTray(memory); };
   return {
-    tray, has: (s: string) => tray.includes(s), full: tray.length >= MAX_COMPARE,
+    tray, set, has: (s: string) => tray.includes(s), full: tray.length >= MAX_COMPARE,
     toggle: (s: string) => (tray.includes(s) ? set(tray.filter((x) => x !== s)) : tray.length < MAX_COMPARE ? set([...tray, s]) : undefined),
     remove: (s: string) => set(tray.filter((x) => x !== s)), clear: () => set([]),
   };
@@ -315,7 +315,7 @@ export function rangeReading(price: number | null, high: number | null, low: num
 /** Where the price sits between the low (0) and the high (100) of the range. */
 export const rangePosition = (price: number | null, high: number | null, low: number | null): number | null =>
   price == null || high == null || low == null || high <= low ? null : Math.max(0, Math.min(100, ((price - low) / (high - low)) * 100));
-export function premiumReading(price: number | null, nav: { value: number; date: string; premium: number | null } | null): string | null {
+export function premiumReading(nav: { value: number; date: string; premium: number | null } | null): string | null {
   if (!nav || nav.premium == null) return null;
   const p = nav.premium, a = nf(Math.abs(p), 2);
   return `On ${day(nav.date)} the exchange close was ${p === 0 ? "equal to" : `${a}% ${p > 0 ? "above" : "below"}`} the NAV (${rupee(nav.value, 4)}). ${p > 0 ? "A premium means buyers paid more on the exchange than the holdings were worth that day." : p < 0 ? "A discount means the exchange price was lower than the holdings were worth that day." : ""}`.trim();

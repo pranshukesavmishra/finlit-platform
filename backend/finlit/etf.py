@@ -827,6 +827,9 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
             s = search_score(q, words, "".join(words))
             if not s:
                 continue
+            qj = "".join(_words(q))
+            if len(qj) >= 5 and _dist(qj, r["symbol"].lower()) <= _allow(len(qj)):
+                s += 50                                    # the run-together query is the symbol, give or take a typo: put that ETF first
             scored[r["symbol"]] = s
         views.append(r)
     pool = views
@@ -855,7 +858,7 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
     miss = [r for r in pool if val(r) is None]
     have.sort(key=(lambda r: str(val(r)).lower()) if col == "display_name" else val, reverse=desc)
     ordered = have + miss
-    if q and sort == "turnover" and not order:
+    if q and sort == "turnover":
         ordered.sort(key=lambda r: -scored.get(r["symbol"], 0))            # a search ranks by how well the words match; ties keep the most-traded first
     page = ordered[offset:offset + limit]
     facets: Dict[str, int] = {}
