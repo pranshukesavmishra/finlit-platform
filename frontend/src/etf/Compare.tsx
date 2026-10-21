@@ -13,25 +13,25 @@ import { EtfChart } from "./EtfChart";
 const COLORS = ["var(--k1)", "var(--k2)", "var(--k3)", "var(--k7)"];
 const DASHES = [undefined, "7 4", "2 3", "10 3 2 3"];
 
-type Row = { label: string; get: (i: EtfItem) => string | number | null; text: (i: EtfItem) => string; why?: (i: EtfItem) => string; tone?: boolean; term?: () => React.ReactNode };
+type Row = { label: string; get: (i: EtfItem) => string | number | null; text: (i: EtfItem) => string; why?: (i: EtfItem) => string; tone?: boolean; sub?: (i: EtfItem) => string | null; term?: () => React.ReactNode };
 const colRow = (key: string, label?: string): Row => {
   const c = COL_BY[key];
-  return { label: label ?? c.label, get: (i) => c.get(i), text: (i) => c.text(i), why: (i) => i.why?.[c.why ?? ""] ?? "Not enough price history", tone: c.num && key !== "price" && key !== "turnover" && !key.startsWith("mdd") && key !== "vol1y" && key !== "from52" };
+  return { label: label ?? c.label, get: (i) => c.get(i), text: (i) => c.text(i), why: (i) => i.why?.[c.why ?? ""] ?? "Not enough price history", tone: c.num && key !== "price" && key !== "turnover" };
 };
+/** Exactly three return rows: 1 day, 1 year, 5 years. The 5-year row is the total change; the yearly rate is a small line under it. */
 const GROUPS: { title: string; rows: Row[] }[] = [
   { title: "About", rows: [
     { label: "Category", get: (i) => i.categoryLabel, text: (i) => i.categoryLabel ?? "—", why: () => "The fund's name does not say clearly what it follows" },
     { label: "Fund house", get: (i) => i.fundHouse, text: (i) => i.fundHouse ?? "—", why: () => "Not found in AMFI's register" },
     { label: "ISIN", get: (i) => i.isin, text: (i) => i.isin },
     { label: "Price history in our data from", get: (i) => i.firstDate, text: (i) => day(i.firstDate) }] },
-  { title: "Price", rows: [colRow("price", "Last close"), colRow("change", "1-day change"), { label: "Close date", get: (i) => i.priceDate, text: (i) => day(i.priceDate) }] },
-  { title: "Price return (dividends not included)", rows: [colRow("ret1m", "1 month"), colRow("ret6m", "6 months"), colRow("ret1y", "1 year"),
-    { label: "3 years (total)", get: (i) => i.ret3y, text: (i) => pct(i.ret3y), why: (i) => i.why?.ret_3y ?? "Not enough price history", tone: true },
-    colRow("cagr3y", "3 years (a year)"),
-    { label: "5 years (total)", get: (i) => i.ret5y, text: (i) => pct(i.ret5y), why: (i) => i.why?.ret_5y ?? "Not enough price history", tone: true },
-    colRow("cagr5y", "5 years (a year)")] },
-  { title: "Risk", rows: [colRow("vol1y", "Volatility (1 year)"), colRow("mdd1y", "Largest fall (1 year)"), colRow("mdd3y", "Largest fall (3 years)"), colRow("mdd5y", "Largest fall (5 years)"),
-    { label: "52-week low", get: (i) => i.low52, text: (i) => rupee(i.low52) }, { label: "52-week high", get: (i) => i.high52, text: (i) => rupee(i.high52) }, colRow("from52", "Below 52-week high")] },
+  { title: "Price", rows: [colRow("price", "Last close"),
+    { label: "Previous close", get: (i) => i.previousClose, text: (i) => rupee(i.previousClose) }, { label: "Close date", get: (i) => i.priceDate, text: (i) => day(i.priceDate) }] },
+  { title: "Price return (dividends not included)", rows: [
+    { label: "1 day", get: (i) => i.changePct, text: (i) => move(i.changePct), why: (i) => i.why?.change ?? "No previous close to compare with", tone: true },
+    colRow("ret1y", "1 year"),
+    { label: "5 years (total)", get: (i) => i.ret5y, text: (i) => pct(i.ret5y), why: (i) => i.why?.ret_5y ?? "Not enough price history", tone: true,
+      sub: (i) => (i.ret5y != null && i.cagr5y != null ? `about ${pct(i.cagr5y)} a year` : null) }] },
   { title: "NAV and trading", rows: [
     { label: "NAV (AMFI)", get: (i) => i.nav, text: (i) => rupee(i.nav, 4), why: () => "No NAV found in AMFI's file" },
     { label: "NAV date", get: (i) => i.navDate, text: (i) => day(i.navDate), why: () => "No NAV found in AMFI's file" },
@@ -40,7 +40,7 @@ const GROUPS: { title: string; rows: Row[] }[] = [
 ];
 
 export function EtfComparePage() {
-  useDocTitle("Compare ETFs", "Put two to four ETFs side by side: price return, risk, NAV and a chart of how each moved. Information only.");
+  useDocTitle("Compare ETFs", "Put two to four ETFs side by side: 1-day, 1-year and 5-year price return, NAV and a chart of how each moved. Information only.");
   const [sp, setSp] = useSearchParams();
   const tray = useTray();
   const urlSyms = useMemo(() => parseSymbols(sp.get("symbols")), [sp]);
@@ -101,9 +101,9 @@ export function EtfComparePage() {
                     <tbody key={g.title}>
                       <tr className="etf-grp"><th colSpan={items.length + 1} scope="colgroup">{g.title}</th></tr>
                       {g.rows.map((r) => (
-                        <tr key={r.label}><th scope="row" className="etf-first">{r.label}{r.label.startsWith("Volatility") && <GlossInfo name="Volatility" fallback={COL_BY.vol1y.help} />}{r.label.startsWith("Largest fall (1") && <GlossInfo name="Drawdown" fallback={COL_BY.mdd1y.help} />}{r.label.startsWith("Premium") && <GlossInfo name="Premium and discount to NAV" fallback="Exchange close against the NAV of the same day." />}</th>
+                        <tr key={r.label}><th scope="row" className="etf-first">{r.label}{r.label.startsWith("5 years") && <GlossInfo name="Price return" fallback={COL_BY.ret5y.help} />}{r.label.startsWith("Premium") && <GlossInfo name="Premium and discount to NAV" fallback="Exchange close against the NAV of the same day." />}</th>
                           {items.map((i) => { const v = r.get(i); return (
-                            <td key={i.symbol} className="num">{v == null ? <Blank why={r.why ? r.why(i) : "Not available"} /> : r.tone ? <Tone v={Number(v)}>{r.text(i)}</Tone> : r.text(i)}</td>); })}</tr>))}
+                            <td key={i.symbol} className="num">{v == null ? <Blank why={r.why ? r.why(i) : "Not available"} /> : r.tone ? <Tone v={Number(v)}>{r.text(i)}</Tone> : r.text(i)}{v != null && r.sub?.(i) && <small className="etf-cell-sub">{r.sub(i)}</small>}</td>); })}</tr>))}
                     </tbody>))}
                 </table>
               </div>

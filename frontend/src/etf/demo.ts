@@ -22,7 +22,7 @@ export async function demoGet<T>(path: string): Promise<T> {
     const assets = (p.get("asset") ?? "").split(",").filter(Boolean);
     if (assets.length) rows = rows.filter((i) => assets.includes(i.assetClass ?? ""));
     let excluded = 0;
-    for (const k of ["ret1y", "cagr3y", "cagr5y", "vol1y", "mdd3y"] as const) {
+    for (const k of ["ret1y", "ret5y"] as const) {
       const lo = p.get(k + "Min"), hi = p.get(k + "Max");
       if (lo === null && hi === null) continue;
       rows = rows.filter((i) => { const v = i[k]; if (v == null) { excluded++; return false; } return (lo === null || lo === "" || v >= Number(lo)) && (hi === null || hi === "" || v <= Number(hi)); });
@@ -44,9 +44,21 @@ export async function demoGet<T>(path: string): Promise<T> {
     const out: EtfCompare = { symbols: syms, range, start: start ? String(start) : null, items: syms.map((s) => d.items.find((i) => i.symbol === s)!), series: start ? rebase(lines, String(start)) : {}, notes: [], ...d.meta };
     return out as T;
   }
+  const sub = url.pathname.match(/^\/api\/etf\/([A-Za-z0-9&_.-]+)\/(facts|portfolio)$/);
+  if (sub) {
+    const why = "Fund-house disclosures are not part of the offline demo";
+    return (sub[2] === "facts" ? { symbol: sub[1], isin: "", unavailable: why, facts: {}, disclaimer: d.meta.disclaimer } : { symbol: sub[1], isin: "", unavailable: why, holdings: [], exited: [], summary: null, asOf: null }) as T;
+  }
   const m = url.pathname.match(/^\/api\/etf\/([A-Za-z0-9&_.-]+)$/);
   const hit = m && d.details[m[1].toUpperCase()];
   if (!hit) throw Object.assign(new Error("Not in the demo"), { status: 404, body: {} });
   const range = (p.get("range") ?? "1Y").toUpperCase() as RangeKey;
-  return { ...hit.detail, series: hit.series[range] ?? hit.series["1Y"] } as T;
+  const dt = hit.detail;
+  const headline = dt.headline ?? (["1d", "1y", "5y"] as const).map((key) => {      // recorded before the returns block existed: rebuilt from the same recorded figures
+    const value = key === "1d" ? dt.changePct : key === "1y" ? dt.ret1y : dt.ret5y;
+    return { key, label: key === "1d" ? "1 day" : key === "1y" ? "1 year" : "5 years", value, annualised: key === "5y" ? dt.cagr5y : null, from: null, to: null,
+      why: value == null ? (dt.why?.[key === "1d" ? "change" : `ret_${key}`] ?? "Not enough price history") : null,
+      basis: key === "1d" ? "Change from the previous close" : "Price change, dividends not included" + (key === "5y" ? " (total over the five years, not per year)" : "") };
+  });
+  return { ...dt, headline, series: hit.series[range] ?? hit.series["1Y"] } as T;
 }

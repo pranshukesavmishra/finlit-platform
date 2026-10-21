@@ -6,17 +6,19 @@ import { apiGet, type ApiError } from "./api";
 import { DEMO } from "./demo";
 import { MINUS, dateIN, nf } from "./format";
 import { score, tokens } from "./metricSearch";
+import type { PortfolioResult } from "../holdings/types";
 
 export const DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns.";
 export const MIRROR_LABEL = "NAV history: third-party mirror of AMFI data (api.mfapi.in)";
 
-export type Facts = { dataDate: string | null; updatedAt: string | null; source: string; disclaimer: string };
+export type Facts = { dataDate: string | null; updatedAt: string | null; source: string; disclaimer: string; excludedAmcs?: string[] };
 export type FundRow = {
   code: number; name: string; amc: string; category: string; plan: string; option: string; optionClass: "Growth" | "IDCW" | "Other"; nav: number | null; navDate: string | null;
-  change: number | null; active: boolean; r1m: number | null; r6m: number | null; r1y: number | null; r3y: number | null; r5y: number | null;
-  vol1y: number | null; vol3y: number | null; mdd: number | null; noReturns: "stopped" | "idcw" | "unstated" | "no_history" | "short" | null;
+  change: number | null; changeSince?: string | null; active: boolean; r1y: number | null; r5y: number | null; retDate?: string | null;
+  noReturns: "stopped" | "idcw" | "unstated" | "no_history" | "short" | null; rank?: number;
 };
 export type FundList = Facts & { total: number; page: number; size: number; pages: number; items: FundRow[] };
+export type HotList = Facts & { basis: string | null; items: FundRow[] };
 export type FilterCategory = { name: string; group: string; type: string; active: number; total: number };
 export type FundFilters = Facts & {
   categories: FilterCategory[]; amcs: { name: string; active: number; total: number }[]; plans: { name: string; active: number }[]; options: { name: string; active: number }[];
@@ -34,14 +36,17 @@ export type HistoryInfo = { source: "amfi" | "mirror" | null; from: string | nul
 export type FundDetail = Facts & {
   code: number; name: string; isin: string | null; isinReinvest: string | null; amc: string; category: string; categoryGroup: string; schemeType: string; plan: string;
   optionClass: FundRow["optionClass"]; option: string; active: boolean; nav: number | null; navDate: string | null; prevNav: number | null; prevDate: string | null; change: Change | null;
-  returns: Record<"1m" | "6m" | "1y" | "3y" | "5y", Ret>; risk: Risk; returnsNote: string | null; series: Partial<Record<RangeKey, Points>>; history: HistoryInfo;
+  returns: Record<"1m" | "6m" | "1y" | "3y" | "5y", Ret>; retDate?: string | null; risk: Risk; returnsNote: string | null; series: Partial<Record<RangeKey, Points>>; history: HistoryInfo;
   family: { code: number; name: string; plan: string; optionClass: string; option: string; nav: number | null; navDate: string | null; active: boolean }[];
-  notAvailable: { items: string[]; why: string };
+  notAvailable?: { items: string[]; why: string };
 };
 export type CompareFund = {
   code: number; name: string; amc: string; category: string; plan: string; option: string; optionClass: string; nav: number | null; navDate: string | null; change: Change | null;
-  active: boolean; returns: FundDetail["returns"]; risk: Risk; history: HistoryInfo;
+  active: boolean; returns: FundDetail["returns"]; retDate?: string | null; risk: Risk; history: HistoryInfo;
 };
+/** One fund fact: a value with its date and source, or the reason there is none. */
+export type FactVal = { value: string | number | string[] | null; asOf?: string | null; source?: string; unit?: string } | { unavailable: string };
+export type FundFacts = { code: number; facts: Record<string, FactVal>; order: string[] };
 export type FundCompare = Facts & {
   funds: CompareFund[]; chart: { from: string; range: RangeKey; series: ({ code: number } & Points)[] } | null; chartNote: string | null; notAvailable: FundDetail["notAvailable"];
 };
@@ -82,8 +87,8 @@ export const categoryShort = (c: string) => (c.includes(" - ") ? c.split(" - ").
 
 // ------------------------------------------------------------------------------------------------ list columns
 
-export type SortKey = "name" | "amc" | "category" | "nav" | "navDate" | "change" | "r1m" | "r6m" | "r1y" | "r3y" | "r5y" | "vol1y" | "vol3y" | "mdd";
-export type ColId = "amc" | "category" | "plan" | "option" | "nav" | "navDate" | "change" | "r1m" | "r6m" | "r1y" | "r3y" | "r5y" | "vol1y" | "vol3y" | "mdd";
+export type SortKey = "name" | "amc" | "category" | "nav" | "navDate" | "change" | "r1y" | "r5y";
+export type ColId = "amc" | "category" | "plan" | "option" | "nav" | "navDate" | "change" | "r1y" | "r5y";
 export type ColDef = { id: ColId; label: string; hint: string; sort: SortKey | null; num: boolean; term?: string };
 /** The name column is always shown (and is the link); these can be switched on and off. */
 export const COLUMNS: ColDef[] = [
@@ -93,18 +98,12 @@ export const COLUMNS: ColDef[] = [
   { id: "option", label: "Option", hint: "Growth or IDCW (payout)", sort: null, num: false },
   { id: "nav", label: "NAV", hint: "Net asset value of one unit, latest", sort: "nav", num: true },
   { id: "navDate", label: "NAV date", hint: "The day the NAV is for", sort: "navDate", num: true },
-  { id: "change", label: "1D", hint: "Change against the previous NAV", sort: "change", num: true },
-  { id: "r1m", label: "1M", hint: "Change in NAV over 1 month", sort: "r1m", num: true },
-  { id: "r6m", label: "6M", hint: "Change in NAV over 6 months", sort: "r6m", num: true },
-  { id: "r1y", label: "1Y", hint: "Change in NAV over 1 year", sort: "r1y", num: true },
-  { id: "r3y", label: "3Y p.a.", hint: "Yearly rate (CAGR) over 3 years", sort: "r3y", num: true },
-  { id: "r5y", label: "5Y p.a.", hint: "Yearly rate (CAGR) over 5 years", sort: "r5y", num: true },
-  { id: "vol1y", label: "Vol 1Y", hint: "Volatility over 1 year, yearly figure", sort: "vol1y", num: true },
-  { id: "vol3y", label: "Vol 3Y", hint: "Volatility over 3 years, yearly figure", sort: "vol3y", num: true },
-  { id: "mdd", label: "Max fall", hint: "Largest fall from a high to a later low in the history on file", sort: "mdd", num: true },
+  { id: "change", label: "1 day", hint: "Change of the NAV against the previous NAV (its date is shown on the scheme's page)", sort: "change", num: true },
+  { id: "r1y", label: "1 year", hint: "Total change in NAV over 1 year (not per year)", sort: "r1y", num: true },
+  { id: "r5y", label: "5 year, per year (CAGR)", hint: "Yearly rate (CAGR) over 5 years: the rate that, compounded for five years, gives the total change", sort: "r5y", num: true },
 ];
-export const DEFAULT_COLS: ColId[] = ["amc", "category", "nav", "r1y", "r3y", "r5y"];
-const COLS_KEY = "finlit-mf-cols-v1";
+export const DEFAULT_COLS: ColId[] = ["amc", "category", "nav", "change", "r1y", "r5y"];
+const COLS_KEY = "finlit-mf-cols-v2";
 const ALL_IDS = new Set<string>(COLUMNS.map((c) => c.id));
 
 /** Saved column choice, cleaned of anything unknown; the default when nothing valid is saved (storage can be blocked). */
@@ -121,12 +120,12 @@ export function writeCols(cols: ColId[]) { try { localStorage.setItem(COLS_KEY, 
 
 export type ListQuery = {
   q: string; category: string; amc: string; plan: string; option: string; stopped: boolean; sort: SortKey | ""; dir: "asc" | "desc"; page: number; size: number;
-  min1y: string; max1y: string; min3y: string; max3y: string; min5y: string; max5y: string;
+  min1y: string; max1y: string; min5y: string; max5y: string; view: "" | "ready";
 };
 export const SIZES = [25, 50, 100];
-export const EMPTY_QUERY: ListQuery = { q: "", category: "", amc: "", plan: "", option: "", stopped: false, sort: "", dir: "asc", page: 1, size: 50, min1y: "", max1y: "", min3y: "", max3y: "", min5y: "", max5y: "" };
+export const EMPTY_QUERY: ListQuery = { q: "", category: "", amc: "", plan: "", option: "", stopped: false, sort: "", dir: "asc", page: 1, size: 50, min1y: "", max1y: "", min5y: "", max5y: "", view: "" };
 const SORT_KEYS = new Set<string>(COLUMNS.flatMap((c) => (c.sort ? [c.sort] : [])).concat("name"));
-const RANGE_FIELDS = ["min1y", "max1y", "min3y", "max3y", "min5y", "max5y"] as const;
+const RANGE_FIELDS = ["min1y", "max1y", "min5y", "max5y"] as const;
 /** A number typed in a range box, or "" when it is not one (so a stray letter never reaches the server). */
 export const cleanNum = (s: string) => { const t = s.trim().replace(/,/g, ""); return t !== "" && Number.isFinite(Number(t)) && Math.abs(Number(t)) <= 100000 ? String(Number(t)) : ""; };
 
@@ -137,7 +136,7 @@ export function parseQuery(sp: URLSearchParams): ListQuery {
     ...EMPTY_QUERY, q: get("q").slice(0, 80), category: get("category"), amc: get("amc"), plan: ["Direct", "Regular", "Unspecified"].includes(get("plan")) ? get("plan") : "",
     option: ["Growth", "IDCW", "Other"].includes(get("option")) ? get("option") : "", stopped: get("stopped") === "1",
     sort: SORT_KEYS.has(get("sort")) ? (get("sort") as SortKey) : "", dir: get("dir") === "desc" ? "desc" : "asc",
-    page: Number.isInteger(page) && page >= 1 && page <= 2000 ? page : 1, size: SIZES.includes(size) ? size : 50,
+    page: Number.isInteger(page) && page >= 1 && page <= 2000 ? page : 1, size: SIZES.includes(size) ? size : 50, view: get("view") === "ready" ? "ready" : "",
   };
   for (const f of RANGE_FIELDS) q[f] = cleanNum(get(f));
   return q;
@@ -147,6 +146,7 @@ export function queryToParams(q: ListQuery): URLSearchParams {
   const p = new URLSearchParams();
   for (const k of ["q", "category", "amc", "plan", "option", "sort", ...RANGE_FIELDS] as const) if (q[k]) p.set(k, q[k]);
   if (q.stopped) p.set("stopped", "1");
+  if (q.view) p.set("view", q.view);
   if (q.sort && q.dir === "desc") p.set("dir", "desc");
   if (q.page > 1) p.set("page", String(q.page));
   if (q.size !== 50) p.set("size", String(q.size));
@@ -256,6 +256,9 @@ async function mfGet<T>(path: string): Promise<T> {
 const STALE = 300_000;
 export const useFundList = (q: ListQuery) =>
   useQuery<FundList, ApiError>({ queryKey: ["mf", "list", listPath(q)], queryFn: () => mfGet<FundList>(listPath(q)), staleTime: STALE, placeholderData: (prev) => prev });
+export const useHotList = (enabled: boolean) => useQuery<HotList, ApiError>({ queryKey: ["mf", "hot"], queryFn: () => mfGet<HotList>("/api/mf/hot"), staleTime: STALE, enabled });
+export const useFundFacts = (code: number) => useQuery<FundFacts, ApiError>({ queryKey: ["mf", "facts", code], queryFn: () => mfGet<FundFacts>(`/api/mf/${code}/facts`), staleTime: 3_600_000, retry: 1 });
+export const useFundPortfolio = (code: number) => useQuery<PortfolioResult, ApiError>({ queryKey: ["mf", "portfolio", code], queryFn: () => mfGet<PortfolioResult>(`/api/mf/${code}/portfolio`), staleTime: 3_600_000, retry: 1 });
 export const useFundFilters = () => useQuery<FundFilters, ApiError>({ queryKey: ["mf", "filters"], queryFn: () => mfGet<FundFilters>("/api/mf/filters"), staleTime: 3_600_000 });
 export const useFundDetail = (code: number) =>
   useQuery<FundDetail, ApiError>({ queryKey: ["mf", "detail", code], queryFn: () => mfGet<FundDetail>(`/api/mf/${code}`), staleTime: STALE, retry: (n, e) => e.status >= 500 && n < 2 });
@@ -264,3 +267,45 @@ export const useFundCompare = (codes: number[], range: RangeKey) =>
     queryKey: ["mf", "compare", codes.join(","), range], queryFn: () => mfGet<FundCompare>(`/api/mf/compare?ids=${codes.join(",")}&range=${range}`),
     enabled: codes.length >= 2, staleTime: STALE, placeholderData: (prev) => prev, retry: (n, e) => e.status >= 500 && n < 2,
   });
+
+// ------------------------------------------------------------------------------------------------ the three return figures and the fund facts
+
+/** The only return columns shown for a scheme: 1 day, 1 year (total change), 5 year (per year, CAGR). Anything else lives in the Risk area of the scheme's page. */
+export const RETURN_LABELS = {
+  d1: "1 day", y1: "1 year", y5: "5 year, per year (CAGR)",
+} as const;
+export const RETURN_HOW = {
+  d1: "Change of the latest NAV against the NAV before it.",
+  y1: "Total change in NAV over one year. Not a yearly rate.",
+  y5: "Yearly rate (CAGR) over five years: (latest NAV ÷ NAV five years ago) ^ (365 ÷ days between the two NAVs) − 1. Not the total change over five years.",
+} as const;
+
+export type RetTile = { key: keyof typeof RETURN_LABELS; label: string; value: number | null; note: string; how: string };
+/** The three tiles of the returns block with the reason each missing figure is missing. `note` is the date line under the figure, or the reason for a dash. */
+export function retTiles(d: Pick<FundDetail, "change" | "returns" | "retDate" | "navDate" | "returnsNote" | "optionClass" | "active">): RetTile[] {
+  const why = (r: Ret) => r.why || d.returnsNote || "No figure.";
+  const day: RetTile = d.change
+    ? { key: "d1", label: RETURN_LABELS.d1, value: d.change.pct, note: `NAV of ${d.navDate ? dateIN(d.navDate) : "latest"} against NAV of ${d.change.since ? dateIN(d.change.since) : "the previous NAV"}`, how: RETURN_HOW.d1 }
+    : { key: "d1", label: RETURN_LABELS.d1, value: null, note: d.active ? "The previous NAV is not on file yet." : "This scheme has stopped publishing NAVs.", how: RETURN_HOW.d1 };
+  const tile = (key: "y1" | "y5", r: Ret): RetTile => ({
+    key, label: RETURN_LABELS[key], value: r.value, how: RETURN_HOW[key],
+    note: r.value == null ? why(r) : r.from ? `NAV of ${dateIN(r.from)} to ${d.navDate ? dateIN(d.navDate) : "latest"}` : `Worked out from AMFI history${d.retDate ? `, as of ${dateIN(d.retDate)}` : ""}`,
+  });
+  return [day, tile("y1", d.returns["1y"]), tile("y5", d.returns["5y"])];
+}
+
+export const FACT_LABELS: Record<string, string> = {
+  aum: "Fund size (AUM)", terRegular: "Expense ratio, Regular plan", terDirect: "Expense ratio, Direct plan", exitLoad: "Exit load", benchmark: "Benchmark index",
+  managers: "Fund managers", riskometer: "Risk-o-meter", launchDate: "Launch date", minInvestment: "Minimum investment", category: "Category (SEBI/AMFI)", amc: "Fund house",
+};
+/** A fact's value as text; "" when it has none. */
+export function factValueText(f: FactVal): string {
+  if ("unavailable" in f) return "";
+  const v = f.value;
+  if (v == null || (Array.isArray(v) && !v.length)) return "";
+  if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "number") return nf(v, Math.abs(v) >= 100 ? 0 : 2) + (f.unit ? ` ${f.unit}` : "");
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? dateIN(v) : v;
+}
+/** Order of the fact rows: the server's order, then any extra key. */
+export const factKeys = (f: FundFacts) => [...f.order, ...Object.keys(f.facts).filter((k) => !f.order.includes(k))].filter((k) => k in f.facts);

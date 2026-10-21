@@ -11,7 +11,7 @@ import { TERMS, norm } from "./glossary";
 const item = (over: Partial<EtfItem> = {}): EtfItem => ({
   symbol: "X", name: "X ETF", isin: "INF000", fundHouse: null, category: null, categoryLabel: null, assetClass: null, price: 100, previousClose: 99, changePct: 1, priceDate: "2026-10-21",
   volume: 1, avgTurnover: 5e7, ret1m: 1, ret6m: 2, ret1y: 3, ret3y: 4, ret5y: 5, cagr3y: 6, cagr5y: 7, vol1y: 8, mdd1y: -9, mdd3y: -10, mdd5y: -11, high52: 120, low52: 80, from52: -16.67,
-  rangeFrom: "2025-10-21", firstDate: "2016-10-24", points: 2000, breakDate: null, nav: null, navDate: null, premium: null, premiumWide: false, why: {}, ...over,
+  rangeFrom: "2025-10-21", firstDate: "2016-10-24", points: 2000, breakDate: null, nav: null, navDate: null, premium: null, premiumWide: false, why: {}, rank: 1, hot: true, ...over,
 });
 
 describe("formatting", () => {
@@ -44,13 +44,13 @@ describe("list state in the address", () => {
     expect(parseState(new URLSearchParams(""))).toEqual(DEFAULT_STATE);
   });
   it("round-trips everything that was chosen", () => {
-    const s = { ...DEFAULT_STATE, q: "nifty bank", category: ["bank", "it"], asset: ["equity"], sort: "ret1y", order: "asc" as const, bounds: { ret1y: [5, null], vol1y: [null, 20] } as never, offset: 40 };
+    const s = { ...DEFAULT_STATE, q: "nifty bank", category: ["bank", "it"], asset: ["equity"], sort: "ret1y", order: "asc" as const, bounds: { ret1y: [5, null], ret5y: [null, 20] } as never, offset: 40 };
     const back = parseState(new URLSearchParams(toParams(s).toString()));
     expect(back).toEqual(s);
     expect(activeFilters(s)).toBe(5);
   });
   it("ignores what it does not know and unusable numbers", () => {
-    const s = parseState(new URLSearchParams("sort=drop%20table&order=sideways&ret1yMin=abc&ret1yMax=NaN&cagr3yMin=1e9&offset=-5&q=" + "x".repeat(200)));
+    const s = parseState(new URLSearchParams("sort=drop%20table&order=sideways&ret1yMin=abc&ret1yMax=NaN&ret5yMin=1e9&offset=-5&q=" + "x".repeat(200)));
     expect(s.sort).toBe("turnover"); expect(s.order).toBe("desc"); expect(s.bounds).toEqual({}); expect(s.offset).toBe(0); expect(s.q.length).toBe(60);
     expect(parseState(new URLSearchParams("offset=99999")).offset).toBe(5000);
     expect(parseState(new URLSearchParams("ret1yMin=0")).bounds.ret1y).toEqual([0, null]);   // zero is a value, not "empty"
@@ -64,7 +64,7 @@ describe("list state in the address", () => {
     expect([a.sort, a.order]).toEqual(["ret1y", "desc"]);
     expect(nextSort(a, "ret1y").order).toBe("asc");
     expect(nextSort(a, "name")).toMatchObject({ sort: "name", order: "asc", offset: 0 });
-    expect(nextSort({ ...a, offset: 80 }, "vol1y").offset).toBe(0);
+    expect(nextSort({ ...a, offset: 80 }, "ret5y").offset).toBe(0);
   });
   it("the compare tray keeps 2 to 4 clean, distinct symbols", () => {
     expect(parseSymbols("niftybees, GOLDBEES,niftybees,bad symbol,A,B,C")).toEqual(["NIFTYBEES", "GOLDBEES", "A", "B"]);
@@ -86,16 +86,19 @@ describe("columns match the server", () => {
     for (const f of FILTERS) expect(banned).not.toContain(f.key);
   });
   it("the default columns are the ones meant to show", () => {
-    expect(DEFAULT_COLS).toEqual(["category", "price", "change", "ret1y", "cagr3y", "cagr5y", "vol1y"]);
+    expect(DEFAULT_COLS).toEqual(["category", "price", "change", "ret1y", "ret5y"]);
+    expect(COLUMNS.filter((c) => /^(change|ret)/.test(c.key)).map((c) => c.key)).toEqual(["change", "ret1y", "ret5y"]);       // exactly three return columns
+    expect(COL_BY.ret5y.label).toMatch(/total/);                                                                              // 5Y is the total change, and says so
     expect(new Set(COLUMNS.map((c) => c.key)).size).toBe(COLUMNS.length);
   });
   it("the disclaimer text equals the server's", () => {
     expect(py).toContain('DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns."');
   });
   it("a blank always has a reason", () => {
-    const blank = item({ cagr5y: null, why: { cagr_5y: "Listed less than 5 years" }, ret1m: null });
-    expect(whyBlank(blank, COL_BY.cagr5y)).toBe("Listed less than 5 years");
-    expect(whyBlank(blank, COL_BY.ret1m)).toBe("Not enough price history");
+    const blank = item({ ret5y: null, why: { ret_5y: "Listed less than 5 years", change: "Price jumped on 21 Oct 2026" }, ret1y: null, changePct: null });
+    expect(whyBlank(blank, COL_BY.ret5y)).toBe("Listed less than 5 years");
+    expect(whyBlank(blank, COL_BY.change)).toBe("Price jumped on 21 Oct 2026");
+    expect(whyBlank(blank, COL_BY.ret1y)).toBe("Not enough price history");
     expect(whyBlank(item({ nav: null }), COL_BY.premium)).toMatch(/AMFI/);
     expect(whyBlank(item(), COL_BY.category)).toMatch(/name/);
   });

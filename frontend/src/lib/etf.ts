@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { apiGet, type ApiError } from "./api";
 import { DEMO } from "./demo";
 import { MINUS, dateIN, nf } from "./format";
+import type { PortfolioResult } from "../holdings/types";
 
 export const DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns.";
 export const NOT_PUBLISHED = "Not published in our price data source";
@@ -16,11 +17,11 @@ export type EtfItem = {
   ret1m: number | null; ret6m: number | null; ret1y: number | null; ret3y: number | null; ret5y: number | null; cagr3y: number | null; cagr5y: number | null;
   vol1y: number | null; mdd1y: number | null; mdd3y: number | null; mdd5y: number | null; high52: number | null; low52: number | null; from52: number | null;
   rangeFrom: string | null; firstDate: string | null; points: number; breakDate: string | null;
-  nav: number | null; navDate: string | null; premium: number | null; premiumWide: boolean; why: Why;
+  nav: number | null; navDate: string | null; premium: number | null; premiumWide: boolean; why: Why; rank: number | null; hot: boolean;
 };
 export type Facet = { key: string; label: string; group: string; count: number };
 export type EtfList = {
-  items: EtfItem[]; total: number; universe: number; offset: number; limit: number; excluded: number; categories: Facet[]; groups: { key: string; label: string; count: number }[];
+  items: EtfItem[]; total: number; universe: number; hotCount?: number; offset: number; limit: number; excluded: number; categories: Facet[]; groups: { key: string; label: string; count: number }[];
   asOf: string | null; updatedAt: string | null; source: string; disclaimer: string;
 };
 export const RANGES = ["1M", "6M", "1Y", "3Y", "5Y", "MAX"] as const;
@@ -29,7 +30,14 @@ export const RANGE_LABEL: Record<RangeKey, string> = { "1M": "1M", "6M": "6M", "
 export type Point = [string, number];
 export type SeriesOut = { range: RangeKey; available: boolean; why?: string; grain: "daily" | "weekly"; from?: string; to?: string; points: Point[] };
 export type Fact = { label: string; value: string | number; source?: string; note?: string; unit?: string };
+/** The three figures every page leads with. `value` is a percent; `from`/`to` are the two closes it was worked out from (absent when the chart history is not on hand). */
+export type HeadlineKey = "1d" | "1y" | "5y";
+export type Headline = {
+  key: HeadlineKey; label: string; value: number | null; annualised: number | null; why: string | null; basis: string;
+  from: { date: string; close: number } | null; to: { date: string; close: number } | null;
+};
 export type EtfDetail = Omit<EtfItem, "nav"> & {
+  headline: Headline[];
   returns: { key: string; label: string; price: number | null; annualised: number | null; why: string | null }[];
   risk: {
     vol1y: { value: number | null; why: string | null; days: number | null };
@@ -40,6 +48,9 @@ export type EtfDetail = Omit<EtfItem, "nav"> & {
   facts: Fact[]; unavailable: string[]; unavailableWhy: string; series: SeriesOut; ranges: Record<RangeKey, { available: boolean; why: string | null }>;
   breakNote: string | null; priceNote: string | null; asOf: string | null; updatedAt: string | null; source: string; disclaimer: string;
 };
+/** One fund-house fact: a value with its date and source, or the reason it is missing. */
+export type FactCell = { value?: string | number | string[] | null; asOf?: string | null; source?: string | null; unavailable?: string | null };
+export type EtfFacts = { symbol: string; isin: string; unavailable: string | null; facts: Record<string, FactCell>; disclaimer: string };
 export type EtfCompare = {
   symbols: string[]; range: RangeKey; start: string | null; items: EtfItem[]; series: Record<string, Point[]>; notes: string[];
   asOf: string | null; updatedAt: string | null; source: string; disclaimer: string;
@@ -66,26 +77,19 @@ export function stamp(iso: string | null | undefined): string {
 export const tone = (v: number | null | undefined): "up" | "down" | "flat" => (v == null || v === 0 ? "flat" : v > 0 ? "up" : "down");
 
 // ------------------------------------------------------------------------------------------------ columns of the list
-export type ColKey = "category" | "price" | "change" | "ret1m" | "ret6m" | "ret1y" | "cagr3y" | "cagr5y" | "vol1y" | "mdd1y" | "mdd3y" | "mdd5y" | "from52" | "turnover" | "premium" | "fundHouse";
+export type ColKey = "category" | "price" | "change" | "ret1y" | "ret5y" | "turnover" | "premium" | "fundHouse";
 export type Col = {
   key: ColKey; label: string; short: string; sort: string | null; get: (i: EtfItem) => number | string | null; text: (i: EtfItem) => string;
   why?: string; term?: GlossName; def: boolean; help: string; num: boolean;
 };
 const num = (f: (i: EtfItem) => number | null, fmt: (v: number | null) => string, why?: string): Pick<Col, "get" | "text" | "why"> => ({ get: f, text: (i) => fmt(f(i)), why });
+/** The list shows exactly three return columns: 1 day, 1 year, 5 years. 5 years is the TOTAL price change over the five years, not a yearly rate. */
 export const COLUMNS: Col[] = [
   { key: "category", label: "Category", short: "Category", sort: null, def: true, num: false, help: "What the ETF follows, taken from its registered name. Blank when the name does not say clearly.", get: (i) => i.categoryLabel, text: (i) => i.categoryLabel ?? "—" },
   { key: "price", label: "Price (₹)", short: "Price", sort: "price", def: true, num: true, help: "Last close on the NSE.", ...num((i) => i.price, (v) => rupee(v)) },
-  { key: "change", label: "1-day change", short: "1D", sort: "change", def: true, num: true, help: "Change from the previous close.", ...num((i) => i.changePct, (v) => move(v)) },
-  { key: "ret1m", label: "1-month price return", short: "1M", sort: "ret1m", def: false, num: true, help: "Price change over 1 month. Dividends are not included.", term: "Price return", ...num((i) => i.ret1m, (v) => pct(v), "ret_1m") },
-  { key: "ret6m", label: "6-month price return", short: "6M", sort: "ret6m", def: false, num: true, help: "Price change over 6 months. Dividends are not included.", term: "Price return", ...num((i) => i.ret6m, (v) => pct(v), "ret_6m") },
-  { key: "ret1y", label: "1-year price return", short: "1Y", sort: "ret1y", def: true, num: true, help: "Price change over 1 year. Dividends are not included.", term: "Price return", ...num((i) => i.ret1y, (v) => pct(v), "ret_1y") },
-  { key: "cagr3y", label: "3-year price return (a year)", short: "3Y a yr", sort: "cagr3y", def: true, num: true, help: "Yearly rate that gives the 3-year price change. Dividends are not included.", term: "CAGR (compound annual growth rate)", ...num((i) => i.cagr3y, (v) => pct(v), "cagr_3y") },
-  { key: "cagr5y", label: "5-year price return (a year)", short: "5Y a yr", sort: "cagr5y", def: true, num: true, help: "Yearly rate that gives the 5-year price change. Dividends are not included.", term: "CAGR (compound annual growth rate)", ...num((i) => i.cagr5y, (v) => pct(v), "cagr_5y") },
-  { key: "vol1y", label: "Volatility (1 year)", short: "Volatility", sort: "vol1y", def: true, num: true, help: "How much the price swings, per year. Higher means a bumpier ride.", term: "Volatility", ...num((i) => i.vol1y, (v) => pct(v), "vol_1y") },
-  { key: "mdd1y", label: "Largest fall (1 year)", short: "Fall 1Y", sort: "mdd1y", def: false, num: true, help: "Biggest drop from a high to a later low in the last year.", term: "Drawdown", ...num((i) => i.mdd1y, (v) => pct(v), "mdd_1y") },
-  { key: "mdd3y", label: "Largest fall (3 years)", short: "Fall 3Y", sort: "mdd3y", def: false, num: true, help: "Biggest drop from a high to a later low in the last 3 years.", term: "Drawdown", ...num((i) => i.mdd3y, (v) => pct(v), "mdd_3y") },
-  { key: "mdd5y", label: "Largest fall (5 years)", short: "Fall 5Y", sort: "mdd5y", def: false, num: true, help: "Biggest drop from a high to a later low in the last 5 years.", term: "Drawdown", ...num((i) => i.mdd5y, (v) => pct(v), "mdd_5y") },
-  { key: "from52", label: "From 52-week high", short: "From high", sort: "from52", def: false, num: true, help: "How far the price is below its highest level of the last 52 weeks.", term: "52-week high and low", ...num((i) => i.from52, (v) => pct(v)) },
+  { key: "change", label: "1-day change", short: "1 day", sort: "change", def: true, num: true, help: "Change from the previous close to the last close.", ...num((i) => i.changePct, (v) => move(v), "change") },
+  { key: "ret1y", label: "1-year price return", short: "1 year", sort: "ret1y", def: true, num: true, help: "Price change over 1 year. Dividends are not included.", term: "Price return", ...num((i) => i.ret1y, (v) => pct(v), "ret_1y") },
+  { key: "ret5y", label: "5-year price return (total)", short: "5 years", sort: "ret5y", def: true, num: true, help: "Total price change over 5 years, not a yearly rate. Dividends are not included.", term: "Price return", ...num((i) => i.ret5y, (v) => pct(v), "ret_5y") },
   { key: "turnover", label: "Traded value a day", short: "Traded/day", sort: "turnover", def: false, num: true, help: "Average rupees traded each day over the last 20 sessions.", term: "Traded value (turnover)", ...num((i) => i.avgTurnover, traded) },
   { key: "premium", label: "Premium / discount to NAV", short: "vs NAV", sort: "premium", def: false, num: true, help: "Exchange close against AMFI's NAV of the same day.", term: "Premium and discount to NAV", ...num((i) => i.premium, (v) => pct(v), "nav_premium") },
   { key: "fundHouse", label: "Fund house", short: "Fund house", sort: null, def: false, num: false, help: "From AMFI's register.", get: (i) => i.fundHouse, text: (i) => i.fundHouse ?? "—" },
@@ -99,6 +103,7 @@ export function whyBlank(i: EtfItem, c: Col): string {
   if (c.key === "category") return "The fund's name does not say clearly what it follows";
   if (c.key === "fundHouse") return "Not found in AMFI's register";
   if (c.key === "turnover") return "Too few trading days to average";
+  if (c.key === "change") return (c.why && i.why?.[c.why]) || "No previous close to compare with";
   return (c.why && i.why?.[c.why]) || "Not enough price history";
 }
 
@@ -121,10 +126,7 @@ export const CATEGORY_TERM: Record<string, GlossName> = {
 export type Bounds = [number | null, number | null];
 export const FILTERS = [
   { key: "ret1y", label: "1-year price return", unit: "%" },
-  { key: "cagr3y", label: "3-year price return (a year)", unit: "%" },
-  { key: "cagr5y", label: "5-year price return (a year)", unit: "%" },
-  { key: "vol1y", label: "Volatility (1 year)", unit: "%" },
-  { key: "mdd3y", label: "Largest fall (3 years)", unit: "%" },
+  { key: "ret5y", label: "5-year price return (total)", unit: "%" },
 ] as const;
 export type FilterKey = (typeof FILTERS)[number]["key"];
 export type ListState = { q: string; category: string[]; asset: string[]; sort: string; order: "asc" | "desc"; bounds: Partial<Record<FilterKey, Bounds>>; offset: number };
@@ -227,6 +229,17 @@ export const useEtf = (symbol: string, range: RangeKey) => useQuery<EtfDetail, A
 export const useEtfCompare = (symbols: string[], range: RangeKey) => useQuery<EtfCompare, ApiError>({
   queryKey: ["etf", "compare", symbols.join(","), range], enabled: symbols.length >= 2, placeholderData: keepPreviousData, staleTime: 60_000, retry,
   queryFn: () => etfGet<EtfCompare>(`/api/etf/compare?symbols=${encodeURIComponent(symbols.join(","))}&range=${range}`),
+});
+export const useEtfFacts = (symbol: string) => useQuery<EtfFacts, ApiError>({
+  queryKey: ["etf", "facts", symbol], queryFn: () => etfGet<EtfFacts>(`/api/etf/${encodeURIComponent(symbol)}/facts`), staleTime: 300_000, retry,
+});
+/** The portfolio, or { unavailable } with the reason: exactly what the shared HoldingsSection takes. */
+export const useEtfPortfolio = (symbol: string) => useQuery<PortfolioResult, ApiError>({
+  queryKey: ["etf", "portfolio", symbol], staleTime: 300_000, retry,
+  queryFn: async () => {
+    const r = await etfGet<PortfolioResult & { unavailable?: string | null }>(`/api/etf/${encodeURIComponent(symbol)}/portfolio`);
+    return r.unavailable ? { unavailable: r.unavailable } : r;
+  },
 });
 export const useEtfSearch = (q: string) => useQuery<EtfList, ApiError>({
   queryKey: ["etf", "search", q], queryFn: () => etfGet<EtfList>(`/api/etf?q=${encodeURIComponent(q)}&limit=8&sort=turnover&order=desc`), enabled: q.trim().length > 0, staleTime: 60_000, placeholderData: keepPreviousData, retry,

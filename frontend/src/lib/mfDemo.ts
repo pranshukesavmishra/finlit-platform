@@ -3,6 +3,7 @@
 import { ApiError } from "./api";
 import { score } from "./metricSearch";
 import type { FundCompare, FundDetail, FundFilters, FundRow, RangeKey } from "./mf";
+import { DEMO_PORTFOLIO } from "../holdings/demo";
 
 type Data = { facts: { dataDate: string; updatedAt: string; source: string; disclaimer: string }; rows: FundRow[]; details: Record<string, FundDetail>; filters: FundFilters };
 let cache: Promise<Data> | null = null;
@@ -28,13 +29,18 @@ export async function demoMf<T>(path: string): Promise<T> {
     }
     return { ...data.facts, funds: ds.map((d) => ({ ...d, series: undefined })), chart, chartNote: chart ? null : "A rebased chart needs NAV history for every fund over this range; try a shorter one.", notAvailable: ds[0].notAvailable } as unknown as T;
   }
+  const sub = url.pathname.match(/^\/api\/mf\/(\d+)\/(facts|portfolio)$/);
+  if (sub?.[2] === "portfolio") return DEMO_PORTFOLIO as unknown as T;   // labelled DEMO DATA in its source line
+  if (sub) return { code: Number(sub[1]), order: ["aum", "terRegular", "terDirect", "exitLoad", "benchmark", "managers", "riskometer", "launchDate", "minInvestment", "category", "amc"],
+    facts: Object.fromEntries(["aum", "terRegular", "terDirect", "exitLoad", "benchmark", "managers", "riskometer", "launchDate", "minInvestment"].map((k) => [k, { unavailable: "Not loaded in this preview." }])) } as unknown as T;
+  if (url.pathname === "/api/mf/hot") return { ...data.facts, basis: null, items: data.rows.filter((r) => r.optionClass === "Growth").slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })) } as unknown as T;
   const one = url.pathname.match(/^\/api\/mf\/(\d+)$/);
   if (one) { const d = data.details[one[1]]; if (!d) throw notFound("This preview holds 67 schemes; the live site has every scheme."); return d as T; }
   // list
   const q = (p.get("q") || "").trim();
   let rows = data.rows.filter((r) => (p.get("stopped") === "true" || r.active)
     && (!p.get("category") || r.category === p.get("category")) && (!p.get("amc") || r.amc === p.get("amc")) && (!p.get("plan") || r.plan === p.get("plan")) && (!p.get("option") || r.optionClass === p.get("option")));
-  for (const k of ["1y", "3y", "5y"] as const) {
+  for (const k of ["1y", "5y"] as const) {
     const lo = num(p.get("min" + k)), hi = num(p.get("max" + k)), f = `r${k}` as "r1y";
     if (lo != null) rows = rows.filter((r) => r[f] != null && r[f]! >= lo);
     if (hi != null) rows = rows.filter((r) => r[f] != null && r[f]! <= hi);

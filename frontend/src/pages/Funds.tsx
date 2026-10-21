@@ -7,14 +7,19 @@ import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
 import { dateIN, nf } from "../lib/format";
+import type { FundRow } from "../lib/mf";
 import {
-  EMPTY_QUERY, TRAY_MAX, categoryShort, compareUrl, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, tone, useFundCompare, useFundDetail, useFundFilters, useFundList, useTray, writeCols,
+  EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, categoryShort, compareUrl, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, tone, useFundCompare, useFundDetail, useFundFacts, useFundFilters, useFundList,
+  useFundPortfolio, useHotList, useTray, writeCols,
   type ColId, type CompareFund, type FundDetail, type ListQuery, type RangeKey, type SortKey,
 } from "../lib/mf";
 import { ColumnPicker, Controls, Pager } from "../mf/Controls";
 import { FundChart, SERIES_STYLE } from "../mf/FundChart";
 import { FundTable } from "../mf/FundTable";
-import { Fig, Foot, GTerm, NotAvailable, PlanChip } from "../mf/Bits";
+import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
+import { FactsCard } from "../mf/Facts";
+import { ReturnsBlock } from "../mf/Returns";
+import { HoldingsSection } from "../holdings";
 import "../styles/mf.css";
 
 const HEAD = (title: string, lead: string) => (
@@ -24,9 +29,8 @@ const HEAD = (title: string, lead: string) => (
 const Problem = ({ title, text, retry }: { title: string; text: string; retry?: () => void }) => (
   <div className="wrap state" role="alert"><h2>{title}</h2><p>{text}</p>{retry && <button className="btn" onClick={retry}>Try again</button>} <Link className="btn" to="/funds">Back to all schemes</Link></div>
 );
-const RETURN_ROWS: { k: "1m" | "6m" | "1y" | "3y" | "5y"; label: string }[] = [
-  { k: "1m", label: "1 month" }, { k: "6m", label: "6 months" }, { k: "1y", label: "1 year" }, { k: "3y", label: "3 years" }, { k: "5y", label: "5 years" },
-];
+/** Periods that live in the Risk area of a scheme's page only (never as list or compare columns). */
+const OTHER_PERIODS: { k: "1m" | "6m" | "3y"; label: string }[] = [{ k: "1m", label: "1 month" }, { k: "6m", label: "6 months" }, { k: "3y", label: "3 years, per year" }];
 const axisFmt = (v: number) => nf(v, Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 100 ? 1 : 2);
 const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 
@@ -48,8 +52,16 @@ export function FundListPage() {
   useEffect(() => { setText(q.q); }, [q.q]);
   const onSort = (s: SortKey) => set(q.sort === s ? { dir: q.dir === "asc" ? "desc" : "asc" } : { sort: s, dir: s === "name" || s === "amc" || s === "category" ? "asc" : "desc" });
   const pick = (code: number) => { if (!toggle(code)) toast(`You can compare up to ${TRAY_MAX} schemes at a time.`); };
-  const d = list.data;
-  const facts = d || filt.data;
+  const ready = q.view === "ready";
+  const hot = useHotList(ready);
+  const d = ready ? undefined : list.data;
+  const hotRows = useMemo(() => {
+    const rows = hot.data?.items || [];
+    if (!q.sort) return rows;
+    const key = q.sort as keyof FundRow, sgn = q.dir === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => { const x = a[key] as number | string | null, y = b[key] as number | string | null; return x == null ? 1 : y == null ? -1 : (x < y ? -1 : x > y ? 1 : 0) * sgn; });
+  }, [hot.data, q.sort, q.dir]);
+  const facts = (ready ? hot.data : d) || filt.data;
   const t = filt.data?.totals;
 
   return (
@@ -59,15 +71,26 @@ export function FundListPage() {
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">
+          <div className="seg" role="group" aria-label="Which schemes to show">
+            <button aria-pressed={!ready} onClick={() => set({ view: "" })}>All schemes</button>
+            <button aria-pressed={ready} onClick={() => set({ view: "ready" })}>Ready list ({hot.data?.items.length ?? 100})</button>
+          </div>
           <p className="mf-count" role="status" aria-live="polite">
-            {d ? <><b>{d.total.toLocaleString("en-IN")}</b> scheme{d.total === 1 ? "" : "s"}{d.total === 0 ? " match" : ""}</> : "Loading schemes…"}
-            {t && !q.stopped && <span className="faint"> · {t.active.toLocaleString("en-IN")} publish NAVs; {(t.schemes - t.active).toLocaleString("en-IN")} older ones have stopped and are hidden</span>}
-            {d?.dataDate && <span className="faint"> · NAVs up to {dateIN(d.dataDate)}</span>}
+            {ready ? (hot.data ? <>The <b>{hot.data.items.length}</b> schemes kept ready for instant opening.</> : "Loading…")
+              : d ? <>Showing <b>{d.total.toLocaleString("en-IN")}</b>{t ? <> of <b>{(q.stopped ? t.schemes : t.active).toLocaleString("en-IN")}</b></> : null} scheme{d.total === 1 ? "" : "s"} after exclusions{d.total === 0 ? " (none match)" : ""}</> : "Loading schemes…"}
+            {!ready && t && !q.stopped && <span className="faint"> · {(t.schemes - t.active).toLocaleString("en-IN")} older ones have stopped publishing and are hidden ({t.schemes.toLocaleString("en-IN")} listed in all)</span>}
+            {facts?.dataDate && <span className="faint"> · NAVs up to {dateIN(facts.dataDate)}</span>}
           </p>
           <ColumnPicker cols={cols} onChange={(c) => { setCols(c); writeCols(c); }} />
         </div>
 
-        {list.isError && !d ? <Problem title="The scheme list is unavailable right now" text="Please try again in a moment." retry={() => list.refetch()} /> : !d ? (
+        {ready ? (
+          !hot.data ? <div className="card" aria-busy="true"><div className="skeleton" style={{ height: 420 }} /></div> : (
+            <div className="card mf-tablecard">
+              <p className="faint mf-fine mf-pad">{hot.data.basis}</p>
+              <FundTable rows={hotRows} cols={cols} q={q} onSort={onSort} picked={tray} onPick={pick} />
+            </div>)
+        ) : list.isError && !d ? <Problem title="The scheme list is unavailable right now" text="Please try again in a moment." retry={() => list.refetch()} /> : !d ? (
           <div className="card" aria-busy="true"><div className="skeleton" style={{ height: 420 }} /></div>
         ) : d.total === 0 ? (
           <div className="pm-empty mf-empty"><b>No schemes match.</b><p>Try fewer filters or a shorter search. Spaces and small typos do not matter.</p>
@@ -79,7 +102,7 @@ export function FundListPage() {
           </div>
         )}
         <p className="faint mf-legend">
-          1M, 6M and 1Y show the change in NAV over the period. 3Y and 5Y are yearly rates (<GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>). A dash (—) means no figure, with the reason when you hover or focus it.
+          Three return figures are shown: <b>1 day</b> (latest NAV against the NAV before it), <b>1 year</b> (total change over the year) and <b>5 year, per year</b> (a yearly rate, <GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>, not the five-year total). A dash (—) means no figure; the reason is written under it. Risk figures and other periods are on each scheme's page.
           Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only: <GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV, so their NAV change would mislead. Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.
         </p>
         <Foot facts={facts} />
@@ -97,26 +120,6 @@ export function FundListPage() {
 
 // ================================================================================================ one scheme
 
-function Returns({ d }: { d: FundDetail }) {
-  return (
-    <div className="card mf-card">
-      <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span><GTerm id="trailing-return">Returns</GTerm></h3><span className="s">to {dateIN(d.history.to || d.navDate || "")}</span></div>
-      <div className="tw mf-ret"><table>
-        <thead><tr><th scope="col">Period</th><th scope="col">Return</th><th scope="col">Measured from</th><th scope="col">How</th></tr></thead>
-        <tbody>{RETURN_ROWS.map(({ k, label }) => { const r = d.returns[k]; return (
-          <tr key={k}>
-            <th scope="row">{label}</th>
-            <td><b><Fig v={r.value} why={r.why} /></b></td>
-            <td className="txt">{r.from ? <>NAV of {dateIN(r.from)}</> : <span className="muted mf-why">{r.why || "—"}</span>}</td>
-            <td className="txt muted">{r.kind === "cagr" ? <>Per year (<GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>)</> : "Total change"}</td>
-          </tr>); })}</tbody>
-      </table></div>
-      {d.returnsNote && <p className="mf-note" role="note"><Icon name="info" /><span>{d.returnsNote}</span></p>}
-      <p className="faint mf-fine">The start NAV is the latest one on or before the start date. 3 and 5 year figures are yearly rates: (latest NAV ÷ start NAV) ^ (365 ÷ days between the two NAV dates) − 1. They ignore any tax, exit load or SIP timing.</p>
-    </div>
-  );
-}
-
 function Risk({ d }: { d: FundDetail }) {
   const { vol1y, vol3y, maxDrawdown: m } = d.risk;
   return (
@@ -130,6 +133,9 @@ function Risk({ d }: { d: FundDetail }) {
         <div><span className="label"><GTerm id="drawdown">Largest fall</GTerm> (maximum drawdown)</span><b>{m.value == null ? <Fig v={null} why={m.why} /> : <span className={tone(m.value)}>{pctText(m.value, 2, false)}</span>}</b>
           <p className="muted">{m.value == null ? m.why : m.peak && m.trough && m.value < 0 ? `The deepest fall from a NAV high (${dateIN(m.peak)}) to a later low (${dateIN(m.trough)}) since ${dateIN(m.since || m.peak)}. It shows how deep the worst stretch was, not what comes next.` : "The NAV never fell below an earlier high in the history on file."}</p></div>
       </div>
+      <h4 className="mf-h4">Other periods</h4>
+      <ul className="mf-other">{OTHER_PERIODS.map(({ k, label }) => { const r = d.returns[k]; return (
+        <li key={k}><span>{label}</span><b><Fig v={r.value} why={r.why} /></b><small className="muted">{r.value == null ? r.why : r.kind === "cagr" ? "per year" : "total change"}</small></li>); })}</ul>
       <p className="faint mf-fine">Volatility is the standard deviation of daily NAV changes (weekend NAVs left out) times the square root of 252. Both measures use only the NAV history on file for this scheme.</p>
     </div>
   );
@@ -159,6 +165,7 @@ export function FundDetailPage() {
   const nav = useNavigate();
   const { toast } = useUI();
   const [tray, toggle] = useTray();
+  const facts = useFundFacts(code), portfolio = useFundPortfolio(code);
   useDocTitle(d ? d.name : "Mutual fund", d ? `${d.name}: NAV, returns and risk from AMFI data. Information only.` : undefined);
 
   if (!code || (error && (error as { status?: number }).status === 404)) return <><div className="wrap state" role="alert"><h2>We could not find this scheme</h2><p>No mutual fund scheme has the code “{id}”.</p><Link className="btn primary" to="/funds">Search all schemes</Link></div></>;
@@ -198,11 +205,13 @@ export function FundDetailPage() {
       {!d.active && <p className="mf-note warn" role="note"><Icon name="alert" /><span>This scheme has stopped publishing NAVs{d.navDate ? `; its last NAV is dated ${dateIN(d.navDate)}` : ""}. Matured, merged and closed schemes stay in AMFI's file.</span></p>}
       {d.history.source === "mirror" && <p className="mf-note" role="note"><Icon name="info" /><span>{d.history.note}. AMFI's own history for this scheme is not loaded yet; the mirror's newest NAV was checked against AMFI's.</span></p>}
 
+      <ReturnsBlock d={d} />
+      <NavChart key={d.code} d={d} />
       <div className="mf-grid">
-        <Returns d={d} />
+        <FactsCard facts={facts.data} loading={facts.isLoading} failed={facts.isError} />
         <Risk d={d} />
       </div>
-      <NavChart key={d.code} d={d} />
+      <HoldingsSection portfolio={portfolio.data} title="What it invests in" unit="fund" />
 
       {d.family.length > 0 && (
         <div className="card mf-card">
@@ -228,7 +237,6 @@ export function FundDetailPage() {
             <li><span>Latest NAV source</span><b>AMFI NAVAll file</b></li>
           </ul>
         </div>
-        <NotAvailable {...d.notAvailable} />
       </div>
       <Foot facts={d} history={d.history} />
     </div>
@@ -271,9 +279,10 @@ function CompareTable({ funds }: { funds: CompareFund[] }) {
     { label: "Fund house", cell: (f) => shortAmc(f.amc) }, { label: "Category", cell: (f) => categoryShort(f.category) },
     { label: "Plan and option", cell: (f) => <PlanChip plan={f.plan} option={f.option} /> },
     { label: <GTerm id="net-asset-value-nav">Latest NAV</GTerm>, cell: (f) => <>{navText(f.nav)}<small className="muted"> {f.navDate ? dateIN(f.navDate, { day: "numeric", month: "short" }) : ""}</small></> },
-    { label: "Change vs previous NAV", cell: (f) => <Fig v={f.change?.pct} /> },
     { label: "Returns", head: true, cell: () => null },
-    ...RETURN_ROWS.map(({ k, label }) => ({ label: <>{label}<small className="muted">{k === "3y" || k === "5y" ? " per year" : ""}</small></>, cell: (f: CompareFund) => val(f.returns[k].value, f.returns[k].why, shortName(f) + ", " + label) })),
+    { label: RETURN_LABELS.d1, cell: (f) => val(f.change?.pct ?? null, f.active ? "The previous NAV is not on file yet." : "Stopped publishing NAVs.", shortName(f) + ", 1 day") },
+    { label: RETURN_LABELS.y1, cell: (f) => val(f.returns["1y"].value, f.returns["1y"].why, shortName(f) + ", 1 year") },
+    { label: RETURN_LABELS.y5, cell: (f) => val(f.returns["5y"].value, f.returns["5y"].why, shortName(f) + ", 5 year") },
     { label: "Risk", head: true, cell: () => null },
     { label: <><GTerm id="volatility">Volatility</GTerm> 1 year</>, cell: (f) => val(f.risk.vol1y.value, f.risk.vol1y.why, shortName(f) + ", volatility 1 year", { plain: true, plus: false }) },
     { label: <><GTerm id="volatility">Volatility</GTerm> 3 years</>, cell: (f) => val(f.risk.vol3y.value, f.risk.vol3y.why, shortName(f) + ", volatility 3 years", { plain: true, plus: false }) },
@@ -340,9 +349,8 @@ export function FundComparePage() {
                 </>) : <p className="muted mf-pad">{data.chartNote}</p>}
             </div>
             <div className="card mf-card"><div className="card-h"><h3><span className="ci"><Icon name="table" /></span>The numbers</h3></div><CompareTable funds={data.funds} />
-              <p className="faint mf-fine">1M, 6M and 1Y are the change in NAV; 3Y and 5Y are yearly rates. Only Growth options have returns, because payouts change the NAV of IDCW options. Different plans of one fund differ only by cost.</p></div>
+              <p className="faint mf-fine">1 year is the total change in NAV over the year; 5 year is a yearly rate (CAGR), not the five-year total. Only Growth options have returns, because payouts change the NAV of IDCW options. Different plans of one fund differ only by cost. Fund size, costs and holdings are on each scheme's own page.</p></div>
             {data.funds.some((f) => f.history.source === "mirror") && <p className="mf-note" role="note"><Icon name="info" /><span>Some NAV history here comes from a third-party mirror of AMFI data (api.mfapi.in), after its newest NAV was checked against AMFI's.</span></p>}
-            <NotAvailable {...data.notAvailable} />
             <Foot facts={data} history={data.funds.find((f) => f.history.source === "mirror")?.history} />
           </>)}
         {ids.length < 2 && <Foot facts={null} />}

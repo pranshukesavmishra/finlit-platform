@@ -325,7 +325,11 @@ async def store(monkeypatch):
         pytest.skip(f"postgres/redis not available: {exc}")
     async with st.pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS etf_history, etf_runs, etf_funds CASCADE")
+        await conn.execute("DROP TABLE IF EXISTS etf_hot CASCADE")
         await conn.execute((MIGRATIONS / "034_etf.sql").read_text())
+        await conn.execute((MIGRATIONS / "038_etf_hot.sql").read_text())
+    async for k in st.redis.scan_iter("etf:*"):
+        await st.redis.delete(k)
     yield st
     await st.close()
 
@@ -397,7 +401,7 @@ async def test_a_second_night_only_adds_the_last_weeks_and_changes_nothing_else(
     before = await snapshot(store)
     prov = Provider()
     r = await etf.refresh(store, S(), transport=httpx.MockTransport(prov), now=NOW + timedelta(hours=1))
-    assert r["status"] == "ok" and r["incremental"] == 17 and r["full"] == 0 and r["adjusted"] == 0
+    assert r["status"] == "ok" and r["incremental"] == 16 and r["full"] == 1 and r["adjusted"] == 0       # the one ETF with no traded value is cold: it keeps no stored history, so it is taken in full
     assert await snapshot(store) == before
     # the candle call asked only for the last ~40 days before the stored end, not 10 years
     candle_calls = [c for c in prov.calls if "historical-candle" in c]
@@ -444,7 +448,7 @@ async def test_a_provider_adjustment_of_old_prices_triggers_a_full_refetch(store
             return httpx.Response(200, json=body)
         return r
     r = await etf.refresh(store, S(), transport=httpx.MockTransport(handler), now=NOW + timedelta(hours=1))
-    assert r["adjusted"] >= 10 and r["full"] == r["adjusted"]                                # every ETF whose stored days no longer matched was taken again in full
+    assert r["adjusted"] >= 10 and r["full"] == r["adjusted"] + 1  # +1: the cold ETF has no stored history to compare, so it is always taken in full;                               # every ETF whose stored days no longer matched was taken again in full
 
 
 async def test_short_or_empty_answers_never_overwrite_good_rows(store):

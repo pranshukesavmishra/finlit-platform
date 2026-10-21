@@ -310,7 +310,7 @@ async def loaded(store):
     """The sample file applied and Axis's history backfilled from the recorded AMFI download."""
     async with amfi_client() as c:
         assert (await mf.refresh(store, None, client=c))["status"] == "ok"
-        res = await mf.backfill(store, None, amc="Axis", client=c, log_fn=lambda *_: None)
+        res = await mf.backfill(store, None, amc="Axis", client=c, log_fn=lambda *_: None, settle=False)
     assert res["status"] == "ok" and not res["failed"]
     return store
 
@@ -439,7 +439,7 @@ async def test_list_shape_count_filters_sort_and_paging(api):
     allr = (await api.get("/api/mf?stopped=true")).json()
     assert allr["total"] == 13
     item = next(i for i in body["items"] if i["code"] == LARGE)
-    assert item["r1y"] == -6.96 and item["r3y"] == 7.97 and item["r5y"] == 4.33 and item["plan"] == "Direct" and item["optionClass"] == "Growth" and item["noReturns"] is None
+    assert item["r1y"] == -6.96 and "r3y" not in item and "r1m" not in item and "mdd" not in item and item["r5y"] == 4.33 and item["retDate"] == "2026-10-19" and item["plan"] == "Direct" and item["optionClass"] == "Growth" and item["noReturns"] is None
     idcw = next(i for i in body["items"] if i["code"] == 135765)
     assert idcw["r1y"] is None and idcw["noReturns"] == "idcw"
     assert (await api.get("/api/mf?category=Equity Schemes - Thematic Fund")).json()["total"] == 2
@@ -575,7 +575,9 @@ async def test_mirror_that_disagrees_with_amfi_is_not_used(api):
     await api.app.state.store.redis.set("mf:ver", "changed")
     api.app.state.mf_client = FakeMirror(nav_shift=0.5).client()
     d = (await api.get(f"/api/mf/{LARGE}")).json()
-    assert d["history"]["source"] is None and d["returns"]["1y"]["value"] is None and d["returns"]["1y"]["why"] and d["series"] == {}
+    # no confirmed history: the risk figures and periods that need it stay empty, but the 1 and 5 year figures worked out nightly from AMFI's own history are kept, dated
+    assert d["history"]["source"] is None and d["series"] == {} and d["risk"]["maxDrawdown"]["value"] is None and d["returns"]["6m"]["value"] is None
+    assert d["returns"]["1y"]["value"] == -6.96 and d["returns"]["1y"]["from"] is None and d["retDate"] == "2026-10-19"
 
 
 @needs_db

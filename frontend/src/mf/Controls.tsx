@@ -4,7 +4,7 @@ import { Icon } from "../lib/icons";
 import { COLUMNS, DEFAULT_COLS, SIZES, activeFilterCount, cleanNum, pageWindow, type ColId, type FundFilters, type ListQuery } from "../lib/mf";
 import { Pick, type PickItem } from "./Pick";
 
-const RANGES: { k: "1y" | "3y" | "5y"; label: string }[] = [{ k: "1y", label: "1 year return" }, { k: "3y", label: "3 year return, per year" }, { k: "5y", label: "5 year return, per year" }];
+const RANGES: { k: "1y" | "5y"; label: string }[] = [{ k: "1y", label: "1 year return (total)" }, { k: "5y", label: "5 year return, per year (CAGR)" }];
 
 function Seg({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void }) {
   return (
@@ -49,7 +49,7 @@ export function Controls({ q, text, onText, set, filters, loading }: { q: ListQu
       <div className="mf-more">
         <button type="button" className="mf-linkbtn" aria-expanded={more} onClick={() => setMore((m) => !m)}>{more ? "Hide return ranges" : "Filter by return range"}</button>
         <label className="mf-check"><input type="checkbox" checked={q.stopped} onChange={(e) => set({ stopped: e.target.checked })} /> Include schemes that stopped publishing NAVs</label>
-        {n > 0 && <button type="button" className="mf-linkbtn" onClick={() => set({ category: "", amc: "", plan: "", option: "", stopped: false, min1y: "", max1y: "", min3y: "", max3y: "", min5y: "", max5y: "" })}>Clear {n} filter{n > 1 ? "s" : ""}</button>}
+        {n > 0 && <button type="button" className="mf-linkbtn" onClick={() => set({ category: "", amc: "", plan: "", option: "", stopped: false, min1y: "", max1y: "", min5y: "", max5y: "" })}>Clear {n} filter{n > 1 ? "s" : ""}</button>}
       </div>
       {more && (
         <div className="mf-ranges">

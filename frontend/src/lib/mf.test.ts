@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_COLS, EMPTY_QUERY, activeFilterCount, buildLines, categoryShort, cleanNum, compareUrl, listPath, navText, nearestIndex, niceTicks, noReturnsText, pageWindow,
+  COLUMNS, DEFAULT_COLS, EMPTY_QUERY, FACT_LABELS, RETURN_LABELS, factKeys, factValueText, retTiles, activeFilterCount, buildLines, categoryShort, cleanNum, compareUrl, listPath, navText, nearestIndex, niceTicks, noReturnsText, pageWindow,
   parseIds, parseQuery, pctText, queryToParams, readCols, searchOptions, tone, trayToggle,
 } from "./mf";
 
@@ -39,8 +39,8 @@ describe("list address", () => {
     expect(queryToParams(EMPTY_QUERY).toString()).toBe("");
   });
   it("round-trips every field", () => {
-    const q = { ...EMPTY_QUERY, q: "hdfc mid", category: "Equity Scheme - Mid Cap Fund", amc: "HDFC Mutual Fund", plan: "Direct", option: "Growth", stopped: true, sort: "r3y" as const,
-      dir: "desc" as const, page: 3, size: 25, min1y: "5", max1y: "40.5", min3y: "-2", max3y: "", min5y: "10", max5y: "30" };
+    const q = { ...EMPTY_QUERY, q: "hdfc mid", category: "Equity Scheme - Mid Cap Fund", amc: "HDFC Mutual Fund", plan: "Direct", option: "Growth", stopped: true, sort: "r5y" as const,
+      dir: "desc" as const, page: 3, size: 25, min1y: "5", max1y: "40.5", min5y: "10", max5y: "30", view: "ready" as const };
     expect(parseQuery(queryToParams(q))).toEqual(q);
   });
   it("junk in the address falls back to safe values", () => {
@@ -65,7 +65,13 @@ describe("list address", () => {
     expect(activeFilterCount(EMPTY_QUERY)).toBe(0);
     expect(activeFilterCount({ ...EMPTY_QUERY, q: "x", sort: "r1y", amc: "A", min1y: "1", stopped: true })).toBe(3);
   });
-  it("the default columns are the ones the founder asked for", () => { expect(DEFAULT_COLS).toEqual(["amc", "category", "nav", "r1y", "r3y", "r5y"]); expect(readCols()).toEqual(DEFAULT_COLS); });
+  it("the list offers exactly three return columns: 1 day, 1 year, 5 year per year", () => {
+    const ret = COLUMNS.filter((c) => ["change", "r1y", "r5y"].includes(c.id));
+    expect(ret.map((c) => c.label)).toEqual(["1 day", "1 year", "5 year, per year (CAGR)"]);
+    expect(COLUMNS.map((c) => c.id).sort()).toEqual(["amc", "category", "change", "nav", "navDate", "option", "plan", "r1y", "r5y"]);
+    expect(COLUMNS.every((c) => c.sort !== null || ["plan", "option"].includes(c.id))).toBe(true);
+  });
+  it("the default columns are the ones the founder asked for", () => { expect(DEFAULT_COLS).toEqual(["amc", "category", "nav", "change", "r1y", "r5y"]); expect(readCols()).toEqual(DEFAULT_COLS); });
 });
 
 describe("page numbers", () => {
@@ -134,5 +140,43 @@ describe("chart geometry", () => {
     const xs = [0, 10, 30, 31, 100];
     expect(nearestIndex(xs, -5)).toBe(0); expect(nearestIndex(xs, 4)).toBe(0); expect(nearestIndex(xs, 6)).toBe(1); expect(nearestIndex(xs, 30.4)).toBe(2);
     expect(nearestIndex(xs, 30.6)).toBe(3); expect(nearestIndex(xs, 500)).toBe(4);
+  });
+});
+
+describe("the three return tiles", () => {
+  const ret = (value: number | null, from: string | null, kind: "absolute" | "cagr", why: string | null = null) => ({ value, kind, from, why });
+  const base = {
+    change: { abs: -0.82, pct: -1.21, since: "2026-10-16" }, navDate: "2026-10-19", retDate: "2026-10-19", returnsNote: null, optionClass: "Growth" as const, active: true,
+    returns: { "1m": ret(1, "2026-09-18", "absolute"), "6m": ret(2, "2026-04-17", "absolute"), "1y": ret(-6.96, "2025-10-17", "absolute"), "3y": ret(7.97, "2023-10-19", "cagr"), "5y": ret(4.33, "2021-10-19", "cagr") },
+  };
+  it("shows 1 day, 1 year, 5 year per year, with the dates behind each figure", () => {
+    const t = retTiles(base);
+    expect(t.map((x) => x.label)).toEqual([RETURN_LABELS.d1, RETURN_LABELS.y1, RETURN_LABELS.y5]);
+    expect(t.map((x) => x.value)).toEqual([-1.21, -6.96, 4.33]);
+    expect(t[0].note).toMatch(/16 Oct 2026/); expect(t[1].note).toMatch(/17 Oct 2025/);
+    expect(t[2].how).toMatch(/CAGR/); expect(t[1].how).toMatch(/Not a yearly rate/);
+  });
+  it("says why a figure is missing instead of showing a number", () => {
+    const t = retTiles({ ...base, change: null, returns: { ...base.returns, "5y": ret(null, null, "cagr", "Younger than 5 years: the first NAV on file is dated 3 Mar 2023.") } });
+    expect(t[0].value).toBeNull(); expect(t[0].note).toMatch(/previous NAV/);
+    expect(t[2].value).toBeNull(); expect(t[2].note).toMatch(/Younger than 5 years/);
+  });
+  it("a figure without a start date says it was worked out from AMFI history, as of a date", () => {
+    expect(retTiles({ ...base, returns: { ...base.returns, "1y": ret(-6.96, null, "absolute") } })[1].note).toBe("Worked out from AMFI history, as of 19 Oct 2026");
+  });
+});
+
+describe("fund facts text", () => {
+  it("values, dates, lists and numbers", () => {
+    expect(factValueText({ value: "Nifty 50 TRI", asOf: "2026-09-30", source: "x" })).toBe("Nifty 50 TRI");
+    expect(factValueText({ value: ["A B", "C D"] })).toBe("A B, C D");
+    expect(factValueText({ value: 12345.6, unit: "₹ crore" })).toBe("12,346 ₹ crore");
+    expect(factValueText({ value: "2013-01-01" })).toBe("1 Jan 2013");
+    expect(factValueText({ unavailable: "why" })).toBe(""); expect(factValueText({ value: null })).toBe(""); expect(factValueText({ value: [] })).toBe("");
+  });
+  it("orders keys as the server says and every known key has a label", () => {
+    const f = { code: 1, order: ["aum", "amc"], facts: { amc: { value: "X" }, aum: { unavailable: "u" }, extra: { unavailable: "u" } } };
+    expect(factKeys(f)).toEqual(["aum", "amc", "extra"]);
+    for (const k of ["aum", "terRegular", "terDirect", "exitLoad", "benchmark", "managers", "riskometer", "launchDate", "minInvestment", "category", "amc"]) expect(FACT_LABELS[k]).toBeTruthy();
   });
 });

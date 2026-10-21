@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import {
-  COLUMNS, COL_BY, DEFAULT_COLS, DEFAULT_STATE, FILTERS, MAX_COMPARE, PAGE, activeFilters, nextSort, parseState, toParams, useEtfList, useTray, whyBlank,
+  COLUMNS, COL_BY, DEFAULT_COLS, DEFAULT_STATE, FILTERS, MAX_COMPARE, PAGE, activeFilters, nextSort, parseState, rupee, toParams, useEtfList, useTray, whyBlank,
   type Col, type ColKey, type EtfItem, type FilterKey, type ListState,
 } from "../lib/etf";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
@@ -21,9 +21,10 @@ const saveCols = (c: ColKey[]) => { try { localStorage.setItem(COLS_KEY, JSON.st
 
 function Cell({ c, i }: { c: Col; i: EtfItem }) {
   const v = c.get(i);
-  if (v == null) return <td className={c.num ? "num" : ""}><Blank why={whyBlank(i, c)} /></td>;
-  if (c.key === "change" || c.key.startsWith("ret") || c.key.startsWith("cagr") || c.key === "premium") return <td className="num"><Tone v={v as number}>{c.text(i)}</Tone></td>;
-  return <td className={c.num ? "num" : "etf-txt"}>{c.text(i)}</td>;
+  const k = ` etf-c-${c.key}`;
+  if (v == null) return <td className={(c.num ? "num" : "") + k}><Blank why={whyBlank(i, c)} /></td>;
+  if (c.key === "change" || c.key.startsWith("ret") || c.key === "premium") return <td className={"num" + k}><Tone v={v as number}>{c.text(i)}</Tone></td>;
+  return <td className={(c.num ? "num" : "etf-txt") + k}>{c.text(i)}</td>;
 }
 
 export function EtfListPage() {
@@ -55,7 +56,7 @@ export function EtfListPage() {
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap">        <div className="eyebrow">Exchange-traded funds</div><h1>ETFs on the NSE, in one list.</h1>
-        <p>Price, returns and risk for every ETF we find on the exchange. Search, filter, sort and compare up to four. Information only: nothing here is advice to buy or sell.</p></div></section>
+        <p>Price and 1-day, 1-year and 5-year returns for every ETF we find on the exchange. Search, filter, sort and compare up to four. Information only: nothing here is advice to buy or sell.</p></div></section>
 
       <div className="wrap etf-page">
         <div className="etf-tools">
@@ -93,6 +94,8 @@ export function EtfListPage() {
           {isLoading ? "Loading ETFs…" : data ? <>Showing <b>{from}–{to}</b> of <b>{data.total}</b> ETFs{data.total < data.universe ? <> (filtered from {data.universe})</> : null}{isFetching ? " · updating…" : ""}</> : ""}
         </p>
 
+        {data && data.hotCount ? <p className="etf-foot faint etf-hotnote">All {data.universe} ETFs on the NSE are listed and sortable. The {data.hotCount} most traded (by rupees traded a day) open instantly; the other {data.universe - data.hotCount} fetch their price chart from the data source when you open them.</p> : null}
+
         {isError && !data ? <ErrorState what="The ETF list" onRetry={() => refetch()} /> : isLoading ? <Skeleton /> : (
           <>
             {items.length === 0 ? (
@@ -106,7 +109,7 @@ export function EtfListPage() {
                     <th scope="col" className="etf-first" aria-sort={state.sort === "name" ? (state.order === "asc" ? "ascending" : "descending") : "none"}>
                       <button className="etf-sort" onClick={() => update(nextSort(state, "name"))}>ETF{state.sort === "name" ? (state.order === "asc" ? " ▲" : " ▼") : ""}</button></th>
                     {shown.map((c) => (
-                      <th key={c.key} scope="col" className={c.num ? "num" : ""} aria-sort={c.sort && state.sort === c.sort ? (state.order === "asc" ? "ascending" : "descending") : "none"}>
+                      <th key={c.key} scope="col" className={(c.num ? "num" : "") + ` etf-c-${c.key}`} aria-sort={c.sort && state.sort === c.sort ? (state.order === "asc" ? "ascending" : "descending") : "none"}>
                         {c.sort ? <button className="etf-sort" onClick={() => update(nextSort(state, c.sort!))} title={c.help}>{c.short}{state.sort === c.sort ? (state.order === "asc" ? " ▲" : " ▼") : ""}</button> : <span title={c.help}>{c.short}</span>}
                         {c.term && <GlossInfo name={c.term} fallback={c.help} />}
                       </th>))}
@@ -115,7 +118,7 @@ export function EtfListPage() {
                     <tr key={i.symbol}>
                       <th scope="row" className="etf-first etf-name">
                         <Link to={`/etfs/${encodeURIComponent(i.symbol)}`}>{i.name}</Link>
-                        <div className="etf-sub"><span className="mono">{i.symbol}</span>
+                        <div className="etf-sub"><span className="mono">{i.symbol}</span><span className="etf-pricem mono">{i.price == null ? "" : rupee(i.price)}</span>
                           <button className={"etf-add" + (has(i.symbol) ? " on" : "")} aria-pressed={has(i.symbol)} disabled={!has(i.symbol) && full} title={!has(i.symbol) && full ? `You can compare up to ${MAX_COMPARE} ETFs` : undefined}
                             onClick={() => toggle(i.symbol)}>{has(i.symbol) ? "✓ In compare" : "+ Compare"}<span className="sr-only"> {i.name}</span></button></div>
                       </th>
@@ -123,7 +126,7 @@ export function EtfListPage() {
                     </tr>))}</tbody>
                 </table>
               </div>)}
-            <p className="etf-foot faint">— means the figure is not available (hover or open the ETF to see why). 1D change is against the previous close. “a yr” is the yearly rate that gives the whole period's price change.</p>
+            <p className="etf-foot faint">— means the figure is not available (hover or open the ETF to see why). 1 day is the change from the previous close. 1 year and 5 years are price returns; 5 years is the total change over the five years, not a yearly rate. Dividends are not included. More periods, risk and the chart are on each ETF's page.</p>
             {data && data.excluded > 0 && <p className="etf-foot">{data.excluded} ETF{data.excluded === 1 ? " was" : "s were"} left out because {data.excluded === 1 ? "it has" : "they have"} no figure for a range you chose (for example, listed less than a year).</p>}
             {data && data.total > PAGE && (
               <nav className="etf-pager" aria-label="Pages">

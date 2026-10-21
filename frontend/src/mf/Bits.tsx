@@ -31,6 +31,7 @@ export function Foot({ facts, history }: { facts?: Facts | null; history?: FundD
         {facts?.updatedAt && <> Last updated: {new Date(facts.updatedAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}.</>}
         {history?.source === "mirror" && <> {MIRROR_LABEL}.</>}
       </p>
+      {facts?.excludedAmcs && facts.excludedAmcs.length > 0 && <p className="faint">Some fund houses are not listed here (list: {facts.excludedAmcs.join(", ")}).</p>}
     </footer>
   );
 }

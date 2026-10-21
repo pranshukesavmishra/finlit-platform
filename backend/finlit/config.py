@@ -7,6 +7,11 @@ from dataclasses import dataclass, field
 from typing import List
 
 
+# Mutual fund houses that are not listed: not loaded, not shown, not searchable. Matched against AMFI's fund-house names after dropping
+# "Mutual Fund" / "Asset Management" style words, whole name only (see finlit.mf.is_excluded_amc): "Trust" matches "Trust Mutual Fund", not "Unifi" or "Union".
+MF_EXCLUDED_AMCS = ("ASK", "Abakkus", "ITI", "Lakshya", "NJ", "PGIM India", "Samco", "Taurus", "Trust", "Unifi", "Zerodha")
+
+
 def _list(value: str) -> List[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 

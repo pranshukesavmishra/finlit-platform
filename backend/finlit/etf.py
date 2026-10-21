@@ -7,6 +7,11 @@ Where each figure comes from (nothing else is shown):
 Upstox does NOT publish AUM, expense ratio, tracking error, holdings, benchmark, launch date or fund manager, so the pages say so instead of
 showing a made-up or empty number. Every figure derived from prices is "price return": dividends are not included.
 
+Hot and cold (migration 038): the 100 ETFs with the highest traded value (average of close x volume over 20 sessions, from Upstox candles) are
+"hot": their 10-year packed history stays in Postgres and their ready-made list rows are in the etf_hot table and in Redis. Every other ETF is
+"cold": its narrow row (price, 1-day / 1-year / 5-year and the other figures, computed every night from the full 10 years) still covers
+lists, sorts and filters, but its candle history is fetched from Upstox when somebody opens it and cached in Redis for 14 days.
+
 Honesty rules the code enforces:
   * a price series with a day-to-day move beyond +/-40% (an unadjusted split, a face-value change, a bad tick) or with repeated dates is
     treated as unreliable BEFORE the last such day: figures that would need earlier prices are withheld with the reason, never computed;
@@ -54,6 +59,10 @@ FULL_EVERY_DAYS = 7          # the whole 10 years are re-fetched about weekly; t
 TAIL = 260                   # sessions of daily high/low kept (52-week range)
 PREMIUM_LIMIT = 100.0        # a price more than this far from the NAV is certainly the wrong day or unit, so no premium is shown (wide gaps below it are real: overseas ETFs)
 PREMIUM_NOTE = 10.0          # beyond this gap the page adds a plain note
+HOT_N = 100                  # ETFs kept ready (ranked by traded value)
+HIST_TTL = 14 * 86400        # a cold ETF's chart history stays in Redis this long after it was last fetched
+DATA_TTL = 25 * 3600         # the nightly job rewrites the Redis copies; a missed night still serves yesterday's for a day
+ALL_KEY, HOT_KEY = "etf:all:v1", "etf:hot:v1"
 DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns."
 SOURCE = "Prices: NSE via Upstox. NAV, scheme names and fund houses: AMFI."
 NOT_PUBLISHED = "Not published in our price data source"
@@ -576,6 +585,7 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                 await _log_run(conn, started, summary)
                 return summary
 
+            kept_hist: Dict[str, tuple] = {}                       # fresh series by symbol, written below for the hot ETFs only
             for res in results:
                 inst, old, fresh = res["inst"], res["old"], res["fresh"]
                 sym = inst["trading_symbol"]
@@ -609,10 +619,19 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                 prem, why = premium_of(ds, cs, nav, nav_date)
                 if why:
                     m["reasons"]["nav_premium"] = why
-                await _write(conn, sym, ds, cs, hs, ls, vs, m, nav, nav_date, prem, res["full"])
+                await _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem)
+                kept_hist[sym] = (ds, cs, hs, ls, vs, res["full"])
                 stats["updated"] += 1
             # ETFs that left the list are marked inactive (never deleted), and only because the list passed the size check above
             await conn.execute("UPDATE etf_funds SET active = false, updated_at = now() WHERE active AND NOT (symbol = ANY($1::text[]))", [i["trading_symbol"] for i in insts])
+            hot = await rank_hot(conn)
+            for sym in hot:                                        # packed history is kept for the hot ETFs only
+                if sym in kept_hist:
+                    await _write_hist(conn, sym, *kept_hist[sym])
+            summary["pruned_history"] = int((await conn.execute("DELETE FROM etf_history WHERE NOT (symbol = ANY($1::text[]))", list(hot))).split()[-1])
+            summary["hot"] = len(hot)
+            summary["cold_cached"] = await _refresh_cold_cache(store, kept_hist, hot)
+            await publish(store, conn)
             summary.update(stats, calls=client.calls)
             if stats["kept"] or stats["no_history"] or not quotes:
                 summary["status"] = "partial"
@@ -668,25 +687,109 @@ async def _upsert_meta(conn, insts: List[dict], amfi: Dict[str, dict]) -> None:
              active = true, updated_at = now()""", rows)
 
 
-async def _write(conn, sym, ds, cs, hs, ls, vs, m, nav, nav_date, prem, full: bool) -> None:
+async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem) -> None:
     prev = cs[-2]
     last_vol = vs[-1] if vs and vs[-1] > 0 else None
     turnover = avg_turnover(cs, vs)
+    change: Optional[float] = (cs[-1] / prev - 1) * 100         # exactly the last two stored closes
+    if m.get("break_date") == ds[-1]:                            # the newest move is itself the suspected split / bad price
+        change = None
+        m["reasons"]["change"] = "Price jumped by more than %d%% on %s (suspected split or bad price), so the 1-day change is withheld" % (BREAK_MOVE * 100, ds[-1].strftime("%d %b %Y"))
+    await conn.execute(
+        """UPDATE etf_funds SET price=$2, prev_close=$3, change_pct=$4, price_date=$5, volume=$6, avg_turnover=$7,
+             ret_1m=$8, ret_6m=$9, ret_1y=$10, ret_3y=$11, ret_5y=$12, cagr_3y=$13, cagr_5y=$14, vol_1y=$15, mdd_1y=$16, mdd_3y=$17, mdd_5y=$18,
+             high52=$19, low52=$20, range_from=$21, first_date=$22, points=$23, break_date=$24, reasons=$25::jsonb, extra=$26::jsonb,
+             nav=$27, nav_date=$28, nav_premium=$29, updated_at=now() WHERE symbol=$1""",
+        sym, cs[-1], prev, change, ds[-1], int(last_vol) if last_vol else None, turnover,
+        m["ret_1m"], m["ret_6m"], m["ret_1y"], m["ret_3y"], m["ret_5y"], m["cagr_3y"], m["cagr_5y"], m["vol_1y"], m["mdd_1y"], m["mdd_3y"], m["mdd_5y"],
+        m["high52"], m["low52"], m["range_from"], m["first_date"], m["points"], m["break_date"], json.dumps(m["reasons"]), json.dumps(m["extra"]),
+        nav, nav_date, prem)
+
+
+async def _write_hist(conn, sym, ds, cs, hs, ls, vs, full: bool) -> None:
+    await conn.execute(
+        """INSERT INTO etf_history (symbol, dates, closes, highs, lows, volumes, full_at) VALUES ($1,$2,$3,$4,$5,$6, now())
+           ON CONFLICT (symbol) DO UPDATE SET dates=EXCLUDED.dates, closes=EXCLUDED.closes, highs=EXCLUDED.highs, lows=EXCLUDED.lows,
+             volumes=EXCLUDED.volumes, full_at = CASE WHEN $7 THEN now() ELSE etf_history.full_at END, updated_at = now()""",
+        sym, ds, cs, hs, ls, vs, full)
+
+
+async def rank_hot(conn) -> List[str]:
+    """Rank the active ETFs by average traded value (close x volume, 20 sessions) and mark the top HOT_N hot. Returns the hot symbols, most traded first.
+    An ETF without a traded-value figure is never hot."""
     async with conn.transaction():
+        await conn.execute("UPDATE etf_funds SET turnover_rank = NULL, hot = false WHERE turnover_rank IS NOT NULL OR hot")
         await conn.execute(
-            """UPDATE etf_funds SET price=$2, prev_close=$3, change_pct=$4, price_date=$5, volume=$6, avg_turnover=$7,
-                 ret_1m=$8, ret_6m=$9, ret_1y=$10, ret_3y=$11, ret_5y=$12, cagr_3y=$13, cagr_5y=$14, vol_1y=$15, mdd_1y=$16, mdd_3y=$17, mdd_5y=$18,
-                 high52=$19, low52=$20, range_from=$21, first_date=$22, points=$23, break_date=$24, reasons=$25::jsonb, extra=$26::jsonb,
-                 nav=$27, nav_date=$28, nav_premium=$29, updated_at=now() WHERE symbol=$1""",
-            sym, cs[-1], prev, (cs[-1] / prev - 1) * 100, ds[-1], int(last_vol) if last_vol else None, turnover,
-            m["ret_1m"], m["ret_6m"], m["ret_1y"], m["ret_3y"], m["ret_5y"], m["cagr_3y"], m["cagr_5y"], m["vol_1y"], m["mdd_1y"], m["mdd_3y"], m["mdd_5y"],
-            m["high52"], m["low52"], m["range_from"], m["first_date"], m["points"], m["break_date"], json.dumps(m["reasons"]), json.dumps(m["extra"]),
-            nav, nav_date, prem)
-        await conn.execute(
-            """INSERT INTO etf_history (symbol, dates, closes, highs, lows, volumes, full_at) VALUES ($1,$2,$3,$4,$5,$6, now())
-               ON CONFLICT (symbol) DO UPDATE SET dates=EXCLUDED.dates, closes=EXCLUDED.closes, highs=EXCLUDED.highs, lows=EXCLUDED.lows,
-                 volumes=EXCLUDED.volumes, full_at = CASE WHEN $7 THEN now() ELSE etf_history.full_at END, updated_at = now()""",
-            sym, ds, cs, hs, ls, vs, full)
+            """WITH r AS (SELECT symbol, row_number() OVER (ORDER BY avg_turnover DESC, symbol) AS rn FROM etf_funds WHERE active AND avg_turnover IS NOT NULL)
+               UPDATE etf_funds f SET turnover_rank = r.rn::int, hot = r.rn <= $1 FROM r WHERE f.symbol = r.symbol""", HOT_N)
+        return [r["symbol"] for r in await conn.fetch("SELECT symbol FROM etf_funds WHERE hot ORDER BY turnover_rank")]
+
+
+def _pack_hist(ds: Sequence[date], cs: Sequence[float]) -> bytes:
+    return zlib.compress(json.dumps({"d": [d.isoformat() for d in ds], "c": list(cs)}, separators=(",", ":")).encode(), 6)
+
+
+def _unpack_hist(raw: bytes) -> Optional[dict]:
+    try:
+        o = json.loads(zlib.decompress(raw))
+        ds, cs = [date.fromisoformat(x) for x in o["d"]], [float(x) for x in o["c"]]
+        return {"dates": ds, "closes": cs} if len(ds) == len(cs) and len(ds) > 1 else None
+    except (ValueError, KeyError, TypeError, zlib.error):
+        return None
+
+
+async def _refresh_cold_cache(store, series: Dict[str, tuple], hot: Sequence[str]) -> int:
+    """A cold ETF somebody opened lately has its chart history in Redis: bring it up to date with tonight's fetch (its 14 days are kept as they were)."""
+    redis, n = getattr(store, "redis", None), 0
+    if redis is None:
+        return 0
+    hotset = set(hot)
+    for sym, (ds, cs, *_rest) in series.items():
+        if sym in hotset:
+            continue
+        try:
+            if await redis.set(f"etf:hist:{sym}", _pack_hist(ds, cs), xx=True, keepttl=True):
+                n += 1
+        except Exception:                                    # Redis is a cache here; the row in Postgres is what matters
+            return n
+    return n
+
+
+def _pack_rows(rows: Sequence[dict]) -> str:
+    return json.dumps([{k: (v.isoformat() if isinstance(v, (date, datetime)) else v) for k, v in r.items()} for r in rows], separators=(",", ":"), default=str)
+
+
+_DATES = ("price_date", "range_from", "first_date", "break_date", "nav_date")
+_STAMPS = ("updated_at", "first_seen")
+
+
+def _unpack_rows(raw: Any) -> List[dict]:
+    rows = json.loads(raw)
+    for r in rows:
+        for k in _DATES:
+            if r.get(k):
+                r[k] = date.fromisoformat(r[k])
+        for k in _STAMPS:
+            if r.get(k):
+                r[k] = datetime.fromisoformat(r[k])
+    return rows
+
+
+async def publish(store, conn) -> None:
+    """After a night's refresh: rebuild the etf_hot table, and the two Redis copies (every ETF's narrow row, and the ready-made hot list)."""
+    rows = [dict(r) for r in await conn.fetch("SELECT * FROM etf_funds WHERE active ORDER BY avg_turnover DESC NULLS LAST, symbol")]
+    items = [row_view(r) for r in sorted((r for r in rows if r.get("hot")), key=lambda r: r["turnover_rank"])]
+    async with conn.transaction():
+        await conn.execute("DELETE FROM etf_hot")
+        await conn.executemany("INSERT INTO etf_hot(rank, symbol, body) VALUES($1,$2,$3::jsonb)", [(i["rank"], i["symbol"], json.dumps(i)) for i in items])
+    redis = getattr(store, "redis", None)
+    if redis is None:
+        return
+    try:
+        await redis.set(ALL_KEY, _pack_rows(rows), ex=DATA_TTL)
+        await redis.set(HOT_KEY, json.dumps(_hot_blob(rows, items), separators=(",", ":"), default=str), ex=DATA_TTL)
+    except Exception as exc:                                  # the database copy is complete; readers fall back to it
+        log.warning("etf redis publish failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------------------------------------------- reading
@@ -767,26 +870,86 @@ def row_view(r: dict) -> dict:
         "breakDate": r["break_date"].isoformat() if r.get("break_date") else None,
         "nav": _round(r.get("nav"), 4), "navDate": r["nav_date"].isoformat() if r.get("nav_date") else None, "premium": _round(r.get("nav_premium")),
         "premiumWide": r.get("nav_premium") is not None and abs(r["nav_premium"]) > PREMIUM_NOTE,
-        "why": reasons,
+        "why": reasons, "rank": r.get("turnover_rank"), "hot": bool(r.get("hot")),
     }
 
 
+def _facets(rows: Sequence[dict]) -> Tuple[List[dict], List[dict]]:
+    facets: Dict[str, int] = {}
+    for r in rows:
+        facets[r.get("category") or "none"] = facets.get(r.get("category") or "none", 0) + 1
+    cats = [{**CATEGORIES[k], "count": n} for k, n in sorted(facets.items(), key=lambda kv: -kv[1]) if k in CATEGORIES] + \
+           ([{"key": "none", "label": "Not classified", "group": "none", "count": facets["none"]}] if facets.get("none") else [])
+    groups = [{"key": k, "label": v, "count": sum(1 for r in rows if r.get("asset_class") == k)} for k, v in GROUPS.items()]
+    return cats, groups
+
+
+def _meta(rows: Sequence[dict]) -> dict:
+    dates = [r["price_date"] for r in rows if r.get("price_date")]
+    return {"asOf": max(dates).isoformat() if dates else None, "updatedAt": max((r["updated_at"] for r in rows), default=None)}
+
+
+def _hot_blob(rows: Sequence[dict], items: List[dict]) -> dict:
+    """The default list page (most traded first) with everything but the paging already worked out. Built by the nightly job."""
+    cats, groups = _facets(rows)
+    return {"items": items, "universe": len(rows), "categories": cats, "groups": groups, **_meta(rows)}
+
+
 async def _load(app) -> dict:
-    """All active ETFs (about 355 light rows), cached in this process for two minutes. One short read; nothing runs in the background."""
+    """All active ETFs (their narrow rows, about 355), kept in this process for two minutes. Order of lookup: this process, Redis (written by the
+    nightly job), Postgres. One short read; nothing runs in the background."""
     cache = getattr(app.state, "etf_cache", None)
     if cache and time.time() - cache["at"] < CACHE_SECONDS:
         return cache
-    async with app.state.store.pool.acquire() as conn:
-        rows = [dict(r) for r in await conn.fetch("SELECT * FROM etf_funds WHERE active ORDER BY avg_turnover DESC NULLS LAST, symbol")]
-    dates = [r["price_date"] for r in rows if r.get("price_date")]
-    cache = {"at": time.time(), "rows": rows, "by": {r["symbol"]: r for r in rows}, "asOf": max(dates).isoformat() if dates else None,
-             "updated": max((r["updated_at"] for r in rows), default=None)}
+    store, rows = app.state.store, None
+    try:
+        raw = await store.redis.get(ALL_KEY)
+        rows = _unpack_rows(raw) if raw else None
+    except Exception:                                          # Redis down or an unreadable copy: Postgres decides
+        rows = None
+    if rows is None:
+        async with store.pool.acquire() as conn:
+            rows = [dict(r) for r in await conn.fetch("SELECT * FROM etf_funds WHERE active ORDER BY avg_turnover DESC NULLS LAST, symbol")]
+        try:
+            await store.redis.set(ALL_KEY, _pack_rows(rows), ex=DATA_TTL)
+        except Exception:
+            pass
+    words = {}
+    for r in rows:                                             # the typo-tolerant search index: every ETF's words, split once
+        cat = CATEGORIES.get(r["category"], {}).get("label", "") if r.get("category") else ""
+        w = _words(f"{r['display_name']} {r['symbol']} {r.get('scheme_name') or ''} {r.get('short_name') or ''} {r.get('fund_house') or ''} {cat} {r['isin']}")
+        words[r["symbol"]] = (w, "".join(w))
+    cache = {"at": time.time(), "rows": rows, "by": {r["symbol"]: r for r in rows}, "words": words, **_meta(rows)}
     app.state.etf_cache = cache
     return cache
 
 
+async def _hot(app) -> Optional[dict]:
+    """The ready-made hot list: this process (60 s), Redis, then the etf_hot table. None when there is nothing hot (before the first nightly run)."""
+    c = getattr(app.state, "etf_hot", None)
+    if c and time.time() - c["at"] < 60:
+        return c["blob"]
+    blob = None
+    try:
+        raw = await app.state.store.redis.get(HOT_KEY)
+        blob = json.loads(raw) if raw else None
+    except Exception:
+        blob = None
+    if blob is None:
+        async with app.state.store.pool.acquire() as conn:
+            items = [json.loads(r["body"]) if isinstance(r["body"], str) else r["body"] for r in await conn.fetch("SELECT body FROM etf_hot ORDER BY rank")]
+        if items:
+            blob = _hot_blob((await _load(app))["rows"], items)
+    app.state.etf_hot = {"at": time.time(), "blob": blob}
+    return blob
+
+
+def _default(o: Any) -> str:
+    return o.isoformat() if isinstance(o, (date, datetime)) else str(o)
+
+
 def _json(body: Any, status: int = 200, cache: int = CACHE_SECONDS) -> Response:
-    return Response(content=json.dumps(body, separators=(",", ":"), default=str), status_code=status, media_type="application/json",
+    return Response(content=json.dumps(body, separators=(",", ":"), default=_default), status_code=status, media_type="application/json",
                     headers={"Cache-Control": f"public, max-age={cache}"})
 
 
@@ -804,12 +967,34 @@ def _bound(v: Optional[str]) -> Optional[float]:
     return f if f is not None and math.isfinite(f) and abs(f) <= 100000 else None
 
 
+def headline(v: dict, reasons: dict, dates: Optional[Sequence[date]], closes: Optional[Sequence[float]], brk: Optional[date]) -> List[dict]:
+    """The three return figures every page leads with: 1 day, 1 year, 5 years (price return, dividends not included).
+    `value` is the stored figure; `from`/`to` are the two closes it was worked out from, found again in the history so the page can show them.
+    The 5-year value is the TOTAL change over five years (`annualised` is the same change as a yearly rate)."""
+    out = []
+    n = len(dates) if dates else 0
+    L = dates[-1] if n else None
+    first_ok = max(bisect_right(dates, brk) - 1, 0) if (n and brk) else 0
+    for key, label in (("1d", "1 day"), ("1y", "1 year"), ("5y", "5 years")):
+        val = v["changePct"] if key == "1d" else v[f"ret{key}"]
+        why = None if val is not None else (reasons.get("change") if key == "1d" else reasons.get(f"ret_{key}")) or "Not enough price history"
+        frm = to = None
+        if val is not None and n >= 2:
+            if key == "1d":
+                i = n - 2
+            else:
+                i, _code = _lookback(dates, first_ok, month_back(L, 12 if key == "1y" else 60))
+            if i is not None:
+                frm, to = {"date": dates[i].isoformat(), "close": round(closes[i], 4)}, {"date": L.isoformat(), "close": round(closes[-1], 4)}
+        out.append({"key": key, "label": label, "value": val, "annualised": v["cagr5y"] if key == "5y" else None, "why": why, "from": frm, "to": to,
+                    "basis": "Change from the previous close" if key == "1d" else "Price change, dividends not included" + (" (total over the five years, not per year)" if key == "5y" else "")})
+    return out
+
+
 @router.get("")
 async def list_etfs(request: Request, q: str = "", category: str = "", asset: str = "", sort: str = "turnover", order: str = "", limit: int = 40, offset: int = 0):
     qp = request.query_params
     q = q.strip()[:60]
-    cache = await _load(request.app)
-    rows = cache["rows"]
     cats = _csv(category, [*CATEGORIES, "none"])
     assets = _csv(asset, GROUPS)
     sort = sort if sort in LIST_FIELDS else "turnover"
@@ -817,14 +1002,21 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
     limit, offset = max(1, min(limit, 100)), max(0, min(offset, 5000))
     ranges = {k: (_bound(qp.get(k + "Min")), _bound(qp.get(k + "Max"))) for k in FILTER_KEYS}
     ranges = {k: v for k, v in ranges.items() if v[0] is not None or v[1] is not None}
+    if not (q or cats or assets or ranges) and sort == "turnover" and desc:            # the default page: ready-made, no work at all
+        hot = await _hot(request.app)
+        if hot and offset + limit <= len(hot["items"]):
+            return _json({"items": hot["items"][offset:offset + limit], "total": hot["universe"], "universe": hot["universe"], "hotCount": len(hot["items"]), "offset": offset,
+                          "limit": limit, "excluded": 0, "categories": hot["categories"], "groups": hot["groups"], "asOf": hot["asOf"], "updatedAt": hot["updatedAt"],
+                          "source": SOURCE, "disclaimer": DISCLAIMER})
+    cache = await _load(request.app)
+    rows = cache["rows"]
 
     views = []
     scored: Dict[str, int] = {}
     for r in rows:
         if q:
-            cat = CATEGORIES.get(r["category"], {}).get("label", "") if r.get("category") else ""
-            words = _words(f"{r['display_name']} {r['symbol']} {r.get('scheme_name') or ''} {r.get('short_name') or ''} {r.get('fund_house') or ''} {cat} {r['isin']}")
-            s = search_score(q, words, "".join(words))
+            words, joined = cache["words"][r["symbol"]]
+            s = search_score(q, words, joined)
             if not s:
                 continue
             qj = "".join(_words(q))
@@ -861,21 +1053,79 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
     if q and sort == "turnover":
         ordered.sort(key=lambda r: -scored.get(r["symbol"], 0))            # a search ranks by how well the words match; ties keep the most-traded first
     page = ordered[offset:offset + limit]
-    facets: Dict[str, int] = {}
-    for r in rows:
-        facets[r.get("category") or "none"] = facets.get(r.get("category") or "none", 0) + 1
-    body = {"items": [row_view(r) for r in page], "total": len(ordered), "universe": len(rows), "offset": offset, "limit": limit, "excluded": excluded,
-            "categories": [{**CATEGORIES[k], "count": n} for k, n in sorted(facets.items(), key=lambda kv: -kv[1]) if k in CATEGORIES] +
-                          ([{"key": "none", "label": "Not classified", "group": "none", "count": facets["none"]}] if facets.get("none") else []),
-            "groups": [{"key": k, "label": v, "count": sum(1 for r in rows if r.get("asset_class") == k)} for k, v in GROUPS.items()],
-            "asOf": cache["asOf"], "updatedAt": cache["updated"], "source": SOURCE, "disclaimer": DISCLAIMER}
+    fc, fg = _facets(rows)
+    body = {"items": [row_view(r) for r in page], "total": len(ordered), "universe": len(rows), "hotCount": sum(1 for r in rows if r.get("hot")), "offset": offset, "limit": limit,
+            "excluded": excluded, "categories": fc, "groups": fg,
+            "asOf": cache["asOf"], "updatedAt": cache["updatedAt"], "source": SOURCE, "disclaimer": DISCLAIMER}
     return _json(body)
 
 
-async def _history(app, symbol: str) -> Optional[dict]:
+async def cold_history(app, r: dict) -> Tuple[Optional[dict], Optional[str]]:
+    """Daily closes of an ETF that is not hot: Redis first (14 days), else fetched from Upstox now (one call) and cached. Never beyond the stored
+    close, so the chart ends on the same day and price as the figures. Returns (history, None) or (None, why)."""
+    store, sym = app.state.store, r["symbol"]
+    key = f"etf:hist:{sym}"
+    try:
+        raw = await store.redis.get(key)
+        h = _unpack_hist(raw) if raw else None
+        if h:
+            return h, None
+    except Exception:
+        pass
+    settings = getattr(app.state, "settings", None)
+    if settings is None or not settings.upstox_access_token:
+        return None, "The price chart for this ETF is not stored and the price source is not connected right now"
+    lock = f"etf:histlock:{sym}"
+    try:
+        got = await store.redis.set(lock, b"1", nx=True, ex=30)
+    except Exception:
+        got = True
+    if not got:                                              # another visitor is fetching it: wait a moment for their result
+        for _ in range(12):
+            await asyncio.sleep(0.25)
+            try:
+                raw = await store.redis.get(key)
+            except Exception:
+                break
+            h = _unpack_hist(raw) if raw else None
+            if h:
+                return h, None
+        return None, "The price chart is being prepared; please try again in a moment"
+    client = UpstoxClient(settings, store.redis)
+    try:
+        today = datetime.now(IST).date()
+        data = await client.get(f"/v3/historical-candle/{urlquote(r['instrument_key'], safe='')}/days/1/{today.isoformat()}/{(today - timedelta(days=3650)).isoformat()}")
+        rows, _dup = parse_candles(data.get("candles") if isinstance(data, dict) else None)
+        last = r.get("price_date")
+        rows = [c for c in rows if not last or c[0] <= last]
+        if rows and last and r.get("price") and rows[-1][0] < last:              # tonight's close came from the quote; the candle list may not have it yet
+            rows.append((last, r["price"], r["price"], r["price"], r["price"], 0.0))
+        if len(rows) < 2:
+            return None, "The price source returned no usable history for this ETF"
+        ds, cs = [c[0] for c in rows], [c[4] for c in rows]
+        try:
+            await store.redis.set(key, _pack_hist(ds, cs), ex=HIST_TTL)
+        except Exception:
+            pass
+        return {"dates": ds, "closes": cs}, None
+    except UpstoxTokenExpired:
+        return None, "The price source did not accept our access right now"
+    except (UpstoxError, httpx.HTTPError):
+        return None, "The price source did not answer"
+    finally:
+        await client.aclose()
+        try:
+            await store.redis.delete(lock)
+        except Exception:
+            pass
+
+
+async def _history(app, symbol: str, r: Optional[dict] = None) -> Tuple[Optional[dict], Optional[str]]:
     async with app.state.store.pool.acquire() as conn:
-        r = await conn.fetchrow("SELECT dates, closes FROM etf_history WHERE symbol = $1", symbol)
-    return dict(r) if r else None
+        row = await conn.fetchrow("SELECT dates, closes FROM etf_history WHERE symbol = $1", symbol)
+    if row:
+        return dict(row), None
+    return await cold_history(app, r) if r else (None, "No price history")
 
 
 def _parse_symbols(raw: str) -> List[str]:
@@ -899,10 +1149,10 @@ async def compare(request: Request, symbols: str = "", range: str = "1Y"):
     missing = [s for s in syms if s not in cache["by"]]
     if missing:
         raise fail(404, "unknown_etf", "No ETF with the symbol " + ", ".join(missing) + ".")
-    hist = {s: await _history(request.app, s) for s in syms}
+    hist = dict(zip(syms, await asyncio.gather(*[_history(request.app, s, cache["by"][s]) for s in syms])))
     items, usable = [], {}
     for s in syms:
-        r, h = cache["by"][s], hist[s]
+        r, h = cache["by"][s], hist[s][0]
         v = row_view(r)
         items.append(v)
         if h and len(h["dates"]) > 1:
@@ -911,7 +1161,7 @@ async def compare(request: Request, symbols: str = "", range: str = "1Y"):
             usable[s] = (h["dates"][k:], h["closes"][k:])
     notes: List[str] = []
     if len(usable) < len(syms):
-        notes.append("Some of these ETFs have no price history yet, so they are left out of the chart.")
+        notes.append("Some of these ETFs have no price history we can show right now, so they are left out of the chart. Their figures in the table are unaffected.")
     start, series = None, {}
     if usable:
         last = max(d[-1] for d, _ in usable.values())
@@ -928,7 +1178,7 @@ async def compare(request: Request, symbols: str = "", range: str = "1Y"):
             if s in usable and cache["by"][s].get("break_date"):
                 notes.append("%s: prices before %s are left out because the source shows a jump there that looks like a split or a bad price." % (s, cache["by"][s]["break_date"].strftime("%d %b %Y")))
     return _json({"symbols": syms, "range": rng, "start": start.isoformat() if start else None, "items": items, "series": series, "notes": notes,
-                  "asOf": cache["asOf"], "updatedAt": cache["updated"], "source": SOURCE, "disclaimer": DISCLAIMER})
+                  "asOf": cache["asOf"], "updatedAt": cache["updatedAt"], "source": SOURCE, "disclaimer": DISCLAIMER})
 
 
 @router.get("/{symbol}")
@@ -942,7 +1192,7 @@ async def detail(request: Request, symbol: str, range: str = "1Y"):
     r = cache["by"].get(sym)
     if not r:
         raise fail(404, "unknown_etf", "No ETF with that symbol.")
-    h = await _history(request.app, sym)
+    h, hwhy = await _history(request.app, sym, r)
     brk = r.get("break_date")
     extra = _jsond(r.get("extra"))
     reasons = _jsond(r.get("reasons"))
@@ -959,12 +1209,64 @@ async def detail(request: Request, symbol: str, range: str = "1Y"):
              {"label": "Fund house", "value": r.get("fund_house"), "source": "AMFI"}, {"label": "AMFI scheme name", "value": tidy_scheme(r.get("scheme_name")), "source": "AMFI"},
              {"label": "Price history in our data from", "value": v["firstDate"], "note": "Not the launch date: our price source goes back 10 years at most"},
              {"label": "Average daily traded value (20 sessions)", "value": v["avgTurnover"], "unit": "INR"}]
-    ser = series_for(h["dates"], h["closes"], rng, brk) if h else {"range": rng, "available": False, "why": "No price history", "points": [], "grain": "daily"}
+    ser = series_for(h["dates"], h["closes"], rng, brk) if h else {"range": rng, "available": False, "why": hwhy or "No price history", "points": [], "grain": "daily"}
     avail = {}
     if h:
         for k in RANGES:
             s = series_for(h["dates"], h["closes"], k, brk) if k != rng else ser
             avail[k] = {"available": s["available"], "why": s.get("why")}
-    return _json({**v, "returns": returns, "risk": risk, "nav": nav, "facts": [f for f in facts if f["value"] is not None], "unavailable": UNAVAILABLE, "unavailableWhy": NOT_PUBLISHED,
+    head = headline(v, reasons, h["dates"] if h else None, h["closes"] if h else None, brk)
+    return _json({**v, "headline": head, "returns": returns, "risk": risk, "nav": nav, "facts": [f for f in facts if f["value"] is not None], "unavailable": UNAVAILABLE, "unavailableWhy": NOT_PUBLISHED,
                   "series": ser, "ranges": avail, "breakNote": extra.get("break_note"), "priceNote": reasons.get("price"),
                   "asOf": v["priceDate"], "updatedAt": r["updated_at"], "source": SOURCE, "disclaimer": DISCLAIMER})
+
+
+# ---------------------------------------------------------------------------------------------------------------- holdings and facts
+# Both come from finlit.disclosure (fund-house portfolio and factsheet disclosures, read by another module). That module may be missing or
+# may fail; the page then says so with a reason instead of showing an empty or made-up panel.
+PORTFOLIO_WAIT = "Holdings are not available yet: the fund-house disclosure source is not connected"
+FACTS_WAIT = "Fund facts are not available yet: the fund-house disclosure source is not connected"
+
+
+async def _disclosure(name: str, app, isin: str) -> Tuple[Any, Optional[str]]:
+    try:
+        from . import disclosure                              # noqa: PLC0415  (loaded lazily: the module is owned elsewhere and may not exist yet)
+        fn = getattr(disclosure, name)
+    except (ImportError, AttributeError):
+        return None, PORTFOLIO_WAIT if name == "get_portfolio" else FACTS_WAIT
+    try:
+        res = fn(app.state.store.pool, isin)
+        if asyncio.iscoroutine(res):
+            res = await res
+    except Exception as exc:                                  # a failing disclosure read must never break the ETF page
+        log.warning("etf %s %s failed: %s", name, isin, type(exc).__name__)
+        return None, "The disclosure data could not be read right now"
+    if not res:
+        return None, "No disclosure has been published or found for this ETF yet"
+    return res, None
+
+
+@router.get("/{symbol}/portfolio")
+async def portfolio(request: Request, symbol: str):
+    sym = symbol.upper()
+    r = (await _load(request.app))["by"].get(sym) if SYMBOL_RE.match(sym) else None
+    if not r:
+        raise fail(404, "unknown_etf", "No ETF with that symbol.")
+    res, why = await _disclosure("get_portfolio", request.app, r["isin"])
+    base = {"symbol": sym, "isin": r["isin"], "disclaimer": DISCLAIMER}
+    if why or not isinstance(res, dict):
+        return _json({**base, "unavailable": why or "No portfolio found", "holdings": [], "exited": [], "summary": None, "asOf": None}, cache=60)
+    return _json({**base, **res}, cache=300)                  # no "unavailable" key at all: the page tells a portfolio from a reason by that key
+
+
+@router.get("/{symbol}/facts")
+async def facts(request: Request, symbol: str):
+    sym = symbol.upper()
+    r = (await _load(request.app))["by"].get(sym) if SYMBOL_RE.match(sym) else None
+    if not r:
+        raise fail(404, "unknown_etf", "No ETF with that symbol.")
+    res, why = await _disclosure("get_facts", request.app, r["isin"])
+    base = {"symbol": sym, "isin": r["isin"], "disclaimer": DISCLAIMER}
+    if why or not isinstance(res, dict):
+        return _json({**base, "unavailable": why or "No facts found", "facts": {}}, cache=60)
+    return _json({**base, "facts": res, "unavailable": None}, cache=300)

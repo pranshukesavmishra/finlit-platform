@@ -3,12 +3,15 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import {
-  CATEGORY_TERM, COL_BY, NOT_PUBLISHED, RANGES, RANGE_LABEL, day, fallReading, move, pct, premiumReading, rangePosition, rangeReading, rupee, summaryOfSeries, traded, useEtf, useTray, volReading,
+  CATEGORY_TERM, COL_BY, RANGES, RANGE_LABEL, day, fallReading, move, pct, premiumReading, rangePosition, rangeReading, rupee, summaryOfSeries, traded, useEtf, useTray, volReading,
   MAX_COMPARE, type EtfDetail, type RangeKey,
 } from "../lib/etf";
 import { MINUS, nf } from "../lib/format";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
 import { EtfChart } from "./EtfChart";
+import { EtfFacts } from "./Facts";
+import { EtfHoldings } from "./Holdings";
+import { ReturnsBlock } from "./Returns";
 
 const isRange = (v: string | null): v is RangeKey => !!v && (RANGES as readonly string[]).includes(v);
 
@@ -52,6 +55,8 @@ export function EtfDetailPage() {
         </div>
       </header>
 
+      <ReturnsBlock head={d.headline} asOf={d.priceDate} />
+
       <section className="card etf-sec" aria-labelledby="h-chart">
         <div className="card-h"><h3 id="h-chart"><span className="ci"><Icon name="line" /></span>Price chart</h3>
           <div className="etf-ranges-btns" role="group" aria-label="Chart range">{RANGES.map((r) => {
@@ -67,24 +72,25 @@ export function EtfDetailPage() {
         {d.breakNote && <p className="etf-warn" role="note"><Icon name="alert" /><span>{d.breakNote}</span></p>}
       </section>
 
-      <section className="card etf-sec" aria-labelledby="h-ret">
-        <div className="card-h"><h3 id="h-ret"><span className="ci"><Icon name="growth" /></span>Price return <GlossInfo name="Price return" fallback={COL_BY.ret1y.help} /></h3><span className="s">to {day(d.priceDate)}</span></div>
-        <div className="tw"><table className="etf-ret">
-          <caption className="sr-only">Price return over 1 month to 5 years</caption>
-          <thead><tr><th scope="col">Period</th><th scope="col" className="num">Total price change</th><th scope="col" className="num">A year <GlossInfo name="CAGR (compound annual growth rate)" fallback="The yearly rate that gives the same total change." /></th></tr></thead>
-          <tbody>{d.returns.map((r) => (
-            <tr key={r.key}>
-              <th scope="row">{r.label}</th>
-              <td className="num">{r.price == null ? <Blank why={r.why ?? "Not enough price history"} /> : <Tone v={r.price}>{pct(r.price)}</Tone>}</td>
-              <td className="num">{r.key === "3y" || r.key === "5y" ? (r.annualised == null ? <Blank why={r.why ?? "Not enough price history"} /> : <Tone v={r.annualised}>{pct(r.annualised)}</Tone>) : <span className="faint" title="Shown for 3 years and longer">·</span>}</td>
-            </tr>))}</tbody>
-        </table></div>
-        {d.returns.some((r) => r.price == null) && <ul className="etf-why">{d.returns.filter((r) => r.price == null).map((r) => <li key={r.key}><b>{r.label}:</b> {r.why ?? "Not enough price history"}</li>)}</ul>}
-        {d.category === "liquid" && <p className="etf-info"><Icon name="info" />Some liquid ETFs pay out their income as dividends, so their price return can look close to zero while holders still received that income. Price return does not count payouts.</p>}
-      </section>
+      <EtfHoldings symbol={d.symbol} />
 
       <section className="etf-risk" aria-labelledby="h-risk">
         <h2 id="h-risk" className="etf-h2">Risk, in plain words</h2>
+        <div className="card etf-sec" aria-labelledby="h-ret">
+          <div className="card-h"><h3 id="h-ret">Other periods <GlossInfo name="Price return" fallback={COL_BY.ret1y.help} /></h3><span className="s">price return to {day(d.priceDate)}</span></div>
+          <div className="tw"><table className="etf-ret">
+            <caption className="sr-only">Price return over 1 month, 6 months and 3 years</caption>
+            <thead><tr><th scope="col">Period</th><th scope="col" className="num">Total price change</th><th scope="col" className="num">A year <GlossInfo name="CAGR (compound annual growth rate)" fallback="The yearly rate that gives the same total change." /></th></tr></thead>
+            <tbody>{d.returns.filter((r) => ["1m", "6m", "3y"].includes(r.key)).map((r) => (
+              <tr key={r.key}>
+                <th scope="row">{r.label}</th>
+                <td className="num">{r.price == null ? <Blank why={r.why ?? "Not enough price history"} /> : <Tone v={r.price}>{pct(r.price)}</Tone>}</td>
+                <td className="num">{r.key === "3y" ? (r.annualised == null ? <Blank why={r.why ?? "Not enough price history"} /> : <Tone v={r.annualised}>{pct(r.annualised)}</Tone>) : <span className="faint" title="Shown for 3 years and longer">·</span>}</td>
+              </tr>))}</tbody>
+          </table></div>
+          {d.returns.some((r) => ["1m", "6m", "3y"].includes(r.key) && r.price == null) && <ul className="etf-why">{d.returns.filter((r) => ["1m", "6m", "3y"].includes(r.key) && r.price == null).map((r) => <li key={r.key}><b>{r.label}:</b> {r.why ?? "Not enough price history"}</li>)}</ul>}
+          {d.category === "liquid" && <p className="etf-info"><Icon name="info" />Some liquid ETFs pay out their income as dividends, so their price return can look close to zero while holders still received that income. Price return does not count payouts.</p>}
+        </div>
         <div className="etf-grid3">
           <div className="card etf-sec">
             <div className="card-h"><h3>Volatility <GlossInfo name="Volatility" fallback={COL_BY.vol1y.help} /></h3><span className="s">last year</span></div>
@@ -125,13 +131,7 @@ export function EtfDetailPage() {
         </section>
       </div>
 
-      <section className="card etf-sec etf-na" aria-labelledby="h-na">
-        <div className="card-h"><h3 id="h-na"><span className="ci"><Icon name="alert" /></span>Not available from our data source</h3></div>
-        <p>{NOT_PUBLISHED}: {d.unavailable.map((u, i) => <span key={u}>{i ? ", " : ""}{u}</span>)}. We show a dash rather than a guess. The fund house's own factsheet is the place to look for these.</p>
-        <p className="etf-small faint">
-          <GlossInfo name="Assets under management (AUM)" fallback="The total value of money a fund holds for its investors." /> AUM · <GlossInfo name="Expense ratio" fallback="The yearly fee a fund charges." /> expense ratio · <GlossInfo name="Tracking error" fallback="How far a fund drifts from the index it follows." /> tracking error · <GlossInfo name="Benchmark" fallback="The index or yardstick a fund is measured against." /> benchmark
-        </p>
-      </section>
+      <EtfFacts symbol={d.symbol} />
 
       <DataNote asOf={d.asOf} updatedAt={d.updatedAt} source={d.source} />
     </div>

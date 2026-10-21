@@ -138,3 +138,25 @@
   .etf-colwrap { position: static; } .etf-tools { position: relative; } .etf-pop { left: 0; right: 0; width: auto; }
   .etf-tray { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
+/* returns block: the three figures every page leads with */
+.etf-returns { margin-top: 18px; }
+.etf-r3 { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.etf-rc { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--s2); min-width: 0; }
+.etf-rc .label { font-size: 13px; font-weight: 600; color: var(--muted); } .etf-rc .label small { font-weight: 400; color: var(--faint); }
+.etf-rbig { font: 400 clamp(28px, 5.4vw, 40px)/1.1 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.etf-rbig.up { color: var(--gain); } .etf-rbig.down { color: var(--loss); } .etf-blank-big { color: var(--faint); }
+.etf-rsub { font-size: 14px; color: var(--text); } .etf-rfrom { font-size: 12.5px; color: var(--muted); line-height: 1.45; } .etf-rbasis, .etf-rwhy { font-size: 12.5px; color: var(--faint); line-height: 1.45; }
+.etf-rwhy { color: var(--muted); font-size: 13.5px; }
+.etf-cell-sub { display: block; font: 400 11.5px var(--sans); color: var(--faint); }
+.etf-pricem { display: none; }
+.etf-ffacts dd small { text-align: right; }
+.etf-hotnote { margin-top: 0; }
+@media (max-width: 900px) { .etf-r3 { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .etf-table { min-width: 0; font-size: 13px; }
+  .etf-table th, .etf-table td { padding: 9px 7px; }
+  .etf-table .etf-c-category, .etf-table .etf-c-price { display: none; }
+  .etf-pricem { display: inline; color: var(--text); }
+  .etf-first { min-width: 118px; max-width: 132px; }
+  .etf-sub { flex-wrap: wrap; row-gap: 4px; }
+}

@@ -9,8 +9,10 @@ Sources, in order of preference
   3. https://api.mfapi.in/mf/<code>  a third-party mirror of the same AMFI data. Used only on demand, for a Growth scheme whose AMFI history has not been
      loaded (for example fund houses missing from AMFI's dropdown), and only after its newest NAV is checked against AMFI's NAVAll. The page always says so.
 
-What is stored (the free database is small): every scheme with its latest NAV; the daily NAV series only for ACTIVE GROWTH options (Direct, Regular),
-packed at ~3 bytes a point; returns, volatility and drawdown worked out when data arrives, so the list is a plain query. IDCW / dividend options are listed
+What is stored (the free database is small): every scheme with its latest NAV, its previous NAV (the 1 day change) and its 1 year and 5 year returns,
+so the list is a plain query. The daily NAV series (packed at ~3 bytes a point, with volatility, drawdown and the other periods) is kept only for the
+100 "hot" schemes, answered from the mf_hot table / Redis in milliseconds; any other Growth scheme's series is fetched when somebody opens it and cached in
+Redis for a few days. The 1 year and 5 year figures of the others are kept current each night from AMFI's industry-wide history for just the two start dates. IDCW / dividend options are listed
 with their own NAV but no returns: a payout lowers the NAV, so NAV-to-NAV change would understate what an investor earned.
 
 Not here, on purpose: AUM, expense ratio, holdings, sector split, benchmark, manager, launch date, risk-o-meter. AMFI does not put them in the NAV files and
@@ -41,6 +43,7 @@ import httpx
 from fastapi import APIRouter, Query, Request, Response
 
 from .auth.routes import fail
+from .config import MF_EXCLUDED_AMCS
 from .store import dumps, etag_for
 
 log = logging.getLogger("finlit.mf")
@@ -57,7 +60,11 @@ MIN_KEEP_RATIO = 0.8          # a file with fewer schemes than this share of wha
 MAX_STALE = 7                 # a return's start NAV may be at most this many days before the start date (weekends, holidays)
 SCALE = 100_000_000           # NAVs are stored as integers in 1e-8 units (AMFI gives up to 8 decimals)
 PAGE_MAX = 100
-MIRROR_TTL = 6 * 3600
+COLD_TTL = 3 * 86400          # a scheme that is not hot stays in Redis this long after it was last opened
+HOT_SIZE = 100
+HOT_TTL = 36 * 3600
+OPENS_KEY = "mf:opens"        # Redis hash: scheme code -> how many times it was opened (feeds the fallback hot ranking)
+ANCHOR_DAYS = 14             # the window of AMFI history asked for around each return's start date
 CACHE_HEADER = "public, max-age=300, stale-while-revalidate=3600"
 DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns."
 SOURCE = "AMFI (Association of Mutual Funds in India), official NAV files"
@@ -95,6 +102,25 @@ def amc_key(name: str) -> str:
 
 
 AMC_BY_KEY: Dict[str, int] = {amc_key(n): i for n, i in AMC_IDS.items()}
+
+
+_HOUSE_WORDS = re.compile(r"\b(?:mutual\s+fund|mf|asset\s+management|asset\s+managers|amc|company|limited|ltd|private|pvt)\b")
+
+
+def house_stem(name: str) -> str:
+    """A fund-house name reduced to its distinctive words: lower case, punctuation gone, 'Mutual Fund' / 'Asset Management' / 'Limited' words dropped.
+    'Trust Mutual Fund' -> 'trust', 'PGIM India Mutual Fund' -> 'pgim india', 'ASK MUTUAL FUND' -> 'ask'."""
+    t = re.sub(r"[^a-z0-9]+", " ", unicodedata.normalize("NFKD", name).lower().replace("&", " and "))
+    return re.sub(r"\s+", " ", _HOUSE_WORDS.sub(" ", t)).strip()
+
+
+EXCLUDED_STEMS = frozenset(house_stem(n) for n in MF_EXCLUDED_AMCS)
+
+
+def is_excluded_amc(name: str) -> bool:
+    """True when the fund house is on config.MF_EXCLUDED_AMCS. The WHOLE distinctive name must equal an entry (so 'Trust' never matches 'Trustline' or
+    'Union', 'ITI' never matches 'ITI' inside another word, and 'NJ' never matches 'NJ' inside a longer name)."""
+    return house_stem(name) in EXCLUDED_STEMS
 
 
 def parse_amc_ids(page: str) -> Dict[str, int]:
@@ -690,8 +716,11 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
 
     1. The file is checked first (verdict): not AMFI's file, no rows, far fewer schemes than stored, or older than what is stored -> REFUSED, nothing changes.
     2. Every scheme's name, category and latest NAV are upserted (a missing or 'N.A.' NAV never overwrites a stored one; nothing is deleted).
-    3. Today's NAV is appended to each stored history and the returns / volatility / drawdown are worked out again for those schemes.
+    3. Today's NAV is appended to each stored history (the hot schemes') and their returns / volatility / drawdown are worked out again.
     4. If whole days were missed (the job did not run), AMFI's industry-wide history for just those days fills the hole.
+    5. Every other Growth scheme gets its 1 year and 5 year returns worked out again from AMFI's history for just the two start dates (`refresh_anchors`).
+    6. The hot set is chosen and its pages are rebuilt (`refresh_hot`); the stored series of everything else is dropped.
+    Fund houses on config.MF_EXCLUDED_AMCS are never loaded; their rows, if any, are deleted first (`prune_excluded`, idempotent).
     `backfill_amc` (an AMC id, name or 'all') additionally loads five years of history for those fund houses: see `backfill`."""
     started = time.perf_counter()
     own = client is None
@@ -699,6 +728,8 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
     try:
         text = await fetch_navall(client)
         parsed = parse_navall(text)
+        pruned = await prune_excluded(store)   # rows of unlisted fund houses are removed first, so the checks below compare like with like
+        dropped = drop_excluded(parsed)
         async with store.pool.acquire() as conn:
             stored = await conn.fetchrow("SELECT count(*) AS n, max(nav_date) AS newest, count(*) FILTER (WHERE active) AS act FROM mf_schemes")
             why = verdict(parsed, stored["n"], stored["newest"], stored["act"])
@@ -707,9 +738,12 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
             return {"status": "refused", "reason": why, "parsed": len(parsed.schemes), "stored": stored["n"], "skipped": parsed.skipped}
         newest = parsed.newest
         res = await apply_navall(store, parsed, newest)
+        res["excludedSchemesSkipped"], res["excludedRowsPruned"] = dropped, pruned
         res["gapDays"] = await _repair_gaps(store, client, res.pop("_gap_since", None), newest)
         if backfill_amc:
             res["backfill"] = await backfill(store, settings, amc=backfill_amc, client=client)
+        res["anchors"] = await refresh_anchors(store, client, newest)
+        res["hot"] = await refresh_hot(store, client)
         await _bump(store, newest)
         res["seconds"] = round(time.perf_counter() - started, 1)
         return res
@@ -720,29 +754,24 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
 
 async def apply_navall(store, parsed: Parsed, newest: date) -> dict:
     """Write an accepted file (see refresh). Everything is one transaction: a failure leaves the previous data exactly as it was."""
+    drop_excluded(parsed)   # normally done by refresh already; a direct call must not store them either
     ss = parsed.schemes
     cols = list(zip(*[(s.code, s.name, s.isin, s.isin_reinvest, s.amc, s.scheme_type, s.category, s.plan, s.option_class, s.option_label, s.family, s.nav, s.nav_date, newest)
                       for s in ss]))
-    seeded = appended = 0
+    appended = 0
     gap_since: Optional[date] = None
     async with store.pool.acquire() as conn, conn.transaction():
         before = await conn.fetchval("SELECT count(*) FROM mf_schemes")
         prev_meta = await _meta(conn, "refresh") or {}
         await conn.execute(UPSERT, *[list(c) for c in cols])
         await conn.execute("UPDATE mf_schemes SET active = (nav_date IS NOT NULL AND nav_date >= $1::date - $2::int)", newest, ACTIVE_DAYS)
-        done = {r["amc_key"] for r in await conn.fetch("SELECT amc_key FROM mf_backfill")}
-        # Schemes whose newest NAV is later than the last stored day of their history: append it (or, with no history row yet, start one for a
-        # fund house that has had its history loaded: the scheme is new; `complete` stays false so a missing past is never called "younger").
-        rows = await conn.fetch("""SELECT s.code, s.amc, s.nav, s.nav_date, h.blob, h.d0, h.d1, h.complete FROM mf_schemes s LEFT JOIN mf_history h USING (code)
-                                   WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL AND (h.d1 IS NULL OR s.nav_date > h.d1)""")
+        # Schemes whose newest NAV is later than the last stored day of their history (only the hot ones have a history): append it. A scheme with no
+        # stored history gets its 1 and 5 year figures from refresh_anchors instead.
+        rows = await conn.fetch("""SELECT s.code, s.amc, s.nav, s.nav_date, h.blob, h.d0, h.d1, h.complete FROM mf_schemes s JOIN mf_history h USING (code)
+                                   WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL AND s.nav_date > h.d1""")
         items = []
         for r in rows:
             nd = r["nav_date"].toordinal()
-            if r["blob"] is None:
-                if amc_key(r["amc"]) in done:
-                    items.append((r["code"], [nd], [r["nav"]], False))
-                    seeded += 1
-                continue
             days, navs = unpack_series(bytes(r["blob"]), r["d0"].toordinal())
             if days[-1] == nd and navs[-1] == r["nav"]:
                 continue
@@ -764,7 +793,7 @@ async def apply_navall(store, parsed: Parsed, newest: date) -> dict:
         total = await conn.fetchval("SELECT count(*) FROM mf_schemes")
         with_hist = await conn.fetchval("SELECT count(*) FROM mf_history")
         res = {"status": "ok", "navDate": newest.isoformat(), "schemesInFile": len(ss), "schemesStored": total, "newSchemes": total - before, "active": active,
-               "withHistory": with_hist, "historyAppended": appended, "historySeeded": seeded, "skipped": parsed.skipped,
+               "withHistory": with_hist, "historyAppended": appended, "skipped": parsed.skipped,
                "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "_gap_since": gap_since}
         await _set_meta(conn, "refresh", {k: v for k, v in res.items() if not k.startswith("_")})
     return res
@@ -776,7 +805,7 @@ async def _repair_gaps(store, client, since: Optional[date], newest: date) -> in
         return 0
     start, covered = since + timedelta(days=1), 0
     async with store.pool.acquire() as conn:
-        wanted = {r["code"] for r in await conn.fetch(f"SELECT code FROM mf_schemes WHERE {HIST_WANTED} AND has_hist")}  # nosec B608 - fixed column list and constant filter, no input
+        wanted = {r["code"] for r in await conn.fetch(f"SELECT code FROM mf_schemes WHERE {HIST_WANTED} AND code IN (SELECT code FROM mf_history)")}  # nosec B608 - fixed column list and constant filter, no input
     pieces: Dict[int, List[Tuple[array.array, array.array]]] = {}
     while start <= newest and covered < 120:
         end = min(newest, start + timedelta(days=19))
@@ -817,10 +846,204 @@ async def rebuild(store, batch: int = 300) -> int:
     return n
 
 
+# ====================================================================================== unlisted fund houses
+
+def drop_excluded(parsed: Parsed) -> int:
+    """Remove schemes of unlisted fund houses (config.MF_EXCLUDED_AMCS) from a parsed file; returns how many."""
+    keep = [s for s in parsed.schemes if not is_excluded_amc(s.amc)]
+    n = len(parsed.schemes) - len(keep)
+    if n:
+        parsed.schemes = keep
+        parsed.skipped["scheme of an unlisted fund house"] = n
+    return n
+
+
+async def prune_excluded(store) -> int:
+    """Delete what is stored for unlisted fund houses (schemes, their series, hot rows and the backfill record). Idempotent; touches only those houses."""
+    async with store.pool.acquire() as conn, conn.transaction():
+        gone = [r["amc"] for r in await conn.fetch("SELECT DISTINCT amc FROM mf_schemes") if is_excluded_amc(r["amc"])]
+        n = 0
+        if gone:
+            n = await conn.fetchval("WITH d AS (DELETE FROM mf_schemes WHERE amc = ANY($1::text[]) RETURNING 1) SELECT count(*) FROM d", gone)
+        marks = [r["amc_key"] for r in await conn.fetch("SELECT amc_key, amc FROM mf_backfill") if is_excluded_amc(r["amc"])]
+        if marks:
+            await conn.execute("DELETE FROM mf_backfill WHERE amc_key = ANY($1::text[])", marks)
+    return n
+
+
+# ====================================================================================== 1 year / 5 year figures for schemes without a stored series
+
+async def refresh_anchors(store, client, newest: date) -> dict:
+    """Keep the 1 year and 5 year returns of every active Growth scheme WITHOUT a stored series current, with two small downloads: AMFI's industry-wide
+    history for the days around the 1 year and the 5 year start date. The figure is worked out exactly as for a stored series (`trailing_returns`: start NAV =
+    the latest on or before the start date, at most MAX_STALE days back; 5 year = per year). If a download fails, the old figures stay with their old date."""
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch("""SELECT s.code, s.nav, s.nav_date FROM mf_schemes s WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL
+                                   AND NOT EXISTS (SELECT 1 FROM mf_history h WHERE h.code = s.code)""")
+    out = {"schemes": len(rows), "updated": 0, "failed": []}
+    if not rows:
+        return out
+    wanted = {r["code"] for r in rows}
+    windows: Dict[str, Dict[int, Tuple[array.array, array.array]]] = {}
+    for key, months in (("1y", 12), ("5y", 60)):
+        t = shift_months(newest, months)
+        try:
+            got = await fetch_history(client, t - timedelta(days=ANCHOR_DAYS), t, None, wanted)
+        except Exception as exc:   # a failed download must not stop the rest of the nightly job
+            log.warning("mf anchors %s failed: %s", key, exc.__class__.__name__)
+            got = None
+        if got is None:
+            out["failed"].append(key)
+        else:
+            windows[key] = got[0]
+    # The previous NAV (the 1 day change) from AMFI's own history for the last week: the NAV file alone can miss a day when a fund house published late.
+    try:
+        got = await fetch_history(client, newest - timedelta(days=7), newest, None, wanted)
+    except Exception as exc:
+        log.warning("mf anchors 1d failed: %s", exc.__class__.__name__)
+        got = None
+    if got is None:
+        out["failed"].append("1d")
+    else:
+        prevs = []
+        for r in rows:
+            pair = got[0].get(r["code"])
+            before = [(d, v) for d, v in zip(pair[0], pair[1]) if d < r["nav_date"].toordinal()] if pair else []
+            if before:
+                d, v = max(before)
+                prevs.append((r["code"], v, date.fromordinal(d)))
+        async with store.pool.acquire() as conn:
+            await conn.executemany("UPDATE mf_schemes SET prev_nav = $2, prev_date = $3 WHERE code = $1 AND (prev_date IS NULL OR $3::date >= prev_date)", prevs)
+        out["previousNavs"] = len(prevs)
+    if len(windows) < 2:
+        return out
+    upd = []
+    for r in rows:
+        end, vals = r["nav_date"].toordinal(), {}
+        for key in ("1y", "5y"):
+            pair = windows[key].get(r["code"])
+            days, navs = merge_points(([] if pair is None else pair[0], [] if pair is None else pair[1]), ([end], [r["nav"]]))
+            ret = trailing_returns(days, navs, True)[key]
+            vals[key] = ret["value"]
+        upd.append((r["code"], vals["1y"], vals["5y"], r["nav_date"]))
+    async with store.pool.acquire() as conn, conn.transaction():
+        await conn.executemany("""UPDATE mf_schemes SET r1y = $2, r5y = $3, metrics_date = $4, has_hist = (has_hist OR $2::float8 IS NOT NULL OR $3::float8 IS NOT NULL),
+                                  r1m = NULL, r6m = NULL, r3y = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL WHERE code = $1""", upd)
+    out["updated"] = len(upd)
+    return out
+
+
+# ====================================================================================== hot and cold
+
+HOT_BASIS_FALLBACK = ("No verified fund size (AUM) is loaded yet, so this is NOT a ranking by size or quality: first the schemes opened most often on this site, "
+                      "then a spread of Direct Growth schemes across the categories, A to Z within each category.")
+
+
+async def choose_hot(store, n: int = HOT_SIZE) -> Tuple[str, List[int]]:
+    """(basis text, scheme codes) of the hot set.
+    1. By AUM when the disclosure module can name the largest schemes (`finlit.disclosure.top_by_aum(pool, n)` -> scheme codes), checked against what is stored.
+    2. Otherwise the fallback: schemes opened most often (Redis counter, at least 3 opens), then a round-robin over categories of active Direct Growth schemes
+       that have a 5 year figure (categories with the most schemes first, A to Z inside each). The basis text says plainly that this is not a size ranking."""
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT code, name, category, plan FROM mf_schemes WHERE active AND option_class = 'Growth' AND nav IS NOT NULL AND r5y IS NOT NULL")
+    ok = {r["code"] for r in rows}
+    try:
+        from . import disclosure   # written by the data-source side; may not exist yet
+        fn = getattr(disclosure, "top_by_aum", None)
+        got = [int(c) for c in (await fn(store.pool, n) if fn else [])]
+        got = [c for c in dict.fromkeys(got) if c in ok][:n]
+        if len(got) >= n // 2:
+            return "Largest schemes by assets under management (AUM), from the fund houses' published monthly disclosure.", got
+    except Exception:
+        log.debug("no AUM ranking available; using the fallback", exc_info=True)
+    picked: List[int] = []
+    try:
+        counts = {int(k): int(v) for k, v in (await store.redis.hgetall(OPENS_KEY)).items()}
+    except Exception:
+        counts = {}
+    for c, k in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+        if k >= 3 and c in ok and len(picked) < n // 3:
+            picked.append(c)
+    by_cat: Dict[str, List[Tuple[str, int]]] = {}
+    for r in rows:
+        if r["plan"] == "Direct" and r["code"] not in picked:
+            by_cat.setdefault(r["category"], []).append((r["name"], r["code"]))
+    cats = sorted(by_cat, key=lambda c: (-len(by_cat[c]), c))
+    for c in cats:
+        by_cat[c].sort()
+    i = 0
+    while len(picked) < n and any(i < len(v) for v in by_cat.values()):
+        for c in cats:
+            if len(picked) < n and i < len(by_cat[c]):
+                picked.append(by_cat[c][i][1])
+        i += 1
+    return HOT_BASIS_FALLBACK, picked[:n]
+
+
+async def refresh_hot(store, client: Optional[httpx.AsyncClient] = None) -> dict:
+    """Nightly: choose the hot set, make sure each hot scheme has its series stored (from the checked mirror when it is missing), drop the stored series of
+    everything else (their 1 and 5 year figures stay in mf_schemes), rebuild the hot pages and copy them to Redis."""
+    from types import SimpleNamespace
+    basis, codes = await choose_hot(store)
+    app = SimpleNamespace(state=SimpleNamespace(store=store, mf_client=client))
+    async with store.pool.acquire() as conn:
+        have = {r["code"] for r in await conn.fetch("SELECT code FROM mf_history WHERE code = ANY($1::int[])", codes)}
+        todo = [dict(r) for r in await conn.fetch("SELECT code, nav, nav_date FROM mf_schemes WHERE code = ANY($1::int[]) AND code <> ALL($2::int[])", codes, list(have))]
+    fetched = 0
+    if client is not None:
+        items = []
+        for row in todo:
+            got = await mirror_fetch(client, store.redis, row)
+            if got:
+                items.append((row["code"], list(got[0]), list(got[1]), False))
+        if items:
+            async with store.pool.acquire() as conn, conn.transaction():
+                await _write_series(conn, items)
+            fetched = len(items)
+    async with store.pool.acquire() as conn, conn.transaction():
+        dropped = await conn.fetchval("WITH d AS (DELETE FROM mf_history WHERE code <> ALL($1::int[]) RETURNING 1) SELECT count(*) FROM d", codes)
+        await conn.execute("""UPDATE mf_schemes SET r1m = NULL, r6m = NULL, r3y = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL
+                              WHERE code <> ALL($1::int[]) AND (r1m IS NOT NULL OR r6m IS NOT NULL OR r3y IS NOT NULL OR vol1y IS NOT NULL OR vol3y IS NOT NULL OR mdd IS NOT NULL)""", codes)
+    built = []
+    for rank, code in enumerate(codes, 1):
+        async with store.pool.acquire() as conn:
+            row = await conn.fetchrow(f"SELECT {LIST_COLS}, isin, isin_reinvest, family FROM mf_schemes WHERE code = $1", code)  # nosec B608 - fixed column list; code is a bound parameter
+        built.append((rank, code, list_item(row), dumps(await detail_payload(app, row))))
+    async with store.pool.acquire() as conn, conn.transaction():
+        await conn.execute("DELETE FROM mf_hot")
+        await conn.executemany("INSERT INTO mf_hot (code, rank, basis, item, detail) VALUES ($1, $2, $3, $4::jsonb, $5)",
+                               [(code, rank, basis, json.dumps(item), detail if isinstance(detail, str) else detail.decode()) for rank, code, item, detail in built])
+    async with store.pool.acquire() as conn:
+        facts = await _facts(conn)
+    await publish_hot(store, basis, built, facts)
+    if dropped and dropped > 200:   # the freed space is only returned to the disk by a rewrite; the table is small afterwards
+        try:
+            async with store.pool.acquire() as conn:
+                await conn.execute("VACUUM (FULL) mf_history")
+        except Exception:
+            log.warning("could not compact mf_history", exc_info=True)
+    return {"hot": len(codes), "basis": "aum" if basis.startswith("Largest") else "fallback", "historyFetched": fetched, "historyDropped": dropped}
+
+
+async def publish_hot(store, basis: str, built, facts: dict) -> None:
+    """Copy the hot list and pages to Redis (no data version in the keys: they are rebuilt every night and live HOT_TTL)."""
+    try:
+        r = store.redis
+        keep = {f"mf:hot:d:{code}" for _, code, _, _ in built}
+        async for k in r.scan_iter("mf:hot:d:*"):
+            if (k.decode() if isinstance(k, bytes) else k) not in keep:
+                await r.delete(k)
+        for _, code, _, detail in built:
+            await r.set(f"mf:hot:d:{code}", detail, ex=HOT_TTL)
+        await r.set("mf:hot:list", dumps({"basis": basis, "items": [{**item, "rank": rank} for rank, _, item, _ in built], **facts}), ex=HOT_TTL)
+    except Exception:
+        log.warning("could not copy the hot set to Redis")
+
+
 # ====================================================================================== history backfill (separate, resumable)
 
 async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: Optional[httpx.AsyncClient] = None, force: bool = False,
-                   log_fn=print) -> dict:
+                   log_fn=print, settle: bool = True) -> dict:
     """Load five years of NAV history from AMFI for the active Growth schemes, ONE FUND HOUSE AT A TIME (AMFI cannot filter below a fund house).
     `amc` is an AMC id, part of a name, or 'all' (every house not done yet; `force` redoes them). A house is written only when all its yearly downloads
     succeeded, then recorded in mf_backfill, so an interrupted run simply continues. Cost for the whole industry: see the figures logged per house."""
@@ -837,6 +1060,8 @@ async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: 
         by_amc: Dict[str, List[dict]] = {}
         names: Dict[str, str] = {}
         for r in rows:
+            if is_excluded_amc(r["amc"]):
+                continue
             k = amc_key(r["amc"])
             by_amc.setdefault(k, []).append(dict(r))
             names[k] = r["amc"]
@@ -869,7 +1094,8 @@ async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: 
             out["points"] += res["points"]
             out["bytes"] += res["bytes"]
             log_fn(f"backfill {nm}: {res['schemes']} schemes, {res['points']} points, {res['bytes'] / 1e6:.1f} MB downloaded, {res['seconds']} s")
-        if out["done"]:
+        if out["done"] and settle:
+            out["hot"] = await refresh_hot(store, client)   # series of everything but the hot schemes is dropped again; their figures stay
             await _bump(store, newest)
         out["status"] = "ok"
         return out
@@ -946,23 +1172,31 @@ def parse_mirror(payload: dict, code: int) -> Optional[Tuple[List[int], List[flo
     return trim(days, [pairs[d] for d in days])
 
 
-async def mirror_series(app, row: dict) -> Optional[Tuple[List[int], List[float]]]:
-    """The mirror's history for a scheme, only if its newest NAV agrees with AMFI's own latest NAV for the same day (else it is not used). Cached six hours."""
+async def mirror_fetch(client: httpx.AsyncClient, redis, row: dict) -> Optional[Tuple[List[int], List[float]]]:
+    """The mirror's history for a scheme, only if its newest NAV agrees with AMFI's own latest NAV for the same day (else it is not used).
+    This is the COLD path: a scheme that is not in the hot set is fetched when somebody opens it and kept in Redis for COLD_TTL with a 'last opened' stamp
+    (rewritten at every open, so a scheme nobody opens for a few days simply expires: that is the prune). A cached copy that does not end on the scheme's
+    current NAV date is not used."""
     code = row["code"]
-    redis = app.state.store.redis
-    key = f"mf:mirror:{code}"
+    key = f"mf:cold:{code}"
+    want = row["nav_date"].toordinal() if row["nav_date"] else None
     try:
         hit = await redis.get(key)
     except Exception:
         hit = None
     if hit is not None:
         raw = json.loads(hit)
-        return (raw["d"], raw["v"]) if raw else None
+        if not raw:
+            return None
+        if raw["d"] and raw["d"][-1] == want:
+            raw["o"] = int(time.time())
+            try:
+                await redis.set(key, json.dumps(raw), ex=COLD_TTL)
+            except Exception:
+                pass
+            return raw["d"], raw["v"]
     series = None
     try:
-        client = getattr(app.state, "mf_client", None)
-        if client is None:
-            client = app.state.mf_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=5.0), follow_redirects=True, headers={"User-Agent": USER_AGENT})
         r = await client.get(f"{MIRROR_URL}/{code}")
         if r.status_code == 200:
             series = parse_mirror(r.json(), code)
@@ -974,20 +1208,27 @@ async def mirror_series(app, row: dict) -> Optional[Tuple[List[int], List[float]
         if i < 0 or days[i] != row["nav_date"].toordinal() or abs(navs[i] - row["nav"]) > 1e-6 * max(1.0, row["nav"]):
             series = None   # the mirror disagrees with AMFI (or lags it): show nothing rather than a number we cannot confirm
     try:
-        await redis.set(key, json.dumps({"d": series[0], "v": series[1]} if series else None), ex=MIRROR_TTL if series else 600)
+        await redis.set(key, json.dumps({"d": series[0], "v": series[1], "o": int(time.time())} if series else None), ex=COLD_TTL if series else 600)
     except Exception:
         pass
     return series
 
 
+async def mirror_series(app, row: dict) -> Optional[Tuple[List[int], List[float]]]:
+    client = getattr(app.state, "mf_client", None)
+    if client is None:
+        client = app.state.mf_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=5.0), follow_redirects=True, headers={"User-Agent": USER_AGENT})
+    return await mirror_fetch(client, app.state.store.redis, row)
+
+
 # ====================================================================================== API
 
 LIST_COLS = "code, name, amc, category, scheme_type, plan, option_class, option_label, nav, nav_date, prev_nav, prev_date, active, has_hist, r1m, r6m, r1y, r3y, r5y, vol1y, vol3y, mdd, metrics_date"
-SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1m": "r1m", "r6m": "r6m", "r1y": "r1y", "r3y": "r3y", "r5y": "r5y",
-         "vol1y": "vol1y", "vol3y": "vol3y", "mdd": "mdd", "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)"}
+# The list shows three return columns only: 1 day, 1 year, 5 year (per year). Everything else (6 month, 3 year, volatility, drawdown) is on the scheme's own page.
+SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1y": "r1y", "r5y": "r5y",
+         "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)"}
 PLANS = ("Direct", "Regular", "Unspecified")
 OPTIONS = ("Growth", "IDCW", "Other")
-RANGE_KEYS = {"1y": "r1y", "3y": "r3y", "5y": "r5y"}
 
 
 def rnd(v: Optional[float], n: int = 2) -> Optional[float]:
@@ -1007,7 +1248,7 @@ def day_change(row) -> Optional[dict]:
 
 def why_no_returns(row) -> Optional[str]:
     """A short code for why a scheme has no return figures at all (the page turns it into words); None when it has some."""
-    if row["r1m"] is not None or row["r6m"] is not None or row["r1y"] is not None or row["r3y"] is not None or row["r5y"] is not None:
+    if row["r1y"] is not None or row["r5y"] is not None:
         return None
     if not row["active"]:
         return "stopped"
@@ -1021,9 +1262,8 @@ def why_no_returns(row) -> Optional[str]:
 def list_item(r) -> dict:
     ch = day_change(r)
     return {"code": r["code"], "name": r["name"], "amc": r["amc"], "category": r["category"], "plan": r["plan"], "option": r["option_label"], "optionClass": r["option_class"],
-            "nav": r["nav"], "navDate": iso(r["nav_date"]), "change": ch["pct"] if ch else None, "active": r["active"],
-            "r1m": rnd(r["r1m"]), "r6m": rnd(r["r6m"]), "r1y": rnd(r["r1y"]), "r3y": rnd(r["r3y"]), "r5y": rnd(r["r5y"]),
-            "vol1y": rnd(r["vol1y"]), "vol3y": rnd(r["vol3y"]), "mdd": rnd(r["mdd"]), "noReturns": why_no_returns(r)}
+            "nav": r["nav"], "navDate": iso(r["nav_date"]), "change": ch["pct"] if ch else None, "changeSince": ch["since"] if ch else None, "active": r["active"],
+            "r1y": rnd(r["r1y"]), "r5y": rnd(r["r5y"]), "retDate": iso(r["metrics_date"]), "noReturns": why_no_returns(r)}
 
 
 async def _version(redis) -> str:
@@ -1062,7 +1302,7 @@ async def _facts(conn) -> dict:
     """The data date and last-updated time every page shows."""
     ref = await _meta(conn, "refresh") or {}
     newest = await conn.fetchval("SELECT max(nav_date) FROM mf_schemes WHERE active")
-    return {"dataDate": iso(newest) or ref.get("navDate"), "updatedAt": ref.get("at"), "source": SOURCE, "disclaimer": DISCLAIMER}
+    return {"dataDate": iso(newest) or ref.get("navDate"), "updatedAt": ref.get("at"), "source": SOURCE, "disclaimer": DISCLAIMER, "excludedAmcs": list(MF_EXCLUDED_AMCS)}
 
 
 _index_cache: Dict[str, object] = {"ver": None, "index": None}
@@ -1081,7 +1321,6 @@ async def _search_index(store) -> SearchIndex:
 async def list_funds(request: Request, q: str = Query("", max_length=80), category: str = Query("", max_length=160), amc: str = Query("", max_length=120),
                      plan: str = Query("", max_length=20), option: str = Query("", max_length=20), stopped: bool = False,
                      min1y: Optional[float] = Query(None, ge=-100, le=100000), max1y: Optional[float] = Query(None, ge=-100, le=100000),
-                     min3y: Optional[float] = Query(None, ge=-100, le=100000), max3y: Optional[float] = Query(None, ge=-100, le=100000),
                      min5y: Optional[float] = Query(None, ge=-100, le=100000), max5y: Optional[float] = Query(None, ge=-100, le=100000),
                      sort: str = Query("", max_length=12), dir: str = Query("asc", pattern="^(asc|desc)$"),
                      page: int = Query(1, ge=1, le=2000), size: int = Query(50, ge=1, le=PAGE_MAX)) -> Response:
@@ -1091,7 +1330,7 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         raise fail(400, "bad_request", "Unknown plan or option.")
     if sort and sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort column.")
-    key = json.dumps([q.strip().lower(), category, amc, plan, option, stopped, min1y, max1y, min3y, max3y, min5y, max5y, sort, dir, page, size])
+    key = json.dumps([q.strip().lower(), category, amc, plan, option, stopped, min1y, max1y, min5y, max5y, sort, dir, page, size])
 
     async def build():
         store = request.app.state.store
@@ -1111,7 +1350,7 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         for col, v in (("category", category), ("amc", amc), ("plan", plan), ("option_class", option)):
             if v:
                 where.append(f"{col} = {arg(v)}")
-        for col, lo, hi in (("r1y", min1y, max1y), ("r3y", min3y, max3y), ("r5y", min5y, max5y)):
+        for col, lo, hi in (("r1y", min1y, max1y), ("r5y", min5y, max5y)):
             if lo is not None:
                 where.append(f"{col} >= {arg(lo)}")
             if hi is not None:
@@ -1168,7 +1407,7 @@ async def load_series(app, row) -> Tuple[List[int], List[float], bool, str, Opti
         got = await mirror_series(app, row)
         if got:
             return got[0], got[1], False, "mirror", "NAV history: third-party mirror of AMFI data (api.mfapi.in)"
-        return [], [], False, "none", "NAV history is not loaded for this scheme yet."
+        return [], [], False, "none", "NAV history could not be fetched right now; try again in a moment."
     return [], [], False, "none", None
 
 
@@ -1193,6 +1432,16 @@ def returns_json(m: dict) -> dict:
     return {k: {"value": rnd(x["value"]), "kind": x["kind"], "from": iso(x["from"]), "why": x["why"]} for k, x in m["returns"].items()}
 
 
+def ret_from_row(row, ret: dict) -> dict:
+    """No series right now (a cold scheme whose history could not be fetched): the 1 and 5 year figures worked out nightly from AMFI's history are still true
+    (the page says as of when), so they are kept; the other periods stay empty."""
+    if row["option_class"] == "Growth" and row["active"] and (row["r1y"] is not None or row["r5y"] is not None):
+        for k in ("1y", "5y"):
+            v = row["r1y" if k == "1y" else "r5y"]
+            ret[k] = {"value": rnd(v), "kind": ret[k]["kind"], "from": None, "why": None if v is not None else ret[k]["why"]}
+    return ret
+
+
 def risk_json(m: dict) -> dict:
     dd = m["mdd"]
     return {"vol1y": {"value": rnd(m["vol1y"]["value"]), "why": m["vol1y"]["why"]}, "vol3y": {"value": rnd(m["vol3y"]["value"]), "why": m["vol3y"]["why"]},
@@ -1207,7 +1456,7 @@ def returns_note(row, source: str, has_series: bool) -> Optional[str]:
     if row["option_class"] != "Growth":
         return "AMFI does not state a Growth option for this scheme, so NAV-to-NAV returns are not shown: any payout it made would be missing from them."
     if not has_series:
-        return "NAV history for this scheme is not loaded yet."
+        return "NAV history is fetched when a scheme is opened and could not be fetched right now, so the risk figures are missing; try again in a moment."
     return None
 
 
@@ -1220,11 +1469,17 @@ async def detail_payload(app, row) -> dict:
         facts = await _facts(conn)
     empty = {"value": None, "kind": "absolute", "from": None, "why": returns_note(row, source, bool(days))}
     ret = returns_json(m) if m else {k: {**empty, "kind": "cagr" if mo > 12 else "absolute"} for k, mo, _ in HORIZONS}
+    if not m:
+        ret = ret_from_row(row, ret)
     risk = risk_json(m) if m else {"vol1y": {"value": None, "why": empty["why"]}, "vol3y": {"value": None, "why": empty["why"]}, "maxDrawdown": {"value": None, "why": empty["why"], "peak": None, "trough": None, "since": None}}
+    change = day_change(row)
+    if len(days) >= 2 and days[-1] == row["nav_date"].toordinal() if days and row["nav_date"] else False:
+        # the 1 day change straight from the last two NAVs of the series (the scheme's own previous NAV date is named, it can be a few days back)
+        change = {"abs": round(navs[-1] - navs[-2], 6), "pct": round((navs[-1] / navs[-2] - 1) * 100, 2), "since": date.fromordinal(days[-2]).isoformat()}
     return {"code": row["code"], "name": row["name"], "isin": row["isin"], "isinReinvest": row["isin_reinvest"], "amc": row["amc"], "category": row["category"],
             "categoryGroup": category_group(row["category"]), "schemeType": row["scheme_type"], "plan": row["plan"], "optionClass": row["option_class"], "option": row["option_label"],
-            "active": row["active"], "nav": row["nav"], "navDate": iso(row["nav_date"]), "prevNav": row["prev_nav"], "prevDate": iso(row["prev_date"]), "change": day_change(row),
-            "returns": ret, "risk": risk, "returnsNote": returns_note(row, source, bool(days)) if not m else None,
+            "active": row["active"], "nav": row["nav"], "navDate": iso(row["nav_date"]), "prevNav": row["prev_nav"], "prevDate": iso(row["prev_date"]), "change": change,
+            "returns": ret, "risk": risk, "retDate": iso(row["metrics_date"]), "returnsNote": returns_note(row, source, bool(days)) if not m and ret["1y"]["value"] is None and ret["5y"]["value"] is None else None,
             "series": series_block(days, navs) if m else {},
             "history": {"source": source if days else None, "from": iso(date.fromordinal(days[0])) if days else None, "to": iso(date.fromordinal(days[-1])) if days else None,
                         "points": len(days), "complete": complete, "note": note if source != "amfi" else None},
@@ -1259,7 +1514,7 @@ async def compare(request: Request, ids: str = Query("", max_length=60), range: 
             ok = bool(days) and r["option_class"] == "Growth" and r["active"]
             m = metrics_for(days, navs, complete) if ok else None
             empty = returns_note(r, source, bool(days))
-            ret = returns_json(m) if m else {k: {"value": None, "kind": "cagr" if mo > 12 else "absolute", "from": None, "why": empty} for k, mo, _ in HORIZONS}
+            ret = returns_json(m) if m else ret_from_row(r, {k: {"value": None, "kind": "cagr" if mo > 12 else "absolute", "from": None, "why": empty} for k, mo, _ in HORIZONS})
             risk = risk_json(m) if m else {"vol1y": {"value": None, "why": empty}, "vol3y": {"value": None, "why": empty}, "maxDrawdown": {"value": None, "why": empty, "peak": None, "trough": None, "since": None}}
             start = None   # index of the NAV the range starts from; None when this fund's history does not reach back that far
             if ok and len(days) > 1:
@@ -1267,7 +1522,7 @@ async def compare(request: Request, ids: str = Query("", max_length=60), range: 
                 start = start if start >= 0 else None
             spans.append((days, navs, start))
             funds.append({"code": r["code"], "name": r["name"], "amc": r["amc"], "category": r["category"], "plan": r["plan"], "option": r["option_label"], "optionClass": r["option_class"],
-                          "nav": r["nav"], "navDate": iso(r["nav_date"]), "change": day_change(r), "active": r["active"], "returns": ret, "risk": risk,
+                          "nav": r["nav"], "navDate": iso(r["nav_date"]), "change": day_change(r), "active": r["active"], "returns": ret, "risk": risk, "retDate": iso(r["metrics_date"]),
                           "history": {"source": source if days else None, "from": iso(date.fromordinal(days[0])) if days else None, "note": note if source != "amfi" else None}})
         # rebase: the common start is the latest of the funds' range starts; every fund shows its NAV on or before that day as 100
         chart = None
@@ -1284,10 +1539,96 @@ async def compare(request: Request, ids: str = Query("", max_length=60), range: 
     return await cached_json(request, "compare", f"{codes}|{range}", build)
 
 
+@router.get("/hot")
+async def hot_list(request: Request) -> Response:
+    """The schemes kept ready (rebuilt every night): list rows with their rank, answered from Redis, else from the small mf_hot table."""
+    store = request.app.state.store
+    try:
+        body = await store.redis.get("mf:hot:list")
+    except Exception:
+        body = None
+    if body is None:
+        async with store.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT rank, basis, item FROM mf_hot ORDER BY rank")
+            facts = await _facts(conn)
+        items = [{**(json.loads(r["item"]) if isinstance(r["item"], str) else r["item"]), "rank": r["rank"]} for r in rows]
+        body = dumps({"basis": rows[0]["basis"] if rows else None, "items": items, **facts})
+        if rows:
+            try:
+                await store.redis.set("mf:hot:list", body, ex=HOT_TTL)
+            except Exception:
+                pass
+    return Response(content=body, media_type="application/json", headers={"Cache-Control": CACHE_HEADER})
+
+
+FACT_KEYS = ("aum", "terRegular", "terDirect", "exitLoad", "benchmark", "managers", "riskometer", "launchDate", "minInvestment")
+NO_FACTS = "The fund house's monthly disclosure is not loaded yet."
+NO_PORTFOLIO = "The fund house's monthly portfolio disclosure is not loaded yet."
+
+
+async def _disclosure(request: Request, fn_name: str, code: int):
+    """Call finlit.disclosure.<fn_name>(pool, code) defensively: the module belongs to the data-source side and may not exist yet. None when unavailable."""
+    try:
+        from . import disclosure
+        fn = getattr(disclosure, fn_name)
+    except Exception:
+        return None
+    try:
+        return await fn(request.app.state.store.pool, code)
+    except Exception:
+        log.warning("disclosure.%s failed for %s", fn_name, code, exc_info=True)
+        return None
+
+
+@router.get("/{code}/facts")
+async def facts_route(request: Request, code: int) -> Response:
+    """Fund facts, each {value, asOf, source} or {unavailable: reason}. Category and fund house come from AMFI's NAV file; the rest from the disclosure module."""
+    if not 0 < code < 10**7:
+        raise fail(404, "not_found", "No mutual fund scheme has this code.")
+
+    async def build():
+        row = await _scheme(request, code)
+        got = await _disclosure(request, "get_facts", code)
+        got = got if isinstance(got, dict) else {}
+        out = {}
+        for k in FACT_KEYS:
+            v = got.get(k)
+            out[k] = v if isinstance(v, dict) and ("value" in v or "unavailable" in v) else {"unavailable": NO_FACTS if not got else "Not published in the sources loaded for this scheme."}
+        src = {"source": SOURCE, "asOf": iso(row["nav_date"])}
+        out["category"] = {"value": row["category"], **src}
+        out["amc"] = {"value": row["amc"], **src}
+        return {"code": code, "facts": out, "order": [*FACT_KEYS, "category", "amc"]}
+    return await cached_json(request, "facts", str(code), build)
+
+
+@router.get("/{code}/portfolio")
+async def portfolio_route(request: Request, code: int) -> Response:
+    """The latest monthly portfolio (finlit.disclosure.get_portfolio) or {unavailable: reason}."""
+    if not 0 < code < 10**7:
+        raise fail(404, "not_found", "No mutual fund scheme has this code.")
+
+    async def build():
+        await _scheme(request, code)
+        got = await _disclosure(request, "get_portfolio", code)
+        return got if isinstance(got, dict) and got.get("holdings") is not None else {"unavailable": NO_PORTFOLIO if got is None else "No portfolio is published for this scheme in the sources loaded."}
+    return await cached_json(request, "portfolio", str(code), build)
+
+
 @router.get("/{code}")
 async def detail(request: Request, code: int) -> Response:
     if not 0 < code < 10**7:
         raise fail(404, "not_found", "No mutual fund scheme has this code.")
+    store = request.app.state.store
+    try:
+        await store.redis.hincrby(OPENS_KEY, str(code), 1)   # feeds the fallback hot ranking
+    except Exception:
+        pass
+    try:
+        hot = await store.redis.get(f"mf:hot:d:{code}")   # a hot scheme: finished page, no database work
+    except Exception:
+        hot = None
+    if hot is not None:
+        return Response(content=hot, media_type="application/json", headers={"Cache-Control": CACHE_HEADER, "ETag": etag_for(hot), "X-MF-Path": "hot"})
 
     async def build():
         return await detail_payload(request.app, await _scheme(request, code))
