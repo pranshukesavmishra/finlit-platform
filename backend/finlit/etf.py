@@ -794,6 +794,7 @@ async def publish(store, conn) -> None:
 
 # ---------------------------------------------------------------------------------------------------------------- reading
 CACHE_SECONDS = 120
+FLAT_WHY = "The price barely moves for this ETF: it pays out its earnings instead of growing the price, so a price change of about 0% says nothing about what it earned."
 LIST_FIELDS = {"name": "display_name", "price": "price", "change": "change_pct", "ret1m": "ret_1m", "ret6m": "ret_6m", "ret1y": "ret_1y", "ret3y": "ret_3y",
                "ret5y": "ret_5y", "cagr3y": "cagr_3y", "cagr5y": "cagr_5y", "vol1y": "vol_1y", "mdd1y": "mdd_1y", "mdd3y": "mdd_3y", "mdd5y": "mdd_5y",
                "turnover": "avg_turnover", "premium": "nav_premium", "from52": "from52"}
@@ -854,6 +855,10 @@ def search_score(query: str, hay_words: List[str], joined: str) -> int:
 def row_view(r: dict) -> dict:
     """One ETF as the list and compare endpoints show it. Percent figures are rounded to two places."""
     reasons = _jsond(r.get("reasons"))
+    r = dict(r)
+    for k in ("ret_1m", "ret_6m", "ret_1y", "ret_3y", "ret_5y", "cagr_3y", "cagr_5y"):   # a price return that rounds to 0.00% is not a figure worth showing
+        if r.get(k) is not None and abs(r[k]) < 0.005:
+            r[k], reasons[k] = None, FLAT_WHY
     cat = CATEGORIES.get(r["category"]) if r.get("category") else None
     price, hi = r.get("price"), r.get("high52")
     return {
@@ -1197,6 +1202,9 @@ async def detail(request: Request, symbol: str, range: str = "1Y"):
     extra = _jsond(r.get("extra"))
     reasons = _jsond(r.get("reasons"))
     v = row_view(r)
+    for k in ("1m", "6m", "1y", "3y", "5y"):   # a return withheld because it rounds to 0.00% says why, on the page
+        if r.get(f"ret_{k}") is not None and v[f"ret{k}"] is None:
+            reasons[f"ret_{k}"] = FLAT_WHY
     returns = []
     for key, _m, label in PERIODS:
         returns.append({"key": key, "label": label, "price": v[f"ret{key}"], "annualised": v.get(f"cagr{key}") if key in ("3y", "5y") else None, "why": reasons.get(f"ret_{key}")})

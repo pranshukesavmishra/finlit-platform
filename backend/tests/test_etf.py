@@ -647,3 +647,10 @@ def test_migration_numbering():
     names = sorted(p.name for p in MIGRATIONS.glob("*.sql"))
     assert "034_etf.sql" in names
     assert len({n[:3] for n in names}) == len(names)                                              # no two migrations share a number
+
+
+def test_flat_price_return_is_withheld_with_a_reason():
+    from finlit import etf
+    base = {"symbol": "X", "display_name": "X", "isin": "INF000000000", "category": None, "reasons": {}, "ret_1y": 0.001, "ret_5y": -0.002, "ret_3y": 12.5, "points": 10}
+    out = etf.row_view(base)
+    assert out["ret1y"] is None and out["ret5y"] is None and out["ret3y"] == 12.5
