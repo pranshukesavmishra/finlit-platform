@@ -1363,7 +1363,7 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
             order = f"array_position({codes_ph}::int[], code)"
         else:   # best-known fund houses first (the list in config), then A to Z
             feat = arg(list(MF_FEATURED_AMCS))
-            order = f"COALESCE((SELECT min(u.i) FROM unnest({feat}::text[]) WITH ORDINALITY AS u(p, i) WHERE lower(amc) LIKE u.p || '%'), 999), name, code"
+            order = f"COALESCE((SELECT min(u.i) FROM unnest({feat}::text[]) WITH ORDINALITY AS u(p, i) WHERE lower(amc) LIKE u.p || '%'), 999), name, code"  # nosec B608 - only a bound-parameter placeholder and fixed text; the house list is a bound array
         async with store.pool.acquire() as conn:
             total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args[:n_where])  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
             rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
