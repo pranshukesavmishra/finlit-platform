@@ -17,7 +17,7 @@ from .model import Holding, Portfolio, isin_ok
 MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 _MON = r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
 DATE_RES = [
-    re.compile(rf"\b{_MON}\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s+(\d{{4}})\b", re.I),            # September 30, 2026
+    re.compile(rf"\b{_MON}\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s*(\d{{4}})\b", re.I),             # September 30, 2026 / September 30,2026
     re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?[\s,.-]+{_MON}\.?[\s,.-]+(\d{{4}})\b", re.I),     # 30 September 2026, 30-Sep-2026
     re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b"),                                          # 30/09/2026
     re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b"),                                                    # 2026-09-30
@@ -149,12 +149,15 @@ TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+port
 
 
 def split_title(cell: str) -> Tuple[str, List[str]]:
-    first = re.split(r"[\n\r]+", cell.strip())[0].strip()
+    """Scheme name from a title cell: the whole cell with line breaks as spaces (fund houses wrap names mid-way), cut at the '(An open ended ...)' description,
+    with '(formerly known as X)' / '(Ex X)' moved to aliases."""
+    full = re.sub(r"\s+", " ", cell.strip())
+    full = re.sub(r"\s*\(\s*an?\s+[a-z][\s\S]*$", "", full, flags=re.I) if re.search(r"\(\s*an?\s+[a-z]", full, re.I) and not re.match(r"^\(", full) else full
     aliases: List[str] = []
-    m = re.search(r"\((?:formerly|ex|erstwhile|earlier)\s*(?:known\s+as|called)?\s*[-:]?\s*([^)]+)\)", first, re.I)
+    m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
     if m:
         aliases.append(re.sub(r"\s+", " ", m.group(1)).strip())
-    main = re.sub(r"\((?:formerly|ex|erstwhile|earlier)[^)]*\)", "", first, flags=re.I)
+    main = re.sub(r"\(\s*(?:formerly|ex|erstwhile|earlier)\b[^)]*\)", "", full, flags=re.I)
     main = re.sub(r"\s+", " ", main).strip(" -:")
     m2 = re.match(r"^(?:name of the scheme|scheme name|scheme)\s*[:\-]\s*(.+)$", main, re.I)
     if m2:
@@ -171,7 +174,9 @@ def find_title(head_rows: List[List]) -> Tuple[str, List[str]]:
             first = re.split(r"[\n\r]+", t)[0].strip()
             if len(first) < 6 or TITLE_SKIP.search(first) or " " not in first:
                 continue
-            return split_title(t)
+            main, al = split_title(t)
+            if main:
+                return main, al
     return "", []
 
 
@@ -336,3 +341,16 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,
                      net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases)
+
+
+def open_workbook(path: str):
+    """A workbook object for a file on disk, chosen by what is inside (a file called .xls can be an .xlsx and the other way round)."""
+    with open(path, "rb") as fh:
+        magic = fh.read(8)
+    if magic[:4] == b"PK\x03\x04":
+        from .xlsx import Workbook
+        return Workbook(path)
+    if magic == bytes.fromhex("d0cf11e0a1b11ae1"):
+        from .xls import XlsWorkbook
+        return XlsWorkbook(path)
+    raise NotAPortfolio("not an Excel file (neither .xlsx nor .xls)")
