@@ -1,5 +1,11 @@
 # ETFs and Mutual funds: where things stand and what to do next
 
+## Live state at hand-off (read this first)
+- **How to see what the boot/nightly steps did:** open `https://finlit-arug.onrender.com/api/mf/status` (no login). It shows, for `refresh-etf`, `refresh-mf` and `backfill-mf`, when they last ran, their status and counts. Render's logs are not reachable from outside.
+- **Funds are loaded:** 8,249 schemes listed after the exclusions; Growth plans are the default view (3,386 schemes); 3,050 have a 1-year and 1,688 a 5-year return; top 100 ready list served; best-known fund houses first (list `MF_FEATURED_AMCS` in `config.py`). IDCW pages link to the Growth option of the same fund.
+- **ETFs are NOT fully loaded:** the last live ETF refresh ended `partial` (103 instruments kept their old rows, 71 had no history), and only 92 of 355 ETFs show a 1-year and 44 a 5-year return. Suspected cause: Upstox's request quota (about 2,000 historical-candle calls per 30 minutes) was used up by several redeploys that each repeated the full ETF load. The boot chain now skips a load that ran in the last 12 hours (15 minutes if it was partial). **First job for the next session:** check `/api/mf/status` after the next quiet period, find why instruments fail (add the failing symbols and HTTP codes to the recorded run), and make the nightly ETF job paced and resumable (fetch only the instruments still missing, a few per minute).
+- ETF figures that round to 0.00% (liquid ETFs that pay out earnings) are now stored empty and shown as "—" with the reason.
+
 ## Done and verified
 - **Live on main:** /etfs, /etfs/:symbol, /etfs/compare, /funds, /funds/:id, /funds/compare, menus, Home cards, proxy paths, nightly jobs (ETF 20:40 IST weekdays, funds 21:10 IST).
 - **Why lists were empty:** nothing loaded data into the live database. The first-boot load in `deploy/scheduler.sh` now runs, after the web server answers: `refresh-etf`, then `refresh-mf`, then `backfill-mf`, each only if the previous worked, one log line each. Resumable (fund houses already done are skipped). Peak memory measured: fund refresh 133 MB, SBI backfill 117 MB, ETF refresh 174 MB.
