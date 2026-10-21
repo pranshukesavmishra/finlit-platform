@@ -18,6 +18,9 @@ class Settings:
     # "live" calls FinEdge; "fixtures" serves the recorded payloads in tests/fixtures (offline dev + CI).
     finedge_mode: str = field(default_factory=lambda: os.getenv("FINEDGE_MODE", "live"))
     finedge_concurrency: int = field(default_factory=lambda: int(os.getenv("FINEDGE_CONCURRENCY", "8")))
+    # Secondary data source (Upstox). Empty = switched off entirely: no calls, nothing shown. Secret: set only in the host's dashboard.
+    upstox_access_token: str = field(default_factory=lambda: os.getenv("UPSTOX_ACCESS_TOKEN", "").strip())
+    upstox_base_url: str = field(default_factory=lambda: os.getenv("UPSTOX_BASE_URL", "https://api.upstox.com"))
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "postgresql://finlit:finlit@localhost:5432/finlit"))
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379/0"))
     cors_origins: List[str] = field(default_factory=lambda: _list(os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")))

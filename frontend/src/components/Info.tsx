@@ -34,6 +34,7 @@ export function InfoProvider({ children }: { children: ReactNode }) {
           <b>{state.g.label}</b>{state.g.what}
           {state.g.read && <div className="hr">{state.g.read}</div>}
           {state.g.formula && <div className="fx">{state.g.formula}</div>}
+          {state.g.note && <div className="hr">{state.g.note}</div>}
         </>)}
       </div>
     </Ctx.Provider>

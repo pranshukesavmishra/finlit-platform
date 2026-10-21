@@ -7,7 +7,6 @@ const ALIASES: Record<string, string[]> = {
   op_profit: ["ebitda", "operating profit annual"], ev_ebitda: ["ev ebitda"], ev_cfo: ["ev cfo"],
 };
 export const tokens = (s: string): string[] => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter(Boolean);
-const compact = (s: string) => tokens(s).join("");
 
 /** Edit distance (insert, delete, replace, swap of neighbours). */
 export function distance(a: string, b: string): number {
@@ -47,3 +46,4 @@ export function rankMetrics<T extends { key: string; label: string }>(items: T[]
   return items.map((m, i) => ({ m, i, s: score(query, m.label, ALIASES[m.key] || []) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.m);
 }
 export const matchesMetric = (query: string, m: { key: string; label: string }) => score(query, m.label, ALIASES[m.key] || []) > 0;
+export const searchMetrics = <T extends { key: string; label: string }>(items: T[], query: string): T[] => rankMetrics(items, query);

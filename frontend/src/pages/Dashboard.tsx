@@ -15,7 +15,6 @@ import { MiniBars } from "../charts/MiniBars";
 import { Icon } from "../lib/icons";
 import { MINUS, cr, nf } from "../lib/format";
 import { useDocTitle } from "../lib/title";
-import terms from "../content/glossary.json";
 import { dayLabel, useFeed, who } from "../lib/feed";
 import { encodeState, toBody, useScreen, type PState } from "../lib/proscreen";
 import { useIpos } from "../lib/ipo";
@@ -156,8 +155,10 @@ function IposW() {
 }
 
 function Learn() {
-  const t = useMemo(() => { const all = terms as { t: string; d: string; c: string }[]; const day = Math.floor(Date.now() / 86_400_000); return all[day % all.length]; }, []);
-  return <div className="learn"><span className="chip gold">{t.c}</span><h4>{t.t}</h4><p>{t.d}</p><Link to="/glossary">Open the glossary <Icon name="arrow" /></Link></div>;
+  const [t, setT] = useState<{ term: string; topic: string; meaning: string; id: string } | null>(null);
+  useEffect(() => { import("../lib/glossary").then((g) => setT(g.termOfTheDay())); }, []);
+  if (!t) return <div className="learn" />;
+  return <div className="learn"><span className="chip gold">{t.topic}</span><h4>{t.term}</h4><p>{t.meaning}</p><Link to={"/glossary#" + t.id}>Open the glossary <Icon name="arrow" /></Link></div>;
 }
 
 /* ---------------- page ---------------- */

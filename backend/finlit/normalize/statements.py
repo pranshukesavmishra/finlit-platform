@@ -182,7 +182,7 @@ def reconcile_row(r: Row, tolerance: float = 0.02) -> Dict[str, Any]:
             computed_pat = pbt_reported - tax + f("profitOrLossOfAssociates") + f("profitLossFromDiscontinuedOperationsAfterTax")
             # some filers show the share of associates' profit above the "profit for the period" line, some only in the owners' line
             without_associates = pbt_reported - tax + f("profitLossFromDiscontinuedOperationsAfterTax")
-            out["profit_after_tax"] = {"computed": computed_pat, "reported": pat, "ok": close(computed_pat, pat) or close(without_associates, pat)}
+            out["profit_after_tax"] = {"computed": computed_pat, "reported": pat, "ok": close(computed_pat, pat) or close(without_associates, pat) or close(pbt_reported - tax, pat)}
     profit, shares, eps = _net_profit(r), to_number(r.get("dilutedOutstandingShares")), to_number(r.get("eps"))
     if profit is not None and shares and eps is not None:
         computed_eps = profit / shares

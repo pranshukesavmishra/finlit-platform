@@ -36,7 +36,7 @@ export type Summary = {
 };
 export type Financials = { meta: Meta; unit: string; yearly: { pl: Table; bs: Table; cf: Table }; quarterly: { pl: Table } };
 export type RatioEntry = { value: number; period: string; label: string; unit: string | null; better: "higher" | "lower" | null; group: string | null };
-export type Glossary = { key: string; label: string; unit?: string; better?: string | null; group?: string; what?: string; read?: string; formula?: string };
+export type Glossary = { key: string; label: string; unit?: string; better?: string | null; group?: string; term?: string; what?: string; why?: string; read?: string; formula?: string; note?: string };
 export type PillarInput = { key: string; label: string; value: number | null; score: number | null; thresholds: number[]; lowerIsBetter: boolean };
 export type Ratios = {
   meta: Meta; notes: string[]; latest: Record<string, RatioEntry>;
