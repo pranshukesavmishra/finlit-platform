@@ -703,6 +703,15 @@ async def _set_meta(conn, key: str, value: dict) -> None:
                        key, json.dumps(value, default=str))
 
 
+async def record_run(store, cmd: str, info: dict) -> None:
+    """One line per boot or nightly step (what ran, how it ended), readable at /api/mf/status: the host's logs are not reachable from outside."""
+    try:
+        async with store.pool.acquire() as conn:
+            await _set_meta(conn, "run:" + cmd, {**info, "at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+    except Exception:
+        log.warning("could not record the %s result", cmd)
+
+
 async def _bump(store, newest: Optional[date]) -> None:
     """New data version: cached list and detail pages built from older data stop being served (their keys include the version)."""
     try:
@@ -1539,6 +1548,15 @@ async def compare(request: Request, ids: str = Query("", max_length=60), range: 
             facts = await _facts(conn)
         return {"funds": funds, "chart": chart, "chartNote": None if chart else "A rebased chart needs NAV history for every fund over this range; try a shorter one.", "notAvailable": NOT_AVAILABLE, **facts}
     return await cached_json(request, "compare", f"{codes}|{range}", build)
+
+
+@router.get("/status")
+async def run_status(request: Request) -> Response:
+    """When each load step last ran and how it ended (no secrets: counts, statuses and our own error text)."""
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT key, value, updated_at FROM mf_meta WHERE key LIKE 'run:%' OR key = 'refresh'")
+    body = {r["key"]: (json.loads(r["value"]) if isinstance(r["value"], str) else r["value"]) for r in rows}
+    return Response(content=json.dumps(body, default=str), media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
 @router.get("/hot")

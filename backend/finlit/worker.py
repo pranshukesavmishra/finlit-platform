@@ -444,8 +444,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             print(sent, "alerts sent")
             return 0
         if args.cmd == "backfill-mf":
-            from .mf import backfill
-            result = await backfill(store, settings, args.amc, force=args.force)
+            from .mf import backfill, record_run
+            try:
+                result = await backfill(store, settings, args.amc, force=args.force)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            await record_run(store, args.cmd, {"status": result.get("status"), "done": len(result.get("done", [])), "failed": len(result.get("failed", []))})
             print(result)
             return 0 if result.get("status") == "ok" else 1
         if args.cmd in ("refresh-etf", "refresh-mf"):
@@ -453,7 +458,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .etf import refresh as refresh_funds
             else:
                 from .mf import refresh as refresh_funds
-            result = await refresh_funds(store, settings)
+            from .mf import record_run
+            try:
+                result = await refresh_funds(store, settings)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            await record_run(store, args.cmd, {"status": result.get("status"), "reason": str(result.get("reason") or "")[:200]})
             print(result)
             return 0 if result.get("status") == "ok" else 1   # a refused or empty answer is a failure, so the boot chain stops
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
