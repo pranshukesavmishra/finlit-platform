@@ -54,7 +54,8 @@ def _num(v: Any) -> Optional[float]:
 
 
 def _norm(text: Any) -> str:
-    return re.sub(r"[^A-Z0-9]", "", str(text or "").upper())
+    t = re.sub(r"\b(LIMITED|LTD)\b\.?", "", str(text or "").upper())
+    return re.sub(r"[^A-Z0-9]", "", t)
 
 
 # ---------------------------------------------------------------- client

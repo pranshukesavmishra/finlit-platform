@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import timedelta
 from typing import Any, Dict, List, Literal, Optional
 
 import asyncpg
@@ -273,8 +272,9 @@ async def get_thread(request: Request, tid: int, page: int = Query(1, ge=1, le=2
 
 # ------------------------------------------------------------------ writing
 async def write_limits(request: Request, ctx: Ctx, kind: str) -> None:
-    ip = ip_of(request)
-    await limit(request, "forum_ip", ip, 30, 3600)
+    if kind == "ip":
+        await limit(request, "forum_ip", ip_of(request), 60, 3600)     # every attempt, accepted or not
+        return
     if kind == "thread":
         await limit(request, "forum_thread", ctx.user_id, 3, 3600)
         await limit(request, "forum_thread_day", ctx.user_id, 8, 86400)
@@ -297,10 +297,11 @@ async def store_post(conn, ctx: Ctx, symbol: str, thread_id: Optional[int], chec
 @router.post("/forum/threads", status_code=201)
 async def create_thread(request: Request, body: ThreadIn, ctx: Ctx = Depends(secure_ctx)):
     symbol = await known_symbol(request, body.symbol)
-    await write_limits(request, ctx, "thread")
+    await write_limits(request, ctx, "ip")
     async with pool_of(request).acquire() as conn:
         await posting_member(request, conn, ctx)
         checked = await judge(conn, ctx, "thread", body.title, body.body)
+        await write_limits(request, ctx, "thread")      # only posts that pass the rules use up the member's allowance
         pid = await store_post(conn, ctx, symbol, None, checked)
         row = await conn.fetchrow(f"{POST_SELECT} WHERE p.id = $2", ctx.user_id, pid)
     return out({"status": "held" if checked["hold"] else "posted", "post": post_json(row, ctx),
@@ -315,9 +316,10 @@ async def create_reply(request: Request, tid: int, body: ReplyIn, ctx: Ctx = Dep
         root = await conn.fetchrow("SELECT id, symbol, status FROM forum_posts WHERE id = $1 AND thread_id IS NULL", tid)
         if root is None or root["status"] != "visible":
             raise fail(404 if root is None else 409, "not_found" if root is None else "thread_closed", "You can only reply to a discussion that is open.")
-        await write_limits(request, ctx, "reply")
+        await write_limits(request, ctx, "ip")
         await posting_member(request, conn, ctx)
         checked = await judge(conn, ctx, "reply", None, body.body)
+        await write_limits(request, ctx, "reply")
         pid = await store_post(conn, ctx, root["symbol"], tid, checked)
         row = await conn.fetchrow(f"{POST_SELECT} WHERE p.id = $2", ctx.user_id, pid)
     return out({"status": "held" if checked["hold"] else "posted", "post": post_json(row, ctx),
