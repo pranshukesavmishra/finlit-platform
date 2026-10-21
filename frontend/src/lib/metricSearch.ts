@@ -1,66 +1,49 @@
-// Forgiving search over the measure list for the Compare page. Separate from the screener's own matching on purpose.
-//   "EV / CFO", "ev/cfo", "ev cfo", "evcfo" all find EV / CFO; a small typo ("retun on equty") still finds the measure.
-export type Searchable = { key: string; label: string; say?: string; group?: string; groupLabel?: string };
+// Tolerant metric search: "EV / CFO", "ev/cfo", "EV-CFO", "ev cfo" all find EV/CFO. Pure, so it is tested without the page.
+const ALIASES: Record<string, string[]> = {
+  pe: ["pe", "p/e", "price earnings", "price to earnings"], pb: ["pb", "p/b", "price to book"], ps: ["ps", "price to sales"],
+  roe: ["roe", "return on equity"], roce: ["roce", "return on capital employed"], roa: ["roa"], eps: ["eps"], opm: ["opm"], npm: ["npm"],
+  operating_margin: ["opm"], net_margin: ["npm"], market_cap: ["mcap", "market size", "market capitalisation"], price: ["cmp", "ltp", "current price"],
+  debt_to_equity: ["de", "d/e", "gearing"], interest_coverage: ["icr", "icr"], net_profit: ["pat"], dividend_yield: ["dy", "div yield"],
+  op_profit: ["ebitda", "operating profit annual"], ev_ebitda: ["ev ebitda"], ev_cfo: ["ev cfo"],
+};
+export const tokens = (s: string): string[] => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter(Boolean);
+const compact = (s: string) => tokens(s).join("");
 
-/** Lower-case letters and digits only: "EV / CFO" -> "evcfo", "P/E Ratio" -> "peratio". */
-export const compact = (s: string): string => s.toLowerCase().normalize("NFKD").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
-const words = (s: string): string[] => s.toLowerCase().normalize("NFKD").replace(/&/g, " and ").split(/[^a-z0-9]+/).filter(Boolean);
-
-/** Fewest edits (insert, delete, swap two neighbours counts as one) to turn `q` into any part of `hay`. */
-export function approxIn(hay: string, q: string, max: number): number {
-  const m = q.length;
-  if (!m) return 0;
-  let prev2: number[] | null = null;
-  let prev = Array.from({ length: m + 1 }, (_, i) => i);
-  let best = prev[m];
-  for (let j = 1; j <= hay.length; j++) {
-    const cur = new Array<number>(m + 1);
-    cur[0] = 0;   // a match may start anywhere in `hay`
-    for (let i = 1; i <= m; i++) {
-      const cost = q[i - 1] === hay[j - 1] ? 0 : 1;
-      let v = Math.min(prev[i] + 1, cur[i - 1] + 1, prev[i - 1] + cost);
-      if (prev2 && i > 1 && q[i - 1] === hay[j - 2] && q[i - 2] === hay[j - 1]) v = Math.min(v, prev2[i - 2] + 1);
-      cur[i] = v;
-    }
-    best = Math.min(best, cur[m]);
-    prev2 = prev; prev = cur;
-    if (best === 0) break;
+/** Edit distance (insert, delete, replace, swap of neighbours). */
+export function distance(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
   }
-  return best <= max ? best : max + 1;
+  return d[a.length][b.length];
 }
+const allow = (n: number) => (n <= 3 ? 0 : n <= 5 ? 1 : 2);
 
-const allowed = (len: number) => (len <= 3 ? 0 : len <= 6 ? 1 : 2);
-
-/** Higher is a better match; 0 means no match. */
-export function scoreMetric(m: Searchable, query: string): number {
-  const qc = compact(query), qw = words(query);
-  if (!qc) return 1;
-  const label = compact(m.label), key = compact(m.key);
-  let s = 0;
-  if (label === qc || key === qc) s = 1000;
-  else if (label.startsWith(qc)) s = 800;
-  else if (key.startsWith(qc)) s = 750;
-  else if (label.includes(qc)) s = 600;
-  else if (key.includes(qc)) s = 550;
-  if (s) return s - Math.min(label.length, 60) / 10;
-  // every word typed must be found somewhere in the label, key, group or hint (word start, or a small typo)
-  const lw = words(m.label + " " + m.key.replace(/_/g, " ")), gw = words((m.groupLabel || "") + " " + (m.say || ""));
-  let total = 0;
-  for (const w of qw) {
-    if (lw.some((x) => x.startsWith(w))) total += 60;
-    else if (gw.some((x) => x.startsWith(w))) total += 25;
-    else if (w.length >= 3 && lw.some((x) => x.includes(w))) total += 40;
-    else if (w.length >= 4 && lw.some((x) => approxIn(x, w, allowed(w.length)) <= allowed(w.length))) total += 30;
-    else if (w.length >= 5 && gw.some((x) => approxIn(x, w, 1) <= 1)) total += 12;
+/** 0 = no match; higher is better. */
+export function score(query: string, label: string, aliases: string[] = []): number {
+  const qt = tokens(query), qc = qt.join("");
+  if (!qc) return 0;
+  let best = 0;
+  for (const target of [label, ...aliases]) {
+    const tt = tokens(target), tc = tt.join("");
+    if (!tc) continue;
+    if (qc === tc) best = Math.max(best, 100);
+    else if (tc.startsWith(qc)) best = Math.max(best, 90);
+    else if (qt.every((q) => tt.some((t) => t.startsWith(q)))) best = Math.max(best, 80);
+    else if (qc.length >= 4 && tc.includes(qc)) best = Math.max(best, 60);
     else {
-      // the whole query may be a typo of the label ("evcof" for EV / CFO)
-      return qc.length >= 4 && approxIn(label, qc, allowed(qc.length)) <= allowed(qc.length) ? 200 - approxIn(label, qc, 2) * 20 : 0;
+      const near = qt.every((q) => tt.some((t) => distance(q, t) <= allow(q.length) || (q.length >= 4 && distance(q, t.slice(0, q.length)) <= allow(q.length))));
+      const whole = qc.length >= 4 && distance(qc, tc.slice(0, qc.length)) <= allow(qc.length);
+      if (near || whole) best = Math.max(best, 40);
     }
   }
-  return total;
+  return best;
 }
 
-export function searchMetrics<T extends Searchable>(list: T[], query: string): T[] {
-  if (!compact(query)) return list;
-  return list.map((m) => ({ m, s: scoreMetric(m, query) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).map((x) => x.m);
+export function rankMetrics<T extends { key: string; label: string }>(items: T[], query: string): T[] {
+  if (!tokens(query).length) return items;
+  return items.map((m, i) => ({ m, i, s: score(query, m.label, ALIASES[m.key] || []) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.m);
 }
+export const matchesMetric = (query: string, m: { key: string; label: string }) => score(query, m.label, ALIASES[m.key] || []) > 0;

@@ -32,7 +32,7 @@ RESERVED_HANDLES = {"mod", "team", "system", "help", "deleted", "removed", "nse"
 # Zero-width, bidirectional-override and other invisible characters: used to hide words from filters or to spoof text order.
 _INVISIBLE = dict.fromkeys(list(range(0x200B, 0x2010)) + list(range(0x202A, 0x202F)) + list(range(0x2060, 0x2065)) + list(range(0x2066, 0x206A)) + [0xFEFF, 0x00AD], None)
 URL_RE = re.compile(r"(?:https?://|www\.)[^\s<>\"'`]+", re.I)
-BARE_DOMAIN_RE = re.compile(r"\b[a-z0-9][a-z0-9-]{1,40}(?:\.[a-z0-9-]{1,40})*\.(?:com|in|net|org|io|co|me|ly|gl|gg|app|xyz|info|biz|ws|link|page|live|site|online|club|top|tk|cc|st)\b(?:/\S*)?", re.I)
+BARE_DOMAIN_RE = re.compile(r"\b[a-z0-9][a-z0-9-]{0,40}(?:\.[a-z0-9-]{1,40})*\.(?:com|in|net|org|io|co|me|ly|gl|gg|app|xyz|info|biz|ws|link|page|live|site|online|club|top|tk|cc|st)\b(?:/\S*)?", re.I)
 BLOCKED_HOSTS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "is.gd", "cutt.ly", "rb.gy", "ow.ly", "shorturl.at", "t.me", "telegram.me", "telegram.org", "wa.me", "whatsapp.com",
                  "discord.gg", "discord.com", "signal.group", "linktr.ee", "instagram.com", "facebook.com", "fb.me", "youtu.be", "youtube.com", "tiktok.com")
 

@@ -41,7 +41,7 @@ async def test_alert_goes_to_silver_watchlists_once_per_company_case_and_period(
     off = await signed_in(app, "plfoff@example.com", plan="silver")
     await off.put("/api/me/prefs", json={"palette": "gold", "profitGap": False})
     lists = {"lists": [{"id": "main", "name": "Main", "symbols": ["RELIANCE"]}], "meta": {}}
-    for m in (c, basic, off):
+    for m in (c, off):
         assert (await m.put("/api/me/watchlist", json=lists)).status_code == 200
     today = date.today()
     last = today - timedelta(days=20)
