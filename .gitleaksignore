@@ -1,3 +1,7 @@
 150717528b8a64318d9d14cb09b2d586e4d7098f:frontend/public/demo/RELIANCE/ratios.json:generic-api-key:1
 6d0b74d79682be7b6169ea2be306bf8f50c8a71b:frontend/src/lib/prefs.ts:generic-api-key:23
 ce88b3debef1c80e3fc311d6edd9b9696cf00ad3:frontend/public/demo/RELIANCE/ratios.json:generic-api-key:1
+# reviewed false positives: glossary prose in the demo ratios file, and browser storage key names
+338328614aa9af382f171ead5827d04c74239f97:frontend/public/demo/RELIANCE/ratios.json:generic-api-key:1
+338328614aa9af382f171ead5827d04c74239f97:frontend/src/lib/prefs.ts:generic-api-key:26
+4ca4b0cee1a98818724843c314357a38f9d328c5:frontend/src/lib/mf.ts:generic-api-key:186

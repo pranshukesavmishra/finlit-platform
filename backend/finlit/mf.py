@@ -773,7 +773,7 @@ async def _repair_gaps(store, client, since: Optional[date], newest: date) -> in
         return 0
     start, covered = since + timedelta(days=1), 0
     async with store.pool.acquire() as conn:
-        wanted = {r["code"] for r in await conn.fetch(f"SELECT code FROM mf_schemes WHERE {HIST_WANTED} AND has_hist")}
+        wanted = {r["code"] for r in await conn.fetch(f"SELECT code FROM mf_schemes WHERE {HIST_WANTED} AND has_hist")}  # nosec B608 - fixed column list and constant filter, no input
     pieces: Dict[int, List[Tuple[array.array, array.array]]] = {}
     while start <= newest and covered < 120:
         end = min(newest, start + timedelta(days=19))
@@ -827,7 +827,7 @@ async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: 
     try:
         async with store.pool.acquire() as conn:
             newest = await conn.fetchval("SELECT max(nav_date) FROM mf_schemes")
-            rows = await conn.fetch(f"SELECT code, amc, nav, nav_date FROM mf_schemes WHERE {HIST_WANTED}")
+            rows = await conn.fetch(f"SELECT code, amc, nav, nav_date FROM mf_schemes WHERE {HIST_WANTED}")  # nosec B608 - fixed column list and constant filter, no input
             done = {r["amc_key"] for r in await conn.fetch("SELECT amc_key FROM mf_backfill")}
         if newest is None:
             return {**out, "status": "empty", "reason": "no schemes stored yet: run refresh first"}
@@ -1117,8 +1117,8 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         else:
             order = "name, code"
         async with store.pool.acquire() as conn:
-            total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args)
-            rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)
+            total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args)  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
+            rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
             facts = await _facts(conn)
         return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": [list_item(r) for r in rows], **facts}
     return await cached_json(request, "list", key, build)
@@ -1228,7 +1228,7 @@ async def detail_payload(app, row) -> dict:
 
 async def _scheme(request: Request, code: int):
     async with request.app.state.store.pool.acquire() as conn:
-        row = await conn.fetchrow(f"SELECT {LIST_COLS}, isin, isin_reinvest, family FROM mf_schemes WHERE code = $1", code)
+        row = await conn.fetchrow(f"SELECT {LIST_COLS}, isin, isin_reinvest, family FROM mf_schemes WHERE code = $1", code)  # nosec B608 - fixed column list; the scheme code is a bound parameter
     if not row:
         raise fail(404, "not_found", "No mutual fund scheme has this code.")
     return row

@@ -36,6 +36,7 @@ export function AppShell() {
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
       { to: "/score-screener", label: "Score screener", icon: "quality" },
       { to: "/compare", label: "Compare companies", icon: "compare" },
+      { to: "/graphs", label: "Graph Studio", icon: "activity" },
       { to: "/etfs", label: "ETFs", icon: "bars" },
       { to: "/funds", label: "Mutual funds", icon: "pie" },
     ] },
