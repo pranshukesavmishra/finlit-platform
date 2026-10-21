@@ -117,3 +117,14 @@ async def test_deleting_the_account_removes_views(app):  # noqa: F811
         await conn.execute("DELETE FROM users WHERE id = $1", uid)
         assert await conn.fetchval("SELECT count(*) FROM graph_views WHERE user_id = $1", uid) == 0
     await c.aclose()
+
+
+async def test_index_series_are_saved_and_do_not_count_as_companies(app):  # noqa: F811
+    c = await signed_in(app, "gv3@example.com")
+    body = cfg(cells=[{"chart": "line", "series": [{"s": "idx:nif50", "m": "price"}, {"s": "TCS", "m": "price"}, {"s": "INFY", "m": "price"}]}])
+    assert (await c.put("/api/me/graph-views/Idx", json=body)).status_code == 200      # basic plan: 2 companies + an index
+    saved = (await c.get("/api/me/graph-views")).json()["views"][0]["config"]
+    assert saved["cells"][0]["series"][0]["s"] == "IDX:NIF50"
+    bad = cfg(cells=[{"chart": "line", "series": [{"s": "IDX:", "m": "price"}]}])
+    assert (await c.put("/api/me/graph-views/Bad", json=bad)).status_code == 422
+    await c.aclose()

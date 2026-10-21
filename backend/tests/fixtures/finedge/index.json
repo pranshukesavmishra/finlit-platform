@@ -169,6 +169,13 @@
     "index_symbol": "NIF50"
    },
    "file": "index_valuation_nif50.json"
+  },
+  {
+   "path": "/index/market-price/historical",
+   "match": {
+    "index_symbol": "NIF50"
+   },
+   "file": "index_price_nif50.json"
   }
  ]
 }

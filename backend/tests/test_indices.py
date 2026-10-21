@@ -87,3 +87,16 @@ async def test_valuation_history_is_gold_only_and_returns_stats():
     assert r.status_code == 200 and body["name"] == "Nifty 50" and body["years"] == 3 and body["stats"]["pe"]["median"] > 0
     assert (await c.get("/api/indices/bad code!/valuation")).status_code in (400, 404)
     assert (await c.get("/api/indices/NIFIT/valuation")).status_code in (404, 502)   # no recorded history for it
+
+
+async def test_level_history_is_public_ascending_and_cached():
+    app, c = make(plan=None)
+    r = await c.get("/api/indices/NIF50/history?years=1")
+    b = r.json()
+    d = [x["d"] for x in b["rows"]]
+    assert r.status_code == 200 and b["unit"] == "points" and b["name"] == "Nifty 50" and d == sorted(d) and 200 < len(d) < 280 and b["rows"][-1]["c"] > 1000
+    client, app.state.index_client = app.state.index_client, None   # served from the saved copy
+    assert (await c.get("/api/indices/NIF50/history?years=5")).json()["rows"][0]["d"] < d[0]
+    app.state.index_client = client
+    assert (await c.get("/api/indices/bad code!/history")).status_code in (400, 404)
+    assert (await c.get("/api/indices/NIFIT/history")).status_code in (404, 502)

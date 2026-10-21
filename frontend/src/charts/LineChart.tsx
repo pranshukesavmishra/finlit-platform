@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { labelEvery } from "../lib/chartAxis";
 
 export type LSeries = { key: string; label: string; color: string; values: (number | null)[] };
 
@@ -15,6 +16,7 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
   let lo = domain ? domain[0] : Math.min(...all), hi = domain ? domain[1] : Math.max(...all);
   if (avg != null) { lo = Math.min(lo, avg); hi = Math.max(hi, avg); }
   if (!domain) { const padv = (hi - lo || 1) * 0.15; lo = Math.max(0, lo - padv); hi = hi + padv; }
+  const every = labelEvery(n, W - pl - pr, Math.max(...periods.map((p) => p.length), 1));
   const step = (hi - lo) / 4, X = (i: number) => pl + (i * (W - pl - pr)) / (n - 1), Y = (v: number) => pt + (1 - (v - lo) / (hi - lo || 1)) * (H - pt - pb);
   const path = (vals: (number | null)[]) => {
     const pts = vals.map((v, i) => (v == null ? null : ([X(i), Y(v)] as const)));
@@ -35,7 +37,7 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map((s) => s.label).join(", ") + " over time"}>
         <defs>{series.map((s) => <linearGradient key={s.key} id={`${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={s.color} stopOpacity=".38" /><stop offset="1" stopColor={s.color} stopOpacity="0" /></linearGradient>)}</defs>
         {[0, 1, 2, 3, 4].map((k) => { const v = lo + step * k; return <g key={k}><line x1={pl} x2={W - pr} y1={Y(v)} y2={Y(v)} stroke="var(--border)" strokeDasharray={k ? "3 5" : ""} /><text x={pl - 8} y={Y(v) + 4} textAnchor="end" fontSize="10.5" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(v)}</text></g>; })}
-        {periods.map((p, i) => (i % Math.ceil(n / 8) === 0 || i === n - 1) && <text key={p} x={X(i)} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--faint)">{p}</text>)}
+        {periods.map((p, i) => ((n - 1 - i) % every === 0) && <text key={p} x={X(i)} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--faint)">{p}</text>)}
         {avg != null && <g><line x1={pl} x2={W - pr} y1={Y(avg)} y2={Y(avg)} stroke="var(--c2)" strokeDasharray="6 5" strokeWidth="1.6" /><text x={W - pr} y={Y(avg) - 6} textAnchor="end" fontSize="10.5" fontWeight="600" fill="var(--c2)">{avgLabel.toUpperCase()} {fmt(avg)}</text></g>}
         {series.map((s) => <g key={s.key}>
           {area && <path d={`${path(s.values)}L${X(n - 1)},${H - pb}L${X(0)},${H - pb}Z`} fill={`url(#${id}-${s.key})`} />}

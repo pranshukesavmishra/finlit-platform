@@ -8,6 +8,7 @@ frontend/src/lib/graphLimits.ts; a test keeps the two equal.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -25,6 +26,7 @@ GRAPH_LIMITS: Dict[str, Dict[str, Any]] = {
     "gold": {"cells": 9, "companies": 6, "series": 6, "views": 50, "charts": list(CHARTS)},
 }
 ID = r"^[a-z0-9_]{1,40}$"
+INDEX_SYM = re.compile(r"^IDX:[A-Z0-9]{2,24}$")
 
 
 def limits_for(plan: str) -> Dict[str, Any]:
@@ -32,7 +34,7 @@ def limits_for(plan: str) -> Dict[str, Any]:
 
 
 class SeriesIn(BaseModel):
-    s: str = Field(max_length=24)
+    s: str = Field(max_length=32)   # a company symbol, or an index as IDX:code
     m: str = Field(pattern=ID)
     as_: Optional[Literal["bar", "line"]] = Field(default=None, alias="as")
 
@@ -40,7 +42,7 @@ class SeriesIn(BaseModel):
     @classmethod
     def _sym(cls, v: str) -> str:
         v = v.strip().upper()
-        if not SYMBOL.match(v):
+        if not (SYMBOL.match(v) or INDEX_SYM.match(v)):
             raise ValueError("bad symbol")
         return v
 
@@ -82,7 +84,7 @@ def check_plan(cfg: ConfigIn, plan: str) -> None:
     if LAYOUTS[cfg.layout] > lim["cells"]:
         raise fail(403, "plan_limit", f"Your plan includes layouts of up to {lim['cells']} charts.", plan="silver" if plan == "basic" else "gold")
     tier = "silver" if plan == "basic" else "gold"
-    if len({s.s for c in cfg.cells for s in c.series}) > lim["companies"]:
+    if len({s.s for c in cfg.cells for s in c.series if not s.s.startswith("IDX:")}) > lim["companies"]:
         raise fail(403, "plan_limit", f"Your plan includes up to {lim['companies']} companies in one view.", plan=tier)
     for c in cfg.cells:
         if c.chart not in lim["charts"]:

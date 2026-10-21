@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { labelEvery } from "../lib/chartAxis";
 
 export type BarSeries = { key: string; label: string; values: (number | null)[]; color: string };
 
@@ -16,7 +17,7 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
   const span = hi - lo || 1, X = (i: number) => pl + (i + 0.5) * ((W - pl - pr) / n), Y = (v: number) => pt + (1 - (v - lo) / span) * (H - pt - pb);
   const bw = Math.min(15, ((W - pl - pr) / n) * 0.5), y0 = Y(0), k = series.length;
   const ticks = lo < 0 ? [lo, 0, hi] : [0, hi / 2, hi];
-  const every = Math.ceil(n / Math.max(3, Math.floor((W - pl) / 38)));
+  const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3").length), 1));
   return (
     <div className="mb" onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${series.map((s) => s.label).join(", ")} by period`}>

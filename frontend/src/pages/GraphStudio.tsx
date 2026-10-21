@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { apiGet, apiSend, useSearchIndex, ApiError } from "../lib/api";
+import { useIndices } from "../lib/indices";
 import { useAuth, type Plan } from "../lib/auth";
 import { DEMO } from "../lib/demo";
 import { Icon } from "../lib/icons";
@@ -9,7 +10,7 @@ import { useUI, useThemeKey } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
 import { Candles, Heat, HBars, Pie, Scatter, TimeChart, useWidth, type Colors, type PS } from "../components/GraphCharts";
 import { alignSeries, changes, corrMatrix, csvRow, pearson, rebase, RANGES, strength, windowPts } from "../lib/graphData";
-import { BY_ID, extract, GROUPS, metricsIn, UNITS, type Bundle, type Extracted, type Metric, type UnitId } from "../lib/graphMetrics";
+import { BY_ID, extract, GROUPS, IDX, indexCode, isIndexSym, metricFor, metricsIn, unsupportedWhy, UNITS, type Bundle, type Extracted, type Metric, type UnitId } from "../lib/graphMetrics";
 import { graphLimits, chartTier, type ChartKind } from "../lib/graphLimits";
 import { CHART_LABEL, LAYOUTS, cellCount, chartCheck, decodeView, defaultView, encodeView, sanitize, type CellFacts, type CellSpec, type SeriesSpec, type View } from "../lib/graphState";
 import "../styles/graphs.css";
@@ -24,30 +25,36 @@ function readColors(): Colors {
   return { s: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => g(`--gx-${i}`)), surface: g("--gx-surface", "#fff"), text: g("--text", "#111"), muted: g("--gx-muted"), grid: g("--gx-grid"), axis: g("--gx-axis"), gain: g("--gx-gain"), loss: g("--gx-loss"), pos: g("--gx-pos"), neg: g("--gx-neg"), mid: g("--gx-mid") };
 }
 
-type Src = "fin" | "ratios" | "own" | "seg" | "price";
-const SRC_OF: Record<string, Src> = { pl: "fin", bs: "fin", cf: "fin", ratio: "ratios", val: "ratios", own: "own", ownnow: "own", seg: "seg", price: "price" };
-const PATH: Record<Src, string> = { fin: "/financials", ratios: "/ratios", own: "/ownership", seg: "/segments", price: "/price" };
+type Src = "fin" | "ratios" | "own" | "seg" | "price" | "ixl" | "ixv";
+const SRC_OF: Record<string, Src> = { ixval: "ixv", pl: "fin", bs: "fin", cf: "fin", ratio: "ratios", val: "ratios", own: "own", ownnow: "own", seg: "seg", price: "price" };
+const PATH: Record<"fin" | "ratios" | "own" | "seg" | "price", string> = { fin: "/financials", ratios: "/ratios", own: "/ownership", seg: "/segments", price: "/price" };
 
-function useBundles(view: View, count: number) {
-  const need = useMemo(() => { const m = new Map<string, Set<Src>>(); view.cells.slice(0, count).forEach((c) => c.series.forEach((s) => { const mt = BY_ID[s.m]; if (!mt) return; const set = m.get(s.s) ?? new Set<Src>(); set.add(SRC_OF[mt.src]); if (c.chart === "candlestick") set.add("price"); m.set(s.s, set); })); return m; }, [view.cells, count]);
+function useBundles(view: View, count: number, plan: Plan) {
+  const need = useMemo(() => { const m = new Map<string, Set<Src>>(); view.cells.slice(0, count).forEach((c) => c.series.forEach((s) => { const mt = BY_ID[s.m]; if (!mt || unsupportedWhy(s.s, mt)) return;
+    const ix = isIndexSym(s.s), src: Src = ix && mt.id === "price" ? "ixl" : SRC_OF[mt.src];
+    if (src === "ixv" && plan !== "gold") return;   // the index valuation history is a Gold tool: not even asked for
+    const set = m.get(s.s) ?? new Set<Src>(); set.add(src); if (c.chart === "candlestick" && !ix) set.add("price"); m.set(s.s, set); })); return m; }, [view.cells, count, plan]);
   const jobs = useMemo(() => [...need].flatMap(([sym, set]) => [...set].map((src) => ({ sym, src }))), [need]);
   const qs = useQueries({ queries: jobs.map(({ sym, src }) => {
-    const path = src === "price" ? `/price?range=${view.from ? "MAX" : view.range}` : PATH[src];
-    return { queryKey: ["stock", sym, path], queryFn: () => apiGet<unknown>(`/api/stocks/${encodeURIComponent(sym)}${path}`), staleTime: 60_000,
+    const ix = src === "ixl" || src === "ixv";
+    const path = src === "ixl" ? "/history?years=5" : src === "ixv" ? "/valuation?years=5" : src === "price" ? `/price?range=${view.from ? "MAX" : view.range}` : PATH[src as "fin"];
+    const url = ix ? `/api/indices/${encodeURIComponent(indexCode(sym))}${path}` : `/api/stocks/${encodeURIComponent(sym)}${path}`;
+    return { queryKey: [ix ? "index" : "stock", sym, path], queryFn: () => apiGet<unknown>(url), staleTime: ix ? 300_000 : 60_000,
       retry: (n: number, e: ApiError) => (e.status === 202 ? n < 100 : e.status === 429 ? n < 8 : e.status >= 500 && n < 2),
       retryDelay: (_: number, e: ApiError) => (e.status === 202 ? (e.body.retryAfter || 3) * 1000 : 1500) };
   }) });
-  const bundles = new Map<string, { b: Bundle; st: Partial<Record<Src, "loading" | "ok" | "error">>; err?: string }>();
+  const bundles = new Map<string, { b: Bundle; st: Partial<Record<Src, "loading" | "ok" | "error" | "locked">>; err?: string }>();
   jobs.forEach((j, i) => {
     const q = qs[i], e = bundles.get(j.sym) ?? { b: {}, st: {} };
-    e.st[j.src] = q.isPending ? "loading" : q.isError ? "error" : "ok";
+    e.st[j.src] = q.isPending ? "loading" : q.isError ? ((q.error as ApiError)?.status === 403 ? "locked" : "error") : "ok";
     if (q.data) (e.b as Record<string, unknown>)[j.src] = q.data;
-    if (q.isError) e.err = (q.error as ApiError)?.status === 404 ? "No data for this company in this build." : "Could not load this company's data.";
+    if (q.isError) e.err = (q.error as ApiError)?.status === 404 ? (isIndexSym(j.sym) ? "No history for this index." : "No data for this company in this build.") : "Could not load this company's data.";
     bundles.set(j.sym, e);
   });
   return bundles;
 }
 
+const RANK: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
 type RS = { sp: SeriesSpec; mt: Metric; ex: Extracted; label: string; color: string; sym: string; err?: string };
 const name = (rows: [string, string][] | undefined, s: string) => rows?.find((r) => r[0] === s)?.[1] ?? s;
 
@@ -57,11 +64,12 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
   const lim = graphLimits(plan);
   const multi = new Set(cell.series.map((s) => s.s)).size > 1;
   const rs: RS[] = cell.series.map((sp, k) => {
-    const mt = BY_ID[sp.m], bd = bundles.get(sp.s);
-    const src = SRC_OF[mt.src], st = bd?.st[src];
-    let ex = extract(mt, bd?.b ?? {}, view.basis, plan, st !== "loading");
+    const mt = metricFor(sp.s, BY_ID[sp.m]), bd = bundles.get(sp.s), ix = isIndexSym(sp.s), sname = ix ? indexCode(sp.s) : sp.s;
+    const src: Src = ix && mt.id === "price" ? "ixl" : SRC_OF[mt.src], st = bd?.st[src];
+    let ex = unsupportedWhy(sp.s, mt) ? { status: "unsupported" as const, pts: [], note: unsupportedWhy(sp.s, mt)! } : extract(mt, bd?.b ?? {}, view.basis, plan, st !== "loading");
     if (st === "error") ex = { status: "error", pts: [] };
-    return { sp, mt, ex: { ...ex, pts: mt.grain === "composition" ? ex.pts : windowPts(ex.pts, view.range, view.from) }, label: multi ? `${sp.s} · ${mt.label}` : mt.label, color: c.s[k % 8], sym: sp.s, err: bd?.err };
+    if (st === "locked" || (src === "ixv" && RANK[plan] < RANK[mt.tier])) ex = { status: "locked", pts: [] };
+    return { sp, mt, ex: { ...ex, pts: mt.grain === "composition" ? ex.pts : windowPts(ex.pts, view.range, view.from) }, label: multi ? `${sname} · ${mt.label}` : mt.label, color: c.s[k % 8], sym: sp.s, err: bd?.err };
   });
   const bad = rs.find((r) => r.ex.status !== "ok");
   const ok = rs.filter((r) => r.ex.status === "ok");
@@ -87,7 +95,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
 
   let body: React.ReactNode = null;
   if (rs.length === 0) body = <div className="gx-empty"><Icon name="line" /><b>Drop a metric here</b><span>Or pick one from the list, or use “Add series” below.</span></div>;
-  else if (bad && ok.length === 0) body = <div className="gx-note"><b>{bad.ex.status === "loading" ? "Loading…" : bad.ex.status === "locked" ? `${bad.mt.label} is part of the ${bad.mt.tier === "gold" ? "Gold" : "Silver"} plan.` : bad.ex.status === "noperiod" ? `${bad.mt.label} is reported once a year. Switch to Annual to see it.` : bad.ex.status === "error" ? bad.err ?? "Could not load the data." : `No ${bad.mt.label} figures for ${bad.sym}.`}</b>{bad.ex.status === "locked" && <button className="btn" onClick={() => upgrade(bad.mt.tier, `${bad.mt.label} history`)}>Unlock</button>}</div>;
+  else if (bad && ok.length === 0) body = <div className="gx-note"><b>{bad.ex.status === "loading" ? "Loading…" : bad.ex.status === "locked" ? `${bad.mt.label} is part of the ${bad.mt.tier === "gold" ? "Gold" : "Silver"} plan.` : bad.ex.status === "unsupported" ? `${bad.mt.label} is not available for ${isIndexSym(bad.sym) ? "an index" : "a company"}. ${bad.ex.note ?? ""}` : bad.ex.status === "noperiod" ? `${bad.mt.label} is reported once a year. Switch to Annual to see it.` : bad.ex.status === "error" ? bad.err ?? "Could not load the data." : `No ${bad.mt.label} figures for ${isIndexSym(bad.sym) ? indexCode(bad.sym) : bad.sym}.`}</b>{bad.ex.status === "locked" && <button className="btn" onClick={() => upgrade(bad.mt.tier, `${bad.mt.label} history`)}>Unlock</button>}</div>;
   else if (!chk.ok) body = <div className="gx-note"><b>{CHART_LABEL[cell.chart]} does not fit this data</b><span>{chk.why}.</span><button className="btn ghost" onClick={() => asSet({ chart: comp ? "pie" : "line" })}>Show as {comp ? "pie" : "line"}</button></div>;
   else if (w > 0) {
     const k = cell.chart;
@@ -123,7 +131,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
         <button className="gx-x" aria-label={`Clear chart ${i + 1}`} title="Clear this chart" onClick={(e) => { e.stopPropagation(); onChange({ chart: cell.chart, series: [] }); }}>×</button></header>
       <div className="gx-legend">{rs.map((r, n) => <span key={r.sp.s + r.sp.m} className="gx-chip"><i style={{ background: r.color }} />{r.label} <small>{UNITS[r.mt.unit].label}</small>
         {cell.chart === "combo" && r.mt.grain !== "price" && <button className="gx-mini" title="Switch between bars and line" onClick={() => onChange({ ...cell, series: cell.series.map((s, m) => (m === n ? { ...s, as: (s.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "line" : "bar" } : s)) })}>{(r.sp.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "bars" : "line"}</button>}
-        {r.ex.status !== "ok" && <em title={r.ex.status}>{r.ex.status === "loading" ? "loading" : r.ex.status === "locked" ? "plan" : r.ex.status === "noperiod" ? "annual only" : "no data"}</em>}
+        {r.ex.status !== "ok" && <em title={r.ex.status}>{r.ex.status === "loading" ? "loading" : r.ex.status === "locked" ? "plan" : r.ex.status === "noperiod" ? "annual only" : r.ex.status === "unsupported" ? "n/a" : "no data"}</em>}
         <button aria-label={`Remove ${r.label}`} onClick={(e) => { e.stopPropagation(); onChange({ ...cell, series: cell.series.filter((_, m) => m !== n) }); }}>×</button></span>)}</div>
       {cell.chart === "scatter" && ok.length >= 2 && <div className="gx-xy"><label>X <select value={Math.min(cell.x ?? 0, ok.length - 1)} onChange={(e) => asSet({ x: +e.target.value })}>{ok.map((r, n) => <option key={n} value={n}>{r.label}</option>)}</select></label><label>Y <select value={Math.min(cell.y ?? 1, ok.length - 1)} onChange={(e) => asSet({ y: +e.target.value })}>{ok.map((r, n) => <option key={n} value={n}>{r.label}</option>)}</select></label></div>}
       {cell.chart === "heatmap" && ok.length >= 1 && <div className="gx-seg" role="group" aria-label="Heatmap kind">{(["corr", "grid"] as const).map((m) => <button key={m} aria-pressed={(cell.mode ?? (ok.length > 1 ? "corr" : "grid")) === m} onClick={() => asSet({ mode: m })}>{m === "corr" ? "Correlation" : "Period × measure"}</button>)}</div>}
@@ -157,10 +165,11 @@ export function GraphStudio() {
   const [active, setActive] = useState(0), [tab, setTab] = useState<"list" | "drag">("list"), [group, setGroup] = useState("popular"), [q, setQ] = useState(""), [cq, setCq] = useState("");
   const [panel, setPanel] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= 900));
   const idx = useSearchIndex(true);
-  const rows = idx.data?.rows as [string, string][] | undefined;
+  const feed = useIndices(true);
+  const rows = useMemo(() => [...((idx.data?.rows as [string, string][] | undefined) ?? []), ...(feed.data?.items ?? []).map((x): [string, string] => [IDX + x.code, x.name])], [idx.data, feed.data]);
   const colors = useMemo(readColors, [theme]); // eslint-disable-line react-hooks/exhaustive-deps
   const count = Math.min(cellCount(view.layout), lim.cells);
-  const bundles = useBundles(view, count);
+  const bundles = useBundles(view, count, plan);
   const gridRef = useRef<HTMLDivElement>(null);
   const [views, setViews] = useState<Record<string, View>>(readLocal), [vname, setVname] = useState("");
   const clamp = (v: View) => sanitize(v, plan);
@@ -183,14 +192,15 @@ export function GraphStudio() {
     const isComp = mt.grain === "composition", hasComp = cell.series.some((s) => BY_ID[s.m]?.grain === "composition");
     if ((isComp && cell.series.length && !hasComp) || (!isComp && hasComp)) { toast("A breakdown (pie) can't share a chart with time series. Use another chart."); return; }
     let series = isComp ? [] : [...cell.series], added = 0;
-    for (const s of isComp ? syms.slice(0, 1) : syms) { if (series.some((x) => x.s === s && x.m === mid)) continue; if (series.length >= lim.series) { toast(`Your plan allows ${lim.series} series per chart.`); break; } series.push({ s, m: mid }); added++; }
+    for (const s of isComp ? syms.slice(0, 1) : syms) { const why = unsupportedWhy(s, mt); if (why) { toast(`${mt.label} for ${isIndexSym(s) ? name(rows, s) : s}: ${why}`); continue; } if (isComp && isIndexSym(s)) { toast("Breakdowns are for companies."); continue; } if (series.some((x) => x.s === s && x.m === mid)) continue; if (series.length >= lim.series) { toast(`Your plan allows ${lim.series} series per chart.`); break; } series.push({ s, m: mid }); added++; }
     if (!added && !isComp) return;
     setCell(i, { ...cell, series, chart: isComp ? "pie" : cell.chart === "pie" ? "line" : cell.chart, x: undefined, y: undefined });
   };
   const toggle = (mid: string) => { const cell = cellOf(active); const has = cell.series.some((s) => s.m === mid); if (has) setCell(active, { ...cell, series: cell.series.filter((s) => s.m !== mid) }); else addTo(active, mid); };
-  const addCompany = (s: string) => { if (companies.includes(s)) return; if (companies.length >= lim.companies) { upgrade(plan === "basic" ? "silver" : "gold", `Comparing more than ${lim.companies} companies`); return; } setCompanies([...companies, s]); setCq(""); };
+  const nCo = (l: string[]) => l.filter((x) => !isIndexSym(x)).length;
+  const addCompany = (s: string) => { if (companies.includes(s)) return; if (!isIndexSym(s) && nCo(companies) >= lim.companies) { upgrade(plan === "basic" ? "silver" : "gold", `Comparing more than ${lim.companies} companies`); return; } setCompanies([...companies, s]); setCq(""); };
   const removeCompany = (s: string) => { const left = companies.filter((x) => x !== s); setCompanies(left); set({ ...view, cells: view.cells.map((c) => ({ ...c, series: c.series.filter((x) => x.s !== s) })) }); };
-  const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1 || !rows) return []; return rows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)).slice(0, 8); }, [cq, rows]);
+  const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1) return []; const f = rows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)), ixs = f.filter((r) => isIndexSym(r[0])).slice(0, 3); return [...f.filter((r) => !isIndexSym(r[0])).slice(0, 8 - ixs.length), ...ixs]; }, [cq, rows]);
   const setLayout = (l: string) => { if (cellCount(l) > lim.cells) { upgrade(plan === "basic" ? "silver" : "gold", `Layouts with ${cellCount(l)} charts`); return; } set({ ...view, layout: l }); };
 
   const save = async () => {
@@ -207,7 +217,7 @@ export function GraphStudio() {
   const download = (blob: Blob, file: string) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
   const exportCsv = () => {
     const out = [csvRow(["chart", "chart_type", "company", "measure", "unit", "period_or_date", "value"])];
-    view.cells.slice(0, count).forEach((cell, i) => cell.series.forEach((s) => { const mt = BY_ID[s.m], bd = bundles.get(s.s); if (!mt || !bd) return; const ex = extract(mt, bd.b, view.basis, plan, true);
+    view.cells.slice(0, count).forEach((cell, i) => cell.series.forEach((s) => { const mt0 = BY_ID[s.m], bd = bundles.get(s.s); if (!mt0 || !bd || unsupportedWhy(s.s, mt0)) return; const mt = metricFor(s.s, mt0); const ex = extract(mt, bd.b, view.basis, plan, true);
       (ex.cats ?? []).forEach((x) => out.push(csvRow([i + 1, cell.chart, s.s, mt.label, UNITS[mt.unit].name, x.name, x.value])));
       windowPts(ex.pts, view.range, view.from).forEach((p) => out.push(csvRow([i + 1, cell.chart, s.s, mt.label, UNITS[mt.unit].name, p.l && mt.grain === "periodic" ? p.l : p.t, p.v]))); }));
     download(new Blob([out.join("\n")], { type: "text/csv" }), "finlit-graphs.csv");
@@ -230,7 +240,7 @@ export function GraphStudio() {
   };
 
   const needsLoad = [...bundles.values()].some((b) => Object.values(b.st).includes("loading"));
-  const list = metricsIn(group, q);
+  const list = metricsIn(group, q), whyOff = (m: Metric) => (companies.length ? (companies.every((s) => unsupportedWhy(s, m)) ? unsupportedWhy(companies[0], m) : null) : null);
   const activeCell = cellOf(active);
   const co = LAYOUTS[view.layout];
 
@@ -243,19 +253,19 @@ export function GraphStudio() {
           <button className="btn ghost gx-toggle" aria-expanded={panel} onClick={() => setPanel(!panel)}>{panel ? "Hide" : "Choose"} companies and measures</button>
           <div hidden={!panel}>
             <h2>1. Companies</h2>
-            <div className="gx-chips">{companies.map((s) => <span key={s} className="gx-chip">{name(rows, s)}<button aria-label={`Remove ${s}`} onClick={() => removeCompany(s)}>×</button></span>)}</div>
-            <div className="gx-search"><label className="sr" htmlFor="gx-co">Add a company</label><input id="gx-co" value={cq} onChange={(e) => setCq(e.target.value)} placeholder={`Add a company (${companies.length}/${lim.companies})`} autoComplete="off" />
-              {hits.length > 0 && <ul role="listbox" aria-label="Companies">{hits.map((r) => <li key={r[0]} role="option" aria-selected={false}><button onClick={() => addCompany(r[0])}>{r[1]} <small>{r[0]}</small></button></li>)}</ul>}</div>
+            <div className="gx-chips">{companies.map((s) => <span key={s} className="gx-chip">{name(rows, s)}{isIndexSym(s) && <small> Index</small>}<button aria-label={`Remove ${name(rows, s)}`} onClick={() => removeCompany(s)}>×</button></span>)}</div>
+            <div className="gx-search"><label className="sr" htmlFor="gx-co">Add a company or index</label><input id="gx-co" value={cq} onChange={(e) => setCq(e.target.value)} placeholder={`Add a company or index (${nCo(companies)}/${lim.companies} companies)`} autoComplete="off" />
+              {hits.length > 0 && <ul role="listbox" aria-label="Companies and indices">{hits.map((r) => <li key={r[0]} role="option" aria-selected={false}><button onClick={() => addCompany(r[0])}>{r[1]} <small>{isIndexSym(r[0]) ? "Index" : r[0]}</small></button></li>)}</ul>}</div>
             <h2>2. Measures</h2>
             <div className="gx-seg" role="tablist" aria-label="How to pick">{([["list", "Choose from list"], ["drag", "Drag & drop"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
             <p className="faint gx-hint">{tab === "list" ? <>Ticks apply to <b>Chart {active + 1}</b> (click a chart to change it).</> : "Drag a measure onto a chart, or use the Add menu on each row."}</p>
             <label className="sr" htmlFor="gx-q">Search measures</label><input id="gx-q" className="gx-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search measures (revenue, P/E, ROE…)" />
             {!q && <div className="gx-groups">{GROUPS.map((g) => <button key={g.id} aria-pressed={group === g.id} onClick={() => setGroup(g.id)}>{g.label}</button>)}</div>}
             <ul className="gx-list">{list.map((m) => { const on = activeCell.series.some((s) => s.m === m.id); return (
-              <li key={m.id} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", m.id); e.dataTransfer.effectAllowed = "copy"; }} title={m.hint}>
-                {tab === "list" ? <label><input type="checkbox" checked={on} onChange={() => toggle(m.id)} /><span>{m.label}</span></label> : <><span className="grip" aria-hidden="true">⋮⋮</span><span>{m.label}</span></>}
-                <small>{UNITS[m.unit].label}{m.tier !== "basic" && <> · {m.tier === "gold" ? "Gold" : "Silver"}</>}</small>
-                {tab === "drag" && <select aria-label={`Add ${m.label} to a chart`} value="" onChange={(e) => { const n = +e.target.value; if (!Number.isNaN(n)) addTo(n, m.id); }}><option value="">Add to…</option>{Array.from({ length: count }, (_, n) => <option key={n} value={n}>Chart {n + 1}</option>)}</select>}
+              <li key={m.id} draggable={!whyOff(m)} className={whyOff(m) ? "off" : undefined} onDragStart={(e) => { e.dataTransfer.setData("text/plain", m.id); e.dataTransfer.effectAllowed = "copy"; }} title={m.hint}>
+                {tab === "list" ? <label><input type="checkbox" checked={on} disabled={!!whyOff(m)} onChange={() => toggle(m.id)} /><span>{m.label}</span></label> : <><span className="grip" aria-hidden="true">⋮⋮</span><span>{m.label}</span></>}
+                {whyOff(m) && <small className="faint">{whyOff(m)}</small>}<small>{UNITS[m.unit].label}{m.tier !== "basic" && <> · {m.tier === "gold" ? "Gold" : "Silver"}</>}</small>
+                {tab === "drag" && <select aria-label={`Add ${m.label} to a chart`} disabled={!!whyOff(m)} value="" onChange={(e) => { const n = +e.target.value; if (!Number.isNaN(n)) addTo(n, m.id); }}><option value="">Add to…</option>{Array.from({ length: count }, (_, n) => <option key={n} value={n}>Chart {n + 1}</option>)}</select>}
               </li>); })}{!list.length && <li className="faint">No measure matches.</li>}</ul>
           </div>
         </aside>

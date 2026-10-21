@@ -2,7 +2,7 @@
 import type { Plan } from "./auth";
 import { GRAPH_LIMITS, type ChartKind } from "./graphLimits";
 import type { RangeId } from "./graphData";
-import { BY_ID, type Basis } from "./graphMetrics";
+import { BY_ID, isIndexSym, indexSupports, type Basis } from "./graphMetrics";
 
 export type SeriesSpec = { s: string; m: string; as?: "bar" | "line" };
 export type CellSpec = { chart: ChartKind; series: SeriesSpec[]; mode?: "corr" | "grid"; tf?: "values" | "change" | "index"; x?: number; y?: number };
@@ -10,7 +10,7 @@ export type View = { v: 1; layout: string; basis: Basis; range: RangeId; from?: 
 export const LAYOUTS: Record<string, { rows: number; cols: number }> = { "1x1": { rows: 1, cols: 1 }, "1x2": { rows: 1, cols: 2 }, "2x2": { rows: 2, cols: 2 }, "2x3": { rows: 2, cols: 3 }, "3x3": { rows: 3, cols: 3 } };
 export const cellCount = (layout: string) => (LAYOUTS[layout] ? LAYOUTS[layout].rows * LAYOUTS[layout].cols : 4);
 export const CHART_LABEL: Record<ChartKind, string> = { line: "Line", area: "Area", column: "Column", bar: "Bar (latest values)", combo: "Combo (bars + line)", pie: "Pie", candlestick: "Candlestick", scatter: "Scatter (X vs Y)", heatmap: "Heatmap" };
-const SYM = /^[A-Z0-9&_.-]{1,24}$/;
+const SYM = /^(IDX:[A-Z0-9]{2,24}|[A-Z0-9&_.-]{1,24})$/;   // a company symbol, or an index as IDX:code
 
 export const defaultView = (symbol = "RELIANCE"): View => ({
   v: 1, layout: "2x2", basis: "annual", range: "5Y",
@@ -30,8 +30,10 @@ export function sanitize(raw: unknown, plan: Plan): View {
     for (const s of Array.isArray(c?.series) ? (c.series as Record<string, unknown>[]) : []) {
       const sym = typeof s?.s === "string" ? s.s.toUpperCase() : "";
       if (!SYM.test(sym) || typeof s.m !== "string" || !BY_ID[s.m] || series.length >= lim.series) continue;
-      if (!companies.has(sym) && companies.size >= lim.companies) continue;
-      companies.add(sym); series.push({ s: sym, m: s.m, ...(s.as === "bar" || s.as === "line" ? { as: s.as } : {}) });
+      if (isIndexSym(sym) && !indexSupports(BY_ID[s.m])) continue;   // a revenue line for an index is meaningless: dropped, never drawn blank
+      if (!isIndexSym(sym) && BY_ID[s.m].src === "ixval") continue;
+      if (!isIndexSym(sym) && !companies.has(sym) && companies.size >= lim.companies) continue;   // indices count toward the series limit, not the company limit
+      if (!isIndexSym(sym)) companies.add(sym); series.push({ s: sym, m: s.m, ...(s.as === "bar" || s.as === "line" ? { as: s.as } : {}) });
     }
     const n = (v: unknown) => (typeof v === "number" && v >= 0 && v < 9 ? v : undefined);
     return { chart, series, ...(c?.mode === "corr" || c?.mode === "grid" ? { mode: c.mode } : {}), ...(["values", "change", "index"].includes(c?.tf as string) ? { tf: c.tf as CellSpec["tf"] } : {}), x: n(c?.x), y: n(c?.y) };

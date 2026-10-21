@@ -1,5 +1,6 @@
 import { HScroll } from "../components/HScroll";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { fromYears, priceFrom } from "../lib/chartAxis";
 import { Icon } from "../lib/icons";
 import { Gate, TierChip } from "../components/Gate";
 import { Info } from "../components/Info";
@@ -45,10 +46,11 @@ export function Notes({ s }: { s: Summary }) {
 /* ---------------- Price & technicals ---------------- */
 const RANGES = ["1M", "6M", "1Y", "3Y", "5Y", "MAX"];
 export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string; ratios?: Ratios }) {
-  const [range, setRange] = useState("1Y");
+  const [range, setRange] = useState("1Y"), [from, setFrom] = useState<number | undefined>();
   const [ind, setInd] = useState({ e50: true, e200: false, vol: true });
   const { has, upgrade } = useUI();
-  const { data, isLoading, isError } = usePrice(symbol, range);
+  const { data: full, isLoading, isError } = usePrice(symbol, from ? "MAX" : range);
+  const data = useMemo(() => (full ? priceFrom(full, from) : full), [full, from]);
   const t = data?.technical, series = data?.series, c = series?.c || [];
   const chg = c.length > 1 ? (c[c.length - 1] / c[0] - 1) * 100 : null;
   const gold = has("gold"), e = (k: string, on: boolean) => gold ? on : k === "e50" ? true : k === "vol";
@@ -62,7 +64,7 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
             {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], ["Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
           </div>
           <div className="tools">
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={range === r} onClick={() => setRange(r)}>{r}</button>)}</div><ChartHelp id="price-section" /></div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={!from && range === r} onClick={() => { setRange(r); setFrom(undefined); }}>{r}</button>)}</div><label className="faint" style={{ fontSize: 12 }}>From year <select aria-label="From year" value={from ?? ""} onChange={(e) => setFrom(e.target.value ? Number(e.target.value) : undefined)}><option value="">Any</option>{fromYears().map((y) => <option key={y} value={y}>{y}</option>)}</select></label><ChartHelp id="price-section" /></div>
             {gold ? <div className="seg" role="group" aria-label="Indicators">
               <button aria-pressed={ind.e50} onClick={() => setInd((x) => ({ ...x, e50: !x.e50 }))}>EMA 50</button><button aria-pressed={ind.e200} onClick={() => setInd((x) => ({ ...x, e200: !x.e200 }))}>EMA 200</button><button aria-pressed={ind.vol} onClick={() => setInd((x) => ({ ...x, vol: !x.vol }))}>Volume</button></div>
               : <span className="tier gold" style={{ cursor: "pointer" }} onClick={() => upgrade("gold", "More indicators come with Gold.")}>More indicators in Gold</span>}
