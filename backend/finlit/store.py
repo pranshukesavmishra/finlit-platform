@@ -78,6 +78,11 @@ def prepare_dsn(url: str) -> tuple:
     return urlunsplit(parts._replace(query=urlencode(query))), extra
 
 
+async def _upstox_health(redis) -> dict:
+    from .upstox import health_line
+    return await health_line(redis)
+
+
 class Store:
     def __init__(self, pool: asyncpg.Pool, redis: aioredis.Redis, timescale: bool = False):
         self.pool, self.redis, self.timescale = pool, redis, timescale
@@ -218,7 +223,7 @@ class Store:
                 "runs24h": {r["status"]: r["n"] for r in runs},
                 "recentProblems": [{"symbol": r["symbol"], "status": r["status"], "at": r["at"].isoformat(), "detail": str(r["errors"])[:200]} for r in failed],
                 "coverage": await self.coverage_health(),
-                "secondarySource": await __import__("finlit.upstox", fromlist=["health_line"]).health_line(self.redis, self.settings if hasattr(self, "settings") else None)}
+                "secondarySource": await _upstox_health(self.redis)}
 
     async def _upsert_prices(self, conn, symbol: str, daily: dict):
         rows = [(symbol, date.fromisoformat(t), daily["o"][i], daily["h"][i], daily["l"][i], daily["c"][i], daily["v"][i])
