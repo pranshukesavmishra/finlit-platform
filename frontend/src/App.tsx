@@ -26,6 +26,7 @@ const FundamentalsPage = lazy(() => import("./pages/Fundamentals").then((m) => (
 const PremiumReportPage = lazy(() => import("./pages/PremiumReport").then((m) => ({ default: m.PremiumReportPage })));
 const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
+const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ default: m.GraphStudio })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
@@ -38,6 +39,7 @@ const NewsPage = lazy(() => import("./pages/News").then((m) => ({ default: m.New
 const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ default: m.DocumentsPage })));
 const AlertsPage = lazy(() => import("./pages/Alerts").then((m) => ({ default: m.AlertsPage })));
 const HoldingsPage = lazy(() => import("./pages/Holdings").then((m) => ({ default: m.HoldingsPage })));
+const ForumPage = lazy(() => import("./pages/Forum").then((m) => ({ default: m.ForumPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -61,9 +63,11 @@ export default function App() {
             <Route path="premium/report" element={<PremiumReportPage />} />
             <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
             <Route path="compare" element={<Compare />} />
+            <Route path="graphs" element={<GraphStudio />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="alerts" element={<AlertsPage />} />
+            <Route path="forum/*" element={<ForumPage />} />
             <Route path="ipo" element={<IpoPage />} />
             <Route path="results" element={<ResultsPage />} />
             <Route path="results/quarter" element={<QuarterResultsPage />} />

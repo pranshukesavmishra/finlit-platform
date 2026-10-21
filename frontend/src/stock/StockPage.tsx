@@ -15,6 +15,7 @@ import { InsightsSection, PeersSection, RatiosSection } from "./Sections3";
 import { QuarterSection, TrendsSection } from "./Sections4";
 import { ChartLab } from "./ChartLab";
 import { PlFlagsLayer } from "./PlFlagsLayer";
+import { DiscussionLink } from "../components/DiscussionLink";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
@@ -110,6 +111,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
+        <DiscussionLink symbol={symbol} />
         <ErrorBoundary section="This section"><MethodSection s={s} r={ratios} /></ErrorBoundary>
       </div>
       <PlansBand id="plans" />
