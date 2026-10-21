@@ -464,9 +464,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             except Exception as exc:
                 await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
                 raise
-            await record_run(store, args.cmd, {"status": result.get("status"), "reason": str(result.get("reason") or "")[:200]})
+            await record_run(store, args.cmd, {"status": result.get("status"), "reason": str(result.get("reason") or "")[:200],
+                                               **{k: (v[:5] if k in ("failed", "errors") else len(v)) for k, v in result.items() if isinstance(v, list)}})
             print(result)
-            return 0 if result.get("status") == "ok" else 1   # a refused or empty answer is a failure, so the boot chain stops
+            return 0 if result.get("status") in ("ok", "partial") else 1   # partial = some instruments failed but good rows were kept; a refused or empty answer stops the boot chain
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
             from .screener import jobs
             if args.cmd == "rebuild-metrics":
