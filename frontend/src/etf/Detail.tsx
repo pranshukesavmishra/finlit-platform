@@ -93,19 +93,19 @@ export function EtfDetailPage() {
         </div>
         <div className="etf-grid3">
           <div className="card etf-sec">
-            <div className="card-h"><h3>Volatility <GlossInfo name="Volatility" fallback={COL_BY.vol1y.help} /></h3><span className="s">last year</span></div>
+            <div className="card-h"><h3>Volatility <GlossInfo name="Volatility" fallback={"How much the price swings, per year. Higher means a bumpier ride."} /></h3><span className="s">last year</span></div>
             {d.risk.vol1y.value == null ? <p className="etf-big"><Blank why={d.risk.vol1y.why ?? "Not enough price history"} /></p> : <p className="etf-big">{pct(d.risk.vol1y.value, 1)}<small> a year</small></p>}
             <p className="etf-say">{volReading(d.risk.vol1y.value) ?? d.risk.vol1y.why}</p>
             {d.risk.vol1y.days != null && <p className="faint etf-small">From {d.risk.vol1y.days} daily price changes. Higher means a bumpier ride.</p>}
           </div>
           <div className="card etf-sec">
-            <div className="card-h"><h3>Largest fall <GlossInfo name="Drawdown" fallback={COL_BY.mdd1y.help} /></h3><span className="s">high to later low</span></div>
+            <div className="card-h"><h3>Largest fall <GlossInfo name="Drawdown" fallback={"Biggest drop from a high to a later low."} /></h3><span className="s">high to later low</span></div>
             <table className="etf-mini"><tbody>{d.risk.drawdowns.map((x) => (
               <tr key={x.key}><th scope="row">{x.label}</th><td className="num">{x.value == null ? <Blank why={x.why ?? "Not enough price history"} /> : <Tone v={x.value}>{pct(x.value, 1)}</Tone>}</td></tr>))}</tbody></table>
             <p className="etf-say">{(() => { const last = [...d.risk.drawdowns].reverse().find((x) => x.value != null); return last ? fallReading(last) : "Not enough price history for a largest-fall figure."; })()}</p>
           </div>
           <div className="card etf-sec">
-            <div className="card-h"><h3>52-week range <GlossInfo name="52-week high and low" fallback={COL_BY.from52.help} /></h3><span className="s">daily high and low</span></div>
+            <div className="card-h"><h3>52-week range <GlossInfo name="52-week high and low" fallback={"How far the price is below its highest level of the last 52 weeks."} /></h3><span className="s">daily high and low</span></div>
             {d.risk.range52.high == null ? <p className="etf-big"><Blank why="Not enough price history" /></p> : (
               <>
                 <div className="etf-bar" role="img" aria-label={`The price is ${nf(rangePosition(d.price, d.risk.range52.high, d.risk.range52.low) ?? 0, 0)} percent of the way from the 52-week low to the high`}>

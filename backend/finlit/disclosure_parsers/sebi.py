@@ -123,6 +123,10 @@ GRAND_ROW = re.compile(r"^\W*(grand\s*total|total\s*net\s*assets|net\s*assets\b|
 RATING_LIKE = re.compile(r"\b(aaa|aa\+?|aa-|a1\+|a1|a\+|sovereign|unrated|crisil|icra|care|ind\s?a|fitch|brickwork|acuite|nil)\b|^[ab]{1,3}[+-]?$", re.I)
 
 
+OTHER_LABELS = frozenset(["foreign security", "foreign securities", "mutual funds", "mutual fund", "commodity", "commodities", "reit", "invit", "reits", "invits", "etf", "overseas etf",
+                          "units of mutual fund", "foreign mutual fund", "overseas mutual fund", "gold", "silver", "others", "other"])
+
+
 def heading_class(text: str) -> Optional[str]:
     t = text.strip()
     if not t or _SUBHEAD.match(t):
@@ -234,6 +238,9 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     seen_heading = False
     done = False
     raw_pcts: List[float] = []
+    star_rows = 0          # rows whose percent is a '*' / '<0.01' marker instead of a number: not listed
+    hedge_rows = 0         # futures / options hedge lines with a negative percent: exposures, not additive to net assets, not listed
+    in_deriv = False
 
     def cell(row, key):
         i = cols.get(key)
@@ -255,7 +262,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
                         if bm and not benchmark:
                             benchmark = bm.group(1).strip()
             continue
-        pct = num(cell(row, "pct"))
+        pct_raw = cell(row, "pct")
+        pct = num(pct_raw)
         if done:
             bm = re.search(r"benchmark\s*name\s*[-:]\s*(.+)", name, re.I)
             if bm and not benchmark:
@@ -272,11 +280,15 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             continue
         isin_raw = txt(cell(row, "isin")).upper().replace(" ", "")
         if pct is None:
+            if isinstance(pct_raw, str) and re.match(r"^\s*(\*+|\$+|<\s*[\d.]+\s*%?|less than.*)\s*$", pct_raw) and not heading_class(name) and (isin_raw or num(cell(row, "value")) is not None):
+                star_rows += 1
+                continue
             # a heading (or a NIL line)
             hc = heading_class(name)
             if hc and not isin_raw:
                 cur = hc
                 seen_heading = True
+                in_deriv = bool(re.search(r"derivative|futures|options", name, re.I))
             continue
         if re.match(r"^\W*(plan|regular|direct)\b.*(growth|idcw|dividend|option)", name, re.I) and not isin_raw:
             continue      # the NAV table under the total
@@ -286,13 +298,21 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         cls = cur
         if CASH_NAME.search(name) and not isin_raw:
             cls = "cash"
+        sec_probe = txt(cell(row, "sector"))
+        if not isin_raw and (in_deriv or re.search(r"\b(futures?|options?|swaps?|derivatives?)\b", sec_probe, re.I)) and cls != "cash":
+            if pct < 0:
+                hedge_rows += 1
+                continue
+            cls = "other"
         if not seen_heading and cls == "other" and isin_raw:
-            cls = "equity" if isin_raw.startswith("INE") and isin_raw[8:10] == "01" else cls
+            cls = "equity" if isin_raw.startswith("INE") and isin_raw[7:9] == "01" else cls
         sec_raw = txt(cell(row, "sector"))
+        if (cls == "other" and sec_raw and isin_raw and sec_raw.lower() not in OTHER_LABELS and not RATING_LIKE.search(sec_raw)
+                and ((isin_raw.startswith("INE") and isin_raw[7:9] == "01") or not isin_raw.startswith("IN"))):
+            cls = "equity"            # an arbitrage / foreign-securities block holds ordinary shares: the row itself says so (equity ISIN, an industry)
         sector: Optional[str] = None
-        if sec_raw and not isinstance(cell(row, "sector"), float):
-            if cls == "equity" or (cls == "other" and "industry" in sector_header and not RATING_LIKE.search(sec_raw)):
-                sector = re.sub(r"[\s\^\*#]+$", "", sec_raw)
+        if sec_raw and cls == "equity" and not isinstance(cell(row, "sector"), float):
+            sector = re.sub(r"[\s\^\*#]+$", "", sec_raw)
         value = num(cell(row, "value"))
         if value is not None:
             value = value * unit if unit else None
@@ -310,5 +330,9 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         grand_pct = round(grand_pct * 100.0, 6) if grand_pct is not None else None
     else:
         grand_pct = round(grand_pct, 6) if grand_pct is not None else None
+    if star_rows:
+        notes.append(f"{star_rows} row(s) published with a '*' marker instead of a number (below the file's display threshold) are not listed")
+    if hedge_rows:
+        notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,
                      net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases)

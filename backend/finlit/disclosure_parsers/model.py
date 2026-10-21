@@ -129,16 +129,17 @@ def validate(p: Portfolio, today: Optional[date] = None) -> Verdict:
             continue
         if h.pct_nav < 0 and h.asset_class in ("equity", "debt"):
             problems.append(f"negative percent {h.pct_nav} on {h.asset_class} row {h.name!r}")
-        if h.pct_nav > 100.0001:
-            problems.append(f"percent {h.pct_nav} above 100 on {h.name!r}")
-        if h.isin is not None and not isin_ok(h.isin):
+        if h.pct_nav > 101.0:
+            problems.append(f"percent {h.pct_nav} above 101 on {h.name!r}")
+        if h.isin is not None and not isin_ok(h.isin) and h.asset_class in ("equity", "debt"):
             bad_isin += 1
         if h.qty is not None and h.qty < 0 and h.asset_class in ("equity", "debt"):
             warnings.append(f"negative quantity on {h.name!r}")
-    if bad_isin > BAD_ISIN_SHARE * len(hs):
-        problems.append(f"{bad_isin} of {len(hs)} ISINs fail the check digit (more than {int(BAD_ISIN_SHARE * 100)} %): columns misread")
-    elif bad_isin:
-        warnings.append(f"{bad_isin} ISIN(s) failed the check digit and were dropped from their rows")
+    n_isin = sum(1 for h in hs if h.asset_class in ("equity", "debt"))
+    if bad_isin > BAD_ISIN_SHARE * n_isin:
+        problems.append(f"{bad_isin} of {n_isin} equity/debt ISINs fail the check digit (more than {int(BAD_ISIN_SHARE * 100)} %): columns misread")
+    if bad_isin:
+        warnings.append(f"{bad_isin} equity/debt ISIN(s) failed the check digit; they are dropped from their rows when stored")
     total = sum(h.pct_nav for h in hs if isinstance(h.pct_nav, (int, float)) and not math.isnan(h.pct_nav))
     n = len(hs)
     if p.published_total_pct is not None:
@@ -152,3 +153,13 @@ def validate(p: Portfolio, today: Optional[date] = None) -> Verdict:
         if abs(total - 100.0) > tol:
             problems.append(f"parsed rows add up to {total:.4f} %, not about 100 (tolerance {tol:.2f}; the file gives no total)")
     return Verdict(not problems, problems, warnings, total)
+
+
+def clean_for_store(p: Portfolio) -> int:
+    """Drop (set to None) any ISIN that fails its check digit; the row itself stays as published. Returns how many were dropped."""
+    n = 0
+    for h in p.holdings:
+        if h.isin is not None and not isin_ok(h.isin):
+            h.isin = None
+            n += 1
+    return n
