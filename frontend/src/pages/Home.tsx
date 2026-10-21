@@ -137,7 +137,7 @@ export function Home() {
               <Link className="btn lg" to="/research">Explore stock research</Link>
               <button type="button" className="btn lg" onClick={notify}><Icon name="bell" /> Notify me</button>
             </div>
-            <p className="hh-fine">{counts ? <>{inr(counts.all)} listed companies in our index, {inr(counts.ready)} with a full report today. </> : null}Information only. Not investment advice.</p>
+            <p className="hh-fine">Information only. Not investment advice.</p>
           </div>
           <ScoreCard s={s} />
         </div>
