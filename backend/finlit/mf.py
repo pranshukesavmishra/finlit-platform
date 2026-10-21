@@ -712,6 +712,17 @@ async def record_run(store, cmd: str, info: dict) -> None:
         log.warning("could not record the %s result", cmd)
 
 
+async def last_run_age_hours(store, cmd: str):
+    """(hours since the step last ran, its status) from record_run, or (None, None) when it never ran."""
+    try:
+        async with store.pool.acquire() as conn:
+            v = await _meta(conn, "run:" + cmd)
+        at = datetime.fromisoformat(v["at"]) if v else None
+        return ((datetime.now(timezone.utc) - at).total_seconds() / 3600, v.get("status")) if at else (None, None)
+    except Exception:
+        return None, None
+
+
 async def _bump(store, newest: Optional[date]) -> None:
     """New data version: cached list and detail pages built from older data stop being served (their keys include the version)."""
     try:

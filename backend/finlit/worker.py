@@ -389,8 +389,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
     p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
-    sub.add_parser("refresh-etf", help="nightly: ETF prices and history from Upstox (never overwrites good rows with a short answer)")
-    sub.add_parser("refresh-mf", help="nightly: mutual fund NAVs from AMFI (never overwrites good rows with a short answer)")
+    for _name, _help in (("refresh-etf", "nightly: ETF prices and history from Upstox (never overwrites good rows with a short answer)"),
+                         ("refresh-mf", "nightly: mutual fund NAVs from AMFI (never overwrites good rows with a short answer)")):
+        _p = sub.add_parser(_name, help=_help)
+        _p.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours (a clean run) or the last 15 minutes (a partial one): redeploys must not repeat a full load")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -458,14 +460,19 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .etf import refresh as refresh_funds
             else:
                 from .mf import refresh as refresh_funds
-            from .mf import record_run
+            from .mf import record_run, last_run_age_hours
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and age < (args.max_age_hours if last == "ok" else min(0.25, args.max_age_hours)):
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
             try:
                 result = await refresh_funds(store, settings)
             except Exception as exc:
                 await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
                 raise
             await record_run(store, args.cmd, {"status": result.get("status"), "reason": str(result.get("reason") or "")[:200],
-                                               **{k: (v[:5] if k in ("failed", "errors") else len(v)) for k, v in result.items() if isinstance(v, list)}})
+                                               **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial") else 1   # partial = some instruments failed but good rows were kept; a refused or empty answer stops the boot chain
         if args.cmd in ("rebuild-metrics", "refresh-indices"):

@@ -50,7 +50,7 @@ fund_step() {  # fund_step <label> <worker args...>
   # ETFs, then funds, then 5 years of fund history: strictly one after the other, each only if the one before it worked, and only once the web server is up.
   # Each is resumable (the fund history skips fund houses already done) and none of them runs on a timer, so a restart loses nothing and the database may sleep.
   if wait_web; then
-    fund_step boot-etf refresh-etf && fund_step boot-mf refresh-mf && fund_step boot-mf-history backfill-mf
+    fund_step boot-etf refresh-etf --max-age-hours 12 && fund_step boot-mf refresh-mf --max-age-hours 12 && fund_step boot-mf-history backfill-mf
   else
     log "boot-etf skipped: the web server did not answer within 10 minutes"
   fi
