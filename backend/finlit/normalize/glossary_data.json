@@ -531,6 +531,8 @@
     "5Y sales CAGR",
     "Book value growth, 5 years a year",
     "CAGR",
+    "Operating profit CAGR, 3 years",
+    "Operating profit CAGR, 5 years",
     "Profit CAGR",
     "Sales CAGR",
     "Sales growth, 3 years a year",
@@ -541,6 +543,8 @@
     "compound annual growth rate",
     "ebitda cagr 5y",
     "eps cagr 5y",
+    "op profit cagr 3y",
+    "op profit cagr 5y",
     "profit cagr",
     "profit cagr 3y",
     "profit cagr 5y",
@@ -2711,6 +2715,10 @@
    "finlit": "",
    "aliases": [
     "Latest quarter operating profit",
+    "Operating profit (annual)",
+    "Operating profit growth (annual)",
+    "op profit",
+    "op profit growth",
     "operatingProfit",
     "q operating profit"
    ]
@@ -7076,6 +7084,50 @@
    "read": "₹16 lakh crore market cap means the market values the whole company at that amount today.",
    "why": "It tells you how big the company is in the stock market's eyes and decides whether it is a large, mid or small cap.",
    "formula": "Share price × shares outstanding, in ₹ crore, as sent with the latest quote."
+  },
+  "op_profit": {
+   "label": "Operating profit (annual)",
+   "unit": "Cr",
+   "better": "higher",
+   "group": "profitability",
+   "term": "operating-profit",
+   "what": "Profit from the core business: revenue minus operating costs, before interest, depreciation, tax and other income. FinLit's P&L shows it this way, which is close to EBITDA.",
+   "read": "Compare operating profit growth with revenue growth to see whether the business is becoming more or less efficient.",
+   "why": "It shows how much the business itself earns, separate from how it is financed.",
+   "formula": "Operating profit of the latest full year: revenue minus operating costs, before depreciation, interest and other income, in ₹ crore."
+  },
+  "op_profit_growth": {
+   "label": "Operating profit growth (annual)",
+   "unit": "%",
+   "better": "higher",
+   "group": "growth",
+   "term": "operating-profit",
+   "what": "How much operating profit grew in the latest year.",
+   "read": "Compare operating profit growth with revenue growth to see whether the business is becoming more or less efficient.",
+   "why": "It shows how much the business itself earns, separate from how it is financed.",
+   "formula": "Operating profit this year ÷ operating profit last year − 1; blank when last year was zero or a loss."
+  },
+  "op_profit_cagr_3y": {
+   "label": "Operating profit CAGR, 3 years",
+   "unit": "%",
+   "better": "higher",
+   "group": "growth",
+   "term": "cagr-compound-annual-growth-rate",
+   "what": "Average yearly growth in operating profit over 3 years.",
+   "read": "CAGR depends heavily on the start year: growth measured from a bad year looks better than it is.",
+   "why": "It smooths out ups and downs so different periods and companies can be compared.",
+   "formula": "(Operating profit now ÷ 3 years ago)^(1 ÷ 3) − 1; blank unless both ends are profits."
+  },
+  "op_profit_cagr_5y": {
+   "label": "Operating profit CAGR, 5 years",
+   "unit": "%",
+   "better": "higher",
+   "group": "growth",
+   "term": "cagr-compound-annual-growth-rate",
+   "what": "Average yearly growth in operating profit over 5 years.",
+   "read": "CAGR depends heavily on the start year: growth measured from a bad year looks better than it is.",
+   "why": "It smooths out ups and downs so different periods and companies can be compared.",
+   "formula": "(Operating profit now ÷ 5 years ago)^(1 ÷ 5) − 1; blank unless both ends are profits."
   }
  }
 }

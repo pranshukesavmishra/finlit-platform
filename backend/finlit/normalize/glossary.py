@@ -1,150 +1,23 @@
-"""Single source of truth for every metric shown to users.
+"""The glossary: ONE data file (glossary_data.json) feeds the API payloads and, through scripts/sync_glossary.py, the website.
 
-Each entry: label, unit ('%', 'x', 'days', '₹', 'Cr'), better ('higher' | 'lower' | None),
-group (ratio group / pillar), what (one line), read (how to read it), formula.
-Replaces the generic "Shows a company financial metric…" placeholders on the old site.
+`terms` are the A-Z entries (meaning, why it matters, how to use it, formula, how FinLit measures it).
+`metrics` map every metric key the product shows (ratios, screener, scores, statement rows, results columns) to a label, unit, direction,
+group, a term, and the formula FinLit actually computes.
 """
 
-GLOSSARY = {
-    # Valuation
-    "pe": dict(label="P/E", unit="x", better="lower", group="valuation",
-               what="Share price ÷ yearly profit per share.",
-               read="Lower means you pay less for each ₹1 of profit. Compare with peers and the company's own history; a low P/E can also mean slow growth is expected.",
-               formula="Price ÷ EPS (TTM)"),
-    "pb": dict(label="P/B", unit="x", better="lower", group="valuation",
-               what="Share price ÷ net assets (book value) per share.",
-               read="Below 1× means the price is under book value. Most useful for asset-heavy businesses and banks.",
-               formula="Price ÷ book value per share"),
-    "ps": dict(label="P/S", unit="x", better="lower", group="valuation",
-               what="Market value ÷ yearly sales.",
-               read="Useful when profits are thin or volatile. Compare only within the same industry.",
-               formula="Market cap ÷ revenue (TTM)"),
-    "pfcf": dict(label="P/FCF", unit="x", better="lower", group="valuation",
-                 what="Market value ÷ free cash flow.",
-                 read="Shows how much you pay for the cash the business actually generates after capex.",
-                 formula="Market cap ÷ free cash flow"),
-    "ev_ebitda": dict(label="EV/EBITDA", unit="x", better="lower", group="valuation",
-                      what="Value of the whole business, debt included, ÷ operating profit before depreciation.",
-                      read="Lower is cheaper. Fairer than P/E when companies carry different amounts of debt.",
-                      formula="(Market cap + borrowings − cash) ÷ EBITDA"),
-    "dividend_yield": dict(label="Dividend yield", unit="%", better="higher", group="shareholder",
-                           what="Dividends paid in the last 12 months ÷ today's price.",
-                           read="A high yield can come from a falling price, so check the payout is sustainable.",
-                           formula="Dividends per share (12M, ex-date) ÷ price"),
-    # Profitability (FinEdge 'pr', fractions)
-    "gross_margin": dict(label="Gross margin", unit="%", better="higher", group="margins",
-                         what="Revenue left after the direct cost of goods.", read="Shows pricing power over raw materials.",
-                         formula="(Revenue − COGS) ÷ revenue"),
-    "operating_margin": dict(label="Operating margin", unit="%", better="higher", group="margins",
-                             what="Operating profit per ₹100 of sales.", read="Compare within the industry; single digits are normal for refiners and retailers.",
-                             formula="Operating profit ÷ revenue"),
-    "opm": dict(label="Operating margin (statements)", unit="%", better="higher", group="margins",
-                what="Operating profit ÷ sales from the latest annual P&L.", read="Compare with peers in the same industry.",
-                formula="(Sales − operating expenses) ÷ sales"),
-    "npm": dict(label="Net margin (statements)", unit="%", better="higher", group="margins",
-                what="Net profit ÷ sales from the latest annual P&L.", read="Thin margins leave little room for cost shocks.", formula="Net profit ÷ sales"),
-    "ebitda_margin": dict(label="EBITDA margin", unit="%", better="higher", group="margins",
-                          what="Profit before interest, tax, depreciation and amortisation per ₹100 of sales.", read="Closest to cash operating profit.",
-                          formula="EBITDA ÷ revenue"),
-    "ebit_margin": dict(label="EBIT margin", unit="%", better="higher", group="margins",
-                        what="Profit before interest and tax per ₹100 of sales.", read="Operating profitability after depreciation.",
-                        formula="EBIT ÷ revenue"),
-    "pretax_margin": dict(label="Pre-tax margin", unit="%", better="higher", group="margins",
-                          what="Profit before tax per ₹100 of sales.", read="Includes interest and other income.", formula="PBT ÷ revenue"),
-    "net_margin": dict(label="Net margin", unit="%", better="higher", group="margins",
-                       what="Net profit per ₹100 of sales.", read="Thin margins magnify the effect of input-cost swings.", formula="Net profit ÷ revenue"),
-    "effective_tax_rate": dict(label="Effective tax rate", unit="%", better=None, group="margins",
-                               what="Tax actually charged as a share of pre-tax profit.", read="India's corporate rate is about 25%; big gaps deserve a look.",
-                               formula="Tax ÷ PBT"),
-    "roe": dict(label="ROE", unit="%", better="higher", group="returns",
-                what="Profit earned per ₹100 of shareholders' money.", read="Above 15% is generally strong. Check it isn't driven by heavy debt.",
-                formula="Net profit ÷ shareholders' equity"),
-    "roce": dict(label="ROCE", unit="%", better="higher", group="returns",
-                 what="Operating profit per ₹100 of all capital, equity plus debt.", read="Should comfortably beat the cost of borrowing; above 15% is good.",
-                 formula="EBIT ÷ capital employed"),
-    "roa": dict(label="ROA", unit="%", better="higher", group="returns",
-                what="Net profit per ₹100 of total assets.", read="Banks above 1% are considered healthy.", formula="Net profit ÷ total assets"),
-    "rota": dict(label="Return on tangible assets", unit="%", better="higher", group="returns",
-                 what="Net profit per ₹100 of tangible assets.", read="Excludes goodwill and intangibles.", formula="Net profit ÷ tangible assets"),
-    # Leverage (FinEdge 'le')
-    "debt_to_equity": dict(label="Debt / equity", unit="x", better="lower", group="leverage",
-                           what="Borrowings per ₹1 of shareholders' equity.", read="Below 0.5 is conservative; above 1 is heavily borrowed (banks excepted).",
-                           formula="Total debt ÷ equity"),
-    "lt_debt_to_equity": dict(label="Long-term debt / equity", unit="x", better="lower", group="leverage",
-                              what="Long-term borrowings per ₹1 of equity.", read="Long-term debt is safer than short-term rollovers.", formula="LT debt ÷ equity"),
-    "financial_leverage": dict(label="Financial leverage", unit="x", better="lower", group="leverage",
-                               what="Assets per ₹1 of equity.", read="Higher means the balance sheet leans more on liabilities.", formula="Assets ÷ equity"),
-    "debt_to_assets": dict(label="Debt / assets", unit="x", better="lower", group="leverage",
-                           what="Share of assets funded by borrowings.", read="Lower is safer.", formula="Total debt ÷ assets"),
-    "debt_to_fcf": dict(label="Debt / free cash flow", unit="x", better="lower", group="leverage",
-                        what="Years of free cash flow needed to repay all debt.", read="Under 3 years is comfortable.", formula="Total debt ÷ FCF"),
-    # Liquidity (FinEdge 'li')
-    "current_ratio": dict(label="Current ratio", unit="x", better="higher", group="liquidity",
-                          what="Short-term assets ÷ short-term bills.", read="Above 1 is comfortable; fuel and FMCG retailers often run below 1 because customers pay instantly.",
-                          formula="Current assets ÷ current liabilities"),
-    "quick_ratio": dict(label="Quick ratio", unit="x", better="higher", group="liquidity",
-                        what="Current ratio without inventory.", read="Above 1 means bills can be paid without selling stock.",
-                        formula="(Current assets − inventory) ÷ current liabilities"),
-    "interest_coverage": dict(label="Interest coverage", unit="x", better="higher", group="liquidity",
-                              what="How many times operating profit covers interest.", read="Above 3× is comfortable; below 1.5× is strain.", formula="EBIT ÷ interest"),
-    # Efficiency (FinEdge 'ef')
-    "asset_turnover": dict(label="Asset turnover", unit="x", better="higher", group="efficiency",
-                           what="Sales generated per ₹1 of assets.", read="Higher means assets are worked harder.", formula="Revenue ÷ total assets"),
-    "inventory_days": dict(label="Inventory days", unit="days", better="lower", group="efficiency",
-                           what="Days of sales held as stock.", read="Rising days can signal slowing demand.", formula="Inventory ÷ COGS × 365"),
-    "debtor_days": dict(label="Debtor days", unit="days", better="lower", group="efficiency",
-                        what="Days customers take to pay.", read="Rising days tie up cash.", formula="Receivables ÷ revenue × 365"),
-    "payable_days": dict(label="Payable days", unit="days", better=None, group="efficiency",
-                         what="Days the company takes to pay suppliers.", read="Higher keeps cash longer but can strain suppliers.", formula="Payables ÷ COGS × 365"),
-    "cash_conversion_cycle": dict(label="Cash conversion cycle", unit="days", better="lower", group="efficiency",
-                                  what="Days between paying for inputs and collecting from customers.", read="Negative means suppliers fund the business.",
-                                  formula="Inventory days + debtor days − payable days"),
-    # Growth (FinEdge financial-metrics 'gr', fractions)
-    "revenue_cagr_3y": dict(label="3Y sales CAGR", unit="%", better="higher", group="growth", what="Average yearly sales growth over 3 years.",
-                            read="Compare with inflation plus GDP (~10–11% nominal).", formula="(Sales now ÷ sales 3Y ago)^(1/3) − 1"),
-    "revenue_cagr_5y": dict(label="5Y sales CAGR", unit="%", better="higher", group="growth", what="Average yearly sales growth over 5 years.",
-                            read="Above ~10–11% nominal is healthy for a mature business.", formula="(Sales now ÷ sales 5Y ago)^(1/5) − 1"),
-    "profit_cagr_3y": dict(label="3Y profit CAGR", unit="%", better="higher", group="growth", what="Average yearly net profit growth over 3 years.",
-                           read="Compare with sales growth to see if margins are expanding.", formula="(PAT now ÷ PAT 3Y ago)^(1/3) − 1"),
-    "profit_cagr_5y": dict(label="5Y profit CAGR", unit="%", better="higher", group="growth", what="Average yearly net profit growth over 5 years.",
-                           read="Compare with sales growth to see if margins are expanding.", formula="(PAT now ÷ PAT 5Y ago)^(1/5) − 1"),
-    "eps_cagr_5y": dict(label="5Y EPS CAGR", unit="%", better="higher", group="growth", what="Average yearly growth in earnings per share over 5 years.",
-                        read="Captures dilution that profit growth hides.", formula="(EPS now ÷ EPS 5Y ago)^(1/5) − 1"),
-    "ebitda_cagr_5y": dict(label="5Y EBITDA CAGR", unit="%", better="higher", group="growth", what="Average yearly growth in EBITDA over 5 years.",
-                           read="Operating earnings growth before capital structure effects.", formula="(EBITDA now ÷ EBITDA 5Y ago)^(1/5) − 1"),
-    "book_value_cagr_5y": dict(label="5Y book value CAGR", unit="%", better="higher", group="growth", what="Average yearly growth in net worth over 5 years.",
-                               read="Steady compounding of equity is a quality signal.", formula="(BV now ÷ BV 5Y ago)^(1/5) − 1"),
-    "cfo_cagr_3y": dict(label="3Y operating cash CAGR", unit="%", better="higher", group="growth", what="Average yearly growth in operating cash flow over 3 years.",
-                        read="Cash growth should track profit growth.", formula="(CFO now ÷ CFO 3Y ago)^(1/3) − 1"),
-    "sales_cagr": dict(label="Sales CAGR", unit="%", better="higher", group="growth", what="Average yearly sales growth (5 years where available).",
-                       read="Above ~10–11% nominal is healthy for a mature business.", formula="(Sales now ÷ sales N years ago)^(1/N) − 1"),
-    "profit_cagr": dict(label="Profit CAGR", unit="%", better="higher", group="growth", what="Average yearly net profit growth (5 years where available).",
-                        read="Should keep pace with sales growth; slower means margins are shrinking.", formula="(PAT now ÷ PAT N years ago)^(1/N) − 1"),
-    "sales_growth_latest": dict(label="Sales growth (latest year)", unit="%", better="higher", group="growth", what="Sales growth in the latest full year.",
-                                read="One year can be noisy; read with the CAGR.", formula="Sales this year ÷ sales last year − 1"),
-    "profit_growth_latest": dict(label="Profit growth (latest year)", unit="%", better="higher", group="growth", what="Net profit growth in the latest full year.",
-                                 read="One year can be noisy; read with the CAGR.", formula="PAT this year ÷ PAT last year − 1"),
-    # Shareholder returns
-    "dividend_payout": dict(label="Dividend payout", unit="%", better=None, group="shareholder",
-                            what="Share of profit paid out as dividends.", read="30–50% balances income with reinvestment.", formula="Dividends ÷ net profit"),
-    "retention_ratio": dict(label="Retention ratio", unit="%", better=None, group="shareholder",
-                            what="Share of profit kept in the business.", read="High retention needs high returns on capital to create value.", formula="1 − payout"),
-    # Derived / quality
-    "cfo_to_pat": dict(label="Cash conversion (CFO/PAT)", unit="%", better="higher", group="quality",
-                       what="Operating cash flow ÷ reported profit.", read="100% or more means profit turned into cash. Below 70% for years is a warning.",
-                       formula="Cash from operations ÷ net profit"),
-    "fcf_to_pat": dict(label="FCF / PAT", unit="%", better="higher", group="quality",
-                       what="Free cash flow ÷ reported profit.", read="Shows how much profit is left after reinvestment.", formula="(CFO − capex) ÷ net profit"),
-    "liabilities_to_assets": dict(label="Liabilities / assets", unit="%", better="lower", group="leverage",
-                                  what="Share of assets funded by liabilities.", read="A quick balance-sheet risk marker.", formula="Total liabilities ÷ total assets"),
-    "market_cap": dict(label="Market cap", unit="Cr", better=None, group="valuation",
-                       what="The value of all the company's shares at today's price.", read="Size, not quality.", formula="Price × shares outstanding"),
-    "rsi14": dict(label="RSI (14)", unit="", better=None, group="technical",
-                  what="Speed of recent price moves on a 0–100 scale.", read="Below 30 means heavy selling, above 70 heavy buying. Not a buy or sell signal on its own.",
-                  formula="100 − 100 ÷ (1 + avg gain ÷ avg loss)"),
-}
+import json
+from pathlib import Path
+from typing import Dict
+
+_DATA = json.loads((Path(__file__).with_name("glossary_data.json")).read_text(encoding="utf-8"))
+TERMS = {t["id"]: t for t in _DATA["terms"]}
+METRICS: Dict[str, dict] = _DATA["metrics"]
+GLOSSARY = METRICS   # the mapping ratios.py reads label / unit / better / group from
 
 
 def describe(key: str) -> dict:
-    entry = GLOSSARY.get(key)
-    return {"key": key, **entry} if entry else {"key": key, "label": key}
+    entry = METRICS.get(key)
+    if not entry:
+        return {"key": key, "label": key}
+    term = TERMS.get(entry["term"], {})
+    return {"key": key, **entry, "note": term.get("finlit", "")}

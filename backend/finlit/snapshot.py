@@ -198,7 +198,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         **ratio_view,
         "valuationHistory": ratios.valuation_history(bundle.get("annual_price_ratios")),
         "score": score,  # full pillar inputs for the "how this score is built" drawer
-        "glossary": {k: describe(k) for k in ratio_view["latest"]},
+        "glossary": {k: describe(k) for k in {*ratio_view["latest"], *ratio_view["history"]["rows"], "rsi14", *(i["key"] for p in score["pillars"] for i in p["inputs"])}},
     }
 
     price_section = {"meta": meta, "daily": history, "technical": technical, "returns": trailing}

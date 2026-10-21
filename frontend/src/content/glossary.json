@@ -1,633 +1,4403 @@
-[
 {
-"t": "Amortization",
-"l": "A",
-"d": "Spreading a loan or intangible asset's cost over its life through scheduled payments or write-offs. For loans, each EMI covers interest plus principal.",
-"formula": "EMI = P x r x (1+r)^n / ((1+r)^n - 1)",
-"c": "Company statements"
-},
-{
-"t": "Asset",
-"l": "A",
-"d": "Any resource owned by a person or business that has economic value and can generate future benefit, such as cash, property or investments.",
-"formula": "Assets = Liabilities + Equity",
-"c": "Company statements"
-},
-{
-"t": "Accounts Receivable",
-"l": "A",
-"d": "Money owed to a business by customers for goods or services already delivered but not yet paid for.",
-"c": "Company statements"
-},
-{
-"t": "Annual Percentage Rate (APR)",
-"l": "A",
-"d": "The yearly cost of borrowing, including interest and mandatory fees, expressed as a percentage so loans can be compared.",
-"formula": "APR = ((Interest + Fees) / Principal) / n x 365 x 100",
-"c": "Loans & tax"
-},
-{
-"t": "Balance Sheet",
-"l": "B",
-"d": "A financial statement showing a company's assets, liabilities and equity at a specific date.",
-"formula": "Assets = Liabilities + Shareholders' Equity",
-"c": "Company statements"
-},
-{
-"t": "Break-Even Point",
-"l": "B",
-"d": "The sales level at which total revenue equals total costs, so profit is zero.",
-"formula": "Break-Even Units = Fixed Costs / (Price - Variable Cost per Unit)",
-"c": "Company statements"
-},
-{
-"t": "Book Value",
-"l": "B",
-"d": "The net value of an asset or company as recorded in accounting books: assets minus liabilities, or cost minus accumulated depreciation.",
-"formula": "Book Value = Total Assets - Total Liabilities",
-"c": "Company statements"
-},
-{
-"t": "Bond",
-"l": "B",
-"d": "A debt instrument where an investor lends money to a government or company in return for periodic interest and repayment of principal at maturity.",
-"c": "Investments"
-},
-{
-"t": "Capital Gain",
-"l": "C",
-"d": "Profit earned when an asset is sold for more than its purchase price. Taxed differently for short-term and long-term holdings.",
-"formula": "Capital Gain = Sale Price - Purchase Price",
-"c": "Returns & risk"
-},
-{
-"t": "Compound Interest",
-"l": "C",
-"d": "Interest calculated on both the initial principal and previously accumulated interest.",
-"formula": "A = P x (1 + r/n)^(n x t)",
-"c": "Growth"
-},
-{
-"t": "Current Ratio",
-"l": "C",
-"d": "A liquidity measure showing whether a company can pay its short-term obligations from short-term assets.",
-"formula": "Current Ratio = Current Assets / Current Liabilities",
-"c": "Financial health"
-},
-{
-"t": "CAGR",
-"l": "C",
-"d": "Compound Annual Growth Rate: the smoothed yearly growth rate of an investment over a period longer than one year.",
-"formula": "CAGR = (Ending Value / Beginning Value)^(1/n) - 1",
-"c": "Growth"
-},
-{
-"t": "Depreciation",
-"l": "D",
-"d": "The systematic allocation of a tangible asset's cost over its useful life, reflecting wear and obsolescence.",
-"formula": "Straight-Line = (Cost - Salvage Value) / Useful Life",
-"c": "Company statements"
-},
-{
-"t": "Dividend",
-"l": "D",
-"d": "A portion of company profit distributed to shareholders, usually in cash or additional shares.",
-"formula": "Dividend Yield = Annual Dividend per Share / Share Price",
-"c": "Dividends"
-},
-{
-"t": "Debt-to-Equity Ratio",
-"l": "D",
-"d": "Compares a company's total debt with shareholders' equity to indicate financial leverage and risk.",
-"formula": "D/E = Total Liabilities / Shareholders' Equity",
-"c": "Financial health"
-},
-{
-"t": "Diversification",
-"l": "D",
-"d": "Spreading investments across different assets, sectors or regions to reduce the impact of any single loss.",
-"c": "Returns & risk"
-},
-{
-"t": "EBITDA",
-"l": "E",
-"d": "Earnings Before Interest, Taxes, Depreciation and Amortization. A proxy for operating performance before financing and accounting effects.",
-"formula": "EBITDA = Net Income + Interest + Taxes + Depreciation + Amortization",
-"c": "Profitability"
-},
-{
-"t": "Equity",
-"l": "E",
-"d": "The residual ownership value in a business after liabilities are deducted; also refers to shares of stock.",
-"formula": "Equity = Assets - Liabilities",
-"c": "Company statements"
-},
-{
-"t": "Earnings Per Share (EPS)",
-"l": "E",
-"d": "The portion of a company's profit attributable to each outstanding share of common stock.",
-"formula": "EPS = (Net Income - Preferred Dividends) / Weighted Avg. Shares",
-"c": "Valuation"
-},
-{
-"t": "Expense Ratio",
-"l": "E",
-"d": "The annual fee a fund charges investors, expressed as a percentage of the fund's average assets.",
-"formula": "Expense Ratio = Fund Operating Costs / Average Net Assets",
-"c": "Investments"
-},
-{
-"t": "Fixed Asset",
-"l": "F",
-"d": "A long-term tangible asset used in operations, such as land, machinery or buildings, not meant for resale.",
-"c": "Company statements"
-},
-{
-"t": "Free Cash Flow (FCF)",
-"l": "F",
-"d": "Cash a company generates after paying for operations and capital expenditure; available for debt repayment, dividends or growth.",
-"formula": "FCF = Operating Cash Flow - Capital Expenditure",
-"c": "Company statements"
-},
-{
-"t": "Futures Contract",
-"l": "F",
-"d": "A standardized agreement to buy or sell an asset at a set price on a future date, traded on an exchange.",
-"c": "Investments"
-},
-{
-"t": "Fiscal Year",
-"l": "F",
-"d": "A 12-month period used for accounting and tax reporting. In India it runs from 1 April to 31 March.",
-"c": "Company statements"
-},
-{
-"t": "Gross Profit Margin",
-"l": "G",
-"d": "The percentage of revenue left after subtracting the direct cost of producing goods or services.",
-"formula": "Gross Margin % = (Revenue - COGS) / Revenue x 100",
-"c": "Profitability"
-},
-{
-"t": "Goodwill",
-"l": "G",
-"d": "An intangible asset arising when a company is acquired for more than the fair value of its net identifiable assets.",
-"formula": "Goodwill = Purchase Price - Fair Value of Net Assets",
-"c": "Company statements"
-},
-{
-"t": "Gross Domestic Product (GDP)",
-"l": "G",
-"d": "The total market value of all goods and services produced within a country in a given period.",
-"formula": "GDP = C + I + G + (X - M)",
-"c": "Economy & business"
-},
-{
-"t": "Growth Stock",
-"l": "G",
-"d": "Shares of a company expected to grow revenue and earnings faster than the market, often paying little or no dividend.",
-"c": "Growth"
-},
-{
-"t": "Hedge",
-"l": "H",
-"d": "An investment or position taken to offset potential losses in another asset, for example using options or futures.",
-"c": "Returns & risk"
-},
-{
-"t": "Holding Period Return (HPR)",
-"l": "H",
-"d": "The total return from holding an investment over a period, including income and price change.",
-"formula": "HPR = (Income + (End Value - Begin Value)) / Begin Value",
-"c": "Returns & risk"
-},
-{
-"t": "Hurdle Rate",
-"l": "H",
-"d": "The minimum rate of return a project or investment must earn to be considered acceptable.",
-"c": "Returns & risk"
-},
-{
-"t": "Inflation",
-"l": "I",
-"d": "The rate at which the general price level rises, reducing the purchasing power of money.",
-"formula": "Inflation % = (CPI Now - CPI Previous) / CPI Previous x 100",
-"c": "Economy & business"
-},
-{
-"t": "Internal Rate of Return (IRR)",
-"l": "I",
-"d": "The discount rate at which the net present value of an investment's cash flows equals zero.",
-"formula": "0 = Sum of CF_t / (1 + IRR)^t",
-"c": "Returns & risk"
-},
-{
-"t": "Interest Coverage Ratio",
-"l": "I",
-"d": "Shows how easily a company can pay interest on its debt from operating profit.",
-"formula": "ICR = EBIT / Interest Expense",
-"c": "Financial health"
-},
-{
-"t": "Index Fund",
-"l": "I",
-"d": "A mutual fund or ETF designed to replicate the performance of a market index such as Nifty 50 or Sensex, at low cost.",
-"c": "Investments"
-},
-{
-"t": "Junk Bond",
-"l": "J",
-"d": "A high-yield bond with a lower credit rating and higher default risk, offering higher interest to compensate.",
-"c": "Investments"
-},
-{
-"t": "Journal Entry",
-"l": "J",
-"d": "The first record of a financial transaction in accounting, showing equal debit and credit amounts.",
-"formula": "Total Debits = Total Credits",
-"c": "Company statements"
-},
-{
-"t": "Joint Venture",
-"l": "J",
-"d": "A business arrangement in which two or more parties pool resources for a specific project while staying separate entities.",
-"c": "Economy & business"
-},
-{
-"t": "KYC (Know Your Customer)",
-"l": "K",
-"d": "A mandatory verification process where financial institutions confirm a customer's identity and address to prevent fraud and money laundering.",
-"c": "Loans & tax"
-},
-{
-"t": "KPI (Key Performance Indicator)",
-"l": "K",
-"d": "A measurable value showing how effectively a person, team or company is achieving key objectives.",
-"c": "Economy & business"
-},
-{
-"t": "Kiting",
-"l": "K",
-"d": "An illegal practice of exploiting the delay in fund clearing by moving money between accounts to create artificial balances.",
-"c": "Loans & tax"
-},
-{
-"t": "Liquidity",
-"l": "L",
-"d": "How quickly and easily an asset can be converted to cash without significantly affecting its price.",
-"c": "Financial health"
-},
-{
-"t": "Liability",
-"l": "L",
-"d": "A financial obligation or debt a person or business owes to others.",
-"formula": "Liabilities = Assets - Equity",
-"c": "Company statements"
-},
-{
-"t": "Leverage",
-"l": "L",
-"d": "Using borrowed money to increase the potential return of an investment, which also amplifies risk.",
-"formula": "Leverage Ratio = Total Debt / Total Equity",
-"c": "Financial health"
-},
-{
-"t": "Loan-to-Value (LTV)",
-"l": "L",
-"d": "The ratio of a loan amount to the appraised value of the asset securing it.",
-"formula": "LTV % = Loan Amount / Asset Value x 100",
-"c": "Loans & tax"
-},
-{
-"t": "Market Capitalization",
-"l": "M",
-"d": "The total market value of a company's outstanding shares.",
-"formula": "Market Cap = Share Price x Shares Outstanding",
-"c": "Valuation"
-},
-{
-"t": "Margin",
-"l": "M",
-"d": "Either (1) the borrowed funds used to buy securities, or (2) a profitability percentage such as net margin.",
-"formula": "Net Margin % = Net Income / Revenue x 100",
-"c": "Profitability"
-},
-{
-"t": "Mutual Fund",
-"l": "M",
-"d": "A pooled investment vehicle managed by professionals that invests in stocks, bonds or other assets on behalf of many investors.",
-"c": "Investments"
-},
-{
-"t": "Maturity Date",
-"l": "M",
-"d": "The date on which a bond, deposit or loan's principal becomes due and must be repaid.",
-"c": "Loans & tax"
-},
-{
-"t": "Net Income",
-"l": "N",
-"d": "A company's profit after all expenses, interest and taxes have been deducted from revenue.",
-"formula": "Net Income = Revenue - Total Expenses",
-"c": "Company statements"
-},
-{
-"t": "Net Present Value (NPV)",
-"l": "N",
-"d": "The present value of future cash flows minus the initial investment. Positive NPV signals a value-creating project.",
-"formula": "NPV = Sum of CF_t / (1 + r)^t - Initial Investment",
-"c": "Valuation"
-},
-{
-"t": "Net Worth",
-"l": "N",
-"d": "The total value of what a person or company owns minus what it owes.",
-"formula": "Net Worth = Total Assets - Total Liabilities",
-"c": "Company statements"
-},
-{
-"t": "Net Asset Value (NAV)",
-"l": "N",
-"d": "The per-unit value of a mutual fund, calculated at the end of each trading day.",
-"formula": "NAV = (Assets - Liabilities) / Units Outstanding",
-"c": "Investments"
-},
-{
-"t": "Operating Margin",
-"l": "O",
-"d": "Percentage of revenue remaining after paying operating costs, before interest and taxes.",
-"formula": "Operating Margin % = Operating Income / Revenue x 100",
-"c": "Profitability"
-},
-{
-"t": "Opportunity Cost",
-"l": "O",
-"d": "The value of the next best alternative given up when a choice is made.",
-"formula": "Opportunity Cost = Return on Best Foregone Option - Return on Chosen Option",
-"c": "Company statements"
-},
-{
-"t": "Overdraft",
-"l": "O",
-"d": "A facility allowing an account holder to withdraw more than the available balance, up to an agreed limit, with interest charged.",
-"c": "Loans & tax"
-},
-{
-"t": "Option",
-"l": "O",
-"d": "A contract giving the holder the right, but not the obligation, to buy (call) or sell (put) an asset at a fixed price before expiry.",
-"c": "Investments"
-},
-{
-"t": "Price-to-Earnings (P/E) Ratio",
-"l": "P",
-"d": "Shows how much investors pay per rupee of earnings; used to judge whether a stock is expensive or cheap.",
-"formula": "P/E = Market Price per Share / EPS",
-"c": "Valuation"
-},
-{
-"t": "Principal",
-"l": "P",
-"d": "The original amount of money borrowed or invested, excluding interest or returns.",
-"formula": "Simple Interest = P x R x T / 100",
-"c": "Loans & tax"
-},
-{
-"t": "Profit Margin",
-"l": "P",
-"d": "The percentage of revenue that becomes profit, indicating pricing and cost efficiency.",
-"formula": "Profit Margin % = Net Profit / Revenue x 100",
-"c": "Profitability"
-},
-{
-"t": "Portfolio",
-"l": "P",
-"d": "The collection of financial investments held by an individual or institution.",
-"c": "Investments"
-},
-{
-"t": "Quick Ratio (Acid-Test)",
-"l": "Q",
-"d": "A stricter liquidity test that excludes inventory from current assets.",
-"formula": "Quick Ratio = (Current Assets - Inventory) / Current Liabilities",
-"c": "Financial health"
-},
-{
-"t": "Quarterly Report",
-"l": "Q",
-"d": "A financial statement published by listed companies every three months showing revenue, profit and other results.",
-"c": "Company statements"
-},
-{
-"t": "Quantitative Easing (QE)",
-"l": "Q",
-"d": "A central bank policy of buying government bonds or other securities to inject money into the economy and lower long-term rates.",
-"c": "Economy & business"
-},
-{
-"t": "Return on Investment (ROI)",
-"l": "R",
-"d": "Measures the gain or loss on an investment relative to its cost.",
-"formula": "ROI % = (Net Gain / Cost of Investment) x 100",
-"c": "Profitability"
-},
-{
-"t": "Return on Equity (ROE)",
-"l": "R",
-"d": "Shows how efficiently a company uses shareholders' funds to generate profit.",
-"formula": "ROE % = Net Income / Average Shareholders' Equity x 100",
-"c": "Profitability"
-},
-{
-"t": "Retained Earnings",
-"l": "R",
-"d": "Cumulative profit a company has kept for reinvestment rather than paying out as dividends.",
-"formula": "Retained Earnings = Opening RE + Net Income - Dividends",
-"c": "Company statements"
-},
-{
-"t": "Risk-Free Rate",
-"l": "R",
-"d": "The theoretical return on an investment with zero risk, typically proxied by government treasury yields.",
-"c": "Returns & risk"
-},
-{
-"t": "Stock (Share)",
-"l": "S",
-"d": "A unit of ownership in a company that entitles the holder to a share of profits and, usually, voting rights.",
-"c": "Investments"
-},
-{
-"t": "Simple Interest",
-"l": "S",
-"d": "Interest calculated only on the original principal over the loan or investment period.",
-"formula": "SI = P x R x T / 100",
-"c": "Loans & tax"
-},
-{
-"t": "Securities",
-"l": "S",
-"d": "Tradable financial instruments, including equities, bonds and derivatives.",
-"c": "Investments"
-},
-{
-"t": "Sharpe Ratio",
-"l": "S",
-"d": "Measures risk-adjusted return: excess return earned per unit of total risk.",
-"formula": "Sharpe = (Portfolio Return - Risk-Free Rate) / Std. Deviation",
-"c": "Returns & risk"
-},
-{
-"t": "Total Return",
-"l": "T",
-"d": "The complete gain on an investment, combining price appreciation with income such as dividends or interest.",
-"formula": "Total Return % = (End Value - Begin Value + Income) / Begin Value x 100",
-"c": "Returns & risk"
-},
-{
-"t": "Tax Deduction",
-"l": "T",
-"d": "An amount subtracted from gross income, lowering taxable income (for example Section 80C in India).",
-"formula": "Taxable Income = Gross Income - Deductions",
-"c": "Loans & tax"
-},
-{
-"t": "Treasury Bill (T-Bill)",
-"l": "T",
-"d": "A short-term government security issued at a discount and redeemed at face value, with no periodic interest.",
-"c": "Investments"
-},
-{
-"t": "Asset Turnover Ratio",
-"l": "T",
-"d": "Measures how efficiently a company uses its assets to generate sales.",
-"formula": "Asset Turnover = Revenue / Average Total Assets",
-"c": "Financial health"
-},
-{
-"t": "Underwriting",
-"l": "U",
-"d": "The process by which a bank, insurer or investment firm evaluates risk and agrees to take it on, for example in loans, insurance or IPOs.",
-"c": "Investments"
-},
-{
-"t": "Unrealized Gain/Loss",
-"l": "U",
-"d": "A profit or loss on an investment that is still held and has not yet been sold.",
-"formula": "Unrealized Gain = Current Market Value - Purchase Cost",
-"c": "Returns & risk"
-},
-{
-"t": "Unsecured Loan",
-"l": "U",
-"d": "A loan not backed by collateral, granted on the borrower's creditworthiness; usually carries higher interest.",
-"c": "Loans & tax"
-},
-{
-"t": "Volatility",
-"l": "V",
-"d": "The degree of variation in an asset's price over time; a common measure of risk.",
-"formula": "Volatility = Standard Deviation of Returns",
-"c": "Returns & risk"
-},
-{
-"t": "Valuation",
-"l": "V",
-"d": "The process of estimating the economic worth of an asset or company.",
-"formula": "DCF Value = Sum of FCF_t / (1 + r)^t",
-"c": "Valuation"
-},
-{
-"t": "Variable Cost",
-"l": "V",
-"d": "A cost that changes in proportion to production or sales volume, such as raw materials.",
-"formula": "Total Cost = Fixed Cost + (Variable Cost per Unit x Units)",
-"c": "Company statements"
-},
-{
-"t": "Venture Capital",
-"l": "V",
-"d": "Funding provided to early-stage, high-growth startups in exchange for equity.",
-"c": "Investments"
-},
-{
-"t": "Working Capital",
-"l": "W",
-"d": "The funds available for day-to-day operations; the gap between current assets and current liabilities.",
-"formula": "Working Capital = Current Assets - Current Liabilities",
-"c": "Company statements"
-},
-{
-"t": "WACC",
-"l": "W",
-"d": "Weighted Average Cost of Capital: the blended cost of a company's debt and equity financing.",
-"formula": "WACC = (E/V) x Re + (D/V) x Rd x (1 - Tax Rate)",
-"c": "Valuation"
-},
-{
-"t": "Withholding Tax (TDS)",
-"l": "W",
-"d": "Tax deducted at source by the payer before income is paid to the recipient, then deposited with the government.",
-"c": "Loans & tax"
-},
-{
-"t": "XIRR",
-"l": "X",
-"d": "Extended IRR: annualized return for cash flows occurring on irregular dates, commonly used for SIPs.",
-"formula": "0 = Sum of CF_i / (1 + XIRR)^((d_i - d_0)/365)",
-"c": "Returns & risk"
-},
-{
-"t": "Ex-Dividend Date",
-"l": "X",
-"d": "The cut-off date: buying a stock on or after this date does not entitle the buyer to the upcoming dividend.",
-"c": "Dividends"
-},
-{
-"t": "XBRL",
-"l": "X",
-"d": "eXtensible Business Reporting Language: a standard for tagging and exchanging financial reports digitally.",
-"c": "Company statements"
-},
-{
-"t": "Yield",
-"l": "Y",
-"d": "The income return on an investment, usually expressed as an annual percentage of its cost or current value.",
-"formula": "Current Yield = Annual Income / Current Price",
-"c": "Returns & risk"
-},
-{
-"t": "Yield to Maturity (YTM)",
-"l": "Y",
-"d": "The total annual return expected if a bond is held until maturity, with all payments reinvested at the same rate.",
-"formula": "Price = Sum of C / (1 + YTM)^t + FV / (1 + YTM)^n",
-"c": "Returns & risk"
-},
-{
-"t": "Year-over-Year (YoY) Growth",
-"l": "Y",
-"d": "Compares a metric in one period with the same period a year earlier to show growth or decline.",
-"formula": "YoY % = (Current - Previous Year) / Previous Year x 100",
-"c": "Growth"
-},
-{
-"t": "Zero-Coupon Bond",
-"l": "Z",
-"d": "A bond that pays no periodic interest and is sold at a deep discount, paying face value at maturity.",
-"formula": "Price = Face Value / (1 + r)^n",
-"c": "Investments"
-},
-{
-"t": "Z-Score (Altman)",
-"l": "Z",
-"d": "A score predicting the likelihood of a company's bankruptcy using several financial ratios. Below about 1.8 signals distress.",
-"formula": "Z = 1.2A + 1.4B + 3.3C + 0.6D + 1.0E",
-"c": "Financial health"
-},
-{
-"t": "Zero-Based Budgeting",
-"l": "Z",
-"d": "A budgeting method where every expense must be justified from scratch each period, rather than based on the previous budget.",
-"c": "Economy & business"
+ "version": 1,
+ "source": "FinLit Glossary, October 2026",
+ "topics": [
+  "Banks and lenders",
+  "Company statements",
+  "Dividends and corporate actions",
+  "Economy and business",
+  "Efficiency and cash flow",
+  "FinLit words",
+  "Financial health and debt",
+  "Funds, bonds and derivatives",
+  "Growth",
+  "IPOs and new share issues",
+  "Loans, tax and planning",
+  "Market basics",
+  "Ownership",
+  "Price and technicals",
+  "Profitability",
+  "Returns and risk",
+  "Valuation"
+ ],
+ "terms": [
+  {
+   "term": "52-week high and low",
+   "topic": "Price and technicals",
+   "meaning": "The highest and lowest prices of the past year. Position in the range shows where today's price sits between the two.",
+   "why": "They frame the recent price history at a glance.",
+   "how": "Near the 52-week low is not automatically cheap; check whether the business has weakened.",
+   "formula": "",
+   "id": "52-week-high-and-low",
+   "letter": "0–9",
+   "finlit": "",
+   "aliases": [
+    "52-week high",
+    "52-week low",
+    "Above 52-week low",
+    "Below 52-week high",
+    "Near 52-week high",
+    "Near 52-week low",
+    "Position in 52-week range",
+    "high 52w",
+    "low",
+    "low 52w",
+    "near high",
+    "near low",
+    "pct from high",
+    "pct from low",
+    "range pos"
+   ]
+  },
+  {
+   "term": "Absolute and annualised return",
+   "topic": "Returns and risk",
+   "meaning": "Absolute return is the total change over the whole period. Annualised return converts it to a yearly rate.",
+   "why": "Returns over different periods can only be compared once annualised.",
+   "how": "50% over five years is about 8.4% a year.",
+   "formula": "",
+   "id": "absolute-and-annualised-return",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "1-day change",
+    "1-month return",
+    "1-year return",
+    "3-month return",
+    "3-year return",
+    "5-year return",
+    "6-month return",
+    "Absolute",
+    "annualised return",
+    "ret 1d",
+    "ret 1m",
+    "ret 1y",
+    "ret 3m",
+    "ret 3y",
+    "ret 5y",
+    "ret 6m"
+   ]
+  },
+  {
+   "term": "Accounts payable (creditors)",
+   "topic": "Company statements",
+   "meaning": "Money the company owes its suppliers for goods and services it has received but not yet paid for.",
+   "why": "Paying suppliers later frees up cash, but stretching them too far can hurt relationships.",
+   "how": "See Payable days to judge how quickly a company pays.",
+   "formula": "",
+   "id": "accounts-payable-creditors",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Accounts payable",
+    "creditors"
+   ]
+  },
+  {
+   "term": "Accounts receivable (debtors)",
+   "topic": "Company statements",
+   "meaning": "Money customers owe the company for goods or services already delivered.",
+   "why": "Sales are only useful once the cash is collected.",
+   "how": "If receivables grow much faster than sales, the company may be struggling to collect, or booking sales too early.",
+   "formula": "",
+   "id": "accounts-receivable-debtors",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Accounts receivable",
+    "Receivables",
+    "debtors",
+    "receivables"
+   ]
+  },
+  {
+   "term": "Adjusted prices and per-share figures",
+   "topic": "Dividends and corporate actions",
+   "meaning": "Past prices, EPS and dividends recalculated as if today's share count had always applied, after splits and bonuses.",
+   "why": "Without adjustment, a 1:1 bonus looks like the price halved and the dividend was cut.",
+   "how": "Always compare adjusted figures across time.",
+   "formula": "",
+   "id": "adjusted-prices-and-per-share-figures",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Adjusted prices",
+    "per-share figures"
+   ]
+  },
+  {
+   "term": "Alert",
+   "topic": "FinLit words",
+   "meaning": "A message FinLit sends when a condition you set comes true, such as a price target, a big move, a score change or a results announcement.",
+   "why": "You do not have to watch the screen all day.",
+   "how": "Set alerts for the few events that would change your mind about a holding.",
+   "formula": "",
+   "id": "alert",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Altman Z-score",
+   "topic": "Financial health and debt",
+   "meaning": "A score combining five ratios to estimate the risk of bankruptcy within two years. It was designed for manufacturing companies.",
+   "why": "It summarises balance-sheet stress in one number.",
+   "how": "Below about 1.8 signals distress, above about 3 is considered safe; it is not meant for banks.",
+   "formula": "Z = 1.2A + 1.4B + 3.3C + 0.6D + 1.0E",
+   "id": "altman-z-score",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Amortization",
+   "topic": "Company statements",
+   "meaning": "Spreading a cost over time. For intangible assets such as software or licences, it works like depreciation. For loans, it means repaying in instalments, each covering interest and part of the principal.",
+   "why": "It explains why some costs appear year after year in the accounts, and how EMIs work.",
+   "how": "In a loan's early years most of each EMI is interest; later most of it repays principal.",
+   "formula": "EMI = P × r × (1 + r)^n ÷ ((1 + r)^n − 1)",
+   "id": "amortization",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Anchor investor",
+   "topic": "IPOs and new share issues",
+   "meaning": "A large institution that commits to buy part of the QIB portion one working day before the IPO opens, applying for at least ₹10 crore.",
+   "why": "Anchors signal confidence and help price the issue.",
+   "how": "Up to 60% of the QIB portion can go to anchors. Half their shares are locked for 30 days and half for 90 days, and anchor lock-in expiry dates can bring selling.",
+   "formula": "",
+   "id": "anchor-investor",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Annual percentage rate (APR)",
+   "topic": "Loans, tax and planning",
+   "meaning": "The yearly cost of a loan including interest and compulsory fees, as a percentage.",
+   "why": "It allows fair comparison between loans with different fees.",
+   "how": "Two loans with the same interest rate can have very different APRs.",
+   "formula": "APR = ((Interest + Fees) ÷ Principal) ÷ Days in term × 365 × 100",
+   "id": "annual-percentage-rate-apr",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "APR",
+    "Annual percentage rate"
+   ]
+  },
+  {
+   "term": "Annual report",
+   "topic": "Company statements",
+   "meaning": "The yearly document every listed company publishes, with audited financial statements, the management discussion, the auditor's report and governance details.",
+   "why": "It contains far more detail than the results press release.",
+   "how": "Read the management discussion and the auditor's report first; they are short and revealing.",
+   "formula": "",
+   "id": "annual-report",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "ASBA (application supported by blocked amount)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The system that blocks your application money in your bank account instead of debiting it. Money is taken only if you get shares.",
+   "why": "You keep earning interest and no refund is needed if you get nothing.",
+   "how": "Apply through your bank's net banking or your broker app; both use ASBA.",
+   "formula": "",
+   "id": "asba-application-supported-by-blocked-amount",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "ASBA",
+    "application supported by blocked amount"
+   ]
+  },
+  {
+   "term": "Asset",
+   "topic": "Company statements",
+   "meaning": "Anything a company owns that has value and can bring future benefit, such as cash, factories, inventory or money owed by customers.",
+   "why": "Assets are what the business uses to earn money.",
+   "how": "Look at the mix: cash is safer than goodwill, and inventory that piles up can be a warning.",
+   "formula": "Assets = Liabilities + Equity",
+   "id": "asset",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Investments",
+    "Total assets",
+    "investments",
+    "total assets"
+   ]
+  },
+  {
+   "term": "Asset allocation",
+   "topic": "Returns and risk",
+   "meaning": "How your money is split between asset classes such as shares, bonds, gold and cash.",
+   "why": "It drives most of a portfolio's long-run return and risk.",
+   "how": "Decide your mix from your goals and time horizon, then rebalance once a year.",
+   "formula": "",
+   "id": "asset-allocation",
+   "letter": "A",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Asset turnover",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Revenue divided by average total assets: how many rupees of sales each rupee of assets produces.",
+   "why": "High turnover means assets are used intensively.",
+   "how": "Retailers have high asset turnover; power companies have low. Compare within an industry.",
+   "formula": "Asset turnover = Revenue ÷ Average total assets",
+   "id": "asset-turnover",
+   "letter": "A",
+   "finlit": "FinLit uses the provider's figure, or revenue ÷ year-end total assets when none is sent; not the average of two years.",
+   "aliases": []
+  },
+  {
+   "term": "Average volume and volume spike",
+   "topic": "Price and technicals",
+   "meaning": "Average volume is the typical daily volume over a window such as 20 days. A spike is a day far above that average.",
+   "why": "A spike often comes with news, results or a large investor buying or selling.",
+   "how": "Check filings on spike days to find the reason.",
+   "formula": "",
+   "id": "average-volume-and-volume-spike",
+   "letter": "A",
+   "finlit": "FinLit's 20-day average volume is the median day, so one block-deal day cannot inflate it.",
+   "aliases": [
+    "Average volume",
+    "Average volume (20 days)",
+    "Volume against 20-day average",
+    "avg volume 20d",
+    "volume spike",
+    "volume vs avg"
+   ]
+  },
+  {
+   "term": "Balance sheet",
+   "topic": "Company statements",
+   "meaning": "A snapshot of what a company owns (assets), what it owes (liabilities) and what belongs to shareholders (equity) on one date.",
+   "why": "It shows financial strength: how much debt, how much cash, how much has been invested.",
+   "how": "Assets always equal liabilities plus equity. Watch how debt and cash change from year to year.",
+   "formula": "Assets = Liabilities + Shareholders' equity",
+   "id": "balance-sheet",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Base effect",
+   "topic": "Growth",
+   "meaning": "When a growth rate looks unusually high or low because the starting figure was unusually low or high.",
+   "why": "Growth measured from a COVID-hit year such as FY21 can look spectacular without the business improving much.",
+   "how": "When a growth figure surprises you, look at the starting year's numbers before trusting it.",
+   "formula": "",
+   "id": "base-effect",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Basis of allotment",
+   "topic": "IPOs and new share issues",
+   "meaning": "The final decision on who gets how many shares, published by the registrar after the issue closes.",
+   "why": "It is how you find out whether you got shares.",
+   "how": "Check allotment status on the registrar's or exchange's website using your PAN or application number.",
+   "formula": "",
+   "id": "basis-of-allotment",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Benchmark",
+   "topic": "Market basics",
+   "meaning": "A standard you measure performance against, usually an index such as the Nifty 50 or Nifty 500.",
+   "why": "A 12% return sounds good until you learn the benchmark returned 18% in the same period.",
+   "how": "Pick a benchmark that matches what you own: a small-company fund should be compared with a smallcap index.",
+   "formula": "",
+   "id": "benchmark",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Beta",
+   "topic": "Returns and risk",
+   "meaning": "How much a stock tends to move when the market moves. A beta of 1 moves with the market; 1.5 moves about 50% more; 0.5 about half as much.",
+   "why": "It measures sensitivity to the market as a whole.",
+   "how": "High-beta stocks rise more in rallies and fall more in sell-offs.",
+   "formula": "",
+   "id": "beta",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Bid",
+   "topic": "IPOs and new share issues",
+   "meaning": "Your application in an IPO: how many lots and at what price within the band.",
+   "why": "You can usually place up to three bids in one application.",
+   "how": "Most retail investors place a single bid at cut-off.",
+   "formula": "",
+   "id": "bid",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Blue chip",
+   "topic": "Market basics",
+   "meaning": "A large, well-established company with a long record of steady profits, such as the biggest Nifty 50 names.",
+   "why": "Blue chips tend to be less volatile than small companies.",
+   "how": "Steady does not mean cheap: a blue chip can still be overpriced.",
+   "formula": "",
+   "id": "blue-chip",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Board meeting",
+   "topic": "Company statements",
+   "meaning": "A meeting of the company's board of directors, which must be announced in advance when it will approve results, dividends or fund raising.",
+   "why": "The results date in FinLit's results calendar is usually the board meeting date.",
+   "how": "Expect price moves on and after board meetings that approve results.",
+   "formula": "",
+   "id": "board-meeting",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Bond",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A loan you give to a government or company in return for regular interest and repayment of the amount on a set date.",
+   "why": "Bonds usually give steadier returns than shares and can balance a portfolio.",
+   "how": "Check the issuer's credit rating and the bond's yield to maturity.",
+   "formula": "",
+   "id": "bond",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Bonus issue",
+   "topic": "Dividends and corporate actions",
+   "meaning": "Free extra shares given to existing shareholders in a fixed ratio, such as 1:1 (one new share for each share held).",
+   "why": "Your holding's value does not change: the price falls in proportion to the extra shares.",
+   "how": "After a bonus, compare old prices and dividends only on an adjusted basis.",
+   "formula": "",
+   "id": "bonus-issue",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Bonus issue in last 3 years",
+    "bonus 3y"
+   ]
+  },
+  {
+   "term": "Book building",
+   "topic": "IPOs and new share issues",
+   "meaning": "The method most IPOs use to set the price: investors bid within a price band and the final price is decided from the demand.",
+   "why": "It lets demand, not a fixed guess, set the price.",
+   "how": "Retail investors can simply bid at the cut-off price (see Cut-off price).",
+   "formula": "",
+   "id": "book-building",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Book value",
+   "topic": "Company statements",
+   "meaning": "The value of a company, or of an asset, as recorded in the accounts: assets minus liabilities for a company, cost minus depreciation for an asset.",
+   "why": "It is a floor-like reference point for value, most useful for banks and asset-heavy firms.",
+   "how": "Divide by shares outstanding to get book value per share, and compare with the share price (P/B).",
+   "formula": "Book value = Total assets − Total liabilities",
+   "id": "book-value",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Book value per share",
+   "topic": "Valuation",
+   "meaning": "Shareholders' equity divided by the number of shares.",
+   "why": "It is the accounting value backing each share.",
+   "how": "Growth in book value per share over years shows the company is building owners' wealth.",
+   "formula": "Book value per share = Shareholders' equity ÷ Shares outstanding",
+   "id": "book-value-per-share",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "book value ps"
+   ]
+  },
+  {
+   "term": "Borrowings (total debt)",
+   "topic": "Financial health and debt",
+   "meaning": "All loans, bonds and debentures the company has taken, short and long term.",
+   "why": "Debt must be repaid or refinanced on time, whatever happens.",
+   "how": "Track debt alongside cash: rising debt with falling cash is a warning sign.",
+   "formula": "",
+   "id": "borrowings-total-debt",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Borrowings",
+    "Total borrowings",
+    "borrowings",
+    "total debt"
+   ]
+  },
+  {
+   "term": "Break-even point",
+   "topic": "Company statements",
+   "meaning": "The level of sales at which total revenue equals total costs, so the company makes neither profit nor loss.",
+   "why": "Companies with high fixed costs need a lot of sales to break even, then profits rise quickly.",
+   "how": "For a young company, ask how far it is from break-even and how it will get there.",
+   "formula": "Break-even units = Fixed costs ÷ (Price − Variable cost per unit)",
+   "id": "break-even-point",
+   "letter": "B",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Broker and trading account",
+   "topic": "Market basics",
+   "meaning": "A broker is a SEBI-registered firm that places your buy and sell orders on the exchange. The trading account is the account you use with them to place orders; it is linked to your demat account.",
+   "why": "Brokers differ in fees, tools and service.",
+   "how": "Check the broker's registration on SEBI's site and its charges per order before opening an account.",
+   "formula": "",
+   "id": "broker-and-trading-account",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Broker",
+    "trading account"
+   ]
+  },
+  {
+   "term": "Bull market and bear market",
+   "topic": "Market basics",
+   "meaning": "A bull market is a long stretch of rising prices; a bear market is a long stretch of falling prices, often defined as a fall of 20% or more from a peak.",
+   "why": "Mood and valuations swing between the two, and both can last longer than expected.",
+   "how": "Money you will need soon is usually kept out of shares, so you are never forced to sell in a bear market.",
+   "formula": "",
+   "id": "bull-market-and-bear-market",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Bull market",
+    "bear market"
+   ]
+  },
+  {
+   "term": "Buyback",
+   "topic": "Dividends and corporate actions",
+   "meaning": "When a company buys its own shares from shareholders, usually at a premium to the market price, and cancels them.",
+   "why": "It returns cash and raises each remaining shareholder's share of profits.",
+   "how": "A buyback at a high price can destroy value; one at a low price can create it.",
+   "formula": "",
+   "id": "buyback",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Buyback in last 3 years",
+    "buyback 3y"
+   ]
+  },
+  {
+   "term": "CAGR (compound annual growth rate)",
+   "topic": "Growth",
+   "meaning": "The steady yearly growth rate that would take a value from its starting level to its ending level over several years.",
+   "why": "It smooths out ups and downs so different periods and companies can be compared.",
+   "how": "CAGR depends heavily on the start year: growth measured from a bad year looks better than it is.",
+   "formula": "CAGR = (Ending value ÷ Beginning value)^(1 ÷ years) − 1",
+   "id": "cagr-compound-annual-growth-rate",
+   "letter": "C",
+   "finlit": "FinLit counts years by position in its yearly data and needs positive start and end values.",
+   "aliases": [
+    "3Y operating cash CAGR",
+    "3Y profit CAGR",
+    "3Y sales CAGR",
+    "5Y EBITDA CAGR",
+    "5Y EPS CAGR",
+    "5Y book value CAGR",
+    "5Y profit CAGR",
+    "5Y sales CAGR",
+    "Book value growth, 5 years a year",
+    "CAGR",
+    "Operating profit CAGR, 3 years",
+    "Operating profit CAGR, 5 years",
+    "Profit CAGR",
+    "Sales CAGR",
+    "Sales growth, 3 years a year",
+    "Sales growth, 5 years a year",
+    "book value cagr 5y",
+    "bv cagr 5y",
+    "cfo cagr 3y",
+    "compound annual growth rate",
+    "ebitda cagr 5y",
+    "eps cagr 5y",
+    "op profit cagr 3y",
+    "op profit cagr 5y",
+    "profit cagr",
+    "profit cagr 3y",
+    "profit cagr 5y",
+    "revenue cagr 3y",
+    "revenue cagr 5y",
+    "sales cagr",
+    "sales cagr 3y",
+    "sales cagr 5y"
+   ]
+  },
+  {
+   "term": "Candlestick (OHLC)",
+   "topic": "Price and technicals",
+   "meaning": "A chart symbol showing a day's open, high, low and close. A green candle closed above its open; a red one closed below.",
+   "why": "It packs four prices into one mark.",
+   "how": "Long wicks show prices that were reached during the day but rejected by the close.",
+   "formula": "",
+   "id": "candlestick-ohlc",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Candlestick",
+    "OHLC"
+   ]
+  },
+  {
+   "term": "Capex intensity (capex to sales, capex to operating cash)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Capital spending as a share of revenue or of operating cash flow.",
+   "why": "It shows how much the business must reinvest just to grow.",
+   "how": "Asset-light businesses need little capex and usually produce more free cash.",
+   "formula": "",
+   "id": "capex-intensity-capex-to-sales-capex-to-operating-cash",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Capex intensity",
+    "Capital spending to operating cash",
+    "Capital spending to sales",
+    "capex to cfo",
+    "capex to operating cash",
+    "capex to sales",
+    "capex to sales, capex to operating cash"
+   ]
+  },
+  {
+   "term": "Capital adequacy ratio (CAR)",
+   "topic": "Banks and lenders",
+   "meaning": "A bank's capital as a percentage of its risk-weighted assets.",
+   "why": "It shows how much loss a bank can absorb.",
+   "how": "RBI requires most banks to hold at least about 11.5% including buffers; well above that is safer.",
+   "formula": "",
+   "id": "capital-adequacy-ratio-car",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "CAR",
+    "Capital adequacy ratio"
+   ]
+  },
+  {
+   "term": "Capital expenditure (capex)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Money spent on long-term assets such as factories, machines, stores or networks.",
+   "why": "Capex builds future capacity but uses cash today.",
+   "how": "Compare capex with operating cash flow: heavy capex funded by debt raises risk.",
+   "formula": "",
+   "id": "capital-expenditure-capex",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Capital expenditure",
+    "capex"
+   ]
+  },
+  {
+   "term": "Capital gain",
+   "topic": "Returns and risk",
+   "meaning": "The profit from selling an asset for more than you paid for it. A capital loss is the opposite.",
+   "why": "Capital gains are taxed differently depending on how long you held the asset.",
+   "how": "Keep purchase records; you need them to work out tax.",
+   "formula": "Capital gain = Sale price − Purchase price",
+   "id": "capital-gain",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Capital gains tax (STCG and LTCG)",
+   "topic": "Loans, tax and planning",
+   "meaning": "Tax on profit from selling investments. For listed shares and equity funds, gains on holdings of up to 12 months are short-term (STCG); longer are long-term (LTCG).",
+   "why": "The holding period changes the tax rate a lot.",
+   "how": "Under rules in force since July 2024, STCG is taxed at 20% and LTCG at 12.5% above ₹1.25 lakh of gains a year. Check current rules before acting.",
+   "formula": "",
+   "id": "capital-gains-tax-stcg-and-ltcg",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Capital gains tax",
+    "STCG and LTCG"
+   ]
+  },
+  {
+   "term": "CASA ratio",
+   "topic": "Banks and lenders",
+   "meaning": "Current-account and savings-account deposits as a share of a bank's total deposits.",
+   "why": "These deposits pay little interest, so a high CASA lowers funding costs.",
+   "how": "Compare CASA ratios between banks; a falling CASA raises costs.",
+   "formula": "",
+   "id": "casa-ratio",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Cash and cash equivalents",
+   "topic": "Financial health and debt",
+   "meaning": "Money in the bank and very short-term, very safe investments that can be turned into cash at once.",
+   "why": "Cash gives a company room to survive bad times and invest when others cannot.",
+   "how": "Compare cash with debt to get net debt.",
+   "formula": "",
+   "id": "cash-and-cash-equivalents",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Cash",
+    "Cash and equivalents",
+    "Cash to debt",
+    "cash",
+    "cash equivalents",
+    "cash to debt"
+   ]
+  },
+  {
+   "term": "Cash conversion (CFO to profit)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Operating cash flow as a percentage of net profit. FinLit also shows free cash flow to profit.",
+   "why": "It tests whether reported profit is turning into real cash.",
+   "how": "Around 80% or more over several years is healthy; FinLit flags 'profit not backed by cash' when it is weak.",
+   "formula": "Cash conversion % = Operating cash flow ÷ Net profit × 100",
+   "id": "cash-conversion-cfo-to-profit",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "CFO to profit",
+    "Cash conversion",
+    "Cash conversion (CFO/PAT)",
+    "FCF / PAT",
+    "cfo to pat",
+    "fcf to pat"
+   ]
+  },
+  {
+   "term": "Cash conversion cycle",
+   "topic": "Efficiency and cash flow",
+   "meaning": "The number of days between paying for materials and collecting cash from customers.",
+   "why": "A short or negative cycle means suppliers effectively fund the business.",
+   "how": "A cycle that lengthens year after year signals tightening cash.",
+   "formula": "Cash conversion cycle = Inventory days + Debtor days − Payable days",
+   "id": "cash-conversion-cycle",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "cash cycle"
+   ]
+  },
+  {
+   "term": "Cash flow statement",
+   "topic": "Company statements",
+   "meaning": "The report of cash that actually came in and went out, split into operating, investing and financing activities.",
+   "why": "Profit can be shaped by accounting choices; cash is much harder to fake.",
+   "how": "A healthy company brings in steady cash from operations, enough to fund its investments over time.",
+   "formula": "",
+   "id": "cash-flow-statement",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Cash from financing",
+    "Cash from investing",
+    "Net cash flow",
+    "financing",
+    "investing",
+    "net cash flow"
+   ]
+  },
+  {
+   "term": "Circuit limit",
+   "topic": "Market basics",
+   "meaning": "The maximum a stock's price may rise or fall in one day, set by the exchange (for example 5%, 10% or 20%). A stock 'hits the upper circuit' when it reaches that limit.",
+   "why": "Trading can freeze at the limit, so you may not be able to buy or sell.",
+   "how": "Repeated circuits in a small company often signal speculation; be careful.",
+   "formula": "",
+   "id": "circuit-limit",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Commodities",
+   "topic": "Market basics",
+   "meaning": "Raw materials traded in bulk, such as gold, silver, crude oil and copper.",
+   "why": "Their prices drive costs and profits for many companies, from jewellers to airlines.",
+   "how": "Watch crude oil for oil marketers and airlines, and metal prices for steel and aluminium makers.",
+   "formula": "",
+   "id": "commodities",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Compound interest",
+   "topic": "Growth",
+   "meaning": "Interest earned on both your original money and the interest it has already earned.",
+   "why": "Over long periods compounding makes a huge difference: ₹1 lakh at 12% a year becomes about ₹9.6 lakh in 20 years.",
+   "how": "Start early and avoid interrupting compounding by withdrawing returns.",
+   "formula": "A = P × (1 + r ÷ n)^(n × t)",
+   "id": "compound-interest",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Concentration",
+   "topic": "Returns and risk",
+   "meaning": "How much of a portfolio sits in a few stocks or sectors.",
+   "why": "High concentration raises both potential returns and risk.",
+   "how": "If one sector is more than a third of your portfolio, make sure that is a deliberate choice.",
+   "formula": "",
+   "id": "concentration",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Conglomerate",
+   "topic": "Economy and business",
+   "meaning": "A company that runs several unrelated businesses, such as energy, retail and telecom.",
+   "why": "It is often valued as the sum of its parts, so comparing it with a single-business peer can mislead.",
+   "how": "Use segment results to understand which businesses drive value.",
+   "formula": "",
+   "id": "conglomerate",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Consistency of growth",
+   "topic": "Growth",
+   "meaning": "How regularly a company grows, for example 'profit rose in 4 of the last 5 years' or 'sales rose year on year in each of the last 4 quarters'.",
+   "why": "Steady growth is easier to trust and usually earns a higher valuation than lumpy growth.",
+   "how": "FinLit's screener has filters for years and quarters of rising sales and profit.",
+   "formula": "",
+   "id": "consistency-of-growth",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Quarters of rising profit (last 4, year on year)",
+    "Quarters of rising sales (last 4, year on year)",
+    "Years of rising profit (last 5)",
+    "q profit up",
+    "q sales up",
+    "years profit up"
+   ]
+  },
+  {
+   "term": "Consolidated and standalone results",
+   "topic": "Company statements",
+   "meaning": "Standalone results cover only the listed company itself. Consolidated results add up the parent and all its subsidiaries, as if they were one business.",
+   "why": "For groups like Reliance, most of the business sits in subsidiaries, so standalone numbers miss much of the picture.",
+   "how": "Use consolidated figures to judge a group; FinLit labels which one it shows.",
+   "formula": "",
+   "id": "consolidated-and-standalone-results",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Consolidated",
+    "Minority interest",
+    "minority interest",
+    "standalone results"
+   ]
+  },
+  {
+   "term": "Corporate action",
+   "topic": "Dividends and corporate actions",
+   "meaning": "Any company decision that changes its shares or what shareholders receive: dividends, bonuses, splits, buybacks, rights issues, mergers and demergers.",
+   "why": "Corporate actions change prices and share counts, so past figures need adjusting.",
+   "how": "FinLit's 'company events' filters let you screen for recent bonuses, splits and buybacks.",
+   "formula": "",
+   "id": "corporate-action",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Corporate actions in the last year",
+    "actions 1y"
+   ]
+  },
+  {
+   "term": "Credit rating",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An agency's grade of a borrower's ability to repay, from AAA (highest) down to D (default). Indian agencies include CRISIL, ICRA, CARE and India Ratings.",
+   "why": "Ratings drive borrowing costs and investor trust.",
+   "how": "A downgrade filing is worth reading; an upgrade usually means lower interest costs ahead.",
+   "formula": "",
+   "id": "credit-rating",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Current ratio",
+   "topic": "Financial health and debt",
+   "meaning": "Current assets divided by current liabilities: can the company pay bills due within a year from assets it will turn into cash within a year?",
+   "why": "It is a basic test of short-term safety.",
+   "how": "Around 1.2 to 2 is typical; well below 1 can mean a cash squeeze, though some businesses run safely that way.",
+   "formula": "Current ratio = Current assets ÷ Current liabilities",
+   "id": "current-ratio",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Cut-off price",
+   "topic": "IPOs and new share issues",
+   "meaning": "The final issue price fixed after bidding. Retail, employee and shareholder applicants may tick 'cut-off' to accept whatever price is set.",
+   "why": "Bidding at cut-off avoids missing allotment because your bid was too low.",
+   "how": "Your full amount at the cap price is blocked; any difference is released after allotment.",
+   "formula": "",
+   "id": "cut-off-price",
+   "letter": "C",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Data checks",
+   "topic": "FinLit words",
+   "meaning": "The checks FinLit runs before publishing a report: statements reconcile, ratios are recalculated at today's price, dates line up and bad price points are removed.",
+   "why": "They catch errors before they reach you.",
+   "how": "Each report states how many checks passed and when the data was updated.",
+   "formula": "",
+   "id": "data-checks",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Debt to assets and liabilities to assets",
+   "topic": "Financial health and debt",
+   "meaning": "Debt (or all liabilities) as a share of total assets. The equity ratio is the opposite: equity as a share of assets.",
+   "why": "They show how much of what the company owns is funded by others.",
+   "how": "Rising ratios over several years mean the company is relying more on outside money.",
+   "formula": "",
+   "id": "debt-to-assets-and-liabilities-to-assets",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Debt / assets",
+    "Debt to assets",
+    "Equity ratio",
+    "Liabilities / assets",
+    "debt to assets",
+    "equity ratio",
+    "liabilities to assets"
+   ]
+  },
+  {
+   "term": "Debt to free cash flow",
+   "topic": "Financial health and debt",
+   "meaning": "Total debt divided by yearly free cash flow: how many years of spare cash it would take to repay all debt.",
+   "why": "It tests whether debt is affordable from real cash, not accounting profit.",
+   "how": "Lower is better; a falling figure over years means the company is de-risking.",
+   "formula": "",
+   "id": "debt-to-free-cash-flow",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Debt / free cash flow",
+    "debt to fcf"
+   ]
+  },
+  {
+   "term": "Debtor days (receivable days)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "How many days, on average, customers take to pay.",
+   "why": "Slow collection ties up cash and can hide weak sales quality.",
+   "how": "Compare with peers and with the company's own trend.",
+   "formula": "Debtor days = Receivables ÷ Revenue × 365",
+   "id": "debtor-days-receivable-days",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Debtor days",
+    "debtor days",
+    "receivable days"
+   ]
+  },
+  {
+   "term": "Debt-to-equity ratio (D/E)",
+   "topic": "Financial health and debt",
+   "meaning": "Total borrowings divided by shareholders' equity: how much the company has borrowed for every rupee owners have put in. Some sources use total liabilities instead of borrowings.",
+   "why": "More debt means fixed interest costs that must be paid even in bad years.",
+   "how": "Below 0.5 is generally comfortable for non-financial companies; banks are always much higher and need different measures.",
+   "formula": "D/E = Total debt ÷ Shareholders' equity",
+   "id": "debt-to-equity-ratio-d-e",
+   "letter": "D",
+   "finlit": "FinLit uses borrowings (loans, bonds, debentures; an NBFC's deposits count too) over shareholders' equity.",
+   "aliases": [
+    "D/E",
+    "Debt / equity",
+    "Debt-to-equity ratio",
+    "debt to equity"
+   ]
+  },
+  {
+   "term": "Demat account",
+   "topic": "Market basics",
+   "meaning": "An electronic account that holds your shares and other securities, like a bank account holds money. It is opened through a broker or bank with a depository (NSDL or CDSL).",
+   "why": "You cannot hold or sell listed shares in India without one.",
+   "how": "Your monthly Consolidated Account Statement (CAS) from NSDL or CDSL lists everything in your demat accounts.",
+   "formula": "",
+   "id": "demat-account",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Depreciation",
+   "topic": "Company statements",
+   "meaning": "Spreading the cost of a physical asset, such as a machine, over the years it is used, as a yearly expense.",
+   "why": "It reflects wear and tear and is a real cost, even though no cash leaves in that year.",
+   "how": "A company that buys a lot of equipment will show rising depreciation in the following years.",
+   "formula": "Straight-line depreciation = (Cost − Salvage value) ÷ Useful life",
+   "id": "depreciation",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Derivatives (futures and options, F&O)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Contracts whose value comes from another asset, such as a share or index. Futures and options are the most common.",
+   "why": "They allow hedging and leverage, but losses can be large and fast.",
+   "how": "SEBI studies show most individual F&O traders lose money; learn the risks first.",
+   "formula": "",
+   "id": "derivatives-futures-and-options-f-o",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Derivatives",
+    "F&O",
+    "futures and options",
+    "futures and options, F&O"
+   ]
+  },
+  {
+   "term": "Dilution",
+   "topic": "IPOs and new share issues",
+   "meaning": "The fall in existing owners' percentage stake when a company issues new shares.",
+   "why": "Profits get shared across more shares, so EPS can fall.",
+   "how": "Compare promoter holding before and after the IPO, and EPS on the post-issue share count.",
+   "formula": "",
+   "id": "dilution",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Discounted cash flow (DCF)",
+   "topic": "Valuation",
+   "meaning": "A valuation method that estimates a company's future free cash flows and converts them to today's value using a discount rate.",
+   "why": "It ties value to the cash a business will produce, not to market mood.",
+   "how": "Small changes in assumed growth or discount rate swing the answer a lot; test a range of assumptions.",
+   "formula": "",
+   "id": "discounted-cash-flow-dcf",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "DCF",
+    "Discounted cash flow"
+   ]
+  },
+  {
+   "term": "Diversification",
+   "topic": "Returns and risk",
+   "meaning": "Spreading money across different companies, sectors and asset types so one bad outcome does not sink the whole portfolio.",
+   "why": "It is the only 'free lunch' in investing: lower risk without giving up much return.",
+   "how": "Fifteen to thirty stocks across several sectors, or a few mutual funds, diversify most single-company risk.",
+   "formula": "",
+   "id": "diversification",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Dividend",
+   "topic": "Dividends and corporate actions",
+   "meaning": "A share of company profit paid to shareholders, usually in cash. Indian companies declare interim dividends during the year and a final dividend after the annual results.",
+   "why": "Dividends give a return without selling shares.",
+   "how": "A dividend cut is often a warning about the business; steady increases suggest confidence.",
+   "formula": "Dividend yield = Yearly dividend per share ÷ Share price",
+   "id": "dividend",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Dividends paid",
+    "Pays a dividend",
+    "Years of dividends (last 6)",
+    "div paying",
+    "div years",
+    "dividends paid"
+   ]
+  },
+  {
+   "term": "Dividend payout ratio",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The share of profit paid out as dividends.",
+   "why": "Low payout keeps cash for growth; high payout returns more now but leaves less to reinvest.",
+   "how": "Above 100% means the company is paying more than it earns, which cannot last.",
+   "formula": "Payout ratio % = Dividend per share ÷ EPS × 100",
+   "id": "dividend-payout-ratio",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Dividend payout",
+    "dividend payout"
+   ]
+  },
+  {
+   "term": "Dividend per share (DPS)",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The total dividend paid in a year divided by the number of shares.",
+   "why": "It is the cash you receive for each share you own.",
+   "how": "Compare DPS over many years, adjusted for splits and bonuses, to see if payouts are growing.",
+   "formula": "",
+   "id": "dividend-per-share-dps",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "DPS",
+    "Dividend growth (yearly)",
+    "Dividend per share",
+    "Dividend per share (last 12 months)",
+    "div ttm",
+    "dps cagr"
+   ]
+  },
+  {
+   "term": "Dividend yield",
+   "topic": "Dividends and corporate actions",
+   "meaning": "Yearly dividend per share as a percentage of the current share price.",
+   "why": "It tells you the cash income you get for each ₹100 invested at today's price.",
+   "how": "A 0.5% yield means ₹0.50 a year per ₹100 invested. Very high yields can signal that the market expects a cut.",
+   "formula": "Dividend yield % = Dividend per share ÷ Share price × 100",
+   "id": "dividend-yield",
+   "letter": "D",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Domestic institutional investors (DII)",
+   "topic": "Ownership",
+   "meaning": "Indian mutual funds, insurance companies, banks and pension funds that invest in shares.",
+   "why": "Monthly SIP money has made DIIs a steady force in Indian markets.",
+   "how": "Rising DII holding often reflects growing mutual-fund interest.",
+   "formula": "",
+   "id": "domestic-institutional-investors-dii",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "DII",
+    "Domestic institutional investors",
+    "Domestic institutions",
+    "own dii"
+   ]
+  },
+  {
+   "term": "Drawdown",
+   "topic": "Price and technicals",
+   "meaning": "The fall from a previous peak to a later low, in percent. FinLit's 'distance from the running high' chart shows it over time.",
+   "why": "It shows how painful the worst stretches have been.",
+   "how": "Ask yourself whether you could hold through the stock's worst past drawdown.",
+   "formula": "",
+   "id": "drawdown",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Worst fall (since data starts)",
+    "max drawdown"
+   ]
+  },
+  {
+   "term": "DRHP (draft red herring prospectus)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The first detailed offer document a company files with SEBI before an IPO, describing its business, finances, risks and the proposed issue.",
+   "why": "It is public, so you can read it months before the IPO opens.",
+   "how": "Read the risk factors, related-party transactions and the litigation section.",
+   "formula": "",
+   "id": "drhp-draft-red-herring-prospectus",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "DRHP",
+    "draft red herring prospectus"
+   ]
+  },
+  {
+   "term": "Earnings call (concall) and transcript",
+   "topic": "Company statements",
+   "meaning": "A call where management presents results and answers questions from analysts and investors. The transcript is the written record, filed with the exchanges.",
+   "why": "Management's guidance and answers often explain the numbers.",
+   "how": "Note what management promises, then check later results against it.",
+   "formula": "",
+   "id": "earnings-call-concall-and-transcript",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Earnings call",
+    "Earnings call and transcript",
+    "concall",
+    "transcript"
+   ]
+  },
+  {
+   "term": "Earnings per share (EPS)",
+   "topic": "Valuation",
+   "meaning": "The company's net profit divided by the number of shares: how much profit each share 'earns'.",
+   "why": "EPS growth drives share prices over the long run, and it is the 'E' in P/E.",
+   "how": "Compare EPS growth with profit growth; if EPS grows slower, new shares are diluting owners.",
+   "formula": "EPS = (Net profit − Preference dividends) ÷ Weighted average shares",
+   "id": "earnings-per-share-eps",
+   "letter": "E",
+   "finlit": "FinLit shows the EPS the company reports; it is scaled to continuing-operations profit when a demerger gain is material.",
+   "aliases": [
+    "Diluted shares (crore)",
+    "EPS",
+    "Earnings per share",
+    "Latest quarter EPS",
+    "diluted shares cr",
+    "eps",
+    "q eps"
+   ]
+  },
+  {
+   "term": "Earnings yield",
+   "topic": "Valuation",
+   "meaning": "The inverse of P/E: yearly profit per share as a percentage of the share price.",
+   "why": "It lets you compare a stock's earning power with interest rates on bonds or deposits.",
+   "how": "A P/E of 20 is an earnings yield of 5%; compare that with what a fixed deposit pays.",
+   "formula": "Earnings yield % = EPS ÷ Share price × 100",
+   "id": "earnings-yield",
+   "letter": "E",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "EBIT and EBIT margin",
+   "topic": "Profitability",
+   "meaning": "EBIT is Earnings Before Interest and Tax: profit after depreciation but before interest and tax. EBIT margin is EBIT as a share of revenue.",
+   "why": "EBIT counts the cost of using up equipment, so it is a stricter measure than EBITDA.",
+   "how": "Use EBIT to judge capital-heavy businesses such as telecom, cement or power.",
+   "formula": "EBIT margin % = EBIT ÷ Revenue × 100",
+   "id": "ebit-and-ebit-margin",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "EBIT",
+    "EBIT margin",
+    "ebit margin"
+   ]
+  },
+  {
+   "term": "EBITDA",
+   "topic": "Profitability",
+   "meaning": "Earnings Before Interest, Taxes, Depreciation and Amortization: operating profit before the cost of borrowing and wear on assets.",
+   "why": "It lets you compare businesses with different debt levels and asset ages.",
+   "how": "Do not mistake EBITDA for cash: interest, tax and replacing equipment are all real costs.",
+   "formula": "EBITDA = Net income + Interest + Taxes + Depreciation + Amortization",
+   "id": "ebitda",
+   "letter": "E",
+   "finlit": "FinLit's operating profit (revenue minus operating costs, before depreciation and interest, excluding other income) stands in for EBITDA in net debt to EBITDA. EV/EBITDA uses the provider's trailing-twelve-month EBITDA.",
+   "aliases": []
+  },
+  {
+   "term": "EBITDA margin",
+   "topic": "Profitability",
+   "meaning": "EBITDA as a share of revenue.",
+   "why": "A common way to compare operating strength across companies in the same industry.",
+   "how": "Look for stable or rising EBITDA margins through good and bad years.",
+   "formula": "EBITDA margin % = EBITDA ÷ Revenue × 100",
+   "id": "ebitda-margin",
+   "letter": "E",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Effective tax rate",
+   "topic": "Profitability",
+   "meaning": "The tax a company actually paid as a share of its profit before tax.",
+   "why": "An unusually low rate in one year can flatter profit and make growth from that year look slow later.",
+   "how": "Indian companies usually pay about 25%; ask why if the rate is far from that.",
+   "formula": "Effective tax rate % = Tax expense ÷ Profit before tax × 100",
+   "id": "effective-tax-rate",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Tax",
+    "tax",
+    "tax rate"
+   ]
+  },
+  {
+   "term": "EMI (equated monthly instalment)",
+   "topic": "Loans, tax and planning",
+   "meaning": "A fixed monthly payment that repays a loan's interest and principal over its term.",
+   "why": "It makes loan costs predictable.",
+   "how": "Compare loans on total interest paid, not only on the EMI.",
+   "formula": "EMI = P × r × (1 + r)^n ÷ ((1 + r)^n − 1)",
+   "id": "emi-equated-monthly-instalment",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "EMI",
+    "equated monthly instalment"
+   ]
+  },
+  {
+   "term": "Employee reservation",
+   "topic": "IPOs and new share issues",
+   "meaning": "A portion set aside for the company's employees, often at a discount, with a bid limit of ₹5 lakh (₹2 lakh initially, more only if the portion is undersubscribed).",
+   "why": "It rewards staff and aligns them with shareholders.",
+   "how": "Employees may also apply in the retail category separately.",
+   "formula": "",
+   "id": "employee-reservation",
+   "letter": "E",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Enterprise value (EV)",
+   "topic": "Valuation",
+   "meaning": "The value of the whole business to everyone with a claim on it: market cap plus debt, minus cash.",
+   "why": "It is what a buyer would really pay, since they take on the debt and get the cash.",
+   "how": "Use EV-based ratios when comparing companies with very different debt levels.",
+   "formula": "EV = Market cap + Total debt − Cash and equivalents",
+   "id": "enterprise-value-ev",
+   "letter": "E",
+   "finlit": "FinLit subtracts the balance-sheet cash and cash equivalents line only; investments are not subtracted.",
+   "aliases": [
+    "EV",
+    "Enterprise value",
+    "enterprise value"
+   ]
+  },
+  {
+   "term": "Equity (shareholders' funds)",
+   "topic": "Company statements",
+   "meaning": "What would be left for shareholders if the company sold all its assets and paid all its liabilities: the owners' stake. The word also means shares in general.",
+   "why": "Equity grows when profits are kept in the business and shrinks with losses.",
+   "how": "Steady growth in equity alongside low debt is a sign of a sound business.",
+   "formula": "Equity = Assets − Liabilities",
+   "id": "equity-shareholders-funds",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Equity",
+    "Equity share capital",
+    "Shareholders' equity",
+    "Total equity",
+    "equity",
+    "equity capital",
+    "shareholders' funds",
+    "total equity"
+   ]
+  },
+  {
+   "term": "ETF (exchange-traded fund)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A fund, often tracking an index, that trades on the stock exchange like a share.",
+   "why": "It combines an index fund's low cost with intraday trading.",
+   "how": "Check the ETF's traded value; thinly traded ETFs can trade away from their NAV.",
+   "formula": "",
+   "id": "etf-exchange-traded-fund",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "ETF",
+    "exchange-traded fund"
+   ]
+  },
+  {
+   "term": "EV/EBITDA",
+   "topic": "Valuation",
+   "meaning": "Enterprise value divided by EBITDA.",
+   "why": "It compares companies fairly regardless of how much debt they use.",
+   "how": "Widely used for telecom, energy and industrial firms. Lower is cheaper, within the same industry.",
+   "formula": "EV/EBITDA = Enterprise value ÷ EBITDA",
+   "id": "ev-ebitda",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "ev ebitda"
+   ]
+  },
+  {
+   "term": "EV/Sales and EV/CFO",
+   "topic": "Valuation",
+   "meaning": "Enterprise value divided by revenue (EV/Sales) or by operating cash flow (EV/CFO).",
+   "why": "They extend the EV idea to companies with thin profits or lumpy earnings.",
+   "how": "Use them alongside EV/EBITDA, not on their own.",
+   "formula": "",
+   "id": "ev-sales-and-ev-cfo",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "EV / CFO",
+    "EV / Sales",
+    "EV/CFO",
+    "EV/Sales",
+    "ev cfo",
+    "ev sales"
+   ]
+  },
+  {
+   "term": "Exceptional items",
+   "topic": "Company statements",
+   "meaning": "Unusual, one-time gains or losses, such as selling a factory or paying a large fine.",
+   "why": "They distort comparisons between periods.",
+   "how": "Look at profit both with and without exceptional items before judging a quarter.",
+   "formula": "",
+   "id": "exceptional-items",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "One-off items / pre-tax profit",
+    "Profit from discontinued operations",
+    "discontinued profit",
+    "exceptional share"
+   ]
+  },
+  {
+   "term": "Exchange filing (announcement)",
+   "topic": "Company statements",
+   "meaning": "A disclosure a listed company must send to the stock exchanges, such as results, board decisions, orders won, ratings or legal matters.",
+   "why": "Filings are the official, first source of company news.",
+   "how": "Skim routine filings; read closely when they concern results, fund raising, management changes, penalties or ratings.",
+   "formula": "",
+   "id": "exchange-filing-announcement",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Exchange filing",
+    "announcement"
+   ]
+  },
+  {
+   "term": "Ex-dividend date",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The cut-off: if you buy on or after this date you do not get the upcoming dividend. The share price usually drops by roughly the dividend amount that morning.",
+   "why": "Buying just before the ex-date to 'collect' a dividend rarely works because the price adjusts.",
+   "how": "Note ex-dates for stocks you plan to buy or sell.",
+   "formula": "",
+   "id": "ex-dividend-date",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Days since last dividend",
+    "div last days"
+   ]
+  },
+  {
+   "term": "Expense ratio",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The yearly fee a fund charges, as a percentage of your investment.",
+   "why": "It is taken every year, so small differences compound over time.",
+   "how": "Direct plans have lower expense ratios than regular plans sold through distributors.",
+   "formula": "Expense ratio = Fund operating costs ÷ Average net assets",
+   "id": "expense-ratio",
+   "letter": "E",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Expenses",
+   "topic": "Company statements",
+   "meaning": "All the costs of running the business: raw materials, staff, rent, power, marketing and so on.",
+   "why": "Profit is what is left after expenses, so cost control matters as much as sales.",
+   "how": "If expenses grow faster than revenue for several quarters, margins are shrinking.",
+   "formula": "",
+   "id": "expenses",
+   "letter": "E",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Face value",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The nominal value of a share printed in the company's records, such as ₹1, ₹2 or ₹10. It has nothing to do with the market price.",
+   "why": "Dividends are often announced as a percentage of face value, which confuses many investors.",
+   "how": "A '100% dividend' on a ₹10 face-value share means ₹10 per share, not 100% of the share price.",
+   "formula": "",
+   "id": "face-value",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "FCF yield",
+   "topic": "Valuation",
+   "meaning": "Free cash flow as a percentage of market cap: the spare cash the business generates for each ₹100 of its market value.",
+   "why": "It shows how much cash an owner of the whole company would receive each year.",
+   "how": "A higher FCF yield means more spare cash for each ₹100 of market value, if the cash flow is steady.",
+   "formula": "FCF yield % = Free cash flow ÷ Market cap × 100",
+   "id": "fcf-yield",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Financial leverage (equity multiplier)",
+   "topic": "Financial health and debt",
+   "meaning": "Total assets divided by shareholders' equity.",
+   "why": "It shows how much of the asset base is funded by owners versus others.",
+   "how": "A value of 2.4 means owners fund about 42% of assets and liabilities fund the rest.",
+   "formula": "Financial leverage = Total assets ÷ Shareholders' equity",
+   "id": "financial-leverage-equity-multiplier",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "Financial leverage",
+    "equity multiplier",
+    "financial leverage"
+   ]
+  },
+  {
+   "term": "FinLit score",
+   "topic": "FinLit words",
+   "meaning": "FinLit's 0–100 summary of a company's health: the average of five pillar scores, each built from ratios scored against fixed thresholds.",
+   "why": "It turns dozens of numbers into one readable starting point.",
+   "how": "Use it to shortlist and to spot changes, then read the report behind it. It is not a buy or sell call.",
+   "formula": "",
+   "id": "finlit-score",
+   "letter": "F",
+   "finlit": "The overall score averages all five pillars including Technical; the screener's fundamental score averages the four business pillars.",
+   "aliases": [
+    "Score change since last quarter",
+    "overall",
+    "score change"
+   ]
+  },
+  {
+   "term": "Fiscal year (FY)",
+   "topic": "Company statements",
+   "meaning": "The 12-month period used for accounts and tax. In India it runs from 1 April to 31 March, so FY26 means April 2025 to March 2026.",
+   "why": "Company results, ratios and tax all follow the fiscal year.",
+   "how": "Q1 of FY27 is April to June 2026, Q2 is July to September 2026, and so on.",
+   "formula": "",
+   "id": "fiscal-year-fy",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "FY",
+    "Fiscal year"
+   ]
+  },
+  {
+   "term": "Fixed asset",
+   "topic": "Company statements",
+   "meaning": "A long-term physical asset used to run the business, such as land, buildings or machinery, not meant to be sold.",
+   "why": "Fixed assets decide how much a company can produce.",
+   "how": "Heavy investment in fixed assets should lead to higher sales in later years; check that it does.",
+   "formula": "",
+   "id": "fixed-asset",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "Capital work in progress",
+    "Fixed assets",
+    "cwip",
+    "fixed assets"
+   ]
+  },
+  {
+   "term": "Fixed asset turnover",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Revenue divided by fixed assets such as plant and machinery.",
+   "why": "It shows how well factories and equipment are being used.",
+   "how": "A falling figure after a big expansion may just mean new capacity is still ramping up.",
+   "formula": "",
+   "id": "fixed-asset-turnover",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Foreign institutional investors (FII / FPI)",
+   "topic": "Ownership",
+   "meaning": "Overseas funds, banks and investors buying Indian shares, now officially called foreign portfolio investors (FPIs).",
+   "why": "Their flows move large-company prices and the market overall.",
+   "how": "Steady FII selling in a stock can weigh on its price for a while.",
+   "formula": "",
+   "id": "foreign-institutional-investors-fii-fpi",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "FII",
+    "FII / FPI",
+    "FPI",
+    "Foreign institutional investors",
+    "Foreign institutions",
+    "own fii"
+   ]
+  },
+  {
+   "term": "FPO (follow-on public offer)",
+   "topic": "IPOs and new share issues",
+   "meaning": "A public offer of shares by a company that is already listed.",
+   "why": "It raises fresh money from the public after the IPO.",
+   "how": "Compare the FPO price with the current market price.",
+   "formula": "",
+   "id": "fpo-follow-on-public-offer",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "FPO",
+    "follow-on public offer"
+   ]
+  },
+  {
+   "term": "Free cash flow (FCF)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Operating cash flow minus capital expenditure: the spare cash left after keeping and growing the business.",
+   "why": "FCF pays dividends, buybacks and debt repayment.",
+   "how": "A company with growing profit but negative FCF for years is consuming cash to grow.",
+   "formula": "FCF = Operating cash flow − Capital expenditure",
+   "id": "free-cash-flow-fcf",
+   "letter": "F",
+   "finlit": "FinLit takes capital expenditure from the purchase of property, plant, equipment and intangibles in the cash-flow statement.",
+   "aliases": [
+    "FCF",
+    "Free cash flow",
+    "Free cash flow (statement)",
+    "fcf",
+    "free cash flow"
+   ]
+  },
+  {
+   "term": "Free float",
+   "topic": "Ownership",
+   "meaning": "Shares available for trading by the public, excluding promoter and other locked-in holdings.",
+   "why": "Indices weight companies by free-float market cap, not total market cap.",
+   "how": "A small free float can make a stock's price jumpy.",
+   "formula": "",
+   "id": "free-float",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Fresh issue",
+   "topic": "IPOs and new share issues",
+   "meaning": "New shares created and sold in an IPO. The money raised goes to the company.",
+   "why": "It funds growth, debt repayment or other stated purposes, but adds to the share count (dilution).",
+   "how": "Check the 'objects of the issue' to see how the money will be used.",
+   "formula": "",
+   "id": "fresh-issue",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Fundamental score and technical score",
+   "topic": "FinLit words",
+   "meaning": "The fundamental score uses only the business's statements; the technical score uses only the price chart. FinLit never blends the two without showing both.",
+   "why": "A great business can have a weak price trend, and the reverse.",
+   "how": "Long-term investors lean on the fundamental score; the technical score helps with timing.",
+   "formula": "",
+   "id": "fundamental-score-and-technical-score",
+   "letter": "F",
+   "finlit": "The overall FinLit score averages all five pillars including Technical; the fundamental score averages only the four business pillars.",
+   "aliases": [
+    "Fundamental score",
+    "fundamental score",
+    "technical score"
+   ]
+  },
+  {
+   "term": "Futures contract",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An agreement to buy or sell an asset at a fixed price on a future date, traded on an exchange.",
+   "why": "Futures are used to hedge or to bet on prices with borrowed exposure.",
+   "how": "Small price moves cause large gains or losses relative to the margin you put up.",
+   "formula": "",
+   "id": "futures-contract",
+   "letter": "F",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Goodwill",
+   "topic": "Company statements",
+   "meaning": "An intangible asset created when one company buys another for more than the fair value of its assets minus liabilities. The extra amount is goodwill.",
+   "why": "It cannot be sold on its own, and it may be written down if the purchase disappoints.",
+   "how": "A balance sheet dominated by goodwill is less solid than one dominated by cash and factories.",
+   "formula": "Goodwill = Purchase price − Fair value of net assets",
+   "id": "goodwill",
+   "letter": "G",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Graham number (Graham fair value)",
+   "topic": "Valuation",
+   "meaning": "A rough fair value per share from the investor Benjamin Graham's formula, using EPS and book value per share.",
+   "why": "It is a conservative cross-check for steady, profitable companies.",
+   "how": "'Upside to Graham value' is how far the Graham number sits above the current price. It is meaningless for loss-making firms.",
+   "formula": "Graham number = √(22.5 × EPS × Book value per share)",
+   "id": "graham-number-graham-fair-value",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "Graham fair value",
+    "Graham number",
+    "Upside to Graham value",
+    "graham upside",
+    "graham value"
+   ]
+  },
+  {
+   "term": "Green shoe option",
+   "topic": "IPOs and new share issues",
+   "meaning": "An option allowing the issue to be increased by up to 15% to stabilise the price after listing.",
+   "why": "It helps support the price if it falls soon after listing.",
+   "how": "It is mentioned in the RHP when used.",
+   "formula": "",
+   "id": "green-shoe-option",
+   "letter": "G",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Grey market premium (GMP)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The unofficial premium at which IPO shares are said to trade informally before listing.",
+   "why": "It is unregulated, not recognised by SEBI and easily manipulated.",
+   "how": "Do not base decisions on GMP.",
+   "formula": "",
+   "id": "grey-market-premium-gmp",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "GMP",
+    "Grey market premium"
+   ]
+  },
+  {
+   "term": "Gross and net NPA",
+   "topic": "Banks and lenders",
+   "meaning": "A non-performing asset (NPA) is a loan unpaid for 90 days or more. Gross NPA is the total; net NPA is after setting aside provisions.",
+   "why": "Rising NPAs mean borrowers are failing to repay.",
+   "how": "Track the gross NPA ratio over quarters; falling is good.",
+   "formula": "",
+   "id": "gross-and-net-npa",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "Gross",
+    "net NPA"
+   ]
+  },
+  {
+   "term": "Gross domestic product (GDP)",
+   "topic": "Economy and business",
+   "meaning": "The total value of goods and services produced in a country in a period.",
+   "why": "GDP growth drives company sales and profits across the economy.",
+   "how": "Corporate earnings tend to grow faster than GDP over long periods, but not every year.",
+   "formula": "GDP = Consumption + Investment + Government spending + (Exports − Imports)",
+   "id": "gross-domestic-product-gdp",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "GDP",
+    "Gross domestic product"
+   ]
+  },
+  {
+   "term": "Gross profit margin",
+   "topic": "Profitability",
+   "meaning": "The share of revenue left after the direct cost of making the product or delivering the service.",
+   "why": "High gross margins suggest pricing power or a valuable brand.",
+   "how": "Compare within an industry: a software firm's gross margin will always beat a steel maker's.",
+   "formula": "Gross margin % = (Revenue − Cost of goods sold) ÷ Revenue × 100",
+   "id": "gross-profit-margin",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "Gross margin",
+    "gross margin"
+   ]
+  },
+  {
+   "term": "Growth stock",
+   "topic": "Growth",
+   "meaning": "Shares of a company expected to grow sales and profit faster than the market, often paying small or no dividends.",
+   "why": "Investors pay higher valuations for expected growth, so disappointment can cause big falls.",
+   "how": "Ask what growth today's price assumes, and whether the company has delivered such growth before.",
+   "formula": "",
+   "id": "growth-stock",
+   "letter": "G",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Hedge",
+   "topic": "Returns and risk",
+   "meaning": "An investment made to reduce the risk of loss in another, for example buying a put option on shares you own.",
+   "why": "Hedges cost money and limit gains, but protect against big losses.",
+   "how": "Most long-term investors hedge through diversification rather than derivatives.",
+   "formula": "",
+   "id": "hedge",
+   "letter": "H",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Holding period return (HPR)",
+   "topic": "Returns and risk",
+   "meaning": "The total return over the time you held an investment, including income.",
+   "why": "It answers 'how much did I make on this investment?'",
+   "how": "Annualise it before comparing with returns over other periods.",
+   "formula": "HPR = (Income + End value − Start value) ÷ Start value",
+   "id": "holding-period-return-hpr",
+   "letter": "H",
+   "finlit": "",
+   "aliases": [
+    "HPR",
+    "Holding period return"
+   ]
+  },
+  {
+   "term": "Hurdle rate",
+   "topic": "Returns and risk",
+   "meaning": "The minimum return an investment or project must earn to be worth doing.",
+   "why": "It keeps money away from projects that do not pay for their risk.",
+   "how": "Set your own hurdle rate for stocks, for example the index return plus a few percent.",
+   "formula": "",
+   "id": "hurdle-rate",
+   "letter": "H",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Index",
+   "topic": "Market basics",
+   "meaning": "A number that tracks the combined price of a chosen basket of stocks, such as the 50 largest companies on the NSE.",
+   "why": "It shows in one figure whether 'the market' or a sector rose or fell.",
+   "how": "Compare your portfolio's return with a suitable index to see if your choices beat simply owning the market.",
+   "formula": "",
+   "id": "index",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Index fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A mutual fund or ETF that simply copies an index such as the Nifty 50, at low cost.",
+   "why": "Most active funds fail to beat their index over long periods after fees.",
+   "how": "A low-cost index fund is a sensible core holding for many investors.",
+   "formula": "",
+   "id": "index-fund",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "India VIX",
+   "topic": "Returns and risk",
+   "meaning": "The NSE's 'fear gauge': the volatility the options market expects in the Nifty over the next 30 days, as a yearly percentage.",
+   "why": "It rises when investors are nervous.",
+   "how": "Below about 15 is calm, above about 25 is fearful.",
+   "formula": "",
+   "id": "india-vix",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Inflation",
+   "topic": "Economy and business",
+   "meaning": "The rate at which prices in general rise, reducing what money can buy. In India it is usually tracked by the consumer price index (CPI).",
+   "why": "Returns only matter after inflation: 7% return with 6% inflation is about 1% real gain.",
+   "how": "Aim for long-run returns comfortably above inflation.",
+   "formula": "Inflation % = (CPI now − CPI a year ago) ÷ CPI a year ago × 100",
+   "id": "inflation",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Insolvency and the IBC",
+   "topic": "Economy and business",
+   "meaning": "Insolvency is when a company cannot pay its debts. India's Insolvency and Bankruptcy Code (IBC) sets a process to revive or sell such companies.",
+   "why": "Shareholders usually lose most or all of their money in insolvency.",
+   "how": "A company in an insolvency process carries extra risk; read the resolution plan before treating it as a turnaround.",
+   "formula": "",
+   "id": "insolvency-and-the-ibc",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Insolvency",
+    "the IBC"
+   ]
+  },
+  {
+   "term": "Interest cost to income",
+   "topic": "Banks and lenders",
+   "meaning": "A bank's interest expense as a share of its total income; a FinLit screener filter for lenders.",
+   "why": "Lower means cheaper funding relative to what the bank earns.",
+   "how": "Use it with NIM and CASA to compare lenders' funding strength.",
+   "formula": "",
+   "id": "interest-cost-to-income",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "interest to revenue"
+   ]
+  },
+  {
+   "term": "Interest coverage ratio",
+   "topic": "Financial health and debt",
+   "meaning": "Operating profit (EBIT) divided by interest expense: how many times over the company can pay its interest.",
+   "why": "Low coverage means a small fall in profit could make interest hard to pay.",
+   "how": "Below 1.5 is weak, above 3 is generally comfortable; FinLit flags 'weak interest cover' as a red flag.",
+   "formula": "Interest coverage = EBIT ÷ Interest expense",
+   "id": "interest-coverage-ratio",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Interest (finance costs)",
+    "Interest coverage",
+    "finance costs",
+    "interest coverage"
+   ]
+  },
+  {
+   "term": "Interim and final dividend",
+   "topic": "Dividends and corporate actions",
+   "meaning": "An interim dividend is declared during the financial year; a final dividend is proposed after the year ends and approved at the annual general meeting.",
+   "why": "Many companies pay both, so the year's total is their sum.",
+   "how": "Check FinLit's dividend history for the months a company usually pays.",
+   "formula": "",
+   "id": "interim-and-final-dividend",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Interim",
+    "final dividend"
+   ]
+  },
+  {
+   "term": "Internal rate of return (IRR)",
+   "topic": "Returns and risk",
+   "meaning": "The yearly return at which the present value of an investment's cash flows equals zero.",
+   "why": "It lets you compare projects or investments with different cash-flow patterns.",
+   "how": "XIRR is the same idea for irregular dates.",
+   "formula": "0 = Sum of CF_t ÷ (1 + IRR)^t",
+   "id": "internal-rate-of-return-irr",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "IRR",
+    "Internal rate of return"
+   ]
+  },
+  {
+   "term": "Intraday and delivery trades",
+   "topic": "Market basics",
+   "meaning": "An intraday trade is bought and sold on the same day; a delivery trade means the shares move into your demat account and you hold them.",
+   "why": "Intraday trading carries different charges and much higher risk.",
+   "how": "FinLit's research is built for delivery investors who hold for months or years.",
+   "formula": "",
+   "id": "intraday-and-delivery-trades",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Intraday",
+    "delivery trades"
+   ]
+  },
+  {
+   "term": "Intrinsic value and margin of safety",
+   "topic": "Valuation",
+   "meaning": "Intrinsic value is an estimate of what a business is really worth based on its future cash flows. Margin of safety is the gap when the price is well below that estimate.",
+   "why": "Estimates can be wrong; a price below the estimate leaves room for error.",
+   "how": "If you estimate a share is worth ₹500, a price of ₹350 is a 30% margin of safety.",
+   "formula": "",
+   "id": "intrinsic-value-and-margin-of-safety",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Intrinsic value",
+    "margin of safety"
+   ]
+  },
+  {
+   "term": "Inventory days",
+   "topic": "Efficiency and cash flow",
+   "meaning": "How many days, on average, goods sit in stock before being sold.",
+   "why": "Fewer days means less cash tied up and less risk of stock going obsolete.",
+   "how": "Rising inventory days can be an early sign of slowing demand.",
+   "formula": "Inventory days = Inventory ÷ Cost of goods sold × 365",
+   "id": "inventory-days",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Inventory (stock)",
+   "topic": "Company statements",
+   "meaning": "Raw materials, work in progress and finished goods the company holds but has not yet sold.",
+   "why": "Inventory ties up cash and can lose value if it goes out of fashion or spoils.",
+   "how": "Rising inventory with flat sales often means demand is weakening.",
+   "formula": "",
+   "id": "inventory-stock",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "Inventories",
+    "Inventory",
+    "inventories",
+    "stock"
+   ]
+  },
+  {
+   "term": "Investor categories",
+   "topic": "IPOs and new share issues",
+   "meaning": "IPO shares are split into reserved portions for different types of investor: qualified institutional buyers (QIB), non-institutional investors (NII) and retail individual investors (RII), plus optional employee and shareholder quotas.",
+   "why": "Each category has its own demand and allotment rules.",
+   "how": "For profitable companies the usual split is up to 50% QIB, at least 15% NII and at least 35% retail. Loss-making companies must give at least 75% to QIBs and at most 10% to retail.",
+   "formula": "",
+   "id": "investor-categories",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Investor presentation",
+   "topic": "Company statements",
+   "meaning": "Slides a company publishes with its results or at events, summarising performance, strategy and outlook.",
+   "why": "It is the quickest way to understand what the company wants investors to focus on.",
+   "how": "Treat it as the company's view; confirm key claims in the actual financial statements.",
+   "formula": "",
+   "id": "investor-presentation",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "IPO (initial public offering)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The first time a company sells its shares to the public and lists on a stock exchange.",
+   "why": "It is the only time ordinary investors can buy shares directly from the company and its early owners.",
+   "how": "Read why the company is raising money and who is selling before applying; listing-day excitement is not a reason.",
+   "formula": "",
+   "id": "ipo-initial-public-offering",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "IPO",
+    "initial public offering"
+   ]
+  },
+  {
+   "term": "Issue price",
+   "topic": "IPOs and new share issues",
+   "meaning": "The final price per share at which the IPO shares are allotted.",
+   "why": "Listing gains and losses are measured against it.",
+   "how": "Market cap at the issue price shows how the company is valued; compare that with listed peers.",
+   "formula": "",
+   "id": "issue-price",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Issue size",
+   "topic": "IPOs and new share issues",
+   "meaning": "The total value of shares offered in the IPO, fresh issue and offer for sale together, such as ₹837 crore.",
+   "why": "Very large issues need broad demand; very small ones can be easy to manipulate after listing.",
+   "how": "Compare issue size with the company's market cap to see how much is being sold.",
+   "formula": "",
+   "id": "issue-size",
+   "letter": "I",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Joint venture",
+   "topic": "Economy and business",
+   "meaning": "A business set up by two or more partners who share control, costs and profits while staying separate companies.",
+   "why": "Joint ventures let companies enter new markets or share large investments.",
+   "how": "Check how a JV is accounted for; its revenue is often not included in the parent's figures.",
+   "formula": "",
+   "id": "joint-venture",
+   "letter": "J",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Journal entry",
+   "topic": "Company statements",
+   "meaning": "The first record of a transaction in a company's books, showing the same amount as a debit in one account and a credit in another.",
+   "why": "Every number in the financial statements starts as journal entries.",
+   "how": "You rarely need this as an investor; it explains why the books always balance.",
+   "formula": "Total debits = Total credits",
+   "id": "journal-entry",
+   "letter": "J",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Junk bond (high-yield bond)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A bond with a low credit rating, paying higher interest because the risk of default is higher.",
+   "why": "The extra interest compensates for real risk of losing money.",
+   "how": "Keep only a small share of savings in low-rated debt, if any.",
+   "formula": "",
+   "id": "junk-bond-high-yield-bond",
+   "letter": "J",
+   "finlit": "",
+   "aliases": [
+    "Junk bond",
+    "high-yield bond"
+   ]
+  },
+  {
+   "term": "Kiting",
+   "topic": "Loans, tax and planning",
+   "meaning": "An illegal practice of moving money between accounts to exploit clearing delays and create fake balances.",
+   "why": "It is fraud and is prosecuted.",
+   "how": "Watch for unexplained circular transactions in any company or account you review.",
+   "formula": "",
+   "id": "kiting",
+   "letter": "K",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "KPI (key performance indicator)",
+   "topic": "Economy and business",
+   "meaning": "A number that tracks how well a business is doing on what matters most, such as same-store sales for a retailer or users for a telecom firm.",
+   "why": "KPIs often move before financial results do.",
+   "how": "Find the two or three KPIs management highlights and track them each quarter.",
+   "formula": "",
+   "id": "kpi-key-performance-indicator",
+   "letter": "K",
+   "finlit": "",
+   "aliases": [
+    "KPI",
+    "key performance indicator"
+   ]
+  },
+  {
+   "term": "KYC (Know Your Customer)",
+   "topic": "Loans, tax and planning",
+   "meaning": "Mandatory identity and address checks before opening a bank, demat, broker or mutual fund account.",
+   "why": "KYC prevents fraud and money laundering.",
+   "how": "One KYC through a KYC registration agency usually works across brokers and fund houses.",
+   "formula": "",
+   "id": "kyc-know-your-customer",
+   "letter": "K",
+   "finlit": "",
+   "aliases": [
+    "KYC",
+    "Know Your Customer"
+   ]
+  },
+  {
+   "term": "Large cap, mid cap and small cap",
+   "topic": "Market basics",
+   "meaning": "Size groups based on market value. In India, the 100 largest listed companies are large caps, the next 150 mid caps, and the rest small caps; the smallest are often called micro caps.",
+   "why": "Smaller companies can grow faster but their prices swing more and their shares can be harder to sell.",
+   "how": "Check the size group before comparing returns or valuations; a small cap and a large cap are different kinds of bet.",
+   "formula": "",
+   "id": "large-cap-mid-cap-and-small-cap",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Large cap, mid cap",
+    "small cap"
+   ]
+  },
+  {
+   "term": "Last traded price (LTP) and closing price",
+   "topic": "Market basics",
+   "meaning": "The LTP is the price of the most recent trade. The closing price is the official price at the end of the trading day, calculated by the exchange from the last half hour of trades.",
+   "why": "Returns, charts and most ratios use the closing price.",
+   "how": "During market hours (9:15 am to 3:30 pm on weekdays) prices move; after the close they stay fixed until the next session.",
+   "formula": "",
+   "id": "last-traded-price-ltp-and-closing-price",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "LTP",
+    "Last traded price",
+    "Last traded price and closing price",
+    "Share price",
+    "closing price",
+    "price"
+   ]
+  },
+  {
+   "term": "Lead manager (book-running lead manager)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The investment bank that manages the IPO: due diligence, pricing, marketing and paperwork.",
+   "why": "Their track record with past IPOs is worth a look.",
+   "how": "SEBI publishes past IPO performance by lead manager.",
+   "formula": "",
+   "id": "lead-manager-book-running-lead-manager",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Lead manager",
+    "book-running lead manager"
+   ]
+  },
+  {
+   "term": "Leverage",
+   "topic": "Financial health and debt",
+   "meaning": "Using borrowed money to increase the size of a business or an investment. It magnifies both gains and losses.",
+   "why": "Leverage can make good years great and bad years dangerous.",
+   "how": "Check whether the company grows without needing ever more debt.",
+   "formula": "Leverage ratio = Total debt ÷ Total equity",
+   "id": "leverage",
+   "letter": "L",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Liability",
+   "topic": "Company statements",
+   "meaning": "Money or obligations a company owes to others: loans, unpaid bills, taxes due, customer advances.",
+   "why": "Liabilities must be paid, whatever happens to profits.",
+   "how": "Compare short-term liabilities with cash and short-term assets to judge whether bills can be met.",
+   "formula": "Liabilities = Assets − Equity",
+   "id": "liability",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Other liabilities",
+    "Total liabilities",
+    "other liabilities",
+    "total liabilities"
+   ]
+  },
+  {
+   "term": "Liquidity",
+   "topic": "Financial health and debt",
+   "meaning": "How quickly something can be turned into cash without losing value. For a company, its ability to meet short-term bills; for a stock, how easily it can be bought or sold.",
+   "why": "An illiquid stock can be hard to sell at a fair price when you need to.",
+   "how": "Check average daily traded value when researching small companies.",
+   "formula": "",
+   "id": "liquidity",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Cash to current liabilities",
+    "cash to current liab"
+   ]
+  },
+  {
+   "term": "Listing date and listing gain",
+   "topic": "IPOs and new share issues",
+   "meaning": "The listing date is when IPO shares start trading. Listing gain or loss is the difference between the first trading price and the issue price.",
+   "why": "Many investors apply for listing gains, but they are not guaranteed.",
+   "how": "Decide beforehand whether you are investing for the long term or the listing day.",
+   "formula": "",
+   "id": "listing-date-and-listing-gain",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Listing date",
+    "listing gain"
+   ]
+  },
+  {
+   "term": "Loan-to-value (LTV)",
+   "topic": "Loans, tax and planning",
+   "meaning": "The loan amount as a percentage of the value of the asset securing it, such as a house or gold.",
+   "why": "Lenders cap LTVs to protect against falling asset prices.",
+   "how": "Lower LTV means a bigger down payment and usually better loan terms.",
+   "formula": "LTV % = Loan amount ÷ Asset value × 100",
+   "id": "loan-to-value-ltv",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "LTV",
+    "Loan-to-value"
+   ]
+  },
+  {
+   "term": "Lock-in period",
+   "topic": "IPOs and new share issues",
+   "meaning": "A period during which certain shareholders cannot sell. Promoters' minimum stake of 20% is generally locked for 18 months, the rest for 6 months, along with most pre-IPO investors.",
+   "why": "When lock-ins end, a wave of shares can be sold.",
+   "how": "Note lock-in expiry dates in the prospectus for stocks you hold.",
+   "formula": "",
+   "id": "lock-in-period",
+   "letter": "L",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Long-term debt to equity",
+   "topic": "Financial health and debt",
+   "meaning": "Only borrowings due after more than a year, divided by equity.",
+   "why": "Long-term debt funds factories and projects; short-term debt funds daily operations.",
+   "how": "A sharp rise usually means a big expansion or acquisition is being funded with loans.",
+   "formula": "",
+   "id": "long-term-debt-to-equity",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Long-term debt / equity",
+    "lt debt to equity"
+   ]
+  },
+  {
+   "term": "Lot size (market lot)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The minimum number of shares you can bid for, and the steps your bid must come in. SEBI sets it so one lot costs roughly ₹10,000 to ₹15,000 on the mainboard.",
+   "why": "You apply in whole lots, not single shares.",
+   "how": "Minimum investment = lot size × cap price.",
+   "formula": "",
+   "id": "lot-size-market-lot",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Lot size",
+    "market lot"
+   ]
+  },
+  {
+   "term": "Mainboard IPO",
+   "topic": "IPOs and new share issues",
+   "meaning": "An IPO by a larger company that lists on the main NSE and BSE platforms.",
+   "why": "Mainboard IPOs follow the full set of SEBI rules on disclosure and investor categories.",
+   "how": "Most well-known IPOs are mainboard issues.",
+   "formula": "",
+   "id": "mainboard-ipo",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Margin",
+   "topic": "Profitability",
+   "meaning": "A share of revenue kept as profit at some level, such as gross, operating or net margin. In trading, 'margin' can also mean money borrowed from a broker to buy shares.",
+   "why": "Margins show pricing power and cost control.",
+   "how": "Always ask 'which margin?' and compare it with the company's own history and its peers.",
+   "formula": "Net margin % = Net income ÷ Revenue × 100",
+   "id": "margin",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Market breadth",
+   "topic": "Market basics",
+   "meaning": "How many stocks rose versus fell on a day, for example '91 rose, 424 fell'.",
+   "why": "It shows whether a move was broad or driven by a few big companies.",
+   "how": "An index rising while most stocks fall is a narrow, weaker rally.",
+   "formula": "",
+   "id": "market-breadth",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Market capitalisation (market cap)",
+   "topic": "Valuation",
+   "meaning": "The total market value of a company: share price multiplied by the number of shares.",
+   "why": "It tells you how big the company is in the stock market's eyes and decides whether it is a large, mid or small cap.",
+   "how": "₹16 lakh crore market cap means the market values the whole company at that amount today.",
+   "formula": "Market cap = Share price × Shares outstanding",
+   "id": "market-capitalisation-market-cap",
+   "letter": "M",
+   "finlit": "",
+   "aliases": [
+    "Market cap",
+    "Market capitalisation",
+    "market cap",
+    "marketCap"
+   ]
+  },
+  {
+   "term": "Market maker (SME IPOs)",
+   "topic": "IPOs and new share issues",
+   "meaning": "A broker required to quote buy and sell prices in an SME stock for at least three years after listing.",
+   "why": "It provides some liquidity in small, thinly traded shares.",
+   "how": "Even with a market maker, SME shares can be hard to sell in size.",
+   "formula": "",
+   "id": "market-maker-sme-ipos",
+   "letter": "M",
+   "finlit": "",
+   "aliases": [
+    "Market maker",
+    "SME IPOs"
+   ]
+  },
+  {
+   "term": "Market order and limit order",
+   "topic": "Market basics",
+   "meaning": "A market order buys or sells straight away at the best price available. A limit order sets the worst price you will accept and waits until it can be filled at that price or better.",
+   "why": "In fast or thinly traded stocks, market orders can fill at a surprising price.",
+   "how": "Use limit orders for small companies and in the first minutes of trading.",
+   "formula": "",
+   "id": "market-order-and-limit-order",
+   "letter": "M",
+   "finlit": "",
+   "aliases": [
+    "Market order",
+    "limit order"
+   ]
+  },
+  {
+   "term": "Maturity date",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The date when a bond, deposit or loan's principal is repaid.",
+   "why": "It tells you when your money comes back.",
+   "how": "Match maturities to when you will need the money.",
+   "formula": "",
+   "id": "maturity-date",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Median",
+   "topic": "Valuation",
+   "meaning": "The middle value when numbers are lined up in order; half are above it and half below.",
+   "why": "It is less distorted by extreme values than the average.",
+   "how": "FinLit compares ratios with their 5-year or 8-year median, and companies with the sector median.",
+   "formula": "",
+   "id": "median",
+   "letter": "M",
+   "finlit": "",
+   "aliases": [
+    "Median P/E (5Y)",
+    "pe median 5y"
+   ]
+  },
+  {
+   "term": "Minimum investment",
+   "topic": "IPOs and new share issues",
+   "meaning": "The smallest amount needed to apply: one lot at the upper end of the price band.",
+   "why": "It tells you whether an IPO fits your budget.",
+   "how": "Applying for one lot usually gives retail investors the best chance in an oversubscribed IPO, since allotment is by lottery.",
+   "formula": "",
+   "id": "minimum-investment",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Momentum",
+   "topic": "Price and technicals",
+   "meaning": "The speed and strength of recent price moves.",
+   "why": "Stocks that have risen strongly sometimes keep rising for a while, and vice versa.",
+   "how": "Momentum fades eventually; combine it with fundamentals.",
+   "formula": "",
+   "id": "momentum",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Moving average (50-day, 200-day)",
+   "topic": "Price and technicals",
+   "meaning": "The average closing price over the last 50 or 200 trading days, redrawn each day. An EMA (exponential moving average) gives recent days more weight.",
+   "why": "It smooths daily noise to show the trend.",
+   "how": "Price above its 200-day average is often read as a long-term uptrend; below as a downtrend.",
+   "formula": "Simple moving average = Sum of last n closes ÷ n",
+   "id": "moving-average-50-day-200-day",
+   "letter": "M",
+   "finlit": "FinLit uses exponential moving averages (EMA) for its price-against-average figures.",
+   "aliases": [
+    "200-day",
+    "50-day",
+    "50-day, 200-day",
+    "Moving average",
+    "Price against 200-day average",
+    "Price against 50-day average",
+    "Price vs 200-day EMA",
+    "Price vs 50-day EMA",
+    "vs ema200",
+    "vs ema50",
+    "vsEma200Pct",
+    "vsEma50Pct"
+   ]
+  },
+  {
+   "term": "Mutual fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A fund that pools money from many investors and is managed by a professional fund manager, investing in shares, bonds or both.",
+   "why": "It offers diversification and professional management for small amounts.",
+   "how": "Compare funds on long-run returns against their benchmark, costs (expense ratio) and consistency.",
+   "formula": "",
+   "id": "mutual-fund",
+   "letter": "M",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "NBFC (non-banking financial company)",
+   "topic": "Banks and lenders",
+   "meaning": "A company that lends money or provides financial services but does not hold a full banking licence, such as Bajaj Finance.",
+   "why": "NBFCs cannot take ordinary savings deposits, so they depend more on borrowing.",
+   "how": "Judge NBFCs on asset quality, funding costs and capital, like banks.",
+   "formula": "",
+   "id": "nbfc-non-banking-financial-company",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "Bank or lender",
+    "NBFC",
+    "is bank",
+    "non-banking financial company"
+   ]
+  },
+  {
+   "term": "Net asset value (NAV)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The value of one unit of a mutual fund, calculated at the end of each business day.",
+   "why": "You buy and sell units at the NAV.",
+   "how": "A low NAV does not make a fund cheap; returns depend on growth, not on the starting NAV.",
+   "formula": "NAV = (Assets − Liabilities) ÷ Units outstanding",
+   "id": "net-asset-value-nav",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "NAV",
+    "Net asset value"
+   ]
+  },
+  {
+   "term": "Net debt",
+   "topic": "Financial health and debt",
+   "meaning": "Total debt minus cash and equivalents. A negative figure means net cash.",
+   "why": "It shows the real debt burden after using available cash.",
+   "how": "Net debt to EBITDA below about 2 is generally considered comfortable for most industries.",
+   "formula": "Net debt = Total debt − Cash and equivalents",
+   "id": "net-debt",
+   "letter": "N",
+   "finlit": "FinLit uses borrowings minus the cash and cash equivalents line; investments are not subtracted.",
+   "aliases": [
+    "Net debt to equity",
+    "net debt to equity"
+   ]
+  },
+  {
+   "term": "Net debt to EBITDA",
+   "topic": "Financial health and debt",
+   "meaning": "Net debt divided by yearly EBITDA: roughly how many years of operating profit it would take to repay the debt.",
+   "why": "Lenders and rating agencies watch it closely.",
+   "how": "Above 3 to 4 starts to look stretched for most businesses.",
+   "formula": "Net debt to EBITDA = Net debt ÷ EBITDA",
+   "id": "net-debt-to-ebitda",
+   "letter": "N",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Net income (net profit, PAT)",
+   "topic": "Company statements",
+   "meaning": "Profit left after every expense, interest and tax: the 'bottom line'. Often called PAT, profit after tax.",
+   "why": "It is the profit that belongs to shareholders and the base for EPS and P/E.",
+   "how": "Check whether net profit is backed by operating cash flow, and whether one-off items inflated it.",
+   "formula": "Net income = Revenue − All expenses (including interest, depreciation and tax)",
+   "id": "net-income-net-profit-pat",
+   "letter": "N",
+   "finlit": "FinLit uses profit attributable to the company's shareholders.",
+   "aliases": [
+    "Net income",
+    "Net profit",
+    "Net profit from continuing operations",
+    "PAT",
+    "net profit",
+    "net profit continuing",
+    "net profit, PAT",
+    "netProfit"
+   ]
+  },
+  {
+   "term": "Net interest income and NIM",
+   "topic": "Banks and lenders",
+   "meaning": "Net interest income is interest earned on loans minus interest paid on deposits and borrowings. Net interest margin (NIM) is that figure as a share of interest-earning assets.",
+   "why": "It is a lender's core earnings engine.",
+   "how": "Indian banks' NIMs are typically about 3–4%; a falling NIM squeezes profit.",
+   "formula": "NIM % = Net interest income ÷ Average interest-earning assets × 100",
+   "id": "net-interest-income-and-nim",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "NIM",
+    "Net interest income"
+   ]
+  },
+  {
+   "term": "Net margin (profit margin)",
+   "topic": "Profitability",
+   "meaning": "The share of revenue that ends up as net profit after every cost and tax.",
+   "why": "It shows how much of each ₹100 of sales the shareholders keep.",
+   "how": "A net margin of 7.5% means ₹7.50 of profit for every ₹100 of sales.",
+   "formula": "Net margin % = Net profit ÷ Revenue × 100",
+   "id": "net-margin-profit-margin",
+   "letter": "N",
+   "finlit": "The provider's margins are measured against total income (sales plus other income); the statements net margin used by the score and screener divides by sales.",
+   "aliases": [
+    "Latest quarter net margin",
+    "Net margin",
+    "Net margin (statements)",
+    "Net margin change, year on year",
+    "net margin",
+    "npm",
+    "npmChange",
+    "profit margin",
+    "q npm"
+   ]
+  },
+  {
+   "term": "Net present value (NPV)",
+   "topic": "Valuation",
+   "meaning": "Future cash flows converted into today's money, minus the upfront cost.",
+   "why": "A rupee next year is worth less than a rupee today; NPV accounts for that.",
+   "how": "A positive NPV means a project earns more than the required return.",
+   "formula": "NPV = Sum of CF in year t ÷ (1 + r)^t − Initial investment",
+   "id": "net-present-value-npv",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "NPV",
+    "Net present value"
+   ]
+  },
+  {
+   "term": "Net worth",
+   "topic": "Company statements",
+   "meaning": "What a person or company owns minus what it owes. For a company it is the same as shareholders' equity.",
+   "why": "A rising net worth means the owner is getting richer on paper.",
+   "how": "Track your own net worth once a year: it is a better progress measure than any single investment.",
+   "formula": "Net worth = Total assets − Total liabilities",
+   "id": "net-worth",
+   "letter": "N",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Nifty 50 and Sensex",
+   "topic": "Market basics",
+   "meaning": "India's two headline indices. The Nifty 50 tracks 50 large companies on the NSE; the Sensex tracks 30 large companies on BSE.",
+   "why": "When news says 'the market fell 1%', it usually means one of these.",
+   "how": "Use them as the benchmark for a portfolio of large companies; use midcap or smallcap indices for smaller ones.",
+   "formula": "",
+   "id": "nifty-50-and-sensex",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "Nifty 50",
+    "Sensex"
+   ]
+  },
+  {
+   "term": "NII (non-institutional investor) or HNI",
+   "topic": "IPOs and new share issues",
+   "meaning": "Individuals, companies and trusts applying for more than ₹2 lakh. Split into small NII (₹2 lakh to ₹10 lakh, one third of the portion) and big NII (above ₹10 lakh, two thirds).",
+   "why": "NII demand often reflects wealthy and leveraged investors chasing listing gains.",
+   "how": "NII allotment is also by lottery of minimum application size, so applying for more does not guarantee more shares.",
+   "formula": "",
+   "id": "nii-non-institutional-investor-or-hni",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "NII or HNI",
+    "non-institutional investor"
+   ]
+  },
+  {
+   "term": "Non-convertible debenture (NCD)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A bond issued by an Indian company that cannot be converted into shares. Reliance, for example, allotted NCDs of ₹1 lakh face value each in October 2026.",
+   "why": "Companies use NCDs to borrow from investors instead of banks.",
+   "how": "Higher interest usually means higher risk; read the credit rating.",
+   "formula": "",
+   "id": "non-convertible-debenture-ncd",
+   "letter": "N",
+   "finlit": "",
+   "aliases": [
+    "NCD",
+    "Non-convertible debenture"
+   ]
+  },
+  {
+   "term": "Offer for sale (OFS)",
+   "topic": "IPOs and new share issues",
+   "meaning": "Existing shareholders, such as promoters or private-equity funds, selling their shares in an IPO. The money goes to them, not the company. Listed companies' promoters can also sell through a special 'OFS window' on the exchanges.",
+   "why": "A large OFS means early investors are cashing out.",
+   "how": "An IPO that is mostly OFS raises no new money for the business.",
+   "formula": "",
+   "id": "offer-for-sale-ofs",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "OFS",
+    "Offer for sale"
+   ]
+  },
+  {
+   "term": "Operating cash flow (CFO)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Cash generated by the main business in a period, after paying suppliers, staff and taxes.",
+   "why": "It is the clearest sign that a business really earns money.",
+   "how": "Operating cash flow consistently below net profit needs explaining.",
+   "formula": "",
+   "id": "operating-cash-flow-cfo",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "CFO",
+    "Cash from operations",
+    "Operating cash flow",
+    "cfo",
+    "operating"
+   ]
+  },
+  {
+   "term": "Operating margin (OPM)",
+   "topic": "Profitability",
+   "meaning": "The share of revenue left after operating costs, before interest and tax.",
+   "why": "It shows how efficiently the core business runs.",
+   "how": "A margin rising steadily over several years usually means growing efficiency or pricing power.",
+   "formula": "Operating margin % = Operating profit ÷ Revenue × 100",
+   "id": "operating-margin-opm",
+   "letter": "O",
+   "finlit": "FinLit has two operating margins: the provider's (operating profit − depreciation + other income, over total income) and the statements one (operating profit ÷ sales), which the score and screener use.",
+   "aliases": [
+    "Latest quarter operating margin",
+    "OPM",
+    "Operating margin",
+    "Operating margin (statements)",
+    "Operating margin change (1 year)",
+    "Operating margin, 3-year average",
+    "operating margin",
+    "opm",
+    "opm 3y",
+    "opm change",
+    "q opm"
+   ]
+  },
+  {
+   "term": "Operating profit",
+   "topic": "Company statements",
+   "meaning": "Profit from the core business: revenue minus operating costs, before interest, depreciation, tax and other income. FinLit's P&L shows it this way, which is close to EBITDA.",
+   "why": "It shows how much the business itself earns, separate from how it is financed.",
+   "how": "Compare operating profit growth with revenue growth to see whether the business is becoming more or less efficient.",
+   "formula": "",
+   "id": "operating-profit",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "Latest quarter operating profit",
+    "Operating profit (annual)",
+    "Operating profit growth (annual)",
+    "op profit",
+    "op profit growth",
+    "operatingProfit",
+    "q operating profit"
+   ]
+  },
+  {
+   "term": "Opportunity cost",
+   "topic": "Economy and business",
+   "meaning": "The value of the best alternative you give up when you choose something.",
+   "why": "Holding cash or a weak stock has a cost: the return you could have earned elsewhere.",
+   "how": "Compare every investment with a simple alternative, such as an index fund.",
+   "formula": "Opportunity cost = Return on best option given up − Return on chosen option",
+   "id": "opportunity-cost",
+   "letter": "O",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Option (call and put)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A contract giving the right, but not the obligation, to buy (call) or sell (put) an asset at a fixed price before expiry.",
+   "why": "Buyers risk only the price paid; sellers can lose far more.",
+   "how": "Options lose value as expiry approaches if the price does not move enough.",
+   "formula": "",
+   "id": "option-call-and-put",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "Option",
+    "call and put"
+   ]
+  },
+  {
+   "term": "Other income",
+   "topic": "Company statements",
+   "meaning": "Income that does not come from the main business, such as interest on cash, dividends from investments or gains from selling assets.",
+   "why": "A big jump in other income can make profit look better than the business really is.",
+   "how": "If other income is a large share of profit before tax, find out whether it will repeat.",
+   "formula": "",
+   "id": "other-income",
+   "letter": "O",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Overbought and oversold",
+   "topic": "Price and technicals",
+   "meaning": "Overbought means the price has risen fast and may pause or pull back; oversold means it has fallen fast and may bounce.",
+   "why": "They describe short-term mood, not business value.",
+   "how": "Oversold alone is not a reason to expect a rebound; ask why the stock fell.",
+   "formula": "",
+   "id": "overbought-and-oversold",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "Overbought",
+    "oversold"
+   ]
+  },
+  {
+   "term": "Overdraft",
+   "topic": "Loans, tax and planning",
+   "meaning": "A facility that lets you withdraw more than your account balance, up to a limit, paying interest on what you use.",
+   "why": "It is flexible short-term credit but usually expensive.",
+   "how": "Use it for brief gaps, not as long-term borrowing.",
+   "formula": "",
+   "id": "overdraft",
+   "letter": "O",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Oversubscription and undersubscription",
+   "topic": "IPOs and new share issues",
+   "meaning": "Oversubscription means bids exceed the shares offered; undersubscription means they fall short.",
+   "why": "An undersubscribed IPO can fail if it does not reach the minimum required.",
+   "how": "Weak demand from institutions is a warning sign worth noticing.",
+   "formula": "",
+   "id": "oversubscription-and-undersubscription",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "Oversubscription",
+    "undersubscription"
+   ]
+  },
+  {
+   "term": "Payable days",
+   "topic": "Efficiency and cash flow",
+   "meaning": "How many days, on average, the company takes to pay its suppliers.",
+   "why": "Paying later keeps cash in the business longer.",
+   "how": "Very long payable days can mean the company is short of cash.",
+   "formula": "Payable days = Payables ÷ Cost of goods sold × 365",
+   "id": "payable-days",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Peers",
+   "topic": "FinLit words",
+   "meaning": "Companies in the same industry used for comparison.",
+   "why": "Ratios are only meaningful against similar businesses.",
+   "how": "For companies with several businesses, pick peers for each major segment.",
+   "formula": "",
+   "id": "peers",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "PEG ratio",
+   "topic": "Valuation",
+   "meaning": "The P/E ratio divided by the expected or recent EPS growth rate.",
+   "why": "It adjusts P/E for growth: a high P/E may be fair for a fast grower.",
+   "how": "As a rough guide, a PEG near 1 is often called fairly priced; it is only as good as the growth figure used.",
+   "formula": "PEG = P/E ÷ EPS growth rate (%)",
+   "id": "peg-ratio",
+   "letter": "P",
+   "finlit": "FinLit divides P/E by the 5-year growth in net profit, not EPS growth.",
+   "aliases": [
+    "peg"
+   ]
+  },
+  {
+   "term": "Per-share figures",
+   "topic": "Valuation",
+   "meaning": "Company totals divided by the number of shares: sales per share, cash per share, net cash per share, free cash flow per share.",
+   "why": "They let you compare a company's numbers directly with its share price.",
+   "how": "Net cash per share above zero means the company has more cash than debt.",
+   "formula": "",
+   "id": "per-share-figures",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Cash per share",
+    "FCF per share",
+    "Net cash per share",
+    "Sales per share",
+    "cash ps",
+    "fcf ps",
+    "net cash ps",
+    "sales ps"
+   ]
+  },
+  {
+   "term": "Pillars (Quality, Growth, Profitability, Balance sheet, Technical)",
+   "topic": "FinLit words",
+   "meaning": "The five areas FinLit scores. Quality covers returns on capital and how well profit turns into cash; Growth covers sales and profit growth; Profitability covers margins and how hard assets work; Balance sheet covers how much of the assets are funded by liabilities and whether profit is backed by cash; Technical covers the price trend.",
+   "why": "A stock can be strong in some pillars and weak in others; the pillars show where.",
+   "how": "Read the pillars before the overall score: a 60 made of 80s and 40s is very different from steady 60s.",
+   "formula": "",
+   "id": "pillars-quality-growth-profitability-balance-sheet-technical",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Balance sheet",
+    "Balance sheet pillar",
+    "Growth",
+    "Growth pillar",
+    "Pillars",
+    "Profitability",
+    "Profitability pillar",
+    "Quality",
+    "Quality pillar",
+    "Quality, Growth, Profitability, Balance sheet, Technical",
+    "Technical",
+    "Technical pillar",
+    "pillar balance",
+    "pillar growth",
+    "pillar profitability",
+    "pillar quality",
+    "pillar technical"
+   ]
+  },
+  {
+   "term": "Portfolio",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "All the investments a person or institution holds.",
+   "why": "Judging the whole portfolio matters more than any single holding.",
+   "how": "Track portfolio-level return, sector mix and score, as FinLit's portfolio page does.",
+   "formula": "",
+   "id": "portfolio",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Pre-IPO placement",
+   "topic": "IPOs and new share issues",
+   "meaning": "Shares sold privately to selected investors shortly before the IPO, at a negotiated price.",
+   "why": "The price shows how insiders value the company just before the offer.",
+   "how": "A pre-IPO price well below the IPO price raises the question of why the public pays more.",
+   "formula": "",
+   "id": "pre-ipo-placement",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Pre-tax margin",
+   "topic": "Profitability",
+   "meaning": "Profit before tax as a share of revenue.",
+   "why": "It includes interest and other income, so it shows the full picture before tax.",
+   "how": "If pre-tax margin rises while operating margin falls, other income or lower interest is doing the work.",
+   "formula": "Pre-tax margin % = Profit before tax ÷ Revenue × 100",
+   "id": "pre-tax-margin",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "pretax margin"
+   ]
+  },
+  {
+   "term": "Price band (floor price and cap price)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The range within which investors may bid in a book-built IPO, such as ₹1,065 to ₹1,119. The lower end is the floor, the upper end the cap.",
+   "why": "SEBI caps the band so the top is at most 20% above the bottom.",
+   "how": "Most IPOs end up priced at the cap; plan your application at the upper end.",
+   "formula": "",
+   "id": "price-band-floor-price-and-cap-price",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Price band",
+    "floor price and cap price"
+   ]
+  },
+  {
+   "term": "Price to cash flow and price to free cash flow",
+   "topic": "Valuation",
+   "meaning": "Market cap divided by yearly operating cash flow (P/CFO) or by free cash flow (P/FCF).",
+   "why": "Cash is harder to dress up than profit, so these ratios can be more reliable than P/E.",
+   "how": "If P/FCF is far higher than P/E, profits are not turning into spare cash.",
+   "formula": "P/FCF = Market cap ÷ Free cash flow",
+   "id": "price-to-cash-flow-and-price-to-free-cash-flow",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "P/FCF",
+    "Price / CFO",
+    "Price to cash flow",
+    "pfcf",
+    "price cfo",
+    "price to free cash flow"
+   ]
+  },
+  {
+   "term": "Price-to-book ratio (P/B)",
+   "topic": "Valuation",
+   "meaning": "The share price divided by book value per share: what you pay for each rupee of net assets.",
+   "why": "Most useful for banks, insurers and asset-heavy companies, whose assets are close to their real value.",
+   "how": "A P/B below 1 means the market values the company below its book value; find out why before calling it cheap.",
+   "formula": "P/B = Share price ÷ Book value per share",
+   "id": "price-to-book-ratio-p-b",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Market cap to total assets",
+    "P/B",
+    "P/B, 3Y average",
+    "P/B, 5Y average",
+    "P/B, 7Y average",
+    "Price-to-book ratio",
+    "pb",
+    "pb avg 3y",
+    "pb avg 5y",
+    "pb avg 7y",
+    "price to tangible"
+   ]
+  },
+  {
+   "term": "Price-to-earnings ratio (P/E)",
+   "topic": "Valuation",
+   "meaning": "The share price divided by EPS: how many rupees investors pay for each rupee of yearly profit.",
+   "why": "It is the quickest way to judge whether a stock is cheap or expensive relative to its profits.",
+   "how": "Compare P/E with the company's own history and its industry. A low P/E can mean cheap, or it can mean the market expects profits to fall.",
+   "formula": "P/E = Share price ÷ EPS",
+   "id": "price-to-earnings-ratio-p-e",
+   "letter": "P",
+   "finlit": "FinLit recalculates the provider's P/E at the latest price and leaves it blank when profit is not positive.",
+   "aliases": [
+    "P/E",
+    "P/E, 3Y average",
+    "P/E, 5Y average",
+    "P/E, 7Y average",
+    "Price-to-earnings ratio",
+    "pe",
+    "pe avg 3y",
+    "pe avg 5y",
+    "pe avg 7y"
+   ]
+  },
+  {
+   "term": "Price-to-sales ratio (P/S)",
+   "topic": "Valuation",
+   "meaning": "Market cap divided by yearly revenue.",
+   "why": "Useful for young or loss-making companies that have no profit to put in a P/E.",
+   "how": "Compare only within an industry; high-margin businesses naturally trade at higher P/S.",
+   "formula": "P/S = Market cap ÷ Revenue",
+   "id": "price-to-sales-ratio-p-s",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "P/S",
+    "P/S, 3Y average",
+    "P/S, 5Y average",
+    "P/S, 7Y average",
+    "Price-to-sales ratio",
+    "ps",
+    "ps avg 3y",
+    "ps avg 5y",
+    "ps avg 7y"
+   ]
+  },
+  {
+   "term": "Primary market and secondary market",
+   "topic": "IPOs and new share issues",
+   "meaning": "The primary market is where new shares are first sold, as in an IPO. The secondary market is the stock exchange, where investors trade existing shares with each other.",
+   "why": "In the primary market your money goes to the company or selling shareholders; in the secondary market it goes to another investor.",
+   "how": "After listing, an IPO share trades like any other in the secondary market.",
+   "formula": "",
+   "id": "primary-market-and-secondary-market",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Primary market",
+    "secondary market"
+   ]
+  },
+  {
+   "term": "Principal",
+   "topic": "Loans, tax and planning",
+   "meaning": "The original amount borrowed or invested, not counting interest or returns.",
+   "why": "Interest is calculated on the principal (and, with compounding, on past interest).",
+   "how": "Prepaying part of a loan reduces the principal and the interest that follows.",
+   "formula": "Simple interest = P × R × T ÷ 100",
+   "id": "principal",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Profit and loss statement (P&L)",
+   "topic": "Company statements",
+   "meaning": "The report of a company's income and costs over a period, ending in its profit. Also called the income statement.",
+   "why": "It answers 'did the business make money this year or quarter, and how?'",
+   "how": "Read it top to bottom: revenue, minus costs, gives operating profit; then interest, depreciation and tax lead to net profit.",
+   "formula": "",
+   "id": "profit-and-loss-statement-p-l",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "P&L",
+    "Profit",
+    "Profit and loss statement",
+    "loss statement"
+   ]
+  },
+  {
+   "term": "Profit before tax (PBT)",
+   "topic": "Company statements",
+   "meaning": "Profit after all expenses, interest and depreciation, but before income tax.",
+   "why": "It allows comparisons between companies that pay different tax rates.",
+   "how": "Divide PBT by revenue to get the pre-tax margin.",
+   "formula": "",
+   "id": "profit-before-tax-pbt",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "PBT",
+    "Profit before tax",
+    "profit before tax"
+   ]
+  },
+  {
+   "term": "Promoter",
+   "topic": "Ownership",
+   "meaning": "The founders, family or parent company that control a listed company.",
+   "why": "Promoters usually decide strategy, so their track record and conduct matter.",
+   "how": "High, stable promoter holding generally means the owners stay committed; steady selling deserves questions.",
+   "formula": "",
+   "id": "promoter",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Promoter holding and promoter pledge",
+   "topic": "Ownership",
+   "meaning": "Promoter holding is the share of the company the promoter group owns. A pledge is when promoters use their shares as security for a loan.",
+   "why": "If the share price falls, lenders can sell pledged shares, pushing the price down further.",
+   "how": "A rising pledged share is a classic warning sign.",
+   "formula": "",
+   "id": "promoter-holding-and-promoter-pledge",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Promoter holding",
+    "own promoters",
+    "promoter pledge"
+   ]
+  },
+  {
+   "term": "Prospectus (offer document)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The final offer document, filed after the price is fixed, with the issue price and final size.",
+   "why": "It is the legal record of what was offered.",
+   "how": "Keep it for reference after listing; it lists lock-ins and promised uses of money.",
+   "formula": "",
+   "id": "prospectus-offer-document",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Prospectus",
+    "offer document"
+   ]
+  },
+  {
+   "term": "Provision coverage ratio",
+   "topic": "Banks and lenders",
+   "meaning": "The share of bad loans a bank has already set money aside for.",
+   "why": "Higher coverage means less risk of future hits to profit.",
+   "how": "Above about 70% is generally considered comfortable.",
+   "formula": "",
+   "id": "provision-coverage-ratio",
+   "letter": "P",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "QIB (qualified institutional buyer)",
+   "topic": "IPOs and new share issues",
+   "meaning": "Large professional investors such as mutual funds, banks, insurance companies, pension funds and registered foreign portfolio investors.",
+   "why": "Their demand is watched as a sign of professional confidence.",
+   "how": "Strong QIB subscription is not a guarantee: institutions also misjudge prices.",
+   "formula": "",
+   "id": "qib-qualified-institutional-buyer",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "QIB",
+    "qualified institutional buyer"
+   ]
+  },
+  {
+   "term": "QIP (qualified institutions placement)",
+   "topic": "IPOs and new share issues",
+   "meaning": "A quick way for a listed company to raise money by selling new shares only to qualified institutional buyers.",
+   "why": "It raises capital faster than a public offer.",
+   "how": "A QIP at a discount to the market price can weigh on the share price briefly.",
+   "formula": "",
+   "id": "qip-qualified-institutions-placement",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "QIP",
+    "qualified institutions placement"
+   ]
+  },
+  {
+   "term": "Quantitative easing (QE)",
+   "topic": "Economy and business",
+   "meaning": "A central bank buying large amounts of government bonds or other securities to push money into the economy and lower long-term interest rates.",
+   "why": "QE by large central banks affects global money flows, including into Indian markets.",
+   "how": "Watch for it in global news; foreign investor flows often follow.",
+   "formula": "",
+   "id": "quantitative-easing-qe",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "QE",
+    "Quantitative easing"
+   ]
+  },
+  {
+   "term": "Quarterly results",
+   "topic": "Company statements",
+   "meaning": "Financial results listed companies publish every three months, within 45 days of the quarter's end (60 days for the full year).",
+   "why": "They are the most frequent official update on how a business is doing.",
+   "how": "Compare a quarter with the same quarter a year earlier, because many businesses are seasonal.",
+   "formula": "",
+   "id": "quarterly-results",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "Latest quarter profit",
+    "Latest quarter sales",
+    "q net profit",
+    "q revenue"
+   ]
+  },
+  {
+   "term": "Quarter-on-quarter (QoQ) growth",
+   "topic": "Growth",
+   "meaning": "The change in a figure compared with the immediately preceding quarter.",
+   "why": "It shows the latest direction, but it is affected by seasons.",
+   "how": "A strong QoQ jump in a seasonal business may just be the festive quarter.",
+   "formula": "",
+   "id": "quarter-on-quarter-qoq-growth",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "Operating profit growth, quarter on quarter",
+    "Profit growth vs previous quarter",
+    "Profit growth, quarter on quarter",
+    "QoQ",
+    "Quarter-on-quarter growth",
+    "Sales growth vs previous quarter",
+    "Sales growth, quarter on quarter",
+    "opQoQ",
+    "profitQoQ",
+    "q profit qoq",
+    "q sales qoq",
+    "revenueQoQ"
+   ]
+  },
+  {
+   "term": "Quick ratio (acid test)",
+   "topic": "Financial health and debt",
+   "meaning": "Like the current ratio but leaving out inventory, which may be slow to sell.",
+   "why": "It is a stricter test of whether bills can be paid quickly.",
+   "how": "A quick ratio near or above 1 means short-term bills are covered without selling stock.",
+   "formula": "Quick ratio = (Current assets − Inventory) ÷ Current liabilities",
+   "id": "quick-ratio-acid-test",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "Quick ratio",
+    "acid test",
+    "quick ratio"
+   ]
+  },
+  {
+   "term": "Rebalancing",
+   "topic": "Returns and risk",
+   "meaning": "Bringing a portfolio back to its target mix by trimming what has grown and adding to what has shrunk.",
+   "why": "It controls risk by trimming what has risen and adding to what has fallen.",
+   "how": "Rebalance on a schedule (yearly) or when a weight drifts by more than about 5 percentage points.",
+   "formula": "",
+   "id": "rebalancing",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Record date",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The date on which you must be on the company's list of shareholders to receive a dividend, bonus or split.",
+   "why": "Because of T+1 settlement, you must buy at least one working day before the record date.",
+   "how": "Look for the ex-date, which is now usually the same as the record date; buying on or after it means no dividend.",
+   "formula": "",
+   "id": "record-date",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Red flags",
+   "topic": "FinLit words",
+   "meaning": "FinLit screener filters for warning signs: loss-making, negative operating cash flow, profit not backed by cash, high debt, weak interest cover, profit falling sharply, promoters selling and a price far below its long-term trend.",
+   "why": "Avoiding obvious problems prevents many investing mistakes.",
+   "how": "Use the red-flag filters as a first check on any stock you are researching.",
+   "formula": "",
+   "id": "red-flags",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Far below long-term trend",
+    "High debt",
+    "Loss-making",
+    "Negative operating cash flow",
+    "Number of red flags",
+    "Profit fell sharply",
+    "Profit not backed by cash",
+    "Promoters selling",
+    "Weak interest cover",
+    "flag below trend",
+    "flag cash gap",
+    "flag cfo negative",
+    "flag count",
+    "flag high debt",
+    "flag loss",
+    "flag profit fall",
+    "flag promoter selling",
+    "flag weak cover"
+   ]
+  },
+  {
+   "term": "Refund (unblocking)",
+   "topic": "IPOs and new share issues",
+   "meaning": "Release of blocked money for shares not allotted.",
+   "why": "With ASBA, nothing is debited, so the block is simply lifted.",
+   "how": "If funds are still blocked after T+2, contact your bank and the registrar.",
+   "formula": "",
+   "id": "refund-unblocking",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Refund",
+    "unblocking"
+   ]
+  },
+  {
+   "term": "Registrar",
+   "topic": "IPOs and new share issues",
+   "meaning": "The firm that processes IPO applications, decides allotment under SEBI rules and handles refunds.",
+   "why": "It is where you check allotment status and raise complaints.",
+   "how": "The RHP names the registrar.",
+   "formula": "",
+   "id": "registrar",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Regulation 30 disclosure",
+   "topic": "Company statements",
+   "meaning": "A disclosure made under Regulation 30 of SEBI's listing rules (LODR), which requires companies to report material events promptly.",
+   "why": "It covers events that could move the share price: big orders, acquisitions, defaults, litigation, management exits.",
+   "how": "The headline is often generic; open the attached document to see what the event actually is.",
+   "formula": "",
+   "id": "regulation-30-disclosure",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Relative valuation (versus history and sector)",
+   "topic": "Valuation",
+   "meaning": "Comparing a company's valuation ratio with its own past (for example its 5-year median P/E) or with the median of its sector.",
+   "why": "A ratio means little alone; context shows whether it is high or low.",
+   "how": "Trading below its own 5-year median P/E can mean the shares are priced lower than usual, or that growth has slowed. Check why.",
+   "formula": "",
+   "id": "relative-valuation-versus-history-and-sector",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "P/B vs own 5Y median",
+    "P/B vs sector median",
+    "P/E vs own 5Y median",
+    "P/E vs sector median",
+    "Relative valuation",
+    "pb vs median 5y",
+    "pb vs sector",
+    "pe vs median 5y",
+    "pe vs sector",
+    "versus history and sector"
+   ]
+  },
+  {
+   "term": "Repo rate",
+   "topic": "Economy and business",
+   "meaning": "The interest rate at which the Reserve Bank of India lends short-term money to banks. It is the RBI's main policy rate.",
+   "why": "Changes ripple into loan rates, deposit rates, bond prices and share valuations.",
+   "how": "Rate cuts usually help banks' borrowers, real estate and rate-sensitive stocks; hikes do the opposite.",
+   "formula": "",
+   "id": "repo-rate",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Retail and public shareholders",
+   "topic": "Ownership",
+   "meaning": "Individuals and other non-institutional holders, grouped as 'public' in the shareholding pattern.",
+   "why": "A rising retail share with falling institutional holding can mean professionals are selling to individuals.",
+   "how": "Compare the retail trend with institutional trends.",
+   "formula": "",
+   "id": "retail-and-public-shareholders",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Public holding",
+    "Retail",
+    "own public",
+    "public shareholders"
+   ]
+  },
+  {
+   "term": "Retained earnings",
+   "topic": "Company statements",
+   "meaning": "Profit a company has kept over the years instead of paying it out as dividends.",
+   "why": "Kept profit funds growth without new borrowing or new shares.",
+   "how": "Retained profit is only useful if the company earns a good return on it; check ROE alongside.",
+   "formula": "Retained earnings = Opening balance + Net income − Dividends",
+   "id": "retained-earnings",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Reserves",
+    "reserves"
+   ]
+  },
+  {
+   "term": "Retention ratio (profit retained)",
+   "topic": "Dividends and corporate actions",
+   "meaning": "The share of profit kept in the business rather than paid out.",
+   "why": "Retained profit funds future growth.",
+   "how": "Retention only helps owners if the company earns a good return (ROE) on what it keeps.",
+   "formula": "Retention ratio % = 100 − Payout ratio %",
+   "id": "retention-ratio-profit-retained",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Retention ratio",
+    "profit retained",
+    "retention ratio"
+   ]
+  },
+  {
+   "term": "Return on Assets (ROA)",
+   "topic": "Profitability",
+   "meaning": "Net profit earned for every ₹100 of assets the company owns.",
+   "why": "It is especially useful for banks and other lenders, whose assets are mostly loans.",
+   "how": "For banks, an ROA above about 1% is generally considered good.",
+   "formula": "ROA % = Net profit ÷ Total assets × 100",
+   "id": "return-on-assets-roa",
+   "letter": "R",
+   "finlit": "FinLit divides net profit by total assets at the year end.",
+   "aliases": [
+    "ROA",
+    "Return on Assets",
+    "roa"
+   ]
+  },
+  {
+   "term": "Return on Capital Employed (ROCE)",
+   "topic": "Profitability",
+   "meaning": "Operating profit (EBIT) earned for every ₹100 of total capital used in the business, from both shareholders and lenders.",
+   "why": "Unlike ROE, it cannot be boosted by borrowing, so it is a fairer test of the business itself.",
+   "how": "A ROCE consistently above the cost of borrowing (roughly 10–12% in India) suggests the business creates value.",
+   "formula": "ROCE % = EBIT ÷ (Shareholders' equity + Debt) × 100",
+   "id": "return-on-capital-employed-roce",
+   "letter": "R",
+   "finlit": "FinLit shows the provider's return on capital. Where none is sent, FinLit uses EBIT ÷ (total assets − current liabilities), not equity plus debt as above.",
+   "aliases": [
+    "ROCE",
+    "ROCE, 3-year average",
+    "Return on Capital Employed",
+    "roce",
+    "roce 3y"
+   ]
+  },
+  {
+   "term": "Return on Equity (ROE)",
+   "topic": "Profitability",
+   "meaning": "How much profit a company makes for every ₹100 its shareholders have put in and left in the business.",
+   "why": "It shows whether owners' money is being used well; a business that earns more on each rupee can grow without asking for more.",
+   "how": "Compare with peers and the company's own past. Check debt too: borrowing can push ROE up.",
+   "formula": "ROE % = Net profit ÷ Average shareholders' equity × 100",
+   "id": "return-on-equity-roe",
+   "letter": "R",
+   "finlit": "FinLit shows the data provider's ROE: net profit ÷ shareholders' equity at the year end, not the average of two years.",
+   "aliases": [
+    "ROE",
+    "ROE, 3-year average",
+    "Return on Equity",
+    "roe",
+    "roe 3y"
+   ]
+  },
+  {
+   "term": "Return on Investment (ROI)",
+   "topic": "Profitability",
+   "meaning": "The gain or loss on an investment as a share of what it cost.",
+   "why": "It is the simplest way to say how well any investment did.",
+   "how": "ROI ignores time: 20% over one year is far better than 20% over five. Use CAGR or XIRR to compare across periods.",
+   "formula": "ROI % = Net gain ÷ Cost of investment × 100",
+   "id": "return-on-investment-roi",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "ROI",
+    "Return on Investment"
+   ]
+  },
+  {
+   "term": "Return on tangible assets",
+   "topic": "Profitability",
+   "meaning": "Net profit as a share of physical and financial assets, leaving out goodwill and other intangibles.",
+   "why": "It removes the effect of past acquisitions, which inflate assets with goodwill.",
+   "how": "Use it alongside ROA when a company has bought many businesses.",
+   "formula": "Return on tangible assets % = Net profit ÷ (Total assets − Intangible assets) × 100",
+   "id": "return-on-tangible-assets",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "rota"
+   ]
+  },
+  {
+   "term": "Revenue (sales)",
+   "topic": "Company statements",
+   "meaning": "The money a company earns from selling its goods or services before any costs are taken out. Also called sales, turnover or the 'top line'.",
+   "why": "Growth in revenue is the starting point for growth in profit.",
+   "how": "Check whether growth comes from selling more or from charging more, and whether it lasts several years.",
+   "formula": "",
+   "id": "revenue-sales",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Revenue",
+    "Sales (revenue)",
+    "Total income",
+    "revenue",
+    "sales",
+    "total income"
+   ]
+  },
+  {
+   "term": "RHP (red herring prospectus)",
+   "topic": "IPOs and new share issues",
+   "meaning": "The updated offer document filed before the IPO opens, with almost everything except the final price and number of shares.",
+   "why": "It is the document you are expected to read before applying.",
+   "how": "Compare it with the DRHP to see what changed.",
+   "formula": "",
+   "id": "rhp-red-herring-prospectus",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "RHP",
+    "red herring prospectus"
+   ]
+  },
+  {
+   "term": "Rights issue",
+   "topic": "IPOs and new share issues",
+   "meaning": "An offer to existing shareholders to buy new shares, usually at a discount, in proportion to what they already hold.",
+   "why": "If you do not take up or sell your rights, your stake is diluted.",
+   "how": "Rights entitlements can be traded on the exchange for a few days.",
+   "formula": "",
+   "id": "rights-issue",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "RII (retail individual investor)",
+   "topic": "IPOs and new share issues",
+   "meaning": "An individual applying for up to ₹2 lakh in an IPO.",
+   "why": "Retail investors get a large reserved portion and can bid at the cut-off price.",
+   "how": "When the retail portion is oversubscribed, a lottery decides who gets the minimum lot.",
+   "formula": "",
+   "id": "rii-retail-individual-investor",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "RII",
+    "retail individual investor"
+   ]
+  },
+  {
+   "term": "Risk profile",
+   "topic": "Loans, tax and planning",
+   "meaning": "How much risk you can and are willing to take, based on your age, income, goals, time horizon and temperament.",
+   "why": "It decides a sensible asset allocation for you.",
+   "how": "Revisit it when your life changes: marriage, children, a new job, nearing retirement.",
+   "formula": "",
+   "id": "risk-profile",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Risk-free rate",
+   "topic": "Returns and risk",
+   "meaning": "The return on an investment considered to carry almost no risk, usually the yield on Indian government Treasury bills or bonds.",
+   "why": "It is the minimum any risky investment should beat.",
+   "how": "Use the current 91-day T-bill or 10-year government bond yield as a reference.",
+   "formula": "",
+   "id": "risk-free-rate",
+   "letter": "R",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "RSI (Relative Strength Index)",
+   "topic": "Price and technicals",
+   "meaning": "A 0–100 gauge of how strongly a stock has risen versus fallen over the last 14 days.",
+   "why": "It flags when moves look stretched.",
+   "how": "Above 70 is usually called overbought, below 30 oversold. Strong trends can stay overbought or oversold for weeks.",
+   "formula": "",
+   "id": "rsi-relative-strength-index",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "RSI",
+    "RSI (14)",
+    "Relative Strength Index",
+    "rsi14"
+   ]
+  },
+  {
+   "term": "Sales and profit per employee",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Revenue or net profit divided by the number of employees.",
+   "why": "A simple productivity measure.",
+   "how": "Useful within an industry, such as comparing IT services firms; meaningless across very different industries.",
+   "formula": "",
+   "id": "sales-and-profit-per-employee",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Employees",
+    "Profit per employee",
+    "Sales",
+    "Sales per employee",
+    "employees",
+    "profit per employee",
+    "sales per employee"
+   ]
+  },
+  {
+   "term": "Sales growth and profit growth",
+   "topic": "Growth",
+   "meaning": "How fast revenue and net profit have grown, usually shown for the last year and as 3-year and 5-year CAGRs.",
+   "why": "Profit growing faster than sales means margins are widening; slower means they are shrinking.",
+   "how": "Check both 3-year and 5-year rates. If they differ a lot, one of the start years was unusual.",
+   "formula": "",
+   "id": "sales-growth-and-profit-growth",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Gap between sales and profit growth",
+    "Profit growth (latest year)",
+    "Sales growth",
+    "Sales growth (latest year)",
+    "gap",
+    "profit growth",
+    "profit growth latest",
+    "sales growth",
+    "sales growth latest"
+   ]
+  },
+  {
+   "term": "Score bands (Strong, Healthy, Mixed, Watch)",
+   "topic": "FinLit words",
+   "meaning": "FinLit's labels for score ranges: Strong 78 and above, Healthy 62 to 77, Mixed 45 to 61, Watch below 45.",
+   "why": "Bands make scores easier to read at a glance.",
+   "how": "A move from one band to another is a reason to look again, not an instruction.",
+   "formula": "",
+   "id": "score-bands-strong-healthy-mixed-watch",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Healthy",
+    "Mixed",
+    "Score bands",
+    "Strong",
+    "Strong, Healthy, Mixed, Watch",
+    "Watch"
+   ]
+  },
+  {
+   "term": "Screener and filters",
+   "topic": "FinLit words",
+   "meaning": "A tool that lists every company matching rules you set, such as 'P/E below 20 and ROE above 15%'.",
+   "why": "It narrows thousands of companies to a short list in seconds.",
+   "how": "Start with a few rules about quality, then add valuation; too many rules leave nothing.",
+   "formula": "",
+   "id": "screener-and-filters",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Screener",
+    "filters"
+   ]
+  },
+  {
+   "term": "SEBI",
+   "topic": "Market basics",
+   "meaning": "The Securities and Exchange Board of India: the government body that regulates stock markets, brokers, mutual funds, research analysts and investment advisers.",
+   "why": "SEBI's rules decide how IPOs work, what companies must disclose and who may give paid investment advice.",
+   "how": "Before paying anyone for stock tips or advice, check whether they are SEBI-registered.",
+   "formula": "",
+   "id": "sebi",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Sector and industry",
+   "topic": "Market basics",
+   "meaning": "A sector is a broad part of the economy, such as Financial Services or Energy. An industry is a narrower group inside it, such as Private Sector Bank or Refineries & Marketing.",
+   "why": "Companies in the same industry face similar demand, costs and rules, so their numbers can be compared fairly.",
+   "how": "Judge a ratio against the company's industry, not the whole market: a bank's debt looks nothing like a software firm's.",
+   "formula": "",
+   "id": "sector-and-industry",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Sector",
+    "industry"
+   ]
+  },
+  {
+   "term": "Securities",
+   "topic": "Market basics",
+   "meaning": "The umbrella word for financial instruments that can be bought and sold: shares, bonds, mutual fund units and derivatives.",
+   "why": "Rules made by SEBI, the market regulator, apply to all securities, which protects buyers.",
+   "how": "When a document mentions 'securities', it means any of these tradable instruments, not only shares.",
+   "formula": "",
+   "id": "securities",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Segment reporting",
+   "topic": "Company statements",
+   "meaning": "The breakdown of revenue and profit by business line or region, such as Oil-to-Chemicals, Retail and Digital for Reliance.",
+   "why": "It shows which parts of a company are growing and which drag it down.",
+   "how": "A company is often valued as the sum of its segments; check which ones drive profit, not just revenue.",
+   "formula": "",
+   "id": "segment-reporting",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Settlement (T+1)",
+   "topic": "Market basics",
+   "meaning": "The process of handing over shares and money after a trade. In India most trades settle one working day after the trade date (T+1).",
+   "why": "Shares bought today reach your demat account the next working day.",
+   "how": "Dividend and bonus eligibility depends on settlement, which is why record dates and ex-dates differ (see Record date).",
+   "formula": "",
+   "id": "settlement-t-1",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Settlement",
+    "T+1"
+   ]
+  },
+  {
+   "term": "Shareholder reservation",
+   "topic": "IPOs and new share issues",
+   "meaning": "A portion reserved for shareholders of a listed parent or group company, usually up to 10% of the issue. Insurers sometimes reserve a policyholder portion in the same way.",
+   "why": "It gives existing investors of the group a better chance of allotment.",
+   "how": "Check the RHP for the eligibility cut-off date: you must hold the parent's shares by then.",
+   "formula": "",
+   "id": "shareholder-reservation",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Shareholding pattern",
+   "topic": "Ownership",
+   "meaning": "The quarterly breakdown of who owns a company's shares: promoters, foreign institutions, domestic institutions, government and the public.",
+   "why": "Changes show who is buying and who is selling.",
+   "how": "Look at the trend across several quarters, not one quarter's change.",
+   "formula": "",
+   "id": "shareholding-pattern",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "All institutions",
+    "Domestic institutions change (1 year)",
+    "Domestic institutions change (last quarter)",
+    "Foreign institutions change (1 year)",
+    "Foreign institutions change (last quarter)",
+    "Government holding",
+    "Institutions change (1 year)",
+    "Promoter holding change (1 year)",
+    "Promoter holding change (last quarter)",
+    "Public holding change (1 year)",
+    "own dii chg 1q",
+    "own dii chg 1y",
+    "own fii chg 1q",
+    "own fii chg 1y",
+    "own government",
+    "own inst chg 1y",
+    "own institutions",
+    "own promoters chg 1q",
+    "own promoters chg 1y",
+    "own public chg 1y"
+   ]
+  },
+  {
+   "term": "Sharpe ratio",
+   "topic": "Returns and risk",
+   "meaning": "Return earned above the risk-free rate for each unit of volatility.",
+   "why": "It compares how well different investments reward you for the risk taken.",
+   "how": "Higher is better; compare funds or portfolios over the same period.",
+   "formula": "Sharpe = (Return − Risk-free rate) ÷ Standard deviation",
+   "id": "sharpe-ratio",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Simple interest",
+   "topic": "Loans, tax and planning",
+   "meaning": "Interest calculated only on the original principal.",
+   "why": "It grows in a straight line, unlike compound interest.",
+   "how": "Most loans and deposits in India compound, so check which applies.",
+   "formula": "SI = P × R × T ÷ 100",
+   "id": "simple-interest",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "SIP (systematic investment plan)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Investing a fixed amount at regular intervals, usually monthly, in a mutual fund.",
+   "why": "It builds discipline and averages your buying price over time.",
+   "how": "Measure SIP returns with XIRR, not simple percentage gain.",
+   "formula": "",
+   "id": "sip-systematic-investment-plan",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "SIP",
+    "systematic investment plan"
+   ]
+  },
+  {
+   "term": "SME IPO",
+   "topic": "IPOs and new share issues",
+   "meaning": "An IPO by a small or medium company that lists on a separate platform, NSE Emerge or BSE SME.",
+   "why": "Rules are lighter and companies are smaller, so risk is higher and shares can be hard to sell.",
+   "how": "Minimum application amounts are much larger than on the mainboard; read the offer document carefully.",
+   "formula": "",
+   "id": "sme-ipo",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Solvency",
+   "topic": "Financial health and debt",
+   "meaning": "A company's ability to meet all its long-term obligations and keep operating.",
+   "why": "Solvency problems lead to defaults and, in India, to insolvency proceedings under the IBC.",
+   "how": "Judge it with debt ratios, interest coverage and cash flow together.",
+   "formula": "",
+   "id": "solvency",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Special pre-open session",
+   "topic": "IPOs and new share issues",
+   "meaning": "A price-discovery session on listing day, when orders are collected and a fair opening price is set before normal trading usually begins at 10 am.",
+   "why": "It reduces wild swings at the open.",
+   "how": "The opening price is the result of this session, not the issue price.",
+   "formula": "",
+   "id": "special-pre-open-session",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Stock exchange (NSE, BSE)",
+   "topic": "Market basics",
+   "meaning": "A regulated marketplace where buyers and sellers trade securities. India's two main exchanges are the National Stock Exchange (NSE) and BSE (formerly the Bombay Stock Exchange).",
+   "why": "The exchange matches orders, publishes prices and makes listed companies file results and news publicly.",
+   "how": "Most large companies trade on both. FinLit shows each company's NSE symbol and BSE code.",
+   "formula": "",
+   "id": "stock-exchange-nse-bse",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "BSE",
+    "NSE",
+    "NSE, BSE",
+    "Stock exchange"
+   ]
+  },
+  {
+   "term": "Stock (share)",
+   "topic": "Market basics",
+   "meaning": "A small piece of ownership in a company. Owning one share of a company with 100 crore shares means you own one part in 100 crore of it.",
+   "why": "Shareholders gain when the company's value rises and may receive part of its profit as dividends.",
+   "how": "Think of a share as a slice of a business, not a lottery ticket: its long-run value follows the company's profits.",
+   "formula": "",
+   "id": "stock-share",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Stock",
+    "share"
+   ]
+  },
+  {
+   "term": "Stock split",
+   "topic": "Dividends and corporate actions",
+   "meaning": "Dividing each share into smaller units, for example one ₹10 share into five ₹2 shares. The price per share falls in proportion.",
+   "why": "It makes shares cheaper to buy in small amounts; the value of your holding stays the same.",
+   "how": "Charts and per-share figures must be adjusted for splits to be compared over time.",
+   "formula": "",
+   "id": "stock-split",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Stock split in last 3 years",
+    "split 3y"
+   ]
+  },
+  {
+   "term": "Stop-loss order",
+   "topic": "Market basics",
+   "meaning": "An order that sells automatically if the price falls to a level you choose.",
+   "why": "It limits how much you can lose on a trade if you cannot watch the screen.",
+   "how": "Set it below normal day-to-day swings, or ordinary noise will trigger it.",
+   "formula": "",
+   "id": "stop-loss-order",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Strengths and watch-outs",
+   "topic": "FinLit words",
+   "meaning": "Plain-language findings FinLit draws from a company's numbers, such as 'profit backed by cash' or 'price below its long-term trend'.",
+   "why": "They point to what deserves a closer look.",
+   "how": "Check the period each finding covers before relying on it.",
+   "formula": "",
+   "id": "strengths-and-watch-outs",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Strengths",
+    "Strengths found",
+    "Watch-outs found",
+    "strengths count",
+    "watch-outs",
+    "watchouts count"
+   ]
+  },
+  {
+   "term": "Subscription (times subscribed)",
+   "topic": "IPOs and new share issues",
+   "meaning": "How much demand there was compared with shares on offer. '25 times subscribed' means bids for 25 times the shares available.",
+   "why": "It shows interest from each investor category.",
+   "how": "High subscription raises the chance of listing gains but lowers your chance of allotment.",
+   "formula": "",
+   "id": "subscription-times-subscribed",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Subscription",
+    "times subscribed"
+   ]
+  },
+  {
+   "term": "Subsidiary",
+   "topic": "Economy and business",
+   "meaning": "A company controlled by another (its parent), usually through owning more than half its shares.",
+   "why": "A parent's consolidated results include its subsidiaries.",
+   "how": "When a subsidiary lists through an IPO, the parent's shareholders may see value unlocked.",
+   "formula": "",
+   "id": "subsidiary",
+   "letter": "S",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Symbol (ticker) and BSE code",
+   "topic": "Market basics",
+   "meaning": "The short code a stock trades under, such as RELIANCE on the NSE, and the six-digit number BSE uses, such as 500325.",
+   "why": "Codes avoid confusion between companies with similar names.",
+   "how": "Search FinLit with either the name, the NSE symbol or the BSE code.",
+   "formula": "",
+   "id": "symbol-ticker-and-bse-code",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "BSE code",
+    "Symbol",
+    "Symbol and BSE code",
+    "ticker"
+   ]
+  },
+  {
+   "term": "T+3 listing timeline",
+   "topic": "IPOs and new share issues",
+   "meaning": "IPO shares must list within three working days after the issue closes (T). Allotment is finalised on T+1, shares are credited and unused money unblocked on T+2, and listing happens on T+3.",
+   "why": "Your money is blocked for only a few days.",
+   "how": "Mark T+3 in your calendar as the listing day.",
+   "formula": "",
+   "id": "t-3-listing-timeline",
+   "letter": "T",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Tax deduction",
+   "topic": "Loans, tax and planning",
+   "meaning": "An amount you can subtract from income before tax is calculated, such as Section 80C investments under the old tax regime.",
+   "why": "Deductions reduce taxable income and therefore tax.",
+   "how": "Compare the old and new tax regimes each year; the new one offers fewer deductions but lower rates.",
+   "formula": "Taxable income = Gross income − Deductions",
+   "id": "tax-deduction",
+   "letter": "T",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "TDS (tax deducted at source)",
+   "topic": "Loans, tax and planning",
+   "meaning": "Tax withheld by the payer, such as a company paying dividends or a bank paying interest, and paid to the government on your behalf.",
+   "why": "It shows up in your Form 26AS and annual information statement.",
+   "how": "Claim TDS as already paid when you file your return.",
+   "formula": "",
+   "id": "tds-tax-deducted-at-source",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "TDS",
+    "tax deducted at source"
+   ]
+  },
+  {
+   "term": "Technical analysis",
+   "topic": "Price and technicals",
+   "meaning": "Studying price and trading volume to judge trends and momentum, rather than studying the business itself (fundamental analysis).",
+   "why": "Price behaviour shows what buyers and sellers are doing right now.",
+   "how": "FinLit keeps the technical score separate from the fundamental score so you can read each on its own.",
+   "formula": "",
+   "id": "technical-analysis",
+   "letter": "T",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Total return",
+   "topic": "Returns and risk",
+   "meaning": "The full gain from an investment: price change plus dividends or interest received.",
+   "why": "Price alone understates returns from dividend-paying stocks.",
+   "how": "FinLit's total return table adds dividends to price change.",
+   "formula": "Total return % = (End value − Start value + Income) ÷ Start value × 100",
+   "id": "total-return",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "1-year total return",
+    "ret 1y total"
+   ]
+  },
+  {
+   "term": "Traded value (turnover)",
+   "topic": "Price and technicals",
+   "meaning": "Volume multiplied by price: the rupee value of shares traded in a day.",
+   "why": "It is the best measure of how easily a stock can be bought or sold.",
+   "how": "For small investors, a few crore rupees of daily traded value is usually enough; tiny traded values make exits hard.",
+   "formula": "",
+   "id": "traded-value-turnover",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "Traded value",
+    "Traded value (latest day)",
+    "turnover",
+    "turnover cr"
+   ]
+  },
+  {
+   "term": "Treasury bill (T-bill)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A short-term Government of India security (91, 182 or 364 days) issued at a discount and repaid at face value.",
+   "why": "It is among the safest places for short-term money.",
+   "how": "Its yield is a common reference for the risk-free rate.",
+   "formula": "",
+   "id": "treasury-bill-t-bill",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "T-bill",
+    "Treasury bill"
+   ]
+  },
+  {
+   "term": "Trend",
+   "topic": "Price and technicals",
+   "meaning": "The general direction of prices over time: up, down or sideways.",
+   "why": "Trends tend to persist for a while, which is why technical scores watch them.",
+   "how": "Judge the trend over months, not days.",
+   "formula": "",
+   "id": "trend",
+   "letter": "T",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "TTM (trailing twelve months)",
+   "topic": "Company statements",
+   "meaning": "The total of the last four reported quarters, used instead of the last full fiscal year.",
+   "why": "It gives the most up-to-date yearly figure.",
+   "how": "P/E and many ratios on FinLit use TTM profit; a ratio marked FY uses the last full year instead.",
+   "formula": "",
+   "id": "ttm-trailing-twelve-months",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "EPS, last 12 months",
+    "Profit, last 12 months",
+    "Sales, last 12 months",
+    "TTM",
+    "trailing twelve months",
+    "ttm eps",
+    "ttm net profit",
+    "ttm revenue"
+   ]
+  },
+  {
+   "term": "Underwriting",
+   "topic": "IPOs and new share issues",
+   "meaning": "A promise, usually by banks, to buy shares that investors do not take up, so the company raises the planned amount. More broadly, judging and taking on a risk, as in loans or insurance.",
+   "why": "It reduces the risk that an IPO fails.",
+   "how": "Underwriting is common in SME IPOs, where demand can be thin.",
+   "formula": "",
+   "id": "underwriting",
+   "letter": "U",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Unrealised gain or loss",
+   "topic": "Returns and risk",
+   "meaning": "The paper profit or loss on an investment you still hold.",
+   "why": "It becomes real (realised) only when you sell.",
+   "how": "Do not let a paper gain or loss alone decide whether to sell; judge the investment as it is today.",
+   "formula": "Unrealised gain = Current market value − Purchase cost",
+   "id": "unrealised-gain-or-loss",
+   "letter": "U",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Unsecured loan",
+   "topic": "Loans, tax and planning",
+   "meaning": "A loan with no collateral, such as a personal loan or credit card, given on the basis of your credit history.",
+   "why": "Higher risk for the lender means higher interest for you.",
+   "how": "Repay unsecured debt before investing in shares; its interest usually exceeds expected returns.",
+   "formula": "",
+   "id": "unsecured-loan",
+   "letter": "U",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "UPI mandate",
+   "topic": "IPOs and new share issues",
+   "meaning": "The approval request you accept in your UPI app to block IPO money, used for applications up to ₹5 lakh.",
+   "why": "Your application is not complete until you approve the mandate.",
+   "how": "Approve it before the issue closes; mandates expire.",
+   "formula": "",
+   "id": "upi-mandate",
+   "letter": "U",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Valuation",
+   "topic": "Valuation",
+   "meaning": "Working out what an asset or company is worth, and comparing that with its price.",
+   "why": "Even a great business can be a poor investment if you pay too much for it.",
+   "how": "Use more than one method: ratios like P/E, comparison with peers and history, and cash-flow based estimates.",
+   "formula": "DCF value = Sum of FCF in year t ÷ (1 + r)^t",
+   "id": "valuation",
+   "letter": "V",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Value, blend and growth styles",
+   "topic": "Valuation",
+   "meaning": "Style buckets for stocks: value stocks trade at low valuations, growth stocks at high valuations backed by fast growth, and blend sits in between.",
+   "why": "Styles go in and out of favour; knowing a stock's style explains how it may behave.",
+   "how": "Mixing styles in a portfolio spreads risk.",
+   "formula": "",
+   "id": "value-blend-and-growth-styles",
+   "letter": "V",
+   "finlit": "",
+   "aliases": [
+    "Value, blend",
+    "growth styles"
+   ]
+  },
+  {
+   "term": "Variable cost",
+   "topic": "Company statements",
+   "meaning": "A cost that rises and falls with how much is produced or sold, such as raw materials or delivery charges.",
+   "why": "Businesses with mostly variable costs are more flexible in downturns.",
+   "how": "Compare with fixed costs (rent, salaries) to understand how profits react when sales change.",
+   "formula": "Total cost = Fixed cost + (Variable cost per unit × Units)",
+   "id": "variable-cost",
+   "letter": "V",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Venture capital",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Money invested in young, fast-growing private companies in exchange for a share of ownership.",
+   "why": "Many such companies fail, but a few successes can return many times the money.",
+   "how": "Many newly listed Indian companies were funded by venture capital; their IPOs often include VC sellers (see Offer for sale).",
+   "formula": "",
+   "id": "venture-capital",
+   "letter": "V",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Volatility",
+   "topic": "Returns and risk",
+   "meaning": "How much a price swings up and down, usually measured as the standard deviation of returns and stated per year.",
+   "why": "Higher volatility means a bumpier ride and more chance of large short-term losses.",
+   "how": "A stock with 21% yearly volatility often moves around 1.3% on a typical day.",
+   "formula": "Volatility = Standard deviation of returns",
+   "id": "volatility",
+   "letter": "V",
+   "finlit": "FinLit's yearly volatility uses the last 60 daily returns scaled by √252.",
+   "aliases": [
+    "Volatility (yearly)"
+   ]
+  },
+  {
+   "term": "Volume",
+   "topic": "Price and technicals",
+   "meaning": "The number of shares traded in a period, usually a day.",
+   "why": "Price moves on high volume carry more weight than moves on thin volume.",
+   "how": "FinLit's 'volume spike' alert fires when volume is several times its 20-day average.",
+   "formula": "",
+   "id": "volume",
+   "letter": "V",
+   "finlit": "",
+   "aliases": [
+    "Volume (latest day)"
+   ]
+  },
+  {
+   "term": "WACC (weighted average cost of capital)",
+   "topic": "Valuation",
+   "meaning": "The blended yearly cost of a company's funding: the return shareholders expect plus the after-tax interest on its debt, weighted by how much of each it uses.",
+   "why": "A company creates value only when its return on capital beats its WACC.",
+   "how": "Compare ROCE with WACC: ROCE above WACC is good news.",
+   "formula": "WACC = (E ÷ V) × Re + (D ÷ V) × Rd × (1 − Tax rate)",
+   "id": "wacc-weighted-average-cost-of-capital",
+   "letter": "W",
+   "finlit": "",
+   "aliases": [
+    "WACC",
+    "weighted average cost of capital"
+   ]
+  },
+  {
+   "term": "Watchlist",
+   "topic": "FinLit words",
+   "meaning": "Your list of stocks to follow, with notes and price targets.",
+   "why": "It keeps research organised and lets FinLit show you what changed.",
+   "how": "Add a one-line reason for each stock so you remember why you are watching it.",
+   "formula": "",
+   "id": "watchlist",
+   "letter": "W",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Working capital",
+   "topic": "Company statements",
+   "meaning": "The money tied up in day-to-day operations: short-term assets (cash, inventory, receivables) minus short-term liabilities (payables, short-term debt).",
+   "why": "Too little can mean trouble paying bills; too much means cash is stuck in stock and unpaid invoices.",
+   "how": "Compare working capital with sales over several years; a sharp rise needs an explanation.",
+   "formula": "Working capital = Current assets − Current liabilities",
+   "id": "working-capital",
+   "letter": "W",
+   "finlit": "",
+   "aliases": [
+    "Current assets",
+    "Current liabilities",
+    "Working capital to sales",
+    "current assets",
+    "current liabilities",
+    "working capital to sales"
+   ]
+  },
+  {
+   "term": "XBRL",
+   "topic": "Company statements",
+   "meaning": "eXtensible Business Reporting Language: a standard format for tagging financial statements so computers can read them.",
+   "why": "Indian companies file results with the exchanges in XBRL, which is how platforms like FinLit collect data.",
+   "how": "When a figure looks odd, compare it with the company's PDF filing; tagging errors do happen.",
+   "formula": "",
+   "id": "xbrl",
+   "letter": "X",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "XIRR",
+   "topic": "Returns and risk",
+   "meaning": "The annualised return for investments made on different dates, such as monthly SIPs.",
+   "why": "Simple returns mislead when money goes in at many different times; XIRR handles that.",
+   "how": "Use XIRR to judge your SIP or portfolio returns. Spreadsheet programs have an XIRR function.",
+   "formula": "0 = Sum of CF_i ÷ (1 + XIRR)^((d_i − d_0) ÷ 365)",
+   "id": "xirr",
+   "letter": "X",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Year-on-year (YoY) growth",
+   "topic": "Growth",
+   "meaning": "The change in a figure compared with the same period a year earlier, such as Jun 2026 quarter against Jun 2025 quarter.",
+   "why": "It removes seasonal effects, like festive-season sales.",
+   "how": "Use YoY for quarterly results; use QoQ to spot turning points.",
+   "formula": "YoY % = (This period − Same period last year) ÷ Same period last year × 100",
+   "id": "year-on-year-yoy-growth",
+   "letter": "Y",
+   "finlit": "",
+   "aliases": [
+    "Operating profit growth, year on year",
+    "Profit growth vs same quarter last year",
+    "Profit growth, year on year",
+    "Sales growth vs same quarter last year",
+    "Sales growth, year on year",
+    "Year-on-year growth",
+    "YoY",
+    "opYoY",
+    "profitYoY",
+    "q profit yoy",
+    "q sales yoy",
+    "revenueYoY"
+   ]
+  },
+  {
+   "term": "Yield",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The income an investment pays each year as a percentage of its price.",
+   "why": "It lets you compare income from shares, bonds and deposits.",
+   "how": "A yield that looks too good to be true usually reflects high risk.",
+   "formula": "Current yield = Yearly income ÷ Current price",
+   "id": "yield",
+   "letter": "Y",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Yield to maturity (YTM)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The total yearly return you would earn on a bond if you hold it until maturity and every payment is made.",
+   "why": "It is the fairest way to compare bonds with different prices and coupons.",
+   "how": "When interest rates rise, bond prices fall and YTMs rise.",
+   "formula": "Price = Sum of C ÷ (1 + YTM)^t + Face value ÷ (1 + YTM)^n",
+   "id": "yield-to-maturity-ytm",
+   "letter": "Y",
+   "finlit": "",
+   "aliases": [
+    "YTM",
+    "Yield to maturity"
+   ]
+  },
+  {
+   "term": "Zero-based budgeting",
+   "topic": "Economy and business",
+   "meaning": "Building each budget from zero, justifying every expense, instead of starting from last year's figures.",
+   "why": "It cuts costs that only continue out of habit.",
+   "how": "Companies that adopt it sometimes show sharp margin gains; check that they last.",
+   "formula": "",
+   "id": "zero-based-budgeting",
+   "letter": "Z",
+   "finlit": "",
+   "aliases": []
+  },
+  {
+   "term": "Zero-coupon bond",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A bond that pays no regular interest. It is sold below face value and repays face value at maturity; the difference is your return.",
+   "why": "Its price swings more with interest rates than ordinary bonds.",
+   "how": "Useful for a known future expense if held to maturity.",
+   "formula": "Price = Face value ÷ (1 + r)^n",
+   "id": "zero-coupon-bond",
+   "letter": "Z",
+   "finlit": "",
+   "aliases": []
+  }
+ ]
 }
-]

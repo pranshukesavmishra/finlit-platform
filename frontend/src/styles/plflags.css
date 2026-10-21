@@ -1,0 +1,13 @@
+.plf-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 0 0; font-size: 13px; color: var(--muted); }
+.plf-chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--gold); color: var(--text); background: color-mix(in srgb, var(--gold) 14%, transparent); font-weight: 600; }
+.plf-sw { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; background: color-mix(in srgb, var(--gold) 28%, transparent); box-shadow: inset 0 0 0 1px var(--gold); }
+.plf-btn { font: inherit; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--s1); color: var(--text); cursor: pointer; }
+.plf-btn:focus-visible, .plf-x:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plf-note { position: fixed; z-index: 60; top: 128px; left: 50%; width: min(520px, calc(100vw - 32px)); max-height: 60vh; overflow: auto; transform: translateX(-50%); padding: 14px 16px; border-radius: 12px; background: var(--s1); color: var(--text); border: 1px solid var(--gold); box-shadow: 0 12px 32px rgba(0, 0, 0, .35); animation: plf-drop .6s ease-out 1 both; }
+.plf-note ul { margin: 8px 0; padding-left: 18px; font-size: 14px; } .plf-note li { margin-bottom: 8px; } .plf-note small, .plf-p, .plf-f { color: var(--muted); }
+.plf-f { margin: 0; font-size: 12px; } .plf-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.plf-x { font-size: 22px; line-height: 1; background: none; border: 0; color: var(--text); cursor: pointer; min-width: 32px; min-height: 32px; }
+@keyframes plf-drop { from { opacity: 0; transform: translate(-50%, -48px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .plf-note { animation: none; } }
+tr[data-flag-row] > td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); transition: background .4s; }

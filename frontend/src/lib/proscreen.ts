@@ -9,7 +9,7 @@ export type MetricInfo = { key: string; label: string; unit: string; better: "hi
   hidden?: boolean; variants?: Record<string, string> | null };
 export type GroupInfo = { id: string; label: string; tier: Plan; metrics: MetricInfo[] };
 export type Catalog = {
-  plan: Plan; total: number; updatedAt: string; groups: GroupInfo[]; sectors: { name: string; n: number }[]; industries: { name: string; sector: string | null; n: number }[];
+  plan: Plan; total: number; withReport: number; updatedAt: string; groups: GroupInfo[]; sectors: { name: string; n: number }[]; industries: { name: string; sector: string | null; n: number }[];
   indices: { code: string; label: string; n: number }[]; caps: { name: string; n: number }[]; bands: { key: string; label: string; locked: boolean }[];
   limits: { rows: number | null; export: boolean }; defaultColumns: string[];
 };

@@ -14,6 +14,7 @@ import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
 import { ChartHelp } from "../components/ChartHelp";
+import { matchesMetric, rankMetrics } from "../lib/metricSearch";
 
 const TIER_ORDER: Plan[] = ["basic", "silver", "gold"];
 const PAGE = 50;
@@ -113,7 +114,8 @@ export function ScreenerPro() {
   const data = cat.data;
   const plan: Plan = data?.plan ?? "basic";
   const byKey = useMemo(() => new Map((data?.groups || []).flatMap((g) => g.metrics.map((m) => [m.key, m] as const))), [data]);
-  const columns = cols ?? data?.defaultColumns ?? [];
+  // Opens with the default columns; every filter adds its own column and takes it away again when the filter goes.
+  const columns = useMemo(() => { const base = cols ?? data?.defaultColumns ?? []; const extra = Object.keys(f.ranges).filter((k) => !base.includes(k) && (!data || byKey.has(k))); return [...base, ...extra].slice(0, 40); }, [cols, data, f.ranges, byKey]);
   const ask = (tier: Plan, why: string) => upgrade(tier, why);
 
   const dq = useDebounced(f, 250), dsort = useDebounced(sort, 0), dqq = useDebounced(q, 250);
@@ -134,9 +136,13 @@ export function ScreenerPro() {
   const setRange = (k: string, r: Range) => setF((s) => { const ranges = { ...s.ranges }; if (r.min == null && r.max == null) delete ranges[k]; else ranges[k] = r; return { ...s, ranges }; });
   const toggle = (key: "sectors" | "industries" | "indices" | "caps" | "bands", v: string) => setF((s) => ({ ...s, [key]: s[key].includes(v) ? s[key].filter((x) => x !== v) : [...s[key], v] }));
   const fl = find.trim().toLowerCase();
+  const lastTap = useRef({ k: "", t: 0 });
+  /** True on the second click/tap of the same chip within 400 ms: works for mouse, touch and Enter alike. */
+  const tap = (k: string) => { const now = Date.now(), dbl = lastTap.current.k === k && now - lastTap.current.t < 400; lastTap.current = dbl ? { k: "", t: 0 } : { k, t: now }; return dbl; };
+  const clearMetric = (m: MetricInfo, gid: string) => { (m.variants ? Object.values(m.variants) : [m.key]).forEach((k) => setRange(k, {})); setPick((x) => ({ ...x, [gid]: "" })); };
 
   const sortBy = (key: string) => setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: key === "name" || byKey.get(key)?.better === "lower" ? "asc" : "desc" }));
-  const toggleCol = (k: string) => { const cur = columns; if (cur.includes(k)) setCols(cur.filter((x) => x !== k)); else if (cur.length >= MAX_COLS) toast(`Up to ${MAX_COLS} columns at a time.`); else setCols([...cur, k]); };
+  const toggleCol = (k: string) => { if (f.ranges[k] && !(cols ?? data?.defaultColumns ?? []).includes(k)) { toast("Remove the filter to hide its column."); return; } const cur = cols ?? data?.defaultColumns ?? []; if (cur.includes(k)) setCols(cur.filter((x) => x !== k)); else if (cur.length >= MAX_COLS) toast(`Up to ${MAX_COLS} columns at a time.`); else setCols([...cur, k]); };
 
   const chips: { label: string; clear: () => void }[] = [
     ...Object.entries(f.ranges).map(([k, r]) => { const m = byKey.get(k); return { label: m?.unit === "flag" ? `${m.label}: ${r.min === 1 ? "Yes" : "No"}` : `${m?.label || k} ${r.min != null ? "≥ " + r.min : ""}${r.min != null && r.max != null ? " and " : ""}${r.max != null ? "≤ " + r.max : ""}`, clear: () => setRange(k, {}) }; }),
@@ -149,7 +155,7 @@ export function ScreenerPro() {
   const save = () => {
     const n = saveName.trim(); if (!n || !nActive) { toast("Add a filter and a name first."); return; }
     const max = limitsFor(uiPlan).screens; if (saved.length >= max && !saved.some((s) => s.name === n)) { toast(`Your plan keeps up to ${max} screens. Remove one first.`); return; }
-    screens.save(n, { ...f, sort: sort.key, dir: sort.dir, cols: columns } as never, max); setSaveName(""); toast(`Saved “${n}”. You can find it under Quick screens.`);
+    screens.save(n, { ...f, sort: sort.key, dir: sort.dir, cols: cols ?? undefined } as never, max); setSaveName(""); toast(`Saved “${n}”. You can find it under Quick screens.`);
   };
   const exportCsv = async () => {
     if (!data?.limits.export) { ask("silver", "Downloading results comes with the Silver plan."); return; }
@@ -161,7 +167,7 @@ export function ScreenerPro() {
   };
 
   const ordered = [...(data?.groups || [])].sort((a, b) => Number(b.id === "model") - Number(a.id === "model"));   // the FinLit model group leads: it is what Gold adds
-  const groups = ordered.filter((g) => !fl || g.label.toLowerCase().includes(fl) || g.metrics.some((m) => m.label.toLowerCase().includes(fl) || m.key.includes(fl)));
+  const groups = ordered.filter((g) => !fl || g.label.toLowerCase().includes(fl) || g.metrics.some((m) => matchesMetric(find, m)));
   const listed = fl || moreGroups ? groups : groups.slice(0, VISIBLE_GROUPS);
   const facetOpen = (id: string) => !!(open[id] || fl);
   const facetMatch = (label: string) => !fl || label.toLowerCase().includes(fl);
@@ -191,7 +197,7 @@ export function ScreenerPro() {
                 <div className="scr-groups">
                   {listed.map((g) => {
                     const isOpen = facetOpen(g.id), model = g.id === "model", allLocked = g.metrics.every((m) => m.locked);
-                    const shownMetrics = fl ? g.metrics.filter((m) => m.label.toLowerCase().includes(fl) || g.label.toLowerCase().includes(fl)) : g.metrics;
+                    const shownMetrics = fl ? (g.label.toLowerCase().includes(fl) ? g.metrics : rankMetrics(g.metrics, find)) : g.metrics;
                     const n = Object.keys(f.ranges).filter((k) => g.metrics.some((m) => m.key === k)).length;
                     return (
                       <div key={g.id} className={"scr-g" + (model ? " is-model" : "")}>
@@ -213,7 +219,7 @@ export function ScreenerPro() {
                                 const visible = shownMetrics.filter((m) => !m.hidden), MAIN = visible.length > 8 ? 6 : visible.length;
                                 const chip = (m: MetricInfo) => {
                                   const active = m.variants ? Object.values(m.variants).some((k) => f.ranges[k]) : !!f.ranges[m.key];
-                                  return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key }))}>{m.label}{m.locked && <Icon name="lock" />}</button>;
+                                  return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => { if (active && tap(m.key)) { clearMetric(m, g.id); return; } setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key })); }} onKeyDown={(e) => { if (active && (e.key === "Delete" || e.key === "Backspace")) { e.preventDefault(); clearMetric(m, g.id); } }} title={active ? "Double-click (or press Delete) to remove this filter" : undefined}>{m.label}{m.locked && <Icon name="lock" />}</button>;
                                 };
                                 const card = pick[g.id] && byKey.get(pick[g.id]) && <FilterCard key={pick[g.id]} m={byKey.get(pick[g.id])!} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} />;
                                 return <>
@@ -256,18 +262,18 @@ export function ScreenerPro() {
 
           <section className="scr-main card" aria-label="Results">
             <div className="scr-top">
-              <div aria-live="polite"><b className="scr-count">{res.isLoading || !res.data ? "…" : nf(total, 0)}</b> <span className="muted">of {data ? nf(data.total, 0) : "…"} stocks{res.data ? ` · ${res.data.took} ms` : ""}</span></div>
+              <div aria-live="polite"><b className="scr-count">{res.isLoading || !res.data ? "…" : nf(total, 0)}</b> <span className="muted">of {data ? nf(data.total, 0) : "…"} listed stocks{res.data ? ` · ${res.data.took} ms` : ""}</span></div>
               <div className="scr-tools">
                 <label className="scr-find sm"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search stocks" aria-label="Search stocks in results" /></label>
                 <div className="scr-cm"><button className="btn" aria-expanded={colMenu} onClick={() => setColMenu(!colMenu)}>Columns · {columns.length}</button>
                   {colMenu && data && <div className="scr-colmenu pl-colmenu" role="menu">
                     <label className="scr-find sm" style={{ margin: "0 0 8px" }}><Icon name="search" /><input value={colFind} onChange={(e) => setColFind(e.target.value)} placeholder="Find a column" aria-label="Find a column" /></label>
-                    {data.groups.map((g) => { const ms = g.metrics.filter((m) => !colFind.trim() || m.label.toLowerCase().includes(colFind.trim().toLowerCase())); return ms.length ? <div key={g.id}><div className="label">{g.label}</div>{ms.map((m) => <label key={m.key} className={m.locked ? "is-locked" : ""}><input type="checkbox" checked={columns.includes(m.key)} disabled={m.locked} onChange={() => toggleCol(m.key)} />{m.label}{m.locked && <Icon name="lock" />}</label>)}</div> : null; })}
+                    {data.groups.map((g) => { const ms = colFind.trim() ? rankMetrics(g.metrics, colFind) : g.metrics; return ms.length ? <div key={g.id}><div className="label">{g.label}</div>{ms.map((m) => <label key={m.key} className={m.locked ? "is-locked" : ""}><input type="checkbox" checked={columns.includes(m.key)} disabled={m.locked} onChange={() => toggleCol(m.key)} />{m.label}{m.locked && <Icon name="lock" />}</label>)}</div> : null; })}
                     <button className="alx-link" onClick={() => setCols(null)}>Reset columns</button></div>}</div>
                 <button className="btn" onClick={exportCsv}><Icon name="table" />Download</button>
               </div>
             </div>
-            {chips.length > 0 && <div className="scr-chips">{chips.map((c) => <button key={c.label} className="fchip" onClick={c.clear}>{c.label}<span aria-hidden="true">×</span><span className="sr">remove</span></button>)}<button className="alx-link" onClick={() => setF(norm({}))}>Clear all</button></div>}
+            {chips.length > 0 && <div className="scr-chips">{chips.map((c) => <button key={c.label} className="fchip" onClick={c.clear} onKeyDown={(e) => { if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); c.clear(); } }}>{c.label}<span aria-hidden="true">×</span><span className="sr">remove</span></button>)}<button className="alx-link" onClick={() => setF(norm({}))}>Clear all</button></div>}
             {res.isError && err?.status !== 403 ? <div className="state"><h2>The screener is unavailable right now</h2><p>Please try again in a moment.</p><button className="btn" onClick={() => res.refetch()}>Try again</button></div>
               : res.isError ? <div className="state"><h2>That filter is part of a higher plan</h2><p>{err?.body?.detail}</p><button className="btn primary" onClick={() => ask((err?.body?.plan as Plan) || "silver", err?.body?.detail || "")}>See the plan</button></div>
               : !res.data ? <div className="skeleton" style={{ height: 380 }} aria-busy="true" /> : (
@@ -289,6 +295,7 @@ export function ScreenerPro() {
                     <div className="pm-pager"><span>{page * PAGE + 1}–{Math.min(total, page * PAGE + PAGE)} of {nf(total, 0)}</span><button className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><button className="btn" disabled={(page + 1) * PAGE >= total} onClick={() => setPage(page + 1)}>Next</button></div>)}
                 </>)}
             <Plain>Green cells are in the best quarter of the results shown for that column, red cells the weakest quarter. “Best” means lower for P/E, P/B and debt, higher for returns and profitability. Hover a column name for what it means.</Plain>
+            {data && data.withReport < data.total && <p className="faint scr-foot">All {nf(data.total, 0)} listed companies are here with their price and market cap. Ratios, growth and statements show a dash until a company's report is loaded ({nf(data.withReport, 0)} are today); filtering on one of those leaves out the companies that lack it.</p>}
             <p className="faint scr-foot">A screen narrows a long list; it does not say what to buy. Open a company's report to see why a number looks the way it does. Index lists come from NSE Indices. General information, not investment advice.</p>
           </section>
         </div>
