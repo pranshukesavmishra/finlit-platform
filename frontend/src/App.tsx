@@ -40,6 +40,12 @@ const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ defa
 const AlertsPage = lazy(() => import("./pages/Alerts").then((m) => ({ default: m.AlertsPage })));
 const HoldingsPage = lazy(() => import("./pages/Holdings").then((m) => ({ default: m.HoldingsPage })));
 const ForumPage = lazy(() => import("./pages/Forum").then((m) => ({ default: m.ForumPage })));
+const EtfListPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfListPage })));
+const EtfDetailPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfDetailPage })));
+const EtfComparePage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfComparePage })));
+const FundListPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundListPage })));
+const FundDetailPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundDetailPage })));
+const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundComparePage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -64,6 +70,12 @@ export default function App() {
             <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
             <Route path="compare" element={<Compare />} />
             <Route path="graphs" element={<GraphStudio />} />
+            <Route path="etfs" element={<EtfListPage />} />
+            <Route path="etfs/compare" element={<EtfComparePage />} />
+            <Route path="etfs/:symbol" element={<EtfDetailPage />} />
+            <Route path="funds" element={<FundListPage />} />
+            <Route path="funds/compare" element={<FundComparePage />} />
+            <Route path="funds/:id" element={<FundDetailPage />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="alerts" element={<AlertsPage />} />

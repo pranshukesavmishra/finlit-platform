@@ -389,6 +389,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
     p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
+    sub.add_parser("refresh-etf", help="nightly: ETF prices and history from Upstox (never overwrites good rows with a short answer)")
+    sub.add_parser("refresh-mf", help="nightly: mutual fund NAVs from AMFI (never overwrites good rows with a short answer)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -437,6 +439,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             if args.kind != "daily":
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
+            return 0
+        if args.cmd in ("refresh-etf", "refresh-mf"):
+            if args.cmd == "refresh-etf":
+                from .etf import refresh as refresh_funds
+            else:
+                from .mf import refresh as refresh_funds
+            print(await refresh_funds(store, settings))
             return 0
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
             from .screener import jobs

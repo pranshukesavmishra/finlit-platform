@@ -48,6 +48,8 @@ while true; do
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 5 )) && run heavy prune prune
   (( H == 20 && M == 10 )) && run light listing refresh-listing   # nightly, after the close: all ~5,800 companies' prices in two provider calls and one short write, then the database may sleep
+  (( weekday && H == 20 && M == 40 )) && run light etf refresh-etf    # nightly after the close: ETF prices and history (Upstox)
+  (( H == 21 && M == 10 )) && run light mf refresh-mf                 # nightly: AMFI publishes the day's NAVs in the evening
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe

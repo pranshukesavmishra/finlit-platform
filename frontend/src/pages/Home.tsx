@@ -55,13 +55,15 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
   { to: "/alerts", t: "Alerts", d: "Told when a price, RSI, score, ratio, result or filing crosses the line you set.", tier: "Free" },
   { to: "/news", t: "News", d: "Market news and company updates: filings, announcements and results. Filter by company, category or your watchlist.", tier: "Free" },
   { to: "/forum", t: "Discussion forums", d: "Talk about listed companies with other investors. Information and opinion only, moderated, never tips.", tier: "Free" },
+  { to: "/etfs", t: "ETFs", d: "Every exchange-traded fund: price, returns over 1 month to 5 years, volatility and worst fall, with a chart and plain-words terms.", tier: "Free" },
+  { to: "/funds", t: "Mutual funds", d: "Every scheme from AMFI: NAV, returns, risk, category and plan, with a chart and side-by-side compare. Information only.", tier: "Free" },
   { to: "/graphs", t: "Graph Studio", d: "Put several graphs side by side: pick companies and measures, choose a chart type for each, and see patterns and correlation.", tier: "Free" },
 ];
 
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Nine tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Eleven tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>

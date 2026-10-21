@@ -30,6 +30,8 @@ from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
 from . import compare as compare_api
+from . import etf as etf_api
+from . import mf as mf_api
 from . import graphviews as graphviews_api
 from . import forum as forum_api
 from .auth import routes as auth_routes
@@ -413,6 +415,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(notify.router)
     app.include_router(screener_api.router)
     app.include_router(compare_api.router)
+    app.include_router(etf_api.router)
+    app.include_router(mf_api.router)
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
     app.include_router(results_api.router)
