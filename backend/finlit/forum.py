@@ -441,11 +441,11 @@ async def mod_queue(request: Request, kind: Literal["open", "held", "hidden", "r
             f"""SELECT p.id, p.thread_id, p.symbol, p.user_id, p.title, p.body, p.status, p.flag_reasons, p.created_at, p.moderation_note, pr.handle, u.email,
                        (pr.banned_until IS NOT NULL AND pr.banned_until > now()) AS banned
                 FROM forum_posts p JOIN users u ON u.id = p.user_id LEFT JOIN forum_profiles pr ON pr.user_id = p.user_id
-                WHERE {cond} ORDER BY p.created_at {'DESC' if kind == 'recent' else 'ASC'}, p.id LIMIT $1 OFFSET $2""", per, (page - 1) * per)
+                WHERE {cond} ORDER BY p.created_at {'DESC' if kind == 'recent' else 'ASC'}, p.id LIMIT $1 OFFSET $2""", per, (page - 1) * per)  # nosec B608 - cond and order are fixed values, input is bound
         reps = await conn.fetch("""SELECT r.post_id, r.reason, r.note, r.created_at, pr.handle FROM forum_reports r LEFT JOIN forum_profiles pr ON pr.user_id = r.reporter_id
                                    WHERE r.post_id = ANY($1::bigint[]) AND r.resolved_at IS NULL ORDER BY r.created_at""", [r["id"] for r in rows])
         counts = await conn.fetchrow("SELECT count(*) FILTER (WHERE status = 'held') AS held, count(*) FILTER (WHERE status = 'hidden') AS hidden FROM forum_posts")
-        total = await conn.fetchval(f"SELECT count(*) FROM forum_posts p WHERE {cond}")
+        total = await conn.fetchval(f"SELECT count(*) FROM forum_posts p WHERE {cond}")  # nosec B608 - cond comes from a fixed mapping
     by_post: Dict[int, List[Any]] = {}
     for x in reps:
         by_post.setdefault(x["post_id"], []).append(x)

@@ -48,6 +48,7 @@ async def test_alert_goes_to_silver_watchlists_once_per_company_case_and_period(
     # five quarters: the first is the same quarter a year before the last (365 days earlier), the rest fill in between
     ends = [(last - timedelta(days=365)).isoformat(), (last - timedelta(days=274)).isoformat(), (last - timedelta(days=182)).isoformat(), (last - timedelta(days=91)).isoformat(), last.isoformat()]
     async with app.state.store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM auto_alert_sent WHERE kind LIKE 'pl_flag_%'")
         for r in await conn.fetch("SELECT statement, body FROM snapshots WHERE symbol = 'RELIANCE' AND section = 'financials'"):
             d = json.loads(r["body"])
             d["quarterly"]["pl"].update({"period": "quarterly", "periods": ["Q1", "Q2", "Q3", "Q4", "Q5"], "periodEnds": ends,

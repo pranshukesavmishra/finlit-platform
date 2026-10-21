@@ -5,7 +5,7 @@ import type { Financials, Ownership, PriceRange, Ratios, Segments, Series } from
 import type { Plan } from "./auth";
 import { MINUS, nf } from "./format";
 
-export type UnitId = "cr" | "inr" | "pct" | "x" | "days" | "sh" | "idx";
+export type UnitId = "cr" | "inr" | "pct" | "x" | "days" | "sh" | "idx" | "pts";
 export type Basis = "annual" | "quarterly";
 /** One observation. `t` is an ISO date (the period end for statements); `l` is the period label the provider uses (FY26, Mar 2026). */
 export type Pt = { t: string; v: number | null; l?: string; o?: number | null; h?: number | null; lo?: number | null };
@@ -17,6 +17,7 @@ export const UNITS: Record<UnitId, { label: string; name: string }> = {
   x: { label: "×", name: "times" },
   days: { label: "days", name: "days" },
   sh: { label: "shares", name: "shares" },
+  pts: { label: "points", name: "index points" },
   idx: { label: "index (start = 100)", name: "index, first value = 100" },
 };
 
@@ -24,7 +25,7 @@ export const UNITS: Record<UnitId, { label: string; name: string }> = {
 export type Grain = "price" | "periodic" | "composition";
 /** How a change between two readings is measured: percent for amounts, plain difference for ratios that are already percentages or multiples. */
 export type Kind = "amount" | "ratio";
-type Src = "price" | "pl" | "bs" | "cf" | "ratio" | "val" | "own" | "seg" | "ownnow";
+type Src = "price" | "ixval" | "pl" | "bs" | "cf" | "ratio" | "val" | "own" | "seg" | "ownnow";
 
 export type Metric = {
   id: string; label: string; group: string; unit: UnitId; kind: Kind; grain: Grain; src: Src; key: string;
@@ -36,7 +37,7 @@ export type Metric = {
 export const GROUPS: { id: string; label: string }[] = [
   { id: "popular", label: "Popular" }, { id: "price", label: "Price" }, { id: "pl", label: "Profit & loss" }, { id: "bs", label: "Balance sheet" },
   { id: "cf", label: "Cash flow" }, { id: "returns", label: "Returns & margins" }, { id: "valuation", label: "Valuation" },
-  { id: "leverage", label: "Debt & liquidity" }, { id: "efficiency", label: "Efficiency" }, { id: "holding", label: "Shareholding" }, { id: "mix", label: "Breakdowns" },
+  { id: "leverage", label: "Debt & liquidity" }, { id: "efficiency", label: "Efficiency" }, { id: "holding", label: "Shareholding" }, { id: "mix", label: "Breakdowns" }, { id: "index", label: "Index valuation" },
 ];
 
 const A: Basis[] = ["annual"], AQ: Basis[] = ["annual", "quarterly"];
@@ -98,6 +99,10 @@ export const METRICS: Metric[] = [
   m("dii", "Domestic institutions (DII)", "holding", "pct", "own", "dii", { periods: AQ }),
   m("public", "Retail & others", "holding", "pct", "own", "public", { periods: AQ }),
 
+  m("ix_pe", "Index P/E", "index", "x", "ixval", "pe", { grain: "price", tier: "gold", periods: AQ, hint: "Daily price to earnings of a market index. Indices only." }),
+  m("ix_pb", "Index P/B", "index", "x", "ixval", "pb", { grain: "price", tier: "gold", periods: AQ, hint: "Daily price to book value of a market index. Indices only." }),
+  m("ix_dy", "Index dividend yield", "index", "pct", "ixval", "dy", { grain: "price", tier: "gold", periods: AQ, hint: "Daily dividend yield of a market index. Indices only." }),
+
   m("mix_segments", "Revenue by segment", "mix", "cr", "seg", "latest", { grain: "composition", kind: "amount", tier: "gold", hint: "Latest financial year; a breakdown of one company's revenue." }),
   m("mix_holding", "Shareholding pattern", "mix", "pct", "ownnow", "latest", { grain: "composition", kind: "ratio", periods: AQ, hint: "Latest quarter; who owns the company." }),
 ];
@@ -117,7 +122,20 @@ export const metricsIn = (group: string, q = ""): Metric[] => {
 // ------------------------------------------------------------------ reading the endpoints
 
 /** The documents one company contributes. Any may be missing (not loaded, not available, or trimmed by the plan). */
-export type Bundle = { fin?: Financials; ratios?: Ratios; own?: Ownership; seg?: Segments; price?: PriceRange };
+/** Indices travel through Graph Studio as "IDX:" + the provider's code (IDX:NIF50). */
+export const IDX = "IDX:";
+export const isIndexSym = (s: string) => s.startsWith(IDX);
+export const indexCode = (s: string) => s.slice(IDX.length);
+/** What an index can show: its level (the price measure, in points) and its valuation history. Everything else is a company statement. */
+export const indexSupports = (mt: Metric) => mt.id === "price" || mt.src === "ixval";
+/** The measure as it reads for this symbol: an index has a level in points, not a share price. */
+export const metricFor = (sym: string, mt: Metric): Metric => (isIndexSym(sym) && mt.id === "price" ? { ...mt, label: "Index level", unit: "pts", hint: "Daily closing level in index points." } : mt);
+export const unsupportedWhy = (sym: string, mt: Metric): string | null =>
+  isIndexSym(sym) ? (indexSupports(mt) ? null : "Companies report this; an index does not.") : mt.src === "ixval" ? "Only for indices." : null;
+
+export type IndexLevels = { rows: { d: string; c: number }[] };
+export type IndexVal = { rows: { d: string; pe: number | null; pb: number | null; dy: number | null }[] };
+export type Bundle = { ixl?: IndexLevels; ixv?: IndexVal; fin?: Financials; ratios?: Ratios; own?: Ownership; seg?: Segments; price?: PriceRange };
 
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 const iso = (y: number, mo: number, d: number) => `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -139,13 +157,20 @@ const finite = (v: unknown): number | null => (typeof v === "number" && Number.i
 const zip = (dates: (string | null)[], labels: string[], vals: Series | undefined): Pt[] =>
   (vals ?? []).map((v, i) => ({ t: dates[i] ?? "", v: finite(v), l: labels[i] })).filter((p) => p.t !== "");
 
-export type Status = "ok" | "loading" | "locked" | "noperiod" | "nodata" | "error";
+export type Status = "unsupported" | "ok" | "loading" | "locked" | "noperiod" | "nodata" | "error";
 export type Extracted = { status: Status; pts: Pt[]; note?: string; ohlc?: boolean; cats?: { name: string; value: number; note?: string }[] };
 
 /** Read one metric for one company. `plan` decides whether a missing row is "locked by the plan" or simply "no data". */
 export function extract(mt: Metric, b: Bundle, basis: Basis, plan: Plan, loaded: boolean): Extracted {
   const RANKN: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
   const missing = (): Extracted => ({ status: !loaded ? "loading" : RANKN[plan] < RANKN[mt.tier] ? "locked" : "nodata", pts: [] });
+  if (mt.src === "ixval" || b.ixl) {   // an index series (see Bundle): daily points, no statement periods
+    const rows = mt.src === "ixval" ? b.ixv?.rows : b.ixl?.rows;
+    if (!rows) return missing();
+    const key = mt.src === "ixval" ? mt.key : "c";
+    const pts = rows.map((r): Pt => ({ t: r.d, v: finite((r as unknown as Record<string, unknown>)[key]) }));
+    return { status: pts.some((p) => p.v != null) ? "ok" : "nodata", pts };
+  }
   if (mt.grain !== "price" && mt.grain !== "composition" && !mt.periods.includes(basis)) return { status: "noperiod", pts: [] };
 
   if (mt.src === "price") {
@@ -216,6 +241,7 @@ export function fmtValue(v: number | null | undefined, unit: UnitId): string {
     case "days": return sign(v) + nf(v, 0) + " days";
     case "sh": return sign(v) + nf(v, 0);
     case "idx": return sign(v) + nf(v, 1);
+    case "pts": return sign(v) + nf(v, 2);
   }
 }
 /** Short value for an axis tick or a heat-map cell. */

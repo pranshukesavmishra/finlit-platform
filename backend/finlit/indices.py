@@ -112,6 +112,22 @@ def shape_history(payload: Any, years: int) -> Dict[str, Any]:
     return {"rows": out, "stats": stats, "from": out[0]["d"] if out else None, "to": out[-1]["d"] if out else None}
 
 
+def shape_levels(payload: Any, years: int) -> Dict[str, Any]:
+    """Daily closing level of an index (points), oldest first, for up to `years` back from its latest day."""
+    rows = (payload or {}).get("rows") if isinstance(payload, dict) else payload
+    out = []
+    for r in rows or []:
+        d = str((r or {}).get("quote_date") or "")[:10]
+        c = _num((r or {}).get("close_price"), True)
+        if len(d) == 10 and c is not None:
+            out.append({"d": d, "c": c})
+    out.sort(key=lambda x: x["d"])
+    if out:
+        cut = (date.fromisoformat(out[-1]["d"]) - timedelta(days=round(365.25 * years))).isoformat()
+        out = [x for x in out if x["d"] >= cut]
+    return {"rows": out, "from": out[0]["d"] if out else None, "to": out[-1]["d"] if out else None}
+
+
 # ---------------------------------------------------------------- provider + cache
 
 def _client(app) -> FinEdgeClient:
@@ -129,6 +145,12 @@ async def _fetch_history(app, code: str) -> Any:
     today = datetime.now(IST).date()
     return await _client(app).get("/index/valuation/historical", {"index_symbol": code, "from_date": (today - timedelta(days=round(365.25 * HISTORY_YEARS) + 7)).isoformat(),
                                                                    "to_date": today.isoformat()}, timeout=25, retries=1)
+
+
+async def _fetch_levels(app, code: str) -> Any:
+    today = datetime.now(IST).date()
+    return await _client(app).get("/index/market-price/historical", {"index_symbol": code, "from_date": (today - timedelta(days=round(365.25 * HISTORY_YEARS) + 7)).isoformat(),
+                                                                      "to_date": today.isoformat()}, timeout=25, retries=1)
 
 
 async def _cached(app, key: str, fresh: float, fetch) -> Optional[Dict[str, Any]]:
@@ -182,6 +204,24 @@ async def indices(request: Request) -> Response:
         raise fail(502, "provider_unavailable", "Index prices are not available right now. Please try again in a moment.")
     return Response(json.dumps({**data, "marketOpen": market_open()}), media_type="application/json",
                     headers={"Cache-Control": "public, max-age=30"})
+
+
+@router.get("/{code}/history")
+async def history(request: Request, code: str, years: int = Query(5, ge=1, le=HISTORY_YEARS)) -> Response:
+    """Daily closing level of one index in points for up to five years. Public, like the index prices; one saved copy per index serves every viewer."""
+    code = code.strip().upper()
+    if not CODE.match(code):
+        raise fail(400, "bad_request", "Unknown index.")
+    raw = await _cached(request.app, f"idx:px:{code}", 3600 if market_open() else 6 * 3600, lambda: _fetch_levels(request.app, code))
+    if raw is None:
+        raise fail(502, "provider_unavailable", "The index history is not available right now. Please try again in a moment.")
+    out = shape_levels(raw, years)
+    if not out["rows"]:
+        raise fail(404, "not_found", "There is no price history for this index.")
+    feed = await _cached(request.app, "idx:feed", 900, lambda: _fetch_feed(request.app)) or {"items": []}
+    name = next((x["name"] for x in feed["items"] if x["code"] == code), code)
+    return Response(json.dumps({"code": code, "name": name, "years": years, "unit": "points", **out}), media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=300"})
 
 
 @router.get("/{code}/valuation")

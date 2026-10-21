@@ -70,3 +70,25 @@ describe("view state", () => {
     expect(chartCheck("pie", { ...f, comp: true, n: 1 }, "gold").ok).toBe(true);
   });
 });
+
+describe("indices in a view", () => {
+  const ix = (m: string, s = "IDX:NIF50") => ({ s, m });
+  it("round-trips an index symbol through the share link", () => {
+    const v = sanitize({ cells: [{ chart: "line", series: [ix("price"), { s: "TCS", m: "price" }] }] }, "gold");
+    expect(decodeView(encodeView(v), "gold")!.cells[0].series.map((s) => s.s)).toEqual(["IDX:NIF50", "TCS"]);
+  });
+  it("keeps only measures an index has, and index valuation only on indices", () => {
+    const v = sanitize({ cells: [{ chart: "line", series: [ix("price"), ix("revenue"), ix("ix_pe"), { s: "TCS", m: "ix_pe" }] }] }, "gold");
+    expect(v.cells[0].series.map((s) => s.s + "/" + s.m)).toEqual(["IDX:NIF50/price", "IDX:NIF50/ix_pe"]);
+  });
+  it("counts indices toward the series limit but not the company limit", () => {
+    const v = sanitize({ cells: [{ chart: "line", series: [{ s: "TCS", m: "price" }, { s: "INFY", m: "price" }, { s: "WIPRO", m: "price" }, ix("price")] }] }, "basic");
+    expect(v.cells[0].series.map((s) => s.s)).toEqual(["TCS", "INFY", "IDX:NIF50"]);
+    expect(sanitize({ cells: [{ chart: "line", series: [{ s: "idx:bad!", m: "price" }] }] }, "gold").cells[0].series).toEqual([]);
+  });
+  it("reads index levels in points and valuation as daily points", () => {
+    const b = { ixl: { rows: [{ d: "2026-10-16", c: 100 }, { d: "2026-10-19", c: 110 }] }, ixv: { rows: [{ d: "2026-10-19", pe: 19.7, pb: 2.8, dy: 1.49 }] } };
+    expect(extract(BY_ID.price, b, "annual", "basic", true).pts.map((p) => p.v)).toEqual([100, 110]);
+    expect(extract(BY_ID.ix_dy, b, "annual", "gold", true).pts).toEqual([{ t: "2026-10-19", v: 1.49 }]);
+  });
+});
