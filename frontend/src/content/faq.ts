@@ -18,7 +18,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
   { title: "Company research", items: [
     ["Which financial statements can I see?", "Profit and loss, balance sheet and cash flow, yearly and quarterly, plus ratios and the shareholding pattern. These are free for everyone. Gold adds the full ratio history."],
     ["How do I compare two companies?", "Use Compare to see two companies side by side: valuation, growth, profitability, debt and more. Silver adds the score-based tabs. Gold lets you compare four at once. Companies from the same industry give the fairest comparison."],
-    ["How do I understand an unfamiliar term?", "Open the glossary. It has 292 terms in plain English with formulas. You can also hover over the small info mark next to a ratio."],
+    ["How do I understand an unfamiliar term?", "Open the glossary. It has 313 terms in plain English with formulas. You can also hover over the small info mark next to a ratio."],
     ["Where does the data come from?", "From market-data providers and exchange filings. Each company page shows when it was last updated. Figures that fail our checks are not published. Data can still be delayed or wrong, so check important numbers against the company's own filings."],
   ] },
   { title: "Tracking and portfolio", items: [

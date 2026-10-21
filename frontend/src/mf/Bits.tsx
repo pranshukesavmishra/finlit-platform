@@ -4,11 +4,8 @@ import { TERMS, type Term } from "../lib/glossary";
 import { Info } from "../components/Info";
 import { dateIN } from "../lib/format";
 import { DISCLAIMER, MIRROR_LABEL, pctText, tone, type Facts, type FundDetail } from "../lib/mf";
-import extra from "./newTerms.json";
 
-// Words for this section. They live in backend/tests/fixtures/mf/new_glossary_terms.json until merged into the glossary; once the site glossary has them this copy is unused.
-const EXTRA = extra as Term[];
-const termById = (id: string): Term | undefined => TERMS.find((t) => t.id === id) || EXTRA.find((t) => t.id === id);
+const termById = (id: string): Term | undefined => TERMS.find((t) => t.id === id);
 
 /** A word with an (i) button that explains it in plain English, from the site glossary. Renders just the word if the term is unknown. */
 export function GTerm({ id, children }: { id: string; children: React.ReactNode }) {

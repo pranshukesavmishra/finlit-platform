@@ -4398,6 +4398,342 @@
    "letter": "Z",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Tracking error",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "How far an index fund or ETF's returns drift from the returns of the index it follows, usually stated as a yearly percentage.",
+   "why": "A small tracking error means the fund follows its index closely; a large one means it often does not.",
+   "how": "Fees, cash held, and the timing of buying and selling shares all add to it. Compare it between ETFs that follow the same index.",
+   "formula": "Tracking error = Standard deviation of (fund return − index return)",
+   "id": "tracking-error",
+   "letter": "T",
+   "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
+   "aliases": [
+    "tracking difference"
+   ]
+  },
+  {
+   "term": "Assets under management (AUM)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The total market value of the money a fund holds for its investors, usually in rupees crore.",
+   "why": "A larger fund is usually easier to trade and tends to have lower running costs per unit; a very small one may be closed down.",
+   "how": "Look at it together with the ETF's daily traded value, since a big fund can still trade thinly on the exchange.",
+   "formula": "",
+   "id": "assets-under-management-aum",
+   "letter": "A",
+   "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
+   "aliases": [
+    "AUM",
+    "fund size"
+   ]
+  },
+  {
+   "term": "Premium and discount to NAV",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "How far an ETF's exchange price is above (premium) or below (discount) the net asset value of its underlying holdings on the same day.",
+   "why": "It shows whether people paid more or less on the exchange than the holdings were worth that day.",
+   "how": "Compare the exchange close and the NAV of the same day only; a NAV for a market holiday has no matching exchange price. Wide gaps are common for ETFs that hold overseas shares.",
+   "formula": "Premium / discount = (Exchange close ÷ NAV − 1) × 100",
+   "id": "premium-and-discount-to-nav",
+   "letter": "P",
+   "finlit": "FinLit shows it only when the ETF traded on the day of the NAV published by AMFI.",
+   "aliases": [
+    "premium to NAV",
+    "discount to NAV",
+    "ETF premium"
+   ]
+  },
+  {
+   "term": "Price return",
+   "topic": "Returns and risk",
+   "meaning": "The change in a price between two dates, as a percentage, without adding dividends or other payouts received in between.",
+   "why": "It is the simplest measure of how a price moved, but it understates what a holder received when the fund pays out income.",
+   "how": "Funds that pay out their income, such as many liquid ETFs, can show a price return near zero while holders still received money. Total return adds those payouts.",
+   "formula": "Price return = (Latest price ÷ Earlier price − 1) × 100",
+   "id": "price-return",
+   "letter": "P",
+   "finlit": "Every return on FinLit's ETF pages is a price return.",
+   "aliases": [
+    "price returns"
+   ]
+  },
+  {
+   "term": "Liquid ETF (1-day rate or overnight ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that lends money for one day at a time, for example to banks through overnight lending, and so holds very short-term debt.",
+   "why": "Its price barely moves, so it is used to park cash, and the money earned is often paid out as a dividend.",
+   "how": "Because the income is often paid out, its price return can look close to zero. Check how the fund house handles the income.",
+   "formula": "",
+   "id": "liquid-etf-1-day-rate-or-overnight-etf",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "liquid ETF",
+    "overnight ETF",
+    "1D rate ETF"
+   ]
+  },
+  {
+   "term": "Gold ETF and silver ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF whose price follows the domestic price of gold or silver, and which holds the metal for its investors.",
+   "why": "It lets someone hold gold or silver exposure through a demat account without storing the metal.",
+   "how": "Its price moves with the metal price and the rupee, not with company profits, and the metal can fall as well as rise.",
+   "formula": "",
+   "id": "gold-etf-and-silver-etf",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "gold ETF",
+    "silver ETF"
+   ]
+  },
+  {
+   "term": "G-Sec ETF (gilt ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that holds government bonds, for example 5-year or 10-year benchmark G-Secs, and follows a government bond index.",
+   "why": "Its price moves opposite to interest rates: when rates rise, bond prices tend to fall.",
+   "how": "The longer the bonds, the larger the swings in price when rates change.",
+   "formula": "",
+   "id": "g-sec-etf-gilt-etf",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "gilt ETF",
+    "G-Sec ETF",
+    "government bond ETF"
+   ]
+  },
+  {
+   "term": "Factor ETF (smart-beta or strategy ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that follows an index built by a rule instead of by company size, such as momentum, quality, value, low volatility or equal weight.",
+   "why": "Such an index can behave differently from a plain index like the Nifty 50 for long stretches.",
+   "how": "Read the index rule before comparing: two factor ETFs can hold very different companies even when both are called equity ETFs.",
+   "formula": "",
+   "id": "factor-etf-smart-beta-or-strategy-etf",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "smart beta ETF",
+    "strategy ETF",
+    "momentum ETF",
+    "low volatility ETF"
+   ]
+  },
+  {
+   "term": "Overseas (international) ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF listed in India that holds shares listed abroad, such as the Nasdaq-100, the S&P 500 or Hang Seng companies.",
+   "why": "Its value depends on foreign share prices and on the rupee against the foreign currency.",
+   "how": "Limits on how much money Indian funds may send abroad can make the exchange price differ widely from the NAV; check the premium or discount.",
+   "formula": "",
+   "id": "overseas-international-etf",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "international ETF",
+    "foreign ETF"
+   ]
+  },
+  {
+   "term": "Sector and thematic ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that follows an index of one sector, such as banks or IT, or one theme, such as defence or manufacturing.",
+   "why": "It puts all of its money into one part of the market, so it moves with that part.",
+   "how": "Compare it with a broad index ETF to see how much of its movement came from that one sector.",
+   "formula": "",
+   "id": "sector-and-thematic-etf",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "sector ETF",
+    "thematic ETF"
+   ]
+  },
+  {
+   "term": "Direct plan",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The version of a mutual fund you buy straight from the fund house, with no distributor in between, so no distribution commission is paid out of the fund.",
+   "why": "Because less is deducted every year, a Direct plan's NAV grows slightly faster than the Regular plan of the same fund holding the same investments.",
+   "how": "Compare Direct with Direct and Regular with Regular. Their NAVs and returns differ even though the fund and its portfolio are the same.",
+   "formula": "",
+   "id": "direct-plan",
+   "letter": "D",
+   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
+   "aliases": [
+    "Direct",
+    "Direct plan growth"
+   ]
+  },
+  {
+   "term": "Regular plan",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The version of a mutual fund bought through a distributor or advisor. A commission for them is paid out of the fund, so its yearly cost is higher than the Direct plan's.",
+   "why": "The extra cost lowers the Regular plan's NAV growth against the Direct plan of the same fund, by about the difference in their expense ratios.",
+   "how": "Compare Regular with Regular, and keep in mind what the extra cost pays for (advice or service).",
+   "formula": "",
+   "id": "regular-plan",
+   "letter": "R",
+   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
+   "aliases": [
+    "Regular",
+    "Regular plan growth"
+   ]
+  },
+  {
+   "term": "Growth option",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The choice under which a fund keeps all its earnings invested, so no money is paid out and the NAV rises as the investments grow.",
+   "why": "With no payouts, the change in NAV tells the whole story of what the fund earned, so returns are simple to measure.",
+   "how": "Growth and IDCW options of the same fund hold the same investments but have different NAVs; compare like with like.",
+   "formula": "",
+   "id": "growth-option",
+   "letter": "G",
+   "finlit": "FinLit works out returns, volatility and drawdown for Growth options from their NAV history.",
+   "aliases": [
+    "Growth Option",
+    "Growth plan"
+   ]
+  },
+  {
+   "term": "IDCW (Income Distribution cum Capital Withdrawal)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The choice under which a fund pays out part of its value to you from time to time. It replaced the older name 'dividend option'. 'Payout' sends the money to you; 'reinvestment' buys more units with it.",
+   "why": "Each payout is taken out of the NAV, so the NAV falls when it is paid. The payout is not extra profit; it is part of your own money coming back.",
+   "how": "Never compare the NAV change of an IDCW option with a Growth option: the IDCW NAV is lower because of payouts, not because the fund did worse.",
+   "formula": "",
+   "id": "idcw-income-distribution-cum-capital-withdrawal",
+   "letter": "I",
+   "finlit": "FinLit lists IDCW options with their own NAV but does not work out returns for them, since the payouts would be missing from a NAV-to-NAV change.",
+   "aliases": [
+    "IDCW",
+    "Dividend option",
+    "IDCW payout",
+    "IDCW reinvestment",
+    "Income Distribution cum Capital Withdrawal",
+    "Payout option",
+    "Reinvestment option"
+   ]
+  },
+  {
+   "term": "Fund category (SEBI scheme category)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The group SEBI places a mutual fund scheme in according to what it invests in, such as Large Cap, Mid Cap, Liquid or Gilt. AMFI lists every scheme under its category.",
+   "why": "Funds in the same category follow similar rules, so they are the fair ones to put side by side. Comparing a liquid fund with a small-cap fund is not meaningful.",
+   "how": "Use the category to narrow the list before you compare returns or risk.",
+   "formula": "",
+   "id": "fund-category-sebi-scheme-category",
+   "letter": "F",
+   "finlit": "FinLit shows each scheme under the category AMFI files it in.",
+   "aliases": [
+    "Category",
+    "Scheme category",
+    "Fund category",
+    "Sub-category"
+   ]
+  },
+  {
+   "term": "Open-ended and closed-ended funds",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An open-ended fund takes in and pays out money every business day at the NAV. A closed-ended fund raises money once, runs for a fixed term and can be sold only on the stock exchange or when it matures. An interval fund opens only at set times.",
+   "why": "It decides whether and when you can enter or leave. Many closed-ended and interval schemes have stopped publishing NAVs because their term ended.",
+   "how": "Check the scheme type before assuming you can sell at the NAV on any day.",
+   "formula": "",
+   "id": "open-ended-and-closed-ended-funds",
+   "letter": "O",
+   "finlit": "FinLit marks closed-ended and interval schemes from AMFI's headings and hides schemes that stopped publishing NAVs unless you ask to see them.",
+   "aliases": [
+    "Open ended",
+    "Close ended",
+    "Closed ended",
+    "Interval fund",
+    "Scheme type"
+   ]
+  },
+  {
+   "term": "Exit load",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A fee a fund charges, as a percentage of the amount, if you sell units within a stated period after buying them.",
+   "why": "It reduces what you receive if you leave early, and it differs from fund to fund.",
+   "how": "Read the fund's offer document for its exit load and period before you invest.",
+   "formula": "Amount received = Units × NAV × (1 − Exit load %)",
+   "id": "exit-load",
+   "letter": "E",
+   "finlit": "FinLit does not show exit loads yet; they are not in AMFI's NAV file.",
+   "aliases": [
+    "Exit load",
+    "Redemption fee"
+   ]
+  },
+  {
+   "term": "Fund house (AMC)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The company that sets up and manages mutual fund schemes, called an asset management company (AMC), for example Axis Mutual Fund or HDFC Mutual Fund.",
+   "why": "The same fund house runs many schemes. Knowing it tells you who manages the money and which other schemes it runs.",
+   "how": "A fund house is a company, and schemes of one fund house can behave very differently from each other.",
+   "formula": "",
+   "id": "fund-house-amc",
+   "letter": "F",
+   "finlit": "FinLit groups schemes by the fund house name AMFI gives.",
+   "aliases": [
+    "AMC",
+    "Asset management company",
+    "Fund house",
+    "Mutual fund house"
+   ]
+  },
+  {
+   "term": "Trailing return",
+   "topic": "Returns and risk",
+   "meaning": "How much a fund's NAV changed from a date in the past (one month, six months, one year...) up to the latest NAV.",
+   "why": "It is the standard way to read a fund's past results over different time spans, all ending today.",
+   "how": "Trailing returns depend on the day you stop counting, so a fund can look different a month later. Past results do not guarantee future results.",
+   "formula": "1-year return = (Latest NAV ÷ NAV one year earlier) − 1\nFor more than a year: (Latest NAV ÷ Start NAV)^(365 ÷ days between the two NAV dates) − 1",
+   "id": "trailing-return",
+   "letter": "T",
+   "finlit": "FinLit takes the start NAV from the latest NAV on or before the start date and states for every figure whether it is a plain change (up to 1 year) or a yearly rate (3 and 5 years).",
+   "aliases": [
+    "Trailing returns",
+    "Point-to-point return",
+    "Rolling start return",
+    "1M return",
+    "6M return",
+    "1Y return",
+    "3Y return",
+    "5Y return"
+   ]
+  },
+  {
+   "term": "ISIN",
+   "topic": "Market basics",
+   "meaning": "International Securities Identification Number: a 12-character code that identifies one security, or one plan and option of a mutual fund, worldwide.",
+   "why": "Different plans and options of a fund have different ISINs and NAVs. The ISIN is the exact way to be sure you mean the same one.",
+   "how": "Match the ISIN, not just the fund name, when you compare data from two places.",
+   "formula": "",
+   "id": "isin",
+   "letter": "I",
+   "finlit": "FinLit shows the ISIN AMFI gives for each scheme's growth units.",
+   "aliases": [
+    "ISIN",
+    "ISIN code"
+   ]
+  },
+  {
+   "term": "AMFI",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The Association of Mutual Funds in India, the industry body whose public files publish every scheme's daily NAV.",
+   "why": "Its NAV files are the official source of mutual fund NAVs in India.",
+   "how": "AMFI publishes NAVs after fund houses declare them; some funds report late in the evening.",
+   "formula": "",
+   "id": "amfi",
+   "letter": "A",
+   "finlit": "FinLit builds its mutual fund pages from AMFI's own NAV files and shows the data date on every page.",
+   "aliases": [
+    "AMFI",
+    "Association of Mutual Funds in India"
+   ]
   }
  ],
  "metrics": {

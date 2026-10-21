@@ -391,6 +391,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
     sub.add_parser("refresh-etf", help="nightly: ETF prices and history from Upstox (never overwrites good rows with a short answer)")
     sub.add_parser("refresh-mf", help="nightly: mutual fund NAVs from AMFI (never overwrites good rows with a short answer)")
+    p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
+    p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
+    p_bf.add_argument("--force", action="store_true")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -439,6 +442,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             if args.kind != "daily":
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
+            return 0
+        if args.cmd == "backfill-mf":
+            from .mf import backfill
+            print(await backfill(store, settings, args.amc, force=args.force))
             return 0
         if args.cmd in ("refresh-etf", "refresh-mf"):
             if args.cmd == "refresh-etf":
