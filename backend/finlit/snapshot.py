@@ -146,6 +146,9 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         # Cross-checks of the statements against their own components (empty when everything ties out), see normalize/statements.py
         "plReconcile": statements.reconcile(pl_rows),
         "epsSignRepaired": pl.get("epsSignRepaired") or [],
+        # Sections filled from the secondary data source because the main provider had none ({} = everything is from the main provider)
+        "secondarySource": bundle.get("_source") or {},
+        "sourceDisagreements": bundle.get("_reconcile") or [],
         # Years where consolidated and standalone revenue differ by more than 1% (the worker fetches the other basis when it can)
         "basisGaps": statements.basis_gaps(pl_rows, _rows(bundle.get("pl_annual_standalone"))) if statement == "consolidated" and bundle.get("pl_annual_standalone") else [],
     }
@@ -246,6 +249,9 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     summary["dataQuality"]["checks"] = quality_checks.run(sections, today=(now or datetime.now(timezone.utc)).date())
     summary["dataQuality"]["coverage"] = coverage.assess(bundle, sections)   # what the provider sent against what this report shows
+    if bundle.get("_source"):
+        summary["dataQuality"]["notes"] = [*summary["dataQuality"].get("notes", []), "Some figures come from our secondary data source."]
+        summary["dataQuality"]["coverage"]["reasons"].append("complete via secondary source: " + ", ".join(sorted(bundle["_source"])))
     return sections
 
 

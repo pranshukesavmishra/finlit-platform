@@ -49,6 +49,16 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
     company = await store.company(symbol)
     try:
         bundle = await client.fetch_bundle(symbol, statement)
+        if bundle.get("errors", {}).get("pl_annual") in (None, "404"):   # secondary source fills only what the main provider left empty
+            try:
+                from . import upstox
+                up = upstox.UpstoxClient(settings=client.settings, redis=store.redis)
+                try:
+                    await upstox.supplement(bundle, up, dict(company) if company else None)
+                finally:
+                    await up.aclose()
+            except Exception:
+                log.exception("secondary source skipped for %s", symbol)
         if company:
             bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
                                     "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
