@@ -23,7 +23,7 @@ async def rebuild_metrics(store, only_missing: bool = False) -> int:
     `only_missing` picks up companies with no metrics yet AND companies whose metrics were worked out by an older version of compute.py (`m_ver`),
     so a new filter (or a fixed formula) reaches every stored company once, without waiting for each company's next full load."""
     async with store.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT symbol, statement FROM scores WHERE model = 'v1'"
+        rows = await conn.fetch("SELECT symbol, statement FROM scores WHERE model = 'v1'"  # nosec B608 - fixed text, no user input
                                 + (" AND (metrics IS NULL OR NOT metrics ? 'm_ver' OR (metrics ? 'q_revenue' AND NOT metrics ? 'q_period_end'))" if only_missing else ""))
         done = 0
         for r in rows:
