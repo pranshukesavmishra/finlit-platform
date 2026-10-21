@@ -18,6 +18,8 @@ import { saveFile } from "../stock/derive";
 import { PortfolioInsights } from "../components/PortfolioInsights";
 import { PortfolioLab } from "../components/PortfolioLab";
 import { ACCEPT, namesFromFile } from "../lib/holdingsFile";
+import { PdfImport } from "../components/PdfImport";
+import { isPdf } from "../lib/holdingsPdf";
 import { makeMatcher, matchNames, namesFrom } from "../lib/holdingsMatch";
 import { MINUS, cr, csvText, nf } from "../lib/format";
 
@@ -42,7 +44,7 @@ export function HoldingsPage() {
   const index = idx.data?.rows || [];
   const cap = limitsFor(plan).holdings;
   const [text, setText] = useState(""), [one, setOne] = useState(""), [missing, setMissing] = useState<string[]>([]);
-  const file = useRef<HTMLInputElement>(null), [busy, setBusy] = useState(false);
+  const file = useRef<HTMLInputElement>(null), [busy, setBusy] = useState(false), [pdf, setPdf] = useState<File | null>(null);
   const matcher = useMemo(() => makeMatcher(index), [index]);
 
   const symbols = useMemo(() => [...new Set(st.holdings.map((h) => h.symbol))], [st.holdings]);
@@ -84,10 +86,10 @@ export function HoldingsPage() {
     <div className="wrap ipo">
       <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>My portfolio</h1><p className="muted">Add the shares you hold and see how strong they are: each company's FinLit score and pillars, and the portfolio as a whole. Only names are needed; nothing is sent to a broker.</p></div>
         <div className="row"><button className="btn" onClick={exportCsv} disabled={empty}>Export CSV</button></div></header>
-      <Gate tier="silver" title="Score your portfolio" points={["FinLit score and pillars for every share you hold", "Average score, band mix and sector spread", "Import a CSV of share names"]}>
+      <Gate tier="silver" title="Score your portfolio" points={["FinLit score and pillars for every share you hold", "Average score, band mix and sector spread", "Import Excel, CSV or PDF statements"]}>
         <section className="card acct-c pf-in">
           <h2>Add your shares</h2>
-          <p className="muted">Type a name or ticker, paste a list, or choose the file you downloaded from your broker (Excel .xlsx or .xls, or .csv). Only the share names are taken: quantities, prices and dates in the file are ignored, and the sheet's other columns do not matter. Names such as <code>Reliance Industries</code>, <code>HDFC Bank Ltd</code>, <code>TCS-EQ</code> or <code>500325</code> all work.</p>
+          <p className="muted">Type a name or ticker, paste a list, or choose the file you downloaded from your broker (Excel .xlsx or .xls, .csv, or a PDF statement). Only the share names are taken: quantities, prices and dates in the file are ignored, and the sheet's other columns do not matter. Names such as <code>Reliance Industries</code>, <code>HDFC Bank Ltd</code>, <code>TCS-EQ</code> or <code>500325</code> all work.</p>
           <div className="pf-add">
             <form className="pf-one" onSubmit={(e) => { e.preventDefault(); add([one.trim()].filter(Boolean)); setOne(""); }}>
               <input list="pf-names" value={one} onChange={(e) => setOne(e.target.value)} placeholder="e.g. RELIANCE or Infosys" aria-label="Share name or ticker" autoComplete="off" maxLength={80} />
@@ -97,11 +99,13 @@ export function HoldingsPage() {
             <div className="pf-bulk">
               <textarea className="imp" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={"RELIANCE\nHDFC Bank\nInfosys Ltd\nTCS"} aria-label="Share names to add, one per line" />
               <div className="row"><button className="btn primary" onClick={() => { add(namesFrom(text, matcher)); setText(""); }} disabled={!text.trim()}>Add these</button>
-                <button className="btn" onClick={() => file.current?.click()} disabled={busy}><Icon name="table" />{busy ? "Reading…" : "Choose Excel or CSV file…"}</button>
-                <input ref={file} type="file" accept={ACCEPT} hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; setBusy(true);
+                <button className="btn" onClick={() => file.current?.click()} disabled={busy}><Icon name="table" />{busy ? "Reading…" : "Choose Excel, CSV or PDF…"}</button>
+                <input ref={file} type="file" accept={ACCEPT + ",.pdf,application/pdf"} hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (isPdf(f)) { setPdf(f); return; } setBusy(true);
                   try { add(await namesFromFile(f, matcher), f.name); } catch (err) { toast(err instanceof Error && err.message.startsWith("That file") ? err.message : "That file could not be read. Save it as .xlsx or .csv, or paste the share names instead."); } finally { setBusy(false); } }} /></div>
             </div>
           </div>
+          {pdf && <PdfImport file={pdf} index={index} held={symbols} room={Math.max(0, cap - symbols.length)} onClose={() => setPdf(null)}
+            onAdd={(syms) => { portfolio.addMany(syms.map((sym) => ({ symbol: sym, qty: 1, price: 0 }))); toast(`Added ${syms.length} ${syms.length === 1 ? "share" : "shares"} from the PDF.`); }} />}
           {missing.length > 0 && <p className="pf-miss" role="status"><b>Not recognised:</b> {missing.slice(0, 20).join(", ")}{missing.length > 20 ? ` and ${missing.length - 20} more` : ""}. Check the spelling or use the NSE ticker.</p>}
         </section>
 
