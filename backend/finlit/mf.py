@@ -43,7 +43,7 @@ import httpx
 from fastapi import APIRouter, Query, Request, Response
 
 from .auth.routes import fail
-from .config import MF_EXCLUDED_AMCS
+from .config import MF_EXCLUDED_AMCS, MF_FEATURED_AMCS
 from .store import dumps, etag_for
 
 log = logging.getLogger("finlit.mf")
@@ -1228,7 +1228,7 @@ LIST_COLS = "code, name, amc, category, scheme_type, plan, option_class, option_
 SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1y": "r1y", "r5y": "r5y",
          "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)"}
 PLANS = ("Direct", "Regular", "Unspecified")
-OPTIONS = ("Growth", "IDCW", "Other")
+OPTIONS = ("Growth", "IDCW", "Other", "All")   # no choice means Growth; "All" turns the default off
 
 
 def rnd(v: Optional[float], n: int = 2) -> Optional[float]:
@@ -1347,7 +1347,7 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
                 where.append(f"code = ANY({codes_ph}::int[])")
         if not stopped:
             where.append("active")
-        for col, v in (("category", category), ("amc", amc), ("plan", plan), ("option_class", option)):
+        for col, v in (("category", category), ("amc", amc), ("plan", plan), ("option_class", "" if option == "All" else (option or "Growth"))):
             if v:
                 where.append(f"{col} = {arg(v)}")
         for col, lo, hi in (("r1y", min1y, max1y), ("r5y", min5y, max5y)):
@@ -1356,14 +1356,16 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
             if hi is not None:
                 where.append(f"{col} <= {arg(hi)}")
         w = ("WHERE " + " AND ".join(where)) if where else ""
+        n_where = len(args)
         if sort:
             order = f"{SORTS[sort]} {'DESC' if dir == 'desc' else 'ASC'} NULLS LAST, name, code"
         elif order_codes is not None:
             order = f"array_position({codes_ph}::int[], code)"
-        else:
-            order = "name, code"
+        else:   # best-known fund houses first (the list in config), then A to Z
+            feat = arg(list(MF_FEATURED_AMCS))
+            order = f"COALESCE((SELECT min(u.i) FROM unnest({feat}::text[]) WITH ORDINALITY AS u(p, i) WHERE lower(amc) LIKE u.p || '%'), 999), name, code"
         async with store.pool.acquire() as conn:
-            total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args)  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
+            total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args[:n_where])  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
             rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
             facts = await _facts(conn)
         return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": [list_item(r) for r in rows], **facts}

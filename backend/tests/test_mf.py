@@ -433,18 +433,20 @@ async def test_list_shape_count_filters_sort_and_paging(api):
     r = await api.get("/api/mf")
     assert r.status_code == 200 and "max-age=300" in r.headers["cache-control"]
     body = r.json()
-    assert body["total"] == 10 and len(body["items"]) == 10 and body["page"] == 1 and body["pages"] == 1   # stopped schemes are left out by default
+    assert body["total"] == 7 and all(i["optionClass"] == "Growth" for i in body["items"]) and body["page"] == 1 and body["pages"] == 1   # Growth only by default; stopped schemes are left out
+    full = (await api.get("/api/mf?option=All&sort=name")).json()
+    assert full["total"] == 10
     assert body["source"].startswith("AMFI") and body["disclaimer"].startswith("Information only. Not investment advice.") and body["dataDate"] == "2026-10-20"
-    assert [i["name"] for i in body["items"]] == sorted(i["name"] for i in body["items"])
-    allr = (await api.get("/api/mf?stopped=true")).json()
+    assert [i["name"] for i in full["items"]] == sorted(i["name"] for i in full["items"])
+    allr = (await api.get("/api/mf?stopped=true&option=All")).json()
     assert allr["total"] == 13
     item = next(i for i in body["items"] if i["code"] == LARGE)
     assert item["r1y"] == -6.96 and "r3y" not in item and "r1m" not in item and "mdd" not in item and item["r5y"] == 4.33 and item["retDate"] == "2026-10-19" and item["plan"] == "Direct" and item["optionClass"] == "Growth" and item["noReturns"] is None
-    idcw = next(i for i in body["items"] if i["code"] == 135765)
+    idcw = next(i for i in full["items"] if i["code"] == 135765)
     assert idcw["r1y"] is None and idcw["noReturns"] == "idcw"
     assert (await api.get("/api/mf?category=Equity Schemes - Thematic Fund")).json()["total"] == 2
     assert (await api.get("/api/mf?amc=Axis Mutual Fund&option=Growth&plan=Direct")).json()["total"] == 5   # 135762, 120465, 120389, 151368, 152805
-    pg = (await api.get("/api/mf?size=3&page=2&sort=r1y&dir=desc")).json()
+    pg = (await api.get("/api/mf?size=3&page=2&sort=r1y&dir=desc&option=All")).json()
     assert pg["pages"] == 4 and pg["total"] == 10 and len(pg["items"]) == 3
     ranked = (await api.get("/api/mf?sort=r1y&dir=desc&option=Growth&plan=Direct&amc=Axis Mutual Fund")).json()["items"]
     vals = [i["r1y"] for i in ranked]

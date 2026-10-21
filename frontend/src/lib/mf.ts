@@ -134,7 +134,7 @@ export function parseQuery(sp: URLSearchParams): ListQuery {
   const size = Number(get("size")), page = Number(get("page"));
   const q: ListQuery = {
     ...EMPTY_QUERY, q: get("q").slice(0, 80), category: get("category"), amc: get("amc"), plan: ["Direct", "Regular", "Unspecified"].includes(get("plan")) ? get("plan") : "",
-    option: ["Growth", "IDCW", "Other"].includes(get("option")) ? get("option") : "", stopped: get("stopped") === "1",
+    option: ["Growth", "IDCW", "Other", "All"].includes(get("option")) ? get("option") : "", stopped: get("stopped") === "1",
     sort: SORT_KEYS.has(get("sort")) ? (get("sort") as SortKey) : "", dir: get("dir") === "desc" ? "desc" : "asc",
     page: Number.isInteger(page) && page >= 1 && page <= 2000 ? page : 1, size: SIZES.includes(size) ? size : 50, view: get("view") === "ready" ? "ready" : "",
   };

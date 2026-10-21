@@ -205,6 +205,10 @@ export function FundDetailPage() {
       {!d.active && <p className="mf-note warn" role="note"><Icon name="alert" /><span>This scheme has stopped publishing NAVs{d.navDate ? `; its last NAV is dated ${dateIN(d.navDate)}` : ""}. Matured, merged and closed schemes stay in AMFI's file.</span></p>}
       {d.history.source === "mirror" && <p className="mf-note" role="note"><Icon name="info" /><span>{d.history.note}. AMFI's own history for this scheme is not loaded yet; the mirror's newest NAV was checked against AMFI's.</span></p>}
 
+      {d.optionClass !== "Growth" && (() => {
+        const g = d.family.find((f) => f.optionClass === "Growth" && f.plan === d.plan && f.active) || d.family.find((f) => f.optionClass === "Growth" && f.active);
+        return g ? <p className="mf-note" role="note"><Icon name="info" /><span>Returns are shown for the Growth option of this fund: <Link to={`/funds/${g.code}`}>{g.name}</Link>.</span></p> : null;
+      })()}
       <ReturnsBlock d={d} />
       <NavChart key={d.code} d={d} />
       <div className="mf-grid">

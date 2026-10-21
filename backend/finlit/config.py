@@ -9,6 +9,9 @@ from typing import List
 
 # Mutual fund houses that are not listed: not loaded, not shown, not searchable. Matched against AMFI's fund-house names after dropping
 # "Mutual Fund" / "Asset Management" style words, whole name only (see finlit.mf.is_excluded_amc): "Trust" matches "Trust Mutual Fund", not "Unifi" or "Union".
+# Best-known fund houses, listed first (in this order) when nobody has chosen a sort. Matched as a lower-case start of the AMFI fund house name.
+MF_FEATURED_AMCS = ("sbi", "hdfc", "icici prudential", "nippon india", "kotak", "aditya birla", "axis", "uti", "mirae", "dsp", "tata", "bandhan", "franklin",
+                    "ppfas", "parag parikh", "quant", "motilal", "hsbc", "canara", "invesco", "edelweiss", "sundaram", "baroda bnp", "lic")
 MF_EXCLUDED_AMCS = ("ASK", "Abakkus", "ITI", "Lakshya", "NJ", "PGIM India", "Samco", "Taurus", "Trust", "Unifi", "Zerodha")
 
 

@@ -44,7 +44,7 @@ export function Controls({ q, text, onText, set, filters, loading }: { q: ListQu
         <Pick label="Category" value={q.category} items={cats} any="All categories" onChange={(v) => set({ category: v })} />
         <Pick label="Fund house" value={q.amc} items={amcs} any="All fund houses" onChange={(v) => set({ amc: v })} />
         <Seg label="Plan" value={q.plan} onChange={(v) => set({ plan: v })} options={[["", "All"], ["Direct", "Direct"], ["Regular", "Regular"]]} />
-        <Seg label="Option" value={q.option} onChange={(v) => set({ option: v })} options={[["", "All"], ["Growth", "Growth"], ["IDCW", "IDCW"], ["Other", "Not stated"]]} />
+        <Seg label="Option" value={q.option} onChange={(v) => set({ option: v })} options={[["", "Growth"], ["IDCW", "IDCW (payout)"], ["Other", "Not stated"], ["All", "All options"]]} />
       </div>
       <div className="mf-more">
         <button type="button" className="mf-linkbtn" aria-expanded={more} onClick={() => setMore((m) => !m)}>{more ? "Hide return ranges" : "Filter by return range"}</button>
