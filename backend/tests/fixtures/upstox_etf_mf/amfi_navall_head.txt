@@ -1,0 +1,14 @@
+Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+ 
+Open Ended Schemes(Children’s Fund - Childrens' Fund)
+ 
+Axis Mutual Fund
+ 
+135762;INF846K01WO1;-;Axis Children's Fund;Direct Plan;Growth Option;29.1407;19-Oct-2026
+135765;INF846K01WP8;-;Axis Children's Fund;Direct Plan;IDCW Option;26.8438;19-Oct-2026
+135759;INF846K01WJ1;-;Axis Children's Fund;Regular Plan;Growth Option;25.3560;19-Oct-2026
+135760;INF846K01WK9;-;Axis Children's Fund;Regular Plan;IDCW Option;23.3929;19-Oct-2026
+135764;INF846K01WR4;-;Axis Children's Fund;Direct Plan;Growth Option;29.6980;19-Oct-2026
+135763;INF846K01WS2;INF846K01WQ6;Axis Children's Fund;Direct Plan;IDCW Option;26.8945;19-Oct-2026
+135766;INF846K01WM5;-;Axis Children's Fund;Regular Plan;Growth Option;25.3529;19-Oct-2026
+135761;INF846K01WN3;INF846K01WL7;Axis Children's Fund;Regular Plan;IDCW Option;23.3718;19-Oct-2026
