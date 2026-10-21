@@ -1,4 +1,352 @@
-// Placeholder wired into App.tsx; replaced by the real pages.
-export function FundListPage() { return <main className="wrap"><h1>Funds</h1></main>; }
-export function FundDetailPage() { return <main className="wrap"><h1>Funds detail</h1></main>; }
-export function FundComparePage() { return <main className="wrap"><h1>Funds compare</h1></main>; }
+// Mutual funds: the scheme list, one scheme's page and the side-by-side comparison. Data is AMFI's own NAV files (see backend/finlit/mf.py); the section is free.
+// Information only: no ranking, no "best", no advice. Every page shows the source, the data date and the disclaimer.
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { PageArt } from "../components/PageArt";
+import { Icon } from "../lib/icons";
+import { useUI } from "../lib/ui";
+import { useDocTitle } from "../lib/title";
+import { dateIN, nf } from "../lib/format";
+import {
+  EMPTY_QUERY, TRAY_MAX, categoryShort, compareUrl, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, tone, useFundCompare, useFundDetail, useFundFilters, useFundList, useTray, writeCols,
+  type ColId, type CompareFund, type FundDetail, type ListQuery, type RangeKey, type SortKey,
+} from "../lib/mf";
+import { ColumnPicker, Controls, Pager } from "../mf/Controls";
+import { FundChart, SERIES_STYLE } from "../mf/FundChart";
+import { FundTable } from "../mf/FundTable";
+import { Fig, Foot, GTerm, NotAvailable, PlanChip } from "../mf/Bits";
+import "../styles/mf.css";
+
+const HEAD = (title: string, lead: string) => (
+  <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
+    <div className="eyebrow">Mutual funds</div><h1>{title}</h1><p>{lead}</p></div></section>
+);
+const Problem = ({ title, text, retry }: { title: string; text: string; retry?: () => void }) => (
+  <div className="wrap state" role="alert"><h2>{title}</h2><p>{text}</p>{retry && <button className="btn" onClick={retry}>Try again</button>} <Link className="btn" to="/funds">Back to all schemes</Link></div>
+);
+const RETURN_ROWS: { k: "1m" | "6m" | "1y" | "3y" | "5y"; label: string }[] = [
+  { k: "1m", label: "1 month" }, { k: "6m", label: "6 months" }, { k: "1y", label: "1 year" }, { k: "3y", label: "3 years" }, { k: "5y", label: "5 years" },
+];
+const axisFmt = (v: number) => nf(v, Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 100 ? 1 : 2);
+const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
+
+// ================================================================================================ list
+
+export function FundListPage() {
+  useDocTitle("Mutual funds", "Every mutual fund scheme AMFI publishes: official NAV, returns and risk worked out from the NAV history. Information only.");
+  const { toast } = useUI();
+  const nav = useNavigate();
+  const [sp, setSp] = useSearchParams();
+  const q = useMemo(() => parseQuery(sp), [sp]);
+  const [text, setText] = useState(q.q);
+  const [cols, setCols] = useState<ColId[]>(readCols);
+  const [tray, toggle, clear] = useTray();
+  const list = useFundList(q), filt = useFundFilters();
+
+  const set = (patch: Partial<ListQuery>) => setSp(queryToParams({ ...q, page: 1, ...patch }), { replace: !("page" in patch) });
+  useEffect(() => { if (text.trim() === q.q) return; const t = window.setTimeout(() => set({ q: text.trim() }), 350); return () => window.clearTimeout(t); }, [text]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setText(q.q); }, [q.q]);
+  const onSort = (s: SortKey) => set(q.sort === s ? { dir: q.dir === "asc" ? "desc" : "asc" } : { sort: s, dir: s === "name" || s === "amc" || s === "category" ? "asc" : "desc" });
+  const pick = (code: number) => { if (!toggle(code)) toast(`You can compare up to ${TRAY_MAX} schemes at a time.`); };
+  const d = list.data;
+  const facts = d || filt.data;
+  const t = filt.data?.totals;
+
+  return (
+    <>
+      {HEAD("Every mutual fund scheme, in one place.", "Official daily NAVs from AMFI, with returns and risk worked out from each scheme's NAV history. Search, filter, sort and compare. Information only, never advice.")}
+      <div className="wrap mf">
+        <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
+
+        <div className="mf-bar">
+          <p className="mf-count" role="status" aria-live="polite">
+            {d ? <><b>{d.total.toLocaleString("en-IN")}</b> scheme{d.total === 1 ? "" : "s"}{d.total === 0 ? " match" : ""}</> : "Loading schemes…"}
+            {t && !q.stopped && <span className="faint"> · {t.active.toLocaleString("en-IN")} publish NAVs; {(t.schemes - t.active).toLocaleString("en-IN")} older ones have stopped and are hidden</span>}
+            {d?.dataDate && <span className="faint"> · NAVs up to {dateIN(d.dataDate)}</span>}
+          </p>
+          <ColumnPicker cols={cols} onChange={(c) => { setCols(c); writeCols(c); }} />
+        </div>
+
+        {list.isError && !d ? <Problem title="The scheme list is unavailable right now" text="Please try again in a moment." retry={() => list.refetch()} /> : !d ? (
+          <div className="card" aria-busy="true"><div className="skeleton" style={{ height: 420 }} /></div>
+        ) : d.total === 0 ? (
+          <div className="pm-empty mf-empty"><b>No schemes match.</b><p>Try fewer filters or a shorter search. Spaces and small typos do not matter.</p>
+            <button className="btn" onClick={() => { setText(""); setSp(new URLSearchParams(), { replace: true }); }}>Clear search and filters</button></div>
+        ) : (
+          <div className="card mf-tablecard">
+            <FundTable rows={d.items} cols={cols} q={q} onSort={onSort} picked={tray} onPick={pick} />
+            <Pager q={q} pages={d.pages} total={d.total} onPage={(p) => { set({ page: p }); window.scrollTo({ top: 0 }); }} onSize={(n) => set({ size: n })} />
+          </div>
+        )}
+        <p className="faint mf-legend">
+          1M, 6M and 1Y show the change in NAV over the period. 3Y and 5Y are yearly rates (<GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>). A dash (—) means no figure, with the reason when you hover or focus it.
+          Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only: <GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV, so their NAV change would mislead. Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.
+        </p>
+        <Foot facts={facts} />
+      </div>
+
+      {tray.length > 0 && (
+        <div className="mf-tray" role="region" aria-label="Schemes chosen for comparison">
+          <span><b>{tray.length}</b> scheme{tray.length > 1 ? "s" : ""} chosen{tray.length < 2 ? ". Choose one more to compare." : "."}</span>
+          <button className="btn primary" disabled={tray.length < 2} onClick={() => nav(compareUrl(tray))}><Icon name="compare" />Compare</button>
+          <button className="btn" onClick={clear}>Clear</button>
+        </div>)}
+    </>
+  );
+}
+
+// ================================================================================================ one scheme
+
+function Returns({ d }: { d: FundDetail }) {
+  return (
+    <div className="card mf-card">
+      <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span><GTerm id="trailing-return">Returns</GTerm></h3><span className="s">to {dateIN(d.history.to || d.navDate || "")}</span></div>
+      <div className="tw mf-ret"><table>
+        <thead><tr><th scope="col">Period</th><th scope="col">Return</th><th scope="col">Measured from</th><th scope="col">How</th></tr></thead>
+        <tbody>{RETURN_ROWS.map(({ k, label }) => { const r = d.returns[k]; return (
+          <tr key={k}>
+            <th scope="row">{label}</th>
+            <td><b><Fig v={r.value} why={r.why} /></b></td>
+            <td className="txt">{r.from ? <>NAV of {dateIN(r.from)}</> : <span className="muted mf-why">{r.why || "—"}</span>}</td>
+            <td className="txt muted">{r.kind === "cagr" ? <>Per year (<GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>)</> : "Total change"}</td>
+          </tr>); })}</tbody>
+      </table></div>
+      {d.returnsNote && <p className="mf-note" role="note"><Icon name="info" /><span>{d.returnsNote}</span></p>}
+      <p className="faint mf-fine">The start NAV is the latest one on or before the start date. 3 and 5 year figures are yearly rates: (latest NAV ÷ start NAV) ^ (365 ÷ days between the two NAV dates) − 1. They ignore any tax, exit load or SIP timing.</p>
+    </div>
+  );
+}
+
+function Risk({ d }: { d: FundDetail }) {
+  const { vol1y, vol3y, maxDrawdown: m } = d.risk;
+  return (
+    <div className="card mf-card">
+      <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Risk, from the NAV history</h3></div>
+      <div className="mf-risk">
+        <div><span className="label"><GTerm id="volatility">Volatility</GTerm> · 1 year</span><b>{vol1y.value == null ? <Fig v={null} why={vol1y.why} /> : pctText(vol1y.value, 2, false)}</b>
+          <p className="muted">{vol1y.value == null ? vol1y.why : "How much the NAV swings, as a yearly figure. A fund at 14% typically moves about 14% either side of its average yearly path; one at 1% barely moves. It says how bumpy the ride was, not which way the NAV went."}</p></div>
+        <div><span className="label"><GTerm id="volatility">Volatility</GTerm> · 3 years</span><b>{vol3y.value == null ? <Fig v={null} why={vol3y.why} /> : pctText(vol3y.value, 2, false)}</b>
+          <p className="muted">{vol3y.value == null ? vol3y.why : "The same measure over three years, so one calm or wild year counts for less."}</p></div>
+        <div><span className="label"><GTerm id="drawdown">Largest fall</GTerm> (maximum drawdown)</span><b>{m.value == null ? <Fig v={null} why={m.why} /> : <span className={tone(m.value)}>{pctText(m.value, 2, false)}</span>}</b>
+          <p className="muted">{m.value == null ? m.why : m.peak && m.trough && m.value < 0 ? `The deepest fall from a NAV high (${dateIN(m.peak)}) to a later low (${dateIN(m.trough)}) since ${dateIN(m.since || m.peak)}. It shows how deep the worst stretch was, not what comes next.` : "The NAV never fell below an earlier high in the history on file."}</p></div>
+      </div>
+      <p className="faint mf-fine">Volatility is the standard deviation of daily NAV changes (weekend NAVs left out) times the square root of 252. Both measures use only the NAV history on file for this scheme.</p>
+    </div>
+  );
+}
+
+function NavChart({ d }: { d: FundDetail }) {
+  const keys = (["1M", "6M", "1Y", "3Y", "5Y", "MAX"] as RangeKey[]).filter((k) => d.series[k]);
+  const [range, setRange] = useState<RangeKey>(keys.includes("1Y") ? "1Y" : keys[keys.length - 1]);
+  if (!keys.length) return <div className="card mf-card"><div className="card-h"><h3><span className="ci"><Icon name="line" /></span>NAV chart</h3></div><p className="muted mf-pad">{d.returnsNote || d.history.note || "No NAV history is loaded for this scheme yet."}</p></div>;
+  const p = d.series[keys.includes(range) ? range : keys[0]]!;
+  const change = (p.v[p.v.length - 1] / p.v[0] - 1) * 100;
+  return (
+    <div className="card mf-card">
+      <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>NAV chart</h3>
+        <div className="seg" role="group" aria-label="Chart range">{keys.map((k) => <button key={k} aria-pressed={k === range} onClick={() => setRange(k)}>{k === "MAX" ? "Since launch" : k}</button>)}</div></div>
+      <FundChart series={[{ key: String(d.code), label: d.name, t: p.t, v: p.v }]} format={axisFmt} label={`NAV of ${d.name}, ${range === "MAX" ? "since the first NAV on file" : "last " + range}`} />
+      <p className="faint mf-fine">Total change over this range: <b className={tone(change)}>{pctText(change)}</b> (NAV of {dateIN(p.t[0])} to NAV of {dateIN(p.t[p.t.length - 1])}).
+        The chart shows NAV in rupees; the line is thinned to at most a few hundred points for long periods.</p>
+    </div>
+  );
+}
+
+export function FundDetailPage() {
+  const { id = "" } = useParams();
+  const code = /^\d{1,7}$/.test(id) ? Number(id) : 0;
+  const { data: d, isLoading, error, refetch } = useFundDetail(code);
+  const nav = useNavigate();
+  const { toast } = useUI();
+  const [tray, toggle] = useTray();
+  useDocTitle(d ? d.name : "Mutual fund", d ? `${d.name}: NAV, returns and risk from AMFI data. Information only.` : undefined);
+
+  if (!code || (error && (error as { status?: number }).status === 404)) return <><div className="wrap state" role="alert"><h2>We could not find this scheme</h2><p>No mutual fund scheme has the code “{id}”.</p><Link className="btn primary" to="/funds">Search all schemes</Link></div></>;
+  if (error && !d) return <Problem title="This scheme is unavailable right now" text="Please try again in a moment." retry={() => refetch()} />;
+  if (isLoading || !d) return <div className="wrap mf" aria-busy="true"><div className="skeleton" style={{ height: 140, marginTop: 28 }} /><div className="skeleton" style={{ height: 320, marginTop: 16 }} /></div>;
+
+  const inTray = tray.includes(d.code);
+  const ch = d.change;
+  return (
+    <div className="wrap mf mf-detail">
+      <p className="mf-back"><Link to="/funds">← All mutual fund schemes</Link></p>
+      <header className="mf-head">
+        <div>
+          <span className="eyebrow">{d.categoryGroup}</span>
+          <h1>{d.name}</h1>
+          <ul className="mf-chips" aria-label="About this scheme">
+            <li><Link className="chip gold" to={`/funds?amc=${encodeURIComponent(d.amc)}`}>{d.amc}</Link></li>
+            <li><Link className="chip ghost" to={`/funds?category=${encodeURIComponent(d.category)}`}>{categoryShort(d.category)}</Link></li>
+            <li><span className="chip ghost"><GTerm id={d.plan === "Regular" ? "regular-plan" : "direct-plan"}>{d.plan === "Unspecified" ? "Plan not stated" : d.plan + " plan"}</GTerm></span></li>
+            <li><span className="chip ghost"><GTerm id={d.optionClass === "IDCW" ? "idcw-income-distribution-cum-capital-withdrawal" : "growth-option"}>{d.option}</GTerm></span></li>
+            <li><span className="chip ghost"><GTerm id="open-ended-and-closed-ended-funds">{d.schemeType}</GTerm></span></li>
+          </ul>
+          <p className="faint mf-ids">{d.isin ? <><GTerm id="isin">ISIN</GTerm> {d.isin} · </> : null}AMFI scheme code {d.code}{d.isinReinvest ? <> · reinvestment ISIN {d.isinReinvest}</> : null}</p>
+        </div>
+        <div className="mf-navbox card">
+          <span className="label"><GTerm id="net-asset-value-nav">NAV</GTerm> · {d.navDate ? dateIN(d.navDate) : "no date"}</span>
+          <b className="mf-nav" title={navFull(d.nav)}>{navText(d.nav)}</b>
+          {ch ? <span className={"mf-chg " + tone(ch.pct)}>{ch.abs > 0 ? "+" : ch.abs < 0 ? "−" : ""}₹{nf(Math.abs(ch.abs), 4)} ({pctText(ch.pct)}) <small className="muted">vs NAV of {ch.since ? dateIN(ch.since) : "the previous day"}</small></span>
+            : <span className="muted">Previous NAV not on file yet, so no day change is shown.</span>}
+          <div className="mf-acts">
+            <button className={"btn" + (inTray ? " on" : "")} aria-pressed={inTray} onClick={() => { if (!toggle(d.code)) toast(`You can compare up to ${TRAY_MAX} schemes at a time.`); }}><Icon name="compare" />{inTray ? "Chosen to compare" : "Add to compare"}</button>
+            {tray.length >= 2 && <button className="btn primary" onClick={() => nav(compareUrl(tray))}>Compare {tray.length}</button>}
+          </div>
+        </div>
+      </header>
+
+      {!d.active && <p className="mf-note warn" role="note"><Icon name="alert" /><span>This scheme has stopped publishing NAVs{d.navDate ? `; its last NAV is dated ${dateIN(d.navDate)}` : ""}. Matured, merged and closed schemes stay in AMFI's file.</span></p>}
+      {d.history.source === "mirror" && <p className="mf-note" role="note"><Icon name="info" /><span>{d.history.note}. AMFI's own history for this scheme is not loaded yet; the mirror's newest NAV was checked against AMFI's.</span></p>}
+
+      <div className="mf-grid">
+        <Returns d={d} />
+        <Risk d={d} />
+      </div>
+      <NavChart key={d.code} d={d} />
+
+      {d.family.length > 0 && (
+        <div className="card mf-card">
+          <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Other plans and options of this fund</h3></div>
+          <div className="tw"><table className="mf-fam">
+            <thead><tr><th scope="col">Plan and option</th><th scope="col">NAV</th><th scope="col">NAV date</th><th scope="col"><span className="sr-only">Compare</span></th></tr></thead>
+            <tbody>{d.family.map((f) => (
+              <tr key={f.code}>
+                <th scope="row"><Link to={`/funds/${f.code}`}>{f.name}</Link><small><PlanChip plan={f.plan} option={f.option} />{!f.active && <span className="chip ghost">Stopped publishing</span>}</small></th>
+                <td className="num">{navText(f.nav)}</td><td className="num">{f.navDate ? dateIN(f.navDate) : "—"}</td>
+                <td className="num"><Link className="mf-linkbtn" to={compareUrl([d.code, f.code])}>Compare with this</Link></td>
+              </tr>))}</tbody>
+          </table></div>
+          <p className="faint mf-fine">Plans of one fund hold the same investments but charge different costs, so their NAVs and returns differ. Compare Direct with Direct and Regular with Regular.</p>
+        </div>)}
+
+      <div className="mf-grid">
+        <div className="card mf-card">
+          <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>About the data</h3></div>
+          <ul className="mf-facts">
+            <li><span>NAV history on file</span><b>{d.history.points ? `${d.history.points.toLocaleString("en-IN")} daily NAVs, ${dateIN(d.history.from!)} to ${dateIN(d.history.to!)}` : "None yet"}</b></li>
+            <li><span>History source</span><b>{d.history.source === "amfi" ? "AMFI's official NAV history" : d.history.source === "mirror" ? "Third-party mirror of AMFI data (api.mfapi.in)" : "—"}</b></li>
+            <li><span>Latest NAV source</span><b>AMFI NAVAll file</b></li>
+          </ul>
+        </div>
+        <NotAvailable {...d.notAvailable} />
+      </div>
+      <Foot facts={d} history={d.history} />
+    </div>
+  );
+}
+
+// ================================================================================================ compare
+
+const RANGE_BUTTONS: RangeKey[] = ["1M", "6M", "1Y", "3Y", "5Y", "MAX"];
+
+function Picker({ ids, onAdd }: { ids: number[]; onAdd: (code: number) => void }) {
+  const [text, setText] = useState("");
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => { const t = window.setTimeout(() => setDebounced(text.trim()), 300); return () => window.clearTimeout(t); }, [text]);
+  const res = useFundList({ ...EMPTY_QUERY, q: debounced.length >= 2 ? debounced : "", size: 25, option: "Growth" });
+  const show = debounced.length >= 2 ? (res.data?.items || []) : [];
+  return (
+    <div className="mf-picker">
+      <label className="mf-search"><Icon name="search" /><span className="sr-only">Find a scheme to add</span>
+        <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a scheme: type its name, e.g. axis large cap direct" autoComplete="off" disabled={ids.length >= TRAY_MAX} /></label>
+      {ids.length >= TRAY_MAX && <p className="faint">You are comparing the most schemes this page can show ({TRAY_MAX}). Remove one to add another.</p>}
+      {show.length > 0 && (
+        <ul className="mf-results" aria-label="Matching schemes">{show.map((r) => (
+          <li key={r.code}><span><b>{r.name}</b><small>{shortAmc(r.amc)} · <PlanChip plan={r.plan} option={r.option} /></small></span>
+            <button className="btn" disabled={ids.includes(r.code)} onClick={() => { onAdd(r.code); setText(""); }}>{ids.includes(r.code) ? "Added" : "Add"}</button></li>))}</ul>)}
+      {debounced.length >= 2 && !res.isFetching && !show.length && <p className="muted">No Growth-option scheme matches “{debounced}”. Returns are compared for Growth options.</p>}
+    </div>
+  );
+}
+
+function CompareTable({ funds }: { funds: CompareFund[] }) {
+  const notes: string[] = [];
+  const mark = (why: string | null | undefined, who: string) => { if (!why) return null; const text = `${who}: ${why}`; let i = notes.indexOf(text); if (i < 0) { notes.push(text); i = notes.length - 1; } return String.fromCharCode(97 + (i % 26)); };
+  const val = (v: number | null, why: string | null, who: string, o: { d?: number; plain?: boolean; plus?: boolean } = {}) => {
+    if (v != null) return <Fig v={v} d={o.d ?? 2} plain={o.plain} plus={o.plus} />;
+    const m = mark(why, who);
+    return <span className="mf-na" aria-label={`No figure. ${why || ""}`}>—{m && <sup>{m}</sup>}</span>;
+  };
+  const rows: { label: React.ReactNode; cell: (f: CompareFund) => React.ReactNode; head?: boolean }[] = [
+    { label: "Fund house", cell: (f) => shortAmc(f.amc) }, { label: "Category", cell: (f) => categoryShort(f.category) },
+    { label: "Plan and option", cell: (f) => <PlanChip plan={f.plan} option={f.option} /> },
+    { label: <GTerm id="net-asset-value-nav">Latest NAV</GTerm>, cell: (f) => <>{navText(f.nav)}<small className="muted"> {f.navDate ? dateIN(f.navDate, { day: "numeric", month: "short" }) : ""}</small></> },
+    { label: "Change vs previous NAV", cell: (f) => <Fig v={f.change?.pct} /> },
+    { label: "Returns", head: true, cell: () => null },
+    ...RETURN_ROWS.map(({ k, label }) => ({ label: <>{label}<small className="muted">{k === "3y" || k === "5y" ? " per year" : ""}</small></>, cell: (f: CompareFund) => val(f.returns[k].value, f.returns[k].why, shortName(f) + ", " + label) })),
+    { label: "Risk", head: true, cell: () => null },
+    { label: <><GTerm id="volatility">Volatility</GTerm> 1 year</>, cell: (f) => val(f.risk.vol1y.value, f.risk.vol1y.why, shortName(f) + ", volatility 1 year", { plain: true, plus: false }) },
+    { label: <><GTerm id="volatility">Volatility</GTerm> 3 years</>, cell: (f) => val(f.risk.vol3y.value, f.risk.vol3y.why, shortName(f) + ", volatility 3 years", { plain: true, plus: false }) },
+    { label: <><GTerm id="drawdown">Largest fall</GTerm></>, cell: (f) => val(f.risk.maxDrawdown.value, f.risk.maxDrawdown.why, shortName(f) + ", largest fall", { plus: false }) },
+    { label: "NAV history", cell: (f) => (f.history.source === "amfi" ? "AMFI" : f.history.source === "mirror" ? "Mirror of AMFI data" : "Not loaded") },
+  ];
+  const body = rows.map((r, i) => r.head ? <tr key={i} className="mf-grp"><th scope="colgroup" colSpan={funds.length + 1}>{r.label}</th></tr>
+    : <tr key={i}><th scope="row">{r.label}</th>{funds.map((f) => <td key={f.code}>{r.cell(f)}</td>)}</tr>);
+  return (
+    <>
+      <div className="tw"><table className="mf-cmp">
+        <caption className="sr-only">Side-by-side comparison of the chosen schemes</caption>
+        <thead><tr><th scope="col"><span className="sr-only">Measure</span></th>{funds.map((f, i) => (
+          <th scope="col" key={f.code}><i className="mf-sw" style={{ borderColor: SERIES_STYLE[i].color, borderTopStyle: i === 0 ? "solid" : i === 1 ? "dashed" : "dotted" }} aria-hidden="true" /><Link to={`/funds/${f.code}`}>{f.name}</Link></th>))}</tr></thead>
+        <tbody>{body}</tbody>
+      </table></div>
+      {notes.length > 0 && <ol className="mf-notes faint" aria-label="Why some figures are blank">{notes.map((n, i) => <li key={i} value={i + 1}><sup>{String.fromCharCode(97 + (i % 26))}</sup> {n}</li>)}</ol>}
+    </>
+  );
+}
+const shortName = (f: CompareFund) => (f.name.length > 40 ? f.name.slice(0, 38) + "…" : f.name);
+
+export function FundComparePage() {
+  useDocTitle("Compare mutual funds", "Put 2 to 4 mutual fund schemes side by side: NAV, returns, risk and a rebased NAV chart. Information only.");
+  const { toast } = useUI();
+  const [sp, setSp] = useSearchParams();
+  const ids = useMemo(() => parseIds(sp.get("ids")), [sp]);
+  const rangeParam = sp.get("range");
+  const range: RangeKey = RANGE_BUTTONS.includes(rangeParam as RangeKey) ? (rangeParam as RangeKey) : "1Y";
+  const [tray] = useTray();
+  const { data, error, isFetching, refetch } = useFundCompare(ids, range);
+  const put = (next: number[], r: RangeKey = range) => setSp((() => { const p = new URLSearchParams(); if (next.length) p.set("ids", next.join(",")); if (r !== "1Y") p.set("range", r); return p; })(), { replace: true });
+
+  return (
+    <>
+      {HEAD("Mutual funds, side by side.", "Put two to four schemes next to each other: NAV, returns, risk and a chart that starts every fund at 100. Information only.")}
+      <div className="wrap mf">
+        <div className="card mf-card mf-setup">
+          <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Schemes to compare</h3>
+            {ids.length >= 2 && <button className="btn" onClick={() => { navigator.clipboard?.writeText(location.href).then(() => toast("Link to this comparison copied."), () => toast(location.href)); }}><Icon name="spark" />Copy link</button>}</div>
+          {ids.length > 0 && (
+            <ul className="mf-chosen" aria-label="Chosen schemes">{ids.map((c, i) => { const f = data?.funds.find((x) => x.code === c); return (
+              <li key={c}><i className="mf-sw" style={{ borderColor: SERIES_STYLE[i].color, borderTopStyle: i === 0 ? "solid" : i === 1 ? "dashed" : "dotted" }} aria-hidden="true" /><span>{f ? f.name : `Scheme ${c}`}</span>
+                <button className="mf-x" aria-label={`Remove ${f ? f.name : c}`} onClick={() => put(ids.filter((x) => x !== c))}>×</button></li>); })}</ul>)}
+          <Picker ids={ids} onAdd={(c) => put([...ids, c])} />
+          {ids.length < 2 && (
+            <div className="pm-empty mf-empty"><b>Choose at least two schemes.</b>
+              <p>Search above, or tick “compare” boxes on the <Link to="/funds">scheme list</Link> and press Compare.</p>
+              {tray.length >= 2 && <button className="btn primary" onClick={() => put(tray)}>Compare the {tray.length} you chose in the list</button>}</div>)}
+        </div>
+
+        {ids.length >= 2 && error && !data && <Problem title="This comparison is unavailable right now" text={(error as { status?: number }).status === 404 ? "One of these schemes could not be found." : "Please try again in a moment."} retry={() => refetch()} />}
+        {ids.length >= 2 && !data && !error && <div className="card" aria-busy="true"><div className="skeleton" style={{ height: 360 }} /></div>}
+        {ids.length >= 2 && data && (
+          <>
+            <div className="card mf-card" aria-busy={isFetching}>
+              <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>NAV, every scheme starting at 100</h3>
+                <div className="seg" role="group" aria-label="Chart range">{RANGE_BUTTONS.map((k) => <button key={k} aria-pressed={k === range} onClick={() => put(ids, k)}>{k === "MAX" ? "Since launch" : k}</button>)}</div></div>
+              {data.chart ? (
+                <>
+                  <FundChart base={100} format={(v) => nf(v, 1)} label={`NAV of the chosen schemes, rebased to 100 on ${dateIN(data.chart.from)}`}
+                    series={data.chart.series.map((s) => ({ key: String(s.code), label: shortName(data.funds.find((f) => f.code === s.code)!), t: s.t, v: s.v }))} />
+                  <p className="faint mf-fine">Each line starts at 100 on {dateIN(data.chart.from)} (the latest start date among the schemes for this range) and follows that scheme's NAV. It is a picture of past NAVs, not a forecast.</p>
+                </>) : <p className="muted mf-pad">{data.chartNote}</p>}
+            </div>
+            <div className="card mf-card"><div className="card-h"><h3><span className="ci"><Icon name="table" /></span>The numbers</h3></div><CompareTable funds={data.funds} />
+              <p className="faint mf-fine">1M, 6M and 1Y are the change in NAV; 3Y and 5Y are yearly rates. Only Growth options have returns, because payouts change the NAV of IDCW options. Different plans of one fund differ only by cost.</p></div>
+            {data.funds.some((f) => f.history.source === "mirror") && <p className="mf-note" role="note"><Icon name="info" /><span>Some NAV history here comes from a third-party mirror of AMFI data (api.mfapi.in), after its newest NAV was checked against AMFI's.</span></p>}
+            <NotAvailable {...data.notAvailable} />
+            <Foot facts={data} history={data.funds.find((f) => f.history.source === "mirror")?.history} />
+          </>)}
+        {ids.length < 2 && <Foot facts={null} />}
+      </div>
+    </>
+  );
+}

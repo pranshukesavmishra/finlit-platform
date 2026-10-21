@@ -1,0 +1,60 @@
+Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+ 
+
+Open Ended Schemes(Children’s Fund - Childrens' Fund)
+ 
+Axis Mutual Fund
+ 
+135762;INF846K01WO1;-;Axis Children's Fund;Direct Plan;Growth Option;29.1407;19-Oct-2026
+135765;INF846K01WP8;-;Axis Children's Fund;Direct Plan;IDCW Option;26.8438;19-Oct-2026
+135759;INF846K01WJ1;-;Axis Children's Fund;Regular Plan;Growth Option;25.3560;19-Oct-2026
+135760;INF846K01WK9;-;Axis Children's Fund;Regular Plan;IDCW Option;23.3929;19-Oct-2026
+
+Open Ended Schemes(Debt Scheme - Credit Risk Fund)
+ 
+Franklin Templeton Mutual Fund
+ 
+148304;INF090I01VZ8;-;Franklin India Credit Risk Fund (No. of segregated portfolios-3);Direct Plan;Growth;0.0000;19-Oct-2026
+
+Open Ended Schemes(Debt Scheme - Gilt Fund)
+ 
+ICICI Prudential Mutual Fund
+ 
+120607;INF109K012D6;INF109K013D4;ICICI Prudential Gilt Fund;;;12.2962;25-May-2018
+
+Open Ended Schemes(Equity Schemes - Large Cap Fund)
+ 
+Axis Mutual Fund
+ 
+120465;INF846K01DP8;-;Axis Large Cap Fund;Direct Plan;Growth Option;66.74;19-Oct-2026
+
+Open Ended Schemes(Equity Schemes - Thematic Fund)
+ 
+Axis Mutual Fund
+ 
+151368;INF846K016N4;-;Axis Business Cycles Fund;Direct Plan;Growth Option;17.11;19-Oct-2026
+152805;INF846K013X0;-;Axis Consumption Fund;Direct Plan;Growth Option;8.92;19-Oct-2026
+
+Open Ended Schemes(Exchange Traded Funds (ETFs) - Debt ETF)
+ 
+Aditya Birla Sun Life Mutual Fund
+ 
+151533;INF209KB18T9;-;Aditya Birla Sun Life CRISIL Liquid Overnight ETF;;;1000.0000;20-Oct-2026
+
+Open Ended Schemes(Income/Debt Oriented Schemes - Liquid Fund)
+ 
+Axis Mutual Fund
+ 
+120389;INF846K01CX4;-;Axis Liquid Fund;Direct Plan;Growth Option;3180.5188;20-Oct-2026
+
+Interval Fund Schemes(Income)
+ 
+Kotak Mahindra Mutual Fund
+ 
+146839;-;INF174KA1DD0;Kotak Monthly Interval Plan Series 4;;;10.0087785;17-Apr-2019
+
+Close Ended Schemes(ELSS)
+ 
+Bank of India Mutual Fund
+ 
+141950;INF761K01DS3;-;BANK OF INDIA MID CAP TAX FUND SERIES 1;Direct Plan;Growth;30.01;19-Oct-2026

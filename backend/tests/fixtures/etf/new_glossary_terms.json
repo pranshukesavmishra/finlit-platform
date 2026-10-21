@@ -1,0 +1,155 @@
+[
+ {
+  "term": "Tracking error",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "How far an index fund or ETF's returns drift from the returns of the index it follows, usually stated as a yearly percentage.",
+  "why": "A small tracking error means the fund follows its index closely; a large one means it often does not.",
+  "how": "Fees, cash held, and the timing of buying and selling shares all add to it. Compare it between ETFs that follow the same index.",
+  "formula": "Tracking error = Standard deviation of (fund return − index return)",
+  "id": "tracking-error",
+  "letter": "T",
+  "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
+  "aliases": [
+   "tracking difference"
+  ]
+ },
+ {
+  "term": "Assets under management (AUM)",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "The total market value of the money a fund holds for its investors, usually in rupees crore.",
+  "why": "A larger fund is usually easier to trade and tends to have lower running costs per unit; a very small one may be closed down.",
+  "how": "Look at it together with the ETF's daily traded value, since a big fund can still trade thinly on the exchange.",
+  "formula": "",
+  "id": "assets-under-management-aum",
+  "letter": "A",
+  "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
+  "aliases": [
+   "AUM",
+   "fund size"
+  ]
+ },
+ {
+  "term": "Premium and discount to NAV",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "How far an ETF's exchange price is above (premium) or below (discount) the net asset value of its underlying holdings on the same day.",
+  "why": "It shows whether people paid more or less on the exchange than the holdings were worth that day.",
+  "how": "Compare the exchange close and the NAV of the same day only; a NAV for a market holiday has no matching exchange price. Wide gaps are common for ETFs that hold overseas shares.",
+  "formula": "Premium / discount = (Exchange close ÷ NAV − 1) × 100",
+  "id": "premium-and-discount-to-nav",
+  "letter": "P",
+  "finlit": "FinLit shows it only when the ETF traded on the day of the NAV published by AMFI.",
+  "aliases": [
+   "premium to NAV",
+   "discount to NAV",
+   "ETF premium"
+  ]
+ },
+ {
+  "term": "Price return",
+  "topic": "Returns and risk",
+  "meaning": "The change in a price between two dates, as a percentage, without adding dividends or other payouts received in between.",
+  "why": "It is the simplest measure of how a price moved, but it understates what a holder received when the fund pays out income.",
+  "how": "Funds that pay out their income, such as many liquid ETFs, can show a price return near zero while holders still received money. Total return adds those payouts.",
+  "formula": "Price return = (Latest price ÷ Earlier price − 1) × 100",
+  "id": "price-return",
+  "letter": "P",
+  "finlit": "Every return on FinLit's ETF pages is a price return.",
+  "aliases": [
+   "price returns"
+  ]
+ },
+ {
+  "term": "Liquid ETF (1-day rate or overnight ETF)",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF that lends money for one day at a time, for example to banks through overnight lending, and so holds very short-term debt.",
+  "why": "Its price barely moves, so it is used to park cash, and the money earned is often paid out as a dividend.",
+  "how": "Because the income is often paid out, its price return can look close to zero. Check how the fund house handles the income.",
+  "formula": "",
+  "id": "liquid-etf-1-day-rate-or-overnight-etf",
+  "letter": "L",
+  "finlit": "",
+  "aliases": [
+   "liquid ETF",
+   "overnight ETF",
+   "1D rate ETF"
+  ]
+ },
+ {
+  "term": "Gold ETF and silver ETF",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF whose price follows the domestic price of gold or silver, and which holds the metal for its investors.",
+  "why": "It lets someone hold gold or silver exposure through a demat account without storing the metal.",
+  "how": "Its price moves with the metal price and the rupee, not with company profits, and the metal can fall as well as rise.",
+  "formula": "",
+  "id": "gold-etf-and-silver-etf",
+  "letter": "G",
+  "finlit": "",
+  "aliases": [
+   "gold ETF",
+   "silver ETF"
+  ]
+ },
+ {
+  "term": "G-Sec ETF (gilt ETF)",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF that holds government bonds, for example 5-year or 10-year benchmark G-Secs, and follows a government bond index.",
+  "why": "Its price moves opposite to interest rates: when rates rise, bond prices tend to fall.",
+  "how": "The longer the bonds, the larger the swings in price when rates change.",
+  "formula": "",
+  "id": "g-sec-etf-gilt-etf",
+  "letter": "G",
+  "finlit": "",
+  "aliases": [
+   "gilt ETF",
+   "G-Sec ETF",
+   "government bond ETF"
+  ]
+ },
+ {
+  "term": "Factor ETF (smart-beta or strategy ETF)",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF that follows an index built by a rule instead of by company size, such as momentum, quality, value, low volatility or equal weight.",
+  "why": "Such an index can behave differently from a plain index like the Nifty 50 for long stretches.",
+  "how": "Read the index rule before comparing: two factor ETFs can hold very different companies even when both are called equity ETFs.",
+  "formula": "",
+  "id": "factor-etf-smart-beta-or-strategy-etf",
+  "letter": "F",
+  "finlit": "",
+  "aliases": [
+   "smart beta ETF",
+   "strategy ETF",
+   "momentum ETF",
+   "low volatility ETF"
+  ]
+ },
+ {
+  "term": "Overseas (international) ETF",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF listed in India that holds shares listed abroad, such as the Nasdaq-100, the S&P 500 or Hang Seng companies.",
+  "why": "Its value depends on foreign share prices and on the rupee against the foreign currency.",
+  "how": "Limits on how much money Indian funds may send abroad can make the exchange price differ widely from the NAV; check the premium or discount.",
+  "formula": "",
+  "id": "overseas-international-etf",
+  "letter": "O",
+  "finlit": "",
+  "aliases": [
+   "international ETF",
+   "foreign ETF"
+  ]
+ },
+ {
+  "term": "Sector and thematic ETF",
+  "topic": "Funds, bonds and derivatives",
+  "meaning": "An ETF that follows an index of one sector, such as banks or IT, or one theme, such as defence or manufacturing.",
+  "why": "It puts all of its money into one part of the market, so it moves with that part.",
+  "how": "Compare it with a broad index ETF to see how much of its movement came from that one sector.",
+  "formula": "",
+  "id": "sector-and-thematic-etf",
+  "letter": "S",
+  "finlit": "",
+  "aliases": [
+   "sector ETF",
+   "thematic ETF"
+  ]
+ }
+]

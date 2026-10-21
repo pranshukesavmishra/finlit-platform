@@ -1,0 +1,66 @@
+Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date
+
+
+Open Ended Schemes(Exchange Traded Funds (ETFs) - Other ETF)
+
+Groww Mutual Fund
+
+153452;INF666M01KJ4;-;Groww Nifty 500 Momentum 50 ETF;;;10.4325;19-Oct-2026
+
+Open Ended Schemes(Exchange Traded Funds (ETFs) - Other ETF)
+
+Nippon India Mutual Fund
+
+154789;INF204KC1HS1;-;Nippon India CRISIL-IBX FAR Gilt ETF;;Growth;132.1537;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Gold ETF)
+
+Nippon India Mutual Fund
+
+140088;INF204KB17I5;-;Nippon India ETF Gold BeES;Direct Plan;;119.5174;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+Aditya Birla Sun Life Mutual Fund
+
+152802;INF209KC1142;-;Aditya Birla Sun Life Crisil 10 year Gilt ETF;;;109.9590;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+DSP Mutual Fund
+
+151888;INF740KA1SY9;-;DSP Nifty PSU Bank ETF;;;83.8851;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+HDFC Mutual Fund
+
+150619;INF179KC1DK8;-;HDFC NIFTY50 VALUE 20 ETF;;Growth Option;120.8885;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+ICICI Prudential Mutual Fund
+
+139519;INF109KC10W0;-;ICICI Prudential BSE Midcap Select ETF;;;18.3161;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+Motilal Oswal Mutual Fund
+
+114984;INF247L01AP3;-;Motilal Oswal Nasdaq 100 ETF;;;273.9256;19-Oct-2026
+
+Open Ended Schemes(Other Scheme - Other  ETFs)
+
+Nippon India Mutual Fund
+
+140086;INF732E01037;-;Nippon India ETF Nifty 1D Rate Liquid BeES;Direct Plan;;1000.0000;20-Oct-2026
+140084;INF204KB14I2;-;Nippon India ETF Nifty 50 BeES;Direct Plan;;261.1221;19-Oct-2026
+140087;INF204KB15I9;-;Nippon India ETF Nifty Bank BeES;Direct Plan;;575.1699;19-Oct-2026
+148408;INF204KB15V2;-;Nippon India ETF Nifty IT;Direct Plan;;35.0971;19-Oct-2026
+146271;INF204KB1V68;-;Nippon India ETF Nifty Midcap 150;Direct Plan;;222.3967;19-Oct-2026
+140085;INF732E01045;-;Nippon India ETF Nifty Next 50 Junior BeES;Direct Plan;;743.5717;19-Oct-2026
+149758;INF204KC1402;-;Nippon India Silver ETF;Direct Plan;;197.6507;19-Oct-2026
+
+Some Fund House Mutual Fund
+
+111111;INF000000009;-;Some Other Scheme;Direct Plan;Growth;N.A.;19-Oct-2026
