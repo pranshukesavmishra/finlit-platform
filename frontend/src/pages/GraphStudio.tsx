@@ -32,7 +32,7 @@ function useBundles(view: View, count: number) {
   const need = useMemo(() => { const m = new Map<string, Set<Src>>(); view.cells.slice(0, count).forEach((c) => c.series.forEach((s) => { const mt = BY_ID[s.m]; if (!mt) return; const set = m.get(s.s) ?? new Set<Src>(); set.add(SRC_OF[mt.src]); if (c.chart === "candlestick") set.add("price"); m.set(s.s, set); })); return m; }, [view.cells, count]);
   const jobs = useMemo(() => [...need].flatMap(([sym, set]) => [...set].map((src) => ({ sym, src }))), [need]);
   const qs = useQueries({ queries: jobs.map(({ sym, src }) => {
-    const path = src === "price" ? `/price?range=${view.range}` : PATH[src];
+    const path = src === "price" ? `/price?range=${view.from ? "MAX" : view.range}` : PATH[src];
     return { queryKey: ["stock", sym, path], queryFn: () => apiGet<unknown>(`/api/stocks/${encodeURIComponent(sym)}${path}`), staleTime: 60_000,
       retry: (n: number, e: ApiError) => (e.status === 202 ? n < 100 : e.status === 429 ? n < 8 : e.status >= 500 && n < 2),
       retryDelay: (_: number, e: ApiError) => (e.status === 202 ? (e.body.retryAfter || 3) * 1000 : 1500) };
@@ -61,7 +61,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
     const src = SRC_OF[mt.src], st = bd?.st[src];
     let ex = extract(mt, bd?.b ?? {}, view.basis, plan, st !== "loading");
     if (st === "error") ex = { status: "error", pts: [] };
-    return { sp, mt, ex: { ...ex, pts: mt.grain === "composition" ? ex.pts : windowPts(ex.pts, view.range) }, label: multi ? `${sp.s} · ${mt.label}` : mt.label, color: c.s[k % 8], sym: sp.s, err: bd?.err };
+    return { sp, mt, ex: { ...ex, pts: mt.grain === "composition" ? ex.pts : windowPts(ex.pts, view.range, view.from) }, label: multi ? `${sp.s} · ${mt.label}` : mt.label, color: c.s[k % 8], sym: sp.s, err: bd?.err };
   });
   const bad = rs.find((r) => r.ex.status !== "ok");
   const ok = rs.filter((r) => r.ex.status === "ok");
@@ -209,7 +209,7 @@ export function GraphStudio() {
     const out = [csvRow(["chart", "chart_type", "company", "measure", "unit", "period_or_date", "value"])];
     view.cells.slice(0, count).forEach((cell, i) => cell.series.forEach((s) => { const mt = BY_ID[s.m], bd = bundles.get(s.s); if (!mt || !bd) return; const ex = extract(mt, bd.b, view.basis, plan, true);
       (ex.cats ?? []).forEach((x) => out.push(csvRow([i + 1, cell.chart, s.s, mt.label, UNITS[mt.unit].name, x.name, x.value])));
-      windowPts(ex.pts, view.range).forEach((p) => out.push(csvRow([i + 1, cell.chart, s.s, mt.label, UNITS[mt.unit].name, p.l && mt.grain === "periodic" ? p.l : p.t, p.v]))); }));
+      windowPts(ex.pts, view.range, view.from).forEach((p) => out.push(csvRow([i + 1, cell.chart, s.s, mt.label, UNITS[mt.unit].name, p.l && mt.grain === "periodic" ? p.l : p.t, p.v]))); }));
     download(new Blob([out.join("\n")], { type: "text/csv" }), "finlit-graphs.csv");
   };
   const exportPng = async () => {
@@ -261,7 +261,8 @@ export function GraphStudio() {
         </aside>
         <div className="gx-main">
           <div className="gx-bar">
-            <div className="gx-seg" role="group" aria-label="Time range">{RANGES.map((r) => <button key={r.id} aria-pressed={view.range === r.id} onClick={() => set({ ...view, range: r.id })}>{r.label}</button>)}</div>
+            <div className="gx-seg" role="group" aria-label="Time range">{RANGES.map((r) => <button key={r.id} aria-pressed={!view.from && view.range === r.id} onClick={() => set({ ...view, range: r.id, from: undefined })}>{r.label}</button>)}</div>
+            <label className="gx-yr">From year <select value={view.from ?? ""} onChange={(e) => set({ ...view, from: e.target.value ? Number(e.target.value) : undefined })}><option value="">Any</option>{Array.from({ length: new Date().getFullYear() - 2009 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}</select></label>
             <div className="gx-seg" role="group" aria-label="Annual or quarterly">{(["annual", "quarterly"] as const).map((b) => <button key={b} aria-pressed={view.basis === b} onClick={() => set({ ...view, basis: b })}>{b === "annual" ? "Annual" : "Quarterly"}</button>)}</div>
             <div className="gx-seg" role="group" aria-label="Layout">{Object.keys(LAYOUTS).map((l) => <button key={l} aria-pressed={view.layout === l} aria-label={`Layout ${l.replace("x", " by ")}`} onClick={() => setLayout(l)}>{l.replace("x", "×")}{cellCount(l) > lim.cells && <Icon name="lock" />}</button>)}</div>
             <button className="btn ghost" onClick={copy}><Icon name="spark" />Copy link</button>

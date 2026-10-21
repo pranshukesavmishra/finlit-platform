@@ -37,7 +37,7 @@ export function TimeChart({ kind, series, c, w }: { kind: "line" | "area" | "col
   const ax = (s: PS) => Math.max(0, units.indexOf(s.unit));
   const gap = dates.length > 1 ? Math.min(...dates.slice(1).map((d, i) => Math.abs(X(d) - X(dates[i])))) : pw / 2;
   const nBars = series.filter((s) => kindOf(s) === "bar").length || 1, group = Math.min(56, gap * 0.72), bw = Math.max(1, group / nBars - 2);
-  const tickDates = allPeriodic ? dates.filter((_, i) => i % Math.ceil(dates.length / Math.max(2, Math.floor(pw / 56))) === 0)
+  const tickDates = allPeriodic ? dates.filter((_, i) => i % Math.ceil(dates.length / Math.max(2, Math.floor(pw / (Math.max(...dates.map((d) => (labelOf.get(d) ?? d.slice(0, 7)).length)) * 6.5 + 12)))) === 0)
     : (() => { const out: string[] = [], yrs = (t1 - t0) / (365.25 * 86400000), step = yrs > 8 ? 2 : 1; for (let y = new Date(t0).getUTCFullYear() + 1; y <= new Date(t1).getUTCFullYear(); y += yrs > 1.5 ? step : 1) out.push(`${y}-01-01`); return yrs > 1.5 && out.length > 0 ? out : dates.filter((_, i) => i % Math.ceil(dates.length / 5) === 0); })();
   const tl = (d: string) => (allPeriodic ? labelOf.get(d) ?? d.slice(0, 7) : (t1 - t0) / 86400000 > 550 ? d.slice(0, 4) : new Date(ms(d)).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: "UTC" }));
   const move = (e: React.PointerEvent<SVGSVGElement>) => { const r = e.currentTarget.getBoundingClientRect(), px = e.clientX - r.left; let b = 0; dates.forEach((d, i) => { if (Math.abs(X(d) - px) < Math.abs(X(dates[b]) - px)) b = i; }); setHi(b); };

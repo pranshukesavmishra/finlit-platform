@@ -6,7 +6,7 @@ import { BY_ID, type Basis } from "./graphMetrics";
 
 export type SeriesSpec = { s: string; m: string; as?: "bar" | "line" };
 export type CellSpec = { chart: ChartKind; series: SeriesSpec[]; mode?: "corr" | "grid"; tf?: "values" | "change" | "index"; x?: number; y?: number };
-export type View = { v: 1; layout: string; basis: Basis; range: RangeId; cells: CellSpec[] };
+export type View = { v: 1; layout: string; basis: Basis; range: RangeId; from?: number; cells: CellSpec[] };
 export const LAYOUTS: Record<string, { rows: number; cols: number }> = { "1x1": { rows: 1, cols: 1 }, "1x2": { rows: 1, cols: 2 }, "2x2": { rows: 2, cols: 2 }, "2x3": { rows: 2, cols: 3 }, "3x3": { rows: 3, cols: 3 } };
 export const cellCount = (layout: string) => (LAYOUTS[layout] ? LAYOUTS[layout].rows * LAYOUTS[layout].cols : 4);
 export const CHART_LABEL: Record<ChartKind, string> = { line: "Line", area: "Area", column: "Column", bar: "Bar (latest values)", combo: "Combo (bars + line)", pie: "Pie", candlestick: "Candlestick", scatter: "Scatter (X vs Y)", heatmap: "Heatmap" };
@@ -36,7 +36,7 @@ export function sanitize(raw: unknown, plan: Plan): View {
     const n = (v: unknown) => (typeof v === "number" && v >= 0 && v < 9 ? v : undefined);
     return { chart, series, ...(c?.mode === "corr" || c?.mode === "grid" ? { mode: c.mode } : {}), ...(["values", "change", "index"].includes(c?.tf as string) ? { tf: c.tf as CellSpec["tf"] } : {}), x: n(c?.x), y: n(c?.y) };
   });
-  return { v: 1, layout, basis: r.basis === "quarterly" ? "quarterly" : "annual", range: (["1Y", "3Y", "5Y", "MAX"] as const).find((x) => x === r.range) ?? "5Y", cells };
+  return { v: 1, layout, basis: r.basis === "quarterly" ? "quarterly" : "annual", ...(typeof r.from === "number" && r.from >= 1990 && r.from <= new Date().getFullYear() ? { from: Math.floor(r.from) } : {}), range: (["1Y", "3Y", "5Y", "MAX"] as const).find((x) => x === r.range) ?? "5Y", cells };
 }
 
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");

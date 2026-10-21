@@ -10,7 +10,8 @@ export const DAY = 86_400_000;
 export const ms = (iso: string) => Date.parse(iso.length === 10 ? iso + "T00:00:00Z" : iso);
 
 /** Keep the observations inside the window that ends at the series' own latest date. A few days of slack keep a year-end that falls just outside. */
-export function windowPts(pts: Pt[], range: RangeId): Pt[] {
+export function windowPts(pts: Pt[], range: RangeId, fromYear?: number): Pt[] {
+  if (fromYear) return pts.filter((p) => ms(p.t) >= Date.UTC(fromYear, 0, 1));
   const yrs = RANGES.find((r) => r.id === range)?.years ?? Infinity;
   if (!Number.isFinite(yrs) || !pts.length) return pts;
   const last = Math.max(...pts.filter((p) => p.v != null || p.o != null).map((p) => ms(p.t)), -Infinity);
