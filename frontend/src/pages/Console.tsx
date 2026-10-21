@@ -122,6 +122,12 @@ function Health() {
       <div className="hstat"><div><b>{h.universe.toLocaleString("en-IN")}</b><span>companies in the universe</span></div><div><b>{h.loaded.toLocaleString("en-IN")}</b><span>loaded ({pct}%)</span></div><div><b>{h.scored.toLocaleString("en-IN")}</b><span>with a FinLit score</span></div><div><b>{h.queued}</b><span>waiting in the queue</span></div></div>
       <div className="prog" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of companies loaded"><i style={{ width: `${pct}%` }} /></div>
       <p className="muted">IPO and results calendars refresh by themselves (daily, and every few hours in market time). Results dates last refreshed: {h.calendars?.resultsAt ? stamp(h.calendars.resultsAt) : "not yet"}{h.calendars?.resultsThrough ? `, covering dates through ${h.calendars.resultsThrough}` : ""}. IPOs: {h.calendars?.ipoAt ? stamp(h.calendars.ipoAt) : "not yet"}.</p>
+      {h.funds && (
+        <p className="muted">
+          ETFs: {h.funds.etf ? `${h.funds.etf.active} active of ${h.funds.etf.n}, last refresh ${h.funds.etf.last ? stamp(h.funds.etf.last) : "never"}` : "not set up"} ·
+          Mutual funds: {h.funds.mf ? `${h.funds.mf.active} active of ${h.funds.mf.n} schemes, ${h.funds.mf.with_history} with history, last refresh ${h.funds.mf.last ? stamp(h.funds.mf.last) : "never"}` : "not set up"}.
+        </p>
+      )}
       <p className="muted">Last load: {h.lastLoad ? stamp(h.lastLoad) : "never"} · last 24 hours: {Object.entries(h.runs24h).map(([k, v]) => `${v} ${k}`).join(", ") || "no runs"}.</p>
       {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
       {h.coverage && <div style={{ marginTop: 14 }}>

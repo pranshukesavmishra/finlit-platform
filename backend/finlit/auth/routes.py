@@ -789,7 +789,24 @@ async def admin_decline(request: Request, rid: int, ctx: Ctx = Depends(admin_ctx
 
 @router.get("/admin/data-health")
 async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
-    return Response(content=json.dumps(await request.app.state.store.health()), media_type="application/json", headers=NO_STORE)
+    body = await request.app.state.store.health()
+    body["funds"] = await _funds_health(request.app.state.store.pool)
+    return Response(content=json.dumps(body, default=str), media_type="application/json", headers=NO_STORE)
+
+
+async def _funds_health(pool) -> dict:
+    """ETF and mutual fund counts and the last refresh of each, for the admin data-health line. Missing tables read as zero, never an error."""
+    out: dict = {}
+    async with pool.acquire() as conn:
+        for key, sql in (
+            ("etf", "SELECT count(*) AS n, count(*) FILTER (WHERE active) AS active, (SELECT max(finished_at) FROM etf_runs WHERE status = 'ok') AS last FROM etf_funds"),
+            ("mf", "SELECT count(*) AS n, count(*) FILTER (WHERE active) AS active, count(*) FILTER (WHERE has_hist) AS with_history, (SELECT (value->>'at') FROM mf_meta WHERE key = 'refresh') AS last FROM mf_schemes"),
+        ):
+            try:
+                out[key] = dict(await conn.fetchrow(sql))
+            except Exception:   # the table does not exist yet (fresh database): show nothing rather than fail the whole panel
+                out[key] = None
+    return out
 
 
 # ------------------------------------------------------------------ news, result dates, documents
