@@ -124,6 +124,12 @@ function Health() {
       <p className="muted">IPO and results calendars refresh by themselves (daily, and every few hours in market time). Results dates last refreshed: {h.calendars?.resultsAt ? stamp(h.calendars.resultsAt) : "not yet"}{h.calendars?.resultsThrough ? `, covering dates through ${h.calendars.resultsThrough}` : ""}. IPOs: {h.calendars?.ipoAt ? stamp(h.calendars.ipoAt) : "not yet"}.</p>
       <p className="muted">Last load: {h.lastLoad ? stamp(h.lastLoad) : "never"} · last 24 hours: {Object.entries(h.runs24h).map(([k, v]) => `${v} ${k}`).join(", ") || "no runs"}.</p>
       {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
+      {h.coverage && <div style={{ marginTop: 14 }}>
+        <h3 style={{ margin: "0 0 6px", font: "600 15px var(--sans)" }}>What the provider sent against what the reports show</h3>
+        <p className="muted">{Object.entries(h.coverage.byState).map(([k, v]) => `${v} ${k}`).join(" · ") || "No company checked yet"}. "Provider sent it, report lacks it" must always be zero: any line below is a fault to fix, not a data gap.</p>
+        {h.coverage.mismatches.length > 0 ? <div className="formerr" role="alert"><b>{h.coverage.mismatches.length} companies where the provider sent data the report lacks:</b> {h.coverage.mismatches.map((m) => `${m.symbol} (${m.lines.join("; ")})`).join(" · ")}</div> : <p className="pos">None: every figure the provider sent is shown.</p>}
+        {h.coverage.providerEmpty.length > 0 && <p className="muted">The provider sent nothing for: {h.coverage.providerEmpty.map((c) => `${c.symbol}${c.name ? " " + c.name : ""}`).join(", ")}.</p>}
+      </div>}
       {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
     </section>
   );

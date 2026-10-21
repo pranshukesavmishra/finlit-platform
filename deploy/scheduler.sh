@@ -46,6 +46,7 @@ while true; do
   (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 5 )) && run heavy prune prune
+  (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices

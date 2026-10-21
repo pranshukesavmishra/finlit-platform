@@ -68,6 +68,13 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         row = snapshot.score_row(sections)
         # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
         await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
+        try:
+            cov = sections["summary"]["dataQuality"]["coverage"]
+            await store.save_coverage(symbol, statement, cov)
+            if cov["mismatches"]:   # the provider sent it and the report lacks it: a bug in this code, never a data gap
+                log.error("COVERAGE MISMATCH %s: %s", symbol, "; ".join(cov["mismatches"]))
+        except Exception:
+            log.exception("coverage not recorded for %s", symbol)
         prof = sections["summary"]["profile"]
         await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"))
         status = "ok" if checks["status"] == "ok" else "warnings"
@@ -287,6 +294,34 @@ async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120,
     return done
 
 
+async def audit_coverage(client: FinEdgeClient, symbols: List[str]) -> dict:
+    """Rebuild each company from the provider (nothing is stored) and compare what the provider sent with what the report shows.
+    Any mismatch is a bug in this code. Companies the provider sent nothing for are listed, never hidden."""
+    sem = asyncio.Semaphore(3)
+    out = {"checked": 0, "byState": {}, "mismatches": [], "providerEmpty": [], "errors": [], "all": {}}
+
+    async def one(sym: str):
+        async with sem:
+            try:
+                bundle = await client.fetch_bundle(sym, "consolidated")
+                failed = [k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404"]
+                if failed:
+                    out["errors"].append((sym, "provider did not answer: " + ", ".join(failed))); return
+                cov = snapshot.build(bundle)["summary"]["dataQuality"]["coverage"]
+            except Exception as exc:
+                out["errors"].append((sym, str(exc)[:80])); return
+            out["checked"] += 1
+            out["all"][sym] = cov
+            out["byState"][cov["state"]] = out["byState"].get(cov["state"], 0) + 1
+            if cov["mismatches"]:
+                out["mismatches"].append((sym, cov["mismatches"]))
+            if cov["state"] == "empty":
+                out["providerEmpty"].append(sym)
+
+    await asyncio.gather(*(one(s) for s in symbols))
+    return out
+
+
 async def probe(client: FinEdgeClient, symbol: str = "RELIANCE", statement: str = "consolidated") -> List[Tuple[str, str, float]]:
     """One request per FinEdge endpoint the site uses: proves the key, the network path and the plan cover everything.
     Prints only endpoint names and HTTP statuses, never the key."""
@@ -324,6 +359,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("check-screens", help="email members when a company newly matches one of their saved screens")
     sub.add_parser("send-digest", help="send the weekly week-ahead email to members who switched it on")
     sub.add_parser("refresh-quotes")
+    p_aud = sub.add_parser("audit-coverage", help="compare what the provider sends with what the reports show, for a random sample (exit 1 on any mismatch)")
+    p_aud.add_argument("--sample", type=int, default=100)
+    p_aud.add_argument("--seed", type=int, default=None)
+    p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
+    p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_prune = sub.add_parser("prune", help="keep the database inside its storage limit (reports outside the top INGEST_LIMIT nobody opened lately, old prices and logs)")
     p_prune.add_argument("--keep", type=int, default=None, help="companies always kept (default: INGEST_LIMIT, else 500)")
@@ -336,6 +376,25 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     args = parser.parse_args(argv)
 
     settings = settings or get_settings()
+    if args.cmd == "audit-coverage":   # needs the provider only, no database
+        import random
+        async with FinEdgeClient(settings) as client:
+            names = list(args.symbols) or [r["symbol"] for r in await client.stock_symbols()]
+            picks = list(args.symbols) or random.Random(args.seed).sample(names, min(args.sample, len(names)))
+            res = await audit_coverage(client, picks)
+        if args.record:
+            store = await Store.connect(settings, migrate=True)
+            try:
+                for sym, cov in res["all"].items():
+                    await store.save_coverage(sym, "consolidated", cov)
+            finally:
+                await store.close()
+        print(f"checked {res['checked']}  provider state {res['byState']}  mismatches {len(res['mismatches'])}  provider-empty {len(res['providerEmpty'])}  errors {len(res['errors'])}")
+        for sym, lines in res["mismatches"]:
+            print("MISMATCH", sym, "; ".join(lines))
+        for sym in res["providerEmpty"][:15]:
+            print("provider sent nothing:", sym)
+        return 1 if res["mismatches"] else 0
     store = await Store.connect(settings, migrate=True)
     try:
         if args.cmd == "migrate":

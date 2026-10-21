@@ -27,7 +27,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const [dl, setDl] = useState(false);
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);
-  const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0;
+  const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
   const asOf = q.asOf ? new Date(q.asOf) : null;
   const need = (tier: "silver" | "gold", what: string) => { if (has(tier)) return true; upgrade(tier, `${what} come with the ${TIER[tier].n} plan.`); return false; };
   const byKey = Object.fromEntries((ratios?.score.pillars || []).map((x) => [x.key, x]));
@@ -64,6 +64,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
           <div className="idr">
             <div>
               <div className="px"><span className="rs">₹</span>{q.price == null ? MINUS : nf(q.price)}</div>
+              {q.price == null && cov && cov.reasons.length > 0 && <div className="cov-note" role="note">No price shown: {cov.reasons[0]}.</div>}
               <div className="px-sub"><span className={"chip " + (good ? "up" : "down")}>{q.change == null ? "" : (q.change > 0 ? "+" : q.change < 0 ? MINUS : "") + nf(q.change)} · {signed(q.changePct)}</span>
                 <span>{asOf && !Number.isNaN(+asOf) ? `NSE · ${dateIN(asOf.toISOString(), { day: "numeric", month: "short" })}, ${asOf.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} IST` : "NSE"}</span></div>
             </div>
@@ -102,7 +103,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                 {chg && <div className={"sdelta " + (chg.delta > 0 ? "up" : chg.delta < 0 ? "down" : "")} title={`Compared with ${dateIN(chg.since)}`}>{chg.delta > 0 ? "▲ +" : chg.delta < 0 ? "▼ −" : "● "}{Math.abs(chg.delta)} points <small>since {dateIN(chg.since, { day: "numeric", month: "short" })}</small></div>}
               </div>
               <div className="readcol">
-                <div><div className="label" style={{ marginBottom: 10 }}>The read</div><p className="thesis">{s.thesis || (s.score.overall == null && !has("silver") ? "The written read of this company comes with the Silver plan, together with its FinLit score." : "Not enough data to summarise this company yet.")}</p></div>
+                <div><div className="label" style={{ marginBottom: 10 }}>The read</div><p className="thesis">{s.thesis || (s.score.overall == null && !has("silver") ? "The written read of this company comes with the Silver plan, together with its FinLit score." : (cov?.state === "empty" ? "Our data provider has not sent any price or financial statements for this company, so there is nothing to score yet. We check again every night." : cov && cov.reasons.length ? `Not enough data to summarise this company yet: ${cov.reasons.join("; ")}. We check again every night.` : "Not enough data to summarise this company yet."))}</p></div>
                 <div className="know">
                   {know.map((n) => (
                     <div key={n.key} style={{ "--k": n.tone === "good" ? "var(--p-quality)" : "var(--p-tech)" } as React.CSSProperties}>

@@ -185,6 +185,21 @@ class Store:
                 "WHERE symbol = $1 AND statement = $2 AND model = $3 ORDER BY day DESC LIMIT $4", symbol.upper(), statement, model, limit)
         return [{**dict(r), "day": r["day"].isoformat()} for r in reversed(rows)]
 
+    async def save_coverage(self, symbol: str, statement: str, cov: dict) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO data_coverage (symbol, statement, state, mismatches, detail) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb) "
+                "ON CONFLICT (symbol, statement) DO UPDATE SET checked_at = now(), state = EXCLUDED.state, mismatches = EXCLUDED.mismatches, detail = EXCLUDED.detail",
+                symbol.upper(), statement, cov["state"], json.dumps(cov["mismatches"]), json.dumps({"reasons": cov["reasons"], "provider": cov["provider"], "report": cov["report"]}))
+
+    async def coverage_health(self) -> dict:
+        async with self.pool.acquire() as conn:
+            by = {r["state"]: r["n"] for r in await conn.fetch("SELECT state, count(*) AS n FROM data_coverage GROUP BY state")}
+            bad = await conn.fetch("SELECT symbol, mismatches, checked_at FROM data_coverage WHERE mismatches <> '[]'::jsonb ORDER BY checked_at DESC LIMIT 25")
+            empty = await conn.fetch("SELECT d.symbol, c.name FROM data_coverage d LEFT JOIN companies c ON c.symbol = d.symbol WHERE d.state = 'empty' ORDER BY d.checked_at DESC LIMIT 25")
+        return {"byState": by, "mismatches": [{"symbol": r["symbol"], "lines": json.loads(r["mismatches"]) if isinstance(r["mismatches"], str) else r["mismatches"], "at": r["checked_at"].isoformat()} for r in bad],
+                "providerEmpty": [{"symbol": r["symbol"], "name": r["name"]} for r in empty]}
+
     async def health(self) -> dict:
         """Counts for the admin data-health panel: how much of the universe is loaded and what recently failed."""
         async with self.pool.acquire() as conn:
@@ -201,7 +216,8 @@ class Store:
         return {"universe": universe, "loaded": loaded, "scored": scored, "queued": queued, "lastLoad": last.isoformat() if last else None,
                 "calendars": {"resultsAt": cal_res.isoformat() if cal_res else None, "resultsThrough": cal_res_to.isoformat() if cal_res_to else None, "ipoAt": cal_ipo.isoformat() if cal_ipo else None},
                 "runs24h": {r["status"]: r["n"] for r in runs},
-                "recentProblems": [{"symbol": r["symbol"], "status": r["status"], "at": r["at"].isoformat(), "detail": str(r["errors"])[:200]} for r in failed]}
+                "recentProblems": [{"symbol": r["symbol"], "status": r["status"], "at": r["at"].isoformat(), "detail": str(r["errors"])[:200]} for r in failed],
+                "coverage": await self.coverage_health()}
 
     async def _upsert_prices(self, conn, symbol: str, daily: dict):
         rows = [(symbol, date.fromisoformat(t), daily["o"][i], daily["h"][i], daily["l"][i], daily["c"][i], daily["v"][i])
