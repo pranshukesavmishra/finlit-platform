@@ -1,5 +1,5 @@
 # Framework versions follow the research API (fastapi 0.143.2 / starlette 1.x) because the earlier pins (fastapi 0.110.1, pymongo 4.6.3) have known vulnerabilities (pip-audit).
-fastapi==0.143.2
+fastapi==0.149.0
 uvicorn==0.54.0
 python-dotenv>=1.0.1
 pymongo>=4.11,<5
