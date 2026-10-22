@@ -107,6 +107,9 @@ class Verdict:
     total_pct: float = 0.0
 
 
+DERIVATIVE = re.compile(r"\b(futures?|fut|options?|swaps?|irs|fra|short)\b", re.I)
+
+
 def validate(p: Portfolio, today: Optional[date] = None) -> Verdict:
     """Decide whether a parsed portfolio may be stored. Every failure is a plain sentence for the report; nothing is 'fixed' silently."""
     problems: List[str] = []
@@ -127,10 +130,12 @@ def validate(p: Portfolio, today: Optional[date] = None) -> Verdict:
         if h.pct_nav is None or isinstance(h.pct_nav, bool) or not isinstance(h.pct_nav, (int, float)) or math.isnan(h.pct_nav):
             problems.append(f"percent is not a number on {h.name!r}")
             continue
-        if h.pct_nav < 0 and h.asset_class in ("equity", "debt"):
-            problems.append(f"negative percent {h.pct_nav} on {h.asset_class} row {h.name!r}")
-        if h.pct_nav > 101.0:
-            problems.append(f"percent {h.pct_nav} above 101 on {h.name!r}")
+        if h.pct_nav < 0 and h.asset_class in ("equity", "debt") and not DERIVATIVE.search(h.name or ""):
+            problems.append(f"negative percent {h.pct_nav} on {h.asset_class} row {h.name!r}")   # a short future / swap leg is negative by nature
+        if h.pct_nav > 110.0:
+            problems.append(f"percent {h.pct_nav} above 110 on {h.name!r}")
+        elif h.pct_nav > 101.0:
+            warnings.append(f"percent {h.pct_nav} above 101 on {h.name!r} (a fund of funds with negative cash can hold slightly more than its net assets)")
         if h.isin is not None and not isin_ok(h.isin) and h.asset_class in ("equity", "debt"):
             bad_isin += 1
         if h.qty is not None and h.qty < 0 and h.asset_class in ("equity", "debt"):

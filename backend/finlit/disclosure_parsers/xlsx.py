@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 import zipfile
 from typing import Iterator, List, Optional, Union
-from xml.etree.ElementTree import iterparse
+from defusedxml.ElementTree import iterparse   # refuses entity-expansion and external-entity tricks in a downloaded file
 
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 RNS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"

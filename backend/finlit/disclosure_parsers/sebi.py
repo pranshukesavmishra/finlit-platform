@@ -145,7 +145,7 @@ def clean_name(s: str) -> str:
 
 # -------------------------------------------------------------------------------------------------- title
 
-TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)", re.I)
+TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)|^back\s+to\s+(index|top)", re.I)
 
 
 def split_title(cell: str) -> Tuple[str, List[str]]:
@@ -154,7 +154,7 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     full = re.sub(r"\s+", " ", cell.strip())
     full = re.sub(r"\s*\(\s*an?\s+[a-z][\s\S]*$", "", full, flags=re.I) if re.search(r"\(\s*an?\s+[a-z]", full, re.I) and not re.match(r"^\(", full) else full
     aliases: List[str] = []
-    m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
+    m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile(?:\s+known\s+as)?|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
     if m:
         aliases.append(re.sub(r"\s+", " ", m.group(1)).strip())
     main = re.sub(r"\(\s*(?:formerly|ex|erstwhile|earlier)\b[^)]*\)", "", full, flags=re.I)
@@ -181,6 +181,17 @@ def find_title(head_rows: List[List]) -> Tuple[str, List[str]]:
 
 
 # -------------------------------------------------------------------------------------------------- the parser
+
+# 'Benchmark: X', 'Benchmark Name : X', and 'Benchmark Riskometer: X' (DSP names the index on its risk-o-meter caption)
+BENCH = re.compile(r"benchmark\s*(?:name|risk\s*-?\s*o\s*-?\s*meter)?\s*[-:]\s*(.+)", re.I)
+RISK_WORDS = re.compile(r"^(low|low to moderate|moderate|moderately high|high|very high)\s*(risk)?\s*$", re.I)
+
+
+def bench_of(text: str) -> Optional[str]:
+    m = BENCH.search(text)
+    v = m.group(1).strip() if m else ""
+    return v if v and not RISK_WORDS.match(v) and not v.lower().startswith("risk") else None
+
 
 class NotAPortfolio(Exception):
     pass
@@ -255,24 +266,20 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         name_raw = cell(row, "name")
         name = clean_name(name_raw) if isinstance(name_raw, str) else ""
         if not done:
-            bm = re.search(r"benchmark\s*(?:name)?\s*[-:]\s*(.+)", " ".join(txt(c) for c in row if isinstance(c, str)), re.I)
-            if bm and not benchmark and "risk" not in bm.group(1).lower()[:12]:
-                benchmark = bm.group(1).strip()
+            if not benchmark:
+                benchmark = bench_of(" ".join(txt(c) for c in row if isinstance(c, str)))
         if not name:
             # benchmark note rows sit under the table (Invesco): keep scanning for them, nothing else
             if done:
                 for c in row:
-                    if isinstance(c, str):
-                        bm = re.search(r"benchmark\s*name\s*[-:]\s*(.+)", c, re.I)
-                        if bm and not benchmark:
-                            benchmark = bm.group(1).strip()
+                    if isinstance(c, str) and not benchmark:
+                        benchmark = bench_of(c)
             continue
         pct_raw = cell(row, "pct")
         pct = num(pct_raw)
         if done:
-            bm = re.search(r"benchmark\s*name\s*[-:]\s*(.+)", name, re.I)
-            if bm and not benchmark:
-                benchmark = bm.group(1).strip()
+            if not benchmark:
+                benchmark = bench_of(name)
             continue
         if GRAND_ROW.match(name) and pct is not None:
             net_assets = num(cell(row, "value"))

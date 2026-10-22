@@ -55,6 +55,11 @@ SRC_MASTER = "AMFI scheme master (portal.amfiindia.com)"
 SRC_PERF = "AMFI fund performance (amfiindia.com/otherdata/fund-performance)"
 SRC_TER = "AMFI TER of MF schemes (amfiindia.com/ter-of-mf-schemes)"
 SRC_AAUM = "AMFI average AUM scheme-wise (amfiindia.com)"
+SRC_DETAILS = "AMFI scheme details (amfiindia.com/otherdata/scheme-details)"
+URL_MF_LIST = "https://www.amfiindia.com/api/populate-mf"
+URL_SCHEMES = "https://www.amfiindia.com/api/populate-scheme"
+URL_DETAILS = "https://www.amfiindia.com/api/scheme-details"
+LOAD_MAX_AGE_DAYS = 25               # a scheme's load text is asked again after this many days
 URL_MASTER = "https://portal.amfiindia.com/DownloadSchemeData_Po.aspx?mf=0"
 URL_PERF = "https://www.amfiindia.com/gateway/pollingsebi/api/amfi/fundperformance"
 URL_PERF_SUB = "https://www.amfiindia.com/gateway/pollingsebi/api/amfi/getsubcategory"
@@ -63,7 +68,7 @@ URL_TER = "https://www.amfiindia.com/api/populate-te-rdata-revised"
 URL_AAUM = "https://www.amfiindia.com/api/average-aum-schemewise"
 URL_EQUITY_L = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
 
-NO_EXIT_LOAD = ("Exit load is published in each scheme's Scheme Information Document and factsheet (PDF, different layout at every fund house); "
+NO_EXIT_LOAD = ("AMFI's scheme details leave the load blank for this scheme; it is published in the scheme's Scheme Information Document and factsheet (PDF, different layout at every fund house); "
                 "no free machine-readable official source was verified, so none is shown.")
 NO_MANAGERS = ("Fund managers are named in each scheme's factsheet and Scheme Information Document (PDF); no free machine-readable official source "
                "was verified, so none is shown.")
@@ -366,10 +371,13 @@ async def get_facts(pool, key) -> Optional[dict]:
     mi = val("mininv")
     mininv = ({"value": mi[0]["amount"], "unit": "rupees", "text": mi[0].get("text"), "asOf": _iso(mi[1]["as_of"]), "source": mi[1]["source"]} if mi and mi[0].get("amount")
               else {"unavailable": (mi[0].get("why") if mi else None) or "AMFI's scheme master gives no clear minimum amount for this scheme (it says 'refer SID' or is blank)."})
+    el = val("exitload")
+    exit_load = ({"value": el[0]["text"], "asOf": _iso(el[1]["as_of"]), "source": el[1]["source"], "sourceUrl": el[1]["source_url"]} if el
+                 else {"unavailable": NO_EXIT_LOAD})
     return {"aum": aum,
             "terRegular": t_reg or {"unavailable": "AMFI's TER list has no regular-plan expense ratio for this scheme."},
             "terDirect": t_dir or {"unavailable": "AMFI's TER list has no direct-plan expense ratio for this scheme (it may have no direct plan)."},
-            "exitLoad": {"unavailable": NO_EXIT_LOAD}, "benchmark": benchmark, "managers": {"unavailable": NO_MANAGERS},
+            "exitLoad": exit_load, "benchmark": benchmark, "managers": {"unavailable": NO_MANAGERS},
             "riskometer": risk, "launchDate": launch, "minInvestment": mininv}
 
 
@@ -642,6 +650,70 @@ async def step_aaum(pool, client, idx: Index, today: date) -> dict:
     return {"status": "ok", "period": label, "families": len(fam_sum), "codes": len(codes), "codesNotInOurList": miss}
 
 
+_EXIT = re.compile(r"exit\s*load\s*[:\-]?\s*", re.I)
+_NIL = re.compile(r"^(nil|none|not applicable|n\.?a\.?|no exit load)\W*$", re.I)
+
+
+def exit_load_text(raw: str) -> Optional[str]:
+    """The exit-load part of AMFI's 'load' text ('Entry Load: Nil Exit Load: 1% if redeemed within 1 year ...'), tidied. None when blank."""
+    t = re.sub(r"\s+", " ", (raw or "")).strip()
+    if not t or t.upper() in ("NA", "N.A.", "-"):
+        return None
+    m = _EXIT.search(t)
+    if m:
+        t = t[m.end():].strip(" ,;:-")
+    t = re.sub(r"^entry\s*load\s*[:\-]?\s*(nil|not applicable|n\.?a\.?)\s*[,;.]?\s*", "", t, flags=re.I).strip()
+    if not t:
+        return None
+    return "Nil" if _NIL.match(t) else t[:600]
+
+
+async def step_loads(pool, client, idx: Index, today: date) -> dict:
+    """Exit load text from AMFI's scheme details: one list call per fund house, then one call per scheme that matches an active scheme family here and has no
+    load text from the last LOAD_MAX_AGE_DAYS days. Resumable: whatever was written stays; the next run asks only for the rest."""
+    async with pool.acquire() as conn:
+        active = {r["family"] for r in await conn.fetch("SELECT DISTINCT family FROM mf_schemes WHERE active")}
+        fresh = {r["fkey"] for r in await conn.fetch("SELECT fkey FROM disclosure_facts WHERE kind = 'exitload' AND updated_at > now() - make_interval(days => $1)", LOAD_MAX_AGE_DAYS)}
+    houses = await get_json(client, URL_MF_LIST)
+    want: Dict[str, List[Tuple[str, str]]] = defaultdict(list)          # family -> [(mf id, AMFI scheme id)], newest id first
+    unmapped = 0
+    for h in houses or []:
+        if excluded_amc(str(h.get("mfName") or "")):
+            continue
+        rows = await get_json(client, URL_SCHEMES, params={"MF_ID": h["mfId"]})
+        for r in rows or []:
+            fam, _ = idx.resolve([str(r.get("scheme_name") or "")])
+            if not fam:
+                unmapped += 1
+            elif fam in active and fam not in fresh:
+                want[fam].append((str(h["mfId"]), str(r["scheme_id"])))
+        await asyncio.sleep(0.1)
+    facts, asked, blank = [], 0, 0
+    sem = asyncio.Semaphore(3)
+
+    async def one(fam: str, cands: List[Tuple[str, str]]):
+        nonlocal asked, blank
+        for mf_id, sid in sorted(cands, key=lambda c: -int(c[1]) if c[1].isdigit() else 0)[:3]:   # the newest listing of a scheme first
+            async with sem:
+                asked += 1
+                try:
+                    d = ((await get_json(client, URL_DETAILS, params={"MF_ID": mf_id, "scheme_id": sid})).get("data") or [{}])[0]
+                except Exception:
+                    continue
+            txt_ = exit_load_text(str(d.get("Scheme_load") or ""))
+            if txt_:
+                facts.append((fam, "exitload", today, {"text": txt_}, SRC_DETAILS, "https://www.amfiindia.com/otherdata/scheme-details"))
+                return
+        blank += 1
+
+    items = list(want.items())
+    for i in range(0, len(items), 60):                                   # written in batches, so an interrupted run keeps what it got
+        await asyncio.gather(*[one(f, c) for f, c in items[i:i + 60]])
+        await put_facts(pool, facts)
+        facts.clear()
+    return {"status": "ok", "families": len(want), "asked": asked, "blank": blank, "alreadyFresh": len(fresh & active), "namesNotMatched": unmapped}
+
+
 # ------------------------------------------------------------------------------------------------------------- steps: fund houses
 
 def _members(path: str) -> Iterable[Tuple[str, str]]:
@@ -782,7 +854,7 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
             return {"status": "failed", "why": "mf_schemes is empty or short: run refresh-mf first", "steps": {}, "amc": {}}
         steps = [("master", lambda: step_master(pool, client, idx, today)), ("isin", lambda: step_isin(pool, today)),
                  ("performance", lambda: step_performance(pool, client, idx, today)), ("ter", lambda: step_ter(pool, client, idx, today)),
-                 ("aaum", lambda: step_aaum(pool, client, idx, today))]
+                 ("aaum", lambda: step_aaum(pool, client, idx, today)), ("loads", lambda: step_loads(pool, client, idx, today))]
         for name, fn in steps:
             if want and name not in want:
                 continue

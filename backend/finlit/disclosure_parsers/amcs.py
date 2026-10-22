@@ -184,6 +184,25 @@ async def list_nippon(client: httpx.AsyncClient, months: List[date]) -> List[Fil
     return out
 
 
+# -------------------------------------------------------------------------------------------------------------- SBI
+SBI_LIST = "https://www.sbimf.com/ajaxcall/CMS/GetSchemePortfolioSheets"
+_SBI_ALL = re.compile(r'href="(https://www\.sbimf\.com/docs/default-source/scheme-portfolios/all-schemes-monthly-portfolio[^"]+\.xlsx[^"]*)"', re.I)
+MON_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+async def list_sbi(client: httpx.AsyncClient, months: List[date]) -> List[FileRef]:
+    """One workbook for every SBI scheme ('all schemes monthly portfolio', one sheet per scheme), listed by the portfolios page's own service."""
+    out: List[FileRef] = []
+    for m in months:
+        r = await client.post(SBI_LIST, json={"FundId": 0, "PSYear": str(m.year), "PSMonth": MON_FULL[m.month - 1], "PSFrequency": "Monthly"},
+                              headers={"X-Requested-With": "XMLHttpRequest"})
+        r.raise_for_status()
+        found = _SBI_ALL.findall(r.text)
+        if found:
+            out.append(FileRef("sbi", found[0].replace("&amp;", "&"), m, None, f"SBI all schemes {m:%b %Y}"))
+    return out
+
+
 class Adapter:
     def __init__(self, key: str, title: str, amc_pattern: str, lister, site: str):
         self.key, self.title, self.site = key, title, site
@@ -192,6 +211,7 @@ class Adapter:
 
 
 ADAPTERS: List[Adapter] = [
+    Adapter("sbi", "SBI Mutual Fund", r"^sbi\b", list_sbi, "sbimf.com"),
     Adapter("mirae", "Mirae Asset Mutual Fund", r"mirae", list_mirae, "miraeassetmf.co.in"),
     Adapter("invesco", "Invesco Mutual Fund", r"invesco", list_invesco, "invescomutualfund.com"),
     Adapter("dsp", "DSP Mutual Fund", r"\bdsp\b", list_dsp, "dspim.com"),
