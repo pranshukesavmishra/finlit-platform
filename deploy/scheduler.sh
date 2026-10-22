@@ -56,6 +56,8 @@ fund_step() {  # fund_step <label> <worker args...>
   fi
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
+  # fund facts and holdings (AMFI + fund houses' monthly portfolios): last, so stock loads come first; skipped if it ran in the last 20 hours
+  MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-disclosures --max-age-hours 20 >> /tmp/job-disclosures.log 2>&1
   log "done boot-load"
 ) 9>/tmp/finlit-heavy.lock >> /tmp/job-boot-load.log 2>&1 &
 
@@ -76,6 +78,7 @@ while true; do
   (( weekday && H == 20 && M == 40 )) && run light etf refresh-etf    # nightly after the close: ETF prices and history (Upstox), paced (ETF_CALLS_PER_MINUTE)
   (( weekday && ((H == 22 && M == 10) || (H == 23 && M == 40)) )) && run light etf refresh-etf --resume   # retries: only the ETFs the nightly run could not fetch (none left = no provider calls)
   (( H == 21 && M == 10 )) && run light mf refresh-mf                 # nightly: AMFI publishes the day's NAVs in the evening
+  (( H == 4 && M == 40 )) && run light disclosures refresh-disclosures   # fund facts (TER, AUM, loads...) daily; fund-house files only when a new month is out (files already read are skipped)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe

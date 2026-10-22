@@ -162,6 +162,7 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     m2 = re.match(r"^(?:name of the scheme|scheme name|scheme)\s*[:\-]\s*(.+)$", main, re.I)
     if m2:
         main = m2.group(1).strip()
+    main = re.sub(r"^[A-Z]{1,4}\d{1,4}\s*[-:]\s*(?=[A-Za-z])", "", main)   # a fund house's own sheet code in front of the name ('IB01-Groww Large Cap Fund')
     return main, aliases
 
 
@@ -255,6 +256,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     done = False
     raw_pcts: List[float] = []
     star_rows = 0          # rows whose percent is a '*' / '<0.01' marker instead of a number: not listed
+    hedge_sum = 0.0
     hedge_rows = 0         # futures / options hedge lines with a negative percent: exposures, not additive to net assets, not listed
     in_deriv = False
 
@@ -314,6 +316,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if not isin_raw and (in_deriv or re.search(r"\b(futures?|options?|swaps?|derivatives?)\b", sec_probe, re.I)) and cls != "cash":
             if pct < 0:
                 hedge_rows += 1
+                hedge_sum += pct
                 continue
             cls = "other"
         if not seen_heading and cls == "other" and isin_raw:
@@ -340,6 +343,10 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         for h in holdings:
             h.pct_nav = round(h.pct_nav * 100.0, 6)
         grand_pct = round(grand_pct * 100.0, 6) if grand_pct is not None else None
+        if hedge_sum:   # the hedge block usually shares the table's unit, but some files print it in percent beside fraction holdings: take the one that adds up
+            listed = sum(h.pct_nav for h in holdings)
+            target = grand_pct if grand_pct is not None else 100.0
+            hedge_sum = min((hedge_sum * 100.0, hedge_sum), key=lambda hs: abs(listed + hs - target))
     else:
         grand_pct = round(grand_pct, 6) if grand_pct is not None else None
     if star_rows:
@@ -347,7 +354,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     if hedge_rows:
         notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,
-                     net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases)
+                     net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases,
+                     hedge_pct=round(hedge_sum, 6))
 
 
 def open_workbook(path: str):

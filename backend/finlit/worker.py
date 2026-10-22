@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import time
@@ -395,6 +396,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         _p.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours (a clean run) or the last 15 minutes (a partial one): redeploys must not repeat a full load")
         if _name == "refresh-etf":
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
+    p_dc = sub.add_parser("refresh-disclosures", help="fund facts and holdings from AMFI and the fund houses' monthly portfolio files (resumable; files already read are skipped)")
+    p_dc.add_argument("--only", nargs="*", default=None, help="steps (master isin performance ter aaum loads) or fund-house keys (sbi nippon ...)")
+    p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
+    p_dc.add_argument("--months", type=int, default=None, help="month-ends to read per fund house (default: the latest 3)")
+    p_dc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran in the last N hours")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -447,6 +453,28 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
             return 0
+        if args.cmd == "refresh-disclosures":
+            from . import disclosure
+            from .mf import record_run, last_run_age_hours
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            names = list(args.only) if args.only else [*disclosure.STEP_NAMES, *(a.key for a in disclosure.ADAPTERS)]
+            names = [n for n in names if n not in set(args.skip or ())]
+            try:
+                result = await disclosure.refresh(store, settings, names, args.months or disclosure.KEEP_MONTHS)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            parts = {**result.get("steps", {}), **result.get("amc", {})}
+            await record_run(store, args.cmd, {"status": result.get("status"), "why": str(result.get("why") or "")[:200],
+                                               "parts": {k: v.get("status") for k, v in parts.items()},
+                                               "stored": sum(int(v.get("stored") or 0) for v in result.get("amc", {}).values()),
+                                               "failed": [f"{k}: {str(v.get('why') or '')[:80]}" for k, v in parts.items() if v.get("status") in ("error", "refused")][:8]})
+            print(json.dumps(result, default=str)[:4000])
+            return 0 if result.get("status") in ("ok", "partial") else 1
         if args.cmd == "backfill-mf":
             from .mf import backfill, record_run
             try:

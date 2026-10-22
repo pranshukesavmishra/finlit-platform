@@ -47,6 +47,7 @@ log = logging.getLogger("finlit.disclosure")
 
 __all__ = ["Holding", "Portfolio", "Facts", "Fact", "Verdict", "validate", "isin_ok", "get_portfolio", "get_facts", "refresh", "KEEP_MONTHS"]
 
+STEP_NAMES = ("master", "isin", "performance", "ter", "aaum", "loads")
 KEEP_MONTHS = 3                      # monthly disclosures kept per scheme
 MIN_KEEP_RATIO = 0.9                 # a re-read file with fewer holdings than this share of the stored one is not applied
 CLS = {"equity": "e", "debt": "d", "cash": "c", "other": "o"}
@@ -365,9 +366,13 @@ async def get_facts(pool, key) -> Optional[dict]:
     rk = val("risk")
     risk = ({"value": rk[0]["scheme"], "asOf": _iso(rk[1]["as_of"]), "source": rk[1]["source"], "benchmarkRisk": rk[0].get("benchmark")} if rk
             else {"unavailable": "AMFI's fund-performance list does not carry a risk-o-meter level for this scheme."})
-    ln = val("launch")
-    launch = ({"value": ln[0]["date"], "asOf": _iso(ln[1]["as_of"]), "source": ln[1]["source"]} if ln and ln[0].get("date")
-              else {"unavailable": (ln[0].get("why") if ln else None) or "AMFI's scheme master has no usable launch date for this scheme."})
+    ln, ld = val("launch"), val("launch_details")
+    if ln and ln[0].get("date"):
+        launch = {"value": ln[0]["date"], "asOf": _iso(ln[1]["as_of"]), "source": ln[1]["source"]}
+    elif ld and ld[0].get("date"):
+        launch = {"value": ld[0]["date"], "asOf": _iso(ld[1]["as_of"]), "source": ld[1]["source"]}
+    else:
+        launch = {"unavailable": (ln[0].get("why") if ln else None) or "AMFI's scheme master has no usable launch date for this scheme."}
     mi = val("mininv")
     mininv = ({"value": mi[0]["amount"], "unit": "rupees", "text": mi[0].get("text"), "asOf": _iso(mi[1]["as_of"]), "source": mi[1]["source"]} if mi and mi[0].get("amount")
               else {"unavailable": (mi[0].get("why") if mi else None) or "AMFI's scheme master gives no clear minimum amount for this scheme (it says 'refer SID' or is blank)."})
@@ -693,6 +698,7 @@ async def step_loads(pool, client, idx: Index, today: date) -> dict:
 
     async def one(fam: str, cands: List[Tuple[str, str]]):
         nonlocal asked, blank
+        launch_done = False
         for mf_id, sid in sorted(cands, key=lambda c: -int(c[1]) if c[1].isdigit() else 0)[:3]:   # the newest listing of a scheme first
             async with sem:
                 asked += 1
@@ -700,6 +706,10 @@ async def step_loads(pool, client, idx: Index, today: date) -> dict:
                     d = ((await get_json(client, URL_DETAILS, params={"MF_ID": mf_id, "scheme_id": sid})).get("data") or [{}])[0]
                 except Exception:
                     continue
+            ld = amfi.parse_dmy(str(d.get("Launch_Date") or ""))
+            if ld and not launch_done and date(1950, 1, 1) <= ld <= today:    # a second source for schemes the scheme master gives no clean launch date
+                facts.append((fam, "launch_details", today, {"date": ld.isoformat()}, SRC_DETAILS, "https://www.amfiindia.com/otherdata/scheme-details"))
+                launch_done = True
             txt_ = exit_load_text(str(d.get("Scheme_load") or ""))
             if txt_:
                 facts.append((fam, "exitload", today, {"text": txt_}, SRC_DETAILS, "https://www.amfiindia.com/otherdata/scheme-details"))

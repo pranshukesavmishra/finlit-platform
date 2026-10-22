@@ -64,6 +64,7 @@ class Portfolio:
     benchmark: Optional[str] = None
     notes: List[str] = field(default_factory=list)   # things the validator or parser wants the report to show
     aliases: List[str] = field(default_factory=list)  # other names the file gives the scheme ('formerly known as ...'), used only to match it to AMFI's list
+    hedge_pct: float = 0.0           # the short futures / options lines left out of the holdings (negative): part of the file's total, not of the list
 
 
 @dataclass
@@ -145,7 +146,10 @@ def validate(p: Portfolio, today: Optional[date] = None) -> Verdict:
         problems.append(f"{bad_isin} of {n_isin} equity/debt ISINs fail the check digit (more than {int(BAD_ISIN_SHARE * 100)} %): columns misread")
     if bad_isin:
         warnings.append(f"{bad_isin} equity/debt ISIN(s) failed the check digit; they are dropped from their rows when stored")
-    total = sum(h.pct_nav for h in hs if isinstance(h.pct_nav, (int, float)) and not math.isnan(h.pct_nav))
+    listed = sum(h.pct_nav for h in hs if isinstance(h.pct_nav, (int, float)) and not math.isnan(h.pct_nav))
+    # files differ on whether their total counts the short hedge lines left out of the list: take the reading that matches the file
+    want = p.published_total_pct if p.published_total_pct is not None else 100.0
+    total = min((listed, listed + (p.hedge_pct or 0.0)), key=lambda t: abs(t - want))
     n = len(hs)
     if p.published_total_pct is not None:
         if abs(p.published_total_pct - 100.0) > GRAND_TOTAL_TOL:

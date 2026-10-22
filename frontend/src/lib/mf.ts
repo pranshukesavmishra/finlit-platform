@@ -304,7 +304,13 @@ export function factValueText(f: FactVal): string {
   const v = f.value;
   if (v == null || (Array.isArray(v) && !v.length)) return "";
   if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "number") return nf(v, Math.abs(v) >= 100 ? 0 : 2) + (f.unit ? ` ${f.unit}` : "");
+  if (typeof v === "number") {
+    const n = nf(v, Math.abs(v) >= 100 ? 0 : 2);
+    if (f.unit === "crore") return `₹${n} Cr`;
+    if (f.unit === "percent") return `${nf(v, 2)}%`;
+    if (f.unit === "rupees") return `₹${n}`;
+    return n + (f.unit ? ` ${f.unit}` : "");
+  }
   return /^\d{4}-\d{2}-\d{2}$/.test(v) ? dateIN(v) : v;
 }
 /** Order of the fact rows: the server's order, then any extra key. */

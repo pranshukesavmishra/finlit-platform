@@ -1,5 +1,15 @@
 # ETFs and Mutual funds: where things stand and what to do next
 
+## Fund facts and holdings (October 2026): `finlit/disclosure.py`, worker `refresh-disclosures`
+- Runs at boot (after the stock loads, skipped if it ran in the last 20 hours) and daily at 04:40 IST; result at `/api/mf/status` (`run:refresh-disclosures`).
+- From AMFI, for (almost) every active scheme: expense ratio regular/direct (TER), AUM (quarterly average; month-end net assets where a portfolio file is read),
+  launch date, minimum investment, exit load (AMFI scheme details, about 74 %). Measured locally: TER 8 226 / 8 250, AUM 8 209, minimum 8 072, exit load 6 104.
+- Holdings, sector split, month-end AUM and benchmark from the fund houses' own monthly files: SBI, Nippon India, Aditya Birla Sun Life, Mirae, DSP, Invesco,
+  Baroda BNP Paribas, Groww, PPFAS, Helios (2 666 of 8 250 schemes). Adapters: `finlit/disclosure_parsers/amcs.py` (`page_lister` covers any house that links its files).
+- Not yet: risk-o-meter (AMFI's fund-performance feed answers 403 to the sandbox; it may work from Render: check `parts.performance` in the status),
+  fund managers (factsheet PDFs only), holdings for ICICI Prudential (host blocked from the sandbox), HDFC and Edelweiss (403), Kotak (hCaptcha),
+  Bandhan (obfuscated app), UTI, Axis, Tata, HSBC, LIC, Motilal, Franklin, Sundaram, Union, quant and the smaller houses (no direct links found yet).
+
 ## Live state at hand-off (read this first)
 - **How to see what the boot/nightly steps did:** open `https://finlit-arug.onrender.com/api/mf/status` (no login). It shows, for `refresh-etf`, `refresh-mf` and `backfill-mf`, when they last ran, their status and counts. Render's logs are not reachable from outside.
 - **Funds are loaded:** 8,249 schemes listed after the exclusions; Growth plans are the default view (3,386 schemes); 3,050 have a 1-year and 1,688 a 5-year return; top 100 ready list served; best-known fund houses first (list `MF_FEATURED_AMCS` in `config.py`). IDCW pages link to the Growth option of the same fund.

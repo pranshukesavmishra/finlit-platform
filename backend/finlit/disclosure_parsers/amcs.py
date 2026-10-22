@@ -203,6 +203,50 @@ async def list_sbi(client: httpx.AsyncClient, months: List[date]) -> List[FileRe
     return out
 
 
+# -------------------------------------------------------------------------------------------------------------- houses that link their files on one page
+_MONTH_WORD = re.compile(r"(?<![a-z])(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[^0-9a-z]{0,3}(?:\d{1,2}(?:st|nd|rd|th)?[^0-9a-z]{1,3})?(20\d\d)(?!\d)")
+_DMY = re.compile(r"(?<!\d)(\d{1,2})[-_.](\d{1,2})[-_.](20\d\d)(?!\d)")
+
+
+def file_month(url: str) -> Optional[date]:
+    """The month-end a file is for, from its name: 'September_30_2026', '30st-september-2026', 'Sep 30, 2026', '30-09-2026'. None when unclear."""
+    name = unquote(url.split("?")[0].rsplit("/", 1)[-1]).lower()
+    m = _MONTH_WORD.search(name)
+    if m:
+        return _eom(date(int(m.group(2)), _MON[m.group(1)[:3]], 1))
+    m = _DMY.search(name)
+    if m and 1 <= int(m.group(2)) <= 12:
+        return _eom(date(int(m.group(3)), int(m.group(2)), 1))
+    return None
+
+
+def page_lister(key: str, page: str, href: str, per_scheme: bool = False):
+    """A lister for a fund house that links each month's portfolio file(s) on one page. `href` matches the file links (absolute or site-relative)."""
+    pat = re.compile(href, re.I)
+
+    async def lister(client: httpx.AsyncClient, months: List[date]) -> List[FileRef]:
+        html = await get_text(client, page)
+        wanted = {(m.year, m.month) for m in months}
+        out: Dict[str, FileRef] = {}
+        for raw in pat.findall(html):
+            url = urljoin(page, raw.replace("&amp;", "&"))
+            d = file_month(url)
+            if d and (d.year, d.month) in wanted and url not in out:
+                out[url] = FileRef(key, url, d, None, unquote(url.rsplit("/", 1)[-1])[:80])
+        return list(out.values())
+    return lister
+
+
+list_ppfas = page_lister("ppfas", "https://amc.ppfas.com/downloads/portfolio-disclosure/",
+                         r'href="(/downloads/portfolio-disclosure/\d{4}/PPFAS_Monthly_Portfolio_Report_[A-Za-z]+_\d{1,2}_\d{4}\.xlsx?)[?"]')
+list_barodabnp = page_lister("barodabnp", "https://www.barodabnpparibasmf.in/downloads/monthly-portfolio-scheme",
+                             r'href="([^"]*/download_documents/BOBBNPMF_Monthly_Portfolio_[0-9-]+[^"]*\.xlsx?)"')
+list_groww = page_lister("groww", "https://www.growwmf.in/statutory-disclosure/portfolio",
+                         r'href="(https://assets-netstorage\.growwmf\.in/compliance_docs/[^"]*/Monthly%20Portfolio[^"]*\.xlsx?)"')
+list_helios = page_lister("helios", "https://www.heliosmf.in/downloads/",
+                          r'href="([^"]*/wp-content/uploads/\d{4}/\d{2}/helios-[^"]*monthly-portfolio[^"]*\.xlsx?)"', per_scheme=True)
+
+
 class Adapter:
     def __init__(self, key: str, title: str, amc_pattern: str, lister, site: str):
         self.key, self.title, self.site = key, title, site
@@ -212,6 +256,10 @@ class Adapter:
 
 ADAPTERS: List[Adapter] = [
     Adapter("sbi", "SBI Mutual Fund", r"^sbi\b", list_sbi, "sbimf.com"),
+    Adapter("ppfas", "PPFAS Mutual Fund", r"ppfas|parag\s+parikh", list_ppfas, "amc.ppfas.com"),
+    Adapter("barodabnp", "Baroda BNP Paribas Mutual Fund", r"baroda", list_barodabnp, "barodabnpparibasmf.in"),
+    Adapter("groww", "Groww Mutual Fund", r"groww", list_groww, "growwmf.in"),
+    Adapter("helios", "Helios Mutual Fund", r"helios", list_helios, "heliosmf.in"),
     Adapter("mirae", "Mirae Asset Mutual Fund", r"mirae", list_mirae, "miraeassetmf.co.in"),
     Adapter("invesco", "Invesco Mutual Fund", r"invesco", list_invesco, "invescomutualfund.com"),
     Adapter("dsp", "DSP Mutual Fund", r"\bdsp\b", list_dsp, "dspim.com"),

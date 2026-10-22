@@ -171,6 +171,9 @@ describe("fund facts text", () => {
     expect(factValueText({ value: "Nifty 50 TRI", asOf: "2026-09-30", source: "x" })).toBe("Nifty 50 TRI");
     expect(factValueText({ value: ["A B", "C D"] })).toBe("A B, C D");
     expect(factValueText({ value: 12345.6, unit: "₹ crore" })).toBe("12,346 ₹ crore");
+    expect(factValueText({ value: 6070.8205, unit: "crore" })).toBe("₹6,071 Cr");          // what finlit.disclosure sends
+    expect(factValueText({ value: 2, unit: "percent" })).toBe("2.00%");
+    expect(factValueText({ value: 5000, unit: "rupees" })).toBe("₹5,000");
     expect(factValueText({ value: "2013-01-01" })).toBe("1 Jan 2013");
     expect(factValueText({ unavailable: "why" })).toBe(""); expect(factValueText({ value: null })).toBe(""); expect(factValueText({ value: [] })).toBe("");
   });
