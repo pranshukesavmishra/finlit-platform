@@ -1,6 +1,6 @@
 # Direct runtime dependencies (exact pins). CI runs pip-audit on these on every push,
 # and Dependabot proposes updates weekly.
-fastapi==0.143.2
+fastapi==0.149.0
 starlette==1.8.0
 uvicorn[standard]==0.54.0
 httpx==0.28.1
