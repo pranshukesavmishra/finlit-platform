@@ -328,6 +328,7 @@ async def store(monkeypatch):
         await conn.execute("DROP TABLE IF EXISTS etf_hot CASCADE")
         await conn.execute((MIGRATIONS / "034_etf.sql").read_text())
         await conn.execute((MIGRATIONS / "038_etf_hot.sql").read_text())
+        await conn.execute((MIGRATIONS / "039_etf_fetched.sql").read_text())
     async for k in st.redis.scan_iter("etf:*"):
         await st.redis.delete(k)
     yield st
@@ -344,6 +345,7 @@ async def snapshot(store):
         hist = [dict(r) for r in await conn.fetch("SELECT symbol, dates, closes, highs, lows FROM etf_history ORDER BY symbol")]
     for f in funds:
         f.pop("updated_at")
+        f.pop("fetched_at")
     return funds, hist
 
 
@@ -461,6 +463,85 @@ async def test_short_or_empty_answers_never_overwrite_good_rows(store):
         funds, hist = await snapshot(store)
         assert [(f["symbol"], f["price"], f["ret_1y"], f["points"]) for f in funds] == [(f["symbol"], f["price"], f["ret_1y"], f["points"]) for f in before[0]]
         assert [h["closes"] for h in hist] == [h["closes"] for h in before[1]]
+
+
+def test_last_close_is_the_latest_weekday_close():
+    ist = lambda *a: datetime(*a, tzinfo=etf.IST)
+    assert etf.last_close(ist(2026, 10, 21, 23, 0)) == ist(2026, 10, 21, 15, 45)       # Wednesday evening: today's close
+    assert etf.last_close(ist(2026, 10, 21, 11, 0)) == ist(2026, 10, 20, 15, 45)       # Wednesday morning: yesterday's
+    assert etf.last_close(ist(2026, 10, 24, 12, 0)) == ist(2026, 10, 23, 15, 45)       # Saturday: Friday's
+    assert etf.last_close(ist(2026, 10, 26, 9, 0)) == ist(2026, 10, 23, 15, 45)        # Monday before the close: Friday's
+
+
+async def test_pacer_waits_only_after_the_burst():
+    import time
+    p = etf.Pacer(1200, burst=3)                                                              # one call per 50 ms after 3 free ones
+    t = time.monotonic()
+    for _ in range(3):
+        await p.wait()
+    assert time.monotonic() - t < 0.04
+    for _ in range(3):
+        await p.wait()
+    assert time.monotonic() - t >= 0.13
+    t = time.monotonic()
+    await etf.Pacer(0).wait()                                                                 # 0 = off
+    assert time.monotonic() - t < 0.01
+
+
+class Limited(Provider):
+    """Candle calls answer 429 for the listed symbols (the provider's quota), everything else as recorded."""
+
+    def __init__(self, limited, **kw):
+        super().__init__(**kw)
+        self.limited = set(limited)
+
+    def __call__(self, req):
+        if req.url.path.startswith("/v3/historical-candle/"):
+            key = urllib.parse.unquote(req.url.path).split("/")[3]
+            if BY_KEY.get(key) in self.limited:
+                self.calls.append(str(req.url))
+                return httpx.Response(429, json={"status": "error"})
+        return super().__call__(req)
+
+
+async def test_rate_limit_stops_the_run_records_why_and_a_resumed_run_fetches_only_what_is_missing(store, monkeypatch):
+    monkeypatch.setattr(etf.asyncio, "sleep", _no_sleep)                                     # the client's back-off between retries
+    first = sorted(BY_SYMBOL)[:1]
+    r = await etf.refresh(store, S(), transport=httpx.MockTransport(Limited(first)), now=NOW)
+    assert r["status"] == "partial" and "HTTP 429" in r["reason"] and "rate limit" in r["reason"], r
+    assert r["failed"] and r["failed"][0].endswith("HTTP 429")
+    assert r["updated"] + len(r["deferred"]) + len(r["failed"]) >= 17 and not set(first) & set(r["no_history"])   # a failed call is not "no history"
+    missing = 17 - r["updated"]
+    assert missing >= 1
+    # the retry asks only for what failed or was left
+    prov = Provider()
+    r2 = await etf.refresh(store, S(), transport=httpx.MockTransport(prov), now=NOW + timedelta(minutes=50), resume=True)
+    assert r2["status"] == "ok" and r2["already_fetched"] == 17 - missing and r2["updated"] == missing, r2
+    assert sum("historical-candle" in c for c in prov.calls) == missing
+    # nothing left: the next retry makes no provider call at all
+    prov = Provider()
+    r3 = await etf.refresh(store, S(), transport=httpx.MockTransport(prov), now=NOW + timedelta(minutes=90), resume=True)
+    assert r3["status"] == "ok" and r3["fetched"] == 0 and prov.calls == []
+    # the next evening everything is due again
+    prov = Provider()
+    r4 = await etf.refresh(store, S(), transport=httpx.MockTransport(prov), now=NOW + timedelta(days=1), resume=True)
+    assert r4["already_fetched"] == 0 and sum("historical-candle" in c for c in prov.calls) == 17
+
+
+async def test_an_etf_with_no_candles_at_all_is_not_asked_again_by_a_resumed_run(store):
+    await etf.refresh(store, S(), transport=httpx.MockTransport(Provider()), now=NOW)
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE etf_funds SET fetched_at = NULL")
+    r = await etf.refresh(store, S(), transport=httpx.MockTransport(Provider(empty_candles=True, instruments=ETFS + [{**ETFS[0], "trading_symbol": "NEWETF", "instrument_key": "NSE_EQ|NEWETF"}])),
+                          now=NOW + timedelta(hours=1), resume=True)
+    assert "NEWETF" in r["no_history"], r
+    prov = Provider(instruments=ETFS + [{**ETFS[0], "trading_symbol": "NEWETF", "instrument_key": "NSE_EQ|NEWETF"}])
+    r = await etf.refresh(store, S(), transport=httpx.MockTransport(prov), now=NOW + timedelta(hours=2), resume=True)
+    assert not any("NEWETF" in c for c in prov.calls if "historical-candle" in c), r
+
+
+async def _no_sleep(_s):
+    return None
 
 
 async def test_expired_token_keeps_everything_and_says_so(store):

@@ -187,6 +187,13 @@ async def test_rate_limit_returns_429(ingested):
         codes = [(await c.get("/api/stocks/RELIANCE")).status_code for _ in range(7)]
         assert codes[:5] == [200] * 5 and codes[5:] == [429, 429]
         assert (await c.get("/api/health")).status_code == 200  # health is never limited
+        assert (await c.get("/assets/index.js")).status_code != 429  # website files are not counted (one page load fetches dozens)
+
+
+async def test_health_shows_no_internals_outside_development(ingested):
+    app, transport = await _client(ingested, environment="staging")
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        assert (await c.get("/api/health")).json() == {"ok": True}
 
 
 async def test_queue_limit_per_client(ingested):

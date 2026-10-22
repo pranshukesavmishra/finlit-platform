@@ -29,6 +29,8 @@ class Settings:
     # Secondary data source (Upstox). Empty = switched off entirely: no calls, nothing shown. Secret: set only in the host's dashboard.
     upstox_access_token: str = field(default_factory=lambda: os.getenv("UPSTOX_ACCESS_TOKEN", "").strip())
     upstox_base_url: str = field(default_factory=lambda: os.getenv("UPSTOX_BASE_URL", "https://api.upstox.com"))
+    # ETF candle calls a minute after a short burst (refresh-etf). Upstox allows about 2,000 calls per 30 minutes for the whole token; 50 leaves room for other jobs.
+    etf_calls_per_minute: int = field(default_factory=lambda: int(os.getenv("ETF_CALLS_PER_MINUTE", "50")))
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "postgresql://finlit:finlit@localhost:5432/finlit"))
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379/0"))
     cors_origins: List[str] = field(default_factory=lambda: _list(os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")))

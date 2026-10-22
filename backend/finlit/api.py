@@ -50,6 +50,7 @@ CACHE_STOCK = "public, max-age=60, stale-while-revalidate=600"
 CACHE_INDEX = "public, max-age=300, stale-while-revalidate=86400"
 PUBLIC_SECTIONS = set(SECTIONS) - {"price"}  # full daily history only via ranges
 UNLIMITED_PATHS = ("/api/health", "/api/ping")
+LIMITED_PREFIX = "/api/"   # website files (scripts, styles, images) are not counted: one page load fetches dozens, and many mobile users share one IP
 MAX_BODY = 64 * 1024  # every request body in this API is small JSON
 UPLOAD_PREFIXES = ("/api/content/admin/upload", "/api/portfolio/admin/upload")  # forwarded to the site backend, which caps files at 15 MB
 MAX_UPLOAD_BODY = 16 * 1024 * 1024
@@ -57,13 +58,13 @@ CACHE_PRIVATE = "private, no-cache"  # the browser keeps a copy but asks (cheap 
 
 
 class RateLimitMiddleware:
-    """Per-client request budget for every API route (health checks excluded)."""
+    """Per-client request budget for every API route (health checks excluded). Website files are not counted."""
 
     def __init__(self, app: ASGIApp, settings: Settings):
         self.app, self.settings = app, settings
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        if scope["type"] != "http" or scope["path"].startswith(UNLIMITED_PATHS) or scope["method"] == "OPTIONS":
+        if scope["type"] != "http" or not scope["path"].startswith(LIMITED_PREFIX) or scope["path"].startswith(UNLIMITED_PATHS) or scope["method"] == "OPTIONS":
             return await self.app(scope, receive, send)
         state = scope["app"].state
         ip = client_ip(scope, self.settings.client_ip_header)
@@ -174,7 +175,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         if store is None:
             await app.state.store.close()
 
-    docs = not settings.is_production  # no public schema or Swagger UI in production
+    docs = settings.environment == "development"  # no public schema or Swagger UI on any deployed site (staging included)
     app = FastAPI(title="FinLit API", version="0.1.0", lifespan=lifespan,
                   docs_url="/api/docs" if docs else None, redoc_url=None,
                   openapi_url="/api/openapi.json" if docs else None)
@@ -249,7 +250,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def health():
         status = await app.state.store.ping()
         ok = all(status.values())
-        body = {"ok": ok} if settings.is_production else {"ok": ok, **status}  # no internals in production
+        body = {"ok": ok, **status} if settings.environment == "development" else {"ok": ok}  # no internals on any deployed site
         return JSONResponse(body, status_code=200 if ok else 503, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/stocks/search-index")
