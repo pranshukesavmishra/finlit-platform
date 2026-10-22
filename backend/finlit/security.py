@@ -10,7 +10,8 @@ import ipaddress
 import os
 import logging
 import time
-from typing import Tuple
+from functools import lru_cache
+from typing import Optional, Tuple
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -56,19 +57,67 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, wrapped)
 
 
+# Addresses that are proxies in front of the app, never a visitor: private and internal networks (the host's own load balancer)
+# and Cloudflare's published edge ranges (https://www.cloudflare.com/ips, checked October 2026; Render puts Cloudflare in front of every
+# service). TRUSTED_PROXIES (comma-separated CIDRs) adds more, for a host whose proxies use other public addresses.
+PROXY_NETWORKS = (
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "::1/128", "fc00::/7", "fe80::/10",
+    "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18", "108.162.192.0/18", "190.93.240.0/20",
+    "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13", "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+    "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32", "2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
+)
+MAX_FORWARDED_HOPS = 20
+
+
+@lru_cache(maxsize=4)
+def _proxy_networks(extra: str) -> tuple:
+    nets = []
+    for cidr in PROXY_NETWORKS + tuple(x.strip() for x in extra.split(",") if x.strip()):
+        try:
+            nets.append(ipaddress.ip_network(cidr, strict=False))
+        except ValueError:
+            log.warning("TRUSTED_PROXIES: ignoring %r (not a network)", cidr)
+    return tuple(nets)
+
+
+def is_proxy(ip: "ipaddress._BaseAddress") -> bool:
+    return any(ip.version == n.version and ip in n for n in _proxy_networks(os.getenv("TRUSTED_PROXIES", "")))
+
+
+def forwarded_client(value: str) -> Optional[str]:
+    """The visitor's address in an X-Forwarded-For chain. Each proxy appends the address it received the request from, so the chain is
+    read from the right: proxies (private networks, Cloudflare) are skipped and the first other address is the visitor. Whatever a visitor
+    writes into the header themselves sits further left and is never reached, so it cannot be used to dodge rate limits or lockouts.
+    This holds however many proxy hops the host adds (one, or Cloudflare plus a load balancer)."""
+    parts = [x.strip() for x in value.split(",") if x.strip()][-MAX_FORWARDED_HOPS:]
+    furthest: Optional[str] = None
+    for raw in reversed(parts):
+        try:
+            ip = ipaddress.ip_address(raw)
+        except ValueError:
+            return furthest                    # a malformed entry: nothing to its left can be trusted
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped                # "::ffff:49.36.1.2" is the IPv4 visitor 49.36.1.2
+        if not is_proxy(ip):
+            return str(ip)
+        furthest = str(ip)
+    return furthest                            # every hop is a proxy (a visitor on a private network): the furthest one
+
+
 def client_ip(scope: Scope, header: str = "") -> str:
-    """Peer address, or the configured proxy header (e.g. cf-connecting-ip) when it holds a valid IP."""
+    """Peer address, or the configured proxy header when it holds a valid IP: x-forwarded-for (read as described in forwarded_client)
+    or a single-address header such as cf-connecting-ip (only where the origin is reachable through that proxy alone)."""
     if header:
         for key, value in scope.get("headers", []):
             if key.decode("latin-1").lower() == header:
-                parts = [x.strip() for x in value.decode("latin-1").split(",") if x.strip()]
-                # x-forwarded-for: the left end is whatever the caller sent; the proxy we trust appends on the right.
-                hop = int(os.getenv("TRUSTED_PROXY_HOPS", "1") or 1) if header == "x-forwarded-for" else None
-                if not parts:
+                text = value.decode("latin-1")
+                if header == "x-forwarded-for":
+                    found = forwarded_client(text)
+                    if found:
+                        return found
                     break
-                candidate = parts[-hop] if hop and hop <= len(parts) else parts[0 if hop is None else -1]
                 try:
-                    return str(ipaddress.ip_address(candidate))
+                    return str(ipaddress.ip_address(text.strip()))
                 except ValueError:
                     break
     peer = scope.get("client")

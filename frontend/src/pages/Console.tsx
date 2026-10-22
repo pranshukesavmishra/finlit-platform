@@ -128,6 +128,13 @@ function Health() {
           Mutual funds: {h.funds.mf ? `${h.funds.mf.active} active of ${h.funds.mf.n} schemes, ${h.funds.mf.with_history} with history, last refresh ${h.funds.mf.last ? stamp(h.funds.mf.last) : "never"}` : "not set up"}.
         </p>
       )}
+      {h.clientIp && (
+        <p className="muted">
+          How this server sees you (used for rate limits and sign-in lockouts): <span className="mono">{h.clientIp.resolved}</span>
+          {h.clientIp.chain ? <> from the proxy chain <span className="mono">{h.clientIp.chain}</span></> : null}. This should be your own public address;
+          if it is a Cloudflare or hosting address, add that range to <code>TRUSTED_PROXIES</code>.
+        </p>
+      )}
       <p className="muted">Last load: {h.lastLoad ? stamp(h.lastLoad) : "never"} · last 24 hours: {Object.entries(h.runs24h).map(([k, v]) => `${v} ${k}`).join(", ") || "no runs"}.</p>
       {h.universe === 0 && <div className="formerr">The company list is empty. Run <code>python -m finlit.worker refresh-universe</code>, then <code>probe</code> and <code>ingest-all</code>.</div>}
       {h.coverage && <div style={{ marginTop: 14 }}>
