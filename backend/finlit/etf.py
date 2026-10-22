@@ -702,7 +702,7 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             hot = await rank_hot(conn)
             for sym in hot:                                        # packed history is kept for the hot ETFs only
                 if sym in kept_hist:
-                    await _write_hist(conn, sym, *kept_hist[sym])
+                    await _write_hist(conn, sym, *kept_hist[sym], at=now)
             summary["pruned_history"] = int((await conn.execute("DELETE FROM etf_history WHERE NOT (symbol = ANY($1::text[]))", list(hot))).split()[-1])
             summary["hot"] = len(hot)
             summary["cold_cached"] = await _refresh_cold_cache(store, kept_hist, hot)
@@ -789,12 +789,14 @@ async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem, fetched_at: 
         nav, nav_date, prem, fetched_at)
 
 
-async def _write_hist(conn, sym, ds, cs, hs, ls, vs, full: bool) -> None:
+async def _write_hist(conn, sym, ds, cs, hs, ls, vs, full: bool, at: datetime) -> None:
+    # full_at is stamped with the run's own clock (`at`), the same one refresh() compares it against; the database clock would make the
+    # weekly full re-fetch depend on when the run happened to be written, not on the run's time.
     await conn.execute(
-        """INSERT INTO etf_history (symbol, dates, closes, highs, lows, volumes, full_at) VALUES ($1,$2,$3,$4,$5,$6, now())
+        """INSERT INTO etf_history (symbol, dates, closes, highs, lows, volumes, full_at) VALUES ($1,$2,$3,$4,$5,$6,$8)
            ON CONFLICT (symbol) DO UPDATE SET dates=EXCLUDED.dates, closes=EXCLUDED.closes, highs=EXCLUDED.highs, lows=EXCLUDED.lows,
-             volumes=EXCLUDED.volumes, full_at = CASE WHEN $7 THEN now() ELSE etf_history.full_at END, updated_at = now()""",
-        sym, ds, cs, hs, ls, vs, full)
+             volumes=EXCLUDED.volumes, full_at = CASE WHEN $7 THEN $8 ELSE etf_history.full_at END, updated_at = now()""",
+        sym, ds, cs, hs, ls, vs, full, at)
 
 
 async def rank_hot(conn) -> List[str]:
