@@ -45,7 +45,7 @@ export type CompareFund = {
   active: boolean; returns: FundDetail["returns"]; retDate?: string | null; risk: Risk; history: HistoryInfo;
 };
 /** One fund fact: a value with its date and source, or the reason there is none. */
-export type FactVal = { value: string | number | string[] | null; asOf?: string | null; source?: string; unit?: string } | { unavailable: string };
+export type FactVal = { value: string | number | string[] | null; asOf?: string | null; source?: string; unit?: string; note?: string } | { unavailable: string };
 export type FundFacts = { code: number; facts: Record<string, FactVal>; order: string[] };
 export type FundCompare = Facts & {
   funds: CompareFund[]; chart: { from: string; range: RangeKey; series: ({ code: number } & Points)[] } | null; chartNote: string | null; notAvailable: FundDetail["notAvailable"];

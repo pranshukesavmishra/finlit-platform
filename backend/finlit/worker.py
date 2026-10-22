@@ -395,6 +395,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         _p.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours (a clean run) or the last 15 minutes (a partial one): redeploys must not repeat a full load")
         if _name == "refresh-etf":
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
+    p_ff = sub.add_parser("refresh-facts", help="nightly: fund facts from AMFI (scheme master, expense ratios, quarterly average AUM) for funds and ETFs; run after refresh-mf")
+    p_ff.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -447,6 +449,20 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
             return 0
+        if args.cmd == "refresh-facts":
+            from .disclosure import refresh as refresh_facts
+            from .mf import last_run_age_hours, make_client, refresh_hot
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            result = await refresh_facts(store, settings)       # records its own result at /api/mf/status
+            if result["aum"].get("status") == "ok":            # the ready-made top 100 is now ranked by fund size; a newly ranked scheme's
+                async with make_client() as client:              # NAV series is fetched (with a client), never left missing
+                    result["hot"] = await refresh_hot(store, client)
+            print(result)
+            return 0 if result["status"] == "ok" else 1
         if args.cmd == "backfill-mf":
             from .mf import backfill, record_run
             try:

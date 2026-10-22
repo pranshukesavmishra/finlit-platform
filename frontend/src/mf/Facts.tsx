@@ -20,8 +20,9 @@ export function FactsCard({ facts, loading, failed }: { facts?: FundFacts; loadi
                 <dd>
                   {text ? <b>{text}</b> : <span className="mf-bigna" aria-label={`No figure. ${why}`}>—</span>}
                   <small className={text ? "faint" : "mf-why"}>
-                    {text && !("unavailable" in f) ? <>{f.asOf ? `As of ${dateIN(f.asOf)}` : "Date not given"}{f.source ? ` · ${f.source}` : ""}</> : why}
+                    {text && !("unavailable" in f) ? [f.asOf ? `As of ${dateIN(f.asOf)}` : "", f.source || ""].filter(Boolean).join(" · ") : why}
                   </small>
+                  {text && !("unavailable" in f) && f.note ? <small className="faint">{f.note}</small> : null}
                 </dd>
               </div>);
           })}

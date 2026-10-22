@@ -9,6 +9,7 @@ import sys
 import types
 from datetime import date, datetime, timedelta
 
+import finlit
 import httpx
 import pytest
 
@@ -246,6 +247,7 @@ async def test_search_finds_cold_etfs_with_typos(store, monkeypatch):
 # ------------------------------------------------------------------------------------------------------------ holdings and facts
 async def test_portfolio_and_facts_are_unavailable_with_a_reason_when_the_module_is_missing(api, monkeypatch):
     monkeypatch.setitem(sys.modules, "finlit.disclosure", None)                                    # makes the import fail like a missing module
+    monkeypatch.delattr(finlit, "disclosure", raising=False)                                       # (once imported, the package attribute would win)
     for path in ("portfolio", "facts"):
         r = await api.get(f"/api/etf/niftybees/{path}")
         b = r.json()
@@ -268,6 +270,7 @@ async def test_portfolio_and_facts_pass_the_disclosure_data_through(api, monkeyp
         return {"ter": {"value": 0.04, "asOf": "2026-09-30", "source": "AMC"}, "aum": {"unavailable": "Not in the disclosure we read"}}
     stub.get_portfolio, stub.get_facts = get_portfolio, get_facts
     monkeypatch.setitem(sys.modules, "finlit.disclosure", stub)
+    monkeypatch.setattr(finlit, "disclosure", stub, raising=False)
     b = (await api.get("/api/etf/NIFTYBEES/portfolio")).json()
     assert seen == ["INF204KB14I2"] and "unavailable" not in b and b["holdings"][0]["stockSymbol"] == "HDFCBANK" and b["summary"]["top10Pct"] == 12.5
     f = (await api.get("/api/etf/NIFTYBEES/facts")).json()
@@ -281,6 +284,7 @@ async def test_a_failing_disclosure_module_does_not_break_the_page(api, monkeypa
         raise RuntimeError("secret internal detail")
     stub.get_portfolio = stub.get_facts = boom
     monkeypatch.setitem(sys.modules, "finlit.disclosure", stub)
+    monkeypatch.setattr(finlit, "disclosure", stub, raising=False)
     r = await api.get("/api/etf/NIFTYBEES/portfolio")
     assert r.status_code == 200 and "secret" not in r.text and r.json()["unavailable"]
     assert (await api.get("/api/etf/NIFTYBEES")).status_code == 200

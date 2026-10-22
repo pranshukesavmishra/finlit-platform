@@ -49,7 +49,7 @@ export type EtfDetail = Omit<EtfItem, "nav"> & {
   breakNote: string | null; priceNote: string | null; asOf: string | null; updatedAt: string | null; source: string; disclaimer: string;
 };
 /** One fund-house fact: a value with its date and source, or the reason it is missing. */
-export type FactCell = { value?: string | number | string[] | null; asOf?: string | null; source?: string | null; unavailable?: string | null };
+export type FactCell = { value?: string | number | string[] | null; asOf?: string | null; source?: string | null; unavailable?: string | null; note?: string | null };
 export type EtfFacts = { symbol: string; isin: string; unavailable: string | null; facts: Record<string, FactCell>; disclaimer: string };
 export type EtfCompare = {
   symbols: string[]; range: RangeKey; start: string | null; items: EtfItem[]; series: Record<string, Point[]>; notes: string[];

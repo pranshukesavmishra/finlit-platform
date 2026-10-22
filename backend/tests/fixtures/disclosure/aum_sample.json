@@ -1,0 +1,118 @@
+{
+ "selectedPeriod": "July - September 2026",
+ "data": [
+  {
+   "strMFId": "0",
+   "Mfname": "Aditya Birla Sun Life Mutual Fund",
+   "SchemeType_Desc": "Open Ended",
+   "totalAUM": {
+    "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 44151280.82000003,
+    "FundOfFundsDomestic": 487688.31000000006
+   },
+   "schemes": [
+    {
+     "SchemeNAVName": "Aditya Birla Sun Life CRISIL Liquid Overnight ETF - IDCW Daily Reinvestment with Weekly Payout",
+     "AMFI_Code": 151533,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 4056.25,
+      "FundOfFundsDomestic": 0
+     }
+    }
+   ]
+  },
+  {
+   "strMFId": "0",
+   "Mfname": "Axis Mutual Fund",
+   "SchemeType_Desc": "Open Ended",
+   "totalAUM": {
+    "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 38293362.259999976,
+    "FundOfFundsDomestic": 858767.0099999998
+   },
+   "schemes": [
+    {
+     "SchemeNAVName": "Axis Business Cycles Fund - Direct Plan - Growth",
+     "AMFI_Code": 151368,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 9918.18,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Children's Fund - Lock in - Direct Growth",
+     "AMFI_Code": 135762,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 1558.62,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Children's Fund - Lock in - Direct Plan - IDCW",
+     "AMFI_Code": 135765,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 3.97,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Children's Fund - Lock in - Regular Growth",
+     "AMFI_Code": 135759,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 74569.99,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Children's Fund - Lock in - Regular Plan - IDCW",
+     "AMFI_Code": 135760,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 224.62,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Consumption Fund Direct Plan - Growth",
+     "AMFI_Code": 152805,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 16803.38,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Large Cap Fund - Direct Plan - Growth",
+     "AMFI_Code": 120465,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 1200075.27,
+      "FundOfFundsDomestic": 0
+     }
+    },
+    {
+     "SchemeNAVName": "Axis Liquid Fund - Direct Plan - Growth Option",
+     "AMFI_Code": 120389,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 4866891.71,
+      "FundOfFundsDomestic": 0
+     }
+    }
+   ]
+  },
+  {
+   "strMFId": "0",
+   "Mfname": "Bank of India Mutual Fund",
+   "SchemeType_Desc": "Close Ended",
+   "totalAUM": {
+    "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 9922.9,
+    "FundOfFundsDomestic": 0
+   },
+   "schemes": [
+    {
+     "SchemeNAVName": "BANK OF INDIA Mid Cap Tax Fund Series 1 Direct Plan Growth",
+     "AMFI_Code": 141950,
+     "AverageAumForTheMonth": {
+      "ExcludingFundOfFundsDomesticButIncludingFundOfFundsOverseas": 1692.54,
+      "FundOfFundsDomestic": 0
+     }
+    }
+   ]
+  }
+ ]
+}
