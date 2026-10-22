@@ -79,8 +79,8 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
             return (
               <div className="cmp-r" key={r.key} style={{ "--oc": c } as React.CSSProperties}>
                 <div className="cr-h"><b>{label(r)}</b><span className={"cmp-d " + (flat ? "" : d > 0 ? "up" : "down")}>{flat ? "Unchanged" : d > 0 ? `▲ Bought ${nf(d, 1)} pts` : `▼ Sold ${nf(Math.abs(d), 1)} pts`}</span></div>
-                <div className="cmp-b"><span className="cb-l">{then}</span><div className="cb-t"><i className="cb then" style={{ width: `${((r.start ?? 0) / scale) * 100}%` }} /></div><span className="cb-v">{nf(r.start ?? 0, 1)}%</span></div>
-                <div className="cmp-b now"><span className="cb-l">{now}</span><div className="cb-t"><i className="cb" style={{ width: `${((r.value ?? 0) / scale) * 100}%` }} /></div><span className="cb-v">{nf(r.value ?? 0, 1)}%</span></div>
+                <div className="cmp-b"><span className="cmp-lbl">{then}</span><div className="cmp-trk"><i className="cmp-fill then" style={{ width: `${((r.start ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{nf(r.start ?? 0, 1)}%</span></div>
+                <div className="cmp-b now"><span className="cmp-lbl">{now}</span><div className="cmp-trk"><i className="cmp-fill" style={{ width: `${((r.value ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{nf(r.value ?? 0, 1)}%</span></div>
               </div>
             );
           })}</div>
@@ -211,8 +211,8 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
       <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall and in each of the five areas." color="--info" />
       <div className="pc-g pc-all">
-        <div className="pc pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
-        <div className="pc con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
+        <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
+        <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
       </div>
       <div className="mth">
         {(() => {
@@ -229,8 +229,8 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
                 const mid = scored.length - pro.length - con.length, missing = cur.inputs.length - scored.length;
                 return (<>
                   <div className="pc-g">
-                    <div className="pc pro"><h4><Icon name="check" /> Pros</h4>{pro.length ? <ul>{pro.map(say)}</ul> : <p className="faint">Nothing stands out as strong here.</p>}</div>
-                    <div className="pc con"><h4><Icon name="alert" /> Cons</h4>{con.length ? <ul>{con.map(say)}</ul> : <p className="faint">Nothing stands out as weak here.</p>}</div>
+                    <div className="pcb pro"><h4><Icon name="check" /> Pros</h4>{pro.length ? <ul>{pro.map(say)}</ul> : <p className="faint">Nothing stands out as strong here.</p>}</div>
+                    <div className="pcb con"><h4><Icon name="alert" /> Cons</h4>{con.length ? <ul>{con.map(say)}</ul> : <p className="faint">Nothing stands out as weak here.</p>}</div>
                   </div>
                   <p className="faint" style={{ fontSize: 12.5, margin: "12px 0 0" }}>{cur.label}: {pro.length} strong, {con.length} weak{mid > 0 ? `, ${mid} in between` : ""}{missing > 0 ? `, ${missing} not available for this company` : ""}. Each input is scored 18 to 92 against fixed thresholds and averaged into the area score. Information only, not investment advice.</p>
                 </>);
