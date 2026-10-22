@@ -37,4 +37,5 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 10 22 * * 1-5    root flock -w 10800 /tmp/finlit-funds.lock $W refresh-etf --resume >> /var/log/finlit-funds.log 2>&1
 40 23 * * 1-5    root flock -w 10800 /tmp/finlit-funds.lock $W refresh-etf --resume >> /var/log/finlit-funds.log 2>&1
 10 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
+30 23 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
 40 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-facts >> /var/log/finlit-funds.log 2>&1
