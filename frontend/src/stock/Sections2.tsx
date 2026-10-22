@@ -263,7 +263,7 @@ export function SegmentCard({ seg }: { seg?: Segments }) {
       <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Where the revenue comes from<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
       {latest.length ? (
         <>
-          <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x, i) => <span key={x.name} style={{ flex: Math.max(x.sharePct || 0, 4), background: `var(--c${(i % 5) + 1})` }}><b>{(x.sharePct || 0) >= 12 ? pct(x.sharePct, 0) : ""}</b></span>)}</div>
+          <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x, i) => <span key={x.name} title={`${x.name}: ${pct(x.sharePct)}`} style={{ flex: Math.max(x.sharePct || 0, 7), background: `var(--c${(i % 5) + 1})` }}><b className={(x.sharePct || 0) < 9 ? "sm" : ""}>{(x.sharePct || 0) >= 10 ? pct(x.sharePct, 0) : pct(x.sharePct, 1)}</b></span>)}</div>
           <ul className="seg-l2">{latest.map((x, i) => (
             <li key={x.name} style={{ "--bc": `var(--c${(i % 5) + 1})` } as React.CSSProperties}>
               <div className="sl-h"><i /><b>{x.name}</b><em>{pct(x.sharePct)}</em></div>
