@@ -438,8 +438,16 @@ def cms_password_hash_from_plain() -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode() if plain else ""
 
 
+def cms_password_login_enabled() -> bool:
+    """The password-only CMS sign-in is off unless CMS_PASSWORD_LOGIN=1. The website gets CMS tokens from the research API
+    (POST /api/me/cms-token), which requires the administrator's authenticator code; this route would skip that second step."""
+    return os.environ.get("CMS_PASSWORD_LOGIN", "").strip().lower() in ("1", "true", "yes", "on")
+
+
 @api_router.post("/content/admin/login")
 async def admin_login(payload: AdminLogin, request: Request):
+    if not cms_password_login_enabled():
+        raise HTTPException(status_code=404, detail="Sign in on the website: administrators reach the content tools from their account.")
     now = monotonic()
     attempt_key = login_rate_limit_key(payload.email, request)
     attempt = _login_attempts.get(attempt_key, {"stamps": [], "until": 0})

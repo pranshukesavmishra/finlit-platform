@@ -66,4 +66,3 @@ export const sendContact = (p: ContactPayload) => send<{ id?: string }>("/api/co
 export const sendEnquiry = (p: { name: string; email: string; phone: string; services: string[]; message?: string }) => send<{ id?: string }>("/api/service-enquiry", p);
 export const askAssistant = (message: string, history: { role: "user" | "assistant"; content: string }[]) =>
   send<{ response: string }>("/api/chat", { message, history: history.slice(-12) });
-export const adminLogin = (email: string, password: string) => send<{ token: string; expiresIn: number }>("/api/content/admin/login", { email, password });
