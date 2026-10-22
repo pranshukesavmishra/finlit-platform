@@ -165,6 +165,9 @@ async def test_a_short_answer_is_refused_and_stored_figures_stay(funds):
     res = await run(funds, master="AMC,Code\n", aum={"selectedPeriod": "July - September 2026", "data": []}, ter_status=500)
     assert res["status"] == "failed" and res["master"]["status"] == "refused" and res["aum"]["status"] == "refused" and res["ter"]["status"] == "failed"
     assert await d.get_facts(funds.pool, LARGE_CAP) == before
+    async with funds.pool.acquire() as conn:                                                   # before any quarter is loaded, a page says "not loaded yet"
+        await conn.execute("UPDATE mf_facts SET aum_lakh = NULL")
+    assert (await d.get_facts(funds.pool, LARGE_CAP))["aum"]["unavailable"] == d.NOT_LOADED
     status = await mf.last_run_age_hours(funds, "refresh-facts")
     assert status[1] == "failed"                                                               # readable at /api/mf/status
 

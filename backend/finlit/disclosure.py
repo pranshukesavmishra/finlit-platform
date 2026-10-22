@@ -271,13 +271,14 @@ async def fetch_ter(client: httpx.AsyncClient, today: date) -> Tuple[Optional[st
     return month, rows
 
 
-RETRY_PAUSE = 2.0   # seconds, growing with each attempt (tests set it to 0)
+RETRY_PAUSE = 15.0  # seconds, growing with each attempt (tests set it to 0). AMFI answers an empty quarter for minutes at a time, then the full one
+AUM_TRIES = 6       # per period: about five minutes of asking for the newest quarter before an older one is tried
 
 
 async def fetch_aum(client: httpx.AsyncClient, min_codes: int = MIN_AUM_CODES) -> Tuple[Optional[str], Optional[date], Dict[int, float]]:
     """The newest quarter that AMFI has filled in. AMFI sometimes answers an empty list for a moment: each period is asked up to three times."""
     for fy, per in AUM_PERIODS:
-        for attempt in range(3):
+        for attempt in range(AUM_TRIES):
             label, end, codes = parse_aum((await _get(client, URL_AUM, params={"strType": "Typewise", "fyId": fy, "periodId": per})).json())
             if len(codes) >= min_codes:
                 return label, end, codes
@@ -377,9 +378,11 @@ async def _facts_rows(conn, code: int):
     return me, fam, ter
 
 
-def _aum_fact(fam) -> dict:
+def _aum_fact(fam, loaded: bool) -> dict:
     have = [r for r in fam if r["aum_lakh"] is not None]
     if not have:
+        if not loaded:
+            return {"unavailable": NOT_LOADED}
         return {"unavailable": "Not in AMFI's latest quarterly AUM report (a scheme launched after that quarter, or one AMFI does not report)."}
     end = max(r["aum_end"] for r in have)
     lakh = sum(r["aum_lakh"] for r in have if r["aum_end"] == end)
@@ -429,9 +432,10 @@ async def get_facts(pool, key) -> Optional[dict]:
         if code is None:
             return None
         me, fam, ter = await _facts_rows(conn, int(code))
+        loaded = bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM mf_facts WHERE aum_lakh IS NOT NULL)")) if me else False
     if me is None:
         return None
-    out = {"aum": _aum_fact(fam), "launchDate": _launch_fact(me), "benchmark": {"unavailable": NO_BENCHMARK}, "riskometer": {"unavailable": NO_RISKOMETER},
+    out = {"aum": _aum_fact(fam, loaded), "launchDate": _launch_fact(me), "benchmark": {"unavailable": NO_BENCHMARK}, "riskometer": {"unavailable": NO_RISKOMETER},
            "managers": {"unavailable": NO_MANAGERS}}
     if isinstance(key, int) or str(key).isdigit():     # a mutual fund page: both plans' TER, the scheme's minimum, exit load unknown
         out.update(terRegular=_ter_fact(ter, "Regular"), terDirect=_ter_fact(ter, "Direct"), minInvestment={"unavailable": NO_MINIMUM},
