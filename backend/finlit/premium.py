@@ -23,6 +23,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 
 from .auth.entitlements import has
 from .auth.routes import NO_STORE, Ctx, fail, secure_ctx
+from .background import spawn
 
 log = logging.getLogger("finlit.premium")
 router = APIRouter(prefix="/api/premium")
@@ -112,7 +113,7 @@ async def cached_get(request: Request, kind: str, path: str, params: Dict[str, s
         hit = json.loads(raw)
         age = time.time() - hit["t"]
         if age > fresh:
-            asyncio.create_task(_refresh(app, key, path, params, fresh))  # serve the saved copy now, update behind the scenes
+            spawn(_refresh(app, key, path, params, fresh))  # serve the saved copy now, update behind the scenes
         return Response(content=hit["b"], media_type="application/json", headers={**NO_STORE, "X-Cache": "hit" if age <= fresh else "stale", "X-Data-Age": str(int(age))})
     status, body = await _upstream(app, path, params)
     if status == 200:
