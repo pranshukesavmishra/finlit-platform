@@ -9,7 +9,6 @@ import {
 import { MINUS, nf } from "../lib/format";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
 import { EtfChart } from "./EtfChart";
-import { EtfFacts } from "./Facts";
 import { EtfHoldings } from "./Holdings";
 import { ReturnsBlock } from "./Returns";
 
@@ -131,7 +130,6 @@ export function EtfDetailPage() {
         </section>
       </div>
 
-      <EtfFacts symbol={d.symbol} />
 
       <DataNote asOf={d.asOf} updatedAt={d.updatedAt} source={d.source} />
     </div>
