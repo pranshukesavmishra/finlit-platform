@@ -1,7 +1,7 @@
 # Framework versions follow the research API (fastapi 0.143.2 / starlette 1.x) because the earlier pins (fastapi 0.110.1, pymongo 4.6.3) have known vulnerabilities (pip-audit).
 fastapi==0.143.2
 uvicorn==0.54.0
-python-dotenv>=1.0.1
+python-dotenv>=1.2.4
 pymongo>=4.11,<5
 pydantic>=2.6.4
 email-validator>=2.2.0
