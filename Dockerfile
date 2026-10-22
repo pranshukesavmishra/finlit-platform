@@ -1,5 +1,5 @@
 # One image = website + research API + the company's site backend, for a single free service (render.yaml). Build from the repository root.
-FROM node:22-slim AS web
+FROM node:25-slim AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
