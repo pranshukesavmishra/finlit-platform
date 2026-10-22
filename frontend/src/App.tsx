@@ -27,6 +27,7 @@ const PremiumReportPage = lazy(() => import("./pages/PremiumReport").then((m) =>
 const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
 const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ default: m.GraphStudio })));
+const AdvancedCharts = lazy(() => import("./pages/AdvancedCharts").then((m) => ({ default: m.AdvancedCharts })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
@@ -70,6 +71,8 @@ export default function App() {
             <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
             <Route path="compare" element={<Compare />} />
             <Route path="graphs" element={<GraphStudio />} />
+            <Route path="graphs/advanced" element={<Navigate to="/graphs/advanced/valuation" replace />} />
+            <Route path="graphs/advanced/:section" element={<AdvancedCharts />} />
             <Route path="etfs" element={<EtfListPage />} />
             <Route path="etfs/compare" element={<EtfComparePage />} />
             <Route path="etfs/:symbol" element={<EtfDetailPage />} />

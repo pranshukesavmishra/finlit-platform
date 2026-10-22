@@ -9,7 +9,7 @@ import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
 
-type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean };
+type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean; sub?: boolean };
 type Group = { title: string; items: Item[] };
 
 /** The left rail for every product page: where you are, what you follow, and what else the platform offers, in the order people use it. */
@@ -36,7 +36,8 @@ export function AppShell() {
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
       { to: "/score-screener", label: "Score screener", icon: "quality" },
       { to: "/compare", label: "Compare companies", icon: "compare" },
-      { to: "/graphs", label: "Graph Studio", icon: "bars" },
+      { to: "/graphs", label: "Graph Studio", icon: "bars", end: true },
+      { to: "/graphs/advanced", label: "Advanced charts", icon: "spark", sub: true },
       { to: "/etfs", label: "ETFs", icon: "activity" },
       { to: "/funds", label: "Mutual funds", icon: "pie" },
     ] },
@@ -81,7 +82,7 @@ export function AppShell() {
             <div className="side-g" key={g.title}>
               <div className="side-gt">{g.title}</div>
               {g.items.map((i) => (
-                <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
+                <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
                   <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}

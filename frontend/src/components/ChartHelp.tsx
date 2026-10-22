@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CHART_HELP } from "../lib/chartHelp";
+import { CHART_HELP, type ChartHelpEntry } from "../lib/chartHelp";
 
 const GAP = 8;      // space between the "?" and the popover
 const EDGE = 8;     // minimum distance from the viewport edge
@@ -8,10 +8,10 @@ const EDGE = 8;     // minimum distance from the viewport edge
 /**
  * A small "?" that explains the chart it sits next to: what it shows, both axes, how to read it and why it matters.
  * Opens on hover, keyboard focus and tap; closes on Escape, scroll, resize or a click elsewhere.
- * Renders nothing when the id has no entry in the registry.
+ * Renders nothing when the id has no entry in the registry. A page whose help comes from data (Advanced charts) passes `entry` instead.
  */
-export function ChartHelp({ id }: { id: string }) {
-  const entry = CHART_HELP[id];
+export function ChartHelp({ id, entry: given, label }: { id: string; entry?: ChartHelpEntry; label?: string }) {
+  const entry = given ?? CHART_HELP[id];
   const uid = useId();
   const pid = "chh-" + uid.replace(/[^a-zA-Z0-9_-]/g, "");
   const btn = useRef<HTMLButtonElement>(null);
@@ -68,7 +68,7 @@ export function ChartHelp({ id }: { id: string }) {
         ref={btn}
         type="button"
         className={"chh-b" + (open ? " on" : "")}
-        aria-label="About this chart"
+        aria-label={label ?? "About this chart"}
         aria-describedby={pid}
         aria-expanded={open}
         onFocus={hold}
