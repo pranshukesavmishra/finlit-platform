@@ -396,10 +396,12 @@ function PointsTable({ head, rows, caption }: { head: string[]; rows: (string | 
 /** Add-company chips with a typo-tolerant search; shows used/limit and the upgrade at the limit. */
 function Companies({ st, set, lim, plan, upgrade, status, mode, single }: { st: AdvState; set: (p: Partial<AdvState>) => void; lim: number; plan: Plan; upgrade: (t: Plan, why?: string) => void; status: { s: string; name?: string | null; status: string; reasonText?: string | null; reason?: string | null }[]; mode: Mode; single?: boolean }) {
   const idx = useSearchIndex(true);
+  const facets = useFacets();
+  const rows = useMemo(() => [...(DEMO ? ((facets.data as { samples?: [string, string][] } | undefined)?.samples ?? []) : []), ...(idx.data?.rows ?? [])], [idx.data, facets.data]);
   const [q, setQ] = useState(""), [act, setAct] = useState(0), [open, setOpen] = useState(false);
-  const hits = useMemo(() => rankCompanies(idx.data?.rows, q, 8, st.companies), [idx.data, q, st.companies]);
+  const hits = useMemo(() => rankCompanies(rows, q, 8, st.companies), [rows, q, st.companies]);
   const max = single ? 1 : lim;
-  const nameOf = (s: string) => status.find((x) => x.s === s)?.name || idx.data?.rows.find((r) => r[0] === s)?.[1] || s;
+  const nameOf = (s: string) => status.find((x) => x.s === s)?.name || rows.find((r) => r[0] === s)?.[1] || s;
   const add = (s: string) => {
     if (st.companies.includes(s)) return;
     if (single) { set({ companies: [s, ...st.companies.filter((x) => x !== s)] }); setQ(""); return; }

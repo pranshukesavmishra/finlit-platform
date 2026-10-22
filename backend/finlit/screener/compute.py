@@ -10,8 +10,10 @@ import math
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from ..advanced.derive import latest as ax_latest
+
 Num = Optional[float]
-METRICS_VERSION = 2.0   # 2: annual operating profit metrics
+METRICS_VERSION = 3.0   # 3: advanced-chart figures (ax_*); 2: annual operating profit metrics
 MULTIPLES = ("pe", "pb", "ps", "pfcf", "ev_ebitda", "ev_sales", "ev_cfo", "price_cfo", "peg", "price_to_tangible")
 
 
@@ -393,5 +395,14 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["strengths_count"], out["watchouts_count"] = float(len(summary.get("strengths") or [])), float(len(summary.get("watchouts") or []))
     out["score_change"] = None  # filled in from score history when the screener data is loaded
 
+    # the advanced-chart figures (advanced/derive.py): ax_<id> values, ax_fy, ax_sig_fy / ax_sig_date and ax_miss (why each missing one is missing)
+    out.update(ax_latest(sections, out, today))
     out["m_ver"] = METRICS_VERSION   # which version of this file worked the figures out: a rebuild is due when it is older
-    return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in out.items() if v is not None}
+    return {k: _round(k, v) for k, v in out.items() if v is not None}
+
+
+def _round(key: str, v: Any) -> Any:
+    if not isinstance(v, float):
+        return v
+    # advanced-chart figures keep 10 significant figures so they can be checked against the raw statements; the rest keep 4 decimals as before
+    return float(f"{v:.10g}") if key.startswith("ax_") else round(v, 4)

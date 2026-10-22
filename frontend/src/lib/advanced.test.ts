@@ -96,3 +96,106 @@ describe("axis geometry", () => {
     expect(nearest([], 1, 1)).toBe(-1);
   });
 });
+
+// ------------------------------------------------------------------ sentence, typesetting, CSV, rules
+import { advSentence, ariaSummary, cfoWarning, crossBody, crossCsv, disp, roundHalfEven, rounded, type CrossResp, type Stats, type DecisionRule } from "./advanced";
+
+const TEXT: Record<DecisionRule, string> = {
+  few: "Too few points for a reliable line (n = 7).", no_spread: "No line: the values do not vary.", not_significant: "No reliable linear relationship (p = 0.312).",
+  weak: "Statistically detectable but too weak to be useful (explains under 9%).", one_company: "No line: the line depends on one company (XYZ Ltd).",
+  curved: "No straight line: the relationship is curved.", pulled: "Extreme values pull the straight line: both the straight line and a robust (Theil-Sen) line are drawn.",
+  ok: "A straight line is drawn with its 95% band.",
+};
+const mk = (rule: DecisionRule, o: Partial<Stats> = {}): Stats => ({
+  n: 812, space: { x: "lin", y: "lin" },
+  pearson: { r: 0.4612, r2: 0.2127, p: 1.2e-43, ci: [0.405, 0.514] }, spearman: { rho: 0.5201, p: 3.3e-58 },
+  ols: { slope: 0.0912, intercept: 0.84, ci: [0.079, 0.103] }, theilSen: { slope: 0.0871, intercept: 0.86 },
+  decision: { line: rule === "ok" ? "ols" : rule === "pulled" ? "ols_ts" : "none", rule, text: TEXT[rule] },
+  line: rule === "ok" || rule === "pulled" ? { x0: 1, y0: 2, x1: 3, y1: 4 } : null, band: null,
+  rounded: { r: "0.46", rho: "0.52", p: "< 0.001", slope: "0.0912", r2pct: "21%" }, ...o,
+});
+const ctx = { kind: "cross" as const, who: "companies", x: { short: "ROE", unit: "%" as const }, y: { short: "P/B", unit: "x" as const }, left: 61, total: 873, fy: [{ fy: "FY26", n: 790 }, { fy: "FY25", n: 22 }], builtAt: "2026-10-22T10:15:00Z" };
+
+describe("advSentence", () => {
+  it("words a drawn line from the API's own rounded strings", () => {
+    const s = advSentence(mk("ok"), ctx);
+    expect(s).toContain("Across 812 companies, higher ROE tends to go with higher P/B (Pearson r = 0.46, moderate; Spearman rho = 0.52; p < 0.001).");
+    expect(s).toContain("The line explains 21% of the variation; on average, +1 percentage point of ROE goes with +0.0912× of P/B.");
+    expect(s).toContain("61 of the 873 companies in the filters are left out");
+    expect(s).toContain("Results FY26 (790) / FY25 (22).");
+    expect(s).toContain("22 Oct 2026");
+    expect(s.endsWith("Correlation is not causation. Information only, not advice.")).toBe(true);
+  });
+  it("says 'lower' for a negative relationship", () => {
+    const s = advSentence(mk("ok", { pearson: { r: -0.5, r2: 0.25, p: 0.0001 }, rounded: { r: "-0.50", rho: "-0.48", p: "< 0.001", slope: "-0.120", r2pct: "25%" } }), ctx);
+    expect(s).toContain("higher ROE tends to go with lower P/B (Pearson r = −0.50, moderate; Spearman rho = −0.48");
+    expect(s).toContain("goes with −0.120× of P/B");
+  });
+  it("adds the pulled-line explanation", () => {
+    expect(advSentence(mk("pulled"), ctx)).toContain(TEXT.pulled);
+  });
+  for (const rule of ["few", "no_spread", "not_significant", "weak", "one_company", "curved"] as DecisionRule[]) {
+    it(`states the reason when no line is drawn: ${rule}`, () => {
+      const s = advSentence(mk(rule), ctx);
+      expect(s).toContain(`No line is drawn. ${TEXT[rule]}`);
+      expect(s).not.toContain("tends to go with");
+      expect(s).toContain("Correlation is not causation.");
+    });
+  }
+  it("'no reliable linear relationship' keeps the API's p in the text", () => {
+    expect(advSentence(mk("not_significant", { pearson: { r: 0.0401, r2: 0.0016, p: 0.312 }, rounded: { r: "0.04", rho: "0.05", p: "0.312", slope: "0.00100", r2pct: "0%" } }), ctx)).toContain("Pearson r = 0.04 (very weak); Spearman rho = 0.05; p = 0.312. No line is drawn. No reliable linear relationship (p = 0.312).");
+  });
+  it("handles no statistics and missing r", () => {
+    expect(advSentence(null, ctx)).toMatch(/^No company has both figures/);
+    expect(advSentence(mk("no_spread", { pearson: null, spearman: null, rounded: null }), ctx)).toContain("Pearson r cannot be computed");
+  });
+  it("uses log wording when the statistics are on a log scale", () => {
+    expect(advSentence(mk("ok", { space: { x: "log", y: "log" } }), ctx)).toContain("the slope is +0.0912 on the log scale");
+  });
+  it("aria summary names the line decision", () => {
+    expect(ariaSummary(mk("ok"), "ROE", "P/B", 812, "companies")).toBe("Scatter of P/B against ROE, 812 companies. Pearson r 0.46, p < 0.001; straight line drawn with its 95% band.");
+    expect(ariaSummary(mk("curved"), "ROE", "P/B", 812, "companies")).toContain("no line drawn: No straight line");
+  });
+});
+
+describe("typesetting the API's display strings", () => {
+  it("only typesets, never re-rounds", () => {
+    expect(disp("-0.46", "x")).toBe("−0.46"); expect(disp("-0.00", "x")).toBe("0.00"); expect(disp("1.2e+06", "x")).toBe("12,00,000");
+    expect(disp("1.23e-05", "x")).toBe("0.0000123"); expect(disp("n/a", "x")).toBe("—"); expect(disp(null, "fb")).toBe("fb"); expect(disp("0.0912", "x")).toBe("0.0912");
+  });
+  it("falls back to the same rounding rules when the API sends no strings", () => {
+    expect(rounded(mk("ok", { rounded: null }))).toEqual({ r: "0.46", rho: "0.52", p: "< 0.001", slope: "0.0912", r2pct: "21%" });
+  });
+  it("rounds whole per cents half to even, as Python does", () => {
+    expect(roundHalfEven(20.5)).toBe(20); expect(roundHalfEven(21.5)).toBe(22); expect(roundHalfEven(21.27)).toBe(21); expect(roundHalfEven(0.5)).toBe(0);
+  });
+});
+
+describe("request body and CSV", () => {
+  it("sends the pair id, or x/y for a custom pair, with the universe, scales, trim and highlights", () => {
+    const st = { ...DEFAULT_STATE, pair: "1.9", companies: ["TCS"], trim: true, variant: "forward" };
+    expect(crossBody(st, { id: "1.9" } as never, { x: "lin", y: "log" })).toEqual({ pair: "1.9", variant: "forward", universe: { ...EMPTY_UNIVERSE }, scale: { x: "lin", y: "log" }, trim: true, highlight: ["TCS"] });
+    expect(crossBody({ ...DEFAULT_STATE, pair: "custom", x: "roe", y: "pb" }, null, { x: "lin", y: "lin" })).toMatchObject({ x: "roe", y: "pb" });
+  });
+  it("guards text cells against spreadsheet formulas, keeps numbers raw", () => {
+    const r = { n: 1, universeTotal: 2, excluded: [], points: [{ s: "ABC", name: "=HYPERLINK(\"x\")", sector: "+Sector", x: -1.5, y: 2, fy: "FY26" }],
+      highlights: [{ s: "ZZZ", name: "@evil", x: null, y: null, status: "excluded", reason: "no_fy", reasonText: "No figure" }], stats: null, method: "-m", caveats: ["c"], tableBuiltAt: null } as unknown as CrossResp;
+    const csv = crossCsv(r, "T");
+    expect(csv).toContain(`ABC,"'=HYPERLINK(""x"")",'+Sector,FY26,-1.5,2,yes,,no`);
+    expect(csv).toContain("ZZZ,'@evil,,,,,no,no_fy,yes");
+    expect(csv).toContain("# method,'-m");
+  });
+});
+
+describe("revenue and profit up, cash flow down", () => {
+  const t = (periods: string[], ends: string[], rows: Record<string, (number | null)[]>) => ({ unit: "Cr", period: "FY", periods, periodEnds: ends, rows });
+  const fin = (cfo: number[]) => ({ yearly: { pl: t(["FY25", "FY26"], ["2025-03-31", "2026-03-31"], { revenue: [100, 120], net_profit: [10, 12] }), cf: t(["FY25", "FY26"], ["2025-03-31", "2026-03-31"], { operating: cfo }), bs: t([], [], {}) } }) as never;
+  it("flags it with the reported figures", () => {
+    const w = cfoWarning(fin([15, 9]));
+    expect(w?.period).toBe("FY26"); expect(w?.against).toBe("FY25"); expect(w?.text).toContain("operating cash flow ₹15.00 Cr to ₹9.00 Cr");
+  });
+  it("stays silent when cash flow rose or a figure is missing", () => {
+    expect(cfoWarning(fin([9, 15]))).toBeNull();
+    expect(cfoWarning(null)).toBeNull();
+  });
+});

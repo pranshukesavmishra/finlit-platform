@@ -12,7 +12,7 @@ import httpx
 import orjson
 
 from .catalog import INDEX_LISTS
-from .compute import compute
+from .compute import METRICS_VERSION, compute
 
 log = logging.getLogger("finlit.screener")
 SECTIONS = ("summary", "financials", "ratios", "ownership", "events", "price", "stats")
@@ -24,7 +24,9 @@ async def rebuild_metrics(store, only_missing: bool = False) -> int:
     so a new filter (or a fixed formula) reaches every stored company once, without waiting for each company's next full load."""
     async with store.pool.acquire() as conn:
         rows = await conn.fetch("SELECT symbol, statement FROM scores WHERE model = 'v1'"  # nosec B608 - fixed text, no user input
-                                + (" AND (metrics IS NULL OR NOT metrics ? 'm_ver' OR (metrics ? 'q_revenue' AND NOT metrics ? 'q_period_end'))" if only_missing else ""))
+                                + (" AND (metrics IS NULL OR NOT metrics ? 'm_ver' OR COALESCE((metrics->>'m_ver')::float, 0) < $1"
+                                   " OR (metrics ? 'q_revenue' AND NOT metrics ? 'q_period_end'))" if only_missing else ""),
+                                *([METRICS_VERSION] if only_missing else []))
         done = 0
         for r in rows:
             snaps = await conn.fetch("SELECT section, body FROM snapshots WHERE symbol = $1 AND statement = $2 AND section = ANY($3::text[])", r["symbol"], r["statement"], list(SECTIONS))

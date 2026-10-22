@@ -14,11 +14,13 @@ import math
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from ..advanced.catalog import METRIC_LIST as AX_METRICS
 from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
-from .compute import MULTIPLES
+from .compute import METRICS_VERSION, MULTIPLES
 from .listing import metrics_of
 
 NAN = float("nan")
+AX_COLS = sorted({m.col for m in AX_METRICS if m.col.startswith("ax_")})   # advanced-chart figures (advanced/derive.py)
 TTL = 600   # older than this, the table is rebuilt in the background on the next request (each rebuild reads the database)
 # Columns kept on the old scores table before metrics existed: used until a company's metrics are rebuilt.
 LEGACY = {"market_cap": "market_cap", "price": "price", "pe": "pe", "pb": "pb", "roe": "roe", "roce": "roce", "dividend_yield": "dividend_yield",
@@ -55,6 +57,12 @@ class Table:
         self.band: List[Optional[str]] = []
         self.full: List[bool] = []   # True: the company's full report is stored; False: only the light listing row (quote figures)
         self.cols: Dict[str, List[float]] = {m.key: [] for m in CATALOG}
+        # advanced charts: ax_* columns, the financial year they are for, why a value is missing, and whether the row has them at all
+        self.ax: Dict[str, List[float]] = {c: [] for c in AX_COLS}
+        self.ax_fy: List[Optional[str]] = []
+        self.ax_sig_fy: List[Optional[str]] = []
+        self.ax_miss: List[Dict[str, str]] = []
+        self.ax_ready: List[bool] = []
         for r in rows:
             raw = r.get("metrics")
             m: Dict[str, Any] = json.loads(raw) if isinstance(raw, str) else (raw or {})
@@ -70,6 +78,12 @@ class Table:
                     v = r.get(LEGACY[k])
                 v = _num(v)
                 col.append(NAN if v == v and k in MULTIPLES and v <= 0 else v)
+            for k, col in self.ax.items():
+                col.append(_num(m.get(k)))
+            self.ax_fy.append(m.get("ax_fy") if isinstance(m.get("ax_fy"), str) else None)
+            self.ax_sig_fy.append(m.get("ax_sig_fy") if isinstance(m.get("ax_sig_fy"), str) else None)
+            self.ax_miss.append(m.get("ax_miss") if isinstance(m.get("ax_miss"), dict) else {})
+            self.ax_ready.append(isinstance(m.get("ax_miss"), dict) and _num(m.get("m_ver")) >= METRICS_VERSION)
         n = len(self.symbols)
         self.n = n
         self.n_full = sum(self.full)

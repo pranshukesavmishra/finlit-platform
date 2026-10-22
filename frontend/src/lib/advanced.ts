@@ -244,8 +244,8 @@ export type CatAlt = { id: string; xLabel: string; yLabel: string; x: string; y:
 export type CatPair = {
   id: string; section: number; row: number; xLabel: string; yLabel: string; help: string; status: PairStatus; source: "A" | "C" | "N";
   x: string | null; y: string | null; flags: string[]; mechanical: string | null; notes: string[]; reason: string | null;
-  modes: Mode[]; tier: Partial<Record<Mode, Tier>>; lenders: "auto" | "excluded" | "only";
-  scale: { x: Scale; y: Scale }; logOk: { x: boolean; y: boolean }; sameAs: string | null;
+  modes: Mode[]; tier: Partial<Record<Mode, Tier>>; lenders: "auto" | "excluded" | "only" | null;
+  scale: { x: Scale; y: Scale } | null; logOk: { x: boolean; y: boolean } | null; sameAs: string | null;
   variants: { id: string; label: string; tier: Tier }[]; alt: { x: string; y: string; label: string } | null;
   sector: string | null; preset: { kind: string; value: string } | null; tech: { kind: string; h?: number[] } | null;
 };
