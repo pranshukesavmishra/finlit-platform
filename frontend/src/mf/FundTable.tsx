@@ -46,7 +46,7 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick }: { rows: Fun
           <tr>
             <th scope="col" aria-sort={sorted("name")}><button className="mf-sort" onClick={() => onSort("name")}>Scheme{q.sort === "name" && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button></th>
             {defs.map((c) => (
-              <th key={c.id} scope="col" aria-sort={sorted(c.sort)} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "")} title={c.hint}>
+              <th key={c.id} scope="col" aria-sort={sorted(c.sort)} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "") + ` mf-c-${c.id}`} title={c.hint}>
                 {c.sort ? <button className="mf-sort" onClick={() => onSort(c.sort!)}>{c.label}{q.sort === c.sort && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button> : c.label}
               </th>))}
           </tr>
@@ -61,9 +61,10 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick }: { rows: Fun
                 <span className="mf-nm">
                   <Link to={`/funds/${r.code}`}>{r.name}</Link>
                   <small><PlanChip plan={r.plan} option={r.option} />{!r.active && <span className="chip ghost">Stopped publishing</span>}</small>
+                  {r.nav != null && <small className="mf-navm">NAV <span className="mono" title={navFull(r.nav)}>{navText(r.nav)}</span></small>}
                 </span>
               </th>
-              {defs.map((c) => <td key={c.id} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "")}>{cell(c, r)}</td>)}
+              {defs.map((c) => <td key={c.id} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "") + ` mf-c-${c.id}`}>{cell(c, r)}</td>)}
             </tr>))}
         </tbody>
       </table>
