@@ -33,7 +33,8 @@ import statistics
 import time
 import zlib
 from bisect import bisect_right
-from datetime import date, datetime, timedelta, timezone
+from collections import Counter
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 from urllib.parse import quote as urlquote
 
@@ -62,6 +63,8 @@ PREMIUM_NOTE = 10.0          # beyond this gap the page adds a plain note
 HOT_N = 100                  # ETFs kept ready (ranked by traded value)
 HIST_TTL = 14 * 86400        # a cold ETF's chart history stays in Redis this long after it was last fetched
 DATA_TTL = 25 * 3600         # the nightly job rewrites the Redis copies; a missed night still serves yesterday's for a day
+CLOSE_IST = dtime(15, 45)    # a candle fetched after this (on a weekday) is that session's final one: a resumed run does not fetch it again
+CANDLE_BURST = 50            # candle calls allowed at once before pacing starts (a small refresh never waits)
 ALL_KEY, HOT_KEY = "etf:all:v1", "etf:hot:v1"
 DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns."
 SOURCE = "Prices: NSE via Upstox. NAV, scheme names and fund houses: AMFI."
@@ -495,8 +498,44 @@ async def fetch_instruments(http: httpx.AsyncClient) -> List[dict]:
     return out
 
 
-async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTransport] = None, now: Optional[datetime] = None) -> dict:
+def last_close(now: datetime) -> datetime:
+    """The most recent weekday market close (15:45 IST) at or before `now`."""
+    ist = now.astimezone(IST)
+    d = ist.date() if ist.time() >= CLOSE_IST else ist.date() - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return datetime.combine(d, CLOSE_IST, tzinfo=IST)
+
+
+class Pacer:
+    """At most `per_minute` calls a minute after an initial burst, so one run stays well inside Upstox's quota
+    (about 2,000 calls per 30 minutes, shared by every job using the token). 0 = no pacing."""
+
+    def __init__(self, per_minute: int, burst: int = CANDLE_BURST):
+        self.gap = 60.0 / per_minute if per_minute > 0 else 0.0
+        self.tokens, self.burst, self.at = float(burst), float(burst), time.monotonic()
+        self.lock = asyncio.Lock()
+
+    async def wait(self) -> None:
+        if not self.gap:
+            return
+        async with self.lock:
+            now = time.monotonic()
+            self.tokens = min(self.burst, self.tokens + (now - self.at) / self.gap)
+            self.at = now
+            if self.tokens < 1:
+                await asyncio.sleep((1 - self.tokens) * self.gap)
+                self.tokens, self.at = 1.0, time.monotonic()
+            self.tokens -= 1
+
+
+class _Halted(Exception):
+    """The provider's rate limit was hit earlier in this run: the remaining ETFs are left for the next (resumed) run."""
+
+
+async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTransport] = None, now: Optional[datetime] = None, resume: bool = False) -> dict:
     """Nightly refresh, called by `python -m finlit.worker refresh-etf`. Upsert only: see the module docstring.
+    `resume` fetches only the ETFs that have not been fetched since the last market close (a retry after a partial run costs only what failed).
     `transport` and `now` exist so tests can run it over recorded answers."""
     started = datetime.now(timezone.utc)
     now = now or started
@@ -505,6 +544,14 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
     client = UpstoxClient(settings, getattr(store, "redis", None), transport=transport)
     if not client.enabled:
         return {"status": "skipped", "reason": "UPSTOX_ACCESS_TOKEN is not set"}
+    cutoff = last_close(now)
+    if resume:
+        async with store.pool.acquire() as conn:
+            stored_active = await conn.fetchval("SELECT count(*) FROM etf_funds WHERE active")
+            pending = await conn.fetchval("SELECT count(*) FROM etf_funds WHERE active AND (fetched_at IS NULL OR fetched_at < $1)", cutoff)
+        if stored_active and not pending:
+            await client.aclose()
+            return {"status": "ok", "reason": "every ETF already has the latest close: nothing to fetch", "fetched": 0}
     http = httpx.AsyncClient(transport=transport, timeout=60, follow_redirects=True)
     try:
         async with store.pool.acquire() as conn:
@@ -527,10 +574,15 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             await _upsert_meta(conn, insts, amfi)
             old_hist = {r["symbol"]: dict(r) for r in await conn.fetch("SELECT symbol, dates, closes, highs, lows, volumes, full_at FROM etf_history")}
             old_fund = {r["symbol"]: dict(r) for r in await conn.fetch("SELECT symbol, nav, nav_date, extra FROM etf_funds")}
+            todo = insts
+            if resume:
+                done = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM etf_funds WHERE fetched_at >= $1", cutoff)}
+                todo = [i for i in insts if i["trading_symbol"] not in done]
+                summary["already_fetched"] = len(insts) - len(todo)
 
             # ---- today's quotes (two calls). A missing or empty batch only means no same-day candle; it never changes a stored row.
             quotes: Dict[str, dict] = {}
-            keys = [i["instrument_key"] for i in insts]
+            keys = [i["instrument_key"] for i in todo]
             try:
                 for k in range(0, len(keys), QUOTE_BATCH):
                     data = await client.get("/v2/market-quote/quotes", {"instrument_key": ",".join(keys[k:k + QUOTE_BATCH])})
@@ -542,17 +594,24 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             summary["quotes"] = len(quotes)
 
             sem = asyncio.Semaphore(3)
-            stats: Dict[str, Any] = {"full": 0, "incremental": 0, "adjusted": 0, "kept": [], "updated": 0, "no_history": [], "quote_disagree": []}
+            pacer = Pacer(settings.etf_calls_per_minute)
+            halted = {"by": None}
+            errors: Counter = Counter()
+            stats: Dict[str, Any] = {"full": 0, "incremental": 0, "adjusted": 0, "kept": [], "updated": 0, "no_history": [], "quote_disagree": [],
+                                     "failed": [], "deferred": []}
 
             async def candles(key: str, frm: date):
                 async with sem:
+                    if halted["by"]:
+                        raise _Halted()
+                    await pacer.wait()
                     data = await client.get(f"/v3/historical-candle/{urlquote(key, safe='')}/days/1/{today.isoformat()}/{frm.isoformat()}")
                 return parse_candles(data.get("candles") if isinstance(data, dict) else None)
 
             async def one(inst: dict) -> dict:
                 """Fetch what this ETF needs: the whole 10 years (new ETF, weekly, or after a provider adjustment) or just the last weeks."""
                 sym, key, old = inst["trading_symbol"], inst["instrument_key"], old_hist.get(inst["trading_symbol"])
-                res: Dict[str, Any] = {"inst": inst, "old": old, "fresh": None, "dup": None, "full": False}
+                res: Dict[str, Any] = {"inst": inst, "old": old, "fresh": None, "dup": None, "full": False, "empty": False, "error": False}
                 try:
                     full_due = old is None or (now - old["full_at"]).days >= FULL_EVERY_DAYS or (today - old["dates"][-1]).days > 30
                     if not full_due:
@@ -571,26 +630,40 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                             stats["kept"].append(sym)              # a short answer: keep what is stored
                         elif fresh:
                             res.update(fresh=fresh, dup=dup, full=True)
+                        elif old is None:
+                            res["empty"] = True                    # the provider holds no candles for it (never traded): asked, answered
                 except UpstoxTokenExpired:
                     raise
+                except _Halted:
+                    res["error"] = True
+                    stats["deferred"].append(sym)
                 except UpstoxError as exc:
                     log.info("etf %s: %s", sym, exc)
+                    res["error"] = True
+                    errors[str(exc)] += 1
+                    stats["failed"].append(f"{sym}: {exc}")
                     stats["kept"].append(sym)
+                    if str(exc) == "HTTP 429" and not halted["by"]:
+                        halted["by"] = sym                         # retries did not help: stop asking until the quota window has passed
                 return res
 
             try:
-                results = await asyncio.gather(*[one(i) for i in insts])
+                results = await asyncio.gather(*[one(i) for i in todo])
             except UpstoxTokenExpired:
                 summary.update(status="token_expired", reason="Upstox access token expired during the run: stored rows kept")
                 await _log_run(conn, started, summary)
                 return summary
 
             kept_hist: Dict[str, tuple] = {}                       # fresh series by symbol, written below for the hot ETFs only
+            answered_empty: List[str] = []
             for res in results:
                 inst, old, fresh = res["inst"], res["old"], res["fresh"]
                 sym = inst["trading_symbol"]
                 if fresh is None and old is None:
-                    stats["no_history"].append(sym)
+                    if not res["error"]:                           # a failed or deferred call is not "no history": it is asked again
+                        stats["no_history"].append(sym)
+                        if res["empty"]:
+                            answered_empty.append(sym)
                     continue
                 cands = list(fresh or [])
                 last_known = max([c[0] for c in cands] + ([old["dates"][-1]] if old and not res["full"] else []))
@@ -619,9 +692,11 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                 prem, why = premium_of(ds, cs, nav, nav_date)
                 if why:
                     m["reasons"]["nav_premium"] = why
-                await _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem)
+                await _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem, fetched_at=now if fresh is not None else None)
                 kept_hist[sym] = (ds, cs, hs, ls, vs, res["full"])
                 stats["updated"] += 1
+            if answered_empty:
+                await conn.execute("UPDATE etf_funds SET fetched_at = $2 WHERE symbol = ANY($1::text[])", answered_empty, now)
             # ETFs that left the list are marked inactive (never deleted), and only because the list passed the size check above
             await conn.execute("UPDATE etf_funds SET active = false, updated_at = now() WHERE active AND NOT (symbol = ANY($1::text[]))", [i["trading_symbol"] for i in insts])
             hot = await rank_hot(conn)
@@ -633,7 +708,12 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             summary["cold_cached"] = await _refresh_cold_cache(store, kept_hist, hot)
             await publish(store, conn)
             summary.update(stats, calls=client.calls)
-            if stats["kept"] or stats["no_history"] or not quotes:
+            if errors or stats["deferred"]:                       # why instruments failed, readable at /api/mf/status
+                why = ", ".join(f"{k} x{n}" for k, n in errors.most_common(4))
+                if halted["by"]:
+                    why += f"; stopped at the provider's rate limit, {len(stats['deferred'])} ETFs left for the next run"
+                summary["reason"] = why.lstrip("; ")
+            if stats["kept"] or stats["no_history"] or stats["deferred"] or not quotes:
                 summary["status"] = "partial"
             await _log_run(conn, started, summary)
     except UpstoxTokenExpired:
@@ -687,7 +767,7 @@ async def _upsert_meta(conn, insts: List[dict], amfi: Dict[str, dict]) -> None:
              active = true, updated_at = now()""", rows)
 
 
-async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem) -> None:
+async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem, fetched_at: Optional[datetime] = None) -> None:
     prev = cs[-2]
     last_vol = vs[-1] if vs and vs[-1] > 0 else None
     turnover = avg_turnover(cs, vs)
@@ -702,11 +782,11 @@ async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem) -> None:
         """UPDATE etf_funds SET price=$2, prev_close=$3, change_pct=$4, price_date=$5, volume=$6, avg_turnover=$7,
              ret_1m=$8, ret_6m=$9, ret_1y=$10, ret_3y=$11, ret_5y=$12, cagr_3y=$13, cagr_5y=$14, vol_1y=$15, mdd_1y=$16, mdd_3y=$17, mdd_5y=$18,
              high52=$19, low52=$20, range_from=$21, first_date=$22, points=$23, break_date=$24, reasons=$25::jsonb, extra=$26::jsonb,
-             nav=$27, nav_date=$28, nav_premium=$29, updated_at=now() WHERE symbol=$1""",
+             nav=$27, nav_date=$28, nav_premium=$29, fetched_at=COALESCE($30, fetched_at), updated_at=now() WHERE symbol=$1""",
         sym, cs[-1], prev, change, ds[-1], int(last_vol) if last_vol else None, turnover,
         m["ret_1m"], m["ret_6m"], m["ret_1y"], m["ret_3y"], m["ret_5y"], m["cagr_3y"], m["cagr_5y"], m["vol_1y"], m["mdd_1y"], m["mdd_3y"], m["mdd_5y"],
         m["high52"], m["low52"], m["range_from"], m["first_date"], m["points"], m["break_date"], json.dumps(m["reasons"]), json.dumps(m["extra"]),
-        nav, nav_date, prem)
+        nav, nav_date, prem, fetched_at)
 
 
 async def _write_hist(conn, sym, ds, cs, hs, ls, vs, full: bool) -> None:
@@ -763,7 +843,7 @@ def _pack_rows(rows: Sequence[dict]) -> str:
 
 
 _DATES = ("price_date", "range_from", "first_date", "break_date", "nav_date")
-_STAMPS = ("updated_at", "first_seen")
+_STAMPS = ("updated_at", "first_seen", "fetched_at")
 
 
 def _unpack_rows(raw: Any) -> List[dict]:

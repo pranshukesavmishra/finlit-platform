@@ -39,6 +39,13 @@ def test_docs_disabled_in_production():
     assert "/api/docs" not in paths and "/api/openapi.json" not in paths
 
 
+def test_docs_disabled_on_a_deployed_staging_site():
+    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="staging")).routes}
+    assert "/api/docs" not in paths and "/api/openapi.json" not in paths
+    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="development")).routes}
+    assert "/api/docs" in paths
+
+
 def test_client_ip_ignores_headers_unless_configured():
     scope = {"client": ("10.0.0.5", 1234), "headers": [(b"cf-connecting-ip", b"1.2.3.4")]}
     assert client_ip(scope) == "10.0.0.5"  # spoofable header ignored by default

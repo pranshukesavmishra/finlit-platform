@@ -393,6 +393,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                          ("refresh-mf", "nightly: mutual fund NAVs from AMFI (never overwrites good rows with a short answer)")):
         _p = sub.add_parser(_name, help=_help)
         _p.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours (a clean run) or the last 15 minutes (a partial one): redeploys must not repeat a full load")
+        if _name == "refresh-etf":
+            _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -467,7 +469,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
             try:
-                result = await refresh_funds(store, settings)
+                result = await refresh_funds(store, settings, **({"resume": True} if getattr(args, "resume", False) else {}))
             except Exception as exc:
                 await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
                 raise

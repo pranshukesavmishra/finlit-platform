@@ -17,7 +17,7 @@ services:
     dockerContext: .
     healthCheckPath: /api/ping   # never touches the database, so health checks cannot keep Neon awake
     envVars:
-      - {key: ENVIRONMENT, value: staging}      # not "production": production demands a verified mail domain
+      - {key: ENVIRONMENT, value: staging}      # not "production" yet: production refuses to start without Resend email (MAIL_MODE=resend, RESEND_API_KEY), a fixed ALLOWED_HOSTS and AUTO_VERIFY_EMAIL off; API docs and health internals are already hidden here
       - {key: AUTO_VERIFY_EMAIL, value: "1"}    # staging: no mail service yet, so new accounts are confirmed at sign-up (refused in production)
       - {key: FINEDGE_MODE, value: live}
       - {key: FINEDGE_API_KEY, sync: false}     # FinEdge market data
@@ -30,7 +30,7 @@ services:
       - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in at /login, then set up the authenticator app
       - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters, not containing the email name; remove this variable after your first sign-in
       - {key: RESET_MFA_EMAIL, sync: false}     # only when an authenticator is lost or handed over: the account email; delete it after one restart
-      - {key: ADMIN_REQUIRE_MFA, value: "0"}    # "0": administrators sign in with the password alone (owner's choice for now); set "1" or delete to require the authenticator again
+      - {key: ADMIN_REQUIRE_MFA, value: "1"}    # administrators need their authenticator code; "0" would let an account without one in with the password alone
       - {key: INGEST_LIMIT, value: "500"}      # companies loaded in the background after each start (resumable)
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
       # Optional, add later in the Environment tab: GEMINI_API_KEY (FinLit AI chat), RESEND_API_KEY + SENDER_EMAIL +
