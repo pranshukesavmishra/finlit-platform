@@ -208,3 +208,25 @@ def test_a_name_written_without_its_space_still_matches_one_scheme():
     idx.add(2, "Mahindra Manulife Flexi Cap Fund", "Mahindra Manulife Mutual Fund", "mm|eq|flexi")
     assert idx.resolve(["MahindraManulife Banking & Financial Services Fund"])[0] == "mm|eq|bfsi"
     assert idx.resolve(["Something Else Fund"])[0] is None
+
+
+def _sheet(*rows):
+    head = [["Fund X"], ["Portfolio as on 30-Sep-2026"], ["Name of the Instrument", "ISIN", "Industry", "Quantity", "Market value (Rs. in Lakhs)", "% to Net Assets"], ["EQUITY & EQUITY RELATED"]]
+    return iter(head + [list(r) for r in rows])
+
+
+def test_a_cash_total_replaces_its_parts_without_dropping_real_holdings():
+    """Bandhan prints 'Cash Margin', 'Net Receivables/Payables' and then 'Net Current Assets' as their sum: the parts go, the shares above stay."""
+    p = parse_rows(_sheet(("A Ltd", "INE002A01018", "Oil", 10, 600.0, 0.6), ("B Ltd", "INE040A01034", "Banks", 10, 300.0, 0.3),
+                          ("Total", None, None, None, 900.0, 0.9), ("MONEY MARKET",), ("Cash Margin", None, None, None, 40.0, 0.04),
+                          ("Net Receivables/Payables", None, None, None, 60.0, 0.06), ("Net Current Assets", None, None, None, 100.0, 0.1),
+                          ("Grand Total", None, None, None, 1000.0, 1.0)), "src", "url")
+    names = [h.name for h in p.holdings]
+    assert names == ["A Ltd", "B Ltd", "Net Current Assets"], names
+    assert validate(p, TODAY).ok
+
+
+def test_gross_total_is_a_total_not_a_holding():
+    p = parse_rows(_sheet(("A Ltd", "INE002A01018", "Oil", 10, 600.0, 0.6), ("B Ltd", "INE040A01034", "Banks", 10, 400.0, 0.4),
+                          ("Gross Total (A)+(B)", None, None, None, 1000.0, 1.0), ("Grand Total", None, None, None, 1000.0, 1.0)), "src", "url")
+    assert [h.name for h in p.holdings] == ["A Ltd", "B Ltd"]

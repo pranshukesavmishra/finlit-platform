@@ -122,7 +122,7 @@ _HEAD = [
     ("other", re.compile(r"derivative|futures|options|mutual\s+fund\s+units|units\s+of|\betfs?\b|reits?|invits?|alternative|\baif\b|foreign|overseas|gold|silver|commodit|others?\b|preference|warrants?", re.I)),
 ]
 _SUBHEAD = re.compile(r"^\W*(\(?[a-z0-9]{1,3}\)\s*)?(listed|unlisted|awaiting|privately|private placement|rated|unrated|thinly|securiti)", re.I)
-TOTAL_ROW = re.compile(r"^\W*(sub\s*-?\s*total|total)\b|^.*[a-z)]\s+(sub\s*-?\s*)?total\W*$", re.I)     # 'TOTAL ...' or 'EQUITY & EQUITY RELATED TOTAL' (Tata)
+TOTAL_ROW = re.compile(r"^\W*(sub\s*-?\s*total|gross\s*total|total)\b|^.*[a-z)]\s+(sub\s*-?\s*)?total\W*$", re.I)     # 'TOTAL ...' or 'EQUITY & EQUITY RELATED TOTAL' (Tata)
 GRAND_ROW = re.compile(r"^\W*(grand\s*total|total\s*net\s*assets|net\s*assets\b|total\s*assets|total\s*aum|grand\s*total)", re.I)
 RATING_LIKE = re.compile(r"\b(aaa|aa\+?|aa-|a1\+|a1|a\+|sovereign|unrated|crisil|icra|care|ind\s?a|fitch|brickwork|acuite|nil)\b|^[ab]{1,3}[+-]?$", re.I)
 
@@ -435,6 +435,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
                     del raw_pcts[-k:]
                     del row_sec[-k:]
                     nca_parts += k
+                    cash_run.clear()       # this line's parts are already gone: the cash-run rule below must not drop more rows
                     break
         raw_value = num(cell(row, "value"))
         if cls == "cash" and not isin_raw:
