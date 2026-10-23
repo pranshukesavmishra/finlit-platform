@@ -35,6 +35,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     const [, sym, section] = m;
     if (sym.toUpperCase() !== "RELIANCE") return json({ status: "demo", detail: "This preview includes the RELIANCE report only. The live site has every listed stock." }, 404);
     if (!section) return file("RELIANCE/summary.json");
+    if (section === "intraday") return json({ status: "not_connected", detail: "Intraday prices are not available in the demo." }, 503);
     if (section === "price") return file(`RELIANCE/price-${(url.searchParams.get("range") || "1Y").toUpperCase()}.json`);
     return file(`RELIANCE/${section}.json`);
   }

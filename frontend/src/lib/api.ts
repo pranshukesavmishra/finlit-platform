@@ -69,6 +69,14 @@ export type PriceRange = {
   meta: Meta; range: string; grain: "daily" | "weekly"; technical: Technical; complete: boolean; startsAt: string | null; provisionalLastBar: boolean;
   series: { t: string[]; o?: Series; h?: Series; l?: Series; c: number[]; v: Series; ema50: Series; ema200: Series };
 };
+/** Intraday candles from Dhan (1D 1-minute, 5D 5-minute, 1M hourly). Times are ISO with +05:30; `asOf` is when Dhan was asked. */
+export type IntradayRange = "1D" | "5D" | "1M";
+export type Intraday = {
+  status: "ok" | "no_data"; available: boolean; symbol: string; range: IntradayRange; interval: number; exchange: "NSE" | "BSE"; source: string;
+  asOf: string; session: string | null; sessions: string[]; lastBarAt: string | null; phase: "open" | "pre_open" | "closed"; today: string;
+  stale?: boolean; detail?: string;
+  series?: { t: string[]; o: number[]; h: number[]; l: number[]; c: number[]; v: (number | null)[] };
+};
 export type SearchRow = [symbol: string, name: string, bse: string | null, ready: number, nse?: string];
 
 /** API origin. Empty in development (Vite proxies /api); in production set VITE_API_BASE=https://api.finlitventures.com. */
@@ -140,6 +148,14 @@ export const useSummary = (s: string, enabled = true) => useQuery<Summary, ApiEr
 export const useSection = <T,>(s: string, name: string, enabled = true) => useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`), enabled });
 export const usePrice = (s: string, range: string, enabled = true) =>
   useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`), placeholderData: (prev) => prev, enabled });
+
+/** While the market is open (or in pre-open) the server keeps a copy for a minute, so the chart asks again each minute. 401/403/404 are answers, not failures. */
+export const useIntraday = (s: string, range: IntradayRange, enabled = true) =>
+  useQuery<Intraday, ApiError>({
+    ...sectionQuery<Intraday>(s, `/intraday?range=${range}`, { staleTime: 30_000 }), enabled, placeholderData: (prev) => (prev?.range === range ? prev : undefined),
+    retry: (count: number, err: ApiError) => (err.status === 202 ? count < 10 : err.status === 503 || err.status === 429 ? count < 2 : false),
+    refetchInterval: (q) => (q.state.data && q.state.data.phase !== "closed" ? 60_000 : false),
+  });
 
 export const useSearchIndex = (enabled: boolean) =>
   useQuery<{ fields: string[]; rows: SearchRow[] }, ApiError>({
