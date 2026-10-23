@@ -235,7 +235,7 @@ async def test_refresh_instruments_reloads_when_the_index_or_option_tables_are_e
     from test_integration import make_settings
     calls = []
 
-    async def fetch(client=None, indices=None, on_row=None):
+    async def fetch(client=None, indices=None, on_row=None, commodities=None):
         calls.append(1)
         raise dhan.DhanError("stop here")
     monkeypatch.setattr(dhan, "fetch_instruments", fetch)
