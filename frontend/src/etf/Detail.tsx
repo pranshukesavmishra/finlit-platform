@@ -1,5 +1,7 @@
 // /etfs/:symbol: one ETF. Price and day change, price returns, a chart, risk in plain words, the NAV check, and what our data does not have.
+import { useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
+import { visits } from "../lib/recentVisits";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import {
@@ -23,6 +25,7 @@ export function EtfDetailPage() {
   const { data, isLoading, isError, error, refetch } = useEtf(sym, range);
   useDocTitle(data ? `${data.name} (${data.symbol})` : `${sym} ETF`, data ? `${data.name}: price, returns and risk. Information only, not investment advice.` : undefined);
   const tray = useTray();
+  useEffect(() => { if (data?.symbol) visits.add({ k: "etf", id: data.symbol, name: data.name, sub: data.fundHouse || undefined }); }, [data?.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isError && (error as { status?: number }).status === 404) {
     return <div className="wrap etf-page"><div className="etf-state"><h2>We do not have an ETF with the symbol {sym}</h2><p>Check the spelling, or search the full list.</p><Link className="btn primary" to="/etfs">All ETFs</Link></div></div>;

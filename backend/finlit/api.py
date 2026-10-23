@@ -36,6 +36,8 @@ from . import mf as mf_api
 from . import graphviews as graphviews_api
 from . import forum as forum_api
 from . import dcf as dcf_api
+from . import logos as logos_api
+from . import search as search_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
@@ -72,7 +74,8 @@ class RateLimitMiddleware:
         state = scope["app"].state
         ip = client_ip(scope, self.settings.client_ip_header)
         scope.setdefault("state", {})["client_ip"] = ip
-        allowed, retry = await state.limiter.hit("api", ip, self.settings.rate_limit_per_minute, 60)
+        logo = scope["path"].startswith("/api/logos/")   # a search shows up to 40 logos at once; they get their own, larger budget
+        allowed, retry = await state.limiter.hit("logo" if logo else "api", ip, self.settings.rate_limit_per_minute * (4 if logo else 1), 60)
         if not allowed:
             response = JSONResponse({"status": "rate_limited", "detail": "Too many requests. Please slow down."},
                                     status_code=429, headers={"Retry-After": str(retry), "Cache-Control": "no-store"})
@@ -423,6 +426,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(compare_api.router)
     app.include_router(etf_api.router)
     app.include_router(mf_api.router)
+    app.include_router(search_api.router)
+    app.include_router(logos_api.router)
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
     app.include_router(dcf_api.router)

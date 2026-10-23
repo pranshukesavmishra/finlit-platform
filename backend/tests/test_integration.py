@@ -345,3 +345,75 @@ def test_retired_symbol_maps_to_its_successor():
     """TATAMOTORS (demerged Oct 2025) resolves to TMPV so old links and saved lists keep working."""
     from finlit.aliases import canonical
     assert canonical("tatamotors") == "TMPV" and canonical("RELIANCE") == "RELIANCE"
+
+
+async def test_search_quotes_and_logos(ingested):
+    """Prices, scores and logos for the search box: scores are locked for Basic visitors (the showcase stays open) and logos are served
+    from our own origin, immutable, by hash."""
+    import hashlib
+    from tests.test_logos import png
+    from finlit import logos
+    async with ingested.pool.acquire() as conn:
+        await conn.execute("DELETE FROM logos")
+        data = png(64, 64)
+        sha = hashlib.sha256(data).hexdigest()[:16]
+        await conn.execute("INSERT INTO logos (owner_kind, owner_key, domain, status, mime, width, height, sha8, bytes) VALUES "
+                           "('stock', 'RELIANCE', 'www.ril.com', 'ok', 'image/png', 64, 64, $1, $2), ('amc', 'sbi', 'www.sbimf.com', 'ok', 'image/png', 64, 64, $1, $2)", sha, data)
+        assert await conn.fetchval("SELECT website FROM companies WHERE symbol = 'RELIANCE'") == "www.ril.com"   # kept from the company profile on ingest
+    logos._lru.clear()
+    for showcase, want in ((["RELIANCE"], "open"), ([], "locked")):
+        await ingested.redis.delete("search-quotes:basic", "search-quotes:silver")
+        app = create_app(make_settings(showcase_symbols=showcase), store=ingested)
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+                r = await api.get("/api/search/quotes")
+                assert r.status_code == 200 and r.headers["cache-control"].startswith("private") and "Cookie" in r.headers["vary"]
+                body = r.json()
+                rows = {x[0]: x for x in body["rows"]}
+                rel = rows["RELIANCE"]
+                assert body["fields"] == ["symbol", "price", "changePct", "priceDate", "score", "band", "logo"] and body["level"] == "basic"
+                assert rel[1] > 0 and len(rel[3]) == 10 and rel[6] == f"/api/logos/{sha}.png"
+                if want == "open":
+                    assert isinstance(rel[4], int) and rel[5] in {"strong", "healthy", "mixed", "watch"}
+                else:
+                    assert rel[4] is None and rel[5] == "locked"             # never a Silver score in a Basic answer
+                assert body["amcLogos"] == {"sbi": f"/api/logos/{sha}.png"}
+                assert (await api.get("/api/search/quotes", headers={"If-None-Match": r.headers["etag"]})).status_code == 304
+                img = await api.get(rel[6])
+                assert img.status_code == 200 and img.content == data and img.headers["content-type"] == "image/png"
+                assert "immutable" in img.headers["cache-control"] and img.headers["x-content-type-options"] == "nosniff"
+                assert (await api.get(rel[6], headers={"If-None-Match": img.headers["etag"]})).status_code == 304
+                assert (await api.get("/api/logos/0000000000000000.png")).status_code == 404
+                assert (await api.get("/api/logos/..%2F..%2Fetc%2Fpasswd")).status_code == 404
+
+
+async def test_refresh_logos_job(ingested, monkeypatch):
+    """The nightly job: websites from stored reports, every due site asked once, results kept, a manual logo never overwritten."""
+    from tests.test_logos import png
+    from finlit import logos
+    monkeypatch.setattr(logos, "PAUSE", 0)
+    asked = []
+
+    def handler(req):
+        asked.append(req.url.host)
+        if req.url.path == "/":
+            return httpx.Response(200, content=b'<link rel="apple-touch-icon" href="/t.png">')
+        if req.url.path == "/t.png":
+            return httpx.Response(403 if req.url.host == "www.hdfcfund.com" else 200, content=png(120, 120))
+        return httpx.Response(404)
+
+    async def public(host):
+        return ["93.184.216.34"]
+    async with ingested.pool.acquire() as conn:
+        await conn.execute("DELETE FROM logos")
+        await conn.execute("UPDATE companies SET website = NULL")
+        await conn.execute("INSERT INTO logos (owner_kind, owner_key, status, note) VALUES ('amc', 'sbi', 'manual', 'set by an admin')")
+    res = await logos.refresh(ingested, None, limit=200, transport=httpx.MockTransport(handler), resolver=public)
+    assert res["websites"] == 1 and res["ok"] >= 40 and res["blocked"] == 1
+    async with ingested.pool.acquire() as conn:
+        rows = {(r["owner_kind"], r["owner_key"]): r for r in await conn.fetch("SELECT * FROM logos")}
+    assert rows[("stock", "RELIANCE")]["status"] == "ok" and rows[("stock", "RELIANCE")]["width"] == 120
+    assert rows[("amc", "hdfc")]["status"] == "blocked" and rows[("amc", "sbi")]["status"] == "manual"
+    assert "www.sbimf.com" not in asked                                     # an admin's choice is final
+    again = await logos.refresh(ingested, None, limit=200, transport=httpx.MockTransport(handler), resolver=public)
+    assert again["tried"] == 0                                              # nothing is due again the next night

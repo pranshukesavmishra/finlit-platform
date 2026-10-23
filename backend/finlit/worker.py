@@ -93,7 +93,7 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         except Exception:
             log.exception("coverage not recorded for %s", symbol)
         prof = sections["summary"]["profile"]
-        await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"))
+        await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"), prof.get("website"))
         status = "ok" if checks["status"] == "ok" else "warnings"
         errors = {**(bundle.get("errors") or {}), **({"quality": checks["issues"]} if checks["issues"] else {})}
     except DataRejected as exc:
@@ -406,6 +406,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
+    p_lg = sub.add_parser("refresh-logos", help="nightly: company and fund-house logos from their own websites (robots.txt obeyed; blocked sites are left alone)")
+    p_lg.add_argument("--limit", type=int, default=150, help="sites to try in one run")
+    p_lg.add_argument("--profiles", type=int, default=100, help="provider company-profile calls for large companies with no website on file")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -554,6 +557,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "refresh-listing":
                 from .screener.listing import refresh_listing
                 print(await refresh_listing(client, store, force=args.force))
+            elif args.cmd == "refresh-logos":
+                from .logos import refresh as refresh_logos
+                print(await refresh_logos(store, client, limit=args.limit, profile_limit=args.profiles))
             elif args.cmd == "refresh-calendars":
                 from .calendars import refresh_calendars
                 print(await refresh_calendars(client, store))

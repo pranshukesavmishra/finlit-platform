@@ -131,6 +131,7 @@ while true; do
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
+  (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)
   (( H >= 8 && H <= 23 && M == 20 )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
   (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens

@@ -250,10 +250,10 @@ class Store:
         await self.redis.delete(SEARCH_KEY)
         return len(records)
 
-    async def set_company_meta(self, symbol: str, sector: Optional[str], industry: Optional[str]):
+    async def set_company_meta(self, symbol: str, sector: Optional[str], industry: Optional[str], website: Optional[str] = None):
         async with self.pool.acquire() as conn:
-            await conn.execute("UPDATE companies SET sector = $2, industry = $3, updated_at = now() WHERE symbol = $1",
-                               symbol.upper(), sector, industry)
+            await conn.execute("UPDATE companies SET sector = $2, industry = $3, website = coalesce($4, website), updated_at = now() WHERE symbol = $1",
+                               symbol.upper(), sector, industry, (website or "").strip()[:200] or None)
 
     async def company(self, symbol: str) -> Optional[dict]:
         async with self.pool.acquire() as conn:
