@@ -50,3 +50,8 @@
 1. After the first night with this code on Render, read `/api/mf/status`: `run:refresh-facts` should be `ok` with about 2,100 TER schemes and 8,000+ AUM codes. Open a few fund pages (Fund facts card) and the Funds home list (ranked by fund size).
 2. From Render, test AMFI's fund performance page (benchmark, risk-o-meter); record a small real fixture if it answers.
 3. Fund houses' monthly portfolio disclosures (holdings, sector split), starting with SBI, HDFC, ICICI Prudential, Nippon India, Kotak, Aditya Birla Sun Life, Axis, UTI, Mirae: one parser per format, every file validated (holdings near 100%, valid ISIN check digits, sensible dates), only the latest 3 months kept. `finlit.disclosure.get_portfolio(pool, key)` is the contract the pages already call.
+
+## Score every listed company (Score Screener)
+- `score-all` (nightly 02:40 IST and at the end of boot-load) scores companies that have no recent score, biggest first, keeping only the ~5 KB score row (no report, no prices). Cap per run: `SCORE_ALL_PER_RUN` (default 1500, 90 min budget); failed or rejected companies are not retried for 7 days.
+- `/api/screener/universe` lists every listed company; rows without a score carry `scored: false` and the page says how many are still waiting. Sector appears once a company is scored. Opening a company builds its full report as before.
+- `prune` now keeps score rows for every listed company and drops only reports and prices outside the kept set.

@@ -125,9 +125,12 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def build_universe(level: str):
         """Build the screener list for one access level and keep it in Redis (3 minutes)."""
         rows = await app.state.store.screener_rows()
+        scored = {r["symbol"] for r in rows if r.get("overall") is not None}
+        rows = rows + await app.state.store.light_rows()      # every listed company, so the screener counts all of them (unscored ones carry no figures but their price)
         out = []
         for r in rows:
             r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
+            r["scored"] = r["symbol"] in scored        # decided before a plan's redaction removes the score, so the page can say how many are scored
             for k, v in list(r.items()):
                 if v is not None and not isinstance(v, (int, str, bool, float)):
                     r[k] = float(v)

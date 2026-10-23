@@ -4,14 +4,14 @@ import { apiGet } from "./api";
 import { MINUS, cr, nf } from "./format";
 
 export type Row = {
-  symbol: string; name: string | null; sector: string | null; sample?: boolean;
+  symbol: string; name: string | null; sector: string | null; sample?: boolean; scored?: boolean;
   overall: number | null; band: string | null;
   pillar_quality: number | null; pillar_growth: number | null; pillar_profitability: number | null; pillar_balance: number | null; pillar_technical: number | null;
   price: number | null; market_cap: number | null; pe: number | null; pb: number | null; roe: number | null; roce: number | null;
   dividend_yield: number | null; debt_to_equity: number | null; sales_cagr: number | null; profit_cagr: number | null;
   operating_margin: number | null; change_pct: number | null; return_1m: number | null; return_1y: number | null;
 };
-export type NumKey = Exclude<keyof Row, "symbol" | "name" | "sector" | "sample" | "band">;
+export type NumKey = Exclude<keyof Row, "symbol" | "name" | "sector" | "sample" | "band" | "scored">;
 
 export function useUniverse(enabled = true) {
   return useQuery({
