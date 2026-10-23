@@ -1,18 +1,21 @@
 import { HScroll } from "../components/HScroll";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { fromYears, priceFrom } from "../lib/chartAxis";
 import { Icon } from "../lib/icons";
-import { Gate, TierChip } from "../components/Gate";
+import { Gate, OpenAccess, TierChip } from "../components/Gate";
 import { Info } from "../components/Info";
 import { PriceChart } from "../charts/PriceChart";
+import { IntradayChart } from "../charts/IntradayChart";
 import { FinChart, type FinKind } from "../charts/FinChart";
 import { RsiGauge, Spark } from "../charts/Small";
 import { ChartHelp } from "../components/ChartHelp";
 import { MINUS, cr, dateIN, nf, signed } from "../lib/format";
-import { usePrice, type Financials, type Ratios, type Summary, type Table } from "../lib/api";
+import { useIntraday, usePrice, type ApiError, type Financials, type Intraday, type IntradayRange, type Ratios, type Summary, type Table } from "../lib/api";
+import { barSpan, changePct, istDay, status as intradayStatus } from "../lib/intraday";
+import { useAuth } from "../lib/auth";
 import { finTiles, yoy } from "./derive";
 import { PL_INFO, PL_LABEL, plCell } from "./plDefinitions";
-import { useUI } from "../lib/ui";
+import { useUI, type Plan } from "../lib/ui";
 import { Plain } from "../components/Plain";
 
 const css = (v: string) => `var(${v})`;
@@ -45,35 +48,54 @@ export function Notes({ s }: { s: Summary }) {
 
 /* ---------------- Price & technicals ---------------- */
 const RANGES = ["1M", "6M", "1Y", "3Y", "5Y", "MAX"];
+/** Intraday ranges (Dhan) and the plan each needs; every one needs a signed-in account, except on the free example company. */
+const INTRA: [IntradayRange, Plan][] = [["1D", "basic"], ["5D", "silver"], ["1M", "silver"]];
+const CAP: React.CSSProperties = { fontSize: 11, padding: "0 6px 0 8px", alignSelf: "center", whiteSpace: "nowrap" };
 export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string; ratios?: Ratios }) {
   const [range, setRange] = useState("1Y"), [from, setFrom] = useState<number | undefined>();
+  const [intra, setIntra] = useState<IntradayRange | null>(null);
   const [ind, setInd] = useState({ e50: true, e200: false, vol: true });
   const { has, upgrade } = useUI();
+  const { user } = useAuth();
+  const open = useContext(OpenAccess);
+  const mayIntra = (tier: Plan) => open || (!!user && has(tier));
   const { data: full, isLoading, isError } = usePrice(symbol, from ? "MAX" : range);
+  const iq = useIntraday(symbol, intra ?? "1D", !!intra);
+  const idata = intra && iq.data?.range === intra ? iq.data : undefined;
   const data = useMemo(() => (full ? priceFrom(full, from) : full), [full, from]);
   const t = data?.technical, series = data?.series, c = series?.c || [];
-  const chg = c.length > 1 ? (c[c.length - 1] / c[0] - 1) * 100 : null;
+  const chg = intra ? (idata?.series ? changePct(idata) : null) : c.length > 1 ? (c[c.length - 1] / c[0] - 1) * 100 : null;
   const gold = has("gold"), e = (k: string, on: boolean) => gold ? on : k === "e50" ? true : k === "vol";
+  const pickIntra = (r: IntradayRange, tier: Plan) => {
+    if (mayIntra(tier)) { setIntra(r); setFrom(undefined); return; }
+    upgrade(tier, tier === "basic" ? "Intraday charts come with a free account." : "The 5D and 1M intraday charts are part of Silver.");
+  };
   return (
     <section className="block" style={{ "--sc": "var(--p-tech)" } as React.CSSProperties}>
-      <SectionHead id="price" no="03 · Price & technicals" icon="line" tier="basic" title="How the stock has traded" sub="Daily closes up to one year, weekly closes beyond. Hover the chart for detail." color="--p-tech" />
-      {chg != null && <Plain tone={chg >= 0 ? "good" : "warn"}>Over this period the price {chg >= 0 ? "rose" : "fell"} {nf(Math.abs(chg), 1)}%.{t?.vsEma200Pct != null && <> It trades {nf(Math.abs(t.vsEma200Pct), 1)}% {t.vsEma200Pct < 0 ? "below" : "above"} its 200-day average, which {t.vsEma200Pct < 0 ? "suggests the longer trend is weak" : "suggests the longer trend is healthy"}.</>}</Plain>}
+      <SectionHead id="price" no="03 · Price & technicals" icon="line" tier="basic" title="How the stock has traded" sub="Intraday bars from Dhan for 1D, 5D and 1M; daily closes up to one year, weekly closes beyond. Hover the chart for detail." color="--p-tech" />
+      {intra && idata?.series && chg != null && <Plain tone={chg >= 0 ? "good" : "warn"}>Since the open {idata.sessions.length > 1 ? "of " + istDay(idata.sessions[0]) : "on " + istDay(idata.session ?? "")}, the price {chg >= 0 ? "rose" : "fell"} {nf(Math.abs(chg), 2)}%.</Plain>}
+      {!intra && chg != null && <Plain tone={chg >= 0 ? "good" : "warn"}>Over this period the price {chg >= 0 ? "rose" : "fell"} {nf(Math.abs(chg), 1)}%.{t?.vsEma200Pct != null && <> It trades {nf(Math.abs(t.vsEma200Pct), 1)}% {t.vsEma200Pct < 0 ? "below" : "above"} its 200-day average, which {t.vsEma200Pct < 0 ? "suggests the longer trend is weak" : "suggests the longer trend is healthy"}.</>}</Plain>}
       <div className="grid g3">
         <div className="card acc span2" style={{ "--ac": "var(--p-tech)" } as React.CSSProperties}>
           <div className="stats">
-            {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], ["Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
+            {[["52W high", s.range52.high == null ? "—" : "₹" + nf(s.range52.high)], ["52W low", s.range52.low == null ? "—" : "₹" + nf(s.range52.low)], [intra ? "Since the open" : "Range change", chg == null ? "—" : signed(chg)], ["vs 200-day average", t?.vsEma200Pct == null ? "—" : signed(t.vsEma200Pct)]].map(([k, v]) => <div className="stat" key={k}><div className="k">{k}</div><div className={"v " + (k === "Range change" || k === "Since the open" || k.startsWith("vs") ? (v.includes("▼") ? "neg" : v.includes("▲") ? "pos" : "") : "")}>{v}</div></div>)}
           </div>
           <div className="tools">
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><div className="seg" role="group" aria-label="Range">{RANGES.map((r) => <button key={r} aria-pressed={!from && range === r} onClick={() => { setRange(r); setFrom(undefined); }}>{r}</button>)}</div><label className="faint" style={{ fontSize: 12 }}>From year <select aria-label="From year" value={from ?? ""} onChange={(e) => setFrom(e.target.value ? Number(e.target.value) : undefined)}><option value="">Any</option>{fromYears().map((y) => <option key={y} value={y}>{y}</option>)}</select></label><ChartHelp id="price-section" /></div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%" }}>
+              <div className="seg" role="group" aria-label="Intraday range"><span className="faint" style={CAP}>Intraday</span>{INTRA.map(([r, tier]) => { const ok = mayIntra(tier); return <button key={r} aria-pressed={intra === r} aria-label={ok ? `${r} intraday` : `${r} intraday (${tier === "basic" ? "sign in" : "Silver plan"})`} onClick={() => pickIntra(r, tier)}>{!ok && <Icon name="lock" />}{r}</button>; })}</div>
+              <div className="seg" role="group" aria-label="Range"><span className="faint" style={CAP}>Daily</span>{RANGES.map((r) => <button key={r} aria-pressed={!intra && !from && range === r} onClick={() => { setRange(r); setFrom(undefined); setIntra(null); }}>{r}</button>)}</div>
+              <label className="faint" style={{ fontSize: 12 }}>From year <select aria-label="From year" value={intra ? "" : from ?? ""} onChange={(e) => { setFrom(e.target.value ? Number(e.target.value) : undefined); setIntra(null); }}><option value="">Any</option>{fromYears().map((y) => <option key={y} value={y}>{y}</option>)}</select></label><ChartHelp id="price-section" /></div>
             {gold ? <div className="seg" role="group" aria-label="Indicators">
-              <button aria-pressed={ind.e50} onClick={() => setInd((x) => ({ ...x, e50: !x.e50 }))}>EMA 50</button><button aria-pressed={ind.e200} onClick={() => setInd((x) => ({ ...x, e200: !x.e200 }))}>EMA 200</button><button aria-pressed={ind.vol} onClick={() => setInd((x) => ({ ...x, vol: !x.vol }))}>Volume</button></div>
+              {!intra && <><button aria-pressed={ind.e50} onClick={() => setInd((x) => ({ ...x, e50: !x.e50 }))}>EMA 50</button><button aria-pressed={ind.e200} onClick={() => setInd((x) => ({ ...x, e200: !x.e200 }))}>EMA 200</button></>}<button aria-pressed={ind.vol} onClick={() => setInd((x) => ({ ...x, vol: !x.vol }))}>Volume</button></div>
               : <span className="tier gold" style={{ cursor: "pointer" }} onClick={() => upgrade("gold", "More indicators come with Gold.")}>More indicators in Gold</span>}
           </div>
+          {intra ? <IntradayBody q={iq} data={idata} showVol={e("vol", ind.vol)} chg={chg} /> : <>
           {isLoading && <div className="skeleton" style={{ height: 340 }} />}
           {isError && <p className="muted">Price history is unavailable right now.</p>}
           {data && series && c.length > 1 && <PriceChart data={data} showEma50={e("e50", ind.e50)} showEma200={e("e200", ind.e200)} showVol={e("vol", ind.vol)} />}
           {data && !data.complete && <p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>History for this company starts {data.startsAt ? dateIN(data.startsAt, { month: "short", year: "numeric" }) : "later"}, so this range is shorter than {range}.</p>}
           {data && <div className="legend"><span className={"chip " + ((chg ?? 0) >= 0 ? "up" : "down")}>{signed(chg)} over the period</span><span><i className="ln" style={{ background: "var(--line)" }} />Close</span>{e("e50", ind.e50) && <span><i className="ln" style={{ background: "var(--c2)" }} />EMA 50</span>}{e("e200", ind.e200) && <span><i className="ln" style={{ background: "var(--c3)" }} />EMA 200</span>}{e("vol", ind.vol) && <span><i style={{ background: "var(--c4)", opacity: 0.6 }} />Volume</span>}{data.provisionalLastBar && <span className="faint">Latest bar is the live quote</span>}</div>}
+          </>}
         </div>
         <Gate tier="gold" title="Advanced technical score" points={["RSI momentum gauge and trend signals", "Price vs 50- and 200-day averages", "Returns across every holding period"]}>
           <div className="card acc" style={{ "--ac": "var(--p-tech)", height: "100%" } as React.CSSProperties}>
@@ -88,6 +110,23 @@ export function PriceSection({ s, symbol, ratios }: { s: Summary; symbol: string
         </Gate>
       </div>
     </section>
+  );
+}
+
+/** The intraday chart with what it shows (session, source, as-of time), or why it cannot be shown. */
+function IntradayBody({ q, data, showVol, chg }: { q: { isPending: boolean; isError: boolean; error: ApiError | null }; data?: Intraday; showVol: boolean; chg: number | null }) {
+  if (!data && q.isError) return <p className="muted">{q.error?.body.detail || "Intraday prices are unavailable right now."}</p>;
+  if (!data) return <div className="skeleton" style={{ height: 340 }} />;
+  const st = intradayStatus(data), sr = data.series, n = sr?.t.length ?? 0;
+  return (
+    <>
+      <div className="faint" style={{ fontSize: 12, margin: "0 0 10px", display: "flex", flexWrap: "wrap", gap: "2px 12px" }}><b style={{ color: "var(--text)", fontWeight: 600 }}>{st.title}</b><span>{st.asOf}</span></div>
+      {st.note && <p className={data.stale ? "neg" : "faint"} style={{ fontSize: 12, margin: "0 0 10px" }}>{st.note}</p>}
+      {!data.available && <p className="muted">{data.detail || "No recent trades."}</p>}
+      {sr && n > 1 && <IntradayChart data={data} showVol={showVol} />}
+      {sr && n === 1 && <p className="muted">One price bar so far in this session: ₹{nf(sr.c[0])}, {barSpan(sr.t[0], data.interval)} IST.</p>}
+      {sr && n > 0 && <div className="legend"><span className={"chip " + ((chg ?? 0) >= 0 ? "up" : "down")}>{signed(chg)} since the open</span><span><i className="ln" style={{ background: "var(--line)" }} />Close</span>{showVol && <span><i style={{ background: "var(--c4)", opacity: 0.6 }} />Volume</span>}<span className="faint">Times are Indian (IST)</span></div>}
+    </>
   );
 }
 

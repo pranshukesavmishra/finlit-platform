@@ -23,7 +23,7 @@ import struct
 import tempfile
 import time
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import httpx
 
@@ -33,6 +33,7 @@ log = logging.getLogger("finlit.dhan")
 logging.getLogger("httpx").setLevel(logging.WARNING)   # its INFO lines print full URLs, and the token call's URL holds the PIN and code
 INSTRUMENTS_URL = "https://images.dhan.co/api-data/api-scrip-master-detailed.csv"
 TOKEN_KEY = "dhan:token"
+PACE_KEY = "dhan:pace:quote"     # one market-quote call a second for the whole account, whichever process (web, quotes job, ETF job) makes it
 RENEW_BEFORE = 2 * 3600          # seconds of life left at which a token is replaced
 RETRY_STATUS = {429, 500, 502, 503, 504}
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -63,19 +64,27 @@ def _f(v: Any) -> Optional[float]:
     return x if x == x and x not in (float("inf"), float("-inf")) else None
 
 
-def parse_instruments(lines: Iterable[str]) -> List[dict]:
+def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None, on_row: Optional[Callable[[dict], None]] = None) -> List[dict]:
     """Equity rows (NSE and BSE) from the detailed instrument file, each marked with whether the stock has futures (and the lot size).
+    Given a list as `indices`, the index rows (segment I, instrument INDEX: quoted under IDX_I) are added to it; they are never equities.
 
-    Streams line by line: the file is about 36 MB and only the equity rows and the futures' underlyings are kept.
+    Streams line by line: the file is about 36 MB and only the equity rows and the futures' underlyings are kept. `on_row` sees every
+    row on the way (options.LotCollector keeps the option series' lot sizes from the same pass).
     """
     out: Dict[tuple, dict] = {}
-    fut: Dict[str, int] = {}                 # NSE underlying symbol -> lot size of its futures
+    fut: Dict[str, Tuple[str, int]] = {}     # NSE underlying symbol -> (expiry, lot size) of its nearest futures contract
     for r in csv.DictReader(lines):
+        if on_row is not None:
+            on_row(r)
         seg, inst, exch = r.get("SEGMENT"), r.get("INSTRUMENT"), r.get("EXCH_ID")
-        if exch == "NSE" and seg == "D" and inst == "FUTSTK":
-            sym, lot = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE"))
-            if sym and sym not in fut and lot:
-                fut[sym] = int(lot)
+        if seg == "I" and inst == "INDEX" and exch in ("NSE", "BSE"):
+            sid, sym = (r.get("SECURITY_ID") or "").strip(), (r.get("SYMBOL_NAME") or "").strip()
+            if indices is not None and sid and sym:
+                indices.append({"exch": exch, "security_id": sid, "symbol": sym, "name": (r.get("DISPLAY_NAME") or "").strip() or None})
+        elif exch == "NSE" and seg == "D" and inst == "FUTSTK":
+            sym, lot, exp = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE")), (r.get("SM_EXPIRY_DATE") or "").strip() or "9999"
+            if sym and lot and (sym not in fut or exp < fut[sym][0]):   # a revised lot size starts with later expiries: the nearest contract's is today's
+                fut[sym] = (exp, int(lot))
         elif seg == "E" and inst == "EQUITY" and exch in ("NSE", "BSE"):
             sid = (r.get("SECURITY_ID") or "").strip()
             sym = (r.get("UNDERLYING_SYMBOL") or r.get("SYMBOL_NAME") or "").strip()
@@ -92,12 +101,13 @@ def parse_instruments(lines: Iterable[str]) -> List[dict]:
                 "inst_type": (r.get("INSTRUMENT_TYPE") or "").strip() or None, "exch_name": (r.get("SYMBOL_NAME") or "").strip() or None}
     for row in out.values():
         if row["exch"] == "NSE" and row["symbol"] in fut:
-            row["fno"], row["lot_size"] = True, fut[row["symbol"]]
+            row["fno"], row["lot_size"] = True, fut[row["symbol"]][1]
     return list(out.values())
 
 
-async def fetch_instruments(client: Optional[httpx.AsyncClient] = None) -> List[dict]:
-    """Download the file to a temporary file (never all in memory) and read it line by line."""
+async def fetch_instruments(client: Optional[httpx.AsyncClient] = None, indices: Optional[List[dict]] = None,
+                            on_row: Optional[Callable[[dict], None]] = None) -> List[dict]:
+    """Download the file to a temporary file (never all in memory) and read it line by line (index rows into `indices`, if given; `on_row` sees every row)."""
     own = client is None
     client = client or httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=180.0), follow_redirects=True)
     try:
@@ -108,7 +118,7 @@ async def fetch_instruments(client: Optional[httpx.AsyncClient] = None) -> List[
                 async for chunk in resp.aiter_bytes():
                     tmp.write(chunk)
             tmp.seek(0)
-            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""))
+            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""), indices, on_row)
     except httpx.HTTPError as e:
         raise DhanError("instrument file: " + type(e).__name__) from None
     finally:
@@ -128,6 +138,18 @@ async def save_instruments(store, rows: List[dict]) -> int:
                 "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
                 [(r["exch"], r["security_id"], r["symbol"], r["isin"], r["name"], r["series"], r["asm_gsm"], r["asm_gsm_cat"], r["mtf_leverage"],
                   r["fno"], r["lot_size"], r.get("inst_type"), r.get("exch_name")) for r in rows])
+    return len(rows)
+
+
+async def save_indices(store, rows: List[dict]) -> int:
+    """Replace dhan_indices with the file's index rows (about 190). A short list is refused, as for equities."""
+    if len(rows) < 50:
+        raise DhanError(f"instrument file looks incomplete ({len(rows)} indices); kept what was stored")
+    async with store.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM dhan_indices")
+            await conn.executemany("INSERT INTO dhan_indices (exch, security_id, symbol, name) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+                                   [(r["exch"], r["security_id"], r["symbol"], r.get("name")) for r in rows])
     return len(rows)
 
 
@@ -240,6 +262,8 @@ class DhanClient:
             wait = self._last_call + min_gap - time.monotonic()
             if wait > 0:
                 await asyncio.sleep(wait)
+            if min_gap:
+                await self._pace(min_gap)
             self._last_call = time.monotonic()
             headers = {"access-token": await self.token(), "client-id": self.settings.dhan_client_id, "Content-Type": "application/json", "Accept": "application/json"}
             try:
@@ -265,6 +289,19 @@ class DhanClient:
             except ValueError:
                 raise DhanError(f"{path}: unreadable answer") from None
         raise DhanError(f"{path}: gave up")
+
+    async def _pace(self, gap: float) -> None:
+        """Dhan's limit is per account, not per process: a Redis key that lives `gap` seconds is the turn to call (waits up to 20 seconds,
+        then goes ahead; a 429 is retried anyway). Without Redis only this process's own pacing applies."""
+        if self.redis is None:
+            return
+        for _ in range(200):
+            try:
+                if await self.redis.set(PACE_KEY, b"1", nx=True, px=int(gap * 1000)):
+                    return
+            except Exception:
+                return
+            await asyncio.sleep(0.1)
 
     async def profile(self) -> dict:
         """Account status: token validity and whether the Data API subscription is active (GET /profile). Only the status fields are returned."""
@@ -311,28 +348,98 @@ class DhanClient:
             return []
         return [{"day": datetime.fromtimestamp(t, IST).date(), **{k: v[i] for k, v in cols.items()}} for i, t in enumerate(ts)]
 
+    async def intraday(self, security_id: str, segment: str, interval: int, start: datetime, end: datetime, instrument: str = "EQUITY") -> List[dict]:
+        """Minute candles (1, 5, 15, 25 or 60 minutes) from start to end: [{"at", "open", "high", "low", "close", "volume"}], oldest first, where
+        "at" is the candle's start in Indian time (+05:30). A time without a zone is read as Indian time. Dhan answers at most 90 days per call:
+        a longer span is refused here, before any call. Unequal arrays, as for daily(), mean no data; a candle with a missing price is left out."""
+        if interval not in INTRADAY_INTERVALS:
+            raise DhanError(f"intraday interval must be one of {', '.join(map(str, INTRADAY_INTERVALS))} minutes")
+        s, e = _ist(start), _ist(end)
+        if e <= s:
+            raise DhanError("intraday: the end is not after the start")
+        if e - s > timedelta(days=INTRADAY_MAX_DAYS):
+            raise DhanError(f"intraday: at most {INTRADAY_MAX_DAYS} days per request")
+        body = await self._post("/charts/intraday", {"securityId": str(security_id), "exchangeSegment": segment, "instrument": instrument,
+                                                      "interval": interval, "oi": False, "fromDate": s.strftime("%Y-%m-%d %H:%M:%S"),
+                                                      "toDate": e.strftime("%Y-%m-%d %H:%M:%S")}, min_gap=0.2)
+        ts = (body or {}).get("timestamp") or []
+        cols = {k: (body or {}).get(k) or [] for k in ("open", "high", "low", "close", "volume")}
+        if not ts or any(len(v) != len(ts) for v in cols.values()):
+            return []
+        out: Dict[float, dict] = {}
+        for i, t in enumerate(ts):
+            at, px = _f(t), [_f(cols[k][i]) for k in ("open", "high", "low", "close")]
+            if at is None or any(p is None or p <= 0 for p in px):
+                continue
+            vol = _f(cols["volume"][i])
+            out[at] = {"at": datetime.fromtimestamp(at, IST), "open": px[0], "high": px[1], "low": px[2], "close": px[3],
+                       "volume": int(vol) if vol is not None and vol >= 0 else None}
+        return [out[k] for k in sorted(out)]
+
+
+INTRADAY_INTERVALS = (1, 5, 15, 25, 60)
+INTRADAY_MAX_DAYS = 90
+
+
+def _ist(t: datetime) -> datetime:
+    """Indian time, to the second: a time without a zone is taken as Indian time already."""
+    return (t.replace(tzinfo=IST) if t.tzinfo is None else t.astimezone(IST)).replace(microsecond=0)
+
 
 # ------------------------------------------------------------------------------------------------------------------ live quotes
 
 EQUITY_SERIES = ("EQ", "BE", "BZ", "SM", "ST", "SZ")    # share series; a symbol can also carry bonds (N1..), warrants (W1) or debentures (D1)
 
 
+# How a company is matched to its one Dhan row: the NSE share by trading symbol, else the BSE share by scrip code (Dhan's BSE security id is
+# the BSE code). Shared by the live quotes and the stock page's trading facts, so both always describe the same instrument.
+MATCH_SQL = (
+    "FROM companies c "
+    "LEFT JOIN dhan_instruments n ON n.exch = 'NSE' AND n.symbol = c.nse_code AND c.nse_code <> '' "
+    "LEFT JOIN dhan_instruments b ON b.exch = 'BSE' AND b.security_id = c.bse_code AND c.bse_code <> '' "
+    "WHERE c.symbol = ANY($1::text[]) AND (n.security_id IS NOT NULL OR b.security_id IS NOT NULL) "
+    "ORDER BY c.symbol, (n.series = ANY($2::text[])) DESC NULLS LAST, (n.series = 'EQ') DESC NULLS LAST, (b.series = ANY($2::text[])) DESC NULLS LAST")
+INFO_COLS = ("exch", "security_id", "series", "asm_gsm", "asm_gsm_cat", "mtf_leverage", "fno", "lot_size", "loaded_at")
+
+
 async def security_map(store, symbols: List[str]) -> Dict[str, Tuple[str, str]]:
-    """{our symbol: (Dhan segment, security id)}: the NSE share by trading symbol, else the BSE share by scrip code (Dhan's BSE security id
-    is the BSE code). Companies with no match are left out (renamed or delisted: they keep the main provider's quote)."""
+    """{our symbol: (Dhan segment, security id)}. Companies with no match are left out (renamed or delisted: they keep the main provider's quote)."""
     if not symbols:
         return {}
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT DISTINCT ON (c.symbol) c.symbol, COALESCE(n.security_id, b.security_id) AS sid, "
-            "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg "
-            "FROM companies c "
-            "LEFT JOIN dhan_instruments n ON n.exch = 'NSE' AND n.symbol = c.nse_code AND c.nse_code <> '' "
-            "LEFT JOIN dhan_instruments b ON b.exch = 'BSE' AND b.security_id = c.bse_code AND c.bse_code <> '' "
-            "WHERE c.symbol = ANY($1::text[]) AND (n.security_id IS NOT NULL OR b.security_id IS NOT NULL) "
-            "ORDER BY c.symbol, (n.series = ANY($2::text[])) DESC NULLS LAST, (n.series = 'EQ') DESC NULLS LAST, (b.series = ANY($2::text[])) DESC NULLS LAST",
-            list(symbols), list(EQUITY_SERIES))
+            "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg " + MATCH_SQL, list(symbols), list(EQUITY_SERIES))
     return {r["symbol"]: (r["seg"], r["sid"]) for r in rows}
+
+
+async def instrument_rows(store, symbols: List[str]) -> Dict[str, dict]:
+    """{our symbol: its matched Dhan row (INFO_COLS)}, the row security_map picks."""
+    if not symbols:
+        return {}
+    cols = ", ".join(f"CASE WHEN n.security_id IS NOT NULL THEN n.{k} ELSE b.{k} END AS {k}" for k in INFO_COLS)
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(f"SELECT DISTINCT ON (c.symbol) c.symbol, {cols} " + MATCH_SQL, list(symbols), list(EQUITY_SERIES))  # nosec B608 - fixed column names
+    return {r["symbol"]: dict(r) for r in rows}
+
+
+def trading_facts(row: Optional[dict]) -> dict:
+    """What the stock page says about trading the share, from its Dhan row. Only what is positively there is given:
+      * surveillance only when the flag is Y. N is never turned into "not under surveillance" (the file may not carry every exchange list),
+        and R (Dhan: "removed from block") is not shown: the shares flagged R trade on restricted series (BE, BZ, ST) all the same;
+      * F&O (NSE) with the lot size of the nearest futures contract;
+      * margin trading (Dhan's own list) only above 1x, since 1x lends nothing. Rounded down to one decimal, so "up to" never overstates it."""
+    if not row:
+        return {"matched": False}
+    lev = row.get("mtf_leverage")
+    lev = int(lev * 10 + 1e-6) / 10 if lev is not None and lev > 0 else None
+    at = row.get("loaded_at")
+    return {
+        "matched": True, "exchange": row.get("exch"), "asOf": at.astimezone(IST).date().isoformat() if isinstance(at, datetime) else None,
+        "surveillance": {"stage": row.get("asm_gsm_cat")} if row.get("asm_gsm") == "Y" else None,
+        "fno": {"lotSize": row.get("lot_size")} if row.get("fno") and row.get("exch") == "NSE" else None,
+        "mtf": {"leverage": lev} if lev is not None and lev > 1 else None,
+    }
 
 
 def _trade_time(text: Any) -> Optional[str]:

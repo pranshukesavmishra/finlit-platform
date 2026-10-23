@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, indices, notify, premium
+from . import alertapi, indices, intraday, notify, premium
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
@@ -40,8 +40,10 @@ from . import dcf as dcf_api
 from . import logos as logos_api
 from . import search as search_api
 from . import macro as macro_api
+from . import clienterrors as clienterrors_api
 from . import markets as markets_api
 from . import flows as flows_api
+from . import options as options_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
@@ -192,6 +194,10 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         lists.cancel()
         if getattr(app.state, "index_client", None):
             await app.state.index_client.aclose()
+        if getattr(app.state, "index_dhan", None):
+            await app.state.index_dhan.aclose()
+        if getattr(app.state, "options_dhan", None):
+            await app.state.options_dhan.aclose()
         if warm:
             warm.cancel()
         if store is None:
@@ -262,6 +268,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     if settings.site_api_url:
         register_stock_admin(app, settings.site_api_url)  # must come before the /api/stocks/{symbol}/{section} routes
+    app.include_router(intraday.router)   # /api/stocks/{symbol}/intraday: also before the /api/stocks/{symbol}/{section} route
 
     @app.get("/api/ping")
     async def ping():
@@ -357,6 +364,29 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         points = await app.state.store.score_history(symbol, statement)
         return JSONResponse({"symbol": symbol, "points": points}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
 
+    @app.get("/api/stocks/{symbol}/trading")
+    async def trading(request: Request, symbol: str):
+        """Surveillance flag, F&O and lot size, and the broker's margin-trading leverage, from Dhan's daily instrument file. Read at serve time
+        (the file changes every day, the stored report does not) and kept 30 minutes in Redis, so a page view costs one indexed query at most."""
+        started = time.perf_counter()
+        symbol = symbol.strip().upper()
+        if not SYMBOL.match(symbol):
+            return JSONResponse({"status": "invalid_symbol"}, status_code=400)
+        redis, key = app.state.store.redis, f"trading:{symbol}"
+        try:
+            body = await redis.get(key)
+        except Exception:
+            body = None
+        if body is None:
+            from .dhan import instrument_rows, trading_facts
+            body = orjson.dumps({"symbol": symbol, **trading_facts((await instrument_rows(app.state.store, [symbol])).get(symbol))})
+            try:
+                await redis.set(key, body, ex=1800)
+            except Exception:
+                pass
+        etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
+        return cached(request, body, etag, "public, max-age=300, stale-while-revalidate=1800", started)
+
     @app.get("/api/stocks/{symbol}/{name}")
     async def section(request: Request, symbol: str, name: str, statement: str = Query("consolidated")):
         started = time.perf_counter()
@@ -447,12 +477,14 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(logos_api.router)
     app.include_router(macro_api.router)
     app.include_router(markets_api.router)
+    app.include_router(clienterrors_api.router)
     app.include_router(flows_api.router)
     app.include_router(flows_api.admin)
     app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
     app.include_router(dcf_api.router)
+    app.include_router(options_api.router)
     app.include_router(results_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

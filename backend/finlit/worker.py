@@ -21,7 +21,7 @@ import logging
 import os
 import time
 from datetime import date, timedelta
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import orjson
 
@@ -43,6 +43,14 @@ class DataRejected(Exception):
 # Without these a report is not worth showing; if any of them failed to load, the load is retried later instead of saved.
 CORE_PARTS = ("profile", "quote", "pl_annual", "bs_annual", "daily_quotes", "ratios_pr")
 
+
+
+async def _mf_dashboard_empty(store) -> bool:
+    """True while no scheme has a fund size, SIP return or checklist yet (a deploy that added those columns after the last refresh ran): the boot
+    refresh then runs even though the last run is recent, so the mutual fund dashboard does not stay empty until the next nightly run."""
+    async with store.pool.acquire() as conn:
+        n = await conn.fetchval("SELECT count(*) FROM mf_schemes WHERE aum_lakh IS NOT NULL OR sip3y IS NOT NULL OR chk_mask IS NOT NULL")
+    return not n
 
 async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False) -> dict:
     """Load one company. `slim` keeps only its score and screener figures (about 5 KB) and not its report or prices (about 100 KB): how the bulk
@@ -205,6 +213,9 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         if old.get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
         summary["quote"] = {**old, **{k: v for k, v in live.items() if v is not None}}
+        for k in ("upperCircuit", "lowerCircuit"):   # a price band belongs to the quote it came with: never an older day's band beside a newer price
+            if live.get(k) is None:
+                summary["quote"].pop(k, None)
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
         touched.append((symbol, statement))
@@ -606,14 +617,28 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 if age is not None and last == "ok" and age < args.max_age_hours:
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
+            from .options import LotCollector, save_option_lots
+            lots = LotCollector()
+            idx: List[dict] = []
             try:
-                n = await dhan.save_instruments(store, await dhan.fetch_instruments())
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx, on_row=lots.add))
             except dhan.DhanError as e:
                 await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
                 print({"status": "failed", "error": str(e)})
                 return 1
-            await record_run(store, args.cmd, {"status": "ok", "equities": n})
-            print({"status": "ok", "equities": n})
+            try:                                  # the index rows never hold up the equities: a short list keeps the stored ones
+                ni: Any = await dhan.save_indices(store, idx)
+                from .indices import DHAN_IDS_KEY
+                await store.redis.delete(DHAN_IDS_KEY)   # the live index strip re-checks its mapping against the new file
+            except dhan.DhanError as e:
+                ni = str(e)
+            result = {"status": "ok", "equities": n, "indices": ni}
+            try:
+                result["option_series"] = await save_option_lots(store, lots.rows())   # lot size per underlying and expiry (option chain)
+            except dhan.DhanError as e:
+                result["option_series_error"] = str(e)
+            await record_run(store, args.cmd, result)
+            print(result)
             return 0
         if args.cmd == "dhan-check":
             from . import dhan
@@ -670,7 +695,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .mf import record_run, last_run_age_hours
             if args.max_age_hours:
                 age, last = await last_run_age_hours(store, args.cmd)
-                if age is not None and age < (args.max_age_hours if last == "ok" else min(0.25, args.max_age_hours)):
+                if age is not None and age < (args.max_age_hours if last == "ok" else min(0.25, args.max_age_hours)) and not (args.cmd == "refresh-mf" and await _mf_dashboard_empty(store)):
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
             try:

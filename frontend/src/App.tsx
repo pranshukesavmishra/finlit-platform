@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
+import { lazyPage as lazy } from "./lib/resilience";
 import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
 import { AppShell } from "./components/AppShell";
@@ -33,6 +34,7 @@ const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ defa
 const MacroPage = lazy(() => import("./pages/Macro").then((m) => ({ default: m.MacroPage })));
 const FiiDiiPage = lazy(() => import("./pages/FiiDii").then((m) => ({ default: m.FiiDiiPage })));
 const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ default: m.SipCalculator })));
+const OptionChainPage = lazy(() => import("./pages/OptionChain").then((m) => ({ default: m.OptionChainPage })));
 const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
@@ -72,6 +74,7 @@ export default function App() {
             <Route path="premium" element={<PremiumHub />} />
             <Route path="premium/markets" element={<MarketsPage />} />
             <Route path="premium/fundamentals" element={<FundamentalsPage />} />
+            <Route path="premium/options" element={<OptionChainPage />} />
             <Route path="premium/report" element={<PremiumReportPage />} />
             <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
             <Route path="compare" element={<Compare />} />

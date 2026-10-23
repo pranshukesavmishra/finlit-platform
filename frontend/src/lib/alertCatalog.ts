@@ -7,6 +7,7 @@ export const METRICS: Record<string, Metric> = {
   price: { label: "Price", unit: "₹", group: "Price & momentum", live: true, tier: "basic", ops: ["above", "below"], hint: "The last traded price. Checked every few minutes while the market is open.", sample: 0 },
   change_pct: { label: "Day change", unit: "%", group: "Price & momentum", live: true, tier: "basic", ops: ["above", "below"], hint: "Today's move against yesterday's close. Use a negative number for a fall.", sample: 3 },
   move_abs: { label: "Move in a day (either way)", unit: "%", group: "Price & momentum", live: true, tier: "basic", ops: ["above"], hint: "Tell me when it moves this much in a day, up or down.", sample: 5 },
+  circuit: { label: "Upper or lower circuit", unit: "", group: "Price & momentum", live: true, tier: "basic", ops: ["above", "below"], hint: "Tell me when the price reaches the highest (upper circuit) or lowest (lower circuit) price the exchange allows for the day. Checked every few minutes while the market is open, only when the live quote carries the day's price band.", sample: 1 },
   volume_x: { label: "Volume vs 20-day average", unit: "×", group: "Price & momentum", live: false, tier: "basic", ops: ["above"], hint: "A volume spike: today's traded volume as a multiple of the 20-day average.", sample: 3 },
   from_high52: { label: "Distance from 52-week high", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits under its 52-week high. A target of 2 means within 2% of the high (0 is a fresh high).", sample: 2 },
   from_low52: { label: "Distance from 52-week low", unit: "%", group: "Price & momentum", live: false, tier: "basic", ops: ["below"], hint: "How far the price sits above its 52-week low. A target of 3 means within 3% of the low (0 is a fresh low).", sample: 3 },
@@ -40,11 +41,15 @@ export const METRICS: Record<string, Metric> = {
 };
 export const GROUPS: Group[] = ["Price & momentum", "Technical signals", "Valuation", "Quality & growth", "FinLit score", "Results & ownership", "News & filings"];
 export const isEvent = (k: string) => METRICS[k]?.ops[0] === "event";
+/** Alerts with no number to choose: the server sets the target (alertengine.FIXED_TARGET). */
+export const fixedTarget = (k: string, op: Op): number | null => (k === "circuit" ? (op === "below" ? -1 : 1) : null);
+const CIRCUIT_STATE: Record<string, string> = { "1": "At the upper circuit", "-1": "At the lower circuit", "0": "Inside the day's price band" };
 export const LIMITS: Record<string, number> = { basic: 3, silver: 30, gold: 300 };
 
 const n = (v: number) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString("en-IN") : String(+v.toFixed(2)));
 export function fmtValue(metric: string, v: number | null | undefined): string {
   if (v == null || !METRICS[metric]) return "—";
+  if (metric === "circuit") return CIRCUIT_STATE[String(Math.sign(v))];
   const u = METRICS[metric].unit, sign = v < 0 ? "−" : metric === "promoter_chg" || metric === "fii_chg" ? (v > 0 ? "+" : "") : "";
   const x = n(Math.abs(v));
   return u === "₹" ? `${sign}₹${x}` : u === "Cr" ? `${sign}₹${x} Cr` : u === "pp" ? `${sign}${x} pp` : u === "days" ? `${x} days` : u ? `${sign}${x}${u}` : `${sign}${x}`;
@@ -56,6 +61,7 @@ export function describe(a: { metric: string; op: Op; value: number | null; keyw
   if (a.metric === "new_filing") return "A new filing is published";
   if (a.metric === "result_soon") return `Results announced within ${a.value ?? 7} days`;
   if (a.metric === "rev_profit_gap") return `Revenue and profit growth are ${fmtValue(a.metric, a.value)} or more apart`;
+  if (a.metric === "circuit") return `The price reaches the ${a.op === "below" ? "lower" : "upper"} circuit (the ${a.op === "below" ? "lowest" : "highest"} price allowed for the day)`;
   if (a.metric === "move_abs") return `Moves ${fmtValue(a.metric, a.value)} or more in a day`;
   if (a.metric === "volume_x") return `Volume reaches ${fmtValue(a.metric, a.value)} its 20-day average`;
   if (a.metric === "from_high52") return `Within ${fmtValue(a.metric, a.value)} of its 52-week high`;
@@ -67,9 +73,10 @@ export function closeness(a: { metric: string; op: Op; value: number | null; las
   if (a.op === "event" || a.value == null || a.lastValue == null) return null;
   const hit = a.op === "above" ? a.lastValue >= a.value : a.lastValue <= a.value;
   if (hit) return 100;
+  if (fixedTarget(a.metric, a.op) != null) return null;   // at the band or not: there is no distance to show
   const gap = Math.abs(a.value - a.lastValue), base = Math.max(Math.abs(a.value), Math.abs(a.lastValue), 1e-9);
   return Math.max(2, Math.min(98, Math.round(100 - Math.min(1, gap / base) * 100)));
 }
 export const LIVE_NOTE = "Price alerts are checked every few minutes while the market is open. Everything else is checked on weekday evenings, once the day's data is in.";
 export const OP_LABEL = (metric: string, op: Op): string =>
-  metric === "move_abs" || metric === "volume_x" || metric === "rev_profit_gap" ? "Reaches at least" : metric === "from_high52" || metric === "from_low52" ? "Gets within" : op === "above" ? "At or above" : op === "below" ? "At or below" : "Any new item";
+  metric === "circuit" ? (op === "below" ? "Hits the lower circuit" : "Hits the upper circuit") : metric === "move_abs" || metric === "volume_x" || metric === "rev_profit_gap" ? "Reaches at least" : metric === "from_high52" || metric === "from_low52" ? "Gets within" : op === "above" ? "At or above" : op === "below" ? "At or below" : "Any new item";

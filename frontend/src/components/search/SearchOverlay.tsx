@@ -24,11 +24,12 @@ const PLACEHOLDER: Record<Tab, string> = {
   etf: "ETF name or symbol, e.g. NIFTYBEES, gold", news: "Company or headline (3 letters or more)", global: "Global markets are coming soon",
 };
 
-/** The eight largest companies, preferring those that have a price (every company has one on the live site; a preview build holds quotes for only a few). */
-function largestWithData(rows: readonly SearchRow[] | undefined, q: Map<string, { price: number | null }>): SearchRow[] {
+const PAGE = 40;
+/** Every listed company, largest first, those with a price ahead of those without (a preview build holds quotes for only a few). */
+function allStocks(rows: readonly SearchRow[] | undefined, q: Map<string, { price: number | null }>): SearchRow[] {
   const all = (rows || []).filter((r) => !r[0].startsWith("^"));
   const priced = all.filter((r) => q.get(r[0])?.price != null);
-  return (priced.length >= 4 ? priced : all).slice(0, 8);
+  return priced.length >= 4 ? [...priced, ...all.filter((r) => q.get(r[0])?.price == null)] : all;
 }
 
 function useDebounced<T>(v: T, ms: number): T {
@@ -66,6 +67,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [sel, setSel] = useState(0);
+  const [cap, setCap] = useState(PAGE);      // how many stocks are drawn: the list grows as it is scrolled, so every listed company can be reached
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLElement | null>(null);
@@ -128,14 +130,15 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       if (tab === "all" || tab === "stocks") {
         const movers = moversToday(rows, qmap, today, 6).map((r) => stockItem(r, qmap, mineSet));
         if (movers.length) out.push({ id: "movers", title: "Moving most today · largest 200 companies", items: movers });
-        if (tab === "stocks" || !movers.length) out.push({ id: "largest", title: "Largest listed companies", items: largestWithData(rows, qmap).map((r) => stockItem(r, qmap, mineSet)) });
+        const every = allStocks(rows, qmap);
+        out.push({ id: "largest", title: `All listed companies · largest first`, items: every.slice(0, cap).map((r) => stockItem(r, qmap, mineSet)) });
       }
       if (tab === "mf") out.push({ id: "hot", title: "Largest funds by assets", items: fundItems(hotMf.data?.items, logos).slice(0, 8) });
       if (tab === "etf") out.push({ id: "hot", title: "Most traded ETFs", items: etfItems(hotEtf.data?.items, logos) });
       if (tab === "news") out.push({ id: "latest", title: "Latest company news", items: newsItems(latest.data?.items) });
       return out.filter((x) => x.items.length);
     }
-    if (tab === "stocks") return [{ id: "stocks", title: "Stocks", items: stockHits(40).map((h) => stockItem(h.row, qmap, mineSet)) }].filter((x) => x.items.length);
+    if (tab === "stocks") return [{ id: "stocks", title: "Stocks", items: stockHits(cap).map((h) => stockItem(h.row, qmap, mineSet)) }].filter((x) => x.items.length);
     const funds = dq.length >= 2 ? fundItems(mfQ.data?.items, logos) : [];
     const etfs = dq.length >= 2 ? etfItems(etfQ.data?.items, logos) : [];
     const news = dq.length >= 3 ? newsItems(newsQ.data?.items) : [];
@@ -145,8 +148,12 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     const hits = stockHits(8);
     const best = hits[0] && hits[0].rank >= 880 ? stockItem(hits[0].row, qmap, mineSet) : null;
     return allSections(hits.map((h) => stockItem(h.row, qmap, mineSet)), best, funds, etfs, news);
-  }, [idx.data, q, dq, tab, qmap, mineSet, recent, bySym, logos, today, mfQ.data, etfQ.data, newsQ.data, hotMf.data, hotEtf.data, latest.data]);
+  }, [idx.data, q, dq, tab, cap, qmap, mineSet, recent, bySym, logos, today, mfQ.data, etfQ.data, newsQ.data, hotMf.data, hotEtf.data, latest.data]);
 
+  useEffect(() => { setCap(PAGE); }, [q, tab, open]);
+  const total = useMemo(() => (tab === "stocks" && q.trim() ? searchStocks(idx.data?.rows, q.trim(), 1e6, mineSet).length : (idx.data?.rows.length ?? 0)), [tab, q, idx.data, mineSet]);
+  const more = (tab === "stocks" || (tab === "all" && !q.trim())) && cap < total;
+  const grow = () => { const el = list.current; if (more && el && el.scrollTop + el.clientHeight > el.scrollHeight - 500) setCap((c) => c + 60); };
   const items = useMemo(() => flat(sections), [sections]);
   const cur = items[Math.min(sel, Math.max(0, items.length - 1))];
   const busy = (tab === "all" || tab === "mf") && dq.length >= 2 && mfQ.isFetching || (tab === "all" || tab === "etf") && dq.length >= 2 && etfQ.isFetching || (tab === "all" || tab === "news") && dq.length >= 3 && newsQ.isFetching;
@@ -175,7 +182,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
   if (!open) return null;
   const n = items.length;
-  const status = tab === "global" ? "Global markets are coming soon." : !q ? "" : waiting || busy ? "Searching…" : n ? `${n} result${n === 1 ? "" : "s"}` : "No matches";
+  const status = tab === "global" ? "Global markets are coming soon." : more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} companies · keep scrolling` : !q ? "" : waiting || busy ? "Searching…" : n ? `${n} result${n === 1 ? "" : "s"}` : "No matches";
   let i = -1;
   return (
     <>
@@ -202,7 +209,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           </div>
         </div>
         <div className="gs-body">
-          <div className="gs-list" id="gsList" role="listbox" aria-label="Results" ref={list}>
+          <div className="gs-list" id="gsList" role="listbox" aria-label="Results" ref={list} onScroll={grow}>
             {tab === "global" ? <GlobalSoon /> : null}
             {tab !== "global" && idx.isLoading && <Skeleton />}
             {tab !== "global" && idx.isError && <p className="gs-empty">Search is unavailable right now. Please try again in a moment.</p>}

@@ -34,4 +34,10 @@ Ask Dhan support, in writing, whether a personal Data API subscription may be us
   split), is asked of FinEdge as before; if Dhan is down, FinEdge prices everyone.
 - **ETFs** (`refresh-etf`, nightly): prices and 10 years of history from Dhan when it is set up (one quote call for every ETF, history paced at
   3 calls a second), else Upstox. `ETF_SOURCE=upstox` forces Upstox back. `/api/mf/status` shows `"source"` under `run:refresh-etf`.
+- **Index strip and index prices** (`/api/indices`): during the session (09:15 to 15:30 IST, weekdays) the level, day move and day range of 170 mapped
+  indices (the whole strip) come from Dhan, in ONE `/marketfeed/quote` call (segment `IDX_I`) at most once a minute however many people read the site. The
+  fixed mapping (our name to Dhan security id) is `DHAN_INDEX` in `indices.py`, checked against `dhan_indices` (loaded by `refresh-instruments`). An
+  unmapped index, one Dhan does not answer for, or a Dhan level more than 10% from the last one held, keeps FinEdge's figures (logged). Outside the session
+  nothing is asked of Dhan and FinEdge's last close is shown. P/E, P/B and yield, and history, stay FinEdge's. Upstox is no longer involved in the strip:
+  the old `UPSTOX_ACCESS_TOKEN` ticker (`/api/market-ticker`) is not used by the site.
 - Mutual funds: unchanged. Dhan publishes no NAV, AUM or expense ratio; those stay with AMFI.

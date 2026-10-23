@@ -107,16 +107,33 @@ function Buckets({ items }: { items: Row[] }) {
   );
 }
 
+/** "Market" (every company) or "Mine" (the stocks in the member's watchlists) for the dates and news widgets. The market view is the default; the choice is remembered in this browser. */
+type Scope = "market" | "mine";
+const SCOPE_KEY = "finlit-dash-scope:";
+function useScope(id: string, hasStocks: boolean): [Scope, (s: Scope) => void] {
+  const [scope, set] = useState<Scope>(() => { try { return localStorage.getItem(SCOPE_KEY + id) === "mine" ? "mine" : "market"; } catch { return "market"; } });
+  const choose = (s: Scope) => { set(s); try { localStorage.setItem(SCOPE_KEY + id, s); } catch { /* private mode */ } };
+  return [hasStocks ? scope : "market", choose];
+}
+function ScopeToggle({ id, scope, onChange, hasStocks, label }: { id: string; scope: Scope; onChange: (s: Scope) => void; hasStocks: boolean; label: string }) {
+  return (
+    <span className="seg dw-scope" role="group" aria-label={`${label}: whose companies`}>
+      <button type="button" aria-pressed={scope === "market"} onClick={() => onChange("market")}>Market</button>
+      <button type="button" aria-pressed={scope === "mine"} disabled={!hasStocks} title={hasStocks ? "Only the stocks in your watchlists" : "Add stocks to a watchlist to use this"} onClick={() => onChange("mine")} data-widget={id}>My stocks</button>
+    </span>
+  );
+}
+
 function Dates({ symbols }: { symbols: string[] }) {
   const { data } = useFeed("result", { symbols, limit: 100, upcoming: true });
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const next = (data || []).filter((i) => i.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6);
-  if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "Result dates appear here as companies announce them."} to="/results" cta="Open results calendar" />;
+  if (!next.length) return <Empty icon="calendar" title="No dates yet" text={symbols.length ? "None of your stocks has announced a results date yet." : "No company has announced a results date yet."} to="/results" cta="Open results calendar" />;
   return <ul className="sl">{next.map((x) => <li key={x.id}><Link to={x.symbol ? `/stocks/${x.symbol}` : "/results"}><b>{who(x)}</b><span className="chip">{dayLabel(x.date)}</span></Link><span>{x.period || x.category}</span></li>)}</ul>;
 }
 function NewsW({ symbols }: { symbols: string[] }) {
   const { data } = useFeed("news", { symbols, limit: 6 });
-  if (!(data || []).length) return <Empty icon="notes" title="No announcements yet" text={symbols.length ? "Nothing new for your stocks." : "Follow stocks to see their announcements here."} to="/news" cta="Open news" />;
+  if (!(data || []).length) return <Empty icon="notes" title="No announcements yet" text={symbols.length ? "Nothing new for your stocks." : "No new exchange announcements yet."} to="/news" cta="Open news" />;
   return <ul className="sl">{data!.map((x) => <li key={x.id}><Link to="/news"><b>{x.symbol || "Market"}</b><span className="muted">{dayLabel(x.date)}</span></Link><span>{x.title}</span></li>)}</ul>;
 }
 function IposW() {
@@ -201,6 +218,7 @@ export function Dashboard() {
   const names = useMemo(() => new Map(rows.map((r) => [r.symbol, r.name])), [rows]);
   const followed = useMemo(() => [...new Set(wl.lists.flatMap((l) => l.symbols))], [wl]);
   const items = followed.map((s) => bySym.get(s)).filter((r): r is Row => !!r);
+  const [dScope, setDScope] = useScope("dates", followed.length > 0), [nScope, setNScope] = useScope("news", followed.length > 0);
   useEffect(() => { if (DEMO && !wl.seeded && rows.length) watch.seed([...rows].sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)).slice(0, 9).map((r) => r.symbol)); }, [rows, wl.seeded]);
   if (!ready) return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "40px auto" }} /></div>;
   if (!user) return <Navigate to="/login?next=%2Fdashboard" replace />;
@@ -214,8 +232,8 @@ export function Dashboard() {
     if (RANK[plan] < RANK[w.min]) return <Locked tier={w.min} label={w.label} />;
     switch (id) {
       case "movers": return <Movers items={items} />;
-      case "dates": return <Dates symbols={followed} />;
-      case "news": return <NewsW symbols={followed} />;
+      case "dates": return <Dates symbols={dScope === "mine" ? followed : []} />;
+      case "news": return <NewsW symbols={nScope === "mine" ? followed : []} />;
       case "ipos": return <IposW />;
       case "results": return <Results symbols={followed.length ? followed : ["RELIANCE"]} names={names} />;
       case "second": return <SecondLook items={items} meta={wl.meta} />;
@@ -254,7 +272,9 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{w.id === "news" ? (nScope === "mine" ? "News for my stocks" : "Latest market news") : w.id === "dates" ? (dScope === "mine" ? "Results dates for my stocks" : "Results dates coming up") : meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
+              {w.id === "dates" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="dates" scope={dScope} onChange={setDScope} hasStocks={followed.length > 0} label="Results dates" />}
+              {w.id === "news" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="news" scope={nScope} onChange={setNScope} hasStocks={followed.length > 0} label="News" />}
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
             {body(w.id)}
           </section>))}

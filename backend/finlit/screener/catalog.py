@@ -225,6 +225,7 @@ CATALOG: List[Metric] = [
     M("range_pos", "Position in 52-week range", "trading", "%", "none", "silver", "0 means at the 52-week low, 100 means at the high.", 0),
     M("near_high", "Near 52-week high", "trading", "flag", "none", "silver", "Yes if within 3% of the 52-week high.", 0),
     M("near_low", "Near 52-week low", "trading", "flag", "none", "silver", "Yes if within 3% of the 52-week low.", 0),
+    M("fno", "Has futures & options (F&O)", "trading", "flag", "none", _B, "Yes if the stock has futures and options contracts on NSE.", 0),
     M("vs_ema50", "Price against 50-day average", "trading", "%", "none", "silver", "How far the price is above (+) or below (−) its 50-day average.", 1),
     M("vs_ema200", "Price against 200-day average", "trading", "%", "none", "silver", "How far the price is above (+) or below (−) its 200-day average.", 1),
     M("rsi14", "RSI (14 days)", "trading", "pts", "none", "silver", "Momentum from 0 to 100. Under 30 is oversold, over 70 overbought.", 0),

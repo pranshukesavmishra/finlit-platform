@@ -432,3 +432,18 @@ async def test_markets_members(ingested):
             assert r.status_code == 200 and "max-age" in r.headers["cache-control"]
             assert r.json()["indices"] == {"NIFTY50": ["RELIANCE"], "NIFTYBANK": ["HDFCBANK", "SBIN"]}
             assert (await api.get("/api/markets/members")).json()["indices"]["NIFTYBANK"] == ["HDFCBANK", "SBIN"]
+
+
+async def test_client_errors_are_logged_short_and_validated(ingested, caplog):
+    """The website reports the errors its visitors hit; the server keeps one short log line each and refuses oversized or malformed reports."""
+    import logging
+    app = create_app(make_settings(), store=ingested)
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+            with caplog.at_level(logging.WARNING, logger="finlit.client"):
+                r = await api.post("/api/client-errors", json={"message": "Failed to fetch dynamically imported module", "stack": "a\nb\nc", "path": "/graphs?token=secret", "kind": "chunk", "build": "index-abc.js"})
+                assert r.status_code == 204
+            line = " ".join(rec.getMessage() for rec in caplog.records if rec.name == "finlit.client")
+            assert "chunk" in line and "/graphs" in line and "dynamically imported module" in line and "token=secret" not in line and "\n" not in line
+            assert (await api.post("/api/client-errors", json={"message": "x" * 301})).status_code == 422
+            assert (await api.post("/api/client-errors", json={"nope": 1})).status_code == 422

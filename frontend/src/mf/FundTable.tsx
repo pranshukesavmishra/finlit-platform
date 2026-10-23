@@ -8,6 +8,7 @@ import {
 } from "../lib/mf";
 import { dateIN } from "../lib/format";
 import { Fig, PlanChip } from "./Bits";
+import { tintOf } from "../lib/mfSummary";
 
 const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 const MARK = { pass: "✓", fail: "✗", unknown: "–" } as const;
@@ -55,14 +56,14 @@ function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: S
     case "r1y": case "r3y": case "r5y": {
       const years = c.id === "r1y" ? 1 : c.id === "r3y" ? 3 : 5;
       const v = r[c.id] ?? null;
-      const short = v == null ? shortWhy(r.noReturns, `younger than ${years} year${years > 1 ? "s" : ""}`) : "";
+      const short = v == null ? shortWhy(r.noReturns, "not enough history") : "";
       return <span className="mf-rf"><Fig v={v} why={why || `Younger than ${years} year${years > 1 ? "s" : ""}, or no NAV near the start date.`} /><Bar v={v} max={scale[c.id] ?? 0} />{short && <small>{short}</small>}</span>;
     }
     case "sip3y": case "sip5y": {
       const years = c.id === "sip3y" ? 3 : 5;
       const v = r[c.id] ?? null;
       return <span className="mf-rf"><Fig v={v} why={why || `Needs a month-end NAV for each of the last ${years * 12} months; younger schemes, and month-ends not loaded yet, have none.`} />
-        <Bar v={v} max={scale[c.id] ?? 0} />{v == null && <small>{shortWhy(r.noReturns, `under ${years} years`)}</small>}</span>;
+        <Bar v={v} max={scale[c.id] ?? 0} />{v == null && <small>{shortWhy(r.noReturns, "not enough history")}</small>}</span>;
     }
     case "aum": {
       if (r.aum == null) return <span className="mf-na" title="Fund size is not in AMFI's latest quarterly AUM report or the fund house's month-end portfolio file loaded." aria-label="No fund size">—</span>;
@@ -97,6 +98,11 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
   const sorted = (key: SortKey | null) => (key && q.sort === key ? (q.dir === "asc" ? "ascending" : "descending") : key ? "none" : undefined);
   const scale: Scale = {};
   for (const id of ["r1y", "r3y", "r5y", "sip3y", "sip5y"] as const) scale[id] = Math.max(0, ...rows.map((r) => Math.abs(r[id] ?? 0)));
+  const tint = (c: ColDef, r: FundRow): React.CSSProperties | undefined => {
+    if (c.id !== "r1y" && c.id !== "r3y" && c.id !== "r5y" && c.id !== "sip3y" && c.id !== "sip5y") return undefined;
+    const t = tintOf(r[c.id], scale[c.id] ?? 0);
+    return t ? ({ "--tint": `color-mix(in srgb, var(${t.tone === "pos" ? "--gain" : "--loss"}) ${Math.round(8 + t.k * 22)}%, transparent)` } as React.CSSProperties) : undefined;
+  };
   const cls = (c: ColDef) => (c.num ? "num" : "txt") + (c.group ? ` mf-retcol mf-g-${c.group}` : "") + ` mf-c-${c.id}`;
   return (
     <HScroll label="schemes table">
@@ -126,7 +132,7 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
                   {r.nav != null && <small className="mf-navm">NAV <span className="mono" title={navFull(r.nav)}>{navText(r.nav)}</span></small>}
                 </span>
               </th>
-              {defs.map((c) => <td key={c.id} className={cls(c)}>{cell(c, r, peers, scale)}</td>)}
+              {defs.map((c) => <td key={c.id} className={cls(c) + (tint(c, r) ? " mf-tinted" : "")} style={tint(c, r)}>{cell(c, r, peers, scale)}</td>)}
             </tr>))}
         </tbody>
       </table>

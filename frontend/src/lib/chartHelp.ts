@@ -35,7 +35,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
   "price-section": {
     title: "Price over time",
     what: "The closing price of the share over the range you pick, with the 50-day and 200-day averages and trading volume as optional extras.",
-    x: "Date. Daily closes up to one year, weekly closes for longer ranges.",
+    x: "Date. Daily closes up to one year, weekly closes for longer ranges. The intraday ranges show Indian time: one bar a minute for 1D, every 5 minutes for 5D and every hour for 1M.",
     y: "Closing share price in rupees (right-hand scale). Bars along the bottom are shares traded, scaled to the busiest day.",
     read: "A line climbing from left to right means the price has risen over the period. The averages smooth out day-to-day noise, so price above them points to an upward trend and below them to a downward one.",
     why: "It puts today's price in context against where it has been, which is the starting point for judging whether a move is unusual.",
