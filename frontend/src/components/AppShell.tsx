@@ -30,7 +30,10 @@ export function AppShell() {
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
   const groups: Group[] = [
-    { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
+    { title: "Overview", items: [
+      { to: "/dashboard", label: "Dashboard", icon: "home" },
+      { to: "/dcf", label: "DCF calculator", icon: "rupee" },
+    ] },
     { title: "Research", items: [
       { to: "/research", label: "Stock research", icon: "search" },
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
@@ -44,7 +47,6 @@ export function AppShell() {
       { to: "/premium/fundamentals", label: "Stock fundamentals", icon: "table" },
       { to: "/premium/markets", label: "Market events & index", icon: "activity" },
       { to: "/premium/report", label: "Premium report", icon: "notes" },
-      { to: "/dcf", label: "DCF calculator", icon: "rupee" },
     ] },
     { title: "My lists", items: [
       { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },

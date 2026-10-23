@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router";
-import { COMPANY, PRICING, SERVICES } from "../content/site";
+import { COMPANY, SERVICES } from "../content/site";
 import { FAQ_GROUPS } from "../content/faq";
 import { NotifyForm } from "../components/NotifyForm";
 import { Icon } from "../lib/icons";
@@ -58,12 +58,13 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
   { to: "/etfs", t: "ETFs", d: "Every exchange-traded fund: price, returns over 1 month to 5 years, volatility and worst fall, with a chart and plain-words terms.", tier: "Free" },
   { to: "/funds", t: "Mutual funds", d: "Every scheme from AMFI: NAV, returns, risk, category and plan, with a chart and side-by-side compare. Information only.", tier: "Free" },
   { to: "/graphs", t: "Graph Studio", d: "Put several graphs side by side: pick companies and measures, choose a chart type for each, and see patterns and correlation.", tier: "Free" },
+  { to: "/dcf", t: "DCF calculator", d: "Work out what a business is worth from its future free cash flow: load a company's figures, set growth and discount rates, and see the value per share, the price after your margin of safety, and what today's price already assumes.", tier: "Gold" },
 ];
 
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Eleven tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Twelve tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>
@@ -170,7 +171,7 @@ export function Home() {
         <Reveal className="hh-head"><div className="hh-kicker">Beyond the website</div><h2>Five things we do with people</h2><p>The software does the digging. The conversation is for your own money and your own goals.</p></Reveal>
         <ol className="hh-svc">
           {SERVICES.map((x) => <li key={x.name}><span className="hh-n">{x.n}</span><div><h3>{x.name}</h3><p className="hh-prop">{x.proposition}</p><p>{x.desc}</p></div></li>)}
-          <li className="hh-first"><span className="hh-n">₹</span><div><h3>First session</h3><p className="hh-price">{PRICING[0].price}</p><p>{PRICING[0].note}.</p><button className="btn primary" onClick={() => enquire()}>Book now</button></div></li>
+          <li className="hh-first"><span className="hh-n">₹</span><div><h3>Plans</h3><p>Basic is free. Silver and Gold open the deeper tools, from watchlists to the DCF calculator.</p><Link className="btn primary" to="/plans">Explore plans</Link></div></li>
         </ol>
       </div></section>
 
