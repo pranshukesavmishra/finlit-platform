@@ -347,3 +347,15 @@ async def test_a_stopped_scheme_loses_its_checklist_and_sip(seeded):
     async with store_.pool.acquire() as conn:
         r = await conn.fetchrow("SELECT chk_mask, sip3y FROM mf_schemes WHERE code = 900003")
     assert r["chk_mask"] is None and r["sip3y"] is None
+
+
+async def test_boot_refresh_is_not_skipped_while_the_dashboard_columns_are_empty(store):
+    """A deploy that added fund size / SIP / checklist after the last refresh ran must not wait for the next nightly run."""
+    from finlit.worker import _mf_dashboard_empty
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM mf_schemes")
+        await conn.execute("INSERT INTO mf_schemes (code, name, amc, scheme_type, category, plan, option_class, family) VALUES (999101, 'Empty Cols Fund', 'X Mutual Fund', 'Open Ended', 'x', 'Direct', 'Growth', 'f')")
+    assert await _mf_dashboard_empty(store) is True
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE mf_schemes SET sip3y = 12.5 WHERE code = 999101")
+    assert await _mf_dashboard_empty(store) is False

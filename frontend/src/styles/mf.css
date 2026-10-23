@@ -304,3 +304,20 @@
 .mf-nm small.mf-navm { display: none; }
 @media (max-width: 640px) { .mf-nm small.mf-navm { display: flex; } }
 @media (prefers-reduced-motion: reduce) { .mf * { transition: none !important; } .mf-qcard:hover { transform: none; } }
+
+/* summary cards, quick-sort pills, tinted return cells */
+.mf-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.mf-sc { background: var(--s1); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; display: grid; gap: 3px; min-width: 0; box-shadow: var(--shadow); }
+.mf-sc small { font: 600 11.5px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mf-sc b { font: 700 24px/1.15 var(--mono); letter-spacing: -.01em; } .mf-sc b.pos { color: var(--gain); } .mf-sc b em { font-style: normal; font-size: 15px; color: var(--muted); font-weight: 600; }
+.mf-sc span { font-size: 12.5px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mf-split { display: block; height: 7px; border-radius: 5px; background: color-mix(in srgb, var(--loss) 70%, var(--s1)); overflow: hidden; margin: 3px 0 1px; } .mf-split u { display: block; height: 100%; background: var(--gain); text-decoration: none; }
+.mf-pills { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.mf-pl { font: 600 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.mf-pills button { border: 1px solid var(--border); background: var(--s1); color: var(--muted); padding: 6px 13px; border-radius: 999px; font: 500 13px var(--sans); cursor: pointer; }
+.mf-pills button:hover { border-color: var(--gold); color: var(--text); } .mf-pills button.on { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+.mf-pills button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mf-note { margin: 0; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--gold) 11%, var(--s1)); border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--border)); color: var(--text); font-size: 13.5px; line-height: 1.5; }
+.mf-table td.mf-tinted { background: var(--tint); }
+.mf-table td.mf-tinted .pos, .mf-table td.mf-tinted .neg { font-weight: 700; }
+.mf-table tbody tr:hover td, .mf-table tbody tr:hover th { filter: brightness(.97); }
