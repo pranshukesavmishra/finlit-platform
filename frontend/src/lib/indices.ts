@@ -7,8 +7,10 @@ export type IndexRow = {
   code: string; name: string; group: "Broad market" | "Sector" | "Strategy & theme" | "Volatility"; exchange: "NSE" | "BSE";
   close: number | null; changePct: number | null; points: number | null; open: number | null; high: number | null; low: number | null;
   pe: number | null; pb: number | null; divYield: number | null; date: string | null;
+  /** "dhan": live level, move and range (time = Dhan's last update); "finedge": last close. P/E, P/B and yield are always FinEdge's, of valDate. */
+  source?: "dhan" | "finedge"; time?: string | null; valDate?: string | null;
 };
-export type IndexFeed = { items: IndexRow[]; key: string[]; asOf: string | null; marketOpen: boolean };
+export type IndexFeed = { items: IndexRow[]; key: string[]; asOf: string | null; marketOpen: boolean; live?: boolean };
 export type Stat = { now: number; median: number; mean: number; sd: number; min: number; max: number; pctile: number; n: number };
 export type IndexHistory = {
   code: string; name: string; years: number; from: string | null; to: string | null;

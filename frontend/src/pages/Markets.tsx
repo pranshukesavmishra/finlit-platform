@@ -155,7 +155,7 @@ function IndexPrices({ open }: { open: (code: string) => void }) {
   const th = (k: IKey, label: string, n = true) => <th className={n ? "n" : ""}><button className="pm-sort" onClick={() => setSort((s) => ({ k, d: s?.k === k ? (s.d === 1 ? -1 : 1) : k === "name" ? 1 : -1 }))}>{label} {sort?.k === k ? (sort.d > 0 ? "▲" : "▼") : ""}</button></th>;
   return (
     <section aria-label="Index prices">
-      <p className="pm-meta"><span className={"pm-live" + (data.marketOpen ? " on" : "")} />{data.marketOpen ? "Market open · prices refresh every minute" : "Market closed · last prices"}{data.asOf ? ` · as of ${dateIN(data.asOf)}` : ""} · updated {new Date(dataUpdatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} <ChartHelp id="idx-tiles" /></p>
+      <p className="pm-meta"><span className={"pm-live" + (data.marketOpen ? " on" : "")} />{data.marketOpen ? (data.live ? "Market open · live levels from Dhan, refreshed every minute" : "Market open · live prices unavailable, showing the last close") : "Market closed · last prices"}{data.asOf ? ` · as of ${dateIN(data.asOf)}` : ""} · updated {new Date(dataUpdatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} <ChartHelp id="idx-tiles" /></p>
       <div className="pm-heat" aria-label="Key indices">{key.map((r) => {
         const c = r.changePct;
         return <button key={r.code} className="pm-tile" onClick={() => r.code !== "INDVIX" && open(r.code)} title={r.code === "INDVIX" ? r.name : `Open ${r.name} valuation history`}

@@ -183,6 +183,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         lists.cancel()
         if getattr(app.state, "index_client", None):
             await app.state.index_client.aclose()
+        if getattr(app.state, "index_dhan", None):
+            await app.state.index_dhan.aclose()
         if warm:
             warm.cancel()
         if store is None:

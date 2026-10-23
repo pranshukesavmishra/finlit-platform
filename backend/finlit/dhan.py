@@ -33,6 +33,7 @@ log = logging.getLogger("finlit.dhan")
 logging.getLogger("httpx").setLevel(logging.WARNING)   # its INFO lines print full URLs, and the token call's URL holds the PIN and code
 INSTRUMENTS_URL = "https://images.dhan.co/api-data/api-scrip-master-detailed.csv"
 TOKEN_KEY = "dhan:token"
+PACE_KEY = "dhan:pace:quote"     # one market-quote call a second for the whole account, whichever process (web, quotes job, ETF job) makes it
 RENEW_BEFORE = 2 * 3600          # seconds of life left at which a token is replaced
 RETRY_STATUS = {429, 500, 502, 503, 504}
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -63,8 +64,9 @@ def _f(v: Any) -> Optional[float]:
     return x if x == x and x not in (float("inf"), float("-inf")) else None
 
 
-def parse_instruments(lines: Iterable[str]) -> List[dict]:
+def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None) -> List[dict]:
     """Equity rows (NSE and BSE) from the detailed instrument file, each marked with whether the stock has futures (and the lot size).
+    Given a list as `indices`, the index rows (segment I, instrument INDEX: quoted under IDX_I) are added to it; they are never equities.
 
     Streams line by line: the file is about 36 MB and only the equity rows and the futures' underlyings are kept.
     """
@@ -72,7 +74,11 @@ def parse_instruments(lines: Iterable[str]) -> List[dict]:
     fut: Dict[str, Tuple[str, int]] = {}     # NSE underlying symbol -> (expiry, lot size) of its nearest futures contract
     for r in csv.DictReader(lines):
         seg, inst, exch = r.get("SEGMENT"), r.get("INSTRUMENT"), r.get("EXCH_ID")
-        if exch == "NSE" and seg == "D" and inst == "FUTSTK":
+        if seg == "I" and inst == "INDEX" and exch in ("NSE", "BSE"):
+            sid, sym = (r.get("SECURITY_ID") or "").strip(), (r.get("SYMBOL_NAME") or "").strip()
+            if indices is not None and sid and sym:
+                indices.append({"exch": exch, "security_id": sid, "symbol": sym, "name": (r.get("DISPLAY_NAME") or "").strip() or None})
+        elif exch == "NSE" and seg == "D" and inst == "FUTSTK":
             sym, lot, exp = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE")), (r.get("SM_EXPIRY_DATE") or "").strip() or "9999"
             if sym and lot and (sym not in fut or exp < fut[sym][0]):   # a revised lot size starts with later expiries: the nearest contract's is today's
                 fut[sym] = (exp, int(lot))
@@ -96,8 +102,8 @@ def parse_instruments(lines: Iterable[str]) -> List[dict]:
     return list(out.values())
 
 
-async def fetch_instruments(client: Optional[httpx.AsyncClient] = None) -> List[dict]:
-    """Download the file to a temporary file (never all in memory) and read it line by line."""
+async def fetch_instruments(client: Optional[httpx.AsyncClient] = None, indices: Optional[List[dict]] = None) -> List[dict]:
+    """Download the file to a temporary file (never all in memory) and read it line by line (index rows into `indices`, if given)."""
     own = client is None
     client = client or httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=180.0), follow_redirects=True)
     try:
@@ -108,7 +114,7 @@ async def fetch_instruments(client: Optional[httpx.AsyncClient] = None) -> List[
                 async for chunk in resp.aiter_bytes():
                     tmp.write(chunk)
             tmp.seek(0)
-            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""))
+            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""), indices)
     except httpx.HTTPError as e:
         raise DhanError("instrument file: " + type(e).__name__) from None
     finally:
@@ -128,6 +134,18 @@ async def save_instruments(store, rows: List[dict]) -> int:
                 "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
                 [(r["exch"], r["security_id"], r["symbol"], r["isin"], r["name"], r["series"], r["asm_gsm"], r["asm_gsm_cat"], r["mtf_leverage"],
                   r["fno"], r["lot_size"], r.get("inst_type"), r.get("exch_name")) for r in rows])
+    return len(rows)
+
+
+async def save_indices(store, rows: List[dict]) -> int:
+    """Replace dhan_indices with the file's index rows (about 190). A short list is refused, as for equities."""
+    if len(rows) < 50:
+        raise DhanError(f"instrument file looks incomplete ({len(rows)} indices); kept what was stored")
+    async with store.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM dhan_indices")
+            await conn.executemany("INSERT INTO dhan_indices (exch, security_id, symbol, name) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+                                   [(r["exch"], r["security_id"], r["symbol"], r.get("name")) for r in rows])
     return len(rows)
 
 
@@ -240,6 +258,8 @@ class DhanClient:
             wait = self._last_call + min_gap - time.monotonic()
             if wait > 0:
                 await asyncio.sleep(wait)
+            if min_gap:
+                await self._pace(min_gap)
             self._last_call = time.monotonic()
             headers = {"access-token": await self.token(), "client-id": self.settings.dhan_client_id, "Content-Type": "application/json", "Accept": "application/json"}
             try:
@@ -265,6 +285,19 @@ class DhanClient:
             except ValueError:
                 raise DhanError(f"{path}: unreadable answer") from None
         raise DhanError(f"{path}: gave up")
+
+    async def _pace(self, gap: float) -> None:
+        """Dhan's limit is per account, not per process: a Redis key that lives `gap` seconds is the turn to call (waits up to 20 seconds,
+        then goes ahead; a 429 is retried anyway). Without Redis only this process's own pacing applies."""
+        if self.redis is None:
+            return
+        for _ in range(200):
+            try:
+                if await self.redis.set(PACE_KEY, b"1", nx=True, px=int(gap * 1000)):
+                    return
+            except Exception:
+                return
+            await asyncio.sleep(0.1)
 
     async def profile(self) -> dict:
         """Account status: token validity and whether the Data API subscription is active (GET /profile). Only the status fields are returned."""
