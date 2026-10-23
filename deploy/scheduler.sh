@@ -83,10 +83,10 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   flock 9
   log "start boot-load"
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars first: light, and visible at once
+  $PY -m finlit.worker refresh-macro --max-age-hours 20  # (early: light, and its pages are empty until it has run) India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
+  $PY -m finlit.worker refresh-flows --max-age-hours 20  # (early: same reason) FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
   $PY -m finlit.worker refresh-universe
-  $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
-  $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker refresh-listing                  # every listed company's price and market cap (skipped if it ran in the last 6 hours)
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership: also decides which companies load first
