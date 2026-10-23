@@ -40,11 +40,14 @@ export function treemap<T>(items: readonly T[], value: (t: T) => number, w: numb
   return out;
 }
 
-/** Tile colour for a day's move: solid, strong green or red (as the reference), deepening up to a 3% move; grey when flat or unknown. */
+/** Tile colour for a day's move: a vivid green or red (the same on both themes, so tiles stay bold), deepening from a small move to 2%; slate when flat or unknown.
+ *  White text sits on every stop at 3:1 or better. */
+const GAIN: [number, number, number][] = [[38, 166, 98], [8, 112, 56]], LOSS: [number, number, number][] = [[226, 84, 76], [168, 26, 30]];
+export const FLAT_TILE = "#8B95A5";
 export function moveColour(c: number | null | undefined): string {
-  if (c == null || Math.abs(c) < 0.005) return "var(--s3)";
-  const k = Math.round(52 + Math.min(Math.abs(c), 3) / 3 * 38);
-  return `color-mix(in srgb, ${c > 0 ? "var(--gain)" : "var(--loss)"} ${k}%, var(--s1))`;
+  if (c == null || Math.abs(c) < 0.005) return FLAT_TILE;
+  const t = Math.min(Math.abs(c), 2) / 2, [lo, hi] = c > 0 ? GAIN : LOSS;
+  return `rgb(${lo.map((v, i) => Math.round(v + (hi[i] - v) * t)).join(", ")})`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------- sector categories
@@ -107,12 +110,40 @@ export function weightedMove(stocks: readonly Stock[]): number | null {
   return t > 0 ? w.reduce((a, s) => a + (s.change_pct as number) * (s.market_cap as number), 0) / t : null;
 }
 
-/** Broad sectors of the whole market: cap-weighted move and total market cap, largest first (every sector, not just the biggest few). */
+/** The ~20 broad sectors the snapshot shows. The classification in the data has hundreds of fine industries ("Private Sector Bank", "Computers - Software"...);
+ *  a heat-map of hundreds of slivers says nothing, so each is placed in the first broad sector whose pattern matches it. */
+const BROAD: [string, RegExp][] = [
+  ["Banks", /\bbank/i],
+  ["Financial services", /financ|insurance|nbfc|capital market|broking|asset management|stock exchange|credit|lending|housing finance|investment/i],
+  ["IT & software", /software|\bit\b|computers|information tech|internet|data process|e-commerce|digital/i],
+  ["Pharma & healthcare", /pharma|drug|health|hospital|diagnostic|medical|biotech|life science/i],
+  ["Automobiles", /auto|vehicle|tyre|two wheel|tractor|motor/i],
+  ["Oil, gas & energy", /oil|gas|refiner|petro|coal|energy|fuel|lubricant/i],
+  ["Power & utilities", /power|utilit|electricity|water|renewable|solar|transmission/i],
+  ["Metals & mining", /metal|steel|iron|aluminium|copper|zinc|mining|mineral|alloy|ferro/i],
+  ["FMCG & food", /fmcg|food|beverage|tobacco|household|personal care|agri|sugar|tea|coffee|edible|dairy|consumer staple|breweries|distill/i],
+  ["Consumer & retail", /retail|consumer|apparel|textile|footwear|jewel|leisure|hotel|restaurant|travel|tourism|media|entertain|broadcast|publish|education|durable|appliance/i],
+  ["Telecom", /telecom|communication|cable|satellite/i],
+  ["Capital goods & industrials", /capital goods|industrial|machinery|engineering|electrical|equipment|defence|aerospace|ship|bearing|castings|forging|tools|manufactur|packaging|paper|plastic|glass/i],
+  ["Construction & infra", /construct|infra|cement|building|road|port|logistic|transport|airline|aviation|railway/i],
+  ["Real estate", /realty|real estate|housing|property/i],
+  ["Chemicals & fertilisers", /chemical|fertili[sz]er|pesticide|agrochem|paint|dye|specialty|petrochemical/i],
+];
+export const broadSector = (name: string | null | undefined): string => {
+  if (!name) return "Other";
+  for (const [k, re] of BROAD) if (re.test(name)) return k;
+  return "Other";
+};
+
+/** Broad sectors of the whole market: cap-weighted move and total market cap, largest first (every sector, grouped into about twenty). */
 export function sectorBoard(rows: readonly Row[]): { sector: string; move: number; cap: number; n: number }[] {
   const by = new Map<string, Row[]>();
-  for (const r of rows) if (trade(r) && (r.market_cap ?? 0) >= 100) by.set(r.sector || "Other", [...(by.get(r.sector || "Other") || []), r]);
+  for (const r of rows) if (trade(r) && (r.market_cap ?? 0) >= 100 && Math.abs(r.change_pct as number) <= MAX_MOVE) { const k = broadSector(r.sector); by.set(k, [...(by.get(k) || []), r]); }
   return [...by.entries()].map(([sector, rs]) => ({ sector, move: weightedMove(rs) as number, cap: rs.reduce((a, r) => a + (r.market_cap as number), 0), n: rs.length })).sort((a, b) => b.cap - a.cap);
 }
+
+/** Exchanges cap a day's move at 20% (rarely 40% or more for a new listing or a relisting); anything beyond this is a data or corporate-action artefact, not a market move. */
+export const MAX_MOVE = 40;
 
 export const gainers = <T extends Stock>(s: readonly T[], n: number) => [...s].filter((x) => (x.change_pct ?? 0) > 0).sort((a, b) => (b.change_pct as number) - (a.change_pct as number)).slice(0, n);
 export const losers = <T extends Stock>(s: readonly T[], n: number) => [...s].filter((x) => (x.change_pct ?? 0) < 0).sort((a, b) => (a.change_pct as number) - (b.change_pct as number)).slice(0, n);
