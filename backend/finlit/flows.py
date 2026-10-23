@@ -260,7 +260,7 @@ def weekdays(a: date, b: date) -> List[date]:
 async def step_fpi(src: Sources, conn, today: date, full: bool) -> dict:
     have = {r["m"] for r in await conn.fetch("SELECT DISTINCT to_char(d, 'YYYY-MM') AS m FROM flows_daily WHERE fii_source = 'nsdl'")}
     ends = month_ends(FIRST, today)
-    this_m, prev_m = ends[-1], ends[-2]
+    prev_m = ends[-2]
     todo = [e for e in ends[:-2] if full or e.strftime("%Y-%m") not in have]
     saved = failed = 0
     problems: List[str] = []

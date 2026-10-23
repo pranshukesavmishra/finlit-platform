@@ -268,8 +268,6 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     if as_of is None:
         raise NotAPortfolio("no 'as on' date found above the header")
     unit = _value_unit(txt(header_row[cols["value"]])) if "value" in cols else None
-    maxcol = max(cols.values())
-    sector_header = txt(header_row[cols["sector"]]).lower() if "sector" in cols else ""
 
     holdings: List[Holding] = []
     net_assets: Optional[float] = None

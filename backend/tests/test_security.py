@@ -40,10 +40,15 @@ def test_docs_disabled_in_production():
 
 
 def test_docs_disabled_on_a_deployed_staging_site():
-    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="staging")).routes}
+    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="staging", secret_key="x" * 40)).routes}
     assert "/api/docs" not in paths and "/api/openapi.json" not in paths
     paths = {getattr(r, "path", "") for r in create_app(Settings(environment="development")).routes}
     assert "/api/docs" in paths
+
+
+def test_staging_refuses_the_published_default_secret_key():
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app(Settings(environment="staging"))
 
 
 def test_client_ip_ignores_headers_unless_configured():

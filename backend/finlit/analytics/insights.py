@@ -20,7 +20,7 @@ def notes(m: Dict[str, Optional[float]], ownership_latest: List[dict]) -> dict:
     def add(bucket, key, title, text, metric_value):
         bucket.append({"key": key, "title": title, "text": text, "value": metric_value})
 
-    roe, roce = m.get("roe"), m.get("roce")
+    roe = m.get("roe")
     if roe is not None and roe >= 15:
         add(strengths, "roe", "High return on equity", f"ROE of {_f(roe)}% — the business earns well on shareholders' money.", roe)
     elif roe is not None and roe < 8:
