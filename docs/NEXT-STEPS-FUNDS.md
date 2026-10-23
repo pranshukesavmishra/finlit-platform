@@ -5,9 +5,18 @@
   `/api/mf/status` (`run:refresh-portfolios`). AMFI's TER / AUM / launch dates stay with `refresh-facts` (`finlit/disclosure.py`), whose `get_facts`
   merges these in: exit load (AMFI scheme details, about 74 % of schemes), benchmark (portfolio files, or AMFI's fund-performance list when it answers),
   risk-o-meter and fund managers (when a source is loaded), a second launch date, and month-end net assets when no quarterly AUM is listed.
-- Holdings, sector split, month-end AUM and benchmark from the fund houses' own monthly files: SBI, Nippon India, Aditya Birla Sun Life, Mirae, DSP,
-  Invesco, Baroda BNP Paribas, Groww, PPFAS, Helios (2 666 of 8 250 schemes, measured locally). Adapters: `finlit/disclosure_parsers/amcs.py`
-  (`page_lister` covers any house that links its files) and `houses_*.py`.
+- Holdings, sector split, month-end AUM and benchmark from the fund houses' own monthly portfolio files, 38 houses (`finlit/disclosure_parsers/amcs.py`,
+  `houses_a.py` to `houses_d.py`; `page_lister` covers any house that links its files). Live run Sep 2026 on a local copy: 1,690 scheme families.
+  Peak memory of one house's run: at most 82 MB (HSBC, a 4.5 MB page).
+- Risk-o-meter, fund managers and benchmark (`disclosure_parsers/managers_risk.py`, step `managers`): AMFI tracking error (index funds and ETFs) plus the
+  houses' own pages for DSP, SBI, Axis, Nippon, Tata, Motilal, Groww, Mirae, WhiteOak, The Wealth Company, Shriram, LIC, Canara Robeco: risk 626,
+  managers 601, benchmark 1,047 of 2,043 active families. These are page scrapes: a redesign gives 0 rows (the status shows seen/matched counts).
+- **Left out on purpose (owner's decisions, October 2026):** HDFC (its service answers only requests carrying hdfcfund.com as Origin) and Kotak (captcha
+  and bot check). Edelweiss and Navi are behind bot protection; Union's site is unreachable from the sandbox; Carnelian publishes no portfolio file yet.
+  No adapter spoofs a header or goes around a challenge; keep it that way.
+- Still open: risk-o-meter and managers for ICICI, Kotak, HDFC, ABSL, UTI, Bandhan, Invesco, HSBC, Franklin, Mahindra, Bajaj, JM (no machine-readable
+  source that follows the rules was found; PPFAS and Old Bridge publish PDFs only). AMFI's fund-performance feed (benchmark + risk) is 403 from the
+  sandbox: check `parts.performance` in the `refresh-portfolios` status on Render.
 
 ## Live state (22 October 2026, read this first)
 - **How to see what the boot/nightly steps did:** open `https://finlit-arug.onrender.com/api/mf/status` (no login). It shows, for `refresh-etf`, `refresh-mf`, `backfill-mf` and `refresh-facts`, when they last ran, their status and counts. Render's logs are not reachable from outside.
