@@ -110,7 +110,7 @@ def _value_unit(header_cell: str) -> Optional[float]:
 
 # -------------------------------------------------------------------------------------------------- sections
 
-CASH_NAME = re.compile(r"\b(treps?|tri[- ]?party|reverse\s*repo|repo\b|cblo|cash|net\s+receivable|net\s+current\s+asset|other\s+current\s+asset|receivables?|margin|collateral|payables?)\b", re.I)
+CASH_NAME = re.compile(r"\b(treps?|tri[- ]?party|reverse\s*repo|repo\b|cblo|cash|net\s+receivable|net\s+current\s+assets?|other\s+current\s+assets?|receivables?|margin|collateral|payables?)\b", re.I)
 _HEAD = [
     ("cash", re.compile(r"treps|tri[- ]?party|reverse\s*repo|\bcblo\b|cash|net\s+receivable|net\s+current|other\s+current", re.I)),
     ("equity", re.compile(r"^\W*(\(?[a-z]\)\s*)?equity|\bequities\b|equity\s*(&|and)\s*equity\s*related|equity\s+shares|equity\s+and\s+equity", re.I)),
@@ -168,6 +168,9 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     return main, aliases
 
 
+_TITLE_OF = re.compile(r"^(?:monthly\s+)?portfolio(?:\s+statement)?\s+of\s+(.+?)\s+(?:as\s+(?:on|at)|for\s+the\s+(?:month|period))\b", re.I)
+
+
 def find_title(head_rows: List[List]) -> Tuple[str, List[str]]:
     for row in head_rows:
         for c in row:
@@ -175,6 +178,11 @@ def find_title(head_rows: List[List]) -> Tuple[str, List[str]]:
             if not t or isinstance(c, float):
                 continue
             first = re.split(r"[\n\r]+", t)[0].strip()
+            m = _TITLE_OF.match(first)           # 'Portfolio of Kotak Services Fund as on 30-Sep-2026'
+            if m:
+                main, al = split_title(m.group(1))
+                if main:
+                    return main, al
             if len(first) < 6 or TITLE_SKIP.search(first) or " " not in first:
                 continue
             main, al = split_title(t)
@@ -270,6 +278,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         return row[i] if i is not None and i < len(row) else None
 
     isin_first = cols["isin"] < cols["name"]
+    # the name header can span several columns with each row's name in a later one (Kotak: header in A, names in C): look rightwards up to the next column
+    name_end = min([i for i in cols.values() if i > cols["name"]], default=cols["name"] + 1)
     for row in it:
         rown += 1
         name_raw = cell(row, "name")
@@ -280,6 +290,11 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             if isinstance(alt, str) and alt.strip() and not re.match(r"^[A-Z]{2}[A-Z0-9]{10}$", alt.strip().upper()):
                 name_raw, label_in_isin = alt, True
         name = clean_name(name_raw) if isinstance(name_raw, str) else ""
+        if not name:
+            for c in row[cols["name"] + 1:name_end]:
+                if isinstance(c, str) and clean_name(c):
+                    name = clean_name(c)
+                    break
         if not done:
             if not benchmark:
                 benchmark = bench_of(" ".join(txt(c) for c in row if isinstance(c, str)))
@@ -306,6 +321,13 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if TOTAL_ROW.match(name):
             continue
         isin_raw = "" if label_in_isin else txt(cell(row, "isin")).upper().replace(" ", "")
+        if (pct is not None and not isin_raw and num(cell(row, "qty")) is None and not CASH_NAME.search(name)
+                and (heading_class(name) in ("equity", "debt", "other") or _SUBHEAD.match(name))):
+            # a section heading that carries its own sub-total (ICICI: 'Equity & Equity Related Instruments ... 97.9%'): a heading, not a holding
+            hc = heading_class(name)
+            if hc:
+                cur, seen_heading, in_deriv = hc, True, bool(re.search(r"derivative|futures|options", name, re.I))
+            continue
         if pct is None:
             if isinstance(pct_raw, str) and re.match(r"^\s*(\*+|\$+|<\s*[\d.]+\s*%?|less than.*)\s*$", pct_raw) and not heading_class(name) and (isin_raw or num(cell(row, "value")) is not None):
                 star_rows += 1

@@ -270,5 +270,6 @@ ADAPTERS: List[Adapter] = [
 
 # Fund houses kept in their own modules (each defines ADAPTERS with the same contract as the ones above).
 from .houses_b import ADAPTERS as _HOUSES_B  # noqa: E402  (they import FileRef / Adapter / page_lister from this module)
+from .houses_d import ADAPTERS as _HOUSES_D  # noqa: E402
 
-ADAPTERS += _HOUSES_B
+ADAPTERS += _HOUSES_B + _HOUSES_D
