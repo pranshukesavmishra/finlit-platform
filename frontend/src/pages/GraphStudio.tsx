@@ -1,3 +1,5 @@
+import { DrawLayer } from "../components/DrawLayer";
+import { viewId } from "../lib/drawings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
@@ -136,7 +138,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
       {cell.chart === "scatter" && ok.length >= 2 && <div className="gx-xy"><label>X <select value={Math.min(cell.x ?? 0, ok.length - 1)} onChange={(e) => asSet({ x: +e.target.value })}>{ok.map((r, n) => <option key={n} value={n}>{r.label}</option>)}</select></label><label>Y <select value={Math.min(cell.y ?? 1, ok.length - 1)} onChange={(e) => asSet({ y: +e.target.value })}>{ok.map((r, n) => <option key={n} value={n}>{r.label}</option>)}</select></label></div>}
       {cell.chart === "heatmap" && ok.length >= 1 && <div className="gx-seg" role="group" aria-label="Heatmap kind">{(["corr", "grid"] as const).map((m) => <button key={m} aria-pressed={(cell.mode ?? (ok.length > 1 ? "corr" : "grid")) === m} onClick={() => asSet({ mode: m })}>{m === "corr" ? "Correlation" : "Period × measure"}</button>)}</div>}
       {ok.length > 0 && !comp && !["candlestick", "bar"].includes(cell.chart) && <div className="gx-seg" role="group" aria-label="Values or changes">{([["values", "Values"], ["change", "Period change"], ["index", "Index to 100"]] as const).map(([v, l]) => <button key={v} aria-pressed={tf === v} disabled={v === "index" && (facts.ratioUnits || ["scatter", "heatmap"].includes(cell.chart))} onClick={() => asSet({ tf: v })}>{l}</button>)}</div>}
-      <div ref={ref} className="gx-body">{body}</div>
+      <div ref={ref} className="gx-body"><DrawLayer id={"gx:" + viewId(JSON.stringify([cell.chart, tf, cell.x, cell.y, cell.mode, view.range, view.from, view.basis, cell.series.map((x) => [x.s, x.m, x.as])]))} enabled={w > 0 && ok.length > 0 && chk.ok && (ps.length > 0 || !!align || comp || cell.chart === "candlestick" || cell.chart === "bar")}>{body}</DrawLayer></div>
       {dualNote && <p className="gx-r">Two units, so two axes: {[...new Set(ps.map((p) => p.unit))].map((u, n) => `${n ? "right" : "left"} ${UNITS[u].label}`).join(", ")}. Compare shapes, not heights.</p>}
       {csvOnly && ps.some((p) => p.pts.filter((x) => x.v != null).length < 3) && !["scatter", "heatmap"].includes(cell.chart) && <p className="gx-r faint">Few points in this window; widen the range or switch to Quarterly.</p>}
       <AddSeries onAdd={(m, s) => onDrop(m + "@" + s)} picked={picked} names={names} cell={cell} />
