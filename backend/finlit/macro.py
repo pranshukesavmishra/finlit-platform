@@ -79,7 +79,7 @@ SOURCE_URL = {"MoSPI": "https://esankhyiki.mospi.gov.in", "NSO / MoSPI": "https:
               "RBI": "https://www.rbi.org.in", "RBI / FBIL": "https://www.fbil.org.in"}
 CARDS = ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "real_rate", "fx_reserves", "usdinr", "credit_yoy"]
 RANGES = {"cpi": (-5, 30), "cpi_rural": (-5, 30), "cpi_urban": (-5, 30), "wpi": (-20, 40), "gdp": (-30, 30), "gdp_nominal": (-30, 40), "iip": (-70, 100),
-          "unemployment": (0, 40), "unemployment_youth": (0, 60), "unemployment_urban": (0, 40), "repo": (1, 15), "fx_reserves": (100, 2500),
+          "unemployment": (0, 40), "unemployment_youth": (0, 60), "unemployment_urban": (0, 40), "repo": (1, 15), "fx_reserves": (1, 2500),
           "usdinr": (30, 250), "usdinr_d": (30, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
 
 
@@ -250,8 +250,9 @@ async def step_rbi_tables(src: Sources, conn, today: date, full: bool) -> dict:
     last = await get_meta(conn, "run:rbi_tables")
     if not full and last and last.get("status") == "ok" and (datetime.now(timezone.utc) - datetime.fromisoformat(last["at"])).days < 7:
         return {"skipped": "ran this week"}
-    res = S.parse_rbi_reserves_monthly({"data": await src.pages("/api/rbi/getRbiRecords", 200, sub_indicator_code=47, Format="JSON")})
-    fx = S.parse_rbi_usdinr_monthly({"data": await src.pages("/api/rbi/getRbiRecords", 200, sub_indicator_code=33, Format="JSON")})
+    res = S.parse_rbi_reserves_monthly({"data": await src.pages("/api/rbi/getRbiRecords", 200, sub_indicator_code=47, foreign_exchange_reserve_type=5,
+                                                                foreign_exchange_reserve_currency=2, Format="JSON")})
+    fx = S.parse_rbi_usdinr_monthly({"data": await src.pages("/api/rbi/getRbiRecords", 200, sub_indicator_code=33, reference_rate=1, Format="JSON")})
     return {"points": await save_points(conn, "fx_reserves_m", res) + await save_points(conn, "usdinr_m", fx)}
 
 
@@ -362,7 +363,8 @@ def derive(raw: Dict[str, S.Points], decisions: List[S.Decision], today: date) -
         out[key] = pts
     notes["cpi"] = ("MoSPI's published inflation rate, base 2024 = 100: the back series for 2013-2024 and the current series from January 2026. "
                     "For the 12 months of 2025 (the new series' first year, for which MoSPI publishes no rate) the change is worked out from the "
-                    "current series' index against the back series' index for the same month, both on base 2024.")
+                    "current series' index against the back series' index for the same month, both on base 2024 (published indices are rounded to two "
+                    "decimals, so such a figure can differ from MoSPI's own by 0.01 percentage point).")
     breaks["cpi"] = [{"d": "2025-01-31", "label": "New series (base 2024)"}]
     for k in [k for k in raw if k.startswith("cpi_div_")]:
         out[k] = raw[k]
