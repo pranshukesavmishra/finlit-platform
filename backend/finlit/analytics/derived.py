@@ -77,7 +77,6 @@ def compute(pl: dict, bs: dict, cf: dict, ratios_latest: Dict[str, dict], basic_
         out["cfo_to_pat"] = round(cfo[year] / pat[year] * 100, 2)
         out["fcf_to_pat"] = round(fcf[year] / pat[year] * 100, 2) if fcf.get(year) is not None else None
 
-    sales_cagr = _cagr(revenue, 5)
     profit_cagr = _cagr(profit, 5)
     # one-off gains inside profit (e.g. a tax or asset-sale gain): how much of pre-tax profit they are
     exc, pbt = rows.get("exceptional_items") or [], rows.get("profit_before_tax") or []

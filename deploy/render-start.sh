@@ -23,7 +23,13 @@ if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; 
 fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
 
-until $PY -m finlit.worker migrate; do echo "waiting for the database..."; sleep 3; done
+# Retries for a database that is still waking up, but gives up after ~5 minutes so a migration that really fails shows as a failed deploy.
+tries=0
+until $PY -m finlit.worker migrate; do
+  tries=$((tries + 1))
+  if [ "$tries" -ge 100 ]; then echo "migrate still failing after $tries attempts: giving up" >&2; exit 1; fi
+  echo "waiting for the database (attempt $tries)..."; sleep 3
+done
 
 # Demo members on every plan, so each tier can be shown without waiting for a confirmation email.
 if [ -n "${DEMO_PASSWORD:-}" ]; then

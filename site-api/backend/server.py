@@ -1385,7 +1385,6 @@ def _history_from_period_rows(rows: List[Dict[str, Any]], period: str, aliases: 
                 priority = 100
             value_scale = 1 if category == "eps" else scale
             number = number / value_scale if value_scale and value_scale != 1 else number
-            point_key = (category, label)
             categories.setdefault(category, {
                 "category": category,
                 "label": _label_key(category),
@@ -3558,7 +3557,6 @@ app.include_router(api_router)
 DEFAULT_ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "*.vercel.app",
     "financial-portfolio-m4eb.vercel.app",
     "finlitventures.com",
     "www.finlitventures.com",

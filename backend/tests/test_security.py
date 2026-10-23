@@ -40,10 +40,15 @@ def test_docs_disabled_in_production():
 
 
 def test_docs_disabled_on_a_deployed_staging_site():
-    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="staging")).routes}
+    paths = {getattr(r, "path", "") for r in create_app(Settings(environment="staging", secret_key="x" * 40)).routes}
     assert "/api/docs" not in paths and "/api/openapi.json" not in paths
     paths = {getattr(r, "path", "") for r in create_app(Settings(environment="development")).routes}
     assert "/api/docs" in paths
+
+
+def test_staging_refuses_the_published_default_secret_key():
+    with pytest.raises(RuntimeError, match="SECRET_KEY"):
+        create_app(Settings(environment="staging"))
 
 
 def test_client_ip_ignores_headers_unless_configured():
@@ -110,3 +115,13 @@ def test_common_passwords_rejected():
     for pw in ("qwertyuiop12", "letmein123456", "Passw0rd12345", "Finlit2026!"):
         assert password_problem(pw, "a@b.co"), pw
     assert password_problem("blue-harbour-lamp-47", "a@b.co") is None
+
+
+def test_host_check_applies_except_to_liveness_probes():
+    import httpx, asyncio
+    app = create_app(Settings(environment="development", allowed_hosts=["site.example"]), store=object())
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://evil.example") as c:
+            return (await c.get("/api/ping")).status_code, (await c.get("/api/stocks/search-index")).status_code
+    assert asyncio.run(go()) == (200, 400)

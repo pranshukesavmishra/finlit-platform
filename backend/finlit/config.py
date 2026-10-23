@@ -110,6 +110,8 @@ class Settings:
 
     def validate(self) -> List[str]:
         """Problems that make a production deployment unsafe. Empty list = OK."""
+        if self.environment != "development" and self.secret_key.startswith("dev-only"):
+            return ["SECRET_KEY is the published development default: set a long random value"]   # staging too: it encrypts the stored authenticator secrets
         if not self.is_production:
             return []
         problems = []

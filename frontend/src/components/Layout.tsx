@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { initDepth } from "../lib/depth";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { COMPANY } from "../content/site";
@@ -142,6 +143,7 @@ export function Layout() {
   const [search, setSearch] = useState(false);
   const loc = useLocation();
   useEffect(() => { if (!loc.hash) window.scrollTo({ top: 0 }); }, [loc.pathname, loc.hash]);
+  useEffect(() => initDepth(), []);
   useEffect(() => {
     // soft glow that follows the pointer on cards (one delegated listener)
     const mv = (e: PointerEvent) => {

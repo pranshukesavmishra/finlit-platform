@@ -2,7 +2,7 @@
 // step-up, a one-time amount, start- or end-of-month instalments, inflation, a goal planner, what waiting costs, a range of outcomes,
 // an equity capital-gains estimate, a fund's real past return as the assumption, and a link that reopens the same plan.
 // All arithmetic lives in lib/sip.ts (pure and tested); this page only collects inputs and draws. Information only, not advice.
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDocTitle } from "../lib/title";
@@ -14,7 +14,10 @@ import {
   EQUITY_TAX_2024, LIMITS, delayCost, duration, equityTax, fromQuery, gainsOvertake, milestones, monthsToTarget, project, realValue,
   requiredMonthly, rupees, short, toInput, toQuery, type SipState, type TaxRules,
 } from "../lib/sip";
+import { supports3d, whenIdle } from "../three/support";
 import "../styles/sip.css";
+
+const YearBars3D = lazy(() => import("../three/YearBars3D"));
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -116,6 +119,17 @@ function Donut({ invested, gain, value }: { invested: number; gain: number; valu
 }
 
 // ------------------------------------------------------------------------------------------------------------- growth chart
+/** The same projection as yearly columns in 3D, shown only on devices that can draw it smoothly. */
+function GrowthBars3D({ s }: { s: SipState }) {
+  const r = useMemo(() => project(toInput(s)), [s]);
+  const [on, setOn] = useState(false);
+  useEffect(() => { if (supports3d()) return whenIdle(() => setOn(true)); }, []);
+  const yr = useMemo(() => r.monthly.filter((p) => p.m > 0 && p.m % 12 === 0), [r]);
+  if (!on || yr.length < 2) return null;
+  return <Suspense fallback={null}><YearBars3D invested={yr.map((p) => p.invested)} value={yr.map((p) => p.value)}
+    label={`Year by year in 3D: money put in grows to ${rupees(r.invested)} and the value to ${rupees(r.value)} over ${duration(r.n)}.`} /></Suspense>;
+}
+
 type Band = { lo: number[]; hi: number[]; loRate: number; hiRate: number } | null;
 function GrowthChart({ s, band }: { s: SipState; band: Band }) {
   const r = useMemo(() => project(toInput(s)), [s]);
@@ -293,6 +307,7 @@ export function SipCalculator() {
             <label className="sip-tog"><input type="checkbox" checked={showBand} onChange={(e) => setShowBand(e.target.checked)} /><span />Range if returns are 3 points lower or higher</label>
           </div>
           <GrowthChart s={s} band={band} />
+          <GrowthBars3D s={s} />
           <ul className="sip-keys">
             <li><i className="v" />Value</li><li><i className="i" />Money put in</li>
             {band && <li><i className="b" />{band.loRate}% to {band.hiRate}% a year: {short(band.lo[band.lo.length - 1])} to {short(band.hi[band.hi.length - 1])}</li>}
