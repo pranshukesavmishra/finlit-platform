@@ -2,7 +2,7 @@
 // step-up, a one-time amount, start- or end-of-month instalments, inflation, a goal planner, what waiting costs, a range of outcomes,
 // an equity capital-gains estimate, a fund's real past return as the assumption, and a link that reopens the same plan.
 // All arithmetic lives in lib/sip.ts (pure and tested); this page only collects inputs and draws. Information only, not advice.
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDocTitle } from "../lib/title";
@@ -14,10 +14,9 @@ import {
   EQUITY_TAX_2024, LIMITS, delayCost, duration, equityTax, fromQuery, gainsOvertake, milestones, monthsToTarget, project, realValue,
   requiredMonthly, rupees, short, toInput, toQuery, type SipState, type TaxRules,
 } from "../lib/sip";
-import { supports3d, whenIdle } from "../three/support";
+import { With3D } from "../charts/With3D";
 import "../styles/sip.css";
 
-const YearBars3D = lazy(() => import("../three/YearBars3D"));
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -119,15 +118,15 @@ function Donut({ invested, gain, value }: { invested: number; gain: number; valu
 }
 
 // ------------------------------------------------------------------------------------------------------------- growth chart
-/** The same projection as yearly columns in 3D, shown only on devices that can draw it smoothly. */
+/** The same projection as yearly columns in 3D: money put in at the bottom of each column, what it has earned on top. */
 function GrowthBars3D({ s }: { s: SipState }) {
   const r = useMemo(() => project(toInput(s)), [s]);
-  const [on, setOn] = useState(false);
-  useEffect(() => { if (supports3d()) return whenIdle(() => setOn(true)); }, []);
   const yr = useMemo(() => r.monthly.filter((p) => p.m > 0 && p.m % 12 === 0), [r]);
-  if (!on || yr.length < 2) return null;
-  return <Suspense fallback={null}><YearBars3D invested={yr.map((p) => p.invested)} value={yr.map((p) => p.value)}
-    label={`Year by year in 3D: money put in grows to ${rupees(r.invested)} and the value to ${rupees(r.value)} over ${duration(r.n)}.`} /></Suspense>;
+  if (yr.length < 2) return null;
+  return <With3D flat={null} label={`Year by year in 3D: money put in grows to ${rupees(r.invested)} and the value to ${rupees(r.value)} over ${duration(r.n)}.`}
+    hint="How to read it: each column is one year. The lower block is the money you have put in so far; the upper block is what it has earned on top. Move the pointer over a block to read it."
+    spec={{ kind: "bars", stack: true, cats: yr.map((p) => `Y${p.m / 12}`), fmt: (v) => rupees(v), valueTitle: "Value (₹)",
+      series: [{ label: "Money put in", values: yr.map((p) => p.invested) }, { label: "Earned on top", values: yr.map((p) => Math.max(0, p.value - p.invested)) }] }} />;
 }
 
 type Band = { lo: number[]; hi: number[]; loRate: number; hiRate: number } | null;

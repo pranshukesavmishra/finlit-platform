@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { With3D } from "./With3D";
 
 export type RadarSeries = { key: string; label: string; values: (number | null)[]; cls: string };
 
@@ -12,7 +13,7 @@ export function Radar({ axes, series, size = 360 }: { axes: string[]; series: Ra
     const k = cls.replace("k", "");
     return k === "0" ? <circle cx={x} cy={y} r="4.5" /> : k === "1" ? <rect x={x - 4} y={y - 4} width="8" height="8" /> : k === "2" ? <path d={`M${x} ${y - 5.5}L${x + 5.5} ${y}L${x} ${y + 5.5}L${x - 5.5} ${y}Z`} /> : <path d={`M${x} ${y - 5.5}L${x + 5} ${y + 4}L${x - 5} ${y + 4}Z`} />;
   };
-  return (
+  const flat = (
     <svg className="radar" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Radar chart of ${axes.join(", ")} for ${series.map((s) => s.label).join(" and ")}`}>
       <defs><radialGradient id={`rg${id}`}><stop offset="0" stopColor="var(--gold)" stopOpacity=".16" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></radialGradient></defs>
       <circle cx={C} cy={C} r={R + 10} fill={`url(#rg${id})`} />
@@ -27,4 +28,7 @@ export function Radar({ axes, series, size = 360 }: { axes: string[]; series: Ra
         </g>))}
     </svg>
   );
+  return <With3D flat={flat} label={`Radar chart of ${axes.join(", ")} in 3D`}
+    hint="How to read it: each spoke is one measure from 0 at the centre to 100 at the outer ring. A bigger shape means higher scores. Move the pointer over a dot to read it."
+    spec={{ kind: "radar", axes, series: series.map((s) => ({ label: s.label, values: s.values })) }} />;
 }

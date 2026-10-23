@@ -2,6 +2,8 @@ import { useRef } from "react";
 import { css, drawIn, el, vgrad } from "../lib/svg";
 import { MINUS, cr, nf, num } from "../lib/format";
 import { useChart } from "./useChart";
+import { With3D } from "./With3D";
+import type { Plot3DSpec } from "../three/Plot3D";
 import type { Series, Table } from "../lib/api";
 
 const get = (t: Table, k: string): Series => t.rows[k] || [];
@@ -89,5 +91,22 @@ export function FinChart({ kind, pl, bs, cf, ql }: { kind: FinKind; pl: Table; b
       hoverBands(n, pl_, step, H, (i, d) => { line(d, labels[i], "faint"); line(d, `Free cash flow ₹${num(fcf[i], 0)} Cr`, "", "b"); keys.forEach(([nm, arr]) => line(d, `${nm} ₹${num(arr[i], 0)} Cr`, "muted", "div")); });
     }
   }, [kind, pl, bs, cf, ql]);
-  return <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label="Financial statement chart" /><div className="tip" ref={tip} hidden /></div>;
+  const flat = <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label="Financial statement chart" /><div className="tip" ref={tip} hidden /></div>;
+  const rows = (t: Table, ...k: string[]) => k.map((x) => get(t, x).map((v) => (v == null ? null : v)));
+  const crFmt = (v: number) => `₹${cr(v)} Cr`;
+  let spec: Plot3DSpec | null = null, hint = "";
+  if (kind === "pl" || kind === "q") {
+    const t = kind === "pl" ? pl : ql, [rev, np] = rows(t, "revenue", "net_profit");
+    spec = { kind: "bars", cats: t.periods, fmt: crFmt, valueTitle: "₹ Crore", series: [{ label: "Revenue", values: rev }, { label: "Net profit", values: np }] };
+    hint = "How to read it: each pair of columns is one period, revenue in the front row and net profit behind it, both on the scale at the left in rupees crore. Move the pointer over a column to read it.";
+  } else if (kind === "bs") {
+    const [eq, bo, ta] = rows(bs, "total_equity", "borrowings", "total_assets");
+    spec = { kind: "bars", stack: true, cats: bs.periods, fmt: crFmt, valueTitle: "₹ Crore", series: [{ label: "Equity + reserves", values: eq }, { label: "Borrowings", values: bo }, { label: "Other liabilities", values: ta.map((a, i) => (a == null ? null : Math.max(0, a - (eq[i] ?? 0) - (bo[i] ?? 0)))) }] };
+    hint = "How to read it: each column is one year and its height is everything the company owns. The blocks show what paid for it: the owners' money, borrowings, and other liabilities. Move the pointer over a block to read it.";
+  } else {
+    const [op, inv, fin, fcf] = rows(cf, "operating", "investing", "financing", "free_cash_flow");
+    spec = { kind: "bars", cats: cf.periods, fmt: crFmt, valueTitle: "₹ Crore", series: [{ label: "Operating", values: op }, { label: "Investing", values: inv }, { label: "Financing", values: fin }, { label: "Free cash flow", values: fcf }] };
+    hint = "How to read it: each row is a type of cash flow across the years; columns above the floor are cash coming in, columns below it are cash going out. Move the pointer over a column to read it.";
+  }
+  return <With3D flat={flat} spec={spec} hint={hint} label="Financial statement chart, in 3D" />;
 }

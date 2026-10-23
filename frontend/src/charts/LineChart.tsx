@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { labelEvery } from "../lib/chartAxis";
+import { With3D } from "./With3D";
 
 export type LSeries = { key: string; label: string; color: string; values: (number | null)[] };
 
@@ -32,7 +33,7 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
   const ends = series.map((s) => { const li = s.values.map((v) => v != null).lastIndexOf(true); return { s, y: li < 0 ? 0 : Y(s.values[li] as number), v: li < 0 ? null : (s.values[li] as number) }; }).sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 15) ends[i].y = ends[i - 1].y + 15;
   const onMove = (e: React.PointerEvent<SVGRectElement>) => { const r = e.currentTarget.getBoundingClientRect(); const x = ((e.clientX - r.left) / r.width) * (W - pl - pr); setHover(Math.max(0, Math.min(n - 1, Math.round((x / (W - pl - pr)) * (n - 1))))); };
-  return (
+  const flat = (
     <div className="lc">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={series.map((s) => s.label).join(", ") + " over time"}>
         <defs>{series.map((s) => <linearGradient key={s.key} id={`${id}-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={s.color} stopOpacity=".38" /><stop offset="1" stopColor={s.color} stopOpacity="0" /></linearGradient>)}</defs>
@@ -51,4 +52,7 @@ export function LineChart({ periods, series, fmt, height = 260, area = false, av
       {hover != null && <div className="lc-tip" style={{ left: `${Math.min(88, Math.max(12, (X(hover) / W) * 100))}%` }}><b>{periods[hover]}</b>{series.map((s) => s.values[hover] != null && <span key={s.key}><i style={{ background: s.color }} />{s.label}<em>{fmt(s.values[hover] as number)}</em></span>)}</div>}
     </div>
   );
+  return <With3D flat={flat} label={series.map((s) => s.label).join(", ") + " over time, in 3D"}
+    hint="How to read it: time runs left to right and each line becomes a solid ribbon, with the value on the tall scale at the left. Move the pointer over a ribbon to read that point."
+    spec={{ kind: "ribbon", x: periods, series: series.map((s) => ({ label: s.label, values: s.values })), fmt }} />;
 }
