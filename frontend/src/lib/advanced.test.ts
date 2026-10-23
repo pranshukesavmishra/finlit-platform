@@ -131,6 +131,18 @@ describe("advSentence", () => {
     expect(s).toContain("higher ROE tends to go with lower P/B (Pearson r = −0.50, moderate; Spearman rho = −0.48");
     expect(s).toContain("goes with −0.120× of P/B");
   });
+  it("puts the sign before the rupee sign for amounts", () => {
+    const c2 = { ...ctx, y: { short: "Revenue", unit: "Cr" as const } };
+    const pos = advSentence(mk("ok", { rounded: { r: "0.46", rho: "0.52", p: "< 0.001", slope: "0.338", r2pct: "21%" } }), c2);
+    expect(pos).toContain("goes with +₹0.338 Cr of Revenue");
+    const neg = advSentence(mk("ok", { rounded: { r: "0.46", rho: "0.52", p: "< 0.001", slope: "-0.338", r2pct: "21%" } }), c2);
+    expect(neg).toContain("goes with −₹0.338 Cr of Revenue");
+  });
+  it("words a log-scale slope as a log slope, never as a linear one", () => {
+    const s = advSentence(mk("ok", { space: { x: "log", y: "log" }, rounded: { r: "0.46", rho: "0.52", p: "< 0.001", slope: "0.338", r2pct: "21%" } }), ctx);
+    expect(s).toContain("the slope is +0.338 on the log scale");
+    expect(s).not.toContain("+1 percentage point");
+  });
   it("adds the pulled-line explanation", () => {
     expect(advSentence(mk("pulled"), ctx)).toContain(TEXT.pulled);
   });

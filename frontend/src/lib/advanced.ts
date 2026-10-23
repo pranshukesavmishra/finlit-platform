@@ -336,7 +336,7 @@ export function tickUnit(v: number, unit: Unit | undefined): string {
   return sgn(v) + (unit === "Cr" ? "₹" : unit === "Rs" ? "₹" : "") + body + (unit === "%" ? "%" : unit === "x" ? "×" : "");
 }
 const UNIT_STEP: Record<Unit, string> = { x: "×", "%": "percentage point", Cr: "₹ crore", Rs: "rupee", d: "day", pts: "point", ratio: "unit", n: "unit" };
-const UNIT_AFTER: Record<Unit, (s: string) => string> = { x: (s) => `${s}×`, "%": (s) => `${s} percentage points`, Cr: (s) => `₹${s} Cr`, Rs: (s) => `₹${s}`, d: (s) => `${s} days`, pts: (s) => `${s} points`, ratio: (s) => s, n: (s) => s };
+const UNIT_AFTER: Record<Unit, (s: string) => string> = { x: (s) => `${s}×`, "%": (s) => `${s} percentage points`, Cr: (s) => `${s.replace(/^([+−-]?)/, "$1₹")} Cr`, Rs: (s) => s.replace(/^([+−-]?)/, "$1₹"), d: (s) => `${s} days`, pts: (s) => `${s} points`, ratio: (s) => s, n: (s) => s };
 
 // ------------------------------------------------------------------ the plain-words sentence
 

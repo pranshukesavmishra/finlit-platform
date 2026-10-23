@@ -61,6 +61,26 @@ def test_exclusion_invariant_and_order():
     assert out["lenders"]["mode"] == "included" and out["n"] == 39
 
 
+def test_stats_carry_the_scale_they_were_computed_on():
+    """The page words the slope differently on a log scale; it reads `stats.space`, so the server must always send it (a verifier found it missing)."""
+    T.reset()
+    t = fake_table()
+    _, lin = run(t, pair="1.9")
+    assert lin["stats"]["space"] == {"x": "lin", "y": "lin"}
+    _, lg = run(t, x="pb", y="roe", scale={"x": "log", "y": "lin"})
+    assert lg["stats"]["space"] == {"x": "log", "y": "lin"}
+
+
+def test_price_charts_say_how_splits_are_handled():
+    T.reset()
+    t = fake_table()
+    _, out = run(t, pair="1.9")
+    assert not any("stored daily closes" in n for n in out["notes"])
+    _, px = run(t, x="roe", y="ret_fy")
+    note = " ".join(px["notes"])
+    assert "stored daily closes" in note and "+80%" in note and "-44.4%" in note
+
+
 def test_lenders_never_in_lender_sensitive_charts():
     t = fake_table()
     _, out = run(t, pair="4.1", universe={"lenders": "include"})

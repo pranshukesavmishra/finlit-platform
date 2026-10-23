@@ -56,7 +56,7 @@ def _need(plan: str, tier: str, what: str) -> None:
 def _limit(plan: str, n: int) -> None:
     lim = limits_for(plan)["companies"]
     if n > lim:
-        raise fail(403, "plan_limit", f"Your plan includes up to {lim} companies in one chart.", plan="gold" if plan == "silver" else "silver", limit=lim)
+        raise fail(403, "plan_limit", f"Your plan includes up to {lim} companies in one chart.", **({"plan": "gold"} if plan == "silver" else {"plan": "silver"} if plan not in ("gold",) else {}), limit=lim)
 
 
 def _symbols(raw: List[str]) -> List[str]:

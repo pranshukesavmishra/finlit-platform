@@ -15,6 +15,7 @@ from . import stats as S
 from .catalog import BY_ID, CAVEATS, METRICS, REASONS, Metric
 
 NAN = float("nan")
+PRICE_WINDOW_IDS = frozenset({"ret_fy", "tsr_fy", "vol3y", "mdd3y", "ret_inst", "pe_sig", "pb_sig", "fwd12"})
 STAGES = ("no_report", "preparing", "lender", "x", "y", "log", "fy_mismatch", "trimmed")
 LRU_SIZE = 256
 TRIM_Q = 0.01
@@ -228,6 +229,9 @@ def _compute(t, body: dict) -> dict:
         notes.append(f"{ins} insurers included: their debt, margins and cash flows are not directly comparable with other companies'.")
     if trimmed:
         notes.append("Left out as the most extreme 1%: " + ", ".join(trimmed[:30]) + (" ..." if len(trimmed) > 30 else ""))
+    if {xid, yid} & PRICE_WINDOW_IDS:
+        notes.append("Price figures use the stored daily closes. A window is left out when it contains a recorded split or bonus or a one-day price move beyond a factor of 1.8 (more than +80% or below -44.4%); "
+                     "a smaller unadjusted split or bonus (for example 1 for 10) cannot be detected from prices alone.")
     if sx == "log" or sy == "log":
         notes.append("Spearman's rho is the same on linear and log scales (it uses ranks).")
     return {
@@ -235,7 +239,7 @@ def _compute(t, body: dict) -> dict:
         "x": {"id": xid, "label": xm.label, "unit": xm.unit, "basis": xm.basis, "scale": sx},
         "y": {"id": yid, "label": ym.label, "unit": ym.unit, "basis": ym.basis, "scale": sy},
         "n": len(points), "universeTotal": len(idx), "excluded": excluded, "points": points,
-        "stats": S.round_sig(st) if st else None,
+        "stats": ({**S.round_sig(st), "space": {"x": sx, "y": sy}} if st else None),
         "fyBreakdown": [{"fy": f, "n": c} for f, c in sorted(fyb.items(), key=lambda kv: (-kv[1], kv[0]))],
         "view": view, "lenders": {"mode": {"include": "included", "exclude": "excluded", "only": "only"}[mode], "forced": forced, "count": lenders_out},
         "preset": preset, "notes": notes, "caveats": list(CAVEATS),
