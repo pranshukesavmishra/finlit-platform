@@ -68,6 +68,7 @@ export function FundListPage() {
     <>
       {HEAD("Every mutual fund scheme, in one place.", "Official daily NAVs from AMFI, with returns and risk worked out from each scheme's NAV history. Search, filter, sort and compare. Information only, never advice.")}
       <div className="wrap mf">
+        <p className="faint mf-fine" style={{ margin: 0 }}>Where the industry's money sits and moves each month: <Link to="/funds/insights">Mutual Fund Insights</Link>.</p>
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">

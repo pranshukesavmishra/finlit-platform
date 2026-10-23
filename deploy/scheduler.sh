@@ -94,6 +94,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   if wait_web; then
     if fund_step boot-etf refresh-etf --max-age-hours 12 --resume && fund_step boot-mf refresh-mf --max-age-hours 12; then
       fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
+      fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Mutual Fund Insights): resumable, about 90 small files on the first run, then one cheap check
       fund_step boot-instruments refresh-instruments --max-age-hours 160   # Dhan's public instrument file (ISIN, surveillance, F&O): a weekly refresh, 58 MB at peak
       [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
       fund_step boot-mf-history backfill-mf
@@ -129,6 +130,7 @@ while true; do
   (( H == 23 && M == 30 )) && run_funds mf-late refresh-mf            # again after AMFI's 11 pm deadline: most fund houses publish after 21:10, so this run brings the day's NAVs
   (( D == 7 && H == 2 && M == 20 )) && run_funds instruments refresh-instruments   # Sundays: Dhan's public instrument file (new listings, surveillance changes, F&O additions)
   (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
+  (( H == 18 && M == 25 )) && run_funds industry refresh-industry    # daily: AMFI's monthly category report (out around the 8th-10th); a 304 and nothing to do on other days
   (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
