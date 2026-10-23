@@ -51,3 +51,15 @@ def reliance_bundle():
 def reliance_sections(reliance_bundle):
     from finlit.snapshot import build
     return build(reliance_bundle)
+
+
+@pytest.fixture(autouse=True)
+def _mf_clock(monkeypatch):
+    """The recorded AMFI files are dated late October 2026; the future-date guard in finlit.mf compares with the real clock. Tests see a fixed
+    'today' after every recorded date, so they do not depend on the day they run (the guard itself is tested with an explicit date)."""
+    from datetime import date
+    try:
+        from finlit import mf
+    except Exception:
+        return
+    monkeypatch.setattr(mf, "india_today", lambda: date(2099, 1, 1))

@@ -30,7 +30,52 @@ const K = ["var(--k1)", "var(--k2)", "var(--k3)", "var(--k7)", "var(--k5)", "var
 const BAND_C: Record<string, string> = { strong: "var(--v-strong)", healthy: "var(--k1)", mixed: "var(--k4)", watch: "var(--v-weak)" };
 const PILLARS: [keyof Row, string][] = [["pillar_quality", "Quality"], ["pillar_growth", "Growth"], ["pillar_profitability", "Profit."], ["pillar_balance", "Balance"], ["pillar_technical", "Technical"]];
 const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
-const pct = (v: number | null | undefined, d = 2) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
+
+
+type HLine = { symbol: string; name?: string | null; row?: Row | null };
+type SortKey = "overall" | "symbol" | "price" | "change_pct" | "market_cap" | `p${number}`;
+const heat = (v: number | null | undefined) => (v == null ? undefined : ({ "--hc": `hsl(${Math.round(Math.max(0, Math.min(100, v)) * 1.25)} 62% 46%)` } as React.CSSProperties));
+
+/** The holdings as a heat table: sortable columns, band filter chips, a score bar per share, pillar tiles tinted from red to green by value,
+ *  and a market-cap bar scaled to your biggest holding. */
+function HoldingsTable({ lines, cap, onRemove }: { lines: HLine[]; cap: number; onRemove: (sym: string) => void }) {
+  const [key, setKey] = useState<SortKey>("overall");
+  const [dir, setDir] = useState<1 | -1>(-1);
+  const [band, setBand] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const counts = useMemo(() => { const m = new Map<string, number>(); lines.forEach((l) => { const b = l.row?.band || "none"; m.set(b, (m.get(b) || 0) + 1); }); return m; }, [lines]);
+  const maxCap = useMemo(() => Math.max(1, ...lines.map((l) => l.row?.market_cap ?? 0)), [lines]);
+  const val = (l: HLine): number | string | null => key === "symbol" ? l.symbol : key.startsWith("p") && key !== "price" ? ((l.row?.[PILLARS[Number(key.slice(1))][0]] as number | null | undefined) ?? null) : ((l.row?.[key as keyof Row] as number | null | undefined) ?? null);
+  const shown = useMemo(() => lines.filter((l) => (!band || (l.row?.band || "none") === band) && (!q.trim() || (l.symbol + " " + (l.name || "") + " " + (l.row?.sector || "")).toLowerCase().includes(q.trim().toLowerCase())))
+    .sort((a, b) => { const x = val(a), y = val(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y as string) : (x as number) - (y as number)) * dir; }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [lines, band, q, key, dir]);
+  const head = (k: SortKey, label: string) => <th scope="col" aria-sort={key === k ? (dir === 1 ? "ascending" : "descending") : "none"}>
+    <button type="button" className={"hsort" + (key === k ? " on" : "")} onClick={() => { if (key === k) setDir((d) => (d === 1 ? -1 : 1)); else { setKey(k); setDir(k === "symbol" ? 1 : -1); } }}>{label}<i aria-hidden="true">{key === k ? (dir === 1 ? "▲" : "▼") : "↕"}</i></button></th>;
+  return (
+    <section className="card hold-card"><div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Your shares</h3><span className="s">{shown.length === lines.length ? lines.length : `${shown.length} of ${lines.length}`} · limit {cap}</span></div>
+      <div className="hold-bar">
+        <div className="hold-chips" role="group" aria-label="Filter by FinLit band">
+          <button type="button" className={"hchip" + (band == null ? " on" : "")} aria-pressed={band == null} onClick={() => setBand(null)}>All <b>{lines.length}</b></button>
+          {(["strong", "healthy", "mixed", "watch", "none"] as const).filter((b) => counts.get(b)).map((b) =>
+            <button key={b} type="button" className={"hchip" + (band === b ? " on" : "")} aria-pressed={band === b} style={{ "--bc": b === "none" ? "var(--faint)" : BAND_C[b] } as React.CSSProperties} onClick={() => setBand(band === b ? null : b)}>
+              <i />{b === "none" ? "Not scored" : BAND_LABEL[b]} <b>{counts.get(b)}</b></button>)}
+        </div>
+        <input className="hold-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a share or sector" aria-label="Find a share or sector in your portfolio" />
+      </div>
+      <HScroll label="table"><table className="qtt hold hold-heat"><thead><tr>{head("symbol", "Share")}<th scope="col">Sector</th>{head("price", "Price")}{head("change_pct", "Today")}{head("market_cap", "Market cap")}{head("overall", "FinLit score")}{PILLARS.map(([, l], i) => head(`p${i}` as SortKey, l))}<th /></tr></thead>
+        <tbody>{shown.map((l) => { const sig = l.row ? signals(l.row)[0] : null; const ch = l.row?.change_pct; const o = l.row?.overall; return (
+          <tr key={l.symbol}><td><Link to={`/stocks/${l.symbol}`}><b>{l.symbol}</b></Link><small className="muted">{l.name}</small>{sig && <small className="down" title={sig}> ⚑ {sig}</small>}</td>
+            <td>{l.row?.sector ? <span className="hsec">{l.row.sector}</span> : "—"}</td><td className="hprice">{l.row?.price != null ? "₹" + nf(l.row.price, 2) : "—"}</td>
+            <td>{ch == null ? "—" : <span className={"hchg " + (ch > 0 ? "up" : ch < 0 ? "down" : "")}>{ch > 0 ? "▲" : ch < 0 ? "▼" : "•"} {nf(Math.abs(ch), 2)}%</span>}</td>
+            <td className="hcap"><span className="hcb" style={{ "--w": ((l.row?.market_cap ?? 0) / maxCap).toFixed(3) } as React.CSSProperties}><i /></span>{cr(l.row?.market_cap)}</td>
+            <td>{o != null ? <span className={"hscore " + l.row!.band} style={heat(o)}><span className="hsb"><i style={{ width: o + "%" }} /></span><b>{o}</b><em>{BAND_LABEL[l.row!.band!]}</em></span> : <span className="faint">Preparing…</span>}</td>
+            {PILLARS.map(([k, label]) => { const v = l.row?.[k] as number | null | undefined; return <td key={label}><span className={"hp " + lvl(v)} style={heat(v)} title={v == null ? undefined : `${label}: ${v} out of 100`}>{v == null ? MINUS : v}</span></td>; })}
+            <td className="ra"><AlertButton symbol={l.symbol} className="btn" /> <button className="btn" aria-label={`Remove ${l.symbol}`} onClick={() => onRemove(l.symbol)}>✕</button></td></tr>); })}
+          {!shown.length && <tr><td colSpan={12} className="faint" style={{ textAlign: "center", padding: 24 }}>No share matches this filter.</td></tr>}</tbody></table></HScroll>
+    </section>
+  );
+}
 
 /* ---------------------------------------------------------------- page */
 
@@ -125,17 +170,8 @@ export function HoldingsPage() {
               <ul className="bandk">{(["strong", "healthy", "mixed", "watch", "none"] as const).map((b) => <li key={b}><i style={{ background: b === "none" ? "var(--s3)" : BAND_C[b] }} /><span>{b === "none" ? "Not scored yet" : BAND_LABEL[b]}</span><b>{nf(m.band.get(b) || 0, 0)}%</b></li>)}</ul></section>
             <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>By sector</h3><span className="s">Share of your shares</span></div><Donut parts={donut} center={String(m.sector.length)} sub={m.sector.length === 1 ? "SECTOR" : "SECTORS"} /></section>
           </div>
-          <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Your shares</h3><span className="s">{lines.length} of {cap}</span></div>
-            <HScroll label="table"><table className="qtt hold"><thead><tr><th>Share</th><th>Sector</th><th>Price</th><th>Today</th><th>Market cap</th><th>FinLit score</th>{PILLARS.map(([, l]) => <th key={l}>{l}</th>)}<th /></tr></thead>
-              <tbody>{[...lines].sort((a, b) => (b.row?.overall ?? -1) - (a.row?.overall ?? -1)).map((l) => { const sig = l.row ? signals(l.row)[0] : null; return (
-                <tr key={l.symbol}><td><Link to={`/stocks/${l.symbol}`}><b>{l.symbol}</b></Link><small className="muted">{l.name}</small>{sig && <small className="down" title={sig}> ⚑ {sig}</small>}</td>
-                  <td>{l.row?.sector || "—"}</td><td>{l.row?.price != null ? "₹" + nf(l.row.price, 2) : "—"}</td>
-                  <td className={(l.row?.change_pct ?? 0) > 0 ? "up" : (l.row?.change_pct ?? 0) < 0 ? "down" : ""}>{pct(l.row?.change_pct)}</td><td>{cr(l.row?.market_cap)}</td>
-                  <td>{l.row?.overall != null ? <span className={"band-dot " + l.row.band}>{l.row.overall} · {BAND_LABEL[l.row.band!]}</span> : <span className="faint">Preparing…</span>}</td>
-                  {PILLARS.map(([k, label]) => { const v = l.row?.[k] as number | null | undefined; return <td key={label}><span className={"ssp " + lvl(v)}>{v == null ? MINUS : v}</span></td>; })}
-                  <td className="ra"><AlertButton symbol={l.symbol} className="btn" /> <button className="btn" aria-label={`Remove ${l.symbol}`} onClick={() => { st.holdings.filter((h) => h.symbol === l.symbol).forEach((h) => portfolio.remove(h.id)); toast(`${l.symbol} removed.`); }}>✕</button></td></tr>); })}</tbody></table></HScroll>
-            <p className="faint" style={{ fontSize: 12.5, marginTop: 10 }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
-          </section>
+          <HoldingsTable lines={lines} cap={cap} onRemove={(sym) => { st.holdings.filter((h) => h.symbol === sym).forEach((h) => portfolio.remove(h.id)); toast(`${sym} removed.`); }} />
+          <p className="faint" style={{ fontSize: 12.5, margin: "-6px 4px 0" }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
           <PortfolioInsights lines={lines} />
           <PortfolioLab lines={lines} universe={uni.data?.rows || []} /></>}
       </Gate>

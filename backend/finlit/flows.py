@@ -298,10 +298,12 @@ async def step_dii(src: Sources, conn, today: date, full: bool) -> dict:
     saved, notes = 0, []
     page = await src.get(f"{NSDL}/Users/DIIGenerateReport.aspx?Rep=L")
     latest = S.parse_dii(page or "")
+    if latest is not None and latest.problems:             # the investor types do not add up to the total: a misread table is never published
+        notes += [f"{latest.d}: not saved, " + p for p in latest.problems]
+        latest = None
     if latest is not None:
         await save_dii(conn, latest)
         saved += 1
-        notes += latest.problems
     for d in todo:
         if latest is not None and d == latest.d:
             continue
@@ -313,10 +315,11 @@ async def step_dii(src: Sources, conn, today: date, full: bool) -> dict:
         if day is None:
             if d < today - timedelta(days=4):                  # a past day with no report is a holiday: not asked for again
                 empty.add(d.isoformat())
+        elif day.problems:
+            notes += [f"{d}: not saved, " + p for p in day.problems]
         elif day.d == d:
             await save_dii(conn, day)
             saved += 1
-            notes += day.problems
     await set_meta(conn, "dii_empty", {"dates": sorted(empty)[-400:]})
     if latest is None and not saved and not have:
         raise RuntimeError("NSDL's DII report could not be read")

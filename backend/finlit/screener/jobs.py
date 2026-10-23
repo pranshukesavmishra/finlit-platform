@@ -81,13 +81,21 @@ async def refresh_indices(store) -> Dict[str, int]:
                 log.warning("index list %s unavailable: %s", code, type(exc).__name__)
                 continue
             symbols: List[str] = [(row.get("Symbol") or "").strip().upper() for row in csv.DictReader(io.StringIO(r.text))]
-            symbols = [s for s in symbols if s]
+            symbols = [s for s in symbols if s and not s.startswith("DUMMY")]   # the exchange's placeholder rows are not companies
             if len(symbols) < 10:
                 continue
             async with store.pool.acquire() as conn:
+                stored = await conn.fetchval("SELECT count(*) FROM index_members WHERE index_code = $1", code)
+                if stored and len(symbols) < 0.8 * stored:   # a cut-off answer must not replace a full list
+                    log.warning("index list %s refused: %d members against %d stored", code, len(symbols), stored)
+                    continue
                 async with conn.transaction():
                     await conn.execute("DELETE FROM index_members WHERE index_code = $1", code)
                     await conn.executemany("INSERT INTO index_members (index_code, symbol) VALUES ($1, $2) ON CONFLICT DO NOTHING", [(code, s) for s in symbols])
             counts[code] = len(symbols)
     log.info("index membership refreshed: %s", counts)
+    try:
+        await store.redis.delete("markets:members")   # the dashboard heat-maps read the new lists at once
+    except Exception:
+        pass
     return counts

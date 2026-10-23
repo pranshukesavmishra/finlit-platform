@@ -14,6 +14,7 @@ import { RANK } from "./ui";
 
 const debounce = <A extends unknown[]>(fn: (...a: A) => void, ms = 900) => { let t = 0; return (...a: A) => { window.clearTimeout(t); t = window.setTimeout(() => fn(...a), ms); }; };
 
+const OWNER = "finlit-sync-owner";
 export function StateSync() {
   const { user, plan } = useAuth();
   const uid = user?.id ?? null;
@@ -31,9 +32,12 @@ export function StateSync() {
     let cancelled = false;
     const quiet = () => undefined;
     (async () => {
+      // Lists left on this browser by a different account (sign-out was skipped, or the session ended) must not be adopted by, or uploaded to, this one.
+      try { const owner = localStorage.getItem(OWNER); if (owner && owner !== uid) { watch.reset(); screens.replace([]); portfolio.reset(); } } catch { /* storage unavailable */ }
       let saved;
       try { saved = await loadState(); } catch { return; }
       if (cancelled) return;
+      try { localStorage.setItem(OWNER, uid); } catch { /* storage unavailable */ }
       // Appearance: the account wins; a new account adopts this browser's choices.
       if (saved.prefs && Object.keys(saved.prefs).length) prefs.set(saved.prefs, true); else savePrefs(prefs.get()).catch(quiet);
       if (saved.screens?.length) screens.replace(saved.screens as never); else if (screens.get().length) saveScreens(screens.get()).catch(quiet);

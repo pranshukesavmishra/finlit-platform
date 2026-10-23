@@ -118,13 +118,17 @@ async def test_wrong_credentials_are_indistinguishable(app, anon):
     assert a.status_code == b.status_code == 401 and a.json() == b.json()
 
 
-async def test_lockout_after_repeated_failures(app, anon):
+async def test_repeated_failures_are_slowed_the_same_way_for_real_and_unknown_accounts(app, anon):
+    """No account-wide lock (an attacker could keep the owner out, and a 'locked' answer revealed which emails have accounts): the same budget
+    applies per email and address, and a real and an unknown email are refused identically."""
     await signup(app, anon, "asha@example.com")
+    real = [await login(anon, "asha@example.com", f"wrong-password-{i}") for i in range(11)]
+    assert [r.status_code for r in real] == [401] * 10 + [429]
+    unknown = [await login(anon, "nobody@example.com", f"wrong-password-{i}") for i in range(11)]
+    assert {r.status_code for r in unknown} <= {401, 429} and unknown[-1].status_code == 429   # the per-address budget is shared, so it may end sooner
+    assert real[-1].json()["detail"]["status"] == unknown[-1].json()["detail"]["status"] == "rate_limited"
     async with app.state.store.pool.acquire() as conn:
-        await conn.execute("UPDATE users SET failed_logins = 7")
-    assert (await login(anon, "asha@example.com", "wrong-password-123")).status_code == 401
-    locked = await login(anon, "asha@example.com", PW)  # even the right password waits
-    assert locked.status_code == 429 and locked.json()["detail"]["status"] == "locked"
+        assert await conn.fetchval("SELECT locked_until IS NULL FROM users WHERE lower(email) = 'asha@example.com'")
 
 
 async def test_login_rate_limit_per_email(app, anon):

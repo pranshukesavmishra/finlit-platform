@@ -44,6 +44,16 @@ def _num(v):
     return None if v is None else round(float(v), 2)
 
 
+def session_of(at: datetime) -> date:
+    """The trading day a price saved at `at` belongs to: a row written before 15:30 IST or on a weekend carries the previous weekday's close
+    (exchange holidays are not known here, so a holiday is labelled as the day before it)."""
+    t = at.astimezone(IST)
+    d = t.date() if (t.hour, t.minute) >= (15, 30) else t.date() - timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
+
+
 def quote_rows(rows, level: str, showcase: set) -> list:
     """The compact rows above. Basic: scores are blanked to "locked" except for the showcase companies."""
     out = []
@@ -56,7 +66,8 @@ def quote_rows(rows, level: str, showcase: set) -> list:
         logo = logo_path(r["sha8"])
         if price is None and score is None and band is None and logo is None:
             continue                                   # nothing to add to the name list
-        out.append([r["symbol"], _num(price), _num(chg), at.astimezone(IST).date().isoformat() if at and price is not None else None,
+        when = None if not at or price is None else (session_of(at) if use_report else at.astimezone(IST).date())   # a score row's time is when it was written, not when it traded
+        out.append([r["symbol"], _num(price), _num(chg), when.isoformat() if when else None,
                     score, band, logo])
     return out
 

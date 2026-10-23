@@ -72,9 +72,12 @@ async def test_only_the_admin_upload_paths_may_exceed_the_small_body_limit():
     app.add_middleware(BodyLimitMiddleware)
     c = client(app)
     big = b"x" * (200 * 1024)
-    assert (await c.post("/api/content/admin/upload", content=big)).status_code == 200
+    token = {"Authorization": "Bearer t"}
+    assert (await c.post("/api/content/admin/upload", content=big, headers=token)).status_code == 200
+    assert (await c.post("/api/content/admin/upload", content=big)).status_code == 413          # no token: the small limit applies
     assert (await c.post("/api/contact", content=big)).status_code == 413
-    assert (await c.post("/api/content/admin/upload", content=b"x" * (17 * 1024 * 1024))).status_code == 413
+    assert (await c.request("GET", "/api/content", content=big)).status_code == 413              # a body on a GET is limited too
+    assert (await c.post("/api/content/admin/upload", content=b"x" * (17 * 1024 * 1024), headers=token)).status_code == 413
 
 
 async def test_the_site_backends_password_only_cms_sign_in_is_never_forwarded():
@@ -85,7 +88,8 @@ async def test_the_site_backends_password_only_cms_sign_in_is_never_forwarded():
         return httpx.Response(200, json={"token": "would-skip-the-authenticator"})
 
     c = client(make_app(upstream))
-    for path in ("/api/content/admin/login", "/api/content/admin/login/", "/api/Content/Admin/Login"):
+    for path in ("/api/content/admin/login", "/api/content/admin/login/", "/api/Content/Admin/Login", "/api/content/admin/./login",
+                 "/api/content/x/../admin/login", "/api/content//admin/login", "/api/stocks/admin/../../content/admin/login"):
         r = await c.post(path, json={"email": "a@b.c", "password": "x"})
         assert r.status_code == 404 and "token" not in r.json(), path
     assert calls == []

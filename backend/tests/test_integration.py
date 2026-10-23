@@ -46,6 +46,8 @@ async def store():
                            "plan_requests, outbox, score_history, alert_state, ipos, feed_items, screen_state, digest_log CASCADE")
     await s.redis.flushdb()
     await s.migrate()
+    async with s.pool.acquire() as conn:   # tables the drop list above does not cover but tests here write to
+        await conn.execute("DELETE FROM index_members")
     yield s
     await s.close()
 

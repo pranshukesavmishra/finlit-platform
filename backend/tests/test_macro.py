@@ -248,3 +248,17 @@ async def test_a_failing_source_keeps_the_rest_and_the_last_good_data(mstore, mo
         assert await conn.fetchval("SELECT count(*) FROM macro_points WHERE series = 'cpi'") > 12            # nothing deleted
         payload = await macro.get_meta(conn, "payload")
     assert {c["key"]: c for c in payload["cards"]}["cpi"]["value"] == 5.54
+
+
+def test_a_misread_rbi_rates_panel_is_refused_before_it_is_saved():
+    """A repo rate out of range, or one far from the last decision, must not become a fake rate decision; other out-of-range rates are dropped."""
+    from datetime import date as _d
+    from finlit import macro
+    from finlit import macro_sources as S
+    decisions = [S.Decision(_d(2026, 6, 6), 5.5, -50, "x")]
+    with pytest.raises(RuntimeError):
+        macro.check_rbi_rates({"rates": {"repo": 55.0, "crr": 3.0}}, decisions)
+    with pytest.raises(RuntimeError):
+        macro.check_rbi_rates({"rates": {"repo": 9.5}}, decisions)   # 400 bp jump
+    ok = macro.check_rbi_rates({"rates": {"repo": 5.25, "crr": 300.0, "slr": 18.0}, "fx": {}}, decisions)
+    assert ok["rates"] == {"repo": 5.25, "slr": 18.0}

@@ -17,5 +17,5 @@ export default defineConfig({
   plugins: [react()],
   server: { port: 5173, proxy },
   preview: { port: 4173, proxy },
-  build: { target: "es2022", sourcemap: true, chunkSizeWarningLimit: 300 },
+  build: { target: "es2022", sourcemap: "hidden", chunkSizeWarningLimit: 300 },
 });

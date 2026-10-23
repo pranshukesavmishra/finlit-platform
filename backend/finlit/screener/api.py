@@ -131,7 +131,13 @@ async def query(request: Request, body: Query_):
     lim = min(body.limit, BASIC_ROWS) if plan == "basic" else body.limit
     off = 0 if plan == "basic" else body.offset
     page = idx[off: off + lim]
-    out = {"total": total, "offset": off, "limit": lim, "capped": capped, "columns": cols, "rows": [t.row(i, cols) for i in page],
+    rows = [t.row(i, cols) for i in page]
+    if not allowed(plan, "silver"):  # the score band is a model output: below Silver only the free showcase companies keep it, as on the universe list
+        showcase = set(request.app.state.settings.showcase_symbols)
+        for r in rows:
+            if r["symbol"] not in showcase:
+                r["band"] = None
+    out = {"total": total, "offset": off, "limit": lim, "capped": capped, "columns": cols, "rows": rows,
            "took": round((time.perf_counter() - started) * 1000, 1)}
     return Response(content=__import__("json").dumps(out, separators=(",", ":")), media_type="application/json", headers={**NO_STORE, "Vary": "Cookie"})
 

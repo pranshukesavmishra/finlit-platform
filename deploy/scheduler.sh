@@ -95,7 +95,8 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   # Each is resumable (the fund history skips fund houses already done) and none of them runs on a timer, so a restart loses nothing and the database may sleep.
   if wait_web; then
     fund_step boot-instruments refresh-instruments --max-age-hours 20   # Dhan's public instrument file first: the ETF job reads its ETF list from it
-    if fund_step boot-etf refresh-etf --max-age-hours 12 --resume && fund_step boot-mf refresh-mf --max-age-hours 12; then
+    fund_step boot-etf refresh-etf --max-age-hours 12 --resume   # ETFs first; their result no longer decides whether the mutual fund loads run
+    if fund_step boot-mf refresh-mf --max-age-hours 12; then
       fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
       fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Mutual Fund Insights): resumable, about 90 small files on the first run, then one cheap check
       [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)

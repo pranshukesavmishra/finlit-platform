@@ -256,20 +256,47 @@ async def step_rbi_tables(src: Sources, conn, today: date, full: bool) -> dict:
     return {"points": await save_points(conn, "fx_reserves_m", res) + await save_points(conn, "usdinr_m", fx)}
 
 
+# What each policy rate can plausibly be, in percent. A reading outside is a misread page: the step fails and the last good rates stay.
+RATE_BOUNDS = {"repo": (1.0, 15.0), "sdf": (0.5, 15.0), "msf": (1.0, 16.0), "bank_rate": (1.0, 16.0), "reverse_repo": (0.5, 15.0), "crr": (0.0, 15.0), "slr": (5.0, 40.0)}
+MAX_REPO_STEP = 1.0   # the RBI has not moved the repo rate by more than 100 bp in one decision since it became the policy rate; a bigger jump is a misread
+
+
+def check_rbi_rates(got: dict, decisions) -> dict:
+    """Refuse a Current Rates reading whose repo rate is out of range or jumps too far from the last recorded decision; drop any other rate that is
+    out of range (the card then shows the last good value). Raises RuntimeError so the step is recorded as failed and nothing is saved."""
+    rates = dict(got.get("rates") or {})
+    repo = rates.get("repo")
+    lo, hi = RATE_BOUNDS["repo"]
+    if not isinstance(repo, (int, float)) or not lo <= repo <= hi:
+        raise RuntimeError(f"repo rate {repo!r} read from rbi.org.in is outside {lo}..{hi}%: not saved")
+    if decisions:
+        last = max(decisions, key=lambda d: d.date)
+        if abs(repo - last.rate) > MAX_REPO_STEP + 1e-9:
+            raise RuntimeError(f"repo rate {repo} differs from the last decision ({last.rate}) by more than {MAX_REPO_STEP} points: not saved")
+    for k, v in list(rates.items()):
+        b = RATE_BOUNDS.get(k)
+        if b and (not isinstance(v, (int, float)) or not b[0] <= v <= b[1]):
+            log.warning("rbi rate %s=%r outside %s..%s: left out", k, v, *b)
+            rates.pop(k)
+    return {**got, "rates": rates}
+
+
 async def step_rbi_home(src: Sources, conn, today: date, full: bool) -> dict:
     """Today's policy rates and FBIL reference rates. A repo rate that differs from the last recorded decision is recorded as a new
     decision dated the day it was first seen (the nightly run follows every MPC announcement within a day)."""
     got = S.parse_rbi_home(await src.get_text(RBI_HOME))
     if not got:
         raise RuntimeError("the Current Rates panel was not found on rbi.org.in")
+    decisions = load_decisions()
+    live = await get_meta(conn, "repo_live") or {"decisions": []}
+    known = [*decisions, *[S.Decision(date.fromisoformat(x["date"]), x["rate"], x["bp"], x["source"]) for x in live["decisions"]]]
+    got = check_rbi_rates(got, known)
     seen = today.isoformat()
     await set_meta(conn, "rbi_rates", {**got, "seenOn": seen})
     n = 0
     if got["fx"].get("usdinr") and got.get("fxAsOf"):
         n += await save_points(conn, "usdinr_d", {date.fromisoformat(got["fxAsOf"]): got["fx"]["usdinr"]})
-    decisions = load_decisions()
-    live = await get_meta(conn, "repo_live") or {"decisions": []}
-    last = sorted([*decisions, *[S.Decision(date.fromisoformat(x["date"]), x["rate"], x["bp"], x["source"]) for x in live["decisions"]]], key=lambda d: d.date)[-1]
+    last = sorted(known, key=lambda d: d.date)[-1]
     if abs(got["rates"]["repo"] - last.rate) > 1e-9:
         bp = round((got["rates"]["repo"] - last.rate) * 100)
         live["decisions"].append({"date": seen, "rate": got["rates"]["repo"], "bp": bp, "source": "rbi.org.in Current Rates, first seen " + seen})

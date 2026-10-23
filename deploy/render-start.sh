@@ -22,6 +22,8 @@ if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; 
     done ) &
 fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
+# Indian dates everywhere: the jobs already run on IST (scheduler.sh); the API must agree, or "today" is yesterday between midnight and 05:30 IST.
+export TZ="${TZ:-Asia/Kolkata}"
 
 # Retries for a database that is still waking up, but gives up after ~5 minutes so a migration that really fails shows as a failed deploy.
 tries=0

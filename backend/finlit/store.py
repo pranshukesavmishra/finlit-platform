@@ -83,6 +83,26 @@ async def _upstox_health(redis) -> dict:
     return await health_line(redis)
 
 
+REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "40"))   # below Render Key Value's connection cap; the worker opens its own
+REDIS_TIMEOUT = 3.0   # seconds: a hung Redis must fail a request quickly (it is a cache: callers fall back to Postgres), not hold it for 15 s
+
+
+class _Pool(asyncpg.pool.Pool):
+    """asyncpg's pool, but a request waiting for a free connection gives up after `acquire_timeout` seconds instead of waiting forever."""
+    __slots__ = ("acquire_timeout",)
+
+    def acquire(self, *, timeout=None):
+        return super().acquire(timeout=self.acquire_timeout if timeout is None else timeout)
+
+
+def _redis(url: str) -> aioredis.Redis:
+    from redis.asyncio.retry import Retry
+    from redis.backoff import NoBackoff
+    pool = aioredis.BlockingConnectionPool.from_url(url, max_connections=REDIS_MAX_CONNECTIONS, timeout=REDIS_TIMEOUT, socket_timeout=REDIS_TIMEOUT,
+                                                    socket_connect_timeout=REDIS_TIMEOUT, health_check_interval=30, retry=Retry(NoBackoff(), 1))
+    return aioredis.Redis(connection_pool=pool)
+
+
 class Store:
     def __init__(self, pool: asyncpg.Pool, redis: aioredis.Redis, timescale: bool = False):
         self.pool, self.redis, self.timescale = pool, redis, timescale
@@ -90,12 +110,16 @@ class Store:
     # ------------------------------------------------------------ lifecycle
 
     @classmethod
-    async def connect(cls, settings: Optional[Settings] = None, migrate: bool = False) -> "Store":
+    async def connect(cls, settings: Optional[Settings] = None, migrate: bool = False, acquire_timeout: Optional[float] = None) -> "Store":
+        """`acquire_timeout`: the API passes a few seconds so a stalled database answers 503 instead of hanging; jobs wait as long as needed."""
         settings = settings or get_settings()
         dsn, extra = prepare_dsn(settings.database_url)
         # Idle connections are closed after 60 s: serverless Postgres (Neon) suspends after 5 idle minutes and would otherwise leave dead pooled connections.
-        pool = await asyncpg.create_pool(dsn, min_size=1, max_size=10, command_timeout=10, max_inactive_connection_lifetime=60, **extra)
-        redis = aioredis.from_url(settings.redis_url, decode_responses=False, health_check_interval=30)
+        pool = _Pool(dsn, connection_class=asyncpg.Connection, record_class=asyncpg.Record, init_size=None, min_size=1, max_size=10, max_queries=50000,
+                     loop=None, connect=None, setup=None, init=None, reset=None, max_inactive_connection_lifetime=60, command_timeout=10, timeout=15, **extra)
+        pool.acquire_timeout = acquire_timeout
+        await pool
+        redis = _redis(settings.redis_url)
         store = cls(pool, redis)
         if migrate:
             await store.migrate()
@@ -487,7 +511,11 @@ class Store:
 
     async def get_section(self, symbol: str, statement: str, section: str) -> Optional[Tuple[bytes, str]]:
         key = stock_key(symbol, statement)
-        body, etag = await self.redis.hmget(key, [section, f"{section}:etag"])
+        try:
+            body, etag = await self.redis.hmget(key, [section, f"{section}:etag"])
+        except aioredis.RedisError as exc:   # the cache is busy or down: read the stored copy instead
+            log.warning("redis read failed (%s): reading %s from Postgres", type(exc).__name__, key)
+            body = etag = None
         if body is not None and etag is not None:
             return body, etag.decode()
         async with self.pool.acquire() as conn:
@@ -508,13 +536,20 @@ class Store:
         return body, row["etag"]
 
     async def get_etag(self, symbol: str, statement: str, section: str) -> Optional[str]:
-        etag = await self.redis.hget(stock_key(symbol, statement), f"{section}:etag")
+        try:
+            etag = await self.redis.hget(stock_key(symbol, statement), f"{section}:etag")
+        except aioredis.RedisError:
+            return None
         return etag.decode() if etag else None
 
     async def search_index(self) -> Tuple[bytes, bytes, str]:
         """Compact list for client-side search, pre-gzipped once (it is ~600 KB raw for ~5,700 stocks).
         Rows are [symbol, name, bse, ready], biggest company first; the NSE code is sent only when it differs from the symbol."""
-        cached = await self.redis.hmget(SEARCH_KEY, ["body", "gzip", "etag"])
+        try:
+            cached = await self.redis.hmget(SEARCH_KEY, ["body", "gzip", "etag"])
+        except aioredis.RedisError as exc:
+            log.warning("redis read failed (%s): building the search index from Postgres", type(exc).__name__)
+            cached = [None, None, None]
         if cached[0] is not None and cached[1] is not None:
             return cached[0], cached[1], cached[2].decode()
         async with self.pool.acquire() as conn:
@@ -533,8 +568,11 @@ class Store:
         body = dumps({"fields": ["symbol", "name", "bse", "ready", "nse"], "rows": out})
         packed = gzip.compress(body, compresslevel=9, mtime=0)
         etag = etag_for(body)
-        await self.redis.hset(SEARCH_KEY, mapping={"body": body, "gzip": packed, "etag": etag.encode()})
-        await self.redis.expire(SEARCH_KEY, 3600)
+        try:
+            await self.redis.hset(SEARCH_KEY, mapping={"body": body, "gzip": packed, "etag": etag.encode()})
+            await self.redis.expire(SEARCH_KEY, 3600)
+        except aioredis.RedisError:
+            pass
         return body, packed, etag
 
     async def invalidate_search(self):

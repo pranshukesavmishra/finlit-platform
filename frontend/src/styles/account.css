@@ -153,7 +153,7 @@
 .shell-fab, .shell-scrim { display: none; }
 @media (max-width: 960px) {
   .shell, .shell.is-collapsed { grid-template-columns: minmax(0, 1fr); }
-  .side { position: fixed; z-index: 90; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); max-height: none; margin: 0; border-radius: 0 22px 22px 0; transform: translateX(-105%); transition: transform .22s; box-shadow: var(--lift); }
+  .side { position: fixed; align-self: stretch; overflow-y: auto; overscroll-behavior: contain; z-index: 90; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); max-height: none; margin: 0; border-radius: 0 22px 22px 0; transform: translateX(-105%); transition: transform .22s; box-shadow: var(--lift); }
   .is-open .side { transform: none; } .is-collapsed .side-t, .is-collapsed .side-gt, .is-collapsed .side-l, .is-collapsed .side-b, .is-collapsed .side-plan p, .is-collapsed .side-plan .btn { display: revert; } .is-collapsed .side-i { justify-content: flex-start; padding: 8px 10px; } .is-collapsed .side-top { justify-content: space-between; } .is-collapsed .side-i.sub { margin-left: 24px; }
   .shell-scrim { display: block; position: fixed; inset: 0; z-index: 80; background: rgba(10, 9, 6, .45); }
   .shell-fab { display: inline-flex; gap: 8px; align-items: center; position: fixed; z-index: 70; left: 14px; bottom: 16px; height: 44px; padding: 0 16px; border-radius: 99px; border: 1.5px solid var(--frame); background: var(--s1); color: var(--text); font-weight: 600; box-shadow: var(--lift); cursor: pointer; } .shell-fab svg { width: 17px; height: 17px; }
@@ -308,3 +308,29 @@
 .plans-more { text-align: center; margin: 22px 0 0; } .plans-more a { color: var(--gold-2, var(--gold)); font-weight: 600; }
 .dw-scope { margin-left: auto; } .dw-scope button { padding: 4px 11px; font-size: 12.5px; } .dw-scope button:disabled { opacity: .45; cursor: not-allowed; }
 .dw .card-h .dw-scope + .tier { margin-left: 8px; }
+
+/* ---- My portfolio: the holdings as a heat table ---- */
+.hold-bar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 4px 0 12px; }
+.hold-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.hchip { --bc: var(--gold); display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 13px var(--sans); cursor: pointer; transition: background-color .15s, transform .15s; }
+.hchip i { width: 9px; height: 9px; border-radius: 50%; background: var(--bc); } .hchip b { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.hchip:hover { transform: translateY(-1px); background: var(--s2); } .hchip.on { background: color-mix(in srgb, var(--bc) 18%, var(--s1)); border-color: var(--bc); }
+.hchip:focus-visible, .hsort:focus-visible, .hold-q:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.hold-q { font: inherit; font-size: 16px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s1); color: var(--text); min-width: 220px; }
+.hold-heat thead th { white-space: nowrap; }
+.hsort { all: unset; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; padding: 2px 4px; border-radius: 6px; }
+.hsort i { font-style: normal; font-size: 9px; opacity: .45; } .hsort.on { color: var(--text); } .hsort.on i { opacity: 1; color: var(--gold); } .hsort:hover { background: var(--s3); }
+.hold-heat tbody tr { transition: background-color .12s, box-shadow .12s; } .hold-heat tbody tr:hover { background: var(--row-hover); box-shadow: inset 3px 0 0 var(--gold); }
+.hsec { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--s3); font-size: 12px; white-space: nowrap; }
+.hprice { font-family: var(--mono); font-weight: 600; }
+.hchg { display: inline-block; padding: 3px 9px; border-radius: 8px; font: 700 12.5px var(--mono); background: var(--s2); } .hchg.up { color: var(--gain); background: var(--gain-soft); } .hchg.down { color: var(--loss); background: var(--loss-soft); }
+.hcap { position: relative; white-space: nowrap; } .hcb { display: block; height: 4px; border-radius: 3px; background: var(--s3); margin-bottom: 4px; min-width: 70px; } .hcb i { display: block; height: 100%; width: calc(var(--w) * 100%); border-radius: 3px; background: linear-gradient(90deg, var(--k1), var(--k2)); }
+.hscore { --hc: var(--gold); display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; min-width: 124px; }
+.hscore .hsb { grid-column: 1 / -1; height: 6px; border-radius: 4px; background: var(--s3); overflow: hidden; } .hscore .hsb i { display: block; height: 100%; border-radius: 4px; background: var(--hc); transition: width .5s; }
+.hscore b { font: 800 16px var(--mono); color: var(--hc); } .hscore em { font: 600 11.5px var(--sans); font-style: normal; color: var(--muted); text-align: right; }
+.hp { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; height: 30px; border-radius: 9px; font: 800 13px var(--mono); color: var(--hc, var(--faint)); background: color-mix(in srgb, var(--hc, var(--s3)) 17%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hc, var(--border)) 30%, transparent); transition: transform .12s; }
+.hp:hover { transform: scale(1.12); } .hp.na { background: var(--s2); }
+@media (prefers-reduced-motion: reduce) { .hchip, .hp, .hscore .hsb i { transition: none; } }
+
+/* phones: inputs at 16px so iOS Safari does not zoom the page on focus; room under the footer for the floating Menu and Ask buttons */
+@media (max-width: 760px) { input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px; } .ffine, footer.foot { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }

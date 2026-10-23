@@ -606,3 +606,18 @@ async def test_missed_nights_are_filled_from_amfis_industry_wide_history(loaded)
     days, navs = mf.unpack_series(bytes(h["blob"]), h["d0"].toordinal())
     assert [date.fromordinal(d).day for d in days[-6:]] == [20, 21, 22, 23, 26, 27] and navs[-6:] == [67.1, 67.2, 67.3, 67.4, 69.0, 70.0]
     assert days[0] > date(2026, 10, 27).toordinal() - mf.KEEP_DAYS and h["n"] == len(days)   # and the oldest days beyond the kept window were trimmed
+
+
+def test_a_future_dated_nav_is_not_stored_and_cannot_block_later_files():
+    """A typo date (tomorrow+ or a year like 2062) must not become the newest date: it would make every correct file look older than what is stored."""
+    from datetime import date as _d
+    lines = NAVALL.split("\n")
+    rows = [i for i, l in enumerate(lines) if l.count(";") == 7 and l.split(";")[0].strip().isdigit()]
+    good = mf.parse_navall(NAVALL)
+    today = good.newest
+    f = lines[rows[0]].split(";")
+    f[7] = (today.replace(year=2062)).strftime("%d-%b-%Y")
+    lines[rows[0]] = ";".join(f)
+    p = mf.parse_navall("\n".join(lines), today=today)
+    assert p.newest == today and p.skipped.get("NAV dated in the future") == 1
+    assert mf.latest_allowed(_d(2026, 10, 23)) == _d(2026, 10, 24)
