@@ -183,6 +183,39 @@ class Store:
                 row["symbol"], row["statement"], row.get("model") or "v1", row["overall"], row.get("pillar_quality"), row.get("pillar_growth"),
                 row.get("pillar_profitability"), row.get("pillar_balance"), row.get("pillar_technical"))
 
+    async def save_score_only(self, symbol: str, statement: str, score_row: dict) -> None:
+        """Keep a company's score and screener figures without its report: about 5 KB instead of about 100 KB (report sections and a year and a half of
+        daily prices). The screener and alerts read the score row; the report itself is built when somebody opens the company."""
+        async with self.pool.acquire() as conn, conn.transaction():
+            await self._upsert_score(conn, {**score_row, "statement": statement})
+
+    async def slim_pending(self, days: int = 7, limit: int = 1500, retry_days: int = 7) -> List[str]:
+        """Companies that have no score yet, or one older than `days`, biggest first (never-scored before stale ones). A company whose last
+        attempt failed or was rejected is left alone for `retry_days`, so the nightly budget is not spent on the same ones every night.
+        Companies that already hold a stored report are refreshed by the nightly report job, not here."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT c.symbol FROM companies c
+                   LEFT JOIN listing_quotes l ON l.symbol = c.symbol
+                   LEFT JOIN LATERAL (SELECT max(updated_at) AS at FROM scores s WHERE s.symbol = c.symbol AND s.model = 'v1') sc ON true
+                   WHERE (sc.at IS NULL OR sc.at < now() - make_interval(days => $1))
+                     AND NOT EXISTS (SELECT 1 FROM snapshots n WHERE n.symbol = c.symbol AND n.section = 'summary')
+                     AND NOT EXISTS (SELECT 1 FROM ingest_runs r WHERE r.symbol = c.symbol AND r.status IN ('failed', 'rejected')
+                                     AND r.started_at > now() - make_interval(days => $3))
+                   ORDER BY (sc.at IS NOT NULL), l.market_cap DESC NULLS LAST, (c.symbol ~ '^[0-9]+$'), c.symbol
+                   LIMIT $2""", days, limit, retry_days)
+        return [r["symbol"] for r in rows]
+
+    async def light_rows(self) -> List[dict]:
+        """Every listed company that has no score yet: its name and sector from the symbol list and its price figures from the nightly listing
+        refresh (the same rows the full screener lists), so a screener counts every company we hold, scored or not."""
+        keys = [k.strip() for k in LIST_COLUMNS.split(",") if k.strip() not in ("statement", "model", "updated_at")]
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT c.symbol, c.name, c.sector, l.price, l.change_pct, l.market_cap FROM companies c LEFT JOIN listing_quotes l ON l.symbol = c.symbol "
+                "WHERE NOT EXISTS (SELECT 1 FROM scores s WHERE s.symbol = c.symbol AND s.model = 'v1')")
+        return [{**{k: None for k in keys}, **dict(r)} for r in rows]    # every column present (None where unknown), like a scored row
+
     async def score_history(self, symbol: str, statement: str = "consolidated", model: str = "v1", limit: int = 400) -> List[dict]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
@@ -412,9 +445,10 @@ class Store:
             pass
 
     async def prune(self, keep_top: int, keep_viewed_days: int = 21, price_days: int = 500, feed_days: int = 400) -> Dict[str, int]:
-        """Keep the free database inside its storage limit: drop stored reports of companies outside the top `keep_top` that nobody
-        opened in `keep_viewed_days` (they are rebuilt in seconds if someone asks again), daily prices older than `price_days`,
-        old feed rows and the ingest log. Returns how many rows went."""
+        """Keep the free database inside its storage limit: drop the stored reports and daily prices of companies outside the top `keep_top` that
+        nobody opened in `keep_viewed_days` (they are rebuilt in seconds if someone asks again), daily prices older than `price_days`, old feed rows
+        and the ingest log. A company's small score row stays (the screeners list and score every company); only scores of companies that left the
+        symbol list go. Returns how many rows went."""
         cutoff = time.time() - keep_viewed_days * 86400
         try:
             recent = [m.decode() if isinstance(m, bytes) else m for m in await self.redis.zrangebyscore(VIEWED_KEY, cutoff, "+inf")]
@@ -428,16 +462,13 @@ class Store:
                 f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
                 "SELECT DISTINCT s.symbol FROM snapshots s LEFT JOIN ranked r ON r.symbol = s.symbol "
                 "WHERE (r.rn IS NULL OR r.rn > $1) AND NOT (s.symbol = ANY($2::text[]))", keep_top, recent)]
-            async with conn.transaction():
+            async with conn.transaction():   # the heavy part goes (report sections, prices); the small score row stays, so the screeners keep every company scored
                 out["snapshots"] = int((await conn.execute("DELETE FROM snapshots WHERE symbol = ANY($1::text[])", drop)).split()[-1])
-                await conn.execute("DELETE FROM scores WHERE symbol = ANY($1::text[])", drop)
                 await conn.execute("DELETE FROM price_daily WHERE symbol = ANY($1::text[])", drop)
             out["companies"] = len(drop)
-            # scores left behind by reports that are gone (e.g. after a reset): outside the kept set they only make lists heavier
+            # scores of companies that are no longer in the symbol list (delisted or renamed)
             out["orphan_scores"] = int((await conn.execute(
-                f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
-                "DELETE FROM scores sc WHERE NOT EXISTS (SELECT 1 FROM snapshots s WHERE s.symbol = sc.symbol AND s.section = 'summary') "
-                "AND NOT EXISTS (SELECT 1 FROM ranked r WHERE r.symbol = sc.symbol AND r.rn <= $1)", keep_top)).split()[-1])
+                "DELETE FROM scores sc WHERE NOT EXISTS (SELECT 1 FROM companies c WHERE c.symbol = sc.symbol)")).split()[-1])
             out["price_days"] = int((await conn.execute("DELETE FROM price_daily WHERE day < current_date - $1::int", price_days)).split()[-1])
             out["feed"] = int((await conn.execute("DELETE FROM feed_items WHERE item_date < current_date - $1::int", feed_days)).split()[-1])
             out["runs"] = int((await conn.execute("DELETE FROM ingest_runs WHERE started_at < now() - interval '30 days'")).split()[-1])
@@ -529,7 +560,7 @@ class Store:
                 f"SELECT {LIST_COLUMNS} FROM scores WHERE model = $1 ORDER BY overall DESC NULLS LAST LIMIT $2", model, limit)  # nosec B608 - fixed column list
         return [dict(r) for r in rows]
 
-    async def screener_rows(self, model: str = "v1", statement: str = "consolidated", limit: int = 6000) -> List[dict]:
+    async def screener_rows(self, model: str = "v1", statement: str = "consolidated", limit: int = 10000) -> List[dict]:
         """One row per company for the screener and comparison tool (client-side filtering, so no per-click queries)."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(

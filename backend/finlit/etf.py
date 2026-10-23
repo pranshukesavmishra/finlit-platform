@@ -28,6 +28,7 @@ import codecs
 import json
 import logging
 import math
+import os
 import re
 import statistics
 import time
@@ -42,6 +43,7 @@ import httpx
 from fastapi import APIRouter, Request, Response
 
 from .auth.routes import fail
+from .dhan import DhanClient, DhanError
 from .upstox import UpstoxClient, UpstoxError, UpstoxTokenExpired
 
 log = logging.getLogger("finlit.etf")
@@ -67,7 +69,7 @@ CLOSE_IST = dtime(15, 45)    # a candle fetched after this (on a weekday) is tha
 CANDLE_BURST = 50            # candle calls allowed at once before pacing starts (a small refresh never waits)
 ALL_KEY, HOT_KEY = "etf:all:v1", "etf:hot:v1"
 DISCLAIMER = "Information only. Not investment advice. Past returns do not guarantee future returns."
-SOURCE = "Prices: NSE via Upstox. NAV, scheme names and fund houses: AMFI."
+SOURCE = "Prices: NSE, via our market-data providers (Dhan, Upstox). NAV, scheme names and fund houses: AMFI."
 NOT_PUBLISHED = "Not published in our price data source"
 UNAVAILABLE = ["Assets under management (AUM)", "Expense ratio", "Tracking error", "Holdings", "Benchmark index", "Launch date", "Fund manager"]
 
@@ -498,6 +500,115 @@ async def fetch_instruments(http: httpx.AsyncClient) -> List[dict]:
     return out
 
 
+# ---------------------------------------------------------------------------------------------------------------- price sources
+# The refresh speaks one shape (Upstox's: instrument rows with trading_symbol / isin / instrument_key, quotes with last_price, ohlc and a
+# last_trade_time in milliseconds, candles as (date, o, h, l, c, v)); each source below answers in it. Dhan is used when it is set up and its
+# instrument file is loaded (one token that renews itself, 1,000 quotes a call); otherwise Upstox, as before. ETF_SOURCE=upstox|dhan forces one.
+SOURCE_ERRORS = (UpstoxError, DhanError)
+DHAN_KEY = "DHAN|"                    # instrument_key of an ETF priced through Dhan: "DHAN|<Dhan security id>" (Upstox keys are "NSE_EQ|<ISIN>")
+
+
+class _UpstoxSource:
+    name = "upstox"
+    per_minute: Optional[int] = None   # the setting ETF_CALLS_PER_MINUTE (Upstox's quota is shared by every job on the token)
+
+    def __init__(self, settings, redis, transport=None):
+        self.client = UpstoxClient(settings, redis, transport=transport)
+        self.enabled = self.client.enabled
+
+    @property
+    def calls(self) -> int:
+        return self.client.calls
+
+    async def instruments(self, http, conn) -> List[dict]:
+        return await fetch_instruments(http)
+
+    async def quotes(self, keys: List[str]) -> Dict[str, dict]:
+        out: Dict[str, dict] = {}
+        for k in range(0, len(keys), QUOTE_BATCH):
+            data = await self.client.get("/v2/market-quote/quotes", {"instrument_key": ",".join(keys[k:k + QUOTE_BATCH])})
+            for q in (data.values() if isinstance(data, dict) else []):
+                if isinstance(q, dict) and q.get("instrument_token"):
+                    out[q["instrument_token"]] = q
+        return out
+
+    async def candles(self, key: str, frm: date, today: date) -> Tuple[List[tuple], Optional[date]]:
+        data = await self.client.get(f"/v3/historical-candle/{urlquote(key, safe='')}/days/1/{today.isoformat()}/{frm.isoformat()}")
+        return parse_candles(data.get("candles") if isinstance(data, dict) else None)
+
+    async def aclose(self) -> None:
+        await self.client.aclose()
+
+
+def _dhan_ms(text: Any) -> Optional[int]:
+    """Dhan's "23/10/2026 15:29:58" (Indian time) as epoch milliseconds, the unit quote_candle reads; its 1980 placeholder is no trade."""
+    try:
+        t = datetime.strptime(str(text).strip(), "%d/%m/%Y %H:%M:%S").replace(tzinfo=IST)
+    except ValueError:
+        return None
+    return int(t.timestamp() * 1000) if t.year >= 2000 else None
+
+
+class _DhanSource:
+    name = "dhan"
+    per_minute = 180                   # Dhan's data calls allow 5 a second; three a second leaves room for the live quotes
+
+    def __init__(self, settings, redis, transport=None):
+        http = httpx.AsyncClient(transport=transport, timeout=httpx.Timeout(20.0, connect=10.0)) if transport else None
+        self.client = DhanClient(settings, redis, http=http)
+        self._own_http = http
+        self.enabled = self.client.configured
+        self.calls = 0
+
+    async def instruments(self, http, conn) -> List[dict]:
+        """ETFs of the stored Dhan instrument file (type ETF, series EQ: listed closed-ended fund units are left out). An ETF already stored
+        keeps its exchange name and short name, so its category and page title do not change with the source."""
+        rows = await conn.fetch(
+            "SELECT d.symbol, d.security_id, d.isin, COALESCE(e.exchange_name, d.exch_name, d.name, d.symbol) AS name, e.short_name "
+            "FROM dhan_instruments d LEFT JOIN etf_funds e ON e.symbol = d.symbol "
+            "WHERE d.exch = 'NSE' AND d.inst_type = 'ETF' AND d.series = 'EQ' AND d.isin LIKE 'INF%' ORDER BY d.symbol")
+        return [{"trading_symbol": r["symbol"], "isin": r["isin"], "instrument_key": DHAN_KEY + r["security_id"], "name": r["name"],
+                 "short_name": r["short_name"], "segment": "NSE_EQ", "instrument_type": "EQ"} for r in rows]
+
+    async def quotes(self, keys: List[str]) -> Dict[str, dict]:
+        ids = [("NSE_EQ", k[len(DHAN_KEY):]) for k in keys if k.startswith(DHAN_KEY)]
+        self.calls += (len(ids) + 999) // 1000
+        out: Dict[str, dict] = {}
+        for (seg, sid), q in (await self.client.quotes(ids)).items():
+            o = q.get("ohlc") if isinstance(q.get("ohlc"), dict) else {}
+            out[DHAN_KEY + sid] = {"instrument_token": DHAN_KEY + sid, "last_price": q.get("last_price"), "volume": q.get("volume"),
+                                   "ohlc": {"open": o.get("open"), "high": o.get("high"), "low": o.get("low")},
+                                   "last_trade_time": _dhan_ms(q.get("last_trade_time"))}
+        return out
+
+    async def candles(self, key: str, frm: date, today: date) -> Tuple[List[tuple], Optional[date]]:
+        self.calls += 1
+        rows = await self.client.daily(key[len(DHAN_KEY):], "NSE_EQ", frm, today + timedelta(days=1))   # Dhan's end date is not included
+        return parse_candles([[r["day"].isoformat(), r["open"], r["high"], r["low"], r["close"], r["volume"]] for r in rows])
+
+    async def aclose(self) -> None:
+        await self.client.aclose()
+        if self._own_http:
+            await self._own_http.aclose()
+
+
+async def pick_source(store, settings, transport=None):
+    """Dhan when it is set up and its instrument file holds ETFs, else Upstox. ETF_SOURCE (upstox | dhan) overrides."""
+    want = (os.getenv("ETF_SOURCE") or "auto").strip().lower()
+    if want != "upstox":
+        d = _DhanSource(settings, getattr(store, "redis", None), transport)
+        if d.enabled:
+            try:
+                async with store.pool.acquire() as conn:
+                    n = await conn.fetchval("SELECT count(*) FROM dhan_instruments WHERE exch = 'NSE' AND inst_type = 'ETF' AND series = 'EQ'")
+            except Exception:
+                n = 0
+            if n >= MIN_INSTRUMENTS or want == "dhan":
+                return d
+        await d.aclose()
+    return _UpstoxSource(settings, getattr(store, "redis", None), transport)
+
+
 def last_close(now: datetime) -> datetime:
     """The most recent weekday market close (15:45 IST) at or before `now`."""
     ist = now.astimezone(IST)
@@ -529,6 +640,32 @@ class Pacer:
             self.tokens -= 1
 
 
+class _Lease:
+    """One pooled connection that can be handed back during a long wait and taken again after it. The candle fetch is paced and takes minutes; a
+    connection held idle that long is dropped by a serverless database (Neon suspends after 5 idle minutes), which ended the run with
+    'connection has been released back to the pool'."""
+
+    def __init__(self, pool):
+        self.pool, self.conn = pool, None
+
+    async def __aenter__(self) -> "_Lease":
+        self.conn = await self.pool.acquire()
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        await self.drop()
+
+    async def drop(self) -> None:
+        conn, self.conn = self.conn, None
+        if conn is not None:
+            await self.pool.release(conn)
+
+    async def get(self):
+        if self.conn is None:
+            self.conn = await self.pool.acquire()
+        return self.conn
+
+
 class _Halted(Exception):
     """The provider's rate limit was hit earlier in this run: the remaining ETFs are left for the next (resumed) run."""
 
@@ -541,9 +678,11 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
     now = now or started
     today = now.astimezone(IST).date()
     summary: Dict[str, Any] = {"status": "ok"}
-    client = UpstoxClient(settings, getattr(store, "redis", None), transport=transport)
+    client = await pick_source(store, settings, transport)
     if not client.enabled:
-        return {"status": "skipped", "reason": "UPSTOX_ACCESS_TOKEN is not set"}
+        await client.aclose()
+        return {"status": "skipped", "reason": "no price source is set up (DHAN_CLIENT_ID or UPSTOX_ACCESS_TOKEN)"}
+    summary["source"] = client.name
     cutoff = last_close(now)
     if resume:
         async with store.pool.acquire() as conn:
@@ -554,9 +693,10 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             return {"status": "ok", "reason": "every ETF already has the latest close: nothing to fetch", "fetched": 0}
     http = httpx.AsyncClient(transport=transport, timeout=60, follow_redirects=True)
     try:
-        async with store.pool.acquire() as conn:
+        async with _Lease(store.pool) as lease:
+            conn = lease.conn
             stored_active = await conn.fetchval("SELECT count(*) FROM etf_funds WHERE active")
-            insts = await fetch_instruments(http)
+            insts = await client.instruments(http, conn)
             if len(insts) < MIN_INSTRUMENTS or (stored_active and len(insts) < SHRINK_LIMIT * stored_active):
                 summary.update(status="refused", reason=f"the instrument list has {len(insts)} ETFs (stored: {stored_active}); nothing was changed")
                 await _log_run(conn, started, summary)
@@ -584,17 +724,13 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             quotes: Dict[str, dict] = {}
             keys = [i["instrument_key"] for i in todo]
             try:
-                for k in range(0, len(keys), QUOTE_BATCH):
-                    data = await client.get("/v2/market-quote/quotes", {"instrument_key": ",".join(keys[k:k + QUOTE_BATCH])})
-                    for q in (data.values() if isinstance(data, dict) else []):
-                        if isinstance(q, dict) and q.get("instrument_token"):
-                            quotes[q["instrument_token"]] = q
-            except UpstoxError as exc:
+                quotes = await client.quotes(keys)
+            except SOURCE_ERRORS as exc:
                 summary["quotes_error"] = str(exc)
             summary["quotes"] = len(quotes)
 
             sem = asyncio.Semaphore(3)
-            pacer = Pacer(settings.etf_calls_per_minute)
+            pacer = Pacer(client.per_minute or settings.etf_calls_per_minute)
             halted = {"by": None}
             errors: Counter = Counter()
             stats: Dict[str, Any] = {"full": 0, "incremental": 0, "adjusted": 0, "kept": [], "updated": 0, "no_history": [], "quote_disagree": [],
@@ -605,8 +741,7 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                     if halted["by"]:
                         raise _Halted()
                     await pacer.wait()
-                    data = await client.get(f"/v3/historical-candle/{urlquote(key, safe='')}/days/1/{today.isoformat()}/{frm.isoformat()}")
-                return parse_candles(data.get("candles") if isinstance(data, dict) else None)
+                    return await client.candles(key, frm, today)
 
             async def one(inst: dict) -> dict:
                 """Fetch what this ETF needs: the whole 10 years (new ETF, weekly, or after a provider adjustment) or just the last weeks."""
@@ -637,22 +772,24 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                 except _Halted:
                     res["error"] = True
                     stats["deferred"].append(sym)
-                except UpstoxError as exc:
+                except SOURCE_ERRORS as exc:
                     log.info("etf %s: %s", sym, exc)
                     res["error"] = True
                     errors[str(exc)] += 1
                     stats["failed"].append(f"{sym}: {exc}")
                     stats["kept"].append(sym)
-                    if str(exc) == "HTTP 429" and not halted["by"]:
+                    if str(exc).endswith("HTTP 429") and not halted["by"]:
                         halted["by"] = sym                         # retries did not help: stop asking until the quota window has passed
                 return res
 
+            await lease.drop()                                     # no connection is held while the (paced) candles are fetched
             try:
                 results = await asyncio.gather(*[one(i) for i in todo])
             except UpstoxTokenExpired:
                 summary.update(status="token_expired", reason="Upstox access token expired during the run: stored rows kept")
-                await _log_run(conn, started, summary)
+                await _log_run(await lease.get(), started, summary)
                 return summary
+            conn = await lease.get()
 
             kept_hist: Dict[str, tuple] = {}                       # fresh series by symbol, written below for the hot ETFs only
             answered_empty: List[str] = []
@@ -718,7 +855,7 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             await _log_run(conn, started, summary)
     except UpstoxTokenExpired:
         summary.update(status="token_expired", reason="Upstox access token expired: stored rows kept")
-    except (UpstoxError, httpx.HTTPError, ValueError) as exc:
+    except (*SOURCE_ERRORS, httpx.HTTPError, ValueError) as exc:
         summary.update(status="failed", reason=f"{type(exc).__name__}: {exc}; stored rows kept")
         log.warning("etf refresh failed: %s", exc)
     finally:
@@ -1163,7 +1300,8 @@ async def cold_history(app, r: dict) -> Tuple[Optional[dict], Optional[str]]:
     except Exception:
         pass
     settings = getattr(app.state, "settings", None)
-    if settings is None or not settings.upstox_access_token:
+    via_dhan = str(r.get("instrument_key") or "").startswith(DHAN_KEY)
+    if settings is None or not (DhanClient(settings).configured if via_dhan else settings.upstox_access_token):
         return None, "The price chart for this ETF is not stored and the price source is not connected right now"
     lock = f"etf:histlock:{sym}"
     try:
@@ -1181,11 +1319,10 @@ async def cold_history(app, r: dict) -> Tuple[Optional[dict], Optional[str]]:
             if h:
                 return h, None
         return None, "The price chart is being prepared; please try again in a moment"
-    client = UpstoxClient(settings, store.redis)
+    client = _DhanSource(settings, store.redis) if via_dhan else _UpstoxSource(settings, store.redis)
     try:
         today = datetime.now(IST).date()
-        data = await client.get(f"/v3/historical-candle/{urlquote(r['instrument_key'], safe='')}/days/1/{today.isoformat()}/{(today - timedelta(days=3650)).isoformat()}")
-        rows, _dup = parse_candles(data.get("candles") if isinstance(data, dict) else None)
+        rows, _dup = await client.candles(r["instrument_key"], today - timedelta(days=3650), today)
         last = r.get("price_date")
         rows = [c for c in rows if not last or c[0] <= last]
         if rows and last and r.get("price") and rows[-1][0] < last:              # tonight's close came from the quote; the candle list may not have it yet
@@ -1200,7 +1337,7 @@ async def cold_history(app, r: dict) -> Tuple[Optional[dict], Optional[str]]:
         return {"dates": ds, "closes": cs}, None
     except UpstoxTokenExpired:
         return None, "The price source did not accept our access right now"
-    except (UpstoxError, httpx.HTTPError):
+    except (*SOURCE_ERRORS, httpx.HTTPError):
         return None, "The price source did not answer"
     finally:
         await client.aclose()

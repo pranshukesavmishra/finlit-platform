@@ -44,7 +44,9 @@ class DataRejected(Exception):
 CORE_PARTS = ("profile", "quote", "pl_annual", "bs_annual", "daily_quotes", "ratios_pr")
 
 
-async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated") -> dict:
+async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False) -> dict:
+    """Load one company. `slim` keeps only its score and screener figures (about 5 KB) and not its report or prices (about 100 KB): how the bulk
+    scoring covers every listed company inside a small database. The report is built in full when somebody opens the company."""
     started, calls_before = time.perf_counter(), client.calls
     symbol = symbol.strip().upper()
     company = await store.company(symbol)
@@ -79,15 +81,20 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if checks["status"] == "rejected":
             # Keep serving the last good snapshot; a human reviews the logged issues.
             raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
-        sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
+        if not slim:
+            sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
         if sections["summary"].get("quote", {}).get("price"):
             sections["summary"]["quote"]["refPrice"] = sections["summary"]["quote"]["price"]
         row = snapshot.score_row(sections)
-        # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
-        await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
+        if slim:
+            await store.save_score_only(symbol, statement, row)
+        else:
+            # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
+            await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
         try:
             cov = sections["summary"]["dataQuality"]["coverage"]
-            await store.save_coverage(symbol, statement, cov)
+            if not slim:
+                await store.save_coverage(symbol, statement, cov)
             if cov["mismatches"]:   # the provider sent it and the report lacks it: a bug in this code, never a data gap
                 log.error("COVERAGE MISMATCH %s: %s", symbol, "; ".join(cov["mismatches"]))
         except Exception:
@@ -126,7 +133,8 @@ async def _step_aside(store: Store, patience: float = 240.0) -> None:
         waited += 2.0
 
 
-async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2, yield_to_readers: bool = False) -> List[dict]:
+async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2, yield_to_readers: bool = False,
+                      slim: bool = False) -> List[dict]:
     # Each stock already fans out ~21 requests; a couple of stocks at a time keeps us inside rate limits.
     sem = asyncio.Semaphore(parallel)
 
@@ -134,7 +142,7 @@ async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple
         async with sem:
             if yield_to_readers:
                 await _step_aside(store)
-            return await ingest_one(client, store, symbol, statement)
+            return await ingest_one(client, store, symbol, statement, slim=slim)
 
     return await asyncio.gather(*(run(s, st) for s, st in items))
 
@@ -146,27 +154,57 @@ async def refresh_universe(client: FinEdgeClient, store: Store) -> int:
     return count
 
 
-async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[List[Tuple[str, str]]] = None) -> int:
-    """Patch the live quote into each summary without re-fetching fundamentals."""
+async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[List[Tuple[str, str]]] = None, dhan_client=None) -> int:
+    """Patch the live quote into each summary without re-fetching fundamentals.
+
+    With Dhan set up, every matched company's quote comes from a few batch calls (1,000 companies each); a company Dhan does not match,
+    does not answer for, or answers implausibly for (previous close more than 25% from the price held) is asked of FinEdge as before."""
     items = symbols or await store.snapshot_symbols()
     updated = 0
     touched: List[Tuple[str, str]] = []
+    batch: Dict[str, dict] = {}
+    if dhan_client is not None and dhan_client.configured and items:
+        from . import dhan
+        try:
+            ids = await dhan.security_map(store, sorted({s for s, _ in items}))
+            raw = await dhan_client.quotes(sorted(set(ids.values())))
+            batch = {sym: q for sym, key in ids.items() if (q := dhan.to_quote(raw.get(key) or {}))}
+        except dhan.DhanError as e:
+            log.warning("Dhan quotes unavailable, using FinEdge for all: %s", e)
+        except Exception:
+            log.exception("Dhan quotes failed, using FinEdge for all")
 
     async def one(symbol: str, statement: str):
         nonlocal updated
         cached = await store.get_section(symbol, statement, "summary")
         if not cached:
             return
-        try:
-            live = market.quote(await client.get("/quote", {"symbol": symbol}, timeout=5), symbol)
-        except FinEdgeError:
-            return
+        summary = orjson.loads(cached[0])
+        old = summary.get("quote") or {}
+        live = batch.get(symbol)
+        if live is not None:
+            from .dhan import plausible
+            if not plausible(live, old):
+                log.warning("Dhan quote for %s is far from the price held (%s vs %s); using FinEdge", symbol, live.get("previousClose"), old.get("price"))
+                live = None
+            else:
+                live = dict(live)
+                if old.get("marketCapCr") and old.get("price"):       # shares do not change intraday: market cap moves with the price
+                    live["marketCapCr"] = round(old["marketCapCr"] * live["price"] / old["price"], 2)
+                if old.get("high52") and live.get("high") and live["high"] > old["high52"]:
+                    live["high52"] = live["high"]
+                if old.get("low52") and live.get("low") and live["low"] < old["low52"]:
+                    live["low52"] = live["low"]
+        if live is None:
+            try:
+                live = market.quote(await client.get("/quote", {"symbol": symbol}, timeout=5), symbol)
+            except FinEdgeError:
+                return
         if not live.get("price"):
             return
-        summary = orjson.loads(cached[0])
-        if summary["quote"].get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
+        if old.get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
-        summary["quote"] = {**summary["quote"], **{k: v for k, v in live.items() if v is not None}}
+        summary["quote"] = {**old, **{k: v for k, v in live.items() if v is not None}}
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
         touched.append((symbol, statement))
@@ -250,6 +288,31 @@ async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "cons
         await store.invalidate_search()
         log.info("ingest-all: %d / %d  %s  (%d upstream calls)", min(i + chunk, len(pending)), len(pending), done, client.calls)
     return done
+
+
+async def score_all(client: FinEdgeClient, store: Store, limit: int = 1500, days: int = 7, parallel: int = 2, chunk: int = 30, max_minutes: float = 90.0) -> dict:
+    """Give every listed company a score: those with none first, biggest first, then the oldest. Only the small score row is kept (see ingest_one slim),
+    so all ~5,800 companies fit in the free database. A run is capped (`limit` companies, `max_minutes`) and resumable: the next run takes whatever is
+    still missing, so the whole market is covered within a few nights and refreshed about weekly after that."""
+    pending = await store.slim_pending(days, limit)
+    log.info("score-all: %d companies to score", len(pending))
+    done = {"ok": 0, "warnings": 0, "rejected": 0, "failed": 0}
+    deadline = time.monotonic() + max_minutes * 60
+    tried = 0
+    for i in range(0, len(pending), chunk):
+        if time.monotonic() > deadline:
+            log.info("score-all: time budget used, the rest waits for the next run")
+            break
+        batch = pending[i:i + chunk]
+        for r in await ingest_many(client, store, [(s, "consolidated") for s in batch], parallel=parallel, yield_to_readers=True, slim=True):
+            done[r["status"]] = done.get(r["status"], 0) + 1
+        tried += len(batch)
+        log.info("score-all: %d / %d  %s  (%d upstream calls)", tried, len(pending), done, client.calls)
+    try:
+        await store.invalidate_search()
+    except Exception:
+        pass
+    return {**done, "tried": tried, "waiting": len(pending) - tried}
 
 
 async def results_candidates(store: Store, today: Optional[date] = None, max_age_days: int = 4) -> List[str]:
@@ -382,6 +445,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
     p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
+    p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
+    p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
+    p_sa.add_argument("--days", type=int, default=7, help="a score older than this many days is refreshed")
+    p_sa.add_argument("--max-minutes", type=float, default=90.0, help="stop starting new batches after this long")
+    p_sa.add_argument("--parallel", type=int, default=2)
     p_prune = sub.add_parser("prune", help="keep the database inside its storage limit (reports outside the top INGEST_LIMIT nobody opened lately, old prices and logs)")
     p_prune.add_argument("--keep", type=int, default=None, help="companies always kept (default: INGEST_LIMIT, else 500)")
     sub.add_parser("refresh-calendars", help="IPO and results calendars from the data provider")
@@ -398,6 +466,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
     p_ff = sub.add_parser("refresh-facts", help="nightly: fund facts from AMFI (scheme master, expense ratios, quarterly average AUM) for funds and ETFs; run after refresh-mf")
     p_ff.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_di = sub.add_parser("refresh-instruments", help="weekly: Dhan's public instrument file (ISIN, surveillance flag, margin eligibility, F&O status of every NSE and BSE equity); needs no account")
+    p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
     p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
     p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
     p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
@@ -506,6 +577,38 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                "failed": [k for k, v in result["steps"].items() if v["status"] == "failed"]})
             print(result)
             return 0 if result["status"] in ("ok", "partial") else 1
+        if args.cmd == "refresh-instruments":
+            from . import dhan
+            from .mf import last_run_age_hours, record_run
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            try:
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments())
+            except dhan.DhanError as e:
+                await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
+                print({"status": "failed", "error": str(e)})
+                return 1
+            await record_run(store, args.cmd, {"status": "ok", "equities": n})
+            print({"status": "ok", "equities": n})
+            return 0
+        if args.cmd == "dhan-check":
+            from . import dhan
+            from .mf import record_run
+            try:
+                res = await dhan.check(settings, store.redis)
+            except dhan.DhanError as e:
+                await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
+                print({"status": "failed", "error": str(e)})
+                return 1
+            ok = bool(res.get("configured")) and res.get("ltp") is not None
+            await record_run(store, args.cmd, {"status": "ok" if ok else "incomplete", "mode": res.get("mode"), "data_plan": (res.get("account") or {}).get("dataPlan"),
+                                               "data_valid_until": (res.get("account") or {}).get("dataValidity"), "instruments": res.get("instruments"),
+                                               "ltp_reliance": res.get("ltp"), "why": res.get("why")})
+            print(res)
+            return 0 if ok else 1
         if args.cmd == "refresh-portfolios":
             from . import portfolios as disclosure
             from .mf import record_run, last_run_age_hours
@@ -588,6 +691,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "prune":
                 keep = args.keep or int(os.getenv("INGEST_LIMIT") or 0) or 500
                 print(await store.prune(keep))
+            elif args.cmd == "score-all":
+                limit = args.limit or int(os.getenv("SCORE_ALL_PER_RUN") or 0) or 1500
+                print(await score_all(client, store, limit, args.days, args.parallel, max_minutes=args.max_minutes))
             elif args.cmd == "refresh-listing":
                 from .screener.listing import refresh_listing
                 print(await refresh_listing(client, store, force=args.force))
@@ -598,7 +704,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .calendars import refresh_calendars
                 print(await refresh_calendars(client, store))
             elif args.cmd == "refresh-quotes":
-                print(await refresh_quotes(client, store), "quotes updated")
+                from .dhan import DhanClient
+                async with DhanClient(settings, store.redis) as dc:
+                    print(await refresh_quotes(client, store, dhan_client=dc), "quotes updated")
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
             elif args.cmd == "drain-queue":

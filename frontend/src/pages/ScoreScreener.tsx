@@ -50,8 +50,8 @@ function withScores(rows: Row[]): Item[] {
   });
 }
 
-const Score = ({ v, locked }: { v: number | null; locked: boolean }) =>
-  v == null ? <span className="ssp na" title={locked ? "Scores are part of the Silver plan" : "Not enough data to score"}>{locked ? <Icon name="lock" /> : MINUS}</span> : <span className={"ssp " + level(v)}>{v}</span>;
+const Score = ({ v, locked, pending }: { v: number | null; locked: boolean; pending?: boolean }) =>
+  v == null ? <span className="ssp na" title={pending ? "Not scored yet. Open the report to score it now" : locked ? "Scores are part of the Silver plan" : "Not enough data to score"}>{locked ? <Icon name="lock" /> : MINUS}</span> : <span className={"ssp " + level(v)}>{v}</span>;
 
 export function ScoreScreener() {
   const [sideW, setSide] = useSideWidth("score");
@@ -72,6 +72,7 @@ export function ScoreScreener() {
   const silver = has("silver"), maxCompare = has("gold") ? 4 : 2;
 
   const items = useMemo(() => withScores(data?.rows || []), [data]);
+  const unscored = useMemo(() => items.filter((r) => r.scored === false).length, [items]);
   const locked = !silver;   // visitors and Basic members: the server removes scores (except the free example company), so score filters would match almost nothing
   const sectors = useMemo(() => {
     const m = new Map<string, number>(); items.forEach((r) => r.sector && m.set(r.sector, (m.get(r.sector) || 0) + 1));
@@ -174,6 +175,7 @@ export function ScoreScreener() {
             <div className="ss-stats" aria-label="Summary">
               {([["Stocks found", isLoading ? "…" : nf(rows.length, 0)], ["Sectors", isLoading ? "…" : nf(nSectors, 0)], ["Market cap", applied.cap ? `${applied.cap} cap` : "All"], ["Active filters", nf(chips.length, 0)]] as const).map(([l, v]) => <div key={l} className="ss-stat"><b>{v}</b><small>{l}</small></div>)}
             </div>
+            {!isLoading && unscored > 0 && <p className="muted" role="note">{nf(unscored, 0)} of {nf(items.length, 0)} listed companies are not scored yet. Scoring fills in every night, or open a company's report to score it now.</p>}
             {chips.length > 0 && <div className="scr-chips">{chips.map(([k, label]) => <button key={k} className="fchip" onClick={() => drop(k)}>{label}<span aria-hidden="true">×</span><span className="sr">remove</span></button>)}<button className="alx-link" onClick={clear}>Clear all</button></div>}
             {isError ? <div className="state"><h2>The score screener is unavailable right now</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
               <>
@@ -184,7 +186,7 @@ export function ScoreScreener() {
                       <td><input type="checkbox" checked={picked.includes(r.symbol)} onChange={() => togglePick(r.symbol)} aria-label={`Select ${r.symbol} to compare`} /></td>
                       <td className="stick"><Link to={`/stocks/${r.symbol}`} className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}</small></span></Link></td>
                       <td>{r.price != null ? nf(r.price) : MINUS}</td><td>{cr(r.market_cap)}</td><td style={{ fontFamily: "var(--sans)", textAlign: "left" }}>{r.sector || MINUS}</td>
-                      <td><Score v={r.f} locked={!silver} /></td>{PILLARS.map((x) => <td key={x.k} className="ss-pc"><Score v={r[x.col]} locked={!silver} /></td>)}<td><Score v={r.t} locked={!silver} /></td><td><Score v={r.overall} locked={!silver} /></td>
+                      <td><Score v={r.f} locked={!silver} pending={r.scored === false} /></td>{PILLARS.map((x) => <td key={x.k} className="ss-pc"><Score v={r[x.col]} locked={!silver} pending={r.scored === false} /></td>)}<td><Score v={r.t} locked={!silver} pending={r.scored === false} /></td><td><Score v={r.overall} locked={!silver} pending={r.scored === false} /></td>
                       <td className="ss-act"><Link className="btn" to={`/stocks/${r.symbol}`}>Report</Link>
                         <button className={"btn" + (watch.has(r.symbol) ? " on" : "")} aria-pressed={watch.has(r.symbol)} aria-label={`${watch.has(r.symbol) ? "Remove" : "Add"} ${r.symbol} ${watch.has(r.symbol) ? "from" : "to"} watchlist`} onClick={() => addWatch(r.symbol)}><Icon name="wallet" /></button></td>
                     </tr>))}

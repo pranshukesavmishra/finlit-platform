@@ -29,6 +29,15 @@ class Settings:
     # Secondary data source (Upstox). Empty = switched off entirely: no calls, nothing shown. Secret: set only in the host's dashboard.
     upstox_access_token: str = field(default_factory=lambda: os.getenv("UPSTOX_ACCESS_TOKEN", "").strip())
     upstox_base_url: str = field(default_factory=lambda: os.getenv("UPSTOX_BASE_URL", "https://api.upstox.com"))
+    # Dhan market-data API (see finlit/dhan.py). Empty = switched off: no calls. Secrets: set only in the host's dashboard.
+    # Best: DHAN_CLIENT_ID + DHAN_PIN + DHAN_TOTP_SECRET (the server makes its own 24-hour token every day).
+    # Fallback: DHAN_CLIENT_ID + DHAN_ACCESS_TOKEN (a token from web.dhan.co, pasted again every day).
+    dhan_client_id: str = field(default_factory=lambda: os.getenv("DHAN_CLIENT_ID", "").strip())
+    dhan_pin: str = field(default_factory=lambda: os.getenv("DHAN_PIN", "").strip())
+    dhan_totp_secret: str = field(default_factory=lambda: os.getenv("DHAN_TOTP_SECRET", "").replace(" ", "").strip())
+    dhan_access_token: str = field(default_factory=lambda: os.getenv("DHAN_ACCESS_TOKEN", "").strip())
+    dhan_base_url: str = field(default_factory=lambda: os.getenv("DHAN_BASE_URL", "https://api.dhan.co/v2"))
+    dhan_auth_url: str = field(default_factory=lambda: os.getenv("DHAN_AUTH_URL", "https://auth.dhan.co"))
     # ETF candle calls a minute after a short burst (refresh-etf). Upstox allows about 2,000 calls per 30 minutes for the whole token; 50 leaves room for other jobs.
     etf_calls_per_minute: int = field(default_factory=lambda: int(os.getenv("ETF_CALLS_PER_MINUTE", "50")))
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "postgresql://finlit:finlit@localhost:5432/finlit"))

@@ -1,7 +1,7 @@
 # FII / DII institutional flows
 
 `GET /api/flows` returns the `Flows` payload of `frontend/src/lib/flows.ts`. Code: `backend/finlit/flows_sources.py` (pure parsers),
-`backend/finlit/flows.py` (store, nightly job, payload, route), migration `046_flows.sql`, tests `backend/tests/test_flows.py`
+`backend/finlit/flows.py` (store, nightly job, payload, route), migration `048_flows.sql`, tests `backend/tests/test_flows.py`
 with recordings in `backend/tests/fixtures/flows/`. Same pattern as `macro.py`: steps fail independently and keep the last good data.
 
 ## Sources (all public, plain GET or the site's own date form, User-Agent `FinLit-data/1.0 (+https://finlitventures.com)`)

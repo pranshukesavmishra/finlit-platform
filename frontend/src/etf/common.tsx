@@ -30,7 +30,7 @@ export function DataNote({ asOf, updatedAt, source }: { asOf: string | null | un
   return (
     <aside className="etf-note" aria-label="About this data">
       <p><b>{DISCLAIMER}</b></p>
-      <p>Prices are closing prices on the NSE as of <b>{day(asOf)}</b>. Last updated {stamp(updatedAt)}. {source ?? "Prices: NSE via Upstox. NAV, scheme names and fund houses: AMFI."}</p>
+      <p>Prices are closing prices on the NSE as of <b>{day(asOf)}</b>. Last updated {stamp(updatedAt)}. {source ?? "Prices: NSE, via our market-data providers (Dhan, Upstox). NAV, scheme names and fund houses: AMFI."}</p>
       <p>Every return here is a <b>price return</b>: dividends and other payouts are not included. Figures marked — are not available; the reason is shown beside them. See the <Link to="/glossary">glossary</Link> for the words used.</p>
     </aside>
   );
