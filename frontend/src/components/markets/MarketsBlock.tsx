@@ -1,7 +1,7 @@
 // The dashboard's markets block, top to bottom: Market today (index levels and the daily Nifty 50 / Sensex chart), Market snapshot (breadth, movers,
 // every sector as a heat-map), FII/DII flows, the index heat-map (stocks of an index, sized by market cap and coloured by today's move) and sectoral
 // activity (pick a sector group, see its index and its gainers and losers). Information only.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../search/parts";
 import { FlowsPanel } from "../FlowsPanel";
@@ -19,16 +19,19 @@ const sgn = (v: number | null | undefined, d = 2) => (v == null ? MINUS : (v > 0
 const tone = (v: number | null | undefined) => (v == null || Math.abs(v) < 0.005 ? "" : v > 0 ? "up" : "down");
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
-  const ref = useRef<T>(null);
+/** Width of an element that may mount later than the component does (a chart behind a loading state): a callback ref, so the observer attaches whenever the element appears. */
+function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number] {
   const [w, setW] = useState(900);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
-    ro.observe(el);
-    return () => ro.disconnect();
+  const ro = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: T | null) => {
+    ro.current?.disconnect(); ro.current = null;
+    if (!el) return;
+    setW(Math.max(280, Math.round(el.getBoundingClientRect().width)));
+    if (typeof ResizeObserver === "undefined") return;
+    ro.current = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.current.observe(el);
   }, []);
+  useEffect(() => () => ro.current?.disconnect(), []);
   return [ref, w];
 }
 
