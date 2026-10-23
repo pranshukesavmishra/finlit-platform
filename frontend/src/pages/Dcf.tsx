@@ -1,7 +1,7 @@
 // DCF calculator (Gold): intrinsic value from a two-stage, ten-year free cash flow model, in the order of the FinLit formula sheet, with the
 // checks and analysis an analyst expects around it. All arithmetic lives in lib/dcf.ts (pure and tested); this page collects inputs, can
 // load a listed company's figures from its stored report (Gold, enforced by the server), and shows every step of the working.
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { apiGet, apiSend, useSearchIndex, type ApiError, type Glossary } from "../lib/api";
@@ -17,7 +17,10 @@ import {
   GROWTH_PRESETS, INDIA_DEFAULTS, MOS_PRESETS, STATUS_TEXT, around, costOfCapital, defaultScenarios, impliedGrowth, impliedReturn, run, scenarios, sensitivity,
   type CostOfCapital, type DcfInputs, type DcfResult, type GrowthPreset, type Issue, type Scenario,
 } from "../lib/dcf";
+import { supports3d, whenIdle } from "../three/support";
 import "../styles/dcf.css";
+
+const Surface3D = lazy(() => import("../three/Surface3D"));
 
 // ------------------------------------------------------------------------------------------------------------- form state
 type Form = {
@@ -261,11 +264,16 @@ function Grid({ title, note, i, rowKey, rows, rowLabel, colKey, cols, colLabel }
   title: string; note: string; i: DcfInputs; rowKey: keyof DcfInputs; rows: number[]; rowLabel: string; colKey: keyof DcfInputs; cols: number[]; colLabel: string;
 }) {
   const grid = sensitivity(i, rowKey, rows, colKey, cols);
+  const [webgl, setWebgl] = useState(false);
+  useEffect(() => { if (supports3d()) whenIdle(() => setWebgl(true)); }, []);
+  const bi = rows.indexOf(i[rowKey] as number), bj = cols.indexOf(i[colKey] as number);
   const buy = (v: number) => v * (1 - i.mos / 100);
   const cls = (v: number | null) => (v == null ? "na" : i.price <= buy(v) ? "s-buy" : i.price > v ? "s-over" : "s-fair");
   return (
     <div className="dcf-sens">
       <h4>{title}</h4>
+      {webgl && <Suspense fallback={null}><Surface3D grid={grid} base={bi >= 0 && bj >= 0 ? [bi, bj] : undefined} level={i.price}
+        label={`${title}, as a 3D surface of intrinsic value per share. The glass sheet is today's price of ${nf(i.price, 2)} rupees; the marker is your base case.`} /></Suspense>}
       <div className="tw"><table><caption className="sr-only">{title}: intrinsic value per share for each {rowLabel} (rows) and {colLabel} (columns)</caption>
         <thead><tr><th scope="col">{rowLabel} ↓ · {colLabel} →</th>{cols.map((c) => <th key={c} scope="col" className={"num" + (c === i[colKey] ? " cur" : "")}>{nf(c, 2)}%</th>)}</tr></thead>
         <tbody>{rows.map((rv, a) => <tr key={rv}><th scope="row" className={rv === i[rowKey] ? "cur" : ""}>{nf(rv, 2)}%</th>
