@@ -21,7 +21,7 @@ import logging
 import os
 import time
 from datetime import date, timedelta
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import orjson
 
@@ -609,14 +609,21 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 if age is not None and last == "ok" and age < args.max_age_hours:
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
+            idx: List[dict] = []
             try:
-                n = await dhan.save_instruments(store, await dhan.fetch_instruments())
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx))
             except dhan.DhanError as e:
                 await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
                 print({"status": "failed", "error": str(e)})
                 return 1
-            await record_run(store, args.cmd, {"status": "ok", "equities": n})
-            print({"status": "ok", "equities": n})
+            try:                                  # the index rows never hold up the equities: a short list keeps the stored ones
+                ni: Any = await dhan.save_indices(store, idx)
+                from .indices import DHAN_IDS_KEY
+                await store.redis.delete(DHAN_IDS_KEY)   # the live index strip re-checks its mapping against the new file
+            except dhan.DhanError as e:
+                ni = str(e)
+            await record_run(store, args.cmd, {"status": "ok", "equities": n, "indices": ni})
+            print({"status": "ok", "equities": n, "indices": ni})
             return 0
         if args.cmd == "dhan-check":
             from . import dhan
