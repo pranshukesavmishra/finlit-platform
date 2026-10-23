@@ -35,6 +35,7 @@ from . import etf as etf_api
 from . import mf as mf_api
 from . import graphviews as graphviews_api
 from . import forum as forum_api
+from . import dcf as dcf_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
@@ -424,6 +425,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(mf_api.router)
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
+    app.include_router(dcf_api.router)
     app.include_router(results_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

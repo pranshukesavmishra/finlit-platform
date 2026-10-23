@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { PRICING, SERVICES } from "../content/site";
+import { SERVICES } from "../content/site";
 import { sendEnquiry } from "../lib/siteApi";
 import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
@@ -53,7 +53,7 @@ export function EnquiryProvider({ children }: { children: ReactNode }) {
               <form onSubmit={submit} noValidate>
                 <div className="eyebrow">Enquiry</div>
                 <h3 id="enqTitle">Tell us what you need</h3>
-                <p className="muted" style={{ margin: "6px 0 16px" }}>First sessions start at {PRICING[0].price}.</p>
+                <p className="muted" style={{ margin: "6px 0 16px" }}>Tell us a little about yourself and we will reply with the next steps.</p>
                 <div className="fgrid">
                   <label>Name<input value={f.name} autoComplete="name" onChange={(e) => setF({ ...f, name: e.target.value })} required /></label>
                   <label>Email<input type="email" value={f.email} autoComplete="email" onChange={(e) => setF({ ...f, email: e.target.value })} required /></label>

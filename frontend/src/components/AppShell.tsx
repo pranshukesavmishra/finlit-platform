@@ -30,7 +30,10 @@ export function AppShell() {
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
   const groups: Group[] = [
-    { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
+    { title: "Overview", items: [
+      { to: "/dashboard", label: "Dashboard", icon: "home" },
+      { to: "/dcf", label: "DCF calculator", icon: "rupee" },
+    ] },
     { title: "Research", items: [
       { to: "/research", label: "Stock research", icon: "search" },
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },

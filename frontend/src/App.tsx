@@ -30,6 +30,7 @@ const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ defa
 const AdvancedCharts = lazy(() => import("./pages/AdvancedCharts").then((m) => ({ default: m.AdvancedCharts })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
+const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Console = lazy(() => import("./pages/Console").then((m) => ({ default: m.Console })));
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="funds/compare" element={<FundComparePage />} />
             <Route path="funds/:id" element={<FundDetailPage />} />
             <Route path="watchlist" element={<WatchlistPage />} />
+            <Route path="dcf" element={<DcfPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="forum/*" element={<ForumPage />} />
