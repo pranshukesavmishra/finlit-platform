@@ -1,0 +1,22 @@
+/* Chart drawing tools (components/DrawLayer.tsx). Theme variables only. */
+.dl { position: relative; min-width: 0; }
+.dl-svg { position: absolute; left: 0; top: 0; z-index: 3; overflow: hidden; user-select: none; -webkit-user-select: none; }
+.dl.drawing { outline: 2px dashed color-mix(in srgb, var(--gold) 55%, transparent); outline-offset: 2px; border-radius: 10px; }
+.dl-bar { position: absolute; top: 6px; right: 6px; z-index: 6; }
+.dl-toggle { position: relative; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--s1); color: var(--muted); cursor: pointer; box-shadow: var(--shadow); }
+.dl-toggle:hover, .dl-toggle.on { color: var(--text); border-color: var(--gold); } .dl-toggle.on { background: color-mix(in srgb, var(--gold) 16%, var(--s1)); }
+.dl-n { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border-radius: 9px; background: var(--gold); color: #fff; font: 700 10.5px var(--sans); }
+.dl-outer { min-width: 0; }
+.dl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; background: var(--s2); border: 1px solid var(--border-strong); border-radius: 14px; padding: 6px 8px; margin-bottom: 8px; }
+.dl-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.dl-row button { min-width: 34px; height: 34px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border-radius: 10px; border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; font: 600 12.5px var(--sans); }
+.dl-row button:hover:not(:disabled) { background: var(--s2); color: var(--text); } .dl-row button.on { background: var(--s3); color: var(--text); border-color: var(--border-strong); }
+.dl-row button:disabled { opacity: .35; cursor: not-allowed; }
+.dl-row button:focus-visible, .dl-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.dl-sw i { width: 18px; height: 18px; border-radius: 50%; display: block; border: 2px solid var(--s1); box-shadow: 0 0 0 1px var(--border-strong); } .dl-sw.on i { box-shadow: 0 0 0 2px var(--gold); }
+.dl-wd i { width: 18px; border-radius: 3px; background: var(--text); display: block; }
+.dl-sep { width: 1px; height: 22px; background: var(--border-strong); margin: 0 4px; display: inline-block; }
+.dl-done { color: var(--text) !important; background: var(--s1) !important; border-color: var(--border-strong) !important; }
+.dl-hint { margin: 0; flex: 1 1 100%; min-height: 2.8em; padding: 2px 4px 0; font-size: 12px; line-height: 1.4; color: var(--faint); }
+.dl-text { position: absolute; z-index: 7; transform: translateY(-85%); min-width: 150px; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--gold); background: var(--s1); font: 600 14px var(--sans); box-shadow: var(--shadow); }
+@media (max-width: 560px) { .dl-sep { display: none; } .dl-row button { min-width: 38px; height: 38px; } }

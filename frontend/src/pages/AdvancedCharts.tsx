@@ -1,5 +1,7 @@
 // Graph Studio > Advanced charts: the founder's ten sections of correlation charts (docs/ADVANCED-CHARTS-SPEC.md), each with a tested
 // regression line (docs/ADVANCED-CHARTS-PLAN.md). Every statistic comes from /api/advanced; this page only draws and words it.
+import { DrawLayer } from "../components/DrawLayer";
+import { viewId } from "../lib/drawings";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
@@ -349,7 +351,7 @@ function CrossView({ cat, pair, xId, yId, st, set, scale, table, lim, plan, upgr
     {r?.sample && <p className="adv-banner bi">Demo preview: sample companies with made-up figures (marked “Sample”), not real data. The statistics are computed from them with the same formulas as the live site.</p>}
     {lenderMsg && <p className="adv-banner bi">{lenderMsg}</p>}
     {r?.preset && <p className="adv-banner bi">Filtered to {r.preset.label}.</p>}
-    <div ref={ref} className="adv-body" aria-busy={q.isFetching}>
+    <div ref={ref} className="adv-body" aria-busy={q.isFetching}><DrawLayer id={"adv:" + viewId(JSON.stringify([section, body, scale, st.all]))} enabled={!!r && r.n > 0 && !table && w > 0}>
       {q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
         : q.isError ? <div className="adv-state" role="alert"><b>{errText(q.error)}</b>{q.error.status === 403 && <button className="btn primary" onClick={() => upgrade((q.error.body.plan as Plan) || nextPlan(plan), title)}>See plans</button>}</div>
         : r && w > 0 ? <>
@@ -363,7 +365,7 @@ function CrossView({ cat, pair, xId, yId, st, set, scale, table, lim, plan, upgr
           </div>}
           {ixm.some((m) => !m.drawn) && <ul className="adv-ixmiss">{ixm.filter((m) => !m.drawn).map((m) => <li key={m.code}><b>{m.label}</b>: not drawn — {m.why}</li>)}</ul>}
         </> : null}
-    </div>
+    </DrawLayer></div>
     <Companies st={st} set={set} lim={lim} plan={plan} upgrade={upgrade} status={r?.highlights ?? []} mode="cross" />
     <IndexPicker cat={cat} st={st} set={set} markers={ixm} />
     {r && <StatsPanel stats={r.stats} sentence={sentence} method={r.method} extra={<>
@@ -517,7 +519,7 @@ function HistoryView({ cat, pair, xId, yId, st, set, table, lim, plan, upgrade, 
   const total = cos.reduce((s, c) => s + c.points.length, 0);
   return <>
     {r?.sample && <p className="adv-banner bi">Demo preview: sample figures, not real data.</p>}
-    <div ref={ref} className="adv-body">
+    <div ref={ref} className="adv-body"><DrawLayer id={"adv:" + viewId(JSON.stringify([section, pair?.id ?? [xId, yId], "history", st.companies]))} enabled={!!r && total > 0 && !table && w > 0}>
       {!st.companies.length ? <div className="adv-state">Add a company below to see its own years on this chart (one point per financial year).</div>
         : q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
         : q.isError ? <div className="adv-state" role="alert"><b>{errText(q.error)}</b>{q.error.status === 403 && <button className="btn primary" onClick={() => upgrade((q.error.body.plan as Plan) || nextPlan(plan), "Company history")}>See plans</button>}</div>
@@ -526,7 +528,7 @@ function HistoryView({ cat, pair, xId, yId, st, set, table, lim, plan, upgrade, 
           : <><AdvScatter cloud={[]} series={series} fits={fits} sx="lin" sy="lin" xLabel={r.x.label} yLabel={r.y.label} fmtX={fx} fmtY={fy} tickX={(v) => tickUnit(v, ux)} tickY={(v) => tickUnit(v, uy)} all w={w}
               summary={`Scatter of ${r.y.label} against ${r.x.label} by financial year for ${cos.map((c) => `${c.name || c.s} (${c.n} years)`).join(", ")}. ${cos.map((c) => `${c.name || c.s}: ${c.stats ? c.stats.decision.text : "no statistics"}`).join(" ")}`} />
             <Legend fits={fits} /></>) : null}
-    </div>
+    </DrawLayer></div>
     <Companies st={st} set={set} lim={lim} plan={plan} upgrade={upgrade} status={r?.companies.map((c) => ({ s: c.s, name: c.name, status: c.status })) ?? []} mode="history" />
     {r && cos.map((c) => <div key={c.s} className="adv-co-stats">
       <h4><svg width="14" height="14" aria-hidden="true" style={{ color: COLORS[st.companies.indexOf(c.s) % COLORS.length] }}><path d={shapeIcon(st.companies.indexOf(c.s))} /></svg> {c.name || c.s}</h4>
@@ -565,14 +567,14 @@ function TechView({ cat, pair, st, set, table, plan, upgrade }: { cat: Catalog; 
     {kind === "beta" && ixList.length > 0 && <label className="adv-field">Market index for the market return
       <select value={bix ?? ""} onChange={(e) => set({ indices: e.target.value ? [e.target.value] : [] })}><option value="">{ixList.find((x) => x.code === "NIF50")?.label ?? "Default index"}{ixList.some((x) => x.code === "NIF50") ? " (default)" : ""}</option>{ixList.filter((x) => x.code !== "NIF50").map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>}
     {r?.sample && <p className="adv-banner bi">Demo preview: sample prices, not real data.</p>}
-    <div ref={ref} className="adv-body">
+    <div ref={ref} className="adv-body"><DrawLayer id={"adv:" + viewId(JSON.stringify([pair.id, "tech", sym, h, bix]))} enabled={!!r && r.n > 0 && !table && w > 0}>
       {!sym ? <div className="adv-state">Choose a company below: this chart follows one company over time, from its stored daily closes.</div>
         : q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
         : q.isError ? <div className="adv-state" role="alert"><b>{errText(q.error)}</b>{q.error.status === 403 && <button className="btn primary" onClick={() => upgrade((q.error.body.plan as Plan) || "gold", "Technical charts")}>See plans</button>}</div>
         : r && w > 0 ? (r.n === 0 ? <div className="adv-state">No complete window for this company.</div>
           : table ? <PointsTable head={["Signal date", r.x.label, r.y.label]} rows={r.points.map((p) => [p.d, fx(p.x), fy(p.y)])} caption={`${r.name}: ${r.x.label} and ${r.y.label}`} />
           : <><AdvScatter cloud={cloud} series={[]} fits={fits} sx="lin" sy="lin" xLabel={r.x.label} yLabel={r.y.label} fmtX={fx} fmtY={fy} tickX={(v) => tickUnit(v, ux)} tickY={(v) => tickUnit(v, uy)} all={st.all} w={w} summary={ariaSummary(r.stats, r.x.label, r.y.label, r.n, "windows")} /><Legend fits={fits} /></>) : null}
-    </div>
+    </DrawLayer></div>
     <Companies st={st} set={set} lim={1} plan={plan} upgrade={upgrade} status={r ? [{ s: r.symbol, name: r.name, status: "included" }] : []} mode="tech" single />
     {r && <StatsPanel stats={r.stats} sentence={advSentence(r.stats, { kind: "tech", who: `${kind === "beta" ? "weeks" : "non-overlapping windows"} of ${r.name}`, x: { short: r.x.label, unit: r.x.unit }, y: { short: r.y.label, unit: r.y.unit }, builtAt: null })}
       extra={<><ExcludedList items={r.excluded} /><p className="faint adv-cov">{r.grid}{r.asOf ? `. Prices up to ${r.asOf}.` : ""}</p><ul className="adv-notes">{[...new Set(r.notes)].map((t) => <li key={t}>{t}</li>)}</ul><Caveats list={r.caveats} />
