@@ -1,0 +1,29 @@
+/* 3D depth for cards: a gentle perspective tilt that follows the pointer (lib/depth.ts), a gold glow where the light falls, and a lift
+   from the page. Pure CSS transforms: no extra download, no WebGL. Only on devices with a hovering pointer and without reduced motion.
+   The home page's ruled tool grid (.plat-t) is deliberately left flat. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hh-card, .plan, .who-c, [data-tilt] {
+    --rx: 0deg; --ry: 0deg; --tx: 50%; --ty: 0%;
+    transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
+    transform-style: preserve-3d;
+    transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s;
+  }
+  :root [data-depth] { transition: transform .08s linear, box-shadow .35s; will-change: transform; }
+  :root .hh-card[data-depth], :root .plan[data-depth], :root .who-c[data-depth], :root [data-tilt][data-depth] {
+    transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(10px);
+    box-shadow: 0 26px 50px -26px rgba(0, 0, 0, .55);
+  }
+  /* the light: a soft gold glow under the pointer, drawn over the card and never blocking clicks */
+  .hh-card::after, .who-c::after, [data-tilt]::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(420px circle at var(--tx) var(--ty), color-mix(in srgb, var(--gold) 20%, transparent), transparent 55%);
+  }
+  .plan::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(420px circle at var(--tx) var(--ty), color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%);
+  }
+  .hh-card[data-depth]::after, .who-c[data-depth]::after, [data-tilt][data-depth]::after, .plan[data-depth]::after { opacity: 1; }
+  .hh-card, .who-c, [data-tilt] { position: relative; }
+  /* inner parts sit slightly in front of the card face */
+  .hh-card-score svg { transform: translateZ(18px); }
+}
