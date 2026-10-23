@@ -16,7 +16,7 @@ describe("URL state", () => {
   const full: AdvState = {
     ...DEFAULT_STATE, pair: "1.9", mode: "history", companies: ["RELIANCE", "M&M", "TCS"],
     universe: { sector: ["Banks", "Paper, Forest & Jute Products"], industry: ["Private Sector Bank"], index: ["NIFTY 50"], cap: ["Large", "Mid"], mcapMin: 500, mcapMax: 250000, lenders: "only", sameFy: true },
-    sx: "log", sy: "lin", trim: true, all: true, h: 20, variant: "forward",
+    sx: "log", sy: "lin", trim: true, all: true, h: 20, indices: ["NIFTY50", "NIFTYIT"], variant: "forward",
   };
   it("round-trips every field", () => {
     const back = decodeState(new URLSearchParams(encodeState(full).toString()));
@@ -197,5 +197,51 @@ describe("revenue and profit up, cash flow down", () => {
   it("stays silent when cash flow rose or a figure is missing", () => {
     expect(cfoWarning(fin([9, 15]))).toBeNull();
     expect(cfoWarning(null)).toBeNull();
+  });
+});
+
+// ------------------------------------------------------------------ index reference markers
+import { indexMarkers, INDEX_NOTE, MAX_INDICES, type IndexPoint } from "./advanced";
+
+describe("index markers", () => {
+  it("round-trips ?ix= and caps it at the API's maximum", () => {
+    const st = decodeState(new URLSearchParams("ix=nifty50,NIFTYIT,NIFTYIT,bad code,NIFTYBANK,NIFTY100"));
+    expect(st.indices).toEqual(["NIFTY50", "NIFTYIT", "NIFTYBANK"]);
+    expect(st.indices.length).toBe(MAX_INDICES);
+    expect(encodeState(st).get("ix")).toBe("NIFTY50,NIFTYIT,NIFTYBANK");
+    expect(crossBody({ ...DEFAULT_STATE, indices: ["NIFTY50"] }, { id: "1.9" } as never, { x: "lin", y: "lin" }).indices).toEqual(["NIFTY50"]);
+    expect("indices" in crossBody(DEFAULT_STATE, { id: "1.9" } as never, { x: "lin", y: "lin" })).toBe(false);
+  });
+  const base: IndexPoint = { code: "NIFTY50", label: "NIFTY 50", x: 22.4, y: 15.1, membersTotal: 50, membersEligible: 50, membersUsed: 47, mcapCoveragePct: 96.2,
+    method: { x: "ratio_of_sums", y: "median" }, formula: { x: "f", y: "g" }, reason: null, reasonText: null, lossMembers: 2 };
+  const f = (v: number) => String(v);
+  it("maps a point exactly as sent, with method, members and coverage", () => {
+    const [m] = indexMarkers([base], ["NIFTY50"], "lin", "lin", f, f, "P/E", "ROE");
+    expect(m).toMatchObject({ code: "NIFTY50", label: "NIFTY 50", drawn: true, x: 22.4, y: 15.1, why: null, color: "var(--k7)" });
+    expect(m.lines).toEqual(["P/E: 22.4 (aggregate of members (sum over sum, so weighted by size))", "ROE: 15.1 (median of members)",
+      "Members used 47 of 50; 96.2% of the index by market cap", "2 loss-making members included in the aggregate", INDEX_NOTE]);
+  });
+  it("keeps the API's reason when coverage is too low, and does not draw it", () => {
+    const low = { ...base, code: "NIFTYIT", label: "NIFTY IT", x: null, y: null, mcapCoveragePct: 61.5, reason: "low_coverage", reasonText: "Only 62% of the index (by market cap) has stored figures for this chart; at least 80% is needed." };
+    const ms = indexMarkers([low, base], ["NIFTY50", "NIFTYIT"], "lin", "lin", f, f, "P/E", "ROE");
+    expect(ms.map((m) => m.code)).toEqual(["NIFTY50", "NIFTYIT"]);              // in the order the user added them
+    expect(ms[1]).toMatchObject({ drawn: false, x: null, y: null, why: low.reasonText, color: "var(--k8)" });
+    expect(ms[1].lines[0]).toBe("P/E: — (aggregate of members (sum over sum, so weighted by size))");
+    expect(ms[1].lines).toContain(`Not drawn — ${low.reasonText}`);
+  });
+  it("does not place a zero or negative value on a log axis", () => {
+    const [m] = indexMarkers([{ ...base, y: -3 }], [], "lin", "log", f, f, "x", "y");
+    expect(m.drawn).toBe(false); expect(m.why).toMatch(/log scale/);
+  });
+  it("adds index rows to the CSV as reference rows, outside the statistics", () => {
+    const r = { n: 0, universeTotal: 0, excluded: [], points: [], highlights: [], stats: null, method: "m", caveats: [], tableBuiltAt: null,
+      indices: [base, { ...base, code: "NIFTYIT", label: "NIFTY IT", x: null, y: null, reason: "low_coverage" }] } as unknown as CrossResp;
+    const csv = crossCsv(r, "T");
+    expect(csv).toContain("index:NIFTY50,NIFTY 50,,,22.4,15.1,no,index_reference,no");
+    expect(csv).toContain("index:NIFTYIT,NIFTY IT,,,,,no,index_reference; low_coverage,no");
+  });
+  it("the sentence says index markers are not part of the line", () => {
+    expect(advSentence(mk("ok"), { ...ctx, indices: true })).toContain(INDEX_NOTE);
+    expect(advSentence(mk("ok"), ctx)).not.toContain(INDEX_NOTE);
   });
 });

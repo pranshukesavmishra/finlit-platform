@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import time
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import stats as S
 from .catalog import BY_ID, CAVEATS, METRICS, REASONS, Metric
@@ -149,7 +149,7 @@ def _compute(t, body: dict) -> dict:
     mode, forced = lender_mode(pair, xm, ym, universe.get("lenders", "auto"))
     cats, preset = _preset_cats(t, pair, universe)
     idx = universe_idx(t, cats, universe.get("mcapMin"), universe.get("mcapMax"))
-    need_ax = xm.col.startswith("ax_") or ym.col.startswith("ax_") or True   # missing-value reasons live with the ax figures
+    need_ax = xm.col.startswith("ax_") or ym.col.startswith("ax_")   # rows not yet rebuilt by the new compute.py lack the ax figures
     bank = t.cols["is_bank"]
     status: Dict[int, Tuple[str, str, Optional[str]]] = {}   # i -> (stage, code, axis)
     alive: List[int] = []

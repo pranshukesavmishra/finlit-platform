@@ -45,11 +45,15 @@ export type AdvState = {
   sx: Scale | null; sy: Scale | null;   // null = the metric's default scale
   trim: boolean; all: boolean;   // trim = leave out the most extreme 1% at each end (statistics); all = show every point (view only)
   h: number | null;              // technical charts: forward horizon in trading days
+  indices: string[];             // index reference markers (codes from the API's index list), at most MAX_INDICES
   variant: string | null;        // a pair variant from the catalogue, e.g. "forward" for 8.1-8.4 (null = the default, same-FY view)
 };
 
 export const EMPTY_UNIVERSE: Universe = { sector: [], industry: [], index: [], cap: [], mcapMin: null, mcapMax: null, lenders: "auto", sameFy: false };
-export const DEFAULT_STATE: AdvState = { pair: null, x: null, y: null, mode: "cross", companies: [], universe: EMPTY_UNIVERSE, sx: null, sy: null, trim: false, all: false, h: null, variant: null };
+export const DEFAULT_STATE: AdvState = { pair: null, x: null, y: null, mode: "cross", companies: [], universe: EMPTY_UNIVERSE, sx: null, sy: null, trim: false, all: false, h: null, indices: [], variant: null };
+/** Index reference markers per chart (the API's MAX_INDICES). */
+export const MAX_INDICES = 3;
+const IXCODE = /^[A-Z0-9][A-Z0-9_&.-]{0,23}$/;
 
 const SYM = /^[A-Z0-9&_.-]{1,24}$/;
 const PAIR = /^(\d{1,2}\.\d{1,2}[a-z]?|custom)$/;
@@ -106,6 +110,7 @@ export function decodeState(sp: URLSearchParams, limit = 6): AdvState {
     sx: sc(sp.get("sx")), sy: sc(sp.get("sy")),
     trim: sp.get("trim") === "1", all: sp.get("all") === "1",
     h: [5, 20, 60].includes(h) ? h : null,
+    indices: [...new Set((sp.get("ix") ?? "").split(",").map((s) => s.trim().toUpperCase()).filter((s) => IXCODE.test(s)))].slice(0, MAX_INDICES),
     variant: /^[a-z][a-z0-9_-]{0,23}$/.test(sp.get("v") ?? "") ? sp.get("v") : null,
   };
 }
@@ -119,6 +124,7 @@ export function encodeState(s: AdvState): URLSearchParams {
   const u = encodeUniverse(s.universe); if (u) p.set("u", u);
   if (s.sx) p.set("sx", s.sx); if (s.sy) p.set("sy", s.sy);
   if (s.trim) p.set("trim", "1"); if (s.all) p.set("all", "1");
+  if (s.indices.length) p.set("ix", s.indices.join(","));
   if (s.h) p.set("h", String(s.h)); if (s.variant) p.set("v", s.variant);
   return p;
 }
@@ -282,6 +288,7 @@ export type CrossResp = {
   lenders: { mode: string; forced: boolean; count: number } | null; preset: { label: string; matched: Record<string, string[]> } | null;
   notes: string[]; caveats: string[]; coverage: { withReport: number; listed: number } | null; tableBuiltAt: string | null; method: string;
   sample?: boolean;
+  indices?: IndexPoint[];
 };
 export type HistCompany = { s: string; name: string; status: "ok" | "no_report" | "unknown" | "lender_excluded"; points: { fy: string; x: number; y: number }[];
   missing: { fy: string; axis: "x" | "y"; code: string; text: string }[]; n: number; stats: Stats | null };
@@ -292,13 +299,13 @@ export type TechResp = { symbol: string; name: string; kind: string; h: number |
 export type CrossBody = {
   pair?: string; x?: string; y?: string; variant?: string | null;
   universe: { sector: string[]; industry: string[]; index: string[]; cap: string[]; mcapMin: number | null; mcapMax: number | null; lenders: Lenders; sameFy: boolean };
-  scale: { x: Scale; y: Scale }; trim: boolean; highlight: string[];
+  scale: { x: Scale; y: Scale }; trim: boolean; highlight: string[]; indices?: string[];
 };
 
 /** The body of POST /cross for a page state (custom pairs send x/y; catalogue pairs send the pair id and let the server apply its rules). */
 export function crossBody(st: AdvState, pair: CatPair | null, scale: { x: Scale; y: Scale }): CrossBody {
   const u = st.universe;
-  const base = { universe: { sector: u.sector, industry: u.industry, index: u.index, cap: u.cap, mcapMin: u.mcapMin, mcapMax: u.mcapMax, lenders: u.lenders, sameFy: u.sameFy }, scale, trim: st.trim, highlight: st.companies };
+  const base = { universe: { sector: u.sector, industry: u.industry, index: u.index, cap: u.cap, mcapMin: u.mcapMin, mcapMax: u.mcapMax, lenders: u.lenders, sameFy: u.sameFy }, scale, trim: st.trim, highlight: st.companies, ...(st.indices.length ? { indices: st.indices } : {}) };
   if (pair) return { pair: pair.id, ...(st.variant ? { variant: st.variant } : {}), ...base };
   return { x: st.x ?? undefined, y: st.y ?? undefined, ...base };
 }
@@ -356,6 +363,7 @@ export type SentenceCtx = {
   x: { short: string; unit: Unit }; y: { short: string; unit: Unit };
   left?: number; total?: number;     // cross: companies left out / companies in the filters
   fy?: { fy: string; n: number }[]; builtAt?: string | null;
+  indices?: boolean;                 // index reference markers are on the chart
 };
 export const CAVEAT = "Correlation is not causation. Information only, not advice.";
 
@@ -385,6 +393,7 @@ export function advSentence(st: Stats | null, c: SentenceCtx): string {
   }
   if (c.kind === "cross" && c.left != null && c.total != null && c.left > 0) parts.push(`${c.left.toLocaleString("en-IN")} of the ${c.total.toLocaleString("en-IN")} companies in the filters are left out (reasons below).`);
   if (c.fy?.length) parts.push(`Results ${c.fy.map((f) => `${f.fy} (${f.n.toLocaleString("en-IN")})`).join(" / ")}.`);
+  if (c.indices) parts.push(INDEX_NOTE);
   if (c.builtAt) parts.push(`Prices and figures as stored at ${fmtWhen(c.builtAt)}.`);
   parts.push(CAVEAT);
   return parts.join(" ");
@@ -415,6 +424,7 @@ export function crossCsv(r: CrossResp, title: string): string {
   const hl = new Set(r.highlights.map((h) => h.s));
   const rows: (string | number | null)[][] = r.points.map((p) => [p.s, p.name, p.sector ?? "", p.fy ?? "", p.x, p.y, "yes", "", hl.has(p.s) ? "yes" : "no"]);
   r.highlights.filter((h) => h.status !== "included").forEach((h) => rows.push([h.s, h.name ?? "", "", h.fy ?? "", h.x, h.y, "no", h.reason ?? h.status, "yes"]));
+  (r.indices ?? []).forEach((ix) => rows.push([`index:${ix.code}`, ix.label, "", "", ix.x, ix.y, "no", ix.reason ? `index_reference; ${ix.reason}` : "index_reference", "no"]));
   return [...head.map(csvRow), "", csvRow(["symbol", "name", "sector", "fy", "x", "y", "included", "reason", "highlighted"]), ...rows.map(csvRow)].join("\n");
 }
 
@@ -437,8 +447,8 @@ export const useHistory = (symbols: string[], pair: string | null, x: string, y:
   const qs = new URLSearchParams({ symbols: symbols.join(",") }); if (pair) qs.set("pair", pair); else { qs.set("x", x); qs.set("y", y); }
   return useQuery<HistResp, ApiError>({ queryKey: ["adv-history", qs.toString()], queryFn: () => advGet<HistResp>(`/api/advanced/history?${qs}`), enabled, staleTime: 60_000, retry });
 };
-export const useTech = (symbol: string | null, kind: string, h: number | null, enabled: boolean) => {
-  const qs = new URLSearchParams({ symbol: symbol ?? "", kind }); if (h) qs.set("h", String(h));
+export const useTech = (symbol: string | null, kind: string, h: number | null, enabled: boolean, index: string | null = null) => {
+  const qs = new URLSearchParams({ symbol: symbol ?? "", kind }); if (h) qs.set("h", String(h)); if (index) qs.set("index", index);
   return useQuery<TechResp, ApiError>({ queryKey: ["adv-tech", qs.toString()], queryFn: () => advGet<TechResp>(`/api/advanced/tech?${qs}`), enabled, staleTime: 300_000, retry });
 };
 export type Facets = { sectors: { name: string; n: number }[]; industries: { name: string; sector: string | null; n: number }[]; indices: { code: string; label: string; n: number }[]; caps: { name: string; n: number }[] };
@@ -478,4 +488,48 @@ export function cfoWarning(fin: Financials | null | undefined): { period: string
   if (!(r1! > r0! && n1! > n0! && c1! < c0!)) return null;
   const cr = (x: number) => `${x < 0 ? MINUS : ""}₹${nf(x, Math.abs(x) >= 1000 ? 0 : 2)} Cr`;
   return { period: P, against: Q, text: `Revenue ${cr(r0!)} to ${cr(r1!)}, net profit ${cr(n0!)} to ${cr(n1!)}, operating cash flow ${cr(c0!)} to ${cr(c1!)}, as reported. Look at receivables, inventory, working capital and accruals before drawing conclusions.` };
+}
+
+// ------------------------------------------------------------------ index reference markers (POST /cross "indices", backend advanced/index.py)
+
+export type IndexMethod = "ratio_of_sums" | "median";
+export type IndexPoint = {
+  code: string; label: string; x: number | null; y: number | null;
+  membersTotal: number; membersEligible: number; membersUsed: number; mcapCoveragePct: number | null;
+  fyBreakdown?: { fy: string; n: number }[]; lossMembers?: number | null; lenders?: string;
+  method: { x: IndexMethod; y: IndexMethod } | null; formula: { x: string; y: string } | null;
+  reason: string | null; reasonText: string | null; inStats?: boolean;
+};
+export const INDEX_NOTE = "Index markers are reference points, not part of the fitted line.";
+export const INDEX_COLORS = ["var(--k7)", "var(--k8)", "var(--k6)"];
+const METHOD_WORDS: Record<IndexMethod, string> = { ratio_of_sums: "aggregate of members (sum over sum, so weighted by size)", median: "median of members" };
+export const methodWords = (m: IndexMethod | null | undefined) => (m ? METHOD_WORDS[m] ?? m : "—");
+
+export type IndexMarker = {
+  code: string; label: string; color: string;
+  /** Drawn only when both values exist (and are > 0 on a log axis); otherwise `why` says why it is not on the chart. */
+  drawn: boolean; x: number | null; y: number | null; why: string | null;
+  /** Lines for the tooltip, table and screen readers. */
+  lines: string[];
+};
+/** Turn the API's index points into chart markers. Pure: values are shown exactly as sent, never recomputed. */
+export function indexMarkers(points: IndexPoint[] | undefined, order: string[], sx: Scale, sy: Scale,
+  fx: (v: number) => string, fy: (v: number) => string, xl: string, yl: string): IndexMarker[] {
+  const list = points ?? [];
+  const pos = (c: string) => { const i = order.indexOf(c); return i < 0 ? 99 : i; };
+  return [...list].sort((a, b) => pos(a.code) - pos(b.code)).map((p, i) => {
+    const okX = p.x != null && Number.isFinite(p.x) && (sx !== "log" || p.x > 0), okY = p.y != null && Number.isFinite(p.y) && (sy !== "log" || p.y > 0);
+    const drawn = okX && okY && !p.reason;
+    const why = drawn ? null : p.reasonText ?? (p.reason ? p.reason : !okX || !okY ? (sx === "log" || sy === "log" ? "Zero or negative: cannot be placed on a log scale." : "No value for this index.") : null);
+    const cov = p.mcapCoveragePct != null ? `${p.mcapCoveragePct.toLocaleString("en-IN", { maximumFractionDigits: 1 })}% of the index by market cap` : "coverage —";
+    const lines = [
+      `${xl}: ${p.x != null ? fx(p.x) : "—"} (${methodWords(p.method?.x)})`,
+      `${yl}: ${p.y != null ? fy(p.y) : "—"} (${methodWords(p.method?.y)})`,
+      `Members used ${p.membersUsed} of ${p.membersTotal}${p.membersEligible !== p.membersTotal ? ` (${p.membersEligible} eligible)` : ""}; ${cov}`,
+    ];
+    if (p.lossMembers) lines.push(`${p.lossMembers} loss-making member${p.lossMembers === 1 ? "" : "s"} included in the aggregate`);
+    if (why) lines.push(`Not drawn — ${why}`);
+    lines.push(INDEX_NOTE);
+    return { code: p.code, label: p.label || p.code, color: INDEX_COLORS[i % INDEX_COLORS.length], drawn, x: drawn ? p.x : null, y: drawn ? p.y : null, why, lines };
+  });
 }

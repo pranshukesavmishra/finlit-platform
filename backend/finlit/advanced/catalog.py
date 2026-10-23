@@ -558,6 +558,9 @@ REASONS: Dict[str, str] = {
     "fy_mismatch": "Results year differs from the majority (\"Same FY only\" is on).",
     "trimmed": "Left out by \"leave out the most extreme 1%\".",
     "no_value": "No value (not reported by the provider, or not meaningful).",
+    "not_lender": "Not a bank or lender (this chart shows lenders only).",
+    "no_volume": "Trading volume missing for some days in the window.",
+    "no_list": "The member list of this index is not stored.",
 }
 
 CAVEATS = [

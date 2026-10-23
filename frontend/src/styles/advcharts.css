@@ -102,6 +102,13 @@ line.adv-gl { stroke: var(--border); stroke-width: 1; }
 .adv-hl.hollow { fill: var(--s1); stroke: currentColor; stroke-width: 2; }
 .adv-join { fill: none; stroke: currentColor; stroke-opacity: .5; stroke-width: 1.2; }
 .adv-lab { fill: var(--text); font-size: 12px; font-weight: 600; paint-order: stroke; stroke: var(--s1); stroke-width: 3px; stroke-linejoin: round; }
+.adv-ix { fill: currentColor; stroke: var(--s1); stroke-width: 2; }
+.adv-ixl { font-weight: 700; }
+.adv-legend .k-ix { width: 10px; height: 10px; background: var(--k7); transform: rotate(45deg); }
+.adv-chip.ix { border-color: color-mix(in srgb, var(--k7) 45%, var(--border)); }
+.adv-ixpick { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: end; margin-top: 10px; }
+.adv-ixpick select { min-width: 0; max-width: 100%; }
+.adv-ixmiss { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
 .adv-cur { fill: none; stroke: var(--gold); stroke-width: 2; }
 .adv-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--s3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; font-size: 12px; min-width: 150px; max-width: min(260px, 70vw); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .adv-tip b { display: block; } .adv-tip small { display: block; color: var(--muted); }

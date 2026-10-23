@@ -45,3 +45,4 @@
 .gx-yr select { background: var(--s2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; font: inherit; }
 
 .gx-list li.off { opacity: .55; cursor: default; } .gx-list li.off label { cursor: not-allowed; }
+.pagehead .gx-adv { margin-top: 10px; font-size: 15px; } .gx-adv a { color: var(--gold); font-weight: 600; }

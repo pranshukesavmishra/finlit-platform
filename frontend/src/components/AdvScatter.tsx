@@ -9,6 +9,8 @@ export type ScSeries = { key: string; name: string; color: string; shape: Shape;
 /** A fitted line as the API sends it: two end points in DATA units (straight on the axes drawn, log axes included), with an optional
  *  95% band for the fitted line, also in data units. */
 export type ScFit = { key: string; kind: "ols" | "ts"; line: { x0: number; y0: number; x1: number; y1: number }; color?: string; band?: { x: number; lo: number; hi: number }[] | null };
+/** An index reference marker: a large labelled diamond, never part of the statistics. `lines` feed the tooltip and the screen-reader readout. */
+export type ScMark = { key: string; label: string; color: string; x: number; y: number; lines: string[] };
 type View = { x: [number, number]; y: [number, number] };
 
 type Props = {
@@ -18,19 +20,20 @@ type Props = {
   all: boolean; w: number; summary: string; labels?: boolean;
   /** The API's default window (1st-99th percentile, data units); without it the window is worked out from the points. */
   view?: View | null;
+  marks?: ScMark[];
 };
 
 const M = { l: 58, r: 14, t: 14, b: 46 };
 
-export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, fmtY, tickX, tickY, all, w, summary, labels = true, view }: Props) {
+export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, fmtY, tickX, tickY, all, w, summary, labels = true, view, marks = [] }: Props) {
   const H = w < 600 ? 300 : 400;
   const tid = useId();
   const tx = (v: number) => (sx === "log" ? Math.log10(v) : v), ty = (v: number) => (sy === "log" ? Math.log10(v) : v);
   const okPt = (p: ScPt) => Number.isFinite(p.x) && Number.isFinite(p.y) && (sx !== "log" || p.x > 0) && (sy !== "log" || p.y > 0);
 
   const geo = useMemo(() => {
-    const c = cloud.filter(okPt), hs = series.map((s) => ({ ...s, pts: s.pts.filter(okPt) }));
-    const keepX = hs.flatMap((s) => s.pts.map((p) => tx(p.x))), keepY = hs.flatMap((s) => s.pts.map((p) => ty(p.y)));
+    const c = cloud.filter(okPt), hs = series.map((s) => ({ ...s, pts: s.pts.filter(okPt) })), mk = marks.filter((m) => okPt({ key: m.key, label: m.label, x: m.x, y: m.y }));
+    const keepX = [...hs.flatMap((s) => s.pts.map((p) => tx(p.x))), ...mk.map((m) => tx(m.x))], keepY = [...hs.flatMap((s) => s.pts.map((p) => ty(p.y))), ...mk.map((m) => ty(m.y))];
     const allX = [...c.map((p) => tx(p.x)), ...keepX], allY = [...c.map((p) => ty(p.y)), ...keepY];
     const fromApi = (r: [number, number] | undefined, t: (v: number) => number, keep: number[]): [number, number] | null => {
       if (!r || all) return null;
@@ -38,20 +41,21 @@ export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, 
       return viewRange([a, b], true, keep);
     };
     const dx = fromApi(view?.x, tx, keepX) ?? viewRange(allX, all, keepX), dy = fromApi(view?.y, ty, keepY) ?? viewRange(allY, all, keepY);
-    return { c, hs, dx, dy };
-  }, [cloud, series, sx, sy, all, view]); // eslint-disable-line react-hooks/exhaustive-deps
-  const { c, hs, dx, dy } = geo;
+    return { c, hs, mk, dx, dy };
+  }, [cloud, series, sx, sy, all, view, marks]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { c, hs, mk, dx, dy } = geo;
   const pw = Math.max(40, w - M.l - M.r), ph = H - M.t - M.b;
   const X = (v: number) => M.l + ((v - dx[0]) / (dx[1] - dx[0] || 1)) * pw;
   const Y = (v: number) => M.t + (1 - (v - dy[0]) / (dy[1] - dy[0] || 1)) * ph;
 
   // Keyboard / pointer order: highlighted companies first, then every other point from left to right.
   const order = useMemo(() => {
-    const out: { p: ScPt; s: ScSeries | null; px: number; py: number }[] = [];
+    const out: { p: ScPt; s: ScSeries | null; px: number; py: number; m?: ScMark }[] = [];
     hs.forEach((s) => s.pts.forEach((p) => out.push({ p, s, px: tx(p.x), py: ty(p.y) })));
+    mk.forEach((m) => out.push({ p: { key: m.key, label: m.label, x: m.x, y: m.y }, s: null, px: tx(m.x), py: ty(m.y), m }));
     [...c].sort((a, b) => a.x - b.x).forEach((p) => out.push({ p, s: null, px: tx(p.x), py: ty(p.y) }));
     return out;
-  }, [c, hs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [c, hs, mk]); // eslint-disable-line react-hooks/exhaustive-deps
   const [hi, setHi] = useState<number | null>(null);
   const cur = hi != null ? order[Math.min(hi, order.length - 1)] : null;
 
@@ -85,7 +89,7 @@ export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, 
   }).filter((g) => [g.x1, g.x2, g.y1, g.y2].every(Number.isFinite));
   const clip = `adv-clip-${tid.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const curE = cur ? edgeOf(cur.px, cur.py, dx, dy) : null;
-  const readout = cur ? `${cur.p.label}${cur.s && cur.s.name !== cur.p.label ? ` (${cur.s.name})` : ""}: ${xLabel} ${fmtX(cur.p.x)}, ${yLabel} ${fmtY(cur.p.y)}${cur.p.note ? `. ${cur.p.note}` : ""}${curE && !curE.inside ? ". Outside the window, drawn on its edge" : ""}` : "";
+  const readout = cur?.m ? `Index ${cur.m.label}: ${cur.m.lines.join(". ")}` : cur ? `${cur.p.label}${cur.s && cur.s.name !== cur.p.label ? ` (${cur.s.name})` : ""}: ${xLabel} ${fmtX(cur.p.x)}, ${yLabel} ${fmtY(cur.p.y)}${cur.p.note ? `. ${cur.p.note}` : ""}${curE && !curE.inside ? ". Outside the window, drawn on its edge" : ""}` : "";
 
   return (
     <div className="adv-plot" onPointerLeave={() => setHi(null)}>
@@ -107,12 +111,18 @@ export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, 
             {s.join && pts.length > 1 && <path className="adv-join" d={pts.map(({ e }, i) => `${i ? "L" : "M"}${X(e.x).toFixed(1)},${Y(e.y).toFixed(1)}`).join("")} />}
             {pts.map(({ p, e }) => <path key={p.key} className={"adv-hl" + (s.hollow ? " hollow" : "")} d={shapePath(s.shape, X(e.x), Y(e.y), 6)} />)}
           </g>)}
+          {mk.map((m) => { const e = edgeOf(tx(m.x), ty(m.y), dx, dy); return <path key={m.key} className="adv-ix" style={{ color: m.color }} d={shapePath("diamond", X(e.x), Y(e.y), 9)} />; })}
         </g>
+        {mk.map((m) => { const e = edgeOf(tx(m.x), ty(m.y), dx, dy); const lx = X(e.x), ly = Y(e.y), left = lx > M.l + pw * 0.7;
+          return <text key={"ixl" + m.key} className="adv-lab adv-ixl" x={left ? lx - 13 : lx + 13} y={ly + 4} textAnchor={left ? "end" : "start"}>{m.label}</text>; })}
         {labels && w >= 600 && seriesEls.map(({ s, pts }) => { const last = pts[pts.length - 1]; if (!last) return null; const lx = X(last.e.x), ly = Y(last.e.y); const left = lx > M.l + pw * 0.75;
           return <text key={"t" + s.key} className="adv-lab" x={left ? lx - 10 : lx + 10} y={ly - 8} textAnchor={left ? "end" : "start"}>{s.name}</text>; })}
         {cur && curE && <circle className="adv-cur" cx={X(curE.x)} cy={Y(curE.y)} r={9} />}
       </svg>
-      {cur && curE && <div className="adv-tip" style={{ top: Math.max(4, Y(curE.y) - 64), ...(X(curE.x) > w / 2 ? { right: w - X(curE.x) + 12 } : { left: X(curE.x) + 12 }) }}>
+      {cur?.m && curE && <div className="adv-tip" style={{ top: Math.max(4, Y(curE.y) - 90), ...(X(curE.x) > w / 2 ? { right: w - X(curE.x) + 14 } : { left: X(curE.x) + 14 }) }}>
+        <b>{cur.m.label}</b><small>Index reference marker</small>{cur.m.lines.map((l) => <em key={l}>{l}</em>)}
+      </div>}
+      {cur && !cur.m && curE && <div className="adv-tip" style={{ top: Math.max(4, Y(curE.y) - 64), ...(X(curE.x) > w / 2 ? { right: w - X(curE.x) + 12 } : { left: X(curE.x) + 12 }) }}>
         <b>{cur.p.label}</b>{cur.s && cur.s.name !== cur.p.label && <small>{cur.s.name}</small>}
         <div><span>{xLabel}</span><strong>{fmtX(cur.p.x)}</strong></div><div><span>{yLabel}</span><strong>{fmtY(cur.p.y)}</strong></div>
         {cur.p.note && <em>{cur.p.note}</em>}{!curE.inside && <em>Outside the window: drawn on its edge.</em>}

@@ -1,6 +1,6 @@
 // Graph Studio > Advanced charts: the founder's ten sections of correlation charts (docs/ADVANCED-CHARTS-SPEC.md), each with a tested
 // regression line (docs/ADVANCED-CHARTS-PLAN.md). Every statistic comes from /api/advanced; this page only draws and words it.
-import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { apiGet, useSearchIndex, ApiError, type Financials } from "../lib/api";
@@ -14,10 +14,10 @@ import { rankCompanies } from "../lib/companySearch";
 import { plFlags } from "../lib/plFlags";
 import { ChartHelp } from "../components/ChartHelp";
 import { useWidth } from "../components/GraphCharts";
-import { AdvScatter, type ScFit, type ScPt, type ScSeries } from "../components/AdvScatter";
+import { AdvScatter, type ScMark, type ScFit, type ScPt, type ScSeries } from "../components/AdvScatter";
 import {
   advSentence, ariaSummary, CAVEAT, cfoWarning, crossBody, crossCsv, decodeState, encodeState, fmtR, fmtUnit, fmtWhen, rounded, SECTIONS, sectionBySlug, SHAPES, sig3, tickUnit,
-  useAdvCatalog, useCross, useFacets, useHistory, useTech, exportCsv,
+  useAdvCatalog, useCross, indexMarkers, INDEX_COLORS, INDEX_NOTE, MAX_INDICES, type IndexMarker, useFacets, useHistory, useTech, exportCsv,
   type AdvState, type AxisInfo, type Catalog, type CatMetric, type CatPair, type CrossResp, type Excluded, type HistResp, type Mode, type Scale, type Stats, type TechResp, type Tier,
 } from "../lib/advanced";
 import type { ChartHelpEntry } from "../lib/chartHelp";
@@ -109,15 +109,19 @@ function Page({ slug, n }: { slug: string; n: number }) {
 }
 
 /** Ten section tabs: arrow keys, Home and End move between them; the address is the source of truth. Under 600 px a labelled select. */
+// The layout remounts the page on every path change (its error boundary is keyed by the path), so a tab reached with the keyboard is
+// focused again after the new section mounts.
+let refocusTab = false;
 function SectionTabs({ current }: { current: string }) {
   const nav = useNavigate();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  useEffect(() => { if (refocusTab) { refocusTab = false; refs.current[SECTIONS.findIndex((s) => s.slug === current)]?.focus(); } }, [current]);
   const go = (slug: string) => nav(`/graphs/advanced/${slug}`);
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
     const k = e.key, last = SECTIONS.length - 1;
     const j = k === "ArrowRight" ? (i + 1) % SECTIONS.length : k === "ArrowLeft" ? (i - 1 + SECTIONS.length) % SECTIONS.length : k === "Home" ? 0 : k === "End" ? last : -1;
     if (j < 0) return;
-    e.preventDefault(); refs.current[j]?.focus(); go(SECTIONS[j].slug);
+    e.preventDefault(); refs.current[j]?.focus(); refocusTab = true; go(SECTIONS[j].slug);
   };
   return <>
     <div className="adv-tabs" role="tablist" aria-label="Chart sections">
@@ -333,8 +337,10 @@ function CrossView({ cat, pair, xId, yId, st, set, scale, table, lim, plan, upgr
   const series: ScSeries[] = r ? st.companies.map((s, i): ScSeries | null => { const h = r.highlights.find((x) => x.s === s); if (!h || h.x == null || h.y == null || (h.status !== "included" && h.status !== "outside")) return null;
     return { key: s, name: h.name || s, color: COLORS[i % COLORS.length], shape: SHAPES[i % SHAPES.length], hollow: h.status === "outside", pts: [{ key: s, label: h.name || s, x: h.x, y: h.y, note: h.status === "outside" ? "Outside the filters: not part of the statistics." : h.fy ?? undefined }] }; }).filter((x): x is ScSeries => !!x) : [];
   const fits = fitsOf(r?.stats ?? null, "all");
+  const ixm = r ? indexMarkers(r.indices, st.indices, (r.x.scale ?? scale.x) as Scale, (r.y.scale ?? scale.y) as Scale, (v) => fmtUnit(v, ux, mx?.digits), (v) => fmtUnit(v, uy, my?.digits), r.x.label, r.y.label) : [];
+  const marks: ScMark[] = ixm.filter((m) => m.drawn).map((m) => ({ key: "ix:" + m.code, label: m.label, color: m.color, x: m.x!, y: m.y!, lines: m.lines }));
   const left = r ? r.excluded.reduce((s, e) => s + e.count, 0) : 0;
-  const sentence = r ? advSentence(r.stats, { kind: "cross", who: "companies", x: { short: shortOf(r.x, mx), unit: ux! }, y: { short: shortOf(r.y, my), unit: uy! }, left, total: r.universeTotal, fy: r.fyBreakdown, builtAt: r.tableBuiltAt }) : "";
+  const sentence = r ? advSentence(r.stats, { kind: "cross", who: "companies", x: { short: shortOf(r.x, mx), unit: ux! }, y: { short: shortOf(r.y, my), unit: uy! }, left, total: r.universeTotal, fy: r.fyBreakdown, builtAt: r.tableBuiltAt, indices: ixm.length > 0 }) : "";
   const xs = (r?.x.scale ?? scale.x) as Scale, ys = (r?.y.scale ?? scale.y) as Scale;
   const fx = (v: number) => fmtUnit(v, ux, mx?.digits), fy = (v: number) => fmtUnit(v, uy, my?.digits);
   const lenderMsg = r?.lenders && r.lenders.count > 0 && r.lenders.mode === "excluded" ? `${r.lenders.count.toLocaleString("en-IN")} banks and lenders left out: ${r.lenders.forced ? "these ratios do not apply to lenders" : "as chosen in the filters"}.` : null;
@@ -349,15 +355,17 @@ function CrossView({ cat, pair, xId, yId, st, set, scale, table, lim, plan, upgr
         : r && w > 0 ? <>
           {r.n === 0 && <div className="adv-state">No company has both figures for this selection.</div>}
           {r.n > 0 && !table && <AdvScatter cloud={cloud} series={series} fits={fits} sx={xs} sy={ys} xLabel={r.x.label} yLabel={r.y.label} fmtX={fx} fmtY={fy} tickX={(v) => tickUnit(v, ux)} tickY={(v) => tickUnit(v, uy)}
-            all={st.all} w={w} view={r.view} summary={ariaSummary(r.stats, r.x.label, r.y.label, r.n, "companies")} />}
-          {r.n > 0 && table && <PointsTable head={["Company", "Sector", "Year", r.x.label, r.y.label]} rows={r.points.map((p) => [p.name || p.s, p.sector ?? "—", p.fy ?? "—", fx(p.x), fy(p.y)])} caption={`${title}: ${r.n} companies used in the statistics`} />}
+            all={st.all} w={w} view={r.view} marks={marks} summary={ariaSummary(r.stats, r.x.label, r.y.label, r.n, "companies") + (marks.length ? ` Index markers: ${marks.map((m) => m.label).join(", ")}; reference points, not part of the fitted line.` : "")} />}
+          {r.n > 0 && table && <PointsTable head={["Company", "Sector", "Year", r.x.label, r.y.label]} rows={[...ixm.map((m) => [`${m.label} (index reference, not in the statistics)`, "—", "—", r.indices?.find((i) => i.code === m.code)?.x != null ? fx(r.indices!.find((i) => i.code === m.code)!.x!) : `— ${m.why ?? ""}`.trim(), r.indices?.find((i) => i.code === m.code)?.y != null ? fy(r.indices!.find((i) => i.code === m.code)!.y!) : `— ${m.why ?? ""}`.trim()]), ...r.points.map((p) => [p.name || p.s, p.sector ?? "—", p.fy ?? "—", fx(p.x), fy(p.y)])]} caption={`${title}: ${r.n} companies used in the statistics${ixm.length ? "; index rows are reference points" : ""}`} />}
           {r.n > 0 && !table && <div className="adv-viewbar">
             <label className="adv-check"><input type="checkbox" checked={st.all} onChange={(e) => set({ all: e.target.checked })} /> Show every point (the window otherwise covers the 1st to 99th percentile)</label>
-            <Legend fits={fits} />
+            <Legend fits={fits} indices={marks.length > 0} />
           </div>}
+          {ixm.some((m) => !m.drawn) && <ul className="adv-ixmiss">{ixm.filter((m) => !m.drawn).map((m) => <li key={m.code}><b>{m.label}</b>: not drawn — {m.why}</li>)}</ul>}
         </> : null}
     </div>
     <Companies st={st} set={set} lim={lim} plan={plan} upgrade={upgrade} status={r?.highlights ?? []} mode="cross" />
+    <IndexPicker cat={cat} st={st} set={set} markers={ixm} />
     {r && <StatsPanel stats={r.stats} sentence={sentence} method={r.method} extra={<>
       <ExcludedList items={r.excluded} total={r.universeTotal} />
       {r.coverage && <p className="adv-cov faint">{r.coverage.withReport.toLocaleString("en-IN")} companies with a stored report out of {r.coverage.listed.toLocaleString("en-IN")} listed, mostly the largest.{r.tableBuiltAt ? ` Table built ${fmtWhen(r.tableBuiltAt)}.` : ""}</p>}
@@ -378,12 +386,13 @@ function fitsOf(stats: Stats | null, key: string, color?: string): ScFit[] {
   return out;
 }
 
-function Legend({ fits }: { fits: ScFit[] }) {
+function Legend({ fits, indices }: { fits: ScFit[]; indices?: boolean }) {
   return <ul className="adv-legend" aria-label="Key">
     <li><i className="k-pt" />One company</li>
     {fits.some((f) => f.kind === "ols") && <li><i className="k-ols" />Straight (OLS) line, with its 95% band for the line</li>}
     {fits.some((f) => f.kind === "ts") && <li><i className="k-ts" />Robust (Theil-Sen) line</li>}
     <li><i className="k-edge" />Outside the window</li>
+    {indices && <li><i className="k-ix" />{INDEX_NOTE}</li>}
   </ul>;
 }
 
@@ -477,6 +486,22 @@ function ExportBtn({ plan, upgrade, body, demo, name }: { plan: Plan; upgrade: (
     <span className="faint">Every point used, with the statistics and method, so the figures can be checked in a spreadsheet.</span>{err && <span role="alert" className="adv-err">{err}</span>}</div>;
 }
 
+/** "Add index": reference markers from the index list the API exposes (catalog "indices", else the screener's index facet). */
+function IndexPicker({ cat, st, set, markers }: { cat: Catalog; st: AdvState; set: (p: Partial<AdvState>) => void; markers: IndexMarker[] }) {
+  const f = useFacets();
+  const list: { code: string; label: string }[] = (cat as Catalog & { indices?: { code: string; label: string }[] }).indices ?? f.data?.indices ?? [];
+  const label = (c: string) => list.find((x) => x.code === c)?.label ?? markers.find((m) => m.code === c)?.label ?? c;
+  const left = list.filter((x) => !st.indices.includes(x.code));
+  return <div className="adv-ixpick">
+    {st.indices.length > 0 && <div className="adv-chips">{st.indices.map((c, i) => <span key={c} className="adv-chip ix"><svg width="14" height="14" aria-hidden="true" style={{ color: INDEX_COLORS[i % INDEX_COLORS.length] }}><path d="M7,1L13,7L7,13L1,7Z" /></svg>
+      <span>{label(c)} <small>index</small></span><button aria-label={`Remove index ${label(c)}`} onClick={() => set({ indices: st.indices.filter((x) => x !== c) })}>×</button></span>)}</div>}
+    <label className="adv-field">Add an index <span className="faint">({st.indices.length}/{MAX_INDICES}, reference points only)</span>
+      <select value="" disabled={st.indices.length >= MAX_INDICES || !left.length} onChange={(e) => e.target.value && set({ indices: [...st.indices, e.target.value].slice(0, MAX_INDICES) })}>
+        <option value="">{!list.length ? (f.isPending ? "Loading indices…" : "No index list available") : st.indices.length >= MAX_INDICES ? `Up to ${MAX_INDICES} indices` : "Choose an index…"}</option>
+        {left.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>
+  </div>;
+}
+
 // ------------------------------------------------------------------ company history
 
 function HistoryView({ cat, pair, xId, yId, st, set, table, lim, plan, upgrade, section }: { cat: Catalog; pair: CatPair | null; xId: string; yId: string; st: AdvState; set: (p: Partial<AdvState>) => void; table: boolean; lim: number; plan: Plan; upgrade: (t: Plan, why?: string) => void; section: number }) {
@@ -526,7 +551,9 @@ function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: 
   const kind = pair.tech?.kind ?? "rsi", hs = pair.tech?.h ?? [];
   const h = hs.length ? (st.h && hs.includes(st.h) ? st.h : hs.includes(20) ? 20 : hs[0]) : null;
   const sym = st.companies[0] ?? null;
-  const q = useTech(sym, kind, h, !!sym);
+  const ixList = useFacets().data?.indices ?? [];
+  const bix = kind === "beta" ? st.indices[0] ?? null : null;
+  const q = useTech(sym, kind, h, !!sym, bix);
   const { ref, w } = useWidth();
   const r: TechResp | undefined = q.data;
   const ux = r?.x.unit, uy = r?.y.unit;
@@ -535,6 +562,8 @@ function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: 
   const fits = fitsOf(r?.stats ?? null, "t");
   return <>
     {hs.length > 0 && <div className="adv-seg" role="group" aria-label="Forward horizon">{hs.map((x) => <button key={x} aria-pressed={h === x} onClick={() => set({ h: x })}>Next {x} trading days</button>)}</div>}
+    {kind === "beta" && ixList.length > 0 && <label className="adv-field">Market index for the market return
+      <select value={bix ?? ""} onChange={(e) => set({ indices: e.target.value ? [e.target.value] : [] })}><option value="">Server default (NIFTY 50)</option>{ixList.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>}
     {r?.sample && <p className="adv-banner info">Demo preview: sample prices, not real data.</p>}
     <div ref={ref} className="adv-body">
       {!sym ? <div className="adv-state">Choose a company below: this chart follows one company over time, from its stored daily closes.</div>
@@ -547,7 +576,7 @@ function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: 
     <Companies st={st} set={set} lim={1} plan={plan} upgrade={upgrade} status={r ? [{ s: r.symbol, name: r.name, status: "included" }] : []} mode="tech" single />
     {r && <StatsPanel stats={r.stats} sentence={advSentence(r.stats, { kind: "tech", who: `${kind === "beta" ? "weeks" : "non-overlapping windows"} of ${r.name}`, x: { short: r.x.label, unit: r.x.unit }, y: { short: r.y.label, unit: r.y.unit }, builtAt: null })}
       extra={<><ExcludedList items={r.excluded} /><p className="faint adv-cov">{r.grid}{r.asOf ? `. Prices up to ${r.asOf}.` : ""}</p><ul className="adv-notes">{[...new Set(r.notes)].map((t) => <li key={t}>{t}</li>)}</ul><Caveats list={r.caveats} />
-        <ExportBtn plan={plan} upgrade={upgrade} body={{ mode: "tech", symbol: r.symbol, kind, ...(h ? { h } : {}) }} demo={() => ["date,x,y,included,reason", ...r.points.map((p) => `${p.d},${p.x},${p.y},yes,`)].join("\n")} name={`${pair.id}-${r.symbol}`} /></>} />}
+        <ExportBtn plan={plan} upgrade={upgrade} body={{ mode: "tech", symbol: r.symbol, kind, ...(h ? { h } : {}), ...(bix ? { index: bix } : {}) }} demo={() => ["date,x,y,included,reason", ...r.points.map((p) => `${p.d},${p.x},${p.y},yes,`)].join("\n")} name={`${pair.id}-${r.symbol}`} /></>} />}
     {!r && <Caveats list={[]} />}
   </>;
 }

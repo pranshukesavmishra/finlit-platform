@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { apiGet, apiSend, useSearchIndex, ApiError } from "../lib/api";
 import { useIndices } from "../lib/indices";
 import { useAuth, type Plan } from "../lib/auth";
@@ -247,7 +247,8 @@ export function GraphStudio() {
   return (
     <>
       <section className="pagehead"><div className="wrap"><div className="eyebrow">Graph Studio</div><h1>Graphs, side by side.</h1>
-        <p>Put several graphs next to each other to see patterns and correlation. Choose companies and measures, pick a chart type for each, and keep what you build.</p></div></section>
+        <p>Put several graphs next to each other to see patterns and correlation. Choose companies and measures, pick a chart type for each, and keep what you build.</p>
+        <p className="gx-adv"><Link to="/graphs/advanced">Advanced charts</Link>: correlations across listed companies, with tested regression lines.</p></div></section>
       <div className="wrap gx">
         <aside className="gx-panel" aria-label="Choose companies and measures">
           <button className="btn ghost gx-toggle" aria-expanded={panel} onClick={() => setPanel(!panel)}>{panel ? "Hide" : "Choose"} companies and measures</button>

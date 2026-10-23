@@ -5,7 +5,7 @@
 // Precomputed: every cross-section chart with the default company selection, on each scale the chart offers. Filters, your own pairs,
 // company history, the forward variants and the technical charts need the live service and say so.
 import { ApiError } from "./api";
-import type { Catalog, CrossBody, CrossResp, Facets, Highlight } from "./advanced";
+import type { Catalog, CrossBody, CrossResp, Facets, Highlight, IndexPoint } from "./advanced";
 
 const BASE = `${import.meta.env.BASE_URL}demo/advanced/`;
 const cache = new Map<string, Promise<unknown>>();
@@ -46,7 +46,10 @@ export async function demoAdvanced<T>(method: string, path: string, body?: unkno
       return { s, name: s, x: null, y: null, fy: null, status: "unknown", reason: "unknown", reasonText: "This demo preview charts sample companies only (search “Sample”)." };
     });
     const { excl: _drop, ...rest } = r; // eslint-disable-line @typescript-eslint/no-unused-vars
-    return { ...rest, highlights } as T;
+    const fac = await demoFacets();
+    const indices: IndexPoint[] = (b.indices ?? []).map((code) => ({ code, label: fac.indices.find((i) => i.code === code)?.label ?? code, x: null, y: null, membersTotal: 0, membersEligible: 0, membersUsed: 0,
+      mcapCoveragePct: null, method: null, formula: null, reason: "demo", reasonText: "Index markers are computed from real member companies on the live site; this demo preview has sample companies only.", inStats: false }));
+    return { ...rest, highlights, ...(indices.length ? { indices } : {}) } as T;
   }
   throw new ApiError(404, { status: "demo", detail: "Not available in the demo." });
 }
