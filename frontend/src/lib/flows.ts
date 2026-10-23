@@ -28,6 +28,8 @@ export type Flows = {
   derivatives: Positioning;
   fpi: FpiDetail;                  // NSDL's all-asset view of FPI flows for the latest reporting day (equity, debt, hybrid)
   correlation: { index: string; label: string; fiiVsIndex: number | null; diiVsIndex: number | null; days: number } | null;
+  /** Optional (backwards compatible): the index's daily close over the same sessions, for the Flow vs Nifty chart. The page degrades to the correlation figures alone when it is absent. */
+  index?: { d: string; close: number }[] | null;
   coverage: { from: string | null; to: string | null; sessions: number; diiSessions: number };
   sources: SourceNote[];
   disclaimer: string;
