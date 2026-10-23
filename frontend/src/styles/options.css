@@ -1,0 +1,94 @@
+/* Option chain (pages/OptionChain.tsx). Built only from the site's tokens, so light and dark themes follow. */
+.oc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding-bottom: 40px; }
+.oc .gate, .oc .gate > div { min-width: 0; }
+.oc .gate .card + .card, .oc .gate section + section, .oc .gate p + section { margin-top: 18px; }
+.oc h2 { font: 600 19px/1.3 var(--sans); margin: 0 0 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.oc h2 .faint { font-size: 13px; font-weight: 400; }
+.oc .card { padding: 20px 22px; }
+
+.oc-controls { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 14px 18px; align-items: end; }
+.oc-lab { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.oc-pick { position: relative; min-width: 0; }
+.oc-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 0 12px; background: var(--s1); }
+.oc-search input { border: 0; background: none; padding: 10px 0; width: 100%; min-width: 0; font: inherit; color: var(--text); outline: none; }
+.oc-search:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.oc-hits { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 6px 0 0; padding: 4px; list-style: none; border: 1px solid var(--border); border-radius: 10px; background: var(--s2); box-shadow: var(--shadow); max-height: 300px; overflow: auto; }
+.oc-hits button { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 9px 10px; border: 0; background: none; color: var(--text); text-align: left; border-radius: 8px; cursor: pointer; font: inherit; }
+.oc-hits button:hover, .oc-hits button:focus-visible { background: var(--s3); }
+.oc-none { padding: 9px 10px; }
+.oc-ctl select { width: 100%; font: inherit; padding: 10px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s1); color: var(--text); }
+.oc-ctl select:focus-visible, .oc-seg button:focus-visible, .oc-scroll:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.oc-seg { display: flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+.oc-seg button { flex: 1; padding: 10px 12px; border: 0; background: var(--s1); color: var(--text); font: inherit; cursor: pointer; }
+.oc-seg button.on { background: var(--gold-soft); color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--gold); }
+.oc-seg button:disabled { color: var(--faint); cursor: not-allowed; }
+
+.oc-warn { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--gold-soft); font-size: 13.5px; }
+.oc-warn svg { flex: none; margin-top: 2px; }
+
+.oc-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.oc-stat { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--s1); display: grid; gap: 3px; min-width: 0; align-content: start; }
+.oc-stat span { font-size: 12.5px; color: var(--muted); }
+.oc-stat b { font: 600 21px/1.2 var(--mono); overflow-wrap: anywhere; }
+.oc-stat small { font-size: 12px; color: var(--faint); }
+
+.oc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-bottom: 6px; }
+.oc-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.oc-legend i.ce { background: var(--k1); } .oc-legend i.pe { background: var(--k2); }
+.oc-legend i.spot { width: 14px; height: 0; border-top: 2px dashed var(--text); border-radius: 0; vertical-align: 3px; }
+.oc-svgwrap { overflow-x: auto; max-width: 100%; }
+.oc-svgwrap svg { display: block; }
+.oc-chart .grid { stroke: var(--border); stroke-width: 1; }
+.oc-chart .base { stroke: var(--border-strong); stroke-width: 1; }
+.oc-chart .axis { fill: var(--muted); font: 11px var(--sans); }
+.oc-chart .bar.ce { fill: var(--k1); } .oc-chart .bar.pe { fill: var(--k2); }
+.oc-chart .atmband { fill: var(--gold-soft); }
+.oc-chart .spotline { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.oc-tip { min-height: 24px; margin-top: 8px; font-size: 13.5px; }
+.oc-tbl { margin-top: 8px; font-size: 13.5px; }
+.oc-tbl summary { cursor: pointer; color: var(--muted); }
+.oc-tbl table { margin-top: 8px; border-collapse: collapse; }
+.oc-tbl th, .oc-tbl td { padding: 3px 14px 3px 0; text-align: right; font-weight: 400; }
+.oc-tbl th:first-child { text-align: left; }
+
+.oc-key { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.oc-key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.oc-key i.atmk { background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); } .oc-key i.itmk { background: var(--s3); }
+.oc-key b { font-family: var(--mono); color: var(--text); }
+
+/* the table scrolls inside its own box; the page never does */
+.oc-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--border); border-radius: 12px; }
+.oc-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 980px; font-size: 13px; }
+.oc-table th, .oc-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.oc-table thead th { position: sticky; top: 0; background: var(--s2); font-weight: 600; color: var(--muted); text-align: right; z-index: 1; }
+.oc-table tr.grp th { text-align: center; color: var(--text); }
+.oc-table td.num { text-align: right; font-family: var(--mono); }
+.oc-table td.itm { background: var(--s2); }
+.oc-table tbody tr:hover td, .oc-table tbody tr:hover th { background: var(--row-hover); }
+.oc-table tr.atm td, .oc-table tr.atm th { background: var(--gold-soft); font-weight: 600; box-shadow: inset 0 1px 0 var(--gold), inset 0 -1px 0 var(--gold); }
+.oc-table th.oc-k { text-align: center; font-family: var(--mono); background: var(--s1); position: sticky; left: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+.oc-table th.oc-k small { display: block; font: 600 10px var(--sans); color: var(--gold); letter-spacing: .04em; }
+.oc-sub { display: block; font-size: 11px; color: var(--muted); }
+.oc-bu { display: inline-block; margin-top: 2px; padding: 0 5px; border-radius: 5px; font: 600 10px/16px var(--mono); border: 1px solid var(--border-strong); color: var(--text); }
+.oc-bu::before { margin-right: 3px; }
+.oc-bu.long_buildup::before, .oc-bu.short_covering::before { content: "▲"; }
+.oc-bu.short_buildup::before, .oc-bu.long_unwinding::before { content: "▼"; }
+.oc-foot { margin: 10px 0 0; font-size: 12.5px; }
+
+.oc-defs dl { margin: 0; display: grid; grid-template-columns: minmax(130px, 200px) minmax(0, 1fr); gap: 10px 18px; font-size: 14px; }
+.oc-defs dt { font-weight: 600; } .oc-defs dd { margin: 0; color: var(--muted); }
+.oc-risk { border-color: var(--gold); background: var(--gold-soft); }
+.oc-risk h2 { display: flex; align-items: center; gap: 8px; }
+.oc-risk p { margin: 0 0 10px; font-size: 14.5px; } .oc-risk p:last-child { margin: 0; }
+
+@media (max-width: 860px) {
+  .oc-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oc-pick { grid-column: 1 / -1; }
+  .oc-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .oc .card { padding: 16px; }
+  .oc-stat b { font-size: 18px; }
+  .oc-defs dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .oc-defs dd { margin-bottom: 10px; }
+}
+@media print { .oc-controls { display: none; } }

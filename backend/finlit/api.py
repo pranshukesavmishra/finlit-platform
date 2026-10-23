@@ -42,6 +42,7 @@ from . import search as search_api
 from . import macro as macro_api
 from . import markets as markets_api
 from . import flows as flows_api
+from . import options as options_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
@@ -185,6 +186,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             await app.state.index_client.aclose()
         if getattr(app.state, "index_dhan", None):
             await app.state.index_dhan.aclose()
+        if getattr(app.state, "options_dhan", None):
+            await app.state.options_dhan.aclose()
         if warm:
             warm.cancel()
         if store is None:
@@ -470,6 +473,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
     app.include_router(dcf_api.router)
+    app.include_router(options_api.router)
     app.include_router(results_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

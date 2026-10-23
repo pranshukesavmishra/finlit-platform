@@ -47,6 +47,7 @@ export function AppShell() {
     { title: "Gold dashboards", items: [
       { to: "/premium/fundamentals", label: "Stock fundamentals", icon: "table" },
       { to: "/premium/markets", label: "Market events & index", icon: "activity" },
+      { to: "/premium/options", label: "Option chain", icon: "layers" },
       { to: "/premium/report", label: "Premium report", icon: "notes" },
     ] },
     { title: "My lists", items: [

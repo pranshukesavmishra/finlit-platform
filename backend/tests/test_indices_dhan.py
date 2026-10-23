@@ -315,7 +315,7 @@ async def test_index_rows_are_stored_apart_and_confirm_the_mapping(store, monkey
         await conn.execute("DELETE FROM dhan_indices")
     idx = index_rows()
 
-    async def fetch(client=None, indices=None):
+    async def fetch(client=None, indices=None, on_row=None):
         indices.extend(idx)
         return [{"exch": "NSE", "security_id": f"9{i:05d}", "symbol": f"S{i}", "isin": None, "name": None, "series": "EQ", "asm_gsm": "N", "asm_gsm_cat": None,
                  "mtf_leverage": None, "fno": False, "lot_size": None, "inst_type": "ES", "exch_name": None} for i in range(5199)] + [

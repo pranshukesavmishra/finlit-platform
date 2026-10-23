@@ -609,9 +609,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 if age is not None and last == "ok" and age < args.max_age_hours:
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
+            from .options import LotCollector, save_option_lots
+            lots = LotCollector()
             idx: List[dict] = []
             try:
-                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx))
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx, on_row=lots.add))
             except dhan.DhanError as e:
                 await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
                 print({"status": "failed", "error": str(e)})
@@ -622,8 +624,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 await store.redis.delete(DHAN_IDS_KEY)   # the live index strip re-checks its mapping against the new file
             except dhan.DhanError as e:
                 ni = str(e)
-            await record_run(store, args.cmd, {"status": "ok", "equities": n, "indices": ni})
-            print({"status": "ok", "equities": n, "indices": ni})
+            result = {"status": "ok", "equities": n, "indices": ni}
+            try:
+                result["option_series"] = await save_option_lots(store, lots.rows())   # lot size per underlying and expiry (option chain)
+            except dhan.DhanError as e:
+                result["option_series_error"] = str(e)
+            await record_run(store, args.cmd, result)
+            print(result)
             return 0
         if args.cmd == "dhan-check":
             from . import dhan
