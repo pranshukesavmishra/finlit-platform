@@ -3557,7 +3557,6 @@ app.include_router(api_router)
 DEFAULT_ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "*.vercel.app",
     "financial-portfolio-m4eb.vercel.app",
     "finlitventures.com",
     "www.finlitventures.com",
