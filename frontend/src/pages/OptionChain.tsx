@@ -45,44 +45,103 @@ function Picker({ list, value, onPick }: { list: Pick[]; value: Pick | null; onP
 const Stat = ({ k, v, sub, wide }: { k: string; v: string; sub?: string; wide?: boolean }) =>
   <div className={"oc-stat" + (wide ? " wide" : "")}><span>{k}</span><b>{v}</b>{sub && <small>{sub}</small>}</div>;
 
-function Cells({ s, unit, lot, itm }: { s: Side | null; unit: Unit; lot: number | null; itm: boolean }) {
-  const cls = itm ? " itm" : "";
+type Scale = { oi: number; vol: number; chg: number; ivMin: number; ivMax: number; maxCeOi: number | null; maxPeOi: number | null };
+const frac = (v: number | null | undefined, max: number) => (v == null || !(max > 0) ? 0 : Math.min(1, Math.abs(v) / max));
+
+/** What the bars and tints are measured against: the biggest figure on screen, so a bar is its share of the busiest strike. */
+function scaleOf(rows: Row[]): Scale {
+  const oi: number[] = [], vol: number[] = [], chg: number[] = [], iv: number[] = [];
+  let maxCeOi: number | null = null, maxPeOi: number | null = null, bc = -1, bp = -1;
+  for (const r of rows) for (const s of [r.ce, r.pe]) if (s) {
+    if (s.oi != null) oi.push(s.oi); if (s.volume != null) vol.push(s.volume); if (s.oiChange != null) chg.push(Math.abs(s.oiChange)); if (s.iv != null && s.iv > 0) iv.push(s.iv);
+  }
+  for (const r of rows) {
+    if (r.ce?.oi != null && r.ce.oi > bc) { bc = r.ce.oi; maxCeOi = r.strike; }
+    if (r.pe?.oi != null && r.pe.oi > bp) { bp = r.pe.oi; maxPeOi = r.strike; }
+  }
+  return { oi: Math.max(0, ...oi), vol: Math.max(0, ...vol), chg: Math.max(0, ...chg), ivMin: iv.length ? Math.min(...iv) : 0, ivMax: iv.length ? Math.max(...iv) : 0, maxCeOi, maxPeOi };
+}
+
+const sign = (v: number | null | undefined) => (v == null || v === 0 ? "" : v > 0 ? " pos" : " neg");
+const bar = (f: number) => ({ "--w": f.toFixed(3) } as React.CSSProperties);
+
+function Cells({ s, side, unit, lot, itm, sc }: { s: Side | null; side: "ce" | "pe"; unit: Unit; lot: number | null; itm: boolean; sc: Scale }) {
+  const cls = (itm ? " itm" : "") + " " + side;
   if (!s) return <>{[0, 1, 2, 3, 4, 5].map((i) => <td key={i} className={"num faint" + cls}>—</td>)}</>;
   const b = s.buildup ? BUILDUP[s.buildup] : null;
+  const ivF = s.iv != null && s.iv > 0 && sc.ivMax > sc.ivMin ? (s.iv - sc.ivMin) / (sc.ivMax - sc.ivMin) : 0;
   return (
     <>
-      <td className={"num" + cls}>{count(s.oi, unit, lot)}</td>
-      <td className={"num" + cls}>{count(s.oiChange, unit, lot, true)}{s.oiChangePct != null && <small className="oc-sub">{signedNum(s.oiChangePct, 1)}%</small>}
+      <td className={"num hb" + cls} style={bar(frac(s.oi, sc.oi))}><span>{count(s.oi, unit, lot)}</span></td>
+      <td className={"num hb chg" + cls + (s.oiChange != null && s.oiChange < 0 ? " down" : " upc")} style={bar(frac(s.oiChange, sc.chg))}>
+        <span className={sign(s.oiChange).trim()}>{count(s.oiChange, unit, lot, true)}</span>{s.oiChangePct != null && <small className={"oc-sub" + sign(s.oiChangePct)}>{signedNum(s.oiChangePct, 1)}%</small>}
         {b && <small className={"oc-bu " + s.buildup} title={`${b.label}: ${b.how}`}>{b.tag}</small>}</td>
-      <td className={"num" + cls}>{count(s.volume, unit, lot)}</td>
-      <td className={"num" + cls}>{s.iv == null ? "—" : nf(s.iv, 2)}</td>
-      <td className={"num" + cls}>{price(s.ltp)}</td>
-      <td className={"num" + cls}>{signedNum(s.change)}{s.changePct != null && <small className="oc-sub">{signedNum(s.changePct, 1)}%</small>}</td>
+      <td className={"num hb vol" + cls} style={bar(frac(s.volume, sc.vol))}><span>{count(s.volume, unit, lot)}</span></td>
+      <td className={"num iv" + cls} style={{ "--h": ivF.toFixed(3) } as React.CSSProperties}>{s.iv == null ? "—" : nf(s.iv, 2)}</td>
+      <td className={"num ltp" + cls}>{price(s.ltp)}</td>
+      <td className={"num" + cls + sign(s.change)}>{signedNum(s.change)}{s.changePct != null && <small className="oc-sub">{signedNum(s.changePct, 1)}%</small>}</td>
     </>
   );
 }
 
 const HEAD = ["OI", "OI chg", "Volume", "IV %", "LTP", "Chg"];
 
-function ChainTable({ rows, unit, lot }: { rows: Row[]; unit: Unit; lot: number | null }) {
+function ChainTable({ rows, unit, lot, sel, onSel, maxPain, spot }: { rows: Row[]; unit: Unit; lot: number | null; sel: number | null; onSel: (k: number | null) => void; maxPain: number | null; spot: number | null }) {
+  const sc = useMemo(() => scaleOf(rows), [rows]);
   return (
     <div className="oc-scroll" tabIndex={0} role="region" aria-label="Option chain table, scrolls sideways">
       <table className="oc-table">
-        <caption className="sr-only">Calls on the left, strike in the centre, puts on the right</caption>
+        <caption className="sr-only">Calls on the left, strike in the centre, puts on the right. Choose a strike to see its details below.</caption>
         <thead>
-          <tr className="grp"><th colSpan={6} scope="colgroup">Calls</th><th scope="col" rowSpan={2}>Strike</th><th colSpan={6} scope="colgroup">Puts</th></tr>
+          <tr className="grp"><th colSpan={6} scope="colgroup" className="ce">Calls</th><th scope="col" rowSpan={2}>Strike</th><th colSpan={6} scope="colgroup" className="pe">Puts</th></tr>
           <tr>{HEAD.map((h) => <th key={"c" + h} scope="col">{h}</th>)}{HEAD.map((h) => <th key={"p" + h} scope="col">{h}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.strike} className={r.atm ? "atm" : undefined} aria-label={r.atm ? "At-the-money strike" : undefined}>
-              <Cells s={r.ce} unit={unit} lot={lot} itm={r.ceItm} />
-              <th scope="row" className="oc-k">{strikeText(r.strike)}{r.atm && <small>ATM</small>}</th>
-              <Cells s={r.pe} unit={unit} lot={lot} itm={r.peItm} />
-            </tr>))}
+          {rows.map((r) => {
+            const co = r.ce?.oi ?? 0, po = r.pe?.oi ?? 0, tot = co + po, putShare = tot > 0 ? po / tot : 0.5;
+            return (
+              <tr key={r.strike} className={(r.atm ? "atm " : "") + (sel === r.strike ? "sel" : "")} aria-label={r.atm ? "At-the-money strike" : undefined}>
+                <Cells s={r.ce} side="ce" unit={unit} lot={lot} itm={r.ceItm} sc={sc} />
+                <th scope="row" className="oc-k">
+                  <button type="button" onClick={() => onSel(sel === r.strike ? null : r.strike)} aria-pressed={sel === r.strike} aria-label={`Strike ${strikeText(r.strike)}: show details`}>{strikeText(r.strike)}</button>
+                  {r.atm && <small>ATM{spot != null ? ` · ${nf(spot, 2)}` : ""}</small>}
+                  {sc.maxCeOi === r.strike && <small className="wall ce" title="The strike with the most call open interest">Most call OI</small>}
+                  {sc.maxPeOi === r.strike && <small className="wall pe" title="The strike with the most put open interest">Most put OI</small>}
+                  {maxPain === r.strike && <small className="wall mp" title="Max pain: lowest total payout to option buyers">Max pain</small>}
+                  {tot > 0 && <i className="split" style={{ "--p": (putShare * 100).toFixed(1) + "%" } as React.CSSProperties} title={`Put share of open interest here: ${(putShare * 100).toFixed(0)}%`} />}
+                </th>
+                <Cells s={r.pe} side="pe" unit={unit} lot={lot} itm={r.peItm} sc={sc} />
+              </tr>);
+          })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** One strike opened up: both contracts side by side, with the price, positions, volatility, greeks and the best bid and ask. */
+function StrikeDetail({ row, unit, lot, onClose }: { row: Row; unit: Unit; lot: number | null; onClose: () => void }) {
+  const g = (v: number | null | undefined, d = 4) => (v == null ? "—" : nf(v, d));
+  const col = (name: string, side: "ce" | "pe", s: Side | null) => (
+    <div className={"oc-dcol " + side}>
+      <h3>{name}{s?.buildup && <span className={"oc-bu " + s.buildup}>{BUILDUP[s.buildup].label}</span>}</h3>
+      {!s ? <p className="faint">No contract at this strike.</p> : (
+        <dl>
+          <dt>Price (LTP)</dt><dd className="big">{price(s.ltp)} <small className={sign(s.change).trim()}>{signedNum(s.change)} ({s.changePct == null ? "—" : signedNum(s.changePct, 1) + "%"})</small></dd>
+          <dt>Open interest</dt><dd>{count(s.oi, unit, lot)} <small className={sign(s.oiChange).trim()}>{count(s.oiChange, unit, lot, true)}</small></dd>
+          <dt>Volume</dt><dd>{count(s.volume, unit, lot)}</dd>
+          <dt>Implied volatility</dt><dd>{s.iv == null ? "—" : nf(s.iv, 2) + "%"}</dd>
+          <dt>Best bid / ask</dt><dd>{price(s.bid)} × {count(s.bidQty, "units", null)} / {price(s.ask)} × {count(s.askQty, "units", null)}</dd>
+          <dt>Average price</dt><dd>{price(s.avgPrice)}</dd>
+          <dt>Delta · Gamma</dt><dd>{g(s.delta)} · {g(s.gamma, 5)}</dd>
+          <dt>Theta · Vega</dt><dd>{g(s.theta)} · {g(s.vega)}</dd>
+        </dl>)}
+    </div>);
+  return (
+    <section className="oc-detail" aria-label={`Details for strike ${strikeText(row.strike)}`}>
+      <header><h3>Strike {strikeText(row.strike)}{row.atm && <span className="oc-tag">ATM</span>}</h3><button type="button" className="oc-x" onClick={onClose} aria-label="Close details">✕</button></header>
+      <div className="oc-dgrid">{col("Call", "ce", row.ce)}{col("Put", "pe", row.pe)}</div>
+    </section>
   );
 }
 
@@ -179,13 +238,14 @@ export function OptionChainPage() {
   const [expiry, setExpiry] = useState<string>("");
   const [unit, setUnit] = useState<Unit>("units");
   const [span, setSpan] = useState(15);
+  const [sel, setSel] = useState<number | null>(null);
 
   const list = useQuery<Underlyings, ApiError>({ queryKey: ["oc-underlyings"], queryFn: () => apiGet("/api/options/underlyings"), enabled: on, staleTime: 3_600_000, retry: false });
   const picks = useMemo<Pick[]>(() => list.data ? [...list.data.indices.map((i) => ({ key: i.key, name: i.name, kind: "index" as const })),
     ...list.data.stocks.map((s) => ({ key: s.key, name: s.name, kind: "stock" as const }))] : [u], [list.data]);   // eslint-disable-line react-hooks/exhaustive-deps
   const exp = useQuery<Expiries, ApiError>({ queryKey: ["oc-expiries", u.key], queryFn: () => apiGet(`/api/options/expiries?u=${encodeURIComponent(u.key)}`),
     enabled: on && list.isSuccess, staleTime: 300_000, retry: (n, e) => e.status === 503 && n < 3, retryDelay: (_, e) => (e.body.retryAfter || 3) * 1000 });
-  useEffect(() => { setExpiry(""); }, [u.key]);
+  useEffect(() => { setExpiry(""); setSel(null); }, [u.key]);
   useEffect(() => { if (exp.data && !exp.data.expiries.includes(expiry)) setExpiry(exp.data.expiries[0] ?? ""); }, [exp.data, expiry]);
   const chain = useQuery<Chain, ApiError>({
     queryKey: ["oc-chain", u.key, expiry], queryFn: () => apiGet(`/api/options/chain?u=${encodeURIComponent(u.key)}&expiry=${expiry}`),
@@ -245,9 +305,10 @@ export function OptionChainPage() {
 
             <section className="card oc-tablecard" aria-labelledby="oc-t-h">
               <h2 id="oc-t-h">Chain <span className="faint">{c.underlying.key} · {new Date(c.expiry + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span></h2>
-              <div className="oc-key" aria-label="Key"><span><i className="atmk" />ATM row</span><span><i className="itmk" />In the money</span>
+              <div className="oc-key" aria-label="Key"><span><i className="atmk" />ATM row</span><span><i className="itmk" />In the money</span><span><i className="barc" />Bar = share of the busiest strike</span><span><i className="splitk" />Strike line: puts (right) vs calls (left) share of OI</span>
                 {Object.values(BUILDUP).map((b) => <span key={b.tag}><b>{b.tag}</b> {b.label.toLowerCase()}</span>)}</div>
-              <ChainTable rows={rows} unit={unit} lot={lot} />
+              <ChainTable rows={rows} unit={unit} lot={lot} sel={sel} onSel={setSel} maxPain={c.summary.maxPain?.strike ?? null} spot={c.spot} />
+              {sel != null && rows.find((r) => r.strike === sel) && <StrikeDetail row={rows.find((r) => r.strike === sel)!} unit={unit} lot={lot} onClose={() => setSel(null)} />}
               <p className="faint oc-foot">{!c.marketOpen && c.nextOpen ? "The market is closed; this is the last session’s data and stays until the next session. " : `Refreshed about every ${c.refreshSeconds} seconds while the market is open. `}
                 Prices in ₹. IV in % as Dhan reports it. Source: Dhan.</p>
             </section>

@@ -92,3 +92,50 @@
   .oc-defs dl { grid-template-columns: minmax(0, 1fr); gap: 2px; } .oc-defs dd { margin-bottom: 10px; }
 }
 @media print { .oc-controls { display: none; } }
+
+
+.oc { --oc-ce: var(--k1); --oc-pe: var(--k2); }
+/* ---- the chain as a heat table: bars show each figure's share of the busiest strike, tints show where volatility is high or low ---- */
+.oc-table td.hb { position: relative; }
+.oc-table td.hb > span { position: relative; z-index: 1; }
+.oc-table td.hb::before { content: ""; position: absolute; top: 5px; bottom: 5px; width: calc(var(--w, 0) * 100%); border-radius: 4px; opacity: .85; pointer-events: none; }
+.oc-table td.ce.hb::before { right: 0; border-radius: 4px 0 0 4px; } .oc-table td.pe.hb::before { left: 0; border-radius: 0 4px 4px 0; }
+.oc-table td.pe.hb:not(.chg):not(.vol)::before { background: linear-gradient(90deg, color-mix(in srgb, var(--oc-pe) 42%, transparent), color-mix(in srgb, var(--oc-pe) 8%, transparent)); }
+.oc-table td.ce.hb:not(.chg):not(.vol)::before { background: linear-gradient(90deg, color-mix(in srgb, var(--oc-ce) 8%, transparent), color-mix(in srgb, var(--oc-ce) 42%, transparent)); }
+.oc-table td.chg.upc::before { background: color-mix(in srgb, var(--gain) 30%, transparent); } .oc-table td.chg.down::before { background: color-mix(in srgb, var(--loss) 30%, transparent); }
+.oc-table td.vol::before { background: color-mix(in srgb, var(--gold) 26%, transparent); }
+.oc-table td.iv { background: color-mix(in srgb, var(--gold) calc(var(--h, 0) * 34%), transparent); }
+.oc-table td.ltp { font-weight: 700; }
+.oc-table td.itm { background-color: var(--s2); }
+.oc-table td.pos, .oc-table td .pos, .oc-sub.pos { color: var(--gain); } .oc-table td.neg, .oc-table td .neg, .oc-sub.neg { color: var(--loss); }
+.oc-table thead th.ce { color: var(--oc-ce); box-shadow: inset 0 -2px 0 var(--oc-ce); } .oc-table thead th.pe { color: var(--oc-pe); box-shadow: inset 0 -2px 0 var(--oc-pe); }
+.oc-table .oc-bu.long_buildup, .oc-table .oc-bu.short_covering { color: var(--gain); background: var(--gain-soft); border-color: transparent; }
+.oc-table .oc-bu.short_buildup, .oc-table .oc-bu.long_unwinding { color: var(--loss); background: var(--loss-soft); border-color: transparent; }
+.oc-table tbody tr { transition: background-color .12s; }
+.oc-table tbody tr:hover td { filter: brightness(1.06); }
+.oc-table tr.sel td, .oc-table tr.sel th { box-shadow: inset 0 1px 0 var(--focus), inset 0 -1px 0 var(--focus); }
+.oc-table th.oc-k { position: sticky; padding: 6px 12px 10px; width: 150px; min-width: 130px; white-space: normal; }
+.oc-table th.oc-k button { font: 700 14px var(--mono); background: none; border: 0; color: var(--text); cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.oc-table th.oc-k button:hover { background: var(--s3); } .oc-table th.oc-k button[aria-pressed="true"] { background: var(--gold); color: var(--on-gold); }
+.oc-table th.oc-k button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.oc-table th.oc-k small.wall { display: inline-block; margin: 2px 2px 0; padding: 0 5px; border-radius: 5px; font: 600 9.5px/15px var(--sans); letter-spacing: .02em; }
+.oc-table th.oc-k small.wall.ce { color: var(--oc-ce); background: color-mix(in srgb, var(--oc-ce) 14%, transparent); } .oc-table th.oc-k small.wall.pe { color: var(--oc-pe); background: color-mix(in srgb, var(--oc-pe) 14%, transparent); }
+.oc-table th.oc-k small.wall.mp { color: var(--on-gold); background: var(--gold); }
+.oc-table th.oc-k i.split { position: absolute; left: 10px; right: 10px; bottom: 3px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--oc-ce) calc(100% - var(--p)), var(--oc-pe) calc(100% - var(--p))); opacity: .8; }
+.oc-key i.barc { background: linear-gradient(90deg, color-mix(in srgb, var(--oc-ce) 8%, transparent), color-mix(in srgb, var(--oc-ce) 42%, transparent)); } .oc-key i.splitk { background: linear-gradient(90deg, var(--oc-ce) 50%, var(--oc-pe) 50%); height: 4px; vertical-align: 2px; }
+
+.oc-detail { margin-top: 14px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--s1); padding: 16px 18px; animation: oc-in .18s ease-out; }
+@keyframes oc-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .oc-detail { animation: none; } }
+.oc-detail header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.oc-detail h3 { margin: 0; font: 700 17px var(--sans); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.oc-tag { font: 700 11px var(--sans); padding: 1px 8px; border-radius: 999px; background: var(--gold); color: var(--on-gold); }
+.oc-x { border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; }
+.oc-dgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.oc-dcol { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--border); }
+.oc-dcol.ce { background: linear-gradient(180deg, color-mix(in srgb, var(--oc-ce) 14%, transparent), transparent 70%); } .oc-dcol.pe { background: linear-gradient(180deg, color-mix(in srgb, var(--oc-pe) 14%, transparent), transparent 70%); }
+.oc-dcol h3 { font-size: 15px; margin-bottom: 8px; }
+.oc-dcol dl { margin: 0; display: grid; grid-template-columns: minmax(110px, auto) minmax(0, 1fr); gap: 6px 12px; font-size: 13.5px; }
+.oc-dcol dt { color: var(--muted); } .oc-dcol dd { margin: 0; font-family: var(--mono); text-align: right; } .oc-dcol dd.big { font-size: 17px; font-weight: 700; }
+.oc-dcol dd small { font-size: 12px; margin-left: 6px; } .oc-dcol .pos { color: var(--gain); } .oc-dcol .neg { color: var(--loss); }
+@media (max-width: 700px) { .oc-dgrid { grid-template-columns: minmax(0, 1fr); } }

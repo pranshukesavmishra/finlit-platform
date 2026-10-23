@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc, clearPlanData]);
   const signOut = useCallback(async () => {
     try { await apiSend("POST", "/api/auth/logout"); } catch { /* already signed out */ }
+    try { sessionStorage.removeItem("cms_admin_token"); } catch { /* ignore */ }   // the content-tools token must not outlive the account session
     setCsrf(null);
     qc.setQueryData<Me>(["me"], VISITOR);
     clearPlanData();

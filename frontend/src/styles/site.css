@@ -10,7 +10,7 @@
 @media (max-width: 960px) {
   .topnav { display: none; }
   .burger { display: grid; }
-  .mnav { display: grid; padding: 8px 20px 16px; border-top: 1px solid var(--border); background: var(--header); }
+  .mnav { display: grid; max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; padding: 8px 20px 16px; border-top: 1px solid var(--border); background: var(--header); }
   .mnav a { padding: 12px 4px; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); font-weight: 500; }
   .mnav a.active { color: var(--gold); }
   .mnav a.gold { color: var(--gold); border: 0; }
