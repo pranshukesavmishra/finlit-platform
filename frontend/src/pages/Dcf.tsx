@@ -270,7 +270,7 @@ function Grid({ title, note, i, rowKey, rows, rowLabel, colKey, cols, colLabel }
     <div className="dcf-sens">
       <h4>{title}</h4>
       <With3D label={`${title}, as a 3D surface of intrinsic value per share`}
-        hint={`How to read it: height is the value per share for each pair of assumptions (${colLabel.toLowerCase()} across, ${rowLabel.toLowerCase()} deep). ${i.price > 0 ? `The glass sheet is today's price, ${rs(i.price)}: where the surface rises above it the stock looks cheap on those assumptions, where it sinks below it the stock looks expensive. ` : ""}The ball is your base case. Move the pointer over the surface to read any cell; the same numbers are in the table below.`}
+        hint={`How to read it: height is the value per share for each pair of assumptions (${colLabel.toLowerCase()} across, ${rowLabel.toLowerCase()} deep). ${i.price > 0 ? `The glass sheet is today's price, ${rs(i.price)}: where the surface rises above it the stock looks cheap on those assumptions, where it sinks below it the stock looks expensive. ` : ""}The ball is your base case. Move the pointer over the surface to read any cell, and press and drag to turn it; the same numbers are in the table below.`}
         spec={{ kind: "surface", grid, rowTicks: rows.map((r) => nf(r, 2) + "%"), colTicks: cols.map((c) => nf(c, 2) + "%"), rowTitle: rowLabel, colTitle: colLabel, valueTitle: "Value per share (₹)", fmt: (v) => rs(v), level: i.price > 0 ? i.price : undefined, levelName: "Today's price", base: bi >= 0 && bj >= 0 ? [bi, bj] : undefined }}
         flat={null} />
       <div className="tw"><table><caption className="sr-only">{title}: intrinsic value per share for each {rowLabel} (rows) and {colLabel} (columns)</caption>

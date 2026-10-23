@@ -2,18 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { mountStage, type Palette, type Scene } from "./stage";
 
-type Ser = { label: string; values: (number | null)[] };
-export type Plot3DSpec =
-  | { kind: "surface"; grid: (number | null)[][]; rowTicks: string[]; colTicks: string[]; rowTitle: string; colTitle: string; valueTitle: string; fmt: (v: number) => string; level?: number; levelName?: string; base?: [number, number] }
-  | { kind: "bars"; cats: string[]; series: Ser[]; stack?: boolean; fmt: (v: number) => string; valueTitle?: string }
-  | { kind: "ribbon"; x: string[]; series: Ser[]; fmt: (v: number) => string; valueTitle?: string }
-  | { kind: "radar"; axes: string[]; series: Ser[] };
+export type Plot3DSpec = { kind: "surface"; grid: (number | null)[][]; rowTicks: string[]; colTicks: string[]; rowTitle: string; colTitle: string; valueTitle: string; fmt: (v: number) => string; level?: number; levelName?: string; base?: [number, number] };
 
 const W = 10, H = 3.6;
-const root = () => getComputedStyle(document.documentElement);
-const serCss = (i: number) => root().getPropertyValue(`--c${(i % 5) + 1}`).trim() || ["#C9A24E", "#2F7A58", "#8A6A25", "#A8392F", "#5A5444"][i % 5];
-const colorOf = (s: string, f: string) => { try { return new THREE.Color(s); } catch { return new THREE.Color(f); } };
-const serColor = (i: number) => colorOf(serCss(i), "#C9A24E");
 const nice = (lo: number, hi: number, n = 4) => Array.from({ length: n + 1 }, (_, k) => lo + ((hi - lo) * k) / n);
 
 /** One labelled 3D plot for every chart kind: value scale on the back and side walls, a label on every axis, hover to read any bar, point or cell.
@@ -21,13 +12,13 @@ const nice = (lo: number, hi: number, n = 4) => Array.from({ length: n + 1 }, (_
 export default function Plot3D({ spec, label }: { spec: Plot3DSpec; label: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [tip, setTip] = useState<string | null>(null);
-  const fmtRef = useRef<((v: number) => number | string) | null>(null);
-  fmtRef.current = "fmt" in spec ? spec.fmt : null;
+  const fmtRef = useRef(spec.fmt);
+  fmtRef.current = spec.fmt;
   const key = JSON.stringify(spec);
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     return mountStage(cv, ({ scene, camera, palette, track }): Scene => {
-      const fmt = (v: number) => String(fmtRef.current ? fmtRef.current(v) : Math.round(v * 10) / 10);
+      const fmt = (v: number) => fmtRef.current(v);
       scene.add(new THREE.AmbientLight(0xffffff, 0.75));
       const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(4, 9, 7); scene.add(sun);
       const group = new THREE.Group(); scene.add(group);
@@ -67,9 +58,8 @@ export default function Plot3D({ spec, label }: { spec: Plot3DSpec; label: strin
       };
       const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
       let hover: THREE.Object3D | null = null, shown: string | null = null, born = -1;
-      const pointOn = (p: { x: number; y: number }) => { if (Math.abs(p.x) > 1 || Math.abs(p.y) > 1) return null; v2.set(p.x, -p.y); ray.setFromCamera(v2, camera); return ray.intersectObjects(hot, false)[0] ?? null; };
+      const pointOn = (p: { x: number; y: number } | null) => { if (!p) return null; v2.set(p.x, -p.y); ray.setFromCamera(v2, camera); return ray.intersectObjects(hot, false)[0] ?? null; };
       let onHit: (h: THREE.Intersection | null) => string | null = () => null;
-      let tilt = 0.5;
 
       if (spec.kind === "surface") {
         const R = spec.grid.length, C = spec.grid[0]?.length ?? 0, D = 6.4;
@@ -105,72 +95,13 @@ export default function Plot3D({ spec, label }: { spec: Plot3DSpec; label: strin
         onHit = (h) => { if (!h) return null; const q = mesh.worldToLocal(h.point.clone()), c = Math.round((q.x / W + 0.5) * (C - 1)), r = Math.round((q.z / D + 0.5) * (R - 1)), v = spec.grid[r]?.[c];
           if (v == null) return null; const above = spec.level != null ? (v >= spec.level ? " · above today's price" : " · below today's price") : "";
           return `${spec.rowTitle} ${spec.rowTicks[r]} · ${spec.colTitle} ${spec.colTicks[c]} → ${fmt(v)}${above}`; };
-      } else if (spec.kind === "bars") {
-        const n = spec.cats.length, rows = spec.stack ? 1 : spec.series.length, zs = Math.min(1.7, 5 / Math.max(1, rows)), D = rows * zs + 0.9, step = W / n, bw = Math.min(0.85, step * 0.62), bd = Math.min(1.1, zs * 0.62);
-        const sum = (i: number, sign: number) => spec.series.reduce((a, s) => { const v = s.values[i] ?? 0; return a + (Math.sign(v) === sign ? v : 0); }, 0);
-        const hi = Math.max(1e-9, ...(spec.stack ? spec.cats.map((_, i) => sum(i, 1)) : spec.series.flatMap((s) => s.values.map((v) => v ?? 0)))) * 1.08;
-        const lo = Math.min(0, ...(spec.stack ? spec.cats.map((_, i) => sum(i, -1)) : spec.series.flatMap((s) => s.values.map((v) => v ?? 0)))) * 1.08;
-        const yOf = frame(lo, hi, D, spec.valueTitle), y0 = yOf(0); body.position.y = y0;
-        const geo = new THREE.BoxGeometry(1, 1, 1); track(geo);
-        const mats = spec.series.map((_, i) => { const m = new THREE.MeshStandardMaterial({ color: serColor(i), metalness: 0.2, roughness: 0.45 }); track(m); recolors.push(() => m.color.copy(serColor(i))); return m; });
-        spec.cats.forEach((cat, i) => {
-          const x = (i + 0.5) * step - W / 2; let up = 0, dn = 0;
-          spec.series.forEach((s, j) => { const v = s.values[i]; if (v == null) return;
-            const z = spec.stack ? 0 : (j - (rows - 1) / 2) * zs, a = spec.stack ? (v >= 0 ? up : dn) : 0, b = a + v, h = Math.max(0.02, Math.abs(yOf(b) - yOf(a)));
-            const m = new THREE.Mesh(geo, mats[j]); m.scale.set(bw, h, bd); m.position.set(x, (yOf(a) + yOf(b)) / 2 - y0, z); m.userData.tip = `${cat} · ${s.label}: ${fmt(v)}`; body.add(m); hot.push(m);
-            if (spec.stack) { if (v >= 0) up = b; else dn = b; } });
-          if (n <= 10 || i % Math.ceil(n / 9) === 0 || i === n - 1) label(cat, x, 0, D / 2 + 0.45, { size: 0.36, faint: true });
-        });
-        if (!spec.stack && rows > 1) spec.series.forEach((s, j) => label(s.label, W / 2 + 0.35, 0, (j - (rows - 1) / 2) * zs, { ax: 0, size: 0.32, bold: true }));
-        camera.position.set(0, 6.6, 13.2 + rows * 0.3); camera.lookAt(0, 1.3, 0);
-        onHit = (h) => (h ? (h.object.userData.tip as string) ?? null : null);
-      } else if (spec.kind === "ribbon") {
-        const n = spec.x.length, ix = Array.from({ length: Math.min(n, 90) }, (_, k) => Math.round((k * (n - 1)) / Math.max(1, Math.min(n, 90) - 1)));
-        const rows = spec.series.length, zs = Math.min(2, 5 / Math.max(1, rows)), D = rows * zs + 1, dz = zs * 0.66;
-        const all = spec.series.flatMap((s) => s.values).filter((v): v is number => v != null);
-        let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo || 1) * 0.12; lo = lo >= 0 && lo - pad < 0 ? 0 : lo - pad; hi += pad;
-        const yOf = frame(lo, hi, D, spec.valueTitle), y0 = yOf(lo); body.position.y = y0;
-        const mk = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 12), new THREE.MeshBasicMaterial({ color: palette.ink })); track(mk.geometry); track(mk.material as THREE.Material); mk.visible = false; group.add(mk);
-        spec.series.forEach((s, j) => {
-          const z = (j - (rows - 1) / 2) * zs; let last: number | null = null;
-          const pts = ix.map((src, k) => { const v = s.values[src] ?? last ?? lo; last = v; return new THREE.Vector2((k / Math.max(1, ix.length - 1) - 0.5) * W, yOf(v) - y0); });
-          const sh = new THREE.Shape(); sh.moveTo(pts[0].x, 0); pts.forEach((p) => sh.lineTo(p.x, p.y)); sh.lineTo(pts[pts.length - 1].x, 0); sh.closePath();
-          const g = new THREE.ExtrudeGeometry(sh, { depth: dz, bevelEnabled: false }); g.translate(0, 0, -dz / 2); track(g);
-          const m = new THREE.MeshStandardMaterial({ color: serColor(j), metalness: 0.15, roughness: 0.5, transparent: true, opacity: 0.88 }); track(m); recolors.push(() => m.color.copy(serColor(j)));
-          const mesh = new THREE.Mesh(g, m); mesh.position.z = z; mesh.userData = { j, pts, z, dz }; body.add(mesh); hot.push(mesh);
-          const lg = new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(p.x, p.y, dz / 2 + 0.01))); track(lg);
-          const lm = new THREE.LineBasicMaterial({ color: palette.ink }); track(lm); recolors.push((p) => lm.color.copy(p.ink)); const ln = new THREE.Line(lg, lm); ln.position.z = z; body.add(ln);
-          if (rows > 1) label(s.label, W / 2 + 0.35, 0, z, { ax: 0, size: 0.32, bold: true });
-        });
-        const every = Math.ceil(ix.length / 6); ix.forEach((src, k) => { if (k % every === 0 || k === ix.length - 1) label(spec.x[src], (k / Math.max(1, ix.length - 1) - 0.5) * W, 0, D / 2 + 0.45, { size: 0.36, faint: true }); });
-        camera.position.set(0, 6.4, 13.4); camera.lookAt(0, 1.3, 0);
-        onHit = (h) => { if (!h) { mk.visible = false; return null; } const o = h.object as THREE.Mesh, { j, pts, z, dz: d } = o.userData as { j: number; pts: THREE.Vector2[]; z: number; dz: number };
-          const q = o.worldToLocal(h.point.clone()), k = Math.max(0, Math.min(pts.length - 1, Math.round((q.x / W + 0.5) * (pts.length - 1)))), src = ix[k], v = spec.series[j].values[src];
-          mk.visible = true; mk.position.set(pts[k].x, pts[k].y + y0, z + d / 2 + 0.05); return v == null ? null : `${spec.x[src]} · ${spec.series[j].label}: ${fmt(v)}`; };
-      } else {
-        const n = spec.axes.length, R = 3.3, ang = (i: number) => (i / n) * Math.PI * 2 - Math.PI / 2, P = (i: number, v: number) => new THREE.Vector3(Math.cos(ang(i)) * R * v / 100, 0, Math.sin(ang(i)) * R * v / 100);
-        const pts: number[] = []; [25, 50, 75, 100].forEach((v) => { for (let i = 0; i < n; i++) { const a = P(i, v), b = P((i + 1) % n, v); pts.push(a.x, 0, a.z, b.x, 0, b.z); } });
-        for (let i = 0; i < n; i++) { const e = P(i, 100); pts.push(0, 0, 0, e.x, 0, e.z); label(spec.axes[i], e.x * 1.28, 0, e.z * 1.22, { bold: true, size: 0.36 }); }
-        lines(pts, 0.3); [50, 100].forEach((v) => label(String(v), 0.15, 0.06, -R * v / 100 - 0.12, { size: 0.28, faint: true }));
-        spec.series.forEach((s, j) => {
-          const sh = new THREE.Shape(); s.values.forEach((v, i) => { const p = P(i, v ?? 0); i ? sh.lineTo(p.x, -p.z) : sh.moveTo(p.x, -p.z); }); sh.closePath();
-          const g = new THREE.ExtrudeGeometry(sh, { depth: 0.42, bevelEnabled: false }); g.rotateX(-Math.PI / 2); track(g);
-          const m = new THREE.MeshStandardMaterial({ color: serColor(j), metalness: 0.1, roughness: 0.5, transparent: true, opacity: 0.5, depthWrite: false }); track(m); recolors.push(() => m.color.copy(serColor(j)));
-          body.add(new THREE.Mesh(g, m));
-          const lg = new THREE.BufferGeometry().setFromPoints([...s.values.map((v, i) => P(i, v ?? 0).setY(0.43)), P(0, s.values[0] ?? 0).setY(0.43)]); track(lg);
-          const lm = new THREE.LineBasicMaterial({ color: serColor(j) }); track(lm); recolors.push(() => lm.color.copy(serColor(j))); body.add(new THREE.Line(lg, lm));
-          s.values.forEach((v, i) => { if (v == null) return; const d = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshStandardMaterial({ color: serColor(j) })); track(d.geometry); track(d.material as THREE.Material);
-            d.position.copy(P(i, v)).setY(0.45); d.userData.tip = `${spec.axes[i]} · ${s.label}: ${v}`; body.add(d); hot.push(d); recolors.push(() => (d.material as THREE.MeshStandardMaterial).color.copy(serColor(j))); });
-        });
-        camera.position.set(0, 7.4, 9.6); camera.lookAt(0, 0, 0); tilt = 0.9;
-        onHit = (h) => (h ? (h.object.userData.tip as string) ?? null : null);
       }
 
       return {
-        frame(t, _dt, p) {
+        frame(t, _dt, p, hv) {
           if (born < 0) born = t; const k = Math.min(1, (t - born) / 1.1), e = 1 - Math.pow(1 - k, 3); body.scale.y = Math.max(0.001, e);
-          group.rotation.y = p.x * 0.42 * tilt + Math.sin(t * 0.3) * 0.05; group.rotation.x = p.y * 0.05; group.updateMatrixWorld(true);
-          const h = pointOn(p), next = onHit(h); hover = h?.object ?? null; void hover;
+          group.rotation.y = p.x * 0.9; group.rotation.x = p.y * 0.2; group.updateMatrixWorld(true);
+          const h = pointOn(hv), next = onHit(h); hover = h?.object ?? null; void hover;
           if (next !== shown) { shown = next; setTip(next); }
         },
         recolor(pal) { texts.forEach((t) => paint(t, pal)); recolors.forEach((f) => f(pal)); },

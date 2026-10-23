@@ -26,10 +26,9 @@ export function With3D({ flat, spec, label, hint }: { flat: ReactNode; spec: Plo
   }, [near, slot]);
   useEffect(() => () => { if (slot) live--; }, [slot]);
   if (!spec || !ok) return <>{flat}</>;
-  const on = three && slot;
-  const keys: { name: string; css: string }[] = spec.kind === "surface"
-    ? [{ name: spec.level != null ? "above today's price" : "higher", css: "var(--gain)" }, { name: spec.level != null ? "below today's price" : "lower", css: "var(--loss)" }]
-    : spec.kind === "bars" || spec.kind === "ribbon" || spec.kind === "radar" ? spec.series.map((s, i) => ({ name: s.label, css: `var(--c${(i % 5) + 1})` })) : [];
+  if (!slot) return <div ref={box}>{flat}</div>;
+  const on = three;
+  const keys = [{ name: spec.level != null ? "above today's price" : "higher", css: "var(--gain)" }, { name: spec.level != null ? "below today's price" : "lower", css: "var(--loss)" }];
   return (
     <div ref={box}>
       <div className="v3d-bar">
@@ -37,10 +36,10 @@ export function With3D({ flat, spec, label, hint }: { flat: ReactNode; spec: Plo
           <button type="button" aria-pressed={on} onClick={() => { preferFlat = false; setThree(true); }}>3D</button>
           <button type="button" aria-pressed={!on} onClick={() => { preferFlat = true; setThree(false); }}>Flat</button>
         </span>
-        {on && keys.length > 1 && keys.map((k) => <span key={k.name} className="v3d-key"><i style={{ background: k.css }} />{k.name}</span>)}
+        {on && keys.map((k) => <span key={k.name} className="v3d-key"><i style={{ background: k.css }} />{k.name}</span>)}
+        {on && <span className="v3d-key">Drag to turn it</span>}
       </div>
-      {on && <Suspense fallback={null}><Plot3D spec={spec} label={label} /><p className="v3d-hint">{hint}</p></Suspense>}
-      <div hidden={on}>{flat}</div>
+      {on ? <Suspense fallback={null}><Plot3D spec={spec} label={label} /><p className="v3d-hint">{hint}</p></Suspense> : (flat ?? <p className="v3d-hint">Flat view: the table below has every number.</p>)}
     </div>
   );
 }

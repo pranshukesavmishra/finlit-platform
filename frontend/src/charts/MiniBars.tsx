@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { labelEvery } from "../lib/chartAxis";
-import { With3D } from "./With3D";
 
 export type BarSeries = { key: string; label: string; values: (number | null)[]; color: string };
 
@@ -19,7 +18,7 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
   const bw = Math.min(15, ((W - pl - pr) / n) * 0.5), y0 = Y(0), k = series.length;
   const ticks = lo < 0 ? [lo, 0, hi] : [0, hi / 2, hi];
   const every = labelEvery(n, W - pl - pr, Math.max(...labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3").length), 1));
-  const flat = (
+  return (
     <div className="mb" onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${series.map((s) => s.label).join(", ")} by period`}>
         {ticks.map((t, i) => <g key={i}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.2 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="9.5" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(t)}</text></g>)}
@@ -49,7 +48,4 @@ export function MiniBars({ labels, series, mode = "single", fmt, height = 150, h
         </div>)}
     </div>
   );
-  return <With3D flat={flat} label={`${series.map((s) => s.label).join(", ")} by period, in 3D`}
-    hint="How to read it: each column is one period and its height is the value on the scale at the left. Move the pointer over a column to read it."
-    spec={{ kind: "bars", stack: mode === "stack", cats: labels.map((l) => l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3")), series: series.map((s) => ({ label: s.label, values: s.values })), fmt }} />;
 }

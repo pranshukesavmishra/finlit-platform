@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { css, drawIn, el, niceTicks, reduced, vgrad } from "../lib/svg";
 import { dateIN, nf } from "../lib/format";
 import { useChart } from "./useChart";
-import { With3D } from "./With3D";
 import type { PriceRange } from "../lib/api";
 
 /** Close line with 50/200-day averages (computed server-side on full history) and volume bars. */
@@ -73,11 +72,6 @@ export function PriceChart({ data, showEma50, showEma200, showVol }: { data: Pri
     };
     svgEl.onpointerleave = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); if (tip.current) tip.current.hidden = true; };
   }, [data, showEma50, showEma200, showVol]);
-  const flat = <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Price from ₹${nf(s.c[0])} to ₹${nf(s.c[s.c.length - 1])} over ${data.range}`} /><div className="tip" ref={tip} hidden /></div>;
-  const when = (t: string) => dateIN(t, data.range === "1M" ? { day: "numeric", month: "short" } : { month: "short", year: "2-digit" });
-  const extra = [...(showEma50 ? [{ label: "50-day average", values: s.ema50 }] : []), ...(showEma200 ? [{ label: "200-day average", values: s.ema200 }] : [])];
-  return <With3D flat={flat} label={`Price from ₹${nf(s.c[0])} to ₹${nf(s.c[s.c.length - 1])} over ${data.range}, in 3D`}
-    hint="How to read it: time runs left to right and the price becomes a solid ribbon, with rupees on the tall scale at the left. Move the pointer over it to read the price on any date."
-    spec={s.t.length > 1 ? { kind: "ribbon", x: s.t.map(when), series: [{ label: "Price", values: s.c }, ...extra], fmt: (v) => "₹" + Math.round(v).toLocaleString("en-IN") } : null} />;
+  return <div className="chart" ref={wrap}><svg ref={svg} role="img" aria-label={`Price from ₹${nf(s.c[0])} to ₹${nf(s.c[s.c.length - 1])} over ${data.range}`} /><div className="tip" ref={tip} hidden /></div>;
 }
 void reduced;
