@@ -348,6 +348,29 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         points = await app.state.store.score_history(symbol, statement)
         return JSONResponse({"symbol": symbol, "points": points}, headers={"Cache-Control": CACHE_PRIVATE, "Vary": "Cookie"})
 
+    @app.get("/api/stocks/{symbol}/trading")
+    async def trading(request: Request, symbol: str):
+        """Surveillance flag, F&O and lot size, and the broker's margin-trading leverage, from Dhan's daily instrument file. Read at serve time
+        (the file changes every day, the stored report does not) and kept 30 minutes in Redis, so a page view costs one indexed query at most."""
+        started = time.perf_counter()
+        symbol = symbol.strip().upper()
+        if not SYMBOL.match(symbol):
+            return JSONResponse({"status": "invalid_symbol"}, status_code=400)
+        redis, key = app.state.store.redis, f"trading:{symbol}"
+        try:
+            body = await redis.get(key)
+        except Exception:
+            body = None
+        if body is None:
+            from .dhan import instrument_rows, trading_facts
+            body = orjson.dumps({"symbol": symbol, **trading_facts((await instrument_rows(app.state.store, [symbol])).get(symbol))})
+            try:
+                await redis.set(key, body, ex=1800)
+            except Exception:
+                pass
+        etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
+        return cached(request, body, etag, "public, max-age=300, stale-while-revalidate=1800", started)
+
     @app.get("/api/stocks/{symbol}/{name}")
     async def section(request: Request, symbol: str, name: str, statement: str = Query("consolidated")):
         started = time.perf_counter()

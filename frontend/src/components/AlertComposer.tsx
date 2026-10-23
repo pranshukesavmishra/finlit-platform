@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { useSearchIndex, type SearchRow } from "../lib/api";
 import { useUniverse } from "../lib/screener";
 import { askBrowserPermission, browserPermission, useAlerts, useCurrentValue, type Channel, type Created } from "../lib/alerts";
-import { GROUPS, LIVE_NOTE, METRICS, OP_LABEL, describe, fmtValue, isEvent, type Op } from "../lib/alertCatalog";
+import { GROUPS, LIVE_NOTE, METRICS, OP_LABEL, describe, fixedTarget, fmtValue, isEvent, type Op } from "../lib/alertCatalog";
 
 /** Search any listed company by name or ticker and pick one. */
 export function StockPicker({ value, onChange, id }: { value: string; onChange: (symbol: string, name?: string) => void; id?: string }) {
@@ -96,7 +96,8 @@ export function AlertComposer({ preset, onDone, compact }: { preset?: Preset; on
     setCh([...ch, c]);
   };
 
-  const v = isEvent(metric) ? (metric === "result_soon" ? num(val) : null) : num(val);
+  const fixed = fixedTarget(metric, op);
+  const v = fixed ?? (isEvent(metric) ? (metric === "result_soon" ? num(val) : null) : num(val));
   const ready = !!symbol && !locked && (metric === "news_keyword" ? kw.trim().length >= 2 : metric === "new_filing" ? true : v != null);
   const sentence = symbol && ready ? `${symbol}: ${describe({ metric, op, value: v, keyword: kw.trim().toLowerCase() })}` : null;
 
@@ -139,7 +140,8 @@ export function AlertComposer({ preset, onDone, compact }: { preset?: Preset; on
       {metric === "news_keyword" && (
         <div className="alx-row"><label htmlFor="alx-kw">Word or phrase</label><input id="alx-kw" value={kw} maxLength={40} placeholder={m.text} onChange={(e) => setKw(e.target.value)} /></div>
       )}
-      {!isEvent(metric) || metric === "result_soon" ? (
+      {fixed != null && symbol && <p className="alx-cur">{current != null ? <>Currently <b>{fmtValue(metric, current)}</b></> : "The day's price band is not available for this stock right now, so this alert cannot fire until it is."}</p>}
+      {fixed == null && (!isEvent(metric) || metric === "result_soon") ? (
         <div className="alx-row">
           <label htmlFor="alx-val">{metric === "result_soon" ? "Days ahead" : "Target value"}{m.unit && m.unit !== "days" ? <> <span className="alx-u">({m.unit === "₹" ? "₹" : m.unit})</span></> : null}</label>
           <div className="alx-val">

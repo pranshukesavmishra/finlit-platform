@@ -12,6 +12,7 @@ import { Info } from "../components/Info";
 import { ChartHelp } from "../components/ChartHelp";
 import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
+import { TradingFacts } from "./TradingFacts";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
   ["market_cap", "Market cap", "cap", "--p-growth"], ["pe", "P/E", "tag", "--p-quality"], ["pb", "P/B", "id", "--p-quality"], ["ev_ebitda", "EV/EBITDA", "gauge", "--p-quality"],
@@ -88,7 +89,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div>
           </div>
         </div>
-
+        <TradingFacts s={s} />
 
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
           <article className="report" aria-labelledby="reportTitle">
