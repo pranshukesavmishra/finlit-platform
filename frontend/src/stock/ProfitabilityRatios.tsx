@@ -65,11 +65,11 @@ function reading(periods: string[], rows: Record<string, Series>): { head: strin
   return { head, lines };
 }
 
-const HI = "76,141,246", LO = "232,116,59";   // blue above the median, orange below it
+const HI = "37,99,235", LO = "217,84,24";   // blue above the median, orange below it
 function heat(x: number | null, med: number | null, spread: number): React.CSSProperties {
   if (x == null || med == null) return {};
   const t = Math.min(1, Math.abs(x - med) / spread), rgb = x >= med ? HI : LO;
-  return { background: `rgba(${rgb}, ${0.08 + t * 0.5})` };
+  return { background: `rgba(${rgb}, ${0.2 + t * 0.72})`, ...(t > 0.5 ? { color: "#fff" } : {}) };
 }
 
 function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string, Series>; defs: Def[] }) {

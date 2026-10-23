@@ -215,7 +215,7 @@ export function useTray() {
 }
 
 // ------------------------------------------------------------------------------------------------ data
-async function etfGet<T>(path: string): Promise<T> {
+export async function etfGet<T>(path: string): Promise<T> {
   if (DEMO) return (await import("../etf/demo")).demoGet<T>(path);
   return apiGet<T>(path);
 }

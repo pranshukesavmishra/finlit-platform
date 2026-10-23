@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
 import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
+import { visits } from "../lib/recentVisits";
 import { useDocTitle } from "../lib/title";
 import { dateIN, nf } from "../lib/format";
 import {
@@ -198,6 +199,7 @@ export function FundDetailPage() {
   const [tray, toggle] = useTray();
   const facts = useFundFacts(code), portfolio = useFundPortfolio(code);
   useDocTitle(d ? d.name : "Mutual fund", d ? `${d.name}: NAV, returns and risk from AMFI data. Information only.` : undefined);
+  useEffect(() => { if (d?.code) visits.add({ k: "mf", id: String(d.code), name: d.name.replace(/\s*[-–(]\s*(direct|regular)\b.*$/i, ""), sub: d.amc }); }, [d?.code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!code || (error && (error as { status?: number }).status === 404)) return <><div className="wrap state" role="alert"><h2>We could not find this scheme</h2><p>No mutual fund scheme has the code “{id}”.</p><Link className="btn primary" to="/funds">Search all schemes</Link></div></>;
   if (error && !d) return <Problem title="This scheme is unavailable right now" text="Please try again in a moment." retry={() => refetch()} />;

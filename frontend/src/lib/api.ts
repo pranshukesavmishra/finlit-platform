@@ -135,7 +135,7 @@ function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryO
   };
 }
 
-export const useSummary = (s: string) => useQuery<Summary, ApiError>(sectionQuery<Summary>(s, ""));
+export const useSummary = (s: string, enabled = true) => useQuery<Summary, ApiError>({ ...sectionQuery<Summary>(s, ""), enabled: enabled && !!s });
 export const useSection = <T,>(s: string, name: string, enabled = true) => useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`), enabled });
 export const usePrice = (s: string, range: string, enabled = true) =>
   useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`), placeholderData: (prev) => prev, enabled });
@@ -143,6 +143,11 @@ export const usePrice = (s: string, range: string, enabled = true) =>
 export const useSearchIndex = (enabled: boolean) =>
   useQuery<{ fields: string[]; rows: SearchRow[] }, ApiError>({
     queryKey: ["search-index"], queryFn: () => apiGet("/api/stocks/search-index"), enabled, staleTime: 3_600_000, gcTime: Infinity,
+  });
+/** Price, day change, score (or "locked" below Silver) and logo per company, joined to the name list by symbol. Private: varies by plan. */
+export const useSearchQuotes = (enabled: boolean) =>
+  useQuery<import("./globalSearch").Quotes, ApiError>({
+    queryKey: ["search-quotes"], queryFn: () => apiGet("/api/search/quotes"), enabled, staleTime: 60_000, gcTime: 600_000, retry: 1,
   });
 
 /** Warm a report. One try, no polling (an unprepared stock answers 202 and would otherwise be re-asked for minutes per hover; the page itself polls).

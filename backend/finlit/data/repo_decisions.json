@@ -1,0 +1,30 @@
+{
+  "about": "Changes to the RBI policy repo rate (per cent) from April 2016, the last change before the Monetary Policy Committee took over, to today. Each entry is the date the decision took effect, as announced in the RBI's Monetary Policy Statement (the MPC's resolution) or, for the off-cycle moves of March 2020, May 2020 and May 2022, the RBI's statement of that day. Rates in force between changes are the last change. New changes after the last entry are detected from the 'Current Rates' panel of rbi.org.in by the nightly job.",
+  "source": "Reserve Bank of India, Monetary Policy Statements and MPC resolutions",
+  "sourceUrl": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx",
+  "decisions": [
+    {"date": "2016-04-05", "rate": 6.50, "bp": -25},
+    {"date": "2016-10-04", "rate": 6.25, "bp": -25},
+    {"date": "2017-08-02", "rate": 6.00, "bp": -25},
+    {"date": "2018-06-06", "rate": 6.25, "bp": 25},
+    {"date": "2018-08-01", "rate": 6.50, "bp": 25},
+    {"date": "2019-02-07", "rate": 6.25, "bp": -25},
+    {"date": "2019-04-04", "rate": 6.00, "bp": -25},
+    {"date": "2019-06-06", "rate": 5.75, "bp": -25},
+    {"date": "2019-08-07", "rate": 5.40, "bp": -35},
+    {"date": "2019-10-04", "rate": 5.15, "bp": -25},
+    {"date": "2020-03-27", "rate": 4.40, "bp": -75},
+    {"date": "2020-05-22", "rate": 4.00, "bp": -40},
+    {"date": "2022-05-04", "rate": 4.40, "bp": 40},
+    {"date": "2022-06-08", "rate": 4.90, "bp": 50},
+    {"date": "2022-08-05", "rate": 5.40, "bp": 50},
+    {"date": "2022-09-30", "rate": 5.90, "bp": 50},
+    {"date": "2022-12-07", "rate": 6.25, "bp": 35},
+    {"date": "2023-02-08", "rate": 6.50, "bp": 25},
+    {"date": "2025-02-07", "rate": 6.25, "bp": -25},
+    {"date": "2025-04-09", "rate": 6.00, "bp": -25},
+    {"date": "2025-06-06", "rate": 5.50, "bp": -50},
+    {"date": "2025-12-05", "rate": 5.25, "bp": -25},
+    {"date": "2026-10-07", "rate": 5.50, "bp": 25, "url": "https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=63742"}
+  ]
+}

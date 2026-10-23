@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { canon } from "../lib/aliases";
+import { visits } from "../lib/recentVisits";
 import { recents } from "../lib/mycompanies";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
@@ -32,7 +33,7 @@ export function StockPage() {
   const sum = useSummary(symbol);
   const s = sum.data;
   const ready = !!s;
-  useEffect(() => { if (s?.meta.symbol) { recents.add(s.meta.symbol); queryClient.invalidateQueries({ queryKey: ["my-companies"] }); } }, [s?.meta.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (s?.meta.symbol) { recents.add(s.meta.symbol); visits.add({ k: "stock", id: s.meta.symbol, name: s.profile.name }); queryClient.invalidateQueries({ queryKey: ["my-companies"] }); } }, [s?.meta.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
   const ratios = useSection<Ratios>(symbol, "ratios", ready).data;
   const fin = useSection<Financials>(symbol, "financials", ready).data;
   const own = useSection<Ownership>(symbol, "ownership", ready).data;

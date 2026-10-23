@@ -10,7 +10,6 @@ export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; scr
 
 /** Everything the dashboard can show. `min` is the plan a widget needs (its data is gated on the server too). */
 export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" | "silver" | "gold"; size: WidgetSize }[] = [
-  { id: "snapshot", label: "Market snapshot", blurb: "Broad market and index moves at a glance.", min: "basic", size: "full" },
   { id: "results", label: "Latest quarter results", blurb: "Newest quarter for your stocks: year-on-year and quarter-on-quarter.", min: "basic", size: "full" },
   { id: "dates", label: "Results dates coming up", blurb: "When your stocks, or the market, report quarterly results.", min: "basic", size: "half" },
   { id: "news", label: "News for my stocks", blurb: "The latest exchange announcements for the stocks you follow.", min: "basic", size: "half" },

@@ -20,6 +20,7 @@ import { dayLabel, useFeed, who } from "../lib/feed";
 import { encodeState, toBody, useScreen, type PState } from "../lib/proscreen";
 import { useIpos } from "../lib/ipo";
 import { useAlerts } from "../lib/alerts";
+import { MarketsBlock } from "../components/markets/MarketsBlock";
 import { ChartHelp } from "../components/ChartHelp";
 
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; };
@@ -31,37 +32,7 @@ function Empty({ icon, title, text, to, cta }: { icon: string; title: string; te
 }
 
 /* ---------------- widgets ---------------- */
-function Snapshot({ rows }: { rows: Row[] }) {
-  const m = useMemo(() => {
-    // suspended or delisted companies have no price and a -100% "change"; leave them out of breadth and movers
-    const live = rows.filter((r) => r.change_pct != null && (r.price ?? 0) > 0);
-    const adv = live.filter((r) => (r.change_pct as number) > 0).length, dec = live.filter((r) => (r.change_pct as number) < 0).length;
-    const by = new Map<string, number[]>();
-    live.forEach((r) => by.set(r.sector || "Other", [...(by.get(r.sector || "Other") || []), r.change_pct as number]));
-    const sectors = [...by.entries()].map(([s, v]) => ({ s, v: v.reduce((a, b) => a + b, 0) / v.length, n: v.length })).sort((a, b) => b.n - a.n).slice(0, 12);
-    const sorted = live.filter((r) => (r.market_cap ?? 0) >= 100).sort((a, b) => (b.change_pct as number) - (a.change_pct as number));
-    return { n: live.length, adv, dec, sectors, up: sorted.slice(0, 4), down: sorted.slice(-4).reverse() };
-  }, [rows]);
-  if (!m.n) return <p className="muted">Market data is on its way.</p>;
-  const max = Math.max(...m.sectors.map((x) => Math.abs(x.v)), 0.5);
-  return (
-    <div className="dw-snap">
-      <div>
-        <div className="label">Market breadth · {m.n} companies</div>
-        <div className="breadth" role="img" aria-label={`${m.adv} rising, ${m.dec} falling`}><i className="up" style={{ flex: m.adv || 0.01 }} /><i className="flat" style={{ flex: Math.max(m.n - m.adv - m.dec, 0.01) }} /><i className="down" style={{ flex: m.dec || 0.01 }} /></div>
-        <div className="breadth-k"><span className="up">{m.adv} rising</span><span className="down">{m.dec} falling</span></div>
-        <div className="movers2"><div><div className="label">Top gainers</div>{m.up.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{r.symbol}</b><span className="up">{sgn(r.change_pct)}</span></Link>)}</div>
-          <div><div className="label">Top decliners</div>{m.down.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{r.symbol}</b><span className="down">{sgn(r.change_pct)}</span></Link>)}</div></div>
-      </div>
-      <div>
-        <div className="label">Sectors today</div>
-        <div className="heat">{m.sectors.map((x) => <div key={x.s} className={"hc " + tone(x.v)} style={{ "--k": Math.min(1, Math.abs(x.v) / max) } as React.CSSProperties} title={`${x.s}: ${sgn(x.v)}`}><b>{x.s}</b><span>{sgn(x.v)}</span></div>)}</div>
-      </div>
-    </div>
-  );
-}
-
-const HELP: Record<string, string> = { snapshot: "dash-snapshot", results: "dash-results", movers: "dash-movers", second: "dash-second", buckets: "dash-buckets" };
+const HELP: Record<string, string> = { results: "dash-results", movers: "dash-movers", second: "dash-second", buckets: "dash-buckets" };
 
 function Movers({ items }: { items: Row[] }) {
   const top = [...items].filter((r) => r.change_pct != null).sort((a, b) => Math.abs(b.change_pct as number) - Math.abs(a.change_pct as number)).slice(0, 7);
@@ -242,7 +213,6 @@ export function Dashboard() {
     const w = meta[id];
     if (RANK[plan] < RANK[w.min]) return <Locked tier={w.min} label={w.label} />;
     switch (id) {
-      case "snapshot": return <Snapshot rows={rows} />;
       case "movers": return <Movers items={items} />;
       case "dates": return <Dates symbols={followed} />;
       case "news": return <NewsW symbols={followed} />;
@@ -265,6 +235,7 @@ export function Dashboard() {
           <button className={"btn" + (edit ? " on" : "")} aria-pressed={edit} onClick={() => { setEdit(!edit); if (params.has("edit")) setParams({}, { replace: true }); }}><Icon name="spark" />{edit ? "Done" : "Customise"}</button>
         </div>
       </header>
+      <MarketsBlock rows={rows} />
       <GettingStarted followed={followed.length} palette={p.palette} plan={plan} />
       {edit && (
         <section className="card dash-edit" aria-label="Customise your dashboard">
@@ -283,7 +254,7 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
             {body(w.id)}
           </section>))}

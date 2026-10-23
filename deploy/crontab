@@ -26,6 +26,13 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 # IPO and results calendars: each morning, and every three hours in market time.
 45 6 * * *       root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1
 5 9,12,15 * * 1-5 root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1
+# India macro data (MoSPI and RBI): nightly.
+50 18 * * *      root $W refresh-macro >> /var/log/finlit-ingest.log 2>&1
+# FII/DII institutional flows (NSDL, NSE archive files): nightly, and again later because NSDL posts the day's report in the evening.
+10 19 * * *      root $W refresh-flows >> /var/log/finlit-ingest.log 2>&1
+30 21 * * *      root $W refresh-flows >> /var/log/finlit-ingest.log 2>&1
+# Company and fund-house logos from their own websites (robots.txt obeyed): nightly, a batch at a time.
+25 5 * * *       root $W refresh-logos >> /var/log/finlit-ingest.log 2>&1
 # NIFTY index membership: weekly.
 45 2 * * 0       root $W refresh-indices >> /var/log/finlit-ingest.log 2>&1
 # Keep the database inside its storage budget.

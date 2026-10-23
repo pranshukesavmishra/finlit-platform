@@ -259,6 +259,13 @@ INDEX_LISTS = {  # code -> (label, niftyindices file)
     "NIFTYLARGEMID250": ("NIFTY LargeMidcap 250", "ind_niftylargemidcap250list"), "NIFTYBANK": ("NIFTY Bank", "ind_niftybanklist"),
     "NIFTYIT": ("NIFTY IT", "ind_niftyitlist"), "NIFTYFMCG": ("NIFTY FMCG", "ind_niftyfmcglist"), "NIFTYPHARMA": ("NIFTY Pharma", "ind_niftypharmalist"),
     "NIFTYAUTO": ("NIFTY Auto", "ind_niftyautolist"),
+    # sector indices for the dashboard's sectoral activity (a list the exchange does not publish under this name is skipped by the nightly job)
+    "NIFTYFINSERVICE": ("NIFTY Financial Services", "ind_niftyfinancelist"), "NIFTYPVTBANK": ("NIFTY Private Bank", "ind_nifty_privatebanklist"),
+    "NIFTYPSUBANK": ("NIFTY PSU Bank", "ind_niftypsubanklist"), "NIFTYENERGY": ("NIFTY Energy", "ind_niftyenergylist"), "NIFTYOILGAS": ("NIFTY Oil & Gas", "ind_niftyoilgaslist"),
+    "NIFTYCONSUMERDURABLES": ("NIFTY Consumer Durables", "ind_niftyconsumerdurableslist"), "NIFTYHEALTHCARE": ("NIFTY Healthcare", "ind_niftyhealthcarelist"),
+    "NIFTYINFRA": ("NIFTY Infrastructure", "ind_niftyinfralist"), "NIFTYMANUFACTURING": ("NIFTY India Manufacturing", "ind_niftyindiamanufacturinglist"),
+    "NIFTYREALTY": ("NIFTY Realty", "ind_niftyrealtylist"), "NIFTYMEDIA": ("NIFTY Media", "ind_niftymedialist"), "NIFTYMETAL": ("NIFTY Metal", "ind_niftymetallist"),
+    "NIFTYCOMMODITIES": ("NIFTY Commodities", "ind_niftycommoditieslist"),
 }
 CAPS = ("Large", "Mid", "Small")
 

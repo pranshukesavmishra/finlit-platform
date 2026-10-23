@@ -372,7 +372,7 @@ export function nearestIndex(xs: number[], x: number): number {
 
 // ------------------------------------------------------------------------------------------------ data hooks
 
-async function mfGet<T>(path: string): Promise<T> {
+export async function mfGet<T>(path: string): Promise<T> {
   if (DEMO) return (await import("./mfDemo")).demoMf<T>(path);
   return apiGet<T>(path);
 }

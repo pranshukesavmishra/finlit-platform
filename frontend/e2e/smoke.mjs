@@ -28,10 +28,10 @@ check("home: removed Results section is gone", await page.locator("text=Realised
 
 // 2. Search palette (Ctrl+K), typing, Enter opens the report
 await page.keyboard.press("Control+k");
-await page.waitForSelector(".palette input");
-await page.fill(".palette input", "reliance");
-await page.waitForSelector(".palette li[role=option]");
-check("search: results appear", (await page.locator(".palette li[role=option]").count()) > 0);
+await page.waitForSelector(".gs input");
+await page.fill(".gs input", "reliance");
+await page.waitForSelector("#gsList [role=option]");
+check("search: results appear", (await page.locator("#gsList [role=option]").count()) > 0);
 await page.keyboard.press("Enter");
 await page.waitForURL(/\/stocks\/RELIANCE/);
 await page.waitForSelector(".dial svg");

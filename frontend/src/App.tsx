@@ -30,6 +30,9 @@ const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ defa
 const AdvancedCharts = lazy(() => import("./pages/AdvancedCharts").then((m) => ({ default: m.AdvancedCharts })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
+const MacroPage = lazy(() => import("./pages/Macro").then((m) => ({ default: m.MacroPage })));
+const FiiDiiPage = lazy(() => import("./pages/FiiDii").then((m) => ({ default: m.FiiDiiPage })));
+const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ default: m.SipCalculator })));
 const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
@@ -88,6 +91,8 @@ export default function App() {
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="forum/*" element={<ForumPage />} />
             <Route path="ipo" element={<IpoPage />} />
+            <Route path="macro" element={<MacroPage />} />
+            <Route path="fii-dii" element={<FiiDiiPage />} />
             <Route path="results" element={<ResultsPage />} />
             <Route path="results/quarter" element={<QuarterResultsPage />} />
             <Route path="news" element={<NewsPage />} />
@@ -98,6 +103,7 @@ export default function App() {
             <Route path="console" element={<Console />} />
           </Route>
           <Route path="stocks/:symbol" element={<StockPage />} />
+          <Route path="sip-calculator" element={<SipCalculator />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="pricing" element={<Navigate to="/plans" replace />} />
           <Route path="faq" element={<Navigate to="/#faq" replace />} />
