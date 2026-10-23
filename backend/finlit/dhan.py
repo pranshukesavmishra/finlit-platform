@@ -69,13 +69,13 @@ def parse_instruments(lines: Iterable[str]) -> List[dict]:
     Streams line by line: the file is about 36 MB and only the equity rows and the futures' underlyings are kept.
     """
     out: Dict[tuple, dict] = {}
-    fut: Dict[str, int] = {}                 # NSE underlying symbol -> lot size of its futures
+    fut: Dict[str, Tuple[str, int]] = {}     # NSE underlying symbol -> (expiry, lot size) of its nearest futures contract
     for r in csv.DictReader(lines):
         seg, inst, exch = r.get("SEGMENT"), r.get("INSTRUMENT"), r.get("EXCH_ID")
         if exch == "NSE" and seg == "D" and inst == "FUTSTK":
-            sym, lot = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE"))
-            if sym and sym not in fut and lot:
-                fut[sym] = int(lot)
+            sym, lot, exp = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE")), (r.get("SM_EXPIRY_DATE") or "").strip() or "9999"
+            if sym and lot and (sym not in fut or exp < fut[sym][0]):   # a revised lot size starts with later expiries: the nearest contract's is today's
+                fut[sym] = (exp, int(lot))
         elif seg == "E" and inst == "EQUITY" and exch in ("NSE", "BSE"):
             sid = (r.get("SECURITY_ID") or "").strip()
             sym = (r.get("UNDERLYING_SYMBOL") or r.get("SYMBOL_NAME") or "").strip()
@@ -92,7 +92,7 @@ def parse_instruments(lines: Iterable[str]) -> List[dict]:
                 "inst_type": (r.get("INSTRUMENT_TYPE") or "").strip() or None, "exch_name": (r.get("SYMBOL_NAME") or "").strip() or None}
     for row in out.values():
         if row["exch"] == "NSE" and row["symbol"] in fut:
-            row["fno"], row["lot_size"] = True, fut[row["symbol"]]
+            row["fno"], row["lot_size"] = True, fut[row["symbol"]][1]
     return list(out.values())
 
 
@@ -317,22 +317,55 @@ class DhanClient:
 EQUITY_SERIES = ("EQ", "BE", "BZ", "SM", "ST", "SZ")    # share series; a symbol can also carry bonds (N1..), warrants (W1) or debentures (D1)
 
 
+# How a company is matched to its one Dhan row: the NSE share by trading symbol, else the BSE share by scrip code (Dhan's BSE security id is
+# the BSE code). Shared by the live quotes and the stock page's trading facts, so both always describe the same instrument.
+MATCH_SQL = (
+    "FROM companies c "
+    "LEFT JOIN dhan_instruments n ON n.exch = 'NSE' AND n.symbol = c.nse_code AND c.nse_code <> '' "
+    "LEFT JOIN dhan_instruments b ON b.exch = 'BSE' AND b.security_id = c.bse_code AND c.bse_code <> '' "
+    "WHERE c.symbol = ANY($1::text[]) AND (n.security_id IS NOT NULL OR b.security_id IS NOT NULL) "
+    "ORDER BY c.symbol, (n.series = ANY($2::text[])) DESC NULLS LAST, (n.series = 'EQ') DESC NULLS LAST, (b.series = ANY($2::text[])) DESC NULLS LAST")
+INFO_COLS = ("exch", "security_id", "series", "asm_gsm", "asm_gsm_cat", "mtf_leverage", "fno", "lot_size", "loaded_at")
+
+
 async def security_map(store, symbols: List[str]) -> Dict[str, Tuple[str, str]]:
-    """{our symbol: (Dhan segment, security id)}: the NSE share by trading symbol, else the BSE share by scrip code (Dhan's BSE security id
-    is the BSE code). Companies with no match are left out (renamed or delisted: they keep the main provider's quote)."""
+    """{our symbol: (Dhan segment, security id)}. Companies with no match are left out (renamed or delisted: they keep the main provider's quote)."""
     if not symbols:
         return {}
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT DISTINCT ON (c.symbol) c.symbol, COALESCE(n.security_id, b.security_id) AS sid, "
-            "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg "
-            "FROM companies c "
-            "LEFT JOIN dhan_instruments n ON n.exch = 'NSE' AND n.symbol = c.nse_code AND c.nse_code <> '' "
-            "LEFT JOIN dhan_instruments b ON b.exch = 'BSE' AND b.security_id = c.bse_code AND c.bse_code <> '' "
-            "WHERE c.symbol = ANY($1::text[]) AND (n.security_id IS NOT NULL OR b.security_id IS NOT NULL) "
-            "ORDER BY c.symbol, (n.series = ANY($2::text[])) DESC NULLS LAST, (n.series = 'EQ') DESC NULLS LAST, (b.series = ANY($2::text[])) DESC NULLS LAST",
-            list(symbols), list(EQUITY_SERIES))
+            "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg " + MATCH_SQL, list(symbols), list(EQUITY_SERIES))
     return {r["symbol"]: (r["seg"], r["sid"]) for r in rows}
+
+
+async def instrument_rows(store, symbols: List[str]) -> Dict[str, dict]:
+    """{our symbol: its matched Dhan row (INFO_COLS)}, the row security_map picks."""
+    if not symbols:
+        return {}
+    cols = ", ".join(f"CASE WHEN n.security_id IS NOT NULL THEN n.{k} ELSE b.{k} END AS {k}" for k in INFO_COLS)
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(f"SELECT DISTINCT ON (c.symbol) c.symbol, {cols} " + MATCH_SQL, list(symbols), list(EQUITY_SERIES))  # nosec B608 - fixed column names
+    return {r["symbol"]: dict(r) for r in rows}
+
+
+def trading_facts(row: Optional[dict]) -> dict:
+    """What the stock page says about trading the share, from its Dhan row. Only what is positively there is given:
+      * surveillance only when the flag is Y. N is never turned into "not under surveillance" (the file may not carry every exchange list),
+        and R (Dhan: "removed from block") is not shown: the shares flagged R trade on restricted series (BE, BZ, ST) all the same;
+      * F&O (NSE) with the lot size of the nearest futures contract;
+      * margin trading (Dhan's own list) only above 1x, since 1x lends nothing. Rounded down to one decimal, so "up to" never overstates it."""
+    if not row:
+        return {"matched": False}
+    lev = row.get("mtf_leverage")
+    lev = int(lev * 10 + 1e-6) / 10 if lev is not None and lev > 0 else None
+    at = row.get("loaded_at")
+    return {
+        "matched": True, "exchange": row.get("exch"), "asOf": at.astimezone(IST).date().isoformat() if isinstance(at, datetime) else None,
+        "surveillance": {"stage": row.get("asm_gsm_cat")} if row.get("asm_gsm") == "Y" else None,
+        "fno": {"lotSize": row.get("lot_size")} if row.get("fno") and row.get("exch") == "NSE" else None,
+        "mtf": {"leverage": lev} if lev is not None and lev > 1 else None,
+    }
 
 
 def _trade_time(text: Any) -> Optional[str]:

@@ -95,6 +95,8 @@ async def create_alert(request: Request, body: AlertIn, ctx: Ctx = Depends(secur
     if not eng.allowed(ctx.plan, body.metric):
         raise fail(403, "plan_required", f"{meta['label']} alerts are part of the Silver plan.", plan="silver")
     keyword = (body.keyword or "").strip().lower() or None
+    if body.metric in eng.FIXED_TARGET:   # "hits the upper circuit" has no number to choose: the target is set here, whatever was sent
+        body.value = eng.FIXED_TARGET[body.metric][body.op]
     if body.op == "event":
         if body.metric == "news_keyword" and (keyword is None or len(keyword) < 2):
             raise fail(422, "keyword_required", "Type the word or phrase to watch for (at least 2 characters).")
@@ -146,6 +148,8 @@ async def patch_alert(request: Request, aid: str, body: AlertPatch, ctx: Ctx = D
         a = await conn.fetchrow("SELECT * FROM alerts WHERE id::text = $1 AND user_id = $2", aid, ctx.user_id)
         if not a:
             raise fail(404, "not_found")
+        if "value" in fields and a["metric"] in eng.FIXED_TARGET:
+            raise fail(422, "bad_value", "This alert has no target value to change.")
         sets, args = [], []
         for k, v in fields.items():
             args.append(v)

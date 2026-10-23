@@ -16,6 +16,7 @@ export type Quote = {
   price: number | null; changePct: number | null; change: number | null; previousClose: number | null; open: number | null;
   high: number | null; low: number | null; high52: number | null; low52: number | null; volume: number | null;
   marketCapCr: number | null; asOf: string | null;
+  upperCircuit?: number | null; lowerCircuit?: number | null;   // the day's price band, only in a quote from Dhan (worker.refresh_quotes)
 };
 export type Note = { key: string; title: string; text: string; value: number | null };
 export type KeyMetric = { key: string; value: number; unit: string | null; label: string; period: string };

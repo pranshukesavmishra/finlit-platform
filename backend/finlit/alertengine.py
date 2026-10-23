@@ -24,6 +24,8 @@ METRICS: Dict[str, M] = {
     "price":          dict(label="Price", unit="₹", live=True, tier="basic", ops=("above", "below")),
     "change_pct":     dict(label="Day change", unit="%", live=True, tier="basic", ops=("above", "below")),
     "move_abs":       dict(label="Move in a day (either way)", unit="%", live=True, tier="basic", ops=("above",)),
+    # above = the upper circuit, below = the lower one; the target is fixed (FIXED_TARGET) and the value comes from circuit_state
+    "circuit":        dict(label="Upper or lower circuit", unit="", live=True, tier="basic", ops=("above", "below")),
     "volume_x":       dict(label="Volume vs 20-day average", unit="×", live=False, tier="basic", ops=("above",)),
     "rsi14":          dict(label="RSI (14)", unit="", live=False, tier="basic", ops=("above", "below")),
     "ema50_gap":      dict(label="Price vs 50-day average", unit="%", live=False, tier="silver", ops=("above", "below")),
@@ -60,6 +62,7 @@ SCORE_COLUMNS = {"price", "change_pct", "return_1m", "return_1y", "overall", "pi
 TECH = {"rsi14", "ema50_gap", "ema200_gap", "volume_x", "from_high52", "from_low52"}
 SNAP = {"q_net_profit", "q_revenue", "rev_profit_gap", "promoter_chg", "fii_chg"}
 EVENTS = {"news_keyword", "new_filing", "result_soon"}
+FIXED_TARGET = {"circuit": {"above": 1.0, "below": -1.0}}   # metric -> op -> the only target it takes (set by the server)
 CHANNELS = ("app", "email", "browser")
 ALERT_LIMITS = {"basic": 3, "silver": 30, "gold": 300}
 RANK = {"basic": 0, "silver": 1, "gold": 2}
@@ -81,6 +84,19 @@ def fmt(metric: str, v: float) -> str:
     if unit == "Cr":
         return f"{sign}₹{n} Cr"
     return f"{sign}{n}"
+
+
+def circuit_state(quote: Any) -> Tuple[Optional[float], Optional[Dict[str, float]]]:
+    """1 when the price is at or above the day's upper price band, -1 at or below the lower one, 0 in between; None (nothing can fire)
+    when the quote lacks the price or a complete, sensible band. Price and band come from the same quote, so they are of the same moment."""
+    q = quote if isinstance(quote, dict) else {}
+    try:
+        price, up, lo = (float(q[k]) for k in ("price", "upperCircuit", "lowerCircuit"))
+    except (KeyError, TypeError, ValueError):
+        return None, None
+    if not (price > 0 and 0 < lo < up):
+        return None, None
+    return (1.0 if price >= up else -1.0 if price <= lo else 0.0), {"price": price, "upper": up, "lower": lo}
 
 
 GAP_TEXT = "The anticipated difference between revenue and profit is >= {limit} percent thus please check the report thoroughly."
@@ -107,6 +123,11 @@ def headline(a: Dict[str, Any], v: Optional[float], extra: Optional[Dict[str, An
         detail = f" Revenue {d['rev']:+.0f}% and net profit {d['profit']:+.0f}% against the same quarter last year." if "rev" in d and "profit" in d else ""
         return (f"{a['symbol']} – revenue and profit growth are {v:.0f} points apart",
                 GAP_TEXT.format(limit=f"{float(a['value']):g}") + detail)
+    if a["metric"] == "circuit" and extra:
+        up = a["op"] == "above"
+        band = fmt("price", extra["upper"] if up else extra["lower"])
+        return (f"{a['symbol']} – at its {'upper' if up else 'lower'} circuit ({band})",
+                f"The price, {fmt('price', extra['price'])}, has reached the {'highest' if up else 'lowest'} price the exchange allows for {a['symbol']} today, {band}.")
     side = "above" if a["op"] == "above" else "below"
     title = f"{a['symbol']} – {meta['label']} is now {fmt(a['metric'], v)}, {side} your target of {fmt(a['metric'], float(a['value']))}"
     return title, f"{meta['label']} for {a['symbol']} crossed {fmt(a['metric'], float(a['value']))} ({side}). It is {fmt(a['metric'], v)} now."
@@ -125,6 +146,11 @@ async def load_values(conn, symbols: List[str], needed: set) -> Dict[str, Dict[s
     for s in symbols:
         cp = out[s].get("change_pct")
         out[s]["move_abs"] = abs(cp) if cp is not None else None
+    if "circuit" in needed:   # price and band of the live quote in the stored report (worker.refresh_quotes keeps them together)
+        for r in await conn.fetch("SELECT DISTINCT ON (symbol) symbol, body::json -> 'quote' AS q FROM snapshots WHERE symbol = ANY($1::text[]) AND section = 'summary' "
+                                  "ORDER BY symbol, (statement = 'consolidated') DESC", symbols):
+            q = json.loads(r["q"]) if isinstance(r["q"], str) else r["q"]
+            out[r["symbol"]]["circuit"], out[r["symbol"]]["_circuit_detail"] = circuit_state(q)
     if needed & TECH:
         bars: Dict[str, List[Any]] = {}
         for r in await conn.fetch("SELECT symbol, close, high, low, volume FROM price_daily WHERE symbol = ANY($1::text[]) AND day > current_date - 420 ORDER BY symbol, day", symbols):
@@ -340,7 +366,8 @@ async def evaluate(pool, mailer: Mailer, site_url: str, kind: str = "all") -> in
                 cooled = a["last_fired_at"] is None or await conn.fetchval("SELECT $1::timestamptz < now() - make_interval(hours => $2)", a["last_fired_at"], COOLDOWN_HOURS)
                 fire = crossed and cooled
                 if fire:
-                    title, body = headline(a, v, values.get(a["symbol"], {}).get("_gap_detail"))
+                    got = values.get(a["symbol"], {})
+                    title, body = headline(a, v, got.get("_circuit_detail") if a["metric"] == "circuit" else got.get("_gap_detail"))
                     await deliver(conn, mailer, site_url, user, a, title, body, link)
                     fired += 1
                 await conn.execute(

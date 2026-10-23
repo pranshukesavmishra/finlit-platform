@@ -205,6 +205,9 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         if old.get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
         summary["quote"] = {**old, **{k: v for k, v in live.items() if v is not None}}
+        for k in ("upperCircuit", "lowerCircuit"):   # a price band belongs to the quote it came with: never an older day's band beside a newer price
+            if live.get(k) is None:
+                summary["quote"].pop(k, None)
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
         touched.append((symbol, statement))

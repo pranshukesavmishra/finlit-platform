@@ -8,7 +8,7 @@ import { DEMO } from "../lib/demo";
 import { useUniverse } from "../lib/screener";
 import { AlertComposer, type Preset } from "../components/AlertComposer";
 import { demoCheck, demoNudge, demoReset, timeAgo, useAlerts, useNotices, type AlertRow, type Channel } from "../lib/alerts";
-import { LIVE_NOTE, METRICS, closeness, describe, fmtValue, isEvent } from "../lib/alertCatalog";
+import { LIVE_NOTE, METRICS, closeness, describe, fixedTarget, fmtValue, isEvent } from "../lib/alertCatalog";
 
 const QUICK: { t: string; d: string; icon: string; p: Preset }[] = [
   { t: "Price target", d: "Tell me when the price reaches a level", icon: "rupee", p: { metric: "price", op: "above" } },
@@ -32,7 +32,7 @@ type Filter = "all" | "active" | "paused" | "done";
 function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { status?: "active" | "paused"; value?: number }) => void; onRemove: () => void }) {
   const [edit, setEdit] = useState(false), [v, setV] = useState(String(a.value ?? "")), [sure, setSure] = useState(false);
   const pct = closeness(a), [label, tone] = STATE[a.status];
-  const ev = isEvent(a.metric);
+  const ev = isEvent(a.metric), fixed = fixedTarget(a.metric, a.op) != null;
   return (
     <article className={"card alx-c is-" + a.status}>
       <div className="alx-ch">
@@ -45,7 +45,7 @@ function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { statu
       {!ev && (
         <div className="alx-prog" aria-label={pct != null ? `${pct}% of the way to the trigger` : undefined}>
           <div className="alx-bar"><i style={{ width: `${pct ?? 0}%` }} /></div>
-          <div className="alx-pl"><span>{a.lastValue != null ? <>Now <b>{fmtValue(a.metric, a.lastValue)}</b></> : "Waiting for the first check"}</span><span>Target <b>{fmtValue(a.metric, a.value)}</b></span></div>
+          <div className="alx-pl"><span>{a.lastValue != null ? <>Now <b>{fmtValue(a.metric, a.lastValue)}</b></> : "Waiting for the first check"}</span>{!fixed && <span>Target <b>{fmtValue(a.metric, a.value)}</b></span>}</div>
         </div>
       )}
       <p className="alx-meta">
@@ -64,7 +64,7 @@ function AlertCard({ a, onPatch, onRemove }: { a: AlertRow; onPatch: (p: { statu
             {a.status === "active" && <button className="btn" onClick={() => onPatch({ status: "paused" })}><Icon name="pause" /><span>Pause</span></button>}
             {a.status === "paused" && <button className="btn" onClick={() => onPatch({ status: "active" })}><Icon name="play" /><span>Resume</span></button>}
             {a.status === "done" && <button className="btn" onClick={() => onPatch({ status: "active" })}><Icon name="play" /><span>Set again</span></button>}
-            {!ev && <button className="btn" onClick={() => { setV(String(a.value ?? "")); setEdit(true); }}><span>Change target</span></button>}
+            {!ev && !fixed && <button className="btn" onClick={() => { setV(String(a.value ?? "")); setEdit(true); }}><span>Change target</span></button>}
             {sure ? <><button className="btn danger" onClick={onRemove}>Delete</button><button className="btn" onClick={() => setSure(false)}>Keep</button></> : <button className="btn" onClick={() => setSure(true)} aria-label={`Delete the ${a.symbol} alert`}><Icon name="trash" /></button>}
           </>
         )}

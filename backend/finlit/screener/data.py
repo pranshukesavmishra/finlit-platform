@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..advanced.catalog import METRIC_LIST as AX_METRICS
 from ..advanced.derive import AGG_GROWTH, COMPONENTS
+from ..dhan import instrument_rows
 from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import METRICS_VERSION, MULTIPLES
 from .listing import metrics_of
@@ -51,7 +52,7 @@ def _pct(sorted_xs: List[float], p: float) -> float:
 
 
 class Table:
-    def __init__(self, rows: List[dict], members: Dict[str, List[str]], score_move: Dict[str, float]):
+    def __init__(self, rows: List[dict], members: Dict[str, List[str]], score_move: Dict[str, float], fno: Optional[Dict[str, bool]] = None):
         self.loaded = time.time()
         self.symbols: List[str] = []
         self.name: List[str] = []
@@ -112,6 +113,9 @@ class Table:
         for sym, d in score_move.items():
             if sym in self.pos:
                 self.cols["score_change"][self.pos[sym]] = d
+        for sym, on in (fno or {}).items():   # companies Dhan's file does not match stay unknown, never "no"
+            if sym in self.pos:
+                self.cols["fno"][self.pos[sym]] = 1.0 if on else 0.0
         self.members: Dict[str, set] = {code: {s for s in syms if s in self.pos} for code, syms in members.items()}
         # facets and per-filter ranges for the filter panel
         self.sectors = self._facet(self.sector)
@@ -214,7 +218,10 @@ async def _load(store) -> Table:
             m = json.loads(raw) if isinstance(raw, str) else dict(raw or {})
             if m and any(m.get(k) is None and q.get(k) is not None for k in ("price", "market_cap")):
                 r["metrics"] = {**m, **{k: float(q[k]) for k in ("price", "market_cap") if m.get(k) is None and q.get(k) is not None}}
-    return Table(rows + [with_listing(r) for r in light], mem, move)
+    # F&O from Dhan's daily instrument file, joined here rather than stored with the figures: it changes with the exchange's list, not the report.
+    # Known only for a company matched on NSE (where the contracts are): one matched by its BSE code alone stays unknown, never "no".
+    fno = {s: bool(r["fno"]) for s, r in (await instrument_rows(store, [r["symbol"] for r in rows + light])).items() if r["exch"] == "NSE"}
+    return Table(rows + [with_listing(r) for r in light], mem, move, fno)
 
 
 def with_listing(r: dict) -> dict:

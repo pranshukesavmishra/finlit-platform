@@ -6783,6 +6783,17 @@
    "why": "They frame the recent price history at a glance.",
    "formula": "Yes (1) when the price is within 3% of the 52-week low."
   },
+  "fno": {
+   "label": "Has futures & options (F&O)",
+   "unit": "flag",
+   "better": null,
+   "group": "trading",
+   "term": "derivatives-futures-and-options-f-o",
+   "what": "Whether the stock has futures and options contracts on NSE.",
+   "read": "It tells you only that derivatives trade on the stock, not whether the share is good or bad value. Exchanges admit stocks to F&O by size and how much they trade.",
+   "why": "F&O stocks are among the most traded, and their contracts follow exchange rules such as a fixed lot size.",
+   "formula": "Yes (1) when NSE stock futures on the company appear in the broker Dhan's daily instrument file, otherwise no (0). Blank when the company is not matched in that file on NSE."
+  },
   "vs_ema50": {
    "label": "Price against 50-day average",
    "unit": "%",
