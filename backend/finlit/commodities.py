@@ -223,7 +223,7 @@ async def load_contracts(store) -> List[dict]:
     out = [{"security_id": r["security_id"], "symbol": r["symbol"], "display_name": r["display_name"], "expiry": r["expiry"].isoformat(),
             "upper": str(r["upper_limit"]) if r["upper_limit"] is not None else None, "lower": str(r["lower_limit"]) if r["lower_limit"] is not None else None} for r in rows]
     try:
-        await redis.set(K_CONTRACTS, json.dumps(out), ex=3600 if out else 60)
+        await redis.set(K_CONTRACTS, json.dumps(out), ex=86400 if out else 300)   # the daily instrument load clears it when the file is reloaded
     except Exception:
         pass
     return out
@@ -288,7 +288,7 @@ class Worker:
             await self.store.redis.set(K_HB, str(time.time()), ex=600)
         except Exception:
             pass
-        if self._is_due("cfg", 300, mono):
+        if self._is_due("cfg", 6 * 3600, mono):          # duty, hours and holidays change a few times a year: not every few minutes, so the free database can sleep
             try:
                 self.cfg = await load_cfg(self.store)
                 await self._save(K_CFG, self.cfg)
