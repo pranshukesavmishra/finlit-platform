@@ -35,6 +35,8 @@ services:
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
       # Optional, add later in the Environment tab: GEMINI_API_KEY (FinLit AI chat), RESEND_API_KEY + SENDER_EMAIL +
       # CONTACT_RECIPIENT_EMAIL (contact and enquiry emails), UPSTOX_ACCESS_TOKEN (NIFTY ticker strip).
+      # Dhan market data (docs/DHAN-SETUP.md): DHAN_CLIENT_ID + DHAN_PIN + DHAN_TOTP_SECRET (the server renews its own token daily),
+      # or DHAN_CLIENT_ID + DHAN_ACCESS_TOKEN (pasted daily). Add them as secrets in the Environment tab, never in this file.
       - key: REDIS_URL
         fromService: {type: keyvalue, name: finlit-redis, property: connectionString}
   - type: keyvalue

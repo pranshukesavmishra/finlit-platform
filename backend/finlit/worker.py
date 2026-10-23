@@ -398,6 +398,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
     p_ff = sub.add_parser("refresh-facts", help="nightly: fund facts from AMFI (scheme master, expense ratios, quarterly average AUM) for funds and ETFs; run after refresh-mf")
     p_ff.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_di = sub.add_parser("refresh-instruments", help="weekly: Dhan's public instrument file (ISIN, surveillance flag, margin eligibility, F&O status of every NSE and BSE equity); needs no account")
+    p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
     p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
     p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
     p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
@@ -469,6 +472,38 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     result["hot"] = await refresh_hot(store, client)
             print(result)
             return 0 if result["status"] == "ok" else 1
+        if args.cmd == "refresh-instruments":
+            from . import dhan
+            from .mf import last_run_age_hours, record_run
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            try:
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments())
+            except dhan.DhanError as e:
+                await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
+                print({"status": "failed", "error": str(e)})
+                return 1
+            await record_run(store, args.cmd, {"status": "ok", "equities": n})
+            print({"status": "ok", "equities": n})
+            return 0
+        if args.cmd == "dhan-check":
+            from . import dhan
+            from .mf import record_run
+            try:
+                res = await dhan.check(settings, store.redis)
+            except dhan.DhanError as e:
+                await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
+                print({"status": "failed", "error": str(e)})
+                return 1
+            ok = bool(res.get("configured")) and res.get("ltp") is not None
+            await record_run(store, args.cmd, {"status": "ok" if ok else "incomplete", "mode": res.get("mode"), "data_plan": (res.get("account") or {}).get("dataPlan"),
+                                               "data_valid_until": (res.get("account") or {}).get("dataValidity"), "instruments": res.get("instruments"),
+                                               "ltp_reliance": res.get("ltp"), "why": res.get("why")})
+            print(res)
+            return 0 if ok else 1
         if args.cmd == "refresh-portfolios":
             from . import portfolios as disclosure
             from .mf import record_run, last_run_age_hours
