@@ -409,6 +409,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_lg = sub.add_parser("refresh-logos", help="nightly: company and fund-house logos from their own websites (robots.txt obeyed; blocked sites are left alone)")
     p_lg.add_argument("--limit", type=int, default=150, help="sites to try in one run")
     p_lg.add_argument("--profiles", type=int, default=100, help="provider company-profile calls for large companies with no website on file")
+    p_mc = sub.add_parser("refresh-macro", help="nightly: India macro data from MoSPI (CPI, WPI, GDP, IIP, PLFS) and the RBI (policy rates, weekly reserves and credit)")
+    p_mc.add_argument("--full", action="store_true", help="reload the full history (the first run does this by itself)")
+    p_mc.add_argument("--only", nargs="*", default=None, help="steps: cpi wpi gdp iip plfs rbi_tables rbi_home rbi_wss")
+    p_mc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -472,6 +476,19 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     result["hot"] = await refresh_hot(store, client)
             print(result)
             return 0 if result["status"] == "ok" else 1
+        if args.cmd == "refresh-macro":
+            from . import macro
+            from .mf import last_run_age_hours, record_run
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last in ("ok", "partial") and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            result = await macro.refresh(store, full=args.full, only=args.only)
+            await record_run(store, args.cmd, {"status": result["status"], "calls": result["calls"], "cards": result["cards"],
+                                               "failed": [k for k, v in result["steps"].items() if v["status"] == "failed"]})
+            print(result)
+            return 0 if result["status"] in ("ok", "partial") else 1
         if args.cmd == "refresh-portfolios":
             from . import portfolios as disclosure
             from .mf import record_run, last_run_age_hours

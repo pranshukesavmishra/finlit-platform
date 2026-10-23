@@ -85,6 +85,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars first: light, and visible at once
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
   $PY -m finlit.worker refresh-universe
+  $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-listing                  # every listed company's price and market cap (skipped if it ran in the last 6 hours)
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership: also decides which companies load first
@@ -131,6 +132,7 @@ while true; do
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
+  (( H == 18 && M == 50 )) && run light macro refresh-macro          # nightly: India macro data (MoSPI publishes CPI and IIP around 16:00 IST on release days; RBI's WSS on Fridays)
   (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)
   (( H >= 8 && H <= 23 && M == 20 )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
   (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
