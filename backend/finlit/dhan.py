@@ -344,6 +344,43 @@ class DhanClient:
             return []
         return [{"day": datetime.fromtimestamp(t, IST).date(), **{k: v[i] for k, v in cols.items()}} for i, t in enumerate(ts)]
 
+    async def intraday(self, security_id: str, segment: str, interval: int, start: datetime, end: datetime, instrument: str = "EQUITY") -> List[dict]:
+        """Minute candles (1, 5, 15, 25 or 60 minutes) from start to end: [{"at", "open", "high", "low", "close", "volume"}], oldest first, where
+        "at" is the candle's start in Indian time (+05:30). A time without a zone is read as Indian time. Dhan answers at most 90 days per call:
+        a longer span is refused here, before any call. Unequal arrays, as for daily(), mean no data; a candle with a missing price is left out."""
+        if interval not in INTRADAY_INTERVALS:
+            raise DhanError(f"intraday interval must be one of {', '.join(map(str, INTRADAY_INTERVALS))} minutes")
+        s, e = _ist(start), _ist(end)
+        if e <= s:
+            raise DhanError("intraday: the end is not after the start")
+        if e - s > timedelta(days=INTRADAY_MAX_DAYS):
+            raise DhanError(f"intraday: at most {INTRADAY_MAX_DAYS} days per request")
+        body = await self._post("/charts/intraday", {"securityId": str(security_id), "exchangeSegment": segment, "instrument": instrument,
+                                                      "interval": interval, "oi": False, "fromDate": s.strftime("%Y-%m-%d %H:%M:%S"),
+                                                      "toDate": e.strftime("%Y-%m-%d %H:%M:%S")}, min_gap=0.2)
+        ts = (body or {}).get("timestamp") or []
+        cols = {k: (body or {}).get(k) or [] for k in ("open", "high", "low", "close", "volume")}
+        if not ts or any(len(v) != len(ts) for v in cols.values()):
+            return []
+        out: Dict[float, dict] = {}
+        for i, t in enumerate(ts):
+            at, px = _f(t), [_f(cols[k][i]) for k in ("open", "high", "low", "close")]
+            if at is None or any(p is None or p <= 0 for p in px):
+                continue
+            vol = _f(cols["volume"][i])
+            out[at] = {"at": datetime.fromtimestamp(at, IST), "open": px[0], "high": px[1], "low": px[2], "close": px[3],
+                       "volume": int(vol) if vol is not None and vol >= 0 else None}
+        return [out[k] for k in sorted(out)]
+
+
+INTRADAY_INTERVALS = (1, 5, 15, 25, 60)
+INTRADAY_MAX_DAYS = 90
+
+
+def _ist(t: datetime) -> datetime:
+    """Indian time, to the second: a time without a zone is taken as Indian time already."""
+    return (t.replace(tzinfo=IST) if t.tzinfo is None else t.astimezone(IST)).replace(microsecond=0)
+
 
 # ------------------------------------------------------------------------------------------------------------------ live quotes
 

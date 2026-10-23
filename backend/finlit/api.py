@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, indices, notify, premium
+from . import alertapi, indices, intraday, notify, premium
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
@@ -255,6 +255,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     if settings.site_api_url:
         register_stock_admin(app, settings.site_api_url)  # must come before the /api/stocks/{symbol}/{section} routes
+    app.include_router(intraday.router)   # /api/stocks/{symbol}/intraday: also before the /api/stocks/{symbol}/{section} route
 
     @app.get("/api/ping")
     async def ping():
