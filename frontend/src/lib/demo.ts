@@ -22,6 +22,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (path === "/api/stocks/search-index") return file("search-index.json");
   if (path === "/api/screener/universe") return file("screener.json");
   if (path === "/api/search/quotes") return file("search-quotes.json");
+  if (path === "/api/macro") return file("macro.json");
   if (path === "/api/screener/top") {
     const s = JSON.parse(await (await file("RELIANCE/summary.json")).text());
     return json({ rows: [{ symbol: "RELIANCE", band: s.score.band.key, overall: s.score.overall, price: s.quote.price, sector: s.profile.sector, pe: null, roe: null }] });

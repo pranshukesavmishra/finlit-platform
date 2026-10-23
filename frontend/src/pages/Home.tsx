@@ -58,6 +58,7 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
   { to: "/etfs", t: "ETFs", d: "Every exchange-traded fund: price, returns over 1 month to 5 years, volatility and worst fall, with a chart and plain-words terms.", tier: "Free" },
   { to: "/funds", t: "Mutual funds", d: "Every scheme from AMFI: NAV, returns, risk, category and plan, with a chart and side-by-side compare. Information only.", tier: "Free" },
   { to: "/graphs", t: "Graph Studio", d: "Put several graphs side by side: pick companies and measures, choose a chart type for each, and see patterns and correlation.", tier: "Free" },
+  { to: "/macro", t: "India macro insights", d: "CPI and WPI inflation, GDP growth, jobs, the RBI repo rate, forex reserves and the rupee from MoSPI and the RBI, with full history, an inflation-target check and a chart you build yourself.", tier: "Free" },
   { to: "/sip-calculator", t: "SIP calculator", d: "See what a monthly investment could grow to, with a yearly step-up, inflation, a goal planner, the cost of waiting and an after-tax estimate. Every step of the maths shown.", tier: "Free" },
   { to: "/dcf", t: "DCF calculator", d: "Work out what a business is worth from its future free cash flow: load a company's figures, set growth and discount rates, and see the value per share, the price after your margin of safety, and what today's price already assumes.", tier: "Gold" },
 ];

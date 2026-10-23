@@ -80,7 +80,7 @@ SOURCE_URL = {"MoSPI": "https://esankhyiki.mospi.gov.in", "NSO / MoSPI": "https:
 CARDS = ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "real_rate", "fx_reserves", "usdinr", "credit_yoy"]
 RANGES = {"cpi": (-5, 30), "cpi_rural": (-5, 30), "cpi_urban": (-5, 30), "wpi": (-20, 40), "gdp": (-30, 30), "gdp_nominal": (-30, 40), "iip": (-70, 100),
           "unemployment": (0, 40), "unemployment_youth": (0, 60), "unemployment_urban": (0, 40), "repo": (1, 15), "fx_reserves": (1, 2500),
-          "usdinr": (30, 250), "usdinr_d": (30, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
+          "usdinr": (20, 250), "usdinr_d": (20, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
 
 
 def mospi_ssl() -> ssl.SSLContext:
