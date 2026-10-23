@@ -20,7 +20,7 @@ const scenes: Record<string, (k: string) => React.ReactNode> = {
     {[0, 1, 2, 3, 4].map((i) => <g key={i} className="pa-rise" style={{ animationDelay: `${i * 110}ms` }}><rect x={92 + i * 54} y={250 - i * 34} width="44" height={i * 34 + 24} rx="9" fill={`url(#pg${k})`} opacity={0.35 + i * 0.16} /><rect x={92 + i * 54} y={250 - i * 34} width="44" height="6" rx="3" fill="#fff" opacity=".5" /></g>)}
     <path className="pa-draw" d="M70 232 150 200 220 170 290 120 372 66" fill="none" stroke="var(--c3)" strokeWidth="3" strokeLinecap="round" strokeDasharray="6 7" />
     <g transform="translate(372 66)"><circle r="16" fill="var(--c3)" opacity=".25" className="pa-pulse" /><path d="M-6 8V-10l14 5-14 5" fill="var(--c3)" stroke="var(--c3)" strokeWidth="2" strokeLinejoin="round" /></g>
-    {chip(40, 40, "First session ₹99", "var(--gold)")}{chip(30, 288, "5 services", "var(--c2)", 600)}
+    {chip(40, 40, "First session", "var(--gold)")}{chip(30, 288, "5 services", "var(--c2)", 600)}
   </>),
   about: (k) => (<>
     <Rings k={k} />

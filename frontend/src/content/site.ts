@@ -23,13 +23,15 @@ export const SERVICES = [
 ] as const;
 export type ServiceName = (typeof SERVICES)[number]["name"];
 
+// Session prices are not decided yet: every price shows "—" until they are set here (a price is "₹…" text; per-month figures are worked out from it).
+export const PRICE_TBA = "—";
 /** `months` lets the Services page show the price per month. */
 export const PRICING = [
-  { plan: "First Session", price: "₹99", months: 0, note: "One conversation, so we can understand your goals" },
-  { plan: "1 Month", price: "₹299", months: 1, note: "" },
-  { plan: "3 Months", price: "₹699", months: 3, note: "" },
-  { plan: "6 Months", price: "₹1,299", months: 6, note: "" },
-  { plan: "1 Year", price: "₹2,499", months: 12, note: "Lowest per month" },
+  { plan: "First Session", price: PRICE_TBA, months: 0, note: "One conversation, so we can understand your goals" },
+  { plan: "1 Month", price: PRICE_TBA, months: 1, note: "" },
+  { plan: "3 Months", price: PRICE_TBA, months: 3, note: "" },
+  { plan: "6 Months", price: PRICE_TBA, months: 6, note: "" },
+  { plan: "1 Year", price: PRICE_TBA, months: 12, note: "" },
 ];
 
 export const FOUNDER = {
@@ -137,7 +139,7 @@ export const ASSISTANT: Record<string, AssistantNode> = {
     options: [{ label: "View Performance", action: nav("/portfolio") }] },
   about: { answer: "FinLit Ventures does investment research, portfolio reviews and financial planning conversations, mostly around Indian stocks, mutual funds and ETFs.", backLabel: "Back to Main Menu",
     options: [{ label: "About FinLit", action: nav("/about") }, { label: "Meet the Founder", action: nav("/about") }] },
-  pricing: { answer: `A ${PRICING[0].plan} costs ${PRICING[0].price}. Longer plans are listed on the services page. The website plans (Basic, Silver, Gold) are separate and are on the Plans page.`, backLabel: "Back to Main Menu",
+  pricing: { answer: `Session prices will be announced soon. Send an enquiry from the services page and we will share the details. The website plans (Basic, Silver, Gold) are separate and are on the Plans page.`, backLabel: "Back to Main Menu",
     options: [{ label: "View Services & Pricing", action: nav("/services") }, { label: "Enquire", action: enq() }] },
   contact: { answer: "Use the contact form and tell us which service you are interested in. We usually reply within one working day.", backLabel: "Back to Main Menu",
     options: [{ label: "Open Contact Form", action: nav("/contact") }, { label: "Explore Services", action: menu("services") }] },

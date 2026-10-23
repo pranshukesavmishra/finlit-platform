@@ -89,7 +89,6 @@
 .hh-svc li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; padding: 18px 0; border-bottom: 1px solid var(--border-strong); }
 .hh-svc .hh-prop { color: var(--text); font-size: 15.5px; margin-bottom: 4px; }
 .hh-svc p + p { max-width: 70ch; }
-.hh-price { font: 400 34px var(--serif) !important; color: var(--text) !important; }
 .hh-first .btn { margin-top: 12px; }
 
 /* faq + close, quieter */

@@ -6,10 +6,14 @@ import { useEnquiry } from "../components/Enquiry";
 import { useDocTitle } from "../lib/title";
 import { Link } from "react-router";
 
-const perMonth = (price: string, months: number) => months > 1 ? "about ₹" + Math.round(Number(price.replace(/[^\d]/g, "")) / months) + " a month" : months === 1 ? "a month" : "one time";
+const perMonth = (price: string, months: number) => {
+  const n = Number(price.replace(/[^\d]/g, ""));
+  if (!n) return "Price to be announced";   // no price set yet (PRICE_TBA)
+  return months > 1 ? "about ₹" + Math.round(n / months) + " a month" : months === 1 ? "a month" : "one time";
+};
 
 export function Services() {
-  useDocTitle("Services & pricing", "Talk to the FinLit team about starting to invest, planning, global investing or reviewing your portfolio. A first session costs ₹99.");
+  useDocTitle("Services & pricing", "Talk to the FinLit team about starting to invest, planning, global investing or reviewing your portfolio. Session prices will be announced soon.");
   const enquire = useEnquiry();
   return (
     <>
@@ -18,7 +22,7 @@ export function Services() {
         <div className="cards3">{SERVICES.map((s, i) => <Reveal key={s.name} delay={i * 60}><div className="feat" style={{ "--ac": `var(--c${(i % 4) + 1})`, height: "100%" } as React.CSSProperties}><span className="num">{s.n}</span><div className="fi"><Icon name={s.icon} /></div><h3>{s.name}</h3><p className="prop">{s.proposition}</p><p>{s.desc}</p><button className="btn" onClick={() => enquire(s.name)}>Enquire <Icon name="arrow" /></button></div></Reveal>)}</div>
       </div></section>
       <section className="sec alt hp-prices"><div className="wrap">
-        <Reveal className="sec-h"><div className="eyebrow">Pricing</div><h2>What a session costs</h2><p>These prices are for talking to us. Start with a ₹99 first session. If it is useful, the longer options cost less per month. Prices are for one service.</p></Reveal>
+        <Reveal className="sec-h"><div className="eyebrow">Pricing</div><h2>What a session costs</h2><p>These options are for talking to us: a first session, then monthly, quarterly, half-yearly or yearly plans for one service. Prices will be announced soon; send an enquiry and we will share the details.</p></Reveal>
         <div className="prices">{PRICING.map((p, i) => <Reveal key={p.plan} delay={i * 60}><div className={"price-c" + (i === PRICING.length - 1 ? " best" : "")}>{p.note === "Lowest per month" && <span className="chip gold tag-b">Lowest per month</span>}<div className="n">{p.plan}</div><div className="p">{p.price}</div><div className="hp-per">{perMonth(p.price, p.months)}</div><button className="btn" style={{ width: "100%" }} onClick={() => enquire()}>Enquire</button></div></Reveal>)}</div>
         <p className="hp-note">Looking for the website tools (screener, scores, watchlists)? Those are separate and are on the <Link to="/plans">Plans page</Link>. Basic is free.</p>
       </div></section>
