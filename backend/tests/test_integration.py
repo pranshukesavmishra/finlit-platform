@@ -191,7 +191,7 @@ async def test_rate_limit_returns_429(ingested):
 
 
 async def test_health_shows_no_internals_outside_development(ingested):
-    app, transport = await _client(ingested, environment="staging")
+    app, transport = await _client(ingested, environment="staging", secret_key="x" * 40)
     async with app.router.lifespan_context(app), httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         assert (await c.get("/api/health")).json() == {"ok": True}
 
