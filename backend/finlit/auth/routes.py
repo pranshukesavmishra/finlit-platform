@@ -382,26 +382,22 @@ async def login(request: Request, response: Response, body: SignIn):
     email = crypto.normalise_email(body.email)
     invalid = fail(401, "invalid_credentials", "Email or password is not correct.")
     if not email:
-        await crypto.verify_password(crypto.DUMMY_HASH, body.password)
+        await crypto.verify_password(crypto.dummy_hash(), body.password)
         raise invalid
-    await limit(request, "loginmail", email_hash(email), 12, 900)
+    # Guessing is slowed per account AND per address, the same way whether or not the account exists (so a refusal never reveals an account), and an
+    # attacker's attempts from elsewhere cannot lock the owner out: there is no account-wide lock, only these budgets.
+    await limit(request, "loginpair", email_hash(email) + "|" + ip, 10, 900)
+    await limit(request, "loginmail", email_hash(email), 200, 3600)
     async with pool.acquire() as conn:
         u = await conn.fetchrow("SELECT * FROM users WHERE lower(email) = $1", email)
     if u is None:
-        await crypto.verify_password(crypto.DUMMY_HASH, body.password)
+        await crypto.verify_password(crypto.dummy_hash(), body.password)
         raise invalid
-    now = datetime.now(timezone.utc)
-    if u["locked_until"] and u["locked_until"] > now:
-        retry = int((u["locked_until"] - now).total_seconds())
-        raise HTTPException(status_code=429, detail={"status": "locked", "detail": "Too many wrong attempts. Try again in a few minutes, or reset your password.",
-                                                      "retryAfter": retry}, headers={"Retry-After": str(retry)})
     ok = await crypto.verify_password(u["password_hash"], body.password)
 
-    async def count_failure() -> None:
+    async def count_failure() -> None:   # kept for the audit trail and the admin console; the budgets above do the slowing down
         async with pool.acquire() as conn:
-            n = await conn.fetchval("UPDATE users SET failed_logins = failed_logins + 1 WHERE id = $1 RETURNING failed_logins", u["id"])
-            if n >= 8:
-                await conn.execute("UPDATE users SET failed_logins = 0, locked_until = now() + interval '15 minutes' WHERE id = $1", u["id"])
+            await conn.execute("UPDATE users SET failed_logins = failed_logins + 1 WHERE id = $1", u["id"])
         await audit(pool, str(u["id"]), "login_failed", None, ip)
 
     if not ok or u["status"] != "active":

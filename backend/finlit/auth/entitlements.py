@@ -34,6 +34,9 @@ def varies_by_plan(section: str) -> bool:
     return section in ("summary", "ratios", "segments", "stats") or section.startswith("price-")
 
 
+GOLD_TECHNICAL_INPUTS = {"rsi14", "vsEma50Pct"}
+
+
 def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, Any]:
     """Return `data` with everything above `plan` removed. `data` is modified in place and returned."""
     if has(plan, "gold"):
@@ -50,6 +53,7 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
             data["thesis"] = None
             data["strengths"] = []
             data["watchouts"] = []
+        data["returns"] = []   # "returns across every holding period" sits in the Gold Momentum card
     elif section == "ratios":
         history = data.get("history") or {}
         rows = history.get("rows") or {}
@@ -69,7 +73,16 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
             score["band"] = {"key": "locked", "label": "Locked"}
             for p in score.get("pillars", []):
                 p["score"] = None
+                p["band"] = {"key": "locked", "label": "Locked"}   # a pillar's band is its score in buckets: locked like the score
                 p["inputs"] = []
+                p.pop("coverage", None)
+                p.pop("reason", None)
+        else:   # Silver: the momentum readings are the Gold "Momentum" card; the score shows they count, not their values
+            for p in score.get("pillars", []):
+                for i in p.get("inputs") or []:
+                    if isinstance(i, dict) and i.get("key") in GOLD_TECHNICAL_INPUTS:
+                        i["value"] = None
+                        i["locked"] = True
     elif section == "stats":
         if not silver:  # the price-statistics charts are a Silver feature
             data.clear()

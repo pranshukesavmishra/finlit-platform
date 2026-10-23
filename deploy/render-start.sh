@@ -22,6 +22,8 @@ if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; 
     done ) &
 fi
 export CLIENT_IP_HEADER="${CLIENT_IP_HEADER:-x-forwarded-for}"
+# Indian dates everywhere: the jobs already run on IST (scheduler.sh); the API must agree, or "today" is yesterday between midnight and 05:30 IST.
+export TZ="${TZ:-Asia/Kolkata}"
 
 until $PY -m finlit.worker migrate; do echo "waiting for the database..."; sleep 3; done
 

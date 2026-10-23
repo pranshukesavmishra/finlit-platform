@@ -66,6 +66,8 @@ async def test_plan_gate(app):  # noqa: F811
         assert cat["plan"] == "basic" and keys["pe"]["locked"] is False and keys["pb"]["locked"] is True and keys["overall"]["locked"] is True
         ok = await _q(anon, {"filters": {"pe": {"max": 100}}, "columns": ["pe", "market_cap"], "limit": 100})
         assert ok.status_code == 200 and ok.json()["limit"] <= 25
+        showcase = set(app.state.settings.showcase_symbols)
+        assert all(r["band"] is None for r in ok.json()["rows"] if r["symbol"] not in showcase)   # the score band is model output too
         no = await _q(anon, {"filters": {"pb": {"max": 5}}})
         assert no.status_code == 403 and no.json()["detail"]["plan"] == "silver"
         assert (await _q(anon, {"columns": ["overall"]})).status_code == 403          # cannot read locked data through columns either
@@ -80,7 +82,7 @@ async def test_plan_gate(app):  # noqa: F811
     assert r.status_code == 200 and r.text.startswith("﻿Symbol,Company")
     gold = await signed_in(app, "g@example.com", plan="gold")
     ok = await _q(gold, {"filters": {"overall": {"min": 0}}, "columns": ["overall", "pillar_quality"], "cats": {"band": ["mixed", "strong", "healthy", "watch"]}})
-    assert ok.status_code == 200 and ok.json()["total"] >= 1
+    assert ok.status_code == 200 and ok.json()["total"] >= 1 and any(r["band"] for r in ok.json()["rows"])
 
 
 # ---------------------------------------------------------------- annual operating profit (item 2)

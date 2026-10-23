@@ -96,10 +96,12 @@ class BodyLimitMiddleware:
         self.app, self.limit = app, limit
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS"):
+        if scope["type"] != "http" or scope["method"] == "OPTIONS":   # GET and HEAD too: a body sent with them would otherwise be read (and forwarded) in full
             return await self.app(scope, receive, send)
-        declared = dict(scope["headers"]).get(b"content-length")
-        limit = MAX_UPLOAD_BODY if scope.get("path", "").startswith(UPLOAD_PREFIXES) else self.limit
+        headers = dict(scope["headers"])
+        declared = headers.get(b"content-length")
+        upload = scope.get("path", "").startswith(UPLOAD_PREFIXES) and headers.get(b"authorization", b"").strip().lower().startswith(b"bearer ")
+        limit = MAX_UPLOAD_BODY if upload else self.limit   # the large allowance only for a request that carries a CMS token
         too_big = JSONResponse({"status": "too_large", "detail": "Request is too large."}, status_code=413,
                                headers={"Cache-Control": "no-store"})
         if declared and declared.isdigit() and int(declared) > limit:
@@ -123,6 +125,36 @@ class BodyLimitMiddleware:
 
 class _TooLarge(Exception):
     pass
+
+
+def install_error_handlers(app: FastAPI) -> None:
+    """Failures a visitor can cause or wait out get a clear answer instead of a bare 500."""
+    import asyncpg
+    import redis.asyncio as aioredis
+    from fastapi.exceptions import RequestValidationError
+    log = logging.getLogger("finlit.api")
+    busy = {"status": "busy", "detail": "The site is busy for a moment. Please try again."}
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid(request: Request, exc: RequestValidationError):
+        # Same shape as FastAPI's own answer, without echoing what was sent (a password typed into a form must not come back in an error).
+        errors = [{k: v for k, v in e.items() if k in ("type", "loc", "msg")} for e in exc.errors()]
+        return JSONResponse({"detail": errors}, status_code=422, headers={"Cache-Control": "no-store"})
+
+    @app.exception_handler(aioredis.RedisError)
+    @app.exception_handler(asyncpg.exceptions.InterfaceError)
+    @app.exception_handler(asyncpg.exceptions.PostgresConnectionError)
+    @app.exception_handler(asyncpg.exceptions.CannotConnectNowError)
+    @app.exception_handler(asyncpg.exceptions.TooManyConnectionsError)
+    @app.exception_handler(ConnectionError)
+    @app.exception_handler(asyncio.TimeoutError)
+    async def unavailable(request: Request, exc: Exception):
+        log.warning("%s %s: %s, answered 503", request.method, request.url.path, type(exc).__name__)
+        return JSONResponse(busy, status_code=503, headers={"Cache-Control": "no-store", "Retry-After": "5"})
+
+    @app.exception_handler(asyncpg.exceptions.DataError)
+    async def bad_value(request: Request, exc: Exception):   # e.g. a NUL byte or an out-of-range number in a query parameter
+        return JSONResponse({"status": "bad_request", "detail": "That request has a value we cannot read."}, status_code=400, headers={"Cache-Control": "no-store"})
 
 
 def create_app(settings: Optional[Settings] = None, store: Optional[Store] = None) -> FastAPI:
@@ -158,7 +190,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        app.state.store = store or await Store.connect(settings)
+        app.state.store = store or await Store.connect(settings, acquire_timeout=5)
         app.state.limiter = RateLimiter(app.state.store.redis)
         app.state.settings = settings
         if settings.mail_mode == "resend" and settings.resend_api_key:
@@ -198,6 +230,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app = FastAPI(title="FinLit API", version="0.1.0", lifespan=lifespan,
                   docs_url="/api/docs" if docs else None, redoc_url=None,
                   openapi_url="/api/openapi.json" if docs else None)
+    install_error_handlers(app)
     # Last added runs first: headers wrap everything, then host check, CORS, rate limit, gzip.
     app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
     app.add_middleware(RateLimitMiddleware, settings=settings)

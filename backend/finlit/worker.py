@@ -706,7 +706,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             await record_run(store, args.cmd, {"status": result.get("status"), "reason": str(result.get("reason") or "")[:200],
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
-            return 0 if result.get("status") in ("ok", "partial") else 1   # partial = some instruments failed but good rows were kept; a refused or empty answer stops the boot chain
+            return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
             from .screener import jobs
             if args.cmd == "rebuild-metrics":

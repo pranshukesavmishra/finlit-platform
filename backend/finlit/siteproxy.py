@@ -9,6 +9,7 @@ CMS login, Content-Type for forms and uploads). Cookies are not forwarded; the s
 from __future__ import annotations
 
 import logging
+import posixpath
 
 import httpx
 from fastapi import FastAPI, Request
@@ -30,7 +31,19 @@ def _client(app: FastAPI, base_url: str) -> httpx.AsyncClient:
     return client
 
 
+def _clean(path: str) -> bool:
+    """A path the site backend will read the same way it is checked here: no dot segments, no doubled slashes, no backslashes
+    (the HTTP client resolves "./" and "../" before sending, so "/api/content/admin/./login" would otherwise slip past BLOCKED_PATHS)."""
+    return "//" not in path and "\\" not in path and posixpath.normpath(path) == path.rstrip("/")
+
+
+def _blocked(path: str) -> bool:
+    return not _clean(path) or path.rstrip("/").lower() in BLOCKED_PATHS
+
+
 async def forward(request: Request, base_url: str) -> Response:
+    if _blocked(request.url.path):
+        return _not_found()
     headers = {k: v for k, v in request.headers.items() if k.lower() in FORWARD_REQUEST_HEADERS}
     headers = {k: v for k, v in headers.items() if v.strip() and v.strip().lower() != "bearer"}  # blank Authorization -> 401 upstream, not a 502
     headers["accept-encoding"] = "identity"
@@ -67,7 +80,9 @@ def register_catch_all(app: FastAPI, base_url: str) -> None:
     """Every other /api path the research API does not answer goes to the site backend. Call this AFTER all research routes."""
     @app.api_route("/api/{rest:path}", methods=METHODS, include_in_schema=False)
     async def site_api(rest: str, request: Request):
-        if request.url.path.rstrip("/").lower() in BLOCKED_PATHS:
-            return JSONResponse({"status": "not_found", "detail": "Sign in on the website: administrators reach the content tools from their account."},
-                                status_code=404, headers={"Cache-Control": "no-store"})
         return await forward(request, base_url)
+
+
+def _not_found() -> Response:
+    return JSONResponse({"status": "not_found", "detail": "Sign in on the website: administrators reach the content tools from their account."},
+                        status_code=404, headers={"Cache-Control": "no-store"})

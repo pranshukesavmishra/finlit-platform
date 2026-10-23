@@ -18,7 +18,16 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from cryptography.fernet import Fernet, InvalidToken
 
 _hasher = PasswordHasher()  # argon2id with the library's recommended (RFC 9106 low-memory) parameters
-DUMMY_HASH = _hasher.hash("timing-equaliser-not-a-real-password")
+_dummy: Optional[str] = None
+
+
+def dummy_hash() -> str:
+    """A real argon2 hash to check unknown accounts against (so a wrong email takes as long as a wrong password). Made on first use, not at import:
+    every worker job imports this module, and hashing needs ~64 MB of working memory."""
+    global _dummy
+    if _dummy is None:
+        _dummy = _hasher.hash("timing-equaliser-not-a-real-password")
+    return _dummy
 _sems: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = weakref.WeakKeyDictionary()
 
 

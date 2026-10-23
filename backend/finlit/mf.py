@@ -261,10 +261,25 @@ def family_stem(name: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def parse_navall(text: str) -> Parsed:
+IST = timezone(timedelta(hours=5, minutes=30))
+FUTURE_DAYS = 1   # a NAV may carry tomorrow's date near midnight; anything later is a typo in the file and is not stored
+
+
+def latest_allowed(today: Optional[date] = None) -> date:
+    """The latest NAV date accepted: today in India plus a day. A row dated later (a typo such as 2062) would otherwise become the 'newest' date and
+    make every correct file look older than what is stored."""
+    return (today or india_today()) + timedelta(days=FUTURE_DAYS)
+
+
+def india_today() -> date:
+    return datetime.now(IST).date()
+
+
+def parse_navall(text: str, today: Optional[date] = None) -> Parsed:
     """Parse NAVAll.txt (also the layout of the history download, minus the history-only columns). Never raises on a bad line: it is counted in `skipped`.
     Schemes without a usable NAV are still listed (nav None). A line is left out only when it has no scheme code or the wrong number of fields."""
     out = Parsed()
+    limit = latest_allowed(today)
     seen: Dict[int, int] = {}
     kind, category, amc = "", "", ""
     for raw in text.split("\n"):
@@ -294,6 +309,9 @@ def parse_navall(text: str) -> Parsed:
             out.skip("no scheme name")
             continue
         nav, nav_date = parse_nav(f[6]), parse_date(f[7])
+        if nav_date is not None and nav_date > limit:
+            out.skip("NAV dated in the future")
+            nav, nav_date = None, None
         if nav is None:
             out.skip("no usable NAV (N.A., dash, blank or zero)")
         if nav is not None and nav_date is None:
@@ -916,6 +934,11 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
         pruned = await prune_excluded(store)   # rows of unlisted fund houses are removed first, so the checks below compare like with like
         dropped = drop_excluded(parsed)
         async with store.pool.acquire() as conn:
+            # a NAV stored with a future date (a typo in an earlier file) is forgotten, so it can neither block this file nor outrank today's NAV
+            res_fix = await conn.execute("UPDATE mf_schemes SET nav_date = NULL WHERE nav_date > $1", latest_allowed())
+            future_fixed = int(res_fix.split()[-1])
+            if future_fixed:
+                log.warning("mf refresh: %d stored NAV dates were in the future and were cleared", future_fixed)
             stored = await conn.fetchrow("SELECT count(*) AS n, max(nav_date) AS newest, count(*) FILTER (WHERE active) AS act FROM mf_schemes")
             why = verdict(parsed, stored["n"], stored["newest"], stored["act"])
         if why:
@@ -923,6 +946,7 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
             return {"status": "refused", "reason": why, "parsed": len(parsed.schemes), "stored": stored["n"], "skipped": parsed.skipped}
         newest = parsed.newest
         res = await apply_navall(store, parsed, newest)
+        res["futureDatesCleared"] = future_fixed
         res["excludedSchemesSkipped"], res["excludedRowsPruned"] = dropped, pruned
         res["gapDays"] = await _repair_gaps(store, client, res.pop("_gap_since", None), newest)
         if backfill_amc:
