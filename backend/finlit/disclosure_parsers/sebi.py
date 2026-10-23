@@ -21,6 +21,7 @@ DATE_RES = [
     re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?[\s,.-]+{_MON}\.?[\s,.-]+(\d{{4}})\b", re.I),     # 30 September 2026, 30-Sep-2026
     re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b"),                                          # 30/09/2026
     re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b"),                                                    # 2026-09-30
+    re.compile(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})\b"),                                  # 30-09-2026, 30-09-26 (Tata)
 ]
 
 
@@ -36,7 +37,10 @@ def parse_date_text(s: str) -> Optional[date]:
                 return date(int(m.group(3)), MONTHS[m.group(2)[:3].lower()], int(m.group(1)))
             if i == 2:
                 return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
-            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            if i == 3:
+                return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            y = int(m.group(3))
+            return date(y + 2000 if y < 100 else y, int(m.group(2)), int(m.group(1)))
         except (ValueError, KeyError):
             continue
     return None
@@ -118,7 +122,7 @@ _HEAD = [
     ("other", re.compile(r"derivative|futures|options|mutual\s+fund\s+units|units\s+of|\betfs?\b|reits?|invits?|alternative|\baif\b|foreign|overseas|gold|silver|commodit|others?\b|preference|warrants?", re.I)),
 ]
 _SUBHEAD = re.compile(r"^\W*(\(?[a-z0-9]{1,3}\)\s*)?(listed|unlisted|awaiting|privately|private placement|rated|unrated|thinly|securiti)", re.I)
-TOTAL_ROW = re.compile(r"^\W*(sub\s*-?\s*total|total)\b", re.I)
+TOTAL_ROW = re.compile(r"^\W*(sub\s*-?\s*total|total)\b|^.*[a-z)]\s+(sub\s*-?\s*)?total\W*$", re.I)     # 'TOTAL ...' or 'EQUITY & EQUITY RELATED TOTAL' (Tata)
 GRAND_ROW = re.compile(r"^\W*(grand\s*total|total\s*net\s*assets|net\s*assets\b|total\s*assets|total\s*aum|grand\s*total)", re.I)
 RATING_LIKE = re.compile(r"\b(aaa|aa\+?|aa-|a1\+|a1|a\+|sovereign|unrated|crisil|icra|care|ind\s?a|fitch|brickwork|acuite|nil)\b|^[ab]{1,3}[+-]?$", re.I)
 
@@ -204,6 +208,10 @@ def bench_of(text: str) -> Optional[str]:
     return v if v and not RISK_WORDS.match(v) and not v.lower().startswith("risk") else None
 
 
+def _alnum(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+
+
 class NotAPortfolio(Exception):
     pass
 
@@ -230,6 +238,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if title and title.lower() != name_hint.lower():
             aliases = [title] + aliases
         title = name_hint
+    own_names = {_alnum(t) for t in [title, *aliases] if t and _alnum(t)}
     as_of: Optional[date] = None
     for r in above:
         for c in r:
@@ -272,6 +281,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     last_holding: Tuple[int, tuple] = (-2, ())
     rown = -1
     in_deriv = False
+    nca_parts = 0          # cash lines dropped because the 'Net Current Assets' line after them is their sum
+    swap_rows: List[Holding] = []   # swap lines (Tata: notional with a pseudo-ISIN 'IRSSWAP...'; HSBC: 'PAY_x% &REC_OIS_...') and long futures/options exposures
 
     def cell(row, key):
         i = cols.get(key)
@@ -319,6 +330,15 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             done = True
             continue
         if TOTAL_ROW.match(name):
+            rest = _alnum(re.sub(r"^\W*(sub\s*-?\s*)?total\W*", "", name, flags=re.I))
+            if rest and rest in own_names:
+                # 'TOTAL : UTI Large Cap Fund' (UTI): the scheme's own total closes the table (futures exposure, dividend tables follow)
+                tv = num(cell(row, "value"))
+                if tv is not None and unit:
+                    net_assets = tv * unit
+                if pct is not None:
+                    grand_pct = pct
+                done = True
             continue
         isin_raw = "" if label_in_isin else txt(cell(row, "isin")).upper().replace(" ", "")
         if (pct is not None and not isin_raw and num(cell(row, "qty")) is None and not CASH_NAME.search(name)
@@ -356,6 +376,20 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             continue
         if not isin_raw and deriv_row and cls != "cash":
             cls = "other"
+            if pct > 0:
+                # a long future / option line: an exposure that some files count in their total and others (Bandhan) do not; decided after the table
+                swap_rows.append(Holding(name=name, isin=None, sector=None, asset_class="other", pct_nav=pct, qty=num(cell(row, "qty")),
+                                         value_lakh=num(cell(row, "value")) * unit if num(cell(row, "value")) is not None and unit else None))
+                continue
+        if pct < 0 and cls != "cash" and (num(cell(row, "qty")) or 0) < 0:
+            hedge_rows += 1     # a short futures leg printed among the shares, with the share's ISIN and a negative quantity (Tata)
+            hedge_sum += pct
+            continue
+        if re.match(r"^\W*(irs|interest\s+rate\s+swaps?)\b|^\W*pay_.*&\s*rec_", name, re.I):
+            sw_value = num(cell(row, "value"))      # a swap line: its notional may or may not be inside the file's total; decided after the table
+            swap_rows.append(Holding(name=name, isin=None, sector=None, asset_class="other", pct_nav=pct, qty=num(cell(row, "qty")),
+                                     value_lakh=sw_value * unit if sw_value is not None and unit else None))
+            continue
         if not seen_heading and cls == "other" and isin_raw:
             cls = "equity" if isin_raw.startswith("INE") and isin_raw[7:9] == "01" else cls
         sec_raw = txt(cell(row, "sector"))
@@ -375,8 +409,31 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             last_holding = (rown, key)
             continue
         last_holding = (rown, key)
+        if cls == "cash" and not isin and re.search(r"net\s+current\s+assets?", name, re.I):
+            # Bandhan lists 'Cash Margin', 'Net Receivables/Payables' and then 'Net Current Assets' as their sum: keep the sum, drop the parts
+            acc, k = 0.0, 0
+            big = max((abs(x) for x in raw_pcts), default=0.0) > 1.5
+            while k < len(holdings) and holdings[-1 - k].asset_class == "cash" and holdings[-1 - k].isin is None:
+                acc += holdings[-1 - k].pct_nav
+                k += 1
+                if k >= 2 and abs(acc - pct) <= k * (0.006 if big else 0.00006):
+                    del holdings[-k:]
+                    del raw_pcts[-k:]
+                    nca_parts += k
+                    break
         holdings.append(Holding(name=name, isin=isin, sector=sector, asset_class=cls, pct_nav=pct, qty=qty, value_lakh=value))
         raw_pcts.append(pct)
+    swaps_left_out = 0
+    if swap_rows:
+        base = sum(raw_pcts)
+        target = grand_pct if grand_pct is not None else (1.0 if abs(base - 1.0) < abs(base - 100.0) else 100.0)
+        s_sum = sum(h.pct_nav for h in swap_rows)
+        off = lambda b: min(abs(b - target), abs(b + hedge_sum - target))      # the validator may count the short hedge lines or not
+        if off(base + s_sum) <= max(off(base), 0.0025 * abs(target)):      # kept unless they clearly push the total off (> 0.25 points)
+            holdings.extend(swap_rows)
+            raw_pcts.extend(h.pct_nav for h in swap_rows)
+        else:
+            swaps_left_out = len(swap_rows)
     # percent scale: fractions (sum about 1) or percents (sum about 100)
     ref = grand_pct if grand_pct is not None else sum(raw_pcts)
     scale = 100.0 if abs(ref - 1.0) < abs(ref - 100.0) else 1.0
@@ -396,6 +453,10 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         notes.append(f"{star_rows} row(s) published with a '*' marker instead of a number (below the file's display threshold) are not listed")
     if dup_rows:
         notes.append(f"{dup_rows} row(s) repeated verbatim on the next line of the file are counted once")
+    if nca_parts:
+        notes.append(f"{nca_parts} cash line(s) summed by the file's 'Net Current Assets' line are shown as that one line")
+    if swaps_left_out:
+        notes.append(f"{swaps_left_out} derivative exposure line(s) (swap notional, long futures/options) are outside the file's total and are not listed")
     if hedge_rows:
         notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,
