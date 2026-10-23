@@ -151,7 +151,7 @@ def clean_name(s: str) -> str:
 # -------------------------------------------------------------------------------------------------- title
 
 TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)|^back\s+to\s+(index|top)"
-                        r"|asset\s+management\s+(company|co\b)|investment\s+manager|^registered\s+office|\bCIN\b", re.I)
+                        r"|asset\s+management\s+(company|co\b)|investment\s+manager|^registered\s+office|\bCIN\b|sebi\s+registration|^corporate\s+office|toll\s+free", re.I)
 
 
 def split_title(cell: str) -> Tuple[str, List[str]]:
@@ -159,6 +159,7 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     with '(formerly known as X)' / '(Ex X)' moved to aliases."""
     full = re.sub(r"\s+", " ", cell.strip())
     full = re.sub(r"\s*\(\s*an?\s+[a-z][\s\S]*$", "", full, flags=re.I) if re.search(r"\(\s*an?\s+[a-z]", full, re.I) and not re.match(r"^\(", full) else full
+    full = re.sub(r"\s+[-–:]\s*an?\s+(?:open|close|interval)[\s-]*ended\b[\s\S]*$", "", full, flags=re.I)   # 'X Fund - An open ended ...' (360 ONE)
     aliases: List[str] = []
     m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile(?:\s+known\s+as)?|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
     if m:
@@ -241,10 +242,14 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     own_names = {_alnum(t) for t in [title, *aliases] if t and _alnum(t)}
     as_of: Optional[date] = None
     for r in above:
-        for c in r:
+        for ci, c in enumerate(r):
             t = txt(c)
             if isinstance(c, str) and re.search(r"\bas\s+(on|at)\b|\bfor the (month|period)\b|\bas of\b", t, re.I):
                 d = parse_date_text(t)
+                if not d and re.search(r"[:\-]\s*$", t):    # 'PORTFOLIO STATEMENT AS ON :' | 'September 30, 2026' in the next cell (Capitalmind)
+                    nxt = next((x for x in r[ci + 1:] if x not in (None, "")), None)
+                    d = (nxt.date() if isinstance(nxt, datetime) else nxt if isinstance(nxt, date) else
+                         excel_serial(nxt) or (parse_date_text(txt(nxt)) if isinstance(nxt, str) else None))
                 if d:
                     as_of = d
                     break
@@ -274,6 +279,9 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     seen_heading = False
     done = False
     raw_pcts: List[float] = []
+    row_sec: List[int] = []                # per listed row: which section (rows up to the next Total line) it sits in
+    sec_total: Dict[int, float] = {}       # section -> the percent on its Total / Sub Total line
+    sec_id = 0
     star_rows = 0          # rows whose percent is a '*' / '<0.01' marker instead of a number: not listed
     hedge_sum = 0.0
     hedge_rows = 0         # futures / options hedge lines with a negative percent: exposures, not additive to net assets, not listed
@@ -281,6 +289,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     last_holding: Tuple[int, tuple] = (-2, ())
     rown = -1
     in_deriv = False
+    cash_run: List[Optional[float]] = []   # values of the cash lines (no ISIN) just above, to spot a line that is their total (Mahindra Manulife)
     nca_parts = 0          # cash lines dropped because the 'Net Current Assets' line after them is their sum
     swap_rows: List[Holding] = []   # swap lines (Tata: notional with a pseudo-ISIN 'IRSSWAP...'; HSBC: 'PAY_x% &REC_OIS_...') and long futures/options exposures
 
@@ -330,6 +339,10 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             done = True
             continue
         if TOTAL_ROW.match(name):
+            cash_run.clear()
+            if pct is not None:
+                sec_total.setdefault(sec_id, pct)
+            sec_id += 1
             rest = _alnum(re.sub(r"^\W*(sub\s*-?\s*)?total\W*", "", name, flags=re.I))
             if rest and rest in own_names:
                 # 'TOTAL : UTI Large Cap Fund' (UTI): the scheme's own total closes the table (futures exposure, dividend tables follow)
@@ -349,6 +362,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
                 cur, seen_heading, in_deriv = hc, True, bool(re.search(r"derivative|futures|options", name, re.I))
             continue
         if pct is None:
+            cash_run.clear()
             if isinstance(pct_raw, str) and re.match(r"^\s*(\*+|\$+|<\s*[\d.]+\s*%?|less than.*)\s*$", pct_raw) and not heading_class(name) and (isin_raw or num(cell(row, "value")) is not None):
                 star_rows += 1
                 continue
@@ -419,10 +433,23 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
                 if k >= 2 and abs(acc - pct) <= k * (0.006 if big else 0.00006):
                     del holdings[-k:]
                     del raw_pcts[-k:]
+                    del row_sec[-k:]
                     nca_parts += k
                     break
+        raw_value = num(cell(row, "value"))
+        if cls == "cash" and not isin_raw:
+            n = len(cash_run)
+            if n >= 2 and raw_value is not None and None not in cash_run and abs(raw_value - sum(cash_run)) <= 0.01 * n + 1e-6 * abs(raw_value):
+                del holdings[-n:]          # this line is the total of the n cash lines above it (margin + receivables, then 'Net Receivables' again)
+                del raw_pcts[-n:]
+                del row_sec[-n:]
+                cash_run.clear()
+            cash_run.append(raw_value)
+        else:
+            cash_run.clear()
         holdings.append(Holding(name=name, isin=isin, sector=sector, asset_class=cls, pct_nav=pct, qty=qty, value_lakh=value))
         raw_pcts.append(pct)
+        row_sec.append(sec_id)
     swaps_left_out = 0
     if swap_rows:
         base = sum(raw_pcts)
@@ -432,6 +459,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if off(base + s_sum) <= max(off(base), 0.0025 * abs(target)):      # kept unless they clearly push the total off (> 0.25 points)
             holdings.extend(swap_rows)
             raw_pcts.extend(h.pct_nav for h in swap_rows)
+            row_sec.extend([sec_id] * len(swap_rows))
         else:
             swaps_left_out = len(swap_rows)
     # percent scale: fractions (sum about 1) or percents (sum about 100)
@@ -440,8 +468,13 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     notes: List[str] = []
     if scale == 100.0:
         notes.append("percent column published as fractions; multiplied by 100")
-        for h in holdings:
-            h.pct_nav = round(h.pct_nav * 100.0, 6)
+        # a fraction can never pass 1.5 (150 %): a row, or a section whose Total line, is above it is already in percent (The Wealth Company Gold
+        # ETF: gold lines 92.42 and 4.64 under a Total of 97.06, cash 0.028, grand total 1.0). Taken only when that reading adds up to the file's
+        # own grand total.
+        in_pct = [abs(p) > 1.5 or abs(sec_total.get(s_, 0.0)) > 1.5 for p, s_ in zip(raw_pcts, row_sec)]
+        mixed = grand_pct is not None and any(in_pct) and abs(sum(p if f else p * 100.0 for p, f in zip(raw_pcts, in_pct)) - grand_pct * 100.0) < 0.5
+        for h, f in zip(holdings, in_pct):
+            h.pct_nav = round(h.pct_nav * (1.0 if mixed and f else 100.0), 6)
         grand_pct = round(grand_pct * 100.0, 6) if grand_pct is not None else None
         if hedge_sum:   # the hedge block usually shares the table's unit, but some files print it in percent beside fraction holdings: take the one that adds up
             listed = sum(h.pct_nav for h in holdings)

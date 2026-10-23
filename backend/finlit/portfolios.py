@@ -98,6 +98,11 @@ def excluded_amc(amc: str) -> bool:
     return _house_stem(amc) in _EXCLUDED
 
 
+def _flat_key(name: str) -> str:
+    """name_key with the spaces taken out and the letters sorted, so a house name written without its space still matches."""
+    return "".join(sorted(re.sub(r"[^a-z0-9]", "", name_key(name, True, True))))
+
+
 class Index:
     """The scheme families in mf_schemes, for matching names from other sources. Built once per run (about 14 000 rows)."""
 
@@ -108,6 +113,7 @@ class Index:
         self.keys: Dict[str, Set[str]] = defaultdict(set)         # name_key -> families
         self.keys_np: Dict[str, Set[str]] = defaultdict(set)      # parenthesis-free key -> families
         self.keys_nf: Dict[str, Set[str]] = defaultdict(set)      # parenthesis-free and without the word 'fund'
+        self.keys_flat: Dict[str, Set[str]] = defaultdict(set)    # letters and digits only, sorted: 'MahindraManulife' and 'Mahindra Manulife' agree
 
     def add(self, code: int, name: str, amc: str, family: str) -> None:
         self.amc[family] = amc
@@ -116,6 +122,7 @@ class Index:
         self.keys[name_key(name)].add(family)
         self.keys_np[name_key(name, True)].add(family)
         self.keys_nf[name_key(name, True, True)].add(family)
+        self.keys_flat[_flat_key(name)].add(family)
 
     def resolve(self, names: Sequence[str], amc_re: Optional[re.Pattern] = None) -> Tuple[Optional[str], str]:
         """(family, reason). The first name that matches exactly one family wins; a name matching several families is ambiguous and refused."""
@@ -131,6 +138,12 @@ class Index:
                     return next(iter(fams)), ""
                 if len(fams) > 1:
                     why = f"name matches {len(fams)} schemes ({', '.join(sorted(fams))[:120]}); not guessed"
+        for nm in names:                    # last resort: spacing and word order ignored (AMFI writes some fund house names without a space)
+            fams = self.keys_flat.get(_flat_key(nm), set()) if nm else set()
+            if amc_re is not None:
+                fams = {f for f in fams if amc_re.search(self.amc.get(f, ""))}
+            if len(fams) == 1:
+                return next(iter(fams)), ""
         return None, why
 
 

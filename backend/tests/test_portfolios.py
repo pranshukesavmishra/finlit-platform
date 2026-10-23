@@ -200,3 +200,11 @@ async def test_risk_and_managers_reach_the_fund_page(store):
     f = await disclosure.get_facts(store.pool, 152655)
     assert f["riskometer"]["value"] == "Very High" and f["riskometer"]["benchmarkRisk"] == "Very High"
     assert f["managers"]["value"] == "Tanmaya Desai, Pradeep Kesavan"
+
+
+def test_a_name_written_without_its_space_still_matches_one_scheme():
+    idx = portfolios.Index()
+    idx.add(1, "Mahindra Manulife Banking & Financial Services Fund", "Mahindra Manulife Mutual Fund", "mm|eq|bfsi")
+    idx.add(2, "Mahindra Manulife Flexi Cap Fund", "Mahindra Manulife Mutual Fund", "mm|eq|flexi")
+    assert idx.resolve(["MahindraManulife Banking & Financial Services Fund"])[0] == "mm|eq|bfsi"
+    assert idx.resolve(["Something Else Fund"])[0] is None
