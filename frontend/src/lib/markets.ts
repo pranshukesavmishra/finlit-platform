@@ -40,11 +40,14 @@ export function treemap<T>(items: readonly T[], value: (t: T) => number, w: numb
   return out;
 }
 
-/** Tile colour for a day's move: solid, strong green or red (as the reference), deepening up to a 2% move; grey when flat or unknown. */
+/** Tile colour for a day's move: a vivid green or red (the same on both themes, so tiles stay bold), deepening from a small move to 2%; slate when flat or unknown.
+ *  White text sits on every stop at 3:1 or better. */
+const GAIN: [number, number, number][] = [[38, 166, 98], [8, 112, 56]], LOSS: [number, number, number][] = [[226, 84, 76], [168, 26, 30]];
+export const FLAT_TILE = "#8B95A5";
 export function moveColour(c: number | null | undefined): string {
-  if (c == null || Math.abs(c) < 0.005) return "var(--s3)";
-  const k = Math.round(62 + Math.min(Math.abs(c), 2) / 2 * 38);       // 62% of the full colour for a small move, the full colour from 2%
-  return `color-mix(in srgb, ${c > 0 ? "var(--gain)" : "var(--loss)"} ${k}%, var(--s1))`;
+  if (c == null || Math.abs(c) < 0.005) return FLAT_TILE;
+  const t = Math.min(Math.abs(c), 2) / 2, [lo, hi] = c > 0 ? GAIN : LOSS;
+  return `rgb(${lo.map((v, i) => Math.round(v + (hi[i] - v) * t)).join(", ")})`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------- sector categories

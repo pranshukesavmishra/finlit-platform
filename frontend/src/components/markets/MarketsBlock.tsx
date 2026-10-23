@@ -12,7 +12,7 @@ import { MINUS, dateIN, nf } from "../../lib/format";
 import { niceTicks } from "../../lib/etf";
 import { useGold } from "../../lib/premium";
 import type { Row } from "../../lib/screener";
-import { CATEGORIES, MAX_MOVE, RANGES, gainers, indexFor, largest, lastN, losers, moveColour, sectorBoard, stocksFor, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
+import { CATEGORIES, FLAT_TILE, MAX_MOVE, RANGES, gainers, indexFor, largest, lastN, losers, moveColour, sectorBoard, stocksFor, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
 import "../../styles/markets.css";
 
 /** A listed company's ticker, or its name when the ticker is only a numeric exchange code. */
@@ -126,7 +126,7 @@ function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells:
   );
 }
 
-function Legend() { return <span className="mk-legend" aria-hidden="true"><i style={{ background: moveColour(-2) }} /><i style={{ background: moveColour(-0.7) }} /><i style={{ background: "var(--s3)" }} /><i style={{ background: moveColour(0.7) }} /><i style={{ background: moveColour(2) }} />−2% … +2%</span>; }
+function Legend() { return <span className="mk-legend" aria-hidden="true"><i style={{ background: moveColour(-2) }} /><i style={{ background: moveColour(-0.7) }} /><i style={{ background: FLAT_TILE }} /><i style={{ background: moveColour(0.7) }} /><i style={{ background: moveColour(2) }} />−2% … +2%</span>; }
 
 function Snapshot({ rows }: { rows: Row[] }) {
   const m = useMemo(() => {

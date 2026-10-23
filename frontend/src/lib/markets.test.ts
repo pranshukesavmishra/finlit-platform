@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Row } from "./screener";
-import { CATEGORIES, gainers, indexFor, largest, losers, lastN, moveColour, sectorBoard, stocksFor, treemap, weightedMove } from "./markets";
+import { CATEGORIES, FLAT_TILE, gainers, indexFor, largest, losers, lastN, moveColour, sectorBoard, stocksFor, treemap, weightedMove } from "./markets";
 import type { IndexRow } from "./indices";
 
 const row = (symbol: string, sector: string, price: number | null, change_pct: number | null, market_cap: number | null): Row => ({ symbol, name: symbol, sector, price, change_pct, market_cap } as Row);
@@ -70,9 +70,10 @@ describe("moves", () => {
     expect(lastN([1, 2, 3, 4], 2)).toEqual([3, 4]); expect(lastN([1, 2], 0)).toEqual([1, 2]);
   });
   it("colours by direction and size of move", () => {
-    expect(moveColour(1)).toContain("--gain"); expect(moveColour(-1)).toContain("--loss"); expect(moveColour(0)).toBe("var(--s3)"); expect(moveColour(null)).toBe("var(--s3)");
-    const pct = (c: number) => +/(\d+)%/.exec(moveColour(c))![1];
-    expect(pct(3)).toBeGreaterThan(pct(0.5)); expect(pct(10)).toBe(pct(3));
+    const rgb = (c: number) => /rgb\((\d+), (\d+), (\d+)\)/.exec(moveColour(c))!.slice(1).map(Number);
+    expect(rgb(1)[1]).toBeGreaterThan(rgb(1)[0]); expect(rgb(-1)[0]).toBeGreaterThan(rgb(-1)[1]);          // green for a rise, red for a fall
+    expect(moveColour(0)).toBe(FLAT_TILE); expect(moveColour(null)).toBe(FLAT_TILE);
+    expect(rgb(2)[1]).toBeLessThan(rgb(0.2)[1]); expect(moveColour(10)).toBe(moveColour(2));                // deeper with size, saturating at 2%
   });
 });
 
