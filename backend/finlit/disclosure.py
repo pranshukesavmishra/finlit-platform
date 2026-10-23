@@ -435,11 +435,24 @@ async def get_facts(pool, key) -> Optional[dict]:
         loaded = bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM mf_facts WHERE aum_lakh IS NOT NULL)")) if me else False
     if me is None:
         return None
-    out = {"aum": _aum_fact(fam, loaded), "launchDate": _launch_fact(me), "benchmark": {"unavailable": NO_BENCHMARK}, "riskometer": {"unavailable": NO_RISKOMETER},
-           "managers": {"unavailable": NO_MANAGERS}}
+    try:   # holdings-side facts (finlit.portfolios): exit load, benchmark, risk-o-meter, managers; missing ones keep their reason
+        from . import portfolios
+        extra = await portfolios.extra_facts(pool, key) or {}
+    except Exception:
+        log.warning("portfolio facts unavailable for %s", key, exc_info=True)
+        extra = {}
+    aum = _aum_fact(fam, loaded)
+    if "unavailable" in aum and extra.get("monthEndAum"):
+        m = extra["monthEndAum"]
+        aum = {"value": aum_text(m["lakh"]), "asOf": m["asOf"], "source": m["source"], "note": "Net assets at the end of the month, all plans of the scheme together."}
+    launch = _launch_fact(me)
+    if "unavailable" in launch and extra.get("launchDate"):
+        launch = extra["launchDate"]
+    out = {"aum": aum, "launchDate": launch, "benchmark": extra.get("benchmark") or {"unavailable": NO_BENCHMARK},
+           "riskometer": extra.get("riskometer") or {"unavailable": NO_RISKOMETER}, "managers": extra.get("managers") or {"unavailable": NO_MANAGERS}}
     if isinstance(key, int) or str(key).isdigit():     # a mutual fund page: both plans' TER, the scheme's minimum, exit load unknown
         out.update(terRegular=_ter_fact(ter, "Regular"), terDirect=_ter_fact(ter, "Direct"), minInvestment={"unavailable": NO_MINIMUM},
-                   exitLoad={"unavailable": NO_EXIT_LOAD})
+                   exitLoad=extra.get("exitLoad") or {"unavailable": NO_EXIT_LOAD})
     else:                                              # an ETF page: one plan (AMFI files it as Regular), bought and sold on the exchange
         out.update(ter=_etf_ter_fact(ter), trackingError={"unavailable": NO_TRACKING},
                    minInvestment={"value": "1 unit, bought on the stock exchange", "source": SRC_EXCHANGE},
@@ -460,3 +473,9 @@ async def top_by_aum(pool, n: int) -> List[int]:
                              ORDER BY s.family, (s.plan = 'Direct') DESC, s.code)
                SELECT pick.code FROM pick JOIN fam ON fam.family = pick.family ORDER BY fam.aum DESC, pick.code LIMIT $1""", n)
     return [r["code"] for r in rows]
+
+
+async def get_portfolio(pool, key) -> Optional[dict]:
+    """The latest monthly portfolio of a scheme (code) or ETF (ISIN): see finlit.portfolios."""
+    from . import portfolios
+    return await portfolios.get_portfolio(pool, key)

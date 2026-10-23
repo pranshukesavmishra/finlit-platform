@@ -1,5 +1,14 @@
 # ETFs and Mutual funds: where things stand and what to do next
 
+## Fund holdings and exit loads (`finlit/portfolios.py`, worker `refresh-portfolios`)
+- Runs at boot (after the stock loads, in turn with the other fund jobs, skipped if it ran in the last 20 hours) and daily at 04:40 IST; result at
+  `/api/mf/status` (`run:refresh-portfolios`). AMFI's TER / AUM / launch dates stay with `refresh-facts` (`finlit/disclosure.py`), whose `get_facts`
+  merges these in: exit load (AMFI scheme details, about 74 % of schemes), benchmark (portfolio files, or AMFI's fund-performance list when it answers),
+  risk-o-meter and fund managers (when a source is loaded), a second launch date, and month-end net assets when no quarterly AUM is listed.
+- Holdings, sector split, month-end AUM and benchmark from the fund houses' own monthly files: SBI, Nippon India, Aditya Birla Sun Life, Mirae, DSP,
+  Invesco, Baroda BNP Paribas, Groww, PPFAS, Helios (2 666 of 8 250 schemes, measured locally). Adapters: `finlit/disclosure_parsers/amcs.py`
+  (`page_lister` covers any house that links its files) and `houses_*.py`.
+
 ## Live state (22 October 2026, read this first)
 - **How to see what the boot/nightly steps did:** open `https://finlit-arug.onrender.com/api/mf/status` (no login). It shows, for `refresh-etf`, `refresh-mf`, `backfill-mf` and `refresh-facts`, when they last ran, their status and counts. Render's logs are not reachable from outside.
 - **Funds are loaded:** 8,247 active schemes after the exclusions; Growth plans are the default view; best-known fund houses first (`MF_FEATURED_AMCS` in `config.py`). IDCW pages link to the Growth option of the same fund.

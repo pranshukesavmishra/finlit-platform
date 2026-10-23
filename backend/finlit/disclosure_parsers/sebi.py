@@ -145,7 +145,7 @@ def clean_name(s: str) -> str:
 
 # -------------------------------------------------------------------------------------------------- title
 
-TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)", re.I)
+TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)|^back\s+to\s+(index|top)", re.I)
 
 
 def split_title(cell: str) -> Tuple[str, List[str]]:
@@ -154,7 +154,7 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     full = re.sub(r"\s+", " ", cell.strip())
     full = re.sub(r"\s*\(\s*an?\s+[a-z][\s\S]*$", "", full, flags=re.I) if re.search(r"\(\s*an?\s+[a-z]", full, re.I) and not re.match(r"^\(", full) else full
     aliases: List[str] = []
-    m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
+    m = re.search(r"\(\s*(?:formerly(?:\s+known\s+as)?|ex|erstwhile(?:\s+known\s+as)?|earlier(?:\s+known\s+as)?)\b[\s:\-]*([^)]+)\)", full, re.I)
     if m:
         aliases.append(re.sub(r"\s+", " ", m.group(1)).strip())
     main = re.sub(r"\(\s*(?:formerly|ex|erstwhile|earlier)\b[^)]*\)", "", full, flags=re.I)
@@ -162,6 +162,7 @@ def split_title(cell: str) -> Tuple[str, List[str]]:
     m2 = re.match(r"^(?:name of the scheme|scheme name|scheme)\s*[:\-]\s*(.+)$", main, re.I)
     if m2:
         main = m2.group(1).strip()
+    main = re.sub(r"^[A-Z]{1,4}\d{1,4}\s*[-:]\s*(?=[A-Za-z])", "", main)   # a fund house's own sheet code in front of the name ('IB01-Groww Large Cap Fund')
     return main, aliases
 
 
@@ -181,6 +182,17 @@ def find_title(head_rows: List[List]) -> Tuple[str, List[str]]:
 
 
 # -------------------------------------------------------------------------------------------------- the parser
+
+# 'Benchmark: X', 'Benchmark Name : X', and 'Benchmark Riskometer: X' (DSP names the index on its risk-o-meter caption)
+BENCH = re.compile(r"benchmark\s*(?:name|risk\s*-?\s*o\s*-?\s*meter)?\s*[-:]\s*(.+)", re.I)
+RISK_WORDS = re.compile(r"^(low|low to moderate|moderate|moderately high|high|very high)\s*(risk)?\s*$", re.I)
+
+
+def bench_of(text: str) -> Optional[str]:
+    m = BENCH.search(text)
+    v = m.group(1).strip() if m else ""
+    return v if v and not RISK_WORDS.match(v) and not v.lower().startswith("risk") else None
+
 
 class NotAPortfolio(Exception):
     pass
@@ -244,6 +256,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     done = False
     raw_pcts: List[float] = []
     star_rows = 0          # rows whose percent is a '*' / '<0.01' marker instead of a number: not listed
+    hedge_sum = 0.0
     hedge_rows = 0         # futures / options hedge lines with a negative percent: exposures, not additive to net assets, not listed
     in_deriv = False
 
@@ -255,24 +268,20 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         name_raw = cell(row, "name")
         name = clean_name(name_raw) if isinstance(name_raw, str) else ""
         if not done:
-            bm = re.search(r"benchmark\s*(?:name)?\s*[-:]\s*(.+)", " ".join(txt(c) for c in row if isinstance(c, str)), re.I)
-            if bm and not benchmark and "risk" not in bm.group(1).lower()[:12]:
-                benchmark = bm.group(1).strip()
+            if not benchmark:
+                benchmark = bench_of(" ".join(txt(c) for c in row if isinstance(c, str)))
         if not name:
             # benchmark note rows sit under the table (Invesco): keep scanning for them, nothing else
             if done:
                 for c in row:
-                    if isinstance(c, str):
-                        bm = re.search(r"benchmark\s*name\s*[-:]\s*(.+)", c, re.I)
-                        if bm and not benchmark:
-                            benchmark = bm.group(1).strip()
+                    if isinstance(c, str) and not benchmark:
+                        benchmark = bench_of(c)
             continue
         pct_raw = cell(row, "pct")
         pct = num(pct_raw)
         if done:
-            bm = re.search(r"benchmark\s*name\s*[-:]\s*(.+)", name, re.I)
-            if bm and not benchmark:
-                benchmark = bm.group(1).strip()
+            if not benchmark:
+                benchmark = bench_of(name)
             continue
         if GRAND_ROW.match(name) and pct is not None:
             net_assets = num(cell(row, "value"))
@@ -307,6 +316,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if not isin_raw and (in_deriv or re.search(r"\b(futures?|options?|swaps?|derivatives?)\b", sec_probe, re.I)) and cls != "cash":
             if pct < 0:
                 hedge_rows += 1
+                hedge_sum += pct
                 continue
             cls = "other"
         if not seen_heading and cls == "other" and isin_raw:
@@ -333,6 +343,10 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         for h in holdings:
             h.pct_nav = round(h.pct_nav * 100.0, 6)
         grand_pct = round(grand_pct * 100.0, 6) if grand_pct is not None else None
+        if hedge_sum:   # the hedge block usually shares the table's unit, but some files print it in percent beside fraction holdings: take the one that adds up
+            listed = sum(h.pct_nav for h in holdings)
+            target = grand_pct if grand_pct is not None else 100.0
+            hedge_sum = min((hedge_sum * 100.0, hedge_sum), key=lambda hs: abs(listed + hs - target))
     else:
         grand_pct = round(grand_pct, 6) if grand_pct is not None else None
     if star_rows:
@@ -340,7 +354,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     if hedge_rows:
         notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,
-                     net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases)
+                     net_assets_lakh=net_assets, published_total_pct=grand_pct, benchmark=benchmark, notes=notes, aliases=aliases,
+                     hedge_pct=round(hedge_sum, 6))
 
 
 def open_workbook(path: str):

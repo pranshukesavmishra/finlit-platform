@@ -101,6 +101,8 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   fi
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
+  # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
+  flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
   log "done boot-load"
 ) 9>/tmp/finlit-heavy.lock >> /tmp/job-boot-load.log 2>&1 &
 
@@ -123,6 +125,7 @@ while true; do
   (( H == 21 && M == 10 )) && run_funds mf refresh-mf                 # nightly: AMFI publishes the day's NAVs in the evening
   (( H == 23 && M == 30 )) && run_funds mf-late refresh-mf            # again after AMFI's 11 pm deadline: most fund houses publish after 21:10, so this run brings the day's NAVs
   (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
+  (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe

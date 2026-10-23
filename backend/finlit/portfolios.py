@@ -1,20 +1,15 @@
-"""Fund disclosures: holdings, sector split, AUM, expense ratio, benchmark, risk-o-meter, launch date and minimum investment, from official free files only.
+"""Fund portfolios and the facts that come with them: holdings, sector and asset split, month-end net assets and benchmark from each fund house's
+SEBI-mandated monthly portfolio file, exit load (and a second launch date) from AMFI's scheme details, benchmark and risk-o-meter from AMFI's fund
+performance list when it answers. AMFI's TER, average AUM and scheme master are loaded by finlit.disclosure (refresh-facts), which also merges these
+facts into what the fund pages show (disclosure.get_facts calls extra_facts here).
 
-Read side (used by finlit/mf.py and finlit/etf.py, never raises on missing data)
-    get_portfolio(pool, key)  the JSON contract of the fund pages: {asOf, previousAsOf, source, sourceUrl, holdings[], exited[], summary{}} or None
-    get_facts(pool, key)      {aum, terRegular, terDirect, exitLoad, benchmark, managers, riskometer, launchDate, minInvestment}, each {value, asOf, source}
-                              or {unavailable: reason}
-  `key` is an AMFI scheme code (int or digits) or a scheme / ETF ISIN. Schemes are stored by FAMILY (mf_schemes.family): the plans and options of one scheme
-  share the portfolio, the TER row, the benchmark.
+Read side (never raises on missing data)
+    get_portfolio(pool, key)  {asOf, previousAsOf, source, sourceUrl, holdings[], exited[], summary{}} or None
+    extra_facts(pool, key)    {exitLoad, benchmark, riskometer, managers, launchDate} for finlit.disclosure.get_facts, each {value, asOf, source} or None
+  `key` is an AMFI scheme code or an ISIN; schemes are stored by FAMILY (mf_schemes.family): the plans and options of one scheme share a portfolio.
 
-Write side (the `refresh-disclosures` worker command)
-    refresh(store, settings, only=None) -> dict
-  Steps, each independent and each failing alone: AMFI scheme master (launch, minimum), NSE share list (ISIN -> symbol), AMFI fund performance (benchmark,
-  risk-o-meter, AUM), AMFI TER, AMFI quarterly average AUM, then each fund house's monthly portfolio files (finlit/disclosure_parsers/amcs.py). One file is
-  downloaded, parsed, validated and written at a time and freed before the next. A file that fails validation is reported and NOT stored; a short or odd answer
-  never replaces a good row; only the latest 3 month-ends are kept per scheme. Nothing here keeps a timer or a connection open between runs.
-
-Where no free official source was verified (exit load, fund manager) nothing is stored and the reason is returned.
+Write side: `python -m finlit.worker refresh-portfolios` -> refresh(store, settings, only=None). Each step and fund house fails alone; a file that fails
+validation is reported and never stored; a short or odd answer never replaces a good row; only the latest 3 month-ends are kept per scheme.
 This is information only, never advice.
 """
 
@@ -40,33 +35,27 @@ import httpx
 from .config import MF_EXCLUDED_AMCS
 from .disclosure_parsers import amfi
 from .disclosure_parsers.amcs import ADAPTERS, BROWSER_UA, MAX_BYTES, UA, Adapter, FileRef, month_ends
-from .disclosure_parsers.model import (ASSET_CLASSES, Fact, Facts, Holding, Portfolio, Verdict, isin_ok, validate)
+from .disclosure_parsers.model import ASSET_CLASSES, Holding, Portfolio, Verdict, isin_ok, validate
 from .disclosure_parsers.sebi import NotAPortfolio, open_workbook, parse_rows
 
-log = logging.getLogger("finlit.disclosure")
+log = logging.getLogger("finlit.portfolios")
 
-__all__ = ["Holding", "Portfolio", "Facts", "Fact", "Verdict", "validate", "isin_ok", "get_portfolio", "get_facts", "refresh", "KEEP_MONTHS"]
+__all__ = ["Holding", "Portfolio", "Verdict", "validate", "isin_ok", "get_portfolio", "extra_facts", "refresh", "KEEP_MONTHS"]
 
+STEP_NAMES = ("isin", "performance", "loads")
 KEEP_MONTHS = 3                      # monthly disclosures kept per scheme
 MIN_KEEP_RATIO = 0.9                 # a re-read file with fewer holdings than this share of the stored one is not applied
 CLS = {"equity": "e", "debt": "d", "cash": "c", "other": "o"}
 CLS_BACK = {v: k for k, v in CLS.items()}
-SRC_MASTER = "AMFI scheme master (portal.amfiindia.com)"
 SRC_PERF = "AMFI fund performance (amfiindia.com/otherdata/fund-performance)"
-SRC_TER = "AMFI TER of MF schemes (amfiindia.com/ter-of-mf-schemes)"
-SRC_AAUM = "AMFI average AUM scheme-wise (amfiindia.com)"
-URL_MASTER = "https://portal.amfiindia.com/DownloadSchemeData_Po.aspx?mf=0"
+SRC_DETAILS = "AMFI scheme details (amfiindia.com/otherdata/scheme-details)"
+URL_MF_LIST = "https://www.amfiindia.com/api/populate-mf"
+URL_SCHEMES = "https://www.amfiindia.com/api/populate-scheme"
+URL_DETAILS = "https://www.amfiindia.com/api/scheme-details"
+LOAD_MAX_AGE_DAYS = 25               # a scheme's load text is asked again after this many days
 URL_PERF = "https://www.amfiindia.com/gateway/pollingsebi/api/amfi/fundperformance"
 URL_PERF_SUB = "https://www.amfiindia.com/gateway/pollingsebi/api/amfi/getsubcategory"
-URL_TER_MONTHS = "https://www.amfiindia.com/api/populate-ter-month"
-URL_TER = "https://www.amfiindia.com/api/populate-te-rdata-revised"
-URL_AAUM = "https://www.amfiindia.com/api/average-aum-schemewise"
 URL_EQUITY_L = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
-
-NO_EXIT_LOAD = ("Exit load is published in each scheme's Scheme Information Document and factsheet (PDF, different layout at every fund house); "
-                "no free machine-readable official source was verified, so none is shown.")
-NO_MANAGERS = ("Fund managers are named in each scheme's factsheet and Scheme Information Document (PDF); no free machine-readable official source "
-               "was verified, so none is shown.")
 
 
 # ------------------------------------------------------------------------------------------------------------- names
@@ -310,9 +299,10 @@ def _iso(d: Optional[date]) -> Optional[str]:
     return d.isoformat() if d else None
 
 
-async def get_facts(pool, key) -> Optional[dict]:
-    """AUM, TER (regular and direct), exit load, benchmark, managers, risk-o-meter, launch date and minimum investment. Each is {value, asOf, source} or
-    {unavailable: reason}. None when the key is not a known scheme."""
+async def extra_facts(pool, key) -> Optional[dict]:
+    """What this module knows about a scheme beyond AMFI's TER / AUM / master (finlit.disclosure merges it into the fund page's facts):
+    exitLoad, benchmark, riskometer, managers, launchDate (AMFI scheme details, a second source), monthEndAum. Each is {value, asOf, source, ...}
+    or None when not loaded. None when the key is not a known scheme."""
     async with pool.acquire() as conn:
         fkey = await _family(conn, key)
         if not fkey:
@@ -327,50 +317,31 @@ async def get_facts(pool, key) -> Optional[dict]:
         v = f["value"]
         return (json.loads(v) if isinstance(v, str) else v), f
 
-    out = Facts()
-    # AUM: the newest dated figure among AMFI's daily AUM, the month-end net assets in the monthly portfolio, and AMFI's quarterly average
-    cands: List[Tuple[date, int, dict]] = []
-    a = val("aum_daily")
-    if a:
-        cands.append((a[1]["as_of"], 2, {"value": a[0]["crore"], "asOf": _iso(a[1]["as_of"]), "source": a[1]["source"] + " (AUM as shown beside the NAV date)", "basis": "daily", "unit": "crore"}))
-    if port and port["net_assets_lakh"] is not None:
-        cands.append((port["as_of"], 1, {"value": round(port["net_assets_lakh"] / 100.0, 4), "asOf": _iso(port["as_of"]), "source": port["source"] + " (net assets, month end)",
-                                         "sourceUrl": port["source_url"], "basis": "month-end net assets", "unit": "crore"}))
-    q = val("aum_q")
-    if q:
-        cands.append((q[1]["as_of"], 0, {"value": q[0]["crore"], "asOf": _iso(q[1]["as_of"]), "source": q[1]["source"] + " (average for the quarter, all plans)", "basis": "quarterly average", "unit": "crore"}))
-    cands = [c for c in cands if c[0]]
-    aum = max(cands, key=lambda c: (c[0], c[1]))[2] if cands else {"unavailable": "AUM is not loaded for this scheme: AMFI's performance and average-AUM files do not list it and no monthly portfolio is stored."}
-    ter = val("ter")
-    t_reg = t_dir = None
-    if ter:
-        v, f = ter
-        base = {"asOf": _iso(f["as_of"]), "source": f["source"], "sourceUrl": f["source_url"]}
-        if v.get("regular") is not None:
-            t_reg = {"value": v["regular"], "unit": "percent", **base}
-        if v.get("direct") is not None:
-            t_dir = {"value": v["direct"], "unit": "percent", **base}
+    def fact(value, f, **extra) -> dict:
+        return {"value": value, "asOf": _iso(f["as_of"]), "source": f["source"], **({"sourceUrl": f["source_url"]} if f.get("source_url") else {}), **extra}
+
+    out: Dict[str, Optional[dict]] = {k: None for k in ("exitLoad", "benchmark", "riskometer", "managers", "launchDate", "monthEndAum")}
+    el = val("exitload")
+    if el:
+        out["exitLoad"] = fact(el[0]["text"], el[1])
     bm = val("benchmark")
     if bm:
-        benchmark = {"value": bm[0]["name"], "asOf": _iso(bm[1]["as_of"]), "source": bm[1]["source"]}
+        out["benchmark"] = fact(bm[0]["name"], bm[1])
     elif port and port["benchmark"]:
-        benchmark = {"value": port["benchmark"], "asOf": _iso(port["as_of"]), "source": port["source"], "sourceUrl": port["source_url"]}
-    else:
-        benchmark = {"unavailable": "AMFI's fund-performance list does not carry a benchmark for this scheme and the monthly portfolio file does not name one."}
+        out["benchmark"] = fact(port["benchmark"], dict(port))
     rk = val("risk")
-    risk = ({"value": rk[0]["scheme"], "asOf": _iso(rk[1]["as_of"]), "source": rk[1]["source"], "benchmarkRisk": rk[0].get("benchmark")} if rk
-            else {"unavailable": "AMFI's fund-performance list does not carry a risk-o-meter level for this scheme."})
-    ln = val("launch")
-    launch = ({"value": ln[0]["date"], "asOf": _iso(ln[1]["as_of"]), "source": ln[1]["source"]} if ln and ln[0].get("date")
-              else {"unavailable": (ln[0].get("why") if ln else None) or "AMFI's scheme master has no usable launch date for this scheme."})
-    mi = val("mininv")
-    mininv = ({"value": mi[0]["amount"], "unit": "rupees", "text": mi[0].get("text"), "asOf": _iso(mi[1]["as_of"]), "source": mi[1]["source"]} if mi and mi[0].get("amount")
-              else {"unavailable": (mi[0].get("why") if mi else None) or "AMFI's scheme master gives no clear minimum amount for this scheme (it says 'refer SID' or is blank)."})
-    return {"aum": aum,
-            "terRegular": t_reg or {"unavailable": "AMFI's TER list has no regular-plan expense ratio for this scheme."},
-            "terDirect": t_dir or {"unavailable": "AMFI's TER list has no direct-plan expense ratio for this scheme (it may have no direct plan)."},
-            "exitLoad": {"unavailable": NO_EXIT_LOAD}, "benchmark": benchmark, "managers": {"unavailable": NO_MANAGERS},
-            "riskometer": risk, "launchDate": launch, "minInvestment": mininv}
+    if rk and rk[0].get("scheme"):
+        out["riskometer"] = fact(rk[0]["scheme"], rk[1], **({"benchmarkRisk": rk[0]["benchmark"]} if rk[0].get("benchmark") else {}))
+    mg = val("managers")
+    if mg and mg[0].get("names"):
+        out["managers"] = fact(", ".join(mg[0]["names"]), mg[1])
+    ld = val("launch_details")
+    if ld and ld[0].get("date"):
+        out["launchDate"] = fact(ld[0]["date"], ld[1])
+    if port and port["net_assets_lakh"] is not None:
+        out["monthEndAum"] = {"lakh": port["net_assets_lakh"], "asOf": _iso(port["as_of"]), "source": port["source"] + " (net assets, month end)",
+                              "sourceUrl": port["source_url"]}
+    return out
 
 
 # ------------------------------------------------------------------------------------------------------------- fetching
@@ -421,51 +392,6 @@ def _today() -> date:
 
 
 # ------------------------------------------------------------------------------------------------------------- steps: AMFI feeds
-
-async def step_master(pool, client, idx: Index, today: date) -> dict:
-    """Launch date and minimum investment from AMFI's scheme master (one CSV, 16 000 rows)."""
-    r = await _retry(lambda: client.get(URL_MASTER))
-    r.raise_for_status()
-    rows = amfi.parse_scheme_master(r.text)
-    del r
-    if len(rows) < 5000:
-        return {"status": "refused", "why": f"scheme master has {len(rows)} rows (expected about 16 000)"}
-    by_fam: Dict[str, list] = defaultdict(list)
-    for m in rows:
-        f = idx.by_code.get(m.code)
-        if f:
-            by_fam[f].append(m)
-    facts = []
-    n_launch = n_min = 0
-    for fam, ms in by_fam.items():
-        dated = [m for m in ms if m.launch and date(1950, 1, 1) <= m.launch <= today]
-        why_l = None
-        if dated:
-            first_all = min(m.launch for m in dated)
-            clean = [m.launch for m in dated if m.closure is None]
-            if clean and min(clean) == first_all:
-                facts.append((fam, "launch", today, {"date": first_all.isoformat()}, SRC_MASTER, URL_MASTER))
-                n_launch += 1
-            else:
-                why_l = "AMFI's scheme master lists a closure date against the earliest plan of this scheme, so its launch date is not reliable; none is shown."
-        else:
-            why_l = "AMFI's scheme master has no launch date for this scheme."
-        if why_l:
-            facts.append((fam, "launch", today, {"why": why_l}, SRC_MASTER, URL_MASTER))
-        amounts = {amfi.min_amount(m.min_text) for m in ms if m.min_text.strip()}
-        amounts.discard(None)
-        texts = [m.min_text for m in ms if m.min_text.strip()]
-        if len(amounts) == 1:
-            amt = next(iter(amounts))
-            facts.append((fam, "mininv", today, {"amount": amt, "text": texts[0][:200]}, SRC_MASTER, URL_MASTER))
-            n_min += 1
-        else:
-            why = ("The plans of this scheme show different minimum amounts in AMFI's scheme master; none is shown." if len(amounts) > 1
-                   else "AMFI's scheme master gives no clear minimum amount for this scheme (it says 'refer SID' or is blank).")
-            facts.append((fam, "mininv", today, {"why": why}, SRC_MASTER, URL_MASTER))
-    await put_facts(pool, facts)
-    return {"status": "ok", "families": len(by_fam), "launch": n_launch, "minInvestment": n_min}
-
 
 async def step_isin(pool, today: date) -> dict:
     async with httpx.AsyncClient(headers={"User-Agent": BROWSER_UA}, timeout=60.0, follow_redirects=True) as c:
@@ -527,119 +453,74 @@ async def step_performance(pool, client, idx: Index, today: date) -> dict:
     return {"status": "ok", "reportDate": d.isoformat(), "schemes": len(rows), "families": len(seen), "unmapped": len(unmapped), "unmappedSample": unmapped[:15], "duplicates": dup}
 
 
-async def step_ter(pool, client, idx: Index, today: date) -> dict:
-    """Regular and direct TER from AMFI's monthly workbook (one download, every scheme, every day of the month; the newest day per scheme is kept)."""
-    fy = f"{today.year}-{today.year + 1}" if today.month >= 4 else f"{today.year - 1}-{today.year}"
-    months = await get_json(client, URL_TER_MONTHS, params={"year": fy})
-    if not months:
-        return {"status": "refused", "why": f"AMFI lists no TER months for {fy}"}
-    tmp = tempfile.mkdtemp(prefix="ter_")
-    try:
-        for mo in months[:2]:
-            path = os.path.join(tmp, "ter.xlsx")
-            await _download_params(client, URL_TER, path, {"MF_ID": "All", "Month": mo["MonthNumber"], "strCat": "-1", "strType": "-1", "excel": "true"})
-            rows = read_ter_workbook(path)
-            if rows:
-                break
-        else:
-            return {"status": "refused", "why": "AMFI's TER workbook had no rows for the last two months"}
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-    best = amfi.latest_ter(rows)
-    if len(best) < 800:
-        return {"status": "refused", "why": f"AMFI TER file has {len(best)} schemes (expected about 1 900)"}
-    facts, unmapped, ambiguous = [], [], 0
-    by_fam: Dict[str, amfi.TerRow] = {}
-    clash: Set[str] = set()
-    for tr in best.values():
-        fam, why = idx.resolve([tr.name])
-        if not fam:
-            if not looks_excluded(tr.name):
-                unmapped.append(tr.name)
+_EXIT = re.compile(r"exit\s*load\s*[:\-]?\s*", re.I)
+_NIL = re.compile(r"^(nil|none|not applicable|n\.?a\.?|no exit load)\W*$", re.I)
+
+
+def exit_load_text(raw: str) -> Optional[str]:
+    """The exit-load part of AMFI's 'load' text ('Entry Load: Nil Exit Load: 1% if redeemed within 1 year ...'), tidied. None when blank."""
+    t = re.sub(r"\s+", " ", (raw or "")).strip()
+    if not t or t.upper() in ("NA", "N.A.", "-"):
+        return None
+    m = _EXIT.search(t)
+    if m:
+        t = t[m.end():].strip(" ,;:-\u2013\u2014")
+    t = re.sub(r"^entry\s*load\s*[:\-]?\s*(nil|not applicable|n\.?a\.?)\s*[,;.]?\s*", "", t, flags=re.I).strip()
+    t = t.strip(" ,;:-\u2013\u2014")
+    if not t:
+        return None
+    return "Nil" if _NIL.match(t) else t[:600]
+
+
+async def step_loads(pool, client, idx: Index, today: date) -> dict:
+    """Exit load text from AMFI's scheme details: one list call per fund house, then one call per scheme that matches an active scheme family here and has no
+    load text from the last LOAD_MAX_AGE_DAYS days. Resumable: whatever was written stays; the next run asks only for the rest."""
+    async with pool.acquire() as conn:
+        active = {r["family"] for r in await conn.fetch("SELECT DISTINCT family FROM mf_schemes WHERE active")}
+        fresh = {r["fkey"] for r in await conn.fetch("SELECT fkey FROM disclosure_facts WHERE kind = 'exitload' AND updated_at > now() - make_interval(days => $1)", LOAD_MAX_AGE_DAYS)}
+    houses = await get_json(client, URL_MF_LIST)
+    want: Dict[str, List[Tuple[str, str]]] = defaultdict(list)          # family -> [(mf id, AMFI scheme id)], newest id first
+    unmapped = 0
+    for h in houses or []:
+        if excluded_amc(str(h.get("mfName") or "")):
             continue
-        cur = by_fam.get(fam)
-        if cur is None or tr.day > cur.day:
-            by_fam[fam] = tr
-        elif tr.day == cur.day and (tr.regular, tr.direct) != (cur.regular, cur.direct):
-            clash.add(fam)
-    for fam in clash:
-        by_fam.pop(fam, None)
-        ambiguous += 1
-    for fam, tr in by_fam.items():
-        if tr.regular is None and tr.direct is None:
-            continue
-        facts.append((fam, "ter", tr.day, {"regular": tr.regular, "direct": tr.direct}, SRC_TER, "https://www.amfiindia.com/ter-of-mf-schemes"))
-    await put_facts(pool, facts)
-    return {"status": "ok", "month": mo["MonthNumber"], "schemes": len(best), "families": len(by_fam), "unmapped": len(unmapped), "unmappedSample": unmapped[:15], "ambiguous": ambiguous}
+        rows = await get_json(client, URL_SCHEMES, params={"MF_ID": h["mfId"]})
+        for r in rows or []:
+            fam, _ = idx.resolve([str(r.get("scheme_name") or "")])
+            if not fam:
+                unmapped += 1
+            elif fam in active and fam not in fresh:
+                want[fam].append((str(h["mfId"]), str(r["scheme_id"])))
+        await asyncio.sleep(0.1)
+    facts, asked, blank = [], 0, 0
+    sem = asyncio.Semaphore(3)
 
+    async def one(fam: str, cands: List[Tuple[str, str]]):
+        nonlocal asked, blank
+        launch_done = False
+        for mf_id, sid in sorted(cands, key=lambda c: -int(c[1]) if c[1].isdigit() else 0)[:3]:   # the newest listing of a scheme first
+            async with sem:
+                asked += 1
+                try:
+                    d = ((await get_json(client, URL_DETAILS, params={"MF_ID": mf_id, "scheme_id": sid})).get("data") or [{}])[0]
+                except Exception:
+                    continue
+            ld = amfi.parse_dmy(str(d.get("Launch_Date") or ""))
+            if ld and not launch_done and date(1950, 1, 1) <= ld <= today:    # a second source for schemes the scheme master gives no clean launch date
+                facts.append((fam, "launch_details", today, {"date": ld.isoformat()}, SRC_DETAILS, "https://www.amfiindia.com/otherdata/scheme-details"))
+                launch_done = True
+            txt_ = exit_load_text(str(d.get("Scheme_load") or ""))
+            if txt_:
+                facts.append((fam, "exitload", today, {"text": txt_}, SRC_DETAILS, "https://www.amfiindia.com/otherdata/scheme-details"))
+                return
+        blank += 1
 
-async def _download_params(client, url, dest, params):
-    async def go():
-        n = 0
-        async with client.stream("GET", url, params=params) as r:
-            r.raise_for_status()
-            with open(dest, "wb") as fh:
-                async for chunk in r.aiter_bytes(1 << 16):
-                    n += len(chunk)
-                    if n > MAX_BYTES:
-                        raise ValueError("file too large")
-                    fh.write(chunk)
-        return n
-    return await _retry(go)
-
-
-def read_ter_workbook(path: str) -> List[amfi.TerRow]:
-    """AMFI's TER workbook -> rows. The header is checked: if AMFI changes the columns nothing is read."""
-    from .disclosure_parsers.sebi import excel_serial
-    wb = open_workbook(path)
-    try:
-        it = wb.rows(0)
-        head = [str(c or "").strip().lower() for c in next(it, [])]
-        need = ["nsdl scheme code", "scheme name", "ter date", "regular plan - total ter (%)", "direct plan - total ter (%)"]
-        if any(h not in head for h in need):
-            return []
-        ci = {h: head.index(h) for h in need}
-        out: List[amfi.TerRow] = []
-        for r in it:
-            def g(k):
-                i = ci[k]
-                return r[i] if i < len(r) else None
-            nm = g("scheme name")
-            d = g("ter date")
-            day = excel_serial(d) if isinstance(d, float) else amfi.parse_dmy(str(d or ""))
-            if not nm or day is None:
-                continue
-            out.append(amfi.TerRow(str(nm).strip(), amfi.fnum(g("regular plan - total ter (%)")), amfi.fnum(g("direct plan - total ter (%)")), day, str(g("nsdl scheme code") or "")))
-        return out
-    finally:
-        wb.close()
-
-
-async def step_aaum(pool, client, idx: Index, today: date) -> dict:
-    """AMFI's quarterly average AUM by scheme code (rupees lakh), summed over the plans of each scheme."""
-    label = end = codes = None
-    for fy, per in ((1, 1), (2, 1)):
-        for attempt in range(8):      # AMFI's servers answer an empty 'Grand Total' now and then for the same request; asking again gives the data
-            j = await get_json(client, URL_AAUM, params={"strType": "Typewise", "fyId": fy, "periodId": per})
-            label, end, codes = amfi.parse_average_aum(j)
-            if codes:
-                break
-            await asyncio.sleep(1.5)
-        if codes:
-            break
-    if not codes or end is None or len(codes) < 3000:
-        return {"status": "refused", "why": f"AMFI average AUM returned {len(codes or {})} scheme codes (expected about 8 500)"}
-    fam_sum: Dict[str, float] = defaultdict(float)
-    miss = 0
-    for code, lakh in codes.items():
-        f = idx.by_code.get(code)
-        if f:
-            fam_sum[f] += lakh
-        else:
-            miss += 1
-    facts = [(f, "aum_q", end, {"crore": round(v / 100.0, 4)}, SRC_AAUM, "https://www.amfiindia.com/") for f, v in fam_sum.items()]
-    await put_facts(pool, facts)
-    return {"status": "ok", "period": label, "families": len(fam_sum), "codes": len(codes), "codesNotInOurList": miss}
+    items = list(want.items())
+    for i in range(0, len(items), 60):                                   # written in batches, so an interrupted run keeps what it got
+        await asyncio.gather(*[one(f, c) for f, c in items[i:i + 60]])
+        await put_facts(pool, facts)
+        facts.clear()
+    return {"status": "ok", "families": len(want), "asked": asked, "blank": blank, "alreadyFresh": len(fresh & active), "namesNotMatched": unmapped}
 
 
 # ------------------------------------------------------------------------------------------------------------- steps: fund houses
@@ -733,7 +614,6 @@ async def step_amc(pool, client, adapter: Adapter, idx: Index, today: date, mont
                 stats["errors"].append(f"{ref.label}: {type(exc).__name__}: {str(exc)[:120]}")
                 continue
             stats["files"] += 1
-            before_fail = len(stats["failures"]) + len(stats["errors"])
             try:
                 for mname, mpath in _members(path):
                     sink: list = []
@@ -780,9 +660,8 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
         idx = await load_index(pool)
         if len(idx.by_code) < 1000:
             return {"status": "failed", "why": "mf_schemes is empty or short: run refresh-mf first", "steps": {}, "amc": {}}
-        steps = [("master", lambda: step_master(pool, client, idx, today)), ("isin", lambda: step_isin(pool, today)),
-                 ("performance", lambda: step_performance(pool, client, idx, today)), ("ter", lambda: step_ter(pool, client, idx, today)),
-                 ("aaum", lambda: step_aaum(pool, client, idx, today))]
+        steps = [("isin", lambda: step_isin(pool, today)), ("performance", lambda: step_performance(pool, client, idx, today)),
+                 ("loads", lambda: step_loads(pool, client, idx, today))]
         for name, fn in steps:
             if want and name not in want:
                 continue
@@ -813,18 +692,16 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
 # ------------------------------------------------------------------------------------------------------------- reports
 
 async def coverage(pool) -> dict:
-    """Real counts per fund house: active scheme codes, and how many of them have holdings / TER / AUM / benchmark / risk-o-meter / launch / minimum."""
+    """Real counts per fund house: active scheme codes, and how many of them have holdings / exit load / benchmark / risk-o-meter / fund managers."""
     sql = """
     SELECT s.amc,
            count(*) FILTER (WHERE s.active) AS codes,
            count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family)) AS holdings,
-           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'ter')) AS ter,
-           count(*) FILTER (WHERE s.active AND (EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind IN ('aum_daily','aum_q'))
-                                                OR EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family AND p.net_assets_lakh IS NOT NULL))) AS aum,
-           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'benchmark')) AS benchmark,
+           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'exitload')) AS exit_load,
+           count(*) FILTER (WHERE s.active AND (EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'benchmark')
+                                                OR EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family AND p.benchmark IS NOT NULL))) AS benchmark,
            count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'risk')) AS risk,
-           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'launch' AND f.value ? 'date')) AS launch,
-           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'mininv' AND f.value ? 'amount')) AS mininv
+           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'managers')) AS managers
     FROM mf_schemes s GROUP BY s.amc ORDER BY codes DESC"""
     fam_sql = """
     SELECT s.amc, count(DISTINCT s.family) AS families,
@@ -854,7 +731,7 @@ async def size_report(pool) -> dict:
 # ------------------------------------------------------------------------------------------------------------- local use
 
 async def _main(argv: List[str]) -> int:
-    ap = argparse.ArgumentParser(prog="python -m finlit.disclosure")
+    ap = argparse.ArgumentParser(prog="python -m finlit.portfolios")
     ap.add_argument("cmd", choices=["refresh", "coverage", "size"])
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--months", type=int, default=KEEP_MONTHS)
