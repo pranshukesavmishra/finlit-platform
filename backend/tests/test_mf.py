@@ -441,7 +441,9 @@ async def test_list_shape_count_filters_sort_and_paging(api):
     allr = (await api.get("/api/mf?stopped=true&option=All")).json()
     assert allr["total"] == 13
     item = next(i for i in body["items"] if i["code"] == LARGE)
-    assert item["r1y"] == -6.96 and "r3y" not in item and "r1m" not in item and "mdd" not in item and item["r5y"] == 4.33 and item["retDate"] == "2026-10-19" and item["plan"] == "Direct" and item["optionClass"] == "Growth" and item["noReturns"] is None
+    # the category table's columns: 1, 3 and 5 years, SIP 3 and 5 years, fund size, expense ratio, checklist; 1 month and volatility / drawdown stay on the scheme's page
+    assert item["r1y"] == -6.96 and item["r3y"] == 7.97 and "r1m" not in item and "mdd" not in item and item["r5y"] == 4.33 and item["retDate"] == "2026-10-19" and item["plan"] == "Direct" and item["optionClass"] == "Growth" and item["noReturns"] is None
+    assert {"sip3y", "sip5y", "aum", "ter", "checklist"} <= set(item) and item["sip3y"] is not None and item["sip5y"] is not None
     idcw = next(i for i in full["items"] if i["code"] == 135765)
     assert idcw["r1y"] is None and idcw["noReturns"] == "idcw"
     assert (await api.get("/api/mf?category=Equity Schemes - Thematic Fund")).json()["total"] == 2

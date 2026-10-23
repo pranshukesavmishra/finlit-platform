@@ -9,8 +9,8 @@ Sources, in order of preference
   3. https://api.mfapi.in/mf/<code>  a third-party mirror of the same AMFI data. Used only on demand, for a Growth scheme whose AMFI history has not been
      loaded (for example fund houses missing from AMFI's dropdown), and only after its newest NAV is checked against AMFI's NAVAll. The page always says so.
 
-What is stored (the free database is small): every scheme with its latest NAV, its previous NAV (the 1 day change) and its 1 year and 5 year returns,
-so the list is a plain query. The daily NAV series (packed at ~3 bytes a point, with volatility, drawdown and the other periods) is kept only for the
+What is stored (the free database is small): every scheme with its latest NAV, its previous NAV (the 1 day change), its 1, 3 and 5 year returns, its
+SIP returns (worked out from about 60 month-end NAVs a scheme, table mf_monthly), fund size, expense ratio and checklist, so the list is a plain query. The daily NAV series (packed at ~3 bytes a point, with volatility, drawdown and the other periods) is kept only for the
 100 "hot" schemes, answered from the mf_hot table / Redis in milliseconds; any other Growth scheme's series is fetched when somebody opens it and cached in
 Redis for a few days. The 1 year and 5 year figures of the others are kept current each night from AMFI's industry-wide history for just the two start dates. IDCW / dividend options are listed
 with their own NAV but no returns: a payout lowers the NAV, so NAV-to-NAV change would understate what an investor earned.
@@ -24,6 +24,7 @@ from __future__ import annotations
 import array
 import asyncio
 import calendar
+import functools
 import hashlib
 import json
 import logging
@@ -432,13 +433,159 @@ def max_drawdown(days: List[int], navs: List[float]) -> dict:
 
 
 def metrics_for(days: List[int], navs: List[float], complete: bool) -> dict:
-    return {"returns": trailing_returns(days, navs, complete), "vol1y": volatility(days, navs, 1, complete), "vol3y": volatility(days, navs, 3, complete),
-            "mdd": max_drawdown(days, navs)}
+    out = {"returns": trailing_returns(days, navs, complete), "vol1y": volatility(days, navs, 1, complete), "vol3y": volatility(days, navs, 3, complete),
+           "mdd": max_drawdown(days, navs)}
+    md, mv = month_ends(days, navs)
+    out["dash"] = dashboard_figures(md, mv, days[-1], navs[-1]) if days else (None, None, None)
+    return out
 
 
 def metric_columns(m: dict) -> Tuple[Optional[float], ...]:
     r = m["returns"]
     return (r["1m"]["value"], r["6m"]["value"], r["1y"]["value"], r["3y"]["value"], r["5y"]["value"], m["vol1y"]["value"], m["vol3y"]["value"], m["mdd"]["value"])
+
+
+# ====================================================================================== SIP returns, from month-end NAVs
+#
+# A monthly SIP is worked out the same way for every scheme, from ONE NAV a month: the last NAV of each calendar month ("month-end NAV").
+#   instalments  one equal amount on the month-end NAV day of each of the 36 (60) calendar months BEFORE the month of the latest NAV; each buys
+#                amount / NAV units. A month whose last NAV is more than MAX_STALE days before the month's last day counts as missing.
+#   value        all the units at the latest NAV, on the latest NAV's day.
+#   return       the yearly rate (XIRR) that makes the instalments grow into that value: sum(flow / (1 + r) ** (days from the first flow / 365)) = 0.
+# No figure when any instalment month is missing (a younger scheme, a hole in the history). The figure is a rate per year, not a total.
+
+MONTHLY_KEEP = 63            # month-end NAVs kept per scheme: 60 instalment months, the current month and a spare
+SIP_MONTHS = (36, 60)
+FALL_MONTHS = 36             # the month-end fall is measured over the last 3 years, so funds of different ages are measured alike
+FALL_MAX_HOLES = 3
+
+
+def month_key(day: int) -> int:
+    """Day number (date ordinal) -> month number (year * 12 + month - 1)."""
+    d = date.fromordinal(day)
+    return d.year * 12 + d.month - 1
+
+
+def month_last_day(mk: int) -> int:
+    y, m = divmod(mk, 12)
+    return date(y, m + 1, calendar.monthrange(y, m + 1)[1]).toordinal()
+
+
+def month_ends(days: Sequence[int], navs: Sequence[float]) -> Tuple[List[int], List[float]]:
+    """Ascending daily (days, NAVs) -> the last NAV of each calendar month (the current month's latest NAV included)."""
+    od: List[int] = []
+    ov: List[float] = []
+    for d, v in zip(days, navs):
+        if od and month_key(od[-1]) == month_key(d):
+            od[-1], ov[-1] = d, v
+        else:
+            od.append(d)
+            ov.append(v)
+    return od, ov
+
+
+def merge_months(*parts: Tuple[Sequence[int], Sequence[float]], keep: int = MONTHLY_KEEP) -> Tuple[List[int], List[float]]:
+    """Several (days, NAVs) pieces -> one month-end series: per calendar month the NAV of the LATEST day seen; the newest `keep` months."""
+    by: Dict[int, Tuple[int, float]] = {}
+    for days, navs in parts:
+        for d, v in zip(days, navs):
+            k = month_key(d)
+            if k not in by or d >= by[k][0]:
+                by[k] = (d, v)
+    ks = sorted(by)[-keep:]
+    return [by[k][0] for k in ks], [by[k][1] for k in ks]
+
+
+def xirr(flows: Sequence[Tuple[int, float]]) -> Optional[float]:
+    """Yearly rate r (a fraction) that sets the present value of dated cash flows to zero, as a spreadsheet's XIRR does: sum(a / (1 + r) ** (t / 365)),
+    t = days since the first flow. Newton's method, then bisection when it does not settle. None without both a payment and a receipt, or without a root."""
+    if not flows:
+        return None
+    t0 = min(d for d, _ in flows)
+    ts = [(d - t0) / 365.0 for d, _ in flows]
+    amts = [a for _, a in flows]
+    if not (any(a < 0 for a in amts) and any(a > 0 for a in amts)):
+        return None
+
+    def npv(r: float) -> float:
+        return sum(a * (1.0 + r) ** -t for a, t in zip(amts, ts))
+
+    r = 0.1
+    for _ in range(60):
+        try:
+            y = npv(r)
+            dy = sum(-t * a * (1.0 + r) ** (-t - 1.0) for a, t in zip(amts, ts))
+        except (OverflowError, ZeroDivisionError):
+            break
+        if dy == 0 or not math.isfinite(y) or not math.isfinite(dy):
+            break
+        nr = r - y / dy
+        if nr <= -1.0 or not math.isfinite(nr):
+            break
+        if abs(nr - r) < 1e-12:
+            return nr
+        r = nr
+    lo, hi = -0.999999, 1.0
+    try:
+        flo, fhi = npv(lo), npv(hi)
+        while flo * fhi > 0 and hi < 1e6:
+            hi *= 4
+            fhi = npv(hi)
+    except (OverflowError, ZeroDivisionError):
+        return None
+    if flo * fhi > 0:
+        return None
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        fm = npv(mid)
+        if fm == 0 or hi - lo < 1e-13:
+            return mid
+        if (fm > 0) == (flo > 0):
+            lo, flo = mid, fm
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def sip_return(mdays: Sequence[int], mnavs: Sequence[float], end_day: int, end_nav: Optional[float], months: int) -> Optional[float]:
+    """XIRR in percent a year of a monthly SIP of equal amounts over `months` months (see the rules above), or None when an instalment month is missing."""
+    if not mdays or end_nav is None or end_nav <= 0:
+        return None
+    end_mk = month_key(end_day)
+    by = {month_key(d): (d, v) for d, v in zip(mdays, mnavs)}
+    flows: List[Tuple[int, float]] = []
+    units = 0.0
+    for mk in range(end_mk - months, end_mk):
+        p = by.get(mk)
+        if p is None or p[1] <= 0 or p[0] < month_last_day(mk) - MAX_STALE or p[0] >= end_day:
+            return None
+        units += 1.0 / p[1]
+        flows.append((p[0], -1.0))
+    flows.append((end_day, units * end_nav))
+    r = xirr(flows)
+    return None if r is None else r * 100
+
+
+def fall_monthly(mdays: Sequence[int], mnavs: Sequence[float], end_day: int, end_nav: Optional[float], months: int = FALL_MONTHS) -> Optional[float]:
+    """Largest fall (percent, 0 or negative) from a month-end NAV to a later month-end NAV (or the latest NAV) over the last `months` months.
+    Needs the month-end of the first month and at most FALL_MAX_HOLES missing months, else None."""
+    if end_nav is None or end_nav <= 0:
+        return None
+    end_mk = month_key(end_day)
+    pts = [(month_key(d), v) for d, v in zip(mdays, mnavs) if end_mk - months <= month_key(d) < end_mk and v > 0]
+    if not pts or pts[0][0] != end_mk - months or len(pts) < months - FALL_MAX_HOLES:
+        return None
+    peak, worst = pts[0][1], 0.0
+    for v in [p[1] for p in pts] + [end_nav]:
+        peak = max(peak, v)
+        worst = min(worst, v / peak - 1)
+    return worst * 100
+
+
+def dashboard_figures(mdays: Sequence[int], mnavs: Sequence[float], end_day: int, end_nav: Optional[float]) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    """(SIP 3 years, SIP 5 years, month-end fall over 3 years) for one scheme."""
+    return (sip_return(mdays, mnavs, end_day, end_nav, SIP_MONTHS[0]), sip_return(mdays, mnavs, end_day, end_nav, SIP_MONTHS[1]),
+            fall_monthly(mdays, mnavs, end_day, end_nav))
 
 
 def trim(days: List[int], navs: List[float]) -> Tuple[List[int], List[float]]:
@@ -679,19 +826,33 @@ ON CONFLICT (code) DO UPDATE SET n = EXCLUDED.n, d0 = EXCLUDED.d0, d1 = EXCLUDED
 """
 METRICS_UPDATE = """UPDATE mf_schemes SET has_hist = true, r1m = $2, r6m = $3, r1y = $4, r3y = $5, r5y = $6, vol1y = $7, vol3y = $8, mdd = $9, metrics_date = $10,
     prev_nav = CASE WHEN nav_date = $10 AND $11::float8 IS NOT NULL THEN $11 ELSE prev_nav END,
-    prev_date = CASE WHEN nav_date = $10 AND $11::float8 IS NOT NULL THEN $12 ELSE prev_date END WHERE code = $1"""
+    prev_date = CASE WHEN nav_date = $10 AND $11::float8 IS NOT NULL THEN $12 ELSE prev_date END,
+    sip3y = $13, sip5y = $14, mdd3y_m = $15 WHERE code = $1"""
+MONTHLY_UPSERT = """INSERT INTO mf_monthly (code, days, navs, updated_at) VALUES ($1, $2::date[], $3::float8[], now())
+    ON CONFLICT (code) DO UPDATE SET days = EXCLUDED.days, navs = EXCLUDED.navs, updated_at = now()"""
 
 
 async def _write_series(conn, items: List[Tuple[int, List[int], List[float], bool]]) -> None:
-    """Store packed series and their worked-out numbers for (code, days, NAVs, complete) items."""
-    hist, mets = [], []
+    """Store packed series and their worked-out numbers for (code, days, NAVs, complete) items; their month-end NAVs go to mf_monthly too, so the SIP
+    figures stay right when a scheme later leaves the hot set and its daily series is dropped."""
+    hist, mets, months = [], [], {}
     for code, days, navs, complete in items:
         days, navs = trim(days, navs)
         hist.append((code, len(days), date.fromordinal(days[0]), date.fromordinal(days[-1]), pack_series(days, navs), complete, "amfi"))
         prev = (navs[-2], date.fromordinal(days[-2])) if len(days) > 1 else (None, None)   # the NAV before the last one gives the day change
-        mets.append((code, *metric_columns(metrics_for(days, navs, complete)), date.fromordinal(days[-1]), *prev))
+        m = metrics_for(days, navs, complete)
+        mets.append((code, *metric_columns(m), date.fromordinal(days[-1]), *prev, *m["dash"]))
+        months[code] = month_ends(days, navs)
     await conn.executemany(HIST_UPSERT, hist)
     await conn.executemany(METRICS_UPDATE, mets)
+    if months:
+        old = {r["code"]: ([d.toordinal() for d in r["days"]], list(r["navs"]))
+               for r in await conn.fetch("SELECT code, days, navs FROM mf_monthly WHERE code = ANY($1::int[])", list(months))}
+        rows = []
+        for code, piece in months.items():
+            d, v = merge_months(old.get(code, ([], [])), piece)
+            rows.append((code, [date.fromordinal(x) for x in d], v))
+        await conn.executemany(MONTHLY_UPSERT, rows)
 
 
 async def _meta(conn, key: str) -> Optional[dict]:
@@ -739,8 +900,11 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
     2. Every scheme's name, category and latest NAV are upserted (a missing or 'N.A.' NAV never overwrites a stored one; nothing is deleted).
     3. Today's NAV is appended to each stored history (the hot schemes') and their returns / volatility / drawdown are worked out again.
     4. If whole days were missed (the job did not run), AMFI's industry-wide history for just those days fills the hole.
-    5. Every other Growth scheme gets its 1 year and 5 year returns worked out again from AMFI's history for just the two start dates (`refresh_anchors`).
-    6. The hot set is chosen and its pages are rebuilt (`refresh_hot`); the stored series of everything else is dropped.
+    5. Every other Growth scheme gets its 1, 3 and 5 year returns worked out again from AMFI's history for just the three start dates (`refresh_anchors`).
+    6. Month-end NAVs: today's NAV is folded into every Growth scheme's month-end series, month-ends not read yet come from AMFI's history (a few each
+       run until five years are filled), and the SIP returns and month-end fall are worked out again (`refresh_monthly`).
+    7. Fund size, expense ratio and the checklist are copied / worked out for the category table (`derive_dashboard`).
+    8. The hot set is chosen and its pages are rebuilt (`refresh_hot`); the stored series of everything else is dropped.
     Fund houses on config.MF_EXCLUDED_AMCS are never loaded; their rows, if any, are deleted first (`prune_excluded`, idempotent).
     `backfill_amc` (an AMC id, name or 'all') additionally loads five years of history for those fund houses: see `backfill`."""
     started = time.perf_counter()
@@ -764,6 +928,8 @@ async def refresh(store, settings=None, backfill_amc: Optional[str] = None, *, c
         if backfill_amc:
             res["backfill"] = await backfill(store, settings, amc=backfill_amc, client=client)
         res["anchors"] = await refresh_anchors(store, client, newest)
+        res["monthly"] = await _guarded("monthly", refresh_monthly(store, client, newest))
+        res["dashboard"] = await _guarded("dashboard", derive_dashboard(store))
         res["hot"] = await refresh_hot(store, client)
         await _bump(store, newest)
         res["seconds"] = round(time.perf_counter() - started, 1)
@@ -863,6 +1029,12 @@ async def rebuild(store, batch: int = 300) -> int:
                 items.append((r["code"], days, navs, bool(r["complete"])))
             await _write_series(conn, items)
             n += len(items)
+    # every other scheme's SIP figures from its stored month-end NAVs (no download), then fund size, expense ratio and the checklist
+    async with store.pool.acquire() as conn:
+        newest = await conn.fetchval("SELECT max(nav_date) FROM mf_schemes")
+    if newest:
+        await refresh_monthly(store, None, newest)
+    await derive_dashboard(store)
     await _bump(store, None)
     return n
 
@@ -895,9 +1067,10 @@ async def prune_excluded(store) -> int:
 # ====================================================================================== 1 year / 5 year figures for schemes without a stored series
 
 async def refresh_anchors(store, client, newest: date) -> dict:
-    """Keep the 1 year and 5 year returns of every active Growth scheme WITHOUT a stored series current, with two small downloads: AMFI's industry-wide
-    history for the days around the 1 year and the 5 year start date. The figure is worked out exactly as for a stored series (`trailing_returns`: start NAV =
-    the latest on or before the start date, at most MAX_STALE days back; 5 year = per year). If a download fails, the old figures stay with their old date."""
+    """Keep the 1, 3 and 5 year returns of every active Growth scheme WITHOUT a stored series current, with three small downloads: AMFI's industry-wide
+    history for the days around the 1, 3 and 5 year start dates. The figure is worked out exactly as for a stored series (`trailing_returns`: start NAV =
+    the latest on or before the start date, at most MAX_STALE days back; 3 and 5 year = per year). If a download fails, the old figures stay with their
+    old date (the 1 and 5 year ones are written together; the 3 year one on its own)."""
     async with store.pool.acquire() as conn:
         rows = await conn.fetch("""SELECT s.code, s.nav, s.nav_date FROM mf_schemes s WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL
                                    AND NOT EXISTS (SELECT 1 FROM mf_history h WHERE h.code = s.code)""")
@@ -906,7 +1079,7 @@ async def refresh_anchors(store, client, newest: date) -> dict:
         return out
     wanted = {r["code"] for r in rows}
     windows: Dict[str, Dict[int, Tuple[array.array, array.array]]] = {}
-    for key, months in (("1y", 12), ("5y", 60)):
+    for key, months in (("1y", 12), ("3y", 36), ("5y", 60)):
         t = shift_months(newest, months)
         try:
             got = await fetch_history(client, t - timedelta(days=ANCHOR_DAYS), t, None, wanted)
@@ -936,22 +1109,291 @@ async def refresh_anchors(store, client, newest: date) -> dict:
         async with store.pool.acquire() as conn:
             await conn.executemany("UPDATE mf_schemes SET prev_nav = $2, prev_date = $3 WHERE code = $1 AND (prev_date IS NULL OR $3::date >= prev_date)", prevs)
         out["previousNavs"] = len(prevs)
-    if len(windows) < 2:
+    if "1y" not in windows or "5y" not in windows:
         return out
+    has3 = "3y" in windows
     upd = []
     for r in rows:
         end, vals = r["nav_date"].toordinal(), {}
-        for key in ("1y", "5y"):
+        for key in windows:
             pair = windows[key].get(r["code"])
             days, navs = merge_points(([] if pair is None else pair[0], [] if pair is None else pair[1]), ([end], [r["nav"]]))
             ret = trailing_returns(days, navs, True)[key]
             vals[key] = ret["value"]
-        upd.append((r["code"], vals["1y"], vals["5y"], r["nav_date"]))
+        upd.append((r["code"], vals["1y"], vals["5y"], r["nav_date"], vals.get("3y"), has3))
     async with store.pool.acquire() as conn, conn.transaction():
         await conn.executemany("""UPDATE mf_schemes SET r1y = $2, r5y = $3, metrics_date = $4, has_hist = (has_hist OR $2::float8 IS NOT NULL OR $3::float8 IS NOT NULL),
-                                  r1m = NULL, r6m = NULL, r3y = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL WHERE code = $1""", upd)
+                                  r3y = CASE WHEN $6::boolean THEN $5::float8 ELSE r3y END,
+                                  r1m = NULL, r6m = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL WHERE code = $1""", upd)
     out["updated"] = len(upd)
     return out
+
+
+async def _guarded(step: str, job) -> dict:
+    """Run one of the nightly job's later steps; its failure is reported in the result and never stops the steps after it."""
+    try:
+        return await job
+    except Exception as exc:
+        log.exception("mf %s step failed", step)
+        return {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]}
+
+
+# ====================================================================================== month-end NAVs (SIP returns) for every scheme
+
+MONTH_WINDOW_DAYS = 8         # a month-end is read from AMFI's industry-wide history for the month's last 8 days (a month-end NAV may be 7 days early)
+MONTH_FILL_SECONDS = 1200     # a run stops starting new month downloads after this long; the rest are read on the next runs
+MONTH_FILL_FAILS = 3          # ...and after this many failed downloads in a row (AMFI is down: nothing is hammered)
+MONTH_BATCH = 1000
+
+
+def _same(a: Optional[float], b: Optional[float]) -> bool:
+    return (a is None and b is None) or (a is not None and b is not None and abs(a - b) < 1e-9)
+
+
+async def refresh_monthly(store, client: Optional[httpx.AsyncClient], newest: date, *, max_seconds: float = MONTH_FILL_SECONDS) -> dict:
+    """Keep every active Growth scheme's month-end NAVs (mf_monthly) and the figures worked out from them current.
+    1. Month-ends not read yet (the 60 months before the newest NAV's month; mf_meta 'monthly' remembers which were read) come from AMFI's industry-wide
+       history for each month's last days: one download a month, newest first, at most `max_seconds` a run (the first run after deploy reads all
+       five years, about 60 downloads of a few MB; afterwards one a month). No client: nothing is downloaded.
+    2. Each scheme's stored month-ends, those downloads and its latest NAV (the current month) are merged (per month, the NAV of the latest day wins).
+    3. Schemes without a stored daily series get their SIP 3 / 5 year figures and month-end fall worked out again (the hot ones get them from their
+       daily series in _write_series, by the same rules)."""
+    out: Dict[str, object] = {"status": "ok", "monthsRead": 0, "monthsFailed": 0, "monthsMissing": 0, "schemes": 0, "seriesWritten": 0, "figuresWritten": 0}
+    end_mk = month_key(newest.toordinal())
+    want_months = set(range(end_mk - SIP_MONTHS[-1], end_mk))
+    async with store.pool.acquire() as conn:
+        meta = await _meta(conn, "monthly") or {}
+        wanted = {r["code"] for r in await conn.fetch(f"SELECT code FROM mf_schemes WHERE {HIST_WANTED}")}  # nosec B608 - constant filter, no input
+    done = {int(m) for m in meta.get("read", []) if int(m) in want_months}
+    pieces: Dict[int, Tuple[array.array, array.array]] = {}
+    if client is not None and wanted:
+        started, fails = time.perf_counter(), 0
+        for mk in sorted(want_months - done, reverse=True):
+            if time.perf_counter() - started > max_seconds or fails >= MONTH_FILL_FAILS:
+                break
+            last = month_last_day(mk)
+            first = last - (MONTH_WINDOW_DAYS - 1)
+            try:
+                got = await fetch_history(client, date.fromordinal(first), date.fromordinal(last), None, wanted)
+            except Exception as exc:   # a failed month is simply asked again next run
+                log.warning("mf month-end %s failed: %s", mk, exc.__class__.__name__)
+                got = None
+            if got is None:
+                fails += 1
+                out["monthsFailed"] += 1   # type: ignore[operator]
+                continue
+            fails = 0
+            for code, (ds, vs) in got[0].items():
+                best = None
+                for d, v in zip(ds, vs):
+                    if first <= d <= last and (best is None or d > best[0]):
+                        best = (d, v)
+                if best:
+                    p = pieces.get(code)
+                    if p is None:
+                        p = pieces[code] = (array.array("l"), array.array("d"))
+                    p[0].append(best[0])
+                    p[1].append(best[1])
+            done.add(mk)
+            out["monthsRead"] += 1   # type: ignore[operator]
+    out["monthsMissing"] = len(want_months - done)
+    after = 0
+    while True:
+        async with store.pool.acquire() as conn:
+            rows = await conn.fetch("""SELECT s.code, s.nav, s.nav_date, s.sip3y, s.sip5y, s.mdd3y_m, m.days, m.navs,
+                                              EXISTS (SELECT 1 FROM mf_history h WHERE h.code = s.code) AS series
+                                       FROM mf_schemes s LEFT JOIN mf_monthly m ON m.code = s.code
+                                       WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL AND s.code > $1 ORDER BY s.code LIMIT $2""", after, MONTH_BATCH)
+        if not rows:
+            break
+        after = rows[-1]["code"]
+        series_up, figs_up = [], []
+        for r in rows:
+            old = ([d.toordinal() for d in r["days"]], list(r["navs"])) if r["days"] else ([], [])
+            end = r["nav_date"].toordinal()
+            d, v = merge_months(old, pieces.get(r["code"], ((), ())), ([end], [r["nav"]]))
+            if (d, v) != old:
+                series_up.append((r["code"], [date.fromordinal(x) for x in d], v))
+            if not r["series"]:
+                figs = dashboard_figures(d, v, end, r["nav"])
+                if not all(_same(a, b) for a, b in zip(figs, (r["sip3y"], r["sip5y"], r["mdd3y_m"]))):
+                    figs_up.append((r["code"], *figs))
+        async with store.pool.acquire() as conn, conn.transaction():
+            if series_up:
+                await conn.executemany(MONTHLY_UPSERT, series_up)
+            if figs_up:
+                await conn.executemany("UPDATE mf_schemes SET sip3y = $2, sip5y = $3, mdd3y_m = $4 WHERE code = $1", figs_up)
+        out["schemes"] += len(rows)   # type: ignore[operator]
+        out["seriesWritten"] += len(series_up)   # type: ignore[operator]
+        out["figuresWritten"] += len(figs_up)   # type: ignore[operator]
+    async with store.pool.acquire() as conn, conn.transaction():
+        # a scheme that stopped publishing (or is no longer a Growth option with a NAV) keeps no month-ends and shows no SIP figure
+        await conn.execute("""DELETE FROM mf_monthly m USING mf_schemes s WHERE s.code = m.code AND NOT (s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL)""")
+        await conn.execute("""UPDATE mf_schemes SET sip3y = NULL, sip5y = NULL, mdd3y_m = NULL WHERE NOT (active AND option_class = 'Growth' AND nav IS NOT NULL)
+                              AND (sip3y IS NOT NULL OR sip5y IS NOT NULL OR mdd3y_m IS NOT NULL)""")
+        await _set_meta(conn, "monthly", {"read": sorted(done), "through": newest.isoformat(), "missing": out["monthsMissing"]})
+    return out
+
+
+# ====================================================================================== categories, the checklist, fund size and expense ratio
+#
+# AMFI files a scheme under a category line of its NAV file. Two generations of names are in use side by side ("Equity Scheme - Large Cap Fund" and
+# "Equity Schemes - Large Cap Fund", "Debt Scheme - Low Duration Fund" and "Income/Debt Oriented Schemes - Ultra Short to Short Term Fund"), plus old
+# category lines without a group ("ELSS", "Income", "Growth"). `classify` puts each name in one of five tabs and one sub-category, so one choice on the
+# page covers both spellings. The page has the same table (frontend/src/lib/mfCategories.ts); keep the two in step.
+
+TABS: Tuple[Tuple[str, str], ...] = (("equity", "Equity"), ("hybrid", "Hybrid"), ("debt", "Debt"), ("solution", "Solution Oriented"), ("other", "Others"))
+TAB_KEYS = tuple(k for k, _ in TABS)
+
+
+def _cnorm(s: str) -> str:
+    t = unicodedata.normalize("NFKD", s or "").lower()
+    t = re.sub(r"[’'`*]", "", t).replace("&", " and ")
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", t)).strip()
+
+
+_GROUP_TABS: Tuple[Tuple[str, str], ...] = (
+    (r"^equity schemes?\b", "equity"), (r"^hybrid schemes?\b", "hybrid"), (r"^(debt schemes?|income debt oriented schemes?)\b", "debt"),
+    (r"^(solution oriented schemes?|childrens? funds?|life cycle funds?)\b", "solution"),
+    (r"^(other schemes?|index funds?|exchange traded funds?|fund of funds|overseas fund of funds)\b", "other"),
+)
+_LEGACY: Dict[str, Tuple[str, str, str]] = {   # category lines without a group (older and closed-ended schemes)
+    "elss": ("equity", "elss", "ELSS (Tax Savings)"), "growth": ("equity", "equity-other", "Equity - Other"),
+    "income": ("debt", "fixed-term", "Fixed Term & Interval"), "gilt": ("debt", "gilt", "Gilt"), "liquid": ("debt", "liquid", "Liquid"),
+    "money market": ("debt", "money-market", "Money Market"), "balanced": ("hybrid", "hybrid-other", "Hybrid - Other"),
+}
+_SUBS: Dict[str, Tuple[Tuple[str, str, str], ...]] = {
+    "equity": (
+        (r"\bcontra\b", "contra", "Contra"), (r"\bdividend yield\b", "dividend-yield", "Dividend Yield"), (r"\belss\b|\btax saver\b", "elss", "ELSS (Tax Savings)"),
+        (r"\bflexi ?cap\b", "flexi-cap", "Flexi Cap"), (r"\bfocused\b", "focused", "Focused"), (r"\blarge and mid ?cap\b", "large-mid-cap", "Large & Mid Cap"),
+        (r"\blarge ?cap\b", "large-cap", "Large Cap"), (r"\bmid ?cap\b", "mid-cap", "Mid Cap"), (r"\bmulti ?cap\b", "multi-cap", "Multi Cap"),
+        (r"\bsmall ?cap\b", "small-cap", "Small Cap"), (r"\bsectoral\b|\bthematic\b", "sectoral-thematic", "Sectoral / Thematic"), (r"\bvalue\b", "value", "Value"),
+        (r"", "equity-other", "Equity - Other")),
+    "debt": (
+        (r"\bovernight\b", "overnight", "Overnight"), (r"\bliquid\b", "liquid", "Liquid"), (r"\bultra short to short\b|\blow duration\b", "low-duration", "Low Duration"),
+        (r"\bultra short\b", "ultra-short", "Ultra Short Duration"), (r"\bmoney market\b", "money-market", "Money Market"),
+        (r"\bmedium to long\b", "medium-long-duration", "Medium to Long Duration"), (r"\bmedium (duration|term)\b", "medium-duration", "Medium Duration"),
+        (r"\bshort (duration|term)\b", "short-duration", "Short Duration"), (r"\blong (duration|term)\b", "long-duration", "Long Duration"),
+        (r"\bdynamic (bond|term)\b", "dynamic-bond", "Dynamic Bond"), (r"\bcorporate bond\b", "corporate-bond", "Corporate Bond"),
+        (r"\bcredit risk\b", "credit-risk", "Credit Risk"), (r"\bbanking and psu\b", "banking-psu", "Banking & PSU"),
+        (r"\b10 ?year\b|\bconstant (duration|maturity)\b", "gilt-10y", "Gilt, 10-year Constant Duration"), (r"\bgilt\b", "gilt", "Gilt"),
+        (r"\bfloat(er|ing)\b", "floater", "Floater"), (r"\bfixed term\b|\binterval\b", "fixed-term", "Fixed Term & Interval"), (r"", "debt-other", "Debt - Other")),
+    "hybrid": (
+        (r"\bconservative\b", "conservative-hybrid", "Conservative Hybrid"), (r"\bbalanced hybrid\b", "balanced-hybrid", "Balanced Hybrid"),
+        (r"\bbalanced advantage\b|\bdynamic asset allocation\b", "balanced-advantage", "Balanced Advantage / Dynamic Asset Allocation"),
+        (r"\baggressive\b", "aggressive-hybrid", "Aggressive Hybrid"), (r"\bmulti asset\b", "multi-asset", "Multi Asset Allocation"),
+        (r"\barbitrage\b", "arbitrage", "Arbitrage"), (r"\bequity savings\b", "equity-savings", "Equity Savings"), (r"", "hybrid-other", "Hybrid - Other")),
+    "solution": (
+        (r"\bretirement\b", "retirement", "Retirement"), (r"\bchild", "childrens", "Children's"), (r"\blife cycle\b", "life-cycle", "Life Cycle"),
+        (r"", "solution-other", "Solution Oriented - Other")),
+    "other": (   # matched against the whole name: the group says as much as the rest here
+        (r"\bgold\b", "gold-etf", "Gold ETFs"), (r"\bsilver\b", "silver-etf", "Silver ETFs"),
+        (r"^index funds? debt\b", "index-debt", "Index Funds (Debt)"), (r"\bindex funds?\b", "index-funds", "Index Funds"),
+        (r"\bdebt etf\b", "etf-debt", "ETFs (Debt)"), (r"\betfs?\b|\bexchange traded\b", "etf", "ETFs (Other)"),
+        (r"\boverseas\b", "fof-overseas", "FoF Overseas"), (r"\bfof\b|\bfund of funds\b", "fof-domestic", "FoF Domestic"), (r"", "other", "Other")),
+}
+
+
+@functools.lru_cache(maxsize=4096)
+def classify(category: str) -> Tuple[str, str, str]:
+    """AMFI category name -> (tab, sub-category key, sub-category label). Every name gets one; anything unrecognised lands in Others."""
+    n = _cnorm(category)
+    head = _cnorm(category.split(" - ")[0]) if " - " in category else ""
+    if not head and n in _LEGACY:
+        return _LEGACY[n]
+    tab = next((t for rx, t in _GROUP_TABS if re.search(rx, head or n)), "other")
+    sub = n if tab == "other" else (_cnorm(category.split(" - ", 1)[1]) if " - " in category else n)
+    for rx, key, label in _SUBS[tab]:
+        if re.search(rx, sub):
+            return tab, key, label
+    return tab, f"{tab}-other", "Other"   # pragma: no cover - every table ends with a catch-all
+
+
+# The checklist: plain pass/fail checks of a scheme against the other schemes of its sub-category and plan (Direct with Direct, Regular with Regular),
+# active Growth options only. A check is "unknown" (not counted) when the scheme has no figure for it or fewer than CHECK_MIN_PEERS schemes have one.
+CHECKS = (
+    ("ret", "Long-term return above the category median (5 years per year; 3 years when the scheme has no 5 year figure)"),
+    ("ter", "Expense ratio below the category median"),
+    ("fall", "Smaller largest fall than the category median (month-end NAVs, last 3 years)"),
+    ("size", "Fund size at least ₹500 crore (all plans together)"),
+    ("age", "At least 5 years since launch"),
+)
+CHECK_MIN_PEERS = 3
+CHECK_MIN_AUM_LAKH = 50_000.0   # ₹500 crore
+CHECK_RET5_BIT = 32
+
+DERIVE_FUND_FACTS = """
+WITH q AS (SELECT max(aum_end) AS e FROM mf_facts WHERE aum_lakh IS NOT NULL),
+fam_q AS (SELECT s.family, sum(f.aum_lakh) AS lakh, max(f.aum_end) AS asof FROM mf_facts f JOIN mf_schemes s ON s.code = f.code, q
+          WHERE f.aum_end = q.e GROUP BY s.family),
+fam_m AS (SELECT DISTINCT ON (fkey) fkey AS family, net_assets_lakh AS lakh, as_of AS asof FROM disclosure_portfolios
+          WHERE net_assets_lakh IS NOT NULL AND net_assets_lakh > 0 ORDER BY fkey, as_of DESC),
+own_t AS (SELECT s.code, s.family, t.ter_regular, t.ter_direct, t.ter_date FROM mf_schemes s JOIN mf_facts f ON f.code = s.code JOIN mf_ter t ON t.name_key = f.name_key),
+fam_t AS (SELECT DISTINCT ON (family) family, ter_regular, ter_direct, ter_date FROM own_t ORDER BY family, ter_date DESC, code),
+v AS (SELECT s.code,
+             COALESCE(a.lakh, m.lakh) AS lakh, CASE WHEN a.lakh IS NOT NULL THEN a.asof ELSE m.asof END AS asof,
+             CASE WHEN a.lakh IS NOT NULL THEN 'q' WHEN m.lakh IS NOT NULL THEN 'm' END AS kind,
+             CASE s.plan WHEN 'Direct' THEN COALESCE(o.ter_direct, ft.ter_direct) WHEN 'Regular' THEN COALESCE(o.ter_regular, ft.ter_regular)
+                         ELSE COALESCE(o.ter_regular, o.ter_direct, ft.ter_regular, ft.ter_direct) END AS ter,
+             COALESCE(o.ter_date, ft.ter_date) AS ter_date
+      FROM mf_schemes s LEFT JOIN fam_q a ON a.family = s.family LEFT JOIN fam_m m ON m.family = s.family
+           LEFT JOIN own_t o ON o.code = s.code LEFT JOIN fam_t ft ON ft.family = s.family),
+w AS (SELECT code, lakh, asof, kind, ter, CASE WHEN ter IS NULL THEN NULL ELSE ter_date END AS ter_date FROM v),
+u AS (UPDATE mf_schemes s SET aum_lakh = w.lakh, aum_asof = w.asof, aum_kind = w.kind, ter = w.ter, ter_date = w.ter_date FROM w
+      WHERE s.code = w.code AND (s.aum_lakh IS DISTINCT FROM w.lakh OR s.aum_asof IS DISTINCT FROM w.asof OR s.aum_kind IS DISTINCT FROM w.kind
+                                 OR s.ter IS DISTINCT FROM w.ter OR s.ter_date IS DISTINCT FROM w.ter_date) RETURNING 1)
+SELECT count(*) FROM u
+"""
+DERIVE_CHECKLIST = """
+WITH cm AS (SELECT * FROM unnest($1::text[], $2::text[]) AS c(category, ckey)),
+base AS (SELECT s.code, s.plan, cm.ckey, s.r3y, s.r5y, s.ter, s.mdd3y_m, s.aum_lakh, s.nav_date, f.launch_date
+         FROM mf_schemes s JOIN cm ON cm.category = s.category LEFT JOIN mf_facts f ON f.code = s.code
+         WHERE s.active AND s.option_class = 'Growth' AND s.nav IS NOT NULL),
+med AS (SELECT ckey, plan,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY r5y) AS m5, count(r5y) AS n5,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY r3y) AS m3, count(r3y) AS n3,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY ter) AS mt, count(ter) AS nt,
+               percentile_cont(0.5) WITHIN GROUP (ORDER BY mdd3y_m) AS md, count(mdd3y_m) AS nd, count(*) AS n
+        FROM base GROUP BY ckey, plan),
+c AS (SELECT b.code,
+             CASE WHEN b.r5y IS NOT NULL AND m.n5 >= $3 THEN b.r5y > m.m5 WHEN b.r3y IS NOT NULL AND m.n3 >= $3 THEN b.r3y > m.m3 END AS c0,
+             (b.r5y IS NOT NULL AND m.n5 >= $3) AS used5,
+             CASE WHEN b.ter IS NOT NULL AND m.nt >= $3 THEN b.ter < m.mt END AS c1,
+             CASE WHEN b.mdd3y_m IS NOT NULL AND m.nd >= $3 THEN b.mdd3y_m > m.md END AS c2,
+             CASE WHEN b.aum_lakh IS NOT NULL THEN b.aum_lakh >= $4 END AS c3,
+             CASE WHEN b.r5y IS NOT NULL THEN true WHEN b.launch_date IS NOT NULL THEN b.launch_date <= (b.nav_date - interval '5 years')::date END AS c4
+      FROM base b JOIN med m ON m.ckey = b.ckey AND m.plan = b.plan),
+v AS (SELECT code,
+             (CASE WHEN c0 THEN 1 ELSE 0 END + CASE WHEN c1 THEN 2 ELSE 0 END + CASE WHEN c2 THEN 4 ELSE 0 END + CASE WHEN c3 THEN 8 ELSE 0 END
+              + CASE WHEN c4 THEN 16 ELSE 0 END + CASE WHEN c0 IS NOT NULL AND used5 THEN 32 ELSE 0 END)::smallint AS bits,
+             (CASE WHEN c0 IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN c1 IS NOT NULL THEN 2 ELSE 0 END + CASE WHEN c2 IS NOT NULL THEN 4 ELSE 0 END
+              + CASE WHEN c3 IS NOT NULL THEN 8 ELSE 0 END + CASE WHEN c4 IS NOT NULL THEN 16 ELSE 0 END)::smallint AS mask,
+             (COALESCE(c0::int, 0) + COALESCE(c1::int, 0) + COALESCE(c2::int, 0) + COALESCE(c3::int, 0) + COALESCE(c4::int, 0))::smallint AS pass,
+             ((c0 IS NOT NULL)::int + (c1 IS NOT NULL)::int + (c2 IS NOT NULL)::int + (c3 IS NOT NULL)::int + (c4 IS NOT NULL)::int)::smallint AS known
+      FROM c),
+u AS (UPDATE mf_schemes s SET chk_bits = v.bits, chk_mask = v.mask, chk_pass = v.pass, chk_known = v.known FROM v
+      WHERE s.code = v.code AND (s.chk_bits IS DISTINCT FROM v.bits OR s.chk_mask IS DISTINCT FROM v.mask) RETURNING 1),
+x AS (UPDATE mf_schemes s SET chk_bits = NULL, chk_mask = NULL, chk_pass = NULL, chk_known = NULL
+      WHERE s.chk_mask IS NOT NULL AND NOT EXISTS (SELECT 1 FROM v WHERE v.code = s.code) RETURNING 1)
+SELECT ckey, plan, m5, n5, m3, n3, mt, nt, md, nd, n, (SELECT count(*) FROM u) AS changed, (SELECT count(*) FROM x) AS cleared FROM med
+"""
+
+
+async def derive_dashboard(store) -> dict:
+    """Fund size and expense ratio per scheme (from the fund facts tables, as the scheme page shows them), then the checklist and the category medians
+    behind it (kept in mf_meta 'dashboard' for the page's explanations). Plain SQL over the stored rows; a few seconds for the whole industry."""
+    async with store.pool.acquire() as conn:
+        cats = [r["category"] for r in await conn.fetch("SELECT DISTINCT category FROM mf_schemes")]
+        keys = [classify(c)[1] for c in cats]
+        async with conn.transaction():
+            facts_changed = await conn.fetchval(DERIVE_FUND_FACTS)
+            rows = await conn.fetch(DERIVE_CHECKLIST, cats, keys, CHECK_MIN_PEERS, CHECK_MIN_AUM_LAKH)
+            peers = {f"{r['ckey']}|{r['plan']}": {"r5y": rnd(r["m5"]), "n5": r["n5"], "r3y": rnd(r["m3"]), "n3": r["n3"], "ter": rnd(r["mt"], 3), "nTer": r["nt"],
+                                                   "fall": rnd(r["md"]), "nFall": r["nd"], "n": r["n"]} for r in rows}
+            await _set_meta(conn, "dashboard", {"peers": peers, "minPeers": CHECK_MIN_PEERS, "minAumCrore": CHECK_MIN_AUM_LAKH / 100})
+    _tab_cache["tabs"] = None   # categories may have changed with the data
+    return {"status": "ok", "factsChanged": facts_changed, "checklistChanged": rows[0]["changed"] if rows else 0,
+            "checklistCleared": rows[0]["cleared"] if rows else 0, "peerGroups": len(peers)}
 
 
 # ====================================================================================== hot and cold
@@ -1023,8 +1465,9 @@ async def refresh_hot(store, client: Optional[httpx.AsyncClient] = None) -> dict
             fetched = len(items)
     async with store.pool.acquire() as conn, conn.transaction():
         dropped = await conn.fetchval("WITH d AS (DELETE FROM mf_history WHERE code <> ALL($1::int[]) RETURNING 1) SELECT count(*) FROM d", codes)
-        await conn.execute("""UPDATE mf_schemes SET r1m = NULL, r6m = NULL, r3y = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL
-                              WHERE code <> ALL($1::int[]) AND (r1m IS NOT NULL OR r6m IS NOT NULL OR r3y IS NOT NULL OR vol1y IS NOT NULL OR vol3y IS NOT NULL OR mdd IS NOT NULL)""", codes)
+        # the 3 year return (refresh_anchors), the SIP figures and the month-end fall (refresh_monthly) are kept current for every scheme: they stay
+        await conn.execute("""UPDATE mf_schemes SET r1m = NULL, r6m = NULL, vol1y = NULL, vol3y = NULL, mdd = NULL
+                              WHERE code <> ALL($1::int[]) AND (r1m IS NOT NULL OR r6m IS NOT NULL OR vol1y IS NOT NULL OR vol3y IS NOT NULL OR mdd IS NOT NULL)""", codes)
     built = []
     for rank, code in enumerate(codes, 1):
         async with store.pool.acquire() as conn:
@@ -1244,10 +1687,14 @@ async def mirror_series(app, row: dict) -> Optional[Tuple[List[int], List[float]
 
 # ====================================================================================== API
 
-LIST_COLS = "code, name, amc, category, scheme_type, plan, option_class, option_label, nav, nav_date, prev_nav, prev_date, active, has_hist, r1m, r6m, r1y, r3y, r5y, vol1y, vol3y, mdd, metrics_date"
-# The list shows three return columns only: 1 day, 1 year, 5 year (per year). Everything else (6 month, 3 year, volatility, drawdown) is on the scheme's own page.
-SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1y": "r1y", "r5y": "r5y",
-         "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)"}
+LIST_COLS = ("code, name, amc, category, scheme_type, plan, option_class, option_label, nav, nav_date, prev_nav, prev_date, active, has_hist, r1m, r6m, r1y, r3y, r5y, "
+             "vol1y, vol3y, mdd, metrics_date, sip3y, sip5y, mdd3y_m, aum_lakh, aum_asof, aum_kind, ter, ter_date, chk_pass, chk_known, chk_bits, chk_mask")
+# The list shows returns over 1 day, 1, 3 and 5 years (3 and 5 per year), SIP returns over 3 and 5 years, fund size, expense ratio and the checklist.
+# Volatility, drawdown and the other periods are on the scheme's own page.
+SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1y": "r1y", "r3y": "r3y", "r5y": "r5y",
+         "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)", "sip3y": "sip3y", "sip5y": "sip5y", "aum": "aum_lakh", "ter": "ter",
+         "checklist": "(chk_pass * 8 + chk_known)"}
+MAX_CATEGORIES = 80
 PLANS = ("Direct", "Regular", "Unspecified")
 OPTIONS = ("Growth", "IDCW", "Other", "All")   # no choice means Growth; "All" turns the default off
 
@@ -1280,11 +1727,22 @@ def why_no_returns(row) -> Optional[str]:
     return "no_history" if not row["has_hist"] else "short"
 
 
+def checklist_item(r) -> Optional[dict]:
+    """The checklist of a list row: passed / checked, which passed (bits) and which could be checked (mask), and the peer group whose medians it used."""
+    if r["chk_mask"] is None:
+        return None
+    return {"pass": r["chk_pass"], "of": r["chk_known"], "bits": r["chk_bits"], "mask": r["chk_mask"], "peer": f"{classify(r['category'])[1]}|{r['plan']}"}
+
+
 def list_item(r) -> dict:
     ch = day_change(r)
+    aum = r["aum_lakh"]
     return {"code": r["code"], "name": r["name"], "amc": r["amc"], "category": r["category"], "plan": r["plan"], "option": r["option_label"], "optionClass": r["option_class"],
             "nav": r["nav"], "navDate": iso(r["nav_date"]), "change": ch["pct"] if ch else None, "changeSince": ch["since"] if ch else None, "active": r["active"],
-            "r1y": rnd(r["r1y"]), "r5y": rnd(r["r5y"]), "retDate": iso(r["metrics_date"]), "noReturns": why_no_returns(r)}
+            "r1y": rnd(r["r1y"]), "r3y": rnd(r["r3y"]), "r5y": rnd(r["r5y"]), "retDate": iso(r["metrics_date"]), "noReturns": why_no_returns(r),
+            "sip3y": rnd(r["sip3y"]), "sip5y": rnd(r["sip5y"]), "fall3y": rnd(r["mdd3y_m"]),
+            "aum": None if aum is None else round(aum / 100, 2), "aumAsOf": iso(r["aum_asof"]), "aumKind": r["aum_kind"],
+            "ter": rnd(r["ter"], 2), "terDate": iso(r["ter_date"]), "checklist": checklist_item(r)}
 
 
 async def _version(redis) -> str:
@@ -1340,18 +1798,26 @@ async def _search_index(store) -> SearchIndex:
 
 @router.get("")
 async def list_funds(request: Request, q: str = Query("", max_length=80), category: str = Query("", max_length=160), amc: str = Query("", max_length=120),
+                     categories: List[str] = Query([]), group: str = Query("", max_length=12),
                      plan: str = Query("", max_length=20), option: str = Query("", max_length=20), stopped: bool = False,
                      min1y: Optional[float] = Query(None, ge=-100, le=100000), max1y: Optional[float] = Query(None, ge=-100, le=100000),
                      min5y: Optional[float] = Query(None, ge=-100, le=100000), max5y: Optional[float] = Query(None, ge=-100, le=100000),
                      sort: str = Query("", max_length=12), dir: str = Query("asc", pattern="^(asc|desc)$"),
                      page: int = Query(1, ge=1, le=2000), size: int = Query(50, ge=1, le=PAGE_MAX)) -> Response:
     """Schemes, filtered and sorted on the server (about 14,000 exist). The count is exact for the filters given. Without a chosen sort the order is by relevance
-    when searching, otherwise A to Z. Schemes that stopped publishing NAVs are left out unless `stopped=true`."""
+    when searching, otherwise A to Z. Schemes that stopped publishing NAVs are left out unless `stopped=true`.
+    Categories: `category` (one exact AMFI name), `categories` (exact AMFI names, the parameter repeated: categories=A&categories=B) and `group` (a whole tab:
+    equity, hybrid, debt, solution, other; see `classify`). Given together, a scheme must match each one given."""
     if plan and plan not in PLANS or option and option not in OPTIONS:
         raise fail(400, "bad_request", "Unknown plan or option.")
     if sort and sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort column.")
-    key = json.dumps([q.strip().lower(), category, amc, plan, option, stopped, min1y, max1y, min5y, max5y, sort, dir, page, size])
+    if group and group not in TAB_KEYS:
+        raise fail(400, "bad_request", "Unknown category group: use equity, hybrid, debt, solution or other.")
+    cats = sorted({c.strip() for c in categories if c.strip()})
+    if len(cats) > MAX_CATEGORIES or any(len(c) > 160 for c in cats):
+        raise fail(400, "bad_request", f"At most {MAX_CATEGORIES} categories of up to 160 characters each.")
+    key = json.dumps([q.strip().lower(), category, amc, plan, option, stopped, min1y, max1y, min5y, max5y, sort, dir, page, size, cats, group])
 
     async def build():
         store = request.app.state.store
@@ -1371,6 +1837,10 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         for col, v in (("category", category), ("amc", amc), ("plan", plan), ("option_class", "" if option == "All" else (option or "Growth"))):
             if v:
                 where.append(f"{col} = {arg(v)}")
+        if cats:
+            where.append(f"category = ANY({arg(cats)}::text[])")
+        if group:
+            where.append(f"category = ANY({arg(await _tab_categories(store, group))}::text[])")
         for col, lo, hi in (("r1y", min1y, max1y), ("r5y", min5y, max5y)):
             if lo is not None:
                 where.append(f"{col} >= {arg(lo)}")
@@ -1389,8 +1859,30 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
             total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args[:n_where])  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
             rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
             facts = await _facts(conn)
-        return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": [list_item(r) for r in rows], **facts}
+            dash = await _meta(conn, "dashboard") or {}
+        items = [list_item(r) for r in rows]
+        want = {i["checklist"]["peer"] for i in items if i["checklist"]}
+        peers = {k: v for k, v in (dash.get("peers") or {}).items() if k in want}
+        return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": items, "peers": peers,
+                "checklist": {"checks": [{"key": k, "rule": t} for k, t in CHECKS], "minPeers": CHECK_MIN_PEERS}, **facts}
     return await cached_json(request, "list", key, build)
+
+
+_tab_cache: Dict[str, object] = {"ver": None, "tabs": None, "at": 0.0}
+TAB_CACHE_SECONDS = 600
+
+
+async def _tab_categories(store, tab: str) -> List[str]:
+    """Every stored category name that `classify` puts in this tab (about 100 names in all; worked out once per data version)."""
+    ver = await _version(store.redis)
+    if _tab_cache["ver"] != ver or _tab_cache["tabs"] is None or time.monotonic() - float(_tab_cache["at"]) > TAB_CACHE_SECONDS:  # type: ignore[arg-type]
+        async with store.pool.acquire() as conn:
+            names = [r["category"] for r in await conn.fetch("SELECT DISTINCT category FROM mf_schemes")]
+        tabs: Dict[str, List[str]] = {k: [] for k in TAB_KEYS}
+        for n in names:
+            tabs[classify(n)[0]].append(n)
+        _tab_cache["tabs"], _tab_cache["ver"], _tab_cache["at"] = tabs, ver, time.monotonic()
+    return list(_tab_cache["tabs"][tab])   # type: ignore[index]
 
 
 @router.get("/filters")
@@ -1398,7 +1890,11 @@ async def filters(request: Request) -> Response:
     """Categories and fund houses with how many schemes each has (active ones, and all), plus plan and option counts, for the filter menus."""
     async def build():
         async with request.app.state.store.pool.acquire() as conn:
-            cats = await conn.fetch("SELECT category, scheme_type, count(*) FILTER (WHERE active) AS active, count(*) AS total FROM mf_schemes GROUP BY 1, 2 ORDER BY 1, 2")
+            cats = await conn.fetch("""SELECT category, scheme_type, count(*) FILTER (WHERE active) AS active, count(*) AS total,
+                                              count(*) FILTER (WHERE active AND option_class = 'Growth') AS growth,
+                                              count(*) FILTER (WHERE active AND option_class = 'Growth' AND plan = 'Direct') AS direct,
+                                              count(*) FILTER (WHERE active AND option_class = 'Growth' AND plan = 'Regular') AS regular
+                                       FROM mf_schemes GROUP BY 1, 2 ORDER BY 1, 2""")
             amcs = await conn.fetch("SELECT amc, count(*) FILTER (WHERE active) AS active, count(*) AS total FROM mf_schemes GROUP BY 1 ORDER BY 1")
             plans = await conn.fetch("SELECT plan, count(*) FILTER (WHERE active) AS active FROM mf_schemes GROUP BY 1")
             opts = await conn.fetch("SELECT option_class, count(*) FILTER (WHERE active) AS active FROM mf_schemes GROUP BY 1")
@@ -1406,10 +1902,13 @@ async def filters(request: Request) -> Response:
             facts = await _facts(conn)
         merged: Dict[str, dict] = {}
         for c in cats:   # one category can appear under two scheme types (rare); the filter is by category text, so counts add up
-            m = merged.setdefault(c["category"], {"name": c["category"], "group": category_group(c["category"]), "type": c["scheme_type"], "active": 0, "total": 0})
-            m["active"] += c["active"]
-            m["total"] += c["total"]
-        return {"categories": list(merged.values()), "amcs": [{"name": a["amc"], "active": a["active"], "total": a["total"]} for a in amcs],
+            tab, sub, label = classify(c["category"])
+            m = merged.setdefault(c["category"], {"name": c["category"], "group": category_group(c["category"]), "type": c["scheme_type"], "tab": tab, "key": sub,
+                                                  "label": label, "active": 0, "total": 0, "growth": 0, "direct": 0, "regular": 0})
+            for k in ("active", "total", "growth", "direct", "regular"):
+                m[k] += c[k]
+        return {"categories": list(merged.values()), "tabs": [{"key": k, "label": t} for k, t in TABS],
+                "amcs": [{"name": a["amc"], "active": a["active"], "total": a["total"]} for a in amcs],
                 "plans": [{"name": p["plan"], "active": p["active"]} for p in plans], "options": [{"name": o["option_class"], "active": o["active"]} for o in opts],
                 "totals": {"schemes": tot["total"], "active": tot["active"], "withHistory": tot["hist"]}, **facts}
     return await cached_json(request, "filters", "all", build)

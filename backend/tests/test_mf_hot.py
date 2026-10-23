@@ -98,10 +98,11 @@ async def test_hot_set_keeps_series_only_for_hot_schemes_and_cold_ones_keep_thei
     async with loaded.pool.acquire() as conn:
         hot = [r["code"] for r in await conn.fetch("SELECT code FROM mf_hot ORDER BY rank")]
         kept = {r["code"] for r in await conn.fetch("SELECT code FROM mf_history")}
-        cold = await conn.fetchrow("SELECT r1y, r5y, r3y, vol1y, mdd, has_hist FROM mf_schemes WHERE code = ANY($1::int[]) AND code <> ALL($2::int[]) AND option_class = 'Growth' AND r1y IS NOT NULL LIMIT 1",
+        cold = await conn.fetchrow("SELECT r1y, r5y, r3y, vol1y, mdd, has_hist, sip3y FROM mf_schemes WHERE code = ANY($1::int[]) AND code <> ALL($2::int[]) AND option_class = 'Growth' AND r1y IS NOT NULL LIMIT 1",
                                    [LARGE, LIQUID, 151368, 152805], hot)
     assert len(hot) == 2 and kept == set(hot)
-    assert cold["r1y"] is not None and cold["r3y"] is None and cold["vol1y"] is None and cold["mdd"] is None   # only 1Y and 5Y (and the previous NAV) stay on a cold row
+    # a cold row keeps 1Y, 3Y and 5Y (kept current nightly by refresh_anchors), the SIP figures (refresh_monthly) and the previous NAV; volatility and drawdown go
+    assert cold["r1y"] is not None and cold["vol1y"] is None and cold["mdd"] is None
     body = await loaded.redis.get("mf:hot:list")
     assert body and b"NOT a ranking by size" in body
 
@@ -152,19 +153,20 @@ async def test_cold_scheme_is_fetched_once_cached_with_a_stamp_and_expires(api):
 @pytest.mark.integration
 async def test_nightly_anchor_figures_equal_the_figures_from_the_full_series(loaded):  # noqa: F811
     async with loaded.pool.acquire() as conn:
-        want = {r["code"]: (r["r1y"], r["r5y"]) for r in await conn.fetch("SELECT code, r1y, r5y FROM mf_schemes WHERE code = ANY($1::int[])", [LARGE, LIQUID, 151368, 152805])}
+        want = {r["code"]: (r["r1y"], r["r5y"], r["r3y"]) for r in await conn.fetch("SELECT code, r1y, r5y, r3y FROM mf_schemes WHERE code = ANY($1::int[])", [LARGE, LIQUID, 151368, 152805])}
         await conn.execute("DELETE FROM mf_history")
         await conn.execute("UPDATE mf_schemes SET r1y = NULL, r5y = NULL, r3y = NULL WHERE code = ANY($1::int[])", list(want))
     c = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, content=HISTORY.encode())))   # every window answers with the recorded history
     out = await mf.refresh_anchors(loaded, c, date(2026, 10, 19))
     assert out["failed"] == [] and out["updated"] >= 4 and out["previousNavs"] >= 4
     async with loaded.pool.acquire() as conn:
-        got = {r["code"]: (r["r1y"], r["r5y"]) for r in await conn.fetch("SELECT code, r1y, r5y FROM mf_schemes WHERE code = ANY($1::int[])", list(want))}
+        got = {r["code"]: (r["r1y"], r["r5y"], r["r3y"]) for r in await conn.fetch("SELECT code, r1y, r5y, r3y FROM mf_schemes WHERE code = ANY($1::int[])", list(want))}
     async with loaded.pool.acquire() as conn:
         prev = await conn.fetchrow("SELECT nav_date, prev_nav, prev_date FROM mf_schemes WHERE code = $1", LARGE)
     assert (prev["prev_date"], prev["prev_nav"]) == (date(2026, 10, 16), 67.56)   # the NAV before 19 Oct in AMFI's own history
-    for code, (a, b) in want.items():
+    for code, (a, b, c) in want.items():
         assert got[code][0] == pytest.approx(a) and (got[code][1] == pytest.approx(b) if b is not None else got[code][1] is None), code
+        assert (got[code][2] == pytest.approx(c) if c is not None else got[code][2] is None), code   # the 3 year figure too
 
 
 @pytest.mark.integration
@@ -174,7 +176,7 @@ async def test_failed_anchor_download_keeps_the_old_figures(loaded):  # noqa: F8
         old = await conn.fetchval("SELECT r1y FROM mf_schemes WHERE code = $1", LARGE)
     c = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="<html>form</html>")))
     out = await mf.refresh_anchors(loaded, c, date(2026, 10, 19))
-    assert out["failed"] == ["1y", "5y", "1d"] and out["updated"] == 0
+    assert out["failed"] == ["1y", "3y", "5y", "1d"] and out["updated"] == 0
     async with loaded.pool.acquire() as conn:
         assert await conn.fetchval("SELECT r1y FROM mf_schemes WHERE code = $1", LARGE) == old
 

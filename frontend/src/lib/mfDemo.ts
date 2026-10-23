@@ -2,7 +2,8 @@
 // (real AMFI NAVs of 67 schemes of 13 funds, with their full details). List, filters, detail and compare run here on that recording; nothing is invented.
 import { ApiError } from "./api";
 import { score } from "./metricSearch";
-import type { FundCompare, FundDetail, FundFilters, FundRow, RangeKey } from "./mf";
+import { rowSortValue, type FundCompare, type FundDetail, type FundFilters, type FundRow, type RangeKey, type SortKey } from "./mf";
+import { classify } from "./mfCategories";
 import { DEMO_PORTFOLIO } from "../holdings/demo";
 
 type Data = { facts: { dataDate: string; updatedAt: string; source: string; disclaimer: string }; rows: FundRow[]; details: Record<string, FundDetail>; filters: FundFilters;
@@ -39,16 +40,18 @@ export async function demoMf<T>(path: string): Promise<T> {
   if (one) { const d = data.details[one[1]]; if (!d) throw notFound("This preview holds 67 schemes; the live site has every scheme."); return d as T; }
   // list
   const q = (p.get("q") || "").trim();
+  const cats = p.getAll("categories"), group = p.get("group"), option = p.get("option") || "Growth";
   let rows = data.rows.filter((r) => (p.get("stopped") === "true" || r.active)
-    && (!p.get("category") || r.category === p.get("category")) && (!p.get("amc") || r.amc === p.get("amc")) && (!p.get("plan") || r.plan === p.get("plan")) && (!p.get("option") || r.optionClass === p.get("option")));
+    && (!p.get("category") || r.category === p.get("category")) && (!cats.length || cats.includes(r.category)) && (!group || classify(r.category).tab === group)
+    && (!p.get("amc") || r.amc === p.get("amc")) && (!p.get("plan") || r.plan === p.get("plan")) && (option === "All" || r.optionClass === option));
   for (const k of ["1y", "5y"] as const) {
     const lo = num(p.get("min" + k)), hi = num(p.get("max" + k)), f = `r${k}` as "r1y";
     if (lo != null) rows = rows.filter((r) => r[f] != null && r[f]! >= lo);
     if (hi != null) rows = rows.filter((r) => r[f] != null && r[f]! <= hi);
   }
   let ranked = rows.map((r) => ({ r, s: q ? score(q, `${r.name} ${r.amc}`) : 1 })).filter((x) => x.s > 0);
-  const sort = p.get("sort") as keyof FundRow | null, dir = p.get("dir") === "desc" ? -1 : 1;
-  if (sort) ranked.sort((a, b) => { const x = a.r[sort], y = b.r[sort]; return x == null ? 1 : y == null ? -1 : x < y ? -dir : x > y ? dir : 0; });
+  const sort = p.get("sort") as SortKey | null, dir = p.get("dir") === "desc" ? -1 : 1;
+  if (sort) ranked.sort((a, b) => { const x = rowSortValue(a.r, sort), y = rowSortValue(b.r, sort); return x == null ? (y == null ? a.r.name.localeCompare(b.r.name) : 1) : y == null ? -1 : x < y ? -dir : x > y ? dir : 0; });
   else ranked.sort((a, b) => b.s - a.s || a.r.name.localeCompare(b.r.name));
   const size = Number(p.get("size") || 50), page = Number(p.get("page") || 1);
   return { ...data.facts, total: ranked.length, page, size, pages: Math.max(1, Math.ceil(ranked.length / size)), items: ranked.slice((page - 1) * size, page * size).map((x) => x.r) } as unknown as T;

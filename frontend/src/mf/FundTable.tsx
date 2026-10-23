@@ -1,24 +1,79 @@
 // The scheme table: sortable columns, the columns you chose, a tick box to add a scheme to the comparison. Wide tables scroll inside their own box.
 import { Link } from "react-router";
 import { HScroll } from "../components/HScroll";
-import { COLUMNS, categoryShort, navFull, navText, noReturnsText, type ColDef, type ColId, type FundRow, type ListQuery, type SortKey } from "../lib/mf";
+import { useInfoPop } from "../components/Info";
+import {
+  COLUMNS, COL_GROUPS, aumText, categoryShort, checklistLines, navFull, navText, noReturnsText, terText,
+  type ColDef, type ColId, type FundRow, type ListQuery, type PeerStats, type SortKey,
+} from "../lib/mf";
 import { dateIN } from "../lib/format";
 import { Fig, PlanChip } from "./Bits";
 
-function cell(c: ColDef, r: FundRow) {
+const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
+const MARK = { pass: "✓", fail: "✗", unknown: "–" } as const;
+
+/** "3/5": checks passed of those that could be worked out. Hover, focus or tap shows each check with the figures behind it. */
+function ChecklistCell({ r, peers }: { r: FundRow; peers?: Record<string, PeerStats> }) {
+  const show = useInfoPop();
+  const c = r.checklist;
+  if (!c) {
+    const why = r.optionClass !== "Growth" ? "The checklist is worked out for Growth options." : !r.active ? "This scheme has stopped publishing NAVs." : "Not worked out yet for this scheme.";
+    return <span className="mf-na" title={why} aria-label={`No checklist. ${why}`}>—</span>;
+  }
+  const lines = checklistLines(r, peers);
+  const [, plan] = c.peer.split("|");
+  const g = {
+    key: "checklist", label: `Checklist: ${c.pass} of ${c.of} checks passed`, lines: lines.map((l) => `${MARK[l.state]} ${l.text}`),
+    read: `Compared with the active ${plan} plan Growth options of ${categoryShort(r.category)} (both spellings AMFI uses). A dash (–) is a check that could not be worked out; it is not counted.`,
+  };
+  const label = `Checklist: ${c.pass} of ${c.of} checks passed. ` + lines.map((l) => `${l.state === "pass" ? "Passed" : l.state === "fail" ? "Not passed" : "Not known"}: ${l.text}`).join(" ");
+  return (
+    <button type="button" className={"mf-chk" + (c.of && c.pass / c.of >= 0.6 ? " hi" : "")} aria-label={label}
+      onMouseEnter={(e) => show(g, e.currentTarget)} onMouseLeave={() => show(null)} onFocus={(e) => show(g, e.currentTarget)} onBlur={() => show(null)}
+      onClick={(e) => { e.stopPropagation(); show(g, e.currentTarget); }}>
+      <span className="mf-meter" aria-hidden="true">{lines.map((l) => <i key={l.key} className={l.state} />)}</span>
+      <span className="mf-chk-n"><b>{c.pass}</b>/{c.of}</span>
+    </button>
+  );
+}
+
+/** A thin bar under a return, its length against the largest figure of that column on the page (green up, red down): a quick visual scale, nothing more. */
+const Bar = ({ v, max }: { v: number | null | undefined; max: number }) =>
+  v == null || !max ? null : <i className={"mf-rbar " + (v < 0 ? "neg" : "pos")} style={{ width: `${Math.max(4, Math.min(100, (Math.abs(v) / max) * 100))}%` }} aria-hidden="true" />;
+type Scale = Partial<Record<ColId, number>>;
+
+function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: Scale = {}) {
   const why = noReturnsText(r.noReturns);
   switch (c.id) {
-    case "amc": return r.amc.replace(/\s*mutual fund\s*$/i, "");
+    case "amc": return shortAmc(r.amc);
     case "category": return <span title={r.category}>{categoryShort(r.category)}</span>;
     case "plan": return r.plan === "Unspecified" ? "—" : r.plan;
     case "option": return r.option || "—";
     case "nav": return r.nav == null ? <span className="mf-na" aria-label="No NAV">—</span> : <span title={navFull(r.nav)}>{navText(r.nav)}</span>;
     case "navDate": return r.navDate ? dateIN(r.navDate, { day: "numeric", month: "short", year: "2-digit" }) : "—";
     case "change": return <span className="mf-rf"><Fig v={r.change} why={r.active ? "The previous NAV is not on file yet." : why} />{r.change == null && <small>{r.active ? "no previous NAV" : "stopped"}</small>}</span>;
-    case "r1y": case "r5y": {
-      const short = r[c.id] == null ? shortWhy(r.noReturns, c.id === "r1y" ? "younger than 1 year" : "younger than 5 years") : "";
-      return <span className="mf-rf"><Fig v={r[c.id]} why={why || (c.id === "r1y" ? "Younger than 1 year, or no NAV near the start date." : "Younger than 5 years, or no NAV near the start date.")} />{short && <small>{short}</small>}</span>;
+    case "r1y": case "r3y": case "r5y": {
+      const years = c.id === "r1y" ? 1 : c.id === "r3y" ? 3 : 5;
+      const v = r[c.id] ?? null;
+      const short = v == null ? shortWhy(r.noReturns, `younger than ${years} year${years > 1 ? "s" : ""}`) : "";
+      return <span className="mf-rf"><Fig v={v} why={why || `Younger than ${years} year${years > 1 ? "s" : ""}, or no NAV near the start date.`} /><Bar v={v} max={scale[c.id] ?? 0} />{short && <small>{short}</small>}</span>;
     }
+    case "sip3y": case "sip5y": {
+      const years = c.id === "sip3y" ? 3 : 5;
+      const v = r[c.id] ?? null;
+      return <span className="mf-rf"><Fig v={v} why={why || `Needs a month-end NAV for each of the last ${years * 12} months; younger schemes, and month-ends not loaded yet, have none.`} />
+        <Bar v={v} max={scale[c.id] ?? 0} />{v == null && <small>{shortWhy(r.noReturns, `under ${years} years`)}</small>}</span>;
+    }
+    case "aum": {
+      if (r.aum == null) return <span className="mf-na" title="Fund size is not in AMFI's latest quarterly AUM report or the fund house's month-end portfolio file loaded." aria-label="No fund size">—</span>;
+      const when = r.aumAsOf ? dateIN(r.aumAsOf, { month: "short", year: "numeric" }) : "";
+      const src = r.aumKind === "m" ? `Net assets at the end of ${when}, all plans together (fund house's portfolio file)` : `Average for the quarter to ${when}, all plans together (AMFI)`;
+      return <span title={src}>{aumText(r.aum)}</span>;
+    }
+    case "ter": return r.ter == null
+      ? <span className="mf-na" title="This plan is not in AMFI's latest expense ratio (TER) file." aria-label="No expense ratio">—</span>
+      : <span title={`Total expense ratio of the ${r.plan} plan, percent a year${r.terDate ? `, as of ${dateIN(r.terDate)}` : ""} (AMFI)`}>{terText(r.ter)}</span>;
+    case "checklist": return <ChecklistCell r={r} peers={peers} />;
   }
 }
 /** The short visible reason under a dash (the full sentence is in the tooltip and read out by screen readers). */
@@ -31,23 +86,30 @@ function shortWhy(code: FundRow["noReturns"], young: string): string {
     default: return young;
   }
 }
-const RET_IDS: ColId[] = ["change", "r1y", "r5y"];
 
-export function FundTable({ rows, cols, q, onSort, picked, onPick }: { rows: FundRow[]; cols: ColId[]; q: ListQuery; onSort: (s: SortKey) => void; picked: number[]; onPick: (code: number) => void }) {
+export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
+  rows: FundRow[]; cols: ColId[]; q: ListQuery; onSort: (s: SortKey) => void; picked: number[]; onPick: (code: number) => void; peers?: Record<string, PeerStats>;
+}) {
   const defs = COLUMNS.filter((c) => cols.includes(c.id));
-  const nRet = defs.filter((c) => RET_IDS.includes(c.id)).length, nLead = defs.length - nRet;
+  // the heading row above: neighbouring columns of one group share a heading ("Returns", "SIP returns")
+  const runs: { group?: ColDef["group"]; n: number }[] = [];
+  for (const c of defs) { const last = runs[runs.length - 1]; if (last && last.group === c.group) last.n++; else runs.push({ group: c.group, n: 1 }); }
   const sorted = (key: SortKey | null) => (key && q.sort === key ? (q.dir === "asc" ? "ascending" : "descending") : key ? "none" : undefined);
+  const scale: Scale = {};
+  for (const id of ["r1y", "r3y", "r5y", "sip3y", "sip5y"] as const) scale[id] = Math.max(0, ...rows.map((r) => Math.abs(r[id] ?? 0)));
+  const cls = (c: ColDef) => (c.num ? "num" : "txt") + (c.group ? ` mf-retcol mf-g-${c.group}` : "") + ` mf-c-${c.id}`;
   return (
     <HScroll label="schemes table">
       <table className="mf-table">
         <caption className="sr-only">Mutual fund schemes. Use the column buttons to sort.</caption>
         <thead>
-          {nRet > 0 && <tr className="mf-grouprow" aria-hidden="true"><th colSpan={1 + nLead} /><th colSpan={nRet} className="mf-retgrp">Returns</th></tr>}
+          {runs.some((r) => r.group) && (
+            <tr className="mf-grouprow" aria-hidden="true"><th />{runs.map((r, i) => (r.group ? <th key={i} colSpan={r.n} className={`mf-retgrp mf-g-${r.group}`}>{COL_GROUPS[r.group]}</th> : <th key={i} colSpan={r.n} />))}</tr>)}
           <tr>
             <th scope="col" aria-sort={sorted("name")}><button className="mf-sort" onClick={() => onSort("name")}>Scheme{q.sort === "name" && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button></th>
             {defs.map((c) => (
-              <th key={c.id} scope="col" aria-sort={sorted(c.sort)} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "") + ` mf-c-${c.id}`} title={c.hint}>
-                {c.sort ? <button className="mf-sort" onClick={() => onSort(c.sort!)}>{c.label}{q.sort === c.sort && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button> : c.label}
+              <th key={c.id} scope="col" aria-sort={sorted(c.sort)} className={cls(c)} title={c.hint}>
+                {c.sort ? <button className="mf-sort" aria-label={c.group ? `${COL_GROUPS[c.group]}, ${c.label}` : undefined} onClick={() => onSort(c.sort!)}>{c.label}{q.sort === c.sort && <i aria-hidden="true">{q.dir === "asc" ? "▲" : "▼"}</i>}</button> : c.label}
               </th>))}
           </tr>
         </thead>
@@ -60,11 +122,11 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick }: { rows: Fun
                 </label>
                 <span className="mf-nm">
                   <Link to={`/funds/${r.code}`}>{r.name}</Link>
-                  <small><PlanChip plan={r.plan} option={r.option} />{!r.active && <span className="chip ghost">Stopped publishing</span>}</small>
+                  <small><span className="mf-house">{shortAmc(r.amc)}</span><PlanChip plan={r.plan} option={r.option} />{!r.active && <span className="chip ghost">Stopped publishing</span>}</small>
                   {r.nav != null && <small className="mf-navm">NAV <span className="mono" title={navFull(r.nav)}>{navText(r.nav)}</span></small>}
                 </span>
               </th>
-              {defs.map((c) => <td key={c.id} className={(c.num ? "num" : "txt") + (RET_IDS.includes(c.id) ? " mf-retcol" : "") + ` mf-c-${c.id}`}>{cell(c, r)}</td>)}
+              {defs.map((c) => <td key={c.id} className={cls(c)}>{cell(c, r, peers, scale)}</td>)}
             </tr>))}
         </tbody>
       </table>
