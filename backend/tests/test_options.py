@@ -203,7 +203,7 @@ NSE,E,2885,INE002A01018,EQUITY,2885,RELIANCE,RELIANCE INDUSTRIES LTD,Reliance In
 
 def test_lot_sizes_per_series_from_the_same_pass_over_the_instrument_file():
     lots = oc.LotCollector()
-    eq = parse_instruments(CSV.splitlines(), lots.add)
+    eq = parse_instruments(CSV.splitlines(), on_row=lots.add)
     assert [r["symbol"] for r in eq] == ["RELIANCE"] and eq[0]["fno"] and eq[0]["lot_size"] == 500      # the equity parse is unchanged
     got = {(r["underlying"], r["expiry"].isoformat()): r for r in lots.rows()}
     assert set(got) == {("NIFTY", "2026-11-09"), ("SENSEX", "2026-10-29"), ("RELIANCE", "2026-10-27")}
