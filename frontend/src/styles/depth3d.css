@@ -40,3 +40,6 @@
 
 .surface3d { display: block; width: 100%; height: 300px; margin: 4px 0 10px; opacity: 0; animation: scene-in .9s ease forwards; cursor: grab; }
 @media (prefers-reduced-motion: reduce) { .surface3d { animation-duration: .01s; } }
+.cloud3d { position: relative; margin: 0 0 12px; border: 1px solid var(--line, rgba(128,128,128,.25)); border-radius: 12px; overflow: hidden; }
+.cloud3d-axes { position: absolute; left: 12px; bottom: 8px; margin: 0; font-size: 12px; color: var(--muted, inherit); opacity: .8; pointer-events: none; }
+.cloud3d-tip { position: absolute; left: 12px; top: 10px; margin: 0; padding: 4px 10px; border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--ink, inherit); border: 1px solid var(--gold); pointer-events: none; }
