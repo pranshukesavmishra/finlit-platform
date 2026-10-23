@@ -265,7 +265,7 @@ function Grid({ title, note, i, rowKey, rows, rowLabel, colKey, cols, colLabel }
 }) {
   const grid = sensitivity(i, rowKey, rows, colKey, cols);
   const [webgl, setWebgl] = useState(false);
-  useEffect(() => { if (supports3d()) whenIdle(() => setWebgl(true)); }, []);
+  useEffect(() => { if (supports3d()) return whenIdle(() => setWebgl(true)); }, []);
   const bi = rows.indexOf(i[rowKey] as number), bj = cols.indexOf(i[colKey] as number);
   const buy = (v: number) => v * (1 - i.mos / 100);
   const cls = (v: number | null) => (v == null ? "na" : i.price <= buy(v) ? "s-buy" : i.price > v ? "s-over" : "s-fair");
