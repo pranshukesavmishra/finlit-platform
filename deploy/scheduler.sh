@@ -115,6 +115,12 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 # Stocks opened before they were loaded are prepared in the background.
 ( while true; do $PY -m finlit.worker drain-queue --loop >> /tmp/job-drain.log 2>&1; sleep 30; done ) &
 
+# Commodity prices: MCX futures (Dhan) every 10 seconds while MCX trades, international prices (metals.dev / MetalpriceAPI) every minute, into Redis.
+# Started only when at least one source is set up; the page says plainly which parts are not connected.
+if [ -n "${DHAN_CLIENT_ID:-}${METALS_DEV_API_KEY:-}${METALPRICEAPI_KEY:-}" ]; then
+  ( while true; do $PY -m finlit.worker refresh-commodities --loop >> /tmp/job-commodities.log 2>&1; sleep 30; done ) &
+fi
+
 last=""
 while true; do
   now="$(date '+%M %H %u')"; [ "$now" = "$last" ] && { sleep 5; continue; }; last="$now"

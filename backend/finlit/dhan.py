@@ -64,9 +64,11 @@ def _f(v: Any) -> Optional[float]:
     return x if x == x and x not in (float("inf"), float("-inf")) else None
 
 
-def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None, on_row: Optional[Callable[[dict], None]] = None) -> List[dict]:
+def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None, on_row: Optional[Callable[[dict], None]] = None,
+                      commodities: Optional[List[dict]] = None) -> List[dict]:
     """Equity rows (NSE and BSE) from the detailed instrument file, each marked with whether the stock has futures (and the lot size).
     Given a list as `indices`, the index rows (segment I, instrument INDEX: quoted under IDX_I) are added to it; they are never equities.
+    Given a list as `commodities`, the MCX commodity futures (exchange MCX, instrument FUTCOM: quoted under MCX_COMM) are added to it.
 
     Streams line by line: the file is about 36 MB and only the equity rows and the futures' underlyings are kept. `on_row` sees every
     row on the way (options.LotCollector keeps the option series' lot sizes from the same pass).
@@ -81,6 +83,11 @@ def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None
             sid, sym = (r.get("SECURITY_ID") or "").strip(), (r.get("SYMBOL_NAME") or "").strip()
             if indices is not None and sid and sym:
                 indices.append({"exch": exch, "security_id": sid, "symbol": sym, "name": (r.get("DISPLAY_NAME") or "").strip() or None})
+        elif exch == "MCX" and inst == "FUTCOM":
+            sid, sym, exp = (r.get("SECURITY_ID") or "").strip(), (r.get("UNDERLYING_SYMBOL") or "").strip(), (r.get("SM_EXPIRY_DATE") or "").strip()[:10]
+            if commodities is not None and sid and sym and len(exp) == 10:
+                commodities.append({"security_id": sid, "symbol": sym, "display_name": (r.get("DISPLAY_NAME") or "").strip() or sym, "expiry": exp,
+                                    "tick_paise": _f(r.get("TICK_SIZE")), "upper": _f(r.get("SM_UPPER_LIMIT")), "lower": _f(r.get("SM_LOWER_LIMIT"))})
         elif exch == "NSE" and seg == "D" and inst == "FUTSTK":
             sym, lot, exp = (r.get("UNDERLYING_SYMBOL") or "").strip(), _f(r.get("LOT_SIZE")), (r.get("SM_EXPIRY_DATE") or "").strip() or "9999"
             if sym and lot and (sym not in fut or exp < fut[sym][0]):   # a revised lot size starts with later expiries: the nearest contract's is today's
@@ -106,8 +113,9 @@ def parse_instruments(lines: Iterable[str], indices: Optional[List[dict]] = None
 
 
 async def fetch_instruments(client: Optional[httpx.AsyncClient] = None, indices: Optional[List[dict]] = None,
-                            on_row: Optional[Callable[[dict], None]] = None) -> List[dict]:
-    """Download the file to a temporary file (never all in memory) and read it line by line (index rows into `indices`, if given; `on_row` sees every row)."""
+                            on_row: Optional[Callable[[dict], None]] = None, commodities: Optional[List[dict]] = None) -> List[dict]:
+    """Download the file to a temporary file (never all in memory) and read it line by line (index rows into `indices`, MCX futures into
+    `commodities`, if given; `on_row` sees every row)."""
     own = client is None
     client = client or httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=180.0), follow_redirects=True)
     try:
@@ -118,7 +126,7 @@ async def fetch_instruments(client: Optional[httpx.AsyncClient] = None, indices:
                 async for chunk in resp.aiter_bytes():
                     tmp.write(chunk)
             tmp.seek(0)
-            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""), indices, on_row)
+            return parse_instruments(io.TextIOWrapper(tmp, encoding="utf-8", errors="replace", newline=""), indices, on_row, commodities)
     except httpx.HTTPError as e:
         raise DhanError("instrument file: " + type(e).__name__) from None
     finally:
@@ -150,6 +158,21 @@ async def save_indices(store, rows: List[dict]) -> int:
             await conn.execute("DELETE FROM dhan_indices")
             await conn.executemany("INSERT INTO dhan_indices (exch, security_id, symbol, name) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING",
                                    [(r["exch"], r["security_id"], r["symbol"], r.get("name")) for r in rows])
+    return len(rows)
+
+
+async def save_commodity_contracts(store, rows: List[dict], minimum: int = 100) -> int:
+    """Replace dhan_commodity_contracts with the file's MCX futures (about 170). A short list is refused, as for equities: a broken download
+    must not leave the commodity page with no contract to price."""
+    if len(rows) < minimum:
+        raise DhanError(f"instrument file looks incomplete ({len(rows)} MCX futures); kept what was stored")
+    async with store.pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("DELETE FROM dhan_commodity_contracts")
+            await conn.executemany(
+                "INSERT INTO dhan_commodity_contracts (security_id, symbol, display_name, expiry, tick_paise, upper_limit, lower_limit) "
+                "VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING",
+                [(r["security_id"], r["symbol"], r["display_name"], date.fromisoformat(r["expiry"]), r.get("tick_paise"), r.get("upper"), r.get("lower")) for r in rows])
     return len(rows)
 
 

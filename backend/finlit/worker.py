@@ -474,6 +474,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_mi.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_di = sub.add_parser("refresh-instruments", help="weekly: Dhan's public instrument file (ISIN, surveillance flag, margin eligibility, F&O status of every NSE and BSE equity); needs no account")
     p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_cm = sub.add_parser("refresh-commodities", help="commodity prices: MCX futures from Dhan and international prices from metals.dev / MetalpriceAPI into Redis (--loop: keeps running)")
+    p_cm.add_argument("--loop", action="store_true")
     sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
     p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
     p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
@@ -612,8 +614,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .options import LotCollector, save_option_lots
             lots = LotCollector()
             idx: List[dict] = []
+            mcx: List[dict] = []
             try:
-                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx, on_row=lots.add))
+                n = await dhan.save_instruments(store, await dhan.fetch_instruments(indices=idx, on_row=lots.add, commodities=mcx))
             except dhan.DhanError as e:
                 await record_run(store, args.cmd, {"status": "failed", "error": str(e)})
                 print({"status": "failed", "error": str(e)})
@@ -629,8 +632,17 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 result["option_series"] = await save_option_lots(store, lots.rows())   # lot size per underlying and expiry (option chain)
             except dhan.DhanError as e:
                 result["option_series_error"] = str(e)
+            try:                                  # likewise the MCX futures: the commodity page keeps the stored contracts if the list is short
+                result["commodities"] = await dhan.save_commodity_contracts(store, mcx)
+                await store.redis.delete("cmd:contracts")
+            except dhan.DhanError as e:
+                result["commodities"] = str(e)
             await record_run(store, args.cmd, result)
             print(result)
+            return 0
+        if args.cmd == "refresh-commodities":
+            from . import commodities
+            print(await commodities.run(settings, store, loop=args.loop))
             return 0
         if args.cmd == "dhan-check":
             from . import dhan

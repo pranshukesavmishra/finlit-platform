@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, indices, intraday, notify, premium
+from . import alertapi, commodities, indices, intraday, notify, premium
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
@@ -456,6 +456,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(alertapi.router)
     app.include_router(premium.router)
     app.include_router(indices.router)
+    app.include_router(commodities.router)
     app.include_router(notify.router)
     app.include_router(screener_api.router)
     app.include_router(advanced_api.router)
