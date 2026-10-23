@@ -66,6 +66,15 @@ MAX_UPLOAD_BODY = 16 * 1024 * 1024
 CACHE_PRIVATE = "private, no-cache"  # the browser keeps a copy but asks (cheap 304) every time, so a new plan shows at once
 
 
+class HealthSafeTrustedHost(TrustedHostMiddleware):
+    """Host check for everything except the platform's liveness probes, which may arrive with an internal Host header."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] == "http" and scope["path"].startswith(UNLIMITED_PATHS):
+            return await self.app(scope, receive, send)
+        await super().__call__(scope, receive, send)
+
+
 class RateLimitMiddleware:
     """Per-client request budget for every API route (health checks excluded). Website files are not counted."""
 
@@ -200,7 +209,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                        allow_headers=["If-None-Match", "Content-Type", "X-CSRF-Token"],
                        expose_headers=["ETag", "Server-Timing", "Retry-After"], allow_credentials=True, max_age=600)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    app.add_middleware(HealthSafeTrustedHost, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(SecurityHeadersMiddleware)
 
     @app.middleware("http")

@@ -115,3 +115,13 @@ def test_common_passwords_rejected():
     for pw in ("qwertyuiop12", "letmein123456", "Passw0rd12345", "Finlit2026!"):
         assert password_problem(pw, "a@b.co"), pw
     assert password_problem("blue-harbour-lamp-47", "a@b.co") is None
+
+
+def test_host_check_applies_except_to_liveness_probes():
+    import httpx, asyncio
+    app = create_app(Settings(environment="development", allowed_hosts=["site.example"]), store=object())
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://evil.example") as c:
+            return (await c.get("/api/ping")).status_code, (await c.get("/api/stocks/search-index")).status_code
+    assert asyncio.run(go()) == (200, 400)
