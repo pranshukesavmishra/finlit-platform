@@ -77,7 +77,7 @@ footer.band, .band.foot { background: linear-gradient(180deg, #14201A, #0A110D);
 
 /* ---- small, calm motion: content settles in once; nothing loops ---- */
 @keyframes luxe-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-main > *, .gate > *, .wrap.oc > * { animation: luxe-in .5s cubic-bezier(.2, .7, .2, 1) both; }
+main > *, .gate > *, .wrap.oc > * { animation: luxe-in .5s cubic-bezier(.2, .7, .2, 1) backwards; }   /* "backwards", not "both": once finished it leaves no stacking context, so fixed drawers and trays inside still sit above the header */
 main > *:nth-child(2) { animation-delay: .05s; } main > *:nth-child(3) { animation-delay: .1s; } main > *:nth-child(4) { animation-delay: .15s; }
 @media (prefers-reduced-motion: reduce) { main > *, .gate > *, .wrap.oc > * { animation: none; } .btn.primary::after { display: none; } .card, .btn { transition: none; } }
 
@@ -92,7 +92,7 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
   --s1: rgba(255,255,255,.05); --s2: rgba(255,255,255,.085); --s3: rgba(255,255,255,.14);
   --gold: #D9B96C; --gold-2: #EBD59F; --gold-deep: #A8843A; --gold-soft: rgba(217,185,108,.15); --on-gold: #1A1405;
   --gain: #6CC79B; --loss: #F0929A; --gain-soft: rgba(108,199,155,.16); --loss-soft: rgba(240,146,154,.16);
-  --hh-rule: rgba(255,255,255,.2); --focus: #F4EFE3;
+  --hh-rule: rgba(255,255,255,.2); --focus: #F4EFE3; --t-gold: #D9B96C; --t-silver: #C9CFD8; --t-basic: #D6D3CB;
   position: relative; isolation: isolate; color: var(--text);
   background: radial-gradient(700px 320px at 85% -10%, rgba(217,185,108,.16), transparent 70%), radial-gradient(600px 300px at 0% 110%, rgba(70,140,105,.18), transparent 70%), linear-gradient(165deg, #183327, #0C1812 70%, #09110D);
   border-bottom: 1px solid color-mix(in srgb, #D9B96C 40%, transparent);
@@ -122,3 +122,103 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 .shell .pagehead, .shell .sip-hero, .shell .fl-hero, .shell .mc-hero { border-radius: 22px; margin: 0 20px 18px 0; border: 1px solid color-mix(in srgb, #D9B96C 30%, transparent); }
 .pagehead, .sip-hero, .fl-hero, .mc-hero { margin-bottom: 8px; }
 @media (max-width: 560px) { .dash-h { padding: 18px 18px; border-radius: 18px; } }
+
+/* ======================================================================== round two: signature details */
+
+/* a soft light that follows the pointer across cards and tiles (only where there is a mouse) */
+@media (hover: hover) and (pointer: fine) {
+  .card::after, :root .mk-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--gold) 9%, transparent), transparent 62%); }
+  .card:hover::after, :root .mk-tile:hover::after { opacity: 1; }
+}
+:root .mk-tile { position: relative; }
+
+/* home: sections numbered like chapters of a printed report */
+.hh { counter-reset: hhsec; }
+.hh-head { counter-increment: hhsec; position: relative; border-top-width: 1px; }
+.hh-head::before { content: "§ " counter(hhsec, decimal-leading-zero); position: absolute; right: 0; top: 12px; font: italic 400 15px var(--serif); color: var(--gold); letter-spacing: .02em; }
+
+/* dashboard market tiles: paper cards with a coloured edge instead of a full tinted fill */
+:root .mk-tile { padding: 12px 14px 12px 16px; border-radius: 14px; background: linear-gradient(180deg, var(--s1), color-mix(in srgb, var(--s2) 50%, var(--s1))); box-shadow: var(--card-shadow); overflow: hidden; }
+:root .mk-tile::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--border-strong); }
+:root .mk-tile.up { background: linear-gradient(180deg, var(--s1), color-mix(in srgb, var(--gain) 6%, var(--s1))); } :root .mk-tile.up::before { background: var(--gain); }
+:root .mk-tile.down { background: linear-gradient(180deg, var(--s1), color-mix(in srgb, var(--loss) 6%, var(--s1))); } :root .mk-tile.down::before { background: var(--loss); }
+:root .mk-tile b { color: var(--text); }
+
+/* ======================================================================== phones: compact, app-like */
+.mtabs { display: none; }
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .wrap { padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+
+  /* header: logo, theme, alerts, account. Search and menu move to the bottom bar */
+  .top .wrap { min-height: 54px; gap: 8px; padding-block: 6px; }
+  .top .lg-mark { height: 38px; }
+  .top .search, .top .burger, .top .planseg { display: none !important; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .av-btn { height: 36px; padding: 0 6px; } .av-btn .tier { display: none; }
+  .demo-bar { font-size: 11px; padding: 5px 10px; }
+  .tape { font-size: 11.5px; }
+
+  /* bottom tab bar */
+  .mtabs { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; z-index: 75; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); height: 62px; padding: 0 4px;
+    border-radius: 20px; background: color-mix(in srgb, var(--s1) 88%, transparent); -webkit-backdrop-filter: saturate(1.5) blur(16px); backdrop-filter: saturate(1.5) blur(16px);
+    border: 1px solid color-mix(in srgb, var(--gold) 28%, var(--border)); box-shadow: 0 18px 40px -18px rgba(15, 32, 24, .55), 0 1px 0 rgba(255,255,255,.5) inset; }
+  .mt-i { all: unset; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--faint); font: 600 10.5px var(--sans); letter-spacing: .01em; cursor: pointer; border-radius: 14px; -webkit-tap-highlight-color: transparent; }
+  .mt-i svg { width: 21px; height: 21px; }
+  .mt-i.on { color: var(--text); } .mt-i.on svg { color: var(--gold); }
+  .mt-i.on::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); margin-top: 1px; }
+  .mt-i:focus-visible { outline: 2px solid var(--focus); outline-offset: -4px; }
+  .mt-i:active { transform: scale(.94); }
+  .mt-search .mt-orb { display: grid; place-items: center; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%; color: #1A1405;
+    background: linear-gradient(135deg, #EBD59F, #D9B96C 50%, #A8843A); box-shadow: 0 10px 22px -8px rgba(168, 132, 58, .8), 0 0 0 4px var(--bg); }
+  .mt-search .mt-orb svg { width: 20px; height: 20px; color: #1A1405; }
+  .shell-fab { display: none !important; }
+  .ai-fab { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; width: 46px !important; height: 46px !important; right: 14px !important; }
+  .alx-toasts { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: 10px; left: 10px; width: auto; }
+  main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+  footer.band { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+
+  /* type scale */
+  h1, .pagehead h1, .hh-hero h1, .dash-h h1 { font-size: clamp(26px, 7.6vw, 32px) !important; line-height: 1.12 !important; }
+  h2, .hh-head h2 { font-size: clamp(21px, 6vw, 26px) !important; }
+  .pagehead p, .hh-lede, .lede-xl { font-size: 14.5px !important; line-height: 1.55; }
+  .eyebrow, .hh-kicker { font-size: 10px; letter-spacing: .16em; }
+  .eyebrow::before { width: 14px; }
+
+  /* heroes and sections */
+  .pagehead, .sip-hero, .fl-hero, .mc-hero { padding: 26px 0 22px !important; min-height: 0 !important; }
+  .shell .pagehead, .shell .sip-hero, .shell .fl-hero, .shell .mc-hero { margin: 0 0 12px; border-radius: 18px; }
+  .pagehead .pa { display: none; }
+  .hh-hero { padding: 26px 0 28px !important; border-radius: 0 0 22px 22px; }
+  .hh .tagline { padding: 14px 0; } .hh .tagline p { font-size: 17px !important; }
+  .hh-sec, .sec { padding-block: 28px !important; }
+  .hh-head { margin-bottom: 18px; } .hh-head::before { font-size: 13px; top: 10px; }
+  .dash-h { padding: 16px 16px !important; border-radius: 18px; margin-bottom: 12px; gap: 10px; }
+  .dash-h p { font-size: 13.5px; }
+
+  /* cards, buttons, fields */
+  .card { padding: 14px 14px !important; border-radius: 16px; }
+  .card-h { margin-bottom: 12px; padding-bottom: 10px; } .card-h h3 { font-size: 16px; } .card-h .ci { width: 28px; height: 28px; }
+  .btn { height: 38px; padding: 0 13px; font-size: 13.5px; border-radius: 11px; gap: 6px; } .btn svg { width: 15px; height: 15px; }
+  .btn.lg { height: 44px; padding: 0 18px; font-size: 14.5px; border-radius: 12px; }
+  .cta-row { gap: 8px; } .hh .cta-row .btn { flex: 1 1 auto; }
+  .chip { height: 22px; font-size: 11px; padding: 0 8px; }
+
+  /* tables */
+  table { font-size: 12.5px; } table th { font-size: 10px; } .qtt td, .qtt th { padding: 8px 10px; }
+
+  /* dashboard markets */
+  :root .mk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+  :root .mk-tile { padding: 9px 10px 9px 13px; border-radius: 12px; }
+  :root .mk-tile small { font-size: 11px; } :root .mk-tile b { font-size: 16px; } :root .mk-tile span { font-size: 11.5px; } :root .mk-tile em { font-size: 10.5px; }
+
+  /* sidebar drawer */
+  .side-i { padding: 7px 9px; font-size: 13.5px; }
+}
+@media (max-width: 380px) { .mt-i { font-size: 9.5px; } .mt-i svg { width: 19px; height: 19px; } }
+
+/* the assistant button: forest on paper, gold ring */
+:root:root:root .ai-fab { background: linear-gradient(160deg, #2C5441, #1F3B2D 55%, #0F2018); color: #F6EBCB; border: 1px solid color-mix(in srgb, #D9B96C 45%, transparent); box-shadow: 0 14px 30px -14px rgba(15, 32, 24, .75); }
+:root:root:root .ai-fab:hover { filter: brightness(1.08); }
+:root:root:root .ai-fab svg { color: #E3C57E; }
