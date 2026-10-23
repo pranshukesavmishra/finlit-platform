@@ -8,7 +8,7 @@ FastAPI + MongoDB backend. This is the migration checklist: every row needs a ho
 | Today | What it does | New platform |
 |---|---|---|
 | `/` | Hero (founder Nishant Jain: IIT Kanpur, CFA L1, NISM RA), realised portfolio performance, 7-step process, philosophy marquee, testimonial, contact form | Home, same story, live data |
-| `/services` | 5 services; pricing: First session ₹99, 1 month ₹299, 3 months ₹699, 6 months ₹1,299, 1 year ₹2,499 (per service); enquiry dialog | Services + enquiry, prices from one server table |
+| `/services` | 5 services; pricing: First session, 1 month, 3 months, 6 months, 1 year (per service), prices shown as "—" until announced; enquiry dialog | Services + enquiry, prices from one server table |
 | `/why-we-exist` | Market-size pitch (TAM funnel, tiers, who we help, growth loop) | Why we exist |
 | `/about` | Pillars, principles, founder profile | About |
 | `/contact` | Contact form, email, LinkedIn | Contact |
@@ -29,7 +29,7 @@ theme toggle, footer disclaimer ("technology company, not registered with SEBI o
   metrics and charts; one current report.
 - **Leads:** `/contact` (8/hour/IP) and `/service-enquiry`, saved then emailed to the owner via Resend;
   auto-reply exists but is off.
-- **Chat:** Gemini, 10/min/IP, system prompt lists services and the ₹99 first session.
+- **Chat:** Gemini, 10/min/IP, system prompt lists services and says prices are not published yet.
 - **Market ticker:** NIFTY 50 constituents (niftyindices CSV, cached 6 h) + Upstox LTP.
 
 ## Known gaps fixed by the rebuild

@@ -304,5 +304,3 @@
 .gs-l b { display: block; font-size: 14.5px; } .gs-l span:not(.gs-c) { display: block; font-size: 13px; color: var(--faint); margin-top: 1px; } .gs-l .is-done b { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--border-strong); } .gs-l .btn { min-height: 36px; font-size: 13px; padding: 0 14px; }
 @media (max-width: 560px) { .gs-l li { grid-template-columns: 26px minmax(0, 1fr); } .gs-l .btn { grid-column: 2; justify-self: start; } }
 .plans-more { text-align: center; margin: 22px 0 0; } .plans-more a { color: var(--gold-2, var(--gold)); font-weight: 600; }
-.side-tier { font-size: 10px; padding: 1px 7px; flex: none; } .is-collapsed .side-tier { display: none; }
-@media (max-width: 900px) { .is-collapsed .side-tier { display: revert; } }

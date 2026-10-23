@@ -9,7 +9,7 @@ import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
 
-type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean };
+type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean };
 type Group = { title: string; items: Item[] };
 
 /** The left rail for every product page: where you are, what you follow, and what else the platform offers, in the order people use it. */
@@ -44,10 +44,10 @@ export function AppShell() {
       { to: "/premium/fundamentals", label: "Stock fundamentals", icon: "table" },
       { to: "/premium/markets", label: "Market events & index", icon: "activity" },
       { to: "/premium/report", label: "Premium report", icon: "notes" },
+      { to: "/dcf", label: "DCF calculator", icon: "rupee" },
     ] },
     { title: "My lists", items: [
       { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
-      { to: "/dcf", label: "DCF calculator", icon: "rupee", gold: true },
       { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },
       { to: "/alerts", label: "Alerts", icon: "bell", badge: unread ? `${unread} new` : live ? String(live) : undefined },
     ] },
@@ -83,7 +83,7 @@ export function AppShell() {
               <div className="side-gt">{g.title}</div>
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
-                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}</span>{i.badge && <span className="side-b">{i.badge}</span>}{i.gold && !i.badge && <span className="tier gold side-tier">Gold</span>}
+                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}
             </div>
