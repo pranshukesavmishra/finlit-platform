@@ -263,9 +263,9 @@ main#main { min-height: 90vh; }
 
 /* pros and cons of a pillar */
 .pc-g { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; } @media (max-width: 700px) { .pc-g { grid-template-columns: 1fr; } }
-.pc { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: var(--s2); } .pc h4 { margin: 0 0 8px; font: 700 14px var(--sans); display: flex; align-items: center; gap: 8px; } .pc h4 svg { width: 16px; height: 16px; }
-.pc.pro { border-color: color-mix(in srgb, var(--gain) 40%, var(--border)); } .pc.pro h4 { color: var(--gain); } .pc.con { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); } .pc.con h4 { color: var(--warn); }
-.pc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .pc li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; } .pc li small { flex-basis: 100%; color: var(--faint); font-size: 12px; }
+.pcb { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: var(--s2); } .pcb h4 { margin: 0 0 8px; font: 700 14px var(--sans); display: flex; align-items: center; gap: 8px; } .pcb h4 svg { width: 16px; height: 16px; }
+.pcb.pro { border-color: color-mix(in srgb, var(--gain) 40%, var(--border)); } .pcb.pro h4 { color: var(--gain); } .pcb.con { border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); } .pcb.con h4 { color: var(--warn); }
+.pcb ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .pcb li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; } .pcb li small { flex-basis: 100%; color: var(--faint); font-size: 12px; }
 .mp-more { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; } .mp-more summary { cursor: pointer; font: 600 13.5px var(--sans); color: var(--muted); }
 .mth-more { padding: 14px 18px; } .mth-more > summary { cursor: pointer; font: 600 14px var(--sans); }
 .pr-miss { font-size: 12.5px; margin: 10px 0 0; max-width: 78ch; }

@@ -45,6 +45,7 @@ from fastapi import APIRouter, Query, Request, Response
 from .auth.routes import fail
 from .config import MF_EXCLUDED_AMCS, MF_FEATURED_AMCS
 from .store import dumps, etag_for
+from .background import etag_matches
 
 log = logging.getLogger("finlit.mf")
 router = APIRouter(prefix="/api/mf")
@@ -973,7 +974,7 @@ async def choose_hot(store, n: int = HOT_SIZE) -> Tuple[str, List[int]]:
         got = [int(c) for c in (await fn(store.pool, n) if fn else [])]
         got = [c for c in dict.fromkeys(got) if c in ok][:n]
         if len(got) >= n // 2:
-            return "Largest schemes by assets under management (AUM), from the fund houses' published monthly disclosure.", got
+            return "Largest schemes by assets under management (AUM): AMFI's average for the latest quarter, all plans of a scheme together.", got
     except Exception:
         log.debug("no AUM ranking available; using the fallback", exc_info=True)
     picked: List[int] = []
@@ -1313,7 +1314,7 @@ async def cached_json(request: Request, kind: str, key: str, build, ttl: int = 9
     else:
         body, etag = hit[0], hit[1].decode() if isinstance(hit[1], bytes) else hit[1]
     headers = {"ETag": etag, "Cache-Control": CACHE_HEADER}
-    if etag in (request.headers.get("if-none-match") or ""):
+    if etag_matches(request.headers.get("if-none-match"), etag):
         return Response(status_code=304, headers=headers)
     return Response(content=body, media_type="application/json", headers=headers)
 

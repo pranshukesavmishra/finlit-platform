@@ -32,7 +32,9 @@ if [ -n "${DEMO_PASSWORD:-}" ]; then
   done
 fi
 
-# The real administrator (set ADMIN_EMAIL and ADMIN_PASSWORD in the service's environment; they are applied at every start).
+# The real administrator (ADMIN_EMAIL and ADMIN_PASSWORD in the service's environment). The account is created at the first start. Later starts
+# leave the password alone while ADMIN_PASSWORD keeps the same value, so a password changed under Account is kept; typing a NEW value into
+# ADMIN_PASSWORD makes it the password at the next start and signs every session out (the way back in without a shell).
 # The first sign-in then asks for an authenticator app; admin tools stay closed until it is set up.
 if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
   FINLIT_ADMIN_PASSWORD="$ADMIN_PASSWORD" $PY -m finlit.auth.cli create-admin --email "$ADMIN_EMAIL" || true

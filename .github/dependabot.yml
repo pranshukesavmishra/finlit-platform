@@ -4,7 +4,20 @@ updates:
     directory: /backend
     schedule: {interval: weekly}
     open-pull-requests-limit: 5
+  - package-ecosystem: pip          # the company site backend (its own pinned versions, its own virtual environment in the image)
+    directory: /site-api/backend
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm          # the website. xlsx comes from SheetJS's own server (the npm registry copy is old and vulnerable),
+    directory: /frontend            # so Dependabot cannot update it: check https://cdn.sheetjs.com for new versions by hand.
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: xlsx
   - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: docker       # the image Render builds (repository root)
     directory: /
     schedule: {interval: weekly}
   - package-ecosystem: docker

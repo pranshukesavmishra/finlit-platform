@@ -47,6 +47,8 @@ export async function demoGet<T>(path: string): Promise<T> {
   const sub = url.pathname.match(/^\/api\/etf\/([A-Za-z0-9&_.-]+)\/(facts|portfolio)$/);
   if (sub) {
     const why = "Fund-house disclosures are not part of the offline demo";
+    const facts = (d as { factsBy?: Record<string, Record<string, unknown>> }).factsBy?.[sub[1].toUpperCase()];   // recorded from AMFI for the preview ETFs
+    if (sub[2] === "facts" && facts) return { symbol: sub[1], isin: "", unavailable: null, facts, disclaimer: d.meta.disclaimer } as T;
     return (sub[2] === "facts" ? { symbol: sub[1], isin: "", unavailable: why, facts: {}, disclaimer: d.meta.disclaimer } : { symbol: sub[1], isin: "", unavailable: why, holdings: [], exited: [], summary: null, asOf: null }) as T;
   }
   const m = url.pathname.match(/^\/api\/etf\/([A-Za-z0-9&_.-]+)$/);

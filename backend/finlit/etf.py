@@ -790,7 +790,8 @@ async def _write_row(conn, sym, ds, cs, vs, m, nav, nav_date, prem, fetched_at: 
 
 
 async def _write_hist(conn, sym, ds, cs, hs, ls, vs, full: bool, at: datetime) -> None:
-    """`at` is the run's own clock (the weekly full re-fetch is timed against it), not the database's."""
+    # full_at is stamped with the run's own clock (`at`), the same one refresh() compares it against; the database clock would make the
+    # weekly full re-fetch depend on when the run happened to be written, not on the run's time.
     await conn.execute(
         """INSERT INTO etf_history (symbol, dates, closes, highs, lows, volumes, full_at) VALUES ($1,$2,$3,$4,$5,$6,$8)
            ON CONFLICT (symbol) DO UPDATE SET dates=EXCLUDED.dates, closes=EXCLUDED.closes, highs=EXCLUDED.highs, lows=EXCLUDED.lows,

@@ -17,3 +17,25 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 30 7 * * 1-5     root $W check-screens >> /var/log/finlit-alerts.log 2>&1
 # Weekly week-ahead email: Sunday evening.
 30 18 * * 0      root $W send-digest >> /var/log/finlit-alerts.log 2>&1
+
+# The jobs below match deploy/scheduler.sh (the free single-container setup), same IST times.
+# Every listed company's price and market cap: nightly after the close.
+10 20 * * *      root $W refresh-listing >> /var/log/finlit-ingest.log 2>&1
+# Companies that have just reported are rebuilt hourly, so their quarter shows within hours.
+20 8-23 * * *    root $W refresh-results >> /var/log/finlit-ingest.log 2>&1
+# IPO and results calendars: each morning, and every three hours in market time.
+45 6 * * *       root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1
+5 9,12,15 * * 1-5 root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1
+# NIFTY index membership: weekly.
+45 2 * * 0       root $W refresh-indices >> /var/log/finlit-ingest.log 2>&1
+# Keep the database inside its storage budget.
+5 1 * * *        root $W prune >> /var/log/finlit-ingest.log 2>&1
+# A rotating sample of the market: what the provider sent against what the reports show.
+10 3 * * *       root $W audit-coverage --sample 80 --record >> /var/log/finlit-ingest.log 2>&1
+# ETFs and mutual funds take turns on one lock (flock -w waits for the other instead of running beside it).
+40 20 * * 1-5    root flock -w 10800 /tmp/finlit-funds.lock $W refresh-etf >> /var/log/finlit-funds.log 2>&1
+10 22 * * 1-5    root flock -w 10800 /tmp/finlit-funds.lock $W refresh-etf --resume >> /var/log/finlit-funds.log 2>&1
+40 23 * * 1-5    root flock -w 10800 /tmp/finlit-funds.lock $W refresh-etf --resume >> /var/log/finlit-funds.log 2>&1
+10 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
+30 23 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
+40 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-facts >> /var/log/finlit-funds.log 2>&1

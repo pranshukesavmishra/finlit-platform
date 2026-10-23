@@ -58,8 +58,16 @@ def register_stock_admin(app: FastAPI, base_url: str) -> None:
         return await forward(request, base_url)
 
 
+# Never forwarded: the site backend's own password-only CMS sign-in. Administrators get CMS tokens from POST /api/me/cms-token,
+# which needs their authenticator code; forwarding this would offer a way into the content tools without it.
+BLOCKED_PATHS = {"/api/content/admin/login"}
+
+
 def register_catch_all(app: FastAPI, base_url: str) -> None:
     """Every other /api path the research API does not answer goes to the site backend. Call this AFTER all research routes."""
     @app.api_route("/api/{rest:path}", methods=METHODS, include_in_schema=False)
     async def site_api(rest: str, request: Request):
+        if request.url.path.rstrip("/").lower() in BLOCKED_PATHS:
+            return JSONResponse({"status": "not_found", "detail": "Sign in on the website: administrators reach the content tools from their account."},
+                                status_code=404, headers={"Cache-Control": "no-store"})
         return await forward(request, base_url)

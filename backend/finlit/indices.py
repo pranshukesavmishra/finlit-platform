@@ -23,6 +23,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from .auth.routes import NO_STORE, Ctx, fail
 from .finedge import FinEdgeClient, FinEdgeError
 from .premium import premium_ctx
+from .background import spawn
 
 log = logging.getLogger("finlit.indices")
 router = APIRouter(prefix="/api/indices")
@@ -163,7 +164,7 @@ async def _cached(app, key: str, fresh: float, fetch) -> Optional[Dict[str, Any]
     if raw:
         hit = json.loads(raw)
         if time.time() - hit["t"] > fresh:
-            asyncio.create_task(_refresh(app, key, fetch))
+            spawn(_refresh(app, key, fetch))
         return hit["v"]
     return await _refresh(app, key, fetch, wait=True)
 

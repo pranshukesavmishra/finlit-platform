@@ -1,4 +1,4 @@
-// Fund facts from the fund house's own disclosures (through the API): each field shows its value, the date it is true on and where it came from,
+// Fund facts from AMFI's published files and the exchange's rules (through the API): each field shows its value, the date it is true on and where it came from,
 // or a dash with the reason. Nothing is filled in from memory.
 import { Icon } from "../lib/icons";
 import { day, useEtfFacts, type FactCell } from "../lib/etf";
@@ -22,6 +22,7 @@ const NOT_IN = "Not in the fund-house disclosures we have read for this ETF";
 function show(c: FactCell, label: string): string {
   const v = c.value;
   if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return day(v);   // a date (launch date) reads as a date
   if (typeof v === "number") return label.startsWith("Expense") ? `${v}% a year` : label.startsWith("Assets") || label.startsWith("Minimum") ? "₹" + v.toLocaleString("en-IN") : String(v);
   return String(v ?? "");
 }
@@ -32,7 +33,7 @@ export function EtfFacts({ symbol }: { symbol: string }) {
   const why = isError ? "The fund facts could not be loaded right now" : data?.unavailable ?? null;
   return (
     <section className="card etf-sec" aria-labelledby="h-ff">
-      <div className="card-h"><h3 id="h-ff"><span className="ci"><Icon name="id" /></span>Fund facts</h3><span className="s">fund-house disclosures</span></div>
+      <div className="card-h"><h3 id="h-ff"><span className="ci"><Icon name="id" /></span>Fund facts</h3><span className="s">AMFI and exchange rules</span></div>
       {isLoading ? <p className="faint">Loading…</p> : (
         <dl className="etf-facts etf-ffacts">
           {FIELDS.map((f) => {
@@ -42,7 +43,8 @@ export function EtfFacts({ symbol }: { symbol: string }) {
               <div key={f.label}>
                 <dt>{f.label}{f.term && <GlossInfo name={f.term} fallback={f.fallback ?? ""} />}</dt>
                 <dd>
-                  {ok ? <>{show(hit!, f.label)}<small className="faint">{hit!.asOf ? `as of ${day(hit!.asOf)}` : "date not stated"}{hit!.source ? ` · ${hit!.source}` : ""}</small></>
+                  {ok ? <>{show(hit!, f.label)}<small className="faint">{[hit!.asOf ? `as of ${day(hit!.asOf)}` : "", hit!.source || ""].filter(Boolean).join(" · ")}</small>
+                    {hit!.note ? <small className="faint">{hit!.note}</small> : null}</>
                     : <Blank why={hit?.unavailable ?? why ?? NOT_IN} />}
                   {!ok && <small className="faint">{hit?.unavailable ?? why ?? NOT_IN}</small>}
                 </dd>

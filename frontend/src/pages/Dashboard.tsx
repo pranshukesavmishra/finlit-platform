@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, type Financials } from "../lib/api";
+import { apiGet, type ApiError, type Financials } from "../lib/api";
+import { STATUS_TEXT, run, type DcfInputs } from "../lib/dcf";
 import { useAuth } from "../lib/auth";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
 import { PALETTES, PALETTE_IDS } from "../lib/palettes";
@@ -195,6 +196,26 @@ function GettingStarted({ followed, palette, plan }: { followed: number; palette
   );
 }
 
+type SavedDcf = { name: string; symbol: string | null; updatedAt: string; inputs: DcfInputs };
+function DcfW() {
+  const q = useQuery<{ scenarios: SavedDcf[] }, ApiError>({ queryKey: ["dcf-scenarios"], queryFn: () => apiGet("/api/dcf/scenarios"), retry: false, enabled: !DEMO });
+  const list = (q.data?.scenarios ?? []).slice(0, 5);
+  if (DEMO || q.isError || (q.data && !list.length)) return <Empty icon="rupee" title="Value a company" text="Work out the intrinsic value per share, the buy price after your margin of safety and what today's price implies." to="/dcf" cta="Open the DCF calculator" />;
+  if (!q.data) return <div className="skeleton" style={{ height: 120 }} />;
+  return <><ul className="sl">{list.map((s) => { const o = run(s.inputs), r = o.result;
+    return <li key={s.name}><Link to={dcfLink(s)}><b>{s.name}</b>{r && r.equity > 0 ? <span className={"chip " + (r.status === "buy" ? "up" : r.status === "overvalued" ? "down" : "gold")}>{STATUS_TEXT[r.status].label}</span> : null}</Link>
+      <span>{r && r.equity > 0 ? `Value ₹${nf(r.iv, 2)} · buy below ₹${nf(r.buyPrice, 2)} · price ₹${nf(s.inputs.price, 2)} when saved` : "Inputs need a fix"}</span></li>; })}</ul>
+    <p className="rcs-all"><Link to="/dcf">Open the DCF calculator <Icon name="arrow" /></Link></p></>;
+}
+const dcfLink = (s: SavedDcf) => {
+  const i = s.inputs, sp = new URLSearchParams({ fcf: String(i.fcf0), r: String(i.r), g1: String(i.g1), g2: String(i.g2), gt: String(i.gT), mc: String(i.marketCap), p: String(i.price), nd: String(i.netDebt), mos: String(i.mos) });
+  if (i.shares != null) sp.set("sh", String(i.shares));
+  if (i.midYear) sp.set("mid", "1");
+  if (i.tvMethod === "exit") { sp.set("tv", "exit"); if (i.exitMultiple != null) sp.set("xm", String(i.exitMultiple)); }
+  if (s.symbol) sp.set("sym", s.symbol);
+  return "/dcf?" + sp.toString();
+};
+
 export function Dashboard() {
   useDocTitle("Dashboard", "Your FinLit dashboard: watchlist moves, latest results, saved screens and signals, arranged your way.");
   const { user, ready } = useAuth();
@@ -230,6 +251,7 @@ export function Dashboard() {
       case "second": return <SecondLook items={items} meta={wl.meta} />;
       case "screens": return <Screens />;
       case "buckets": return <Buckets items={items} />;
+      case "dcf": return <DcfW />;
       default: return <Learn />;
     }
   };
@@ -261,7 +283,7 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ snapshot: "bars", movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>
             {body(w.id)}
           </section>))}

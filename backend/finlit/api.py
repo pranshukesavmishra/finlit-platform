@@ -34,6 +34,7 @@ from . import etf as etf_api
 from . import mf as mf_api
 from . import graphviews as graphviews_api
 from . import forum as forum_api
+from . import dcf as dcf_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
@@ -44,6 +45,7 @@ from .web import mount_frontend
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
 from .snapshot import PRICE_RANGES, SECTIONS, SNAPSHOT_VERSION
 from .store import Store
+from .background import etag_matches, spawn
 
 SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 CACHE_STOCK = "public, max-age=60, stale-while-revalidate=600"
@@ -207,7 +209,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     def cached(request: Request, body: bytes, etag: str, cache: str, started: float) -> Response:
         timing = f"app;dur={(time.perf_counter() - started) * 1000:.2f}"
         headers = {"ETag": etag, "Cache-Control": cache, "Server-Timing": timing}
-        if etag in (request.headers.get("if-none-match") or ""):
+        if etag_matches(request.headers.get("if-none-match"), etag):
             return Response(status_code=304, headers=headers)
         return Response(content=body, media_type="application/json", headers=headers)
 
@@ -257,7 +259,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     async def search_index(request: Request):
         started = time.perf_counter()
         body, packed, etag = await app.state.store.search_index()
-        if "gzip" in (request.headers.get("accept-encoding") or "") and request.headers.get("if-none-match") != etag:
+        if "gzip" in (request.headers.get("accept-encoding") or "") and not etag_matches(request.headers.get("if-none-match"), etag):
             response = cached(request, packed, etag, CACHE_INDEX, started)
             response.headers["Content-Encoding"] = "gzip"
             response.headers["Vary"] = "Accept-Encoding"
@@ -299,12 +301,13 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/stocks/{symbol}")
     async def summary(request: Request, symbol: str, statement: str = Query("consolidated")):
-        asyncio.create_task(app.state.store.note_view(symbol)) if SYMBOL.match(symbol) else None
+        if SYMBOL.match(symbol):
+            spawn(app.state.store.note_view(symbol))
         sym = symbol.strip().upper()
         if SYMBOL.match(sym):
             who = await current(request)
             if who.user_id:   # a signed-in member opening a company: it is kept stored and refreshed for them from now on
-                asyncio.create_task(app.state.store.touch_user_company(who.user_id, sym))
+                spawn(app.state.store.touch_user_company(who.user_id, sym))
         if SYMBOL.match(sym) and statement in ("consolidated", "standalone"):
             hit = await app.state.store.get_section(sym, statement, "summary")
             if hit is not None and await broken(sym, statement, hit[0]):
@@ -420,6 +423,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(mf_api.router)
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
+    app.include_router(dcf_api.router)
     app.include_router(results_api.router)
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

@@ -22,6 +22,17 @@ export function Services() {
         <div className="prices">{PRICING.map((p, i) => <Reveal key={p.plan} delay={i * 60}><div className={"price-c" + (i === PRICING.length - 1 ? " best" : "")}>{p.note === "Lowest per month" && <span className="chip gold tag-b">Lowest per month</span>}<div className="n">{p.plan}</div><div className="p">{p.price}</div><div className="hp-per">{perMonth(p.price, p.months)}</div><button className="btn" style={{ width: "100%" }} onClick={() => enquire()}>Enquire</button></div></Reveal>)}</div>
         <p className="hp-note">Looking for the website tools (screener, scores, watchlists)? Those are separate and are on the <Link to="/plans">Plans page</Link>. Basic is free.</p>
       </div></section>
+      <section className="sec hp-dcf"><div className="wrap">
+        <Reveal className="sec-h"><div className="eyebrow">Gold tool</div><h2>DCF calculator</h2>
+          <p>Work out what a company is worth from the cash it will generate, the way analysts and banks do it, without building an Excel model. Load any listed company's free cash flow, debt and shares, set growth and the discount rate, and see the intrinsic value per share, the buy price after your margin of safety, and whether today's price is above or below it.</p></Reveal>
+        <ul className="hp-list">
+          <li>Every step of the working shown: projected cash flows, present values, terminal value, enterprise and equity value.</li>
+          <li>Checks that stop impossible assumptions, and warnings when the answer rests mostly on the terminal value.</li>
+          <li>Sensitivity grids, reverse DCF (the growth today's price assumes), bear, base and bull cases, and a discount-rate builder.</li>
+          <li>Save scenarios, share a link, or download to Excel.</li>
+        </ul>
+        <p className="hp-note"><Link className="btn primary" to="/dcf">Open the DCF calculator</Link> Part of the <Link to="/plans">Gold plan</Link>. A calculation tool for education, not investment advice.</p>
+      </div></section>
       <section className="sec hp-limits"><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">Please read</div><h2>What we do not do</h2></Reveal>
         <ul className="hp-list">

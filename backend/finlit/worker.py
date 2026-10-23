@@ -396,8 +396,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         _p.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours (a clean run) or the last 15 minutes (a partial one): redeploys must not repeat a full load")
         if _name == "refresh-etf":
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
-    p_dc = sub.add_parser("refresh-disclosures", help="fund facts and holdings from AMFI and the fund houses' monthly portfolio files (resumable; files already read are skipped)")
-    p_dc.add_argument("--only", nargs="*", default=None, help="steps (master isin performance ter aaum loads) or fund-house keys (sbi nippon ...)")
+    p_ff = sub.add_parser("refresh-facts", help="nightly: fund facts from AMFI (scheme master, expense ratios, quarterly average AUM) for funds and ETFs; run after refresh-mf")
+    p_ff.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
+    p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
     p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
     p_dc.add_argument("--months", type=int, default=None, help="month-ends to read per fund house (default: the latest 3)")
     p_dc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran in the last N hours")
@@ -453,8 +455,22 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 sent += await check_alerts(store.pool, mailer, settings.public_site_url)
             print(sent, "alerts sent")
             return 0
-        if args.cmd == "refresh-disclosures":
-            from . import disclosure
+        if args.cmd == "refresh-facts":
+            from .disclosure import refresh as refresh_facts
+            from .mf import last_run_age_hours, make_client, refresh_hot
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            result = await refresh_facts(store, settings)       # records its own result at /api/mf/status
+            if result["aum"].get("status") == "ok":            # the ready-made top 100 is now ranked by fund size; a newly ranked scheme's
+                async with make_client() as client:              # NAV series is fetched (with a client), never left missing
+                    result["hot"] = await refresh_hot(store, client)
+            print(result)
+            return 0 if result["status"] == "ok" else 1
+        if args.cmd == "refresh-portfolios":
+            from . import portfolios as disclosure
             from .mf import record_run, last_run_age_hours
             if args.max_age_hours:
                 age, last = await last_run_age_hours(store, args.cmd)

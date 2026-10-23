@@ -13,3 +13,5 @@ frontend/node_modules/
 node_modules/
 # Files uploaded through the blog/CMS while developing. Uploads are kept in MongoDB (content_blobs); the files already tracked stay as a fallback.
 site-api/backend/content_uploads/*
+# agent working copies (Claude Code)
+.claude/worktrees/

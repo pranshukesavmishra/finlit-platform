@@ -247,7 +247,7 @@ async def test_search_finds_cold_etfs_with_typos(store, monkeypatch):
 # ------------------------------------------------------------------------------------------------------------ holdings and facts
 async def test_portfolio_and_facts_are_unavailable_with_a_reason_when_the_module_is_missing(api, monkeypatch):
     monkeypatch.setitem(sys.modules, "finlit.disclosure", None)                                    # makes the import fail like a missing module
-    monkeypatch.delattr(finlit, "disclosure", raising=False)
+    monkeypatch.delattr(finlit, "disclosure", raising=False)                                       # (once imported, the package attribute would win)
     for path in ("portfolio", "facts"):
         r = await api.get(f"/api/etf/niftybees/{path}")
         b = r.json()

@@ -791,6 +791,12 @@ async def admin_decline(request: Request, rid: int, ctx: Ctx = Depends(admin_ctx
 async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
     body = await request.app.state.store.health()
     body["funds"] = await _funds_health(request.app.state.store.pool)
+    st: Settings = request.app.state.settings
+    # How this server tells visitors apart (rate limits, sign-in lockouts): the proxy chain it received from the administrator's own browser,
+    # and the address it settled on. That address should be the administrator's own public IP; a Cloudflare or host address means more proxy
+    # ranges belong in TRUSTED_PROXIES.
+    body["clientIp"] = {"header": st.client_ip_header or None, "chain": request.headers.get(st.client_ip_header) if st.client_ip_header else None,
+                        "peer": request.client.host if request.client else None, "resolved": ip_of(request)}
     return Response(content=json.dumps(body, default=str), media_type="application/json", headers=NO_STORE)
 
 

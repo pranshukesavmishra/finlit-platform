@@ -65,6 +65,46 @@ def test_xff_uses_rightmost_hop_not_client_supplied():
     assert client_ip(scope, "x-forwarded-for") == "203.0.113.7"
 
 
+def xff(value: str, peer: str = "10.1.2.3") -> str:
+    from finlit.security import client_ip
+    return client_ip({"headers": [(b"x-forwarded-for", value.encode())], "client": (peer, 1)}, "x-forwarded-for")
+
+
+def test_xff_skips_cloudflare_and_load_balancer_hops_whatever_their_number():
+    assert xff("49.36.1.2") == "49.36.1.2"                                   # the host appends the visitor only
+    assert xff("49.36.1.2, 172.70.10.1") == "49.36.1.2"                      # visitor, then a Cloudflare edge address
+    assert xff("49.36.1.2, 172.70.10.1, 10.0.4.7") == "49.36.1.2"            # visitor, Cloudflare, internal load balancer
+    assert xff("2401:4900:1c3a::5, 2606:4700:10::1") == "2401:4900:1c3a::5"  # IPv6 through Cloudflare's IPv6 edge
+
+
+def test_xff_values_written_by_the_visitor_are_never_used():
+    # A visitor sends their own X-Forwarded-For to look like someone else (or like a proxy); the host appends the real address after it.
+    assert xff("1.1.1.1, 49.36.1.2, 172.70.10.1") == "49.36.1.2"
+    assert xff("10.0.0.1, 162.158.0.1, 49.36.1.2, 172.70.10.1") == "49.36.1.2"
+    assert xff("<script>, 49.36.1.2") == "49.36.1.2"
+    many = ", ".join(f"8.8.{i}.{i}" for i in range(200)) + ", 49.36.1.2"
+    assert xff(many) == "49.36.1.2"
+
+
+def test_xff_without_a_usable_address_falls_back_to_the_peer():
+    assert xff("") == "10.1.2.3"
+    assert xff("not-an-ip") == "10.1.2.3"
+    assert xff("192.168.1.20, 10.0.0.9") == "192.168.1.20"                  # all private (local network): the furthest hop
+
+
+def test_xff_ipv4_mapped_ipv6_is_read_as_ipv4():
+    assert xff("::ffff:49.36.1.2, ::ffff:172.70.10.1") == "49.36.1.2"
+
+
+def test_extra_trusted_proxies(monkeypatch):
+    from finlit.security import _proxy_networks
+    monkeypatch.setenv("TRUSTED_PROXIES", "35.190.0.0/17, nonsense")
+    assert xff("49.36.1.2, 35.190.5.5") == "49.36.1.2"
+    monkeypatch.delenv("TRUSTED_PROXIES")
+    assert xff("49.36.1.2, 35.190.5.5") == "35.190.5.5"
+    assert _proxy_networks.cache_info().currsize >= 2
+
+
 def test_common_passwords_rejected():
     from finlit.auth.crypto import password_problem
     for pw in ("qwertyuiop12", "letmein123456", "Passw0rd12345", "Finlit2026!"):

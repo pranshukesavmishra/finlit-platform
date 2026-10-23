@@ -98,3 +98,13 @@ def test_asgi_request_preserves_plaintext_response_diagnostics():
 
     assert status == 418
     assert body == {"_non_json": True, "text": "Invalid host header"}
+
+
+def test_password_only_cms_sign_in_is_off_unless_enabled(isolated_app, monkeypatch):
+    app, _database = isolated_app
+    monkeypatch.delenv("CMS_PASSWORD_LOGIN", raising=False)
+    status, _body = asgi_request(app, "POST", "/api/content/admin/login", payload={"email": "admin@example.com", "password": "anything-long"})
+    assert status == 404
+    monkeypatch.setenv("CMS_PASSWORD_LOGIN", "1")   # explicitly switched on (a separately hosted site backend): the normal check applies again
+    status, _body = asgi_request(app, "POST", "/api/content/admin/login", payload={"email": "nobody@example.com", "password": "anything-long"})
+    assert status in (401, 503)

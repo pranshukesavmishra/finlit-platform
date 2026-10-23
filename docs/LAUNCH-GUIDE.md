@@ -129,7 +129,7 @@ Every account signs in at `/login`. There is no separate admin password form: `/
 2. You are taken to **Account, Security**. Click to set up the authenticator app. Scan the picture with Google Authenticator, Microsoft Authenticator or Authy, type the 6-digit code, and confirm. Administrators must use this.
 3. From now on, signing in asks for the 6-digit code after the password.
 4. Open `/admin` (type it after your site address, for example `https://finlit-xxxx.onrender.com/admin`). The blog and content tools open at once, with no second password. The members, plans and data-health screen is at `/console`.
-5. Change your password under **Account**, then delete `ADMIN_PASSWORD` in Render (service, Environment, delete the variable).
+5. Change your password under **Account**, then delete `ADMIN_PASSWORD` in Render (service, Environment, delete the variable). A restart never undoes a password you changed under Account: only a *new* value typed into `ADMIN_PASSWORD` replaces it.
 
 If `/admin` says the content tools are not connected, or the server answers `cms_not_configured`, the value `CMS_JWT_SECRET` is missing or shorter than 32 characters: add or regenerate it in the Environment tab, save, and let Render redeploy.
 
@@ -261,7 +261,7 @@ Open the service in Render and read the **Logs** tab first. Lines starting with 
 | Authenticator lost, or handed to someone else | The code on the phone no longer exists | In Render, Environment, add `RESET_MFA_EMAIL` = that account's email, Save (the service restarts). Sign in with the password; the site asks for a new authenticator. Then delete `RESET_MFA_EMAIL` |
 | `/admin` sends you to Account, Security | The authenticator app is not set up yet | Finish Step 6 |
 | The server answers `cms_not_configured` | `CMS_JWT_SECRET` is missing or shorter than 32 characters | Add it in Environment and save |
-| Administrator sign-in refused | Wrong password, or the password contains your email name | Set a new `ADMIN_PASSWORD` in Environment and redeploy, then sign in again |
+| Administrator sign-in refused | Wrong password, or the password contains your email name | Set a new `ADMIN_PASSWORD` in Environment (a value different from the one there before) and redeploy, then sign in with it |
 | The chat says it is unavailable | No `GEMINI_API_KEY`, or the free daily limit was reached, or the key was deleted | Step 9. If the limit was reached, wait until it resets (midnight Pacific time) |
 | Company data stops updating | Render suspended the service for the month, or FinEdge limits were reached | Check the Render dashboard banner. Only one free service may run in the workspace |
 | Neon says storage is 100% full, or reports stop saving | The free database holds 1 GB; too many company reports were stored | In Render Environment set `INGEST_LIMIT` to `500` (index members first, then the largest companies). The nightly `prune` job deletes the rest and reports older than the history window; companies people open are rebuilt on demand. If it is already full, in the Neon SQL editor run `TRUNCATE snapshots;` (reports rebuild by themselves within minutes) |
