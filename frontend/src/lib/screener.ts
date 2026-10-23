@@ -75,8 +75,8 @@ export const GROUPS: Group[] = [
   { id: "profit", label: "Profitability", filters: [{ key: "roe", group: "profit", step: 1, hint: "%" }, { key: "roce", group: "profit", step: 1, hint: "%" }, { key: "operating_margin", group: "profit", step: 1, hint: "%" }] },
   { id: "growth", label: "Growth", filters: [{ key: "sales_cagr", group: "growth", step: 1, hint: "%" }, { key: "profit_cagr", group: "growth", step: 1, hint: "%" }] },
   { id: "health", label: "Financial Health", filters: [{ key: "debt_to_equity", group: "health", step: 0.1, hint: "×" }] },
-  { id: "sector", label: "Sector", filters: [] },
   { id: "model", label: "FinLit model", model: true, filters: (["overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical"] as NumKey[]).map((key) => ({ key, group: "model", step: 5, hint: "0–100" })) },
+  { id: "sector", label: "Sector", filters: [] },
 ];
 
 export type Range = { min?: number; max?: number };

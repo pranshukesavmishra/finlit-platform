@@ -1,6 +1,6 @@
 import { HScroll } from "../components/HScroll";
 import { SplitDivider, useSideWidth } from "../components/SplitDivider";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
@@ -180,6 +180,19 @@ export function ScreenerPro() {
   const err = res.error as { status?: number; body?: { plan?: string; detail?: string } } | null;
   const total = res.data?.total ?? 0;
 
+  // Sector, Industry and Index sit straight after the FinLit model group (or at the top while a search hides it)
+  const facetBlocks = <>
+                  {data && facetMatch("Sector") && (
+                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("sector")} onClick={() => setOpen((o) => ({ ...o, sector: !o.sector }))}><span>Sector{f.sectors.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.sectors.length}</i>}</span><span className="scr-n">{data.sectors.length}</span><Icon name="arrow" /></button>
+                      {facetOpen("sector") && <div className="scr-gb"><Checks search items={data.sectors.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.sectors} toggle={(k) => toggle("sectors", k)} /></div>}</div>)}
+                  {data && facetMatch("Industry") && (
+                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("industry")} onClick={() => setOpen((o) => ({ ...o, industry: !o.industry }))}><span>Industry{f.industries.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.industries.length}</i>}</span><span className="scr-n">{data.industries.length}</span><Icon name="arrow" /></button>
+                      {facetOpen("industry") && <div className="scr-gb"><Checks search items={data.industries.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.industries} toggle={(k) => toggle("industries", k)} /></div>}</div>)}
+                  {data && data.indices.length > 0 && facetMatch("Index") && (
+                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("index")} onClick={() => setOpen((o) => ({ ...o, index: !o.index }))}><span>Index{f.indices.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.indices.length}</i>}</span><span className="scr-n">{data.indices.length}</span><Icon name="arrow" /></button>
+                      {facetOpen("index") && <div className="scr-gb"><Checks items={data.indices.map((s) => ({ key: s.code, label: s.label, n: s.n }))} picked={f.indices} toggle={(k) => toggle("indices", k)} /></div>}</div>)}
+  </>;
+
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
@@ -195,12 +208,13 @@ export function ScreenerPro() {
                 {cat.isLoading && <div className="skeleton" style={{ height: 320, marginTop: 12 }} />}
                 {cat.isError && <div className="state"><p>The filters are not available right now. Please try again in a moment.</p><button className="btn" onClick={() => cat.refetch()}>Try again</button></div>}
                 <div className="scr-groups">
+                  {!listed.some((g) => g.id === "model") && facetBlocks}
                   {listed.map((g) => {
                     const isOpen = facetOpen(g.id), model = g.id === "model", allLocked = g.metrics.every((m) => m.locked);
                     const shownMetrics = fl ? (g.label.toLowerCase().includes(fl) ? g.metrics : rankMetrics(g.metrics, find)) : g.metrics;
                     const n = Object.keys(f.ranges).filter((k) => g.metrics.some((m) => m.key === k)).length;
                     return (
-                      <div key={g.id} className={"scr-g" + (model ? " is-model" : "")}>
+                      <Fragment key={g.id}><div className={"scr-g" + (model ? " is-model" : "")}>
                         <button className="scr-gh" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [g.id]: !o[g.id] }))}>
                           <span>{g.label}{model && <span className="tier gold" style={{ marginLeft: 8 }}><Icon name="crown" />Gold</span>}{n > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{n}</i>}</span><span className="scr-n">{g.metrics.length}</span><Icon name="arrow" />
                         </button>
@@ -230,18 +244,9 @@ export function ScreenerPro() {
                               })()}
                             </>}
                           </div>)}
-                      </div>);
+                      </div>{model && facetBlocks}</Fragment>);
                   })}
                   {!fl && groups.length > VISIBLE_GROUPS && <button className="alx-link" style={{ margin: "10px 0 4px" }} onClick={() => setMoreGroups(!moreGroups)}>{moreGroups ? "Show fewer categories" : `Show ${groups.length - VISIBLE_GROUPS} more categories`}</button>}
-                  {data && facetMatch("Sector") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("sector")} onClick={() => setOpen((o) => ({ ...o, sector: !o.sector }))}><span>Sector{f.sectors.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.sectors.length}</i>}</span><span className="scr-n">{data.sectors.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("sector") && <div className="scr-gb"><Checks search items={data.sectors.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.sectors} toggle={(k) => toggle("sectors", k)} /></div>}</div>)}
-                  {data && facetMatch("Industry") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("industry")} onClick={() => setOpen((o) => ({ ...o, industry: !o.industry }))}><span>Industry{f.industries.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.industries.length}</i>}</span><span className="scr-n">{data.industries.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("industry") && <div className="scr-gb"><Checks search items={data.industries.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.industries} toggle={(k) => toggle("industries", k)} /></div>}</div>)}
-                  {data && data.indices.length > 0 && facetMatch("Index") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("index")} onClick={() => setOpen((o) => ({ ...o, index: !o.index }))}><span>Index{f.indices.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.indices.length}</i>}</span><span className="scr-n">{data.indices.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("index") && <div className="scr-gb"><Checks items={data.indices.map((s) => ({ key: s.code, label: s.label, n: s.n }))} picked={f.indices} toggle={(k) => toggle("indices", k)} /></div>}</div>)}
                 </div>
                 <div className="scr-save"><div className="scr-sh"><span>Save as a screen</span><button className="lnk" onClick={() => { setF(norm({})); toast("Filters cleared."); }}>Reset all</button></div>
                   <div className="scr-sr"><input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Name this screen" aria-label="Screen name" maxLength={40} onKeyDown={(e) => e.key === "Enter" && save()} /><button className="btn" onClick={save}>Save</button></div></div>
