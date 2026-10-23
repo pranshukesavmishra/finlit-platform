@@ -12,9 +12,11 @@ import { MINUS, dateIN, nf } from "../../lib/format";
 import { niceTicks } from "../../lib/etf";
 import { useGold } from "../../lib/premium";
 import type { Row } from "../../lib/screener";
-import { CATEGORIES, RANGES, gainers, indexFor, largest, lastN, losers, moveColour, sectorBoard, stocksFor, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
+import { CATEGORIES, MAX_MOVE, RANGES, gainers, indexFor, largest, lastN, losers, moveColour, sectorBoard, stocksFor, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
 import "../../styles/markets.css";
 
+/** A listed company's ticker, or its name when the ticker is only a numeric exchange code. */
+const shortName = (r: { symbol: string; name?: string | null }) => (/^\d+$/.test(r.symbol) && r.name ? r.name : r.symbol);
 const sgn = (v: number | null | undefined, d = 2) => (v == null ? MINUS : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
 const tone = (v: number | null | undefined) => (v == null || Math.abs(v) < 0.005 ? "" : v > 0 ? "up" : "down");
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -108,14 +110,14 @@ function MarketToday() {
 // ---------------------------------------------------------------------------------------------------------------- heat-maps
 type Cell = { key: string; label: string; sub: string; move: number | null; weight: number; href?: string; logo?: string | null; name: string };
 
-function HeatMap({ cells, height, empty, minLabel = 64 }: { cells: Cell[]; height: number; empty: string; minLabel?: number }) {
+function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells: Cell[]; height: number; empty: string; minLabel?: number; logos?: boolean }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const tiles = useMemo(() => treemap(cells, (c) => c.weight, W, height), [cells, W, height]);
   if (!cells.length) return <p className="mk-note">{empty}</p>;
   return (
     <div className="mk-heat" ref={box} style={{ height }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move">
       {tiles.map(({ x, y, w, h, item: c }) => {
-        const big = w >= minLabel && h >= 44, logoOk = w >= 84 && h >= 84;
+        const big = w >= minLabel && h >= 44, logoOk = logos && w >= 84 && h >= 84;
         const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, title: `${c.name}: ${sgn(c.move)}` };
         const inner = big && <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b>{c.label}</b><em>{sgn(c.move)}</em></span>;
         return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" {...common}>{inner}</div>;
@@ -124,13 +126,13 @@ function HeatMap({ cells, height, empty, minLabel = 64 }: { cells: Cell[]; heigh
   );
 }
 
-function Legend() { return <span className="mk-legend" aria-hidden="true"><i style={{ background: moveColour(-3) }} /><i style={{ background: moveColour(-1) }} /><i style={{ background: "var(--s3)" }} /><i style={{ background: moveColour(1) }} /><i style={{ background: moveColour(3) }} />−3% … +3%</span>; }
+function Legend() { return <span className="mk-legend" aria-hidden="true"><i style={{ background: moveColour(-2) }} /><i style={{ background: moveColour(-0.7) }} /><i style={{ background: "var(--s3)" }} /><i style={{ background: moveColour(0.7) }} /><i style={{ background: moveColour(2) }} />−2% … +2%</span>; }
 
 function Snapshot({ rows }: { rows: Row[] }) {
   const m = useMemo(() => {
     const live = rows.filter((r) => r.change_pct != null && (r.price ?? 0) > 0);          // suspended or delisted companies carry no price and a −100% "change"
     const adv = live.filter((r) => (r.change_pct as number) > 0).length, dec = live.filter((r) => (r.change_pct as number) < 0).length;
-    const big = live.filter((r) => (r.market_cap ?? 0) >= 100);
+    const big = live.filter((r) => (r.market_cap ?? 0) >= 100 && Math.abs(r.change_pct as number) <= MAX_MOVE);
     return { n: live.length, adv, dec, flat: live.length - adv - dec, up: gainers(big, 5), down: losers(big, 5), sectors: sectorBoard(rows), all: weightedMove(big) };
   }, [rows]);
   const cells = useMemo<Cell[]>(() => m.sectors.map((s) => ({ key: s.sector, label: s.sector, sub: `${s.n} companies`, move: s.move, weight: s.cap, name: s.sector })), [m.sectors]);
@@ -144,14 +146,14 @@ function Snapshot({ rows }: { rows: Row[] }) {
           <div className="mk-breadth" role="img" aria-label={`${m.adv} rising, ${m.dec} falling, ${m.flat} unchanged`}><i className="up" style={{ flex: m.adv || 0.01 }} /><i style={{ flex: Math.max(m.flat, 0.01) }} /><i className="down" style={{ flex: m.dec || 0.01 }} /></div>
           <div className="mk-bk"><span className="up">▲ {m.adv.toLocaleString("en-IN")} rising</span><span>{m.flat.toLocaleString("en-IN")} unchanged</span><span className="down">▼ {m.dec.toLocaleString("en-IN")} falling</span></div>
           <div className="mk-movers">
-            <div><div className="mk-label">Top gainers</div>{m.up.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{r.symbol}</b><span className="up">{sgn(r.change_pct)}</span></Link>)}</div>
-            <div><div className="mk-label">Top decliners</div>{m.down.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{r.symbol}</b><span className="down">{sgn(r.change_pct)}</span></Link>)}</div>
+            <div><div className="mk-label">Top gainers</div>{m.up.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{shortName(r)}</b><span className="up">{sgn(r.change_pct)}</span></Link>)}</div>
+            <div><div className="mk-label">Top decliners</div>{m.down.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`}><b>{shortName(r)}</b><span className="down">{sgn(r.change_pct)}</span></Link>)}</div>
           </div>
         </div>
         <div>
           <div className="mk-label">Sectors today <Legend /></div>
-          <HeatMap cells={cells} height={300} empty="Sector data is on its way." minLabel={70} />
-          <p className="mk-foot">Every sector, sized by total market value and coloured by its cap-weighted move today. Companies below ₹100 crore are left out.</p>
+          <HeatMap cells={cells} height={300} empty="Sector data is on its way." minLabel={70} logos={false} />
+          <p className="mk-foot">Every sector, sized by total market value and coloured by its cap-weighted move today. Sectors are grouped from the exchange industry list; companies below ₹100 crore are left out.</p>
         </div>
       </div>
     </section>

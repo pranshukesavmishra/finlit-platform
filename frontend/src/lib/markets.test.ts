@@ -61,8 +61,8 @@ describe("moves", () => {
   });
   it("ranks sectors by size and leaves out suspended and tiny companies", () => {
     const b = sectorBoard(rows);
-    expect(b.map((x) => x.sector)).toEqual(["Private Banks", "IT Services", "Public Sector Banks"]);
-    expect(b[0].n).toBe(4); expect(b[0].move).toBeCloseTo((-1.8 * 1200000 + 1.0 * 800000 + -0.2 * 380000 + 0.5 * 350000) / (1200000 + 800000 + 380000 + 350000), 8);
+    expect(b.map((x) => x.sector)).toEqual(["Banks", "IT & software"]);
+    expect(b[0].n).toBe(5); expect(b[0].move).toBeCloseTo((-1.8 * 1200000 + 1.0 * 800000 + 0.7 * 700000 + -0.2 * 380000 + 0.5 * 350000) / (1200000 + 800000 + 700000 + 380000 + 350000), 8);
   });
   it("picks gainers and losers, largest move first, and the largest companies", () => {
     expect(gainers(rows, 2).map((r) => r.symbol)).toEqual(["ICICIBANK", "SBIN"]); expect(losers(rows, 5).map((r) => r.symbol)).toEqual(["DEAD", "HDFCBANK", "KOTAKBANK"]);
@@ -73,5 +73,25 @@ describe("moves", () => {
     expect(moveColour(1)).toContain("--gain"); expect(moveColour(-1)).toContain("--loss"); expect(moveColour(0)).toBe("var(--s3)"); expect(moveColour(null)).toBe("var(--s3)");
     const pct = (c: number) => +/(\d+)%/.exec(moveColour(c))![1];
     expect(pct(3)).toBeGreaterThan(pct(0.5)); expect(pct(10)).toBe(pct(3));
+  });
+});
+
+describe("broad sectors", () => {
+  it("groups the exchange's fine industries into a short list", async () => {
+    const { broadSector } = await import("./markets");
+    expect(broadSector("Private Sector Bank")).toBe("Banks");
+    expect(broadSector("Computers - Software & Consulting")).toBe("IT & software");
+    expect(broadSector("Refineries & Marketing")).toBe("Oil, gas & energy");
+    expect(broadSector("Pharmaceuticals")).toBe("Pharma & healthcare");
+    expect(broadSector("Auto Components & Equipments")).toBe("Automobiles");
+    expect(broadSector("Heavy Electrical Equipment")).toBe("Capital goods & industrials");
+    expect(broadSector(null)).toBe("Other");
+    expect(broadSector("Something unheard of")).toBe("Other");
+  });
+  it("leaves out moves no exchange allows (data artefacts)", async () => {
+    const { sectorBoard } = await import("./markets");
+    const r = (symbol: string, change_pct: number) => ({ symbol, name: symbol, sector: "Pharmaceuticals", price: 10, change_pct, market_cap: 500 }) as never;
+    const b = sectorBoard([r("A", 1), r("B", 23800)]);
+    expect(b).toHaveLength(1); expect(b[0].n).toBe(1); expect(b[0].move).toBe(1);
   });
 });
