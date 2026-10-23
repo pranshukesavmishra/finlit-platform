@@ -40,6 +40,7 @@ from . import dcf as dcf_api
 from . import logos as logos_api
 from . import search as search_api
 from . import macro as macro_api
+from . import clienterrors as clienterrors_api
 from . import markets as markets_api
 from . import flows as flows_api
 from . import options as options_api
@@ -468,6 +469,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(logos_api.router)
     app.include_router(macro_api.router)
     app.include_router(markets_api.router)
+    app.include_router(clienterrors_api.router)
     app.include_router(flows_api.router)
     app.include_router(flows_api.admin)
     app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare

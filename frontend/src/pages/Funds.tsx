@@ -18,6 +18,8 @@ import { ColumnPicker, Controls, Pager } from "../mf/Controls";
 import { CategoryCards, CategoryPicker } from "../mf/Dashboard";
 import { FundChart, SERIES_STYLE } from "../mf/FundChart";
 import { FundTable } from "../mf/FundTable";
+import { LoadingNotice, SortPills, SummaryCards } from "../mf/Summary";
+import { summarise } from "../lib/mfSummary";
 import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
 import { FactsCard } from "../mf/Facts";
 import { ReturnsBlock } from "../mf/Returns";
@@ -131,10 +133,15 @@ export function FundListPage() {
             {q.tab !== "all" && q.q && <button className="btn primary" onClick={() => set({ tab: "all", cats: null })}>Search every category</button>}{" "}
             <button className="btn" onClick={() => { setText(""); setSp(new URLSearchParams(), { replace: true }); }}>Clear search and filters</button></div>
         ) : (
+          <>
+          <SummaryCards items={d.items} total={d.total} />
+          {summarise(d.items).extrasLoading && <LoadingNotice />}
+          <SortPills q={eq} onSort={(sort, dir) => set({ sort: sort as SortKey, dir })} />
           <div className="card mf-tablecard">
             <FundTable rows={d.items} cols={cols} q={eq} onSort={onSort} picked={tray} onPick={pick} peers={d.peers} />
             <Pager q={q} pages={d.pages} total={d.total} onPage={(p) => { set({ page: p }); window.scrollTo({ top: 0 }); }} onSize={(n) => set({ size: n })} />
           </div>
+          </>
         )}
         <Legend />
         <Foot facts={facts} />

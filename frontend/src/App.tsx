@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
+import { lazyPage as lazy } from "./lib/resilience";
 import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
 import { AppShell } from "./components/AppShell";

@@ -25,8 +25,10 @@ import "./styles/account.css";
 import "./styles/human-pages.css";
 import "./styles/theme.css";
 import { installDemo } from "./lib/demo";
+import { installResilience } from "./lib/resilience";
 
 installDemo();
+installResilience();
 
 const client = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } });
 
