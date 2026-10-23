@@ -10,7 +10,7 @@ Where the numbers come from
                     CAT_MAX of them (the largest by AUM when there are more): each weekday the index moves by the average of the members' NAV changes
                     that day. A fund joins on its first NAV day. Funds that closed or merged are not in AMFI's current list, so they are missing from
                     the average (it can flatter the category a little); the page says so. Worked out once per category, plan and NAV date and kept
-                    in mf_cat_avg (migration 047), because it needs up to CAT_MAX NAV histories.
+                    in mf_cat_avg (migration 048), because it needs up to CAT_MAX NAV histories.
   Facts             finlit.disclosure.get_facts: expense ratio (TER), AUM, exit load, benchmark name, managers, risk-o-meter, each with its own date
                     and source, or the reason it is missing.
 
