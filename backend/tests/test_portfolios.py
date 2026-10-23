@@ -172,3 +172,31 @@ async def test_exit_loads_from_amfi_scheme_details(store):
 def test_every_adapter_has_a_unique_key():
     keys = [a.key for a in portfolios.ADAPTERS]
     assert len(keys) == len(set(keys)) and not set(keys) & set(portfolios.STEP_NAMES)
+
+
+# ------------------------------------------------------------------------------------------------------------ risk-o-meter, managers, benchmark
+@pytest.mark.parametrize("raw, level", [("Very High", "Very High"), ("very high risk", "Very High"), ("Moderately-High", "Moderately High"),
+                                        ("Low to Moderate", "Low to Moderate"), ("HIGH", "High"), ("risky", None), ("", None)])
+def test_only_sebi_risk_levels_are_accepted(raw, level):
+    from finlit.disclosure_parsers.managers_risk import norm_level
+    assert norm_level(raw) == level
+
+
+def test_manager_names_lose_titles_and_tenure():
+    from finlit.disclosure_parsers.managers_risk import clean_person
+    assert clean_person("Mr. Sailesh Raj Bhan (since Jan 2020)") == "Sailesh Raj Bhan" and clean_person("") is None
+
+
+def test_a_fund_houses_own_benchmark_beats_amfis_wording():
+    from finlit.disclosure_parsers import managers_risk as m
+    rows = [("f", "benchmark", None, {"name": "NIFTY 50 TRI"}, m.SRC_AMFI_TE, None), ("f", "benchmark", None, {"name": "Nifty 50 Total Return Index"}, "house", None)]
+    assert m.merge_rows(rows) == [rows[1]]
+
+
+async def test_risk_and_managers_reach_the_fund_page(store):
+    await portfolios.put_facts(store.pool, [
+        (FAM, "risk", TODAY, {"scheme": "Very High", "benchmark": "Very High"}, "SBI Mutual Fund website", None),
+        (FAM, "managers", TODAY, {"names": ["Tanmaya Desai", "Pradeep Kesavan"]}, "SBI Mutual Fund website", None)])
+    f = await disclosure.get_facts(store.pool, 152655)
+    assert f["riskometer"]["value"] == "Very High" and f["riskometer"]["benchmarkRisk"] == "Very High"
+    assert f["managers"]["value"] == "Tanmaya Desai, Pradeep Kesavan"

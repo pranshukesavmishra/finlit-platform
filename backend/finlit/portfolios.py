@@ -42,7 +42,7 @@ log = logging.getLogger("finlit.portfolios")
 
 __all__ = ["Holding", "Portfolio", "Verdict", "validate", "isin_ok", "get_portfolio", "extra_facts", "refresh", "KEEP_MONTHS"]
 
-STEP_NAMES = ("isin", "performance", "loads")
+STEP_NAMES = ("isin", "performance", "loads", "managers")
 KEEP_MONTHS = 3                      # monthly disclosures kept per scheme
 MIN_KEEP_RATIO = 0.9                 # a re-read file with fewer holdings than this share of the stored one is not applied
 CLS = {"equity": "e", "debt": "d", "cash": "c", "other": "o"}
@@ -523,6 +523,21 @@ async def step_loads(pool, client, idx: Index, today: date) -> dict:
     return {"status": "ok", "families": len(want), "asked": asked, "blank": blank, "alreadyFresh": len(fresh & active), "namesNotMatched": unmapped}
 
 
+async def step_managers(pool, idx: Index) -> dict:
+    """Risk-o-meter, fund managers and benchmark from AMFI's tracking-error disclosure and the fund houses' own sites
+    (finlit/disclosure_parsers/managers_risk.py: each source fails alone; a fund house's own statement beats AMFI's benchmark wording)."""
+    from .disclosure_parsers import managers_risk
+    rows, stats = await managers_risk.collect(idx)
+    rows = managers_risk.merge_rows(rows)
+    await put_facts(pool, rows)
+    failed = sorted(k for k, v in stats.items() if "error" in v)
+    kinds: Dict[str, int] = defaultdict(int)
+    for r in rows:
+        kinds[r[1]] += 1
+    return {"status": "partial" if failed else "ok", "rows": len(rows), **kinds, "failedSources": failed,
+            "matched": {k: v.get("matched") for k, v in stats.items() if "error" not in v}}
+
+
 # ------------------------------------------------------------------------------------------------------------- steps: fund houses
 
 def _members(path: str) -> Iterable[Tuple[str, str]]:
@@ -661,7 +676,7 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
         if len(idx.by_code) < 1000:
             return {"status": "failed", "why": "mf_schemes is empty or short: run refresh-mf first", "steps": {}, "amc": {}}
         steps = [("isin", lambda: step_isin(pool, today)), ("performance", lambda: step_performance(pool, client, idx, today)),
-                 ("loads", lambda: step_loads(pool, client, idx, today))]
+                 ("loads", lambda: step_loads(pool, client, idx, today)), ("managers", lambda: step_managers(pool, idx))]
         for name, fn in steps:
             if want and name not in want:
                 continue
