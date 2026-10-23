@@ -6,6 +6,7 @@ A metric that cannot be worked out is simply left out (None), never guessed.
 
 from __future__ import annotations
 
+import logging
 import math
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -396,7 +397,10 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     out["score_change"] = None  # filled in from score history when the screener data is loaded
 
     # the advanced-chart figures (advanced/derive.py): ax_<id> values, ax_fy, ax_sig_fy / ax_sig_date and ax_miss (why each missing one is missing)
-    out.update(ax_latest(sections, out, today))
+    try:
+        out.update(ax_latest(sections, out, today))
+    except Exception:   # never let one company's odd data stop the screener: its charts show "being prepared" instead (no ax_miss stored)
+        logging.getLogger("finlit.advanced").exception("advanced-chart figures not computed")
     out["m_ver"] = METRICS_VERSION   # which version of this file worked the figures out: a rebuild is due when it is older
     return {k: _round(k, v) for k, v in out.items() if v is not None}
 

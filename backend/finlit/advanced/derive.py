@@ -349,7 +349,8 @@ class Company:
             return None, "no_data"
         if self.today <= end + timedelta(days=DECLARE_DAYS):
             return None, "partial"
-        first = min(_d(a["date"]) for a in self.actions)  # type: ignore[type-var]
+        dated = [d for d in (_d(a.get("date")) for a in self.actions) if d is not None]
+        first = min(dated) if dated else None
         if first is None or first > end:
             return None, "no_data"   # before the first stored corporate action: cannot tell "none" from "not stored"
         return 0.0, None
