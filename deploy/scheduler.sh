@@ -92,9 +92,9 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   # ETFs, then funds, then 5 years of fund history: strictly one after the other, each only if the one before it worked, and only once the web server is up.
   # Each is resumable (the fund history skips fund houses already done) and none of them runs on a timer, so a restart loses nothing and the database may sleep.
   if wait_web; then
+    fund_step boot-instruments refresh-instruments --max-age-hours 20   # Dhan's public instrument file first: the ETF job reads its ETF list from it
     if fund_step boot-etf refresh-etf --max-age-hours 12 --resume && fund_step boot-mf refresh-mf --max-age-hours 12; then
       fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
-      fund_step boot-instruments refresh-instruments --max-age-hours 160   # Dhan's public instrument file (ISIN, surveillance, F&O): a weekly refresh, 58 MB at peak
       [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
       fund_step boot-mf-history backfill-mf
     fi
@@ -126,7 +126,7 @@ while true; do
   (( weekday && ((H == 22 && M == 10) || (H == 23 && M == 40)) )) && run_funds etf-retry refresh-etf --resume   # retries: only the ETFs the nightly run could not fetch (none left = no provider calls)
   (( H == 21 && M == 10 )) && run_funds mf refresh-mf                 # nightly: AMFI publishes the day's NAVs in the evening
   (( H == 23 && M == 30 )) && run_funds mf-late refresh-mf            # again after AMFI's 11 pm deadline: most fund houses publish after 21:10, so this run brings the day's NAVs
-  (( D == 7 && H == 2 && M == 20 )) && run_funds instruments refresh-instruments   # Sundays: Dhan's public instrument file (new listings, surveillance changes, F&O additions)
+  (( H == 7 && M == 50 )) && run_funds instruments refresh-instruments   # daily before the open: Dhan's public instrument file (new listings and ETFs, surveillance changes, F&O additions)
   (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
   (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show

@@ -7,7 +7,7 @@ import pytest
 
 from finlit import dhan
 from finlit.config import Settings
-from test_integration import store  # noqa: F401  (fixture)
+from test_integration import ingested, store  # noqa: F401  (fixtures)
 
 HEADER = "EXCH_ID,SEGMENT,SECURITY_ID,ISIN,INSTRUMENT,UNDERLYING_SECURITY_ID,UNDERLYING_SYMBOL,SYMBOL_NAME,DISPLAY_NAME,INSTRUMENT_TYPE,SERIES,LOT_SIZE,SM_EXPIRY_DATE,STRIKE_PRICE,OPTION_TYPE,TICK_SIZE,EXPIRY_FLAG,BRACKET_FLAG,COVER_FLAG,ASM_GSM_FLAG,ASM_GSM_CATEGORY,BUY_SELL_INDICATOR,BUY_CO_MIN_MARGIN_PER,BUY_CO_SL_RANGE_MAX_PERC,BUY_CO_SL_RANGE_MIN_PERC,BUY_BO_MIN_MARGIN_PER,BUY_BO_PROFIT_RANGE_MAX_PERC,BUY_BO_PROFIT_RANGE_MIN_PERC,MTF_LEVERAGE,SM_UPPER_LIMIT,SM_LOWER_LIMIT,SM_FREEZE_QTY"
 
@@ -135,3 +135,94 @@ async def test_profile_returns_only_status_fields():
     c = dhan.DhanClient(Settings(dhan_client_id="1000000001", dhan_access_token="P"), http=httpx.AsyncClient(transport=httpx.MockTransport(h)))
     p = await c.profile()
     assert p["dataPlan"] == "Active" and "dhanClientId" not in p and "ddpi" not in p
+
+
+# ------------------------------------------------------------------ live quotes
+
+RAW = {"last_price": 1420.5, "net_change": 20.5, "volume": 523000, "ohlc": {"open": 1401, "high": 1425, "low": 1398.2, "close": 1400},
+       "upper_circuit_limit": 1540, "lower_circuit_limit": 1260, "last_trade_time": "23/10/2026 15:29:58"}
+
+
+def test_quote_conversion_reads_change_from_previous_close_and_drops_placeholders():
+    q = dhan.to_quote(RAW)
+    assert q["price"] == 1420.5 and q["previousClose"] == 1400.0 and q["change"] == 20.5 and q["changePct"] == round(20.5 / 1400 * 100, 2)
+    assert (q["open"], q["high"], q["low"], q["volume"]) == (1401, 1425, 1398.2, 523000)
+    assert q["upperCircuit"] == 1540 and q["lowerCircuit"] == 1260 and q["asOf"] == "2026-10-23T15:29:58+05:30"
+    blank = dhan.to_quote({"last_price": 368.15, "net_change": 0, "volume": 0, "ohlc": {"open": 0, "high": 0, "low": 0, "close": 368.15},
+                           "last_trade_time": "01/01/1980 00:00:00"})
+    assert blank["price"] == 368.15 and blank["open"] is None and blank["volume"] is None and blank["asOf"] is None   # no trade yet: no zeros
+    assert dhan.to_quote({"last_price": 0}) == {} and dhan.to_quote({}) == {}
+
+
+def test_plausibility_guard():
+    assert dhan.plausible({"price": 1420.5, "previousClose": 1400}, {"price": 1395})
+    assert not dhan.plausible({"price": 50, "previousClose": 49}, {"price": 1395})        # another company's price: refused
+    assert dhan.plausible({"price": 10}, {})                                                 # nothing held yet: nothing to compare
+
+
+class FakeDhan:
+    configured = True
+
+    def __init__(self, data=None, fail=False):
+        self.data, self.fail, self.asked = data or {}, fail, []
+
+    async def quotes(self, ids):
+        self.asked.append(list(ids))
+        if self.fail:
+            raise dhan.DhanError("/marketfeed/quote: HTTP 503")
+        return self.data
+
+
+async def test_refresh_quotes_uses_dhan_first_and_finedge_when_dhan_is_wrong_or_down(ingested):  # noqa: F811
+    import orjson
+    from finlit import worker
+    from finlit.finedge import FinEdgeClient
+    from test_integration import make_settings
+    async with ingested.pool.acquire() as conn:
+        await conn.execute("DELETE FROM dhan_instruments")
+        await conn.executemany("INSERT INTO dhan_instruments (exch, security_id, symbol, series) VALUES ($1, $2, $3, $4)",
+                               [("NSE", "25510", "RELIANCE", "D1"), ("NSE", "2885", "RELIANCE", "EQ"), ("BSE", "500325", "RELIANCE", "A")])
+    assert await dhan.security_map(ingested, ["RELIANCE", "NOPE"]) == {"RELIANCE": ("NSE_EQ", "2885")}   # the share, not the debenture
+
+    async def hold(price, mcap):
+        body = orjson.loads((await ingested.get_section("RELIANCE", "consolidated", "summary"))[0])
+        body["quote"].update(price=price, previousClose=price, marketCapCr=mcap, high52=1410.0)
+        await ingested.save_snapshot("RELIANCE", "consolidated", {"summary": body})
+
+    async def quote():
+        return orjson.loads((await ingested.get_section("RELIANCE", "consolidated", "summary"))[0])["quote"]
+
+    async with FinEdgeClient(make_settings()) as fe:
+        await hold(1400.0, 1_900_000.0)
+        fake = FakeDhan({("NSE_EQ", "2885"): RAW})
+        assert await worker.refresh_quotes(fe, ingested, dhan_client=fake) == 1
+        q = await quote()
+        assert fake.asked == [[("NSE_EQ", "2885")]] and q["price"] == 1420.5 and q["upperCircuit"] == 1540
+        assert q["marketCapCr"] == round(1_900_000.0 * 1420.5 / 1400.0, 2) and q["high52"] == 1425       # cap follows the price; new 52-week high
+
+        await hold(1.0, 1.0)                                                       # held price far from Dhan's: Dhan refused, FinEdge used
+        assert await worker.refresh_quotes(fe, ingested, dhan_client=FakeDhan({("NSE_EQ", "2885"): RAW})) == 1
+        assert (await quote())["price"] == 1184.0
+
+        await hold(1.0, 1.0)                                                       # Dhan down: FinEdge for everyone
+        assert await worker.refresh_quotes(fe, ingested, dhan_client=FakeDhan(fail=True)) == 1
+        assert (await quote())["price"] == 1184.0
+
+
+async def test_processes_share_one_token_through_redis_and_never_renew_together(store):  # noqa: F811
+    made = []
+
+    def h(req):
+        made.append(1)
+        return httpx.Response(200, json={"accessToken": f"T{len(made)}", "expiryTime": "2099-01-01T00:00:00.000"})
+    await store.redis.delete(dhan.TOKEN_KEY, dhan.TOKEN_KEY + ":lock")
+    s = Settings(dhan_client_id="1000000001", dhan_pin="123456", dhan_totp_secret="GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ")
+    a = dhan.DhanClient(s, store.redis, http=httpx.AsyncClient(transport=httpx.MockTransport(h)))
+    b = dhan.DhanClient(s, store.redis, http=httpx.AsyncClient(transport=httpx.MockTransport(h)))
+    import asyncio
+    ta, tb = await asyncio.gather(a.token(), b.token())
+    assert ta == tb == "T1" and len(made) == 1                     # one token for both processes
+    assert await a.token(force=True) == "T2" and len(made) == 2     # a refusal renews ...
+    assert await b.token(force=True) == "T2" and len(made) == 2     # ... and the other process takes that new one instead of renewing again
+    await a.aclose(); await b.aclose()
+    await store.redis.delete(dhan.TOKEN_KEY)

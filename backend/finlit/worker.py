@@ -146,27 +146,57 @@ async def refresh_universe(client: FinEdgeClient, store: Store) -> int:
     return count
 
 
-async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[List[Tuple[str, str]]] = None) -> int:
-    """Patch the live quote into each summary without re-fetching fundamentals."""
+async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[List[Tuple[str, str]]] = None, dhan_client=None) -> int:
+    """Patch the live quote into each summary without re-fetching fundamentals.
+
+    With Dhan set up, every matched company's quote comes from a few batch calls (1,000 companies each); a company Dhan does not match,
+    does not answer for, or answers implausibly for (previous close more than 25% from the price held) is asked of FinEdge as before."""
     items = symbols or await store.snapshot_symbols()
     updated = 0
     touched: List[Tuple[str, str]] = []
+    batch: Dict[str, dict] = {}
+    if dhan_client is not None and dhan_client.configured and items:
+        from . import dhan
+        try:
+            ids = await dhan.security_map(store, sorted({s for s, _ in items}))
+            raw = await dhan_client.quotes(sorted(set(ids.values())))
+            batch = {sym: q for sym, key in ids.items() if (q := dhan.to_quote(raw.get(key) or {}))}
+        except dhan.DhanError as e:
+            log.warning("Dhan quotes unavailable, using FinEdge for all: %s", e)
+        except Exception:
+            log.exception("Dhan quotes failed, using FinEdge for all")
 
     async def one(symbol: str, statement: str):
         nonlocal updated
         cached = await store.get_section(symbol, statement, "summary")
         if not cached:
             return
-        try:
-            live = market.quote(await client.get("/quote", {"symbol": symbol}, timeout=5), symbol)
-        except FinEdgeError:
-            return
+        summary = orjson.loads(cached[0])
+        old = summary.get("quote") or {}
+        live = batch.get(symbol)
+        if live is not None:
+            from .dhan import plausible
+            if not plausible(live, old):
+                log.warning("Dhan quote for %s is far from the price held (%s vs %s); using FinEdge", symbol, live.get("previousClose"), old.get("price"))
+                live = None
+            else:
+                live = dict(live)
+                if old.get("marketCapCr") and old.get("price"):       # shares do not change intraday: market cap moves with the price
+                    live["marketCapCr"] = round(old["marketCapCr"] * live["price"] / old["price"], 2)
+                if old.get("high52") and live.get("high") and live["high"] > old["high52"]:
+                    live["high52"] = live["high"]
+                if old.get("low52") and live.get("low") and live["low"] < old["low52"]:
+                    live["low52"] = live["low"]
+        if live is None:
+            try:
+                live = market.quote(await client.get("/quote", {"symbol": symbol}, timeout=5), symbol)
+            except FinEdgeError:
+                return
         if not live.get("price"):
             return
-        summary = orjson.loads(cached[0])
-        if summary["quote"].get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
+        if old.get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
-        summary["quote"] = {**summary["quote"], **{k: v for k, v in live.items() if v is not None}}
+        summary["quote"] = {**old, **{k: v for k, v in live.items() if v is not None}}
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
         touched.append((symbol, statement))
@@ -593,7 +623,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .calendars import refresh_calendars
                 print(await refresh_calendars(client, store))
             elif args.cmd == "refresh-quotes":
-                print(await refresh_quotes(client, store), "quotes updated")
+                from .dhan import DhanClient
+                async with DhanClient(settings, store.redis) as dc:
+                    print(await refresh_quotes(client, store, dhan_client=dc), "quotes updated")
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
             elif args.cmd == "drain-queue":
