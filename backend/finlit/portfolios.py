@@ -693,18 +693,16 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
 
 async def coverage(pool) -> dict:
     """Real counts per fund house: active scheme codes, and how many of them have holdings / exit load / benchmark / risk-o-meter / fund managers."""
-    def has(kind: str) -> str:
-        return f"count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = '{kind}'))"
-    sql = f"""
+    sql = """
     SELECT s.amc,
            count(*) FILTER (WHERE s.active) AS codes,
            count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family)) AS holdings,
-           {has('exitload')} AS exit_load,
+           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'exitload')) AS exit_load,
            count(*) FILTER (WHERE s.active AND (EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'benchmark')
                                                 OR EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family AND p.benchmark IS NOT NULL))) AS benchmark,
-           {has('risk')} AS risk,
-           {has('managers')} AS managers
-    FROM mf_schemes s GROUP BY s.amc ORDER BY codes DESC"""  # nosec B608 - the kinds are the literal words above
+           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'risk')) AS risk,
+           count(*) FILTER (WHERE s.active AND EXISTS (SELECT 1 FROM disclosure_facts f WHERE f.fkey = s.family AND f.kind = 'managers')) AS managers
+    FROM mf_schemes s GROUP BY s.amc ORDER BY codes DESC"""
     fam_sql = """
     SELECT s.amc, count(DISTINCT s.family) AS families,
            count(DISTINCT s.family) FILTER (WHERE EXISTS (SELECT 1 FROM disclosure_portfolios p WHERE p.fkey = s.family)) AS families_with_holdings
