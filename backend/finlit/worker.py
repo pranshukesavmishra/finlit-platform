@@ -44,7 +44,9 @@ class DataRejected(Exception):
 CORE_PARTS = ("profile", "quote", "pl_annual", "bs_annual", "daily_quotes", "ratios_pr")
 
 
-async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated") -> dict:
+async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False) -> dict:
+    """Load one company. `slim` keeps only its score and screener figures (about 5 KB) and not its report or prices (about 100 KB): how the bulk
+    scoring covers every listed company inside a small database. The report is built in full when somebody opens the company."""
     started, calls_before = time.perf_counter(), client.calls
     symbol = symbol.strip().upper()
     company = await store.company(symbol)
@@ -79,15 +81,20 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if checks["status"] == "rejected":
             # Keep serving the last good snapshot; a human reviews the logged issues.
             raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
-        sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
+        if not slim:
+            sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
         if sections["summary"].get("quote", {}).get("price"):
             sections["summary"]["quote"]["refPrice"] = sections["summary"]["quote"]["price"]
         row = snapshot.score_row(sections)
-        # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
-        await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
+        if slim:
+            await store.save_score_only(symbol, statement, row)
+        else:
+            # Saved once, under the basis that was asked for (a company with only standalone accounts is not stored twice).
+            await store.save_snapshot(symbol, statement, sections, row, sections["price"]["daily"])
         try:
             cov = sections["summary"]["dataQuality"]["coverage"]
-            await store.save_coverage(symbol, statement, cov)
+            if not slim:
+                await store.save_coverage(symbol, statement, cov)
             if cov["mismatches"]:   # the provider sent it and the report lacks it: a bug in this code, never a data gap
                 log.error("COVERAGE MISMATCH %s: %s", symbol, "; ".join(cov["mismatches"]))
         except Exception:
@@ -126,7 +133,8 @@ async def _step_aside(store: Store, patience: float = 240.0) -> None:
         waited += 2.0
 
 
-async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2, yield_to_readers: bool = False) -> List[dict]:
+async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple[str, str]], parallel: int = 2, yield_to_readers: bool = False,
+                      slim: bool = False) -> List[dict]:
     # Each stock already fans out ~21 requests; a couple of stocks at a time keeps us inside rate limits.
     sem = asyncio.Semaphore(parallel)
 
@@ -134,7 +142,7 @@ async def ingest_many(client: FinEdgeClient, store: Store, items: Iterable[Tuple
         async with sem:
             if yield_to_readers:
                 await _step_aside(store)
-            return await ingest_one(client, store, symbol, statement)
+            return await ingest_one(client, store, symbol, statement, slim=slim)
 
     return await asyncio.gather(*(run(s, st) for s, st in items))
 
@@ -250,6 +258,31 @@ async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "cons
         await store.invalidate_search()
         log.info("ingest-all: %d / %d  %s  (%d upstream calls)", min(i + chunk, len(pending)), len(pending), done, client.calls)
     return done
+
+
+async def score_all(client: FinEdgeClient, store: Store, limit: int = 1500, days: int = 7, parallel: int = 2, chunk: int = 30, max_minutes: float = 90.0) -> dict:
+    """Give every listed company a score: those with none first, biggest first, then the oldest. Only the small score row is kept (see ingest_one slim),
+    so all ~5,800 companies fit in the free database. A run is capped (`limit` companies, `max_minutes`) and resumable: the next run takes whatever is
+    still missing, so the whole market is covered within a few nights and refreshed about weekly after that."""
+    pending = await store.slim_pending(days, limit)
+    log.info("score-all: %d companies to score", len(pending))
+    done = {"ok": 0, "warnings": 0, "rejected": 0, "failed": 0}
+    deadline = time.monotonic() + max_minutes * 60
+    tried = 0
+    for i in range(0, len(pending), chunk):
+        if time.monotonic() > deadline:
+            log.info("score-all: time budget used, the rest waits for the next run")
+            break
+        batch = pending[i:i + chunk]
+        for r in await ingest_many(client, store, [(s, "consolidated") for s in batch], parallel=parallel, yield_to_readers=True, slim=True):
+            done[r["status"]] = done.get(r["status"], 0) + 1
+        tried += len(batch)
+        log.info("score-all: %d / %d  %s  (%d upstream calls)", tried, len(pending), done, client.calls)
+    try:
+        await store.invalidate_search()
+    except Exception:
+        pass
+    return {**done, "tried": tried, "waiting": len(pending) - tried}
 
 
 async def results_candidates(store: Store, today: Optional[date] = None, max_age_days: int = 4) -> List[str]:
@@ -382,6 +415,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
     p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
+    p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
+    p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
+    p_sa.add_argument("--days", type=int, default=7, help="a score older than this many days is refreshed")
+    p_sa.add_argument("--max-minutes", type=float, default=90.0, help="stop starting new batches after this long")
+    p_sa.add_argument("--parallel", type=int, default=2)
     p_prune = sub.add_parser("prune", help="keep the database inside its storage limit (reports outside the top INGEST_LIMIT nobody opened lately, old prices and logs)")
     p_prune.add_argument("--keep", type=int, default=None, help="companies always kept (default: INGEST_LIMIT, else 500)")
     sub.add_parser("refresh-calendars", help="IPO and results calendars from the data provider")
@@ -551,6 +589,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "prune":
                 keep = args.keep or int(os.getenv("INGEST_LIMIT") or 0) or 500
                 print(await store.prune(keep))
+            elif args.cmd == "score-all":
+                limit = args.limit or int(os.getenv("SCORE_ALL_PER_RUN") or 0) or 1500
+                print(await score_all(client, store, limit, args.days, args.parallel, max_minutes=args.max_minutes))
             elif args.cmd == "refresh-listing":
                 from .screener.listing import refresh_listing
                 print(await refresh_listing(client, store, force=args.force))
