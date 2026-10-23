@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type ApiError, type Financials } from "../lib/api";
 import { STATUS_TEXT, run, type DcfInputs } from "../lib/dcf";
+import { direction, inr, istTime, signedPct, useCommodities } from "../lib/commodities";
 import { useAuth } from "../lib/auth";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
 import { PALETTES, PALETTE_IDS } from "../lib/palettes";
@@ -184,6 +185,17 @@ function GettingStarted({ followed, palette, plan }: { followed: number; palette
   );
 }
 
+function CommoditiesW() {
+  const q = useCommodities();
+  const rows = (q.data?.items ?? []).filter((i) => ["gold", "silver", "crude"].includes(i.code) && i.mcx?.price);
+  if (q.isError || (q.data && !rows.length)) return <Empty icon="activity" title="Gold and silver today" text="MCX gold, silver and crude oil with the day change, and the international price beside them." to="/commodities" cta="Open commodity prices" />;
+  if (!q.data) return <div className="skeleton" style={{ height: 120 }} />;
+  return <><ul className="sl">{rows.map((i) => { const m = i.mcx!; const d = direction(m.change?.pct);
+    return <li key={i.code}><Link to="/commodities"><b>{i.name}</b>{m.change ? <span className={"chip " + (d === "up" ? "up" : d === "down" ? "down" : "gold")}>{signedPct(m.change.pct)}</span> : null}</Link>
+      <span>{inr(m.price!.value)} {m.price!.unit.replace(/^₹\s*/, "")} · {m.contract}{m.asOf ? ` · ${m.state === "closed" ? "last trade" : "trade at"} ${istTime(m.asOf)} IST` : ""}</span></li>; })}</ul>
+    <p className="rcs-all"><Link to="/commodities">Open commodity prices <Icon name="arrow" /></Link></p></>;
+}
+
 type SavedDcf = { name: string; symbol: string | null; updatedAt: string; inputs: DcfInputs };
 function DcfW() {
   const q = useQuery<{ scenarios: SavedDcf[] }, ApiError>({ queryKey: ["dcf-scenarios"], queryFn: () => apiGet("/api/dcf/scenarios"), retry: false, enabled: !DEMO });
@@ -240,6 +252,7 @@ export function Dashboard() {
       case "screens": return <Screens />;
       case "buckets": return <Buckets items={items} />;
       case "dcf": return <DcfW />;
+      case "commodities": return <CommoditiesW />;
       default: return <Learn />;
     }
   };
@@ -272,7 +285,7 @@ export function Dashboard() {
       <div className="dgrid">
         {shown.map((w) => (
           <section key={w.id} className={"card dw " + (w.size === "full" ? "full" : "half")} aria-labelledby={`w-${w.id}`}>
-            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{w.id === "news" ? (nScope === "mine" ? "News for my stocks" : "Latest market news") : w.id === "dates" ? (dScope === "mine" ? "Results dates for my stocks" : "Results dates coming up") : meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
+            <div className="card-h"><h3 id={`w-${w.id}`}><span className="ci"><Icon name={({ movers: "growth", results: "notes", second: "quality", screens: "table", buckets: "layers", dcf: "rupee", commodities: "activity", learn: "notes", dates: "calendar", news: "notes", ipos: "activity" } as Record<string, string>)[w.id]} /></span>{w.id === "news" ? (nScope === "mine" ? "News for my stocks" : "Latest market news") : w.id === "dates" ? (dScope === "mine" ? "Results dates for my stocks" : "Results dates coming up") : meta[w.id].label}{HELP[w.id] && <ChartHelp id={HELP[w.id]} />}</h3>
               {w.id === "dates" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="dates" scope={dScope} onChange={setDScope} hasStocks={followed.length > 0} label="Results dates" />}
               {w.id === "news" && RANK[plan] >= RANK[meta[w.id].min] && <ScopeToggle id="news" scope={nScope} onChange={setNScope} hasStocks={followed.length > 0} label="News" />}
               {RANK[plan] < RANK[meta[w.id].min] && <span className={"tier " + meta[w.id].min}>{TIER[meta[w.id].min].n}</span>}</div>

@@ -34,6 +34,7 @@ const MacroPage = lazy(() => import("./pages/Macro").then((m) => ({ default: m.M
 const FiiDiiPage = lazy(() => import("./pages/FiiDii").then((m) => ({ default: m.FiiDiiPage })));
 const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ default: m.SipCalculator })));
 const OptionChainPage = lazy(() => import("./pages/OptionChain").then((m) => ({ default: m.OptionChainPage })));
+const CommoditiesPage = lazy(() => import("./pages/Commodities").then((m) => ({ default: m.CommoditiesPage })));
 const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="etfs" element={<EtfListPage />} />
             <Route path="etfs/compare" element={<EtfComparePage />} />
             <Route path="etfs/:symbol" element={<EtfDetailPage />} />
+            <Route path="commodities" element={<CommoditiesPage />} />
             <Route path="funds" element={<FundListPage />} />
             <Route path="funds/compare" element={<FundComparePage />} />
             <Route path="funds/insights" element={<FundInsightsPage />} />

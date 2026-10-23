@@ -516,6 +516,7 @@ async def check(settings: Optional[Settings] = None, redis: Any = None) -> dict:
         await c.token()
         out["token"] = "ok"
         out["account"] = await c.profile()
+        out["commodity_segment"] = "commodity" in str((out["account"] or {}).get("activeSegment") or "").lower()   # the commodity page needs MCX activated (error DH-903 otherwise)
         rows = await fetch_instruments()
         out["instruments"] = len(rows)
         ril = next((r for r in rows if r["exch"] == "NSE" and r["symbol"] == "RELIANCE"), None)

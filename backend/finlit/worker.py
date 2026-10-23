@@ -656,7 +656,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             ok = bool(res.get("configured")) and res.get("ltp") is not None
             await record_run(store, args.cmd, {"status": "ok" if ok else "incomplete", "mode": res.get("mode"), "data_plan": (res.get("account") or {}).get("dataPlan"),
                                                "data_valid_until": (res.get("account") or {}).get("dataValidity"), "instruments": res.get("instruments"),
-                                               "ltp_reliance": res.get("ltp"), "why": res.get("why")})
+                                               "ltp_reliance": res.get("ltp"), "commodity_segment": res.get("commodity_segment"), "why": res.get("why")})
             print(res)
             return 0 if ok else 1
         if args.cmd == "refresh-portfolios":
