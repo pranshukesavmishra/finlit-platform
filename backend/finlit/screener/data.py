@@ -15,12 +15,15 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..advanced.catalog import METRIC_LIST as AX_METRICS
+from ..advanced.derive import AGG_GROWTH, COMPONENTS
 from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import METRICS_VERSION, MULTIPLES
 from .listing import metrics_of
 
 NAN = float("nan")
-AX_COLS = sorted({m.col for m in AX_METRICS if m.col.startswith("ax_")})   # advanced-chart figures (advanced/derive.py)
+# advanced-chart figures (advanced/derive.py), plus the stored amounts behind them that index aggregates are summed from
+AX_COLS = sorted({m.col for m in AX_METRICS if m.col.startswith("ax_")} | {f"ax_c_{c}" for c in COMPONENTS}
+                 | {f"ax_{p}_{g}" for g in AGG_GROWTH for p in ("gc", "gp")})
 TTL = 600   # older than this, the table is rebuilt in the background on the next request (each rebuild reads the database)
 # Columns kept on the old scores table before metrics existed: used until a company's metrics are rebuilt.
 LEGACY = {"market_cap": "market_cap", "price": "price", "pe": "pe", "pb": "pb", "roe": "roe", "roce": "roce", "dividend_yield": "dividend_yield",

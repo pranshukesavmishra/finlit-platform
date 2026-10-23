@@ -32,6 +32,11 @@ VOL_SESSIONS, VOL_MIN = 756, 700
 HIST_IDS = [k for k in FY_IDS] + ["ret_fy", "tsr_fy", "pe", "pb"]
 WINDOW_LATEST = ["ret_fy", "tsr_fy", "pe_fy", "pb_fy", "vol3y", "mdd3y", "inst_chg", "ret_inst", "pe_sig", "pb_sig", "g_eps_sig", "g_rev_sig", "fwd12"]
 TODAY_IDS = ["pe", "pb", "ev_ebitda", "ev_sales", "ev_cfo", "peg", "mcap", "dy", "fcf_yield", "cfo_yield", "sales_per_employee"]
+AGG_GROWTH = {"g_rev": ("pl", "revenue"), "g_np": ("pl", "@np"), "g_ebitda": ("pl", "operating_profit"), "g_ebit": ("pl", None),
+              "g_pbt": ("pl", "profit_before_tax"), "g_tax": ("pl", "tax"), "g_dep": ("pl", "depreciation"), "g_int": ("pl", "finance_costs"),
+              "g_cfo": ("cf", "operating"), "g_fcf": ("cf", "free_cash_flow"), "g_capex": ("cf", "capex"), "g_assets": ("bs", "total_assets"),
+              "g_bv": ("bs", "total_equity"), "g_wc": ("bs", None), "g_recv": ("bs", "receivables"), "g_inv": ("bs", "inventories"), "g_debt": ("bs", None)}
+COMPONENTS = ["equity", "ta", "ca", "cl", "tl", "debt", "cash", "base", "oi", "exc", "ebit"]
 TODAY_COL = {"pe": "pe", "pb": "pb", "ev_ebitda": "ev_ebitda", "ev_sales": "ev_sales", "peg": "peg", "mcap": "market_cap", "dy": "dividend_yield",
              "sales_per_employee": "sales_per_employee"}
 
@@ -658,9 +663,55 @@ class Company:
         # values of the "today" figures stay in their screener columns (no copy); only the reason a value is missing is kept here
         out: Dict[str, Any] = {f"ax_{k}": v for k, (v, _) in vals.items() if v is not None and k not in TODAY_COL}
         out["ax_miss"] = {k: why or "no_value" for k, (v, why) in vals.items() if v is None}
+        if self.fys:
+            out.update(self.components(len(self.fys) - 1))
         out["ax_fy"] = self.fys[-1] if self.fys else None
         out["ax_sig_fy"], out["ax_sig_date"] = sig["sig_fy"], sig["sig_date"]
         return {k: v for k, v in out.items() if v is not None}
+
+    def components(self, i: int) -> Dict[str, float]:
+        """Stored amounts behind the ratios (Rs crore, latest FY), used ONLY to build index aggregates as a ratio of sums
+        (index.py): ax_c_<name> for levels, ax_gc_<id> / ax_gp_<id> for this year's and last year's value of each growth metric (stored only
+        when both years exist and are 330-400 days apart). Lender-only-meaningless amounts are not stored for lenders."""
+        end = self.end(i)
+        out: Dict[str, float] = {}
+        lev = {"equity": self.bs.at("total_equity", end), "ta": self.bs.at("total_assets", end), "ca": self.bs.at("current_assets", end),
+               "cl": self.bs.at("current_liabilities", end), "tl": self.bs.at("total_liabilities", end), "debt": self.borrowings(end),
+               "cash": self.bs.at("cash", end), "base": self.base(i), "oi": self.pl_or_zero("other_income", i), "exc": self.pl_or_zero("exceptional_items", i)}
+        pbt, fin = self.pl_at("profit_before_tax", i), self.pl_or_zero("finance_costs", i)
+        lev["ebit"] = (pbt[0] + fin[0], None) if pbt[0] is not None and fin[0] is not None else (None, "no_data")
+        for k, (v, _) in lev.items():
+            if v is not None and not (self.is_bank and k in ("ca", "cl", "tl", "debt", "cash", "ebit")):
+                out[f"ax_c_{k}"] = v
+        pairs: Dict[str, Tuple[Val, Val]] = {}
+        for gid, (st, key) in AGG_GROWTH.items():
+            stmt = {"pl": self.pl, "bs": self.bs, "cf": self.cf}[st]
+            k = self.np_key if key == "@np" else key
+            p_end, why = stmt.prev_end(end)
+            if p_end is None:
+                continue
+            if gid == "g_debt":
+                pairs[gid] = (self.borrowings(end), self.borrowings(p_end))
+            elif gid == "g_wc":
+                a1, l1, a0, l0 = (self.bs.at(x, e) for x, e in (("current_assets", end), ("current_liabilities", end), ("current_assets", p_end), ("current_liabilities", p_end)))
+                pairs[gid] = ((a1[0] - l1[0], None) if a1[0] is not None and l1[0] is not None else (None, "no_data"),
+                              (a0[0] - l0[0], None) if a0[0] is not None and l0[0] is not None else (None, "no_data"))
+            elif gid == "g_ebit":
+                j = i - 1
+                if self.prev_reason(i) is not None:
+                    continue
+                pbt0, fin0 = self.pl_at("profit_before_tax", j), self.pl_or_zero("finance_costs", j)
+                pairs[gid] = (lev["ebit"], (pbt0[0] + fin0[0], None) if pbt0[0] is not None and fin0[0] is not None else (None, "no_data"))
+            else:
+                c, p = stmt.at(k, end), stmt.at(k, p_end)
+                if gid == "g_capex":
+                    c = (abs(c[0]), None) if c[0] is not None else c
+                    p = (abs(p[0]), None) if p[0] is not None else p
+                pairs[gid] = (c, p)
+        for gid, (c, p) in pairs.items():
+            if c[0] is not None and p[0] is not None and not (self.is_bank and gid in LENDER_DROP):
+                out[f"ax_gc_{gid}"], out[f"ax_gp_{gid}"] = c[0], p[0]
+        return out
 
     def _today_reason(self, mid: str, sc: Dict[str, Any]) -> str:
         if self.is_bank and mid in LENDER_DROP:

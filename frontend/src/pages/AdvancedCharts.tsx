@@ -217,7 +217,7 @@ function ChartCard({ cat, pair, xId, yId, st, set, plan, upgrade, section }: Car
   const needTier: Tier = variant && RANK[variant.tier as Plan] > RANK[tier as Plan] ? variant.tier : tier;
   const open = allowed(plan, needTier);
   const lim = graphLimits(plan);
-  const scaleOf = (axis: "x" | "y"): Scale => { const want = axis === "x" ? st.sx : st.sy, ok = pair ? pair.logOk[axis] : !!(axis === "x" ? mx : my)?.logOk; const def = pair?.scale[axis] ?? "lin"; return want === "log" && ok ? "log" : want === "lin" ? "lin" : def; };
+  const scaleOf = (axis: "x" | "y"): Scale => { const want = axis === "x" ? st.sx : st.sy, ok = pair ? !!pair.logOk?.[axis] : !!(axis === "x" ? mx : my)?.logOk; const def = pair?.scale?.[axis] ?? "lin"; return want === "log" && ok ? "log" : want === "lin" ? "lin" : def; };
   const scale = { x: scaleOf("x"), y: scaleOf("y") };
   const title = pair ? pairLabel(pair) : `${mx.label} vs ${my.label}`;
   const [table, setTable] = useState(false);
@@ -240,7 +240,7 @@ function ChartCard({ cat, pair, xId, yId, st, set, plan, upgrade, section }: Car
       {pair && pair.variants.length > 0 && mode === "cross" && <div className="adv-seg" role="group" aria-label="Timing">
         <button aria-pressed={!variant} onClick={() => set({ variant: null })}>Same financial year</button>
         {pair.variants.map((v) => <button key={v.id} aria-pressed={variant?.id === v.id} onClick={() => set({ variant: v.id })}>{v.label}{!allowed(plan, v.tier) && <Icon name="lock" />}</button>)}</div>}
-      {mode !== "tech" && (["x", "y"] as const).map((a) => { const ok = pair ? pair.logOk[a] : !!(a === "x" ? mx : my)?.logOk; if (!ok) return null;
+      {mode !== "tech" && (["x", "y"] as const).map((a) => { const ok = pair ? !!pair.logOk?.[a] : !!(a === "x" ? mx : my)?.logOk; if (!ok) return null;
         return <div key={a} className="adv-seg" role="group" aria-label={`${a === "x" ? "Across" : "Up"} axis scale`}>{(["lin", "log"] as const).map((s) => <button key={s} aria-pressed={scale[a] === s} onClick={() => set(a === "x" ? { sx: s } : { sy: s })}>{a.toUpperCase()} {s === "lin" ? "linear" : "log"}</button>)}</div>; })}
       {pair?.alt && <button className="adv-link" onClick={() => set({ pair: "custom", x: pair.alt!.x, y: pair.alt!.y, mode: "cross" })}>{pair.alt.label}</button>}
     </div>
