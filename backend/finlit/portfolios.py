@@ -42,7 +42,7 @@ log = logging.getLogger("finlit.portfolios")
 
 __all__ = ["Holding", "Portfolio", "Verdict", "validate", "isin_ok", "get_portfolio", "extra_facts", "refresh", "KEEP_MONTHS"]
 
-STEP_NAMES = ("isin", "performance", "loads")
+STEP_NAMES = ("isin", "performance", "loads", "managers")
 KEEP_MONTHS = 3                      # monthly disclosures kept per scheme
 MIN_KEEP_RATIO = 0.9                 # a re-read file with fewer holdings than this share of the stored one is not applied
 CLS = {"equity": "e", "debt": "d", "cash": "c", "other": "o"}
@@ -98,6 +98,11 @@ def excluded_amc(amc: str) -> bool:
     return _house_stem(amc) in _EXCLUDED
 
 
+def _flat_key(name: str) -> str:
+    """name_key with the spaces taken out and the letters sorted, so a house name written without its space still matches."""
+    return "".join(sorted(re.sub(r"[^a-z0-9]", "", name_key(name, True, True))))
+
+
 class Index:
     """The scheme families in mf_schemes, for matching names from other sources. Built once per run (about 14 000 rows)."""
 
@@ -108,6 +113,7 @@ class Index:
         self.keys: Dict[str, Set[str]] = defaultdict(set)         # name_key -> families
         self.keys_np: Dict[str, Set[str]] = defaultdict(set)      # parenthesis-free key -> families
         self.keys_nf: Dict[str, Set[str]] = defaultdict(set)      # parenthesis-free and without the word 'fund'
+        self.keys_flat: Dict[str, Set[str]] = defaultdict(set)    # letters and digits only, sorted: 'MahindraManulife' and 'Mahindra Manulife' agree
 
     def add(self, code: int, name: str, amc: str, family: str) -> None:
         self.amc[family] = amc
@@ -116,6 +122,7 @@ class Index:
         self.keys[name_key(name)].add(family)
         self.keys_np[name_key(name, True)].add(family)
         self.keys_nf[name_key(name, True, True)].add(family)
+        self.keys_flat[_flat_key(name)].add(family)
 
     def resolve(self, names: Sequence[str], amc_re: Optional[re.Pattern] = None) -> Tuple[Optional[str], str]:
         """(family, reason). The first name that matches exactly one family wins; a name matching several families is ambiguous and refused."""
@@ -131,6 +138,12 @@ class Index:
                     return next(iter(fams)), ""
                 if len(fams) > 1:
                     why = f"name matches {len(fams)} schemes ({', '.join(sorted(fams))[:120]}); not guessed"
+        for nm in names:                    # last resort: spacing and word order ignored (AMFI writes some fund house names without a space)
+            fams = self.keys_flat.get(_flat_key(nm), set()) if nm else set()
+            if amc_re is not None:
+                fams = {f for f in fams if amc_re.search(self.amc.get(f, ""))}
+            if len(fams) == 1:
+                return next(iter(fams)), ""
         return None, why
 
 
@@ -523,6 +536,21 @@ async def step_loads(pool, client, idx: Index, today: date) -> dict:
     return {"status": "ok", "families": len(want), "asked": asked, "blank": blank, "alreadyFresh": len(fresh & active), "namesNotMatched": unmapped}
 
 
+async def step_managers(pool, idx: Index) -> dict:
+    """Risk-o-meter, fund managers and benchmark from AMFI's tracking-error disclosure and the fund houses' own sites
+    (finlit/disclosure_parsers/managers_risk.py: each source fails alone; a fund house's own statement beats AMFI's benchmark wording)."""
+    from .disclosure_parsers import managers_risk
+    rows, stats = await managers_risk.collect(idx)
+    rows = managers_risk.merge_rows(rows)
+    await put_facts(pool, rows)
+    failed = sorted(k for k, v in stats.items() if "error" in v)
+    kinds: Dict[str, int] = defaultdict(int)
+    for r in rows:
+        kinds[r[1]] += 1
+    return {"status": "partial" if failed else "ok", "rows": len(rows), **kinds, "failedSources": failed,
+            "matched": {k: v.get("matched") for k, v in stats.items() if "error" not in v}}
+
+
 # ------------------------------------------------------------------------------------------------------------- steps: fund houses
 
 def _members(path: str) -> Iterable[Tuple[str, str]]:
@@ -661,7 +689,7 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
         if len(idx.by_code) < 1000:
             return {"status": "failed", "why": "mf_schemes is empty or short: run refresh-mf first", "steps": {}, "amc": {}}
         steps = [("isin", lambda: step_isin(pool, today)), ("performance", lambda: step_performance(pool, client, idx, today)),
-                 ("loads", lambda: step_loads(pool, client, idx, today))]
+                 ("loads", lambda: step_loads(pool, client, idx, today)), ("managers", lambda: step_managers(pool, idx))]
         for name, fn in steps:
             if want and name not in want:
                 continue
