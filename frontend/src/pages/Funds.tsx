@@ -96,6 +96,7 @@ export function FundListPage() {
       <div className="wrap mf">
         <CategoryCards q={q} onPick={(c) => set({ tab: c.tab, cats: [c.key], view: "" })} />
         <CategoryPicker q={q} subs={subs} loading={filt.isLoading} onTab={(tab) => set({ tab, cats: null })} onCats={(cats) => set({ cats })} />
+        <p className="faint mf-fine" style={{ margin: 0 }}>Where the industry's money sits and moves each month: <Link to="/funds/insights">Mutual Fund Insights</Link>.</p>
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">
