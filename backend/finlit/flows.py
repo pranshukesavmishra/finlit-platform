@@ -123,6 +123,23 @@ def manual_side(side: SideIn) -> Tuple[Optional[float], Optional[float], float]:
     return side.buy, side.sell, round(net, 2)
 
 
+# One written-out statement per side, so no column name is ever built from text.
+UPSERT = {
+    "fii": ("INSERT INTO flows_daily (d, fii_buy, fii_sell, fii_net, fii_source, updated_at) VALUES ($1, $2, $3, $4, 'manual', now()) "
+            "ON CONFLICT (d) DO UPDATE SET fii_buy = EXCLUDED.fii_buy, fii_sell = EXCLUDED.fii_sell, fii_net = EXCLUDED.fii_net, "
+            "fii_source = 'manual', updated_at = now()"),
+    "dii": ("INSERT INTO flows_daily (d, dii_buy, dii_sell, dii_net, dii_source, updated_at) VALUES ($1, $2, $3, $4, 'manual', now()) "
+            "ON CONFLICT (d) DO UPDATE SET dii_buy = EXCLUDED.dii_buy, dii_sell = EXCLUDED.dii_sell, dii_net = EXCLUDED.dii_net, "
+            "dii_source = 'manual', updated_at = now()"),
+}
+CLEAR = {
+    "fii": ("UPDATE flows_daily SET fii_buy = NULL, fii_sell = NULL, fii_net = NULL, fii_source = NULL, updated_at = now() "
+            "WHERE d = $1 AND fii_source = 'manual'"),
+    "dii": ("UPDATE flows_daily SET dii_buy = NULL, dii_sell = NULL, dii_net = NULL, dii_source = NULL, updated_at = now() "
+            "WHERE d = $1 AND dii_source = 'manual'"),
+}
+
+
 async def save_manual(conn, body: ManualIn, today: date) -> List[str]:
     if body.d > today:
         raise ValueError("that date is in the future")
@@ -133,9 +150,7 @@ async def save_manual(conn, body: ManualIn, today: date) -> List[str]:
         if side is None:
             continue
         buy, sell, net = manual_side(side)
-        await conn.execute(f"INSERT INTO flows_daily (d, {name}_buy, {name}_sell, {name}_net, {name}_source, updated_at) VALUES ($1, $2, $3, $4, 'manual', now()) "
-                           f"ON CONFLICT (d) DO UPDATE SET {name}_buy = EXCLUDED.{name}_buy, {name}_sell = EXCLUDED.{name}_sell, {name}_net = EXCLUDED.{name}_net, "
-                           f"{name}_source = 'manual', updated_at = now()", body.d, buy, sell, net)
+        await conn.execute(UPSERT[name], body.d, buy, sell, net)
         done.append(name)
     if not done:
         raise ValueError("give fii, dii or both")
@@ -145,8 +160,7 @@ async def save_manual(conn, body: ManualIn, today: date) -> List[str]:
 async def clear_manual(conn, d: date, side: str) -> int:
     n = 0
     for name in ("fii", "dii") if side == "both" else (side,):
-        r = await conn.execute(f"UPDATE flows_daily SET {name}_buy = NULL, {name}_sell = NULL, {name}_net = NULL, {name}_source = NULL, updated_at = now() "
-                               f"WHERE d = $1 AND {name}_source = 'manual'", d)
+        r = await conn.execute(CLEAR[name], d)
         n += int(r.split()[-1])
     await conn.execute("DELETE FROM flows_daily WHERE d = $1 AND fii_source IS NULL AND dii_source IS NULL AND fpi_total_net IS NULL AND fpi_equity_net IS NULL", d)
     return n
