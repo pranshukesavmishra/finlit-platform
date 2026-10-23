@@ -426,6 +426,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(compare_api.router)
     app.include_router(etf_api.router)
     app.include_router(mf_api.router)
+    app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
     app.include_router(dcf_api.router)

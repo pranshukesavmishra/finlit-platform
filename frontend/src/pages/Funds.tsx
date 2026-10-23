@@ -20,6 +20,7 @@ import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
 import { FactsCard } from "../mf/Facts";
 import { ReturnsBlock } from "../mf/Returns";
 import { HoldingsSection } from "../holdings";
+import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
 
 const HEAD = (title: string, lead: string) => (
@@ -309,7 +310,13 @@ function CompareTable({ funds }: { funds: CompareFund[] }) {
 }
 const shortName = (f: CompareFund) => (f.name.length > 40 ? f.name.slice(0, 38) + "…" : f.name);
 
+/** /funds/compare: the head-to-head Fund Compare by default; the 2 to 4 scheme compare when the address has ?ids= (also empty, from its link). */
 export function FundComparePage() {
+  const [sp] = useSearchParams();
+  return sp.has("ids") ? <FundMultiCompare /> : <FundHeadToHead />;
+}
+
+function FundMultiCompare() {
   useDocTitle("Compare mutual funds", "Put 2 to 4 mutual fund schemes side by side: NAV, returns, risk and a rebased NAV chart. Information only.");
   const { toast } = useUI();
   const [sp, setSp] = useSearchParams();
@@ -318,7 +325,7 @@ export function FundComparePage() {
   const range: RangeKey = RANGE_BUTTONS.includes(rangeParam as RangeKey) ? (rangeParam as RangeKey) : "1Y";
   const [tray] = useTray();
   const { data, error, isFetching, refetch } = useFundCompare(ids, range);
-  const put = (next: number[], r: RangeKey = range) => setSp((() => { const p = new URLSearchParams(); if (next.length) p.set("ids", next.join(",")); if (r !== "1Y") p.set("range", r); return p; })(), { replace: true });
+  const put = (next: number[], r: RangeKey = range) => setSp((() => { const p = new URLSearchParams(); p.set("ids", next.join(",")); if (r !== "1Y") p.set("range", r); return p; })(), { replace: true });
 
   return (
     <>
@@ -335,7 +342,8 @@ export function FundComparePage() {
           {ids.length < 2 && (
             <div className="pm-empty mf-empty"><b>Choose at least two schemes.</b>
               <p>Search above, or tick “compare” boxes on the <Link to="/funds">scheme list</Link> and press Compare.</p>
-              {tray.length >= 2 && <button className="btn primary" onClick={() => put(tray)}>Compare the {tray.length} you chose in the list</button>}</div>)}
+              {tray.length >= 2 && <button className="btn primary" onClick={() => put(tray)}>Compare the {tray.length} you chose in the list</button>}
+              <p><Link to="/funds/compare">Or compare two funds of one category head to head</Link>: returns, risk, consistency and costs, against the category average.</p></div>)}
         </div>
 
         {ids.length >= 2 && error && !data && <Problem title="This comparison is unavailable right now" text={(error as { status?: number }).status === 404 ? "One of these schemes could not be found." : "Please try again in a moment."} retry={() => refetch()} />}
