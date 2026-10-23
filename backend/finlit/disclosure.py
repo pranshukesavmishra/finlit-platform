@@ -355,6 +355,7 @@ async def refresh(store, settings=None, *, client: Optional[httpx.AsyncClient] =
     summary = {"status": "ok" if statuses == {"ok"} else ("failed" if "ok" not in statuses else "partial"), **out}
     await mf.record_run(store, "refresh-facts", summary)
     if "ok" in statuses:
+        summary["dashboard"] = await mf._guarded("dashboard", mf.derive_dashboard(store))   # fund size, expense ratio and checklist of the category table
         await mf._bump(store, None)   # cached fund pages are rebuilt with the new facts
     return summary
 
