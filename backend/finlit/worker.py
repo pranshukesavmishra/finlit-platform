@@ -44,6 +44,14 @@ class DataRejected(Exception):
 CORE_PARTS = ("profile", "quote", "pl_annual", "bs_annual", "daily_quotes", "ratios_pr")
 
 
+
+async def _mf_dashboard_empty(store) -> bool:
+    """True while no scheme has a fund size, SIP return or checklist yet (a deploy that added those columns after the last refresh ran): the boot
+    refresh then runs even though the last run is recent, so the mutual fund dashboard does not stay empty until the next nightly run."""
+    async with store.pool.acquire() as conn:
+        n = await conn.fetchval("SELECT count(*) FROM mf_schemes WHERE aum_lakh IS NOT NULL OR sip3y IS NOT NULL OR chk_mask IS NOT NULL")
+    return not n
+
 async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False) -> dict:
     """Load one company. `slim` keeps only its score and screener figures (about 5 KB) and not its report or prices (about 100 KB): how the bulk
     scoring covers every listed company inside a small database. The report is built in full when somebody opens the company."""
@@ -687,7 +695,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .mf import record_run, last_run_age_hours
             if args.max_age_hours:
                 age, last = await last_run_age_hours(store, args.cmd)
-                if age is not None and age < (args.max_age_hours if last == "ok" else min(0.25, args.max_age_hours)):
+                if age is not None and age < (args.max_age_hours if last == "ok" else min(0.25, args.max_age_hours)) and not (args.cmd == "refresh-mf" and await _mf_dashboard_empty(store)):
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
             try:
