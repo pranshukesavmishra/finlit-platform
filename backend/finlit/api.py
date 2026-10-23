@@ -39,6 +39,7 @@ from . import dcf as dcf_api
 from . import logos as logos_api
 from . import search as search_api
 from . import macro as macro_api
+from . import markets as markets_api
 from . import flows as flows_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -431,6 +432,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(search_api.router)
     app.include_router(logos_api.router)
     app.include_router(macro_api.router)
+    app.include_router(markets_api.router)
     app.include_router(flows_api.router)
     app.include_router(flows_api.admin)
     app.include_router(graphviews_api.router)

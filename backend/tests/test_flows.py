@@ -9,6 +9,8 @@ import httpx
 import pytest
 
 from finlit import flows, flows_sources as S
+from test_auth import app  # noqa: F401  (fixture)
+from test_integration import ingested, store  # noqa: F401  (fixtures)
 
 FX = Path(__file__).parent / "fixtures" / "flows"
 text = lambda n: (FX / n).read_text(errors="replace")      # noqa: E731
@@ -108,7 +110,7 @@ def row(d, fn=None, dn=None, fb=None, fs=None, db=None, ds=None, fsrc="nsdl", ds
 def test_periods_sum_only_what_every_session_has():
     rows = [row(D(2026, 9, 28), -100.0), row(D(2026, 9, 30), 50.0), row(D(2026, 10, 1), -10.0, 20.0), row(D(2026, 10, 5), 30.0, 5.0), row(D(2026, 10, 6), 1.0, None)]
     p = {x["key"]: x for x in flows.periods(rows, D(2026, 10, 7))}
-    assert p["week"]["days"] == 3 and p["week"]["from"] == "2026-10-05" and p["week"]["fii"] == 31.0 and p["week"]["diiNet"] is None        # DII missing on 6 Oct
+    assert p["week"]["days"] == 2 and p["week"]["from"] == "2026-10-05" and p["week"]["fii"] == 31.0 and p["week"]["diiNet"] is None        # DII missing on 6 Oct
     assert p["month"]["days"] == 3 and p["month"]["fii"] == 21.0
     assert p["fy"]["days"] == 5 and p["fy"]["fii"] == -29.0 and p["fy"]["diiNet"] is None and p["cy"]["fii"] == -29.0
     assert p["r30"]["fii"] is None and p["r30"]["days"] == 5 and p["r365"]["fii"] is None            # fewer sessions than the window: counted, not summed
@@ -305,7 +307,6 @@ async def test_manual_entry_wins_is_labelled_and_is_never_overwritten(fstore):
     async with fstore.pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM flows_daily WHERE d = '2026-10-22'")
     assert (r["fii_net"], r["fii_source"], r["dii_net"], r["dii_source"]) == (-500.0, "manual", 250.5, "manual")
-    payload = await flows.get_meta(await fstore.pool.acquire(), "payload") if False else None
     p = await flows.publish(fstore, D(2026, 10, 23))
     src = {s["id"]: s for s in p["sources"]}
     assert src["manual"]["lastDate"] == "2026-10-22" and "1 day" in src["manual"]["note"]
@@ -316,17 +317,11 @@ async def test_manual_entry_wins_is_labelled_and_is_never_overwritten(fstore):
 
 @pytest.mark.integration
 async def test_without_dii_the_page_still_works_and_says_why(fstore):
-    transport, _ = fake_sites()
-
-    def no_dii(req: httpx.Request) -> httpx.Response:
-        if "DIIGenerate" in req.url.path:
-            return httpx.Response(200, text=text("nsdl_dii_archive_no_data.html"))
-        return transport.handle_request(req) if False else None
     base = fake_sites()[0]
     t = httpx.MockTransport(lambda req: httpx.Response(200, text=text("nsdl_dii_archive_no_data.html")) if "DIIGenerate" in req.url.path else base.handler(req))
     res = await flows.refresh(fstore, transport=t, today=D(2026, 10, 23), nifty=nifty)
     assert res["steps"]["fii"]["status"] == "ok"
-    p = await flows.get_meta(await fstore.pool.acquire(), "payload") if False else await flows.publish(fstore, D(2026, 10, 23))
+    p = await flows.publish(fstore, D(2026, 10, 23))
     assert p["latest"]["dii"] is None and p["latest"]["combinedNet"] is None and p["latest"]["fiiShareOfSelling"] is None and p["coverage"]["diiSessions"] == 0
     assert p["streaks"]["dii"] is None and p["last30"]["dii"] is None and all(d["dii"] is None for d in p["days"])
     dii = {s["id"]: s for s in p["sources"]}["dii"]

@@ -1,6 +1,7 @@
 // Site-wide search (Ctrl K or "/"): stocks, mutual funds, ETFs and news in one box, with filter pills, recent visits, live prices,
 // scores, logos and a preview of the highlighted result. Stocks are matched in the browser over every listed company (no wait); funds,
 // ETFs and news are asked from the server after a short pause in typing. Information only: no buy or sell words anywhere.
+import { useUniverse } from "../../lib/screener";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { visits, type Visit } from "../../lib/recentVisits";
 import { MINUS, dateIN, nf } from "../../lib/format";
 import {
   KIND_LABEL, TABS, allSections, amcLogo, flat, moversToday, quoteMap, searchStocks, stockItem, todayIST,
-  type Item, type Quotes, type Section, type Tab,
+  type Band, type Item, type Quotes, type Section, type Tab,
 } from "../../lib/globalSearch";
 import { FlagIN, Hl, Logo, PriceChange, Range52, ScoreRing, Spark } from "./parts";
 import "../../styles/search.css";
@@ -22,6 +23,13 @@ const PLACEHOLDER: Record<Tab, string> = {
   all: "Search stocks, mutual funds, ETFs and news", stocks: "Company name, NSE symbol or BSE code", mf: "Fund name or fund house, e.g. flexi cap, SBI",
   etf: "ETF name or symbol, e.g. NIFTYBEES, gold", news: "Company or headline (3 letters or more)", global: "Global markets are coming soon",
 };
+
+/** The eight largest companies, preferring those that have a price (every company has one on the live site; a preview build holds quotes for only a few). */
+function largestWithData(rows: readonly SearchRow[] | undefined, q: Map<string, { price: number | null }>): SearchRow[] {
+  const all = (rows || []).filter((r) => !r[0].startsWith("^"));
+  const priced = all.filter((r) => q.get(r[0])?.price != null);
+  return (priced.length >= 4 ? priced : all).slice(0, 8);
+}
 
 function useDebounced<T>(v: T, ms: number): T {
   const [d, setD] = useState(v);
@@ -67,7 +75,18 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
   const idx = useSearchIndex(true);
   const quotes = useSearchQuotes(open);
-  const qmap = useMemo(() => quoteMap(quotes.data), [quotes.data]);
+  // The quotes feed is the first choice; for a company it lacks, the screener's own row (price, day change, score) fills in so no row is empty.
+  const uni = useUniverse(open);
+  const qmap = useMemo(() => {
+    const m = quoteMap(quotes.data);
+    for (const r of uni.data?.rows || []) {
+      const x = m.get(r.symbol);
+      if (x && x.price != null) continue;
+      if (r.price == null) continue;
+      m.set(r.symbol, { price: r.price, chg: r.change_pct ?? null, date: x?.date ?? null, score: x?.score ?? r.overall ?? null, band: x?.band ?? (r.band as Band) ?? null, logo: x?.logo ?? null });
+    }
+    return m;
+  }, [quotes.data, uni.data]);
   const logos = quotes.data?.amcLogos;
   const mine = useMyCompanies();
   const mineSet = useMemo(() => new Set(mine.symbols), [mine.symbols]);
@@ -109,7 +128,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       if (tab === "all" || tab === "stocks") {
         const movers = moversToday(rows, qmap, today, 6).map((r) => stockItem(r, qmap, mineSet));
         if (movers.length) out.push({ id: "movers", title: "Moving most today · largest 200 companies", items: movers });
-        if (tab === "stocks" || !movers.length) out.push({ id: "largest", title: "Largest listed companies", items: (rows || []).filter((r) => !r[0].startsWith("^")).slice(0, 8).map((r) => stockItem(r, qmap, mineSet)) });
+        if (tab === "stocks" || !movers.length) out.push({ id: "largest", title: "Largest listed companies", items: largestWithData(rows, qmap).map((r) => stockItem(r, qmap, mineSet)) });
       }
       if (tab === "mf") out.push({ id: "hot", title: "Largest funds by assets", items: fundItems(hotMf.data?.items, logos).slice(0, 8) });
       if (tab === "etf") out.push({ id: "hot", title: "Most traded ETFs", items: etfItems(hotEtf.data?.items, logos) });

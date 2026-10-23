@@ -417,3 +417,18 @@ async def test_refresh_logos_job(ingested, monkeypatch):
     assert "www.sbimf.com" not in asked                                     # an admin's choice is final
     again = await logos.refresh(ingested, None, limit=200, transport=httpx.MockTransport(handler), resolver=public)
     assert again["tried"] == 0                                              # nothing is due again the next night
+
+
+async def test_markets_members(ingested):
+    """Which companies are in which index: from the stored exchange lists, public, one saved copy."""
+    async with ingested.pool.acquire() as conn:
+        await conn.execute("DELETE FROM index_members")
+        await conn.executemany("INSERT INTO index_members (index_code, symbol) VALUES ($1, $2)", [("NIFTYBANK", "HDFCBANK"), ("NIFTYBANK", "SBIN"), ("NIFTY50", "RELIANCE")])
+    await ingested.redis.delete("markets:members")
+    app = create_app(make_settings(), store=ingested)
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as api:
+            r = await api.get("/api/markets/members")
+            assert r.status_code == 200 and "max-age" in r.headers["cache-control"]
+            assert r.json()["indices"] == {"NIFTY50": ["RELIANCE"], "NIFTYBANK": ["HDFCBANK", "SBIN"]}
+            assert (await api.get("/api/markets/members")).json()["indices"]["NIFTYBANK"] == ["HDFCBANK", "SBIN"]

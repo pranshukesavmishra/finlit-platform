@@ -165,9 +165,9 @@ class Sources:
     async def aclose(self):
         await self.web.aclose()
 
-    async def get(self, url: str, ok404: bool = False, pause: float = PAUSE) -> Optional[str]:
+    async def get(self, url: str, ok404: bool = False, pause: Optional[float] = None) -> Optional[str]:
         for attempt in range(3):
-            await asyncio.sleep(pause)
+            await asyncio.sleep(PAUSE if pause is None else pause)
             self.calls += 1
             try:
                 r = await self.web.get(url)
