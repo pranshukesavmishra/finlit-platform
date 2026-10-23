@@ -2,7 +2,7 @@ import { Component, type ReactNode } from "react";
 import { isChunkError, reloadOnce, reportError } from "../lib/resilience";
 
 /** Keeps one broken block from blanking the whole page. `section` shows a small note in place; the default shows a full-page message. */
-export class ErrorBoundary extends Component<{ children: ReactNode; section?: string }, { failed: boolean; stale: boolean }> {
+export class ErrorBoundary extends Component<{ children: ReactNode; section?: string; message?: string }, { failed: boolean; stale: boolean }> {
   state = { failed: false, stale: false };
   static getDerivedStateFromError(error: unknown) { return { failed: true, stale: isChunkError(error) }; }
   componentDidCatch(error: unknown) {
@@ -12,6 +12,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; section?: st
   }
   render() {
     if (!this.state.failed) return this.props.children;
+    if (this.props.message) return <article className="card"><p className="faint" role="status">{this.props.message}</p></article>;
     if (this.props.section) return (
       <section className="block"><p className="faint" role="status">{this.props.section} is not available for this company right now.</p></section>
     );
