@@ -51,6 +51,7 @@ const EtfComparePage = lazy(() => import("./pages/Etfs").then((m) => ({ default:
 const FundListPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundListPage })));
 const FundDetailPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundDetailPage })));
 const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundComparePage })));
+const FundInsightsPage = lazy(() => import("./pages/FundInsights").then((m) => ({ default: m.FundInsightsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="etfs/:symbol" element={<EtfDetailPage />} />
             <Route path="funds" element={<FundListPage />} />
             <Route path="funds/compare" element={<FundComparePage />} />
+            <Route path="funds/insights" element={<FundInsightsPage />} />
             <Route path="funds/:id" element={<FundDetailPage />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="dcf" element={<DcfPage />} />

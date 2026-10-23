@@ -198,7 +198,7 @@ async def fstore(monkeypatch):
         st = await Store.connect(s)
     except Exception as exc:  # pragma: no cover
         pytest.skip(f"postgres/redis not available: {exc}")
-    sql = (Path(flows.__file__).parent / "migrations" / "048_flows.sql").read_text()
+    sql = (Path(flows.__file__).parent / "migrations" / "051_flows.sql").read_text()
     async with st.pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS flows_daily, flows_oi, flows_index, flows_meta")
         await conn.execute(sql)
@@ -333,7 +333,7 @@ async def test_without_dii_the_page_still_works_and_says_why(fstore):
 async def test_admin_route_needs_an_administrator_with_mfa(app, monkeypatch):      # noqa: F811
     from finlit.auth import crypto
     from test_auth import make_admin, new_client, signed_in
-    sql = (Path(flows.__file__).parent / "migrations" / "048_flows.sql").read_text()
+    sql = (Path(flows.__file__).parent / "migrations" / "051_flows.sql").read_text()
     async with app.state.store.pool.acquire() as conn:
         await conn.execute(sql)
         await conn.execute("DELETE FROM flows_daily")

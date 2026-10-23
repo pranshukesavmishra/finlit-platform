@@ -18,6 +18,13 @@
   source that follows the rules was found; PPFAS and Old Bridge publish PDFs only). AMFI's fund-performance feed (benchmark + risk) is 403 from the
   sandbox: check `parts.performance` in the `refresh-portfolios` status on Render.
 
+## Mutual Fund Insights (`finlit/mf_insights.py`, worker `refresh-industry`, page `/funds/insights`)
+- Source: AMFI's monthly category report, one workbook a month (portal.amfiindia.com/spages/am<mon><yyyy>repo.xls, found through the listing at amfiindia.com/research-information/amfi-monthly; a corrected `...reporevised.xls` wins). Per scheme category: schemes, folios, funds mobilised, redemptions, net inflow, month-end and average AUM (rupees crore). Read from April 2019, the first category-wise report; the older reports use another layout and are not read.
+- Checks: the file must name the expected month, have every column, and its categories must add up to AMFI's own sub-totals and Grand Total; a file that fails is recorded as `refused` and nothing is stored (a stored month keeps its figures). Verified on all 90 reports April 2019 - September 2026 (one real run: 90 stored, 0 refused, about 3.5 minutes at 1.5 s between files; tables about 4,500 rows, 1.3 MB).
+- Schedule: `refresh-industry` daily at 18:25 IST under the fund lock, and in the boot chain after `refresh-facts` (`--max-age-hours 20`). Each day it reads the listing page and asks for the newest stored month with its ETag (a 304 when unchanged; about 5 seconds in all); a new month is loaded when AMFI publishes it (around the 8th-10th). `--since YYYY-MM` reloads from a month on. The result is at `/api/mf/status` (`run:refresh-industry`).
+- API `GET /api/mf/insights` (registered before `/api/mf/{code}`), cached in Redis per data version (`mfi:ver`, bumped when a month lands). Says `status: empty` with a reason until the first load.
+- AMFI's portal sometimes drops a TLS connection mid-download (seen on about 1 in 10 requests from the sandbox); `mf._retry` retries, and a month that still fails is simply asked again on the next run.
+
 ## Live state (22 October 2026, read this first)
 - **How to see what the boot/nightly steps did:** open `https://finlit-arug.onrender.com/api/mf/status` (no login). It shows, for `refresh-etf`, `refresh-mf`, `backfill-mf` and `refresh-facts`, when they last ran, their status and counts. Render's logs are not reachable from outside.
 - **Funds are loaded:** 8,247 active schemes after the exclusions; Growth plans are the default view; best-known fund houses first (`MF_FEATURED_AMCS` in `config.py`). IDCW pages link to the Growth option of the same fund.

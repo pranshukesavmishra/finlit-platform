@@ -1,7 +1,7 @@
 // The list's controls: search, filters, the column picker and the page buttons.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../lib/icons";
-import { COLUMNS, DEFAULT_COLS, SIZES, activeFilterCount, cleanNum, pageWindow, type ColId, type FundFilters, type ListQuery } from "../lib/mf";
+import { COLUMNS, DEFAULT_COLS, PAGE_DEFAULTS, SIZES, activeFilterCount, cleanNum, pageWindow, type ColId, type FundFilters, type ListQuery } from "../lib/mf";
 import { Pick, type PickItem } from "./Pick";
 
 const RANGES: { k: "1y" | "5y"; label: string }[] = [{ k: "1y", label: "1 year return (total)" }, { k: "5y", label: "5 year return, per year (CAGR)" }];
@@ -29,8 +29,8 @@ function RangeBox({ label, lo, hi, onLo, onHi }: { label: string; lo: string; hi
   );
 }
 
+/** Search, fund house, plan, option and return ranges. The categories are chosen above it, with the cards, tabs and tick boxes (mf/Dashboard). */
 export function Controls({ q, text, onText, set, filters, loading }: { q: ListQuery; text: string; onText: (t: string) => void; set: (p: Partial<ListQuery>) => void; filters?: FundFilters; loading: boolean }) {
-  const cats: PickItem[] = useMemo(() => (filters?.categories || []).filter((c) => q.stopped || c.active > 0).map((c) => ({ value: c.name, label: c.name, count: q.stopped ? c.total : c.active })), [filters, q.stopped]);
   const amcs: PickItem[] = useMemo(() => (filters?.amcs || []).filter((a) => q.stopped || a.active > 0).map((a) => ({ value: a.name, label: a.name, count: q.stopped ? a.total : a.active })), [filters, q.stopped]);
   const n = activeFilterCount(q);
   const [more, setMore] = useState(() => RANGES.some((r) => q[`min${r.k}` as "min1y"] || q[`max${r.k}` as "max1y"]));
@@ -41,15 +41,14 @@ export function Controls({ q, text, onText, set, filters, loading }: { q: ListQu
         {loading && <span className="mf-busy" role="status">Loading…</span>}
       </label>
       <div className="mf-filters">
-        <Pick label="Category" value={q.category} items={cats} any="All categories" onChange={(v) => set({ category: v })} />
         <Pick label="Fund house" value={q.amc} items={amcs} any="All fund houses" onChange={(v) => set({ amc: v })} />
-        <Seg label="Plan" value={q.plan} onChange={(v) => set({ plan: v })} options={[["", "All"], ["Direct", "Direct"], ["Regular", "Regular"]]} />
+        <Seg label="Plan" value={q.plan} onChange={(v) => set({ plan: v })} options={[["Direct", "Direct"], ["Regular", "Regular"], ["", "All plans"]]} />
         <Seg label="Option" value={q.option} onChange={(v) => set({ option: v })} options={[["", "Growth"], ["IDCW", "IDCW (payout)"], ["Other", "Not stated"], ["All", "All options"]]} />
       </div>
       <div className="mf-more">
         <button type="button" className="mf-linkbtn" aria-expanded={more} onClick={() => setMore((m) => !m)}>{more ? "Hide return ranges" : "Filter by return range"}</button>
         <label className="mf-check"><input type="checkbox" checked={q.stopped} onChange={(e) => set({ stopped: e.target.checked })} /> Include schemes that stopped publishing NAVs</label>
-        {n > 0 && <button type="button" className="mf-linkbtn" onClick={() => set({ category: "", amc: "", plan: "", option: "", stopped: false, min1y: "", max1y: "", min5y: "", max5y: "" })}>Clear {n} filter{n > 1 ? "s" : ""}</button>}
+        {n > 0 && <button type="button" className="mf-linkbtn" onClick={() => set({ amc: "", plan: PAGE_DEFAULTS.plan, option: "", stopped: false, min1y: "", max1y: "", min5y: "", max5y: "" })}>Clear {n} filter{n > 1 ? "s" : ""}</button>}
       </div>
       {more && (
         <div className="mf-ranges">

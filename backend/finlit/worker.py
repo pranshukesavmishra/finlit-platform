@@ -466,6 +466,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             _p.add_argument("--resume", action="store_true", help="fetch only the ETFs not fetched since the last market close (a retry after a partial run)")
     p_ff = sub.add_parser("refresh-facts", help="nightly: fund facts from AMFI (scheme master, expense ratios, quarterly average AUM) for funds and ETFs; run after refresh-mf")
     p_ff.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_mi = sub.add_parser("refresh-industry", help="daily: AMFI's monthly category report (industry AUM, net flows, folios by scheme category) for the Mutual Fund Insights page; resumable, only new or re-published months are read")
+    p_mi.add_argument("--since", default=None, help="first month to load, YYYY-MM (default and earliest: 2019-04, the first category-wise report)")
+    p_mi.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_di = sub.add_parser("refresh-instruments", help="weekly: Dhan's public instrument file (ISIN, surveillance flag, margin eligibility, F&O status of every NSE and BSE equity); needs no account")
     p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
@@ -576,6 +579,24 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             await record_run(store, args.cmd, {"status": result["status"], "calls": result["calls"], "sessions": result["sessions"], "diiSessions": result["diiSessions"],
                                                "failed": [k for k, v in result["steps"].items() if v["status"] == "failed"]})
             print(result)
+            return 0 if result["status"] in ("ok", "partial") else 1
+        if args.cmd == "refresh-industry":
+            from . import mf_insights
+            from .mf import last_run_age_hours, record_run
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            try:
+                result = await mf_insights.refresh(store, settings, since=mf_insights.parse_month(args.since) if args.since else None)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            await record_run(store, args.cmd, {"status": result["status"], "latest": result["latest"], "months": result["months"], "stored": result["stored"][-12:],
+                                               "missing": result["missing"], "refused": dict(list(result["refused"].items())[:4]),
+                                               "failed": dict(list(result["failed"].items())[:4]), "listing": result["listing"]})
+            print(json.dumps(result, default=str)[:4000])
             return 0 if result["status"] in ("ok", "partial") else 1
         if args.cmd == "refresh-instruments":
             from . import dhan

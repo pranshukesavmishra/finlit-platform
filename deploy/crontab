@@ -46,3 +46,5 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 10 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
 30 23 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-mf >> /var/log/finlit-funds.log 2>&1
 40 21 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-facts >> /var/log/finlit-funds.log 2>&1
+# AMFI's monthly category report (Mutual Fund Insights): a daily check; a new month appears around the 8th-10th.
+25 18 * * *      root flock -w 10800 /tmp/finlit-funds.lock $W refresh-industry >> /var/log/finlit-funds.log 2>&1
