@@ -32,6 +32,7 @@ export function InfoProvider({ children }: { children: ReactNode }) {
       <div className="pop" role="tooltip" ref={ref} hidden={!state}>
         {state && (<>
           <b>{state.g.label}</b>{state.g.what}
+          {state.g.lines && <ul className="pop-lines">{state.g.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}
           {state.g.read && <div className="hr">{state.g.read}</div>}
           {state.g.formula && <div className="fx">{state.g.formula}</div>}
           {state.g.note && <div className="hr">{state.g.note}</div>}
@@ -40,6 +41,9 @@ export function InfoProvider({ children }: { children: ReactNode }) {
     </Ctx.Provider>
   );
 }
+
+/** Show (or, with null, hide) the shared explanation popover next to any element: for triggers that are not the (i) button, such as a table figure. */
+export const useInfoPop = () => useContext(Ctx);
 
 export function Info({ g }: { g?: Glossary | null }) {
   const show = useContext(Ctx);

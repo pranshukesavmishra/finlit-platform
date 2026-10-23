@@ -7,13 +7,14 @@ import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
 import { dateIN, nf } from "../lib/format";
-import type { FundRow } from "../lib/mf";
 import {
-  EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, categoryShort, compareUrl, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, tone, useFundCompare, useFundDetail, useFundFacts, useFundFilters, useFundList,
-  useFundPortfolio, useHotList, useTray, writeCols,
+  CHECKS, EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, catNames, categoryShort, compareUrl, effectiveQuery, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, rowSortValue, subCats, tone,
+  useFundCompare, useFundDetail, useFundFacts, useFundFilters, useFundList, useFundPortfolio, useHotList, useTray, writeCols,
   type ColId, type CompareFund, type FundDetail, type ListQuery, type RangeKey, type SortKey,
 } from "../lib/mf";
+import { keyLabel, selectionTitle, tabLabel } from "../lib/mfCategories";
 import { ColumnPicker, Controls, Pager } from "../mf/Controls";
+import { CategoryCards, CategoryPicker } from "../mf/Dashboard";
 import { FundChart, SERIES_STYLE } from "../mf/FundChart";
 import { FundTable } from "../mf/FundTable";
 import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
@@ -36,49 +37,76 @@ const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 
 // ================================================================================================ list
 
+/** How to read the category table: what each figure is, where it comes from, and the checklist's rules. */
+function Legend() {
+  return (
+    <section className="faint mf-legend" aria-label="How to read the table">
+      <p><b>Returns.</b> <b>1 year</b> is the total change in NAV over the year; <b>3 years</b> and <b>5 years</b> are yearly rates (<GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>), not totals.
+        <b> SIP returns</b> are the yearly rate (XIRR) of putting the same amount in every month for the last 3 or 5 years: one instalment at the last NAV of each month, everything valued at the latest NAV. A scheme without a month-end NAV for every one of those months shows a dash.
+        Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only (<GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV). Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.</p>
+      <p><b>Fund size</b> is AMFI's average assets under management for the latest quarter, all plans of the scheme together (where AMFI lists none, the fund house's month-end net assets; the tooltip says which). <b>Expense ratio</b> is the plan's own total expense ratio from AMFI's latest file, percent a year.</p>
+      <p><b>Checklist.</b> Five plain checks, each against the active Growth options of the same category and plan:</p>
+      <ol>{CHECKS.map((c) => <li key={c.key}><b>{c.label}</b>: {c.rule}.</li>)}</ol>
+      <p>“3/5” means three checks passed out of five that could be worked out. A check counts only when the scheme has the figure and at least 3 schemes of its category have it too. It sums up past figures; it is not a rating, a ranking or a recommendation, and no star ratings are shown. A dash (—) anywhere means no figure; hover or tap it for the reason.</p>
+      <p>* ELSS: up to ₹1.5 lakh a year put into ELSS can be deducted under Section 80C in the old tax regime; at the 30% slab plus 4% cess that saves up to ₹46,800 of tax. The new tax regime has no 80C deduction. ELSS units are locked in for three years.</p>
+    </section>
+  );
+}
+
 export function FundListPage() {
-  useDocTitle("Mutual funds", "Every mutual fund scheme AMFI publishes: official NAV, returns and risk worked out from the NAV history. Information only.");
   const { toast } = useUI();
   const nav = useNavigate();
   const [sp, setSp] = useSearchParams();
   const q = useMemo(() => parseQuery(sp), [sp]);
+  const eq = useMemo(() => effectiveQuery(q), [q]);   // with no chosen order: largest funds first
   const [text, setText] = useState(q.q);
   const [cols, setCols] = useState<ColId[]>(readCols);
   const [tray, toggle, clear] = useTray();
-  const list = useFundList(q), filt = useFundFilters();
+  const filt = useFundFilters();
+  const subs = useMemo(() => (q.tab === "all" ? [] : subCats(filt.data?.categories, q.tab, q)), [filt.data, q]);
+  const names = useMemo(() => (q.tab === "all" || q.cats === null ? null : filt.data ? catNames(filt.data.categories, q.tab, q.cats) : undefined), [filt.data, q.tab, q.cats]);
+  const ready = q.view === "ready";
+  const list = useFundList(eq, names, !ready);
+  const year = (filt.data?.dataDate || list.data?.dataDate || new Date().toISOString()).slice(0, 4);
+  const chosen = q.tab === "all" ? [] : (q.cats ?? []).map(keyLabel).sort((a, b) => a.localeCompare(b));
+  const title = `${selectionTitle(q.tab, chosen, q.cats === null)} mutual funds ${year}`;
+  useDocTitle(title, "Compare all mutual funds in the chosen categories based on latest returns, historic returns, SIP returns, latest NAV, checklist and more. Information only.");
 
   const set = (patch: Partial<ListQuery>) => setSp(queryToParams({ ...q, page: 1, ...patch }), { replace: !("page" in patch) });
   useEffect(() => { if (text.trim() === q.q) return; const t = window.setTimeout(() => set({ q: text.trim() }), 350); return () => window.clearTimeout(t); }, [text]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setText(q.q); }, [q.q]);
-  const onSort = (s: SortKey) => set(q.sort === s ? { dir: q.dir === "asc" ? "desc" : "asc" } : { sort: s, dir: s === "name" || s === "amc" || s === "category" ? "asc" : "desc" });
+  const onSort = (s: SortKey) => set(eq.sort === s ? { sort: s, dir: eq.dir === "asc" ? "desc" : "asc" } : { sort: s, dir: s === "name" || s === "amc" || s === "category" ? "asc" : "desc" });
   const pick = (code: number) => { if (!toggle(code)) toast(`You can compare up to ${TRAY_MAX} schemes at a time.`); };
-  const ready = q.view === "ready";
   const hot = useHotList(ready);
-  const d = ready ? undefined : list.data;
+  const none = q.tab !== "all" && q.cats !== null && q.cats.length === 0;
+  const d = ready || none ? undefined : list.data;
   const hotRows = useMemo(() => {
     const rows = hot.data?.items || [];
     if (!q.sort) return rows;
-    const key = q.sort as keyof FundRow, sgn = q.dir === "desc" ? -1 : 1;
-    return [...rows].sort((a, b) => { const x = a[key] as number | string | null, y = b[key] as number | string | null; return x == null ? 1 : y == null ? -1 : (x < y ? -1 : x > y ? 1 : 0) * sgn; });
+    const key = q.sort, sgn = q.dir === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => { const x = rowSortValue(a, key), y = rowSortValue(b, key); return x == null ? 1 : y == null ? -1 : (x < y ? -1 : x > y ? 1 : 0) * sgn; });
   }, [hot.data, q.sort, q.dir]);
   const facts = (ready ? hot.data : d) || filt.data;
   const t = filt.data?.totals;
 
   return (
     <>
-      {HEAD("Every mutual fund scheme, in one place.", "Official daily NAVs from AMFI, with returns and risk worked out from each scheme's NAV history. Search, filter, sort and compare. Information only, never advice.")}
+      {HEAD(title, "Compare all mutual funds in the chosen categories based on latest returns, historic returns, SIP returns, latest NAV, checklist and more.")}
       <div className="wrap mf">
+        <CategoryCards q={q} onPick={(c) => set({ tab: c.tab, cats: [c.key], view: "" })} />
+        <CategoryPicker q={q} subs={subs} loading={filt.isLoading} onTab={(tab) => set({ tab, cats: null })} onCats={(cats) => set({ cats })} />
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">
           <div className="seg" role="group" aria-label="Which schemes to show">
-            <button aria-pressed={!ready} onClick={() => set({ view: "" })}>All schemes</button>
+            <button aria-pressed={!ready} onClick={() => set({ view: "" })}>Chosen categories</button>
             <button aria-pressed={ready} onClick={() => set({ view: "ready" })}>Ready list ({hot.data?.items.length ?? 100})</button>
           </div>
           <p className="mf-count" role="status" aria-live="polite">
-            {ready ? (hot.data ? <>The <b>{hot.data.items.length}</b> schemes kept ready for instant opening.</> : "Loading…")
-              : d ? <>Showing <b>{d.total.toLocaleString("en-IN")}</b>{t ? <> of <b>{(q.stopped ? t.schemes : t.active).toLocaleString("en-IN")}</b></> : null} scheme{d.total === 1 ? "" : "s"} after exclusions{d.total === 0 ? " (none match)" : ""}</> : "Loading schemes…"}
-            {!ready && t && !q.stopped && <span className="faint"> · {(t.schemes - t.active).toLocaleString("en-IN")} older ones have stopped publishing and are hidden ({t.schemes.toLocaleString("en-IN")} listed in all)</span>}
+            {ready ? (hot.data ? <>The <b>{hot.data.items.length}</b> schemes kept ready for instant opening, from every category.</> : "Loading…")
+              : none ? "No category ticked."
+                : d ? <>Showing <b>{d.total.toLocaleString("en-IN")}</b> scheme{d.total === 1 ? "" : "s"}{q.tab === "all" ? "" : " in the chosen categories"}{d.total === 0 ? " (none match)" : ""}</> : "Loading schemes…"}
+            {!ready && t && !q.stopped && <span className="faint"> · {(t.schemes - t.active).toLocaleString("en-IN")} older schemes have stopped publishing and are hidden</span>}
             {facts?.dataDate && <span className="faint"> · NAVs up to {dateIN(facts.dataDate)}</span>}
           </p>
           <ColumnPicker cols={cols} onChange={(c) => { setCols(c); writeCols(c); }} />
@@ -90,21 +118,22 @@ export function FundListPage() {
               <p className="faint mf-fine mf-pad">{hot.data.basis}</p>
               <FundTable rows={hotRows} cols={cols} q={q} onSort={onSort} picked={tray} onPick={pick} />
             </div>)
+        ) : none ? (
+          <div className="pm-empty mf-empty"><b>Tick at least one category.</b><p>Use the tick boxes above, “Select All”, or one of the cards.</p>
+            <button className="btn" onClick={() => set({ cats: null })}>Tick every {tabLabel(q.tab).toLowerCase()} category</button></div>
         ) : list.isError && !d ? <Problem title="The scheme list is unavailable right now" text="Please try again in a moment." retry={() => list.refetch()} /> : !d ? (
           <div className="card" aria-busy="true"><div className="skeleton" style={{ height: 420 }} /></div>
         ) : d.total === 0 ? (
-          <div className="pm-empty mf-empty"><b>No schemes match.</b><p>Try fewer filters or a shorter search. Spaces and small typos do not matter.</p>
+          <div className="pm-empty mf-empty"><b>No schemes match.</b><p>Try fewer filters or a shorter search. Spaces and small typos do not matter.{q.tab !== "all" && " The search covers the chosen categories only."}</p>
+            {q.tab !== "all" && q.q && <button className="btn primary" onClick={() => set({ tab: "all", cats: null })}>Search every category</button>}{" "}
             <button className="btn" onClick={() => { setText(""); setSp(new URLSearchParams(), { replace: true }); }}>Clear search and filters</button></div>
         ) : (
           <div className="card mf-tablecard">
-            <FundTable rows={d.items} cols={cols} q={q} onSort={onSort} picked={tray} onPick={pick} />
+            <FundTable rows={d.items} cols={cols} q={eq} onSort={onSort} picked={tray} onPick={pick} peers={d.peers} />
             <Pager q={q} pages={d.pages} total={d.total} onPage={(p) => { set({ page: p }); window.scrollTo({ top: 0 }); }} onSize={(n) => set({ size: n })} />
           </div>
         )}
-        <p className="faint mf-legend">
-          Three return figures are shown: <b>1 day</b> (latest NAV against the NAV before it), <b>1 year</b> (total change over the year) and <b>5 year, per year</b> (a yearly rate, <GTerm id="cagr-compound-annual-growth-rate">CAGR</GTerm>, not the five-year total). A dash (—) means no figure; the reason is written under it. Risk figures and other periods are on each scheme's page.
-          Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only: <GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV, so their NAV change would mislead. Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.
-        </p>
+        <Legend />
         <Foot facts={facts} />
       </div>
 
