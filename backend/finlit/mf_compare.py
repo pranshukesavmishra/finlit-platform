@@ -30,7 +30,7 @@ import re
 import statistics
 import unicodedata
 from bisect import bisect_right
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import httpx
@@ -532,6 +532,16 @@ def _from_row(row: dict) -> dict:
             "starts": [s.toordinal() for s in row["starts"]], "navDate": row["nav_date"]}
 
 
+RETRY_AFTER = timedelta(minutes=15)
+
+
+def _partial(row) -> bool:
+    """A stored average built from well under the funds it meant to use (the mirror failed for many of them) is worked out again after 15 minutes, not kept
+    for the whole NAV date."""
+    want = min(row["eligible"], CAT_MAX)
+    return row["members"] < 0.7 * want and datetime.now(timezone.utc) - row["built_at"] > RETRY_AFTER
+
+
 async def category_average(app, names: List[str], plan: str, wait: Optional[float] = None) -> dict:
     """The category average for the category's newest NAV date: from mf_cat_avg when it is current, else worked out now (one background task per
     category, plan and date). Answers {'pending': True, 'why': ...} when it is not ready within `wait` seconds; the next request picks it up.
@@ -542,7 +552,7 @@ async def category_average(app, names: List[str], plan: str, wait: Optional[floa
         row = await conn.fetchrow("SELECT * FROM mf_cat_avg WHERE category = $1 AND plan = $2", category, plan)
     if newest is None:
         return {"why": f"No fund in this category has a current NAV on the {plan} plan."}
-    if row and row["nav_date"] >= newest:
+    if row and row["nav_date"] >= newest and not _partial(row):
         return _from_row(dict(row))
     key = (category, plan, newest)
     task = _tasks.get(key)
@@ -702,6 +712,8 @@ async def compare_payload(app, ra, rb, period: str) -> dict:
     out = assemble(period, ra, rb, sa, sb, cat, fa, fb, plan)
     async with pool.acquire() as conn:
         out.update(await mf._facts(conn))
+    if not sa[0] or not sb[0]:   # a fund's NAV history could not be fetched (the mirror hiccups now and then): show the answer, but do not keep it for hours
+        out["_nocache"] = True
     return out
 
 
@@ -717,9 +729,10 @@ async def _cached(request: Request, kind: str, key: str, build, ttl: int) -> Res
         hit = [None, None]
     if hit[0] is None:
         payload = await build()
+        keep = not (isinstance(payload, dict) and payload.pop("_nocache", False))
         body = dumps(payload)
         etag = etag_for(body)
-        if isinstance(payload, dict) and payload.get("pending"):
+        if isinstance(payload, dict) and (payload.get("pending") or not keep):
             return Response(content=body, media_type="application/json", headers={"Cache-Control": NO_CACHE})
         try:
             await store.redis.hset(rk, mapping={"body": body, "etag": etag})

@@ -235,3 +235,35 @@ export const useHeadToHead = (a: number, b: number, period: Period) =>
     staleTime: 300_000, placeholderData: (prev) => prev, retry: (k, e) => e.status >= 500 && k < 2,
     refetchInterval: (q) => (q.state.data?.pending ? 4000 : false),   // the category average is being worked out on the server: ask again shortly
   });
+
+// ------------------------------------------------------------------------------------------------ chart curve, table highlights
+
+/** An SVG path through the points that is smooth but never overshoots (monotone cubic, Fritsch-Carlson): a curve never dips below a low or above a high
+ *  that is not in the data, so a smoothed NAV line still tells the truth about its peaks and troughs. */
+export function smoothPath(xy: readonly (readonly [number, number])[]): string {
+  const n = xy.length, f = (v: number) => v.toFixed(1);
+  if (n === 0) return "";
+  if (n < 3) return xy.map((p, i) => `${i ? "L" : "M"}${f(p[0])},${f(p[1])}`).join("");
+  const dx: number[] = [], m: number[] = [], t: number[] = new Array(n).fill(0);
+  for (let i = 0; i < n - 1; i++) { dx[i] = xy[i + 1][0] - xy[i][0] || 1e-9; m[i] = (xy[i + 1][1] - xy[i][1]) / dx[i]; }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / m[i], b = t[i + 1] / m[i], s = a * a + b * b;
+    if (s > 9) { const k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${f(xy[0][0])},${f(xy[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${f(xy[i][0] + h)},${f(xy[i][1] + t[i] * h)} ${f(xy[i + 1][0] - h)},${f(xy[i + 1][1] - t[i + 1] * h)} ${f(xy[i + 1][0])},${f(xy[i + 1][1])}`;
+  }
+  return d;
+}
+
+/** Which of the two funds has the higher ("high") or lower ("low") figure; null when either is missing or the two are level. Only a fact about the
+ *  past (used to shade a cell), never a recommendation. */
+export function leader(a: number | null | undefined, b: number | null | undefined, dir: "high" | "low"): "a" | "b" | null {
+  if (a == null || b == null || Math.abs(a - b) < 0.005) return null;
+  return (a > b) === (dir === "high") ? "a" : "b";
+}

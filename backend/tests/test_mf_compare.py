@@ -219,7 +219,8 @@ SCHEMES = [scheme(A, "Alpha Flexi Cap Fund - Direct Plan - Growth"), scheme(B, "
 class Mirror:
     """api.mfapi.in stand-in: the full fixture history of each code, newest first, as the mirror answers; counts calls per code."""
 
-    def __init__(self, delay=0.0, shift=None):
+    def __init__(self, delay=0.0, shift=None, fail=()):
+        self.fail = set(fail)
         self.calls = {}
         self.delay = delay
         self.shift = shift or {}
@@ -230,8 +231,8 @@ class Mirror:
             self.calls[code] = self.calls.get(code, 0) + 1
             if self.delay:
                 await asyncio.sleep(self.delay)
-            if code not in SERIES:
-                return httpx.Response(404)
+            if code not in SERIES or code in self.fail:
+                return httpx.Response(503)
             days, navs = SERIES[code]
             return httpx.Response(200, json={"meta": {"scheme_code": code}, "status": "SUCCESS",
                                              "data": [{"date": date.fromordinal(d).strftime("%d-%m-%Y"), "nav": f"{v + self.shift.get(code, 0):.4f}"}
@@ -416,3 +417,24 @@ async def test_both_wordings_of_a_category_are_one_category(api):
         assert [f["code"] for f in got] == [A, B, D, OTHER, C]
     d = await api.get(f"/api/mf-compare?a={A}&b={OTHER}&period=3Y")
     assert d.status_code == 200 and d.json()["category"]["members"] == 5
+
+
+@needs_db
+async def test_an_answer_missing_a_funds_history_is_not_kept_for_hours(api):
+    api.app.state.mf_client = Mirror(fail={C}).client()
+    first = await api.get(f"/api/mf-compare?a={A}&b={C}&period=1Y")
+    d = first.json()
+    assert d["returns"]["funds"]["b"]["value"] is None and d["why"]["b"] and "_nocache" not in d and first.headers["cache-control"] == "no-store"
+    api.app.state.mf_client = Mirror().client()
+    await api.app.state.store.redis.delete(f"mf:cold:{C}")   # the failed fetch is remembered for ten minutes by mf.py; the mirror is back now
+    again = (await api.get(f"/api/mf-compare?a={A}&b={C}&period=1Y")).json()
+    assert again["returns"]["funds"]["b"]["value"] is not None
+
+
+def test_a_mostly_failed_category_average_is_retried_after_fifteen_minutes():
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    row = lambda members, eligible, age: {"members": members, "eligible": eligible, "built_at": now - timedelta(minutes=age)}   # noqa: E731
+    assert not mc._partial(row(2, 39, 5)) and mc._partial(row(2, 39, 20))       # too few members, but only once it is old enough
+    assert not mc._partial(row(39, 39, 600)) and not mc._partial(row(30, 39, 600))
+    assert not mc._partial(row(70, 200, 600)) and mc._partial(row(30, 200, 600))   # at most CAT_MAX (60) funds are used, so 70% of 60

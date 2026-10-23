@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  CARDS, DEFAULT_PERIOD, cardTeaser, pickCategory, consistencyLine, costsLine, h2hPath, h2hToParams, isMultiCompare, parseH2H, pct, periodBlock, returnsLine, riskLine, rupees, share,
+  CARDS, DEFAULT_PERIOD, cardTeaser, pickCategory, smoothPath, leader, consistencyLine, costsLine, h2hPath, h2hToParams, isMultiCompare, parseH2H, pct, periodBlock, returnsLine, riskLine, rupees, share,
   shortName, signedPct, type HeadToHead,
 } from "./mfCompare";
 
@@ -139,5 +139,26 @@ describe("the plain-English lines", () => {
     expect(cardTeaser("consistency", d)).toBe("A ahead in 64% of windows");
     expect(cardTeaser("costs", d)).toBe("TER 0.63% vs 0.77%");
     expect(cardTeaser("returns", answer({ rb: null }))).toBeNull();
+  });
+});
+
+describe("chart curve and highlights", () => {
+  it("smooth path passes through every point and never overshoots a peak", () => {
+    const xy = [[0, 10], [10, 10], [20, 50], [30, 12], [40, 12]] as const;
+    const d = smoothPath(xy);
+    expect(d.startsWith("M0.0,10.0C")).toBe(true);
+    expect(d.endsWith("40.0,12.0")).toBe(true);
+    const ys = [...d.matchAll(/(-?\d+\.\d),(-?\d+\.\d)/g)].map((m) => Number(m[2]));
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(10);
+    expect(Math.max(...ys)).toBeLessThanOrEqual(50);
+    expect(smoothPath([[0, 1], [5, 2]])).toBe("M0.0,1.0L5.0,2.0");
+    expect(smoothPath([])).toBe("");
+  });
+  it("leader names the higher or lower figure and stays silent on a tie or a gap", () => {
+    expect(leader(5, 3, "high")).toBe("a");
+    expect(leader(5, 3, "low")).toBe("b");
+    expect(leader(-10, -20, "high")).toBe("a");
+    expect(leader(1, 1.001, "high")).toBeNull();
+    expect(leader(null, 3, "high")).toBeNull();
   });
 });
