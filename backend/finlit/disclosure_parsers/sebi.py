@@ -90,8 +90,8 @@ def _find_cols(row: List) -> Optional[Dict[str, int]]:
             cols["value"] = i
         elif re.search(r"quantity|qty|no\.? of (units|shares)|number of", t) and "qty" not in cols:
             cols["qty"] = i
-        elif re.search(r"industry|rating|sector", t) and "sector" not in cols:
-            cols["sector"] = i
+        elif re.search(r"industry|rating|sector", t) and ("sector" not in cols or (re.search(r"industry|sector", t) and not re.search(r"industry|sector", txt(row[cols["sector"]]).lower()))):
+            cols["sector"] = i         # separate 'Rating' and 'Industry' columns (quant): the industry one
         elif re.search(r"name|instrument|issuer|security|scrip|particulars", t) and "name" not in cols and "isin" not in t:
             cols["name"] = i
     if "isin" in cols and "pct" in cols and "name" in cols:
@@ -123,6 +123,7 @@ GRAND_ROW = re.compile(r"^\W*(grand\s*total|total\s*net\s*assets|net\s*assets\b|
 RATING_LIKE = re.compile(r"\b(aaa|aa\+?|aa-|a1\+|a1|a\+|sovereign|unrated|crisil|icra|care|ind\s?a|fitch|brickwork|acuite|nil)\b|^[ab]{1,3}[+-]?$", re.I)
 
 
+NA_TEXT = re.compile(r"^\s*(n\.?\s*a\.?|not applicable|-+)\s*$", re.I)
 OTHER_LABELS = frozenset(["foreign security", "foreign securities", "mutual funds", "mutual fund", "commodity", "commodities", "reit", "invit", "reits", "invits", "etf", "overseas etf",
                           "units of mutual fund", "foreign mutual fund", "overseas mutual fund", "gold", "silver", "others", "other"])
 
@@ -145,7 +146,8 @@ def clean_name(s: str) -> str:
 
 # -------------------------------------------------------------------------------------------------- title
 
-TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)|^back\s+to\s+(index|top)", re.I)
+TITLE_SKIP = re.compile(r"portfolio\s+(statement|details|as\s+on)|monthly\s+portfolio|\bas\s+(on|at)\b|^\(?\s*an?\s+(open|close|interval)|^\(|statement|mutual\s+fund\s*$|^scheme\s*(name)?\s*:?\s*$|name of the instrument|^sr\.?\s*no|^page|^annexure|^details of|^scheme (risk|code)|^back\s+to\s+(index|top)"
+                        r"|asset\s+management\s+(company|co\b)|investment\s+manager|^registered\s+office|\bCIN\b", re.I)
 
 
 def split_title(cell: str) -> Tuple[str, List[str]]:
@@ -258,14 +260,25 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
     star_rows = 0          # rows whose percent is a '*' / '<0.01' marker instead of a number: not listed
     hedge_sum = 0.0
     hedge_rows = 0         # futures / options hedge lines with a negative percent: exposures, not additive to net assets, not listed
+    dup_rows = 0           # a holding row repeated verbatim on the very next row (quant): counted once
+    last_holding: Tuple[int, tuple] = (-2, ())
+    rown = -1
     in_deriv = False
 
     def cell(row, key):
         i = cols.get(key)
         return row[i] if i is not None and i < len(row) else None
 
+    isin_first = cols["isin"] < cols["name"]
     for row in it:
+        rown += 1
         name_raw = cell(row, "name")
+        label_in_isin = False
+        if isin_first and not (isinstance(name_raw, str) and name_raw.strip()):
+            # ISIN column first (Franklin Templeton): headings, totals, cash and 'Net Assets' rows carry their label in the ISIN column
+            alt = cell(row, "isin")
+            if isinstance(alt, str) and alt.strip() and not re.match(r"^[A-Z]{2}[A-Z0-9]{10}$", alt.strip().upper()):
+                name_raw, label_in_isin = alt, True
         name = clean_name(name_raw) if isinstance(name_raw, str) else ""
         if not done:
             if not benchmark:
@@ -292,7 +305,7 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
             continue
         if TOTAL_ROW.match(name):
             continue
-        isin_raw = txt(cell(row, "isin")).upper().replace(" ", "")
+        isin_raw = "" if label_in_isin else txt(cell(row, "isin")).upper().replace(" ", "")
         if pct is None:
             if isinstance(pct_raw, str) and re.match(r"^\s*(\*+|\$+|<\s*[\d.]+\s*%?|less than.*)\s*$", pct_raw) and not heading_class(name) and (isin_raw or num(cell(row, "value")) is not None):
                 star_rows += 1
@@ -313,16 +326,18 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if CASH_NAME.search(name) and not isin_raw:
             cls = "cash"
         sec_probe = txt(cell(row, "sector"))
-        if not isin_raw and (in_deriv or re.search(r"\b(futures?|options?|swaps?|derivatives?)\b", sec_probe, re.I)) and cls != "cash":
-            if pct < 0:
-                hedge_rows += 1
-                hedge_sum += pct
-                continue
+        deriv_row = in_deriv or bool(re.search(r"\b(futures?|options?|swaps?|derivatives?)\b", sec_probe, re.I))
+        if deriv_row and cls != "cash" and pct < 0 and (not isin_raw or in_deriv):
+            # a short future / option line; inside a derivatives block it may carry the underlying share's ISIN (quant)
+            hedge_rows += 1
+            hedge_sum += pct
+            continue
+        if not isin_raw and deriv_row and cls != "cash":
             cls = "other"
         if not seen_heading and cls == "other" and isin_raw:
             cls = "equity" if isin_raw.startswith("INE") and isin_raw[7:9] == "01" else cls
         sec_raw = txt(cell(row, "sector"))
-        if (cls == "other" and sec_raw and isin_raw and sec_raw.lower() not in OTHER_LABELS and not RATING_LIKE.search(sec_raw)
+        if (cls == "other" and sec_raw and isin_raw and sec_raw.lower() not in OTHER_LABELS and not RATING_LIKE.search(sec_raw) and not NA_TEXT.match(sec_raw)
                 and ((isin_raw.startswith("INE") and isin_raw[7:9] == "01") or not isin_raw.startswith("IN"))):
             cls = "equity"            # an arbitrage / foreign-securities block holds ordinary shares: the row itself says so (equity ISIN, an industry)
         sector: Optional[str] = None
@@ -332,6 +347,12 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         if value is not None:
             value = value * unit if unit else None
         qty = num(cell(row, "qty"))
+        key = (name, isin, pct, qty, value)
+        if last_holding == (rown - 1, key):
+            dup_rows += 1
+            last_holding = (rown, key)
+            continue
+        last_holding = (rown, key)
         holdings.append(Holding(name=name, isin=isin, sector=sector, asset_class=cls, pct_nav=pct, qty=qty, value_lakh=value))
         raw_pcts.append(pct)
     # percent scale: fractions (sum about 1) or percents (sum about 100)
@@ -351,6 +372,8 @@ def parse_rows(rows: Iterable[List], source_name: str, source_url: str, as_of_hi
         grand_pct = round(grand_pct, 6) if grand_pct is not None else None
     if star_rows:
         notes.append(f"{star_rows} row(s) published with a '*' marker instead of a number (below the file's display threshold) are not listed")
+    if dup_rows:
+        notes.append(f"{dup_rows} row(s) repeated verbatim on the next line of the file are counted once")
     if hedge_rows:
         notes.append(f"{hedge_rows} futures/options hedge line(s) with a negative percent are exposures, not part of net assets, and are not listed")
     return Portfolio(scheme_key=title, as_of=as_of, source_name=source_name, source_url=source_url, holdings=holdings, scheme_name=title,

@@ -266,3 +266,9 @@ ADAPTERS: List[Adapter] = [
     Adapter("absl", "Aditya Birla Sun Life Mutual Fund", r"aditya\s+birla", list_absl, "adityabirlacapital.com"),
     Adapter("nippon", "Nippon India Mutual Fund", r"nippon", list_nippon, "nipponindiaim.com"),
 ]
+
+
+# Fund houses kept in their own modules (each defines ADAPTERS with the same contract as the ones above).
+from .houses_b import ADAPTERS as _HOUSES_B  # noqa: E402  (they import FileRef / Adapter / page_lister from this module)
+
+ADAPTERS += _HOUSES_B
