@@ -27,6 +27,11 @@ On a plan with a Render Shell tab you can also run `python -m finlit.worker dhan
 Ask Dhan support, in writing, whether a personal Data API subscription may be used to show prices to the public on a website (redistribution). The same question applies to every price provider; keep the answer with the other licences.
 
 ## What is wired now
-- `refresh-instruments` (boot, then Sundays 02:20): the instrument file into `dhan_instruments`.
-- `dhan-check`: the test above.
-- Not yet: batch prices, daily history, cross-checks against FinEdge. Those follow once `dhan-check` passes.
+- `refresh-instruments` (boot, then daily at 07:50): the instrument file into `dhan_instruments` (ISIN, surveillance flag, F&O, and which rows are ETFs).
+- `dhan-check` (boot): the test above.
+- **Live stock prices** (`refresh-quotes`, every market minute): every company Dhan can match (NSE symbol, else BSE code) is priced in batch
+  calls of 1,000. A company Dhan does not match, or whose Dhan price is more than 25% from the price we hold (a wrong match, an unadjusted
+  split), is asked of FinEdge as before; if Dhan is down, FinEdge prices everyone.
+- **ETFs** (`refresh-etf`, nightly): prices and 10 years of history from Dhan when it is set up (one quote call for every ETF, history paced at
+  3 calls a second), else Upstox. `ETF_SOURCE=upstox` forces Upstox back. `/api/mf/status` shows `"source"` under `run:refresh-etf`.
+- Mutual funds: unchanged. Dhan publishes no NAV, AUM or expense ratio; those stay with AMFI.
