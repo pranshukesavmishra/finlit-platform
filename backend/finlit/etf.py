@@ -529,6 +529,32 @@ class Pacer:
             self.tokens -= 1
 
 
+class _Lease:
+    """One pooled connection that can be handed back during a long wait and taken again after it. The candle fetch is paced and takes minutes; a
+    connection held idle that long is dropped by a serverless database (Neon suspends after 5 idle minutes), which ended the run with
+    'connection has been released back to the pool'."""
+
+    def __init__(self, pool):
+        self.pool, self.conn = pool, None
+
+    async def __aenter__(self) -> "_Lease":
+        self.conn = await self.pool.acquire()
+        return self
+
+    async def __aexit__(self, *exc) -> None:
+        await self.drop()
+
+    async def drop(self) -> None:
+        conn, self.conn = self.conn, None
+        if conn is not None:
+            await self.pool.release(conn)
+
+    async def get(self):
+        if self.conn is None:
+            self.conn = await self.pool.acquire()
+        return self.conn
+
+
 class _Halted(Exception):
     """The provider's rate limit was hit earlier in this run: the remaining ETFs are left for the next (resumed) run."""
 
@@ -554,7 +580,8 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
             return {"status": "ok", "reason": "every ETF already has the latest close: nothing to fetch", "fetched": 0}
     http = httpx.AsyncClient(transport=transport, timeout=60, follow_redirects=True)
     try:
-        async with store.pool.acquire() as conn:
+        async with _Lease(store.pool) as lease:
+            conn = lease.conn
             stored_active = await conn.fetchval("SELECT count(*) FROM etf_funds WHERE active")
             insts = await fetch_instruments(http)
             if len(insts) < MIN_INSTRUMENTS or (stored_active and len(insts) < SHRINK_LIMIT * stored_active):
@@ -647,12 +674,14 @@ async def refresh(store, settings, *, transport: Optional[httpx.AsyncBaseTranspo
                         halted["by"] = sym                         # retries did not help: stop asking until the quota window has passed
                 return res
 
+            await lease.drop()                                     # no connection is held while the (paced) candles are fetched
             try:
                 results = await asyncio.gather(*[one(i) for i in todo])
             except UpstoxTokenExpired:
                 summary.update(status="token_expired", reason="Upstox access token expired during the run: stored rows kept")
-                await _log_run(conn, started, summary)
+                await _log_run(await lease.get(), started, summary)
                 return summary
+            conn = await lease.get()
 
             kept_hist: Dict[str, tuple] = {}                       # fresh series by symbol, written below for the hot ETFs only
             answered_empty: List[str] = []

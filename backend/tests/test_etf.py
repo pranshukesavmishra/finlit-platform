@@ -465,6 +465,22 @@ async def test_short_or_empty_answers_never_overwrite_good_rows(store):
         assert [h["closes"] for h in hist] == [h["closes"] for h in before[1]]
 
 
+async def test_no_database_connection_is_held_while_candles_are_fetched(store):
+    """A paced fetch takes minutes; a connection held idle that long is dropped by a serverless database and the run dies half way."""
+    held = []
+    prov = Provider()
+
+    def handler(req):
+        if req.url.path.startswith("/v3/historical-candle/"):
+            held.append(store.pool.get_size() - store.pool.get_idle_size())     # connections in use right now
+        return prov(req)
+    r = await etf.refresh(store, S(), transport=httpx.MockTransport(handler), now=NOW)
+    assert r["status"] == "ok" and r["updated"] == 17, r
+    assert held and set(held) == {0}, held
+    async with store.pool.acquire() as conn:                                  # and the run still wrote everything
+        assert await conn.fetchval("SELECT count(*) FROM etf_funds WHERE price IS NOT NULL") == 17
+
+
 def test_last_close_is_the_latest_weekday_close():
     ist = lambda *a: datetime(*a, tzinfo=etf.IST)
     assert etf.last_close(ist(2026, 10, 21, 23, 0)) == ist(2026, 10, 21, 15, 45)       # Wednesday evening: today's close
