@@ -37,13 +37,13 @@ export default function Cloud3D({ points, axes, onPick, label }: Props) {
       points.forEach((_, i) => place(i, 1)); inst.instanceMatrix.needsUpdate = true;
       const ray = new THREE.Raycaster(), v2 = new THREE.Vector2(); let cur = -1, born = -1, shown: string | null = null;
       return {
-        frame(t, _dt, p) {
+        frame(t, _dt, p, hv) {
           if (born < 0) born = t;
           const k = Math.min(1, (t - born) / 1.0), e = 1 - Math.pow(1 - k, 3);
-          group.rotation.y = t * 0.12 + p.x * 0.9; group.rotation.x = p.y * 0.18;
+          group.rotation.y = 0.5 + p.x * 0.9; group.rotation.x = p.y * 0.3;
           group.updateMatrixWorld(true);
           let id: number = -1;
-          if (Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1) { v2.set(p.x, -p.y); ray.setFromCamera(v2, camera); ray.params.Points = { threshold: 0.2 }; id = ray.intersectObject(inst)[0]?.instanceId ?? -1; }
+          if (hv) { v2.set(hv.x, -hv.y); ray.setFromCamera(v2, camera); ray.params.Points = { threshold: 0.2 }; id = ray.intersectObject(inst)[0]?.instanceId ?? -1; }
           if (id !== cur) { if (cur >= 0) place(cur, e); cur = id; }
           points.forEach((_, i) => place(i, i === cur ? 2.2 * e : e)); inst.instanceMatrix.needsUpdate = true;
           const next = cur >= 0 ? points[cur].id : null; hit.current = next;

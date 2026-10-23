@@ -1,7 +1,7 @@
 // Pointer-driven 3D tilt for cards. One delegated listener for the whole site, no per-card code and no library: a card under the pointer
 // gets --rx/--ry (tilt) and --tx/--ty (where the light sits), and styles/depth3d.css does the rest. Does nothing for touch screens,
 // visitors who prefer reduced motion, or pages where the pointer is not hovering a card.
-const SELECTOR = ".hh-card, .plan, .who-c, [data-tilt]";
+const SELECTOR = ".plan, .who-c, [data-tilt]";
 const MAX_TILT = 6; // degrees, for a card about 380 px across; larger cards tilt less so their edges do not swing
 
 export function initDepth(): () => void {

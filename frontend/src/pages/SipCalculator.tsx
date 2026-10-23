@@ -14,9 +14,7 @@ import {
   EQUITY_TAX_2024, LIMITS, delayCost, duration, equityTax, fromQuery, gainsOvertake, milestones, monthsToTarget, project, realValue,
   requiredMonthly, rupees, short, toInput, toQuery, type SipState, type TaxRules,
 } from "../lib/sip";
-import { With3D } from "../charts/With3D";
 import "../styles/sip.css";
-
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -118,17 +116,6 @@ function Donut({ invested, gain, value }: { invested: number; gain: number; valu
 }
 
 // ------------------------------------------------------------------------------------------------------------- growth chart
-/** The same projection as yearly columns in 3D: money put in at the bottom of each column, what it has earned on top. */
-function GrowthBars3D({ s }: { s: SipState }) {
-  const r = useMemo(() => project(toInput(s)), [s]);
-  const yr = useMemo(() => r.monthly.filter((p) => p.m > 0 && p.m % 12 === 0), [r]);
-  if (yr.length < 2) return null;
-  return <With3D flat={null} label={`Year by year in 3D: money put in grows to ${rupees(r.invested)} and the value to ${rupees(r.value)} over ${duration(r.n)}.`}
-    hint="How to read it: each column is one year. The lower block is the money you have put in so far; the upper block is what it has earned on top. Move the pointer over a block to read it."
-    spec={{ kind: "bars", stack: true, cats: yr.map((p) => `Y${p.m / 12}`), fmt: (v) => rupees(v), valueTitle: "Value (₹)",
-      series: [{ label: "Money put in", values: yr.map((p) => p.invested) }, { label: "Earned on top", values: yr.map((p) => Math.max(0, p.value - p.invested)) }] }} />;
-}
-
 type Band = { lo: number[]; hi: number[]; loRate: number; hiRate: number } | null;
 function GrowthChart({ s, band }: { s: SipState; band: Band }) {
   const r = useMemo(() => project(toInput(s)), [s]);
@@ -306,7 +293,6 @@ export function SipCalculator() {
             <label className="sip-tog"><input type="checkbox" checked={showBand} onChange={(e) => setShowBand(e.target.checked)} /><span />Range if returns are 3 points lower or higher</label>
           </div>
           <GrowthChart s={s} band={band} />
-          <GrowthBars3D s={s} />
           <ul className="sip-keys">
             <li><i className="v" />Value</li><li><i className="i" />Money put in</li>
             {band && <li><i className="b" />{band.loRate}% to {band.hiRate}% a year: {short(band.lo[band.lo.length - 1])} to {short(band.hi[band.hi.length - 1])}</li>}

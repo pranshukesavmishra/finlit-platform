@@ -4,7 +4,9 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 export type Pointer = { x: number; y: number };   // -1..1 across the canvas, 0 at rest
 export type Palette = { gold: THREE.Color; deep: THREE.Color; ink: THREE.Color; paper: THREE.Color; gain: THREE.Color; loss: THREE.Color; light: boolean };
 export type Stage = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; renderer: THREE.WebGLRenderer; palette: Palette; track(o: { dispose(): void }): void };
-export type Scene = { frame(t: number, dt: number, p: Pointer): void; recolor?(pal: Palette): void };
+/** `p` is how far the viewer has dragged the scene (0 at rest); it only changes while the pointer is pressed on the canvas, so moving the mouse
+ *  over a chart never turns it. `hover` is where the pointer is over the canvas, or null when it is elsewhere. */
+export type Scene = { frame(t: number, dt: number, p: Pointer, hover: Pointer | null): void; recolor?(pal: Palette): void };
 
 const css = (n: string, f: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
 export function readPalette(): Palette {
@@ -30,6 +32,7 @@ export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene
 
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointer: Pointer = { x: 0, y: 0 }, target: Pointer = { x: 0, y: 0 };
+  let hover: Pointer | null = null, drag: { x: number; y: number } | null = null;
   let raf = 0, last = performance.now(), visible = true, alive = true;
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
@@ -40,15 +43,24 @@ export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene
     raf = 0; if (!alive) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     pointer.x += (target.x - pointer.x) * Math.min(1, dt * 4); pointer.y += (target.y - pointer.y) * Math.min(1, dt * 4);
-    world.frame(now / 1000, dt, pointer); renderer.render(scene, camera);
+    world.frame(now / 1000, dt, pointer, hover); renderer.render(scene, camera);
     if (!calm && visible && !document.hidden) raf = requestAnimationFrame(draw);
   };
   const kick = () => { if (!raf && alive) { last = performance.now(); raf = requestAnimationFrame(draw); } };
   const ro = new ResizeObserver(() => { resize(); if (calm) kick(); }); ro.observe(canvas); resize();
   const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) kick(); }); io.observe(canvas);
   const vis = () => { if (!document.hidden) kick(); }; document.addEventListener("visibilitychange", vis);
-  const move = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); target.x = ((e.clientX - r.left) / r.width) * 2 - 1; target.y = ((e.clientY - r.top) / r.height) * 2 - 1; };
-  if (!calm) window.addEventListener("pointermove", move, { passive: true });
+  const at = (e: PointerEvent): Pointer => { const r = canvas.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: ((e.clientY - r.top) / r.height) * 2 - 1 }; };
+  const move = (e: PointerEvent) => {
+    hover = at(e);
+    if (drag) { const r = canvas.getBoundingClientRect(); target.x = Math.max(-1.5, Math.min(1.5, target.x + ((e.clientX - drag.x) / r.width) * 3)); target.y = Math.max(-0.8, Math.min(0.8, target.y + ((e.clientY - drag.y) / r.height) * 2)); drag = { x: e.clientX, y: e.clientY }; }
+    if (calm || drag || hover) kick();
+  };
+  const down = (e: PointerEvent) => { if (e.button !== 0) return; drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture?.(e.pointerId); canvas.style.cursor = "grabbing"; };
+  const up = (e: PointerEvent) => { drag = null; canvas.style.cursor = ""; try { canvas.releasePointerCapture?.(e.pointerId); } catch { /* not captured */ } };
+  const leave = () => { hover = null; if (calm) kick(); };
+  canvas.style.touchAction = "pan-y";
+  canvas.addEventListener("pointermove", move); canvas.addEventListener("pointerdown", down); canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up); canvas.addEventListener("pointerleave", leave);
   const theme = new MutationObserver(() => { stage.palette = readPalette(); world.recolor?.(stage.palette); if (calm) kick(); });
   theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   const lost = (e: Event) => { e.preventDefault(); alive = false; };
@@ -57,7 +69,7 @@ export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene
 
   return () => {
     alive = false; cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); theme.disconnect();
-    document.removeEventListener("visibilitychange", vis); window.removeEventListener("pointermove", move); canvas.removeEventListener("webglcontextlost", lost);
+    document.removeEventListener("visibilitychange", vis); canvas.removeEventListener("pointermove", move); canvas.removeEventListener("pointerdown", down); canvas.removeEventListener("pointerup", up); canvas.removeEventListener("pointercancel", up); canvas.removeEventListener("pointerleave", leave); canvas.removeEventListener("webglcontextlost", lost);
     scene.traverse((o) => { const m = o as THREE.Mesh; if (m.geometry) m.geometry.dispose(); const mat = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => { (x as THREE.MeshStandardMaterial).map?.dispose(); x.dispose(); }); });
     owned.forEach((o) => o.dispose()); renderer.dispose(); renderer.forceContextLoss();
   };

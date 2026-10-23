@@ -2,19 +2,19 @@
    from the page. Pure CSS transforms: no extra download, no WebGL. Only on devices with a hovering pointer and without reduced motion.
    The home page's ruled tool grid (.plat-t) is deliberately left flat. */
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .hh-card, .plan, .who-c, [data-tilt] {
+  .plan, .who-c, [data-tilt] {
     --rx: 0deg; --ry: 0deg; --tx: 50%; --ty: 0%;
     transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
     transform-style: preserve-3d;
     transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s;
   }
   :root [data-depth] { transition: transform .08s linear, box-shadow .35s; will-change: transform; }
-  :root .hh-card[data-depth], :root .plan[data-depth], :root .who-c[data-depth], :root [data-tilt][data-depth] {
+  :root .plan[data-depth], :root .who-c[data-depth], :root [data-tilt][data-depth] {
     transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(10px);
     box-shadow: 0 26px 50px -26px rgba(0, 0, 0, .55);
   }
   /* the light: a soft gold glow under the pointer, drawn over the card and never blocking clicks */
-  .hh-card::after, .who-c::after, [data-tilt]::after {
+  .who-c::after, [data-tilt]::after {
     content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
     background: radial-gradient(420px circle at var(--tx) var(--ty), color-mix(in srgb, var(--gold) 20%, transparent), transparent 55%);
   }
@@ -22,10 +22,8 @@
     content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
     background: radial-gradient(420px circle at var(--tx) var(--ty), color-mix(in srgb, var(--gold) 16%, transparent), transparent 55%);
   }
-  .hh-card[data-depth]::after, .who-c[data-depth]::after, [data-tilt][data-depth]::after, .plan[data-depth]::after { opacity: 1; }
-  .hh-card, .who-c, [data-tilt] { position: relative; }
-  /* inner parts sit slightly in front of the card face */
-  .hh-card-score svg { transform: translateZ(18px); }
+  .who-c[data-depth]::after, [data-tilt][data-depth]::after, .plan[data-depth]::after { opacity: 1; }
+  .who-c, [data-tilt] { position: relative; }
 }
 
 /* WebGL scenes (src/three). The hero scene fills the lower part of the hero behind the text; the tower sits inside the score card. */
@@ -46,7 +44,7 @@
 
 /* Labelled 3D plots (src/three/Plot3D.tsx) and the 3D / Flat switch around every chart */
 .p3d { position: relative; }
-.p3d-cv { display: block; width: 100%; height: 340px; opacity: 0; animation: scene-in .8s ease forwards; cursor: crosshair; }
+.p3d-cv { display: block; width: 100%; height: 340px; opacity: 0; animation: scene-in .8s ease forwards; cursor: grab; }
 .p3d-tip { position: absolute; left: 8px; top: 6px; max-width: calc(100% - 16px); margin: 0; padding: 5px 11px; border-radius: 8px; font-size: 13px; font-weight: 600; background: var(--bg); color: var(--ink, inherit); border: 1px solid var(--gold); pointer-events: none; }
 .v3d-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 6px; font-size: 12.5px; }
 .v3d-seg { display: inline-flex; border: 1px solid var(--border-strong, rgba(128,128,128,.4)); border-radius: 999px; overflow: hidden; }

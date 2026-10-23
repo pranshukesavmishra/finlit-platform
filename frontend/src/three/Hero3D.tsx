@@ -64,15 +64,15 @@ export default function Hero3D() {
       const spin = new THREE.Group(); spin.add(coin); spin.position.set(13.3, 5.5, -2); scene.add(spin);
 
       return {
-        frame(t, _dt, p) {
+        frame(t) {
           for (let i = 0; i < pos.count; i++) pos.setY(i, hill(base[i * 3], base[i * 3 + 2], t) * (0.55 + 0.45 * (1 - (base[i * 3 + 2] + D / 2) / D)));
           pos.needsUpdate = true;
           for (const c of cs) {
             const y = hill(c.x, c.z, t) * (0.55 + 0.45 * (1 - (c.z + D / 2) / D)), h = c.h * (0.85 + 0.15 * Math.sin(t * 0.9 + c.ph));
             c.body.scale.y = h; c.body.position.set(c.x, y + h / 2, c.z); c.w.scale.y = h * 1.7; c.w.position.set(c.x, y + h * 0.85, c.z);
           }
-          spin.rotation.y = t * 0.55 + p.x * 0.5; spin.rotation.x = p.y * 0.18; spin.position.y = 5.5 + Math.sin(t * 0.8) * 0.35;
-          camera.position.x += (p.x * 2.4 - camera.position.x) * 0.06; camera.position.y = 9 + p.y * 0.8; camera.lookAt(0, 0.5, -3);
+          spin.rotation.y = t * 0.55; spin.position.y = 5.5 + Math.sin(t * 0.8) * 0.35;
+          camera.position.y = 9; camera.lookAt(0, 0.5, -3);
         },
         recolor(pal) {
           (scene.fog as THREE.Fog).color.copy(pal.paper);
