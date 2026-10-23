@@ -259,6 +259,8 @@ export type CatMetric = { label: string; short?: string; unit: Unit; basis: stri
 export type Catalog = {
   version: number; counts: Record<string, number>; sections: CatSection[]; pairs: CatPair[]; metrics: Record<string, CatMetric>;
   reasons: Record<string, string>; decisions: Record<string, string>; caveats: string[]; coverageNote: string;
+  /** Indices offered as reference markers (INDEX_LISTS) and benchmarks for the market return (beta); added by the API. */
+  indices?: { code: string; label: string }[]; benchmarks?: { code: string; label: string }[];
 };
 
 export type AxisInfo = { id: string; label: string; unit: Unit; basis?: string; scale?: Scale };
@@ -382,7 +384,7 @@ export function advSentence(st: Stats | null, c: SentenceCtx): string {
       parts.push(`${head}, higher ${c.x.short} tends to go with ${dir} ${c.y.short} (Pearson r = ${R.r}, ${strengthWord(r)}${rhoTxt}${pPart}).`);
       const slope = logSpace
         ? `the slope is ${withSign(R.slope)} on the log scale (log10 of ${c.y.short} per log10 of ${c.x.short}).`
-        : `on average, +1 ${UNIT_STEP[c.x.unit]} of ${c.x.short} goes with ${UNIT_AFTER[c.y.unit](withSign(R.slope))} of ${c.y.short}.`;
+        : `on average, ${c.x.unit === "x" ? "+1×" : `+1 ${UNIT_STEP[c.x.unit]}`} of ${c.x.short} goes with ${UNIT_AFTER[c.y.unit](withSign(R.slope))} of ${c.y.short}.`;
       parts.push(`The line explains ${R.r2pct} of the variation; ${slope}`);
       if (st.decision.rule === "pulled") parts.push(st.decision.text);
     } else {
@@ -448,7 +450,7 @@ export const useHistory = (symbols: string[], pair: string | null, x: string, y:
   return useQuery<HistResp, ApiError>({ queryKey: ["adv-history", qs.toString()], queryFn: () => advGet<HistResp>(`/api/advanced/history?${qs}`), enabled, staleTime: 60_000, retry });
 };
 export const useTech = (symbol: string | null, kind: string, h: number | null, enabled: boolean, index: string | null = null) => {
-  const qs = new URLSearchParams({ symbol: symbol ?? "", kind }); if (h) qs.set("h", String(h)); if (index) qs.set("index", index);
+  const qs = new URLSearchParams({ symbol: symbol ?? "", kind }); if (h) qs.set("h", String(h)); if (index) qs.set("market", index);
   return useQuery<TechResp, ApiError>({ queryKey: ["adv-tech", qs.toString()], queryFn: () => advGet<TechResp>(`/api/advanced/tech?${qs}`), enabled, staleTime: 300_000, retry });
 };
 export type Facets = { sectors: { name: string; n: number }[]; industries: { name: string; sector: string | null; n: number }[]; indices: { code: string; label: string; n: number }[]; caps: { name: string; n: number }[] };

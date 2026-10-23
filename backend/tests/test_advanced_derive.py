@@ -252,3 +252,18 @@ def test_missing_sections_never_invent():
     assert all(v for v in lt["ax_miss"].values())
     s = copy.deepcopy(sections({"revenue": [1.0, 2.0]}, ends=["2025-12-31", "2026-12-31"], hist={"periods": ["FY26"], "rows": {"roe": [5.0]}}))
     assert derive.latest(s, {})["ax_miss"]["roe"] == "non_march"
+
+
+def test_provider_yearly_pe_pb_definition(reliance_sections):
+    """Plan risk 2: the provider's yearly P/E is the AVERAGE price over the financial year / that year's EPS, and P/B the average price /
+    (equity / diluted shares), on all eight stored years; the average price is on the split/bonus-adjusted basis (RELIANCE FY24 Rs 1,275,
+    half the pre-bonus level), consistent with the restated EPS and share count."""
+    vh = reliance_sections["ratios"]["valuationHistory"]
+    pl = reliance_sections["financials"]["yearly"]["pl"]
+    bs = reliance_sections["financials"]["yearly"]["bs"]
+    eq = dict(zip(bs["periods"], bs["rows"]["total_equity"]))
+    eps, sh = dict(zip(pl["periods"], pl["rows"]["eps"])), dict(zip(pl["periods"], pl["rows"]["diluted_shares_cr"]))
+    for fy, pe, pb, ap in zip(vh["periods"], vh["rows"]["pe"], vh["rows"]["pb"], vh["rows"]["average_price"]):
+        assert round(ap / eps[fy], 2) == pe and round(ap / (eq[fy] / sh[fy]), 2) == pb, fy
+    assert all(1352 < s < 1354 for s in pl["rows"]["diluted_shares_cr"])      # ~1,353 crore in every year: restated for the Oct 2024 1:1 bonus (676.6 crore before)
+    assert bs["rows"]["equity_capital"][-3:] == [6766.0, 13532.0, 13532.0]    # while the balance sheet share capital doubled in FY25

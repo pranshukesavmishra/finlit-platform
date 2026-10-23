@@ -234,9 +234,9 @@ function ChartCard({ cat, pair, xId, yId, st, set, plan, upgrade, section }: Car
       {pair && <ChartHelp id={`adv-c-${pair.id}`} entry={helpFor(pair, cat)} label={`About ${title}`} />}
       {pair && pair.status === "adapted" && <span className="adv-st adapted">Adapted</span>}
     </header>
-    {pair?.status === "adapted" && pair.reason && <p className="adv-banner info">{pair.reason}</p>}
-    {pair?.sameAs && <p className="adv-banner info">This is the same chart as {pair.sameAs}: the two rows of the founder's table use identical definitions here.</p>}
-    {mech && <p className="adv-banner warn"><Icon name="spark" /> {mech}</p>}
+    {pair?.status === "adapted" && pair.reason && <p className="adv-banner bi">{pair.reason}</p>}
+    {pair?.sameAs && <p className="adv-banner bi">This is the same chart as {pair.sameAs}: the two rows of the founder's table use identical definitions here.</p>}
+    {mech && <p className="adv-banner bw"><Icon name="spark" /> {mech}</p>}
 
     <div className="adv-controls">
       {modes.length > 1 && <div className="adv-seg" role="group" aria-label="View">{modes.map((m) => { const t = pair?.tier?.[m]; const ok = allowed(plan, t);
@@ -252,7 +252,7 @@ function ChartCard({ cat, pair, xId, yId, st, set, plan, upgrade, section }: Car
     {!open ? <Locked tier={needTier} what={variant ? variant.label : MODE_LABEL[mode]} upgrade={upgrade} />
       : mode === "cross" ? <CrossView cat={cat} pair={pair} xId={xId} yId={yId} st={st} set={set} scale={scale} table={table} lim={lim.companies} plan={plan} upgrade={upgrade} title={title} section={section} />
       : mode === "history" ? <HistoryView cat={cat} pair={pair} xId={xId} yId={yId} st={st} set={set} table={table} lim={lim.companies} plan={plan} upgrade={upgrade} section={section} />
-      : <TechView pair={pair!} st={st} set={set} table={table} plan={plan} upgrade={upgrade} />}
+      : <TechView cat={cat} pair={pair!} st={st} set={set} table={table} plan={plan} upgrade={upgrade} />}
 
     {open && <label className="adv-check"><input type="checkbox" checked={table} onChange={(e) => setTable(e.target.checked)} /> Show as table</label>}
     {notes.length > 0 && <ul className="adv-notes">{notes.map((t) => <li key={t}>{t}</li>)}</ul>}
@@ -346,9 +346,9 @@ function CrossView({ cat, pair, xId, yId, st, set, scale, table, lim, plan, upgr
   const lenderMsg = r?.lenders && r.lenders.count > 0 && r.lenders.mode === "excluded" ? `${r.lenders.count.toLocaleString("en-IN")} banks and lenders left out: ${r.lenders.forced ? "these ratios do not apply to lenders" : "as chosen in the filters"}.` : null;
 
   return <>
-    {r?.sample && <p className="adv-banner info">Demo preview: sample companies with made-up figures (marked “Sample”), not real data. The statistics are computed from them with the same formulas as the live site.</p>}
-    {lenderMsg && <p className="adv-banner info">{lenderMsg}</p>}
-    {r?.preset && <p className="adv-banner info">Filtered to {r.preset.label}.</p>}
+    {r?.sample && <p className="adv-banner bi">Demo preview: sample companies with made-up figures (marked “Sample”), not real data. The statistics are computed from them with the same formulas as the live site.</p>}
+    {lenderMsg && <p className="adv-banner bi">{lenderMsg}</p>}
+    {r?.preset && <p className="adv-banner bi">Filtered to {r.preset.label}.</p>}
     <div ref={ref} className="adv-body" aria-busy={q.isFetching}>
       {q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
         : q.isError ? <div className="adv-state" role="alert"><b>{errText(q.error)}</b>{q.error.status === 403 && <button className="btn primary" onClick={() => upgrade((q.error.body.plan as Plan) || nextPlan(plan), title)}>See plans</button>}</div>
@@ -489,7 +489,7 @@ function ExportBtn({ plan, upgrade, body, demo, name }: { plan: Plan; upgrade: (
 /** "Add index": reference markers from the index list the API exposes (catalog "indices", else the screener's index facet). */
 function IndexPicker({ cat, st, set, markers }: { cat: Catalog; st: AdvState; set: (p: Partial<AdvState>) => void; markers: IndexMarker[] }) {
   const f = useFacets();
-  const list: { code: string; label: string }[] = (cat as Catalog & { indices?: { code: string; label: string }[] }).indices ?? f.data?.indices ?? [];
+  const list: { code: string; label: string }[] = cat.indices ?? f.data?.indices ?? [];
   const label = (c: string) => list.find((x) => x.code === c)?.label ?? markers.find((m) => m.code === c)?.label ?? c;
   const left = list.filter((x) => !st.indices.includes(x.code));
   return <div className="adv-ixpick">
@@ -516,7 +516,7 @@ function HistoryView({ cat, pair, xId, yId, st, set, table, lim, plan, upgrade, 
   const fits = cos.flatMap((c) => fitsOf(c.stats, c.s, COLORS[st.companies.indexOf(c.s) % COLORS.length]));
   const total = cos.reduce((s, c) => s + c.points.length, 0);
   return <>
-    {r?.sample && <p className="adv-banner info">Demo preview: sample figures, not real data.</p>}
+    {r?.sample && <p className="adv-banner bi">Demo preview: sample figures, not real data.</p>}
     <div ref={ref} className="adv-body">
       {!st.companies.length ? <div className="adv-state">Add a company below to see its own years on this chart (one point per financial year).</div>
         : q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
@@ -547,11 +547,11 @@ function historyCsv(r: HistResp): string {
 
 // ------------------------------------------------------------------ section 8 company time series
 
-function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: AdvState; set: (p: Partial<AdvState>) => void; table: boolean; plan: Plan; upgrade: (t: Plan, why?: string) => void }) {
+function TechView({ cat, pair, st, set, table, plan, upgrade }: { cat: Catalog; pair: CatPair; st: AdvState; set: (p: Partial<AdvState>) => void; table: boolean; plan: Plan; upgrade: (t: Plan, why?: string) => void }) {
   const kind = pair.tech?.kind ?? "rsi", hs = pair.tech?.h ?? [];
   const h = hs.length ? (st.h && hs.includes(st.h) ? st.h : hs.includes(20) ? 20 : hs[0]) : null;
   const sym = st.companies[0] ?? null;
-  const ixList = useFacets().data?.indices ?? [];
+  const ixList = cat.benchmarks ?? [];   // the API's benchmark list for the market return (beta)
   const bix = kind === "beta" ? st.indices[0] ?? null : null;
   const q = useTech(sym, kind, h, !!sym, bix);
   const { ref, w } = useWidth();
@@ -563,8 +563,8 @@ function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: 
   return <>
     {hs.length > 0 && <div className="adv-seg" role="group" aria-label="Forward horizon">{hs.map((x) => <button key={x} aria-pressed={h === x} onClick={() => set({ h: x })}>Next {x} trading days</button>)}</div>}
     {kind === "beta" && ixList.length > 0 && <label className="adv-field">Market index for the market return
-      <select value={bix ?? ""} onChange={(e) => set({ indices: e.target.value ? [e.target.value] : [] })}><option value="">Server default (NIFTY 50)</option>{ixList.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>}
-    {r?.sample && <p className="adv-banner info">Demo preview: sample prices, not real data.</p>}
+      <select value={bix ?? ""} onChange={(e) => set({ indices: e.target.value ? [e.target.value] : [] })}><option value="">{ixList.find((x) => x.code === "NIF50")?.label ?? "Default index"}{ixList.some((x) => x.code === "NIF50") ? " (default)" : ""}</option>{ixList.filter((x) => x.code !== "NIF50").map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}</select></label>}
+    {r?.sample && <p className="adv-banner bi">Demo preview: sample prices, not real data.</p>}
     <div ref={ref} className="adv-body">
       {!sym ? <div className="adv-state">Choose a company below: this chart follows one company over time, from its stored daily closes.</div>
         : q.isPending ? <div className="adv-state" role="status">Working out the chart…</div>
@@ -576,7 +576,7 @@ function TechView({ pair, st, set, table, plan, upgrade }: { pair: CatPair; st: 
     <Companies st={st} set={set} lim={1} plan={plan} upgrade={upgrade} status={r ? [{ s: r.symbol, name: r.name, status: "included" }] : []} mode="tech" single />
     {r && <StatsPanel stats={r.stats} sentence={advSentence(r.stats, { kind: "tech", who: `${kind === "beta" ? "weeks" : "non-overlapping windows"} of ${r.name}`, x: { short: r.x.label, unit: r.x.unit }, y: { short: r.y.label, unit: r.y.unit }, builtAt: null })}
       extra={<><ExcludedList items={r.excluded} /><p className="faint adv-cov">{r.grid}{r.asOf ? `. Prices up to ${r.asOf}.` : ""}</p><ul className="adv-notes">{[...new Set(r.notes)].map((t) => <li key={t}>{t}</li>)}</ul><Caveats list={r.caveats} />
-        <ExportBtn plan={plan} upgrade={upgrade} body={{ mode: "tech", symbol: r.symbol, kind, ...(h ? { h } : {}), ...(bix ? { index: bix } : {}) }} demo={() => ["date,x,y,included,reason", ...r.points.map((p) => `${p.d},${p.x},${p.y},yes,`)].join("\n")} name={`${pair.id}-${r.symbol}`} /></>} />}
+        <ExportBtn plan={plan} upgrade={upgrade} body={{ mode: "tech", symbol: r.symbol, kind, ...(h ? { h } : {}), ...(bix ? { market: bix } : {}) }} demo={() => ["date,x,y,included,reason", ...r.points.map((p) => `${p.d},${p.x},${p.y},yes,`)].join("\n")} name={`${pair.id}-${r.symbol}`} /></>} />}
     {!r && <Caveats list={[]} />}
   </>;
 }

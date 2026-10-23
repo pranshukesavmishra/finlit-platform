@@ -465,3 +465,44 @@ async def export(request: Request, body: ExportIn):
     fname = re.sub(r"[^A-Za-z0-9._-]", "-", f"finlit-advanced-{name}.csv")
     return Response(content="﻿" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={**PRIVATE, "Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+# ------------------------------------------------------------------ section 9 warning lists (not correlations)
+def cfo_divergence(h: dict) -> List[dict]:
+    """The spec's high-priority warning: revenue and net profit up but operating cash flow down, per financial year (YoY)."""
+    out = []
+    v = h["values"]
+    for i, fy in enumerate(h["fys"]):
+        gr, gn, gc = v["g_rev"][i], v["g_np"][i], v["g_cfo"][i]
+        if gr is not None and gn is not None and gc is not None and gr > 0 and gn > 0 and gc < 0:
+            out.append({"fy": fy, "id": "cfo_divergence", "title": "Revenue and net profit rose but operating cash flow fell",
+                        "why": "Investigate receivables, inventory, working capital and accounting accruals before drawing conclusions.",
+                        "revenueGrowth": gr, "profitGrowth": gn, "cfoGrowth": gc})
+    return out
+
+
+@router.get("/flags")
+async def flags(request: Request, symbols: str = Query(..., max_length=200)):
+    """Section 9: the "profit growth more than three times revenue growth" rule (plflags case 1, the same rule as the stock page) and the
+    revenue-and-profit-up-but-CFO-down warning, for the selected companies. Information only, never a correlation."""
+    from ..plflags import pl_flags
+    plan = _plan(await current(request))
+    _need(plan, "silver", "Advanced charts")
+    syms = _symbols(symbols.split(","))
+    _limit(plan, len(syms))
+    store = request.app.state.store
+    out = []
+    for s in syms:
+        st = await _statement(store, s)
+        secs, _ = await _sections(store, s, st, ("financials",)) if st else ({}, "")
+        fin = secs.get("financials")
+        if not fin:
+            out.append({"s": s, "status": "no_report", "reasonText": REASONS["no_report"], "threeX": [], "cfo": []})
+            continue
+        y = (fin.get("yearly") or {}).get("pl")
+        q = (fin.get("quarterly") or {}).get("pl")
+        fl = pl_flags({**y, "period": "yearly"} if y else None, {**q, "period": "quarterly"} if q else None)   # as plalerts.fresh_flags
+        h = await company_history(store, s)
+        out.append({"s": s, "status": "ok", "threeX": [f for f in fl if f.get("case") == 1], "cfo": cfo_divergence(h) if h else []})
+    return _json({"companies": out, "caveats": list(CAVEATS),
+                  "rule": "Profit growth more than 3 times revenue growth with profit up at least 10% (same rule as the stock page's P&L flags)."})

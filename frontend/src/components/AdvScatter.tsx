@@ -23,7 +23,7 @@ type Props = {
   marks?: ScMark[];
 };
 
-const M = { l: 58, r: 14, t: 14, b: 46 };
+const M = { l: 68, r: 14, t: 14, b: 46 };
 
 export function AdvScatter({ cloud, series, fits, sx, sy, xLabel, yLabel, fmtX, fmtY, tickX, tickY, all, w, summary, labels = true, view, marks = [] }: Props) {
   const H = w < 600 ? 300 : 400;

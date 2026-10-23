@@ -83,7 +83,7 @@ def test_volume_growth_by_hand():
     out = tech.run(p, [], "volg", 20)
     last = out["points"][-1]
     assert last["x"] == pytest.approx((300 * 20 / (200 * 20) - 1) * 100) and last["y"] == pytest.approx(abs((159 / 139) - 1) * 100)
-    assert len(out["points"]) == 2
+    assert len(out["points"]) == 1      # sessions 0-19 have no earlier window to compare with
 
 
 def test_bad_inputs():
