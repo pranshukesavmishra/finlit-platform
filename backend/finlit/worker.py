@@ -609,8 +609,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             if args.max_age_hours:
                 age, last = await last_run_age_hours(store, args.cmd)
                 if age is not None and last == "ok" and age < args.max_age_hours:
-                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
-                    return 0
+                    async with store.pool.acquire() as conn:      # a run from before the index and option-lot tables existed left them empty: load again
+                        empty = not (await conn.fetchval("SELECT count(*) FROM dhan_indices") and await conn.fetchval("SELECT count(*) FROM dhan_option_lots"))
+                    if not empty:
+                        print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                        return 0
             from .options import LotCollector, save_option_lots
             lots = LotCollector()
             idx: List[dict] = []
