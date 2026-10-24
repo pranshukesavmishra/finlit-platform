@@ -663,13 +663,6 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from . import commodities
             print(await commodities.run(settings, store, loop=args.loop))
             return 0
-        if args.cmd == "history-probe":
-            from .history_probe import probe
-            from .mf import record_run
-            res = await probe(client, store, settings, args.symbols or None)
-            await record_run(store, args.cmd, {"status": "ok", "companies": res})
-            print(res)
-            return 0
         if args.cmd == "dhan-check":
             from . import dhan
             from .mf import record_run
@@ -762,6 +755,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":
                 print(await refresh_universe(client, store), "companies")
+            elif args.cmd == "history-probe":
+                from .history_probe import probe
+                from .mf import record_run
+                res = await probe(client, store, settings, args.symbols or None)
+                await record_run(store, args.cmd, {"status": "ok", "companies": res})
+                print(res)
             elif args.cmd == "refresh-short-history":
                 async with store.pool.acquire() as conn:
                     short = [r["symbol"] for r in await conn.fetch(
