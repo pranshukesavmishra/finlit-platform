@@ -57,7 +57,7 @@ function Report({ symbol }: { symbol: string }) {
 }
 
 export function PremiumReportPage() {
-  useDocTitle("Premium report", "A printable FinLit research report for any listed company: score, ratios, ownership and peers.");
+  useDocTitle("Premium reports", "A printable FinLit research report for any listed company: score, ratios, ownership and peers.");
   const gold = useGold(); const nav = useNavigate(); const { symbol } = useParams();
   const universe = useUniverse(); const [text, setText] = useState(""), [open, setOpen] = useState(false);
   const box = useRef<HTMLInputElement>(null); useSlashFocus(box); const recent = readRecent();

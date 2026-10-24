@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { initDepth } from "../lib/depth";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
@@ -14,30 +14,20 @@ import { EnquiryProvider, useEnquiry } from "./Enquiry";
 import { InfoProvider } from "./Info";
 import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
+import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
 
-type Item = readonly [to: string, label: string, sub: string, icon: string];
-/** The company site map: what we sell (Products, Services, Pricing), what we publish (Resources) and who we are (Company). */
-export const MENUS: { label: string; wide?: boolean; groups: { title?: string; items: Item[] }[] }[] = [
-  { label: "Products", wide: true, groups: [
-    { title: "Research", items: [["/graphs", "Graph Studio", "Combine metrics in side-by-side charts", "bars"], ["/graphs/advanced", "Advanced charts", "Correlations with tested regression lines", "spark"], ["/research", "Stock research", "A report for every listed company", "search"], ["/screener", "Screener", "Filter every company by your rules", "table"], ["/query-builder", "Query builder", "Type a rule, get the companies; save baskets", "notes"], ["/score-screener", "Score screener", "Size, sector and score ranges, simply", "quality"], ["/compare", "Compare companies", "Side by side, in charts", "compare"], ["/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars"], ["/funds", "Mutual funds", "NAV, returns and risk for every scheme", "pie"], ["/funds/insights", "Mutual Fund Insights", "Industry AUM, net flows and folios, monthly", "line"], ["/premium", "Gold dashboards", "Fundamentals, market events, premium reports", "crown"]] },
-    { title: "Your workspace", items: [["/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"], ["/sip-calculator", "SIP calculator", "Plan a monthly investment, free", "spark"], ["/dcf", "DCF calculator", "Intrinsic value, margin of safety (Gold)", "rupee"], ["/holdings", "Portfolio tracker", "Value, profit and loss, allocation", "pie"], ["/alerts", "Alerts", "Price, signals, scores and filings", "bell"]] },
-    { title: "Market", items: [["/commodities", "Commodity prices", "Gold, silver, crude and metals: MCX, global and import parity", "activity"], ["/macro", "India macro insights", "Inflation, growth, rates, reserves", "activity"], ["/fii-dii", "FII/DII data", "Institutional buying and selling, streaks, history", "bars"], ["/results", "Results calendar", "Who reports and when", "calendar"], ["/results/quarter", "Quarter results", "Every company, newest first", "notes"], ["/ipo", "IPO calendar", "Open, upcoming and listed", "activity"], ["/news", "News & filings", "Exchange filings and headlines", "notes"]] },
-  ] },
-  { label: "Resources", groups: [{ items: [["/forum", "Discussion forums", "Talk about listed companies: information and opinion only, moderated", "users"], ["/blog", "Insights & blog", "Research notes and explainers", "spark"], ["/glossary", "Glossary", "313 terms in plain words, with formulas", "book"], ["/documents", "Documents", "Annual reports and presentations", "layers"]] }] },
-  { label: "Company", groups: [{ items: [["/about", "About FinLit", "Who we are and how we work", "users"], ["/why-we-exist", "Why we exist", "The problem we set out to fix", "quality"], ["/contact", "Contact", "Talk to the team", "notes"]] }] },
-];
-const TOP: [string, string][] = [["/services", "Services"], ["/plans", "Pricing"]];
-
-function Menu({ m, open, setOpen, path }: { m: (typeof MENUS)[number]; open: boolean; setOpen: (v: string | null) => void; path: string }) {
-  const here = m.groups.some((g) => g.items.some(([to]) => path === to || path.startsWith(to + "/")));
+/** One header dropdown, built from lib/nav.ts. */
+function Menu({ m, open, setOpen, path }: { m: NavSection; open: boolean; setOpen: (v: string | null) => void; path: string }) {
+  const here = sectionHere(path, m);
   return (
     <div className="dd" onMouseLeave={() => open && setOpen(null)}>
-      <button className={"ddb" + (here ? " hl" : "")} aria-haspopup="true" aria-expanded={open} onClick={() => setOpen(open ? null : m.label)} onKeyDown={(e) => e.key === "Escape" && setOpen(null)}
+      <button className={"ddb" + (here ? " hl" : "")} aria-haspopup="true" aria-expanded={open} onClick={() => setOpen(open ? null : m.id)} onKeyDown={(e) => e.key === "Escape" && setOpen(null)}
         onBlur={(e) => { if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) setOpen(null); }}>{m.label}<Icon name="arrow" /></button>
-      <div className={"ddm" + (open ? " open" : "") + (m.wide ? " wide" : "")} role="menu">
-        {m.groups.map((g, i) => (
-          <div className="ddg" key={i}>{g.title && <span className="ddt">{g.title}</span>}
-            {g.items.map(([to, label, sub, ic]) => <Link key={to} to={to} role="menuitem" onClick={() => setOpen(null)}><span className="ddi"><Icon name={ic} /></span><span><b>{label}</b><small>{sub}</small></span></Link>)}</div>
+      <div className={"ddm" + (open ? " open" : "") + (m.wide ? " wide" : "") + (m.id === "more" ? " right" : "") + (m.groups.length === 1 && !m.groups[0].title ? " solo" : "")} role="menu">
+        {m.groups.map((g, gi) => (
+          <div className="ddg" key={gi}>{g.title && <span className="ddt">{g.title}</span>}
+            {g.items.map((it) => <Link key={it.to} to={it.to} role="menuitem" className={isHere(path, it) ? "here" : undefined} aria-current={isHere(path, it) ? "page" : undefined} onClick={() => setOpen(null)}>
+              <span className="ddi"><Icon name={it.icon} /></span><span><b>{it.label}{it.gold && <em className="gtag">Gold</em>}</b><small>{it.sub}</small></span></Link>)}</div>
         ))}
       </div>
     </div>
@@ -60,9 +50,9 @@ function Header({ onSearch }: { onSearch: () => void }) {
       <div className="wrap">
         <Link className="logo" to="/" aria-label="FinLit home"><span className="lg-mark" role="img" aria-label="FinLit" /></Link>
         <nav className="topnav" aria-label="Site">
-          {MENUS.slice(0, 1).map((m) => <Menu key={m.label} m={m} open={open === m.label} setOpen={setOpen} path={loc.pathname} />)}
-          {TOP.map(([to, label]) => <NavLink key={to} to={to} className={({ isActive }) => (isActive ? "hl" : "")}>{label}</NavLink>)}
-          {MENUS.slice(1).map((m) => <Menu key={m.label} m={m} open={open === m.label} setOpen={setOpen} path={loc.pathname} />)}
+          {SECTIONS.map((m) => <Menu key={m.id} m={m} open={open === m.id} setOpen={setOpen} path={loc.pathname} />)}
+          <NavLink to={PRICING.to} className={({ isActive }) => (isActive ? "hl" : "")}>{PRICING.label}</NavLink>
+          <Menu m={MORE} open={open === MORE.id} setOpen={setOpen} path={loc.pathname} />
         </nav>
         <div className="grow" />
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
@@ -103,14 +93,22 @@ function Header({ onSearch }: { onSearch: () => void }) {
       </div>
       {menu && (
         <nav className="mnav" aria-label="Mobile">
-          {MENUS.map((m) => <div key={m.label} className="mg"><span className="mt">{m.label}</span>{m.groups.flatMap((g) => g.items).map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}</div>)}
-          <div className="mg"><span className="mt">More</span>{TOP.map(([to, label]) => <NavLink key={to} to={to}>{label}</NavLink>)}</div>
-          <div className="mg">{user ? <><NavLink to="/dashboard">Dashboard</NavLink><NavLink to="/account">Account</NavLink></> : <><Link to="/login">Sign in</Link><Link to="/login?mode=signup" className="gold">Create free account</Link></>}</div>
+          {[...SECTIONS, MORE].map((m) => <div key={m.id} className="mg"><span className="mt">{m.label}</span>
+            {m.groups.map((g, gi) => <Fragment key={gi}>{g.title && m.id !== "more" && <span className="mt2">{g.title}</span>}{g.title && m.id === "more" && <span className="mt2">{g.title}</span>}
+              {g.items.map((it) => <NavLink key={it.to} to={it.to} end={it.end}>{it.label}{it.gold && <em className="gtag">Gold</em>}</NavLink>)}</Fragment>)}</div>)}
+          <div className="mg"><NavLink to={PRICING.to}>{PRICING.label}</NavLink>{user ? <><NavLink to="/dashboard">Dashboard</NavLink><NavLink to="/account">Account</NavLink></> : <><Link to="/login">Sign in</Link><Link to="/login?mode=signup" className="gold">Create free account</Link></>}</div>
         </nav>
       )}
     </header>
   );
 }
+
+const pick = (id: string) => SECTIONS.find((x) => x.id === id)!.groups.flatMap((g) => g.items);
+const FOOT: { title: string; items: { to: string; label: string }[] }[] = [
+  { title: "Research", items: pick("research") },
+  { title: "Markets and news", items: [...pick("markets"), ...pick("news")] },
+  { title: "Funds and My FinLit", items: [...pick("funds"), ...pick("myfinlit")] },
+];
 
 function Footer() {
   const enquire = useEnquiry();
@@ -125,10 +123,9 @@ function Footer() {
         <div className="fcols fcols5">
           <div className="fbrand"><b>{COMPANY.name}</b><p>Research and tools for Indian stocks. We are a technology company and are not registered with SEBI or AMFI.</p>
             <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
-          <div><b>Products</b><Link to="/research">Stock research</Link><Link to="/screener">Screener</Link><Link to="/query-builder">Query builder</Link><Link to="/score-screener">Score screener</Link><Link to="/compare">Compare</Link><Link to="/premium">Gold dashboards</Link><Link to="/watchlist">Watchlists</Link><Link to="/macro">India macro</Link><Link to="/commodities">Commodity prices</Link><Link to="/fii-dii">FII/DII data</Link><Link to="/sip-calculator">SIP calculator</Link><Link to="/dcf">DCF calculator</Link><Link to="/alerts">Alerts</Link><Link to="/holdings">Portfolio tracker</Link></div>
-          <div><b>Market</b><Link to="/results">Results calendar</Link><Link to="/results/quarter">Quarter results</Link><Link to="/ipo">IPO calendar</Link><Link to="/news">News &amp; filings</Link><Link to="/documents">Documents</Link><Link to="/plans">Pricing</Link></div>
-          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/blog">Blog</Link><Link to="/contact">Contact</Link></div>
-          <div><b>Legal</b><Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
+          {FOOT.map((col) => <div key={col.title}><b>{col.title}</b>{col.items.map((it) => <Link key={it.to} to={it.to}>{it.label}</Link>)}</div>)}
+          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/plans">Pricing</Link><Link to="/blog">Blog</Link><Link to="/forum">Forums</Link><Link to="/glossary">Glossary</Link><Link to="/contact">Contact</Link>
+            <Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
         </div>
         <div className="ffine">
           <span>{COMPANY.disclaimer} Market data may be delayed. Past performance does not indicate future results.</span>

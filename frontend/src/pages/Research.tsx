@@ -21,7 +21,7 @@ function MarketLink() {
 }
 
 export function Research({ onSearch }: { onSearch: () => void }) {
-  useDocTitle("Stock research", "A FinLit research report for every listed Indian stock: score, scorecard, financials, ratios, ownership and peers.");
+  useDocTitle("Company report", "A FinLit research report for every listed Indian stock: score, scorecard, financials, ratios, ownership and peers.");
   const { data, isLoading } = useUniverse();
   const { has, upgrade } = useUI();
   const rows = data?.rows || [];
@@ -35,7 +35,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.7 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Stock research</div><h1>Every listed stock, in one honest report.</h1>
+        <div className="eyebrow">Company report</div><h1>Every listed stock, in one honest report.</h1>
         <p>A research score, five-pillar scorecard, statements, ratios, ownership and peers, loaded in a blink.</p>
         <div style={{ marginTop: 28 }}><button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button></div>
       </div></section>

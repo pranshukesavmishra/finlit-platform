@@ -62,7 +62,7 @@ const STEPS: [string, string][] = [
 const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "Gold"; math?: boolean }[] = [
   { to: "/research", t: "Stock research", d: "A report for every listed company: statements, ratios, peers, ownership, price and filings.", tier: "Free" },
   { to: "/screener", t: "Screener", d: "Write the company you want as a few rules. You get every company that passes all of them. 160+ filters.", tier: "Free", math: true },
-  { to: "/query-builder", t: "Query builder", d: "Type your rule in plain words, like Market cap > 500 AND P/E < 15. Every word is checked as you type, and you can keep each query as a named basket.", tier: "Free" },
+  { to: "/query-builder", t: "Formula screener", d: "Type your rule in plain words, like Market cap > 500 AND P/E < 15. Every word is checked as you type, and you can keep each query as a named basket.", tier: "Free" },
   { to: "/compare", t: "Compare", d: "Two to four companies side by side, with charts and the five-pillar view.", tier: "Free" },
   { to: "/watchlist", t: "Watchlists", d: "Named lists with notes and price targets, grouped by industry, size or FinLit band.", tier: "Silver" },
   { to: "/holdings", t: "Portfolio tracker", d: "Value, profit and loss, allocation and a health read of what you own. Import from CSV.", tier: "Silver" },

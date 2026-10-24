@@ -48,7 +48,7 @@ function Card({ b, names }: { b: Basket; names: string[] }) {
 }
 
 export function BasketsPage() {
-  useDocTitle("My baskets", "Your saved queries from the Query builder, each with the number of listed companies it matches today.");
+  useDocTitle("My baskets", "Your saved queries from the Formula screener, each with the number of listed companies it matches today.");
   const { user } = useAuth();
   const q = useBaskets(!!user && !DEMO);
   const list = q.data?.baskets ?? [], max = q.data?.max ?? 0;
@@ -65,7 +65,7 @@ export function BasketsPage() {
           : <>
             <div className="qb-bkbar"><span aria-live="polite"><b>{list.length}</b> of {max} baskets used{list.length >= max ? <> · <Link className="alx-link" to="/account/plan">More with {TIER[q.data!.plan === "basic" ? "silver" : "gold"].n}</Link></> : null}</span>
               <Link className="btn primary" to="/query-builder">New basket</Link></div>
-            {list.length === 0 ? <div className="card state"><h2>No baskets yet</h2><p>Write a query in the Query builder, then choose “Save as basket”. Try an example like “Quality compounders” to see how it works.</p><Link className="btn primary" to="/query-builder">Open the Query builder</Link></div>
+            {list.length === 0 ? <div className="card state"><h2>No baskets yet</h2><p>Write a query in the Formula screener, then choose “Save as basket”. Try an example like “Quality compounders” to see how it works.</p><Link className="btn primary" to="/query-builder">Open the Formula screener</Link></div>
               : <ul className="qb-bklist">{list.map((b) => <Card key={b.id} b={b} names={list.map((x) => x.name)} />)}</ul>}
             <p className="faint qb-foot"><Icon name="info" /> Counts use today's data and your current plan. A basket is a list that matches your rules, not advice on what to buy or sell.</p>
           </>}
