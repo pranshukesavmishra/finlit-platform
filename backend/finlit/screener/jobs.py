@@ -71,11 +71,17 @@ async def refresh_indices(store) -> Dict[str, int]:
     counts: Dict[str, int] = {}
     async with httpx.AsyncClient(timeout=20, headers={"User-Agent": "Mozilla/5.0 (FinLit research)", "Accept": "text/csv,*/*"}) as http:
         for code, (label, fname) in INDEX_LISTS.items():
-            try:
-                r = await http.get(f"https://www.niftyindices.com/IndexConstituent/{fname}.csv")
-                r.raise_for_status()
-            except httpx.HTTPError as exc:
-                log.warning("index list %s unavailable: %s", code, type(exc).__name__)
+            r = None
+            for url in (f"https://nsearchives.nseindia.com/content/indices/{fname}.csv", f"https://www.niftyindices.com/IndexConstituent/{fname}.csv"):
+                try:   # the exchange's archive first (plain files, always answers); the index company's own site refuses some servers with a redirect
+                    got = await http.get(url, follow_redirects=False)
+                    got.raise_for_status()
+                    if got.text.lstrip().lower().startswith("company name") or "symbol" in got.text[:200].lower():
+                        r = got
+                        break
+                except httpx.HTTPError as exc:
+                    log.warning("index list %s from %s unavailable: %s", code, url.split("/")[2], type(exc).__name__)
+            if r is None:
                 continue
             symbols: List[str] = [(row.get("Symbol") or "").strip().upper() for row in csv.DictReader(io.StringIO(r.text))]
             symbols = [s for s in symbols if s and not s.startswith("DUMMY")]   # the exchange's placeholder rows are not companies

@@ -91,13 +91,16 @@ export type Stock = Pick<Row, "symbol" | "name" | "sector" | "price" | "change_p
 const trade = (r: Row) => r.price != null && r.price > 0 && r.change_pct != null && (r.market_cap ?? 0) > 0;
 
 /** The stocks a pill shows and how they were chosen: the exchange's constituent list when it is loaded, else companies whose FinLit sector text matches. */
-export function stocksFor(pill: Pill, rows: readonly Row[], members: Record<string, string[]> | undefined): { stocks: Row[]; basis: Basis } {
+export function stocksFor(pill: Pill, rows: readonly Row[], members: Record<string, string[]> | undefined): { stocks: Row[]; basis: Basis; listed: number; missing: string[] } {
   const list = pill.members ? members?.[pill.members] : undefined;
   if (list && list.length >= 5) {
     const by = new Map(rows.map((r) => [r.symbol, r]));
-    return { stocks: list.map((s) => by.get(s)).filter((r): r is Row => !!r && trade(r)), basis: "exchange list" };
+    const stocks = list.map((s) => by.get(s)).filter((r): r is Row => !!r && trade(r));
+    const have = new Set(stocks.map((r) => r.symbol));
+    return { stocks, basis: "exchange list", listed: list.length, missing: list.filter((s) => !have.has(s)) };   // a constituent with no price today is named, never silently dropped
   }
-  return { stocks: rows.filter((r) => trade(r) && !!pill.sector && pill.sector.test(r.sector || "")), basis: "FinLit sector" };
+  const stocks = rows.filter((r) => trade(r) && !!pill.sector && pill.sector.test(r.sector || ""));
+  return { stocks, basis: "FinLit sector", listed: stocks.length, missing: [] };
 }
 
 /** The N largest traded companies by market cap: the stand-in for a broad index when its list is not loaded. */
