@@ -51,7 +51,7 @@ ON CONFLICT (symbol, statement, model) DO UPDATE SET
     roce = EXCLUDED.roce, debt_to_equity = EXCLUDED.debt_to_equity, sales_cagr = EXCLUDED.sales_cagr,
     profit_cagr = EXCLUDED.profit_cagr, operating_margin = EXCLUDED.operating_margin,
     change_pct = EXCLUDED.change_pct, return_1m = EXCLUDED.return_1m, return_1y = EXCLUDED.return_1y, industry = EXCLUDED.industry, macro_sector = EXCLUDED.macro_sector,
-    metrics = EXCLUDED.metrics, updated_at = now()
+    metrics = EXCLUDED.metrics, updated_at = now(), changed_at = now()
 """
 
 
@@ -104,6 +104,8 @@ def _redis(url: str) -> aioredis.Redis:
 
 
 class Store:
+    db_tag = ""
+
     def __init__(self, pool: asyncpg.Pool, redis: aioredis.Redis, timescale: bool = False):
         self.pool, self.redis, self.timescale = pool, redis, timescale
 
@@ -121,6 +123,9 @@ class Store:
         await pool
         redis = _redis(settings.redis_url)
         store = cls(pool, redis)
+        from urllib.parse import urlsplit
+        u = urlsplit(settings.database_url)
+        store.db_tag = hashlib.sha1(f"{u.hostname}{u.path}".encode(), usedforsecurity=False).hexdigest()[:8]   # names caches kept in Redis: a new database never reads an old one's
         if migrate:
             await store.migrate()
         return store
@@ -305,6 +310,8 @@ class Store:
                    bse_code = EXCLUDED.bse_code, has_consolidated = EXCLUDED.has_consolidated, updated_at = now()""",
                 records)
         await self.redis.delete(SEARCH_KEY)
+        from .dhan import bump_version
+        await bump_version(self)   # the symbol-to-Dhan-instrument map is cached by this stamp
         return len(records)
 
     async def set_company_meta(self, symbol: str, sector: Optional[str], industry: Optional[str], website: Optional[str] = None):

@@ -35,7 +35,7 @@ async def rebuild_metrics(store, only_missing: bool = False) -> int:
                 continue
             metrics = compute(sections)
             prof = sections["summary"].get("profile") or {}
-            await conn.execute("UPDATE scores SET metrics = $3::jsonb, industry = COALESCE($4, industry), macro_sector = COALESCE($5, macro_sector) WHERE symbol = $1 AND statement = $2",
+            await conn.execute("UPDATE scores SET metrics = $3::jsonb, industry = COALESCE($4, industry), macro_sector = COALESCE($5, macro_sector), changed_at = now() WHERE symbol = $1 AND statement = $2",
                                r["symbol"], r["statement"], orjson.dumps(metrics).decode(), prof.get("industry"), prof.get("macroSector"))
             done += 1
     log.info("screener metrics rebuilt for %d companies", done)
@@ -64,7 +64,7 @@ async def refresh_metrics_for(store, pairs) -> int:
                 updates.append((sym, st, orjson.dumps(m).decode(), m.get("price"), m.get("market_cap"), m.get("ret_1d"), m.get("pe"), m.get("pb"), m.get("dividend_yield")))
             if updates:   # the flat columns the company list shows move with the quote too
                 await conn.executemany("UPDATE scores SET metrics = $3::jsonb, price = COALESCE($4, price), market_cap = COALESCE($5, market_cap), "
-                                       "change_pct = COALESCE($6, change_pct), pe = $7, pb = $8, dividend_yield = $9 WHERE symbol = $1 AND statement = $2", updates)
+                                       "change_pct = COALESCE($6, change_pct), pe = $7, pb = $8, dividend_yield = $9, changed_at = now() WHERE symbol = $1 AND statement = $2", updates)
             done += len(updates)
     return done
 

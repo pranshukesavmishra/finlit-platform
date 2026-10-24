@@ -33,6 +33,8 @@ log = logging.getLogger("finlit.dhan")
 logging.getLogger("httpx").setLevel(logging.WARNING)   # its INFO lines print full URLs, and the token call's URL holds the PIN and code
 INSTRUMENTS_URL = "https://images.dhan.co/api-data/api-scrip-master-detailed.csv"
 TOKEN_KEY = "dhan:token"
+VERSION_KEY = "dhan:instruments:ver"   # bumped whenever the instrument file or the company list is reloaded: caches built from the join drop on a new value
+SECMAP_KEY = "dhan:secmap"
 PACE_KEY = "dhan:pace:quote"     # one market-quote call a second for the whole account, whichever process (web, quotes job, ETF job) makes it
 RENEW_BEFORE = 2 * 3600          # seconds of life left at which a token is replaced
 RETRY_STATUS = {429, 500, 502, 503, 504}
@@ -146,6 +148,7 @@ async def save_instruments(store, rows: List[dict]) -> int:
                 "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
                 [(r["exch"], r["security_id"], r["symbol"], r["isin"], r["name"], r["series"], r["asm_gsm"], r["asm_gsm_cat"], r["mtf_leverage"],
                   r["fno"], r["lot_size"], r.get("inst_type"), r.get("exch_name")) for r in rows])
+    await bump_version(store)
     return len(rows)
 
 
@@ -425,15 +428,61 @@ MATCH_SQL = (
 INFO_COLS = ("exch", "security_id", "series", "asm_gsm", "asm_gsm_cat", "mtf_leverage", "fno", "lot_size", "loaded_at")
 
 
+async def instruments_version(store) -> str:
+    """The stamp the instrument/company reloads bump; "" when Redis has none or is down (nothing is then cached by it)."""
+    try:
+        v = await store.redis.get(VERSION_KEY)
+    except Exception:
+        return ""
+    return v.decode() if isinstance(v, bytes) else (v or "")
+
+
+async def bump_version(store) -> None:
+    try:
+        await store.redis.incr(VERSION_KEY)
+    except Exception:
+        log.warning("instrument version not bumped: caches built from the file expire on their own")
+
+
 async def security_map(store, symbols: List[str]) -> Dict[str, Tuple[str, str]]:
-    """{our symbol: (Dhan segment, security id)}. Companies with no match are left out (renamed or delisted: they keep the main provider's quote)."""
+    """{our symbol: (Dhan segment, security id)}. Companies with no match are left out (renamed or delisted: they keep the main provider's quote).
+    The join over companies and the whole instrument file is read once per reload of the file (VERSION_KEY): the quotes job runs every minute and the answer
+    only changes with the file. A company with no match is remembered as such, so it is not asked again every minute."""
+    if not symbols:
+        return {}
+    ver = await instruments_version(store)
+    known: Dict[str, Any] = {}
+    try:
+        raw = await store.redis.get(SECMAP_KEY)
+        got = json.loads(raw) if raw else None
+        if got and got.get("ver") == ver:
+            known = got["map"]
+    except Exception:
+        known = {}
+    missing = [s for s in symbols if s not in known]
+    if missing:
+        async with store.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT DISTINCT ON (c.symbol) c.symbol, COALESCE(n.security_id, b.security_id) AS sid, "
+                "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg " + MATCH_SQL, missing, list(EQUITY_SERIES))
+        found = {r["symbol"]: [r["seg"], r["sid"]] for r in rows}
+        known.update({s: found.get(s) for s in missing})
+        try:   # 6 hours: the backstop for a bump that could not be recorded
+            await store.redis.set(SECMAP_KEY, json.dumps({"ver": ver, "map": known}), ex=6 * 3600)
+        except Exception:
+            pass
+    return {s: (known[s][0], known[s][1]) for s in symbols if known.get(s)}
+
+
+async def fno_flags(store, symbols: List[str]) -> Dict[str, bool]:
+    """{our symbol: on F&O} for the companies matched on NSE, where the contracts are. Only these two columns leave the database, not the whole instrument row."""
     if not symbols:
         return {}
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT DISTINCT ON (c.symbol) c.symbol, COALESCE(n.security_id, b.security_id) AS sid, "
-            "CASE WHEN n.security_id IS NOT NULL THEN 'NSE_EQ' ELSE 'BSE_EQ' END AS seg " + MATCH_SQL, list(symbols), list(EQUITY_SERIES))
-    return {r["symbol"]: (r["seg"], r["sid"]) for r in rows}
+            "SELECT DISTINCT ON (c.symbol) c.symbol, (n.security_id IS NOT NULL) AS nse, CASE WHEN n.security_id IS NOT NULL THEN n.fno ELSE b.fno END AS fno " + MATCH_SQL,
+            list(symbols), list(EQUITY_SERIES))
+    return {r["symbol"]: bool(r["fno"]) for r in rows if r["nse"]}
 
 
 async def instrument_rows(store, symbols: List[str]) -> Dict[str, dict]:
