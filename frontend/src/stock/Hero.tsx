@@ -10,6 +10,7 @@ import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
 import { ChartHelp } from "../components/ChartHelp";
+import { BasisToggle } from "./Sections";
 import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
 import { TradingFacts } from "./TradingFacts";
@@ -94,7 +95,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
           <article className="report" aria-labelledby="reportTitle">
             <div className="rhead">
-              <div className="l"><span className="eyebrow" id="reportTitle">FinLit Research Report</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span>
+              <div className="l"><span className="eyebrow" id="reportTitle">FinLit Research Report</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} />
                 {plan === "gold" ? <span className="tier gold">Advanced model</span> : <span className="tier silver">Basic model</span>}<span className="live">Updated {dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}</span></div>
               <div className="meta">Model {s.score.model} · <a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros & cons →</a></div>
             </div>

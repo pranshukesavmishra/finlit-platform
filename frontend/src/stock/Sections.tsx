@@ -10,6 +10,8 @@ import { FinChart, type FinKind } from "../charts/FinChart";
 import { RsiGauge, Spark } from "../charts/Small";
 import { ChartHelp } from "../components/ChartHelp";
 import { MINUS, cr, dateIN, nf, signed } from "../lib/format";
+import { useIsFetching } from "@tanstack/react-query";
+import { useBasis, setBasis } from "../lib/basis";
 import { useIntraday, usePrice, type ApiError, type Financials, type Intraday, type IntradayRange, type Ratios, type Summary, type Table } from "../lib/api";
 import { barSpan, changePct, istDay, status as intradayStatus } from "../lib/intraday";
 import { useAuth } from "../lib/auth";
@@ -145,9 +147,25 @@ function ReturnBars({ rows }: { rows: Summary["returns"] }) {
   );
 }
 
+/* ---------------- Standalone / consolidated ---------------- */
+/** Consolidated = the company and everything it owns; standalone = the parent company alone. Chosen per company; every section follows it. */
+export function BasisToggle({ symbol, shown }: { symbol: string; shown?: "consolidated" | "standalone" }) {
+  const b = useBasis(symbol), busy = useIsFetching({ queryKey: ["stock", symbol.toUpperCase()] }) > 0;
+  return (
+    <span className="seg basis" role="group" aria-label="Which accounts to show">
+      {([["consolidated", "Consolidated"], ["standalone", "Standalone"]] as const).map(([k, l]) => (
+        <button key={k} type="button" aria-pressed={b === k} onClick={() => setBasis(symbol, k)} title={k === "consolidated" ? "The company and all it owns, added up" : "The parent company alone"}>{l}</button>
+      ))}
+      {busy && <em className="faint" style={{ fontSize: 11.5, marginLeft: 8 }}>Loading…</em>}
+      {shown && shown !== b && <em className="faint" style={{ fontSize: 11.5, marginLeft: 8 }}>This company publishes {shown} accounts only.</em>}
+    </span>
+  );
+}
+
 /* ---------------- Financials ---------------- */
 export function FinancialsSection({ f }: { f?: Financials }) {
   const [kind, setKind] = useState<FinKind>("pl");
+  const basis = useBasis(f?.meta.symbol ?? "");
   if (!f) return <section className="block"><SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
   const tiles = finTiles(f), tbl: Table = kind === "q" ? f.quarterly.pl : f.yearly[kind];
   const ROWS: Record<string, [string, string, boolean?][]> = {
@@ -170,8 +188,10 @@ export function FinancialsSection({ f }: { f?: Financials }) {
           </div>
         ))}
       </div>
+      {basis === "consolidated" && tbl.periods.length > 0 && f.yearly.pl.periods.length <= 3 && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Consolidated accounts cover only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} for this company. <button type="button" className="alx-link" onClick={() => setBasis(f.meta.symbol, "standalone")}>Show standalone accounts</button> for a longer history.</p>}
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
         <div className="tools">
+          <BasisToggle symbol={f.meta.symbol} shown={f.meta.statement} />
           <div className="seg" role="group" aria-label="Statement">{([["pl", "Profit & loss"], ["bs", "Balance sheet"], ["cf", "Cash flow"], ["q", "Quarterly"]] as const).map(([k, l]) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{l}</button>)}</div>
           <span className="chip ghost">{tbl.periods[0]} – {tbl.periods[last]}</span>
         </div>
