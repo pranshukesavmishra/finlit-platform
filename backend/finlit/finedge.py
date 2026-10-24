@@ -72,14 +72,6 @@ STATEMENT_KEYS = {"pl_annual", "bs_annual", "cf_annual", "pl_quarterly", "segmen
                   "ratios_li", "ratios_ef", "growth", "basic", "daily_price_ratios", "annual_price_ratios"}
 
 
-SHORT_HISTORY = 3   # consolidated annual years at or below this are compared with the standalone history
-
-
-def _annual_count(payload: Any) -> int:
-    rows = payload.get("financials") if isinstance(payload, dict) else payload
-    return len(rows) if isinstance(rows, list) else 0
-
-
 def _has_rows(payload: Any) -> bool:
     """True when the payload carries data: a non-empty list, or an object with at least one non-empty value
     other than the echoed symbol / label fields (each endpoint wraps its rows under a different key)."""
@@ -209,26 +201,7 @@ class FinEdgeClient:
                 bundle.update(fallback)
                 errors.update(fallback_errors)
                 effective = "standalone"
-        # A short consolidated history (an insurer that began consolidating last year, a company that merged) beside a long standalone one:
-        # the standalone series is the complete, consistent one, and the page says so (`statementNote`).
-        note = None
-        if effective == "consolidated" and statement == "consolidated" and "pl_annual" not in errors:
-            have = _annual_count(bundle.get("pl_annual"))
-            if 0 < have <= SHORT_HISTORY:
-                standalone = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS}
-                alt, alt_errors = await self._fetch_many(standalone)
-                longer = _annual_count(alt.get("pl_annual"))
-                if "pl_annual" not in alt_errors and longer >= have + 2:
-                    for key in STATEMENT_KEYS:
-                        bundle.pop(key, None)
-                        errors.pop(key, None)
-                    bundle.update(alt)
-                    errors.update(alt_errors)
-                    effective = "standalone"
-                    note = f"Consolidated accounts cover only {have} year{'s' if have != 1 else ''}; the standalone accounts ({longer} years) are shown so the history is complete."
         bundle.update(symbol=symbol, statement=effective, requestedStatement=statement, errors=errors)
-        if note:
-            bundle["statementNote"] = note
         return bundle
 
     async def stock_symbols(self) -> list:

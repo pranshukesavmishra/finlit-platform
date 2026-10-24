@@ -129,12 +129,14 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+import { useBasis, withBasis, type Basis } from "./basis";
+
 const SECTION_STALE = 60_000;
 
-function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryOptions<T, ApiError>>) {
+function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryOptions<T, ApiError>>, basis: Basis = "consolidated") {
   return {
-    queryKey: ["stock", symbol, path],
-    queryFn: () => apiGet<T>(`/api/stocks/${encodeURIComponent(symbol)}${path}`),
+    queryKey: ["stock", symbol, path, basis],
+    queryFn: () => apiGet<T>(`/api/stocks/${encodeURIComponent(symbol)}${withBasis(path, basis)}`),
     staleTime: SECTION_STALE,
     // A stock that has never been opened is prepared on demand (202): keep asking (for up to about five minutes; the server counts
     // only the first request). 429 means many reports are being prepared at once: wait as told and ask again.
@@ -144,10 +146,12 @@ function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryO
   };
 }
 
-export const useSummary = (s: string, enabled = true) => useQuery<Summary, ApiError>({ ...sectionQuery<Summary>(s, ""), enabled: enabled && !!s });
-export const useSection = <T,>(s: string, name: string, enabled = true) => useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`), enabled });
-export const usePrice = (s: string, range: string, enabled = true) =>
-  useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`), placeholderData: (prev) => prev, enabled });
+export const useSummary = (s: string, enabled = true) => { const b = useBasis(s); return useQuery<Summary, ApiError>({ ...sectionQuery<Summary>(s, "", undefined, b), placeholderData: (prev) => (prev?.meta.symbol === s.toUpperCase() ? prev : undefined), enabled: enabled && !!s }); };
+export const useSection = <T,>(s: string, name: string, enabled = true) => { const b = useBasis(s); return useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`, undefined, b), placeholderData: (prev) => ((prev as { meta?: { symbol?: string } } | undefined)?.meta?.symbol === s.toUpperCase() ? prev : undefined), enabled }); };
+export const usePrice = (s: string, range: string, enabled = true) => {
+  const b = useBasis(s);
+  return useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`, undefined, b), placeholderData: (prev) => prev, enabled });
+};
 
 /** While the market is open (or in pre-open) the server keeps a copy for a minute, so the chart asks again each minute. 401/403/404 are answers, not failures. */
 export const useIntraday = (s: string, range: IntradayRange, enabled = true) =>
@@ -177,8 +181,10 @@ export function prefetchStock(qc: import("@tanstack/react-query").QueryClient, s
 
 export type ScorePoint = { day: string; overall: number | null; pillar_quality: number | null; pillar_growth: number | null; pillar_profitability: number | null; pillar_balance: number | null; pillar_technical: number | null };
 /** Score over time. Quietly absent when the plan or the deployment does not offer it. */
-export const useScoreHistory = (symbol: string, enabled = true) =>
-  useQuery<{ points: ScorePoint[] }, ApiError>({ queryKey: ["stock", symbol, "/score-history"], queryFn: () => apiGet(`/api/stocks/${encodeURIComponent(symbol)}/score-history`), enabled, retry: false, staleTime: 300_000 });
+export const useScoreHistory = (symbol: string, enabled = true) => {
+  const b = useBasis(symbol);
+  return useQuery<{ points: ScorePoint[] }, ApiError>({ queryKey: ["stock", symbol, "/score-history", b], queryFn: () => apiGet(`/api/stocks/${encodeURIComponent(symbol)}${withBasis("/score-history", b)}`), enabled, retry: false, staleTime: 300_000 });
+};
 
 /** Change against the reading about a quarter ago (or the oldest one at least a week old); null until there is history. */
 export function scoreChange(points: ScorePoint[] | undefined): { delta: number; since: string } | null {
