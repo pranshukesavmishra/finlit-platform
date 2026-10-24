@@ -35,6 +35,7 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
   ( flock -n 9 || { log "skip $name (busy)"; exit 0; }
+    renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
     free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { log "skip $name (only ${free} MB free)"; exit 0; }
     log "start $name"; $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
 }
@@ -81,6 +82,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 # First start: universe, the biggest companies first, then as many as INGEST_LIMIT allows. Resumable.
 (
   flock 9
+  renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
