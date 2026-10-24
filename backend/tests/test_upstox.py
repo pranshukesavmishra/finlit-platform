@@ -141,3 +141,13 @@ def test_a_dec_labelled_year_end_is_aligned_to_march_when_that_is_where_the_numb
     longer = upstox.extend_history(fe, up)
     assert [r["period_end"][:4] for r in longer] == ["2022", "2023", "2024", "2025", "2026"]
     assert [round(upstox._field(r, "profitLossForPeriod") / 1e7) for r in longer][:3] == [4043, 36397, 40676]
+
+
+def test_provider_dates_written_as_yyyymmdd_are_read():
+    fe = [{"period_end": "20250331", "year": 2025, "profitOrLossAttributableToOwners": 48151e7}, {"period_end": "20260331", "year": 2026, "profitOrLossAttributableToOwners": 57000e7}]
+    up = upstox.income_rows({"income_statement": [
+        {"category": "revenue", "history": [{"period": f"Dec {y}", "value": 1.0} for y in (2022, 2023, 2024)]},
+        {"category": "net_profit", "history": [{"period": f"Dec {y}", "value": v} for y, v in ((2022, 36397.0), (2023, 40676.0), (2024, 48151.0))]}]})
+    why: list = []
+    longer = upstox.extend_history(fe, up, why=why)
+    assert longer and len(longer) == 4 and not [w for w in why if "no readable dates" in w]
