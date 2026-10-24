@@ -485,6 +485,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_cm = sub.add_parser("refresh-commodities", help="commodity prices: MCX futures from Dhan and international prices from metals.dev / MetalpriceAPI into Redis (--loop: keeps running)")
     p_cm.add_argument("--loop", action="store_true")
+    p_hp = sub.add_parser("history-probe", help="how many yearly statements each source holds for a few old companies (recorded at /api/mf/status, run:history-probe)")
+    p_hp.add_argument("symbols", nargs="*", default=None)
     sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
     p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
     p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
@@ -655,6 +657,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         if args.cmd == "refresh-commodities":
             from . import commodities
             print(await commodities.run(settings, store, loop=args.loop))
+            return 0
+        if args.cmd == "history-probe":
+            from .history_probe import probe
+            from .mf import record_run
+            res = await probe(client, store, settings, args.symbols or None)
+            await record_run(store, args.cmd, {"status": "ok", "companies": res})
+            print(res)
             return 0
         if args.cmd == "dhan-check":
             from . import dhan
