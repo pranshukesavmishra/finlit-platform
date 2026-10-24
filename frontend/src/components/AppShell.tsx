@@ -8,6 +8,7 @@ import { useWatchlist } from "../lib/watchlist";
 import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
+import { MORE, SECTIONS, type NavItem } from "../lib/nav";
 
 type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean; sub?: boolean };
 type Group = { title: string; items: Item[] };
@@ -30,43 +31,22 @@ export function AppShell() {
   useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open]);
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
+  // The rail follows the site map (lib/nav.ts): the same five headings and groups as the header, plus the extras and the account.
+  const badges: Record<string, string | undefined> = {
+    "/screener": saved.length ? String(saved.length) : undefined, "/watchlist": followed ? String(followed) : undefined, "/holdings": held ? String(held) : undefined,
+    "/alerts": unread ? `${unread} new` : live ? String(live) : undefined,
+  };
+  const toItem = (n: NavItem): Item => ({ to: n.to, label: n.label, icon: n.icon, end: n.end, gold: n.gold, badge: badges[n.to] });
+  const mine = (id: string, extra: Item[] = []) => [...SECTIONS.find((x) => x.id === id)!.groups.flatMap((g) => g.items).map(toItem), ...extra];
   const groups: Group[] = [
-    { title: "Overview", items: [
-      { to: "/dashboard", label: "Dashboard", icon: "home" },
-      { to: "/dcf", label: "DCF calculator", icon: "rupee" },
-    ] },
-    { title: "Research", items: [
-      { to: "/research", label: "Stock research", icon: "search" },
-      { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
-      { to: "/query-builder", label: "Query builder", icon: "notes" },
-      { to: "/score-screener", label: "Score screener", icon: "quality" },
-      { to: "/compare", label: "Compare companies", icon: "compare" },
-      { to: "/graphs", label: "Graph Studio", icon: "bars", end: true },
-      { to: "/graphs/advanced", label: "Advanced charts", icon: "spark", sub: true },
-      { to: "/etfs", label: "ETFs", icon: "activity" },
-      { to: "/commodities", label: "Commodities", icon: "activity" },
-      { to: "/funds", label: "Mutual funds", icon: "pie" },
-    ] },
-    { title: "Gold dashboards", items: [
-      { to: "/premium/fundamentals", label: "Stock fundamentals", icon: "table" },
-      { to: "/premium/markets", label: "Market events & index", icon: "activity" },
-      { to: "/premium/options", label: "Option chain", icon: "layers" },
-      { to: "/premium/report", label: "Premium report", icon: "notes" },
-    ] },
-    { title: "My lists", items: [
-      { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
-      { to: "/baskets", label: "My baskets", icon: "layers" },
-      { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },
-      { to: "/alerts", label: "Alerts", icon: "bell", badge: unread ? `${unread} new` : live ? String(live) : undefined },
-    ] },
-    { title: "Market", items: [
-      { to: "/results", label: "Results calendar", icon: "calendar", end: true },
-      { to: "/results/quarter", label: "Quarter results", icon: "notes" },
-      { to: "/ipo", label: "IPO calendar", icon: "activity" },
-      { to: "/news", label: "News & filings", icon: "notes" },
-      { to: "/documents", label: "Documents", icon: "layers" },
-    ] },
-    { title: "Learn", items: [{ to: "/glossary", label: "Glossary", icon: "book" }, { to: "/blog", label: "Insights & blog", icon: "spark" }] },
+    { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
+    ...SECTIONS[0].groups.map((g) => ({ title: g.title || SECTIONS[0].label, items: g.items.map(toItem) })),
+    { title: "Markets", items: mine("markets") },
+    { title: "News & events", items: mine("news") },
+    { title: "Funds", items: mine("funds") },
+    { title: "My FinLit", items: mine("myfinlit", [{ to: "/baskets", label: "My baskets", icon: "layers" }]) },
+    { title: MORE.groups[0].title!, items: MORE.groups[0].items.map(toItem) },
+    { title: "Learn", items: [{ to: "/glossary", label: "Glossary", icon: "book" }, { to: "/blog", label: "Insights & blog", icon: "spark" }, { to: "/documents", label: "Documents", icon: "layers" }, { to: "/forum", label: "Forums", icon: "users" }] },
     ...(user ? [{ title: "Account", items: [
       { to: "/account", label: "Profile & security", icon: "users", end: true },
       { to: "/account/appearance", label: "Appearance", icon: "spark" },
@@ -91,7 +71,7 @@ export function AppShell() {
               <div className="side-gt">{g.title}</div>
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
-                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}</span>{i.badge && <span className="side-b">{i.badge}</span>}
+                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}
             </div>

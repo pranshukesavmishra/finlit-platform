@@ -145,7 +145,7 @@ function DateEmpty({ dates, sel, today, quarterLabel, filtersOn, onPick, onQuart
 }
 
 export function QuarterResultsPage() {
-  useDocTitle("Quarter results", "Every company's results for the latest quarter, newest declaration first: revenue, profit, margins, growth against last year and last quarter, with a one-line summary to copy.");
+  useDocTitle("Latest results", "Every company's results for the latest quarter, newest declaration first: revenue, profit, margins, growth against last year and last quarter, with a one-line summary to copy.");
   const { user } = useAuth();
   const { plan, upgrade, toast } = useUI();
   const [sp, setSp] = useSearchParams();
@@ -225,7 +225,7 @@ export function QuarterResultsPage() {
       <header className="dash-h">
         <div>
           <div className="eyebrow">Market</div>
-          <h1>Quarter results{q ? <> <span className="qr-q">{q.fiscal}</span></> : null}</h1>
+          <h1>Latest results{q ? <> <span className="qr-q">{q.fiscal}</span></> : null}</h1>
           <p className="muted">{q ? `Quarter ended ${new Date(q.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. ` : ""}Every company's results, the most recently declared first, back to the first of the quarter.<ChartHelp id="qr-table" /></p>
         </div>
         <label className="wl-sel"><span>Quarter</span>

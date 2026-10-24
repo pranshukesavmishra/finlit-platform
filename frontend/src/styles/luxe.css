@@ -227,3 +227,20 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 /* the 3D landscape in the home hero takes the band's colours, and the wash behind the words is forest, not paper */
 :root .hh-hero { --scene-paper: var(--band-a); --scene-light: 0; }
 :root .hh-hero.has3d::after { background: radial-gradient(42% 46% at 24% 48%, rgba(12, 24, 18, .78) 35%, transparent 80%); }
+
+/* ---- navigation: the Gold tag, the group heading inside menus, a solo menu and the page you are on ---- */
+.gtag { font: 700 9.5px/1 var(--sans); font-style: normal; letter-spacing: .06em; text-transform: uppercase; margin-left: 7px; padding: 2px 6px; border-radius: 999px; color: var(--gold); background: var(--gold-soft); vertical-align: 1px; }
+.ddm .here { background: var(--gold-soft); } .ddm .here b { color: var(--text); }
+.ddm.solo { width: 340px; }
+.ddm.wide { width: min(980px, calc(100vw - 48px)); }
+.mnav .mt2 { font: 600 11px var(--sans); color: var(--faint); letter-spacing: .08em; text-transform: uppercase; padding: 10px 4px 2px; }
+:root .topnav { gap: 0; margin-left: 10px; flex-wrap: nowrap; }
+:root .topnav > a, :root .topnav .ddb { padding: 8px 10px; font-size: 13.5px; white-space: nowrap; }
+:root .topnav .ddb svg { width: 11px; height: 11px; margin-left: 4px; }
+@media (max-width: 1500px) { :root .top .search { flex: 0 0 44px; justify-content: center; padding: 0; } :root .top .search .t, :root .top .search .kbd { display: none; } }
+@media (max-width: 1320px) { :root .topnav > a, :root .topnav .ddb { padding: 8px 8px; font-size: 13px; } }
+/* menu rows wrap inside their column instead of running into the next one */
+.ddm a { min-width: 0; } .ddm a > span:last-child { min-width: 0; } .ddm a small { white-space: normal; overflow-wrap: anywhere; }
+:root .ddm.wide.right { left: auto; right: -300px; width: min(800px, calc(100vw - 48px)); }
+/* in the narrow left rail the Gold tag is a small gold dot (its name is the tooltip and the screen-reader label) */
+.side-l .gtag { font-size: 0; width: 8px; height: 8px; padding: 0; margin-left: 8px; border-radius: 50%; background: var(--gold); display: inline-block; vertical-align: middle; }

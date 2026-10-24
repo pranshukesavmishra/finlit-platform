@@ -20,11 +20,11 @@ const LEAD = "Where India's fund money actually sits and where it moved last mon
 
 const Head = () => (
   <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-    <div className="eyebrow">Mutual funds</div><h1>Mutual Fund Insights</h1><p>{LEAD}</p></div></section>
+    <div className="eyebrow">Mutual funds</div><h1>Fund industry trends</h1><p>{LEAD}</p></div></section>
 );
 
 export function FundInsightsPage() {
-  useDocTitle("Mutual Fund Insights", "India's mutual fund industry month by month from AMFI's monthly category report: total assets, net flows by category, the equity/debt/hybrid split and folios. Information only.");
+  useDocTitle("Fund industry trends", "India's mutual fund industry month by month from AMFI's monthly category report: total assets, net flows by category, the equity/debt/hybrid split and folios. Information only.");
   const q = useMfInsights();
   const d = q.data;
   return (

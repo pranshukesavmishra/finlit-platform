@@ -351,7 +351,7 @@ function SavedScenarios({ enabled, form, onOpen }: { enabled: boolean; form: For
 
 // ------------------------------------------------------------------------------------------------------------- page
 export function DcfPage() {
-  useDocTitle("DCF calculator", "Discounted cash flow (DCF) calculator: intrinsic value per share, margin of safety, sensitivity and reverse DCF, with the working shown step by step.");
+  useDocTitle("Fair value calculator", "Discounted cash flow (DCF) calculator: intrinsic value per share, margin of safety, sensitivity and reverse DCF, with the working shown step by step.");
   const { has } = useUI();
   const { user } = useAuth();
   const gold = has("gold");
@@ -383,7 +383,7 @@ export function DcfPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>DCF Calculator</h1>
+      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Fair value calculator</h1>
         <p>Wish to calculate the intrinsic value of companies with ease? Here's our Discounted Cash Flow (DCF) calculator, so you don't have to break your head over complicated Excel sheets. Every step of the working is shown, with checks that stop impossible assumptions.</p></div></section>
       <div className="wrap dcf">
         <Gate tier="gold" title="DCF calculator" points={["Intrinsic value per share, margin of safety and buy price", "Load any listed company's cash flow, debt and shares", "Sensitivity grids, reverse DCF and bear/base/bull cases", "Save scenarios, share links and export to Excel (CSV)"]}>

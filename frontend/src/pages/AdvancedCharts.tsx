@@ -49,7 +49,7 @@ function helpFor(p: CatPair, cat: Catalog): ChartHelpEntry {
 export function AdvancedCharts() {
   const { section } = useParams();
   const sec = sectionBySlug(section);
-  useDocTitle("Advanced charts", "Correlation charts across listed companies, with a regression line drawn only when it passes statistical tests. Information only, not advice.");
+  useDocTitle("Correlation charts", "Correlation charts across listed companies, with a regression line drawn only when it passes statistical tests. Information only, not advice.");
   if (!sec) return <Navigate to="/graphs/advanced/valuation" replace />;
   return <Page slug={sec.slug} n={sec.n} />;
 }
@@ -73,8 +73,8 @@ function Page({ slug, n }: { slug: string; n: number }) {
   return (
     <>
       <section className="pagehead adv-head"><div className="wrap">
-        <div className="eyebrow"><Link to="/graphs">Graph Studio</Link> · Advanced charts</div>
-        <h1>Advanced charts</h1>
+        <div className="eyebrow"><Link to="/graphs">Chart builder</Link> · Correlation charts</div>
+        <h1>Correlation charts</h1>
         <p>How two measures move together across listed companies, with a regression line drawn only when it passes statistical tests. Add companies to see where they sit. Information only, not advice.</p>
       </div></section>
       <div className="wrap adv">

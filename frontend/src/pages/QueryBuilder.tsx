@@ -113,7 +113,7 @@ function RatioDrawer({ ratios, open, onClose, seed, onAdd, onInsert, ask }: { ra
 }
 
 export function QueryBuilder() {
-  useDocTitle("Query builder", "Type a rule such as Market cap > 500 AND P/E < 15 and get every listed Indian company that matches. Live checking, one-click fixes, examples and saved baskets.");
+  useDocTitle("Formula screener", "Type a rule such as Market cap > 500 AND P/E < 15 and get every listed Indian company that matches. Live checking, one-click fixes, examples and saved baskets.");
   const { upgrade, toast } = useUI();
   const { user } = useAuth();
   const nav = useNavigate();
@@ -255,7 +255,7 @@ export function QueryBuilder() {
   const saveBlock = !valid ? (text.trim() ? "Fix the problems above before saving." : "Write a query first.") : nameBad;
 
   if (DEMO) return (
-    <section className="pagehead"><div className="wrap"><div className="eyebrow">Query builder</div><h1>The query builder runs on the live site.</h1><p>It needs the server's data, so it is not part of this offline preview. The Screener works here.</p><Link className="btn primary" to="/screener">Open the screener</Link></div></section>
+    <section className="pagehead"><div className="wrap"><div className="eyebrow">Formula screener</div><h1>The formula screener runs on the live site.</h1><p>It needs the server's data, so it is not part of this offline preview. The Screener works here.</p><Link className="btn primary" to="/screener">Open the screener</Link></div></section>
   );
 
   const underline = segments(text, problems);
@@ -271,7 +271,7 @@ export function QueryBuilder() {
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Query builder</div><h1>Type the rule. Get the companies.</h1>
+        <div className="eyebrow">Formula screener</div><h1>Type the rule. Get the companies.</h1>
         <p>Write what you are looking for, like <code className="qb-inl">Market cap &gt; 500 AND P/E &lt; 15</code>. We check every word as you type, show you how we read it, and list the listed companies that match all of it. Prefer clicking? <a className="alx-link" href="/screener" onClick={(e) => { e.preventDefault(); nav("/screener"); }}>Use the Screener</a>.</p></div></section>
 
       <div className="wrap qb">
