@@ -17,6 +17,7 @@ import { signals } from "./Watchlist";
 import { saveFile } from "../stock/derive";
 import { PortfolioInsights } from "../components/PortfolioInsights";
 import { PortfolioLab } from "../components/PortfolioLab";
+import { CAP_BUCKETS, capBucket } from "../lib/capBuckets";
 import { ACCEPT, namesFromFile } from "../lib/holdingsFile";
 import { PdfImport } from "../components/PdfImport";
 import { isPdf } from "../lib/holdingsPdf";
@@ -110,7 +111,8 @@ export function HoldingsPage() {
     const pill = PILLARS.map(([k, label]) => { const v = scored.map((l) => l.row![k] as number | null).filter((x): x is number => x != null); return { label, v: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null }; });
     const sector = new Map<string, number>(); lines.forEach((l) => sector.set(l.row?.sector || "Not yet loaded", (sector.get(l.row?.sector || "Not yet loaded") || 0) + 100 / n));
     const band = new Map<string, number>(); lines.forEach((l) => band.set(l.row?.band || "none", (band.get(l.row?.band || "none") || 0) + 100 / n));
-    return { avg, pill, scored: scored.length, sector: [...sector.entries()].sort((a, b) => b[1] - a[1]), band };
+    const cap = new Map<string, string[]>(); lines.forEach((l) => { const id = capBucket(l.row?.market_cap)?.id ?? "unknown"; cap.set(id, [...(cap.get(id) || []), l.symbol]); });
+    return { avg, pill, scored: scored.length, sector: [...sector.entries()].sort((a, b) => b[1] - a[1]), band, cap };
   }, [lines]);
 
   const add = (names: string[], from?: string) => {
@@ -125,6 +127,9 @@ export function HoldingsPage() {
   };
   const exportCsv = () => saveFile("FinLit-portfolio.csv", ["Symbol,Company,Sector,Price,FinLit score,Band,Quality,Growth,Profitability,Balance sheet,Technical",
     ...lines.map((l) => [l.symbol, `"${csvText(l.name || "").replace(/"/g, '""')}"`, `"${csvText(l.row?.sector || "").replace(/"/g, '""')}"`, l.row?.price ?? "", l.row?.overall ?? "", l.row?.band ? BAND_LABEL[l.row.band] : "", ...PILLARS.map(([k]) => l.row?.[k] ?? "")].join(","))].join("\n"), "text/csv;charset=utf-8");
+  const CAP_COLORS = ["var(--k1)", "var(--k7)", "var(--k3)", "var(--k4)", "var(--k2)", "var(--k8)"];
+  const capParts = CAP_BUCKETS.map((b, i) => ({ label: b.label, value: m.cap.get(b.id)?.length || 0, color: CAP_COLORS[i] })).filter((p) => p.value > 0);
+  const capUnknown = m.cap.get("unknown")?.length || 0;
   const donut = m.sector.slice(0, 7).map(([label, value], i) => ({ label, value, color: K[i % K.length] }));
   const empty = !lines.length;
 
@@ -169,6 +174,14 @@ export function HoldingsPage() {
               <div className="breadth big" role="img" aria-label="Portfolio by FinLit band">{(["strong", "healthy", "mixed", "watch", "none"] as const).filter((b) => m.band.get(b)).map((b) => <i key={b} style={{ flex: m.band.get(b), background: b === "none" ? "var(--s3)" : BAND_C[b] }} />)}</div>
               <ul className="bandk">{(["strong", "healthy", "mixed", "watch", "none"] as const).map((b) => <li key={b}><i style={{ background: b === "none" ? "var(--s3)" : BAND_C[b] }} /><span>{b === "none" ? "Not scored yet" : BAND_LABEL[b]}</span><b>{nf(m.band.get(b) || 0, 0)}%</b></li>)}</ul></section>
             <section className="card"><div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>By sector</h3><span className="s">Share of your shares</span></div><Donut parts={donut} center={String(m.sector.length)} sub={m.sector.length === 1 ? "SECTOR" : "SECTORS"} /></section>
+            <section className="card pf-cap"><div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>By market cap</h3><span className="s">Size of the companies you hold</span></div>
+              {capParts.length ? <Donut parts={capParts} center={String(lines.length - capUnknown)} sub={lines.length - capUnknown === 1 ? "COMPANY" : "COMPANIES"} /> : <p className="muted">Market values are still loading for these companies.</p>}
+              <table className="pf-cap-t"><caption className="sr-only">Your shares by company size</caption><thead><tr><th scope="col">Size</th><th scope="col">Market cap (₹ crore)</th><th scope="col">Shares</th></tr></thead>
+                <tbody>{CAP_BUCKETS.map((b, i) => { const syms = m.cap.get(b.id) || []; return (
+                  <tr key={b.id} className={syms.length ? "" : "none"}><th scope="row"><i style={{ background: CAP_COLORS[i] }} aria-hidden="true" />{b.label}</th><td>{b.range}</td>
+                    <td title={syms.join(", ")}><b>{syms.length}</b>{syms.length > 0 && <small>{syms.slice(0, 3).join(", ")}{syms.length > 3 ? ` +${syms.length - 3}` : ""}</small>}</td></tr>); })}
+                  {capUnknown > 0 && <tr className="unk"><th scope="row"><i aria-hidden="true" />Not known yet</th><td>value still loading</td><td title={(m.cap.get("unknown") || []).join(", ")}><b>{capUnknown}</b></td></tr>}</tbody></table>
+              <p className="faint pf-cap-n">Each share counts once: quantities and prices in your file are not used, so this shows how many of your companies sit in each size band, not how much money does. Bands are FinLit's own money bands, not an official list.</p></section>
           </div>
           <HoldingsTable lines={lines} cap={cap} onRemove={(sym) => { st.holdings.filter((h) => h.symbol === sym).forEach((h) => portfolio.remove(h.id)); toast(`${sym} removed.`); }} />
           <p className="faint" style={{ fontSize: 12.5, margin: "-6px 4px 0" }}>Scores come from each company's latest statements and prices. A share shows "Preparing…" for a moment the first time it is added. Information only, not investment advice.</p>
