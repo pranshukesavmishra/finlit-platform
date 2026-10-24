@@ -334,3 +334,13 @@
 
 /* phones: inputs at 16px so iOS Safari does not zoom the page on focus; room under the footer for the floating Menu and Ask buttons */
 @media (max-width: 760px) { input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px; } .ffine, footer.foot { padding-bottom: calc(76px + env(safe-area-inset-bottom)); } }
+
+/* portfolio: the size-band table under the market-cap donut */
+.pf-cap-t { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 13px; }
+.pf-cap-t th, .pf-cap-t td { text-align: left; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--border); white-space: normal; vertical-align: top; }
+.pf-cap-t thead th { font-size: 10.5px; color: var(--faint); } .pf-cap-t td:last-child { text-align: right; padding-right: 0; } .pf-cap-t thead th:last-child { text-align: right; }
+.pf-cap-t th[scope="row"] { font-weight: 600; white-space: nowrap; } .pf-cap-t th i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; background: var(--s3); }
+.pf-cap-t td small { display: block; color: var(--faint); font-size: 11px; overflow-wrap: anywhere; } .pf-cap-t tr.none { color: var(--faint); } .pf-cap-t tr.none th { font-weight: 500; }
+.pf-cap-n { font-size: 12px; margin: 10px 0 0; line-height: 1.5; }
+:root .pf-cap-t th[scope="row"] { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); background: transparent; position: static; }
+@media (max-width: 560px) { .pf-cap .dn { grid-template-columns: 1fr; justify-items: center; } .pf-cap .dn svg { max-width: 190px; } .pf-cap .dn-k { width: 100%; } .pf-cap-t { font-size: 12.5px; } }
