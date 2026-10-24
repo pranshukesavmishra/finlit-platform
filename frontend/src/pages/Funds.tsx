@@ -9,7 +9,7 @@ import { visits } from "../lib/recentVisits";
 import { useDocTitle } from "../lib/title";
 import { dateIN, nf } from "../lib/format";
 import {
-  CHECKS, EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, catNames, categoryShort, compareUrl, effectiveQuery, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, rowSortValue, subCats, tone,
+  AUM_BUCKETS, CHECKS, EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, catNames, categoryShort, compareUrl, effectiveQuery, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, rowSortValue, subCats, tone,
   useFundCompare, useFundDetail, useFundFacts, useFundFilters, useFundList, useFundPortfolio, useHotList, useTray, writeCols,
   type ColId, type CompareFund, type FundDetail, type ListQuery, type RangeKey, type SortKey,
 } from "../lib/mf";
@@ -49,6 +49,12 @@ function Legend() {
         <b> SIP returns</b> are the yearly rate (XIRR) of putting the same amount in every month for the last 3 or 5 years: one instalment at the last NAV of each month, everything valued at the latest NAV. A scheme without a month-end NAV for every one of those months shows a dash.
         Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only (<GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV). Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.</p>
       <p><b>Fund size</b> is AMFI's average assets under management for the latest quarter, all plans of the scheme together (where AMFI lists none, the fund house's month-end net assets; the tooltip says which). <b>Expense ratio</b> is the plan's own total expense ratio from AMFI's latest file, percent a year.</p>
+      <div className="mf-bands">
+        <p><b>Fund size bands.</b> The word under the fund size is only a way to read scale: a very small fund can be young or niche, a very large one is harder to move quickly. Size is not a measure of quality.</p>
+        <table><caption className="sr-only">Fund size bands in rupees crore</caption>
+          <thead><tr><th scope="col">Fund size</th><th scope="col">Label</th></tr></thead>
+          <tbody>{AUM_BUCKETS.map((b, i) => <tr key={b.label}><td>{b.range}</td><td><span className={"mf-size s" + (i + 1)}><i aria-hidden="true" />{b.label}</span></td></tr>)}</tbody></table>
+      </div>
       <p><b>Checklist.</b> Five plain checks, each against the active Growth options of the same category and plan:</p>
       <ol>{CHECKS.map((c) => <li key={c.key}><b>{c.label}</b>: {c.rule}.</li>)}</ol>
       <p>“3/5” means three checks passed out of five that could be worked out. A check counts only when the scheme has the figure and at least 3 schemes of its category have it too. It sums up past figures; it is not a rating, a ranking or a recommendation, and no star ratings are shown. A dash (—) anywhere means no figure; hover or tap it for the reason.</p>
