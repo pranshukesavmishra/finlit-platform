@@ -188,7 +188,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
           </div>
         ))}
       </div>
-      {basis === "consolidated" && tbl.periods.length > 0 && f.yearly.pl.periods.length <= 3 && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Consolidated accounts cover only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} for this company. <button type="button" className="alx-link" onClick={() => setBasis(f.meta.symbol, "standalone")}>Show standalone accounts</button> for a longer history.</p>}
+      {f.yearly.pl.periods.length > 0 && f.yearly.pl.periods.length <= 3 && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Our data provider holds only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} of {basis} statements for this company (it may be newly listed, or have started publishing these accounts recently). The Consolidated / Standalone switch above shows the other set.</p>}
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
         <div className="tools">
           <BasisToggle symbol={f.meta.symbol} shown={f.meta.statement} />
