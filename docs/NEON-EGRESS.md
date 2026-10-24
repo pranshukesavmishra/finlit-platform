@@ -8,21 +8,22 @@ So the rule for this codebase is: **never read a table on a timer; probe, then f
 
 ## What reads what, and how often
 
-Sizes are estimates from the code (nothing could be measured from the repository): a stored score row with its `metrics` is about 5 KB (about 5,800
-companies, so the whole table is about 30 MB); about 600 companies hold a full report (about 100 KB across its sections, price history included) and
-get a live quote every minute in market hours. Check the real numbers with `/api/admin/db-usage` (below).
+Sizes are estimates (the database itself could not be measured from the repository): a stored score row's `metrics` text is **7.3 KB** (measured on the
+recorded RELIANCE fixture: 311 figures), so the 5,800 companies are about **40 MB** to read once; about 600 companies hold a full report (about 100 KB across
+its sections, price history included, an assumption) and get a live quote every minute in market hours. Check the real numbers with
+`/api/admin/db-usage` (below).
 
 | Reader | When | Per run before | Per run after | How |
 |---|---|---|---|---|
-| Screener table (`screener/data.py`; screener, query builder, compare, results, advanced charts) | any request after the gap | ~30 MB every 10 min | probe ~200 B; changed rows only (~3 MB in market hours, 5 KB per changed company) | rows cached compressed in Redis; see below |
-| Quote job `refresh_metrics_for` (every minute, 09:00-15:59 IST) | 420 runs a day | every touched company's sections from Postgres: 5-60 MB | 0 in steady state | inputs kept in Redis (`mi:*`), summary from Redis |
+| Screener table (`screener/data.py`; screener, query builder, compare, results, advanced charts) | any request after the gap | ~40 MB every 10 min | probe ~200 B; changed rows only (~4 MB per check in market hours: 600 companies x 7 KB) | rows cached compressed in Redis; see below |
+| Quote job `refresh_metrics_for` (every minute, 09:00-15:59 IST) | 420 runs a day | every touched company's sections from Postgres: 5-60 MB | 0 in steady state (a refill of the cut inputs after Redis loses them: ~4 KB a company) | inputs kept in Redis (`mi:*`, cut to what the figures read), summary from Redis |
 | `security_map` (same job) | every minute | join over `companies` x `dhan_instruments`, ~20 KB | 0 | Redis `dhan:secmap`, dropped by `dhan:instruments:ver` |
 | `snapshot_symbols` (same job) | every minute | ~15 KB | 0 (once per 30 min) | Redis `quotes:symbols` |
 | Results page (`results.py`) | while the page is used | feed 3 MB every 2 min plus a quarter ~1 MB every 3 min | feed read only when it changed; a quarter at most every 30 min in market hours, and not at all outside them unless a probe says something moved | Redis `results:decl`, probe |
 | `refresh-results` (hourly, worker) | 16 a day | the same 3 MB feed read | Redis copy | shares `results:decl` |
 | Search box prices (`search.py`) | while used, every 2 min | 0.5 MB per level | changed companies only (~40 KB) | Redis `search-quotes:raw` |
 | Name list (`store.search_index`) | every hour, and after every chunk of a bulk load | ~350 KB | every 6 hours, and once at the end of a bulk load | longer TTL, one drop per load |
-| Saved-screen emails (`screens.py`, 07:30 weekdays) | daily | the whole score table, ~30 MB | only the figures the members' screens use, ~1.5 MB | cut inside the query |
+| Saved-screen emails (`screens.py`, 07:30 weekdays) | daily | the whole score table, ~40 MB | only the figures the members' screens use, ~1.5 MB | cut inside the query |
 | Alerts, statement figures (`alertengine.py`, 19:30) | daily | whole `financials`/`ownership` reports, ~40 KB a watched company | ~1 KB a company | `jsonb` cut inside the query |
 | Profit-and-loss flags (`plalerts.py`, 19:30) | daily | whole `financials` reports | the two P&L tables | same |
 | Alerts, live (`check-alerts --kind live`, every 10 min) | 42 a day | scores of alerted symbols, bytes | unchanged | already small |
@@ -39,10 +40,15 @@ get a live quote every minute in market hours. Check the real numbers with `/api
   again for **all** the rows of those symbols, so a changed standalone row never beats an unchanged consolidated one.
 * **Reconcile** (every 6 hours, or at once when the row count fell and nothing was written, which is a prune): the list of symbols (pruned
   companies go, new ones are read), the unscored companies, listing figures, index members and score history.
-* **Full read** (every 7 days, or when Redis has nothing, or the database looks like another one): everything from Postgres, about 30 MB.
-* The compressed rows (about 5-8 MB) live in Redis under `screener:rows:<db tag>` and in the web process; a restart reads them from Redis. If Redis is
-  missing or evicts the key, the next check reads Postgres (one full read). The key carries a tag of the database host, so a new Neon project never
-  reuses the old project's rows.
+* **Full read** (every 7 days, or when Redis has nothing at a restart, or the database looks like another one): everything from Postgres, about 40 MB.
+* The compressed rows (**8-13 MB**; 12.9 MB for 5,800 copies of the RELIANCE figures with randomised numbers, a pessimistic case) live in the web
+  process and in Redis under `screener:rows:<db tag>`. Redis is written after a full read or a reconcile (a few times a day), not after each
+  delta: rewriting that much into a 25 MB Redis every 30 minutes would push everything else out. A restart reads the rows from Redis and fetches
+  what changed since (at most 6 hours of changes). If Redis lost the key, the restart does one full read. The key carries a tag of the database host,
+  so a new Neon project never reuses the old project's rows.
+* **Redis space**: the cached rows (~10 MB) and the quote job's inputs (~600 x 12 KB = ~7 MB) are most of the free 25 MB. The quote job's keys are read every
+  minute, so when Redis is full the least recently used keys go first (old stock pages, then the screener rows); everything falls back to Postgres,
+  at the cost above. If Redis runs near full all the time, lower `INGEST_LIMIT` or take a bigger Redis.
 * The Table is built from the rows exactly as before (`Table.__init__` is untouched).
 
 ### Cadence and freshness, as chosen
@@ -65,7 +71,7 @@ open `GET /api/admin/db-usage`. It returns the 15 statements that returned the m
 text (trimmed), `calls`, total `rows` and `rowsPerCall`, or `{"enabled": false, "message": ...}` if the extension is not there (then run
 `CREATE EXTENSION pg_stat_statements;` once in Neon's SQL editor).
 
-How to read it: Postgres does not count bytes per statement, so multiply rows by the rough row size (a screener row is ~5 KB, most others
+How to read it: Postgres does not count bytes per statement, so multiply rows by the rough row size (a screener row is ~7 KB, most others
 under 200 bytes). A statement with a large `rows` total is where the bytes are. Statistics may reset when the Neon compute restarts (it suspends
 after 5 idle minutes; the always-on keep-alive normally prevents that), so look at it daily and compare.
 

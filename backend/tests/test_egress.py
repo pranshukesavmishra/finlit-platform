@@ -138,6 +138,20 @@ async def test_a_restart_reads_redis_not_postgres_and_a_redis_miss_falls_back_to
     assert t.n == 3 and calls["_full"] == 2
 
 
+async def test_a_report_without_price_takes_it_from_the_listing_and_unscored_companies_carry_listing_figures(seeded):
+    async with seeded.pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET metrics = '{\"pe\": 12}'::jsonb, changed_at = now() WHERE symbol = 'BBB'")
+        await conn.execute("INSERT INTO listing_quotes (symbol, price, change_pct, market_cap, high52, low52, volume) VALUES "
+                           "('BBB', 55.5, 1.5, 777, 80, 40, 1000), ('CCC', 9.5, -2, 300, 12, 8, 500)")
+    t = await data.get_table(seeded)
+    b, c = t.pos["BBB"], t.pos["CCC"]
+    assert t.cols["price"][b] == 55.5 and t.cols["market_cap"][b] == 777 and t.cols["pe"][b] == 12 and t.full[b]      # patched from the listing row
+    assert t.cols["price"][c] == 9.5 and t.cols["ret_1d"][c] == -2 and not t.full[c] and t.cols["pe"][c] != t.cols["pe"][c]
+    assert t.cols["price"][t.pos["AAA"]] == 10                                                                      # a report that holds its price keeps it
+    fresh = await data._load(seeded)
+    assert fresh.cols["price"] == t.cols["price"] and fresh.symbols == t.symbols
+
+
 async def test_another_database_never_reuses_the_saved_rows(seeded):
     await data.get_table(seeded)
     async with seeded.pool.acquire() as conn:
@@ -272,6 +286,12 @@ async def test_metrics_after_a_quote_patch_are_the_same_from_redis_the_database_
         async with st.pool.acquire() as conn:
             return json.loads(await conn.fetchval("SELECT metrics FROM scores WHERE symbol = 'RELIANCE' AND statement = 'consolidated' AND model = 'v1'"))
 
+    from finlit.store import INPUT_SECTIONS, cut_input
+    await st.redis.delete("mi:RELIANCE:consolidated")
+    from_pg = (await st.metric_inputs([("RELIANCE", "consolidated")]))[("RELIANCE", "consolidated")]
+    full = {r["section"]: json.loads(r["body"]) for r in rows}
+    assert set(from_pg) == set(INPUT_SECTIONS) and "glossary" not in from_pg["ratios"]
+    assert from_pg == {k: json.loads(json.dumps(cut_input(k, full[k]))) for k in INPUT_SECTIONS}      # the cut made in SQL is the cut made in Python
     await st.redis.delete("mi:RELIANCE:consolidated")
     assert await refresh_metrics_for(st, [("RELIANCE", "consolidated")]) == 1                     # inputs from Postgres (price history cut inside the database)
     assert await stored() == orjson.loads(orjson.dumps(want))

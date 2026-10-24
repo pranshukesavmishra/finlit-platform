@@ -237,11 +237,9 @@ def _the_lock() -> asyncio.Lock:
 
 
 def _plain(r: Any) -> dict:
-    """A database row as plain JSON-able values (the metrics parsed once, numbers as floats: the table reads them with float() anyway)."""
-    out = {k: (float(v) if isinstance(v, Decimal) else v) for k, v in dict(r).items()}
-    if isinstance(out.get("metrics"), str):
-        out["metrics"] = json.loads(out["metrics"])
-    return out
+    """A database row as plain JSON-able values (numbers as floats: the table reads them with float() anyway). The metrics stay the JSON text the database
+    sent: as parsed objects they would take four times the memory (the free server has 512 MB), and the table parses them row by row."""
+    return {k: (float(v) if isinstance(v, Decimal) else v) for k, v in dict(r).items()}
 
 
 def _iso(v: Optional[datetime]) -> Optional[str]:
@@ -379,8 +377,11 @@ def _build(state: dict) -> Table:
     rows = [state["rows"][s] for s in sorted(state["rows"])]
     lq = state["lq"]
     for i, r in enumerate(rows):   # a stored report that lacks the price or market cap (half-loaded) takes them from the listing row, where we hold them
-        q, m = lq.get(r["symbol"]), r.get("metrics")
-        if q and m and any(m.get(k) is None and q.get(k) is not None for k in ("price", "market_cap")):
+        q, raw = lq.get(r["symbol"]), r.get("metrics")
+        if not q or not raw or (isinstance(raw, str) and '"price"' in raw and '"market_cap"' in raw and "null" not in raw):
+            continue   # (a report that holds both figures, and no null, needs no parsing to know it needs nothing)
+        m = json.loads(raw) if isinstance(raw, str) else raw
+        if m and any(m.get(k) is None and q.get(k) is not None for k in ("price", "market_cap")):
             rows[i] = {**r, "metrics": {**m, **{k: float(q[k]) for k in ("price", "market_cap") if m.get(k) is None and q.get(k) is not None}}}
     light = [with_listing({**r, **{k: lq.get(r["symbol"], {}).get(k) for k in QUOTE_COLS}}) for r in state["light"].values()]
     return Table(rows + light, state["mem"], state["move"], state["fno"])
@@ -412,7 +413,9 @@ async def _sync(store, force: bool = False) -> None:
                 state = None
             if state and (state.get("fmt") != FORMAT or not state.get("sig") or now - state["full_at"] >= FULL_EVERY):
                 state = None
-    changed = True
+            if state:
+                _blob = blob
+    changed = persist = True
     if state is not None:
         try:
             probe = await _probe(store)
@@ -422,6 +425,7 @@ async def _sync(store, force: bool = False) -> None:
             state = None   # the database is not the one the rows came from (restored, replaced): start again
         else:
             changed = await _catch_up(store, state, probe, now)
+            persist = state["recon_at"] == now   # Redis gets the rows after a full read or a reconcile, not after each delta: 8-13 MB written every 30 minutes would push the other keys out of a small Redis
     if state is None:
         state = await _full(store, now)
     if changed or _table is None:
@@ -430,10 +434,11 @@ async def _sync(store, force: bool = False) -> None:
         _table.loaded = now   # nothing moved: the table in memory is as current as a new one would be
     if changed:
         _blob = await asyncio.to_thread(_pack, state)
-        try:
-            await store.redis.set(key, _blob, ex=CACHE_TTL)
-        except Exception:
-            log.warning("screener rows not saved to Redis")
+        if persist:
+            try:
+                await store.redis.set(key, _blob, ex=CACHE_TTL)
+            except Exception:
+                log.warning("screener rows not saved to Redis")
 
 
 def with_listing(r: dict) -> dict:

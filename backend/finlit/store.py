@@ -32,13 +32,18 @@ STOCK_TTL = 6 * 3600
 SEARCH_TTL = 6 * 3600   # the name list (~350 KB read from Postgres to build); a load or a universe refresh drops it sooner
 QUOTE_SYMBOLS_KEY = "quotes:symbols"   # who the minute-by-minute quote job updates: the list changes when a report is first loaded or pruned, not every minute
 QUOTE_SYMBOLS_TTL = 1800
-# What the screener figures are worked out from, besides the live summary: unchanged between full loads, so the quote job keeps them (compressed, price
-# history cut down to what the figures read) in Redis and does not read ~100 KB a company from Postgres every minute.
+# What the screener figures are worked out from, besides the live summary: unchanged between full loads, so the quote job keeps them in Redis (compressed,
+# and cut to the parts screener/compute.py and advanced/derive.py read: the glossary alone is 32 KB of a ratios report) and does not read ~100 KB a company
+# from Postgres every minute. If a figure starts to read another part, add it here: tests/test_egress.py compares the figures both ways.
 INPUT_SECTIONS = ("financials", "ratios", "ownership", "events", "stats", "price")
 INPUT_TTL = 8 * 86400   # renewed every time the quote job reads them
-# The same cut-down price section made inside Postgres, so a cache miss does not pull the whole price history across the wire either.
-PRICE_CUT_SQL = ("jsonb_build_object('daily', jsonb_build_object('t', j #> '{daily,t}', 'c', j #> '{daily,c}', 'v', j #> '{daily,v}'), "
-                 "'technical', j -> 'technical')")
+# The same cuts made inside Postgres (j = the section parsed), so a cache miss does not pull the whole report across the wire either.
+INPUT_CUT_SQL = ("CASE section "
+                 "WHEN 'ratios' THEN jsonb_build_object('latest', j -> 'latest', 'history', j -> 'history', 'valuationHistory', j -> 'valuationHistory')::text "
+                 "WHEN 'stats' THEN jsonb_build_object('volatility', jsonb_build_object('current', j #> '{volatility,current}'), 'drawdown', jsonb_build_object('max', j #> '{drawdown,max}'))::text "
+                 "WHEN 'events' THEN jsonb_build_object('actions', j -> 'actions', 'dividendsByFY', j -> 'dividendsByFY')::text "
+                 "WHEN 'price' THEN jsonb_build_object('daily', jsonb_build_object('t', j #> '{daily,t}', 'c', j #> '{daily,c}', 'v', j #> '{daily,v}'), 'technical', j -> 'technical')::text "
+                 "ELSE body END")
 VIEWED_KEY = "viewed"   # sorted set: symbol -> last time a member or visitor opened its report (keeps it stored when pruning)
 # What the website lists for every company. The 170 screener numbers (scores.metrics) are left out on purpose: they are ~2 KB a company and only /api/screener/query needs them.
 LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
@@ -82,11 +87,19 @@ def inputs_key(symbol: str, statement: str) -> str:
     return f"mi:{symbol.upper()}:{statement}"
 
 
-def cut_price(price: Any) -> dict:
-    """The price section as the screener figures read it: dates, closes and volumes of the daily history, and the technical block."""
-    p = price if isinstance(price, dict) else {}
-    d = p.get("daily") if isinstance(p.get("daily"), dict) else {}
-    return {"daily": {k: d.get(k) for k in ("t", "c", "v")}, "technical": p.get("technical")}
+def cut_input(name: str, body: Any) -> Any:
+    """A stored section as the screener figures read it (the same cut INPUT_CUT_SQL makes in the database)."""
+    g = (lambda d, k: d.get(k) if isinstance(d, dict) else None)
+    if name == "ratios":
+        return {k: g(body, k) for k in ("latest", "history", "valuationHistory")}
+    if name == "stats":
+        return {"volatility": {"current": g(g(body, "volatility"), "current")}, "drawdown": {"max": g(g(body, "drawdown"), "max")}}
+    if name == "events":
+        return {k: g(body, k) for k in ("actions", "dividendsByFY")}
+    if name == "price":
+        d = g(body, "daily")
+        return {"daily": {k: g(d, k) for k in ("t", "c", "v")}, "technical": g(body, "technical")}
+    return body
 
 
 def prepare_dsn(url: str) -> tuple:
@@ -212,7 +225,7 @@ class Store:
             return
         try:
             if all(k in sections for k in INPUT_SECTIONS):
-                packed = zlib.compress(orjson.dumps({k: (cut_price(sections[k]) if k == "price" else sections[k]) for k in INPUT_SECTIONS}), 6)
+                packed = zlib.compress(orjson.dumps({k: cut_input(k, sections[k]) for k in INPUT_SECTIONS}), 6)
                 await self.redis.set(inputs_key(symbol, statement), packed, ex=INPUT_TTL)
                 await self.redis.delete(QUOTE_SYMBOLS_KEY)   # a company that was not being quoted may be now
             else:
@@ -259,8 +272,9 @@ class Store:
             grouped: Dict[Tuple[str, str], Dict[str, dict]] = {}
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(
-                    "SELECT symbol, statement, section, CASE WHEN section = 'price' THEN (SELECT " + PRICE_CUT_SQL + " FROM (SELECT body::jsonb AS j) x)::text ELSE body END AS body "  # nosec B608 - fixed text
-                    "FROM snapshots WHERE (symbol, statement) IN (SELECT * FROM unnest($1::text[], $2::text[])) AND section = ANY($3::text[])",
+                    "SELECT symbol, statement, section, " + INPUT_CUT_SQL + " AS body FROM (SELECT symbol, statement, section, body, "  # nosec B608 - fixed text
+                    "CASE WHEN section IN ('ratios', 'stats', 'events', 'price') THEN body::jsonb END AS j FROM snapshots "
+                    "WHERE (symbol, statement) IN (SELECT * FROM unnest($1::text[], $2::text[])) AND section = ANY($3::text[])) x",
                     [s for s, _ in miss], [st for _, st in miss], list(INPUT_SECTIONS))
             for r in rows:
                 grouped.setdefault((r["symbol"], r["statement"]), {})[r["section"]] = orjson.loads(r["body"])
