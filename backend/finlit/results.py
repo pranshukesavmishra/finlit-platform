@@ -45,7 +45,7 @@ IST = ZoneInfo("Asia/Kolkata")
 GAP_FLAG = 15.0            # percentage points between revenue growth and profit growth that earns the red chip (same as the alert's default)
 TTL_LATEST, TTL_OLD = 180, 3600   # seconds a quarter's rows are served before they are rebuilt in the background
 DECL_TTL = 120
-MARKET_TTL = 900           # while the market is open the stored figures move every minute (market cap, size band): rebuild a quarter this often at most
+MARKET_TTL = 1800          # while the market is open the stored figures move every minute (market cap, size band): rebuild a quarter this often at most
 DECL_KEY = "results:decl"  # the declarations worked out from the feed, kept in Redis under the feed's signature: the hourly job and the site share them
 PROBE_SQL = ("SELECT (SELECT count(*) FROM feed_items WHERE kind = 'result') AS fn, (SELECT max(id) FROM feed_items WHERE kind = 'result') AS fid, "
              "(SELECT count(*) FROM scores WHERE model = 'v1') AS sn, (SELECT max(changed_at)::text FROM scores WHERE model = 'v1') AS sa, "

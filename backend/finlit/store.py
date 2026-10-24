@@ -35,7 +35,7 @@ QUOTE_SYMBOLS_TTL = 1800
 # What the screener figures are worked out from, besides the live summary: unchanged between full loads, so the quote job keeps them (compressed, price
 # history cut down to what the figures read) in Redis and does not read ~100 KB a company from Postgres every minute.
 INPUT_SECTIONS = ("financials", "ratios", "ownership", "events", "stats", "price")
-INPUT_TTL = 4 * 86400
+INPUT_TTL = 8 * 86400   # renewed every time the quote job reads them
 # The same cut-down price section made inside Postgres, so a cache miss does not pull the whole price history across the wire either.
 PRICE_CUT_SQL = ("jsonb_build_object('daily', jsonb_build_object('t', j #> '{daily,t}', 'c', j #> '{daily,c}', 'v', j #> '{daily,v}'), "
                  "'technical', j -> 'technical')")
@@ -240,7 +240,10 @@ class Store:
         what it does not hold is read from Postgres once and kept."""
         out: Dict[Tuple[str, str], Dict[str, dict]] = {}
         try:
-            hits = await self.redis.mget([inputs_key(s, st) for s, st in pairs])
+            async with self.redis.pipeline(transaction=False) as pipe:   # GETEX: reading them keeps them (a weekend does not empty the cache)
+                for s, st in pairs:
+                    pipe.getex(inputs_key(s, st), ex=INPUT_TTL)
+                hits = await pipe.execute()
         except Exception:
             hits = [None] * len(pairs)
         miss = []
