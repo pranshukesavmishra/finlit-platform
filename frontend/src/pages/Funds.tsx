@@ -11,7 +11,7 @@ import { dateIN, nf } from "../lib/format";
 import {
   AUM_BUCKETS, CHECKS, EMPTY_QUERY, RETURN_LABELS, TRAY_MAX, catNames, categoryShort, compareUrl, effectiveQuery, navFull, navText, parseIds, parseQuery, pctText, queryToParams, readCols, rowSortValue, subCats, tone,
   useFundCompare, useFundDetail, useFundFacts, useFundFilters, useFundList, useFundPortfolio, useHotList, useTray, writeCols,
-  type ColId, type CompareFund, type FundDetail, type ListQuery, type RangeKey, type SortKey,
+  type ColId, type CompareFund, type FundDetail, type FundRow, type ListQuery, type RangeKey, type SortKey,
 } from "../lib/mf";
 import { keyLabel, selectionTitle, tabLabel } from "../lib/mfCategories";
 import { ColumnPicker, Controls, Pager } from "../mf/Controls";
@@ -42,6 +42,12 @@ const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 // ================================================================================================ list
 
 /** How to read the category table: what each figure is, where it comes from, and the checklist's rules. */
+/** Every active Growth fund on the page has NAV rows but no return at all: the long history has not been loaded yet (not "the funds are young"). */
+function historyLoading(items: FundRow[]): boolean {
+  const growth = items.filter((r) => r.active && r.optionClass === "Growth");
+  return growth.length >= 5 && growth.every((r) => r.r1y == null && r.r3y == null && r.r5y == null && r.noReturns === "short");
+}
+
 function Legend() {
   return (
     <section className="faint mf-legend" aria-label="How to read the table">
@@ -144,6 +150,7 @@ export function FundListPage() {
           <>
           <SummaryCards items={d.items} total={d.total} />
           {summarise(d.items).extrasLoading && <LoadingNotice />}
+          {historyLoading(d.items) && <p className="mf-note" role="status"><Icon name="info" /><span><b>Return history is still loading.</b> None of the funds on this page has its 1, 3 or 5 year return yet because the NAV history from AMFI is loaded one fund house at a time. The figures appear as each house finishes; nothing here is missing for good.</span></p>}
           <SortPills q={eq} onSort={(sort, dir) => set({ sort: sort as SortKey, dir })} />
           <div className="card mf-tablecard">
             <FundTable rows={d.items} cols={cols} q={eq} onSort={onSort} picked={tray} onPick={pick} peers={d.peers} />
