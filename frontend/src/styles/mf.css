@@ -332,3 +332,7 @@
 .mf-bands { margin: 4px 0 10px; } .mf-bands table { width: auto; min-width: min(100%, 320px); max-width: 100%; border-collapse: collapse; font-size: 13px; }
 .mf-bands th, .mf-bands td { text-align: left; padding: 7px 18px 7px 0; border-bottom: 1px solid var(--border); white-space: normal; overflow-wrap: anywhere; }
 .mf-bands th { font-weight: 600; color: var(--muted); }
+
+/* return and cost bands: one quiet word under the figure, tinted by where it sits */
+.mf-band { display: block; font: 600 10.5px var(--sans); letter-spacing: .01em; color: var(--muted); white-space: nowrap; }
+.mf-band.b0 { color: var(--loss); } .mf-band.b3, .mf-band.c1 { color: var(--gain); } .mf-band.c3 { color: var(--loss); }
