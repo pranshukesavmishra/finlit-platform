@@ -16,6 +16,24 @@ def _span(rows: Any) -> Optional[str]:
     return f"{len(ends)}: {ends[0]}..{ends[-1]}" if ends else "0"
 
 
+def _shape(payload: Any) -> str:
+    """What an endpoint answered: the longest list in it, how many entries, and the period range or the first keys."""
+    if isinstance(payload, list):
+        lst, name = payload, "list"
+    elif isinstance(payload, dict):
+        lists = [(k, v) for k, v in payload.items() if isinstance(v, list)]
+        if not lists:
+            return "keys " + ",".join(list(payload)[:8])
+        name, lst = max(lists, key=lambda kv: len(kv[1]))
+    else:
+        return str(type(payload).__name__)
+    if not lst:
+        return f"{name}: 0"
+    first = lst[0] if isinstance(lst[0], dict) else {}
+    span = _span(lst) if any(k in first for k in ("period_end", "year")) else "-"
+    return f"{name}: {len(lst)} ({span}); keys " + ",".join(list(first)[:10])
+
+
 async def probe(client, store, settings, symbols: Optional[List[str]] = None) -> Dict[str, dict]:
     out: Dict[str, dict] = {}
     up = upstox.UpstoxClient(settings=settings, redis=store.redis)
@@ -30,6 +48,15 @@ async def probe(client, store, settings, symbols: Optional[List[str]] = None) ->
                         row[f"finedge {basis} {key}"] = _span(await client.get(path, params, timeout=timeout, retries=1))
                     except Exception as exc:
                         row[f"finedge {basis} {key}"] = f"error {str(exc)[:40]}"
+            if sym == (symbols or DEFAULT)[0]:       # every other endpoint the old site might have read, for the first company only
+                for basis in ("consolidated", "standalone"):
+                    for key, (path, params, timeout) in bundle_requests(sym, basis).items():
+                        if key in ("pl_annual", "bs_annual", "cf_annual", "profile", "peers", "quote", "daily_quotes", "daily_price_ratios", "corporate_actions", "announcements", "shareholding", "dividends"):
+                            continue
+                        try:
+                            row[f"{basis} {key}"] = _shape(await client.get(path, params, timeout=timeout, retries=1))
+                        except Exception as exc:
+                            row[f"{basis} {key}"] = f"error {str(exc)[:40]}"
             company = await store.company(sym)
             row["upstox"] = "token set" if up.enabled else "no token"
             if up.enabled and company:
