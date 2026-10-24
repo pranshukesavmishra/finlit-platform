@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { COMPANY, SERVICES } from "../content/site";
 import { FAQ_GROUPS } from "../content/faq";
@@ -11,14 +11,26 @@ import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
 import { useAuth } from "../lib/auth";
+import { Safe3D } from "../three/Safe3D";
+import { supports3d, whenIdle } from "../three/support";
 import "../styles/human-home.css";
+
+const Hero3D = lazy(() => import("../three/Hero3D"));
+const ScoreTower3D = lazy(() => import("../three/ScoreTower3D"));
+
+/** True once the browser is idle and the device can run WebGL scenes; until then (and for everyone else) the flat page is shown. */
+function use3d(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => whenIdle(() => setOn(supports3d())), []);
+  return on;
+}
 
 const SAMPLE = "RELIANCE";
 const PILLAR_VAR: Record<string, string> = { quality: "--p-quality", growth: "--p-growth", profitability: "--p-profit", balance: "--p-balance", technical: "--p-tech" };
 const inr = (n: number) => n.toLocaleString("en-IN");
 
 /** A real score card for a real stock, read from the same API the report page uses. */
-function ScoreCard({ s }: { s?: Summary }) {
+function ScoreCard({ s, tower }: { s?: Summary; tower?: boolean }) {
   if (!s) return <div className="hh-card" aria-busy="true"><div className="skeleton" style={{ height: 300 }} /></div>;
   const o = s.score.overall ?? 0, circ = 2 * Math.PI * 46, up = (s.quote.changePct ?? 0) >= 0;
   return (
@@ -34,6 +46,7 @@ function ScoreCard({ s }: { s?: Summary }) {
         </svg>
         <ul className="hh-bars">{s.score.pillars.map((p) => <li key={p.key} style={{ "--pc": `var(${PILLAR_VAR[p.key] ?? "--gold"})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: `${p.score ?? 0}%` }} /></i><em>{p.score ?? "–"}</em></li>)}</ul>
       </div>
+      {tower && <Safe3D><Suspense fallback={null}><ScoreTower3D scores={s.score.pillars.map((p) => p.score ?? 0)} /></Suspense></Safe3D>}
       <p className="hh-card-foot">Taken live from the same data as the full report. Open it →</p>
     </Link>
   );
@@ -62,12 +75,13 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
   { to: "/fii-dii", t: "FII/DII data", d: "What foreign and domestic institutions bought and sold today, their streaks, a five-year history, daily calendars, F&O positioning and a free CSV. Computed from published exchange files; information only.", tier: "Free" },
   { to: "/sip-calculator", t: "SIP calculator", d: "See what a monthly investment could grow to, with a yearly step-up, inflation, a goal planner, the cost of waiting and an after-tax estimate. Every step of the maths shown.", tier: "Free" },
   { to: "/dcf", t: "DCF calculator", d: "Work out what a business is worth from its future free cash flow: load a company's figures, set growth and discount rates, and see the value per share, the price after your margin of safety, and what today's price already assumes.", tier: "Gold" },
+  { to: "/commodities", t: "Commodity prices", d: "Gold, silver, platinum, crude oil, natural gas, copper and aluminium: the MCX futures price, the international price in dollars and an indicative import parity with the customs duty shown. No sign-in needed.", tier: "Free" },
 ];
 
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Twelve tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Sixteen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>
@@ -126,6 +140,7 @@ export function Home() {
   const enquire = useEnquiry();
   const { user } = useAuth();
   const { data: s } = useSummary(SAMPLE);
+  const webgl = use3d();
   const { data: idx } = useSearchIndex(true);
   const counts = useMemo(() => idx ? { all: idx.rows.length, ready: idx.rows.filter((r) => r[3]).length } : null, [idx]);
   useEffect(() => { if (location.hash === "#faq") setTimeout(() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }), 200); }, []);   // /faq lands here
@@ -134,7 +149,8 @@ export function Home() {
     <div className="hh">
       <section className="tagline" aria-label="Our promise"><div className="wrap"><p><span>Quantify the market</span><span className="x" aria-hidden="true">×</span><span>Research deeper</span><span className="x" aria-hidden="true">×</span><span>Track what matters</span></p></div></section>
 
-      <section className="hh-hero">
+      <section className={"hh-hero" + (webgl ? " has3d" : "")}>
+        {webgl && <Safe3D><Suspense fallback={null}><Hero3D /></Suspense></Safe3D>}
         <div className="wrap hh-hero-cols">
           <div>
             <div className="hh-kicker">Equity research · India</div>
@@ -147,7 +163,7 @@ export function Home() {
             </div>
             <p className="hh-fine">Information only. Not investment advice.</p>
           </div>
-          <ScoreCard s={s} />
+          <ScoreCard s={s} tower={webgl} />
         </div>
       </section>
 

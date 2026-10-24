@@ -38,6 +38,15 @@ class Settings:
     dhan_access_token: str = field(default_factory=lambda: os.getenv("DHAN_ACCESS_TOKEN", "").strip())
     dhan_base_url: str = field(default_factory=lambda: os.getenv("DHAN_BASE_URL", "https://api.dhan.co/v2"))
     dhan_auth_url: str = field(default_factory=lambda: os.getenv("DHAN_AUTH_URL", "https://auth.dhan.co"))
+    # Commodity prices (finlit/commodities.py). DECISION PENDING (no plan chosen yet): international USD prices and USD/INR come from metals.dev
+    # (metals, base metals, FX) and MetalpriceAPI (crude, natural gas; also metals and FX when metals.dev has no key). Empty = not connected:
+    # the page then shows the MCX price alone and says the international price is not connected. Secrets: set only in the host's dashboard.
+    metals_dev_api_key: str = field(default_factory=lambda: os.getenv("METALS_DEV_API_KEY", "").strip())
+    metalprice_api_key: str = field(default_factory=lambda: os.getenv("METALPRICEAPI_KEY", "").strip())
+    metals_dev_poll_seconds: int = field(default_factory=lambda: max(30, int(os.getenv("METALS_DEV_POLL_SECONDS", "60"))))        # $19.99 plan: 60 s fits 50,000 requests a month
+    metalprice_poll_seconds: int = field(default_factory=lambda: max(30, int(os.getenv("METALPRICEAPI_POLL_SECONDS", "600"))))   # $12 plan: 10-minute data
+    # DECISION PENDING: set to 1 only after Dhan and MCX have said in writing that prices may be shown publicly. Until then the page never says "Live".
+    commodity_mcx_display_cleared: bool = field(default_factory=lambda: os.getenv("COMMODITY_MCX_DISPLAY_CLEARED", "").strip().lower() in ("1", "true", "yes"))
     # ETF candle calls a minute after a short burst (refresh-etf). Upstox allows about 2,000 calls per 30 minutes for the whole token; 50 leaves room for other jobs.
     etf_calls_per_minute: int = field(default_factory=lambda: int(os.getenv("ETF_CALLS_PER_MINUTE", "50")))
     database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL", "postgresql://finlit:finlit@localhost:5432/finlit"))
@@ -101,6 +110,8 @@ class Settings:
 
     def validate(self) -> List[str]:
         """Problems that make a production deployment unsafe. Empty list = OK."""
+        if self.environment != "development" and self.secret_key.startswith("dev-only"):
+            return ["SECRET_KEY is the published development default: set a long random value"]   # staging too: it encrypts the stored authenticator secrets
         if not self.is_production:
             return []
         problems = []

@@ -19,6 +19,7 @@ export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" |
   { id: "screens", label: "My saved screens", blurb: "Open a saved screen and see how many companies match today.", min: "basic", size: "half" },
   { id: "buckets", label: "Watchlist by band", blurb: "How your watchlist splits across FinLit score bands.", min: "gold", size: "half" },
   { id: "dcf", label: "DCF calculator", blurb: "Your saved DCF scenarios: intrinsic value, buy price and status.", min: "gold", size: "half" },
+  { id: "commodities", label: "Gold & silver today", blurb: "MCX gold, silver and crude oil with the day change.", min: "basic", size: "half" },
   { id: "learn", label: "Term of the day", blurb: "One plain-words finance term, every day.", min: "basic", size: "half" },
 ];
 const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, screenAlerts: true, profitGap: true, digest: false, dashboard: WIDGETS.map((w) => ({ id: w.id, on: true, size: w.size })) };

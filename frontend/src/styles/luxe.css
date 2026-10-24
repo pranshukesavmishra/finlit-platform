@@ -127,9 +127,9 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 
 /* a soft light that follows the pointer across cards and tiles (only where there is a mouse) */
 @media (hover: hover) and (pointer: fine) {
-  .card::after, :root .mk-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+  .card:not([data-tilt])::after, :root .mk-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
     background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--gold) 9%, transparent), transparent 62%); }
-  .card:hover::after, :root .mk-tile:hover::after { opacity: 1; }
+  .card:not([data-tilt]):hover::after, :root .mk-tile:hover::after { opacity: 1; }
 }
 :root .mk-tile { position: relative; }
 
@@ -222,3 +222,7 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 :root:root:root .ai-fab { background: linear-gradient(160deg, #2C5441, #1F3B2D 55%, #0F2018); color: #F6EBCB; border: 1px solid color-mix(in srgb, #D9B96C 45%, transparent); box-shadow: 0 14px 30px -14px rgba(15, 32, 24, .75); }
 :root:root:root .ai-fab:hover { filter: brightness(1.08); }
 :root:root:root .ai-fab svg { color: #E3C57E; }
+
+/* the 3D landscape in the home hero takes the band's colours, and the wash behind the words is forest, not paper */
+:root .hh-hero { --scene-paper: #10221A; --scene-light: 0; }
+:root .hh-hero.has3d::after { background: radial-gradient(42% 46% at 24% 48%, rgba(12, 24, 18, .78) 35%, transparent 80%); }

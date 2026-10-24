@@ -43,6 +43,7 @@ export function AppShell() {
       { to: "/graphs", label: "Graph Studio", icon: "bars", end: true },
       { to: "/graphs/advanced", label: "Advanced charts", icon: "spark", sub: true },
       { to: "/etfs", label: "ETFs", icon: "activity" },
+      { to: "/commodities", label: "Commodities", icon: "activity" },
       { to: "/funds", label: "Mutual funds", icon: "pie" },
     ] },
     { title: "Gold dashboards", items: [

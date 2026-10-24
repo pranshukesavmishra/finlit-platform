@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, indices, intraday, notify, premium
+from . import alertapi, commodities, indices, intraday, notify, premium
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
@@ -66,6 +66,15 @@ MAX_BODY = 64 * 1024  # every request body in this API is small JSON
 UPLOAD_PREFIXES = ("/api/content/admin/upload", "/api/portfolio/admin/upload")  # forwarded to the site backend, which caps files at 15 MB
 MAX_UPLOAD_BODY = 16 * 1024 * 1024
 CACHE_PRIVATE = "private, no-cache"  # the browser keeps a copy but asks (cheap 304) every time, so a new plan shows at once
+
+
+class HealthSafeTrustedHost(TrustedHostMiddleware):
+    """Host check for everything except the platform's liveness probes, which may arrive with an internal Host header."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] == "http" and scope["path"].startswith(UNLIMITED_PATHS):
+            return await self.app(scope, receive, send)
+        await super().__call__(scope, receive, send)
 
 
 class RateLimitMiddleware:
@@ -239,7 +248,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                        allow_headers=["If-None-Match", "Content-Type", "X-CSRF-Token"],
                        expose_headers=["ETag", "Server-Timing", "Retry-After"], allow_credentials=True, max_age=600)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+    app.add_middleware(HealthSafeTrustedHost, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(SecurityHeadersMiddleware)
 
     @app.middleware("http")
@@ -490,6 +499,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(alertapi.router)
     app.include_router(premium.router)
     app.include_router(indices.router)
+    app.include_router(commodities.router)
     app.include_router(notify.router)
     app.include_router(screener_api.router)
     app.include_router(advanced_api.router)

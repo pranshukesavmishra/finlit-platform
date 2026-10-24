@@ -1,0 +1,89 @@
+/* Commodity prices (pages/Commodities.tsx). Built only from the site's tokens, so the light and dark themes follow. */
+.cm { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding-bottom: 48px; }
+.cm > * { min-width: 0; }
+.cm-sub { color: var(--muted); font-size: 17px; margin: 0; }
+.cm-disc { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--s2); color: var(--muted); font-size: 13.5px; line-height: 1.55; max-width: 100ch; }
+.cm-disc svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--gold); }
+
+/* status pills */
+.cm-status { display: flex; flex-wrap: wrap; gap: 8px; }
+.cm-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--s2); border: 1px solid var(--border); font-size: 13px; color: var(--text); font-variant-numeric: tabular-nums; }
+.cm-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--faint); box-shadow: 0 0 0 2px var(--s2); }
+.cm-dot.st-live { background: var(--gain); }
+.cm-dot.st-recent { background: var(--warn); }
+.cm-dot.st-delayed, .cm-dot.st-closed, .cm-dot.st-none, .cm-dot.st-off, .cm-dot.st-waiting { background: var(--faint); }
+.cm-dot.st-closed, .cm-dot.st-off, .cm-dot.st-none { background: transparent; box-shadow: inset 0 0 0 2px var(--faint); }
+.cm-notices { display: grid; gap: 8px; }
+.cm-notices p { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--gold-soft); font-size: 14px; }
+.cm-notices svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+
+/* tabs: a segmented control on wide screens, a scrolling pill row on phones */
+.cm-tabs { overflow-x: auto; margin: 0 -2px; padding: 2px; scrollbar-width: none; }
+.cm-tabs::-webkit-scrollbar { display: none; }
+.cm-seg { display: inline-flex; padding: 4px; border-radius: 12px; background: var(--s2); gap: 4px; white-space: nowrap; }
+.cm-seg button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: 600 14px var(--sans); cursor: pointer; }
+.cm-seg button[aria-pressed="true"] { background: var(--s1); color: var(--text); box-shadow: 0 1px 0 var(--border); }
+.cm-seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* cards */
+.cm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 959px) { .cm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .cm-grid { grid-template-columns: minmax(0, 1fr); } }
+.cm-card { padding: 18px 20px; display: grid; gap: 14px; min-width: 0; }
+.cm-card > header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.cm-card h2 { font: 400 24px var(--serif); margin: 0; }
+.cm-grp { font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+.cm-blk { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--border); min-width: 0; }
+.cm-blk:first-of-type { border-top: 0; padding-top: 0; }
+.cm-lbl { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.cm-contract { padding: 2px 8px; border-radius: 6px; background: var(--s3); color: var(--text); font: 600 11.5px var(--mono); letter-spacing: .02em; }
+.cm-src { color: var(--faint); }
+.cm-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.cm-big { font: 500 clamp(26px, 3.4vw, 32px)/1.1 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cm-mid { font: 500 20px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.cm-unit { font-size: 13px; color: var(--muted); }
+.cm-chg { font: 600 13px var(--mono); padding: 2px 8px; border-radius: 999px; background: var(--s2); white-space: nowrap; }
+.cm-chg.up { color: var(--gain); } .cm-chg.down { color: var(--loss); } .cm-chg.flat { color: var(--muted); }
+.cm-extra { display: grid; gap: 4px; margin: 4px 0 0; }
+.cm-extra > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; align-items: baseline; }
+.cm-extra dt { color: var(--muted); } .cm-extra dd { margin: 0; font: 500 14px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.cm-foot { display: flex; gap: 8px; align-items: center; margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.cm-note { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.cm-dash { margin: 0; color: var(--muted); font-size: 14px; }
+.cm-iline { display: grid; gap: 2px; }
+.cm-il { font-size: 12.5px; color: var(--muted); }
+/* a price that is old or not updating is dimmed, and says why in words beside it */
+.cm-mcx.st-delayed .cm-big, .cm-iline.st-stale .cm-mid { opacity: .55; }
+.cm-mcx.st-closed .cm-big { opacity: .85; }
+
+/* parity */
+.cm-par { border-top: 1px solid var(--border); padding-top: 12px; }
+.cm-par > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 14.5px; min-height: 44px; list-style: none; flex-wrap: wrap; }
+.cm-par > summary::-webkit-details-marker { display: none; }
+.cm-par > summary::after { content: "▾"; margin-left: auto; color: var(--muted); transition: transform .2s; }
+.cm-par:not([open]) > summary::after { transform: rotate(-90deg); }
+.cm-par > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.cm-tag { font: 600 11px var(--sans); padding: 2px 8px; border-radius: 999px; background: var(--gold-soft); color: var(--text); text-transform: uppercase; letter-spacing: .05em; }
+.cm-parbody { display: grid; gap: 8px; padding-top: 4px; }
+.cm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-strong); font: 600 12.5px var(--sans); background: var(--s1); }
+.cm-chip.alt { border-style: dashed; color: var(--muted); }
+
+/* converter and explainer */
+.cm-acc { padding: 6px 20px; }
+.cm-acc > summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; cursor: pointer; min-height: 44px; align-content: center; list-style: none; }
+.cm-acc > summary::-webkit-details-marker { display: none; }
+.cm-acc > summary h2 { font: 600 18px var(--sans); margin: 0; }
+.cm-acc[open] { padding-bottom: 18px; }
+.cm-conv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.4fr); gap: 12px; margin: 8px 0; }
+@media (max-width: 639px) { .cm-conv { grid-template-columns: minmax(0, 1fr); } }
+.cm-conv label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.cm-conv input, .cm-conv select { font: 400 15px var(--mono); padding: 10px 12px; min-height: 44px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s1); color: var(--text); width: 100%; }
+.cm-conv input[aria-invalid="true"] { border-color: var(--loss); }
+.cm-conv input:focus-visible, .cm-conv select:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.cm-result { font-size: 18px; margin: 6px 0; } .cm-result b { font-family: var(--mono); font-weight: 500; }
+.cm-expl h3 { font: 600 15px var(--sans); margin: 16px 0 4px; }
+.cm-expl p, .cm-expl li { font-size: 14.5px; line-height: 1.65; color: var(--muted); max-width: 90ch; margin: 0 0 6px; }
+.cm-expl ul { padding-left: 20px; margin: 0; }
+.cm-err { display: grid; gap: 10px; justify-items: start; padding: 18px 20px; }
+.cm-src-note { font-size: 12.5px; margin: 0; }

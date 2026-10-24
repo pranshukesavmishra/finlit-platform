@@ -1,6 +1,6 @@
 import { HScroll } from "../components/HScroll";
 import { SplitDivider, useSideWidth } from "../components/SplitDivider";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
@@ -13,8 +13,12 @@ import { screens, useSavedScreens } from "../lib/screens";
 import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
+import { Safe3D } from "../three/Safe3D";
+import { supports3d, whenIdle } from "../three/support";
 import { ChartHelp } from "../components/ChartHelp";
 import { matchesMetric, rankMetrics } from "../lib/metricSearch";
+
+const Cloud3D = lazy(() => import("../three/Cloud3D"));
 
 const TIER_ORDER: Plan[] = ["basic", "silver", "gold"];
 const PAGE = 50;
@@ -171,6 +175,16 @@ export function ScreenerPro() {
   const listed = fl || moreGroups ? groups : groups.slice(0, VISIBLE_GROUPS);
   const facetOpen = (id: string) => !!(open[id] || fl);
   const facetMatch = (label: string) => !fl || label.toLowerCase().includes(fl);
+  const [webgl, setWebgl] = useState(false);
+  useEffect(() => { if (supports3d()) return whenIdle(() => setWebgl(true)); }, []);
+  /** The first three shown columns that hold numbers become the three axes of the 3D view. */
+  const cloud = useMemo(() => {
+    const cs = (res.data?.columns || []).filter((k) => byKey.get(k)?.unit !== "flag" && rows.filter((r) => typeof r.v[k] === "number").length >= 5).slice(0, 3);
+    if (cs.length < 3) return null;
+    const pts = rows.filter((r) => cs.every((k) => typeof r.v[k] === "number" && isFinite(r.v[k] as number)))
+      .map((r) => ({ id: r.symbol, label: `${r.symbol}: ${cs.map((k) => `${byKey.get(k)?.label} ${fmtMetric(byKey.get(k)!, r.v[k])}`).join(" · ")}`, x: r.v[cs[0]] as number, y: r.v[cs[1]] as number, z: r.v[cs[2]] as number }));
+    return pts.length >= 5 ? { pts, axes: cs.map((k) => byKey.get(k)?.label || k) as [string, string, string] } : null;
+  }, [rows, res.data?.columns, byKey]);
   const heat = useMemo(() => {
     const out: Record<string, [number, number]> = {};
     for (const k of res.data?.columns || []) { const v = rows.map((r) => r.v[k]).filter((x): x is number => x != null).sort((a, b) => a - b); if (v.length > 6) out[k] = [v[Math.floor(v.length * 0.25)], v[Math.floor(v.length * 0.75)]]; }
@@ -283,6 +297,8 @@ export function ScreenerPro() {
               : res.isError ? <div className="state"><h2>That filter is part of a higher plan</h2><p>{err?.body?.detail}</p><button className="btn primary" onClick={() => ask((err?.body?.plan as Plan) || "silver", err?.body?.detail || "")}>See the plan</button></div>
               : !res.data ? <div className="skeleton" style={{ height: 380 }} aria-busy="true" /> : (
                 <>
+                  {webgl && cloud && <Safe3D><Suspense fallback={null}><Cloud3D points={cloud.pts} axes={cloud.axes} onPick={(id) => nav(`/stocks/${id}`)}
+                    label={`The ${cloud.pts.length} companies on this page as points in 3D, spread by ${cloud.axes.join(", ")}. The table below lists the same numbers.`} /></Suspense></Safe3D>}
                   <HScroll className={"scr-tw" + (res.isFetching ? " is-busy" : "")} label="results table"><table className="scr-t">
                     <thead><tr><th className="stick"><button onClick={() => sortBy("name")}>Company {sort.key === "name" ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>
                       {res.data.columns.map((k) => { const m = byKey.get(k); return <th key={k}><button onClick={() => sortBy(k)} title={m?.say} aria-label={`Sort by ${m?.label}`}>{m?.label} {sort.key === k ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>; })}</tr></thead>

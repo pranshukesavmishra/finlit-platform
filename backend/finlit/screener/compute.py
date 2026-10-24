@@ -342,7 +342,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
 
     # ---------------- trading, range, trend
     daily = price_sec.get("daily") or {}
-    closes, vols = [_n(x) for x in daily.get("c") or []], [_n(x) for x in daily.get("v") or []]
+    vols = [_n(x) for x in daily.get("v") or []]
     tech = price_sec.get("technical") or {}
     out["volume"] = _n(quote.get("volume")) or _last(vols)
     v20 = [x for x in vols[-21:-1] if x is not None]

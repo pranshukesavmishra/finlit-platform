@@ -17,7 +17,9 @@ import {
   GROWTH_PRESETS, INDIA_DEFAULTS, MOS_PRESETS, STATUS_TEXT, around, costOfCapital, defaultScenarios, impliedGrowth, impliedReturn, run, scenarios, sensitivity,
   type CostOfCapital, type DcfInputs, type DcfResult, type GrowthPreset, type Issue, type Scenario,
 } from "../lib/dcf";
+import { With3D } from "../charts/With3D";
 import "../styles/dcf.css";
+
 
 // ------------------------------------------------------------------------------------------------------------- form state
 type Form = {
@@ -261,11 +263,16 @@ function Grid({ title, note, i, rowKey, rows, rowLabel, colKey, cols, colLabel }
   title: string; note: string; i: DcfInputs; rowKey: keyof DcfInputs; rows: number[]; rowLabel: string; colKey: keyof DcfInputs; cols: number[]; colLabel: string;
 }) {
   const grid = sensitivity(i, rowKey, rows, colKey, cols);
+  const bi = rows.indexOf(i[rowKey] as number), bj = cols.indexOf(i[colKey] as number);
   const buy = (v: number) => v * (1 - i.mos / 100);
   const cls = (v: number | null) => (v == null ? "na" : i.price <= buy(v) ? "s-buy" : i.price > v ? "s-over" : "s-fair");
   return (
     <div className="dcf-sens">
       <h4>{title}</h4>
+      <With3D label={`${title}, as a 3D surface of intrinsic value per share`}
+        hint={`How to read it: height is the value per share for each pair of assumptions (${colLabel.toLowerCase()} across, ${rowLabel.toLowerCase()} deep). ${i.price > 0 ? `The glass sheet is today's price, ${rs(i.price)}: where the surface rises above it the stock looks cheap on those assumptions, where it sinks below it the stock looks expensive. ` : ""}The ball is your base case. Move the pointer over the surface to read any cell, and press and drag to turn it; the same numbers are in the table below.`}
+        spec={{ kind: "surface", grid, rowTicks: rows.map((r) => nf(r, 2) + "%"), colTicks: cols.map((c) => nf(c, 2) + "%"), rowTitle: rowLabel, colTitle: colLabel, valueTitle: "Value per share (₹)", fmt: (v) => rs(v), level: i.price > 0 ? i.price : undefined, levelName: "Today's price", base: bi >= 0 && bj >= 0 ? [bi, bj] : undefined }}
+        flat={null} />
       <div className="tw"><table><caption className="sr-only">{title}: intrinsic value per share for each {rowLabel} (rows) and {colLabel} (columns)</caption>
         <thead><tr><th scope="col">{rowLabel} ↓ · {colLabel} →</th>{cols.map((c) => <th key={c} scope="col" className={"num" + (c === i[colKey] ? " cur" : "")}>{nf(c, 2)}%</th>)}</tr></thead>
         <tbody>{rows.map((rv, a) => <tr key={rv}><th scope="row" className={rv === i[rowKey] ? "cur" : ""}>{nf(rv, 2)}%</th>

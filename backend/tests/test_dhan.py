@@ -226,3 +226,23 @@ async def test_processes_share_one_token_through_redis_and_never_renew_together(
     assert await b.token(force=True) == "T2" and len(made) == 2     # ... and the other process takes that new one instead of renewing again
     await a.aclose(); await b.aclose()
     await store.redis.delete(dhan.TOKEN_KEY)
+
+
+async def test_refresh_instruments_reloads_when_the_index_or_option_tables_are_empty(store, monkeypatch):  # noqa: F811
+    """A recent run is skipped only when it also left the index and option-lot tables filled (a run from before they existed must reload)."""
+    from finlit import worker
+    from finlit.mf import record_run
+    from test_integration import make_settings
+    calls = []
+
+    async def fetch(client=None, indices=None, on_row=None, commodities=None):
+        calls.append(1)
+        raise dhan.DhanError("stop here")
+    monkeypatch.setattr(dhan, "fetch_instruments", fetch)
+    await record_run(store, "refresh-instruments", {"status": "ok", "equities": 1})
+    assert await worker.main(["refresh-instruments", "--max-age-hours", "20"], settings=make_settings()) == 1 and calls == [1]   # tables empty: it ran
+    await record_run(store, "refresh-instruments", {"status": "ok", "equities": 1})      # the failed attempt above recorded itself
+    async with store.pool.acquire() as conn:
+        await conn.execute("INSERT INTO dhan_indices (exch, security_id, symbol) VALUES ('NSE', '13', 'NIFTY') ON CONFLICT DO NOTHING")
+        await conn.execute("INSERT INTO dhan_option_lots (exch, instrument, underlying, underlying_id, expiry, lot_size) VALUES ('NSE', 'OPTIDX', 'NIFTY', '13', '2026-11-09', 65) ON CONFLICT DO NOTHING")
+    assert await worker.main(["refresh-instruments", "--max-age-hours", "20"], settings=make_settings()) == 0 and calls == [1]   # filled: skipped
