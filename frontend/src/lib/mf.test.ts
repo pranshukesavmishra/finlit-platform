@@ -353,3 +353,17 @@ describe("aumBucket", () => {
     expect(aumBucket(9999)?.label).toBe("Large"); expect(aumBucket(10000)?.label).toBe("Very large"); expect(aumBucket(147064)?.step).toBe(5);
   });
 });
+
+describe("return and cost bands", () => {
+  it("puts a return in the published band, on both edges", async () => {
+    const { returnBand } = await import("./mf");
+    expect(returnBand("r1y", null)).toBeNull();
+    expect(returnBand("r1y", -0.1)?.label).toBe("Negative"); expect(returnBand("r1y", 0)?.label).toBe("0–8%"); expect(returnBand("r1y", 8)?.label).toBe("8–15%"); expect(returnBand("r1y", 15)?.label).toBe("Above 15%");
+    expect(returnBand("r3y", 7.99)?.label).toBe("Below 8%"); expect(returnBand("r5y", 8)?.label).toBe("8–12%"); expect(returnBand("r5y", 12)?.label).toBe("12–15%"); expect(returnBand("r5y", 15)?.label).toBe("Above 15%");
+  });
+  it("judges an expense ratio against its own category median", async () => {
+    const { costLevel } = await import("./mf");
+    expect(costLevel(0.5, null)).toBeNull(); expect(costLevel(null, 1)).toBeNull(); expect(costLevel(1, 0)).toBeNull();
+    expect(costLevel(0.8, 1)?.label).toBe("Low"); expect(costLevel(1, 1)?.label).toBe("Moderate"); expect(costLevel(1.2, 1)?.label).toBe("High");
+  });
+});

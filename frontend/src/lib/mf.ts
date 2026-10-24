@@ -115,6 +115,20 @@ export function aumBucket(crore: number | null | undefined): { label: string; ra
   return { ...AUM_BUCKETS[i], step: i + 1 };
 }
 
+/** A return in a plain band, for reading at a glance. These are screening bands, not performance standards: equity, debt and hybrid funds need different yardsticks,
+ *  so a band says where a figure sits, never whether a fund is good. 1-year is a trailing total; 3 and 5 years are yearly rates (CAGR). */
+export type Band = { label: string; step: 0 | 1 | 2 | 3 };
+export function returnBand(metric: "r1y" | "r3y" | "r5y", v: number | null | undefined): Band | null {
+  if (v == null || !Number.isFinite(v)) return null;
+  if (metric === "r1y") return v < 0 ? { label: "Negative", step: 0 } : v < 8 ? { label: "0–8%", step: 1 } : v < 15 ? { label: "8–15%", step: 2 } : { label: "Above 15%", step: 3 };
+  return v < 8 ? { label: "Below 8%", step: 0 } : v < 12 ? { label: "8–12%", step: 1 } : v < 15 ? { label: "12–15%", step: 2 } : { label: "Above 15%", step: 3 };
+}
+/** Expense ratio against the fund's own category (same plan): low, moderate or high. Needs the category median; a plain 20% either side of it is "moderate". */
+export function costLevel(ter: number | null | undefined, median: number | null | undefined): { label: "Low" | "Moderate" | "High"; step: 1 | 2 | 3 } | null {
+  if (ter == null || median == null || !(median > 0)) return null;
+  return ter <= median * 0.8 ? { label: "Low", step: 1 } : ter >= median * 1.2 ? { label: "High", step: 3 } : { label: "Moderate", step: 2 };
+}
+
 /** Expense ratio, percent a year: "0.65%". */
 export const terText = (v: number | null | undefined) => (v == null ? "—" : nf(v, 2) + "%");
 

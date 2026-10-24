@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { HScroll } from "../components/HScroll";
 import { useInfoPop } from "../components/Info";
 import {
-  COLUMNS, COL_GROUPS, aumBucket, aumText, categoryShort, checklistLines, navFull, navText, noReturnsText, terText,
+  COLUMNS, COL_GROUPS, aumBucket, aumText, costLevel, returnBand, categoryShort, checklistLines, navFull, navText, noReturnsText, terText,
   type ColDef, type ColId, type FundRow, type ListQuery, type PeerStats, type SortKey,
 } from "../lib/mf";
 import { dateIN } from "../lib/format";
@@ -56,14 +56,16 @@ function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: S
     case "r1y": case "r3y": case "r5y": {
       const years = c.id === "r1y" ? 1 : c.id === "r3y" ? 3 : 5;
       const v = r[c.id] ?? null;
-      const short = v == null ? shortWhy(r.noReturns, "not enough history") : "";
-      return <span className="mf-rf"><Fig v={v} why={why || `Younger than ${years} year${years > 1 ? "s" : ""}, or no NAV near the start date.`} /><Bar v={v} max={scale[c.id] ?? 0} />{short && <small>{short}</small>}</span>;
+      const short = v == null ? shortWhy(r.noReturns, "Insufficient history") : "";
+      const band = returnBand(c.id, v);
+      return <span className="mf-rf"><Fig v={v} why={why || `Younger than ${years} year${years > 1 ? "s" : ""}, or no NAV near the start date.`} /><Bar v={v} max={scale[c.id] ?? 0} />{short && <small>{short}</small>}
+        {band && <small className={"mf-band b" + band.step} title="A screening band, not a performance standard: equity, debt and hybrid funds need different yardsticks.">{band.label}</small>}</span>;
     }
     case "sip3y": case "sip5y": {
       const years = c.id === "sip3y" ? 3 : 5;
       const v = r[c.id] ?? null;
       return <span className="mf-rf"><Fig v={v} why={why || `Needs a month-end NAV for each of the last ${years * 12} months; younger schemes, and month-ends not loaded yet, have none.`} />
-        <Bar v={v} max={scale[c.id] ?? 0} />{v == null && <small>{shortWhy(r.noReturns, "not enough history")}</small>}</span>;
+        <Bar v={v} max={scale[c.id] ?? 0} />{v == null && <small>{shortWhy(r.noReturns, "Insufficient history")}</small>}</span>;
     }
     case "aum": {
       if (r.aum == null) return <span className="mf-na" title="Fund size is not in AMFI's latest quarterly AUM report or the fund house's month-end portfolio file loaded." aria-label="No fund size">—</span>;
@@ -74,7 +76,11 @@ function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: S
     }
     case "ter": return r.ter == null
       ? <span className="mf-na" title="This plan is not in AMFI's latest expense ratio (TER) file." aria-label="No expense ratio">—</span>
-      : <span title={`Total expense ratio of the ${r.plan} plan, percent a year${r.terDate ? `, as of ${dateIN(r.terDate)}` : ""} (AMFI)`}>{terText(r.ter)}</span>;
+      : (() => {
+        const cost = costLevel(r.ter, r.checklist ? peers?.[r.checklist.peer]?.ter : null);
+        return <span className="mf-aum" title={`Total expense ratio of the ${r.plan} plan, percent a year${r.terDate ? `, as of ${dateIN(r.terDate)}` : ""} (AMFI)`}>{terText(r.ter)}
+          {cost && <small className={"mf-band c" + cost.step} title="Against the median of the same category and plan: low is 20% or more under it, high is 20% or more over it.">{cost.label} for category</small>}</span>;
+      })();
     case "checklist": return <ChecklistCell r={r} peers={peers} />;
   }
 }
