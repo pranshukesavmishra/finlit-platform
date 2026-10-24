@@ -67,6 +67,7 @@ class Table:
         self.ax_sig_fy: List[Optional[str]] = []
         self.ax_miss: List[Dict[str, str]] = []
         self.ax_ready: List[bool] = []
+        self.q_end: List[float] = []   # the quarter-end (yyyymmdd) the company's q_* figures are for; NaN when not stored
         for r in rows:
             raw = r.get("metrics")
             m: Dict[str, Any] = json.loads(raw) if isinstance(raw, str) else (raw or {})
@@ -84,6 +85,7 @@ class Table:
                 col.append(NAN if v == v and k in MULTIPLES and v <= 0 else v)
             for k, col in self.ax.items():
                 col.append(_num(m.get(k)))
+            self.q_end.append(_num(m.get("q_period_end")))
             self.ax_fy.append(m.get("ax_fy") if isinstance(m.get("ax_fy"), str) else None)
             self.ax_sig_fy.append(m.get("ax_sig_fy") if isinstance(m.get("ax_sig_fy"), str) else None)
             self.ax_miss.append(m.get("ax_miss") if isinstance(m.get("ax_miss"), dict) else {})
@@ -140,6 +142,15 @@ class Table:
                         counts[min(bins - 1, max(0, int((x - lo) / (hi - lo) * bins)))] += 1
                 self.stats[k] = {"min": xs[0], "p10": _pct(xs, .1), "p50": _pct(xs, .5), "p90": _pct(xs, .9), "max": xs[-1], "n": len(xs),
                                  "lo": lo, "hi": hi, "hist": counts}
+
+    def latest_quarter(self, at_least: int = 25) -> Optional[int]:
+        """The newest quarter-end (yyyymmdd) that at least `at_least` companies have reported: the quarter now being reported. None when the table cannot tell."""
+        counts: Dict[int, int] = {}
+        for q in self.q_end:
+            if q == q:
+                counts[int(q)] = counts.get(int(q), 0) + 1
+        good = [q for q, c in counts.items() if c >= at_least]
+        return max(good) if good else None
 
     @staticmethod
     def _facet(vals: List[Optional[str]]) -> List[Tuple[str, int]]:

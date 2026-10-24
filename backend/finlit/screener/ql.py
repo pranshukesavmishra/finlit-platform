@@ -779,6 +779,8 @@ class Checker:
         self.contradictions(root)
 
     def check_cmp(self, c: Cmp) -> None:
+        if any(isinstance(n, Err) for n in walk(c)):
+            return      # already reported where it went wrong
         mets = [n for n in walk(c) if isinstance(n, Met)]
         if not mets:
             self.add("no_metric", "This condition uses no ratio, so it would be the same for every company. Compare a ratio with a number, like ROE > 15.", c.start, c.end)

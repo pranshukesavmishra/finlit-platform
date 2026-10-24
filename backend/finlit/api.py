@@ -29,6 +29,7 @@ from . import alertapi, commodities, indices, intraday, notify, premium
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
+from .screener import qapi as screener_qapi
 from .advanced import api as advanced_api
 from . import compare as compare_api
 from . import etf as etf_api
@@ -502,6 +503,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(commodities.router)
     app.include_router(notify.router)
     app.include_router(screener_api.router)
+    app.include_router(screener_qapi.router)
     app.include_router(advanced_api.router)
     app.include_router(compare_api.router)
     app.include_router(etf_api.router)
