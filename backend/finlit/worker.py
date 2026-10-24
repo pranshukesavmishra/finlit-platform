@@ -167,7 +167,7 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
 
     With Dhan set up, every matched company's quote comes from a few batch calls (1,000 companies each); a company Dhan does not match,
     does not answer for, or answers implausibly for (previous close more than 25% from the price held) is asked of FinEdge as before."""
-    items = symbols or await store.snapshot_symbols()
+    items = symbols or await store.quote_symbols()
     updated = 0
     touched: List[Tuple[str, str]] = []
     batch: Dict[str, dict] = {}

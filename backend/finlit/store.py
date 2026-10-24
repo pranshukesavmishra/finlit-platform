@@ -11,6 +11,7 @@ import hashlib
 import json
 import logging
 import time
+import zlib
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -28,6 +29,15 @@ log = logging.getLogger("finlit.store")
 MIGRATIONS = Path(__file__).parent / "migrations"
 SEARCH_KEY = "search-index"
 STOCK_TTL = 6 * 3600
+QUOTE_SYMBOLS_KEY = "quotes:symbols"   # who the minute-by-minute quote job updates: the list changes when a report is first loaded or pruned, not every minute
+QUOTE_SYMBOLS_TTL = 1800
+# What the screener figures are worked out from, besides the live summary: unchanged between full loads, so the quote job keeps them (compressed, price
+# history cut down to what the figures read) in Redis and does not read ~100 KB a company from Postgres every minute.
+INPUT_SECTIONS = ("financials", "ratios", "ownership", "events", "stats", "price")
+INPUT_TTL = 4 * 86400
+# The same cut-down price section made inside Postgres, so a cache miss does not pull the whole price history across the wire either.
+PRICE_CUT_SQL = ("jsonb_build_object('daily', jsonb_build_object('t', j #> '{daily,t}', 'c', j #> '{daily,c}', 'v', j #> '{daily,v}'), "
+                 "'technical', j -> 'technical')")
 VIEWED_KEY = "viewed"   # sorted set: symbol -> last time a member or visitor opened its report (keeps it stored when pruning)
 # What the website lists for every company. The 170 screener numbers (scores.metrics) are left out on purpose: they are ~2 KB a company and only /api/screener/query needs them.
 LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
@@ -65,6 +75,17 @@ def etag_for(body: bytes) -> str:
 
 def stock_key(symbol: str, statement: str) -> str:
     return f"stock:{symbol.upper()}:{statement}"
+
+
+def inputs_key(symbol: str, statement: str) -> str:
+    return f"mi:{symbol.upper()}:{statement}"
+
+
+def cut_price(price: Any) -> dict:
+    """The price section as the screener figures read it: dates, closes and volumes of the daily history, and the technical block."""
+    p = price if isinstance(price, dict) else {}
+    d = p.get("daily") if isinstance(p.get("daily"), dict) else {}
+    return {"daily": {k: d.get(k) for k in ("t", "c", "v")}, "technical": p.get("technical")}
 
 
 def prepare_dsn(url: str) -> tuple:
@@ -181,7 +202,71 @@ class Store:
                 await save_announcements(conn, symbol, sections["summary"]["profile"].get("name") or symbol, sections["events"].get("announcements") or [])
 
         await self._cache(symbol, statement, encoded, etags)
+        await self._cache_inputs(symbol, statement, sections)
         return etags
+
+    async def _cache_inputs(self, symbol: str, statement: str, sections: Dict[str, dict]) -> None:
+        """A full load rewrites the figures' inputs: keep the new ones for the quote job (a quote patch carries only the summary and leaves them alone)."""
+        if not any(k in sections for k in INPUT_SECTIONS):
+            return
+        try:
+            if all(k in sections for k in INPUT_SECTIONS):
+                packed = zlib.compress(orjson.dumps({k: (cut_price(sections[k]) if k == "price" else sections[k]) for k in INPUT_SECTIONS}), 6)
+                await self.redis.set(inputs_key(symbol, statement), packed, ex=INPUT_TTL)
+                await self.redis.delete(QUOTE_SYMBOLS_KEY)   # a company that was not being quoted may be now
+            else:
+                await self.redis.delete(inputs_key(symbol, statement))
+        except Exception:
+            pass
+
+    async def quote_symbols(self) -> List[Tuple[str, str]]:
+        """snapshot_symbols() for the quote job, remembered for 30 minutes (a new report waits at most that long for its first live quote)."""
+        try:
+            raw = await self.redis.get(QUOTE_SYMBOLS_KEY)
+            if raw:
+                return [(s, st) for s, st in orjson.loads(raw)]
+        except Exception:
+            pass
+        items = await self.snapshot_symbols()
+        try:
+            await self.redis.set(QUOTE_SYMBOLS_KEY, orjson.dumps(items), ex=QUOTE_SYMBOLS_TTL)
+        except Exception:
+            pass
+        return items
+
+    async def metric_inputs(self, pairs: List[Tuple[str, str]]) -> Dict[Tuple[str, str], Dict[str, dict]]:
+        """{(symbol, statement): the stored sections the screener figures are worked out from (INPUT_SECTIONS, price cut down)}. From Redis;
+        what it does not hold is read from Postgres once and kept."""
+        out: Dict[Tuple[str, str], Dict[str, dict]] = {}
+        try:
+            hits = await self.redis.mget([inputs_key(s, st) for s, st in pairs])
+        except Exception:
+            hits = [None] * len(pairs)
+        miss = []
+        for p, h in zip(pairs, hits):
+            try:
+                out[p] = orjson.loads(zlib.decompress(h)) if h else None  # type: ignore[assignment]
+            except Exception:
+                out[p] = None  # type: ignore[assignment]
+            if out[p] is None:
+                del out[p]
+                miss.append(p)
+        if miss:
+            grouped: Dict[Tuple[str, str], Dict[str, dict]] = {}
+            async with self.pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "SELECT symbol, statement, section, CASE WHEN section = 'price' THEN (SELECT " + PRICE_CUT_SQL + " FROM (SELECT body::jsonb AS j) x)::text ELSE body END AS body "  # nosec B608 - fixed text
+                    "FROM snapshots WHERE (symbol, statement) IN (SELECT * FROM unnest($1::text[], $2::text[])) AND section = ANY($3::text[])",
+                    [s for s, _ in miss], [st for _, st in miss], list(INPUT_SECTIONS))
+            for r in rows:
+                grouped.setdefault((r["symbol"], r["statement"]), {})[r["section"]] = orjson.loads(r["body"])
+            for p, sec in grouped.items():
+                out[p] = sec
+                try:
+                    await self.redis.set(inputs_key(*p), zlib.compress(orjson.dumps(sec), 6), ex=INPUT_TTL)
+                except Exception:
+                    pass
+        return out
 
     async def _cache(self, symbol: str, statement: str, encoded: Dict[str, bytes], etags: Dict[str, str]):
         mapping: Dict[str, bytes] = {}
@@ -507,11 +592,12 @@ class Store:
         for sym in drop:
             for st in ("consolidated", "standalone"):
                 try:
-                    await self.redis.delete(stock_key(sym, st))
+                    await self.redis.delete(stock_key(sym, st), inputs_key(sym, st))
                 except Exception:
                     pass
         if drop:
             await self.invalidate_search()
+            await self.redis.delete(QUOTE_SYMBOLS_KEY)
         return out
 
     # ------------------------------------------------------------ reads (API)

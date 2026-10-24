@@ -253,3 +253,54 @@ async def test_db_usage_endpoint_is_admin_only(app):  # noqa: F811
     assert r.status_code == 200 and "enabled" in r.json() and isinstance(r.json()["top"], list)
     for c in (anon, silver, admin):
         await c.aclose()
+
+
+# ------------------------------------------------------------------ the quote job's reads
+
+
+async def test_metrics_after_a_quote_patch_are_the_same_from_redis_the_database_or_the_full_sections(ingested, monkeypatch):  # noqa: F811
+    import orjson
+    from finlit.screener.compute import compute
+    from finlit.screener.jobs import SECTIONS, refresh_metrics_for
+    st = ingested
+    async with st.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT section, body FROM snapshots WHERE symbol = 'RELIANCE' AND statement = 'consolidated' AND section = ANY($1::text[])", list(SECTIONS))
+    want = compute({r["section"]: json.loads(r["body"]) for r in rows})
+    assert len(want) > 100
+
+    async def stored():
+        async with st.pool.acquire() as conn:
+            return json.loads(await conn.fetchval("SELECT metrics FROM scores WHERE symbol = 'RELIANCE' AND statement = 'consolidated' AND model = 'v1'"))
+
+    await st.redis.delete("mi:RELIANCE:consolidated")
+    assert await refresh_metrics_for(st, [("RELIANCE", "consolidated")]) == 1                     # inputs from Postgres (price history cut inside the database)
+    assert await stored() == orjson.loads(orjson.dumps(want))
+    assert await st.redis.exists("mi:RELIANCE:consolidated")
+
+    calls, real = [], type(st.pool).acquire
+    monkeypatch.setattr(type(st.pool), "acquire", lambda self, **k: (calls.append(1), real(self, **k))[1])
+    got = await st.metric_inputs([("RELIANCE", "consolidated")])                                  # inputs from Redis: no connection taken at all
+    monkeypatch.undo()
+    assert not calls and set(got[("RELIANCE", "consolidated")]) == {"financials", "ratios", "ownership", "events", "stats", "price"}
+    assert await refresh_metrics_for(st, [("RELIANCE", "consolidated")]) == 1
+    assert await stored() == orjson.loads(orjson.dumps(want))
+
+
+async def test_a_full_load_stores_the_cached_inputs_and_a_prune_drops_them(ingested):  # noqa: F811
+    st = ingested
+    assert await st.redis.exists("mi:RELIANCE:consolidated")                                      # ingest_one stored them
+    got = await st.metric_inputs([("RELIANCE", "consolidated")])
+    assert got[("RELIANCE", "consolidated")]["price"]["daily"].keys() == {"t", "c", "v"}          # only what the figures read
+    await st.prune(keep_top=0, keep_viewed_days=0)
+    assert not await st.redis.exists("mi:RELIANCE:consolidated")
+
+
+async def test_the_quote_job_remembers_who_it_quotes(ingested):  # noqa: F811
+    st = ingested
+    await st.redis.delete("quotes:symbols")
+    assert await st.quote_symbols() == [("RELIANCE", "consolidated")]
+    async with st.pool.acquire() as conn:
+        await conn.execute("DELETE FROM snapshots")
+    assert await st.quote_symbols() == [("RELIANCE", "consolidated")]                             # from Redis: no query
+    await st.redis.delete("quotes:symbols")
+    assert await st.quote_symbols() == []

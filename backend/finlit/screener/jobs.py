@@ -43,29 +43,26 @@ async def rebuild_metrics(store, only_missing: bool = False) -> int:
 
 
 async def refresh_metrics_for(store, pairs) -> int:
-    """Recompute the screener metrics of the given (symbol, statement) pairs after a live-price patch, in two queries for the whole batch."""
+    """Recompute the screener metrics of the given (symbol, statement) pairs after a live-price patch. The live summary is read from Redis (where the quote
+    patch has just put it) and the rest of the inputs from the Redis copy store.metric_inputs keeps: Postgres is asked only for what Redis does not hold.
+    This runs every minute for every company with a report, so reading ~100 KB a company from Postgres here would be tens of megabytes a minute."""
     pairs = list(pairs)
     done = 0
     for i in range(0, len(pairs), 25):   # 25 companies at a time keeps memory small on the free server
         chunk = pairs[i:i + 25]
-        wanted = set(chunk)
-        async with store.pool.acquire() as conn:
-            rows = await conn.fetch("SELECT symbol, statement, section, body FROM snapshots WHERE symbol = ANY($1::text[]) AND section = ANY($2::text[])",
-                                    sorted({s for s, _ in chunk}), list(SECTIONS))
-            grouped: Dict[tuple, dict] = {}
-            for r in rows:
-                if (r["symbol"], r["statement"]) in wanted:
-                    grouped.setdefault((r["symbol"], r["statement"]), {})[r["section"]] = json.loads(r["body"])
-            updates = []
-            for (sym, st), sec in grouped.items():
-                if "summary" not in sec:
-                    continue
-                m = compute(sec)
-                updates.append((sym, st, orjson.dumps(m).decode(), m.get("price"), m.get("market_cap"), m.get("ret_1d"), m.get("pe"), m.get("pb"), m.get("dividend_yield")))
-            if updates:   # the flat columns the company list shows move with the quote too
+        inputs = await store.metric_inputs(chunk)
+        updates = []
+        for sym, st in chunk:
+            got = await store.get_section(sym, st, "summary")
+            if not got:
+                continue
+            m = compute({**inputs.get((sym, st), {}), "summary": json.loads(got[0])})
+            updates.append((sym, st, orjson.dumps(m).decode(), m.get("price"), m.get("market_cap"), m.get("ret_1d"), m.get("pe"), m.get("pb"), m.get("dividend_yield")))
+        if updates:   # the flat columns the company list shows move with the quote too
+            async with store.pool.acquire() as conn:
                 await conn.executemany("UPDATE scores SET metrics = $3::jsonb, price = COALESCE($4, price), market_cap = COALESCE($5, market_cap), "
                                        "change_pct = COALESCE($6, change_pct), pe = $7, pb = $8, dividend_yield = $9, changed_at = now() WHERE symbol = $1 AND statement = $2", updates)
-            done += len(updates)
+        done += len(updates)
     return done
 
 
