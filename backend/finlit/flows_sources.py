@@ -295,3 +295,40 @@ def parse_participant_oi(text: str) -> Optional[OiDay]:
             lc, lp, sc, sp = v[k + " call long"], v[k + " put long"], v[k + " call short"], v[k + " put short"]
             rows[(who, inst)] = None if None in (lc, lp, sc, sp) else (int(lc + lp), int(sc + sp))
     return OiDay(d, {k: v for k, v in rows.items() if v is not None}) if rows else None
+
+
+@dataclass
+class NseDay:
+    d: date
+    fii: Leg
+    dii: Leg
+    problems: List[str] = field(default_factory=list)
+
+
+def parse_nse(text: str) -> List[NseDay]:
+    """NSE's FII/DII report (api/fiidiiTradeReact): [{category 'DII' | 'FII/FPI', date '23-Oct-2026', buyValue, sellValue, netValue}], Rs crore, cash market.
+    A day missing either class is skipped; a net that is not purchases minus sales is returned with a problem and never saved."""
+    import json
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return []
+    by: Dict[date, Dict[str, Leg]] = {}
+    for r in data if isinstance(data, list) else []:
+        d, cat = parse_date(str(r.get("date") or "")), str(r.get("category") or "").upper()
+        b, s_, n = num(r.get("buyValue")), num(r.get("sellValue")), num(r.get("netValue"))
+        if d is None or n is None or b is None or s_ is None:
+            continue
+        key = "fii" if cat.startswith("FII") else "dii" if cat.startswith("DII") else None
+        if key:
+            by.setdefault(d, {})[key] = Leg(b, s_, n)
+    out = []
+    for d, legs in sorted(by.items()):
+        if "fii" not in legs or "dii" not in legs:
+            continue
+        day = NseDay(d, legs["fii"], legs["dii"])
+        for name, leg in (("FII", day.fii), ("DII", day.dii)):
+            if abs(leg.net) > MAX_CRORE or abs((leg.buy - leg.sell) - leg.net) > TOLERANCE + 0.05:
+                day.problems.append(f"{name} figures do not add up")
+        out.append(day)
+    return out

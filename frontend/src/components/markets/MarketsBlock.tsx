@@ -113,15 +113,28 @@ type Cell = { key: string; label: string; sub: string; move: number | null; weig
 function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells: Cell[]; height: number; empty: string; minLabel?: number; logos?: boolean }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const tiles = useMemo(() => treemap(cells, (c) => c.weight, W, height), [cells, W, height]);
+  const [tip, setTip] = useState<{ c: Cell; x: number; y: number } | null>(null);
   if (!cells.length) return <p className="mk-note">{empty}</p>;
+  // Small tiles carry no label, so hovering (or tabbing to) any tile names it: stock, move and market cap, in a card that follows the pointer.
+  const show = (c: Cell, el: HTMLElement, e?: React.PointerEvent) => {
+    const r = (el.closest(".mk-heat") as HTMLElement).getBoundingClientRect(), t = el.getBoundingClientRect();
+    setTip({ c, x: e ? e.clientX - r.left : t.left - r.left + t.width / 2, y: e ? e.clientY - r.top : t.top - r.top });
+  };
   return (
-    <div className="mk-heat" ref={box} style={{ height }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move">
+    <div className="mk-heat" ref={box} style={{ height, position: "relative" }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move" onPointerLeave={() => setTip(null)}>
       {tiles.map(({ x, y, w, h, item: c }) => {
         const big = w >= minLabel && h >= 44, logoOk = logos && w >= 84 && h >= 84;
-        const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, title: `${c.name}: ${sgn(c.move)}` };
+        const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, "aria-label": `${c.name}: ${sgn(c.move)}`,
+          onPointerEnter: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e), onPointerMove: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e),
+          onFocus: (e: React.FocusEvent<HTMLElement>) => show(c, e.currentTarget), onBlur: () => setTip(null) };
         const inner = big && <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b>{c.label}</b><em>{sgn(c.move)}</em></span>;
-        return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" {...common}>{inner}</div>;
+        return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" tabIndex={0} {...common}>{inner}</div>;
       })}
+      {tip && <div className="mk-htip" role="status" style={{ left: Math.max(8, Math.min(W - 188, tip.x + 14)), top: Math.max(4, Math.min(height - 70, tip.y + 14)) }}>
+        <b>{tip.c.name}</b>{tip.c.label !== tip.c.name && <small>{tip.c.label}</small>}
+        <span className={tone(tip.c.move)}>{sgn(tip.c.move)} today</span>
+        {tip.c.weight > 0 && <small>Market cap ₹{Math.round(tip.c.weight).toLocaleString("en-IN")} Cr</small>}
+      </div>}
     </div>
   );
 }
@@ -195,10 +208,10 @@ function Sectoral({ rows }: { rows: Row[] }) {
   const members = useMembers().data?.indices;
   const idx = useIndices().data?.items;
   const logos = useSearchQuotes(true).data, lm = useMemo(() => quoteMap(logos), [logos]);
-  const [cat, setCat] = useState(CATEGORIES[0].id), [pillId, setPillId] = useState(CATEGORIES[0].pills[0].id), [tab, setTab] = useState<"g" | "l">("g"), [openMenu, setOpenMenu] = useState(false);
+  const [cat, setCat] = useState(CATEGORIES[0].id), [pillId, setPillId] = useState(CATEGORIES[0].pills[0].id), [tab, setTab] = useState<"a" | "g" | "l">("a"), [openMenu, setOpenMenu] = useState(false);
   const c = CATEGORIES.find((x) => x.id === cat)!, pill = c.pills.find((p) => p.id === pillId) || c.pills[0];
-  const row = indexFor(idx, pill), { stocks, basis } = useMemo(() => stocksFor(pill, rows, members), [pill, rows, members]);
-  const list = tab === "g" ? gainers(stocks, 8) : losers(stocks, 8), mv = row?.changePct ?? weightedMove(stocks);
+  const row = indexFor(idx, pill), { stocks, basis, listed, missing } = useMemo(() => stocksFor(pill, rows, members), [pill, rows, members]);
+  const list = tab === "a" ? [...stocks].sort((a, b) => (b.market_cap ?? 0) - (a.market_cap ?? 0)) : tab === "g" ? gainers(stocks, 8) : losers(stocks, 8), mv = row?.changePct ?? weightedMove(stocks);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => { if (!openMenu) return; const f = (e: MouseEvent) => { if (!menu.current?.contains(e.target as Node)) setOpenMenu(false); }; const k = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenMenu(false); }; document.addEventListener("mousedown", f); document.addEventListener("keydown", k); return () => { document.removeEventListener("mousedown", f); document.removeEventListener("keydown", k); }; }, [openMenu]);
   return (
@@ -212,10 +225,10 @@ function Sectoral({ rows }: { rows: Row[] }) {
         <div className={"mk-ix-c " + tone(mv)}>{row?.points != null && <span>{row.points > 0 ? "+" : row.points < 0 ? MINUS : ""}{nf(Math.abs(row.points))}</span>}<span>{mv != null ? (mv > 0 ? "▲ " : mv < 0 ? "▼ " : "") + sgn(mv) : MINUS}</span></div>
         <em>{row?.date ? `${dateIN(row.date)} close` : row ? "" : "Index level not in the feed; the move shown is the cap-weighted move of its stocks."}</em>
       </div>
-      <div className="mk-tabs" role="tablist"><button type="button" role="tab" aria-selected={tab === "g"} className={tab === "g" ? "on" : ""} onClick={() => setTab("g")}>Gainers</button><button type="button" role="tab" aria-selected={tab === "l"} className={tab === "l" ? "on" : ""} onClick={() => setTab("l")}>Losers</button></div>
+      <div className="mk-tabs" role="tablist"><button type="button" role="tab" aria-selected={tab === "a"} className={tab === "a" ? "on" : ""} onClick={() => setTab("a")}>All stocks{stocks.length ? ` (${stocks.length})` : ""}</button><button type="button" role="tab" aria-selected={tab === "g"} className={tab === "g" ? "on" : ""} onClick={() => setTab("g")}>Gainers</button><button type="button" role="tab" aria-selected={tab === "l"} className={tab === "l" ? "on" : ""} onClick={() => setTab("l")}>Losers</button></div>
       {list.length ? <div className="mk-cards" role="tabpanel">{list.map((r) => <Link key={r.symbol} to={`/stocks/${r.symbol}`} className="mk-sc"><Logo src={lm.get(r.symbol)?.logo} name={r.name || r.symbol} kind="stock" size={34} /><b>{r.symbol}</b><span>₹{nf(r.price as number)}</span><em className={tone(r.change_pct)}>{sgn(r.change_pct)} </em></Link>)}</div>
         : <p className="mk-note">{stocks.length ? `No ${tab === "g" ? "gainers" : "losers"} in this group today.` : "No traded stocks for this group yet."}</p>}
-      <p className="mk-foot">{basis === "exchange list" ? "Stocks from the exchange's published index list." : "The exchange's constituent list is not loaded yet; stocks are grouped by FinLit's sector classification (not the official index). The index level and move above are the exchange's own."} <Link to="/screener">Open the screener</Link></p>
+      <p className="mk-foot">{basis === "exchange list" ? "Stocks from the exchange's published index list." : "The exchange's constituent list is not loaded yet; stocks are grouped by FinLit's sector classification (not the official index). The index level and move above are the exchange's own."} <Link to="/screener">Open the screener</Link>{missing.length ? <> · {stocks.length} of {listed} index stocks have a price today; waiting for: {missing.join(", ")}.</> : null}</p>
     </section>
   );
 }

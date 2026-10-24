@@ -35,6 +35,7 @@ run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the s
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
   ( flock -n 9 || { log "skip $name (busy)"; exit 0; }
+    renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
     free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { log "skip $name (only ${free} MB free)"; exit 0; }
     log "start $name"; $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
 }
@@ -81,6 +82,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 # First start: universe, the biggest companies first, then as many as INGEST_LIMIT allows. Resumable.
 (
   flock 9
+  renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
@@ -137,6 +139,7 @@ while true; do
   (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 5 )) && run heavy prune prune
+  (( H == 15 && M == 50 )) && run light listing refresh-listing --force   # just after the close: the day's final prices and moves from the exchange feed
   (( H == 20 && M == 10 )) && run light listing refresh-listing   # nightly, after the close: all ~5,800 companies' prices in two provider calls and one short write, then the database may sleep
   (( weekday && H == 20 && M == 40 )) && run_funds etf refresh-etf    # nightly after the close: ETF prices and history (Upstox), paced (ETF_CALLS_PER_MINUTE)
   (( weekday && ((H == 22 && M == 10) || (H == 23 && M == 40)) )) && run_funds etf-retry refresh-etf --resume   # retries: only the ETFs the nightly run could not fetch (none left = no provider calls)

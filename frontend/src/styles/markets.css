@@ -77,3 +77,7 @@ a.mk-tile2:hover { filter: brightness(1.12); z-index: 1; } a.mk-tile2:focus-visi
   .mk-t-in b { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .mk-draw { animation: none; } .mk-sc, .mk-tile2 { transition: none; } .mk-sc:hover { transform: none; } }
+.mk-heat { overflow: hidden; }
+div.mk-tile2:hover { filter: brightness(1.12); z-index: 1; } div.mk-tile2:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; z-index: 2; }
+.mk-htip { position: absolute; z-index: 5; width: 176px; pointer-events: none; display: grid; gap: 2px; padding: 9px 11px; border-radius: 10px; background: var(--s2); color: var(--text); border: 1px solid var(--border-strong); box-shadow: 0 14px 34px -12px rgba(0,0,0,.55); font-size: 12.5px; }
+.mk-htip b { font-size: 13.5px; } .mk-htip small { color: var(--muted); font-size: 11.5px; } .mk-htip span.up { color: var(--gain); } .mk-htip span.down { color: var(--loss); } .mk-htip span { font-weight: 600; }

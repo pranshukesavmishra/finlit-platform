@@ -33,6 +33,24 @@ async def test_consolidated_falls_back_to_standalone():
     assert bundle["pl_annual"]["financials"]
 
 
+async def test_short_consolidated_history_uses_the_longer_standalone_one():
+    base = fixture_transport()
+
+    def handler(request):
+        r = base.handle_request(request)
+        if "/financials/" in request.url.path and request.url.params.get("statement_type") == "c" and request.url.params.get("statement_code") == "pl" and request.url.params.get("period") == "annual":
+            body = __import__("json").loads(r.content)
+            body["financials"] = body["financials"][-2:]
+            return httpx.Response(200, json=body)
+        return r
+
+    async with FinEdgeClient(settings(), transport=httpx.MockTransport(handler)) as client:
+        bundle = await client.fetch_bundle("RELIANCE", "consolidated")
+    assert bundle["statement"] == "standalone" and "2 year" in bundle["statementNote"]
+    assert len(bundle["pl_annual"]["financials"]) > 2
+    assert bundle["statementNote"] in build(bundle)["summary"]["dataQuality"]["notes"]
+
+
 async def test_retries_on_429_then_succeeds(monkeypatch):
     monkeypatch.setattr("finlit.finedge.asyncio.sleep", _no_sleep)
     hits = {"n": 0}

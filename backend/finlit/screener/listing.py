@@ -86,7 +86,38 @@ async def last_refresh(store) -> Optional[datetime]:
         return await conn.fetchval("SELECT max(updated_at) FROM listing_quotes")
 
 
-async def refresh_listing(client, store, force: bool = False) -> Dict[str, Any]:
+async def dhan_overlay(records: List[dict], store, dhan_client) -> int:
+    """Where Dhan answers, its exchange quote replaces the provider's price, day change and volume (the day change is against the exchange's own previous
+    close, which is what other sites show); market cap moves with the price. A company Dhan does not match or answers implausibly for keeps the provider's."""
+    from .. import dhan
+    if dhan_client is None or not dhan_client.configured or not records:
+        return 0
+    try:
+        ids = await dhan.security_map(store, [r["symbol"] for r in records])
+        raw = await dhan_client.quotes(sorted(set(ids.values())))
+    except Exception:
+        log.exception("Dhan quotes unavailable for the listing; the provider's figures are kept")
+        return 0
+    n = 0
+    for r in records:
+        q = dhan.to_quote(raw.get(ids.get(r["symbol"])) or {}) if r["symbol"] in ids else {}
+        if not q or not q.get("price") or q.get("changePct") is None or not dhan.plausible(q, {"price": r["price"]} if r["price"] else {}):
+            continue
+        if r["market_cap"] and r["price"]:
+            r["market_cap"] = round(r["market_cap"] * q["price"] / r["price"], 2)
+        r["price"], r["change_pct"] = q["price"], q["changePct"]
+        if q.get("volume"):
+            r["volume"] = q["volume"]
+        if q.get("asOf"):
+            try:
+                r["traded_at"] = datetime.fromisoformat(q["asOf"])
+            except ValueError:
+                pass
+        n += 1
+    return n
+
+
+async def refresh_listing(client, store, force: bool = False, dhan_client=None) -> Dict[str, Any]:
     """Refresh the symbol list and every company's quote. Safe to run twice; refuses to replace good rows with a short or empty answer."""
     if not force:
         last = await last_refresh(store)
@@ -101,6 +132,7 @@ async def refresh_listing(client, store, force: bool = False) -> Dict[str, Any]:
     if len(records) < MIN_QUOTES or len(records) < MIN_SHARE * len(universe):
         log.warning("listing refresh refused: the provider sent %d quotes for %d listed companies; keeping the last good rows", len(records), len(universe))
         return {"refused": True, "quotes": len(records), "listed": len(universe)}
+    from_dhan = await dhan_overlay(records, store, dhan_client)
     rows = [(r["symbol"], r["price"], r["change_pct"], r["market_cap"], r["high52"], r["low52"], r["volume"], r["traded_at"]) for r in records]
     async with store.pool.acquire() as conn:
         async with conn.transaction():
@@ -114,4 +146,4 @@ async def refresh_listing(client, store, force: bool = False) -> Dict[str, Any]:
             await conn.execute("DELETE FROM listing_quotes WHERE updated_at < now()")   # not in tonight's list: no price rather than an old one
     with_price = sum(1 for r in records if r["price"] is not None)
     log.info("listing refreshed: %d listed, %d quoted, %d with a price", len(universe), len(records), with_price)
-    return {"listed": len(universe), "quoted": len(records), "withPrice": with_price}
+    return {"listed": len(universe), "quoted": len(records), "withPrice": with_price, "fromDhan": from_dhan}

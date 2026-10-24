@@ -34,6 +34,8 @@ router = APIRouter(prefix="/api/flows")
 admin = APIRouter(prefix="/api/admin/flows")
 
 NSDL = "https://www.fpi.nsdl.co.in/web"
+NSE_HOME = "https://www.nseindia.com/"
+NSE_FIIDII = "https://www.nseindia.com/api/fiidiiTradeReact"
 NSE_OI = "https://archives.nseindia.com/content/nsccl/fao_participant_oi_{:%d%m%Y}.csv"
 USER_AGENT = "FinLit-data/1.0 (+https://finlitventures.com)"
 PAUSE = 1.0                                   # seconds between two requests to NSDL (a month of history is one request)
@@ -65,19 +67,19 @@ FII_SQL = """
 INSERT INTO flows_daily (d, fii_buy, fii_sell, fii_net, fii_source, fpi_equity_net, fpi_debt_net, fpi_hybrid_net, fpi_total_net, fpi_usd_mn, fpi_inr, updated_at)
 VALUES ($1, $2, $3, $4, 'nsdl', $5, $6, $7, $8, $9, $10, now())
 ON CONFLICT (d) DO UPDATE SET
-  fii_buy    = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_buy  ELSE EXCLUDED.fii_buy  END,
-  fii_sell   = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_sell ELSE EXCLUDED.fii_sell END,
+  fii_buy    = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_buy  ELSE EXCLUDED.fii_buy  END,
+  fii_sell   = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_sell ELSE EXCLUDED.fii_sell END,
   fii_net    = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_net  ELSE EXCLUDED.fii_net  END,
-  fii_source = CASE WHEN flows_daily.fii_source = 'manual' THEN 'manual' ELSE 'nsdl' END,
+  fii_source = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_source ELSE 'nsdl' END,
   fpi_equity_net = EXCLUDED.fpi_equity_net, fpi_debt_net = EXCLUDED.fpi_debt_net, fpi_hybrid_net = EXCLUDED.fpi_hybrid_net,
   fpi_total_net = EXCLUDED.fpi_total_net, fpi_usd_mn = EXCLUDED.fpi_usd_mn, fpi_inr = EXCLUDED.fpi_inr, updated_at = now()"""
 DII_SQL = """
 INSERT INTO flows_daily (d, dii_buy, dii_sell, dii_net, dii_source, updated_at) VALUES ($1, $2, $3, $4, 'nsdl', now())
 ON CONFLICT (d) DO UPDATE SET
   dii_buy    = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_buy  ELSE EXCLUDED.dii_buy  END,
-  dii_sell   = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_sell ELSE EXCLUDED.dii_sell END,
+  dii_sell   = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_sell ELSE EXCLUDED.dii_sell END,
   dii_net    = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_net  ELSE EXCLUDED.dii_net  END,
-  dii_source = CASE WHEN flows_daily.dii_source = 'manual' THEN 'manual' ELSE 'nsdl' END, updated_at = now()"""
+  dii_source = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_source ELSE 'nsdl' END, updated_at = now()"""
 
 
 async def save_fpi(conn, days: List[S.FpiDay]) -> int:
@@ -90,6 +92,24 @@ async def save_fpi(conn, days: List[S.FpiDay]) -> int:
 
 async def save_dii(conn, day: S.DiiDay) -> None:
     await conn.execute(DII_SQL, day.d, day.equity.buy, day.equity.sell, day.equity.net)
+
+
+NSE_SQL = """
+INSERT INTO flows_daily (d, fii_buy, fii_sell, fii_net, fii_source, dii_buy, dii_sell, dii_net, dii_source, updated_at)
+VALUES ($1, $2, $3, $4, 'nse', $5, $6, $7, 'nse', now())
+ON CONFLICT (d) DO UPDATE SET
+  fii_buy  = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_buy  ELSE EXCLUDED.fii_buy  END,
+  fii_sell = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_sell ELSE EXCLUDED.fii_sell END,
+  fii_net  = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_net  ELSE EXCLUDED.fii_net  END,
+  fii_source = CASE WHEN flows_daily.fii_source = 'manual' THEN 'manual' ELSE 'nse' END,
+  dii_buy  = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_buy  ELSE EXCLUDED.dii_buy  END,
+  dii_sell = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_sell ELSE EXCLUDED.dii_sell END,
+  dii_net  = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_net  ELSE EXCLUDED.dii_net  END,
+  dii_source = CASE WHEN flows_daily.dii_source = 'manual' THEN 'manual' ELSE 'nse' END, updated_at = now()"""
+
+
+async def save_nse(conn, day: S.NseDay) -> None:
+    await conn.execute(NSE_SQL, day.d, day.fii.buy, day.fii.sell, day.fii.net, day.dii.buy, day.dii.sell, day.dii.net)
 
 
 async def save_oi(conn, day: S.OiDay) -> None:
@@ -211,6 +231,22 @@ class Sources:
             raise RuntimeError(f"{url} answered {r.status_code} for {on}")
         return r.text
 
+    async def nse_json(self) -> str:
+        """NSE's report API wants the cookie its home page sets, and a browser-style agent (it refuses plain scripts)."""
+        hdr = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+               "Accept": "application/json, text/plain, */*", "Referer": "https://www.nseindia.com/reports/fii-dii"}
+        for attempt in range(3):
+            self.calls += 2
+            try:
+                await self.web.get(NSE_HOME, headers=hdr)                # sets the session cookie (the page itself may be refused: the cookie is still set)
+                r = await self.web.get(NSE_FIIDII, headers=hdr)
+                if r.status_code == 200 and r.text.lstrip().startswith("["):
+                    return r.text
+            except httpx.TransportError:
+                pass
+            await asyncio.sleep(2 * (attempt + 1))
+        raise RuntimeError("the exchange's FII/DII report did not answer")
+
     async def nifty(self):
         if self._nifty is not None:
             return await self._nifty()
@@ -326,6 +362,22 @@ async def step_dii(src: Sources, conn, today: date, full: bool) -> dict:
     return {"rows": saved, "latest": latest.d.isoformat() if latest else None, "problems": notes[:10]}
 
 
+async def step_nse(src: Sources, conn, today: date, full: bool) -> dict:
+    """The exchange's own FII/DII cash-market report (provisional figures for the latest session): what news and other sites quote for the day.
+    It replaces NSDL's settlement-date figure for that day, which differs. Only the latest session is published, so older days stay as NSDL has them."""
+    days = S.parse_nse(await src.nse_json())
+    saved = 0
+    for day in days:
+        if day.problems:
+            log.warning("flows: NSE report for %s not saved: %s", day.d, "; ".join(day.problems))
+            continue
+        await save_nse(conn, day)
+        saved += 1
+    if not saved:
+        raise RuntimeError("the exchange's FII/DII report could not be read")
+    return {"rows": saved, "latest": max(d.d for d in days).isoformat()}
+
+
 async def step_oi(src: Sources, conn, today: date, full: bool) -> dict:
     empty = set((await get_meta(conn, "oi_empty") or {"dates": []})["dates"])
     have = {r["d"] for r in await conn.fetch("SELECT DISTINCT d FROM flows_oi")}
@@ -361,7 +413,7 @@ async def step_nifty(src: Sources, conn, today: date, full: bool) -> dict:
     return {"rows": len(rows), "latest": out["to"]}
 
 
-STEPS: List[Tuple[str, Callable]] = [("fii", step_fpi), ("dii", step_dii), ("oi", step_oi), ("nifty", step_nifty)]
+STEPS: List[Tuple[str, Callable]] = [("fii", step_fpi), ("dii", step_dii), ("nse", step_nse), ("oi", step_oi), ("nifty", step_nifty)]
 STEP_NAMES = [n for n, _ in STEPS]
 
 
@@ -551,8 +603,8 @@ def source_status(last: Optional[date], today: date, run: Optional[dict]) -> Tup
 
 
 def notes_for(rows: List[Row], issues: List[str], runs: Dict[str, dict], oi: Optional[dict], closes: Dict[date, float], today: date) -> List[dict]:
-    f_last = max((r.d for r in rows if r.fn is not None and r.fsrc == "nsdl"), default=None)
-    d_last = max((r.d for r in rows if r.dn is not None and r.dsrc == "nsdl"), default=None)
+    f_last = max((r.d for r in rows if r.fn is not None and r.fsrc in ("nsdl", "nse")), default=None)
+    d_last = max((r.d for r in rows if r.dn is not None and r.dsrc in ("nsdl", "nse")), default=None)
     man = [r for r in rows if "manual" in (r.fsrc, r.dsrc)]
     n_fii, n_dii = sum(r.fn is not None for r in rows), sum(r.dn is not None for r in rows)
     first_dii = min((r.d for r in rows if r.dn is not None), default=None)
@@ -590,9 +642,17 @@ def notes_for(rows: List[Row], issues: List[str], runs: Dict[str, dict], oi: Opt
     else:
         out.append({"id": "participant-oi", "label": "NSE archive: participant-wise open interest", "url": "https://archives.nseindia.com/content/nsccl/", "covers": "Futures and options open interest by participant",
                     "status": "unavailable", "lastDate": None, "note": "The file could not be read." + run_note("oi")})
-    out.append({"id": "nse-cash", "label": "NSE and BSE: FII/DII trading activity (cash market)", "url": "https://www.nseindia.com/reports/fii-dii", "covers": "The exchanges' own daily FII and DII cash-market report",
-                "status": "unavailable", "lastDate": None,
-                "note": "Not used: the exchanges' website does not answer an honest, identified crawler (it is behind bot protection, which we do not get around). NSDL's figures above are the permitted substitute; an administrator can type in the exchange's report."})
+    nse = [r for r in rows if "nse" in (r.fsrc, r.dsrc)]
+    if nse:
+        st, ld = source_status(max(r.d for r in nse), today, runs.get("nse"))
+        out.append({"id": "nse-cash", "label": "NSE: FII/DII trading activity (cash market)", "url": "https://www.nseindia.com/reports/fii-dii", "covers": "The exchange's own daily FII and DII cash-market report, provisional",
+                    "status": st, "lastDate": ld,
+                    "note": f"{len(nse)} session(s) read from the exchange's report; these are the figures news sites quote for the day, and they take the place of NSDL's settlement-date figure for that day. "
+                            "The exchange publishes only the latest session, so older days stay as NSDL has them." + run_note("nse")})
+    else:
+        out.append({"id": "nse-cash", "label": "NSE and BSE: FII/DII trading activity (cash market)", "url": "https://www.nseindia.com/reports/fii-dii", "covers": "The exchanges' own daily FII and DII cash-market report",
+                    "status": "unavailable", "lastDate": None,
+                    "note": "The exchange's report could not be read yet; NSDL's figures above are used meanwhile." + run_note("nse")})
     if closes:
         last = max(closes)
         st, ld = source_status(last, today, runs.get("nifty"))
