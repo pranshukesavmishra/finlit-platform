@@ -65,7 +65,7 @@ def test_empty_finedge_filled_from_upstox_with_right_units():
 def test_good_finedge_untouched_no_calls():
     calls = []
     cl = upstox.UpstoxClient(S(), transport=httpx.MockTransport(handler_factory(calls)))
-    b = {"symbol": "X", "quote": {"X": {"current_price": 10}}, "pl_annual": {"financials": [{"period_end": "2025-03-31"}]}, "bs_annual": {"financials": [{"period_end": "2025-03-31"}]},
+    b = {"symbol": "X", "quote": {"X": {"current_price": 10}}, "pl_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]}, "bs_annual": {"financials": [{"period_end": "2025-03-31"}]},
          "cf_annual": {"financials": [{"period_end": "2025-03-31"}]}, "pl_quarterly": {"financials": [{"period_end": "2025-03-31"}]}}
     before = dict(b)
     run(upstox.supplement(b, cl, {}))
@@ -104,3 +104,29 @@ def test_reconcile_flags_but_keeps_finedge():
     up = [{"period_end": "2025-03-31", "revenueFromOperations": 120e7, "profitLossForPeriod": 20.5e7}]
     out = upstox.reconcile(b, up, 100.5)
     assert [o["item"] for o in out] == ["revenue"] and out[0]["finedge"] == 100.0 and out[0]["secondary"] == 120.0
+
+
+# ---- older years from the second source, only where it agrees with the provider on the years both hold
+def _fe(years, profit):
+    return [{"period_end": f"{y}-03-31", "year": y, "revenueFromOperations": 100.0 * 1e7 * (y - 2020), "profitLossForPeriod": profit(y) * 1e7} for y in years]
+
+def test_older_years_added_when_the_sources_agree_on_the_years_both_have():
+    fe = _fe([2025, 2026], lambda y: 10.0 * (y - 2020))
+    up = upstox.income_rows({"income_statement": [
+        {"category": "revenue", "history": [{"period": f"Mar {y}", "value": 100.0 * (y - 2020)} for y in range(2022, 2027)]},
+        {"category": "net_profit", "history": [{"period": f"Mar {y}", "value": 10.0 * (y - 2020)} for y in range(2022, 2027)]}]})
+    longer = upstox.extend_history(fe, up)
+    assert [r["period_end"][:4] for r in longer] == ["2022", "2023", "2024", "2025", "2026"]
+    assert longer[-1] is fe[-1] or longer[-1] == fe[-1]          # the provider's own rows are what is kept for the years it has
+
+def test_second_source_that_disagrees_is_not_used_at_all():
+    fe = _fe([2025, 2026], lambda y: 48000.0 if y == 2025 else 57000.0)
+    up = upstox.income_rows({"income_statement": [
+        {"category": "revenue", "history": [{"period": f"Mar {y}", "value": 100.0 * (y - 2020)} for y in range(2022, 2027)]},
+        {"category": "net_profit", "history": [{"period": f"Mar {y}", "value": 10957.0} for y in range(2022, 2027)]}]})
+    assert upstox.extend_history(fe, up) is None
+
+def test_no_common_year_means_no_extension():
+    fe = _fe([2025], lambda y: 5.0)
+    up = upstox.income_rows({"income_statement": [{"category": "revenue", "history": [{"period": "Mar 2022", "value": 1.0}]}, {"category": "net_profit", "history": [{"period": "Mar 2022", "value": 1.0}]}]})
+    assert upstox.extend_history(fe, up) is None

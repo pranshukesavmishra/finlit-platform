@@ -433,6 +433,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate")
     sub.add_parser("refresh-universe")
+    sub.add_parser("refresh-short-history", help="reload stored reports whose yearly statements cover 4 years or fewer, so the second source can add older years (reads a few KB)")
     p_ingest = sub.add_parser("ingest")
     p_ingest.add_argument("symbols", nargs="+")
     p_ingest.add_argument("--statement", default="consolidated", choices=["consolidated", "standalone"])
@@ -489,6 +490,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_cm = sub.add_parser("refresh-commodities", help="commodity prices: MCX futures from Dhan and international prices from metals.dev / MetalpriceAPI into Redis (--loop: keeps running)")
     p_cm.add_argument("--loop", action="store_true")
+    p_hp = sub.add_parser("history-probe", help="how many yearly statements each source holds for a few old companies (recorded at /api/mf/status, run:history-probe)")
+    p_hp.add_argument("symbols", nargs="*", default=None)
     sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
     p_dc = sub.add_parser("refresh-portfolios", help="fund holdings, sector split, benchmark and exit loads from the fund houses' monthly portfolio files and AMFI scheme details (resumable; files already read are skipped)")
     p_dc.add_argument("--only", nargs="*", default=None, help="steps (isin performance loads) or fund-house keys (sbi nippon ...)")
@@ -660,6 +663,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from . import commodities
             print(await commodities.run(settings, store, loop=args.loop))
             return 0
+        if args.cmd == "history-probe":
+            from .history_probe import probe
+            from .mf import record_run
+            res = await probe(client, store, settings, args.symbols or None)
+            await record_run(store, args.cmd, {"status": "ok", "companies": res})
+            print(res)
+            return 0
         if args.cmd == "dhan-check":
             from . import dhan
             from .mf import record_run
@@ -752,6 +762,16 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":
                 print(await refresh_universe(client, store), "companies")
+            elif args.cmd == "refresh-short-history":
+                async with store.pool.acquire() as conn:
+                    short = [r["symbol"] for r in await conn.fetch(
+                        "SELECT symbol FROM snapshots WHERE section = 'financials' AND statement = 'consolidated' "
+                        "AND jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 4 ORDER BY symbol")]
+                print(len(short), "reports with a short history", short[:30])
+                results = await ingest_many(client, store, [(s, "consolidated") for s in short], parallel=2) if short else []
+                await store.invalidate_search()
+                for r in results:
+                    print(f"{r['symbol']:<14} {r['status']:<7} {r['ms']:>6} ms  {r['errors'] or ''}")
             elif args.cmd == "ingest":
                 results = await ingest_many(client, store, [(s, args.statement) for s in args.symbols])
                 await store.invalidate_search()
