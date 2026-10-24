@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { HScroll } from "../components/HScroll";
 import { useInfoPop } from "../components/Info";
 import {
-  COLUMNS, COL_GROUPS, aumText, categoryShort, checklistLines, navFull, navText, noReturnsText, terText,
+  COLUMNS, COL_GROUPS, aumBucket, aumText, categoryShort, checklistLines, navFull, navText, noReturnsText, terText,
   type ColDef, type ColId, type FundRow, type ListQuery, type PeerStats, type SortKey,
 } from "../lib/mf";
 import { dateIN } from "../lib/format";
@@ -69,7 +69,8 @@ function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: S
       if (r.aum == null) return <span className="mf-na" title="Fund size is not in AMFI's latest quarterly AUM report or the fund house's month-end portfolio file loaded." aria-label="No fund size">—</span>;
       const when = r.aumAsOf ? dateIN(r.aumAsOf, { month: "short", year: "numeric" }) : "";
       const src = r.aumKind === "m" ? `Net assets at the end of ${when}, all plans together (fund house's portfolio file)` : `Average for the quarter to ${when}, all plans together (AMFI)`;
-      return <span title={src}>{aumText(r.aum)}</span>;
+      const size = aumBucket(r.aum);
+      return <span className="mf-aum" title={src}>{aumText(r.aum)}{size && <small className={"mf-size s" + size.step} title={`${size.range}. Size says how big the fund is, not how good it is.`}><i aria-hidden="true" />{size.label}</small>}</span>;
     }
     case "ter": return r.ter == null
       ? <span className="mf-na" title="This plan is not in AMFI's latest expense ratio (TER) file." aria-label="No expense ratio">—</span>

@@ -101,6 +101,20 @@ export function aumText(crore: number | null | undefined): string {
   if (crore == null) return "—";
   return "₹" + nf(crore, crore >= 100 ? 0 : 2) + " Cr";
 }
+/** Fund size as a word, so a figure like "₹2,200 Cr" can be read at a glance. Size is a hint about scale and liquidity, never a measure of quality. */
+export const AUM_BUCKETS: { max: number; label: string; range: string }[] = [
+  { max: 100, label: "Very small", range: "Below ₹100 Cr" },
+  { max: 500, label: "Small", range: "₹100–500 Cr" },
+  { max: 2000, label: "Medium", range: "₹500–2,000 Cr" },
+  { max: 10000, label: "Large", range: "₹2,000–10,000 Cr" },
+  { max: Infinity, label: "Very large", range: "₹10,000 Cr and above" },
+];
+export function aumBucket(crore: number | null | undefined): { label: string; range: string; step: number } | null {
+  if (crore == null || !Number.isFinite(crore) || crore < 0) return null;
+  const i = AUM_BUCKETS.findIndex((b) => crore < b.max);
+  return { ...AUM_BUCKETS[i], step: i + 1 };
+}
+
 /** Expense ratio, percent a year: "0.65%". */
 export const terText = (v: number | null | undefined) => (v == null ? "—" : nf(v, 2) + "%");
 

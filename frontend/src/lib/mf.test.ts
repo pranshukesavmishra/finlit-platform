@@ -343,3 +343,13 @@ describe("fund facts text", () => {
     for (const k of ["aum", "terRegular", "terDirect", "exitLoad", "benchmark", "managers", "riskometer", "launchDate", "minInvestment", "category", "amc"]) expect(FACT_LABELS[k]).toBeTruthy();
   });
 });
+
+describe("aumBucket", () => {
+  it("names a fund's size from rupees crore, on the published bands", async () => {
+    const { aumBucket } = await import("./mf");
+    expect(aumBucket(null)).toBeNull(); expect(aumBucket(-1)).toBeNull(); expect(aumBucket(NaN)).toBeNull();
+    expect(aumBucket(99.99)?.label).toBe("Very small"); expect(aumBucket(100)?.label).toBe("Small"); expect(aumBucket(499)?.label).toBe("Small");
+    expect(aumBucket(500)?.label).toBe("Medium"); expect(aumBucket(1999)?.label).toBe("Medium"); expect(aumBucket(2000)?.label).toBe("Large");
+    expect(aumBucket(9999)?.label).toBe("Large"); expect(aumBucket(10000)?.label).toBe("Very large"); expect(aumBucket(147064)?.step).toBe(5);
+  });
+});
