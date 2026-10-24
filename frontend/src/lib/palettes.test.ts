@@ -15,3 +15,12 @@ describe("palettes", () => {
   it("accepts only known ids (the server validates the same list)", () => { expect(isPalette("midnight")).toBe(true); expect(isPalette("neon")).toBe(false); expect(isPalette(undefined)).toBe(false); });
   it("each palette is described for the picker", () => { for (const id of PALETTE_IDS) { expect(PALETTES[id].label.length).toBeGreaterThan(2); expect(PALETTES[id].swatch).toHaveLength(3); } });
 });
+
+describe("hero bands follow the appearance", () => {
+  it("every non-default palette sets its own band colours, so the dark panels change with the choice", () => {
+    for (const id of PALETTE_IDS.filter((p) => p !== "gold")) for (const theme of ["dark", "light"] as const) {
+      const v = paletteVars(id, theme);
+      expect(v["--band-a"], id).toMatch(/^#[0-9A-Fa-f]{6}$/); expect(v["--band-b"], id).toMatch(/^#[0-9A-Fa-f]{6}$/); expect(v["--foot-a"], id).toBeTruthy();
+    }
+  });
+});

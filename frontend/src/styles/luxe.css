@@ -3,7 +3,8 @@
    deep forest green (from the logo) for actions, soft layered shadows, and small motion that runs once.
    Everything reads the colour variables in finlit.css, so both themes and the colour choices in Customise keep working. */
 
-:root { --forest: #1F3B2D; --forest-2: #2C5441; --forest-ink: #0F2018; --paper-line: rgba(122, 91, 22, .16); --r-card: 18px; --r-ctl: 12px; }
+:root { --forest: color-mix(in srgb, var(--band-a), #fff 6%); --forest-2: color-mix(in srgb, var(--band-a), #fff 18%); --forest-ink: var(--band-b);
+  /* the accent on dark surfaces: follows the chosen appearance (palettes set --dk-gold*) */ --acc: var(--dk-gold, #D9B96C); --acc-2: var(--dk-gold-2, #EBD59F); --acc-deep: var(--dk-gold-deep, #A8843A); --paper-line: rgba(122, 91, 22, .16); --r-card: 18px; --r-ctl: 12px; }
 :root[data-theme="light"] {
   --bg: #F5F0E4; --s1: #FDFBF6; --s2: #EFE8D7; --s3: #E4DBC6; --border: #DDD3BD; --border-strong: #BCB093;
   --header: rgba(245, 240, 228, .86);
@@ -72,7 +73,7 @@ table td, table th { border-color: color-mix(in srgb, var(--border) 75%, transpa
 .side-t, .side-gt { letter-spacing: .16em; }
 
 /* ---- dark bands (hero, plans, footer): deep forest-ink with a gold hairline ---- */
-footer.band, .band.foot { background: linear-gradient(180deg, #14201A, #0A110D); border-top: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); }
+footer.band, .band.foot { background: linear-gradient(180deg, var(--foot-a), var(--foot-b)); border-top: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); }
 .tape, .tape-bar { backdrop-filter: blur(6px); }
 
 /* ---- small, calm motion: content settles in once; nothing loops ---- */
@@ -90,36 +91,36 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 :root .hh-hero, :root .pagehead, :root .dash-h, :root .sip-hero, :root .fl-hero, :root .mc-hero {
   --text: #F7F3E8; --muted: #D3CFC2; --faint: #B0AB9B; --border: rgba(255,255,255,.12); --border-strong: rgba(255,255,255,.26);
   --s1: rgba(255,255,255,.05); --s2: rgba(255,255,255,.085); --s3: rgba(255,255,255,.14);
-  --gold: #D9B96C; --gold-2: #EBD59F; --gold-deep: #A8843A; --gold-soft: rgba(217,185,108,.15); --on-gold: #1A1405;
+  --gold: var(--acc); --gold-2: var(--acc-2); --gold-deep: var(--acc-deep); --gold-soft: var(--dk-gold-soft, rgba(217,185,108,.15)); --on-gold: #1A1405;
   --gain: #6CC79B; --loss: #F0929A; --gain-soft: rgba(108,199,155,.16); --loss-soft: rgba(240,146,154,.16);
-  --hh-rule: rgba(255,255,255,.2); --focus: #F4EFE3; --t-gold: #D9B96C; --t-silver: #C9CFD8; --t-basic: #D6D3CB;
+  --hh-rule: rgba(255,255,255,.2); --focus: #F4EFE3; --t-gold: var(--acc); --t-silver: #C9CFD8; --t-basic: #D6D3CB;
   position: relative; isolation: isolate; color: var(--text);
-  background: radial-gradient(700px 320px at 85% -10%, rgba(217,185,108,.16), transparent 70%), radial-gradient(600px 300px at 0% 110%, rgba(70,140,105,.18), transparent 70%), linear-gradient(165deg, #183327, #0C1812 70%, #09110D);
-  border-bottom: 1px solid color-mix(in srgb, #D9B96C 40%, transparent);
+  background: radial-gradient(700px 320px at 85% -10%, color-mix(in srgb, var(--acc) 17%, transparent), transparent 70%), radial-gradient(600px 300px at 0% 110%, color-mix(in srgb, var(--band-a), #fff 28%) 0%, transparent 70%), linear-gradient(165deg, color-mix(in srgb, var(--band-a), #fff 4%), var(--band-b) 72%, color-mix(in srgb, var(--band-b), #000 25%));
+  border-bottom: 1px solid color-mix(in srgb, var(--acc) 40%, transparent);
 }
 .hh-hero { margin-top: 18px; border-radius: 0 0 28px 28px; box-shadow: 0 30px 60px -40px rgba(10, 25, 17, .8); }
 .hh-hero::before, .pagehead::before, .dash-h::before, .sip-hero::before, .fl-hero::before, .mc-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .5; mix-blend-mode: screen;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-.hh-hero .hh-kicker, .pagehead .eyebrow { color: #E3C57E; }
+.hh-hero .hh-kicker, .pagehead .eyebrow { color: var(--acc-2); }
 .hh-hero h1, .pagehead h1 { color: #FBF8F0; font-weight: 340; }
 .hh-hero .hh-card { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.22); border-radius: 14px; box-shadow: 0 24px 50px -28px rgba(0,0,0,.7); backdrop-filter: blur(6px); }
 .hh-hero .hh-card:hover { box-shadow: 0 30px 56px -26px rgba(0,0,0,.8); }
 .hh-hero .btn:not(.primary), .pagehead .btn:not(.primary) { background: rgba(255,255,255,.07); color: #F7F3E8; border-color: rgba(255,255,255,.28); }
-.hh-hero .btn:not(.primary):hover, .pagehead .btn:not(.primary):hover { background: rgba(255,255,255,.13); border-color: #D9B96C; }
+.hh-hero .btn:not(.primary):hover, .pagehead .btn:not(.primary):hover { background: rgba(255,255,255,.13); border-color: var(--acc); }
 .pagehead .pa { opacity: .9; }
 
 /* ---- actions: gold on dark surfaces, deep forest on paper ---- */
 :root .btn.primary { border: 1px solid transparent; color: var(--on-gold); background: linear-gradient(135deg, var(--gold-2), var(--gold) 50%, var(--gold-deep)); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 12px 26px -14px rgba(217,185,108,.8); }
-:root .btn.primary:hover { filter: brightness(1.06); border-color: transparent; box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 16px 30px -14px rgba(217,185,108,.9); }
-:root[data-theme="light"] .btn.primary { background: linear-gradient(160deg, var(--forest-2), var(--forest) 55%, var(--forest-ink)); color: #F6EBCB; box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 12px 24px -14px rgba(15, 32, 24, .8); }
-:root[data-theme="light"] .hh-hero .btn.primary, :root[data-theme="light"] .pagehead .btn.primary, :root[data-theme="light"] .band .btn.primary { background: linear-gradient(135deg, #EBD59F, #D9B96C 50%, #A8843A); color: #1A1405; box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 12px 26px -14px rgba(217,185,108,.8); }
+:root .btn.primary:hover { filter: brightness(1.06); border-color: transparent; box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 16px 30px -14px color-mix(in srgb, var(--acc) 90%, transparent); }
+:root[data-theme="light"] .btn.primary { background: linear-gradient(160deg, var(--forest-2), var(--forest) 55%, var(--forest-ink)); color: var(--acc-2); box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 12px 24px -14px rgba(15, 32, 24, .8); }
+:root[data-theme="light"] .hh-hero .btn.primary, :root[data-theme="light"] .pagehead .btn.primary, :root[data-theme="light"] .band .btn.primary { background: linear-gradient(135deg, var(--acc-2), var(--acc) 50%, var(--acc-deep)); color: #1A1405; box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 12px 26px -14px rgba(217,185,108,.8); }
 :root .plan .btn.primary { box-shadow: none; }
 .hh .tagline { padding: 22px 0 22px; } .hh-hero { margin-top: 0; }
-.dash-h { padding: 22px 28px; border-radius: 22px; border: 1px solid color-mix(in srgb, #D9B96C 30%, transparent); box-shadow: 0 26px 50px -34px rgba(10,25,17,.85); margin-bottom: 18px; overflow: hidden; }
+.dash-h { padding: 22px 28px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent); box-shadow: 0 26px 50px -34px rgba(10,25,17,.85); margin-bottom: 18px; overflow: hidden; }
 .dash-h h1 { margin: 4px 0 6px; }
-:root[data-theme="light"] .plan, :root[data-theme="light"] .plan.feat { background: linear-gradient(165deg, #183327, #0C1812) !important; border-color: #38543F; }
+:root[data-theme="light"] .plan, :root[data-theme="light"] .plan.feat { background: linear-gradient(165deg, color-mix(in srgb, var(--band-a), #fff 4%), var(--band-b)) !important; border-color: var(--rep-border); }
 .pagehead, .sip-hero, .fl-hero, .mc-hero { border-radius: 0 0 26px 26px; box-shadow: 0 28px 50px -38px rgba(10, 25, 17, .8); }
-.shell .pagehead, .shell .sip-hero, .shell .fl-hero, .shell .mc-hero { border-radius: 22px; margin: 0 20px 18px 0; border: 1px solid color-mix(in srgb, #D9B96C 30%, transparent); }
+.shell .pagehead, .shell .sip-hero, .shell .fl-hero, .shell .mc-hero { border-radius: 22px; margin: 0 20px 18px 0; border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent); }
 .pagehead, .sip-hero, .fl-hero, .mc-hero { margin-bottom: 8px; }
 @media (max-width: 560px) { .dash-h { padding: 18px 18px; border-radius: 18px; } }
 
@@ -171,7 +172,7 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
   .mt-i:focus-visible { outline: 2px solid var(--focus); outline-offset: -4px; }
   .mt-i:active { transform: scale(.94); }
   .mt-search .mt-orb { display: grid; place-items: center; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%; color: #1A1405;
-    background: linear-gradient(135deg, #EBD59F, #D9B96C 50%, #A8843A); box-shadow: 0 10px 22px -8px rgba(168, 132, 58, .8), 0 0 0 4px var(--bg); }
+    background: linear-gradient(135deg, var(--acc-2), var(--acc) 50%, var(--acc-deep)); box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--acc-deep) 80%, transparent), 0 0 0 4px var(--bg); }
   .mt-search .mt-orb svg { width: 20px; height: 20px; color: #1A1405; }
   .shell-fab { display: none !important; }
   .ai-fab { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; width: 46px !important; height: 46px !important; right: 14px !important; }
@@ -219,10 +220,10 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 @media (max-width: 380px) { .mt-i { font-size: 9.5px; } .mt-i svg { width: 19px; height: 19px; } }
 
 /* the assistant button: forest on paper, gold ring */
-:root:root:root .ai-fab { background: linear-gradient(160deg, #2C5441, #1F3B2D 55%, #0F2018); color: #F6EBCB; border: 1px solid color-mix(in srgb, #D9B96C 45%, transparent); box-shadow: 0 14px 30px -14px rgba(15, 32, 24, .75); }
+:root:root:root .ai-fab { background: linear-gradient(160deg, var(--forest-2), var(--forest) 55%, var(--forest-ink)); color: var(--acc-2); border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); box-shadow: 0 14px 30px -14px rgba(15, 32, 24, .75); }
 :root:root:root .ai-fab:hover { filter: brightness(1.08); }
-:root:root:root .ai-fab svg { color: #E3C57E; }
+:root:root:root .ai-fab svg { color: var(--acc-2); }
 
 /* the 3D landscape in the home hero takes the band's colours, and the wash behind the words is forest, not paper */
-:root .hh-hero { --scene-paper: #10221A; --scene-light: 0; }
+:root .hh-hero { --scene-paper: var(--band-a); --scene-light: 0; }
 :root .hh-hero.has3d::after { background: radial-gradient(42% 46% at 24% 48%, rgba(12, 24, 18, .78) 35%, transparent 80%); }
