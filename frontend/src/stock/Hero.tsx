@@ -10,6 +10,7 @@ import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
 import { ChartHelp } from "../components/ChartHelp";
+import { LeadLine } from "./Leadership";
 import { BasisToggle } from "./Sections";
 import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
@@ -61,6 +62,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             <div style={{ minWidth: 0 }}>
               <h1>{p.name}</h1>
               <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{capSize(p.marketCapCr) && <span className="tag">{capSize(p.marketCapCr)}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
+              <LeadLine symbol={p.symbol} jump={jump} />
             </div>
           </div>
           <div className="idr">

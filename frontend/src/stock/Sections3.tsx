@@ -18,6 +18,8 @@ import { ProfitabilityRatios } from "./ProfitabilityRatios";
 import { DuPont } from "./DuPont";
 import { ProfitReality } from "./ProfitReality";
 import { SegmentCard } from "./Sections2";
+import { PeerRanking } from "./Leadership";
+import { useLeadership } from "../lib/leadership";
 
 const v = (n: string) => `var(${n})`;
 
@@ -178,6 +180,7 @@ const hue = (s: string) => HUES[[...s].reduce((a, c) => (a * 31 + c.charCodeAt(0
 
 export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summary }) {
   const nav = useNavigate(); const qc = useQueryClient();
+  const lead = useLeadership(self).data;
   const [hv, setHv] = useState<string | null>(null);
   const items = (p?.items || p?.symbols.map((x) => ({ symbol: x, name: null })) || []) as NonNullable<Peers["items"]>;
   const peers = items.filter((i) => i.symbol !== self);
@@ -225,6 +228,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
             </a>); })}
         </div>
       </div>
+      {lead?.available && <PeerRanking lead={lead} self={self} extras={items.map((i) => ({ symbol: i.symbol, name: i.name }))} />}
     </section>
   );
 }
