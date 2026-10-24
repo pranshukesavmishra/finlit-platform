@@ -339,29 +339,55 @@ def _ym(r: dict) -> Optional[str]:
     return d.strftime("%Y-%m") if d else None
 
 
+_ALIASES = {"profitLossForPeriod": ("profitOrLossAttributableToOwners", "profitLossForPeriod", "profitLossForThePeriod", "profitLossAfterTax"),
+            "cashFlowsFromOperatingActivities": ("cashFlowsFromOperatingActivities", "netCashFlowsFromOperatingActivities")}
+
+
+def _field(row: dict, key: str) -> Optional[float]:
+    """The provider names the same line differently for lenders and insurers: the first of the known names it filled in."""
+    for k in _ALIASES.get(key, (key,)):
+        v = _num(row.get(k))
+        if v is not None:
+            return v
+    return None
+
+
+def _shifted(r: dict, months: int) -> dict:
+    """The same row with its period moved `months` later (Upstox labels some insurers' March year-ends as the December before)."""
+    d = period_end(r.get("period_end") or r.get("year"))
+    if not d or not months:
+        return r
+    m0 = d.month - 1 + months
+    y, m = d.year + m0 // 12, m0 % 12 + 1
+    e = date(y, m, calendar.monthrange(y, m)[1])
+    return {**r, "period_end": e.isoformat(), "year": e.year + (1 if e.month > 3 else 0)}
+
+
 def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations")) -> Optional[List[dict]]:
     """The provider's own rows, plus the second source's rows for OLDER periods the provider does not hold. Done only when both sources hold at least
-    one period in common and agree on it (net profit, and revenue where both have it, within DISAGREE): otherwise the second source is not trusted for
-    this company and None comes back. The provider's rows are never changed."""
+    one period in common and agree on it (net profit, and revenue where both have it, within DISAGREE). The second source's dates are tried as given and
+    then three months later (its label for a March year-end is sometimes the December before): the alignment that agrees on the shared years is used.
+    When neither agrees, the second source is not trusted for this company and None comes back. The provider's rows are never changed."""
     have = {_ym(r): r for r in fe_rows if isinstance(r, dict) and _ym(r)}
-    up = {_ym(r): r for r in up_rows if _ym(r)}
-    common = sorted(set(have) & set(up))
-    if not common or not have:
+    if not have:
         return None
-    judged = 0
-    for k in common:
-        for key in keys:
-            a, b = _num(have[k].get(key)), _num(up[k].get(key))
-            if a is None or b is None:
-                continue
-            if abs(a - b) / max(abs(b), 1) > DISAGREE:
-                return None
-            judged += 1
-    if not judged:
-        return None
-    first = min(have)
-    older = [up[k] for k in sorted(up) if k < first]
-    return sorted([*older, *have.values()], key=lambda r: _ym(r) or "") if older else None
+    for months in (0, 3):
+        up = {_ym(r): r for r in (_shifted(x, months) for x in up_rows) if _ym(r)}
+        common = sorted(set(have) & set(up))
+        judged, ok = 0, bool(common)
+        for k in common:
+            for key in keys:
+                a, b = _field(have[k], key), _num(up[k].get(key))
+                if a is None or b is None:
+                    continue
+                if abs(a - b) / max(abs(b), 1) > DISAGREE:
+                    ok = False
+                judged += 1
+        if ok and judged:
+            first = min(have)
+            older = [up[k] for k in sorted(up) if k < first]
+            return sorted([*older, *have.values()], key=lambda r: _ym(r) or "") if older else None
+    return None
 
 
 async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Optional[dict] = None) -> dict:

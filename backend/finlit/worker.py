@@ -763,11 +763,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 print(res)
             elif args.cmd == "refresh-short-history":
                 async with store.pool.acquire() as conn:
-                    short = [r["symbol"] for r in await conn.fetch(
-                        "SELECT symbol FROM snapshots WHERE section = 'financials' AND statement = 'consolidated' "
-                        "AND jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 4 ORDER BY symbol")]
+                    short = [(r["symbol"], r["statement"]) for r in await conn.fetch(
+                        "SELECT symbol, statement FROM snapshots WHERE section = 'financials' "
+                        "AND jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 4 ORDER BY symbol, statement")]
                 print(len(short), "reports with a short history", short[:30])
-                results = await ingest_many(client, store, [(s, "consolidated") for s in short], parallel=2) if short else []
+                results = await ingest_many(client, store, short, parallel=2) if short else []
                 await store.invalidate_search()
                 for r in results:
                     print(f"{r['symbol']:<14} {r['status']:<7} {r['ms']:>6} ms  {r['errors'] or ''}")
