@@ -1,5 +1,5 @@
 import { HScroll } from "../components/HScroll";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { fromYears, priceFrom } from "../lib/chartAxis";
 import { Icon } from "../lib/icons";
 import { Gate, OpenAccess, TierChip } from "../components/Gate";
@@ -11,8 +11,8 @@ import { RsiGauge, Spark } from "../charts/Small";
 import { ChartHelp } from "../components/ChartHelp";
 import { MINUS, cr, dateIN, nf, signed } from "../lib/format";
 import { useIsFetching } from "@tanstack/react-query";
-import { useBasis, setBasis } from "../lib/basis";
-import { useIntraday, usePrice, type ApiError, type Financials, type Intraday, type IntradayRange, type Ratios, type Summary, type Table } from "../lib/api";
+import { useBasis, setBasis, wasAutomatic, wasChosen } from "../lib/basis";
+import { useIntraday, usePrice, useSection, type ApiError, type Financials, type Intraday, type IntradayRange, type Ratios, type Summary, type Table } from "../lib/api";
 import { barSpan, changePct, istDay, status as intradayStatus } from "../lib/intraday";
 import { useAuth } from "../lib/auth";
 import { finTiles, yoy } from "./derive";
@@ -165,7 +165,13 @@ export function BasisToggle({ symbol, shown }: { symbol: string; shown?: "consol
 /* ---------------- Financials ---------------- */
 export function FinancialsSection({ f }: { f?: Financials }) {
   const [kind, setKind] = useState<FinKind>("pl");
-  const basis = useBasis(f?.meta.symbol ?? "");
+  const basis = useBasis(f?.meta.symbol ?? ""), sym = f?.meta.symbol ?? "";
+  // A company whose consolidated accounts are short (an insurer that began consolidating lately, a merger) often has a longer standalone history:
+  // look at it quietly, and switch to it unless the reader has chosen. The switch is shown on the page and one press undoes it.
+  const years = f?.yearly.pl.periods.length ?? 0;
+  const alt = useSection<Financials>(sym, "financials", !!f && basis === "consolidated" && years > 0 && years < 5 && !wasChosen(sym), "standalone");
+  const altYears = alt.data?.yearly.pl.periods.length ?? 0;
+  useEffect(() => { if (basis === "consolidated" && years > 0 && altYears >= years + 2) setBasis(sym, "standalone", true); }, [basis, years, altYears, sym]);
   if (!f) return <section className="block"><SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
   const tiles = finTiles(f), tbl: Table = kind === "q" ? f.quarterly.pl : f.yearly[kind];
   const ROWS: Record<string, [string, string, boolean?][]> = {
@@ -188,7 +194,8 @@ export function FinancialsSection({ f }: { f?: Financials }) {
           </div>
         ))}
       </div>
-      {f.yearly.pl.periods.length > 0 && f.yearly.pl.periods.length <= 3 && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Our data provider holds only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} of {basis} statements for this company (it may be newly listed, or have started publishing these accounts recently). The Consolidated / Standalone switch above shows the other set.</p>}
+      {wasAutomatic(sym) && basis === "standalone" && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Showing standalone accounts ({f.yearly.pl.periods.length} years) because this company's consolidated accounts cover far fewer. <button type="button" className="alx-link" onClick={() => setBasis(sym, "consolidated")}>Show consolidated instead</button></p>}
+      {f.yearly.pl.periods.length > 0 && f.yearly.pl.periods.length < 5 && !wasAutomatic(sym) && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} of {basis} statements are available for this company (it may be newly listed, or have started publishing these accounts recently).</p>}
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
         <div className="tools">
           <BasisToggle symbol={f.meta.symbol} shown={f.meta.statement} />

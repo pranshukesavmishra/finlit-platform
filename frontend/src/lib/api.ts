@@ -147,7 +147,7 @@ function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryO
 }
 
 export const useSummary = (s: string, enabled = true) => { const b = useBasis(s); return useQuery<Summary, ApiError>({ ...sectionQuery<Summary>(s, "", undefined, b), placeholderData: (prev) => (prev?.meta.symbol === s.toUpperCase() ? prev : undefined), enabled: enabled && !!s }); };
-export const useSection = <T,>(s: string, name: string, enabled = true) => { const b = useBasis(s); return useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`, undefined, b), placeholderData: (prev) => ((prev as { meta?: { symbol?: string } } | undefined)?.meta?.symbol === s.toUpperCase() ? prev : undefined), enabled }); };
+export const useSection = <T,>(s: string, name: string, enabled = true, basis?: Basis) => { const own = useBasis(s), b = basis ?? own; return useQuery<T, ApiError>({ ...sectionQuery<T>(s, `/${name}`, undefined, b), placeholderData: (prev) => ((prev as { meta?: { symbol?: string } } | undefined)?.meta?.symbol === s.toUpperCase() ? prev : undefined), enabled }); };
 export const usePrice = (s: string, range: string, enabled = true) => {
   const b = useBasis(s);
   return useQuery<PriceRange, ApiError>({ ...sectionQuery<PriceRange>(s, `/price?range=${range}`, undefined, b), placeholderData: (prev) => prev, enabled });

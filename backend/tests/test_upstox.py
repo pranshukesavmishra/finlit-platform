@@ -131,3 +131,13 @@ def test_no_common_year_means_no_extension():
     up = upstox.income_rows({"income_statement": [{"category": "revenue", "history": [{"period": "Mar 2022", "value": 1.0}]}, {"category": "net_profit", "history": [{"period": "Mar 2022", "value": 1.0}]}]})
     assert upstox.extend_history(fe, up) is None
 
+
+
+def test_a_dec_labelled_year_end_is_aligned_to_march_when_that_is_where_the_numbers_agree():
+    fe = [{"period_end": f"{y}-03-31", "year": y, "profitOrLossAttributableToOwners": p * 1e7} for y, p in ((2025, 48151.0), (2026, 57000.0))]
+    up = upstox.income_rows({"income_statement": [
+        {"category": "revenue", "history": [{"period": f"Dec {y}", "value": 1.0} for y in (2021, 2022, 2023, 2024)]},
+        {"category": "net_profit", "history": [{"period": f"Dec {y}", "value": v} for y, v in ((2021, 4043.0), (2022, 36397.0), (2023, 40676.0), (2024, 48151.0))]}]})
+    longer = upstox.extend_history(fe, up)
+    assert [r["period_end"][:4] for r in longer] == ["2022", "2023", "2024", "2025", "2026"]
+    assert [round(upstox._field(r, "profitLossForPeriod") / 1e7) for r in longer][:3] == [4043, 36397, 40676]
