@@ -101,17 +101,20 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   else
     log "boot-etf skipped: the web server did not answer within 10 minutes"
   fi
+  # Fund facts, the industry report and the five-year NAV history come BEFORE the long company load: every returns column, the SIP figures, fund size and
+  # the checklist depend on them, the steps are resumable (one fund house at a time), and a restart during the hours-long company load must not
+  # keep them from ever being reached.
+  if [ "$WEB_UP" = 1 ] && [ "$MF_OK" = 1 ]; then
+    fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
+    fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Fund industry trends): resumable, about 90 small files on the first run, then one cheap check
+    [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
+    fund_step boot-mf-history backfill-mf
+  fi
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
   $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker score-all                        # a score for every other listed company (score row only, capped per run, resumable)
-  if [ "$WEB_UP" = 1 ] && [ "$MF_OK" = 1 ]; then
-    fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
-    fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Mutual Fund Insights): resumable, about 90 small files on the first run, then one cheap check
-    [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
-    fund_step boot-mf-history backfill-mf
-  fi
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
   log "done boot-load"
@@ -150,7 +153,8 @@ while true; do
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( H == 2 && M == 40 )) && run heavy score-all score-all   # every listed company gets a score: SCORE_ALL_PER_RUN a night (score row only), the rest on later nights
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
-  (( D == 7 && H == 2 && M == 45 )) && run light indices refresh-indices
+  (( H == 2 && M == 45 )) && run light indices refresh-indices   # nightly (a few small files): a failed boot download is retried the same night, not a week later
+  (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
   (( H == 18 && M == 50 )) && run light macro refresh-macro          # nightly: India macro data (MoSPI publishes CPI and IIP around 16:00 IST on release days; RBI's WSS on Fridays)
   (( H == 19 && M == 10 )) && run light flows refresh-flows          # nightly: FII/DII flows (NSDL posts the day's report in the evening)

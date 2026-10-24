@@ -34,7 +34,8 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 # Company and fund-house logos from their own websites (robots.txt obeyed): nightly, a batch at a time.
 25 5 * * *       root $W refresh-logos >> /var/log/finlit-ingest.log 2>&1
 # NIFTY index membership: weekly.
-45 2 * * 0       root $W refresh-indices >> /var/log/finlit-ingest.log 2>&1
+45 2 * * *       root $W refresh-indices >> /var/log/finlit-ingest.log 2>&1
+40 3 * * *       root flock -w 10800 /tmp/finlit-funds.lock $W backfill-mf >> /var/log/finlit-funds.log 2>&1
 # Keep the database inside its storage budget.
 5 1 * * *        root $W prune >> /var/log/finlit-ingest.log 2>&1
 # A rotating sample of the market: what the provider sent against what the reports show.
