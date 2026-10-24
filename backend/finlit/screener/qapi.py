@@ -342,7 +342,7 @@ COLS = "id, name, query, note, columns, sort, recent, last_count, counted_at, cr
 async def _owned(conn, ctx: Ctx, basket_id: str):
     if not UUID.match(basket_id):
         raise fail(404, "not_found", "That basket was not found.")
-    row = await conn.fetchrow(f"SELECT {COLS} FROM query_baskets WHERE id = $1 AND user_id = $2", basket_id, ctx.user_id)
+    row = await conn.fetchrow(f"SELECT {COLS} FROM query_baskets WHERE id = $1 AND user_id = $2", basket_id, ctx.user_id)  # nosec B608 - COLS is a fixed constant; every value is a bound parameter
     if not row:
         raise fail(404, "not_found", "That basket was not found.")
     return row
@@ -352,7 +352,7 @@ async def _owned(conn, ctx: Ctx, basket_id: str):
 async def list_baskets(request: Request, ctx: Ctx = Depends(secure_ctx)):
     t = await _table(request)
     async with request.app.state.store.pool.acquire() as conn:
-        rows = await conn.fetch(f"SELECT {COLS} FROM query_baskets WHERE user_id = $1 ORDER BY updated_at DESC", ctx.user_id)
+        rows = await conn.fetch(f"SELECT {COLS} FROM query_baskets WHERE user_id = $1 ORDER BY updated_at DESC", ctx.user_id)  # nosec B608 - COLS is a fixed constant; every value is a bound parameter
         started, out, fresh = time.perf_counter(), [], []
         for r in rows:
             over = time.perf_counter() - started > COUNT_BUDGET
@@ -383,7 +383,7 @@ async def _insert(conn, ctx: Ctx, name: str, query: str, note: Optional[str], co
         if await conn.fetchval("SELECT 1 FROM query_baskets WHERE user_id = $1 AND lower(name) = lower($2)", ctx.user_id, name):
             raise fail(409, "name_taken", f"You already have a basket called '{name}'. Pick another name.")
         return await conn.fetchrow(
-            f"INSERT INTO query_baskets (user_id, name, query, note, columns, sort, recent) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7) RETURNING {COLS}",
+            f"INSERT INTO query_baskets (user_id, name, query, note, columns, sort, recent) VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7) RETURNING {COLS}",  # nosec B608 - COLS is a fixed constant; every value is a bound parameter
             ctx.user_id, name, query, note, json.dumps(columns), json.dumps(sort) if sort else None, recent)
 
 
@@ -414,7 +414,7 @@ async def update_basket(request: Request, basket_id: str, body: BasketPatch, ctx
         if name.lower() != cur["name"].lower() and await conn.fetchval("SELECT 1 FROM query_baskets WHERE user_id = $1 AND lower(name) = lower($2)", ctx.user_id, name):
             raise fail(409, "name_taken", f"You already have a basket called '{name}'. Pick another name.")
         r = await conn.fetchrow(
-            f"UPDATE query_baskets SET name = $3, query = $4, note = $5, columns = $6::jsonb, sort = $7::jsonb, recent = $8, updated_at = now() "
+            f"UPDATE query_baskets SET name = $3, query = $4, note = $5, columns = $6::jsonb, sort = $7::jsonb, recent = $8, updated_at = now() "  # nosec B608 - COLS is a fixed constant; every value is a bound parameter
             f"WHERE id = $1 AND user_id = $2 RETURNING {COLS}", basket_id, ctx.user_id, name, query, note, json.dumps(cols), json.dumps(sort) if sort else None, recent)
     return _json({"basket": _view(r, await asyncio.to_thread(_count_one, t, ctx.plan, r["query"], r["recent"]))})
 

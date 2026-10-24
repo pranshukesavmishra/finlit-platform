@@ -63,6 +63,10 @@
 @media (max-width: 1100px) { .hh .plat { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .hh .plat { grid-template-columns: minmax(0, 1fr); } }
 .hh .plat-t { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); border-radius: 0; background: transparent; box-shadow: none; padding: 18px 18px 16px; transform: none; }
+/* a last tile alone in its row (an odd number of tools) takes the whole row instead of leaving a gap */
+.hh .plat-t:last-child:nth-child(4n+1) { grid-column: 1 / -1; }
+@media (max-width: 1100px) { .hh .plat-t:last-child:nth-child(4n+1) { grid-column: auto; } .hh .plat-t:last-child:nth-child(2n+1) { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .hh .plat-t:last-child:nth-child(2n+1) { grid-column: auto; } }
 .hh .plat-t:hover { transform: none; background: var(--s1); box-shadow: none; }
 .hh .plat-n { font: 500 12px var(--mono); color: var(--faint); }
 .hh .plat-t h3 { font: 400 21px var(--serif); margin: 2px 0 0; }

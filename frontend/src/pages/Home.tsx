@@ -82,7 +82,7 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Sixteen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Seventeen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>
