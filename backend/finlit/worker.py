@@ -296,8 +296,8 @@ async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "cons
         batch = pending[i:i + chunk]
         for r in await ingest_many(client, store, [(s, statement) for s in batch], parallel=parallel, yield_to_readers=True):
             done[r["status"]] = done.get(r["status"], 0) + 1
-        await store.invalidate_search()
         log.info("ingest-all: %d / %d  %s  (%d upstream calls)", min(i + chunk, len(pending)), len(pending), done, client.calls)
+    await store.invalidate_search()   # once at the end: each drop makes the next visitor read the whole name list from Postgres again
     return done
 
 

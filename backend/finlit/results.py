@@ -20,6 +20,7 @@ import json
 import logging
 import re
 import time
+import zlib
 from calendar import monthrange
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -27,6 +28,7 @@ from statistics import median
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
+import orjson
 from fastapi import APIRouter, Query, Request, Response
 
 from .auth.entitlements import has
@@ -43,6 +45,12 @@ IST = ZoneInfo("Asia/Kolkata")
 GAP_FLAG = 15.0            # percentage points between revenue growth and profit growth that earns the red chip (same as the alert's default)
 TTL_LATEST, TTL_OLD = 180, 3600   # seconds a quarter's rows are served before they are rebuilt in the background
 DECL_TTL = 120
+MARKET_TTL = 900           # while the market is open the stored figures move every minute (market cap, size band): rebuild a quarter this often at most
+DECL_KEY = "results:decl"  # the declarations worked out from the feed, kept in Redis under the feed's signature: the hourly job and the site share them
+PROBE_SQL = ("SELECT (SELECT count(*) FROM feed_items WHERE kind = 'result') AS fn, (SELECT max(id) FROM feed_items WHERE kind = 'result') AS fid, "
+             "(SELECT count(*) FROM scores WHERE model = 'v1') AS sn, (SELECT max(changed_at)::text FROM scores WHERE model = 'v1') AS sa, "
+             "(SELECT count(*) FROM companies) AS cn, (SELECT max(updated_at)::text FROM companies) AS ca, (SELECT count(*) FROM index_members) AS mn, "
+             "(SELECT count(*) FROM snapshots WHERE section = 'financials') AS gn, (SELECT max(generated_at)::text FROM snapshots WHERE section = 'financials') AS ga")
 EXPORT_ROWS = 4000
 DATE_MEANING = ("The date is the day the company announced (declared) its results: the date on the exchange filing, or the board-meeting date from the results calendar until the filing appears. "
                 "It is an Indian calendar date (IST).")
@@ -307,13 +315,36 @@ class Entry:
     sectors: List[Tuple[str, int]]
     loaded: float = field(default_factory=time.time)
     ttl: int = TTL_LATEST
+    sig: Optional[Dict[str, Any]] = None   # what _probe said before the rows were read: the same again means nothing to rebuild
+
+
+async def _probe(store, today: date) -> Dict[str, Any]:
+    """A few bytes that say whether anything a quarter's rows are built from has changed (and which day it is: a result date turns from due to declared at midnight)."""
+    async with store.pool.acquire() as conn:
+        return {"day": today.isoformat(), **dict(await conn.fetchrow(PROBE_SQL))}
 
 
 async def _declarations(store) -> Dict[str, Dict[str, Decl]]:
+    """Read from the feed (about 3 MB) only when the feed changed; otherwise the copy in Redis."""
+    p = await _probe(store, today_ist())
+    sig = [p["day"], p["fn"], p["fid"]]
+    try:
+        raw = await store.redis.get(DECL_KEY)
+        got = orjson.loads(zlib.decompress(raw)) if raw else None
+        if got and got["sig"] == sig:
+            return {qk: {sym: Decl(date.fromisoformat(d[0]), d[1], d[2]) for sym, d in by.items()} for qk, by in got["decls"].items()}
+    except Exception:   # nosec B110 - an unreadable copy is read again from the feed
+        pass
     async with store.pool.acquire() as conn:
         rows = await conn.fetch("SELECT symbol, company, item_date, source, category, title FROM feed_items "
                                 "WHERE kind = 'result' AND symbol IS NOT NULL AND item_date >= current_date - 430 LIMIT 60000")
-    return assign([dict(r) for r in rows])
+    out = assign([dict(r) for r in rows])
+    try:
+        packed = {qk: {sym: [d.date.isoformat(), d.confirmed, d.company] for sym, d in by.items()} for qk, by in out.items()}
+        await store.redis.set(DECL_KEY, zlib.compress(orjson.dumps({"sig": sig, "decls": packed}), 6), ex=86400)
+    except Exception:   # nosec B110 - Redis down: the rows just read are used
+        pass
+    return out
 
 
 async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
@@ -422,26 +453,41 @@ def today_ist() -> date:
     return datetime.now(IST).date()
 
 
+def _ttl(e: Entry) -> int:
+    from .screener.data import in_market_hours
+    return max(e.ttl, MARKET_TTL) if in_market_hours() else e.ttl
+
+
+async def _built(store, qkey: str, force: bool = False) -> Entry:
+    sig = await _probe(store, today_ist())   # before the rows: a change made while they are read shows up in the next probe
+    decls = (await get_declarations(store, force)).get(qkey, {})
+    entry = await _build(store, parse_quarter(qkey), decls, today_ist())   # type: ignore[arg-type]
+    entry.sig = sig
+    return entry
+
+
 async def get_entry(store, qkey: str, force: bool = False) -> Entry:
     e = parse_quarter(qkey)
     assert e is not None
     cur = _entries.get(qkey)
     if cur and not force:
-        if time.time() - cur.loaded >= cur.ttl and qkey not in _tasks:
+        if time.time() - cur.loaded >= _ttl(cur) and qkey not in _tasks:
             _tasks[qkey] = asyncio.create_task(_refresh_entry(store, qkey))
         return cur
     async with _elock:
         cur = _entries.get(qkey)
         if cur is None or force:
-            decls = (await get_declarations(store, force)).get(qkey, {})
-            _entries[qkey] = await _build(store, e, decls, today_ist())
+            _entries[qkey] = await _built(store, qkey, force)
     return _entries[qkey]
 
 
 async def _refresh_entry(store, qkey: str) -> None:
     try:
-        decls = (await get_declarations(store)).get(qkey, {})
-        _entries[qkey] = await _build(store, parse_quarter(qkey), decls, today_ist())   # type: ignore[arg-type]
+        cur = _entries.get(qkey)
+        if cur is not None and cur.sig is not None and cur.sig == await _probe(store, today_ist()):
+            cur.loaded = time.time()   # nothing it is built from has changed: as current as a rebuild would be
+        else:
+            _entries[qkey] = await _built(store, qkey)
     except Exception:
         log.exception("results for %s not refreshed", qkey)
     finally:

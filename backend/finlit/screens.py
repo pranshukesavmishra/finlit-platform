@@ -63,7 +63,15 @@ async def check_screens(pool, mailer: Mailer, site_url: str) -> int:
             "AND u.email_verified_at IS NOT NULL AND s.screens <> '[]'::jsonb")
         if not users:
             return 0
-        universe = [dict(r) for r in await conn.fetch("SELECT DISTINCT ON (symbol) * FROM scores WHERE model = 'v1' ORDER BY symbol, updated_at DESC")]
+        # only the figures the members' screens filter on leave the database (each company carries ~250; a screen uses a handful)
+        from .screener.data import LEGACY
+        used = sorted({LEGACY_KEYS.get(k, k) for u in users for sc in ((json.loads(u["screens"]) if isinstance(u["screens"], str) else u["screens"]) or [])
+                       for k in ((sc.get("state") or {}).get("ranges") or {})})
+        cols = ", ".join(sorted(set(LEGACY.values())))   # the flat columns `matches` falls back to
+        universe = [dict(r) for r in await conn.fetch(
+            f"SELECT DISTINCT ON (symbol) symbol, name, sector, macro_sector, industry, band, {cols}, "  # nosec B608 - fixed column names
+            "(SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(metrics) e WHERE e.key = ANY($1::text[])) AS metrics "
+            "FROM scores WHERE model = 'v1' ORDER BY symbol, updated_at DESC", used)]
         members: Dict[str, set] = {}
         for r in await conn.fetch("SELECT index_code, symbol FROM index_members"):
             members.setdefault(r["index_code"], set()).add(r["symbol"])

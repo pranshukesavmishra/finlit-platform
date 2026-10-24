@@ -13,7 +13,11 @@ from __future__ import annotations
 
 import gzip
 import time
-from datetime import timezone, timedelta
+import zlib
+from datetime import datetime, timezone, timedelta
+from decimal import Decimal
+
+import orjson
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
@@ -38,6 +42,13 @@ LEFT JOIN LATERAL (SELECT overall, band, price, change_pct, updated_at FROM scor
 LEFT JOIN listing_quotes q ON q.symbol = c.symbol
 LEFT JOIN logos g ON g.owner_kind = 'stock' AND g.owner_key = c.symbol AND g.status IN ('ok', 'manual') AND g.sha8 IS NOT NULL
 """
+# The rows behind both levels, kept in Redis: a rebuild reads only the companies whose score or listing row changed since the last one (about 5,800 rows
+# of ~80 bytes is half a megabyte, and the minute-by-minute prices would otherwise make every two-minute rebuild read all of it).
+RAW_KEY = "search-quotes:raw"
+FULL_EVERY = 6 * 3600     # all rows again (also catches companies that left or joined and a changed logo)
+MARGIN = 120
+PROBE_SQL = ("SELECT (SELECT count(*) FROM scores WHERE model = 'v1') AS sn, (SELECT max(changed_at) FROM scores WHERE model = 'v1') AS sa, "
+             "(SELECT count(*) FROM listing_quotes) AS ln, (SELECT max(updated_at) FROM listing_quotes) AS la, (SELECT count(*) FROM companies) AS cn")
 
 
 def _num(v):
@@ -72,10 +83,58 @@ def quote_rows(rows, level: str, showcase: set) -> list:
     return out
 
 
+def _rec(r) -> dict:
+    return {k: (float(v) if isinstance(v, Decimal) else v.isoformat() if isinstance(v, datetime) else v) for k, v in dict(r).items()}
+
+
+def _hydrate(rec: dict) -> dict:
+    return {k: (datetime.fromisoformat(v) if k in ("su", "qt") and v else v) for k, v in rec.items()}
+
+
+async def _raw_rows(store) -> list:
+    """QUOTES_SQL's rows, in company order, from Redis plus whatever changed since (see RAW_KEY). Falls back to reading everything."""
+    state, now = None, time.time()
+    try:
+        raw = await store.redis.get(RAW_KEY)
+        state = orjson.loads(zlib.decompress(raw)) if raw else None
+    except Exception:
+        state = None
+    async with store.pool.acquire() as conn:
+        try:
+            p = await conn.fetchrow(PROBE_SQL)
+        except Exception:   # a column the probe needs is missing (migrations not applied yet): read everything, as before
+            p = None
+        sig = None if p is None else {"sn": p["sn"], "sa": p["sa"].isoformat() if p["sa"] else None, "ln": p["ln"], "la": p["la"].isoformat() if p["la"] else None, "cn": p["cn"]}
+        old = state and state.get("sig")
+        if sig and old and now - state["full_at"] < FULL_EVERY and sig["cn"] == old["cn"] and sig["sn"] >= old["sn"] and sig["ln"] >= old["ln"]:
+            if sig == old:
+                return state["rows"]
+            def since(k):
+                return datetime.fromisoformat(old[k]) - timedelta(seconds=MARGIN) if old[k] else datetime.fromtimestamp(0, timezone.utc)
+            changed = await conn.fetch(
+                "SELECT * FROM (" + QUOTES_SQL + ") q WHERE q.symbol IN (SELECT symbol FROM scores WHERE model = 'v1' AND changed_at > $1 "  # nosec B608 - fixed text
+                "UNION SELECT symbol FROM listing_quotes WHERE updated_at > $2)", since("sa"), since("la"))
+            by = {r["symbol"]: i for i, r in enumerate(state["rows"])}
+            rows = list(state["rows"])
+            for r in changed:
+                rec = _rec(r)
+                if r["symbol"] in by:
+                    rows[by[r["symbol"]]] = rec
+                else:
+                    rows.append(rec)
+            state = {"sig": sig, "full_at": state["full_at"], "rows": rows}
+        else:
+            state = {"sig": sig, "full_at": now, "rows": [_rec(r) for r in await conn.fetch(QUOTES_SQL)]}
+    try:
+        await store.redis.set(RAW_KEY, zlib.compress(orjson.dumps(state), 6), ex=2 * FULL_EVERY)
+    except Exception:   # nosec B110 - Redis down: the rows just read are used once
+        pass
+    return state["rows"]
+
+
 async def build(app, level: str):
     store = app.state.store
-    async with store.pool.acquire() as conn:
-        rows = await conn.fetch(QUOTES_SQL)
+    rows = [_hydrate(r) for r in await _raw_rows(store)]
     amc = await amc_logos(store)
     body = dumps({"fields": ["symbol", "price", "changePct", "priceDate", "score", "band", "logo"],
                   "rows": quote_rows(rows, level, set(app.state.settings.showcase_symbols)),

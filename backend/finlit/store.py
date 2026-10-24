@@ -29,6 +29,7 @@ log = logging.getLogger("finlit.store")
 MIGRATIONS = Path(__file__).parent / "migrations"
 SEARCH_KEY = "search-index"
 STOCK_TTL = 6 * 3600
+SEARCH_TTL = 6 * 3600   # the name list (~350 KB read from Postgres to build); a load or a universe refresh drops it sooner
 QUOTE_SYMBOLS_KEY = "quotes:symbols"   # who the minute-by-minute quote job updates: the list changes when a report is first loaded or pruned, not every minute
 QUOTE_SYMBOLS_TTL = 1800
 # What the screener figures are worked out from, besides the live summary: unchanged between full loads, so the quote job keeps them (compressed, price
@@ -663,7 +664,7 @@ class Store:
         etag = etag_for(body)
         try:
             await self.redis.hset(SEARCH_KEY, mapping={"body": body, "gzip": packed, "etag": etag.encode()})
-            await self.redis.expire(SEARCH_KEY, 3600)
+            await self.redis.expire(SEARCH_KEY, SEARCH_TTL)
         except aioredis.RedisError:
             pass
         return body, packed, etag

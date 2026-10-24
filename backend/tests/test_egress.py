@@ -295,6 +295,89 @@ async def test_a_full_load_stores_the_cached_inputs_and_a_prune_drops_them(inges
     assert not await st.redis.exists("mi:RELIANCE:consolidated")
 
 
+# ------------------------------------------------------------------ the other readers
+
+
+async def test_alert_statement_figures_are_the_same_when_cut_inside_the_database(ingested):  # noqa: F811
+    from finlit import alertengine as ae
+    async with ingested.pool.acquire() as conn:
+        got = (await ae.load_values(conn, ["RELIANCE"], set(ae.SNAP)))["RELIANCE"]
+        fin = json.loads(await conn.fetchval("SELECT body FROM snapshots WHERE symbol = 'RELIANCE' AND statement = 'consolidated' AND section = 'financials'"))
+        own = json.loads(await conn.fetchval("SELECT body FROM snapshots WHERE symbol = 'RELIANCE' AND statement = 'consolidated' AND section = 'ownership'"))
+    rows = fin["quarterly"]["pl"]["rows"]
+    last = lambda xs: float([x for x in xs if x is not None][-1])  # noqa: E731
+    assert got["q_net_profit"] == last(rows["net_profit"]) and got["q_revenue"] == last(rows["revenue"])
+    g = ae.quarter_gap(rows)
+    assert got["rev_profit_gap"] == (g["gap"] if g else None) and (g is None or got["_gap_detail"]["gap"] == g["gap"])
+    for key, col in (("promoters", "promoter_chg"), ("fii", "fii_chg")):
+        v = [x for x in own["series"][key] if x is not None]
+        assert got[col] == round(float(v[-1]) - float(v[-2]), 2)
+
+
+async def test_saved_screens_read_only_the_figures_they_filter_on(ingested):  # noqa: F811
+    from finlit.screens import matches
+    async with ingested.pool.acquire() as conn:
+        full = dict(await conn.fetchrow("SELECT * FROM scores WHERE symbol = 'RELIANCE' AND model = 'v1' ORDER BY updated_at DESC"))
+        cut = dict(await conn.fetchrow(
+            "SELECT symbol, name, sector, macro_sector, industry, band, (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(metrics) e WHERE e.key = ANY($1::text[])) AS metrics "
+            "FROM scores WHERE symbol = 'RELIANCE' AND model = 'v1' ORDER BY updated_at DESC", ["pe", "roe"]))
+    assert set(json.loads(cut["metrics"]) if isinstance(cut["metrics"], str) else cut["metrics"]) == {"pe", "roe"}
+    for state in ({"ranges": {"pe": {"max": 1000}}}, {"ranges": {"pe": {"max": 1}}}, {"ranges": {"roe": {"min": 0}, "pe": {"min": 0}}, "bands": [full["band"]]}):
+        assert matches(full, state) == matches(cut, state)
+
+
+async def test_results_declarations_come_from_redis_while_the_feed_is_unchanged_and_a_quarter_is_rebuilt_only_when_something_moved(ingested, monkeypatch):  # noqa: F811
+    from finlit import results as R
+    st = ingested
+    R.reset()
+    async with st.pool.acquire() as conn:
+        await conn.execute("INSERT INTO feed_items (kind, title, symbol, company, source, item_date, dedupe) VALUES ('result', 'Results', 'RELIANCE', 'Reliance', $1, current_date, 'egress-1')",
+                           R.SOURCE_RESULTS)
+    reads = []
+    real = R.assign
+    monkeypatch.setattr(R, "assign", lambda rows: (reads.append(len(rows)), real(rows))[1])
+    first = await R._declarations(st)
+    second = await R._declarations(st)
+    assert len(reads) == 1 and first == second and first                                          # the second came from Redis
+    async with st.pool.acquire() as conn:
+        await conn.execute("INSERT INTO feed_items (kind, title, symbol, company, source, item_date, dedupe) VALUES ('result', 'Results', 'TCS', 'TCS', $1, current_date, 'egress-2')", R.SOURCE_RESULTS)
+    await R._declarations(st)
+    assert len(reads) == 2                                                                         # the feed moved: read again
+    qkey = R.quarter_key(R.quarter_end_before(R.today_ist()))
+    e = await R.get_entry(st, qkey, force=True)
+    builds = []
+    real_build = R._build
+    monkeypatch.setattr(R, "_build", lambda *a, **k: (builds.append(1), real_build(*a, **k))[1])
+    e.loaded -= 99999
+    await R._refresh_entry(st, qkey)
+    assert not builds and time.time() - e.loaded < 5                                               # nothing moved: the rows are as current as a rebuild
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET changed_at = now() WHERE symbol = 'RELIANCE'")
+    await R._refresh_entry(st, qkey)
+    assert builds == [1]
+    R.reset()
+
+
+async def test_search_quotes_rows_are_kept_in_redis_and_only_changed_companies_are_read(ingested):  # noqa: F811
+    from finlit import search
+    import orjson
+    import zlib
+    st = ingested
+    await st.redis.delete(search.RAW_KEY)
+    first = await search._raw_rows(st)
+    state = orjson.loads(zlib.decompress(await st.redis.get(search.RAW_KEY)))
+    assert len(first) > 5000
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE scores SET price = 123.45, changed_at = now() WHERE symbol = 'RELIANCE'")
+    second = await search._raw_rows(st)
+    after = orjson.loads(zlib.decompress(await st.redis.get(search.RAW_KEY)))
+    assert after["full_at"] == state["full_at"]                                                    # a delta, not a rebuild of everything
+    assert {r["symbol"]: r for r in second}["RELIANCE"]["sp"] == 123.45 and [r["symbol"] for r in second] == [r["symbol"] for r in first]
+    await st.redis.delete(search.RAW_KEY)
+    fresh = await search._raw_rows(st)
+    assert {r["symbol"]: r for r in fresh} == {r["symbol"]: r for r in second}                     # same as reading everything
+
+
 async def test_the_quote_job_remembers_who_it_quotes(ingested):  # noqa: F811
     st = ingested
     await st.redis.delete("quotes:symbols")
