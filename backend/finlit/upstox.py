@@ -334,13 +334,44 @@ def reconcile(bundle: dict, upstox_pl: List[dict], upstox_price: Optional[float]
     return out
 
 
+def _ym(r: dict) -> Optional[str]:
+    d = period_end(r.get("period_end") or r.get("year"))
+    return d.strftime("%Y-%m") if d else None
+
+
+def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations")) -> Optional[List[dict]]:
+    """The provider's own rows, plus the second source's rows for OLDER periods the provider does not hold. Done only when both sources hold at least
+    one period in common and agree on it (net profit, and revenue where both have it, within DISAGREE): otherwise the second source is not trusted for
+    this company and None comes back. The provider's rows are never changed."""
+    have = {_ym(r): r for r in fe_rows if isinstance(r, dict) and _ym(r)}
+    up = {_ym(r): r for r in up_rows if _ym(r)}
+    common = sorted(set(have) & set(up))
+    if not common or not have:
+        return None
+    judged = 0
+    for k in common:
+        for key in keys:
+            a, b = _num(have[k].get(key)), _num(up[k].get(key))
+            if a is None or b is None:
+                continue
+            if abs(a - b) / max(abs(b), 1) > DISAGREE:
+                return None
+            judged += 1
+    if not judged:
+        return None
+    first = min(have)
+    older = [up[k] for k in sorted(up) if k < first]
+    return sorted([*older, *have.values()], key=lambda r: _ym(r) or "") if older else None
+
+
 async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Optional[dict] = None) -> dict:
     """Fill the sections FinEdge left empty. Returns the same bundle (mutated); never touches a section FinEdge filled."""
     if client is None or not client.enabled:
         return bundle
     p = coverage.provider_side(bundle)
     need = {"quote": not p["quote"] and p["closes"] == 0, "pl": p["annual"] == 0, "bs": p["balance"] == 0, "cf": p["cash"] == 0, "ql": p["quarterly"] == 0}
-    if not any(need.values()):
+    short = 0 < p["annual"] < 5            # the provider holds only a few years: older ones may be had from the second source, if it agrees on the years both have
+    if not any(need.values()) and not short:
         return bundle
     symbol = str(bundle["symbol"]).upper()
     c = company or {}
@@ -367,6 +398,15 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
                 bundle["pl_annual"] = {"financials": rows}; src["pl_annual"] = "upstox"
             elif rows:
                 compare_income = rows
+                if short and isinstance(bundle.get("pl_annual"), dict):
+                    longer = extend_history(bundle["pl_annual"].get("financials") or [], rows)
+                    if longer:
+                        bundle["pl_annual"] = {**bundle["pl_annual"], "financials": longer}; src["pl_annual"] = "finedge+upstox:older years"
+                        if 0 < p["cash"] < 5:
+                            cash = cash_rows(await stmts("cash-flow", "yearly"))
+                            longer_cf = extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",)) if isinstance(bundle.get("cf_annual"), dict) else None
+                            if longer_cf:
+                                bundle["cf_annual"] = {**bundle["cf_annual"], "financials": longer_cf}; src["cf_annual"] = "finedge+upstox:older years"
         if need["ql"]:
             rows = income_rows(await stmts("income-statement", "quarterly"))
             if rows:

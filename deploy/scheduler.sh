@@ -94,6 +94,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker prune                            # stay inside the free database's storage: top INGEST_LIMIT + recently opened
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
+  $PY -m finlit.worker refresh-short-history          # stored reports with 4 years or fewer are loaded again: the second source adds older years where it agrees with the provider
   # ETFs and the day's fund NAVs (the long fund history comes last), only once the web server is up. None of them runs on a timer, so the database may sleep.
   WEB_UP=0; MF_OK=0
   if wait_web; then
