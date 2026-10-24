@@ -62,6 +62,7 @@ const STEPS: [string, string][] = [
 const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "Gold"; math?: boolean }[] = [
   { to: "/research", t: "Stock research", d: "A report for every listed company: statements, ratios, peers, ownership, price and filings.", tier: "Free" },
   { to: "/screener", t: "Screener", d: "Write the company you want as a few rules. You get every company that passes all of them. 160+ filters.", tier: "Free", math: true },
+  { to: "/query-builder", t: "Query builder", d: "Type your rule in plain words, like Market cap > 500 AND P/E < 15. Every word is checked as you type, and you can keep each query as a named basket.", tier: "Free" },
   { to: "/compare", t: "Compare", d: "Two to four companies side by side, with charts and the five-pillar view.", tier: "Free" },
   { to: "/watchlist", t: "Watchlists", d: "Named lists with notes and price targets, grouped by industry, size or FinLit band.", tier: "Silver" },
   { to: "/holdings", t: "Portfolio tracker", d: "Value, profit and loss, allocation and a health read of what you own. Import from CSV.", tier: "Silver" },
@@ -81,7 +82,7 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Sixteen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Seventeen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>

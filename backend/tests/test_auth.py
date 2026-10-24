@@ -16,9 +16,11 @@ PW = "a-long-unusual-phrase-42"
 
 @pytest.fixture
 async def app(ingested):  # noqa: F811
+    from finlit.screener import data as screener_data
     app = create_app(make_settings(), store=ingested)
     async with app.router.lifespan_context(app):
         yield app
+    screener_data.reset()          # the screener table is a module-level cache: the table this test built must not leak into the next one
 
 
 def new_client(app, **kw):

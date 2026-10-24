@@ -38,6 +38,7 @@ export function AppShell() {
     { title: "Research", items: [
       { to: "/research", label: "Stock research", icon: "search" },
       { to: "/screener", label: "Screener", icon: "table", badge: saved.length ? String(saved.length) : undefined },
+      { to: "/query-builder", label: "Query builder", icon: "notes" },
       { to: "/score-screener", label: "Score screener", icon: "quality" },
       { to: "/compare", label: "Compare companies", icon: "compare" },
       { to: "/graphs", label: "Graph Studio", icon: "bars", end: true },
@@ -54,6 +55,7 @@ export function AppShell() {
     ] },
     { title: "My lists", items: [
       { to: "/watchlist", label: "Watchlist", icon: "wallet", badge: followed ? String(followed) : undefined },
+      { to: "/baskets", label: "My baskets", icon: "layers" },
       { to: "/holdings", label: "My portfolio", icon: "pie", badge: held ? String(held) : undefined },
       { to: "/alerts", label: "Alerts", icon: "bell", badge: unread ? `${unread} new` : live ? String(live) : undefined },
     ] },
