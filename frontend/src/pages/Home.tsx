@@ -30,7 +30,8 @@ const PILLAR_VAR: Record<string, string> = { quality: "--p-quality", growth: "--
 const inr = (n: number) => n.toLocaleString("en-IN");
 
 /** A real score card for a real stock, read from the same API the report page uses. */
-function ScoreCard({ s, tower }: { s?: Summary; tower?: boolean }) {
+function ScoreCard({ s, tower, failed }: { s?: Summary; tower?: boolean; failed?: boolean }) {
+  if (!s && failed) return <div className="hh-card"><p className="muted" style={{ padding: 20 }}>The sample report is not available right now. <Link to={`/stocks/${SAMPLE}`}>Try opening it</Link>.</p></div>;
   if (!s) return <div className="hh-card" aria-busy="true"><div className="skeleton" style={{ height: 300 }} /></div>;
   const o = s.score.overall ?? 0, circ = 2 * Math.PI * 46, up = (s.quote.changePct ?? 0) >= 0;
   return (
@@ -100,7 +101,7 @@ function Platform({ total }: { total: number | null }) {
   );
 }
 
-function Method({ s }: { s?: Summary }) {
+function Method({ s, failed }: { s?: Summary; failed?: boolean }) {
   const strength = s?.strengths?.[0], watch = s?.watchouts?.[0];
   return (
     <section className="sec hh-sec" id="method"><div className="wrap">
@@ -119,7 +120,7 @@ function Method({ s }: { s?: Summary }) {
             {strength && <p><span className="hh-tag good">Strength</span> <b>{strength.title}.</b> {strength.text}</p>}
             {watch && <p><span className="hh-tag warn">Watch-out</span> <b>{watch.title}.</b> {watch.text}</p>}
             {!s.thesis && !strength && !watch && <p>Open the report to read the notes.</p>}
-          </> : <div className="skeleton" style={{ height: 160 }} />}
+          </> : failed ? <p>The sample report is not available right now.</p> : <div className="skeleton" style={{ height: 160 }} />}
           <Link to={`/stocks/${SAMPLE}`} className="hh-link">Read the full report <Icon name="arrow" /></Link>
         </figure>
       </div>
@@ -140,7 +141,7 @@ export function Home() {
   useDocTitle("Research on every listed Indian stock", "FinLit Ventures: a research report and a 0 to 100 score for every listed Indian stock, a screener, watchlists and alerts. Information only, not investment advice.");
   const enquire = useEnquiry();
   const { user } = useAuth();
-  const { data: s } = useSummary(SAMPLE);
+  const { data: s, isError: sErr } = useSummary(SAMPLE);
   const webgl = use3d();
   const { data: idx } = useSearchIndex(true);
   const counts = useMemo(() => idx ? { all: idx.rows.length, ready: idx.rows.filter((r) => r[3]).length } : null, [idx]);
@@ -164,7 +165,7 @@ export function Home() {
             </div>
             <p className="hh-fine">Information only. Not investment advice.</p>
           </div>
-          <ScoreCard s={s} tower={webgl} />
+          <ScoreCard s={s} tower={webgl} failed={sErr} />
         </div>
       </section>
 
@@ -185,7 +186,7 @@ export function Home() {
       </div></section>
 
       <Platform total={counts?.all ?? null} />
-      <Method s={s} />
+      <Method s={s} failed={sErr} />
 
       <section className="sec hh-sec"><div className="wrap">
         <Reveal className="hh-head"><div className="hh-kicker">Beyond the website</div><h2>Five things we do with people</h2><p>The software does the digging. The conversation is for your own money and your own goals.</p></Reveal>
