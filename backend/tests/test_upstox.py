@@ -130,3 +130,4 @@ def test_no_common_year_means_no_extension():
     fe = _fe([2025], lambda y: 5.0)
     up = upstox.income_rows({"income_statement": [{"category": "revenue", "history": [{"period": "Mar 2022", "value": 1.0}]}, {"category": "net_profit", "history": [{"period": "Mar 2022", "value": 1.0}]}]})
     assert upstox.extend_history(fe, up) is None
+

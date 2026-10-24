@@ -249,3 +249,11 @@ async def test_refresh_instruments_reloads_when_the_index_or_option_tables_are_e
     async with store.pool.acquire() as conn:                     # leave the shared test database as found
         await conn.execute("DELETE FROM dhan_indices")
         await conn.execute("DELETE FROM dhan_option_lots")
+
+
+async def test_statement_history_boot_commands_run_end_to_end(store):  # noqa: F811
+    """Both boot steps are real worker commands that finish: a step that crashes at boot only shows up later as missing data."""
+    from finlit import worker
+    from test_integration import make_settings
+    assert await worker.main(["history-probe", "RELIANCE"], settings=make_settings()) == 0
+    assert await worker.main(["refresh-short-history"], settings=make_settings()) in (0, None)
