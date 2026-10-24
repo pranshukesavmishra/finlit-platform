@@ -117,6 +117,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker score-all                        # a score for every other listed company (score row only, capped per run, resumable)
+  $PY -m finlit.worker refresh-leadership --if-stale --backfill-from 2022-10-01   # Leader / Laggard labels and their rank history (database only; skipped when this week's run is done)
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
   log "done boot-load"
@@ -158,6 +159,8 @@ while true; do
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( H == 2 && M == 45 )) && run light indices refresh-indices   # nightly (a few small files): a failed boot download is retried the same night, not a week later
   (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
+  (( D == 6 && H == 3 && M == 50 )) && run heavy leadership refresh-leadership   # weekly, Saturday, after Friday's close and the nightly loads: the Leader / In line / Laggard labels
+  (( D == 7 && H == 4 && M == 10 )) && [ "$(date +%d)" -le 7 ] && [ $(( 10#$(date +%m) % 3 )) -eq 1 ] && run heavy leadership-backtest backtest-leadership   # quarterly (first Sunday of Jan, Apr, Jul, Oct): has leadership held in each group?
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
   (( H == 18 && M == 50 )) && run light macro refresh-macro          # nightly: India macro data (MoSPI publishes CPI and IIP around 16:00 IST on release days; RBI's WSS on Fridays)
   (( H == 19 && M == 10 )) && run light flows refresh-flows          # nightly: FII/DII flows (NSDL posts the day's report in the evening)

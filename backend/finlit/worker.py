@@ -467,6 +467,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
     p_rm.add_argument("--only-missing", action="store_true")
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
+    p_ld = sub.add_parser("refresh-leadership", help="weekly: Leader / In line / Laggard labels from the stored weekly prices and the sector and market indices (database and cached index levels only)")
+    p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
+    p_ld.add_argument("--as-of", default=None, help="YYYY-MM-DD: the Friday to compute (default: the latest)")
+    p_ld.add_argument("--if-stale", action="store_true", help="skip when the latest Friday is already done (a redeploy must not repeat the weekly run)")
+    sub.add_parser("backtest-leadership", help="quarterly: has leadership held in each peer group? Stores the hit rates behind the reliability card")
     p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
     for _name, _help in (("refresh-etf", "nightly: ETF prices and history from Upstox (never overwrites good rows with a short answer)"),
@@ -722,6 +727,21 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
+        if args.cmd in ("refresh-leadership", "backtest-leadership"):
+            from datetime import date as _date
+            from . import leadership
+            if args.cmd == "backtest-leadership":
+                print(await leadership.backtest(store, settings))
+                return 0
+            as_of = _date.fromisoformat(args.as_of) if args.as_of else None
+            if args.if_stale:
+                async with store.pool.acquire() as conn:
+                    done = await conn.fetchval("SELECT max(as_of) FROM leadership")
+                if done is not None and done >= (as_of or leadership.last_friday()):
+                    print({"status": "skipped", "reason": f"already computed for {done}"})
+                    return 0
+            print(await leadership.run(store, settings, as_of=as_of, backfill_from=_date.fromisoformat(args.backfill_from) if args.backfill_from else None))
+            return 0
         if args.cmd in ("rebuild-metrics", "refresh-indices"):
             from .screener import jobs
             if args.cmd == "rebuild-metrics":
