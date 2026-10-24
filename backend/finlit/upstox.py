@@ -335,7 +335,9 @@ def reconcile(bundle: dict, upstox_pl: List[dict], upstox_price: Optional[float]
 
 
 def _ym(r: dict) -> Optional[str]:
-    d = period_end(r.get("period_end") or r.get("year"))
+    """'2025-03' for a statement row. The provider writes period ends as 20250331; the second source as 2025-03-31 or a month label."""
+    from .normalize.common import parse_date
+    d = parse_date(r.get("period_end")) or period_end(r.get("period_end") or r.get("year"))
     return d.strftime("%Y-%m") if d else None
 
 
@@ -359,7 +361,8 @@ def _field(row: dict, key: str) -> Optional[float]:
 
 def _shifted(r: dict, months: int) -> dict:
     """The same row with its period moved `months` later (Upstox labels some insurers' March year-ends as the December before)."""
-    d = period_end(r.get("period_end") or r.get("year"))
+    from .normalize.common import parse_date
+    d = parse_date(r.get("period_end")) or period_end(r.get("period_end") or r.get("year"))
     if not d or not months:
         return r
     m0 = d.month - 1 + months
