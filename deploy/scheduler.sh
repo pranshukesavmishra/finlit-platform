@@ -86,6 +86,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   log "start boot-load"
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
+  $PY -m finlit.worker refresh-flows --only nse                    # the exchange's own FII/DII figures for the latest session (one request), even when the nightly run is recent
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars: light, and visible at once
   $PY -m finlit.worker refresh-universe
   $PY -m finlit.worker refresh-listing                  # every listed company's price and market cap (skipped if it ran in the last 6 hours)
@@ -160,6 +161,7 @@ while true; do
   (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
   (( H == 18 && M == 50 )) && run light macro refresh-macro          # nightly: India macro data (MoSPI publishes CPI and IIP around 16:00 IST on release days; RBI's WSS on Fridays)
+  (( H == 18 && (M == 0 || M == 40) )) && run light flows-nse refresh-flows --only nse   # the exchange posts the day's FII/DII cash report after about 17:30 IST: one request each
   (( H == 19 && M == 10 )) && run light flows refresh-flows          # nightly: FII/DII flows (NSDL posts the day's report in the evening)
   (( H == 21 && M == 30 )) && run light flows-retry refresh-flows           # retry for a report NSDL posted late (a handful of requests; the rows already loaded are only updated)
   (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)

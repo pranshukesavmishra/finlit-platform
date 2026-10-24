@@ -502,7 +502,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_mc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_fl = sub.add_parser("refresh-flows", help="nightly: FII/DII institutional flows from NSDL (FPI and DII reports) and NSE's participant-wise open-interest files, plus Nifty closes for the correlation")
     p_fl.add_argument("--full", action="store_true", help="reload the full FPI history, month by month (the first run does this by itself)")
-    p_fl.add_argument("--only", nargs="*", default=None, help="steps: fii dii oi nifty")
+    p_fl.add_argument("--only", nargs="*", default=None, help="steps: fii dii nse oi nifty")
     p_fl.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
