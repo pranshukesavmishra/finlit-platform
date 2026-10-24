@@ -433,6 +433,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate")
     sub.add_parser("refresh-universe")
+    sub.add_parser("refresh-short-history", help="reload stored reports whose yearly statements cover 3 years or fewer (they may have a longer standalone history); database read is a few KB")
     p_ingest = sub.add_parser("ingest")
     p_ingest.add_argument("symbols", nargs="+")
     p_ingest.add_argument("--statement", default="consolidated", choices=["consolidated", "standalone"])
@@ -732,6 +733,16 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         async with FinEdgeClient(settings) as client:
             if args.cmd == "refresh-universe":
                 print(await refresh_universe(client, store), "companies")
+            elif args.cmd == "refresh-short-history":
+                async with store.pool.acquire() as conn:
+                    short = [r["symbol"] for r in await conn.fetch(
+                        "SELECT symbol FROM snapshots WHERE section = 'financials' AND statement = 'consolidated' "
+                        "AND jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 3 ORDER BY symbol")]
+                print(len(short), "reports with a short history", short[:30])
+                results = await ingest_many(client, store, [(s, "consolidated") for s in short], parallel=2) if short else []
+                await store.invalidate_search()
+                for r in results:
+                    print(f"{r['symbol']:<14} {r['status']:<7} {r['ms']:>6} ms  {r['errors'] or ''}")
             elif args.cmd == "ingest":
                 results = await ingest_many(client, store, [(s, args.statement) for s in args.symbols])
                 await store.invalidate_search()
