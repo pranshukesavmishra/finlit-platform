@@ -97,12 +97,17 @@ class Table:
             self.full.append(bool(r.get("full", True)))
             for k, col in self.cols.items():
                 v = m.get(k)
-                if v is None and k in LEGACY and not m:
-                    v = r.get(LEGACY[k])
+                if v is None:
+                    if k in LEGACY and not m:
+                        v = r.get(LEGACY[k])
+                    if v is None:
+                        col.append(NAN)   # most cells of a listing-only row: no parsing
+                        continue
                 v = _num(v)
                 col.append(NAN if v == v and k in MULTIPLES and v <= 0 else v)
             for k, col in self.ax.items():
-                col.append(_num(m.get(k)))
+                v = m.get(k)
+                col.append(NAN if v is None else _num(v))
             self.q_end.append(_num(m.get("q_period_end")))
             self.ax_fy.append(m.get("ax_fy") if isinstance(m.get("ax_fy"), str) else None)
             self.ax_sig_fy.append(m.get("ax_sig_fy") if isinstance(m.get("ax_sig_fy"), str) else None)
