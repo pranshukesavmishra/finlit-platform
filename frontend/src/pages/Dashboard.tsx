@@ -174,12 +174,12 @@ function GettingStarted({ followed, palette, plan }: { followed: number; palette
   const n = steps.filter((x) => x.done).length;
   if (gone || n === steps.length) return null;
   return (
-    <section className="card gs" aria-label="Getting started">
-      <div className="gs-h"><div><h2>Get started with FinLit</h2><p className="muted">{n} of {steps.length} done. A few minutes to get the most from your account.</p></div>
+    <section className="card onb" aria-label="Getting started">
+      <div className="onb-h"><div><h2>Get started with FinLit</h2><p className="muted">{n} of {steps.length} done. A few minutes to get the most from your account.</p></div>
         <button className="alx-link" onClick={() => { setGone(true); try { localStorage.setItem("finlit-welcome-off", "1"); } catch { /* private mode */ } }}>Hide</button></div>
-      <div className="gs-bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={n}><i style={{ width: `${(n / steps.length) * 100}%` }} /></div>
-      <ol className="gs-l">{steps.map((x) => (
-        <li key={x.t} className={x.done ? "is-done" : ""}><span className="gs-c" aria-hidden="true">{x.done ? <Icon name="check" /> : null}</span><div><b>{x.t}</b><span>{x.d}</span></div>{!x.done && <Link className="btn" to={x.to} onClick={x.onClick}>{x.cta}</Link>}</li>
+      <div className="onb-bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={n}><i style={{ width: `${(n / steps.length) * 100}%` }} /></div>
+      <ol className="onb-l">{steps.map((x) => (
+        <li key={x.t} className={x.done ? "is-done" : ""}><span className="onb-c" aria-hidden="true">{x.done ? <Icon name="check" /> : null}</span><div><b>{x.t}</b><span>{x.d}</span></div>{!x.done && <Link className="btn" to={x.to} onClick={x.onClick}>{x.cta}</Link>}</li>
       ))}</ol>
     </section>
   );

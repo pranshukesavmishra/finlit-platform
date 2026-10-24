@@ -57,6 +57,13 @@ METRICS: Dict[str, M] = {
     "new_filing":     dict(label="Any new filing", unit="", live=False, tier="silver", ops=("event",)),
     "result_soon":    dict(label="Results due within (days)", unit="days", live=False, tier="basic", ops=("event",)),
 }
+# the parts of the stored financials and ownership reports the alerts read, cut inside the database (a full report is ~40 KB, this ~1 KB)
+SNAP_SQL = ("SELECT symbol, section, CASE WHEN section = 'financials' THEN jsonb_build_object('quarterly', jsonb_build_object('pl', jsonb_build_object("
+            "'rows', jsonb_build_object('net_profit', j #> '{quarterly,pl,rows,net_profit}', 'revenue', j #> '{quarterly,pl,rows,revenue}'), "
+            "'periods', j #> '{quarterly,pl,periods}', 'periodEnds', j #> '{quarterly,pl,periodEnds}')))::text "
+            "ELSE jsonb_build_object('series', jsonb_build_object('promoters', j #> '{series,promoters}', 'fii', j #> '{series,fii}'))::text END AS body "
+            "FROM (SELECT symbol, section, statement, body::jsonb AS j FROM snapshots WHERE symbol = ANY($1::text[]) AND section IN ('financials', 'ownership')) x "
+            "ORDER BY (statement = 'consolidated') DESC")
 SCORE_COLUMNS = {"price", "change_pct", "return_1m", "return_1y", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance",
                  "pillar_technical", "pe", "pb", "dividend_yield", "market_cap", "roe", "roce", "operating_margin", "debt_to_equity"}
 TECH = {"rsi14", "ema50_gap", "ema200_gap", "volume_x", "from_high52", "from_low52"}
@@ -174,8 +181,7 @@ async def load_values(conn, symbols: List[str], needed: set) -> Dict[str, Dict[s
             })
     if needed & SNAP:
         seen = set()
-        for r in await conn.fetch("SELECT symbol, section, body FROM snapshots WHERE symbol = ANY($1::text[]) AND section IN ('financials', 'ownership') "
-                                  "ORDER BY (statement = 'consolidated') DESC", symbols):
+        for r in await conn.fetch(SNAP_SQL, symbols):
             if (r["symbol"], r["section"]) in seen:
                 continue
             seen.add((r["symbol"], r["section"]))

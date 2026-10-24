@@ -82,32 +82,36 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 (
   flock 9
   log "start boot-load"
-  $PY -m finlit.worker refresh-calendars               # IPO and results calendars first: light, and visible at once
-  $PY -m finlit.worker refresh-macro --max-age-hours 20  # (early: light, and its pages are empty until it has run) India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
-  $PY -m finlit.worker refresh-flows --max-age-hours 20  # (early: same reason) FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
-  $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
+  # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
+  # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
+  $PY -m finlit.worker refresh-calendars               # IPO and results calendars: light, and visible at once
   $PY -m finlit.worker refresh-universe
   $PY -m finlit.worker refresh-listing                  # every listed company's price and market cap (skipped if it ran in the last 6 hours)
-  $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker refresh-indices                  # NIFTY index membership: also decides which companies load first
+  $PY -m finlit.worker rebuild-metrics --only-missing   # screener filters for companies loaded before they existed (database only)
   $PY -m finlit.worker prune                            # stay inside the free database's storage: top INGEST_LIMIT + recently opened
-  # ETFs, then funds, then 5 years of fund history: strictly one after the other, each only if the one before it worked, and only once the web server is up.
-  # Each is resumable (the fund history skips fund houses already done) and none of them runs on a timer, so a restart loses nothing and the database may sleep.
+  $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
+  # ETFs and the day's fund NAVs (the long fund history comes last), only once the web server is up. None of them runs on a timer, so the database may sleep.
+  WEB_UP=0; MF_OK=0
   if wait_web; then
+    WEB_UP=1
     fund_step boot-instruments refresh-instruments --max-age-hours 20   # Dhan's public instrument file first: the ETF job reads its ETF list from it
     fund_step boot-etf refresh-etf --max-age-hours 12 --resume   # ETFs first; their result no longer decides whether the mutual fund loads run
-    if fund_step boot-mf refresh-mf --max-age-hours 12; then
-      fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
-      fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Mutual Fund Insights): resumable, about 90 small files on the first run, then one cheap check
-      [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
-      fund_step boot-mf-history backfill-mf
-    fi
+    fund_step boot-mf refresh-mf --max-age-hours 12 && MF_OK=1
   else
     log "boot-etf skipped: the web server did not answer within 10 minutes"
   fi
-  $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
+  $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
+  $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
+  $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker score-all                        # a score for every other listed company (score row only, capped per run, resumable)
+  if [ "$WEB_UP" = 1 ] && [ "$MF_OK" = 1 ]; then
+    fund_step boot-facts refresh-facts --max-age-hours 20    # fund size, expense ratios, launch dates (AMFI); its result never stops the history load
+    fund_step boot-industry refresh-industry --max-age-hours 20   # AMFI's monthly category report (Mutual Fund Insights): resumable, about 90 small files on the first run, then one cheap check
+    [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
+    fund_step boot-mf-history backfill-mf
+  fi
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
   log "done boot-load"

@@ -71,7 +71,10 @@ async def auto_pl_flags(pool, mailer: Mailer, site_url: str, today: Optional[dat
             return 0
         flags: Dict[str, List[Dict[str, Any]]] = {}
         seen = set()
-        for r in await conn.fetch("SELECT symbol, body FROM snapshots WHERE symbol = ANY($1::text[]) AND section = 'financials' ORDER BY (statement = 'consolidated') DESC", symbols):
+        # only the two profit-and-loss tables the flags read, cut inside the database (a whole financials report is ~40 KB)
+        for r in await conn.fetch("SELECT symbol, jsonb_build_object('yearly', jsonb_build_object('pl', body::jsonb #> '{yearly,pl}'), "
+                                  "'quarterly', jsonb_build_object('pl', body::jsonb #> '{quarterly,pl}'))::text AS body FROM snapshots "
+                                  "WHERE symbol = ANY($1::text[]) AND section = 'financials' ORDER BY (statement = 'consolidated') DESC", symbols):
             if r["symbol"] in seen:
                 continue
             seen.add(r["symbol"])

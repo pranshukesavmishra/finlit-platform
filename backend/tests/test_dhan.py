@@ -246,3 +246,6 @@ async def test_refresh_instruments_reloads_when_the_index_or_option_tables_are_e
         await conn.execute("INSERT INTO dhan_indices (exch, security_id, symbol) VALUES ('NSE', '13', 'NIFTY') ON CONFLICT DO NOTHING")
         await conn.execute("INSERT INTO dhan_option_lots (exch, instrument, underlying, underlying_id, expiry, lot_size) VALUES ('NSE', 'OPTIDX', 'NIFTY', '13', '2026-11-09', 65) ON CONFLICT DO NOTHING")
     assert await worker.main(["refresh-instruments", "--max-age-hours", "20"], settings=make_settings()) == 0 and calls == [1]   # filled: skipped
+    async with store.pool.acquire() as conn:                     # leave the shared test database as found
+        await conn.execute("DELETE FROM dhan_indices")
+        await conn.execute("DELETE FROM dhan_option_lots")

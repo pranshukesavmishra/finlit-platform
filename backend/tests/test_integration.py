@@ -8,6 +8,7 @@ import time
 import httpx
 import orjson
 import pytest
+from finlit.screener.data import get_table
 
 from finlit import worker
 from finlit.api import create_app
@@ -154,9 +155,10 @@ async def test_refresh_quotes_patches_summary(ingested):
     assert metrics["price"] == 1184.0
 
 
-async def test_latency_budget(api):
+async def test_latency_budget(api, ingested):
     """Server-side time for a warm summary must stay far below the 1 s target."""
     await api.get("/api/stocks/RELIANCE")
+    await get_table(ingested)   # the start-up screener build runs in a thread; measure after it, as a visitor does
     samples = []
     for _ in range(200):
         t = time.perf_counter()

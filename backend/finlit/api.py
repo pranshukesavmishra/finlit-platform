@@ -516,6 +516,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(clienterrors_api.router)
     app.include_router(flows_api.router)
     app.include_router(flows_api.admin)
+    app.include_router(__import__("finlit.dbusage", fromlist=["admin"]).admin)   # /api/admin/db-usage: top statements by rows returned
     app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare
     app.include_router(graphviews_api.router)
     app.include_router(forum_api.router)
