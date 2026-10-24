@@ -89,6 +89,14 @@ def test_participant_oi_files_old_and_new():
 
 
 # ---- the maths
+def test_nse_report_is_read_and_checked():
+    days = S.parse_nse(text("nse_fiidii_2026-10-23.json"))
+    assert len(days) == 1 and days[0].d == D(2026, 10, 23) and not days[0].problems
+    assert (days[0].fii.buy, days[0].fii.sell, days[0].fii.net) == (14445.54, 13557.89, 887.65) and days[0].dii.net == 3235.36
+    bad = text("nse_fiidii_2026-10-23.json").replace('"netValue":"887.65"', '"netValue":"-887.65"')
+    assert S.parse_nse(bad)[0].problems and S.parse_nse("<html>blocked</html>") == []
+
+
 def test_mood_thresholds_are_exact():
     m = flows.mood_of
     assert [m(v) for v in (-5000, -4999.99, -500.01, -500, 0, 500, 500.01, 4999.99, 5000)] == [
@@ -158,6 +166,8 @@ def fake_sites(down=False):
             return httpx.Response(503)
         state["gets" if req.method == "GET" else "posts"].append(str(req.url))
         u = req.url
+        if u.host == "www.nseindia.com":
+            return httpx.Response(200, text=text("nse_fiidii_2026-10-23.json")) if u.path == "/api/fiidiiTradeReact" else httpx.Response(403)
         assert req.headers["user-agent"].startswith("FinLit-data/1.0 (+https://finlitventures.com)")
         if u.host == "archives.nseindia.com":
             return httpx.Response(200, text=text("nse_participant_oi_2026-10-22.csv")) if u.path.endswith("22102026.csv") else httpx.Response(404, text="<html>Not found</html>")
@@ -202,6 +212,7 @@ async def fstore(monkeypatch):
     async with st.pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS flows_daily, flows_oi, flows_index, flows_meta")
         await conn.execute(sql)
+        await conn.execute((Path(flows.__file__).parent / "migrations" / "058_flows_nse_source.sql").read_text())
     await st.redis.flushdb()
     monkeypatch.setattr(flows, "PAUSE", 0)
     monkeypatch.setattr(flows, "OI_PAUSE", 0)
@@ -232,8 +243,8 @@ async def test_nightly_refresh_builds_and_serves_the_page(fstore):
             body = r.json()
             assert (await api.get("/api/flows", headers={"If-None-Match": r.headers["etag"]})).status_code == 304
     lt = body["latest"]
-    assert lt["d"] == "2026-10-23" and lt["fii"] == {"buy": 14875.82, "sell": 17137.99, "net": -2262.17} and lt["dii"] == {"buy": 16121.71, "sell": 13397.42, "net": 2724.29}
-    assert lt["combinedNet"] == 462.12 and lt["fiiShareOfSelling"] == round(17137.99 / (17137.99 + 13397.42), 4) and lt["mood"] == "Mild outflow"
+    assert lt["d"] == "2026-10-23" and lt["fii"] == {"buy": 14445.54, "sell": 13557.89, "net": 887.65} and lt["dii"] == {"buy": 19232.31, "sell": 15996.95, "net": 3235.36}      # the exchange's figures win over NSDL's for the day
+    assert lt["combinedNet"] == 4123.01 and lt["fiiShareOfSelling"] == round(13557.89 / (13557.89 + 15996.95), 4) and lt["mood"] == "Mild inflow"
     assert body["days"][-1]["d"] == "2026-10-23" and body["days"][0]["d"] == "2025-09-01" and body["days"][0]["dii"] is None       # no DII before NSDL's first report
     assert body["streaks"]["fii"]["side"] in ("selling", "buying") and body["streaks"]["dii"]["days"] >= 1
     assert body["last30"]["dii"] is None and body["last30"]["fii"] is not None and body["last30"]["days"] == 30
@@ -247,7 +258,7 @@ async def test_nightly_refresh_builds_and_serves_the_page(fstore):
     assert body["index"] and body["coverage"]["to"] == "2026-10-23" and body["coverage"]["diiSessions"] >= 2
     src = {s["id"]: s for s in body["sources"]}
     assert src["fii"]["status"] == "ok" and src["fii"]["lastDate"] == "2026-10-23" and src["dii"]["status"] == "ok" and src["participant-oi"]["status"] == "ok"
-    assert src["nse-cash"]["status"] == "unavailable" and "manual" not in src and "not investment advice" in body["disclaimer"]
+    assert src["nse-cash"]["status"] == "ok" and "manual" not in src and "not investment advice" in body["disclaimer"]
 
 
 @pytest.mark.integration
@@ -266,11 +277,11 @@ async def test_a_failing_source_keeps_the_last_good_data_and_says_so(fstore):
         res = await flows.refresh(fstore, transport=fake_sites(down=True)[0], today=D(2026, 10, 25), nifty=boom)
     finally:
         asyncio.sleep = orig
-    assert res["status"] == "failed" and {k for k, v in res["steps"].items() if v["status"] == "failed"} == {"fii", "dii", "oi", "nifty"}
+    assert res["status"] == "failed" and {k for k, v in res["steps"].items() if v["status"] == "failed"} == {"fii", "dii", "nse", "oi", "nifty"}
     async with fstore.pool.acquire() as conn:
         assert await conn.fetchval("SELECT count(*) FROM flows_daily WHERE fii_net IS NOT NULL") > 30
         payload = await flows.get_meta(conn, "payload")
-    assert payload["latest"]["fii"]["net"] == -2262.17 and payload["today"] == "2026-10-25"
+    assert payload["latest"]["fii"]["net"] == 887.65 and payload["today"] == "2026-10-25"
     src = {s["id"]: s for s in payload["sources"]}
     assert "last refresh failed" in src["fii"]["note"] and src["fii"]["lastDate"] == "2026-10-23" and src["fii"]["status"] == "ok"
 
@@ -319,7 +330,7 @@ async def test_manual_entry_wins_is_labelled_and_is_never_overwritten(fstore):
 async def test_without_dii_the_page_still_works_and_says_why(fstore):
     base = fake_sites()[0]
     t = httpx.MockTransport(lambda req: httpx.Response(200, text=text("nsdl_dii_archive_no_data.html")) if "DIIGenerate" in req.url.path else base.handler(req))
-    res = await flows.refresh(fstore, transport=t, today=D(2026, 10, 23), nifty=nifty)
+    res = await flows.refresh(fstore, transport=t, today=D(2026, 10, 23), nifty=nifty, only=["fii", "dii", "oi", "nifty"])      # the exchange's report, which carries DII, is left out here
     assert res["steps"]["fii"]["status"] == "ok"
     p = await flows.publish(fstore, D(2026, 10, 23))
     assert p["latest"]["dii"] is None and p["latest"]["combinedNet"] is None and p["latest"]["fiiShareOfSelling"] is None and p["coverage"]["diiSessions"] == 0
