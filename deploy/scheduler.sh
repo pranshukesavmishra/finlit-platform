@@ -139,6 +139,7 @@ while true; do
   (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
   (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
   (( H == 1 && M == 5 )) && run heavy prune prune
+  (( H == 15 && M == 50 )) && run light listing refresh-listing --force   # just after the close: the day's final prices and moves from the exchange feed
   (( H == 20 && M == 10 )) && run light listing refresh-listing   # nightly, after the close: all ~5,800 companies' prices in two provider calls and one short write, then the database may sleep
   (( weekday && H == 20 && M == 40 )) && run_funds etf refresh-etf    # nightly after the close: ETF prices and history (Upstox), paced (ETF_CALLS_PER_MINUTE)
   (( weekday && ((H == 22 && M == 10) || (H == 23 && M == 40)) )) && run_funds etf-retry refresh-etf --resume   # retries: only the ETFs the nightly run could not fetch (none left = no provider calls)

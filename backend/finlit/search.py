@@ -69,7 +69,9 @@ def quote_rows(rows, level: str, showcase: set) -> list:
     """The compact rows above. Basic: scores are blanked to "locked" except for the showcase companies."""
     out = []
     for r in rows:
-        use_report = r["sp"] is not None and (r["qp"] is None or r["qt"] is None or (r["su"] and r["su"] >= r["qt"]))
+        # The report's price is a snapshot from whenever it was loaded; the listing row is refreshed after each close. The report wins only when it is from a LATER
+        # trading day than the listing row (its write time is not comparable with a trade time: a Saturday write must not beat Friday's closing quote).
+        use_report = r["sp"] is not None and (r["qp"] is None or r["qt"] is None or (r["su"] is not None and session_of(r["su"]) > r["qt"].astimezone(IST).date()))
         price, chg, at = (r["sp"], r["sc"], r["su"]) if use_report else (r["qp"], r["qc"], r["qt"])
         score, band = r["overall"], r["band"]
         if score is not None and not has(level, "silver") and r["symbol"] not in showcase:

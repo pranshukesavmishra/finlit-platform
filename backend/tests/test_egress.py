@@ -407,3 +407,36 @@ async def test_the_quote_job_remembers_who_it_quotes(ingested):  # noqa: F811
     assert await st.quote_symbols() == [("RELIANCE", "consolidated")]                             # from Redis: no query
     await st.redis.delete("quotes:symbols")
     assert await st.quote_symbols() == []
+
+
+# ---- the listing takes the exchange's close from Dhan, and a Saturday report write does not beat Friday's quote
+async def test_dhan_overlay_replaces_price_and_move_and_keeps_provider_for_the_rest(monkeypatch):
+    from finlit import dhan
+    from finlit.screener import listing
+
+    async def fake_map(store, symbols):
+        return {"RELIANCE": ("NSE_EQ", "2885")}
+
+    class DC:
+        configured = True
+
+        async def quotes(self, ids):
+            return {("NSE_EQ", "2885"): {"last_price": 1190.0, "net_change": 5.45, "volume": 1000, "last_trade_time": "23/10/2026 15:29:58"}}
+    monkeypatch.setattr(dhan, "security_map", fake_map)
+    recs = [{"symbol": "RELIANCE", "price": 1190.0, "change_pct": 1.19, "market_cap": 1000.0, "high52": None, "low52": None, "volume": 5, "traded_at": None},
+            {"symbol": "TCS", "price": 2528.0, "change_pct": 1.0, "market_cap": 500.0, "high52": None, "low52": None, "volume": 5, "traded_at": None}]
+    assert await listing.dhan_overlay(recs, None, DC()) == 1
+    assert recs[0]["change_pct"] == 0.46 and recs[0]["volume"] == 1000 and recs[0]["traded_at"].day == 23
+    assert recs[1]["change_pct"] == 1.0
+
+
+def test_report_beats_the_listing_row_only_from_a_later_session():
+    from datetime import datetime, timezone
+    from finlit import search
+    ist = search.IST
+    fri_close = datetime(2026, 10, 23, 15, 29, tzinfo=ist)
+    sat_write = datetime(2026, 10, 24, 14, 0, tzinfo=timezone.utc)
+    base = {"symbol": "X", "overall": 70, "band": "good", "sp": 100.0, "sc": 1.19, "qp": 101.0, "qc": 0.46, "qt": fri_close, "su": sat_write, "sha8": None}
+    assert search.quote_rows([base], "gold", set())[0][2] == 0.46
+    newer = {**base, "su": datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)}
+    assert search.quote_rows([newer], "gold", set())[0][2] == 1.19

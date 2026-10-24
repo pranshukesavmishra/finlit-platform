@@ -757,7 +757,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 print(await score_all(client, store, limit, args.days, args.parallel, max_minutes=args.max_minutes))
             elif args.cmd == "refresh-listing":
                 from .screener.listing import refresh_listing
-                print(await refresh_listing(client, store, force=args.force))
+                async with DhanClient(settings, store.redis) as dc:
+                    print(await refresh_listing(client, store, force=args.force, dhan_client=dc))
             elif args.cmd == "refresh-logos":
                 from .logos import refresh as refresh_logos
                 print(await refresh_logos(store, client, limit=args.limit, profile_limit=args.profiles))

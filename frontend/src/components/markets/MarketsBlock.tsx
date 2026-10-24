@@ -113,15 +113,28 @@ type Cell = { key: string; label: string; sub: string; move: number | null; weig
 function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells: Cell[]; height: number; empty: string; minLabel?: number; logos?: boolean }) {
   const [box, W] = useWidth<HTMLDivElement>();
   const tiles = useMemo(() => treemap(cells, (c) => c.weight, W, height), [cells, W, height]);
+  const [tip, setTip] = useState<{ c: Cell; x: number; y: number } | null>(null);
   if (!cells.length) return <p className="mk-note">{empty}</p>;
+  // Small tiles carry no label, so hovering (or tabbing to) any tile names it: stock, move and market cap, in a card that follows the pointer.
+  const show = (c: Cell, el: HTMLElement, e?: React.PointerEvent) => {
+    const r = (el.closest(".mk-heat") as HTMLElement).getBoundingClientRect(), t = el.getBoundingClientRect();
+    setTip({ c, x: e ? e.clientX - r.left : t.left - r.left + t.width / 2, y: e ? e.clientY - r.top : t.top - r.top });
+  };
   return (
-    <div className="mk-heat" ref={box} style={{ height }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move">
+    <div className="mk-heat" ref={box} style={{ height, position: "relative" }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move" onPointerLeave={() => setTip(null)}>
       {tiles.map(({ x, y, w, h, item: c }) => {
         const big = w >= minLabel && h >= 44, logoOk = logos && w >= 84 && h >= 84;
-        const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, title: `${c.name}: ${sgn(c.move)}` };
+        const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, "aria-label": `${c.name}: ${sgn(c.move)}`,
+          onPointerEnter: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e), onPointerMove: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e),
+          onFocus: (e: React.FocusEvent<HTMLElement>) => show(c, e.currentTarget), onBlur: () => setTip(null) };
         const inner = big && <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b>{c.label}</b><em>{sgn(c.move)}</em></span>;
-        return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" {...common}>{inner}</div>;
+        return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" tabIndex={0} {...common}>{inner}</div>;
       })}
+      {tip && <div className="mk-htip" role="status" style={{ left: Math.max(8, Math.min(W - 188, tip.x + 14)), top: Math.max(4, Math.min(height - 70, tip.y + 14)) }}>
+        <b>{tip.c.name}</b>{tip.c.label !== tip.c.name && <small>{tip.c.label}</small>}
+        <span className={tone(tip.c.move)}>{sgn(tip.c.move)} today</span>
+        {tip.c.weight > 0 && <small>Market cap ₹{Math.round(tip.c.weight).toLocaleString("en-IN")} Cr</small>}
+      </div>}
     </div>
   );
 }
