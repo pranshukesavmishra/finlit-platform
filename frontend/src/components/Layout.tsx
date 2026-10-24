@@ -54,6 +54,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
   const loc = useLocation();
   const onStock = loc.pathname.startsWith("/stocks/");
   useEffect(() => { setMenu(false); setOpen(null); setAcct(false); }, [loc.pathname]);
+  useEffect(() => { const o = () => setMenu((m) => !m); addEventListener(OPEN_MENU, o); return () => removeEventListener(OPEN_MENU, o); }, []);
   return (
     <header className="top">
       <div className="wrap">
@@ -138,6 +139,27 @@ function Footer() {
   );
 }
 
+const OPEN_MENU = "finlit:open-menu", OPEN_SIDE = "finlit:open-side";
+
+/** Phones: an app-style bar along the bottom, so the main places are one thumb-tap away and the header can stay small.
+ *  "Menu" opens the product drawer on pages that have one, the site menu everywhere else. */
+function MobileTabs({ onSearch }: { onSearch: () => void }) {
+  const { user } = useAuth();
+  const home = user ? "/dashboard" : "/";
+  const menu = () => dispatchEvent(new Event(document.querySelector(".shell") ? OPEN_SIDE : OPEN_MENU));
+  const tab = (to: string, icon: string, label: string, end = false) =>
+    <NavLink to={to} end={end} className={({ isActive }) => "mt-i" + (isActive ? " on" : "")}><Icon name={icon} /><span>{label}</span></NavLink>;
+  return (
+    <nav className="mtabs" aria-label="Quick navigation">
+      {tab(home, "home", user ? "Dashboard" : "Home", true)}
+      {tab("/research", "quality", "Research")}
+      <button type="button" className="mt-i mt-search" onClick={onSearch} aria-label="Search stocks, funds and ETFs"><span className="mt-orb"><Icon name="search" /></span><span>Search</span></button>
+      {tab("/screener", "table", "Screener")}
+      <button type="button" className="mt-i" onClick={menu} aria-label="Open the menu"><Icon name="panel" /><span>Menu</span></button>
+    </nav>
+  );
+}
+
 export function Layout() {
   useWarmMyCompanies();
   const [search, setSearch] = useState(false);
@@ -147,7 +169,7 @@ export function Layout() {
   useEffect(() => {
     // soft glow that follows the pointer on cards (one delegated listener)
     const mv = (e: PointerEvent) => {
-      const el = (e.target as Element | null)?.closest<HTMLElement>(".feat, .bt .spot"); if (!el) return;
+      const el = (e.target as Element | null)?.closest<HTMLElement>(".feat, .bt .spot, .card, .mk-tile"); if (!el) return;
       const r = el.getBoundingClientRect(); el.style.setProperty("--mx", `${e.clientX - r.left}px`); el.style.setProperty("--my", `${e.clientY - r.top}px`);
     };
     document.addEventListener("pointermove", mv, { passive: true });
@@ -174,6 +196,7 @@ export function Layout() {
         <SearchPalette open={search} onClose={() => setSearch(false)} />
         <AlertToasts />
         <Assistant />
+        {!bare && <MobileTabs onSearch={() => setSearch(true)} />}
       </EnquiryProvider>
     </InfoProvider>
   );

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
 import type { Plot3DSpec } from "../three/Plot3D";
 
@@ -39,7 +40,7 @@ export function With3D({ flat, spec, label, hint }: { flat: ReactNode; spec: Plo
         {on && keys.map((k) => <span key={k.name} className="v3d-key"><i style={{ background: k.css }} />{k.name}</span>)}
         {on && <span className="v3d-key">Drag to turn it</span>}
       </div>
-      {on ? <Suspense fallback={null}><Plot3D spec={spec} label={label} /><p className="v3d-hint">{hint}</p></Suspense> : (flat ?? <p className="v3d-hint">Flat view: the table below has every number.</p>)}
+      {on ? <Safe3D><Suspense fallback={null}><Plot3D spec={spec} label={label} /><p className="v3d-hint">{hint}</p></Suspense></Safe3D> : (flat ?? <p className="v3d-hint">Flat view: the table below has every number.</p>)}
     </div>
   );
 }

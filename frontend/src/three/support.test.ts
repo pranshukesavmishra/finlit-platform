@@ -19,3 +19,16 @@ describe("supports3d", () => {
     expect(supports3d()).toBe(false);
   });
 });
+
+describe("markNo3d", () => {
+  it("turns 3D off for the rest of the visit after a scene fails to start", async () => {
+    vi.stubGlobal("window", { innerWidth: 1400 });
+    vi.stubGlobal("navigator", { hardwareConcurrency: 8, deviceMemory: 8 });
+    vi.stubGlobal("document", { createElement: () => ({ getContext: () => ({}) }) });
+    vi.resetModules();
+    const { markNo3d, supports3d: fresh } = await import("./support");
+    expect(fresh()).toBe(true);
+    markNo3d();
+    expect(fresh()).toBe(false);
+  });
+});

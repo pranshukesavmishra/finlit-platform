@@ -25,6 +25,7 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("finlit-side") === "1"; } catch { return false; } });
   const [open, setOpen] = useState(false); // mobile drawer
   useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => { const o = () => setOpen((v) => !v); addEventListener("finlit:open-side", o); return () => removeEventListener("finlit:open-side", o); }, []);
   useEffect(() => { try { localStorage.setItem("finlit-side", collapsed ? "1" : "0"); } catch { /* private mode */ } }, [collapsed]);
   useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open]);
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;

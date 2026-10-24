@@ -12,6 +12,9 @@ export function supports3d(minWidth = 600): boolean {
   return cached;
 }
 
+/** A scene failed to start on this browser: offer no more 3D for the rest of the visit. */
+export function markNo3d(): void { cached = false; }
+
 /** Run `fn` once the browser is idle, so the 3D code never competes with the first paint. */
 export function whenIdle(fn: () => void): () => void {
   const w = window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (n: number) => void };

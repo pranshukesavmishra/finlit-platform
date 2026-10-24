@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { markNo3d } from "./support";
 
 export type Pointer = { x: number; y: number };   // -1..1 across the canvas, 0 at rest
 export type Palette = { gold: THREE.Color; deep: THREE.Color; ink: THREE.Color; paper: THREE.Color; gain: THREE.Color; loss: THREE.Color; light: boolean };
@@ -8,16 +9,27 @@ export type Stage = { scene: THREE.Scene; camera: THREE.PerspectiveCamera; rende
  *  over a chart never turns it. `hover` is where the pointer is over the canvas, or null when it is elsewhere. */
 export type Scene = { frame(t: number, dt: number, p: Pointer, hover: Pointer | null): void; recolor?(pal: Palette): void };
 
-const css = (n: string, f: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f;
-export function readPalette(): Palette {
-  const light = document.documentElement.getAttribute("data-theme") === "light";
+/** Colours for a scene, read where the canvas sits: a dark hero band can set --scene-paper and --scene-light: 0 so the scene matches the band
+ *  rather than the page around it. */
+export function readPalette(el: Element = document.documentElement): Palette {
+  const cs = getComputedStyle(el), root = getComputedStyle(document.documentElement);
+  const css = (n: string, f: string) => cs.getPropertyValue(n).trim() || root.getPropertyValue(n).trim() || f;
+  const flag = cs.getPropertyValue("--scene-light").trim();
+  const light = flag ? flag === "1" : document.documentElement.getAttribute("data-theme") === "light";
   return { gold: new THREE.Color(css("--gold", "#C9A24E")), deep: new THREE.Color(light ? "#8A6A25" : "#A8843A"), ink: new THREE.Color(light ? "#2E2A20" : "#EDE6D3"),
-           paper: new THREE.Color(css("--bg", light ? "#F6F1E7" : "#0F0E0B")), gain: new THREE.Color("#2F7A58"), loss: new THREE.Color("#A8392F"), light };
+           paper: new THREE.Color(css("--scene-paper", "") || css("--bg", light ? "#F6F1E7" : "#0F0E0B")), gain: new THREE.Color("#2F7A58"), loss: new THREE.Color("#A8392F"), light };
 }
 
 /** Everything a scene needs to live inside a canvas: renderer, camera, soft studio reflections, and a loop that runs only while the canvas is on
  *  screen and the tab is visible. Reduced-motion visitors get one still frame. Returns a function that frees all GPU memory. */
 export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene, opts: { fov?: number; maxDpr?: number } = {}): () => void {
+  // A browser can report WebGL and still fail to start it (GPU blocked, driver blacklisted, context lost, software rendering).
+  // Then the scene is simply left out: the page around it is complete without it and must never break.
+  try { return mountStageOrThrow(canvas, build, opts); }
+  catch (e) { console.warn("3D scene left out:", e instanceof Error ? e.message : e); markNo3d(); canvas.style.display = "none"; return () => undefined; }
+}
+
+function mountStageOrThrow(canvas: HTMLCanvasElement, build: (s: Stage) => Scene, opts: { fov?: number; maxDpr?: number }): () => void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -27,7 +39,7 @@ export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene
   const owned: { dispose(): void }[] = [];
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = pmrem.fromScene(new RoomEnvironment(), 0.04); scene.environment = env.texture; owned.push(env, pmrem);
-  const stage: Stage = { scene, camera, renderer, palette: readPalette(), track: (o) => owned.push(o) };
+  const stage: Stage = { scene, camera, renderer, palette: readPalette(canvas), track: (o) => owned.push(o) };
   const world = build(stage);
 
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -61,7 +73,7 @@ export function mountStage(canvas: HTMLCanvasElement, build: (s: Stage) => Scene
   const leave = () => { hover = null; if (calm) kick(); };
   canvas.style.touchAction = "pan-y";
   canvas.addEventListener("pointermove", move); canvas.addEventListener("pointerdown", down); canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up); canvas.addEventListener("pointerleave", leave);
-  const theme = new MutationObserver(() => { stage.palette = readPalette(); world.recolor?.(stage.palette); if (calm) kick(); });
+  const theme = new MutationObserver(() => { stage.palette = readPalette(canvas); world.recolor?.(stage.palette); if (calm) kick(); });
   theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   const lost = (e: Event) => { e.preventDefault(); alive = false; };
   canvas.addEventListener("webglcontextlost", lost);

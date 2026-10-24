@@ -11,6 +11,7 @@ import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
 import { useAuth } from "../lib/auth";
+import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
 import "../styles/human-home.css";
 
@@ -45,7 +46,7 @@ function ScoreCard({ s, tower }: { s?: Summary; tower?: boolean }) {
         </svg>
         <ul className="hh-bars">{s.score.pillars.map((p) => <li key={p.key} style={{ "--pc": `var(${PILLAR_VAR[p.key] ?? "--gold"})` } as React.CSSProperties}><span>{p.label}</span><i><b style={{ width: `${p.score ?? 0}%` }} /></i><em>{p.score ?? "–"}</em></li>)}</ul>
       </div>
-      {tower && <Suspense fallback={null}><ScoreTower3D scores={s.score.pillars.map((p) => p.score ?? 0)} /></Suspense>}
+      {tower && <Safe3D><Suspense fallback={null}><ScoreTower3D scores={s.score.pillars.map((p) => p.score ?? 0)} /></Suspense></Safe3D>}
       <p className="hh-card-foot">Taken live from the same data as the full report. Open it →</p>
     </Link>
   );
@@ -149,7 +150,7 @@ export function Home() {
       <section className="tagline" aria-label="Our promise"><div className="wrap"><p><span>Quantify the market</span><span className="x" aria-hidden="true">×</span><span>Research deeper</span><span className="x" aria-hidden="true">×</span><span>Track what matters</span></p></div></section>
 
       <section className={"hh-hero" + (webgl ? " has3d" : "")}>
-        {webgl && <Suspense fallback={null}><Hero3D /></Suspense>}
+        {webgl && <Safe3D><Suspense fallback={null}><Hero3D /></Suspense></Safe3D>}
         <div className="wrap hh-hero-cols">
           <div>
             <div className="hh-kicker">Equity research · India</div>

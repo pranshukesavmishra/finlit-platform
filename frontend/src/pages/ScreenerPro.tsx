@@ -13,6 +13,7 @@ import { screens, useSavedScreens } from "../lib/screens";
 import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
 import { TIER, useUI, type Plan } from "../lib/ui";
+import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
 import { ChartHelp } from "../components/ChartHelp";
 import { matchesMetric, rankMetrics } from "../lib/metricSearch";
@@ -296,8 +297,8 @@ export function ScreenerPro() {
               : res.isError ? <div className="state"><h2>That filter is part of a higher plan</h2><p>{err?.body?.detail}</p><button className="btn primary" onClick={() => ask((err?.body?.plan as Plan) || "silver", err?.body?.detail || "")}>See the plan</button></div>
               : !res.data ? <div className="skeleton" style={{ height: 380 }} aria-busy="true" /> : (
                 <>
-                  {webgl && cloud && <Suspense fallback={null}><Cloud3D points={cloud.pts} axes={cloud.axes} onPick={(id) => nav(`/stocks/${id}`)}
-                    label={`The ${cloud.pts.length} companies on this page as points in 3D, spread by ${cloud.axes.join(", ")}. The table below lists the same numbers.`} /></Suspense>}
+                  {webgl && cloud && <Safe3D><Suspense fallback={null}><Cloud3D points={cloud.pts} axes={cloud.axes} onPick={(id) => nav(`/stocks/${id}`)}
+                    label={`The ${cloud.pts.length} companies on this page as points in 3D, spread by ${cloud.axes.join(", ")}. The table below lists the same numbers.`} /></Suspense></Safe3D>}
                   <HScroll className={"scr-tw" + (res.isFetching ? " is-busy" : "")} label="results table"><table className="scr-t">
                     <thead><tr><th className="stick"><button onClick={() => sortBy("name")}>Company {sort.key === "name" ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>
                       {res.data.columns.map((k) => { const m = byKey.get(k); return <th key={k}><button onClick={() => sortBy(k)} title={m?.say} aria-label={`Sort by ${m?.label}`}>{m?.label} {sort.key === k ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>; })}</tr></thead>
