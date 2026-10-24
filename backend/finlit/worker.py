@@ -472,6 +472,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
     p_ld.add_argument("--as-of", default=None, help="YYYY-MM-DD: the Friday to compute (default: the latest)")
     p_ld.add_argument("--if-stale", action="store_true", help="skip when the latest Friday is already done (a redeploy must not repeat the weekly run)")
+    p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
+    p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
+    p_bh.add_argument("--max-minutes", type=float, default=60.0)
     sub.add_parser("backtest-leadership", help="quarterly: has leadership held in each peer group? Stores the hit rates behind the reliability card")
     p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
@@ -798,6 +801,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .screener.listing import refresh_listing
                 async with DhanClient(settings, store.redis) as dc:
                     print(await refresh_listing(client, store, force=args.force, dhan_client=dc))
+            elif args.cmd == "backfill-history":
+                from .history import backfill as backfill_history
+                print(await backfill_history(client, store, limit=args.limit, max_minutes=args.max_minutes))
             elif args.cmd == "refresh-logos":
                 from .logos import refresh as refresh_logos
                 print(await refresh_logos(store, client, limit=args.limit, profile_limit=args.profiles))

@@ -17,9 +17,12 @@ from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
 import orjson
-from fastapi import APIRouter, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
+from pydantic import BaseModel
 
 from . import indices
+from .auth.routes import Ctx, admin_ctx
+from .auth.service import current
 from .background import etag_matches
 from .leadership import STALE_AFTER_RUNS, Prices, display, reliability_sentence
 from .store import Store
@@ -27,6 +30,9 @@ from .store import Store
 router = APIRouter()
 SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 CACHE = "public, max-age=900, stale-while-revalidate=3600"
+PRIVATE = "private, no-store"
+FLAG = "leadership"
+_flag: Dict[str, Any] = {"at": 0.0, "on": False}
 STATEMENTS = ("consolidated", "standalone")
 
 
@@ -38,10 +44,30 @@ def _day(d: Any) -> Optional[str]:
     return d.isoformat() if d else None
 
 
-def _reply(request: Request, payload: Dict[str, Any], started: float) -> Response:
+async def public_now(store: Store) -> bool:
+    """Whether the label is switched on for everyone (administrators always see it). Read from the database at most every 20 seconds."""
+    if time.monotonic() - _flag["at"] > 20:
+        async with store.pool.acquire() as conn:
+            _flag["on"] = bool(await conn.fetchval("SELECT enabled FROM feature_flags WHERE name = $1", FLAG))
+        _flag["at"] = time.monotonic()
+    return bool(_flag["on"])
+
+
+async def gate(request: Request, store: Store) -> Optional[bool]:
+    """None: not shown to this caller (switched off, not an administrator). True: shown to everyone (cacheable). False: shown to an administrator only."""
+    if await public_now(store):
+        return True
+    return False if (await current(request)).role == "admin" else None
+
+
+def _hidden(request: Request, started: float) -> Response:
+    return _reply(request, {"available": False, "reason": "hidden"}, started, cache=PRIVATE)
+
+
+def _reply(request: Request, payload: Dict[str, Any], started: float, cache: str = CACHE) -> Response:
     body = orjson.dumps(payload)
     etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
-    headers = {"ETag": etag, "Cache-Control": CACHE, "Server-Timing": f"app;dur={(time.perf_counter() - started) * 1000:.2f}"}
+    headers = {"ETag": etag, "Cache-Control": cache, "Vary": "Cookie", "Server-Timing": f"app;dur={(time.perf_counter() - started) * 1000:.2f}"}
     if etag_matches(request.headers.get("if-none-match"), etag):
         return Response(status_code=304, headers=headers)
     return Response(content=body, media_type="application/json", headers=headers)
@@ -91,19 +117,25 @@ async def leadership(request: Request, symbol: str) -> Response:
     if not SYMBOL.match(symbol):
         return _bad("invalid_symbol")
     store: Store = request.app.state.store
+    shown = await gate(request, store)
+    if shown is None:
+        return _hidden(request, started)
+    cache = CACHE if shown else PRIVATE
     async with store.pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM leadership WHERE symbol = $1", symbol)
         if row is None:
+            if not await conn.fetchval("SELECT EXISTS (SELECT 1 FROM leadership)"):   # the first weekly run has not happened: say nothing rather than 'no history'
+                return _reply(request, {"available": False, "reason": "pending"}, started, cache=PRIVATE)
             why = await conn.fetchval("SELECT reason FROM leadership_excluded WHERE symbol = $1", symbol) or "history"
             return _reply(request, {"available": False, "reason": why, "display": display(label=None, rank=None, ranked=None, group_short="", sector_name="",
                                                                                            market_name=None, rel52=None, rel52_market=None, direction=None,
-                                                                                           fundamental=None, fund_rank=None, fund_n=None, reason=why)}, started)
+                                                                                           fundamental=None, fund_rank=None, fund_n=None, reason=why)}, started, cache=cache)
         rel = await conn.fetchrow("SELECT * FROM sector_reliability WHERE group_id = $1", row["group_id"])
         peer_rows = await conn.fetch("SELECT symbol, name, rank, label, direction, rel13, rel52, rel52_market, market_cap FROM leadership WHERE group_id = $1 AND as_of = $2 "
                                      "ORDER BY rank", row["group_id"], row["as_of"])
     peers = [{"symbol": p["symbol"], "name": p["name"], "rank": p["rank"], "label": p["label"], "direction": p["direction"], "rel13": _f(p["rel13"]),
               "rel52": _f(p["rel52"]), "rel52Market": _f(p["rel52_market"]), "marketCap": _f(p["market_cap"])} for p in peer_rows]
-    return _reply(request, shape(dict(row), dict(rel) if rel else None, peers), started)
+    return _reply(request, shape(dict(row), dict(rel) if rel else None, peers), started, cache=cache)
 
 
 def _rebased(p: Prices, days: List[date]) -> List[Optional[float]]:
@@ -134,11 +166,15 @@ async def leadership_history(request: Request, symbol: str, statement: str = Que
     if statement not in STATEMENTS:
         return _bad("invalid_statement")
     store: Store = request.app.state.store
+    shown = await gate(request, store)
+    if shown is None:
+        return _hidden(request, started)
+    cache = CACHE if shown else PRIVATE
     async with store.pool.acquire() as conn:
         now = await conn.fetchrow("SELECT sector_code, sector_kind, market_code FROM leadership WHERE symbol = $1", symbol)
         runs = await conn.fetch("SELECT run_date, rank, ranked, label, direction, rel52, rel52_market FROM leadership_history WHERE symbol = $1 ORDER BY run_date", symbol)
     if now is None or not runs:
-        return _reply(request, {"available": False, "rows": [], "series": None}, started)
+        return _reply(request, {"available": False, "rows": [], "series": None}, started, cache=cache)
     rows = [{"date": r["run_date"].isoformat(), "rank": r["rank"], "ranked": r["ranked"], "label": r["label"], "direction": r["direction"],
              "rel52": _f(r["rel52"]), "rel52Market": _f(r["rel52_market"])} for r in runs]
     series = None
@@ -156,4 +192,27 @@ async def leadership_history(request: Request, symbol: str, statement: str = Que
             market = await _levels(request, now["market_code"])
             series = {"dates": [d.isoformat() for d in days], "stock": _rebased(stock, days), "sector": _rebased(sector, days) if sector else None,
                       "market": _rebased(market, days) if market else None}
-    return _reply(request, {"available": True, "rows": rows, "series": series}, started)
+    return _reply(request, {"available": True, "rows": rows, "series": series}, started, cache=cache)
+
+
+# ------------------------------------------------------------------------------------------------ the switch (administrators)
+class FlagIn(BaseModel):
+    enabled: bool
+
+
+@router.get("/api/admin/features")
+async def features(request: Request, ctx: Ctx = Depends(admin_ctx)) -> Response:
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT name, enabled, updated_at, updated_by FROM feature_flags ORDER BY name")
+    body = {"features": [{"name": r["name"], "enabled": r["enabled"], "updatedAt": r["updated_at"].isoformat(), "updatedBy": r["updated_by"]} for r in rows]}
+    return Response(content=orjson.dumps(body), media_type="application/json", headers={"Cache-Control": PRIVATE})
+
+
+@router.put("/api/admin/features/{name}")
+async def set_feature(request: Request, name: str, body: FlagIn, ctx: Ctx = Depends(admin_ctx)) -> Response:
+    if name != FLAG:
+        return _bad("unknown_feature", 404)
+    async with request.app.state.store.pool.acquire() as conn:
+        await conn.execute("UPDATE feature_flags SET enabled = $2, updated_at = now(), updated_by = $3 WHERE name = $1", name, body.enabled, ctx.email)
+    _flag["at"] = 0.0
+    return Response(content=orjson.dumps({"name": name, "enabled": body.enabled}), media_type="application/json", headers={"Cache-Control": PRIVATE})
