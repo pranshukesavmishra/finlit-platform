@@ -31,7 +31,7 @@ STATEMENTS = ("consolidated", "standalone")
 
 
 def _f(x: Any) -> Optional[float]:
-    return None if x is None else float(x)
+    return None if x is None else round(float(x), 6)
 
 
 def _day(d: Any) -> Optional[str]:

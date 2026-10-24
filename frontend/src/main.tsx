@@ -25,6 +25,7 @@ import "./styles/account.css";
 import "./styles/human-pages.css";
 import "./styles/theme.css";
 import "./styles/depth3d.css";
+import "./styles/leadership.css";
 import "./styles/luxe.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";

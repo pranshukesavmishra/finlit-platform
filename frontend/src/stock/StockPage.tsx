@@ -18,10 +18,11 @@ import { ChartLab } from "./ChartLab";
 import { PlFlagsLayer } from "./PlFlagsLayer";
 import { DiscussionLink } from "../components/DiscussionLink";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
+import { LeadershipSection } from "./Leadership";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 
-const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Pros & cons", "info"], ["plans", "Plans", "medal"]];
+const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Pros & cons", "info"], ["leadership", "Leadership", "medal"], ["plans", "Plans", "medal"]];
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
@@ -114,6 +115,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
         <DiscussionLink symbol={symbol} />
         <ErrorBoundary section="This section"><MethodSection s={s} r={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><LeadershipSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
       </div>
       <PlansBand id="plans" />
     </>
