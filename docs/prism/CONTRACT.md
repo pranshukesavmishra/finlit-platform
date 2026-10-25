@@ -85,3 +85,15 @@ The exact rating, metric and review shapes are the upstream ones: read `site-api
 * Navigation (`frontend/src/lib/nav.ts`), the Gold hub, the Plans page and the home page name it.
 * Wording: never "buy", "sell", "avoid", "target"; always "Describes the company's financial health from its filings and
   prices; not a recommendation." Status is given in words, never by colour alone.
+
+## Stock page: side-by-side comparison (owner requirement, 25 Oct)
+
+On every company page, for **Gold** members, the first dashboard (the report block under the company name with the overall score and the pillar scores: Quality, Growth, Profitability, Balance, Technical) becomes a **two-column comparison**:
+
+* **Left half: "FinLit score" (the basic model, unchanged):** exactly what is shown today (overall score, pillar bars, thesis, strengths/watch-outs).
+* **Right half: "FinLit Prism" (the advanced model):** the Prism score out of 100, label (STRONG … POOR / NOT RATED) and status (RATED / PROVISIONAL / NOT RATED) in words, confidence ("x% of inputs available"), and the four parts (Fundamental, Valuation, Quality, Risk) as bars styled like the left side's pillar bars, so the two can be compared at a glance. Below: the top two pros and cons from `review`, the data date, a "Recalculate" action and a link "Open the full Prism report" (`/prism/:symbol`).
+* Prism has **no technical part yet** (it is being built and arrives in 1-2 days). Render the parts from the data: a `technical` part appears automatically when `rating.parts.technical` is present and `partWeights` lists it. Until then show a quiet, honest placeholder row "Technical: coming soon" in the right column. Never invent a number.
+* If no stored Prism report exists for the company: right half shows a calm explanation and a **Generate the Prism rating** button (generation takes up to two minutes; show progress; never generate automatically on page load). While loading the stored report show a skeleton of the same size (no layout jump).
+* Non-Gold members keep the single-column report they have today; the right half is replaced by a short locked teaser (`Gate`), so the comparison is visibly something Gold adds. Showcase symbols are open to everyone.
+* Phone (≤ 760 px): the halves stack, FinLit score first, then Prism, each with a clear heading. Both halves use the same visual grammar (ring, bars, status words) so differences in numbers, not styling, are what the eye sees. No colour-only meaning; aria-labels state each conclusion. Compliance line under the block.
+* The rest of the stock page is adapted to the advanced model where it explains scores: the "Pros & cons" (method) section and notes show a Prism sub-section for Gold when a report exists (its `review` pros/cons per part and the completeness list), the section nav links to it, and the downloads menu offers the Prism PDF when a report exists.
