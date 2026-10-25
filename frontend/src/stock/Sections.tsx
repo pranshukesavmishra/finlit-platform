@@ -196,6 +196,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
       </div>
       {wasAutomatic(sym) && basis === "standalone" && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Showing standalone accounts ({f.yearly.pl.periods.length} years) because this company's consolidated accounts cover far fewer. <button type="button" className="alx-link" onClick={() => setBasis(sym, "consolidated")}>Show consolidated instead</button></p>}
       {f.yearly.pl.periods.length > 0 && f.yearly.pl.periods.length < 5 && !wasAutomatic(sym) && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Only {f.yearly.pl.periods.length} year{f.yearly.pl.periods.length === 1 ? "" : "s"} of {basis} statements are available for this company (it may be newly listed, or have started publishing these accounts recently).</p>}
+      {(kind === "bs" || kind === "cf") && tbl.periods.length > 0 && tbl.periods.length < f.yearly.pl.periods.length && <p className="faint" style={{ fontSize: 12.5, margin: "0 0 10px" }}>Our data sources hold {tbl.periods.length} year{tbl.periods.length === 1 ? "" : "s"} of this statement for this company, against {f.yearly.pl.periods.length} years of profit and loss.</p>}
       <div className="card acc" style={{ "--ac": "var(--p-growth)" } as React.CSSProperties}>
         <div className="tools">
           <BasisToggle symbol={f.meta.symbol} shown={f.meta.statement} />
