@@ -191,7 +191,7 @@ export function Home() {
         <Reveal className="hh-head"><div className="hh-kicker">Beyond the website</div><h2>Five things we do with people</h2><p>The software does the digging. The conversation is for your own money and your own goals.</p></Reveal>
         <ol className="hh-svc">
           {SERVICES.map((x) => <li key={x.name}><span className="hh-n">{x.n}</span><div><h3>{x.name}</h3><p className="hh-prop">{x.proposition}</p><p>{x.desc}</p></div></li>)}
-          <li className="hh-first"><span className="hh-n">₹</span><div><h3>Plans</h3><p>Basic is free. Silver and Gold open the deeper tools, from watchlists to the DCF calculator.</p><Link className="btn primary" to="/plans">Explore plans</Link></div></li>
+          <li className="hh-first"><span className="hh-n">₹</span><div><h3>Plans</h3><p>Basic is free. Silver and Gold open the deeper tools, from watchlists to the DCF calculator. Gold also brings FinLit Prism, a four-part rating of a company's financial health.</p><Link className="btn primary" to="/plans">Explore plans</Link></div></li>
         </ol>
       </div></section>
 
