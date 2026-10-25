@@ -490,6 +490,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_di.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_cm = sub.add_parser("refresh-commodities", help="commodity prices: MCX futures from Dhan and international prices from metals.dev / MetalpriceAPI into Redis (--loop: keeps running)")
     p_cm.add_argument("--loop", action="store_true")
+    sub.add_parser("history-sweep", help="count stored reports by years of profit and loss, and list those under 5 with the reason (recorded at /api/mf/status, run:history-sweep)")
     p_hp = sub.add_parser("history-probe", help="how many yearly statements each source holds for a few old companies (recorded at /api/mf/status, run:history-probe)")
     p_hp.add_argument("symbols", nargs="*", default=None)
     sub.add_parser("dhan-check", help="prove the Dhan credentials work: token, instrument file, RELIANCE's last price and candles (prints no secret)")
@@ -761,6 +762,20 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 res = await probe(client, store, settings, args.symbols or None)
                 await record_run(store, args.cmd, {"status": "ok", "companies": res})
                 print(res)
+            elif args.cmd == "history-sweep":
+                from .mf import record_run
+                async with store.pool.acquire() as conn:
+                    hist = await conn.fetch(
+                        "SELECT jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') AS n, count(*) AS c FROM snapshots "
+                        "WHERE section = 'financials' GROUP BY 1 ORDER BY 1")
+                    short = await conn.fetch(
+                        "SELECT f.symbol, f.statement, jsonb_array_length(f.body::jsonb #> '{yearly,pl,periods}') AS pl, jsonb_array_length(f.body::jsonb #> '{yearly,cf,periods}') AS cf, "
+                        "left(coalesce((SELECT string_agg(x, ' | ') FROM jsonb_array_elements_text(s.body::jsonb #> '{dataQuality,notes}') x WHERE x LIKE 'Older years%'), ''), 160) AS why "
+                        "FROM snapshots f LEFT JOIN snapshots s ON s.symbol = f.symbol AND s.statement = f.statement AND s.section = 'summary' "
+                        "WHERE f.section = 'financials' AND jsonb_array_length(f.body::jsonb #> '{yearly,pl,periods}') < 5 ORDER BY pl, f.symbol LIMIT 200")
+                res = {"byYears": {str(r["n"]): r["c"] for r in hist}, "under5": [f"{r['symbol']}/{r['statement'][:4]} pl{r['pl']} cf{r['cf']} {r['why']}".strip() for r in short]}
+                await record_run(store, args.cmd, {"status": "ok", **res})
+                print(res["byYears"], len(res["under5"]), "under 5 years")
             elif args.cmd == "refresh-short-history":
                 async with store.pool.acquire() as conn:
                     short = [(r["symbol"], r["statement"]) for r in await conn.fetch(
