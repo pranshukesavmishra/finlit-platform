@@ -1,7 +1,8 @@
 """FinLit Prism: the Gold plan's advanced financial-health rating (docs/prism/CONTRACT.md is the binding description).
 
     GET  /api/prism/status                                        is Prism connected? Public.
-    GET  /api/prism/reports/latest?symbol=TCS&statement=...       the newest stored report for a company, without calculating
+    GET  /api/prism/reports/latest?symbol=TCS&statement=...       the newest stored report for a company, without calculating;
+                                                                  add &view=summary for the small card the stock page shows
     POST /api/prism/reports  {"symbol", "statement", "refresh"}   calculate, or reuse a stored report under 6 hours old
     GET  /api/prism/reports/{id}/pdf                              the PDF of exactly that calculation, while its snapshot lives (30 minutes)
 
@@ -61,6 +62,7 @@ PING_SECONDS = 3.0
 BUSY_RETRY = 30
 # Engineering details of the signed snapshot that the browser never receives.
 INTERNAL = ("calculationTrace", "inputs", "inputHash", "snapshotReceipt", "snapshotExpiresAt")
+HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace the report's financial history shows
 
 CALM = f"{PRISM_NAME} could not finish this calculation just now. Please try again in a few minutes."
 NOT_CONNECTED = f"{PRISM_NAME} is not connected right now. Please try again later."
@@ -101,7 +103,11 @@ def subject(ctx: Ctx) -> str:
 
 
 def reader_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
-    return {k: v for k, v in snapshot.items() if k not in INTERNAL}
+    """The snapshot without its engineering details, plus `financialHistory`: the three reader-safe tables of the calculation trace
+    (quarterly and annual rows, and the key-ratio list), copied as they are. Nothing else of the trace (equations, hashes) is passed on."""
+    trace = snapshot.get("calculationTrace") or {}
+    history = {key: trace.get(key) or [] for key in HISTORY}
+    return {**{k: v for k, v in snapshot.items() if k not in INTERNAL}, "financialHistory": history}
 
 
 def target(symbol: Any, statement: Any) -> Optional[Tuple[str, str]]:
@@ -132,6 +138,25 @@ def _shape(row, cached: bool) -> Dict[str, Any]:
     until = row["pdf_until"]
     live = until is not None and until > datetime.now(timezone.utc)
     return {**json.loads(row["report"]), "cached": cached, "pdfAvailableUntil": until.isoformat() if live else None}
+
+
+def _lines(view: Dict[str, Any], bucket: str, count: int = 2) -> list:
+    """The first `count` plain-English pros (or cons) of the review, taken part by part in the review's own order."""
+    out = []
+    for part in (view.get("review") or {}).get("parts") or []:
+        out.extend(str(i["summary"]) for i in part.get(bucket) or [] if isinstance(i, dict) and i.get("summary"))
+    return out[:count]
+
+
+def _summary(row) -> Dict[str, Any]:
+    """The compact card for the stock page, next to the basic score: no review body, no metrics. `parts` and `partWeights` are passed
+    on exactly as the model gave them, so a part added later (Technical) appears without a change here."""
+    view = json.loads(row["report"])
+    rating = view.get("rating") or {}
+    return {"id": row["id"], "final": rating.get("final"), "label": rating.get("label"), "status": rating.get("status"),
+            "confidence": rating.get("confidence"), "parts": rating.get("parts"), "partWeights": rating.get("partWeights"),
+            "generatedAt": row["generated_at"].isoformat(), "modelVersion": rating.get("modelVersion"),
+            "topPros": _lines(view, "pros"), "topCons": _lines(view, "cons")}
 
 
 def _fresh(row) -> bool:
@@ -271,7 +296,8 @@ async def _reachable(app) -> bool:
 
 
 @router.get("/reports/latest")
-async def latest(request: Request, symbol: str = Query("", max_length=40), statement: str = Query("consolidated", max_length=20)) -> JSONResponse:
+async def latest(request: Request, symbol: str = Query("", max_length=40), statement: str = Query("consolidated", max_length=20),
+                 view: str = Query("full", pattern="^(full|summary)$")) -> JSONResponse:
     wanted = target(symbol, statement)
     if not wanted:
         return _bad("Choose a company symbol and a statement basis (consolidated or standalone).")
@@ -281,7 +307,7 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     row = await _stored(request.app.state.store, *wanted)
     if row is None:
         return _reply({"status": "none", "detail": f"No {PRISM_NAME} report has been calculated for this company yet."}, 404)
-    return _reply(_shape(row, cached=True))
+    return _reply({"summary": _summary(row)} if view == "summary" else _shape(row, cached=True))
 
 
 @router.post("/reports")

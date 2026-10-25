@@ -176,7 +176,8 @@ async def test_token_is_a_five_minute_admin_token_for_the_member_or_the_visitor(
 
 async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_the_pdf(env):
     app, fake = env
-    r = await generate(await member(app, "gold"))
+    gold = await member(app, "gold")
+    r = await generate(gold)
     body = r.json()
     assert r.status_code == 200 and body["cached"] is False
     for key in prism.INTERNAL:
@@ -190,6 +191,8 @@ async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_th
     assert row["id"] == body["id"] and row["model_version"] == "3.6.9" and row["label"] == "AVERAGE" and row["status"] == "RATED"
     assert row["final"] == pytest.approx(SNAPSHOT["rating"]["final"])
     assert not set(prism.INTERNAL) & set(stored) and "cached" not in stored
+    assert body["financialHistory"] == stored["financialHistory"] == prism.reader_view(SNAPSHOT)["financialHistory"]
+    assert (await gold.get("/api/prism/reports/latest?symbol=TCS")).json()["financialHistory"] == body["financialHistory"]
     kept = json.loads(await app.state.store.redis.get(f"prism:snap:{body['id']}"))
     assert kept["snapshot"]["snapshotReceipt"] and kept["snapshot"]["calculationTrace"] and kept["sub"].startswith("prism:")
     assert 1700 < await app.state.store.redis.ttl(f"prism:snap:{body['id']}") <= 1800
@@ -197,7 +200,10 @@ async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_th
 
 def test_reader_view_of_the_real_snapshot():
     view = prism.reader_view(SNAPSHOT)
-    assert set(SNAPSHOT) - set(view) == set(prism.INTERNAL)
+    assert set(view) - set(SNAPSHOT) == {"financialHistory"} and set(SNAPSHOT) - set(view) == set(prism.INTERNAL)
+    trace = SNAPSHOT["calculationTrace"]
+    assert view["financialHistory"] == {k: trace[k] for k in ("quarterly", "annual", "latest")}   # verbatim, nothing more of the trace
+    assert all(trace[k] for k in ("quarterly", "annual", "latest")) and "equation" not in json.dumps(view["financialHistory"]).lower()
     assert len(json.dumps(view)) < len(json.dumps(SNAPSHOT)) * 0.8       # the trace and inputs are most of the weight
 
 
@@ -412,3 +418,38 @@ async def test_members_cannot_reach_premium_reports_through_the_site_proxy(env):
         r = await gold.post(path, json={"query": "TCS", "delivery": "inline"})
         assert r.status_code == 401
     assert all("authorization" not in s.headers and "cookie" not in s.headers for s in seen) and len(seen) == 2
+
+
+# ------------------------------------------------------------------ stock page summary and the Technical part
+async def test_summary_view_is_small_and_has_what_the_stock_page_needs(env):
+    app, _ = env
+    gold = await member(app, "gold")
+    assert (await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")).status_code == 404
+    full = (await generate(gold)).json()
+    r = await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")
+    s = r.json()["summary"]
+    assert list(r.json()) == ["summary"] and r.headers["cache-control"] == "no-store"
+    assert set(s) == {"id", "final", "label", "status", "confidence", "parts", "partWeights", "generatedAt", "modelVersion", "topPros", "topCons"}
+    assert s["id"] == full["id"] and s["final"] == full["rating"]["final"] and s["label"] == "AVERAGE" and s["status"] == "RATED"
+    assert s["parts"] == SNAPSHOT["rating"]["parts"] and s["partWeights"] == SNAPSHOT["rating"]["partWeights"]
+    assert len(s["topPros"]) == 2 and len(s["topCons"]) == 2 and all(isinstance(x, str) and x for x in s["topPros"] + s["topCons"])
+    assert len(r.content) < len(json.dumps(full)) / 5
+    assert (await gold.get("/api/prism/reports/latest?symbol=TCS&view=other")).status_code == 422
+    assert (await client(app).get("/api/prism/reports/latest?symbol=TCS&view=summary")).status_code == 403
+
+
+async def test_a_technical_part_passes_through_untouched(env):
+    app, fake = env
+    real = fake.snapshot
+
+    def with_technical(sub, query, statement):
+        snap = real(sub, query, statement)
+        snap["rating"]["parts"]["technical"] = 61.5
+        snap["rating"]["partWeights"]["technical"] = 0.1
+        return snap
+    fake.snapshot = with_technical
+    gold = await member(app, "gold")
+    report = (await generate(gold)).json()
+    assert report["rating"]["parts"]["technical"] == 61.5 and report["rating"]["partWeights"]["technical"] == 0.1
+    s = (await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")).json()["summary"]
+    assert s["parts"]["technical"] == 61.5 and s["partWeights"]["technical"] == 0.1
