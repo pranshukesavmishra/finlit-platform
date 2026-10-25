@@ -44,6 +44,9 @@ export const ICONS: Record<string, string> = {
   sprout: '<path d="M12 21v-9M12 12C12 7 8 5 4 5c0 5 3 7 8 7zM12 12c0-4 3-7 8-7 0 5-3 7-8 7z"/>',
   medal: '<circle cx="12" cy="15" r="6"/><path d="M8 3h8l-2 6h-4z"/><path d="m12 12 1 2h2l-1.5 1.3.5 2-2-1.2-2 1.2.5-2L9 14h2z"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/>',
+  prism: '<path d="M12 3 3 19h18z"/><path d="M12 3v16M7.5 11l9 0"/>',
 };
 
 export type IconName = keyof typeof ICONS;

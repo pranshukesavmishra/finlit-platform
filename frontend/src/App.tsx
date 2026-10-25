@@ -25,6 +25,7 @@ const PremiumHub = lazy(() => import("./pages/Premium").then((m) => ({ default: 
 const MarketsPage = lazy(() => import("./pages/Markets").then((m) => ({ default: m.MarketsPage })));
 const FundamentalsPage = lazy(() => import("./pages/Fundamentals").then((m) => ({ default: m.FundamentalsPage })));
 const PremiumReportPage = lazy(() => import("./pages/PremiumReport").then((m) => ({ default: m.PremiumReportPage })));
+const PrismPage = lazy(() => import("./pages/Prism").then((m) => ({ default: m.PrismPage })));
 const QueryBuilder = lazy(() => import("./pages/QueryBuilder").then((m) => ({ default: m.QueryBuilder })));
 const BasketsPage = lazy(() => import("./pages/Baskets").then((m) => ({ default: m.BasketsPage })));
 const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
@@ -83,6 +84,8 @@ export default function App() {
             <Route path="premium/options" element={<OptionChainPage />} />
             <Route path="premium/report" element={<PremiumReportPage />} />
             <Route path="premium/report/:symbol" element={<PremiumReportPage />} />
+            <Route path="prism" element={<PrismPage />} />
+            <Route path="prism/:symbol" element={<PrismPage />} />
             <Route path="compare" element={<Compare />} />
             <Route path="graphs" element={<GraphStudio />} />
             <Route path="graphs/advanced" element={<Navigate to="/graphs/advanced/valuation" replace />} />

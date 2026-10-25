@@ -1,0 +1,3083 @@
+{
+ "limited": {
+  "id": "9a1b2c3d4e5f40718293a4b5c6d7e8f9",
+  "state": "ready",
+  "createdAt": "2026-10-25T09:12:04+00:00",
+  "completedAt": "2026-10-25T09:12:41+00:00",
+  "statementType": "standalone",
+  "company": {
+   "symbol": "EXAMPLE",
+   "name": "Example Components Ltd",
+   "industry": "Auto Components",
+   "sector": "Automobile and Auto Components",
+   "description": "A fictional manufacturer used to illustrate FinLit Prism."
+  },
+  "rating": {
+   "modelVersion": "3.6.9",
+   "baselineVersion": "3.6.1-simple",
+   "fillVersion": "2026-10-14",
+   "group": "MFG",
+   "final": 47.69760530692025,
+   "label": "WEAK",
+   "status": "PROVISIONAL",
+   "confidence": 0.8180000000000001,
+   "coverage": {
+    "fundamental": 0.72,
+    "quality": 0.75,
+    "valuation": 1.0,
+    "risk": 0.8
+   },
+   "dataIntegrityStatus": "REVIEW REQUIRED",
+   "parts": {
+    "fundamental": 58.21636169707672,
+    "quality": 63.80633385951065,
+    "valuation": 16.451693806339062,
+    "risk": 67.14285714285714
+   },
+   "partWeights": {
+    "fundamental": 0.4,
+    "valuation": 0.3,
+    "quality": 0.2,
+    "risk": 0.1
+   },
+   "judgedQuarters": 3,
+   "metrics": [
+    {
+     "part": "fundamental",
+     "metric": "SALES_STREAK",
+     "label": "Sales streak",
+     "value": 3.0,
+     "points": 62.26732673267327,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 90.8910891089109,
+      "magnitudePoints": 54.45544554455451,
+      "credibility": 0.3,
+      "fillPoints": 50.0,
+      "medianYoY": 10.8910891089109,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.981386138613862,
+     "pointsLost": 3.018613861386139,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_STREAK",
+     "label": "Profit streak",
+     "value": 3.0,
+     "points": 51.19857142857143,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 86.42857142857143,
+      "magnitudePoints": 32.14285714285712,
+      "credibility": 0.3,
+      "fillPoints": 36.1,
+      "medianYoY": 8.03571428571428,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.095885714285715,
+     "pointsLost": 3.9041142857142868,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_GROWTH",
+     "label": "Sales growth (12 months)",
+     "value": 10.8910891089109,
+     "points": 54.45544554455451,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 8,
+     "share": 0.08,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 1120.0,
+      "previous": 1010.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 1.7425742574257443,
+     "pointsLost": 1.4574257425742558,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_GROWTH",
+     "label": "Profit growth (12 months)",
+     "value": 14.999999999999991,
+     "points": 59.999999999999964,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 10,
+     "share": 0.1,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 92.0,
+      "previous": 80.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 2.399999999999999,
+     "pointsLost": 1.6000000000000016,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_CAGR",
+     "label": "Sales CAGR",
+     "value": 12.344129975193807,
+     "points": 61.72064987596904,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 12,
+     "share": 0.12,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 4295.0,
+      "previous": 2400.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 2.9625911940465137,
+     "pointsLost": 1.8374088059534863,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_CAGR",
+     "label": "Profit CAGR",
+     "value": 18.19441839782183,
+     "points": 72.77767359128732,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 346.0,
+      "previous": 150.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 4.36666041547724,
+     "pointsLost": 1.6333395845227605,
+     "severity": "GREEN"
+    },
+    {
+     "part": "fundamental",
+     "metric": "MARGIN_CHANGE",
+     "label": "Operating margin change",
+     "value": -0.2625530410183874,
+     "points": 45.624115983026876,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {},
+     "fallbackFor": null,
+     "worst": -3,
+     "best": 3,
+     "unit": "pp",
+     "redBoundary": -0.5999999999999996,
+     "greenBoundary": 1.1999999999999993,
+     "pointsEarned": 2.7374469589816126,
+     "pointsLost": 3.2625530410183874,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "DEBT_TO_EQUITY",
+     "label": "Debt / equity",
+     "value": 0.45,
+     "points": 87.50000000000001,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.5,
+     "best": 0.3,
+     "unit": "x",
+     "redBoundary": 1.02,
+     "greenBoundary": 0.66,
+     "pointsEarned": 4.375000000000001,
+     "pointsLost": 0.6249999999999993,
+     "severity": "GREEN"
+    },
+    {
+     "part": "quality",
+     "metric": "INTEREST_COVER",
+     "label": "Interest cover",
+     "value": null,
+     "points": 50.0,
+     "status": "F",
+     "statusLabel": "Filled",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 2,
+     "best": 8,
+     "unit": "x",
+     "redBoundary": 4.4,
+     "greenBoundary": 6.199999999999999,
+     "pointsEarned": 2.5,
+     "pointsLost": 2.5,
+     "severity": "NO DATA"
+    },
+    {
+     "part": "quality",
+     "metric": "ROE",
+     "label": "Return on equity",
+     "value": 17.299999999999997,
+     "points": 66.4285714285714,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 8,
+     "best": 22,
+     "unit": "%",
+     "redBoundary": 13.600000000000001,
+     "greenBoundary": 17.799999999999997,
+     "pointsEarned": 3.985714285714284,
+     "pointsLost": 2.014285714285716,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "CASH_CONVERSION",
+     "label": "Cash conversion",
+     "value": 0.6850828729281768,
+     "points": 47.51381215469613,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 0.4,
+     "best": 1.0,
+     "unit": "x",
+     "redBoundary": 0.64,
+     "greenBoundary": 0.8200000000000001,
+     "pointsEarned": 1.9005524861878458,
+     "pointsLost": 2.099447513812155,
+     "severity": "AMBER"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "risk",
+     "metric": "VOLATILITY",
+     "label": "Annualised volatility",
+     "value": 34.0,
+     "points": 60.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 55,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 41.0,
+     "greenBoundary": 30.5,
+     "pointsEarned": 2.2500000000000004,
+     "pointsLost": 1.5000000000000002,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "BIGGEST_FALL",
+     "label": "Maximum drawdown (1 year)",
+     "value": 27.0,
+     "points": 65.71428571428571,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 50,
+     "best": 15,
+     "unit": "%",
+     "redBoundary": 36.0,
+     "greenBoundary": 25.5,
+     "pointsEarned": 2.4642857142857144,
+     "pointsLost": 1.285714285714286,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "TRADING_VALUE",
+     "label": "Daily trading value (Cr)",
+     "value": 18.0,
+     "points": 80,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "Cr",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 2.0,
+     "pointsLost": 0.5,
+     "severity": "GREEN"
+    },
+    {
+     "part": "risk",
+     "metric": "PLEDGE",
+     "label": "Promoter pledged shares",
+     "value": null,
+     "points": null,
+     "status": "L",
+     "statusLabel": "Not supplied",
+     "weight": 20,
+     "share": 0.0,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 30,
+     "best": 0,
+     "unit": "%",
+     "redBoundary": 18.0,
+     "greenBoundary": 9.0,
+     "pointsEarned": 0.0,
+     "pointsLost": 0.0,
+     "severity": "NO DATA"
+    }
+   ],
+   "strengths": [
+    {
+     "part": "quality",
+     "metric": "DEBT_TO_EQUITY",
+     "label": "Debt / equity",
+     "value": 0.45,
+     "points": 87.50000000000001,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.5,
+     "best": 0.3,
+     "unit": "x",
+     "redBoundary": 1.02,
+     "greenBoundary": 0.66,
+     "pointsEarned": 4.375000000000001,
+     "pointsLost": 0.6249999999999993,
+     "severity": "GREEN"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_CAGR",
+     "label": "Profit CAGR",
+     "value": 18.19441839782183,
+     "points": 72.77767359128732,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 346.0,
+      "previous": 150.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 4.36666041547724,
+     "pointsLost": 1.6333395845227605,
+     "severity": "GREEN"
+    },
+    {
+     "part": "risk",
+     "metric": "TRADING_VALUE",
+     "label": "Daily trading value (Cr)",
+     "value": 18.0,
+     "points": 80,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "Cr",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 2.0,
+     "pointsLost": 0.5,
+     "severity": "GREEN"
+    }
+   ],
+   "weaknesses": [
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    }
+   ],
+   "flags": [
+    {
+     "part": "fundamental",
+     "metric": "SALES_STREAK",
+     "label": "Sales streak",
+     "value": 3.0,
+     "points": 62.26732673267327,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 90.8910891089109,
+      "magnitudePoints": 54.45544554455451,
+      "credibility": 0.3,
+      "fillPoints": 50.0,
+      "medianYoY": 10.8910891089109,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.981386138613862,
+     "pointsLost": 3.018613861386139,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_STREAK",
+     "label": "Profit streak",
+     "value": 3.0,
+     "points": 51.19857142857143,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 86.42857142857143,
+      "magnitudePoints": 32.14285714285712,
+      "credibility": 0.3,
+      "fillPoints": 36.1,
+      "medianYoY": 8.03571428571428,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.095885714285715,
+     "pointsLost": 3.9041142857142868,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_GROWTH",
+     "label": "Sales growth (12 months)",
+     "value": 10.8910891089109,
+     "points": 54.45544554455451,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 8,
+     "share": 0.08,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 1120.0,
+      "previous": 1010.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 1.7425742574257443,
+     "pointsLost": 1.4574257425742558,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_GROWTH",
+     "label": "Profit growth (12 months)",
+     "value": 14.999999999999991,
+     "points": 59.999999999999964,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 10,
+     "share": 0.1,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 92.0,
+      "previous": 80.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 2.399999999999999,
+     "pointsLost": 1.6000000000000016,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_CAGR",
+     "label": "Sales CAGR",
+     "value": 12.344129975193807,
+     "points": 61.72064987596904,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 12,
+     "share": 0.12,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 4295.0,
+      "previous": 2400.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 2.9625911940465137,
+     "pointsLost": 1.8374088059534863,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "MARGIN_CHANGE",
+     "label": "Operating margin change",
+     "value": -0.2625530410183874,
+     "points": 45.624115983026876,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {},
+     "fallbackFor": null,
+     "worst": -3,
+     "best": 3,
+     "unit": "pp",
+     "redBoundary": -0.5999999999999996,
+     "greenBoundary": 1.1999999999999993,
+     "pointsEarned": 2.7374469589816126,
+     "pointsLost": 3.2625530410183874,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "ROE",
+     "label": "Return on equity",
+     "value": 17.299999999999997,
+     "points": 66.4285714285714,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 8,
+     "best": 22,
+     "unit": "%",
+     "redBoundary": 13.600000000000001,
+     "greenBoundary": 17.799999999999997,
+     "pointsEarned": 3.985714285714284,
+     "pointsLost": 2.014285714285716,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "CASH_CONVERSION",
+     "label": "Cash conversion",
+     "value": 0.6850828729281768,
+     "points": 47.51381215469613,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 0.4,
+     "best": 1.0,
+     "unit": "x",
+     "redBoundary": 0.64,
+     "greenBoundary": 0.8200000000000001,
+     "pointsEarned": 1.9005524861878458,
+     "pointsLost": 2.099447513812155,
+     "severity": "AMBER"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "risk",
+     "metric": "VOLATILITY",
+     "label": "Annualised volatility",
+     "value": 34.0,
+     "points": 60.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 55,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 41.0,
+     "greenBoundary": 30.5,
+     "pointsEarned": 2.2500000000000004,
+     "pointsLost": 1.5000000000000002,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "BIGGEST_FALL",
+     "label": "Maximum drawdown (1 year)",
+     "value": 27.0,
+     "points": 65.71428571428571,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 50,
+     "best": 15,
+     "unit": "%",
+     "redBoundary": 36.0,
+     "greenBoundary": 25.5,
+     "pointsEarned": 2.4642857142857144,
+     "pointsLost": 1.285714285714286,
+     "severity": "AMBER"
+    }
+   ],
+   "alerts": [
+    "The market price is outside the permitted freshness window (10 calendar days).",
+    "PROVISIONAL: 82% data confidence and 3 comparable quarters.",
+    "Filled using the supplied group snapshot: Interest cover.",
+    "Promoter pledge is unknown; excluded from the Risk score and counted as missing in confidence.",
+    "Short record: streak scores reflect the available comparable quarters (3/10 minimum across sales and profit)."
+   ],
+   "valuationCapped": false,
+   "lossCapped": false,
+   "loss": {
+    "ttmProfit": 362,
+    "ttmSales": 4485,
+    "basis": "last 4 quarters",
+    "lossNow": false,
+    "latestYearLoss": false,
+    "lossYears3": 0,
+    "years3": 3,
+    "lossYears5": 0,
+    "years5": 5,
+    "netMarginPct": 8.071348940914158,
+    "tier": null,
+    "cap": null,
+    "rawFundamental": 58.21636169707672
+   },
+   "adjustments": [],
+   "capPointsLost": 0,
+   "headline": "Weak assessment: Fundamental contributes most to the score; Valuation accounts for the largest shortfall."
+  },
+  "inputMeta": {
+   "groupDefaulted": false,
+   "statementType": "standalone",
+   "quarterlyAsOf": "2026-06-30",
+   "annualAsOf": "2026-03-31",
+   "balanceAsOf": "2026-03-31",
+   "ownershipAsOf": "2026-06-30",
+   "priceAsOf": "2026-10-08",
+   "assetQualityStatementType": "standalone",
+   "provenance": {},
+   "chronology": {
+    "quarterly": [
+     "2024-12",
+     "2025-03",
+     "2025-06",
+     "2025-09",
+     "2025-12",
+     "2026-03",
+     "2026-06"
+    ],
+    "annual": [
+     "2021",
+     "2022",
+     "2023",
+     "2024",
+     "2025",
+     "2026"
+    ]
+   },
+   "valuationChecks": {},
+   "dashboardSources": {},
+   "requestedStatementType": "consolidated",
+   "dataRecovery": []
+  },
+  "warnings": [
+   "Group fill values use the supplied October 2026 snapshot, not refreshed market medians.",
+   "Historical filing availability and corporate-action alignment require point-in-time validation; this is a current assessment, not a historical backtest.",
+   "The dashboard resolved consolidated financials to standalone; this entire report uses that same effective statement basis.",
+   "The market price is outside the permitted freshness window (10 calendar days)."
+  ],
+  "sources": [
+   {
+    "section": "Dashboard yearly",
+    "available": true,
+    "retrievedAt": "2026-10-25T09:12:05+00:00"
+   },
+   {
+    "section": "Dashboard quarterly",
+    "available": true,
+    "retrievedAt": "2026-10-25T09:12:05+00:00"
+   }
+  ],
+  "trends": [
+   {
+    "period": "2021",
+    "revenue": 2400,
+    "profit": 150,
+    "eps": 15.0
+   },
+   {
+    "period": "2022",
+    "revenue": 2150,
+    "profit": 120,
+    "eps": 12.0
+   },
+   {
+    "period": "2023",
+    "revenue": 2700,
+    "profit": 190,
+    "eps": 19.0
+   },
+   {
+    "period": "2024",
+    "revenue": 3200,
+    "profit": 240,
+    "eps": 24.0
+   },
+   {
+    "period": "2025",
+    "revenue": 3875,
+    "profit": 319,
+    "eps": 31.9
+   },
+   {
+    "period": "2026",
+    "revenue": 4295,
+    "profit": 346,
+    "eps": 34.6
+   }
+  ],
+  "benchmark": {
+   "source": "FinEdge",
+   "asOf": "2026-10-08",
+   "universeCount": 52,
+   "fetchedCount": 46,
+   "basis": "standalone",
+   "metrics": {
+    "industry_median_pe": {
+     "value": 38,
+     "provider": "FinEdge",
+     "scope": "industry",
+     "method": "available peer median",
+     "positiveCount": 41,
+     "observedCount": 46,
+     "universeCount": 52,
+     "partial": true,
+     "statementBasis": "standalone",
+     "asOf": "2026-10-08"
+    }
+   },
+   "note": "Medians use at least five available positive multiples from the FinEdge industry peer universe. Coverage and exclusions are disclosed for each benchmark; partial coverage is not a complete-industry median.",
+   "reportedObservations": [],
+   "policyVersion": "2026-10-24-provider-first"
+  },
+  "review": {
+   "parts": [
+    {
+     "key": "fundamental",
+     "name": "Fundamental",
+     "score": 58.21636169707672,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "PROFIT_CAGR",
+       "label": "Profit CAGR (5-year)",
+       "valueText": "18.19%",
+       "summary": "Strong profit growth over the 5-year period.",
+       "comparisonText": "Period used: 2021 to 2026."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "SALES_STREAK",
+       "label": "Revenue growth consistency",
+       "valueText": "3 growth quarters",
+       "summary": "Revenue growth is uneven across comparable quarters. 3 growth quarters across 3 comparable quarters."
+      },
+      {
+       "metric": "PROFIT_STREAK",
+       "label": "Profit growth consistency",
+       "valueText": "3 growth quarters",
+       "summary": "Profit growth is uneven across comparable quarters. 3 growth quarters across 3 comparable quarters. Loss-making quarters do not count as growth quarters."
+      },
+      {
+       "metric": "SALES_GROWTH",
+       "label": "Revenue growth (12 months)",
+       "valueText": "10.89%",
+       "summary": "Recent revenue growth is moderate."
+      },
+      {
+       "metric": "PROFIT_GROWTH",
+       "label": "Profit growth (12 months)",
+       "valueText": "15.00%",
+       "summary": "Recent profit growth is moderate."
+      },
+      {
+       "metric": "SALES_CAGR",
+       "label": "Revenue CAGR (5-year)",
+       "valueText": "12.34%",
+       "summary": "Moderate revenue growth over the 5-year period.",
+       "comparisonText": "Period used: 2021 to 2026."
+      },
+      {
+       "metric": "MARGIN_CHANGE",
+       "label": "Operating margin change",
+       "valueText": "-0.26 pp",
+       "summary": "Margin performance provides limited support."
+      }
+     ],
+     "unavailable": [],
+     "notApplicable": []
+    },
+    {
+     "key": "valuation",
+     "name": "Valuation",
+     "score": 16.451693806339062,
+     "notes": [],
+     "pros": [],
+     "cons": [
+      {
+       "metric": "PE_VS_INDUSTRY",
+       "label": "P/E vs industry",
+       "valueText": "1.26x",
+       "summary": "P/E is relatively high against industry peers.",
+       "comparisonText": "Company P/E: 48.01x. Industry peer median: 38.00x. Source: FinEdge. Uses 41 positive multiples; 46 of 52 peer records available."
+      },
+      {
+       "metric": "PE_VS_HISTORY",
+       "label": "P/E vs own history",
+       "valueText": "1.50x",
+       "summary": "P/E is relatively high against the company's own history.",
+       "comparisonText": "Company P/E: 48.01x. Own-history median: 32.00x. Source: FinEdge."
+      },
+      {
+       "metric": "PEG",
+       "label": "PEG",
+       "valueText": "2.64x",
+       "summary": "The earnings multiple is unfavourable relative to profit growth."
+      }
+     ],
+     "mixed": [],
+     "unavailable": [],
+     "notApplicable": []
+    },
+    {
+     "key": "quality",
+     "name": "Quality",
+     "score": 63.80633385951065,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "DEBT_TO_EQUITY",
+       "label": "Debt / equity",
+       "valueText": "0.45x",
+       "summary": "Low borrowing relative to equity."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "ROE",
+       "label": "Return on equity",
+       "valueText": "17.30%",
+       "summary": "Returns on equity are moderate."
+      },
+      {
+       "metric": "CASH_CONVERSION",
+       "label": "Cash conversion",
+       "valueText": "0.69x",
+       "summary": "Operating cash flow provides moderate support for profits."
+      }
+     ],
+     "unavailable": [
+      {
+       "metric": "INTEREST_COVER",
+       "label": "Interest cover",
+       "valueText": "Not available",
+       "summary": "Not reported; an estimate is used in the assessment.",
+       "comparisonText": "Group estimate used: 50/100."
+      }
+     ],
+     "notApplicable": []
+    },
+    {
+     "key": "risk",
+     "name": "Risk",
+     "score": 67.14285714285714,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "TRADING_VALUE",
+       "label": "Average daily trading value",
+       "valueText": "INR 18.00 crore",
+       "summary": "Higher trading activity supports liquidity."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "VOLATILITY",
+       "label": "Annualised volatility",
+       "valueText": "34.00%",
+       "summary": "Share-price volatility warrants monitoring."
+      },
+      {
+       "metric": "BIGGEST_FALL",
+       "label": "Maximum drawdown (1 year)",
+       "valueText": "27.00%",
+       "summary": "The one-year price decline warrants monitoring."
+      }
+     ],
+     "unavailable": [
+      {
+       "metric": "PLEDGE",
+       "label": "Promoter pledged shares",
+       "valueText": "Not available",
+       "summary": "Not reported; not assessed."
+      }
+     ],
+     "notApplicable": []
+    }
+   ],
+   "notes": [
+    "Unavailable information: Interest cover, Promoter pledged shares. Estimates are not presented as company strengths or weaknesses.",
+    "The market price is more than 10 days old.",
+    "Consolidated statements were unavailable; this report uses standalone statements.",
+    "This assessment is provisional because the available financial history or data coverage is limited."
+   ],
+   "completeness": {
+    "complete": false,
+    "missingFactorCount": 2,
+    "limitedHistoryCount": 2,
+    "items": [
+     {
+      "metric": "SALES_STREAK",
+      "category": "Fundamental",
+      "label": "Revenue streak",
+      "kind": "limitedHistory",
+      "missingInputs": [
+       "Quarterly income history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09)"
+      ],
+      "reason": "Quarterly income history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09).",
+      "treatment": "3 of 10 year-on-year comparisons available. The remaining history uses the model group estimate."
+     },
+     {
+      "metric": "PROFIT_STREAK",
+      "category": "Fundamental",
+      "label": "Profit streak",
+      "kind": "limitedHistory",
+      "missingInputs": [
+       "Quarterly profit history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09)"
+      ],
+      "reason": "Quarterly profit history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09).",
+      "treatment": "3 of 10 year-on-year comparisons available. The remaining history uses the model group estimate."
+     },
+     {
+      "metric": "INTEREST_COVER",
+      "category": "Quality",
+      "label": "Interest cover",
+      "kind": "missing",
+      "missingInputs": [
+       "Annual P&L interest expense"
+      ],
+      "reason": "Annual P&L interest expense.",
+      "treatment": "Group estimate used: 50/100."
+     },
+     {
+      "metric": "PLEDGE",
+      "category": "Risk",
+      "label": "Promoter pledged shares",
+      "kind": "missing",
+      "missingInputs": [
+       "Promoter pledged-share disclosure"
+      ],
+      "reason": "Promoter pledged-share disclosure.",
+      "treatment": "Excluded from scoring because the input is unavailable."
+     }
+    ]
+   }
+  },
+  "financialHistory": {
+   "quarterly": [
+    {
+     "period": "2024-12",
+     "sales": 1210,
+     "profit": 112,
+     "ebitda": 163,
+     "eps": 11.2
+    },
+    {
+     "period": "2025-03",
+     "sales": 900,
+     "profit": 66,
+     "ebitda": 115,
+     "eps": 6.6
+    },
+    {
+     "period": "2025-06",
+     "sales": 1010,
+     "profit": 80,
+     "ebitda": 128,
+     "eps": 8.0
+    },
+    {
+     "period": "2025-09",
+     "sales": 1035,
+     "profit": 79,
+     "ebitda": 130,
+     "eps": 7.9
+    },
+    {
+     "period": "2025-12",
+     "sales": 1350,
+     "profit": 121,
+     "ebitda": 170,
+     "eps": 12.1
+    },
+    {
+     "period": "2026-03",
+     "sales": 980,
+     "profit": 70,
+     "ebitda": 123,
+     "eps": 7.0
+    },
+    {
+     "period": "2026-06",
+     "sales": 1120,
+     "profit": 92,
+     "ebitda": 139,
+     "eps": 9.2
+    }
+   ],
+   "annual": [
+    {
+     "period": "2021",
+     "sales": 2400,
+     "profit": 150,
+     "cashFlow": 110,
+     "netWorth": null
+    },
+    {
+     "period": "2022",
+     "sales": 2150,
+     "profit": 120,
+     "cashFlow": 95,
+     "netWorth": null
+    },
+    {
+     "period": "2023",
+     "sales": 2700,
+     "profit": 190,
+     "cashFlow": 150,
+     "netWorth": null
+    },
+    {
+     "period": "2024",
+     "sales": 3200,
+     "profit": 240,
+     "cashFlow": 150,
+     "netWorth": null
+    },
+    {
+     "period": "2025",
+     "sales": 3875,
+     "profit": 319,
+     "cashFlow": 210,
+     "netWorth": null
+    },
+    {
+     "period": "2026",
+     "sales": 4295,
+     "profit": 346,
+     "cashFlow": 260,
+     "netWorth": null
+    }
+   ],
+   "latest": [
+    {
+     "key": "price",
+     "label": "Price",
+     "value": 1738,
+     "unit": "INR/share"
+    },
+    {
+     "key": "eps_ttm",
+     "label": "Trailing EPS",
+     "value": 36.2,
+     "unit": "INR/share"
+    },
+    {
+     "key": "pe",
+     "label": "P/E",
+     "value": 48.011049723756905,
+     "unit": "x"
+    },
+    {
+     "key": "own_5y_median_pe",
+     "label": "Own 5-year P/E median",
+     "value": 32,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_pe",
+     "label": "Industry P/E median",
+     "value": 38,
+     "unit": "x"
+    },
+    {
+     "key": "pb",
+     "label": "P/B",
+     "value": 8.69,
+     "unit": "x"
+    },
+    {
+     "key": "own_5y_median_pb",
+     "label": "Own 5-year P/B median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_pb",
+     "label": "Industry P/B median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "ev_ebitda",
+     "label": "EV/EBITDA",
+     "value": 32.170818505338076,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_ev_ebitda",
+     "label": "Industry EV/EBITDA median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "market_cap",
+     "label": "Market capitalisation",
+     "value": 17380.0,
+     "unit": "Cr"
+    },
+    {
+     "key": "ev",
+     "label": "Enterprise value",
+     "value": 18080.0,
+     "unit": "Cr"
+    },
+    {
+     "key": "total_debt",
+     "label": "Total debt",
+     "value": 900,
+     "unit": "Cr"
+    },
+    {
+     "key": "cash",
+     "label": "Cash and bank balances",
+     "value": 200,
+     "unit": "Cr"
+    },
+    {
+     "key": "net_worth",
+     "label": "Latest book equity",
+     "value": 2000,
+     "unit": "Cr"
+    },
+    {
+     "key": "shares",
+     "label": "Shares including reconciled receipts",
+     "value": 10,
+     "unit": "Cr shares"
+    },
+    {
+     "key": "profit_before_tax",
+     "label": "Last FY profit before tax",
+     "value": 470,
+     "unit": "Cr"
+    },
+    {
+     "key": "interest_cost",
+     "label": "Last FY interest cost",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "annual_net_worth",
+     "label": "Book equity matching annual profit",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "annual_total_assets",
+     "label": "Assets matching annual profit",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "volatility_pct",
+     "label": "Annualised volatility",
+     "value": 34,
+     "unit": "%"
+    },
+    {
+     "key": "biggest_fall_pct",
+     "label": "Maximum one-year drawdown",
+     "value": 27,
+     "unit": "%"
+    },
+    {
+     "key": "trading_value_cr",
+     "label": "Average daily trading value",
+     "value": 18,
+     "unit": "Cr"
+    },
+    {
+     "key": "promoter_pledged_pct",
+     "label": "Promoter pledged shares",
+     "value": null,
+     "unit": "%"
+    }
+   ]
+  },
+  "cached": false,
+  "pdfAvailableUntil": "2026-10-25T09:42:41+00:00"
+ },
+ "notRated": {
+  "id": "0d1e2f3a4b5c46d7e8f9a0b1c2d3e4f5",
+  "state": "ready",
+  "createdAt": "2026-10-25T09:12:04+00:00",
+  "completedAt": "2026-10-25T09:12:41+00:00",
+  "statementType": "standalone",
+  "company": {
+   "symbol": "EXAMPLE",
+   "name": "Example Components Ltd",
+   "industry": "Auto Components",
+   "sector": "Automobile and Auto Components",
+   "description": "A fictional manufacturer used to illustrate FinLit Prism."
+  },
+  "rating": {
+   "modelVersion": "3.6.9",
+   "baselineVersion": "3.6.1-simple",
+   "fillVersion": "2026-10-14",
+   "group": "MFG",
+   "final": null,
+   "label": "NOT RATED",
+   "status": "NOT RATED",
+   "confidence": 0.8180000000000001,
+   "coverage": {
+    "fundamental": 0.72,
+    "quality": 0.75,
+    "valuation": 1.0,
+    "risk": 0.8
+   },
+   "dataIntegrityStatus": "REVIEW REQUIRED",
+   "parts": {
+    "fundamental": 58.21636169707672,
+    "quality": 63.80633385951065,
+    "valuation": 16.451693806339062,
+    "risk": 67.14285714285714
+   },
+   "partWeights": {
+    "fundamental": 0.4,
+    "valuation": 0.3,
+    "quality": 0.2,
+    "risk": 0.1
+   },
+   "judgedQuarters": 3,
+   "metrics": [
+    {
+     "part": "fundamental",
+     "metric": "SALES_STREAK",
+     "label": "Sales streak",
+     "value": 3.0,
+     "points": 62.26732673267327,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 90.8910891089109,
+      "magnitudePoints": 54.45544554455451,
+      "credibility": 0.3,
+      "fillPoints": 50.0,
+      "medianYoY": 10.8910891089109,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.981386138613862,
+     "pointsLost": 3.018613861386139,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_STREAK",
+     "label": "Profit streak",
+     "value": 3.0,
+     "points": 51.19857142857143,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 86.42857142857143,
+      "magnitudePoints": 32.14285714285712,
+      "credibility": 0.3,
+      "fillPoints": 36.1,
+      "medianYoY": 8.03571428571428,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.095885714285715,
+     "pointsLost": 3.9041142857142868,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_GROWTH",
+     "label": "Sales growth (12 months)",
+     "value": 10.8910891089109,
+     "points": 54.45544554455451,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 8,
+     "share": 0.08,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 1120.0,
+      "previous": 1010.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 1.7425742574257443,
+     "pointsLost": 1.4574257425742558,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_GROWTH",
+     "label": "Profit growth (12 months)",
+     "value": 14.999999999999991,
+     "points": 59.999999999999964,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 10,
+     "share": 0.1,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 92.0,
+      "previous": 80.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 2.399999999999999,
+     "pointsLost": 1.6000000000000016,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_CAGR",
+     "label": "Sales CAGR",
+     "value": 12.344129975193807,
+     "points": 61.72064987596904,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 12,
+     "share": 0.12,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 4295.0,
+      "previous": 2400.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 2.9625911940465137,
+     "pointsLost": 1.8374088059534863,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_CAGR",
+     "label": "Profit CAGR",
+     "value": 18.19441839782183,
+     "points": 72.77767359128732,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 346.0,
+      "previous": 150.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 4.36666041547724,
+     "pointsLost": 1.6333395845227605,
+     "severity": "GREEN"
+    },
+    {
+     "part": "fundamental",
+     "metric": "MARGIN_CHANGE",
+     "label": "Operating margin change",
+     "value": -0.2625530410183874,
+     "points": 45.624115983026876,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {},
+     "fallbackFor": null,
+     "worst": -3,
+     "best": 3,
+     "unit": "pp",
+     "redBoundary": -0.5999999999999996,
+     "greenBoundary": 1.1999999999999993,
+     "pointsEarned": 2.7374469589816126,
+     "pointsLost": 3.2625530410183874,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "DEBT_TO_EQUITY",
+     "label": "Debt / equity",
+     "value": 0.45,
+     "points": 87.50000000000001,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.5,
+     "best": 0.3,
+     "unit": "x",
+     "redBoundary": 1.02,
+     "greenBoundary": 0.66,
+     "pointsEarned": 4.375000000000001,
+     "pointsLost": 0.6249999999999993,
+     "severity": "GREEN"
+    },
+    {
+     "part": "quality",
+     "metric": "INTEREST_COVER",
+     "label": "Interest cover",
+     "value": null,
+     "points": 50.0,
+     "status": "F",
+     "statusLabel": "Filled",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 2,
+     "best": 8,
+     "unit": "x",
+     "redBoundary": 4.4,
+     "greenBoundary": 6.199999999999999,
+     "pointsEarned": 2.5,
+     "pointsLost": 2.5,
+     "severity": "NO DATA"
+    },
+    {
+     "part": "quality",
+     "metric": "ROE",
+     "label": "Return on equity",
+     "value": 17.299999999999997,
+     "points": 66.4285714285714,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 8,
+     "best": 22,
+     "unit": "%",
+     "redBoundary": 13.600000000000001,
+     "greenBoundary": 17.799999999999997,
+     "pointsEarned": 3.985714285714284,
+     "pointsLost": 2.014285714285716,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "CASH_CONVERSION",
+     "label": "Cash conversion",
+     "value": 0.6850828729281768,
+     "points": 47.51381215469613,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 0.4,
+     "best": 1.0,
+     "unit": "x",
+     "redBoundary": 0.64,
+     "greenBoundary": 0.8200000000000001,
+     "pointsEarned": 1.9005524861878458,
+     "pointsLost": 2.099447513812155,
+     "severity": "AMBER"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "risk",
+     "metric": "VOLATILITY",
+     "label": "Annualised volatility",
+     "value": 34.0,
+     "points": 60.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 55,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 41.0,
+     "greenBoundary": 30.5,
+     "pointsEarned": 2.2500000000000004,
+     "pointsLost": 1.5000000000000002,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "BIGGEST_FALL",
+     "label": "Maximum drawdown (1 year)",
+     "value": 27.0,
+     "points": 65.71428571428571,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 50,
+     "best": 15,
+     "unit": "%",
+     "redBoundary": 36.0,
+     "greenBoundary": 25.5,
+     "pointsEarned": 2.4642857142857144,
+     "pointsLost": 1.285714285714286,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "TRADING_VALUE",
+     "label": "Daily trading value (Cr)",
+     "value": 18.0,
+     "points": 80,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "Cr",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 2.0,
+     "pointsLost": 0.5,
+     "severity": "GREEN"
+    },
+    {
+     "part": "risk",
+     "metric": "PLEDGE",
+     "label": "Promoter pledged shares",
+     "value": null,
+     "points": null,
+     "status": "L",
+     "statusLabel": "Not supplied",
+     "weight": 20,
+     "share": 0.0,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 30,
+     "best": 0,
+     "unit": "%",
+     "redBoundary": 18.0,
+     "greenBoundary": 9.0,
+     "pointsEarned": 0.0,
+     "pointsLost": 0.0,
+     "severity": "NO DATA"
+    }
+   ],
+   "strengths": [
+    {
+     "part": "quality",
+     "metric": "DEBT_TO_EQUITY",
+     "label": "Debt / equity",
+     "value": 0.45,
+     "points": 87.50000000000001,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 25,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.5,
+     "best": 0.3,
+     "unit": "x",
+     "redBoundary": 1.02,
+     "greenBoundary": 0.66,
+     "pointsEarned": 4.375000000000001,
+     "pointsLost": 0.6249999999999993,
+     "severity": "GREEN"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_CAGR",
+     "label": "Profit CAGR",
+     "value": 18.19441839782183,
+     "points": 72.77767359128732,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 346.0,
+      "previous": 150.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 4.36666041547724,
+     "pointsLost": 1.6333395845227605,
+     "severity": "GREEN"
+    },
+    {
+     "part": "risk",
+     "metric": "TRADING_VALUE",
+     "label": "Daily trading value (Cr)",
+     "value": 18.0,
+     "points": 80,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.25,
+     "details": {},
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "Cr",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 2.0,
+     "pointsLost": 0.5,
+     "severity": "GREEN"
+    }
+   ],
+   "weaknesses": [
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    }
+   ],
+   "flags": [
+    {
+     "part": "fundamental",
+     "metric": "SALES_STREAK",
+     "label": "Sales streak",
+     "value": 3.0,
+     "points": 62.26732673267327,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 90.8910891089109,
+      "magnitudePoints": 54.45544554455451,
+      "credibility": 0.3,
+      "fillPoints": 50.0,
+      "medianYoY": 10.8910891089109,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.981386138613862,
+     "pointsLost": 3.018613861386139,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_STREAK",
+     "label": "Profit streak",
+     "value": 3.0,
+     "points": 51.19857142857143,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {
+      "good": 3,
+      "slips": 0,
+      "judged": 3,
+      "base": 100.0,
+      "ownPoints": 86.42857142857143,
+      "magnitudePoints": 32.14285714285712,
+      "credibility": 0.3,
+      "fillPoints": 36.1,
+      "medianYoY": 8.03571428571428,
+      "lossFill": false
+     },
+     "fallbackFor": null,
+     "worst": null,
+     "best": null,
+     "unit": "quarters",
+     "redBoundary": null,
+     "greenBoundary": null,
+     "pointsEarned": 4.095885714285715,
+     "pointsLost": 3.9041142857142868,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_GROWTH",
+     "label": "Sales growth (12 months)",
+     "value": 10.8910891089109,
+     "points": 54.45544554455451,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 8,
+     "share": 0.08,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 1120.0,
+      "previous": 1010.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 1.7425742574257443,
+     "pointsLost": 1.4574257425742558,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "PROFIT_GROWTH",
+     "label": "Profit growth (12 months)",
+     "value": 14.999999999999991,
+     "points": 59.999999999999964,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 10,
+     "share": 0.1,
+     "details": {
+      "basis": "Latest quarter vs same quarter last year (short-history fallback)",
+      "note": null,
+      "current": 92.0,
+      "previous": 80.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 25,
+     "unit": "%",
+     "redBoundary": 10.0,
+     "greenBoundary": 17.5,
+     "pointsEarned": 2.399999999999999,
+     "pointsLost": 1.6000000000000016,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "SALES_CAGR",
+     "label": "Sales CAGR",
+     "value": 12.344129975193807,
+     "points": 61.72064987596904,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 12,
+     "share": 0.12,
+     "details": {
+      "years": 5,
+      "availableYears": 5,
+      "note": null,
+      "current": 4295.0,
+      "previous": 2400.0
+     },
+     "fallbackFor": null,
+     "worst": 0,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 8.0,
+     "greenBoundary": 14.0,
+     "pointsEarned": 2.9625911940465137,
+     "pointsLost": 1.8374088059534863,
+     "severity": "AMBER"
+    },
+    {
+     "part": "fundamental",
+     "metric": "MARGIN_CHANGE",
+     "label": "Operating margin change",
+     "value": -0.2625530410183874,
+     "points": 45.624115983026876,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 15,
+     "share": 0.15,
+     "details": {},
+     "fallbackFor": null,
+     "worst": -3,
+     "best": 3,
+     "unit": "pp",
+     "redBoundary": -0.5999999999999996,
+     "greenBoundary": 1.1999999999999993,
+     "pointsEarned": 2.7374469589816126,
+     "pointsLost": 3.2625530410183874,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "ROE",
+     "label": "Return on equity",
+     "value": 17.299999999999997,
+     "points": 66.4285714285714,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 8,
+     "best": 22,
+     "unit": "%",
+     "redBoundary": 13.600000000000001,
+     "greenBoundary": 17.799999999999997,
+     "pointsEarned": 3.985714285714284,
+     "pointsLost": 2.014285714285716,
+     "severity": "AMBER"
+    },
+    {
+     "part": "quality",
+     "metric": "CASH_CONVERSION",
+     "label": "Cash conversion",
+     "value": 0.6850828729281768,
+     "points": 47.51381215469613,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 20,
+     "share": 0.2,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 0.4,
+     "best": 1.0,
+     "unit": "x",
+     "redBoundary": 0.64,
+     "greenBoundary": 0.8200000000000001,
+     "pointsEarned": 1.9005524861878458,
+     "pointsLost": 2.099447513812155,
+     "severity": "AMBER"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_INDUSTRY",
+     "label": "P/E vs industry",
+     "value": 1.2634486769409712,
+     "points": 33.65513230590289,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 40,
+     "share": 0.4,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 4.038615876708347,
+     "pointsLost": 7.961384123291652,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PE_VS_HISTORY",
+     "label": "P/E vs own history",
+     "value": 1.5003453038674033,
+     "points": 9.965469613259682,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 1.6,
+     "best": 0.6,
+     "unit": "x",
+     "redBoundary": 1.2000000000000002,
+     "greenBoundary": 0.9000000000000001,
+     "pointsEarned": 0.8968922651933713,
+     "pointsLost": 8.103107734806628,
+     "severity": "RED"
+    },
+    {
+     "part": "valuation",
+     "metric": "PEG",
+     "label": "PEG",
+     "value": 2.6387790295898994,
+     "points": 0.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.3,
+     "details": {
+      "growthUsed": 18.19441839782183,
+      "note": "Core group"
+     },
+     "fallbackFor": null,
+     "worst": 2.5,
+     "best": 0.5,
+     "unit": "x",
+     "redBoundary": 1.7,
+     "greenBoundary": 1.1,
+     "pointsEarned": 0.0,
+     "pointsLost": 9.0,
+     "severity": "RED"
+    },
+    {
+     "part": "risk",
+     "metric": "VOLATILITY",
+     "label": "Annualised volatility",
+     "value": 34.0,
+     "points": 60.0,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 55,
+     "best": 20,
+     "unit": "%",
+     "redBoundary": 41.0,
+     "greenBoundary": 30.5,
+     "pointsEarned": 2.2500000000000004,
+     "pointsLost": 1.5000000000000002,
+     "severity": "AMBER"
+    },
+    {
+     "part": "risk",
+     "metric": "BIGGEST_FALL",
+     "label": "Maximum drawdown (1 year)",
+     "value": 27.0,
+     "points": 65.71428571428571,
+     "status": "A",
+     "statusLabel": "Actual",
+     "weight": 30,
+     "share": 0.375,
+     "details": {},
+     "fallbackFor": null,
+     "worst": 50,
+     "best": 15,
+     "unit": "%",
+     "redBoundary": 36.0,
+     "greenBoundary": 25.5,
+     "pointsEarned": 2.4642857142857144,
+     "pointsLost": 1.285714285714286,
+     "severity": "AMBER"
+    }
+   ],
+   "alerts": [
+    "The model group could not be verified from the company classification.",
+    "The market price is outside the permitted freshness window (10 calendar days).",
+    "NOT RATED: 82% data confidence and 3 comparable quarters.",
+    "Filled using the supplied group snapshot: Interest cover.",
+    "Promoter pledge is unknown; excluded from the Risk score and counted as missing in confidence.",
+    "Short record: streak scores reflect the available comparable quarters (3/10 minimum across sales and profit)."
+   ],
+   "valuationCapped": false,
+   "lossCapped": false,
+   "loss": {
+    "ttmProfit": 362,
+    "ttmSales": 4485,
+    "basis": "last 4 quarters",
+    "lossNow": false,
+    "latestYearLoss": false,
+    "lossYears3": 0,
+    "years3": 3,
+    "lossYears5": 0,
+    "years5": 5,
+    "netMarginPct": 8.071348940914158,
+    "tier": null,
+    "cap": null,
+    "rawFundamental": 58.21636169707672
+   },
+   "adjustments": [],
+   "capPointsLost": 0,
+   "headline": "Not rated: insufficient verified inputs or unresolved data integrity issues."
+  },
+  "inputMeta": {
+   "groupDefaulted": true,
+   "statementType": "standalone",
+   "quarterlyAsOf": "2026-06-30",
+   "annualAsOf": "2026-03-31",
+   "balanceAsOf": "2026-03-31",
+   "ownershipAsOf": "2026-06-30",
+   "priceAsOf": "2026-10-08",
+   "assetQualityStatementType": "standalone",
+   "provenance": {},
+   "chronology": {
+    "quarterly": [
+     "2024-12",
+     "2025-03",
+     "2025-06",
+     "2025-09",
+     "2025-12",
+     "2026-03",
+     "2026-06"
+    ],
+    "annual": [
+     "2021",
+     "2022",
+     "2023",
+     "2024",
+     "2025",
+     "2026"
+    ]
+   },
+   "valuationChecks": {},
+   "dashboardSources": {},
+   "requestedStatementType": "consolidated",
+   "dataRecovery": []
+  },
+  "warnings": [
+   "Group fill values use the supplied October 2026 snapshot, not refreshed market medians.",
+   "Historical filing availability and corporate-action alignment require point-in-time validation; this is a current assessment, not a historical backtest.",
+   "The dashboard resolved consolidated financials to standalone; this entire report uses that same effective statement basis.",
+   "The model group could not be verified from the company classification.",
+   "The market price is outside the permitted freshness window (10 calendar days)."
+  ],
+  "sources": [
+   {
+    "section": "Dashboard yearly",
+    "available": true,
+    "retrievedAt": "2026-10-25T09:12:05+00:00"
+   },
+   {
+    "section": "Dashboard quarterly",
+    "available": true,
+    "retrievedAt": "2026-10-25T09:12:05+00:00"
+   }
+  ],
+  "trends": [
+   {
+    "period": "2021",
+    "revenue": 2400,
+    "profit": 150,
+    "eps": 15.0
+   },
+   {
+    "period": "2022",
+    "revenue": 2150,
+    "profit": 120,
+    "eps": 12.0
+   },
+   {
+    "period": "2023",
+    "revenue": 2700,
+    "profit": 190,
+    "eps": 19.0
+   },
+   {
+    "period": "2024",
+    "revenue": 3200,
+    "profit": 240,
+    "eps": 24.0
+   },
+   {
+    "period": "2025",
+    "revenue": 3875,
+    "profit": 319,
+    "eps": 31.9
+   },
+   {
+    "period": "2026",
+    "revenue": 4295,
+    "profit": 346,
+    "eps": 34.6
+   }
+  ],
+  "benchmark": {
+   "source": "FinEdge",
+   "asOf": "2026-10-08",
+   "universeCount": 52,
+   "fetchedCount": 46,
+   "basis": "standalone",
+   "metrics": {
+    "industry_median_pe": {
+     "value": 38,
+     "provider": "FinEdge",
+     "scope": "industry",
+     "method": "available peer median",
+     "positiveCount": 41,
+     "observedCount": 46,
+     "universeCount": 52,
+     "partial": true,
+     "statementBasis": "standalone",
+     "asOf": "2026-10-08"
+    }
+   },
+   "note": "Medians use at least five available positive multiples from the FinEdge industry peer universe. Coverage and exclusions are disclosed for each benchmark; partial coverage is not a complete-industry median.",
+   "reportedObservations": [],
+   "policyVersion": "2026-10-24-provider-first"
+  },
+  "review": {
+   "parts": [
+    {
+     "key": "fundamental",
+     "name": "Fundamental",
+     "score": null,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "PROFIT_CAGR",
+       "label": "Profit CAGR (5-year)",
+       "valueText": "18.19%",
+       "summary": "Strong profit growth over the 5-year period.",
+       "comparisonText": "Period used: 2021 to 2026."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "SALES_STREAK",
+       "label": "Revenue growth consistency",
+       "valueText": "3 growth quarters",
+       "summary": "Revenue growth is uneven across comparable quarters. 3 growth quarters across 3 comparable quarters."
+      },
+      {
+       "metric": "PROFIT_STREAK",
+       "label": "Profit growth consistency",
+       "valueText": "3 growth quarters",
+       "summary": "Profit growth is uneven across comparable quarters. 3 growth quarters across 3 comparable quarters. Loss-making quarters do not count as growth quarters."
+      },
+      {
+       "metric": "SALES_GROWTH",
+       "label": "Revenue growth (12 months)",
+       "valueText": "10.89%",
+       "summary": "Recent revenue growth is moderate."
+      },
+      {
+       "metric": "PROFIT_GROWTH",
+       "label": "Profit growth (12 months)",
+       "valueText": "15.00%",
+       "summary": "Recent profit growth is moderate."
+      },
+      {
+       "metric": "SALES_CAGR",
+       "label": "Revenue CAGR (5-year)",
+       "valueText": "12.34%",
+       "summary": "Moderate revenue growth over the 5-year period.",
+       "comparisonText": "Period used: 2021 to 2026."
+      },
+      {
+       "metric": "MARGIN_CHANGE",
+       "label": "Operating margin change",
+       "valueText": "-0.26 pp",
+       "summary": "Margin performance provides limited support."
+      }
+     ],
+     "unavailable": [],
+     "notApplicable": []
+    },
+    {
+     "key": "valuation",
+     "name": "Valuation",
+     "score": null,
+     "notes": [],
+     "pros": [],
+     "cons": [
+      {
+       "metric": "PE_VS_INDUSTRY",
+       "label": "P/E vs industry",
+       "valueText": "1.26x",
+       "summary": "P/E is relatively high against industry peers.",
+       "comparisonText": "Company P/E: 48.01x. Industry peer median: 38.00x. Source: FinEdge. Uses 41 positive multiples; 46 of 52 peer records available."
+      },
+      {
+       "metric": "PE_VS_HISTORY",
+       "label": "P/E vs own history",
+       "valueText": "1.50x",
+       "summary": "P/E is relatively high against the company's own history.",
+       "comparisonText": "Company P/E: 48.01x. Own-history median: 32.00x. Source: FinEdge."
+      },
+      {
+       "metric": "PEG",
+       "label": "PEG",
+       "valueText": "2.64x",
+       "summary": "The earnings multiple is unfavourable relative to profit growth."
+      }
+     ],
+     "mixed": [],
+     "unavailable": [],
+     "notApplicable": []
+    },
+    {
+     "key": "quality",
+     "name": "Quality",
+     "score": null,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "DEBT_TO_EQUITY",
+       "label": "Debt / equity",
+       "valueText": "0.45x",
+       "summary": "Low borrowing relative to equity."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "ROE",
+       "label": "Return on equity",
+       "valueText": "17.30%",
+       "summary": "Returns on equity are moderate."
+      },
+      {
+       "metric": "CASH_CONVERSION",
+       "label": "Cash conversion",
+       "valueText": "0.69x",
+       "summary": "Operating cash flow provides moderate support for profits."
+      }
+     ],
+     "unavailable": [
+      {
+       "metric": "INTEREST_COVER",
+       "label": "Interest cover",
+       "valueText": "Not available",
+       "summary": "Not reported; an estimate is used in the assessment.",
+       "comparisonText": "Group estimate used: 50/100."
+      }
+     ],
+     "notApplicable": []
+    },
+    {
+     "key": "risk",
+     "name": "Risk",
+     "score": null,
+     "notes": [],
+     "pros": [
+      {
+       "metric": "TRADING_VALUE",
+       "label": "Average daily trading value",
+       "valueText": "INR 18.00 crore",
+       "summary": "Higher trading activity supports liquidity."
+      }
+     ],
+     "cons": [],
+     "mixed": [
+      {
+       "metric": "VOLATILITY",
+       "label": "Annualised volatility",
+       "valueText": "34.00%",
+       "summary": "Share-price volatility warrants monitoring."
+      },
+      {
+       "metric": "BIGGEST_FALL",
+       "label": "Maximum drawdown (1 year)",
+       "valueText": "27.00%",
+       "summary": "The one-year price decline warrants monitoring."
+      }
+     ],
+     "unavailable": [
+      {
+       "metric": "PLEDGE",
+       "label": "Promoter pledged shares",
+       "valueText": "Not available",
+       "summary": "Not reported; not assessed."
+      }
+     ],
+     "notApplicable": []
+    }
+   ],
+   "notes": [
+    "Unavailable information: Interest cover, Promoter pledged shares. Estimates are not presented as company strengths or weaknesses.",
+    "The company's industry classification needs confirmation; the overall rating is withheld.",
+    "The market price is more than 10 days old.",
+    "Consolidated statements were unavailable; this report uses standalone statements.",
+    "There is insufficient verified information to provide an overall rating."
+   ],
+   "completeness": {
+    "complete": false,
+    "missingFactorCount": 2,
+    "limitedHistoryCount": 2,
+    "items": [
+     {
+      "metric": "SALES_STREAK",
+      "category": "Fundamental",
+      "label": "Revenue streak",
+      "kind": "limitedHistory",
+      "missingInputs": [
+       "Quarterly income history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09)"
+      ],
+      "reason": "Quarterly income history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09).",
+      "treatment": "3 of 10 year-on-year comparisons available. The remaining history uses the model group estimate."
+     },
+     {
+      "metric": "PROFIT_STREAK",
+      "category": "Fundamental",
+      "label": "Profit streak",
+      "kind": "limitedHistory",
+      "missingInputs": [
+       "Quarterly profit history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09)"
+      ],
+      "reason": "Quarterly profit history (7 of 14 observations available; missing periods: 2023-03, 2023-06, 2023-09, 2023-12, 2024-03, 2024-06, 2024-09).",
+      "treatment": "3 of 10 year-on-year comparisons available. The remaining history uses the model group estimate."
+     },
+     {
+      "metric": "INTEREST_COVER",
+      "category": "Quality",
+      "label": "Interest cover",
+      "kind": "missing",
+      "missingInputs": [
+       "Annual P&L interest expense"
+      ],
+      "reason": "Annual P&L interest expense.",
+      "treatment": "Group estimate used: 50/100."
+     },
+     {
+      "metric": "PLEDGE",
+      "category": "Risk",
+      "label": "Promoter pledged shares",
+      "kind": "missing",
+      "missingInputs": [
+       "Promoter pledged-share disclosure"
+      ],
+      "reason": "Promoter pledged-share disclosure.",
+      "treatment": "Excluded from scoring because the input is unavailable."
+     }
+    ]
+   }
+  },
+  "financialHistory": {
+   "quarterly": [
+    {
+     "period": "2024-12",
+     "sales": 1210,
+     "profit": 112,
+     "ebitda": 163,
+     "eps": 11.2
+    },
+    {
+     "period": "2025-03",
+     "sales": 900,
+     "profit": 66,
+     "ebitda": 115,
+     "eps": 6.6
+    },
+    {
+     "period": "2025-06",
+     "sales": 1010,
+     "profit": 80,
+     "ebitda": 128,
+     "eps": 8.0
+    },
+    {
+     "period": "2025-09",
+     "sales": 1035,
+     "profit": 79,
+     "ebitda": 130,
+     "eps": 7.9
+    },
+    {
+     "period": "2025-12",
+     "sales": 1350,
+     "profit": 121,
+     "ebitda": 170,
+     "eps": 12.1
+    },
+    {
+     "period": "2026-03",
+     "sales": 980,
+     "profit": 70,
+     "ebitda": 123,
+     "eps": 7.0
+    },
+    {
+     "period": "2026-06",
+     "sales": 1120,
+     "profit": 92,
+     "ebitda": 139,
+     "eps": 9.2
+    }
+   ],
+   "annual": [
+    {
+     "period": "2021",
+     "sales": 2400,
+     "profit": 150,
+     "cashFlow": 110,
+     "netWorth": null
+    },
+    {
+     "period": "2022",
+     "sales": 2150,
+     "profit": 120,
+     "cashFlow": 95,
+     "netWorth": null
+    },
+    {
+     "period": "2023",
+     "sales": 2700,
+     "profit": 190,
+     "cashFlow": 150,
+     "netWorth": null
+    },
+    {
+     "period": "2024",
+     "sales": 3200,
+     "profit": 240,
+     "cashFlow": 150,
+     "netWorth": null
+    },
+    {
+     "period": "2025",
+     "sales": 3875,
+     "profit": 319,
+     "cashFlow": 210,
+     "netWorth": null
+    },
+    {
+     "period": "2026",
+     "sales": 4295,
+     "profit": 346,
+     "cashFlow": 260,
+     "netWorth": null
+    }
+   ],
+   "latest": [
+    {
+     "key": "price",
+     "label": "Price",
+     "value": 1738,
+     "unit": "INR/share"
+    },
+    {
+     "key": "eps_ttm",
+     "label": "Trailing EPS",
+     "value": 36.2,
+     "unit": "INR/share"
+    },
+    {
+     "key": "pe",
+     "label": "P/E",
+     "value": 48.011049723756905,
+     "unit": "x"
+    },
+    {
+     "key": "own_5y_median_pe",
+     "label": "Own 5-year P/E median",
+     "value": 32,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_pe",
+     "label": "Industry P/E median",
+     "value": 38,
+     "unit": "x"
+    },
+    {
+     "key": "pb",
+     "label": "P/B",
+     "value": 8.69,
+     "unit": "x"
+    },
+    {
+     "key": "own_5y_median_pb",
+     "label": "Own 5-year P/B median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_pb",
+     "label": "Industry P/B median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "ev_ebitda",
+     "label": "EV/EBITDA",
+     "value": 32.170818505338076,
+     "unit": "x"
+    },
+    {
+     "key": "industry_median_ev_ebitda",
+     "label": "Industry EV/EBITDA median",
+     "value": null,
+     "unit": "x"
+    },
+    {
+     "key": "market_cap",
+     "label": "Market capitalisation",
+     "value": 17380.0,
+     "unit": "Cr"
+    },
+    {
+     "key": "ev",
+     "label": "Enterprise value",
+     "value": 18080.0,
+     "unit": "Cr"
+    },
+    {
+     "key": "total_debt",
+     "label": "Total debt",
+     "value": 900,
+     "unit": "Cr"
+    },
+    {
+     "key": "cash",
+     "label": "Cash and bank balances",
+     "value": 200,
+     "unit": "Cr"
+    },
+    {
+     "key": "net_worth",
+     "label": "Latest book equity",
+     "value": 2000,
+     "unit": "Cr"
+    },
+    {
+     "key": "shares",
+     "label": "Shares including reconciled receipts",
+     "value": 10,
+     "unit": "Cr shares"
+    },
+    {
+     "key": "profit_before_tax",
+     "label": "Last FY profit before tax",
+     "value": 470,
+     "unit": "Cr"
+    },
+    {
+     "key": "interest_cost",
+     "label": "Last FY interest cost",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "annual_net_worth",
+     "label": "Book equity matching annual profit",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "annual_total_assets",
+     "label": "Assets matching annual profit",
+     "value": null,
+     "unit": "Cr"
+    },
+    {
+     "key": "volatility_pct",
+     "label": "Annualised volatility",
+     "value": 34,
+     "unit": "%"
+    },
+    {
+     "key": "biggest_fall_pct",
+     "label": "Maximum one-year drawdown",
+     "value": 27,
+     "unit": "%"
+    },
+    {
+     "key": "trading_value_cr",
+     "label": "Average daily trading value",
+     "value": 18,
+     "unit": "Cr"
+    },
+    {
+     "key": "promoter_pledged_pct",
+     "label": "Promoter pledged shares",
+     "value": null,
+     "unit": "%"
+    }
+   ]
+  },
+  "cached": false,
+  "pdfAvailableUntil": "2026-10-25T09:42:41+00:00"
+ }
+}
