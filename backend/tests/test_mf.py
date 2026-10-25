@@ -412,6 +412,32 @@ async def test_backfill_is_resumable_and_skips_houses_already_done(loaded):
         assert "no history rows" in await conn.fetchval("SELECT note FROM mf_backfill WHERE amc_key = 'bankofindia'")
 
 
+class _Row:
+    def __init__(self, n, ok): self.d = {"n": n, "ok": ok}
+    def __getitem__(self, k): return self.d[k]
+
+
+class _Conn:
+    def __init__(self, n, ok): self.row = _Row(n, ok)
+    async def fetchrow(self, *_a): return self.row
+
+
+async def test_markers_that_outlived_the_figures_are_detected():
+    assert await mf._history_wiped(_Conn(8000, 0)) is True        # a rebuilt scheme table: nothing has a 1-year return
+    assert await mf._history_wiped(_Conn(8000, 300)) is True      # still under 5%
+    assert await mf._history_wiped(_Conn(8000, 6000)) is False    # a healthy load
+    assert await mf._history_wiped(_Conn(40, 0)) is False         # too few schemes to tell (a small test file or a fresh install)
+
+
+@needs_db
+async def test_backfill_loads_every_house_again_when_the_done_markers_outlived_the_figures(loaded, monkeypatch):
+    async def wiped(_conn): return True
+    monkeypatch.setattr(mf, "_history_wiped", wiped)
+    async with amfi_client() as c:
+        res = await mf.backfill(loaded, None, amc="all", client=c, log_fn=lambda *_: None)
+    assert sorted(d["amc"] for d in res["done"]) == ["Axis Mutual Fund", "Bank of India Mutual Fund"] and res["skipped"] == []   # nothing skipped: Axis was marked done by the fixture
+
+
 @needs_db
 async def test_nightly_file_appends_the_new_day_and_recomputes(loaded):
     nxt = NAVALL.replace("66.74;19-Oct-2026", "67.50;20-Oct-2026").replace("3180.5188;20-Oct-2026", "3182.0000;21-Oct-2026")
