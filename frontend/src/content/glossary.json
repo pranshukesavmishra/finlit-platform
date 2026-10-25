@@ -842,6 +842,21 @@
    ]
   },
   {
+   "term": "Coverage (Prism)",
+   "topic": "FinLit words",
+   "meaning": "How much of the information a FinLit Prism rating needs was actually found in the company's filings and prices, from 0% to 100%. It is weighted like the rating itself: Fundamentals 40%, Valuation 30%, Quality 20% and Risk 10%. A short sales and profit record counts only in part.",
+   "why": "Where an input is missing, Prism uses a standard estimate for the company's industry group instead, so lower coverage means more of the rating rests on estimates.",
+   "how": "Read coverage as completeness of the data, not as the chance that the rating is right or a guide to what the share price will do. Below 80% the rating is provisional; below 50% the company is not rated.",
+   "formula": "Coverage = 0.40 × Fundamentals coverage + 0.30 × Valuation coverage + 0.20 × Quality coverage + 0.10 × Risk coverage",
+   "id": "coverage-prism",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Prism coverage",
+    "Inputs available"
+   ]
+  },
+  {
    "term": "Credit rating",
    "topic": "Funds, bonds and derivatives",
    "meaning": "An agency's grade of a borrower's ability to repay, from AAA (highest) down to D (default). Indian agencies include CRISIL, ICRA, CARE and India Ratings.",
@@ -1491,6 +1506,22 @@
     "Score change since last quarter",
     "overall",
     "score change"
+   ]
+  },
+  {
+   "term": "FinLit Prism",
+   "topic": "FinLit words",
+   "meaning": "FinLit's advanced financial-health rating of a listed company, part of the Gold plan. It scores four parts from the company's filings and prices (Fundamentals, Valuation, Quality and Risk) and combines them into a score out of 100 with a label: Strong (80 and above), Healthy (65 to 79), Average (50 to 64), Weak (35 to 49) or Poor (below 35).",
+   "why": "Each company is read against one of eight industry groups, so a bank, an insurer, a lender, a property developer, a utility, a heavy industry, a light business and a manufacturer are each judged on the measures that fit them.",
+   "how": "Read the four parts and the coverage before the score, and check the date of the report. Prism describes the company's financial health from its filings and prices; it is not a recommendation.",
+   "formula": "Prism score = 0.40 × Fundamentals + 0.30 × Valuation + 0.20 × Quality + 0.10 × Risk",
+   "id": "finlit-prism",
+   "letter": "F",
+   "finlit": "Prism is separate from the FinLit score: the FinLit score averages five pillars scored against fixed thresholds, while Prism weighs many factors by industry group and applies rules for losses and weak businesses. Every Prism report can be saved as a PDF.",
+   "aliases": [
+    "Prism",
+    "Prism rating",
+    "Prism score"
    ]
   },
   {
@@ -3147,6 +3178,21 @@
    "letter": "P",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Provisional rating",
+   "topic": "FinLit words",
+   "meaning": "A FinLit Prism rating given on less evidence than a full one: coverage is between 50% and 80%, or there are fewer than six comparable quarters to judge the sales and profit record. A provisional rating is never higher than Healthy.",
+   "why": "It still shows the score, while making clear that it rests on incomplete data.",
+   "how": "Read it as a first view and look at what is missing. When coverage is below 50%, the income history is too short or the industry group cannot be identified, Prism says Not rated and gives no score.",
+   "formula": "",
+   "id": "provisional-rating",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Provisional",
+    "Not rated"
+   ]
   },
   {
    "term": "QIB (qualified institutional buyer)",

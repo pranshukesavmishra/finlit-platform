@@ -10,15 +10,15 @@ describe("site map", () => {
     const names = (id: string) => SECTIONS.find((s) => s.id === id)!.groups.flatMap((g) => g.items.map((i) => i.label));
     expect(SECTIONS[0].groups.map((g) => g.title)).toEqual(["Find stocks", "Analyse a company", "Charts"]);
     expect(SECTIONS[0].groups[0].items.map((i) => i.label)).toEqual(["Stock screener", "Score screener", "Formula screener"]);
-    expect(SECTIONS[0].groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "Fair value calculator", "Premium reports"]);
+    expect(SECTIONS[0].groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Fair value calculator", "Premium reports"]);
     expect(SECTIONS[0].groups[2].items.map((i) => i.label)).toEqual(["Chart builder", "Correlation charts"]);
     expect(names("markets")).toEqual(["FII & DII flows", "India economy", "Commodity prices"]);
     expect(names("news")).toEqual(["Results calendar", "Latest results", "IPO calendar", "News & filings"]);
     expect(names("funds")).toEqual(["Mutual funds", "ETFs", "Fund industry trends"]);
     expect(names("myfinlit")).toEqual(["Watchlists", "My portfolio", "Alerts", "SIP calculator"]);
   });
-  it("marks the two Gold tools of the Research menu", () => {
-    expect(all.filter((i) => i.gold && ["/dcf", "/premium/report"].includes(i.to)).map((i) => i.to).sort()).toEqual(["/dcf", "/premium/report"]);
+  it("marks the three Gold tools of the Research menu", () => {
+    expect(SECTIONS[0].groups.flatMap((g) => g.items).filter((i) => i.gold).map((i) => i.to).sort()).toEqual(["/dcf", "/premium/report", "/prism"]);
   });
   it("lists every address once, and every one of them is a real route", () => {
     const paths = [...all.map((i) => i.to), PRICING.to];

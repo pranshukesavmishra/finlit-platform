@@ -190,7 +190,7 @@ function PlanTab() {
   const rows: [Plan, string[]][] = [
     ["basic", ["Screener, comparison of 2 companies, glossary, latest quarter, financials, ratios, peers, charts"]],
     ["silver", ["FinLit score and five-pillar scorecard", "Parameter history", "Watchlist: 3 lists, 30 stocks", "Model-based comparison tabs", "Data export", "Portfolio tracker (30 holdings) with import", "Saved-screen alerts and the weekly email"]],
-    ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks", "Advanced model score (Soon) and equity research reports (Later)"]],
+    ["gold", ["Advanced scoring and full ratio history", "Technical analysis and segments", "Model-based screener filters", "Compare up to 4 companies", "Watchlist: up to 50 lists, 1,000 stocks", "FinLit Prism financial-health rating with PDF", "Equity research reports (Later)"]],
   ];
   return (
     <section className="card acct-c">

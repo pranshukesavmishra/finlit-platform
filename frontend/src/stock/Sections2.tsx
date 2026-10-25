@@ -9,6 +9,7 @@ import { OWN_COLOR, PILLAR_COLOR } from "./derive";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
+import { PrismMethod } from "./PrismCompare";
 
 const v = (n: string) => `var(${n})`;
 
@@ -250,6 +251,7 @@ export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
           <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>Reports that fail a critical check are held back.</p>
         </div>
       </div>
+      <PrismMethod symbol={s.meta.symbol} statement={s.meta.statement} />
     </section>
   );
 }
