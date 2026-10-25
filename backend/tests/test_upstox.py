@@ -151,3 +151,13 @@ def test_provider_dates_written_as_yyyymmdd_are_read():
     why: list = []
     longer = upstox.extend_history(fe, up, why=why)
     assert longer and len(longer) == 4 and not [w for w in why if "no readable dates" in w]
+
+
+def test_cash_flow_extends_within_the_wider_margin_and_never_across_a_sign_change():
+    fe = [{"period_end": "20250331", "cashFlowsFromOperatingActivities": -6180e7}, {"period_end": "20260331", "cashFlowsFromOperatingActivities": -5000e7}]
+    up = [{"period_end": f"{y}-03-31", "cashFlowsFromOperatingActivities": v * 1e7} for y, v in ((2023, -4000.0), (2024, -5200.0), (2025, -6756.0))]
+    assert upstox.extend_history(fe, up, keys=("cashFlowsFromOperatingActivities",)) is None                       # 9% apart: refused at the 5% default
+    longer = upstox.extend_history(fe, up, keys=("cashFlowsFromOperatingActivities",), tolerance=upstox.CASH_TOLERANCE)
+    assert longer and [r["period_end"][:4] for r in longer] == ["2023", "2024", "2025", "2026"]
+    flipped = [{**r, "cashFlowsFromOperatingActivities": -r["cashFlowsFromOperatingActivities"]} for r in up]
+    assert upstox.extend_history(fe, flipped, keys=("cashFlowsFromOperatingActivities",), tolerance=upstox.CASH_TOLERANCE) is None
