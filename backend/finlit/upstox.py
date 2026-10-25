@@ -29,6 +29,7 @@ CRORE = 10_000_000
 STATUS_KEY = "upstox:status"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 DISAGREE = 0.05
+CASH_TOLERANCE = 0.15   # the two sources define operating cash flow a little differently (LIC FY25: -6,180 Cr against -6,756 Cr); the sign must still match
 
 SECONDARY_NOTE = "Some figures come from our secondary data source."
 
@@ -376,7 +377,7 @@ def _shifted(r: dict, months: int) -> dict:
     return {**r, "period_end": e.isoformat(), "year": e.year + (1 if e.month > 3 else 0)}
 
 
-def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations"), why: Optional[list] = None) -> Optional[List[dict]]:
+def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations"), why: Optional[list] = None, tolerance: float = DISAGREE) -> Optional[List[dict]]:
     """The provider's own rows, plus the second source's rows for OLDER periods the provider does not hold. Done only when both sources hold at least
     one period in common and agree on it (net profit, and revenue where both have it, within DISAGREE). The second source's dates are tried as given and
     then three months later (its label for a March year-end is sometimes the December before): the alignment that agrees on the shared years is used.
@@ -396,7 +397,7 @@ def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("pro
                 a, b = _field(have[k], key), _num(up[k].get(key))
                 if a is None or b is None:
                     continue
-                if abs(a - b) / max(abs(b), 1) > DISAGREE:
+                if abs(a - b) / max(abs(b), 1) > tolerance or (a < 0) != (b < 0):
                     ok, gap = False, f"{key} {k}: {a / CRORE:,.0f} Cr against {b / CRORE:,.0f} Cr"
                 judged += 1
         if not common:
@@ -460,10 +461,11 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
                         if 0 < p["cash"] < 5:
                             cash = cash_rows(await stmts("cash-flow", "yearly"))
                             why_cf: list = []
-                            longer_cf = (extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",), why=why_cf)
+                            longer_cf = (extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",), why=why_cf, tolerance=CASH_TOLERANCE)
                                          if isinstance(bundle.get("cf_annual"), dict) else None)
                             if longer_cf:
                                 bundle["cf_annual"] = {**bundle["cf_annual"], "financials": longer_cf}; src["cf_annual"] = "finedge+upstox:older years"
+                                bundle["_history_note"] += " Cash flow older years are from the second source, whose operating cash flow can differ from the provider's by up to 15% on the years both hold."
                             else:
                                 bundle["_history_note"] += " Cash flow: older years not added: " + "; ".join(why_cf or ["the second source returned no cash flow"])
         if need["ql"]:
