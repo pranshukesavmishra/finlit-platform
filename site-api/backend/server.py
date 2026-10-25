@@ -29,7 +29,7 @@ from io import StringIO
 from html import escape
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pymongo.errors import ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from starlette.concurrency import run_in_threadpool
 try:
     from backend.email_service import send_lead_emails, send_service_enquiry_email, EmailNotConfigured
@@ -49,17 +49,79 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=5000,
-    connectTimeoutMS=5000,
-)
-db = client[os.environ['DB_NAME']]
+def _env_int(name, default, low, high):
+    """A whole-number setting from the environment, clamped to [low, high]; blank or invalid means the default."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return min(high, max(low, int(raw)))
+    except ValueError:
+        logger.warning("%s is not a whole number; using %s", name, default)
+        return default
+
+
+# MongoDB connection. Optional: without MONGO_URL the server still starts, because FinLit Prism (the premium reports), the
+# fundamentals tools and the market data need no database. Every database call then fails at once with MongoNotConfigured,
+# which the handler below turns into a 503 (no connection attempt, no 5-second server-selection wait).
+class MongoNotConfigured(ServerSelectionTimeoutError):
+    """MONGO_URL is not set. A ServerSelectionTimeoutError, so routes that already degrade when MongoDB is unreachable degrade the same way."""
+
+
+class _UnconfiguredCollection:
+    def __init__(self, name):
+        self._name = name
+
+    def __getattr__(self, attr):
+        def unavailable(*_args, **_kwargs):
+            raise MongoNotConfigured(f"MONGO_URL is not set (collection {self._name}.{attr})")
+        return unavailable
+
+
+class _UnconfiguredDatabase:
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        return _UnconfiguredCollection(name)
+
+    __getitem__ = __getattr__
+
+
+class _UnconfiguredClient:
+    def __getitem__(self, _name):
+        return _UnconfiguredDatabase()
+
+    def close(self):
+        pass
+
+
+mongo_url = os.environ.get('MONGO_URL', '').strip()
+if mongo_url:
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+    )
+    db = client[os.environ['DB_NAME']]
+else:
+    logger.warning("MONGO_URL is not set: blog/CMS, portfolio uploads and forms answer 503; premium reports and market data still work")
+    client = _UnconfiguredClient()
+    db = client[os.environ.get('DB_NAME') or 'finlit']
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+
+@app.exception_handler(ConnectionFailure)
+async def database_unavailable(_request: Request, exc: ConnectionFailure):
+    """MongoDB not configured (MONGO_URL unset) or not reachable: a clear 503 instead of a 500."""
+    configured = not isinstance(exc, MongoNotConfigured)
+    if configured:
+        logger.warning("MongoDB is unavailable: %s", type(exc).__name__)
+    detail = ("This part of the site is temporarily unavailable. Please try again shortly." if configured
+              else "This part of the site is not available: its content database is not connected.")
+    return JSONResponse({"detail": detail}, status_code=503,
+                        headers={"Cache-Control": "no-store", "Retry-After": "30", "X-CMS-Content-Store": "unavailable"})
 
 # Kept on the server so provider symbols and credentials never reach the browser.
 NIFTY_50_CONSTITUENTS_URL = "https://www.niftyindices.com/IndexConstituent/ind_nifty50list.csv"
@@ -70,6 +132,9 @@ MARKET_TICKER_INDEX_INSTRUMENTS = [
 MARKET_TICKER_CACHE_SECONDS = 60
 NIFTY_50_CONSTITUENTS_CACHE_SECONDS = 60 * 60 * 6
 STOCK_FUNDAMENTALS_CACHE_SECONDS = 60 * 15
+# Resolved provider data per symbol/basis/period (each premium report adds 2-4). Bounded, so a day of reports on many companies
+# cannot fill a small (512 MB) host; STOCK_FUNDAMENTALS_CACHE_ENTRIES changes the bound.
+STOCK_FUNDAMENTALS_CACHE_ENTRIES = _env_int("STOCK_FUNDAMENTALS_CACHE_ENTRIES", 32, 4, 2000)
 _market_ticker_cache = {"items": None, "fetched_at": 0.0}
 _nifty_50_constituents_cache = {"items": None, "fetched_at": 0.0}
 _stock_fundamentals_cache = {}
@@ -423,7 +488,10 @@ async def public_content_detail(slug: str):
 
 async def current_portfolio_report():
     """The latest uploaded report (kept in MongoDB so a restart cannot revert it); falls back to the file shipped with the code."""
-    saved = await db.portfolio_state.find_one({"_id": "current"})
+    try:
+        saved = await db.portfolio_state.find_one({"_id": "current"})
+    except MongoNotConfigured:  # no database at all: the shipped file is the current report (nothing can have been uploaded)
+        saved = None
     return saved["report"] if saved else read_current_portfolio_report()
 
 
@@ -537,7 +605,12 @@ class PremiumSnapshotPDFRequest(BaseModel):
     receipt: str = Field(min_length=16, max_length=2048)
 
 
-_premium_generation_slots = asyncio.Semaphore(2)
+def _generation_slots_setting():
+    """PREMIUM_GENERATION_SLOTS (1-4, default 2): premium reports calculated at once in this process."""
+    return _env_int("PREMIUM_GENERATION_SLOTS", 2, 1, 4)
+
+
+_premium_generation_slots = asyncio.Semaphore(_generation_slots_setting())
 # Transient generation state only: no report collection, persistence or history API.
 _PREMIUM_JOB_TTL_SECONDS = 30 * 60
 _PREMIUM_JOB_LIMIT = 20
@@ -3121,6 +3194,18 @@ def _compact_competitor(competitor):
     }
 
 
+def _remember_stock_fundamentals(cache_key, entry):
+    """Store one resolved result: expired entries are dropped first, then the oldest, to stay within STOCK_FUNDAMENTALS_CACHE_ENTRIES."""
+    now = monotonic()
+    for key, value in list(_stock_fundamentals_cache.items()):
+        if now - value.get("fetched_at", 0) >= STOCK_FUNDAMENTALS_CACHE_SECONDS:
+            _stock_fundamentals_cache.pop(key, None)
+    _stock_fundamentals_cache.pop(cache_key, None)
+    while _stock_fundamentals_cache and len(_stock_fundamentals_cache) >= STOCK_FUNDAMENTALS_CACHE_ENTRIES:
+        _stock_fundamentals_cache.pop(next(iter(_stock_fundamentals_cache)), None)
+    _stock_fundamentals_cache[cache_key] = entry
+
+
 def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None):
     started_at = monotonic()
     instrument = _resolve_finedge_stock(query)
@@ -3569,7 +3654,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         "assetQualityRows": standalone_income_rows if bank_asset_quality_statement_type == "standalone" else income_rows,
         "assetQualityBasis": bank_asset_quality_statement_type, "resolutionNotes": resolution_notes,
         "benchmarkObservations": benchmark_observations}
-    _stock_fundamentals_cache[cache_key] = {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()}
+    _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
     if _model_capture is not None:
         _model_capture.update(model_inputs)
     return result
@@ -3965,6 +4050,8 @@ app.add_middleware(
 async def mirror_existing_uploads():
     """Files already on disk (shipped with the code or uploaded before the MongoDB copy existed) are copied into MongoDB once,
     so a restart on a host with a temporary disk cannot lose them."""
+    if not mongo_url:
+        return
     try:
         async for asset in db.content_assets.find({}, {"_id": 0, "key": 1, "storedName": 1}):
             if await db.content_blobs.count_documents({"key": asset["key"]}, limit=1):
