@@ -53,6 +53,7 @@ wait_memory() {  # wait_memory <name>: 0 once enough memory is free, 1 after 20 
 }
 run_funds() {  # run_funds <name> <args...>
   local name="$1"; shift
+  [ "${FUND_LOADS_ENABLED:-0}" = 1 ] || { log "skip $name (ETF and fund loads are paused: set FUND_LOADS_ENABLED=1 to turn them on)"; return 0; }
   ( flock -w 10800 9 || { log "skip $name (fund jobs busy for 3 hours)"; exit 0; }
     wait_memory "$name" || exit 0
     log "start $name"; MALLOC_ARENA_MAX=2 $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"$FUNDS_LOCK" &
@@ -70,6 +71,7 @@ wait_web() {
 # One step of the ETF / mutual fund load: run it, log ONE line with its result, and report failure so the next step is not started.
 fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund jobs' lock, like the nightly runs
   local label="$1"; shift
+  [ "${FUND_LOADS_ENABLED:-0}" = 1 ] || { log "$label skipped: ETF and fund loads are paused (FUND_LOADS_ENABLED is not 1)"; return 0; }
   local out rc
   exec 8>"$FUNDS_LOCK"; flock -w 10800 8 || { log "$label skipped: fund jobs busy for 3 hours"; exec 8>&-; return 1; }
   if ! wait_memory "$label"; then exec 8>&-; return 1; fi
