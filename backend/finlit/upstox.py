@@ -459,9 +459,13 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
                         bundle["pl_annual"] = {**bundle["pl_annual"], "financials": longer}; src["pl_annual"] = "finedge+upstox:older years"
                         if 0 < p["cash"] < 5:
                             cash = cash_rows(await stmts("cash-flow", "yearly"))
-                            longer_cf = extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",)) if isinstance(bundle.get("cf_annual"), dict) else None
+                            why_cf: list = []
+                            longer_cf = (extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",), why=why_cf)
+                                         if isinstance(bundle.get("cf_annual"), dict) else None)
                             if longer_cf:
                                 bundle["cf_annual"] = {**bundle["cf_annual"], "financials": longer_cf}; src["cf_annual"] = "finedge+upstox:older years"
+                            else:
+                                bundle["_history_note"] += " Cash flow: older years not added: " + "; ".join(why_cf or ["the second source returned no cash flow"])
         if need["ql"]:
             rows = income_rows(await stmts("income-statement", "quarterly"))
             if rows:
