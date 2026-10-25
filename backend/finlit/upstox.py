@@ -356,6 +356,11 @@ def _field(row: dict, key: str) -> Optional[float]:
         v = _num(row.get(k))
         if v is not None:
             return v
+    if key == "cashFlowsFromOperatingActivities":    # the provider's name for this line differs by company type: any "cash ... operating activities" total
+        for k, raw in row.items():
+            low = k.lower()
+            if "operatingactivities" in low and (low.startswith("cash") or low.startswith("net")) and "adj" not in low and _num(raw) is not None:
+                return _num(raw)
     return None
 
 
