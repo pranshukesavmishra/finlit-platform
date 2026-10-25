@@ -9,6 +9,7 @@ import { useAuth } from "../lib/auth";
 import { TIER, useUI } from "../lib/ui";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
+import { fundJobLine, fundPollMs } from "../lib/fundJobs";
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—");
 const stamp = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -48,7 +49,7 @@ export function Console() {
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
       {tab === "content" && <ContentAdmin />}
-      {tab === "data" && <><Health /><NotifyList /></>}
+      {tab === "data" && <><Health /><FundLoads /><NotifyList /></>}
       {tab === "audit" && <Audit />}
     </div>
   );
@@ -144,6 +145,46 @@ function Health() {
         {h.coverage.providerEmpty.length > 0 && <p className="muted">The provider sent nothing for: {h.coverage.providerEmpty.map((c) => `${c.symbol}${c.name ? " " + c.name : ""}`).join(", ")}.</p>}
       </div>}
       {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
+    </section>
+  );
+}
+
+const FUND_BUTTONS: { job: acct.FundJob; label: string; what: string }[] = [
+  { job: "refresh-etf", label: "Load ETFs", what: "download today's ETF prices and history" },
+  { job: "refresh-mf", label: "Load mutual funds", what: "download today's mutual fund NAVs" },
+  { job: "backfill-mf", label: "Load fund history", what: "download up to five years of fund NAV history (the largest download)" },
+];
+
+/** Start the ETF and mutual fund loads by hand while the scheduled ones are paused. */
+function FundLoads() {
+  const qc = useQueryClient();
+  const { toast } = useUI();
+  const q = useQuery({ queryKey: ["admin-funds"], queryFn: acct.fundStatus, retry: false, refetchInterval: (query) => fundPollMs(query.state.data) });
+  const [ask, setAsk] = useState<(typeof FUND_BUTTONS)[number] | null>(null);
+  const run = useMutation({ mutationFn: (j: acct.FundJob) => acct.fundRun(j), onSuccess: () => { toast("Load started."); qc.invalidateQueries({ queryKey: ["admin-funds"] }); }, onError: (e) => { toast(msg(e)); qc.invalidateQueries({ queryKey: ["admin-funds"] }); } });
+  const s = q.data;
+  const busy = !!s?.running || run.isPending;
+  return (
+    <section className="card acct-c">
+      <h2>ETF and mutual fund data</h2>
+      {q.isError ? <div className="formerr">{msg(q.error)}</div> : !s ? <div className="skeleton" style={{ height: 60 }} /> : (
+        <>
+          <p className="muted">{s.scheduledPaused ? "The automatic nightly loads are paused, so these only update when you press a button." : "The automatic nightly loads are on."} {s.running ? "A load is running now; this page checks every 5 seconds." : "Nothing is running."}</p>
+          <ul className="muted" style={{ paddingLeft: 18 }}>{FUND_BUTTONS.map((b) => <li key={b.job}><b>{b.label}:</b> {fundJobLine(s.jobs[b.job], stamp)}</li>)}</ul>
+          <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+            {FUND_BUTTONS.map((b) => <button key={b.job} className="btn" disabled={busy} onClick={() => setAsk(b)}>{b.label}</button>)}
+          </div>
+        </>
+      )}
+      {ask && (
+        <div role="alertdialog" aria-modal="true" aria-label={ask.label} className="formerr" style={{ marginTop: 12, background: "var(--surface, transparent)", color: "inherit", border: "1px solid var(--line, currentColor)" }}>
+          <p><b>{ask.label}?</b> This will {ask.what}. Downloads use bandwidth: the free Render plan allows 5 GB a month and it has already been exceeded. Only continue if you need fresh data now.</p>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn primary" autoFocus onClick={() => { run.mutate(ask.job); setAsk(null); }}>Start load</button>
+            <button className="btn" onClick={() => setAsk(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
