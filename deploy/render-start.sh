@@ -7,10 +7,31 @@ cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
 export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-${RENDER_EXTERNAL_URL:-http://localhost:8000}}"
 export CORS_ORIGINS="${CORS_ORIGINS:-$PUBLIC_SITE_URL}"
-# The site backend (blog/CMS, portfolio, forms, chat) runs inside this container, on 127.0.0.1:8001, and the research API forwards to it.
-# An explicit SITE_API_URL (a separately hosted site backend) wins. Without MONGO_URL the site backend is not started and those pages show empty states.
+# The site backend (blog/CMS, portfolio, forms, chat, FinLit Prism reports, Gold market data) runs inside this container, on
+# 127.0.0.1:8001, and the research API forwards to it. An explicit SITE_API_URL (a separately hosted site backend) wins.
+# It starts when MONGO_URL is set, or when FinLit Prism can work without it: FINEDGE_API_KEY and a CMS_JWT_SECRET of 32+ characters
+# (the blog/CMS and forms then answer "not connected" and the blog index stays empty). SITE_API_START=never keeps it off
+# (saves about 90 MB; Prism and the Gold market pages then say "not connected"); SITE_API_START=always starts it regardless.
+# See docs/prism/DEPLOY.md.
 SITE_DIR="${SITE_API_DIR:-/app/site-api/backend}"; SITE_PY="${SITE_PYTHON:-/opt/site-venv/bin/python}"
-if [ -z "${SITE_API_URL:-}" ] && [ -n "${MONGO_URL:-}" ] && [ -d "$SITE_DIR" ]; then
+site_api_wanted() {
+  case "${SITE_API_START:-auto}" in
+    never|off|0) echo "[site-api] not started: SITE_API_START=${SITE_API_START}"; return 1 ;;
+    always|on|1) return 0 ;;
+  esac
+  local secret="${CMS_JWT_SECRET:-}"
+  if [ -n "$secret" ] && [ "${#secret}" -lt 32 ]; then
+    echo "[site-api] CMS_JWT_SECRET is shorter than 32 characters: FinLit Prism and the CMS admin stay off until it is longer" >&2
+  fi
+  if [ -n "${MONGO_URL:-}" ]; then echo "[site-api] starting (MongoDB configured)"; return 0; fi
+  if [ -n "${FINEDGE_API_KEY:-}" ] && [ "${FINEDGE_MODE:-live}" != "fixtures" ] && [ "${#secret}" -ge 32 ]; then
+    echo "[site-api] starting without MongoDB: FinLit Prism and market data on; blog/CMS, portfolio uploads and forms off (set MONGO_URL for those)"
+    return 0
+  fi
+  echo "[site-api] not started: needs MONGO_URL, or FINEDGE_API_KEY + CMS_JWT_SECRET (32+ characters) for FinLit Prism"
+  return 1
+}
+if [ -z "${SITE_API_URL:-}" ] && [ -d "$SITE_DIR" ] && site_api_wanted; then
   export SITE_API_URL="http://127.0.0.1:8001" DB_NAME="${DB_NAME:-finlit}"
   ( cd "$SITE_DIR" && while true; do
       if [ "${SITE_API_DEV:-}" = "1" ]; then   # local testing only: in-memory MongoDB stand-in (see dev/site_api_dev.py)

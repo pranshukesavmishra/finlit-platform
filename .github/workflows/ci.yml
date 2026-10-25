@@ -51,9 +51,14 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.13"   # the version of the production image (Dockerfile)
           cache: pip
           cache-dependency-path: site-api/backend/requirements.txt
       - run: pip install -r site-api/backend/requirements.txt mongomock-motor
-      - run: PYTHONPATH=backend python -m pytest backend/tests -q -n 0
+      # Includes the FinLit Prism model tests (premium_*), which use recorded fixtures only: no provider key, no network, no MongoDB.
+      # test_start_without_mongo.py starts the server without MONGO_URL, as production does when only Prism is configured.
+      - run: PYTHONPATH=.:backend python -m pytest -q -c backend/pytest.ini backend/tests
         working-directory: site-api
+        env:
+          FINEDGE_API_KEY: ""
+          UPSTOX_ACCESS_TOKEN: ""
