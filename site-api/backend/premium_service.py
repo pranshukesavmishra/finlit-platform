@@ -16,7 +16,7 @@ except ImportError:
     from benchmark_resolution import select_reported_benchmarks
 
 
-def generate_report(get, symbol, name, statement_type, report_id, created_at, dashboard_load=None):
+def generate_report(get, symbol, name, statement_type, report_id, created_at, dashboard_load=None, observations=None):
     now = datetime.now(timezone.utc)
     sourcing = {}
     requested_basis = statement_type
@@ -39,7 +39,7 @@ def generate_report(get, symbol, name, statement_type, report_id, created_at, da
     wanted = [key for key in ("pe", "pb") if "industry_median_" + key not in reported]
     if group in ("HEAVY", "UTILITY") and "industry_median_ev_ebitda" not in reported:
         wanted.append("ev_ebitda")
-    benchmarks, benchmark_meta = peer_benchmark(get, raw.get("peers", {}), statement_type, min(benchmark_date, now.date()), group, wanted)
+    benchmarks, benchmark_meta = peer_benchmark(get, raw.get("peers", {}), statement_type, min(benchmark_date, now.date()), group, wanted, observations=observations)
     benchmarks.update(reported)
     benchmark_meta.setdefault("metrics", {}).update(reported_meta)
     providers = sorted({item["provider"] for item in benchmark_meta["metrics"].values() if item.get("value") is not None})

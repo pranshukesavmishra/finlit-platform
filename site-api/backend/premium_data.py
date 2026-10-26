@@ -7,7 +7,8 @@ import re
 import statistics
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
-from threading import BoundedSemaphore
+import os
+from threading import BoundedSemaphore, Event, Lock
 import time
 import requests
 try:
@@ -20,10 +21,56 @@ except ImportError:
     from premium_model_config import QUARTERS_STORED, CAGR_MAX_YEARS
 
 CR = 10_000_000
-# Reports share a bounded provider budget, including industry requests.
-_PROVIDER_SLOTS = BoundedSemaphore(2)
+# Reports share a bounded provider budget, including industry requests. A report needs about 140 small peer lookups; at two at a
+# time that alone took over a minute, so the default is 8 (PREMIUM_PROVIDER_SLOTS, 1 to 24).
+def _provider_slots():
+    try:
+        return max(1, min(24, int(os.getenv("PREMIUM_PROVIDER_SLOTS", "8"))))
+    except ValueError:
+        return 8
+
+
+PROVIDER_SLOT_COUNT = _provider_slots()
+_PROVIDER_SLOTS = BoundedSemaphore(PROVIDER_SLOT_COUNT)
+PEER_BUDGET_SECONDS = 45.0   # peers not looked up by then count as missing (and are listed as such); normally the lookups end in about 10
 _BENCHMARK_OBSERVATIONS = {}
 _BENCHMARK_CACHE_SECONDS = 15 * 60
+
+
+class ObservationCache:
+    """Peer observations kept across reports: (basis, as-of date, kind, symbol) -> the row (or multiple) the median used. Thread-safe, and two
+    callers asking for the same key share one lookup. `preload` is what an earlier report kept; `new` is what this report looked up itself."""
+
+    def __init__(self, preload=None):
+        self.rows = dict(preload or {})
+        self.new = {}
+        self.hits = 0
+        self._lock = Lock()
+        self._inflight = {}
+
+    def get_or_compute(self, key, compute):
+        with self._lock:
+            if key in self.rows:
+                self.hits += 1
+                return self.rows[key]
+            event = self._inflight.get(key)
+            mine = event is None
+            if mine:
+                event = self._inflight[key] = Event()
+        if not mine:
+            event.wait(PEER_BUDGET_SECONDS)
+            with self._lock:
+                return self.rows.get(key)
+        value = None
+        try:
+            value = compute()
+            return value
+        finally:
+            with self._lock:
+                if value is not None:
+                    self.rows[key] = self.new[key] = value
+                self._inflight.pop(key, None)
+            event.set()
 
 
 def provider_get(get, path, params):
@@ -130,7 +177,7 @@ def profile_from(raw):
     return p.get("profile", p) if isinstance(p.get("profile", p), dict) else {}
 
 
-def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
+def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None, observations=None, budget_seconds=None):
     """Median of available positive industry observations, with explicit coverage."""
     selected = set(metrics) if metrics is not None else {"pe", "pb", "ev_ebitda"}
     symbols = peers.get("peers", []) if isinstance(peers, dict) else []
@@ -139,11 +186,23 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
     meta["metrics"] = {}
     if not selected or not symbols or len(symbols) > 500:
         return {}, {**meta, "note": "No peer calculation required, or industry universe unavailable or exceeds the on-demand limit."}
+    deadline = time.monotonic() + (PEER_BUDGET_SECONDS if budget_seconds is None else budget_seconds)
+    scope = (statement_type, as_of.isoformat())
+    def remembered(kind, symbol, compute):
+        """Through the kept observations when there are any, else straight to the lookup."""
+        if observations is None:
+            return compute()
+        return observations.get_or_compute(scope + (kind, symbol), compute)
     def fetch(symbol):
+        # A row looked up for P/E alone may lack the P/B a later report also wants, so the wanted metrics are part of the key.
+        return remembered("pr:" + ",".join(sorted(selected & {"pe", "pb"})), symbol, lambda: fetch_ratios(symbol))
+    def fetch_ratios(symbol):
         cache_key = (get, symbol, statement_type, as_of)
         cached = _BENCHMARK_OBSERVATIONS.get(cache_key)
         if cached and time.monotonic() - cached[0] < _BENCHMARK_CACHE_SECONDS:
             return cached[1]
+        if time.monotonic() > deadline:
+            return None
         try:
             p = provider_get(get, f"/daily-price-ratios/{symbol}", {"statement_type": "c" if statement_type == "consolidated" else "s", "from": str(as_of.year - 1), "to": str(as_of.year)})
             rows = [r for r in items(p, "price_ratios", "data") if field_date(r) and 0 <= (as_of - field_date(r)).days <= 31]
@@ -163,7 +222,7 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
         except Exception: return None
     records = []
     if selected & {"pe", "pb"}:
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=PROVIDER_SLOT_COUNT) as pool:
             records = list(pool.map(fetch, symbols))
     meta["fetchedCount"] = sum(row is not None for row in records)
     meta["missingSymbols"] = [symbol for symbol, row in zip(symbols, records) if row is None]
@@ -185,6 +244,8 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
             result["industry_median_" + key] = statistics.median(positive)
     if "ev_ebitda" in selected and group in ("HEAVY", "UTILITY") and len(symbols) <= 100:
         def enterprise_multiple(symbol):
+            return remembered("ev", symbol, lambda: enterprise_multiple_lookup(symbol))
+        def enterprise_multiple_lookup(symbol):
             cache_key = (get, symbol, statement_type, as_of, "ev_ebitda")
             cached = _BENCHMARK_OBSERVATIONS.get(cache_key)
             if cached and time.monotonic() - cached[0] < _BENCHMARK_CACHE_SECONDS:
@@ -202,7 +263,7 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
                 return value
             except Exception:
                 return None
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=PROVIDER_SLOT_COUNT) as pool:
             multiples = list(pool.map(enterprise_multiple, symbols))
         positive = [value for value in multiples if value is not None and value > 0]
         meta["evCalculatedCount"] = sum(v is not None for v in multiples)

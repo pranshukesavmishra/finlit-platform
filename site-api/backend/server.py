@@ -14,6 +14,11 @@ from datetime import date, datetime, timezone, timedelta
 from time import monotonic, time, sleep
 from urllib.parse import quote, urlparse
 import asyncio
+import base64
+import contextvars
+import copy
+import threading
+import zlib
 import bcrypt
 from functools import lru_cache
 import hashlib
@@ -1340,7 +1345,51 @@ def _finedge_api_key():
     return api_key
 
 
+class _CallMemo:
+    """Provider answers kept for the length of ONE premium input assembly. The dashboard resolver runs twice (yearly, then quarterly) and asks
+    for the same statements, ratios and quotes both times; a prefetch also asks for them all at once. Two askers of one request share a
+    single call. Only successes are kept, so a failed call is still retried exactly as before."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._done = {}
+        self._inflight = {}
+        self.calls = 0
+        self.reused = 0
+
+    def get(self, path, params, call):
+        key = json.dumps([path, params or {}], sort_keys=True, default=str)
+        while True:
+            with self._lock:
+                if key in self._done:
+                    self.reused += 1
+                    return copy.deepcopy(self._done[key])
+                event = self._inflight.get(key)
+                if event is None:
+                    self._inflight[key] = event = threading.Event()
+                    break
+            event.wait(60)
+        try:
+            value = call(path, params)
+            with self._lock:
+                self._done[key] = value
+                self.calls += 1
+            return copy.deepcopy(value)
+        finally:
+            with self._lock:
+                self._inflight.pop(key, None)
+            event.set()
+
+
+_call_memo = contextvars.ContextVar("finedge_call_memo", default=None)
+
+
 def _finedge_get(path: str, params: Optional[Dict[str, Any]] = None):
+    memo = _call_memo.get()
+    return _finedge_get_retrying(path, params) if memo is None else memo.get(path, params, _finedge_get_retrying)
+
+
+def _finedge_get_retrying(path: str, params: Optional[Dict[str, Any]] = None):
     """Bounded retries shared by dashboard and reports; transient errors are not N/A."""
     for attempt in range(3):
         try:
@@ -3226,6 +3275,10 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
             "upstoxSymbol": upstox_instrument.get("symbol"),
         }
 
+    # A premium report (`_model_capture`) needs the statements, ratios, quote, prices and ownership filings only. The dashboard's own extras
+    # (revenue segments, shareholding pattern, corporate actions, dividends, competitors with a quote each) feed nothing in the model: in
+    # that case they are not fetched, and the half-built view is not left in the dashboard's cache.
+    lean = _model_capture is not None
     cache_key = f"finedge:{symbol}:{statement_type}:{period}"
     cached = _stock_fundamentals_cache.get(cache_key)
     if cached and monotonic() - cached["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS:
@@ -3372,7 +3425,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     }
 
     finedge_type = "c" if effective_statement_type == "consolidated" else "s"
-    segment_payload = _safe_finedge_get(
+    segment_payload = {} if lean else _safe_finedge_get(
         f"/segment-revenue/{_stock_symbol_path(symbol)}",
         {"statement_type": finedge_type, "statement_code": "pl", "period": "annual" if period == "yearly" else "quarterly"},
         default={},
@@ -3538,31 +3591,31 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
                 "income_statement": _derive_income_metrics(_history_from_period_rows(quarterly_income_rows, "quarterly", INCOME_STATEMENT_ALIASES, scale=10_000_000)),
             }
     ratios = _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet, price_ratio_snapshot, _ttm_net_profit_from_statement(quarterly_income_statement))
-    shareholding_payload = _safe_finedge_get(f"/shareholdings/pattern/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default=[])
+    shareholding_payload = [] if lean else _safe_finedge_get(f"/shareholdings/pattern/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default=[])
     ownership_summary = _safe_finedge_get(f"/shareholdings/summary/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_distribution = _safe_finedge_get(f"/shareholdings/distribution/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_declaration = _safe_finedge_get(f"/shareholdings/declaration/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_structure = _normalize_ownership_structure(ownership_summary, ownership_distribution, ownership_declaration)
     shareholding = _normalize_shareholding(shareholding_payload, "quarterly")
-    if not shareholding and upstox_isin:
+    if not shareholding and upstox_isin and not lean:
         shareholding = _normalize_upstox_shareholding(_safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/share-holdings", default=[]))
         if shareholding:
             data_sources["shareholding"] = "upstox"
-    actions_payload = _safe_finedge_get(
+    actions_payload = [] if lean else _safe_finedge_get(
         "/corporate-actions/all",
         {"symbol": symbol, "from_date": f"{current_year - 6}-01-01", "to_date": f"{current_year + 1}-12-31"},
         default=[],
     )
-    dividends_payload = _safe_finedge_get(f"/dividend/{_stock_symbol_path(symbol)}", default=[])
+    dividends_payload = [] if lean else _safe_finedge_get(f"/dividend/{_stock_symbol_path(symbol)}", default=[])
     corporate_actions = _normalize_corporate_actions(actions_payload, dividends_payload)
-    if not corporate_actions and upstox_isin:
+    if not corporate_actions and upstox_isin and not lean:
         corporate_actions = _normalize_corporate_actions(_safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/corporate-actions", default=[]))
         if corporate_actions:
             data_sources["corporateActions"] = "upstox"
-    competitors = _normalize_competitors(_safe_finedge_get(f"/peers/{_stock_symbol_path(symbol)}", default=[]), symbol)
+    competitors = [] if lean else _normalize_competitors(_safe_finedge_get(f"/peers/{_stock_symbol_path(symbol)}", default=[]), symbol)
     if competitors:
         competitors = _enrich_competitors_from_finedge(competitors)
-    if upstox_key and not competitors:
+    if upstox_key and not competitors and not lean:
         upstox_competitors = _normalize_upstox_competitors(
             _safe_upstox_get(f"/fundamentals/{quote(upstox_key, safe='')}/competitors", default=[]),
             competitors,
@@ -3654,9 +3707,12 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         "assetQualityRows": standalone_income_rows if bank_asset_quality_statement_type == "standalone" else income_rows,
         "assetQualityBasis": bank_asset_quality_statement_type, "resolutionNotes": resolution_notes,
         "benchmarkObservations": benchmark_observations}
-    _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
-    if _model_capture is not None:
+    if lean:
+        for skipped in ("revenueSegments", "shareholding", "corporateActions", "competitors"):
+            result["sources"].pop(skipped, None)    # not fetched for a premium report, so not claimed
         _model_capture.update(model_inputs)
+    else:
+        _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
     return result
 
 

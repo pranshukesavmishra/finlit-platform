@@ -34,13 +34,13 @@ if [ "$CODE" = 200 ] && js "sys.exit(0 if d.get('ok') is True else 1)"; then pas
 
 get /;           [ "$CODE" = 200 ] && pass "home page 200" || fail "home page -> HTTP $CODE"
 
-get /api/screener/catalog
+get /api/screener/catalog; out=""
 if [ "$CODE" = 200 ] && out="$(js "t,w=d.get('total',0),d.get('withReport',0)
 print(t,w)
 sys.exit(0 if t>$MIN_TOTAL and 0<=w<=t else 1)")"; then pass "screener catalog total/withReport = $out"; else fail "screener catalog (HTTP $CODE, ${out:-unreadable}; need total > $MIN_TOTAL)"; fi
 
 stock() {  # stock <SYMBOL>: a price and a score (a company still loading answers 202: retry)
-  local s="$1" n
+  local s="$1" n out=""
   for n in 1 2 3 4 5 6; do
     get "/api/stocks/$s"
     [ "$CODE" = 200 ] && break
@@ -60,7 +60,7 @@ t=d.get('today') or datetime.date.today().isoformat()
 days=[x['date'] for x in d.get('days',[]) if x['date']<t]
 print(max(days) if days else '')")"
   if [ -n "$day" ]; then
-    get "/api/results/quarter?date=$day&limit=1"
+    get "/api/results/quarter?date=$day&limit=1"; out=""
     if out="$(js "s=d.get('summary') or {}
 c,a=s.get('companies',0),s.get('awaiting',0)
 pct=100*a/c if c else 0
