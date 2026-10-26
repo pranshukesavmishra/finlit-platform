@@ -2,7 +2,7 @@ import { CoverArt, PageArt } from "../components/PageArt";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import DOMPurifyless from "../lib/sanitize";
+import { PostBody } from "../components/PostBody";
 import { apiUrl } from "../lib/api";
 import { assetUrl, getContent, getContentItem, type ContentItem } from "../lib/siteApi";
 import { dateIN } from "../lib/format";
@@ -44,10 +44,7 @@ export function BlogPost() {
     <>
       <section className="pagehead"><div className="wrap" style={{ maxWidth: 760 }}><Link className="chip gold" to="/blog">← Blog</Link><h1 style={{ maxWidth: "none", fontSize: "clamp(30px,4.4vw,52px)" }}>{c.title}</h1><p>{c.excerpt}</p><p className="faint" style={{ marginTop: 12, fontSize: 13 }}>{c.author} · {c.publishedAt ? dateIN(c.publishedAt) : ""}</p></div></section>
       <section className="sec" style={{ paddingTop: 0 }}><div className="wrap">
-        {c.contentType === "ARTICLE" && <article className="article" dangerouslySetInnerHTML={{ __html: DOMPurifyless(c.articleHtml || "") }} />}
-        {c.contentType === "PDF" && file && <><iframe title={c.title} src={file} style={{ width: "100%", height: "78vh", border: "1px solid var(--border)", borderRadius: 16, background: "#fff" }} /></>}
-        {c.contentType === "IMAGE" && file && <img src={file} alt={c.title} style={{ maxWidth: "100%", borderRadius: 16, display: "block", margin: "0 auto" }} />}
-        {c.contentType !== "ARTICLE" && file && <p style={{ textAlign: "center", marginTop: 20 }}><a className="btn primary" href={file} download={c.originalFileName || undefined}>Download {c.originalFileName || "file"}</a></p>}
+        <PostBody c={c} file={file} />
       </div></section>
     </>
   );

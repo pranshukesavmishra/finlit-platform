@@ -278,6 +278,19 @@ class ContentInput(BaseModel):
     fileKey: Optional[str] = Field(default=None, max_length=255)
     author: str = Field(default="Nishant Jain", max_length=120)
     status: Literal["DRAFT", "PUBLISHED"] = "DRAFT"
+    category: str = Field(default="", max_length=60)
+    tags: List[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator("tags")
+    @classmethod
+    def clean_tags(cls, value):
+        seen, out = set(), []
+        for tag in value:
+            tag = re.sub(r"\s+", " ", str(tag)).strip()[:30]
+            if tag and tag.lower() not in seen:
+                seen.add(tag.lower())
+                out.append(tag)
+        return out
 
 
 def slugify(value: str) -> str:
@@ -289,8 +302,10 @@ def content_public_view(doc):
     result = {key: doc.get(key) for key in (
         "id", "title", "slug", "excerpt", "contentType", "articleBody", "coverImageUrl",
         "fileUrl", "originalFileName", "mimeType", "fileSize", "author", "status",
-        "publishedAt", "createdAt", "updatedAt",
+        "publishedAt", "createdAt", "updatedAt", "category", "tags",
     )}
+    result["category"] = result.get("category") or ""
+    result["tags"] = result.get("tags") or []
     if doc.get("coverImageKey"):
         result["coverImageUrl"] = f"/api/content/assets/{doc['coverImageKey']}"
     return result

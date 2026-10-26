@@ -60,6 +60,8 @@ const FundDetailPage = lazy(() => import("./pages/Funds").then((m) => ({ default
 const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundComparePage })));
 const FundInsightsPage = lazy(() => import("./pages/FundInsights").then((m) => ({ default: m.FundInsightsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
+const AdminPost = lazy(() => import("./pages/AdminPost").then((m) => ({ default: m.AdminPost })));
+const AdminPreview = lazy(() => import("./pages/AdminPost").then((m) => ({ default: m.AdminPreview })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
 const Fallback = () => <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "0 auto" }} /></div>;
@@ -134,6 +136,9 @@ export default function App() {
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="admin/posts/new" element={<AdminPost />} />
+          <Route path="admin/posts/:id" element={<AdminPost />} />
+          <Route path="admin/posts/:id/preview" element={<AdminPreview />} />
           <Route path="admin/login" element={<AdminLogin />} />
           <Route path="*" element={<NotFound />} />
         </Route>
