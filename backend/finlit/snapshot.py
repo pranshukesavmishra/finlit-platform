@@ -136,7 +136,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
                 "ratios_pr", "shareholding")
     quality = {
         "missing": [k for k in expected if not _present(bundle.get(k))],
-        "notes": ratio_view.get("notes", []),
+        "notes": ([bundle["_history_note"]] if bundle.get("_history_note") else []) + ratio_view.get("notes", []),
         "provisionalLastBar": provisional,
         "removedBadTicks": history["removedBadTicks"],
         "statement": statement,

@@ -141,3 +141,23 @@ def test_a_dec_labelled_year_end_is_aligned_to_march_when_that_is_where_the_numb
     longer = upstox.extend_history(fe, up)
     assert [r["period_end"][:4] for r in longer] == ["2022", "2023", "2024", "2025", "2026"]
     assert [round(upstox._field(r, "profitLossForPeriod") / 1e7) for r in longer][:3] == [4043, 36397, 40676]
+
+
+def test_provider_dates_written_as_yyyymmdd_are_read():
+    fe = [{"period_end": "20250331", "year": 2025, "profitOrLossAttributableToOwners": 48151e7}, {"period_end": "20260331", "year": 2026, "profitOrLossAttributableToOwners": 57000e7}]
+    up = upstox.income_rows({"income_statement": [
+        {"category": "revenue", "history": [{"period": f"Dec {y}", "value": 1.0} for y in (2022, 2023, 2024)]},
+        {"category": "net_profit", "history": [{"period": f"Dec {y}", "value": v} for y, v in ((2022, 36397.0), (2023, 40676.0), (2024, 48151.0))]}]})
+    why: list = []
+    longer = upstox.extend_history(fe, up, why=why)
+    assert longer and len(longer) == 4 and not [w for w in why if "no readable dates" in w]
+
+
+def test_cash_flow_extends_within_the_wider_margin_and_never_across_a_sign_change():
+    fe = [{"period_end": "20250331", "cashFlowsFromOperatingActivities": -6180e7}, {"period_end": "20260331", "cashFlowsFromOperatingActivities": -5000e7}]
+    up = [{"period_end": f"{y}-03-31", "cashFlowsFromOperatingActivities": v * 1e7} for y, v in ((2023, -4000.0), (2024, -5200.0), (2025, -6756.0))]
+    assert upstox.extend_history(fe, up, keys=("cashFlowsFromOperatingActivities",)) is None                       # 9% apart: refused at the 5% default
+    longer = upstox.extend_history(fe, up, keys=("cashFlowsFromOperatingActivities",), tolerance=upstox.CASH_TOLERANCE)
+    assert longer and [r["period_end"][:4] for r in longer] == ["2023", "2024", "2025", "2026"]
+    flipped = [{**r, "cashFlowsFromOperatingActivities": -r["cashFlowsFromOperatingActivities"]} for r in up]
+    assert upstox.extend_history(fe, flipped, keys=("cashFlowsFromOperatingActivities",), tolerance=upstox.CASH_TOLERANCE) is None

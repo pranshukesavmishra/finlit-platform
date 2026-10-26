@@ -57,12 +57,33 @@ async def probe(client, store, settings, symbols: Optional[List[str]] = None) ->
                             row[f"{basis} {key}"] = _shape(await client.get(path, params, timeout=timeout, retries=1))
                         except Exception as exc:
                             row[f"{basis} {key}"] = f"error {str(exc)[:40]}"
+            if sym == (symbols or DEFAULT)[0]:       # what the cash-flow and balance-sheet rows of both sources look like, to line their years up
+                try:
+                    path, params, timeout = bundle_requests(sym, "standalone")["cf_annual"]
+                    rows = (await client.get(path, params, timeout=timeout, retries=1) or {}).get("financials") or []
+                    row["finedge cf row keys"] = sorted(rows[-1])[:30] if rows else []
+                    row["finedge cf period_end values"] = [str(r.get("period_end")) for r in rows]
+                    row["finedge cf operating-like keys"] = sorted(k for k in (rows[-1] if rows else {}) if "operating" in k.lower() and "adj" not in k.lower())
+                    row["finedge bs row keys"] = sorted((await client.get(*bundle_requests(sym, "standalone")["bs_annual"][:2], timeout=10, retries=1) or {}).get("financials", [{}])[-1])[:60]
+                except Exception as exc:
+                    row["finedge cf row keys"] = f"error {str(exc)[:40]}"
             company = await store.company(sym)
             row["upstox"] = "token set" if up.enabled else "no token"
             if up.enabled and company:
                 try:
                     inst = await up.resolve(sym, [n for n in (company["name"], company["nse_code"]) if n], dict(company).get("isin"))
                     row["upstox instrument"] = bool(inst)
+                    if inst and sym == (symbols or DEFAULT)[0]:
+                        bs = await up.statement(inst["isin"], "balance-sheet", "standalone", "yearly")
+                        hist = (bs.get("history") if isinstance(bs, dict) else None) or []
+                        row["upstox balance sheet"] = {"keys": sorted(bs) if isinstance(bs, dict) else str(type(bs)), "history rows": len(hist), "first row keys": sorted(hist[0]) if hist and isinstance(hist[0], dict) else []}
+                        full = bs.get("full_statement") if isinstance(bs, dict) else None
+                        row["upstox balance sheet full_statement"] = (
+                            [{"category": r.get("category") if isinstance(r, dict) else None, "periods": len((r.get("history") or []) if isinstance(r, dict) else [])} for r in full][:40]
+                            if isinstance(full, list) else (sorted(full)[:40] if isinstance(full, dict) else str(type(full))))
+                        cf = await up.statement(inst["isin"], "cash-flow", "standalone", "yearly")
+                        row["upstox cash flow"] = {"categories": [r.get("category") for r in (cf.get("cash_flow") or [])][:20] if isinstance(cf, dict) else str(type(cf)),
+                                                   "periods": [pt.get("period") for pt in ((cf.get("cash_flow") or [{}])[0].get("history") or [])] if isinstance(cf, dict) else []}
                     if inst:
                         for basis in ("consolidated", "standalone"):
                             rows = upstox.income_rows(await up.statement(inst["isin"], "income-statement", basis, "yearly"))

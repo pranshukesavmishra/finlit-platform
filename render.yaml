@@ -31,7 +31,7 @@ services:
       - {key: ADMIN_EMAIL, sync: false}         # the real administrator; sign in at /login, then set up the authenticator app
       - {key: ADMIN_PASSWORD, sync: false}      # 10+ characters, not containing the email name; remove this variable after your first sign-in
       - {key: RESET_MFA_EMAIL, sync: false}     # only when an authenticator is lost or handed over: the account email; delete it after one restart
-      - {key: ADMIN_REQUIRE_MFA, value: "1"}    # administrators need their authenticator code; "0" would let an account without one in with the password alone
+      - {key: ADMIN_REQUIRE_MFA, value: "0"}    # TEMPORARY, the founder switched the admin authenticator off until launch: set back to "1" before going live (administrators then need their authenticator code)
       - {key: SCORE_ALL_PER_RUN, value: "1500"}  # other listed companies scored each night (score row only); all ~5,800 are covered within a few nights
       - {key: INGEST_LIMIT, value: "500"}      # companies loaded in the background after each start (resumable)
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}

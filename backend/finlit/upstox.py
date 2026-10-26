@@ -29,6 +29,7 @@ CRORE = 10_000_000
 STATUS_KEY = "upstox:status"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 DISAGREE = 0.05
+CASH_TOLERANCE = 0.15   # the two sources define operating cash flow a little differently (LIC FY25: -6,180 Cr against -6,756 Cr); the sign must still match
 
 SECONDARY_NOTE = "Some figures come from our secondary data source."
 
@@ -335,7 +336,9 @@ def reconcile(bundle: dict, upstox_pl: List[dict], upstox_price: Optional[float]
 
 
 def _ym(r: dict) -> Optional[str]:
-    d = period_end(r.get("period_end") or r.get("year"))
+    """'2025-03' for a statement row. The provider writes period ends as 20250331; the second source as 2025-03-31 or a month label."""
+    from .normalize.common import parse_date
+    d = parse_date(r.get("period_end")) or period_end(r.get("period_end") or r.get("year"))
     return d.strftime("%Y-%m") if d else None
 
 
@@ -345,16 +348,27 @@ _ALIASES = {"profitLossForPeriod": ("profitOrLossAttributableToOwners", "profitL
 
 def _field(row: dict, key: str) -> Optional[float]:
     """The provider names the same line differently for lenders and insurers: the first of the known names it filled in."""
+    if key == "profitLossForPeriod":
+        from .normalize.statements import _net_profit    # the very reader the report itself uses
+        v = _net_profit(row)
+        if v is not None:
+            return v
     for k in _ALIASES.get(key, (key,)):
         v = _num(row.get(k))
         if v is not None:
             return v
+    if key == "cashFlowsFromOperatingActivities":    # the provider's name for this line differs by company type: any "cash ... operating activities" total
+        for k, raw in row.items():
+            low = k.lower()
+            if "operatingactivities" in low and (low.startswith("cash") or low.startswith("net")) and "adj" not in low and _num(raw) is not None:
+                return _num(raw)
     return None
 
 
 def _shifted(r: dict, months: int) -> dict:
     """The same row with its period moved `months` later (Upstox labels some insurers' March year-ends as the December before)."""
-    d = period_end(r.get("period_end") or r.get("year"))
+    from .normalize.common import parse_date
+    d = parse_date(r.get("period_end")) or period_end(r.get("period_end") or r.get("year"))
     if not d or not months:
         return r
     m0 = d.month - 1 + months
@@ -363,30 +377,42 @@ def _shifted(r: dict, months: int) -> dict:
     return {**r, "period_end": e.isoformat(), "year": e.year + (1 if e.month > 3 else 0)}
 
 
-def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations")) -> Optional[List[dict]]:
+def extend_history(fe_rows: List[dict], up_rows: List[dict], keys: tuple = ("profitLossForPeriod", "revenueFromOperations"), why: Optional[list] = None, tolerance: float = DISAGREE) -> Optional[List[dict]]:
     """The provider's own rows, plus the second source's rows for OLDER periods the provider does not hold. Done only when both sources hold at least
     one period in common and agree on it (net profit, and revenue where both have it, within DISAGREE). The second source's dates are tried as given and
     then three months later (its label for a March year-end is sometimes the December before): the alignment that agrees on the shared years is used.
-    When neither agrees, the second source is not trusted for this company and None comes back. The provider's rows are never changed."""
+    When neither agrees, the second source is not trusted for this company and None comes back, with the reason appended to `why`.
+    The provider's rows are never changed."""
+    note = why if why is not None else []
     have = {_ym(r): r for r in fe_rows if isinstance(r, dict) and _ym(r)}
     if not have:
+        note.append("the provider's rows have no readable dates")
         return None
     for months in (0, 3):
         up = {_ym(r): r for r in (_shifted(x, months) for x in up_rows) if _ym(r)}
         common = sorted(set(have) & set(up))
-        judged, ok = 0, bool(common)
+        judged, ok, gap = 0, bool(common), None
         for k in common:
             for key in keys:
                 a, b = _field(have[k], key), _num(up[k].get(key))
                 if a is None or b is None:
                     continue
-                if abs(a - b) / max(abs(b), 1) > DISAGREE:
-                    ok = False
+                if abs(a - b) / max(abs(b), 1) > tolerance or (a < 0) != (b < 0):
+                    ok, gap = False, f"{key} {k}: {a / CRORE:,.0f} Cr against {b / CRORE:,.0f} Cr"
                 judged += 1
-        if ok and judged:
+        if not common:
+            note.append(f"no common year at offset {months}")
+        elif not judged:
+            note.append(f"no comparable figure at offset {months}; provider fields {sorted(have[common[0]])[:12]}")
+        elif not ok:
+            note.append(f"disagree at offset {months}: {gap}")
+        else:
             first = min(have)
             older = [up[k] for k in sorted(up) if k < first]
-            return sorted([*older, *have.values()], key=lambda r: _ym(r) or "") if older else None
+            if not older:
+                note.append("the second source holds no older year")
+                return None
+            return sorted([*older, *have.values()], key=lambda r: _ym(r) or "")
     return None
 
 
@@ -425,14 +451,23 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
             elif rows:
                 compare_income = rows
                 if short and isinstance(bundle.get("pl_annual"), dict):
-                    longer = extend_history(bundle["pl_annual"].get("financials") or [], rows)
+                    why: list = []
+                    longer = extend_history(bundle["pl_annual"].get("financials") or [], rows, why=why)
+                    bundle["_history_note"] = ("Older years added from a second source (Upstox), agreeing with the provider on the years both hold."
+                                               if longer else "Older years not added: " + "; ".join(why))
                     if longer:
+                        compare_income = None     # already compared, with the dates aligned; the plain by-label comparison would report a false gap
                         bundle["pl_annual"] = {**bundle["pl_annual"], "financials": longer}; src["pl_annual"] = "finedge+upstox:older years"
                         if 0 < p["cash"] < 5:
                             cash = cash_rows(await stmts("cash-flow", "yearly"))
-                            longer_cf = extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",)) if isinstance(bundle.get("cf_annual"), dict) else None
+                            why_cf: list = []
+                            longer_cf = (extend_history(bundle["cf_annual"].get("financials") or [], cash, keys=("cashFlowsFromOperatingActivities",), why=why_cf, tolerance=CASH_TOLERANCE)
+                                         if isinstance(bundle.get("cf_annual"), dict) else None)
                             if longer_cf:
                                 bundle["cf_annual"] = {**bundle["cf_annual"], "financials": longer_cf}; src["cf_annual"] = "finedge+upstox:older years"
+                                bundle["_history_note"] += " Cash flow older years are from the second source, whose operating cash flow can differ from the provider's by up to 15% on the years both hold."
+                            else:
+                                bundle["_history_note"] += " Cash flow: older years not added: " + "; ".join(why_cf or ["the second source returned no cash flow"])
         if need["ql"]:
             rows = income_rows(await stmts("income-statement", "quarterly"))
             if rows:
@@ -474,8 +509,12 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
             log.warning("SOURCES DISAGREE %s: %s", symbol, item)
     except UpstoxTokenExpired:
         log.error("Upstox token expired: secondary source skipped for %s", symbol)
-    except Exception:
+        if short:
+            bundle["_history_note"] = "Older years not added: the second source's access token has expired"
+    except Exception as exc:
         log.exception("secondary source failed for %s", symbol)
+        if short:
+            bundle["_history_note"] = f"Older years not added: the second source failed ({type(exc).__name__})"
     return bundle
 
 

@@ -46,3 +46,9 @@ export const addIpo = (b: Record<string, unknown>) => apiSend("POST", "/api/admi
 export const deleteIpo = (id: number) => apiSend("DELETE", `/api/admin/ipos/${id}`);
 export const addFeed = (b: Record<string, unknown>) => apiSend("POST", "/api/admin/feed", b);
 export const deleteFeed = (id: number) => apiSend("DELETE", `/api/admin/feed/${id}`);
+
+export type FundJob = "refresh-etf" | "refresh-mf" | "backfill-mf";
+export type FundJobRow = { state: "starting" | "running" | "done" | "failed"; startedAt?: string; finishedAt?: string; rc?: number; result?: string } | null;
+export type FundStatus = { running: boolean; scheduledPaused: boolean; jobs: Record<FundJob, FundJobRow> };
+export const fundStatus = () => apiGet<FundStatus>("/api/admin/funds/status");
+export const fundRun = (job: FundJob) => apiSend("POST", "/api/admin/funds/run", { job });
