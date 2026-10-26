@@ -98,7 +98,7 @@ export type PrismServiceStatus = { name: string; available: boolean; reason: str
 /* ------------------------------------------------------------------ words and tones (status in words, never by colour alone) */
 export const KNOWN_PARTS: PartKey[] = ["fundamental", "valuation", "quality", "risk"];
 const PART_TEXT: Record<string, { name: string; what: string }> = {
-  fundamental: { name: "Fundamentals", what: "Business performance: how steadily revenue and profit grow." },
+  fundamental: { name: "Fundamentals", what: "Business performance: how steadily sales and profit grow." },
   valuation: { name: "Valuation", what: "The share price against earnings, book value and the company's own history." },
   quality: { name: "Quality", what: "Financial strength: borrowing, interest cover, returns and cash backing for profit." },
   risk: { name: "Risk", what: "Market risk: price swings, the largest fall, trading activity and pledged shares. A higher score means lower risk." },
@@ -139,7 +139,11 @@ export function standing(row: Pick<PrismMetric, "status" | "points">): Standing 
   return row.points >= 70 ? "pros" : row.points < 40 ? "cons" : "mixed";
 }
 export const isRated = (r: Pick<PrismRating, "status">) => r.status !== "NOT RATED";
-export const incomeWord = (group: string) => (group === "BANK" || group === "NBFC" ? "Net interest income" : group === "INSURANCE" ? "Net premium income" : "Revenue");
+/** The model calls this line "Sales" for every company (site-api premium_data.revenue). What it is differs by sector, so a neutral note says so. */
+export const incomeWord = (_group?: string) => "Sales";
+export const incomeNote = (group: string): string | null =>
+  group === "BANK" || group === "NBFC" ? "For banks and NBFCs the model's sales line is net interest income: interest earned less interest paid."
+  : group === "INSURANCE" ? "For insurers the model's sales line is net premium earned." : null;
 export const statementWord = (s?: string | null) => (s === "standalone" ? "Standalone" : "Consolidated");
 /** "counts for 40% of the overall score" */
 export const partShare = (weights: Record<PartKey, number> | undefined, key: PartKey) => Math.round((weights?.[key] ?? 0) * 100);
@@ -226,7 +230,7 @@ function indexOfPeriod(label: unknown, period: "yearly" | "quarterly"): number |
 }
 export type GrowthKey = "revenue" | "profit" | "eps";
 export const GROWTH_METRICS: { key: GrowthKey; label: string; aliases: string[] }[] = [
-  { key: "revenue", label: "Revenue growth", aliases: ["revenue"] },
+  { key: "revenue", label: "Sales growth", aliases: ["revenue"] },
   { key: "profit", label: "Net profit growth", aliases: ["netprofit"] },
   { key: "eps", label: "EPS growth", aliases: ["eps", "basicreinr", "basiceps", "dilutedreinr", "dilutedeps"] },
 ];
@@ -285,7 +289,7 @@ export function trendSentence(label: string, trends: Trend[], key: "revenue" | "
   return verb === "was unchanged" ? `${label} was ${amount(b[key], unit)} in both ${a.period} and ${b.period}.` : `${label} ${verb} from ${amount(a[key], unit)} in ${a.period} to ${amount(b[key], unit)} in ${b.period}.`;
 }
 /** The latest year's growth figures in one sentence. */
-export function growthSentence(points: GrowthPoint[], incomeLabel = "Revenue"): string {
+export function growthSentence(points: GrowthPoint[], incomeLabel = "Sales"): string {
   const last = points[points.length - 1];
   if (!last || GROWTH_METRICS.every((m) => last[m.key] == null)) return "Not enough comparable years to show growth.";
   const word = (k: GrowthKey) => (k === "revenue" ? incomeLabel.toLowerCase() : k === "profit" ? "net profit" : "EPS");
@@ -355,9 +359,13 @@ export async function downloadPrismPdf(r: PrismReport): Promise<void> {
   }
   const href = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
-  a.href = href; a.download = pdfName(r); a.rel = "noreferrer";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(href), 30_000);
+  try {
+    a.href = href; a.download = pdfName(r); a.rel = "noreferrer";
+    document.body.appendChild(a); a.click();
+  } finally {            // whatever happens, the link is removed and the object URL is released
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 30_000);
+  }
 }
 
 /* ------------------------------------------------------------------ data hooks */

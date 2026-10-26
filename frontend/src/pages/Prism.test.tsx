@@ -60,7 +60,7 @@ describe("Prism report", () => {
     expect(t).toContain("Show as table");
   });
   it("gives every chart a conclusion as its aria-label", () => {
-    expect(html).toContain('aria-label="Revenue rose from ₹2,400 Cr in 2021 to ₹4,295 Cr in 2026."');
+    expect(html).toContain('aria-label="Sales rose from ₹2,400 Cr in 2021 to ₹4,295 Cr in 2026."');
     expect(html).toMatch(/aria-label="Overall 54\.5 is the sum of Fundamentals 27\.5 of 40/);
     expect(html).toContain("Fundamentals: 68.8 out of 100");
     expect(html).toMatch(/aria-label="FinLit Prism score 54\.5 out of 100: Average\. Status: Rated\./);
@@ -171,5 +171,17 @@ describe("Prism page", () => {
     expect(t).toContain("Choose a company");
     expect(t).toContain("Browse companies");
     expect(t).toContain("20 a day");
+  });
+});
+
+describe("the income line is called Sales for every company, with a sector note", () => {
+  const as = (group: string) => ({ ...R, rating: { ...R.rating, group } }) as PrismReport;
+  const BANNED_WORDS = /net premium income/;   // (factor labels such as "Revenue growth" come from the model)
+  it.each([["MFG", null], ["BANK", /net interest income: interest earned less interest paid/], ["NBFC", /net interest income/], ["INSURANCE", /net premium earned/]])("%s", (group, note) => {
+    const t = text(renderToStaticMarkup(<PrismReportView report={as(group)} actions={{}} />));
+    expect(t).toContain("Sales");
+    expect(t).not.toMatch(BANNED_WORDS);
+    expect(t).not.toContain("Net interest income ");
+    if (note) expect(t).toMatch(note); else expect(t).not.toMatch(/net interest income|net premium earned/);
   });
 });

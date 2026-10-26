@@ -1,7 +1,7 @@
 // One FinLit Prism report: hero with the prism ring, the parts, what moved the score, every factor, financial history, valuation against
 // the benchmark, and completeness and freshness. NOT RATED never shows category scores. Layout lives in styles/prism-report.css (pzr-*).
 import { Icon } from "../../lib/icons";
-import { PRISM_NAME, PRISM_NOTE, incomeWord, prismReview } from "../../lib/prism";
+import { PRISM_NAME, PRISM_NOTE, incomeNote, incomeWord, prismReview } from "../../lib/prism";
 import { Hero, istTime, LabelChip, StatusChip, type ReportActions } from "./pzr/Hero";
 import { FactorExplorer } from "./pzr/Factors";
 import { Health, Peers } from "./pzr/Health";
@@ -44,7 +44,7 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       <section className="pzr-sec" aria-labelledby="pzr-h-hist">
         <header className="pzr-sh"><h3 id="pzr-h-hist">Financial history</h3><p>From the company's filings, on the same statement basis as the score.</p></header>
         <HistoryCharts report={report} />
-        {report.financialHistory && <HistoryTables history={report.financialHistory} income={income} />}
+        {report.financialHistory && <HistoryTables history={report.financialHistory} income={income} note={incomeNote(report.rating.group)} />}
       </section>
       <Peers report={report} />
       <Health report={report} completeness={review.completeness} onRecalculate={actions.onRecalculate} notes={review.notes} />

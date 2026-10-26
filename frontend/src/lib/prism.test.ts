@@ -146,7 +146,7 @@ describe("labels and values", () => {
     expect(factorValue(find("MARGIN_CHANGE"))).toBe("−0.52 pts");
     expect(factorValue(find("DEBT_TO_EQUITY"))).toBe("0.45×");
     expect(factorValue(find("SALES_STREAK"))).toBe("10 of 10 quarters");
-    expect(factorDetail(find("SALES_CAGR"), "MFG")).toBe("5-year period: revenue from ₹2,400 Cr to ₹4,295 Cr.");
+    expect(factorDetail(find("SALES_CAGR"), "MFG")).toBe("5-year period: sales from ₹2,400 Cr to ₹4,295 Cr.");
     expect(factorDetail(find("PROFIT_GROWTH"), "MFG")).toContain("Trailing 4 quarters vs previous 4 quarters");
   });
   it("accepts only symbols the API accepts", () => {
@@ -194,5 +194,31 @@ describe("a calculation behind the page", () => {
     expect(other.kind).toBe("unavailable");
     expect(other.text).toContain("try again");
     expect(jobProblem({}).text).toBeTruthy();
+  });
+});
+
+describe("income wording and the PDF download", () => {
+  it("is Sales for every group, with a note only for lenders and insurers", async () => {
+    const { incomeWord, incomeNote } = await import("./prism");
+    for (const g of ["MFG", "BANK", "NBFC", "INSURANCE", "", "UNKNOWN"]) expect(incomeWord(g)).toBe("Sales");
+    expect(incomeNote("MFG")).toBeNull();
+    expect(incomeNote("BANK")).toMatch(/net interest income/);
+    expect(incomeNote("INSURANCE")).toMatch(/net premium earned/);
+    expect(factorDetail({ ...R.rating.metrics.find((m) => m.metric === "SALES_CAGR")! }, "BANK")).toMatch(/sales from/);
+  });
+  it("downloadPrismPdf cleans up the link and the object URL even when the click throws", async () => {
+    const { downloadPrismPdf } = await import("./prism");
+    const { vi } = await import("vitest");
+    vi.useFakeTimers();
+    const revoke = vi.fn(), removed = vi.fn();
+    const link = { click: () => { throw new Error("blocked"); }, remove: removed } as unknown as HTMLAnchorElement;
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["x"]) })));
+    vi.stubGlobal("URL", { createObjectURL: () => "blob:x", revokeObjectURL: revoke });
+    vi.stubGlobal("document", { createElement: () => link, body: { appendChild: () => undefined } });
+    await expect(downloadPrismPdf(R)).rejects.toThrow("blocked");
+    expect(removed).toHaveBeenCalled();
+    vi.advanceTimersByTime(31_000);
+    expect(revoke).toHaveBeenCalledWith("blob:x");
+    vi.useRealTimers(); vi.unstubAllGlobals();
   });
 });

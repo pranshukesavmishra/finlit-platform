@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { MINUS, nf } from "../../../lib/format";
 import {
-  growthPercent, incomeWord, statementWord, trendSentence,
+  growthPercent, incomeNote, incomeWord, statementWord, trendSentence,
   type PrismHistory, type PrismReport, type Trend,
 } from "../../../lib/prism";
 import { periodLabel, ratioPct, yoy, type Series } from "../../../lib/prismReport";
@@ -138,7 +138,7 @@ export function HistoryCharts({ report }: { report: PrismReport }) {
   const hasQ = (report.financialHistory?.quarterly || []).filter((r) => r.sales != null || r.profit != null).length >= 2;
   const hasA = report.trends.length > 0 || (report.financialHistory?.annual?.length ?? 0) > 0;
   const [basis, setBasis] = useState<Basis>(hasA ? "annual" : "quarterly");
-  const income = incomeWord(report.rating.group);
+  const income = incomeWord(report.rating.group), note = incomeNote(report.rating.group);
   const s = useMemo(() => seriesFor(report, basis), [report, basis]);
   const step = 12, per = basis === "annual" ? "year" : "quarter";
   const trendOf = (label: string, key: "revenue" | "profit" | "eps", v: Series) => trendSentence(label, v.map((p) => ({ period: periodLabel(p.period), revenue: key === "revenue" ? p.value : null, profit: key === "profit" ? p.value : null, eps: key === "eps" ? p.value : null })), key);
@@ -150,7 +150,7 @@ export function HistoryCharts({ report }: { report: PrismReport }) {
           <button type="button" className={basis === "annual" ? "on" : ""} aria-pressed={basis === "annual"} disabled={!hasA} onClick={() => setBasis("annual")}>Annual</button>
           <button type="button" className={basis === "quarterly" ? "on" : ""} aria-pressed={basis === "quarterly"} disabled={!hasQ} onClick={() => setBasis("quarterly")}>Quarterly</button>
         </div>
-        <p>{statementWord(report.statementType)} statements. Amounts in ₹ crore; EPS in ₹ per share. Percent labels compare with the same {per === "year" ? "year" : "quarter"} a year earlier.</p>
+        <p>{statementWord(report.statementType)} statements. Amounts in ₹ crore; EPS in ₹ per share. Percent labels compare with the same {per === "year" ? "year" : "quarter"} a year earlier.{note ? ` ${note}` : ""}</p>
       </div>
       <div className="pzr-chs">
         <Chart basis={basis} kind="bars" title={income} unitNote={`₹ crore, oldest to newest`} data={withGrowth(s.rev, step)} color="var(--pzr-c1)" valueText={money}
@@ -171,7 +171,7 @@ export function HistoryCharts({ report }: { report: PrismReport }) {
 }
 
 const cell = (v: number | null | undefined, d?: number) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(Math.abs(v), d ?? (Math.abs(v) >= 1000 ? 0 : 2)));
-export function HistoryTables({ history, income }: { history: PrismHistory; income: string }) {
+export function HistoryTables({ history, income, note = null }: { history: PrismHistory; income: string; note?: string | null }) {
   const table = (title: string, rows: { period: string; [k: string]: number | string | null }[], fields: [string, string][]) => (
     <div className="pzr-htab"><h4>{title}</h4>
       {rows.length ? <div className="pzr-tw" tabIndex={0} role="region" aria-label={`${title}, scrolls sideways on a small screen`}>
@@ -179,10 +179,10 @@ export function HistoryTables({ history, income }: { history: PrismHistory; inco
           <tbody>{fields.map(([k, label]) => <tr key={k}><th scope="row">{label}</th>{rows.map((r) => <td key={r.period} className="n">{cell(r[k] as number | null)}</td>)}</tr>)}</tbody></table></div>
         : <p className="pzr-empty">No reported history available for this statement basis.</p>}</div>
   );
-  const inc = income === "Revenue" ? "Sales" : income;
+  const inc = income;
   return (
     <div className="pzr-tables">
-      <p className="pzr-small">Oldest to newest · amounts in ₹ crore · EPS in ₹ per share · missing values shown as a dash.</p>
+      <p className="pzr-small">Oldest to newest · amounts in ₹ crore · EPS in ₹ per share · missing values shown as a dash.{note ? ` ${note}` : ""}</p>
       {table("Quarterly results", history.quarterly, [["sales", inc], ["profit", "Owner-attributable net profit"], ["ebitda", "EBITDA"], ["eps", "EPS (₹)"]])}
       {table("Annual results", history.annual, [["sales", inc], ["profit", "Owner-attributable net profit"], ["cashFlow", "Operating cash flow"], ["netWorth", "Book equity"]])}
       <div className="pzr-htab"><h4>Key financial ratios</h4>
