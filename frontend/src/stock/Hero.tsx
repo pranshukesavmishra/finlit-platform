@@ -2,21 +2,20 @@ import { useContext, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
-import { MINUS, capSize, dateIN, fmtUnit, initials, nf, num, signed } from "../lib/format";
+import { MINUS, capSize, dateIN, fmtUnit, initials, nf, signed } from "../lib/format";
 import { useUI, TIER } from "../lib/ui";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
-import { Dial } from "../charts/Dial";
 import { Spark } from "../charts/Small";
 import { Gate, OpenAccess } from "../components/Gate";
-import { PrismCompare } from "./PrismCompare";
+import { PrismCompare, PrismDetail } from "./PrismCompare";
+import { ScoreCard, ScoreDetail } from "./ScoreCard";
+import { DashToggle, useDashOpen } from "./DashToggle";
 import { usePrismLatest } from "./PrismCard";
 import { apiUrl } from "../lib/api";
 import { Info } from "../components/Info";
-import { ChartHelp } from "../components/ChartHelp";
 import { LeadLine } from "./Leadership";
-import { BasisToggle } from "./Sections";
-import { scoreChange, useScoreHistory, type Financials, type Ratios, type Summary } from "../lib/api";
-import { PILLAR_COLOR, PILLAR_ICON, csvOf, metric, offlineHtml, saveFile } from "./derive";
+import { type Financials, type Ratios, type Summary } from "../lib/api";
+import { csvOf, metric, offlineHtml, saveFile } from "./derive";
 import { TradingFacts } from "./TradingFacts";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
@@ -26,10 +25,8 @@ const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
 
 
 export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fin?: Financials; jump: (id: string) => void }) {
-  const { has, toast, plan, upgrade } = useUI();
-  const hist = useScoreHistory(s.profile.symbol, has("silver") && s.score.overall != null);
-  const chg = scoreChange(hist.data?.points);
-  const [open, setOpen] = useState<string | null>(null);
+  const { has, toast, upgrade } = useUI();
+  const [dashOpen, setDashOpen] = useDashOpen();
   const [dl, setDl] = useState(false);
   const open_ = useContext(OpenAccess);
   const two = has("gold") || open_;   // Gold sees the score and FinLit Prism side by side
@@ -40,10 +37,6 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
   const asOf = q.asOf ? new Date(q.asOf) : null;
   const need = (tier: "silver" | "gold", what: string) => { if (has(tier)) return true; upgrade(tier, `${what} come with the ${TIER[tier].n} plan.`); return false; };
-  const byKey = Object.fromEntries((ratios?.score.pillars || []).map((x) => [x.key, x]));
-  const know = [
-    ...(s.strengths.slice(0, 2).map((n) => ({ ...n, tone: "good" as const }))), ...(s.watchouts.slice(0, 1).map((n) => ({ ...n, tone: "bad" as const }))),
-  ];
   const toggleWatch = () => {
     if (!need("silver", "Watchlist and portfolio tracking")) return;
     const on = !watch;
@@ -57,7 +50,6 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
     if (kind === "html") { saveFile(name + "-Research.html", offlineHtml(s, fin, ratios), "text/html"); toast("Offline copy saved. It opens in any browser without internet."); }
     if (kind === "pdf") { toast("In the print window, choose “Save as PDF”."); setTimeout(() => window.print(), 400); }
   };
-  const ob = open ? byKey[open] : null, os = open ? s.score.pillars.find((x) => x.key === open) : null;
 
   return (
     <section className="band hero" id="hero" aria-label={`${p.name} research report`}>
@@ -104,64 +96,18 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         </div>
         <TradingFacts s={s} />
 
-        <div className="pz-pair">
+        <div className="pz-pair dk-pair" data-open={dashOpen}>
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
-          <article className="report" aria-labelledby="reportTitle">
-            <div className="rhead">
-              <div className="l"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} />
-                {/* This score is the FinLit score for every plan; Gold's advanced model is FinLit Prism, a separate rating in its own section. */}
-                {plan === "gold" ? <a className="tier gold" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism</a> : <span className="tier silver">Basic model</span>}<span className="live">Updated {dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}</span></div>
-              <div className="meta">Model {s.score.model} · <a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros & cons →</a></div>
-            </div>
-            <div className="rmain">
-              <div className="dialcol">
-                <Dial overall={s.score.overall} pillars={s.score.pillars} onPillar={(k) => setOpen((o) => (o === k ? null : k))} active={open} bandLabel={s.score.band.label} />
-                <div className="dcap">Average of five pillars · select a ring segment <ChartHelp id="score-dial" /></div>
-                {chg && <div className={"sdelta " + (chg.delta > 0 ? "up" : chg.delta < 0 ? "down" : "")} title={`Compared with ${dateIN(chg.since)}`}>{chg.delta > 0 ? "▲ +" : chg.delta < 0 ? "▼ −" : "● "}{Math.abs(chg.delta)} points <small>since {dateIN(chg.since, { day: "numeric", month: "short" })}</small></div>}
-              </div>
-              <div className="readcol">
-                <div><div className="label" style={{ marginBottom: 10 }}>The read</div><p className="thesis">{s.thesis || (s.score.overall == null && !has("silver") ? "The written read of this company comes with the Silver plan, together with its FinLit score." : (cov?.state === "empty" ? "Our data provider has not sent any price or financial statements for this company, so there is nothing to score yet. We check again every night." : cov && cov.reasons.length ? `Not enough data to summarise this company yet: ${cov.reasons.join("; ")}. We check again every night.` : "Not enough data to summarise this company yet."))}</p></div>
-                <div className="know">
-                  {know.map((n) => (
-                    <div key={n.key} style={{ "--k": n.tone === "good" ? "var(--p-quality)" : "var(--p-tech)" } as React.CSSProperties}>
-                      <div className="kt"><Icon name={n.tone === "good" ? "check" : "alert"} />{n.title}</div><p>{n.text}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="disc"><Icon name="info" /><span>Research summary, not a recommendation to buy or sell. FinLit Ventures is a technology company and is not registered with SEBI or AMFI.</span></div>
-              </div>
-            </div>
-            <div className="label" style={{ margin: "18px 0 8px", display: "flex", alignItems: "center", gap: 8 }}>The five pillars <ChartHelp id="score-pillars" /></div>
-            <div className="pillars" role="group" aria-label="Five pillars">
-              {s.score.pillars.map((pl, i) => {
-                const c = `var(${PILLAR_COLOR[pl.key]})`, r = 22, circ = 2 * Math.PI * r;
-                return (
-                  <button key={pl.key} className={"ptile" + (open === pl.key ? " hot" : "")} style={{ "--pc": c } as React.CSSProperties} aria-expanded={open === pl.key} onClick={() => setOpen((o) => (o === pl.key ? null : pl.key))}>
-                    <div className="pt-top"><span className="pt-ic"><Icon name={PILLAR_ICON[pl.key]} /></span>
-                      <span className="ring"><svg viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r={r} fill="none" stroke="var(--s3)" strokeWidth="5" /><circle cx="27" cy="27" r={r} fill="none" stroke={c} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${(circ * (pl.score ?? 0)) / 100} ${circ}`} /></svg><b>{pl.score ?? "—"}</b></span></div>
-                    <div className="pt-name">{pl.label}</div>
-                    <span className={"vd " + (pl.score == null ? "na" : pl.band.key === "strong" ? "strong" : pl.band.key === "healthy" ? "healthy" : pl.band.key === "mixed" ? "mixed" : "weak")}>{pl.band.label}</span>
-                    <div className="pt-ev">{pl.score == null && pl.reason ? pl.reason : (byKey[pl.key]?.inputs || []).filter((x) => x.value != null).slice(0, 2).map((x) => `${x.label} ${num(x.value)}`).join(" · ")}</div>
-                    <div className="pt-bar"><i style={{ width: `${pl.score ?? 0}%`, animationDelay: `${0.45 + i * 0.08}s` }} /></div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className={"pdrawer" + (open ? " open" : "")}><div>
-              {os && ob && (
-                <div className="pd-in" style={{ "--pc": `var(${PILLAR_COLOR[os.key]})` } as React.CSSProperties}>
-                  <div><h4><span className="pt-ic"><Icon name={PILLAR_ICON[os.key]} /></span>{os.label} · {os.score ?? "—"}/100 <span className={"vd " + (os.band.key === "strong" ? "strong" : os.band.key === "healthy" ? "healthy" : os.band.key === "mixed" ? "mixed" : "weak")}>{os.band.label}</span></h4>
-                    <p>{os.score == null && os.reason ? os.reason : "Each input scores 18 / 38 / 58 / 76 / 92 against four thresholds; the pillar is the average of the inputs available."}</p></div>
-                  <div className="pd-ev">{ob.inputs.map((x) => (
-                    <div key={x.key}><div className="k">{x.label}</div><div className="v">{x.value == null ? "—" : num(x.value)}</div>
-                      <div className="c">{x.score == null ? "Not reported" : `Scores ${x.score} · ${x.lowerIsBetter ? "≤" : "≥"} ${x.thresholds[3]} is great`}</div></div>
-                  ))}</div>
-                </div>
-              )}
-            </div></div>
-          </article>
+          <ScoreCard s={s} ratios={ratios} jump={jump} two={two} expanded={dashOpen} />
         </Gate>
         <PrismCompare symbol={s.profile.symbol} name={p.name} statement={s.meta.statement} />
+        </div>
+        <DashToggle open={dashOpen} onToggle={setDashOpen} controls="dk-full" />
+        <div id="dk-full" className="dk-full" hidden={!dashOpen}>
+          {dashOpen && <>
+            {(has("silver") || open_) && <ScoreDetail s={s} ratios={ratios} />}
+            {two && <PrismDetail symbol={s.profile.symbol} statement={s.meta.statement} />}
+          </>}
         </div>
 
         <div className="kpis">
