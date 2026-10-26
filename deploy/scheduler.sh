@@ -111,6 +111,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker prune                            # stay inside the free database's storage: top INGEST_LIMIT + recently opened
   $PY -m finlit.worker ingest RELIANCE TCS INFY HDFCBANK ICICIBANK SBIN ITC LT BHARTIARTL HINDUNILVR
   $PY -m finlit.worker refresh-short-history          # stored reports with 4 years or fewer are loaded again: the second source adds older years where it agrees with the provider
+  $PY -m finlit.worker history-sweep                   # counts stored reports by years of profit and loss and lists those under 5 with the reason: shown at /api/mf/status (run:history-sweep)
   # ETFs and the day's fund NAVs (the long fund history comes last), only once the web server is up. None of them runs on a timer, so the database may sleep.
   WEB_UP=0; MF_OK=0
   if wait_web; then
@@ -135,6 +136,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker score-all                        # a score for every other listed company (score row only, capped per run, resumable)
+  $PY -m finlit.worker history-sweep                   # again once the companies are loaded
   $PY -m finlit.worker refresh-leadership --if-stale --backfill-from 2022-10-01   # Leader / Laggard labels and their rank history (database only; skipped when this week's run is done)
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
