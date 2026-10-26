@@ -576,3 +576,18 @@ async def test_admin_can_confirm_a_members_email_by_hand(app):
 async def test_session_response_lists_the_free_example_companies(app, anon):
     me = (await anon.get("/api/auth/me")).json()
     assert "RELIANCE" in me["showcase"] and me["plan"] == "basic" and me["user"] is None
+
+
+async def test_login_with_plan_expiry(app):
+    """A member whose plan has an end date (granted for N days) can sign in; an expired plan reads as basic. (Was a NameError -> 500.)"""
+    c = new_client(app)
+    await signup(app, c, "dated@example.com")
+    async with app.state.store.pool.acquire() as conn:
+        await conn.execute("UPDATE users SET plan = 'gold', role = 'admin', plan_until = now() + interval '30 days' WHERE email = 'dated@example.com'")
+    r = await login(new_client(app), "dated@example.com")
+    assert r.status_code == 200, r.text
+    assert r.json()["user"]["plan"] == "gold"
+    async with app.state.store.pool.acquire() as conn:
+        await conn.execute("UPDATE users SET plan_until = now() - interval '1 day' WHERE email = 'dated@example.com'")
+    r = await login(new_client(app), "dated@example.com")
+    assert r.status_code == 200 and r.json()["user"]["plan"] == "basic"

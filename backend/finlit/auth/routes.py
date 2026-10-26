@@ -429,7 +429,7 @@ async def login(request: Request, response: Response, body: SignIn):
     set_session_cookie(request, response, raw, u["role"])
     response.headers.update(NO_STORE)
     await audit(pool, str(u["id"]), "login", None, ip, mfa=mfa_ok)
-    plan = u["plan"] if not (u["plan_until"] and u["plan_until"] < now) else "basic"
+    plan = u["plan"] if not (u["plan_until"] and u["plan_until"] < datetime.now(timezone.utc)) else "basic"
     user = {**public_user(u), "plan": plan, "mfaOk": mfa_ok}
     return {"user": user, "csrf": csrf, "mfaSetupRequired": u["role"] == "admin" and not u["totp_enabled_at"] and request.app.state.settings.admin_require_mfa}
 
