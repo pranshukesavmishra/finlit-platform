@@ -234,6 +234,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             await app.state.options_dhan.aclose()
         if getattr(app.state, "prism_client", None):
             await app.state.prism_client.aclose()
+        if getattr(app.state, "prism_dhan", None):
+            await app.state.prism_dhan.aclose()
         if warm:
             warm.cancel()
         if store is None:
