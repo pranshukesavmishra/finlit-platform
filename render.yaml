@@ -28,6 +28,7 @@ services:
       # FINEDGE_API_KEY + CMS_JWT_SECRET. Setup checklist: docs/prism/DEPLOY.md
       - {key: UPSTOX_ACCESS_TOKEN, sync: false}        # optional: second data source for gaps in the provider's statements (expires daily; Prism works without it)
       - {key: PREMIUM_GENERATION_SLOTS, value: "1"}    # reports calculated at once inside the site backend: 1 on the 512 MB free plan
+      - {key: PRISM_SLOTS, value: "1"}                 # research API: calculations at once; must not exceed PREMIUM_GENERATION_SLOTS or the second one times out waiting
       - {key: STOCK_FUNDAMENTALS_CACHE_ENTRIES, value: "32"}   # provider data kept in memory (15 minutes each); bounds the site backend's memory
       - {key: SITE_API_START, value: auto}             # auto | never (keeps the site backend off) | always
       - {key: ALLOWED_HOSTS, value: "finlit-arug.onrender.com,localhost,127.0.0.1"}   # add your own domain here when you attach one; /api/ping and /api/health are exempt so Render's health check always passes

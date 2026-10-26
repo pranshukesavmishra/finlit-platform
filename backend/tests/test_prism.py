@@ -453,3 +453,39 @@ async def test_a_technical_part_passes_through_untouched(env):
     assert report["rating"]["parts"]["technical"] == 61.5 and report["rating"]["partWeights"]["technical"] == 0.1
     s = (await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")).json()["summary"]
     assert s["parts"]["technical"] == 61.5 and s["partWeights"]["technical"] == 0.1
+
+
+# ------------------------------------------------------------------ review fixes (docs/prism/REVIEW.md)
+async def test_only_gold_and_administrators_may_force_a_recalculation(env):
+    app, fake = env
+    basic = await member(app, "basic")
+    assert (await generate(basic, "RELIANCE")).status_code == 200            # the showcase company is open
+    r = await generate(basic, "RELIANCE", refresh=True)
+    assert r.status_code == 403 and r.json()["status"] == "plan_required" and len(fake.reports) == 1
+    assert (await generate(await member(app, "gold"), "RELIANCE", refresh=True)).status_code == 200
+
+
+async def test_not_rated_summary_withholds_category_scores(env):
+    app, fake = env
+    real = fake.snapshot
+
+    def not_rated(sub, query, statement):
+        snap = real(sub, query, statement)
+        snap["rating"].update(final=None, label="NOT RATED", status="NOT RATED")
+        return snap
+    fake.snapshot = not_rated
+    gold = await member(app, "gold")
+    await generate(gold)
+    s = (await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")).json()["summary"]
+    assert s["status"] == "NOT RATED" and s["final"] is None and s["parts"] is None
+
+
+async def test_pdf_downloads_are_rate_limited_and_ids_must_be_exactly_32_hex(env, monkeypatch):
+    app, fake = env
+    monkeypatch.setattr(prism, "PDF_LIMIT", 2)
+    gold = await member(app, "gold")
+    rid = (await generate(gold)).json()["id"]
+    assert [(await gold.get(f"/api/prism/reports/{rid}/pdf")).status_code for _ in range(2)] == [200, 200]
+    r = await gold.get(f"/api/prism/reports/{rid}/pdf")
+    assert r.status_code == 429 and r.json()["status"] == "limit" and r.headers["retry-after"]
+    assert (await (await member(app, "gold")).get(f"/api/prism/reports/{rid}%0A/pdf")).status_code == 404

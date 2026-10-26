@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import secrets
 import time
@@ -46,12 +47,13 @@ router = APIRouter(prefix="/api/prism")
 
 PRISM_NAME = "FinLit Prism"
 SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
-REPORT_ID = re.compile(r"^[a-f0-9]{32}$")
+REPORT_ID = re.compile(r"^[a-f0-9]{32}\Z")   # \Z, not $: "$" also matches before a trailing newline
 STATEMENTS = ("consolidated", "standalone")
 REUSE_SECONDS = 6 * 3600           # a stored report younger than this is served instead of calculating again (unless refresh)
 SNAPSHOT_SECONDS = 1800            # the site backend signs a snapshot for 30 minutes; it is never kept longer
 DAILY_LIMIT = 20                   # calculations per member per Indian day; refreshes count, reuse does not
-SLOTS = 2                          # calculations running at once in this process
+SLOTS = max(1, min(4, int(os.getenv("PRISM_SLOTS", "2") or 2)))   # calculations at once in this process; keep <= the site backend's PREMIUM_GENERATION_SLOTS
+PDF_LIMIT = 30                     # PDF downloads per member (or visitor address) per 10 minutes; each is rendered by the site backend
 TOKEN_SECONDS = 300
 GENERATE_SECONDS = 170.0           # one calculation takes 60 to 120 seconds
 LOCK_SECONDS = int(GENERATE_SECONDS) + 30
@@ -153,8 +155,9 @@ def _summary(row) -> Dict[str, Any]:
     on exactly as the model gave them, so a part added later (Technical) appears without a change here."""
     view = json.loads(row["report"])
     rating = view.get("rating") or {}
+    parts = None if rating.get("status") == "NOT RATED" else rating.get("parts")   # a company the model did not rate shows no category scores
     return {"id": row["id"], "final": rating.get("final"), "label": rating.get("label"), "status": rating.get("status"),
-            "confidence": rating.get("confidence"), "parts": rating.get("parts"), "partWeights": rating.get("partWeights"),
+            "confidence": rating.get("confidence"), "parts": parts, "partWeights": rating.get("partWeights"),
             "generatedAt": row["generated_at"].isoformat(), "modelVersion": rating.get("modelVersion"),
             "topPros": _lines(view, "pros"), "topCons": _lines(view, "cons")}
 
@@ -335,6 +338,9 @@ async def create(request: Request) -> JSONResponse:
     store = app.state.store
     # Visitors may open a showcase report but not order a new calculation of one that is still fresh.
     refresh = body.get("refresh") is True and ctx.authed
+    if refresh and ctx.role != "admin" and not has(ctx.plan, "gold"):
+        # A free account may open a showcase report, but forcing new calculations spends the paid data providers' quota.
+        return _reply({"status": "plan_required", "detail": f"Recalculating is part of the Gold plan. {PRISM_NAME} reports are refreshed automatically.", "plan": "gold"}, 403)
     row = await _stored(store, symbol, statement)
     if not refresh and _fresh(row):
         return _reply(_shape(row, cached=True))
@@ -407,6 +413,10 @@ async def pdf(request: Request, report_id: str) -> Response:
     if not REPORT_ID.match(report_id):
         return _reply({"status": "not_found", "detail": "No such report."}, 404)
     app = request.app
+    ctx = await current(request)
+    allowed, wait = await app.state.limiter.hit("prism-pdf", ctx.user_id or "ip:" + ip_of(request), PDF_LIMIT, 600, fail_open=False)
+    if not allowed:
+        return _reply({"status": "limit", "detail": "Too many PDF downloads. Please wait a few minutes."}, 429, wait or 60)
     raw = await app.state.store.redis.get(f"prism:snap:{report_id}")
     kept = json.loads(raw) if raw else None
     symbol = kept["symbol"] if kept else await app.state.store.pool.fetchval("SELECT symbol FROM prism_reports WHERE id = $1", report_id)
