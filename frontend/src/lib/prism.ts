@@ -320,6 +320,10 @@ export function prismProblem(err: unknown, now = Date.now()): Problem {
   if (status === 404) return { kind: "missing", title: "We could not find this company", text: "Check the symbol, or choose the company from the search box." };
   if (status === 410) return { kind: "expired", title: "The PDF window has passed", text: "The PDF of a calculation can be downloaded for 30 minutes. Recalculate to download a fresh PDF." };
   if (status === 422) return { kind: "invalid", title: "That request was not accepted", text: detail || "Choose a listed company and a statement basis, then try again." };
+  if (status === 429 && e?.body.status === "busy") {
+    const secs = e.body.retryAfter || 30;
+    return { kind: "unavailable", title: `${PRISM_NAME} is busy`, text: `Other ratings are being calculated right now. Please try again in ${waitWords(secs)}.` };
+  }
   if (status === 429) {
     const secs = e?.body.retryAfter || 0;
     const at = secs ? new Date(now + secs * 1000) : undefined;
@@ -378,7 +382,10 @@ export function useGeneratePrism() {
   const qc = useQueryClient();
   return useMutation<PrismReport, ApiError, { symbol: string; statement: Statement; refresh?: boolean }>({
     mutationFn: ({ symbol, statement, refresh = false }) => apiSend<PrismReport>("POST", "/api/prism/reports", { symbol, statement, refresh }),
-    onSuccess: (report, v) => { qc.setQueryData(latestKey(v.symbol, v.statement), report); },
+    onSuccess: (report, v) => {
+      qc.setQueryData(latestKey(v.symbol, v.statement), report);
+      qc.invalidateQueries({ queryKey: ["prism-latest", v.symbol] });   // the stock page's card reads the same report under its own key
+    },
   });
 }
 

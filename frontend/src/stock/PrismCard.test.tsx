@@ -86,6 +86,13 @@ describe("FinLit Prism card", () => {
     expect(t).toContain("40% of inputs available");
   });
 
+  it("shows no category score for a company that is not rated (the parts exist in the data but are withheld)", async () => {
+    answer(200, { ...REPORT, rating: { ...REPORT.rating, final: null, label: "NOT RATED", status: "NOT RATED", confidence: 0.4 } });
+    const html = await render();
+    expect(html).not.toMatch(/aria-label="[^"]*\d+ out of 100/);
+    expect(html).toContain("Fundamentals: no data");
+  });
+
   it("offers a Gold member the Prism page when no report is stored yet", async () => {
     answer(404, { detail: { status: "none" } });
     const html = await render();

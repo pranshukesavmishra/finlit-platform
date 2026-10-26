@@ -25,8 +25,9 @@ type Part = { key: string; name: string; weight: number; color: string; value: n
 /** The parts to draw, from the data: the four of the model, and a technical part the moment the model sends one. */
 export function partsOf(r: PrismLatest["rating"]): { parts: Part[]; technicalSoon: boolean } {
   const w = r.partWeights ?? {};
-  const parts: Part[] = PRISM_PARTS.map(([k, name, share, color]) => ({ key: k, name, weight: Math.round((w[k] ?? share / 100) * 100), color, value: r.parts[k] ?? null }));
-  const tech = r.parts.technical;
+  const rated = r.status !== "NOT RATED";   // the model withholds category scores for a company it did not rate; so do we
+  const parts: Part[] = PRISM_PARTS.map(([k, name, share, color]) => ({ key: k, name, weight: Math.round((w[k] ?? share / 100) * 100), color, value: rated ? r.parts?.[k] ?? null : null }));
+  const tech = rated ? r.parts?.technical : null;
   if (tech !== undefined && w.technical != null) parts.push({ key: "technical", name: "Technical", weight: Math.round(w.technical * 100), color: "--p-tech", value: tech });
   return { parts, technicalSoon: !parts.some((p) => p.key === "technical") };
 }
@@ -73,7 +74,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
   const qc = useQueryClient();
   const run = useMutation({
     mutationFn: (refresh: boolean) => generatePrism(symbol, statement, refresh),
-    onSuccess: (report) => { const next: PrismCardState = { kind: "report", report }; qc.setQueryData(["prism-latest", symbol, statement], next); },
+    onSuccess: (report) => { const next: PrismCardState = { kind: "report", report }; qc.setQueryData(["prism-latest", symbol, statement], next); qc.invalidateQueries({ queryKey: ["prism", "latest", symbol] }); },
   });
   const busy = run.isPending;
   const status = busy ? <p className="pz-busy" role="status"><span className="pz-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This can take up to two minutes; you can keep reading.</p>

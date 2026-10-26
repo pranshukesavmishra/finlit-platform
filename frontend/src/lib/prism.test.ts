@@ -155,3 +155,10 @@ describe("labels and values", () => {
     expect(cleanSymbol(undefined)).toBeNull();
   });
 });
+
+describe("a busy service is not a daily limit", () => {
+  it("words 429 busy as busy and keeps the daily limit as a limit", () => {
+    expect(prismProblem(new ApiError(429, { status: "busy", detail: "x", retryAfter: 30 })).title).toBe("FinLit Prism is busy");
+    expect(prismProblem(new ApiError(429, { status: "limit", detail: "x", retryAfter: 600 })).kind).toBe("limit");
+  });
+});
