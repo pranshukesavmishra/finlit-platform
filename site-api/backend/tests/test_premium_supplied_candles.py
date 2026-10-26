@@ -18,14 +18,19 @@ from backend.tests.test_premium_technical import ASOF, candles
 NAMES = {"NIF50": "Nifty 50", "NIFMID100": "Nifty Midcap 100", "NIFSMA100": "Nifty Smallcap 100", "NIF500": "Nifty 500"}
 
 
-def rows(bars, bump=0.0):
-    return [[b["date"], b["open"] + bump, b["high"] + bump, b["low"] + bump, b["close"] + bump, b["volume"]] for b in bars]
+def rows(bars, bump=0.0, scale=1.0):
+    return [[b["date"], (b["open"] + bump) * scale, (b["high"] + bump) * scale, (b["low"] + bump) * scale, (b["close"] + bump) * scale, b["volume"]] for b in bars]
 
 
-def payload(count=600, bump=0.0):
+def payload(count=600, bump=0.0, price=None):
+    """Synthetic Dhan candles. `price`: scale the STOCK so its last close is that price (the quote price check compares the two)."""
     bars = candles(count)
-    return {"stock": {"provider": "Dhan", "candles": rows(bars, bump)},
+    scale = price / (bars[-1]["close"] + bump) if price else 1.0
+    return {"stock": {"provider": "Dhan", "candles": rows(bars, bump, scale)},
             "indices": {code: {"provider": "Dhan", "candles": rows(bars, 1.0)} for code in NAMES}}
+
+
+FIXTURE_PRICE = 1210            # the quote price of the audit fixture's RELIANCE (premium_stock_audit_2026_10_18.json)
 
 
 # ----------------------------------------------------------------------------------------------------------- the module
@@ -177,7 +182,7 @@ NOW = datetime(2026, 10, 23, 12, 0, tzinfo=timezone.utc)      # 17:30 IST on ASO
 def test_supplied_candles_win_through_the_report_and_the_usual_providers_are_not_asked_for_candles(dashboard):
     symbol, upstox_calls, finedge_paths = dashboard
     report = premium_service.generate_report(server._finedge_get, symbol, symbol, "consolidated", "r" * 32, "2026-10-23",
-                                             lambda s, t, n: server._premium_dashboard_inputs(s, t, n, payload()))
+                                             lambda s, t, n: server._premium_dashboard_inputs(s, t, n, payload(price=FIXTURE_PRICE)))
     tech = report["technicalAssessment"]
     assert tech["provider"] == "Dhan" and tech["status"] == "ready"
     assert {v["provider"] for v in tech["benchmarkSources"].values()} == {"Dhan"}
@@ -207,3 +212,90 @@ def test_request_model_accepts_the_optional_field_and_old_bodies_still_work():
     body = server.PremiumReportRequest(query="TCS", delivery="inline", suppliedCandles=payload(300))
     assert body.suppliedCandles["stock"]["provider"] == "Dhan"
     assert len(json.dumps(payload(1550))) < 2_000_000          # six years x five series stays well inside any proxy body limit
+
+
+# ------------------------------------------------------------------------------------------ plausibility of a supplied series
+def split_series(unadjusted, factor=5, at=400):
+    """Stock candles through a 1:`factor` split at row `at`. Dhan's adjusted series is smooth; an unadjusted one drops by 1/factor overnight."""
+    sup = payload()
+    for index, row in enumerate(sup["stock"]["candles"]):
+        divisor = factor if (index >= at or not unadjusted) else 1     # adjusted: every older price is divided too, so the series stays smooth
+        row[1:5] = [value / divisor for value in row[1:5]]
+    return sup
+
+
+def test_a_legitimate_split_adjusted_series_is_accepted():
+    bars = supplied_mod.supplied_price_input(split_series(unadjusted=False), ASOF)["bars"]
+    assert len(bars) == 600 and all(abs(b["close"] / a["close"] - 1) < .4 for a, b in zip(bars, bars[1:]))
+
+
+def test_a_genuine_unadjusted_split_is_refused_and_the_reason_is_logged(caplog):
+    with caplog.at_level("WARNING"):
+        assert supplied_mod.supplied_price_input(split_series(unadjusted=True), ASOF) is None
+    assert "more than 40% in a day" in caplog.text and "stock" in caplog.text
+    # a 2:1 bonus issue (price halves) and a 1:10 split too
+    assert supplied_mod.supplied_price_input(split_series(True, 2), ASOF) is None
+    assert supplied_mod.supplied_price_input(split_series(True, 10), ASOF) is None
+
+
+@pytest.mark.parametrize("factor,usable", [(1.39, True), (1.41, False), (0.61, True), (0.59, False)])
+def test_the_daily_move_limit_is_forty_percent_either_way(factor, usable):
+    sup = payload()
+    for row in sup["stock"]["candles"][300:]:
+        row[1:5] = [value * factor for value in row[1:5]]
+    # (the first row after the jump is the only large move; 100+299 -> x factor)
+    assert (supplied_mod.supplied_price_input(sup, ASOF) is not None) is usable
+
+
+def test_an_index_series_with_an_implausible_move_is_left_out():
+    sup = payload()
+    price = supplied_mod.supplied_price_input(sup, ASOF)
+    for row in sup["indices"]["NIF50"]["candles"][500:]:
+        row[1:5] = [value / 3 for value in row[1:5]]
+    got = supplied_mod.supplied_benchmarks(sup, ASOF, [b["date"] for b in price["bars"][-505:]])
+    assert set(got) == {"Nifty Midcap 100", "Nifty Smallcap 100", "Nifty 500"}
+
+
+def test_the_last_close_must_be_within_fifteen_percent_of_the_quote_price(caplog):
+    sup = payload()
+    last = sup["stock"]["candles"][-1][4]
+    for quote, usable in ((last, True), (last * 1.17, True), (last * 1.1765, False), (last / 1.14, True), (last / 0.84, False),
+                          (last * 0.5, False), (last * 3, False), (None, True), (0, True), (-5, True), (float("nan"), True)):
+        assert (supplied_mod.supplied_price_input(sup, ASOF, quote) is not None) is usable, quote
+    with caplog.at_level("WARNING"):
+        supplied_mod.supplied_price_input(sup, ASOF, last * 3)
+    assert "from the quote price" in caplog.text
+    assert supplied_mod.prices_with_supplied(sup, ASOF, lambda: "fallback", last * 3) == "fallback"
+    assert supplied_mod.prices_with_supplied(sup, ASOF, lambda: "fallback", last)["provider"] == "Dhan"
+
+
+def test_quote_price_is_read_from_the_raw_inputs():
+    assert supplied_mod.quote_price_from_raw({"quote": {"TCS": {"current_price": 4000.5}}}) == 4000.5
+    for raw in (None, {}, {"quote": None}, {"quote": {"TCS": {"current_price": None}}}, {"quote": {"TCS": {"current_price": 0}}},
+                {"quote": {"TCS": "x"}}, {"quote": {"TCS": {"current_price": True}}}):
+        assert supplied_mod.quote_price_from_raw(raw) is None
+
+
+@pytest.mark.parametrize("text", ["2026-W43-1", "20261022", "2026-10-2 ", "２０２６-10-22", "2026/10/22", "2026-1-022", "٢٠٢٦-١٠-٢٢", "2026-10-22T"])
+def test_only_strict_calendar_dates_are_accepted(text):
+    sup = payload()
+    sup["stock"]["candles"][10][0] = text
+    assert supplied_mod.supplied_price_input(sup, ASOF) is None
+
+
+def test_a_supplied_candles_value_that_is_not_an_object_does_not_refuse_the_request(caplog):
+    for junk in ("x", 5, [1, 2], True):
+        with caplog.at_level("WARNING"):
+            request = server.PremiumReportRequest(query="TCS", suppliedCandles=junk)
+        assert request.suppliedCandles is None
+    assert "suppliedCandles ignored" in caplog.text
+    assert server.PremiumReportRequest(query="TCS").suppliedCandles is None
+    assert server.PremiumReportRequest(query="TCS", suppliedCandles={"stock": 1}).suppliedCandles == {"stock": 1}
+
+
+def test_a_bad_quote_price_basis_falls_back_through_the_dashboard(dashboard):
+    symbol, upstox_calls, finedge_paths = dashboard
+    raw, *_ = server._premium_dashboard_inputs(symbol, "consolidated", NOW, payload(price=FIXTURE_PRICE * 1.3))
+    assert raw["technicalPriceInput"]["provider"] != "Dhan"
+    raw, *_ = server._premium_dashboard_inputs(symbol, "consolidated", NOW, payload(price=FIXTURE_PRICE * 1.1))
+    assert raw["technicalPriceInput"]["provider"] == "Dhan"

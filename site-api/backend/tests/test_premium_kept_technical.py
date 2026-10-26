@@ -5,7 +5,7 @@ again, and candles that were kept are reused only when they end on today's last 
 from datetime import timedelta
 
 from backend import server
-from backend.tests.test_premium_supplied_candles import NOW, dashboard, payload  # noqa: F401  (dashboard is a fixture)
+from backend.tests.test_premium_supplied_candles import FIXTURE_PRICE, NOW, dashboard, payload  # noqa: F401  (dashboard is a fixture)
 
 
 def kept_from(symbol, supplied=None, now=NOW):
@@ -35,8 +35,8 @@ def test_supplied_candles_replace_the_kept_ones_exactly_as_in_a_fresh_fetch(dash
     symbol, *_ = dashboard
     kept = kept_from(symbol)
     assert kept["raw"]["technicalPriceInput"]["provider"] != "Dhan"
-    current = server._premium_kept_with_current_technical(kept, NOW, payload())
-    fresh = server._premium_dashboard_inputs(symbol, "consolidated", NOW, payload())[0]
+    current = server._premium_kept_with_current_technical(kept, NOW, payload(price=FIXTURE_PRICE))
+    fresh = server._premium_dashboard_inputs(symbol, "consolidated", NOW, payload(price=FIXTURE_PRICE))[0]
     assert current["technicalPriceInput"] == fresh["technicalPriceInput"] and current["technicalPriceInput"]["provider"] == "Dhan"
     assert current["technicalBenchmarks"] == fresh["technicalBenchmarks"]
     assert kept["raw"]["technicalPriceInput"]["provider"] != "Dhan"
@@ -46,10 +46,10 @@ def test_supplied_candles_replace_the_kept_ones_exactly_as_in_a_fresh_fetch(dash
 
 def test_kept_dhan_candles_are_not_reused_when_no_candles_are_supplied_now(dashboard):
     symbol, *_ = dashboard
-    kept = kept_from(symbol, payload())
+    kept = kept_from(symbol, payload(price=FIXTURE_PRICE))
     assert kept["raw"]["technicalPriceInput"]["provider"] == "Dhan"
     assert server._premium_kept_with_current_technical(kept, NOW, None) is None
-    assert server._premium_kept_with_current_technical(kept, NOW, payload()) is not None
+    assert server._premium_kept_with_current_technical(kept, NOW, payload(price=FIXTURE_PRICE)) is not None
 
 
 def test_kept_inputs_without_technical_data_are_not_used_for_the_technical_view(dashboard):
