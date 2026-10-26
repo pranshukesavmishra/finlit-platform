@@ -25,7 +25,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from . import alertapi, commodities, indices, intraday, leadership_api, notify, premium
+from . import alertapi, commodities, indices, intraday, leadership_api, notify, premium, prism
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from .screener import api as screener_api
@@ -232,6 +232,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             await app.state.index_dhan.aclose()
         if getattr(app.state, "options_dhan", None):
             await app.state.options_dhan.aclose()
+        if getattr(app.state, "prism_client", None):
+            await app.state.prism_client.aclose()
         if warm:
             warm.cancel()
         if store is None:
@@ -527,6 +529,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(dcf_api.router)
     app.include_router(options_api.router)
     app.include_router(results_api.router)
+    app.include_router(prism.router)   # /api/prism/*: the members' door to the site backend's administrator-only /api/premium-reports
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own
     if settings.frontend_dist:  # one container serves the website and the API (see finlit/web.py)

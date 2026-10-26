@@ -206,6 +206,7 @@ import time as _time
 
 import httpx
 
+from finlit import leadership_api
 from finlit.api import create_app
 from test_integration import make_settings, store  # noqa: F401
 
@@ -217,6 +218,10 @@ def _levels(growth, weeks=140):
 
 async def _seed(store, n=14, industry="IT - Software"):
     async with store.pool.acquire() as conn:
+        for t in ("leadership", "leadership_history", "leadership_excluded", "sector_reliability"):
+            await conn.execute(f"DELETE FROM {t}")  # nosec B608 - fixed table names
+        await conn.execute("UPDATE feature_flags SET enabled = false WHERE name = 'leadership'")
+        await conn.execute("DELETE FROM price_history_long")
         for i in range(n):
             sym = f"T{i:02d}"
             await conn.execute("INSERT INTO companies (symbol, name, sector, industry) VALUES ($1, $2, 'Information Technology', $3) ON CONFLICT DO NOTHING", sym, f"Tee {i}", industry)
@@ -235,11 +240,18 @@ async def _seed(store, n=14, industry="IT - Software"):
 async def test_weekly_run_then_api(store):  # noqa: F811
     await _seed(store)
     settings = make_settings()
-    res = await L.run(store, settings, as_of=END)
-    assert res["labelled"] == 14 and res["history"] == 14
     app = create_app(settings, store=store)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+            before = (await c.get("/api/stocks/T00/leadership")).json()
+            assert before == {"available": False, "reason": "hidden"}                      # the switch is off: nobody but an administrator sees it
+            async with store.pool.acquire() as conn:
+                await conn.execute("UPDATE feature_flags SET enabled = true WHERE name = 'leadership'")
+            leadership_api._flag["at"] = 0.0
+            assert (await c.get("/api/stocks/T00/leadership")).json() == {"available": False, "reason": "pending"}   # on, but the first weekly run has not happened
+            res = await L.run(store, settings, as_of=END)
+            assert res["labelled"] == 14 and res["history"] == 14
+            assert "public" in (await c.get("/api/stocks/T00/leadership")).headers["cache-control"]
             top = (await c.get("/api/stocks/T00/leadership")).json()
             bottom = (await c.get("/api/stocks/T13/leadership")).json()
             mid = (await c.get("/api/stocks/T07/leadership")).json()
@@ -270,3 +282,82 @@ async def test_small_industry_widens_and_tiny_one_is_unranked(store):  # noqa: F
     assert res["labelled"] == 0
     async with store.pool.acquire() as conn:
         assert await conn.fetchval("SELECT reason FROM leadership_excluded WHERE symbol = 'T00'") == "group"
+
+
+@pytest.mark.integration
+async def test_banks_are_split_into_private_and_public_sector_groups(store):  # noqa: F811
+    await _seed(store, n=0)
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE feature_flags SET enabled = true WHERE name = 'leadership'")
+    names = [("HDFCBANK", "private"), ("ICICIBANK", "private"), ("KOTAKBANK", "private"), ("AXISBANK", "private"), ("INDUSINDBK", "private"), ("FEDERALBNK", "private"),
+             ("SBIN", "psu"), ("PNB", "psu"), ("UNIONBANK", "psu"), ("BANKBARODA", "psu"), ("INDIANB", "psu"), ("CANBK", "psu"), ("IDBI", "other")]
+    async with store.pool.acquire() as conn:
+        for i, (sym, _) in enumerate(names):
+            await conn.execute("INSERT INTO companies (symbol, name, sector, industry) VALUES ($1, $1, 'Financial Services', 'Banks')", sym)
+            await conn.execute("INSERT INTO scores (symbol, statement, model, overall, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, sector, industry, macro_sector) "
+                               "VALUES ($1, 'consolidated', 'v1', 50, 50, 50, 50, 50, 'Financial Services', 'Banks', 'Financial Services')", sym)
+            await conn.execute("INSERT INTO listing_quotes (symbol, market_cap) VALUES ($1, $2) ON CONFLICT DO NOTHING", sym, 90000 - i * 100)
+            g = 0.004 - i * 0.0004
+            ds = [END - timedelta(days=7 * (119 - k)) for k in range(120)]
+            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'price-MAX', $2, 'x', now())", sym,
+                               _json.dumps({"series": {"t": [d.isoformat() for d in ds], "c": [100 * (1 + g) ** k for k in range(120)], "v": [1e6] * 120}}))
+    for code in ("NIFPRIBAN", "NIFPSUBAN", "NIFBAN", "NIF50", "NIFMID150", "NIFSMA250"):
+        await store.redis.set(f"idx:px:{code}", _json.dumps({"t": _time.time(), "v": _levels(0.002)}))
+    await L.run(store, make_settings(), as_of=END)
+    async with store.pool.acquire() as conn:
+        got = {r["symbol"]: (r["group_name"], r["sector_code"], r["ranked"]) for r in await conn.fetch("SELECT symbol, group_name, sector_code, ranked FROM leadership")}
+    assert got["HDFCBANK"] == ("private banks", "NIFPRIBAN", 6) and got["SBIN"] == ("public sector banks", "NIFPSUBAN", 6)
+    assert got["IDBI"][0] == "Financial Services" and got["IDBI"][1] == "peer_average"   # a lone bank outside both lists is ranked with the whole sector, against its peers' average
+
+
+async def test_switch_endpoints_need_an_administrator(store):  # noqa: F811
+    app = create_app(make_settings(), store=store)
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+            assert (await c.get("/api/admin/features")).status_code in (401, 403)
+            assert (await c.put("/api/admin/features/leadership", json={"enabled": True})).status_code in (401, 403)
+
+
+# --------------------------------------------------------------------------------------------------- longer history
+from finlit import history as H
+
+
+def test_older_closes_are_scaled_to_meet_the_report_and_nothing_overlaps():
+    recent = [date(2024, 1, 5) + timedelta(days=7 * i) for i in range(5)]
+    old = [date(2023, 11, 24) + timedelta(days=7 * i) for i in range(8)]       # runs to 2024-01-12: overlaps the report by two weeks
+    d, c = H.splice(recent, [200.0] * 5, old, [100.0 + i for i in range(8)])
+    assert d == sorted(set(d)) and d[0] == old[0] and d[-5:] == recent
+    k = 200.0 / 106.0   # the old close on the join date (2024-01-05) is 106, so older closes are multiplied by 200 / 106
+    assert [round(x, 4) for x in c[:2]] == [round(100.0 * k, 4), round(101.0 * k, 4)]
+    assert H.splice(recent, [1.0] * 5, [date(2010, 1, 1)], [5.0]) == (recent, [1.0] * 5)    # no overlap near the join: nothing is added
+    assert H.splice([], [], old, [1.0] * 8) == ([], [])
+
+
+def test_weekly_closes_take_the_last_day_of_each_week_and_drop_bad_ticks():
+    rows = [{"quote_date": f"2024-01-{d:02d}", "close_price": c} for d, c in [(1, 100), (2, 101), (3, 0), (5, 103), (8, 104), (12, 110)]]
+    ds, cs = H.weekly_closes({"price": rows})
+    assert ds == [date(2024, 1, 5), date(2024, 1, 12)] and cs == [103.0, 110.0]
+
+
+@pytest.mark.integration
+async def test_backfill_stores_older_weeks_and_tries_each_company_once(store):  # noqa: F811
+    await _seed(store, n=3)
+
+    class Fake:
+        calls = []
+        async def get(self, path, params=None, timeout=10, retries=3):
+            self.calls.append(path)
+            if path.endswith("/T01"):
+                raise RuntimeError("provider down")
+            return {"price": [{"quote_date": (date(2004, 1, 5) + timedelta(days=7 * i)).isoformat(), "close_price": 10 + i} for i in range(1100)]}
+
+    f = Fake()
+    out = await H.backfill(f, store, limit=10)
+    assert out["stored"] == 2 and out["failed"] == 1 and out["oldest"] == "2004-01-05"
+    again = await H.backfill(f, store, limit=10)     # tried within 90 days: left alone, apart from the one that failed
+    assert again["stored"] == 0 and again["failed"] == 1
+    async with store.pool.acquire() as conn:
+        n, first = await conn.fetchrow("SELECT count(*), min(first_date) FROM price_history_long")
+        assert n == 2 and first == date(2004, 1, 5)
+    prices = await L._load_prices(store, await L._load_universe(store), long_history=True)
+    assert prices["T00"][0].dates[0] <= date(2004, 1, 9) and len(prices["T00"][0]) > 600

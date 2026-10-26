@@ -37,6 +37,8 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 45 2 * * *       root $W refresh-indices >> /var/log/finlit-ingest.log 2>&1
 40 3 * * *       root flock -w 10800 /tmp/finlit-funds.lock $W backfill-mf >> /var/log/finlit-funds.log 2>&1
 # Leader / In line / Laggard labels: weekly, Saturday, after Friday's close; the reliability backtest: quarterly (first Sunday of Jan, Apr, Jul, Oct).
+20 4 * * *      root $W backfill-history >> /var/log/finlit-ingest.log 2>&1
+10 5 * * *      root $W precompute-prism >> /var/log/finlit-ingest.log 2>&1
 50 3 * * 6       root $W refresh-leadership >> /var/log/finlit-ingest.log 2>&1
 10 4 * 1,4,7,10 0 root [ $(date +\%d) -le 7 ] && $W backtest-leadership >> /var/log/finlit-ingest.log 2>&1
 # Keep the database inside its storage budget.

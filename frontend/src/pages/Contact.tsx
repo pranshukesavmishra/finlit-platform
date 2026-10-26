@@ -26,7 +26,7 @@ export function Contact() {
         <div className="card">
           {m.isSuccess ? <div className="done"><div className="done-ic"><Icon name="check" /></div><h3 style={{ font: "400 26px var(--serif)" }}>Message sent</h3><p className="muted">Thanks. We have it, and we usually reply within one working day.</p></div> : (
             <form className="form" onSubmit={submit} noValidate>
-              <div className="fgrid"><label>Name<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" required /></label><label>Email<input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" required /></label>
+              <div className="fgrid"><label>Name<input value={f.name} maxLength={120} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" required /></label><label>Email<input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" required /></label>
                 <label>Mobile (optional)<input type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} autoComplete="tel" /></label><label>Subject (optional)<input value={f.subject} maxLength={200} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label></div>
               <label>Message<textarea rows={6} value={f.message} maxLength={5000} onChange={(e) => setF({ ...f, message: e.target.value })} required /></label>
               {err && <div className="formerr" role="alert">{err}</div>}

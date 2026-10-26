@@ -161,3 +161,29 @@ def test_cash_flow_extends_within_the_wider_margin_and_never_across_a_sign_chang
     assert longer and [r["period_end"][:4] for r in longer] == ["2023", "2024", "2025", "2026"]
     flipped = [{**r, "cashFlowsFromOperatingActivities": -r["cashFlowsFromOperatingActivities"]} for r in up]
     assert upstox.extend_history(fe, flipped, keys=("cashFlowsFromOperatingActivities",), tolerance=upstox.CASH_TOLERANCE) is None
+
+
+def test_token_days_left_reads_the_expiry_inside_the_token():
+    import base64, json
+    from finlit import upstox
+
+    def jwt(exp):
+        part = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
+        return f"{part({'alg': 'HS256'})}.{part({'exp': exp})}.sig"
+    assert upstox.token_days_left(jwt(1_000_000 + 10 * 86400 + 5), now=1_000_000) == 10
+    assert upstox.token_days_left(jwt(1_000_000 - 86400 - 5), now=1_000_000) < 0
+    assert upstox.token_days_left("not-a-jwt") is None and upstox.token_days_left("") is None
+
+
+async def test_an_expired_note_applies_only_to_the_token_it_was_recorded_for():
+    from finlit import upstox
+    from finlit.config import Settings
+
+    class R:
+        def __init__(self, v): self.v = v
+        async def get(self, key): return self.v
+    old, new = "old.token.value", "new.token.value"
+    s = Settings(upstox_access_token=new)
+    assert (await upstox.health_line(R(f"expired|1|{upstox.token_tag(old)}"), s))["state"] == "connected"      # a fresh token clears the old note
+    assert (await upstox.health_line(R(f"expired|1|{upstox.token_tag(new)}"), s))["state"] == "token_expired"
+    assert (await upstox.health_line(R("expired|1"), s))["state"] == "token_expired"                           # a note from before fingerprints still counts

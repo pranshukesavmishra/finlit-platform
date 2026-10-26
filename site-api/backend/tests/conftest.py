@@ -75,7 +75,7 @@ def asgi_request(app, method, path, payload=None, headers=None):
     request_headers = [(key.encode(), value.encode()) for key, value in request_header_values.items()]
     messages = []
     sent_body = False
-    response_finished = asyncio.Event()
+    response_finished = None
 
     async def receive():
         nonlocal sent_body
@@ -97,7 +97,12 @@ def asgi_request(app, method, path, payload=None, headers=None):
         "server": ("localhost", 80), "client": ("127.0.0.1", 123),
         "root_path": "",
     }
-    asyncio.run(app(scope, receive, send))
+    async def run_request():
+        nonlocal response_finished
+        response_finished = asyncio.Event()
+        await app(scope, receive, send)
+
+    asyncio.run(run_request())
     response = next(message for message in messages if message["type"] == "http.response.start")
     response_body = b"".join(message.get("body", b"") for message in messages if message["type"] == "http.response.body")
     response_text = response_body.decode("utf-8", errors="replace")

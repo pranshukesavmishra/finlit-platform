@@ -348,9 +348,9 @@ async def _fetch_history(app, code: str) -> Any:
                                                                    "to_date": today.isoformat()}, timeout=25, retries=1)
 
 
-async def _fetch_levels(app, code: str) -> Any:
+async def _fetch_levels(app, code: str, years: int = HISTORY_YEARS) -> Any:
     today = datetime.now(IST).date()
-    return await _client(app).get("/index/market-price/historical", {"index_symbol": code, "from_date": (today - timedelta(days=round(365.25 * HISTORY_YEARS) + 7)).isoformat(),
+    return await _client(app).get("/index/market-price/historical", {"index_symbol": code, "from_date": (today - timedelta(days=round(365.25 * years) + 7)).isoformat(),
                                                                       "to_date": today.isoformat()}, timeout=25, retries=1)
 
 

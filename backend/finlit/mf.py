@@ -1530,6 +1530,13 @@ async def publish_hot(store, basis: str, built, facts: dict) -> None:
 
 # ====================================================================================== history backfill (separate, resumable)
 
+async def _history_wiped(conn) -> bool:
+    """True when the 'house done' markers outlived the figures they stand for: many active Growth schemes, and under 5% of them with a 1-year return.
+    That happens after the scheme table is rebuilt (every scheme is new again) while mf_backfill is kept; without this the load skips every house forever."""
+    row = await conn.fetchrow(f"SELECT count(*) AS n, count(r1y) AS ok FROM mf_schemes WHERE {HIST_WANTED}")  # nosec B608 - constant filter, no input
+    return row["n"] >= 100 and row["ok"] < 0.05 * row["n"]
+
+
 async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: Optional[httpx.AsyncClient] = None, force: bool = False,
                    log_fn=print, settle: bool = True) -> dict:
     """Load five years of NAV history from AMFI for the active Growth schemes, ONE FUND HOUSE AT A TIME (AMFI cannot filter below a fund house).
@@ -1543,6 +1550,10 @@ async def backfill(store, settings=None, amc: Optional[str] = "all", *, client: 
             newest = await conn.fetchval("SELECT max(nav_date) FROM mf_schemes")
             rows = await conn.fetch(f"SELECT code, amc, nav, nav_date FROM mf_schemes WHERE {HIST_WANTED}")  # nosec B608 - fixed column list and constant filter, no input
             done = {r["amc_key"] for r in await conn.fetch("SELECT amc_key FROM mf_backfill")}
+            if done and not force and await _history_wiped(conn):
+                await conn.execute("DELETE FROM mf_backfill")
+                log.warning("mf backfill: %d fund houses were marked done but almost no scheme has a 1-year return; the markers are cleared and every house is loaded again", len(done))
+                done = set()
         if newest is None:
             return {**out, "status": "empty", "reason": "no schemes stored yet: run refresh first"}
         by_amc: Dict[str, List[dict]] = {}

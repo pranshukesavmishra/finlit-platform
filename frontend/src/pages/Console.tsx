@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, apiGet, apiUrl } from "../lib/api";
+import { ApiError, apiGet, apiSend, apiUrl } from "../lib/api";
 import { useIpos } from "../lib/ipo";
 import { useFeed } from "../lib/feed";
 import * as acct from "../lib/account";
@@ -32,6 +32,31 @@ function NotifyList() {
   );
 }
 
+/** Switches that show a feature to administrators only until they are turned on for everyone. */
+function Features() {
+  const qc = useQueryClient(); const { toast } = useUI();
+  const q = useQuery({ queryKey: ["admin-features"], queryFn: () => apiGet<{ features: { name: string; enabled: boolean; updatedAt: string; updatedBy: string | null }[] }>("/api/admin/features"), retry: false });
+  const set = useMutation({
+    mutationFn: (v: { name: string; enabled: boolean }) => apiSend("PUT", `/api/admin/features/${v.name}`, { enabled: v.enabled }),
+    onSuccess: (_d, v) => { qc.invalidateQueries({ queryKey: ["admin-features"] }); qc.removeQueries({ queryKey: ["leadership"] }); toast(v.enabled ? "Switched on for everyone." : "Switched off: only administrators see it."); },
+    onError: (e) => toast(msg(e)),
+  });
+  const LABEL: Record<string, string> = { leadership: "Leader / In line / Laggard label" };
+  if (q.isError) return null;
+  return (
+    <section className="card acct-c">
+      <h2>Feature switches</h2>
+      <p className="muted">A switch that is off shows the feature to administrators only, so it can be checked on the live site first.</p>
+      {!q.data ? <div className="skeleton" style={{ height: 50 }} /> : q.data.features.map((f) => (
+        <div key={f.name} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "8px 0" }}>
+          <b>{LABEL[f.name] || f.name}</b>
+          <span className="muted">{f.enabled ? "On for everyone" : "Administrators only"}{f.updatedBy ? ` · changed by ${f.updatedBy}, ${stamp(f.updatedAt)}` : ""}</span>
+          <button className={"btn" + (f.enabled ? "" : " primary")} disabled={set.isPending} onClick={() => set.mutate({ name: f.name, enabled: !f.enabled })}>{f.enabled ? "Switch off" : "Switch on for everyone"}</button>
+        </div>))}
+    </section>
+  );
+}
+
 export function Console() {
   useDocTitle("Admin console", "FinLit administrators: manage members, plans and the audit log.");
   const { user, ready, isAdmin } = useAuth();
@@ -49,7 +74,7 @@ export function Console() {
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
       {tab === "content" && <ContentAdmin />}
-      {tab === "data" && <><Health /><FundLoads /><NotifyList /></>}
+      {tab === "data" && <><Health /><FundLoads /><Features /><NotifyList /></>}
       {tab === "audit" && <Audit />}
     </div>
   );

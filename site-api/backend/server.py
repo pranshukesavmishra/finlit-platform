@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, File, UploadFile, Query, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, File, UploadFile, Query, Request, BackgroundTasks
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -11,12 +11,13 @@ from typing import Any, Dict, List, Optional
 from typing import Literal
 import uuid
 from datetime import date, datetime, timezone, timedelta
-from time import monotonic, time
+from time import monotonic, time, sleep
 from urllib.parse import quote, urlparse
 import asyncio
 import bcrypt
 from functools import lru_cache
 import hashlib
+import secrets
 import jwt
 import nh3
 import re
@@ -27,8 +28,8 @@ import csv
 from io import StringIO
 from html import escape
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi.responses import FileResponse, JSONResponse
-from pymongo.errors import ServerSelectionTimeoutError
+from fastapi.responses import FileResponse, JSONResponse, Response
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from starlette.concurrency import run_in_threadpool
 try:
     from backend.email_service import send_lead_emails, send_service_enquiry_email, EmailNotConfigured
@@ -48,17 +49,79 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=5000,
-    connectTimeoutMS=5000,
-)
-db = client[os.environ['DB_NAME']]
+def _env_int(name, default, low, high):
+    """A whole-number setting from the environment, clamped to [low, high]; blank or invalid means the default."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return min(high, max(low, int(raw)))
+    except ValueError:
+        logger.warning("%s is not a whole number; using %s", name, default)
+        return default
+
+
+# MongoDB connection. Optional: without MONGO_URL the server still starts, because FinLit Prism (the premium reports), the
+# fundamentals tools and the market data need no database. Every database call then fails at once with MongoNotConfigured,
+# which the handler below turns into a 503 (no connection attempt, no 5-second server-selection wait).
+class MongoNotConfigured(ServerSelectionTimeoutError):
+    """MONGO_URL is not set. A ServerSelectionTimeoutError, so routes that already degrade when MongoDB is unreachable degrade the same way."""
+
+
+class _UnconfiguredCollection:
+    def __init__(self, name):
+        self._name = name
+
+    def __getattr__(self, attr):
+        def unavailable(*_args, **_kwargs):
+            raise MongoNotConfigured(f"MONGO_URL is not set (collection {self._name}.{attr})")
+        return unavailable
+
+
+class _UnconfiguredDatabase:
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        return _UnconfiguredCollection(name)
+
+    __getitem__ = __getattr__
+
+
+class _UnconfiguredClient:
+    def __getitem__(self, _name):
+        return _UnconfiguredDatabase()
+
+    def close(self):
+        pass
+
+
+mongo_url = os.environ.get('MONGO_URL', '').strip()
+if mongo_url:
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+    )
+    db = client[os.environ['DB_NAME']]
+else:
+    logger.warning("MONGO_URL is not set: blog/CMS, portfolio uploads and forms answer 503; premium reports and market data still work")
+    client = _UnconfiguredClient()
+    db = client[os.environ.get('DB_NAME') or 'finlit']
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+
+@app.exception_handler(ConnectionFailure)
+async def database_unavailable(_request: Request, exc: ConnectionFailure):
+    """MongoDB not configured (MONGO_URL unset) or not reachable: a clear 503 instead of a 500."""
+    configured = not isinstance(exc, MongoNotConfigured)
+    if configured:
+        logger.warning("MongoDB is unavailable: %s", type(exc).__name__)
+    detail = ("This part of the site is temporarily unavailable. Please try again shortly." if configured
+              else "This part of the site is not available: its content database is not connected.")
+    return JSONResponse({"detail": detail}, status_code=503,
+                        headers={"Cache-Control": "no-store", "Retry-After": "30", "X-CMS-Content-Store": "unavailable"})
 
 # Kept on the server so provider symbols and credentials never reach the browser.
 NIFTY_50_CONSTITUENTS_URL = "https://www.niftyindices.com/IndexConstituent/ind_nifty50list.csv"
@@ -69,6 +132,9 @@ MARKET_TICKER_INDEX_INSTRUMENTS = [
 MARKET_TICKER_CACHE_SECONDS = 60
 NIFTY_50_CONSTITUENTS_CACHE_SECONDS = 60 * 60 * 6
 STOCK_FUNDAMENTALS_CACHE_SECONDS = 60 * 15
+# Resolved provider data per symbol/basis/period (each premium report adds 2-4). Bounded, so a day of reports on many companies
+# cannot fill a small (512 MB) host; STOCK_FUNDAMENTALS_CACHE_ENTRIES changes the bound.
+STOCK_FUNDAMENTALS_CACHE_ENTRIES = _env_int("STOCK_FUNDAMENTALS_CACHE_ENTRIES", 32, 4, 2000)
 _market_ticker_cache = {"items": None, "fetched_at": 0.0}
 _nifty_50_constituents_cache = {"items": None, "fetched_at": 0.0}
 _stock_fundamentals_cache = {}
@@ -422,7 +488,10 @@ async def public_content_detail(slug: str):
 
 async def current_portfolio_report():
     """The latest uploaded report (kept in MongoDB so a restart cannot revert it); falls back to the file shipped with the code."""
-    saved = await db.portfolio_state.find_one({"_id": "current"})
+    try:
+        saved = await db.portfolio_state.find_one({"_id": "current"})
+    except MongoNotConfigured:  # no database at all: the shipped file is the current report (nothing can have been uploaded)
+        saved = None
     return saved["report"] if saved else read_current_portfolio_report()
 
 
@@ -523,6 +592,227 @@ async def admin_stock_fundamentals(
 ):
     data = await asyncio.to_thread(_fetch_stock_fundamentals, query, statement_type, period)
     return JSONResponse(data, headers={"Cache-Control": "no-store"})
+
+
+class PremiumReportRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=80)
+    statement_type: Literal["consolidated", "standalone"] = "consolidated"
+    delivery: Literal["background", "inline"] = "background"
+
+
+class PremiumSnapshotPDFRequest(BaseModel):
+    report: Dict[str, Any]
+    receipt: str = Field(min_length=16, max_length=2048)
+
+
+def _generation_slots_setting():
+    """PREMIUM_GENERATION_SLOTS (1-4, default 2): premium reports calculated at once in this process."""
+    return _env_int("PREMIUM_GENERATION_SLOTS", 2, 1, 4)
+
+
+_premium_generation_slots = asyncio.Semaphore(_generation_slots_setting())
+# Transient generation state only: no report collection, persistence or history API.
+_PREMIUM_JOB_TTL_SECONDS = 30 * 60
+_PREMIUM_JOB_LIMIT = 20
+_premium_jobs = {}
+
+
+def _prune_premium_jobs():
+    now = monotonic()
+    for key, job in list(_premium_jobs.items()):
+        if job["expires"] <= now:
+            _premium_jobs.pop(key, None)
+
+
+def _premium_dashboard_inputs(symbol, statement_type, now):
+    """Use exactly the dashboard's resolved provider data, including its cache."""
+    annual, quarterly = {}, {}
+    yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
+    effective = yearly["statementType"]
+    quarterly_view = _fetch_stock_fundamentals(symbol, effective, "quarterly", quarterly)
+    if quarterly_view["statementType"] != effective:
+        effective = quarterly_view["statementType"]
+        annual = {}
+        yearly = _fetch_stock_fundamentals(symbol, effective, "yearly", annual)
+    quote_data = yearly.get("quote", {})
+    raw = {"profile": annual.get("profile", {}), "annual": annual.get("income", {}),
+        "quarterly": quarterly.get("income", {}), "balance": annual.get("balance", {}),
+        "balance_recent": quarterly.get("balance", {}), "cashflow": annual.get("cashflow", {}),
+        "prices": annual.get("prices", {}), "summary": annual.get("summary", {}),
+        "distribution": annual.get("distribution", {}), "declaration": annual.get("declaration", {}),
+        "asset_quality": {"financials": quarterly.get("assetQualityRows", [])},
+        "asset_quality_basis": quarterly.get("assetQualityBasis"),
+        "benchmarkObservations": annual.get("benchmarkObservations", []),
+        "quote": {symbol: {"current_price": quote_data.get("price"), "tradetime": quote_data.get("timestamp"),
+                            "market_cap": quote_data.get("marketCap"), "shares": quote_data.get("shares")}}}
+    resolved_profile = yearly.get("profile", {})
+    if isinstance(raw["profile"], dict):
+        raw["profile"] = {**raw["profile"], **{key: value for key, value in {
+            "name": yearly.get("instrument", {}).get("name"), "industry": resolved_profile.get("industry"),
+            "sector": resolved_profile.get("sector"), "description": resolved_profile.get("description")}.items() if value is not None}}
+    # Additional history required by the model uses the same FinEdge connector.
+    sources = []
+    for section, path, params in [
+        ("ratios", f"/daily-price-ratios/{_stock_symbol_path(symbol)}", {"statement_type": "c" if effective == "consolidated" else "s", "from": str(now.year-5), "to": str(now.year)}),
+        ("peers", f"/peers/{_stock_symbol_path(symbol)}", {"group": "industry"})]:
+        try:
+            raw[section] = _finedge_get(path, params)
+            available = True
+        except Exception:
+            raw[section], available = {}, False
+        sources.append({"section": section, "available": available, "retrievedAt": now.isoformat()})
+    for period, view in (("yearly", yearly), ("quarterly", quarterly_view)):
+        sources.extend({"section": f"Dashboard {period}: {key} ({provider})", "available": True,
+                        "retrievedAt": view["generatedAt"], "provider": provider} for key, provider in view["sources"].items())
+    # The model's cash conversion consumes annual cash flow only. Do not turn
+    # the dashboard's separate quarterly-CF availability into a model warning.
+    quarterly_notes = [note for note in quarterly.get("resolutionNotes", []) if "cashflow" not in note.lower()]
+    notes = list(dict.fromkeys(annual.get("resolutionNotes", []) + quarterly_notes))
+    return raw, sources, effective, {"yearly": yearly["sources"], "quarterly": quarterly_view["sources"],
+        "requestedStatementType": statement_type, "effectiveStatementType": effective,
+        "bankAssetQualityStatementType": quarterly.get("assetQualityBasis"), "notes": notes}
+
+
+async def _generate_premium_report(report_id, symbol, name, statement_type, created_at):
+    try:
+        from backend.premium_service import generate_report
+    except ImportError:
+        from premium_service import generate_report
+    try:
+        async with _premium_generation_slots:
+            report = await asyncio.to_thread(generate_report, _finedge_get, symbol, name, statement_type, report_id, created_at, _premium_dashboard_inputs)
+            job = _premium_jobs.get(report_id)
+            if job and job["expires"] > monotonic() and job["report"]["state"] == "generating":
+                job["report"] = report
+    except Exception:
+        logger.warning("Premium report generation failed: %s", report_id)
+        job = _premium_jobs.get(report_id)
+        if job:
+            job["report"] = {**job["report"], "state": "failed", "error": "The report could not be generated. Please retry."}
+
+
+@api_router.post("/premium-reports", status_code=202)
+async def create_premium_report(payload: PremiumReportRequest, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
+    _prune_premium_jobs()
+    instrument = await asyncio.to_thread(_resolve_finedge_stock, payload.query.strip())
+    symbol = str(instrument.get("symbol") or "").upper()
+    if not re.fullmatch(r"[A-Z0-9.&-]{1,30}", symbol):
+        raise HTTPException(status_code=400, detail="Select a valid company symbol.")
+    if payload.delivery == "inline":
+        # Vercel can route each request to a different process. Complete this
+        # request and return a signed snapshot instead of polling local memory.
+        try:
+            from backend.premium_service import generate_report
+            from backend.premium_snapshot import issue
+        except ImportError:
+            from premium_service import generate_report
+            from premium_snapshot import issue
+        report_id = uuid.uuid4().hex
+        created_at = datetime.now(timezone.utc).isoformat()
+        try:
+            async with _premium_generation_slots:
+                report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at, _premium_dashboard_inputs)
+            snapshot = issue(report, _admin["sub"], token_secret())
+        except Exception as exc:
+            logger.warning("Inline premium report generation failed (%s): %s", type(exc).__name__, report_id)
+            raise HTTPException(status_code=502, detail="The financial data providers could not complete this report. Please retry.") from None
+        return JSONResponse(snapshot, headers={"Cache-Control": "no-store"})
+    if len(_premium_jobs) >= _PREMIUM_JOB_LIMIT:
+        completed = next((key for key, job in _premium_jobs.items() if job["report"]["state"] != "generating"), None)
+        if completed is None:
+            raise HTTPException(status_code=429, detail="Report generation is busy. Please try again shortly.")
+        _premium_jobs.pop(completed, None)
+    report_id = uuid.uuid4().hex
+    created_at = datetime.now(timezone.utc).isoformat()
+    pending = {"id": report_id, "state": "generating", "createdAt": created_at, "statementType": payload.statement_type,
+               "company": {"symbol": symbol, "name": instrument.get("name") or symbol}}
+    _premium_jobs[report_id] = {"report": pending, "expires": monotonic() + _PREMIUM_JOB_TTL_SECONDS}
+    asyncio.get_running_loop().call_later(_PREMIUM_JOB_TTL_SECONDS, _premium_jobs.pop, report_id, None)
+    background_tasks.add_task(_generate_premium_report, report_id, symbol, instrument.get("name"), payload.statement_type, created_at)
+    return JSONResponse(pending, status_code=202, headers={"Cache-Control": "no-store"})
+
+
+async def _current_premium_report(report_id):
+    _prune_premium_jobs()
+    if not re.fullmatch(r"[a-f0-9]{32}", report_id):
+        raise HTTPException(status_code=404, detail="Report not found or expired. Generate a new report.")
+    job = _premium_jobs.get(report_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Report not found or expired. Generate a new report.")
+    report = job["report"]
+    if report["state"] == "generating" and (datetime.now(timezone.utc) - datetime.fromisoformat(report["createdAt"])).total_seconds() > 600:
+        report = {**report, "state": "failed", "error": "Generation was interrupted or timed out. Please generate a new report."}
+        job["report"] = report
+    return report
+
+
+@api_router.get("/premium-reports/{report_id}")
+async def get_premium_report(report_id: str, _admin=Depends(require_admin)):
+    return JSONResponse(await _current_premium_report(report_id), headers={"Cache-Control": "no-store"})
+
+
+# Short-lived, one-use, report-scoped capabilities support browser-native attachment
+# downloads without placing the administrator JWT in URLs or granting report browsing.
+_premium_pdf_tokens = {}
+
+
+@api_router.post("/premium-reports/{report_id}/download-link")
+async def premium_report_download_link(report_id: str, _admin=Depends(require_admin)):
+    report = await _current_premium_report(report_id)
+    if report["state"] != "ready":
+        raise HTTPException(status_code=409, detail="The report is not ready to download.")
+    now = monotonic()
+    for key, value in list(_premium_pdf_tokens.items()):
+        if value["expires"] <= now:
+            _premium_pdf_tokens.pop(key, None)
+    if len(_premium_pdf_tokens) >= 200:
+        _premium_pdf_tokens.pop(next(iter(_premium_pdf_tokens)))
+    token = secrets.token_urlsafe(32)
+    key = hashlib.sha256(token.encode()).hexdigest()
+    _premium_pdf_tokens[key] = {"id": report_id, "expires": now + 120}
+    return JSONResponse({"url": f"/api/premium-report-downloads/{token}", "expiresIn": 120}, headers={"Cache-Control": "no-store"})
+
+
+@api_router.get("/premium-report-downloads/{token}")
+async def premium_report_attachment(token: str):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{40,60}", token):
+        raise HTTPException(status_code=404, detail="Download link is invalid or expired.")
+    key = hashlib.sha256(token.encode()).hexdigest()
+    capability = _premium_pdf_tokens.pop(key, None)
+    if not capability or capability["expires"] <= monotonic():
+        raise HTTPException(status_code=404, detail="Download link is invalid or expired. Please download again from the report.")
+    report = await _current_premium_report(capability["id"])
+    return await _premium_pdf_response(report)
+
+
+async def _premium_pdf_response(report):
+    if report["state"] != "ready":
+        raise HTTPException(status_code=409, detail="The report is not ready to download.")
+    try:
+        from backend.premium_pdf import render_premium_pdf
+    except ImportError:
+        from premium_pdf import render_premium_pdf
+    content = await asyncio.to_thread(render_premium_pdf, report)
+    filename = f"FinLit-Premium-{report['company']['symbol']}-{report['id'][:8]}.pdf"
+    return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff"})
+
+
+@api_router.post("/premium-reports/pdf")
+async def download_current_premium_snapshot(payload: PremiumSnapshotPDFRequest, _admin=Depends(require_admin)):
+    try:
+        from backend.premium_snapshot import verify
+    except ImportError:
+        from premium_snapshot import verify
+    try:
+        report = verify(payload.report, payload.receipt, _admin["sub"], token_secret())
+    except Exception:
+        raise HTTPException(status_code=400, detail="This report is expired or has changed. Generate a fresh report before downloading.") from None
+    return await _premium_pdf_response(report)
+
+
+@api_router.get("/premium-reports/{report_id}/pdf")
+async def download_premium_report(report_id: str, _admin=Depends(require_admin)):
+    return await _premium_pdf_response(await _current_premium_report(report_id))
 
 
 @api_router.get("/content/admin/items")
@@ -1051,6 +1341,25 @@ def _finedge_api_key():
 
 
 def _finedge_get(path: str, params: Optional[Dict[str, Any]] = None):
+    """Bounded retries shared by dashboard and reports; transient errors are not N/A."""
+    for attempt in range(3):
+        try:
+            return _finedge_get_once(path, params)
+        except (HTTPException, requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            status = getattr(exc, "status_code", None)
+            transient = status in (429, 500, 502, 503, 504) or isinstance(exc, (requests.exceptions.Timeout, requests.exceptions.ConnectionError))
+            if not transient:
+                raise
+            if attempt == 2:
+                raise HTTPException(status_code=429 if status == 429 else 502,
+                                    detail="FinEdge is temporarily unavailable after bounded retries. Please retry.") from None
+            sleep(.5 * (2 ** attempt))
+
+
+_finedge_get._handles_transient_retries = True
+
+
+def _finedge_get_once(path: str, params: Optional[Dict[str, Any]] = None):
     request_params = {**(params or {}), "token": _finedge_api_key()}
     response = requests.get(
         f"{FINEDGE_BASE_URL}{path}",
@@ -1251,6 +1560,30 @@ def _finedge_all_symbols():
     return items
 
 
+_STOCK_SEARCH_ALIASES = {
+    "HUL": "HINDUNILVR", "IHCL": "INDHOTEL", "TAJ HOTEL": "INDHOTEL",
+    "TAJ HOTELS": "INDHOTEL", "ZEE5": "ZEEL", "ZEE 5": "ZEEL",
+}
+
+
+def _stock_name_key(value):
+    words = re.sub(r"[^A-Z0-9]+", " ", str(value or "").upper()).split()
+    return " ".join(word for word in words if word not in {"THE", "LTD", "LIMITED"})
+
+
+def _stock_match_rank(item, query):
+    needle = query.strip().upper()
+    codes = [str(item.get(key) or "").upper() for key in ("symbol", "isin", "bseCode")]
+    name, phrase = _stock_name_key(item.get("name")), _stock_name_key(needle)
+    if needle in codes: return 0
+    if codes[0] == _STOCK_SEARCH_ALIASES.get(phrase): return 1
+    if phrase and name == phrase: return 2
+    if phrase and (name.startswith(phrase + " ") or name.startswith(phrase)): return 3
+    if any(code.startswith(needle) for code in codes if code): return 4
+    if phrase and any(word.startswith(phrase) for word in name.split()): return 5
+    return 6
+
+
 def _search_finedge_stocks(query: str):
     cache_key = f"FINEDGE:{query.strip().upper()}"
     cached = _stock_search_cache.get(cache_key)
@@ -1258,11 +1591,17 @@ def _search_finedge_stocks(query: str):
         return cached["items"]
 
     needle = query.strip().upper()
+    alias = _STOCK_SEARCH_ALIASES.get(_stock_name_key(needle))
     items = [
         item for item in _finedge_all_symbols()
-        if needle in str(item.get("symbol") or "").upper() or needle in str(item.get("name") or "").upper() or needle in str(item.get("isin") or "").upper()
-    ][:20]
+        if alias == item.get("symbol") or any(needle in str(item.get(key) or "").upper() for key in ("symbol", "name", "isin", "bseCode"))
+        or (_stock_name_key(needle) and _stock_name_key(needle) in _stock_name_key(item.get("name")))
+    ]
     items = [item for item in items if item.get("symbol")]
+    # Rank the full directory before limiting suggestions; an exact symbol may
+    # occur after many incidental company-name substring matches.
+    items.sort(key=lambda item: (_stock_match_rank(item, needle), str(item.get("name") or ""), str(item["symbol"])))
+    items = items[:20]
     _stock_search_cache[cache_key] = {"items": items, "fetched_at": monotonic()}
     return items
 
@@ -1306,22 +1645,13 @@ def _resolve_finedge_stock(query: str) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="Enter a stock symbol, company name, or ISIN.")
     matches = _search_finedge_stocks(value)
     if matches:
-        normalized_query = value.upper()
-
-        def score(item):
-            symbol = str(item.get("symbol") or "").upper()
-            name = str(item.get("name") or "").upper()
-            isin = str(item.get("isin") or "").upper()
-            return (
-                0 if symbol == normalized_query else 1,
-                0 if isin == normalized_query else 1,
-                0 if symbol.startswith(normalized_query) or name.startswith(normalized_query) else 1,
-                len(symbol or name),
-            )
-
-        return sorted(matches, key=score)[0]
-    if re.fullmatch(r"[A-Z0-9.&-]{2,24}", value.upper()):
-        return _normalize_finedge_stock({"symbol": value.upper(), "name": value.upper()})
+        best = min(_stock_match_rank(item, value) for item in matches)
+        candidates = [item for item in matches if _stock_match_rank(item, value) == best]
+        if best <= 2 and len(candidates) == 1:
+            return candidates[0]
+        if best <= 5 and len(matches) == 1:
+            return matches[0]
+        raise HTTPException(status_code=422, detail="Several or partial company names match this search. Select the intended company symbol from the suggestions.")
     raise HTTPException(status_code=404, detail="No Indian listed equity was found for this query.")
 
 
@@ -2010,6 +2340,7 @@ INCOME_STATEMENT_ALIASES = {
     "employeeBenefitExpense": "employee_benefit_expense", "employeeBenefitsExpense": "employee_benefit_expense",
     "employeesCost": "employee_benefit_expense",
     "financeCosts": "interest", "financeCost": "interest", "interest": "interest", "interestExpended": "interest",
+    "interestExpense": "interest", "interestExpenses": "interest",
     "depreciation": "depreciation", "depreciationAndAmortisation": "depreciation",
     "depreciationAndAmortization": "depreciation",
     "otherIncome": "other_income",
@@ -2101,13 +2432,13 @@ def _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet
         if operating_profit is not None:
             derived_opm = (operating_profit / revenue) * 100
             current_opm = _to_number((lookup.get("OPERATING MARGIN") or {}).get("company_value"))
-            if current_opm is None or abs(derived_opm - current_opm) / max(abs(derived_opm), 1) > 0.05:
+            if current_opm is None:
                 ratios = _upsert_ratio(ratios, "Operating Margin", round(derived_opm, 2), (lookup.get("OPERATING MARGIN") or {}).get("sector_value"), "derived_income_statement")
                 lookup = _ratio_lookup(ratios)
         if net_profit is not None:
             derived_npm = (net_profit / revenue) * 100
             current_npm = _to_number((lookup.get("NET MARGIN") or {}).get("company_value"))
-            if current_npm is None or abs(derived_npm - current_npm) / max(abs(derived_npm), 1) > 0.05:
+            if current_npm is None:
                 ratios = _upsert_ratio(ratios, "Net Margin", round(derived_npm, 2), (lookup.get("NET MARGIN") or {}).get("sector_value"), "derived_income_statement")
                 lookup = _ratio_lookup(ratios)
     derived_pe = None
@@ -2118,7 +2449,7 @@ def _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet
         current_pe = _to_number((lookup.get("P/E") or {}).get("company_value"))
     if market_cap and net_profit and net_profit > 0:
         derived_pe = market_cap / net_profit
-        if current_pe is None or current_pe <= 0 or abs(derived_pe - current_pe) / max(abs(derived_pe), 1) > 0.15:
+        if current_pe is None or current_pe <= 0:
             ratios = _upsert_ratio(ratios, "P/E", round(derived_pe, 2), (lookup.get("P/E") or {}).get("sector_value"), "derived_market_cap")
     daily_pe = _to_number((price_ratio_snapshot or {}).get("pe"))
     if daily_pe and daily_pe > 0:
@@ -2139,7 +2470,7 @@ def _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet
         derived_pb = market_cap / equity
         lookup = _ratio_lookup(ratios)
         current_pb = _to_number((lookup.get("P/B") or {}).get("company_value"))
-        if current_pb is None or current_pb <= 0 or abs(derived_pb - current_pb) / max(abs(derived_pb), 1) > 0.25:
+        if current_pb is None or current_pb <= 0:
             ratios = _upsert_ratio(ratios, "P/B", round(derived_pb, 2), (lookup.get("P/B") or {}).get("sector_value"), "derived_market_cap")
     daily_pb = _to_number((price_ratio_snapshot or {}).get("pb"))
     if daily_pb and daily_pb > 0:
@@ -2164,11 +2495,11 @@ def _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet
             derived_roe = (net_profit / equity_base) * 100
             lookup = _ratio_lookup(ratios)
             current_roe = _to_number((lookup.get("ROE") or {}).get("company_value"))
-            if current_roe is None or current_roe <= 0 or abs(derived_roe - current_roe) / max(abs(derived_roe), 1) > 0.05:
+            if current_roe is None:
                 ratios = _upsert_ratio(ratios, "ROE", round(derived_roe, 2), (lookup.get("ROE") or {}).get("sector_value"), "derived_equity")
     lookup = _ratio_lookup(ratios)
     current_roce = _to_number((lookup.get("ROCE") or {}).get("company_value"))
-    if current_roce is None or current_roce <= 0:
+    if current_roce is None:
         bank_roce = _derive_bank_roce(income_statement, balance_sheet)
         if bank_roce is not None:
             ratios = _upsert_ratio(ratios, "ROCE", round(bank_roce, 2), (lookup.get("ROCE") or {}).get("sector_value"), "derived_bank_capital_employed")
@@ -2207,7 +2538,7 @@ def _normalize_price_history(payload):
             "high": _to_number(_first_value(row, ["high", "high_price", "highPrice"])) or _to_number(close),
             "low": _to_number(_first_value(row, ["low", "low_price", "lowPrice"])) or _to_number(close),
             "close": _to_number(close),
-            "volume": _to_number(_first_value(row, ["volume", "tradedVolume"])) or 0,
+            "volume": _to_number(_first_value(row, ["volume", "tradedVolume"])),
         })
     return sorted(history, key=lambda item: item["date"])
 
@@ -2241,6 +2572,11 @@ def _quote_from_finedge_quote(payload, symbol: str):
         return {}
     price = _to_number(_first_value(row, ["current_price", "currentPrice", "lastPrice", "price", "close"]))
     if price is None:
+        return {}
+    observed = _first_value(row, ["tradetime", "tradeTime", "timestamp", "date"])
+    if observed and _to_number(observed) is None and _parse_market_date(observed) is None:
+        # Invalid provider sentinel dates are not current market observations.
+        # Let the shared dashboard path recover a dated close or Upstox quote.
         return {}
     change_percent = _to_number(_first_value(row, ["change", "changePercent", "percentChange"]))
     return {
@@ -2517,7 +2853,8 @@ def _parse_market_date(value):
     text = str(value).strip()
     for fmt in ("%Y-%m-%d", "%d-%b-%Y", "%d-%B-%Y", "%Y%m%d"):
         try:
-            return datetime.strptime(text[:10] if fmt == "%Y-%m-%d" else text, fmt).replace(tzinfo=timezone.utc)
+            parsed = datetime.strptime(text[:10] if fmt == "%Y-%m-%d" else text, fmt).replace(tzinfo=timezone.utc)
+            return parsed if parsed.year >= 1900 else None
         except ValueError:
             continue
     return None
@@ -2857,7 +3194,19 @@ def _compact_competitor(competitor):
     }
 
 
-def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly"):
+def _remember_stock_fundamentals(cache_key, entry):
+    """Store one resolved result: expired entries are dropped first, then the oldest, to stay within STOCK_FUNDAMENTALS_CACHE_ENTRIES."""
+    now = monotonic()
+    for key, value in list(_stock_fundamentals_cache.items()):
+        if now - value.get("fetched_at", 0) >= STOCK_FUNDAMENTALS_CACHE_SECONDS:
+            _stock_fundamentals_cache.pop(key, None)
+    _stock_fundamentals_cache.pop(cache_key, None)
+    while _stock_fundamentals_cache and len(_stock_fundamentals_cache) >= STOCK_FUNDAMENTALS_CACHE_ENTRIES:
+        _stock_fundamentals_cache.pop(next(iter(_stock_fundamentals_cache)), None)
+    _stock_fundamentals_cache[cache_key] = entry
+
+
+def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None):
     started_at = monotonic()
     instrument = _resolve_finedge_stock(query)
     symbol = instrument.get("symbol")
@@ -2880,6 +3229,8 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     cache_key = f"finedge:{symbol}:{statement_type}:{period}"
     cached = _stock_fundamentals_cache.get(cache_key)
     if cached and monotonic() - cached["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS:
+        if _model_capture is not None and cached.get("model_inputs") is not None:
+            _model_capture.update(cached["model_inputs"])
         cached_data = {**cached["data"], "cached": True}
         cached_data["devMetrics"] = {
             **cached_data.get("devMetrics", {}),
@@ -2937,6 +3288,48 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
             data_sources["incomeStatement"] = "finedge:standalone"
             data_sources["balanceSheet"] = "finedge:standalone"
             data_sources["cashFlow"] = "finedge:standalone"
+
+    # Both pages consume this resolver: FinEdge actuals -> complete identities
+    # calculated from FinEdge -> matching Upstox observations -> unavailable.
+    try:
+        from backend.fundamental_resolution import recover_inputs
+    except ImportError:
+        from fundamental_resolution import recover_inputs
+    raw_section = "annual" if period == "yearly" else "quarterly"
+    quarterly_income_rows = income_rows if period == "quarterly" else _finedge_statement(symbol, effective_statement_type, "pl", "quarterly")
+    shared_raw = {"profile": profile_payload, raw_section: {"financials": income_rows},
+                  "balance": {"financials": balance_rows}, "cashflow": {"financials": cash_rows}}
+    if period == "yearly":
+        shared_raw["quarterly"] = {"financials": quarterly_income_rows}
+    else:
+        # Same-basis annual figures can recover an absent/malformed Q4 by
+        # subtraction. This optional source never changes the selected basis.
+        annual_for_recovery = _safe_finedge_get(f"/financials/{_stock_symbol_path(symbol)}",
+            {"statement_type": "c" if effective_statement_type == "consolidated" else "s", "statement_code": "pl", "period": "annual"}, default={})
+        shared_raw["annual_for_quarter_recovery"] = {"financials": _payload_items(annual_for_recovery, ["financials", "data", "results", "items"])}
+    def shared_load(section):
+        if not instrument.get("isin"):
+            return None
+        isin = quote(instrument["isin"], safe="")
+        if section in ("annual", "quarterly"):
+            return _safe_upstox_get(f"/fundamentals/{isin}/income-statement",
+                {"type": effective_statement_type, "time_period": "yearly" if section == "annual" else "quarterly", "fs": "true"}, default={})
+        if section == "cashflow":
+            return _safe_upstox_get(f"/fundamentals/{isin}/cash-flow", {"type": effective_statement_type, "fs": "true"}, default={})
+        if section == "balance":
+            return _safe_upstox_get(f"/fundamentals/{isin}/balance-sheet", {"type": effective_statement_type, "fs": "true"}, default={})
+        return None
+    shared_raw, resolution_notes = recover_inputs(shared_raw, effective_statement_type, datetime.now(timezone.utc).date(), shared_load, period=period, recover_prices=False)
+    income_rows = shared_raw.get(raw_section, {}).get("financials", [])
+    quarterly_income_rows = shared_raw.get("quarterly", {}).get("financials", quarterly_income_rows)
+    balance_rows = shared_raw.get("balance", {}).get("financials", [])
+    cash_rows = shared_raw.get("cashflow", {}).get("financials", [])
+    for note in resolution_notes:
+        if note.startswith("Upstox") and "recovered periods" in note:
+            data_sources["cashFlow" if "cashflow" in note else "balanceSheet" if "Upstox balance " in note else "incomeStatement"] = "finedge+upstox:fallback"
+    if resolution_notes:
+        data_quality.append({"severity": "info", "section": "sourceResolution", "code": "shared_resolution",
+            "message": f"Shared FinEdge calculation/recovery checks applied ({len(resolution_notes)} observations).", "details": resolution_notes})
 
     normalized_income_statement = _history_from_period_rows(income_rows, period, INCOME_STATEMENT_ALIASES, scale=10_000_000)
     bank_asset_quality = _normalize_bank_asset_quality_history(income_rows, period)
@@ -3013,16 +3406,37 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         *metric_payloads,
         basic_financials_payload,
     )
+    # Calculate available FinEdge ratios before considering a secondary provider.
+    live_quote = _quote_from_finedge_quote(_safe_finedge_get("/quote", {"symbol": symbol}, default={}), symbol)
+    pre_profile = _normalize_profile(profile_payload, instrument)
+    if live_quote.get("marketCap") is not None:
+        pre_profile["marketCap"] = live_quote["marketCap"]
+    pre_quarterly = {"income_statement": _derive_income_metrics(_history_from_period_rows(quarterly_income_rows, "quarterly", INCOME_STATEMENT_ALIASES, scale=10_000_000))}
+    ratios = _reconcile_valuation_ratios(ratios, pre_profile, income_statement, balance_sheet, price_ratio_snapshot, _ttm_net_profit_from_statement(pre_quarterly))
+    try:
+        from backend.benchmark_resolution import merge_sector_values, reported_benchmarks
+    except ImportError:
+        from benchmark_resolution import merge_sector_values, reported_benchmarks
+    benchmark_observations = reported_benchmarks(
+        [row for payload in ratio_payloads + metric_payloads + [basic_financials_payload] for row in _payload_items(payload)],
+        [], datetime.now(timezone.utc).isoformat())
     if upstox_isin:
         finedge_ratio_keys = {str(ratio.get("name") or "").upper() for ratio in ratios if isinstance(ratio, dict)}
+        upstox_ratio_payload = _safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/key-ratios", default=[])
         if not {"P/E", "P/B", "ROE", "ROCE"}.issubset(finedge_ratio_keys):
+            calculated_ratios = ratios
             ratios = _normalize_ratio_items(
+                calculated_ratios,
                 *ratio_payloads,
                 *metric_payloads,
                 basic_financials_payload,
-                _safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/key-ratios", default=[]),
+                upstox_ratio_payload,
             )
             data_sources["ratios"] = "finedge+upstox:fallback"
+        ratios = merge_sector_values(ratios, upstox_ratio_payload)
+        benchmark_observations += reported_benchmarks([], upstox_ratio_payload, datetime.now(timezone.utc).isoformat())
+    if benchmark_observations:
+        data_sources["valuationBenchmarks"] = "+".join(sorted({r["provider"].lower() for r in benchmark_observations}))
     upstox_income_payload = None
     if upstox_isin:
         upstox_income_payload = _safe_upstox_get(
@@ -3057,7 +3471,16 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         ) if upstox_isin else {}
         upstox_balance_history = _normalize_upstox_balance_sheet(upstox_balance_payload, period)
         if upstox_balance_history:
-            balance_sheet = {"units_in": "Cr", "history": upstox_balance_history, "balance_sheet": []}
+            try:
+                from backend.fundamental_resolution import balance_rows as resolved_balance_rows
+            except ImportError:
+                from fundamental_resolution import balance_rows as resolved_balance_rows
+            balance_rows = resolved_balance_rows(upstox_balance_payload, effective_statement_type)
+            if balance_rows:
+                upstox_balance_history, upstox_balance_categories = _balance_history(balance_rows, period)
+            else:
+                upstox_balance_categories = []
+            balance_sheet = {"units_in": "Cr", "history": upstox_balance_history, "balance_sheet": upstox_balance_categories}
             data_sources["balanceSheet"] = "upstox"
             data_quality.append({
                 "severity": "info",
@@ -3103,19 +3526,12 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         }
         if filled_from_upstox:
             data_sources["profile"] = "finedge+upstox:fallback"
-    live_quote = _quote_from_finedge_quote(_safe_finedge_get("/quote", {"symbol": symbol}, default={}), symbol)
     if live_quote.get("marketCap"):
         profile = {**profile, "marketCap": live_quote.get("marketCap")}
     quarterly_income_statement = None
     if period == "quarterly":
         quarterly_income_statement = income_statement
     else:
-        quarterly_income_rows = _safe_finedge_get(
-            f"/financials/{_stock_symbol_path(symbol)}",
-            {"statement_type": finedge_type, "statement_code": "pl", "period": "quarterly"},
-            default={},
-        )
-        quarterly_income_rows = _payload_items(quarterly_income_rows, ["financials", "data", "results", "items"])
         if quarterly_income_rows:
             quarterly_income_statement = {
                 "units_in": "Cr",
@@ -3155,12 +3571,24 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
             competitors = upstox_competitors
             data_sources["competitors"] = "upstox"
 
-    price_history = _normalize_price_history(_safe_finedge_get(
+    price_payload = _safe_finedge_get(
         f"/daily-quotes/{_stock_symbol_path(symbol)}",
-        {"from": str(current_year - 6), "to": str(current_year)},
-        default=[],
-    ))
-    quote_data = live_quote or _quote_from_price_history(price_history)
+        {"from": str(current_year - 6), "to": str(current_year)}, default=[],
+    )
+    def load_prices(section):
+        if section != "prices" or not upstox_key:
+            return None
+        return {"prices": _fetch_upstox_price_history(upstox_key), "exchange": upstox_instrument.get("exchange"), "instrumentKey": upstox_key}
+    resolved_prices, price_notes = recover_inputs({"prices": price_payload}, effective_statement_type,
+        datetime.now(timezone.utc).date(), load_prices)
+    price_history = _normalize_price_history(resolved_prices.get("prices"))
+    resolution_notes.extend(price_notes)
+    if any("complete Upstox" in note for note in price_notes):
+        data_sources["priceHistory"] = "upstox:fallback"
+        data_quality.append({"severity": "info", "section": "priceHistory", "code": "shared_price_recovery", "message": price_notes[-1]})
+    quote_data = live_quote if live_quote.get("price") and live_quote["price"] > 0 else _quote_from_price_history(price_history)
+    if quote_data is not live_quote and quote_data.get("price"):
+        data_sources["quote"] = "calculated_finedge_price_history" if data_sources["priceHistory"] == "finedge" else "upstox:price_history_fallback"
     if not quote_data.get("price"):
         try:
             upstox_quote = _quote_from_upstox(instrument)
@@ -3203,6 +3631,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         "profile": profile,
         "highlights": [item for item in highlights if item.get("value") not in (None, "")],
         "ratios": ratios,
+        "valuationBenchmarks": benchmark_observations,
         "profitabilityRatios": profitability_ratios,
         "bankAssetQuality": bank_asset_quality,
         "bankAssetQualityStatementType": bank_asset_quality_statement_type,
@@ -3218,7 +3647,16 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         "dataQuality": data_quality,
     }
     result["devMetrics"] = _stock_dev_metrics(result, started_at)
-    _stock_fundamentals_cache[cache_key] = {"data": result, "fetched_at": monotonic()}
+    model_inputs = {"profile": profile_payload, "income": {"financials": income_rows},
+        "balance": {"financials": balance_rows}, "cashflow": {"financials": cash_rows},
+        "prices": {"price": price_history}, "summary": ownership_summary,
+        "distribution": ownership_distribution, "declaration": ownership_declaration,
+        "assetQualityRows": standalone_income_rows if bank_asset_quality_statement_type == "standalone" else income_rows,
+        "assetQualityBasis": bank_asset_quality_statement_type, "resolutionNotes": resolution_notes,
+        "benchmarkObservations": benchmark_observations}
+    _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
+    if _model_capture is not None:
+        _model_capture.update(model_inputs)
     return result
 
 
@@ -3612,6 +4050,8 @@ app.add_middleware(
 async def mirror_existing_uploads():
     """Files already on disk (shipped with the code or uploaded before the MongoDB copy existed) are copied into MongoDB once,
     so a restart on a host with a temporary disk cannot lose them."""
+    if not mongo_url:
+        return
     try:
         async for asset in db.content_assets.find({}, {"_id": 0, "key": 1, "storedName": 1}):
             if await db.content_blobs.count_documents({"key": asset["key"]}, limit=1):

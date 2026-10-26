@@ -18,6 +18,7 @@ import { ChartLab } from "./ChartLab";
 import { PlFlagsLayer } from "./PlFlagsLayer";
 import { DiscussionLink } from "../components/DiscussionLink";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
+import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
@@ -41,6 +42,8 @@ export function StockPage() {
   const peers = useSection<Peers>(symbol, "peers", ready).data;
   const seg = useSection<Segments>(symbol, "segments", ready).data;
   const events = useSection<Events>(symbol, "events", ready).data;
+  const lead = useLeadership(symbol, ready).data;
+  const navItems = useMemo(() => NAV.filter(([id]) => id !== "leadership" || !!(lead && (lead.available || lead.display))), [lead]);   // no pill for a section that is switched off
   const tech = usePrice(symbol, "1Y", ready).data?.technical;   // waits for the summary, so a new stock is asked for once, not twice
   useDocTitle(s ? `${s.profile.name} research` : `${symbol} research`, s ? `FinLit research report for ${s.profile.name}: score ${s.score.overall ?? "n/a"}, financials, ratios, ownership and peers.` : undefined);
 
@@ -53,13 +56,13 @@ export function StockPage() {
   useEffect(() => {
     if (!s) return;
     const vis = new Map<string, boolean>();
-    const io = new IntersectionObserver((es) => { es.forEach((e) => vis.set(e.target.id, e.isIntersecting)); const f = NAV.find(([id]) => vis.get(id)); setActive(f ? f[0] : null); }, { rootMargin: "-130px 0px -55% 0px" });
-    NAV.forEach(([id]) => { const n = document.getElementById(id); if (n) io.observe(n); });
+    const io = new IntersectionObserver((es) => { es.forEach((e) => vis.set(e.target.id, e.isIntersecting)); const f = navItems.find(([id]) => vis.get(id)); setActive(f ? f[0] : null); }, { rootMargin: "-130px 0px -55% 0px" });
+    navItems.forEach(([id]) => { const n = document.getElementById(id); if (n) io.observe(n); });
     const hero = document.querySelector(".idrow");
     const io2 = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting), { rootMargin: "-130px 0px 0px 0px" });
     if (hero) io2.observe(hero);
     return () => { io.disconnect(); io2.disconnect(); };
-  }, [s, ratios, fin, own, peers, seg, events]);
+  }, [s, ratios, fin, own, peers, seg, events, navItems]);
 
   useEffect(() => {
     const a = links.current?.querySelector<HTMLAnchorElement>(`a[data-s="${active}"]`);
@@ -69,7 +72,8 @@ export function StockPage() {
     links.current?.scrollTo({ left: Math.max(0, a.offsetLeft - links.current.clientWidth / 2 + a.offsetWidth / 2), behavior: "smooth" });
   }, [active]);
 
-  const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 124, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); };
+  // The Prism section hides itself when there is nothing to show; its links then open the Prism page instead.
+  const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 124, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else if (id === "prism") nav(`/prism/${encodeURIComponent(symbol)}`); };
   const q = useMemo(() => s?.quote, [s]);
 
   const waiting = sum.isError && [202, 429].includes((sum.error as ApiError).status);
@@ -94,7 +98,7 @@ export function StockPage() {
       <div className={"secnav" + (stuck ? " stuck" : "")} id="secnav">
         <div className="wrap">
           <div className="mini" aria-hidden="true"><span className="bd">{s.profile.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}</span><b>{s.profile.nse}</b><span>₹{nf(q?.price ?? 0)}</span><span className={(q?.changePct ?? 0) >= 0 ? "pos" : "neg"}>{signed(q?.changePct)}</span><span className="sc">{s.score.overall ?? "—"}</span></div>
-          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{NAV.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
+          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
         </div>
       </div>
       <div className="wrap">

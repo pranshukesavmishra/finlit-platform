@@ -44,11 +44,12 @@ def _b64(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 
-def gateway_token(secret: str, ttl: int = 120) -> str:
-    """A short-lived token the site backend accepts; it never leaves this server."""
+def gateway_token(secret: str, ttl: int = 120, sub: str = "premium-gateway") -> str:
+    """A short-lived token the site backend accepts; it never leaves this server. `sub` names who it is for (FinLit Prism binds its
+    signed snapshots to it, so the PDF of a report must be asked for with the same subject)."""
     now = int(time.time())
     head = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
-    body = _b64(json.dumps({"sub": "premium-gateway", "role": "admin", "iat": now, "exp": now + ttl}, separators=(",", ":")).encode())
+    body = _b64(json.dumps({"sub": sub, "role": "admin", "iat": now, "exp": now + ttl}, separators=(",", ":")).encode())
     sig = _b64(hmac.new(secret.encode(), f"{head}.{body}".encode(), hashlib.sha256).digest())
     return f"{head}.{body}.{sig}"
 

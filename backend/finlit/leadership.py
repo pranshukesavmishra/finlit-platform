@@ -432,6 +432,30 @@ async def _index_prices(store, settings, code: str) -> Optional[Prices]:
     return p if len(p) else None
 
 
+async def _long_index_prices(store, settings, code: str) -> Optional[Prices]:
+    """The index back to 2004 for the backtest (kept 8 days in Redis; the weekly run does not use it). Falls back to the five years the site holds."""
+    from . import indices
+    key = f"idx:long:{code}"
+    raw = None
+    try:
+        got = await store.redis.get(key)
+        raw = json.loads(got) if got else None
+    except Exception:
+        raw = None
+    if raw is None:
+        from types import SimpleNamespace
+        app = SimpleNamespace(state=SimpleNamespace(settings=settings))
+        try:
+            raw = await indices._fetch_levels(app, code, 25)
+            await store.redis.set(key, json.dumps(raw), ex=8 * 86400)
+        except Exception as exc:
+            log.warning("long history of index %s unavailable: %s", code, type(exc).__name__)
+            return await _index_prices(store, settings, code)
+    rows = indices.shape_levels(raw, 25)["rows"]
+    p = Prices([r["d"] for r in rows], [r["c"] for r in rows])
+    return p if len(p) else None
+
+
 async def _load_universe(store) -> List[dict]:
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
@@ -440,7 +464,11 @@ async def _load_universe(store) -> List[dict]:
             "s.pillar_profitability AS pp, s.pillar_balance AS pb FROM scores s JOIN companies c ON c.symbol = s.symbol "
             "LEFT JOIN listing_quotes q ON q.symbol = s.symbol WHERE s.model = 'v1' "
             "ORDER BY s.symbol, (s.statement = 'consolidated') DESC, s.updated_at DESC")
-    return [dict(r) for r in rows]
+        splits = {r["symbol"]: r["subgroup"] for r in await conn.fetch("SELECT symbol, subgroup FROM leadership_splits")}
+    out = [dict(r) for r in rows]
+    for r in out:   # a stock listed in leadership_splits is ranked in its own sub-group (private banks against the private bank index)
+        r["industry"] = splits.get(r["symbol"]) or r["industry"]
+    return out
 
 
 async def _market_cap_ranks(store) -> Dict[str, int]:
@@ -449,8 +477,9 @@ async def _market_cap_ranks(store) -> Dict[str, int]:
     return {r["symbol"]: i for i, r in enumerate(rows, start=1)}
 
 
-async def _load_prices(store, rows: List[dict]) -> Dict[str, Tuple[Prices, bool]]:
-    """Stored weekly closes (the price-MAX section) per stock, with the liquidity verdict. A stock whose report is not stored has none."""
+async def _load_prices(store, rows: List[dict], long_history: bool = False) -> Dict[str, Tuple[Prices, bool]]:
+    """Stored weekly closes (the price-MAX section) per stock, with the liquidity verdict. A stock whose report is not stored has none.
+    With `long_history` (the backtest) the older closes in price_history_long are put in front, scaled to agree where they meet."""
     out: Dict[str, Tuple[Prices, bool]] = {}
     by_statement: Dict[str, List[str]] = {}
     for r in rows:
@@ -466,6 +495,14 @@ async def _load_prices(store, rows: List[dict]) -> Dict[str, Tuple[Prices, bool]
                         out[rec["symbol"]] = (Prices(t, c), liquid_enough(t, c, s.get("v") or []))
                     except (ValueError, TypeError):
                         continue
+        if long_history and out:
+            from .history import splice
+            syms = list(out)
+            for i in range(0, len(syms), 100):
+                for rec in await conn.fetch("SELECT symbol, dates, closes FROM price_history_long WHERE symbol = ANY($1::text[]) AND first_date IS NOT NULL", syms[i:i + 100]):
+                    p, liquid = out[rec["symbol"]]
+                    d, c = splice(p.dates, p.closes, rec["dates"], rec["closes"])
+                    out[rec["symbol"]] = (Prices(d, c), liquid)
     return out
 
 
@@ -622,7 +659,7 @@ async def backtest(store, settings) -> Dict[str, Any]:
     top 30% beat the bottom 30% over the next 6 months. It can only use the weekly history the site stores, so a group with under 10 years of checks is
     stored as 'insufficient' and the card says so; it never invents a tier."""
     universe = await _load_universe(store)
-    prices = await _load_prices(store, universe)
+    prices = await _load_prices(store, universe, long_history=True)
     async with store.pool.acquire() as conn:
         cfg = {norm_industry(r["industry"]): dict(r) for r in await conn.fetch("SELECT * FROM leadership_benchmarks")}
     groups: Dict[str, List[dict]] = {}
@@ -637,7 +674,7 @@ async def backtest(store, settings) -> Dict[str, Any]:
         if len(ms) < MIN_PEERS or not starts:
             continue
         conf = cfg.get(norm_industry(industry))
-        sidx = await _index_prices(store, settings, conf["sector_code"]) if conf else None
+        sidx = await _long_index_prices(store, settings, conf["sector_code"]) if conf else None
         first = sorted(starts)[MIN_PEERS - 1] + timedelta(days=7 * MIN_WEEKS)   # the first date six stocks have a year of prices
         dates = []
         d = last_friday(first)

@@ -90,7 +90,7 @@ export class ApiError extends Error {
 }
 
 /** FastAPI wraps errors as {detail: {status, detail}} (or a list for validation errors); flatten to one shape. */
-function errorBody(raw: unknown): ApiError["body"] {
+export function errorBody(raw: unknown): ApiError["body"] {
   const r = raw as { detail?: unknown; status?: string } | null;
   if (!r) return {};
   if (r.detail && typeof r.detail === "object" && !Array.isArray(r.detail)) return r.detail as ApiError["body"];

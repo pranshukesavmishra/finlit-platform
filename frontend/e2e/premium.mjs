@@ -46,7 +46,7 @@ for (const [who, w, h] of [["gold", 1366, 900], ["gold", 390, 844], ["basic", 13
   check(`${who} signs in`, lr.ok(), String(lr.status()));
   const tag = `${who}-${w}`;
   await p.goto(B + "/premium", { waitUntil: "networkidle" }); await p.waitForTimeout(500); await p.screenshot({ path: `${OUT}/${tag}-hub.png`, fullPage: true });
-  check(`${tag} hub shows three tools`, (await p.locator(".pm-card").count()) === 3);
+  check(`${tag} hub shows FinLit Prism and the three dashboards`, (await p.locator(".pm-card").count()) === 4 && (await p.locator(".pm-prism").count()) === 1);
   await p.goto(B + "/premium/markets", { waitUntil: "networkidle" }); await p.waitForTimeout(500);
   if (who === "basic") { check(`${tag} markets locked`, (await p.getByText("This dashboard is part of the Gold plan").count()) > 0); await p.screenshot({ path: `${OUT}/${tag}-locked.png` }); await ctx.close(); continue; }
   for (const t of ["IPO calendar", "Results calendar", "Announcements", "Call transcripts", "Indices live", "Index valuation history", "Commodities"]) {

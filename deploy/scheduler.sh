@@ -178,6 +178,8 @@ while true; do
   (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
   (( H == 2 && M == 45 )) && run light indices refresh-indices   # nightly (a few small files): a failed boot download is retried the same night, not a week later
   (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
+  (( H == 4 && M == 20 )) && run heavy history backfill-history   # nightly: older weekly closes (to 2004) for the leadership reliability backtest, a few hundred companies a night until every company has been tried
+  (( H == 5 && M == 10 )) && run heavy prism precompute-prism   # nightly: FinLit Prism ratings for the biggest companies without one, one at a time (about 90 s each), so a company opens with its rating stored
   (( D == 6 && H == 3 && M == 50 )) && run heavy leadership refresh-leadership   # weekly, Saturday, after Friday's close and the nightly loads: the Leader / In line / Laggard labels
   (( D == 7 && H == 4 && M == 10 )) && [ "$(date +%d)" -le 7 ] && [ $(( 10#$(date +%m) % 3 )) -eq 1 ] && run heavy leadership-backtest backtest-leadership   # quarterly (first Sunday of Jan, Apr, Jul, Oct): has leadership held in each group?
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
