@@ -35,10 +35,6 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
     <article className="report dk-card dk-left" aria-labelledby="reportTitle">
       <header className="dk-head">
         <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} /></div>
-        <div className="dk-hm">
-          <span className="dk-chip dk-live dk-hchip" title={chipTitle}>{plan === "gold" ? "" : "Basic "}{s.score.model} · {s.dataQuality.fundamentalsAsOf} · {updated}</span>
-          <a className="dk-link" href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros &amp; cons →</a>
-        </div>
       </header>
       <div className="dk-row">
         <Dial compact overall={s.score.overall} pillars={s.score.pillars} onPillar={toggle} active={open} bandLabel={s.score.band.label} />
@@ -70,14 +66,18 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
         )}
       </div></div>
       <div className="dk-notes dk-know1">
-        <div className="dk-pc-h"><Icon name="spark" /><span>What stands out</span></div>
+        <div className="dk-pc-h"><Icon name="spark" /><span>What stands out</span><a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }} aria-label="See all pros and cons">See all</a></div>
         {know.length ? <ul>{know.map((n) => <li key={n.key} className={n.tone} title={`${n.title}. ${n.text}`}><Icon name={n.tone === "good" ? "check" : "alert"} /><b>{n.title}</b><span>{n.text}</span></li>)}</ul> : <p className="dk-none">Nothing stands out yet.</p>}
       </div>
-      <div className="dk-foot">
-        <span className="dk-chip dk-live dk-fchip" title={chipTitle}><span className="dk-m">Model </span>{s.score.model} · {s.dataQuality.fundamentalsAsOf} · {updated}</span>
-        <span className="dk-cap"><span className="dk-cap-t">Average of five pillars · select a ring segment or a pillar</span> <ChartHelp id="score-dial" /><ChartHelp id="score-pillars" /></span>
-        {plan === "gold" && <a className="dk-link" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}><span className="hide-sm">Advanced model: </span>FinLit Prism →</a>}
-      </div>
+      <details className="dk-more">
+        <summary><span>Model, data date and help</span><Icon name="arrow" className="dk-chev" /></summary>
+        <div className="dk-foot">
+          <span className="dk-chip dk-live dk-fchip" title={chipTitle}><span className="dk-m">Model </span>{s.score.model} · {s.dataQuality.fundamentalsAsOf} · {updated}</span>
+          <span className="dk-cap"><span className="dk-cap-t">Average of five pillars · select a ring segment or a pillar</span> <ChartHelp id="score-dial" /><ChartHelp id="score-pillars" /></span>
+          <a className="dk-link" href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros &amp; cons →</a>
+          {plan === "gold" && <a className="dk-link" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism →</a>}
+        </div>
+      </details>
       <p className="dk-comp disc"><Icon name="info" /><span>Research summary, not a recommendation to buy or sell. FinLit Ventures is a technology company and is not registered with SEBI or AMFI.</span></p>
     </article>
   );

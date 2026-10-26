@@ -58,3 +58,4 @@
 .sf-corner { position: absolute; right: 0; top: -6px; z-index: 6; }
 .sf-corner .sf-panel { right: 0; left: auto; }
 .sf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sf-flex { margin-left: auto; flex: none; }

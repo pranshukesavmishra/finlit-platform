@@ -98,14 +98,15 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       </div>
       <Tiles r={r} />
       <PrismTechRow report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
-      <Notes r={rep} symbol={symbol} />
-      <div className="dk-foot">
-        <span className="dk-date"><Icon name="calendar" />Calculated {dateIN(rep.completedAt || rep.createdAt)}</span>
-        <span className="pz-act">
+      <details className="dk-more">
+        <summary><span>What supports and weighs on the rating, data date, recalculate</span><Icon name="arrow" className="dk-chev" /></summary>
+        <Notes r={rep} symbol={symbol} />
+        <div className="dk-foot">
+          <span className="dk-date"><Icon name="calendar" />Calculated {dateIN(rep.completedAt || rep.createdAt)}</span>
           <button className="btn dk-b" disabled={busy} onClick={() => run.mutate(true)}>{busy ? "Calculating…" : "Recalculate"}</button>
-          <Link className="btn primary dk-b" to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report <Icon name="arrow" /></Link>
-        </span>
-      </div>
+        </div>
+      </details>
+      <div className="dk-cta"><Link className="btn primary dk-b" to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report <Icon name="arrow" /></Link></div>
       {status}
     </>
   );

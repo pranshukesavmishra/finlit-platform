@@ -193,6 +193,105 @@
 }
 
 
+/* ---------- spacious layout (founder feedback: the pair was too dense) ----------
+   The two cards stack at every width, FinLit score first, FinLit Prism below, each one with the same calm order:
+   header, the big number and one-line read, one row of parts, a few points, then a quiet "more" fold for the secondary lines.
+   No fixed row heights: the content decides, with 24-32px between groups. These rules come last on purpose and win over the compact ones above. */
+.pz-pair { --dk-h-row: auto; --dk-h-tiles: auto; --dk-h-notes: auto; --dk-h-foot: auto; --dk-h-comp: auto; grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 32px; }
+.dk-row, .dk-tiles, .dk-notes, .dk-foot, .dk-comp { height: auto; min-height: 0; }
+.dk-head { min-height: 0; padding: 18px 32px; gap: 10px 16px; }
+.dk-head .eyebrow { font-size: 12px; }
+.dk-row { gap: 40px; padding: 32px 32px 8px; }
+.dial.compact, .dk-row .dk-gl { width: 200px !important; height: 200px !important; }
+.dial.compact .dcenter .n { font-size: 60px; }
+.dial.compact .dcenter .of { font-size: 10px; margin-top: 6px; }
+.dk-read, .dk-words { gap: 14px; }
+.dk-rk .label { font-size: 11.5px; }
+.dk-st.big { font-size: 14px; padding: 6px 14px 6px 12px; border-radius: 10px; }
+.dk-delta, .dk-sc { font-size: 13.5px; }
+.dk-thesis { font-size: 26px; line-height: 1.3; display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; max-width: 34ch; }
+.dk-note { font-size: 15px; line-height: 1.55; display: block; -webkit-line-clamp: unset; line-clamp: unset; overflow: visible; max-width: 60ch; }
+.dk-cov { font-size: 14px; }
+.pz-status { height: 28px; padding: 0 12px; font-size: 13px; }
+.dk-tiles { gap: 16px; padding: 24px 32px 0; }
+.dk-tiles .dk-tile { height: auto; padding: 16px 16px 18px; gap: 6px; border-radius: 16px; }
+.dk-tiles .dk-ring { width: 48px; height: 48px; } .dk-tiles .dk-ring b { font-size: 19px; }
+.dk-tiles .dk-t-ic { width: 30px; height: 30px; border-radius: 10px; } .dk-tiles .dk-t-ic svg { width: 17px; height: 17px; }
+.dk-tiles .dk-t-w { font-size: 13px; }
+.dk-tiles .dk-t-name { font-size: 15px; margin-top: 8px; }
+.dk-tiles .dk-st { font-size: 11.5px; }
+.dk-tiles .dk-bar { margin-top: 10px; height: 6px; }
+.dk-drawer .pd-in { margin: 16px 32px 0; }
+/* what stands out: three calm rows */
+.dk-notes { padding: 32px 32px 0; gap: 16px 24px; }
+.dk-know1 { gap: 8px; }
+.dk-pc-h { font-size: 12px; margin-bottom: 8px; }
+.dk-pc-h a { font-size: 13.5px; }
+.dk-pc ul, .dk-know1 ul { gap: 8px; }
+.dk-pc li, .dk-know1 li { flex: none; min-height: 44px; padding: 8px 14px; font-size: 14.5px; line-height: 1.4; border-radius: 10px; }
+.dk-know1 li svg { width: 16px; height: 16px; }
+.dk-know1 li, .dk-pc li { flex-wrap: wrap; gap: 2px 10px; } .dk-know1 li b, .dk-pc li b { max-width: 100%; white-space: normal; } .dk-know1 li span, .dk-pc li span { white-space: normal; overflow: visible; }
+.dk-pc p, .dk-none { font-size: 14px; }
+/* Prism technical: its own calm row */
+/* the quiet fold */
+.dk-more { margin: 32px 32px 0; border-top: 1px dashed var(--border); }
+.dk-more > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 12px 4px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); border-radius: 10px; }
+.dk-more > summary::-webkit-details-marker { display: none; }
+.dk-more > summary:hover { color: var(--text); }
+.dk-more > summary:focus-visible { outline: 2px solid var(--focus, var(--gold)); outline-offset: 2px; }
+.dk-more .dk-chev { width: 16px; height: 16px; flex: none; transform: rotate(90deg); } .dk-more[open] .dk-chev { transform: rotate(-90deg); }
+.dk-more .dk-notes, .dk-more .dk-foot { padding-left: 4px; padding-right: 4px; }
+.dk-more .dk-notes { padding-top: 8px; }
+.dk-foot { height: auto; min-height: 0; padding: 16px 4px 12px; gap: 12px 20px; border-top: 0; margin-top: 0; font-size: 13.5px; }
+.dk-fchip { display: inline-flex; } .dk-foot .dk-chip { height: 26px; font-size: 12px; } .dk-cap { font-size: 13px; } .dk-foot .dk-link { font-size: 14px; }
+.btn.dk-b { height: 38px; padding: 0 16px; font-size: 14px; border-radius: 10px; }
+.dk-cta { display: flex; justify-content: flex-end; padding: 24px 32px 0; }
+.dk-comp { margin: 32px 0 0; padding: 14px 32px 18px; font-size: 12.5px; line-height: 1.5; border-top: 1px dashed var(--border); }
+.pz-busy, .pz-err { margin: 16px 32px 0; font-size: 14px; }
+.dk-skel .skeleton { margin: 24px 32px 0; } .dk-skel .s-row { height: 200px; margin-block: 24px 0; } .dk-skel .s-tiles { height: 130px; } .dk-skel .s-notes { height: 120px; margin-top: 24px; margin-bottom: 0; }
+.dk-empty { gap: 32px; padding: 32px; } .dk-empty-t h3 { font-size: 24px; } .dk-empty-t p { font-size: 15px; }
+:root:root .report.dk-card.dk-detail { padding: 24px 32px 28px; gap: 24px; }
+.dk-full { gap: 32px; margin-top: 24px; }
+.dk-toggle { margin-top: 24px; } .dk-tg { height: 44px; padding: 0 22px; font-size: 14px; }
+.dk-plist { gap: 10px; } .dk-plist li { padding: 12px 14px; font-size: 14.5px; } .dk-dpart { padding: 16px; } .dk-dgrid { gap: 16px; }
+.pz-pair .lock-card { padding: 28px 32px 24px; }
+
+@media (max-width: 1100px) {
+  .dk-row { gap: 28px; } .dk-thesis { font-size: 23px; }
+  .dk-tiles { gap: 12px; } .dk-tiles .dk-tile { padding: 14px 12px 16px; }
+}
+@media (max-width: 760px) {
+  .pz-pair { gap: 24px; margin-top: 24px; }
+  .dk-head { padding: 14px 20px; flex-wrap: wrap; }
+  .dk-row { flex-direction: column; align-items: center; text-align: center; gap: 20px; padding: 24px 20px 4px; }
+  .dial.compact, .dk-row .dk-gl { width: 168px !important; height: 168px !important; }
+  .dial.compact .dcenter .n { font-size: 50px; }
+  .dk-read, .dk-words { align-items: center; width: 100%; gap: 12px; } .dk-rk, .dk-chips { justify-content: center; }
+  .dk-thesis { font-size: 20px; line-height: 1.32; max-width: none; }
+  .dk-note { font-size: 14px; -webkit-line-clamp: unset; line-clamp: unset; max-width: none; } .dk-sc, .dk-note.ok { display: block; } .dk-cov { justify-content: center; font-size: 13px; }
+  .dk-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; scroll-snap-type: none; padding: 20px 20px 0; gap: 12px; }
+  .dk-tiles .dk-tile { padding: 14px; scroll-snap-align: none; }
+  .dk-tiles .dk-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .dk-tiles .dk-ring { width: 42px; height: 42px; } .dk-tiles .dk-ring b { font-size: 17px; }
+  .dk-tiles .dk-bar { margin-top: 8px; }
+  .dk-notes { padding: 24px 20px 0; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+  .dk-know1 .dk-pc-h { display: flex; }
+  .dk-pc li span { display: inline; }
+  .dk-know1 li span, .dk-pc li span { flex: 1 1 100%; }
+  .dk-head .dk-ht { flex-wrap: wrap; } .dk-head .dk-ht > * { max-width: 100%; white-space: normal; }
+  .dk-pc li, .dk-know1 li { font-size: 14px; padding: 8px 12px; min-height: 44px; }
+  .dk-more { margin: 24px 20px 0; }
+  .dk-foot { padding: 12px 4px; } .dk-cap-t { display: inline; }
+  .dk-cta { padding: 20px 20px 0; } .dk-cta .btn { width: 100%; justify-content: center; }
+  .dk-comp { margin-top: 24px; padding: 12px 20px 16px; font-size: 12px; }
+  .pz-busy, .pz-err { margin: 14px 20px 0; }
+  .dk-skel .skeleton { margin-inline: 20px; }
+  .dk-empty { flex-direction: column; align-items: center; text-align: center; padding: 24px 20px; } .dk-empty-t { align-items: center; }
+  :root:root .report.dk-card.dk-detail { padding: 20px; }
+  .pz-pair .lock-card { padding: 22px 20px 20px; }
+}
+
+
 /* the Prism PDF entry in the stock page Download menu (a link, styled like its button siblings) */
 .dl-menu a[role="menuitem"] { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; width: 100%; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: inherit; text-decoration: none; }
 .dl-menu a[role="menuitem"]:hover, .dl-menu a[role="menuitem"]:focus-visible { background: rgba(255,255,255,.08); }

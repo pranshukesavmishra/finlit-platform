@@ -153,6 +153,7 @@
 
 @media (max-width: 1000px) { .gs { width: min(700px, calc(100% - 32px)); } .gs-body { grid-template-columns: minmax(0, 1fr); } .gs-pre { display: none; } }
 @media (max-width: 640px) {
+  .gs-scrim { z-index: 79; } .gs { z-index: 80; }   /* above the phone tab bar (z-index 75), so the footer count is never hidden behind it */
   .gs { inset: 0; top: 0; left: 0; transform: none; width: 100%; max-height: none; height: 100dvh; border-radius: 0; border: 0; animation: gs-up .22s cubic-bezier(.2,.9,.3,1); }
   @keyframes gs-up { from { transform: translateY(16px); opacity: 0; } }
   .gs-top { padding: calc(10px + env(safe-area-inset-top)) 12px 0; }
