@@ -531,6 +531,21 @@ async def health_line(redis: Any, settings: Optional[Settings] = None) -> dict:
             raw = raw.decode() if isinstance(raw, bytes) else raw
         except Exception:
             raw = None
-    if raw and raw.startswith("expired"):
+    left = token_days_left(s.upstox_access_token)
+    if (raw and raw.startswith("expired")) or (left is not None and left < 0):
         return {"state": "token_expired", "text": "Secondary source: token expired. Paste a fresh UPSTOX_ACCESS_TOKEN into the Render dashboard (see docs/SECOND-SOURCE.md); until then gaps stay empty."}
-    return {"state": "connected", "text": "Secondary source: connected"}
+    if left is not None and left <= 30:
+        return {"state": "token_expiring", "text": f"Secondary source: connected, but the token ends in {left} day{'s' if left != 1 else ''}. Generate a new Analytics Token in the Upstox developer app and paste it into UPSTOX_ACCESS_TOKEN (see docs/SECOND-SOURCE.md)."}
+    return {"state": "connected", "text": "Secondary source: connected" + (f" (token valid for {left} more days)" if left is not None and left > 30 else "")}
+
+
+def token_days_left(token: str, now: Optional[float] = None) -> Optional[int]:
+    """Whole days until an Upstox token ends, read from the `exp` time inside the token itself (no network, no signature check: this only
+    warns). None when the token is not a readable JWT, so an unusual token is never reported as expired by mistake."""
+    import base64, json as _json, time as _time
+    try:
+        part = token.split(".")[1]
+        exp = float(_json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))["exp"])
+    except Exception:
+        return None
+    return int((exp - (now if now is not None else _time.time())) // 86400)
