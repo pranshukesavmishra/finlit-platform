@@ -44,6 +44,7 @@ from . import macro as macro_api
 from . import clienterrors as clienterrors_api
 from . import markets as markets_api
 from . import flows as flows_api
+from . import fundjobs, sysctl
 from . import options as options_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -519,6 +520,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(clienterrors_api.router)
     app.include_router(flows_api.router)
     app.include_router(flows_api.admin)
+    app.include_router(fundjobs.router)
+    app.include_router(sysctl.router)   # /api/admin/system: loads switch, restart, status
     app.include_router(__import__("finlit.dbusage", fromlist=["admin"]).admin)   # /api/admin/db-usage: top statements by rows returned
     app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare
     app.include_router(graphviews_api.router)

@@ -80,4 +80,6 @@ export APP_DIR="$PWD" PYTHON="$PY"
 # The scheduler's lines go to the file and, prefixed, to the service log, so a job that fails is visible in the Render dashboard.
 nohup bash -c "\"$HERE/scheduler.sh\" 2>&1 | tee -a /tmp/scheduler.log | sed -u 's/^/[scheduler] /'" &
 
+# glibc keeps one memory arena per thread by default: two arenas cut the web server's and every job's memory noticeably on the 512 MB free plan
+export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
 exec $PY -m uvicorn --factory finlit.api:create_app --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --no-access-log --no-server-header

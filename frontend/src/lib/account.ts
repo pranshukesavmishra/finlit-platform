@@ -46,3 +46,14 @@ export const addIpo = (b: Record<string, unknown>) => apiSend("POST", "/api/admi
 export const deleteIpo = (id: number) => apiSend("DELETE", `/api/admin/ipos/${id}`);
 export const addFeed = (b: Record<string, unknown>) => apiSend("POST", "/api/admin/feed", b);
 export const deleteFeed = (id: number) => apiSend("DELETE", `/api/admin/feed/${id}`);
+
+export type FundJob = "refresh-etf" | "refresh-mf" | "backfill-mf";
+export type FundJobRow = { state: "starting" | "running" | "done" | "failed"; startedAt?: string; finishedAt?: string; rc?: number; result?: string } | null;
+export type FundStatus = { running: boolean; scheduledPaused: boolean; jobs: Record<FundJob, FundJobRow> };
+export const fundStatus = () => apiGet<FundStatus>("/api/admin/funds/status");
+export const fundRun = (job: FundJob) => apiSend("POST", "/api/admin/funds/run", { job });
+
+export type SystemStatus = { loadsEnabled: boolean; bootEnvOff: boolean; fundEnvOff: boolean; memory: { totalMb: number | null; usedMb: number | null; availableMb: number | null }; uptimeSeconds: number; startedAt: string };
+export const systemStatus = () => apiGet<SystemStatus>("/api/admin/system/status");
+export const systemLoads = (enabled: boolean) => apiSend<SystemStatus>("POST", "/api/admin/system/loads", { enabled });
+export const systemRestart = () => apiSend("POST", "/api/admin/system/restart");
