@@ -30,6 +30,7 @@ import json
 import math
 import requests
 import csv
+from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from html import escape
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -629,8 +630,93 @@ def _prune_premium_jobs():
             _premium_jobs.pop(key, None)
 
 
-def _premium_dashboard_inputs(symbol, statement_type, now):
-    """Use exactly the dashboard's resolved provider data, including its cache."""
+PREMIUM_PREFETCH_WORKERS = _env_int("PREMIUM_PREFETCH_WORKERS", 12, 1, 24)
+
+
+def _premium_prefetch_requests(symbol, statement_type, now):
+    """Every provider request the model's inputs always need, as (path, params): the resolver below asks for these one after another, so
+    they are asked for together first and its calls are then answered from memory. A request not listed here (a standalone fallback, say)
+    is simply made when the resolver reaches it."""
+    path, year = _stock_symbol_path(symbol), now.year
+    wanted = [(f"/company-profile/{path}", None)]
+    bases = ["c", "s"] if statement_type == "consolidated" else ["s"]
+    for code, period in (("pl", "annual"), ("bs", "annual"), ("cf", "annual"), ("pl", "quarterly"), ("bs", "quarterly"), ("cf", "quarterly")):
+        wanted.append((f"/financials/{path}", {"statement_type": bases[0], "statement_code": code, "period": period}))
+    if statement_type == "consolidated":   # the resolver compares revenue with the standalone statements, and bank asset quality may use them
+        wanted += [(f"/financials/{path}", {"statement_type": "s", "statement_code": "pl", "period": period}) for period in ("annual", "quarterly")]
+    typ = bases[0]
+    wanted += [(f"/ratios/{path}", {"statement_type": typ, "ratio_type": kind}) for kind in ("ef", "le", "li", "pr")]
+    wanted += [(f"/financial-metrics/{path}", {"statement_type": typ, "ratio_type": kind}) for kind in ("cu", "gr", "av")]
+    wanted += [(f"/basic-financials/{path}", {"statement_type": typ, "statement_code": "pl"}),
+               (f"/daily-price-ratios/{path}", {"statement_type": typ, "from": str(year), "to": str(year)}),
+               (f"/daily-price-ratios/{path}", {"statement_type": typ, "from": str(year - 5), "to": str(year)}),
+               ("/quote", {"symbol": symbol}),
+               (f"/daily-quotes/{path}", {"from": str(year - 6), "to": str(year)}),
+               (f"/peers/{path}", {"group": "industry"})]
+    wanted += [(f"/shareholdings/{kind}/{path}", {"period": "quarterly"}) for kind in ("summary", "distribution", "declaration")]
+    return wanted
+
+
+def _premium_prefetch(memo, symbol, statement_type, now, observations=None):
+    """Ask for all of `_premium_prefetch_requests` at once. Once the quote and the industry list are in, start looking up the peers' price
+    ratios too (the longest part of a report), so that they run while the statements are still being resolved."""
+    context = contextvars.copy_context()
+    results = {}
+
+    def one(request):
+        path, params = request
+        try:
+            results[(path, json.dumps(params or {}, sort_keys=True))] = context.copy().run(_finedge_get, path, params)
+        except Exception:
+            pass   # the resolver asks again and handles the failure as it always did
+
+    def warm_peers():
+        if observations is None:
+            return
+        try:
+            quote_payload = results.get(("/quote", json.dumps({"symbol": symbol}, sort_keys=True)))
+            peers = results.get((f"/peers/{_stock_symbol_path(symbol)}", json.dumps({"group": "industry"}, sort_keys=True)))
+            stamp = _quote_from_finedge_quote(quote_payload or {}, symbol).get("timestamp")
+            as_of = min(date.fromisoformat(str(stamp or "")[:10]), now.date())
+            try:
+                from backend.premium_data import peer_benchmark
+            except ImportError:
+                from premium_data import peer_benchmark
+            # the metrics the report will most likely ask for; a different set simply misses and is looked up then
+            peer_benchmark(_finedge_get, peers or {}, statement_type, as_of, None, ["pe", "pb"], observations=observations)
+        except Exception:
+            pass
+
+    pool = ThreadPoolExecutor(max_workers=PREMIUM_PREFETCH_WORKERS)
+    try:
+        requests_ = _premium_prefetch_requests(symbol, statement_type, now)
+        early = [r for r in requests_ if r[0] in ("/quote",) or r[0].startswith("/peers/")]
+        futures = [pool.submit(one, r) for r in early]
+        later = [pool.submit(one, r) for r in requests_ if r not in early]
+        for f in futures:
+            f.result()
+        warmer = threading.Thread(target=warm_peers, daemon=True)
+        warmer.start()
+        for f in later:
+            f.result()
+        return warmer
+    finally:
+        pool.shutdown(wait=True)
+
+
+def _premium_dashboard_inputs(symbol, statement_type, now, observations=None):
+    """Use exactly the dashboard's resolved provider data, including its cache. The calls are shared and made together (see _CallMemo), and
+    the extras the model never reads are skipped (see `lean` in _fetch_stock_fundamentals); what the model receives is the same."""
+    memo = _CallMemo()
+    token = _call_memo.set(memo)
+    try:
+        _premium_prefetch(memo, symbol, statement_type, now, observations)
+        return _premium_dashboard_inputs_resolved(symbol, statement_type, now)
+    finally:
+        _call_memo.reset(token)
+
+
+def _premium_dashboard_inputs_resolved(symbol, statement_type, now):
     annual, quarterly = {}, {}
     yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
     effective = yearly["statementType"]
