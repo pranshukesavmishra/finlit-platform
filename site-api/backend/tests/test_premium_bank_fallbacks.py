@@ -61,7 +61,7 @@ def test_nbfc_does_not_use_bank_fallback():
     assert 'PE_VS_HISTORY' not in r
 
 
-@pytest.mark.parametrize('group,weight', [('BANK',25),('NBFC',25),('INSURANCE',50)])
+@pytest.mark.parametrize('group,weight', [('BANK',25),('NBFC',25)])
 @pytest.mark.parametrize('original', [None,0,18])
 def test_financial_quality_always_replaces_original_factor(group,weight,original):
     d=inputs();d.update(capital_adequacy_pct=original,solvency_ratio=original,profit_before_tax=400,interest_cost=100,total_debt=0)
@@ -80,7 +80,7 @@ def test_financial_quality_always_replaces_original_factor(group,weight,original
     assert sum(i['pointsEarned'] for i in result['metrics'])-result['capPointsLost']==pytest.approx(result['final'])
 
 
-@pytest.mark.parametrize('group', ['BANK','NBFC','INSURANCE'])
+@pytest.mark.parametrize('group', ['BANK','NBFC'])
 @pytest.mark.parametrize('interest,pbt,value,points',[(100,100,2,0),(100,400,5,50),(100,700,8,100),(100,-100,0,0),(0,100,None,100)])
 def test_financial_interest_cover_formula_and_approved_scale(group,interest,pbt,value,points):
     d=inputs();d.update(profit_before_tax=pbt,interest_cost=interest)
@@ -88,14 +88,14 @@ def test_financial_interest_cover_formula_and_approved_scale(group,interest,pbt,
     assert cover['value']==value and cover['points']==points and cover['status']=='A'
 
 
-@pytest.mark.parametrize('group', ['BANK','NBFC','INSURANCE'])
+@pytest.mark.parametrize('group', ['BANK','NBFC'])
 @pytest.mark.parametrize('interest,pbt',[(None,100),(100,None),(None,None),(-10,100)])
 def test_financial_missing_interest_is_filled_even_when_original_factor_exists(group,interest,pbt):
     d=inputs();d.update(capital_adequacy_pct=18,solvency_ratio=2,interest_cost=interest,profit_before_tax=pbt)
     result=score_company(d,group);r={r['metric']:r for r in result['metrics']}
     assert 'CAPITAL_ADEQUACY' not in r and 'SOLVENCY' not in r
     assert r['INTEREST_COVER']['status']=='F'
-    assert result['coverage']['quality']==(.5 if group=='INSURANCE' else .75)
+    assert result['coverage']['quality']==.75
 
 
 @pytest.mark.parametrize('roe,points',[(8,0),(13,50),(18,100),(0,0),(-5,0)])
@@ -151,3 +151,51 @@ def test_bank_valuation_fallbacks_and_financial_quality_replacement_reconcile():
     assert other['INTEREST_COVER']['points']==50
     assert other['PB_VS_INDUSTRY']['status']=='F'
     assert GROUPS==before
+
+
+# Insurers: the Quality pillar uses financial leverage (total assets / book equity, lower is better) instead of interest cover.
+def ins(**kw):
+    d=inputs();d.update(solvency_ratio=2,profit_before_tax=400,interest_cost=100,total_assets=1000,net_worth=100,net_profit_y=[10,12,14,13]);d.update(kw)
+    return d
+
+
+def test_insurer_quality_uses_financial_leverage_not_interest_cover():
+    d=ins();result=score_company(d,'INSURANCE');r={x['metric']:x for x in result['metrics']}
+    assert 'INTEREST_COVER' not in r and 'SOLVENCY' not in r
+    lev=r['FINANCIAL_LEVERAGE']
+    assert lev['value']==pytest.approx(10) and lev['unit']=='x' and (lev['worst'],lev['best'])==(20,6)
+    assert lev['points']==pytest.approx(100*(20-10)/(20-6)) and lev['status']=='A'
+    assert lev['weight']==50 and r['ROE']['weight']==50
+    review=build_report_review({'rating':result,'inputMeta':{},'statementType':'consolidated'})
+    item=next(i for b in ['pros','cons','mixed'] for i in review['parts'][2][b] if i['metric']=='FINANCIAL_LEVERAGE')
+    assert item['label']=='Financial leverage' and 'unavailable' not in item['label'].lower()
+    assert 'Total assets / book equity' in next(i for i in build_calculation_trace(d,result,{})['metrics'] if i['metric']=='FINANCIAL_LEVERAGE')['valueCalculation']
+    assert sum(i['pointsEarned'] for i in result['metrics'])-result['capPointsLost']==pytest.approx(result['final'])
+
+
+@pytest.mark.parametrize('assets,points',[(2000,0),(3000,0),(600,100),(400,100)])
+def test_insurer_financial_leverage_scale_ends(assets,points):
+    assert rows(ins(total_assets=assets),'INSURANCE')['FINANCIAL_LEVERAGE']['points']==points
+
+
+@pytest.mark.parametrize('equity',[0,-50])
+def test_insurer_non_positive_equity_gives_zero_leverage_points(equity):
+    lev=rows(ins(net_worth=equity),'INSURANCE')['FINANCIAL_LEVERAGE']
+    assert lev['points']==0 and lev['value'] is None
+
+
+@pytest.mark.parametrize('field',['total_assets','net_worth'])
+def test_insurer_missing_balance_sheet_input_is_unavailable_and_disclosed(field):
+    from backend.premium_completeness import build_input_completeness
+    d=ins(**{field:None});result=score_company(d,'INSURANCE')
+    assert {x['metric']:x for x in result['metrics']}['FINANCIAL_LEVERAGE']['status']=='F'
+    item={i['metric']:i for i in build_input_completeness({'inputs':d,'rating':result,'inputMeta':{}})['items']}['FINANCIAL_LEVERAGE']
+    assert 'Total assets' in item['missingInputs'] or 'Book equity' in item['missingInputs']
+    assert ('Total assets' if field=='total_assets' else 'Book equity') in item['missingInputs']
+
+
+def test_insurer_leverage_is_insurer_only_and_other_groups_keep_interest_cover():
+    d=ins()
+    for g in ('BANK','NBFC','MFG'):
+        r=rows(d,g)
+        assert 'FINANCIAL_LEVERAGE' not in r and r['INTEREST_COVER']['value']==5 and r['INTEREST_COVER']['points']==50

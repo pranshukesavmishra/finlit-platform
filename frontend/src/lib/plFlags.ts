@@ -42,7 +42,8 @@ export type PlFlag = {
   periods: string[];        // period labels (column headers) to highlight
   key: string;              // unique per case + scope + period, also the alert de-duplication key
 };
-export type PlInput = { annual?: Table | null; quarterly?: Table | null };
+/** lender: a bank or NBFC. Its revenue is total income and it has no operating profit, so case 7 and operating growth are never used. */
+export type PlInput = { annual?: Table | null; quarterly?: Table | null; lender?: boolean };
 
 export const CASES: Record<CaseNo, { id: string; title: string; severity: Severity; why: string }> = {
   1: { id: "profit_outgrows_revenue", title: "Profit is growing much faster than revenue", severity: "watch", why: "Profit can be lifted by one-off items or unusual cost savings." },
@@ -84,6 +85,16 @@ function annualFallback(t: Table | null | undefined, i: number, back: "year" | "
   if (back !== "year" || i < 1) return null;
   const a = /^FY(\d{2})$/.exec(t?.periods?.[i] ?? ""), b = /^FY(\d{2})$/.exec(t?.periods?.[i - 1] ?? "");
   return a && b && (+a[1] - +b[1] + 100) % 100 === 1 ? i - 1 : null;
+}
+
+/** For a lender (bank or NBFC) revenue means total income, and operating profit is not a meaningful line, so it is dropped. */
+export function prepare(t: Table | null | undefined, lender: boolean): Table | null | undefined {
+  if (!t || !lender) return t;
+  const rows = { ...t.rows };
+  const ti = rows.total_income;
+  if (Array.isArray(ti) && ti.some((v) => num(v) != null)) rows.revenue = ti;
+  delete rows.operating_profit;
+  return { ...t, rows };
 }
 
 // ---- growth helpers
@@ -166,7 +177,7 @@ function build(no: CaseNo, scope: Scope, basis: Basis, t: Table, i: number, j: n
 /** All flags for the latest annual and latest quarterly period. Empty when the data does not support any. */
 export function plFlags(input: PlInput | null | undefined): PlFlag[] {
   const out: PlFlag[] = [];
-  const a = input?.annual, q = input?.quarterly;
+  const a = prepare(input?.annual, !!input?.lender), q = prepare(input?.quarterly, !!input?.lender);
   if (a?.periods?.length) {
     const i = a.periods.length - 1, j = priorIndex(a, i, "year");
     if (j != null) { const p = pairAt(a, i, j); for (const h of evaluate(p)) out.push(build(h.no, "annual", "yoy", a, i, j, h.text, p)); }
@@ -228,4 +239,72 @@ export function highlightMap(flags: PlFlag[], enabled: boolean = true): Record<S
   if (!enabled) return m;
   for (const f of flags) for (const r of f.rows) { const s = (m[f.scope][r] ??= new Set()); f.periods.forEach((p) => s.add(p)); }
   return m;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Insights: one card per situation, with the latest quarter and the latest year side by side.
+
+export type Growth = { revenue: number | null; profit: number | null; operating: number | null };
+export type PeriodView = {
+  scope: Scope; label: "Latest quarter" | "Latest year";
+  period: string; against: string; periodEnd: string | null; againstEnd: string | null;   // e.g. "Sep 2026" vs "Sep 2025"
+  growth: Growth;                                                                          // against the same period a year earlier
+  qoq: { period: string; against: string; growth: Growth } | null;                          // quarters only: against the previous quarter
+  triggered: boolean; text: string | null; basis: Basis | null; flag: PlFlag | null;       // text and flag are those that fired for this period
+};
+export type Insight = {
+  case: CaseNo; id: string; severity: Severity; why: string;
+  title: string;                    // names the quarter when the headline is a quarter, so nobody takes it for the annual result
+  headline: Scope;                  // the freshest period that triggered
+  views: Partial<Record<Scope, PeriodView>>;
+  flags: PlFlag[];                  // the underlying flags (used for highlighting and alerts)
+  lender: boolean;
+  key: string;
+};
+
+const iso = (t: Table, i: number): string | null => (typeof t.periodEnds?.[i] === "string" && day(t.periodEnds[i]) != null ? t.periodEnds[i] : null);
+const growthOf = (p: Pair): Growth => ({ revenue: p.rev?.pct == null ? null : r1(p.rev.pct), profit: pctPos(p.np) == null ? null : r1(pctPos(p.np)!), operating: pctPos(p.op) == null ? null : r1(pctPos(p.op)!) });
+
+function baseView(scope: Scope, t: Table | null | undefined): PeriodView | null {
+  if (!t?.periods?.length) return null;
+  const i = t.periods.length - 1, j = priorIndex(t, i, "year");
+  if (j == null) return null;
+  const s = scope === "quarterly" ? priorIndex(t, i, "quarter") : null;
+  return {
+    scope, label: scope === "quarterly" ? "Latest quarter" : "Latest year", period: t.periods[i], against: t.periods[j], periodEnd: iso(t, i), againstEnd: iso(t, j),
+    growth: growthOf(pairAt(t, i, j)), qoq: s == null ? null : { period: t.periods[i], against: t.periods[s], growth: growthOf(pairAt(t, i, s)) },
+    triggered: false, text: null, basis: null, flag: null,
+  };
+}
+
+/** One insight per situation. The quarterly and the yearly series are tested separately; a situation that shows in only one of them still
+ *  appears, labelled with that period. When both show, they sit in one insight with a view for each. The headline is the freshest period
+ *  that triggered (the year when the quarter and the year end on the same day). */
+export function plInsights(input: PlInput | null | undefined): Insight[] {
+  const lender = !!input?.lender;
+  const a = prepare(input?.annual, lender), q = prepare(input?.quarterly, lender);
+  const flags = plFlags(input);
+  const base: Record<Scope, PeriodView | null> = { annual: baseView("annual", a), quarterly: baseView("quarterly", q) };
+  const out: Insight[] = [];
+  for (const no of [...new Set(flags.map((f) => f.case))]) {
+    const mine = flags.filter((f) => f.case === no);
+    const views: Partial<Record<Scope, PeriodView>> = {};
+    for (const sc of ["quarterly", "annual"] as const) {
+      const b = base[sc]; if (!b) continue;
+      const hit = mine.find((f) => f.scope === sc && f.basis !== "qoq") ?? mine.find((f) => f.scope === sc);
+      views[sc] = hit ? { ...b, triggered: true, text: hit.text, basis: hit.basis, flag: hit } : { ...b };
+    }
+    if (no === 8) delete views.annual;   // a run of quarters has no yearly twin
+    const fired = (["quarterly", "annual"] as const).filter((sc) => views[sc]?.triggered);
+    const fresh = (sc: Scope) => day(views[sc]!.periodEnd) ?? -Infinity;
+    const headline: Scope = fired.length === 2 ? (fresh("quarterly") > fresh("annual") ? "quarterly" : "annual") : fired[0];
+    const c = CASES[no as CaseNo], hv = views[headline]!;
+    out.push({
+      case: no as CaseNo, id: c.id, severity: c.severity, why: c.why, headline, views, flags: mine, lender,
+      title: headline === "quarterly" && no !== 8 ? `${c.title} in the latest quarter` : c.title,
+      key: `${no}:${headline}:${hv.period}`,
+    });
+  }
+  const freshness = (x: Insight) => day(x.views[x.headline]!.periodEnd) ?? -Infinity;
+  return out.sort((x, y) => freshness(y) - freshness(x) || x.case - y.case);
 }

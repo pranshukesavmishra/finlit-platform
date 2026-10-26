@@ -18,7 +18,7 @@ def test_unscored_insurer_solvency_keeps_raw_value_without_affecting_quality():
     assert not any('solvency' in c.lower() for c in inputs['rating_cautions'])
     rating=score_company(inputs,group)
     assert 'SOLVENCY' not in {r['metric'] for r in rating['metrics']}
-    assert next(r for r in rating['metrics'] if r['metric']=='INTEREST_COVER')['status']=='F'
+    assert next(r for r in rating['metrics'] if r['metric']=='FINANCIAL_LEVERAGE')['status']=='F'
 
 
 def test_metric_specific_short_history_ignores_only_leading_unreported_slots():

@@ -25,6 +25,7 @@ export type QualityIssue = { key: string; severity: "critical" | "warning"; mess
 export type DataQuality = {
   missing: string[]; notes: string[]; provisionalLastBar: boolean; removedBadTicks: string[]; statement: string; isBank: boolean;
   priceAsOf: string | null; fundamentalsAsOf: string | null;
+  basis?: { chosen: "standalone"; requested: "consolidated"; reason: "stale_consolidated"; consolidatedLatestQuarter?: string | null; standaloneLatestQuarter?: string | null };
   coverage?: { state: "complete" | "partial" | "empty"; reasons: string[]; mismatches: string[] };   // what the data provider sent for this company, in words
   checks: { status: "ok" | "warnings" | "rejected"; passed: number; total: number; issues: QualityIssue[] };
 };

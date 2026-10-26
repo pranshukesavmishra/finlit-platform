@@ -225,7 +225,7 @@ def test_documented_scoring_matches_supplied_owner_code(case,monkeypatch):
         legacy=deepcopy(premium_engine.GROUPS)
         weights=legacy[case['group']]['weights']['quality']
         previous='SOLVENCY' if case['group']=='INSURANCE' else 'CAPITAL_ADEQUACY'
-        legacy[case['group']]['weights']['quality']={previous if k=='INTEREST_COVER' else k:v for k,v in weights.items()}
+        legacy[case['group']]['weights']['quality']={previous if k in ('INTEREST_COVER','FINANCIAL_LEVERAGE') else k:v for k,v in weights.items()}
         monkeypatch.setattr(premium_engine,'GROUPS',legacy)
     actual=score_company(case['input'],case['group'])
     expected=case['expected']

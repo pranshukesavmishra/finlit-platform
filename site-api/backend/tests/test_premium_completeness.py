@@ -17,7 +17,8 @@ def test_insurer_missing_expense_and_two_short_histories_are_separate():
     before=deepcopy(data)
     result=build_input_completeness(report(data))
     rows={i['metric']:i for i in result['items']}
-    assert rows['INTEREST_COVER']['missingInputs']==['Annual P&L interest expense']
+    assert 'INTEREST_COVER' not in rows
+    assert rows['FINANCIAL_LEVERAGE']['missingInputs']==['Total assets', 'Book equity']
     assert rows['SALES_STREAK']['kind']=='limitedHistory'
     assert rows['SALES_STREAK']['treatment'].startswith('2 of 10')
     assert rows['PROFIT_STREAK']['treatment'].startswith('4 of 10')

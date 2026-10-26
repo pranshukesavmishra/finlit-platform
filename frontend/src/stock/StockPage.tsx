@@ -107,7 +107,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><Notes s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
-        <PlFlagsLayer f={fin} />
+        <PlFlagsLayer f={fin} lender={!!s.dataQuality.isBank} />
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><FinancialsSection f={fin} /></ErrorBoundary>
         <ErrorBoundary section="This section"><TrendsSection f={fin} seg={seg} e={events} r={ratios} /></ErrorBoundary>
