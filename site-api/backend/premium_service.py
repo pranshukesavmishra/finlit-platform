@@ -1,19 +1,25 @@
 """Calculate on-demand reports from explicit model inputs without storing report history."""
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 import hashlib
 import json
 try:
-    from .premium_data import fetch_inputs, adapt_inputs, peer_benchmark
+    from .premium_data import adapt_inputs
+    from .premium_provider import fetch_inputs
+    from .premium_benchmarks import resolve_report_benchmarks
     from .premium_engine import score_company
     from .premium_trace import build_calculation_trace
     from .premium_presentation import build_report_review
-    from .benchmark_resolution import select_reported_benchmarks
+    from .premium_technical import build_technical_assessment, resolve_technical_prices
+    from .premium_technical_sources import load_benchmark_history
 except ImportError:
-    from premium_data import fetch_inputs, adapt_inputs, peer_benchmark
+    from premium_data import adapt_inputs
+    from premium_provider import fetch_inputs
+    from premium_benchmarks import resolve_report_benchmarks
     from premium_engine import score_company
     from premium_trace import build_calculation_trace
     from premium_presentation import build_report_review
-    from benchmark_resolution import select_reported_benchmarks
+    from premium_technical import build_technical_assessment, resolve_technical_prices
+    from premium_technical_sources import load_benchmark_history
 
 
 def generate_report(get, symbol, name, statement_type, report_id, created_at, dashboard_load=None):
@@ -32,21 +38,9 @@ def generate_report(get, symbol, name, statement_type, report_id, created_at, da
     warnings.extend(recovery)
     if statement_type != requested_basis:
         warnings.append(f'The dashboard resolved {requested_basis} financials to {statement_type}; this entire report uses that same effective statement basis.')
-    # Match benchmark observations to the report price date, not a later market close.
-    try: benchmark_date = date.fromisoformat(meta.get("priceAsOf") or now.date().isoformat())
-    except ValueError: benchmark_date = now.date()
-    reported, reported_meta = select_reported_benchmarks(raw.get("benchmarkObservations", []))
-    wanted = [key for key in ("pe", "pb") if "industry_median_" + key not in reported]
-    if group in ("HEAVY", "UTILITY") and "industry_median_ev_ebitda" not in reported:
-        wanted.append("ev_ebitda")
-    benchmarks, benchmark_meta = peer_benchmark(get, raw.get("peers", {}), statement_type, min(benchmark_date, now.date()), group, wanted)
-    benchmarks.update(reported)
-    benchmark_meta.setdefault("metrics", {}).update(reported_meta)
-    providers = sorted({item["provider"] for item in benchmark_meta["metrics"].values() if item.get("value") is not None})
-    if providers:
-        benchmark_meta["source"] = " / ".join(providers)
-    benchmark_meta["reportedObservations"] = raw.get("benchmarkObservations", [])
-    benchmark_meta["policyVersion"] = "2026-10-24-provider-first"
+    benchmarks, benchmark_meta = resolve_report_benchmarks(
+        get, raw, statement_type, now.date(), group, meta.get("priceAsOf")
+    )
     inputs.setdefault("benchmark_details", {}).update(benchmark_meta["metrics"])
     inputs.update(benchmarks)
     rating = score_company(inputs, group)
@@ -62,4 +56,11 @@ def generate_report(get, symbol, name, statement_type, report_id, created_at, da
             "inputHash": hashlib.sha256(json.dumps(inputs, sort_keys=True, allow_nan=False).encode()).hexdigest()}
 
     report["review"] = build_report_review(report)
+    technical_prices = raw.get("technicalPriceInput")
+    if technical_prices is None:
+        technical_prices = resolve_technical_prices(raw.get("prices"), "FinEdge", now.date())
+    technical_benchmarks = raw.get("technicalBenchmarks")
+    if technical_benchmarks is None:
+        technical_benchmarks = load_benchmark_history(get, now.date(), required_dates=[row['date'] for row in technical_prices.get('bars',[])[-505:]])
+    report["technicalAssessment"] = build_technical_assessment(technical_prices, now.date(), technical_benchmarks, inputs.get("shares"))
     return report

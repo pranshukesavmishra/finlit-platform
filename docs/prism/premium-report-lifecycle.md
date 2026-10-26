@@ -10,6 +10,8 @@ For financial sourcing, formulas and applicability rules, read the [implementati
 4. The frontend retains only this current report in module memory and tab session storage (`premium_current_report`), replacing the previous one. It restores an unexpired snapshot after reload; it does not maintain a saved-report list or database collection.
 5. PDF download posts the complete snapshot and its separate receipt to `/api/premium-reports/pdf`, with administrator authentication. The renderer uses that calculation without provider calls or rescoring.
 
+The page delegates state transitions to `usePremiumReport`; `PremiumReportDetail` reads the completed snapshot. `premiumReportDownload` owns the PDF request and temporary browser download resources. Its cleanup also runs if triggering the browser download fails. These boundaries do not change request payloads, receipt verification or snapshot expiry.
+
 The receipt is an HS256 JWT bound to the administrator subject, the `premium-report-snapshot` audience, a canonical report SHA-256 digest and a 30-minute expiry. Integral floats normalize to integers so an unchanged JavaScript JSON round trip preserves the digest. Snapshot encoding is limited to 2 MB. Invalid or expired snapshots are rejected; do not modify a signed snapshot to upgrade old report contents. Recalculate instead.
 
 ## Compatibility endpoints

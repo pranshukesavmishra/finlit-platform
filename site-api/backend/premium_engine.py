@@ -2,9 +2,9 @@
 No network, database or wall-clock dependencies. Includes the requested BANK
 valuation fallbacks and owner-confirmed financial Quality replacements.
 """
-import math
 import statistics
 try:
+    from backend.financial_records import num
     from backend.premium_model_config import (
         GROUPS, PART_WEIGHTS, FILL_DEFAULT, FILL_OVERRIDES, TRADING_VALUE_STEPS,
         LOSS_ADJUSTED_FUNDAMENTAL, LOSS_FAMILY, LOSS_CAPS,
@@ -19,6 +19,7 @@ try:
         FLAG_RED, FLAG_GREEN, PLEDGE_ALERT, VALUE_TRAP,
     )
 except ImportError:
+    from financial_records import num
     from premium_model_config import (
         GROUPS, PART_WEIGHTS, FILL_DEFAULT, FILL_OVERRIDES, TRADING_VALUE_STEPS,
         LOSS_ADJUSTED_FUNDAMENTAL, LOSS_FAMILY, LOSS_CAPS,
@@ -41,6 +42,7 @@ LABELS = {
     "DEBT_TO_EQUITY": "Debt / equity", "INTEREST_COVER": "Interest cover", "ROE": "Return on equity",
     "CASH_CONVERSION": "Cash conversion", "GROSS_NPA": "Gross NPA", "NET_NPA": "Net NPA",
     "CAPITAL_ADEQUACY": "Capital adequacy", "ROA": "Return on assets", "SOLVENCY": "Solvency ratio",
+    "FINANCIAL_LEVERAGE": "Financial leverage (assets / equity)",
     "PE_VS_INDUSTRY": "P/E vs industry", "PE_VS_HISTORY": "P/E vs own history", "PEG": "PEG",
     "PB_VS_INDUSTRY": "P/B vs industry", "PB_VS_HISTORY": "P/B vs own history",
     "EV_EBITDA_VS_INDUSTRY": "EV/EBITDA vs industry", "VOLATILITY": "Annualised volatility",
@@ -50,14 +52,6 @@ LABELS = {
 PERCENT_METRICS = {"SALES_GROWTH", "PROFIT_GROWTH", "SALES_CAGR", "PROFIT_CAGR", "LOAN_GROWTH", "NETWORTH_GROWTH", "ROE", "GROSS_NPA", "NET_NPA", "CAPITAL_ADEQUACY", "ROA", "VOLATILITY", "BIGGEST_FALL", "PLEDGE"}
 STATES = {"A": "Actual", "Z": "Negative / loss rule", "S": "Substituted", "F": "Filled", "N": "Not applicable", "L": "Not supplied"}
 
-def num(value):
-    if value is None or isinstance(value, bool) or value == "":
-        return None
-    try:
-        value = float(value)
-        return value if math.isfinite(value) else None
-    except (TypeError, ValueError):
-        return None
 
 
 def scale(value, worst, best):
@@ -66,6 +60,23 @@ def scale(value, worst, best):
 
 def fill(group, metric):
     return FILL_OVERRIDES.get(group, {}).get(metric, FILL_DEFAULT)
+
+
+def insurance_leverage_score(assets, equity):
+    """Owner-supplied linear 5x–20x scale, confirmed 26 October 2026."""
+    assets, equity = num(assets), num(equity)
+    if assets is None or equity is None or equity <= 0 or assets < 0:
+        return None
+    return insurance_leverage_points(assets / equity)
+
+
+def insurance_leverage_points(leverage):
+    """Apply the same owner scale to a directly reported assets/equity ratio."""
+    if leverage <= 5:
+        return 100
+    if leverage >= 20:
+        return 0
+    return round(100 * (20 - leverage) / 15, 2)
 
 
 def complete_sum(values, length):
@@ -256,6 +267,19 @@ def score_company(d, group):
         value = ratio(nw, d.get("net_worth_1y_ago"))
         put("NETWORTH_GROWTH", (value - 1) * 100 if value is not None else None)
         put("SOLVENCY", d.get("solvency_ratio"))
+        assets = num(d.get("total_assets"))
+        invalid = nw is not None and nw <= 0 or assets is not None and assets < 0
+        if invalid:
+            statuses["FINANCIAL_LEVERAGE"] = "L"
+            details["FINANCIAL_LEVERAGE"] = {"invalid": True, "note": "Financial leverage is invalid: equity is zero or negative (financial distress)." if nw is not None and nw <= 0 else "Financial leverage is invalid: total assets are negative."}
+        else:
+            leverage = num(d.get('financial_leverage'))
+            calculated = leverage is None or str(d.get('financial_leverage_source','')).startswith('Calculated')
+            if leverage is None:
+                leverage = ratio(assets,nw)
+            put("FINANCIAL_LEVERAGE", leverage, detail={"assets":assets,"equity":nw,"scaleProvisional":True,
+                "source":d.get('financial_leverage_source') or ('Calculated from total assets and equity on the same balance-sheet date' if calculated else 'Reported financial leverage')},
+                explicit_points=insurance_leverage_score(assets,nw) if calculated else insurance_leverage_points(leverage))
         value = ratio(annual_profit, annual_nw)
         put("ROE", value * 100 if value is not None else None, explicit_points=0. if annual_nw is not None and annual_nw <= 0 else None)
     else:
@@ -283,10 +307,9 @@ def score_company(d, group):
         else:
             put("CASH_CONVERSION", ratio(c3, p3))
 
-    if group in ("BANK", "NBFC", "INSURANCE"):
-        # Owner-confirmed unconditional replacement of capital adequacy/solvency.
-        # Missing expense is not zero, and the non-financial D/E exclusion does
-        # not remove a required financial-sector factor.
+    if group in ("BANK", "NBFC"):
+        # Calculate the conditional capital-adequacy fallback. It is weighted
+        # only if the primary disclosure is missing; D/E does not exclude it.
         interest, pbt = num(d.get("interest_cost")), num(d.get("profit_before_tax"))
         valid = pbt is not None and interest is not None and interest >= 0
         put("INTEREST_COVER", (pbt + interest) / interest if valid and interest > 0 else None,
@@ -340,6 +363,12 @@ def score_company(d, group):
 
     effective_weights = {part: dict(weights) for part, weights in config["weights"].items()}
     fallbacks = {}
+    if group in ("BANK", "NBFC") and points.get("CAPITAL_ADEQUACY") is None:
+        effective_weights["quality"] = {
+            ("INTEREST_COVER" if metric == "CAPITAL_ADEQUACY" else metric): weight
+            for metric, weight in effective_weights["quality"].items()
+        }
+        fallbacks["INTEREST_COVER"] = "CAPITAL_ADEQUACY"
     # Owner-requested BANK overrides: replace the original slot rather than add
     # a second contribution. A genuine zero/loss score is available data.
     if group == "BANK" and points.get("PE_VS_INDUSTRY") is None and points.get("PE_VS_HISTORY") is not None:
@@ -375,7 +404,7 @@ def score_company(d, group):
             lower, upper = limits.get(metric, (None, None))
             rows.append({"part": part, "metric": metric, "label": LABELS[metric], "value": values.get(metric),
                          "points": points.get(metric) if state not in ("N", "L") else None,
-                         "status": state, "statusLabel": STATES[state], "weight": weight, "share": share,
+                         "status": state, "statusLabel": "Invalid input" if details.get(metric,{}).get('invalid') else STATES[state], "weight": weight, "share": share,
                          "details": details.get(metric, {}), "fallbackFor": fallbacks.get(metric), "worst": lower, "best": upper,
                          "unit": "%" if metric in PERCENT_METRICS else "pp" if metric == "MARGIN_CHANGE" else "quarters" if metric.endswith("STREAK") else "Cr" if metric == "TRADING_VALUE" else "x",
                          "redBoundary": lower + (upper - lower) * .4 if lower is not None else None,
@@ -424,7 +453,10 @@ def score_company(d, group):
     if values.get("PLEDGE") is not None and values["PLEDGE"] >= PLEDGE_ALERT: alerts.append(f"Promoter pledged shares are at least {PLEDGE_ALERT:g}%.")
     if loss: alerts.append("Trailing EPS is zero or negative.")
     if negative_nw: alerts.append("Net worth is zero or negative.")
-    if values.get("INTEREST_COVER") is not None and values["INTEREST_COVER"] < 1.5: alerts.append("Interest cover is below 1.5 times.")
+    if details.get("FINANCIAL_LEVERAGE",{}).get("invalid"):
+        alerts.append(details["FINANCIAL_LEVERAGE"]["note"])
+    if any(row['metric']=='INTEREST_COVER' for row in rows) and values.get("INTEREST_COVER") is not None and values["INTEREST_COVER"] < 1.5:
+        alerts.append("Interest cover is below 1.5 times.")
     if loss_capped: alerts.append(f"Loss rule ({tier}) capped Fundamental at {fundamental_cap} (before cap: {raw_fundamental:.1f}).")
     if valuation_capped: alerts.append(f"Weak-business rule capped Valuation at {VALUE_TRAP['cap']:g}.")
     if judged < QUARTERS_JUDGED: alerts.append(f"Short record: streak scores reflect the available comparable quarters ({judged}/{QUARTERS_JUDGED} minimum across sales and profit).")
@@ -436,7 +468,7 @@ def score_company(d, group):
     headline = "Not rated: insufficient verified inputs or unresolved data integrity issues." if status == "NOT RATED" else f"{rating.title()} assessment: {best_part.title()} contributes most to the score; {worst_part.title()} accounts for the largest shortfall."
     return {"modelVersion": MODEL_VERSION, "baselineVersion": BASELINE_VERSION, "fillVersion": FILL_VERSION,
             "group": group, "final": final if status != "NOT RATED" else None, "label": rating, "status": status,
-            "confidence": confidence, "coverage": coverage, "dataIntegrityStatus": "REVIEW REQUIRED" if d.get("rating_cautions") or d.get("rating_blockers") else "PASS", "parts": parts, "partWeights": PART_WEIGHTS,
+            "confidence": confidence, "coverage": coverage, "dataIntegrityStatus": "REVIEW REQUIRED" if d.get("rating_cautions") or d.get("rating_blockers") or details.get('FINANCIAL_LEVERAGE',{}).get('invalid') else "PASS", "parts": parts, "partWeights": PART_WEIGHTS,
             "judgedQuarters": judged, "metrics": rows, "strengths": strengths, "weaknesses": weaknesses,
             "flags": [row for row in actual if row["points"] < FLAG_GREEN], "alerts": alerts,
             "valuationCapped": valuation_capped, "lossCapped": loss_capped,

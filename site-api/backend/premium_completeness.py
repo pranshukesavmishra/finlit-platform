@@ -72,6 +72,11 @@ def input_gaps(row, inputs, meta):
         scalar('interest_cost','Annual P&L interest expense')
         if num(inputs.get('interest_cost')) is not None and num(inputs['interest_cost']) < 0:
             gaps.append('Non-negative annual interest expense (reported expense is negative)')
+    elif metric == 'FINANCIAL_LEVERAGE':
+        scalar('total_assets','Total assets on the same balance-sheet date')
+        scalar('net_worth','Book equity on the same balance-sheet date',True)
+        if info.get('invalid') and not gaps:
+            gaps.append(info['note'])
     elif metric in ('DEBT_TO_EQUITY','ROE','ROA','NETWORTH_GROWTH','LOAN_GROWTH'):
         specs = {'DEBT_TO_EQUITY': [('total_debt','Total borrowings',False),('net_worth','Book equity',True)],
                  'ROE':[('net_worth','Book equity',True)], 'ROA':[('total_assets','Total assets',True)],
@@ -126,12 +131,11 @@ def build_input_completeness(report):
         if not missing and not limited:
             continue
         label = row['label']
-        if metric.startswith('SALES'):
-            subject = 'Net interest income' if rating['group'] in ('BANK','NBFC') else 'Net premium income' if rating['group'] == 'INSURANCE' else 'Revenue'
-            label = label.replace('Sales',subject)
         kind = 'missing' if missing else 'limitedHistory'
         if missing:
-            if state == 'F' and row.get('points') is not None:
+            if info.get('invalid'):
+                treatment = 'Not scored because the financial leverage input is invalid; no estimate is substituted.'
+            elif state == 'F' and row.get('points') is not None:
                 treatment = f"Group estimate used: {row['points']:g}/100."
             elif state == 'L':
                 treatment = 'Excluded from scoring because the input is unavailable.'

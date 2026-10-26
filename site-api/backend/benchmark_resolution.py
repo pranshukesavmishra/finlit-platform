@@ -1,8 +1,8 @@
 """Reported valuation benchmarks shared by the dashboard and premium report."""
 try:
-    from .premium_engine import num
+    from .financial_records import num
 except ImportError:
-    from premium_engine import num
+    from financial_records import num
 
 RATIO_KEYS = {"P/E": "pe", "P/B": "pb", "EV/EBITDA": "ev_ebitda"}
 

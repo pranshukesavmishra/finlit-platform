@@ -8,7 +8,7 @@ import pytest
 from pypdf import PdfReader
 from backend import premium_service, server
 from backend.benchmark_resolution import reported_benchmarks, select_reported_benchmarks, merge_sector_values
-from backend.premium_data import peer_benchmark
+from backend.premium_benchmarks import peer_benchmark
 from backend.premium_presentation import build_report_review
 from backend.premium_pdf import render_premium_pdf
 
@@ -64,7 +64,7 @@ def test_report_uses_provider_benchmark_before_peer_calculation_and_discloses_ac
     wanted=[]
     def peers(*args):
         wanted.extend(args[-1]);return {},{}
-    monkeypatch.setattr(premium_service,'peer_benchmark',peers)
+    monkeypatch.setattr('backend.premium_benchmarks.peer_benchmark',peers)
     report=premium_service.generate_report(None,fixture['symbol'],'Example','consolidated','a'*32,'2026-10-24T12:00:00+00:00',lambda *a:(raw,[],'consolidated',{}))
     assert wanted==[]
     assert report['inputs']['industry_median_pe']==25
@@ -87,7 +87,7 @@ def test_negative_upstox_pe_falls_back_to_peer_pe_only(monkeypatch):
     def peers(*args):
         assert args[-1]==['pe']
         return {'industry_median_pe':30}, {'metrics':{'industry_median_pe':{'value':30,'provider':'FinEdge','scope':'industry','method':'available peer median','positiveCount':74,'observedCount':122,'universeCount':137}}}
-    monkeypatch.setattr(premium_service,'peer_benchmark',peers)
+    monkeypatch.setattr('backend.premium_benchmarks.peer_benchmark',peers)
     report=premium_service.generate_report(None,fixture['symbol'],'Example','consolidated','a'*32,'2026-10-24T12:00:00+00:00',lambda *a:(raw,[],'consolidated',{}))
     assert report['inputs']['industry_median_pe']==30 and report['inputs']['industry_median_pb']==2.38
     assert any('-12.64x' in n for n in report['review']['notes'])

@@ -45,10 +45,10 @@ Set in the Render dashboard (Environment tab) unless marked `render.yaml`. `sync
 | `DATABASE_URL` (Neon Postgres) | research API | **Yes** | Stored reports (`prism_reports`, migration `063_prism_reports.sql`) need it; it is already required by the whole site. |
 | `REDIS_URL` | research API | **Yes** | Snapshots for the PDF (30 min) and limits live there (`render.yaml` links the free Redis). |
 | `SITE_API_URL` | research API | Set automatically | Leave blank on Render. Set only for a site backend hosted elsewhere (then also set the variables above on that host). |
-| `UPSTOX_ACCESS_TOKEN` (`sync: false`) | site backend | Optional | Without it there is no second-source recovery of missing statement years and no ticker strip; reports still calculate from FinEdge and say what was missing. The token expires daily; Upstox needs it renewed. |
+| `UPSTOX_ACCESS_TOKEN` (`sync: false`) | site backend | Optional for the rating, **needed for the ST/LT technical assessment in practice** | Without it there is no second-source recovery of missing statement years and no ticker strip; the financial-health rating still calculates from FinEdge and says what was missing. The technical assessment needs complete daily open/high/low/close/volume candles: FinEdge's daily quotes give adjusted closes and volume only, so those candles (and any index history FinEdge lacks) come from Upstox. Without the token the assessment is `incomplete` (scores null, the missing inputs listed), never invented. The token expires daily; Upstox needs it renewed. |
 | `MONGO_URL`, `DB_NAME` | site backend | No | Blog/CMS/forms off, see above. `DB_NAME` defaults to `finlit`. |
 | `PREMIUM_GENERATION_SLOTS` (`render.yaml`: 1) | site backend | Tuning | Reports calculated at once in the site backend, 1 to 4, default 2 when unset. `render.yaml` sets 1 for the 512 MB plan. |
-| `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (`render.yaml`: 32) | site backend | Tuning | How many resolved provider answers (each report uses 2 to 4, ~40 KB each, 15 minutes) are kept; oldest dropped first. Default 32, range 4 to 2000. |
+| `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (`render.yaml`: 32) | site backend | Tuning | How many resolved provider answers (each report uses 2 to 4; ~40 KB each, plus about 0.7 MB for the six-year daily candles kept for the technical assessment; 15 minutes) are kept; oldest dropped first. Default 32, range 4 to 2000. |
 | `SITE_API_START` (`render.yaml`: auto) | `deploy/render-start.sh` | Tuning | `auto`, `never`, `always` as in the table above. |
 | `CMS_ADMIN_EMAIL`, `CMS_ADMIN_PASSWORD_HASH` or `CMS_PASSWORD_LOGIN` | site backend | No | Only the site's own CMS password login; administrators use `POST /api/me/cms-token`. |
 | `ALLOWED_HOSTS`, `CORS_ORIGINS` | site backend | No | Defaults accept `localhost` and `127.0.0.1`, which is all the research API needs inside the container. |
@@ -86,9 +86,28 @@ On the recorded FinEdge answers (`site-api/backend/tests/fixtures/premium_stock_
 | Snapshot (kept 30 minutes, never in the browser) | 45 to 62 KB |
 
 In production the time is dominated by FinEdge/Upstox calls (the research API plans for 60 to 120 seconds per report), not by CPU or memory. Memory is
-therefore bounded by the process base (about 90 MB) plus the provider-data cache (`STOCK_FUNDAMENTALS_CACHE_ENTRIES`, at most ~1.5 MB at 32)
-plus the number of simultaneous reports; a second slot costs only a few MB, so the limit of 1 is a safety margin for the shared 512 MB,
+therefore bounded by the process base (about 90 MB) plus the provider-data cache (`STOCK_FUNDAMENTALS_CACHE_ENTRIES`; at most ~1.5 MB at 32 before the
+technical assessment, up to ~25 MB at 32 with it, see below) plus the number of simultaneous reports; a second slot costs only a few MB, so the limit of 1 is a safety margin for the shared 512 MB,
 not a measured need. These numbers use recorded data without network waiting; a live check on the deployed service is still to be done once it is resumed.
+
+## ST/LT technical assessment: calls, time and memory (engine 3.6.10)
+
+Every report now also calls FinEdge `/index/market-price/historical` for four indices (Nifty 500, 50, Midcap 100, Smallcap 100; six years each,
+four requests in parallel but at most two at a time through the shared provider slots) and, when FinEdge's price series has no complete OHLCV or an
+index series is incomplete, Upstox daily candles for the stock and/or the index. Index series are cached for 15 minutes (at most 16 keys, normally one per day).
+
+* **Time.** No live provider run was possible when this was written, so the added time is estimated, not measured: a normal case adds a few
+  requests of one to a few seconds each (about 2 rounds of index requests plus at most one Upstox candle request). The worst case (every FinEdge
+  request hitting its 18 s timeout, then Upstox's 12 s) could add roughly one minute, which on top of a slow 120 s report can pass the research API's
+  `GENERATE_SECONDS` (170 s). That would show as a calm "try again" failure, not a wrong rating, and the cached index data makes the retry quicker.
+  `GENERATE_SECONDS` was therefore **left at 170 s**; measure a few live generations after deploy (the research API log has no timing line;
+  time `POST /api/prism/reports` for a large, a mid and a small company) and raise it, with `LOCK_SECONDS` following, only if reports regularly pass about 140 s.
+* **Memory.** One six-year candle series is about 0.7 MB (stock) and about 0.4 MB (an index). The fundamentals cache keeps the stock's candles per entry
+  (32 entries: about 22 MB at most) and the index cache holds normally 4 series (about 2 MB). On the 512 MB plan with a ~90 MB base this stays well inside
+  the margin, so `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (32), `PREMIUM_GENERATION_SLOTS` (1) and `PRISM_SLOTS` (1) are unchanged. Lower
+  `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (for example 16) if the host runs out of memory.
+* **Variables.** No new variable. `FINEDGE_API_KEY` must have the index-history endpoint in its plan (a 403 leaves the assessment `incomplete` unless Upstox covers it).
+  `UPSTOX_ACCESS_TOKEN` is the one the owner should set (see the table); renew it daily.
 
 ## Image and dependencies
 

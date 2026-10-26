@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 from backend import server
-from backend.premium_data import resolve_group
+from backend.premium_classification import resolve_group
 
 
 @pytest.fixture

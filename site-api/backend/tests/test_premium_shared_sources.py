@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import pytest
 from backend import server, premium_service
-from backend.premium_data import peer_benchmark, derive_peer_ev_ebitda
+from backend.premium_benchmarks import peer_benchmark, derive_peer_ev_ebitda
 from backend.fundamental_resolution import derive_finedge, recover_inputs, balance_rows
 
 ASOF = date(2026,10,18)
@@ -111,7 +111,7 @@ def test_report_generation_reads_the_dashboard_results_and_cache(monkeypatch):
             return deepcopy(raw.get({'summary':'summary','distribution':'distribution','declaration':'declaration'}.get(path.split('/')[2],''),{}))
         return {}
     monkeypatch.setattr(server,'_finedge_get',get)
-    monkeypatch.setattr(premium_service,'peer_benchmark',lambda *a:({},{}))
+    monkeypatch.setattr('backend.premium_benchmarks.peer_benchmark',lambda *a:({},{}))
     yearly=server._fetch_stock_fundamentals(symbol,'consolidated','yearly')
     quarterly=server._fetch_stock_fundamentals(symbol,'consolidated','quarterly')
     report=premium_service.generate_report(get,symbol,symbol,'consolidated','r'*32,'2026-10-18',server._premium_dashboard_inputs)
@@ -130,7 +130,7 @@ def test_report_generation_reads_the_dashboard_results_and_cache(monkeypatch):
 
 
 def test_missing_peer_ratio_is_calculated_from_finedge_before_na():
-    from backend.premium_data import derive_peer_price_ratios
+    from backend.premium_benchmarks import derive_peer_price_ratios
     quarters=[{'period_end':end,'basicEPS':2} for end in (20250930,20251231,20260331,20260630)]
     def get(path,params):
         if path=='/quote':return {'PEER':{'current_price':40,'market_cap':200,'tradetime':'2026-10-16'}}

@@ -167,7 +167,7 @@ def test_loss_cap_precedes_valuation_cap_and_both_reconcile(inputs):
     assert result["capPointsLost"] == pytest.approx(sum(a["pointsLost"] for a in result["adjustments"]))
     assert sum(r["pointsEarned"] for r in result["metrics"]) - result["capPointsLost"] == pytest.approx(result["final"])
     assert sum(r["pointsLost"] for r in result["metrics"]) + result["capPointsLost"] == pytest.approx(100 - result["final"])
-    assert result["modelVersion"] == "3.6.9" and result["baselineVersion"] == "3.6.1-simple"
+    assert result["modelVersion"] == "3.6.10" and result["baselineVersion"] == "3.6.1-simple"
     trace = build_calculation_trace(inputs, result, {})
     assert "Loss cap (persistent)" in trace["parts"][0]["calculation"]
     json.dumps(result, allow_nan=False)

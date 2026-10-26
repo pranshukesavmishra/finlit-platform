@@ -63,7 +63,7 @@ def test_pdf_keeps_financial_history_and_category_review_without_technical_appen
 def test_generation_returns_the_trace_with_the_exact_rating_and_inputs(monkeypatch):
     stock=DATA['stocks'][0]
     monkeypatch.setattr(premium_service,'fetch_inputs',lambda *a:(stock['raw'],[]))
-    monkeypatch.setattr(premium_service,'peer_benchmark',lambda *a:({},{}))
+    monkeypatch.setattr('backend.premium_benchmarks.peer_benchmark',lambda *a:({},{}))
     result=premium_service.generate_report(lambda *a:None,stock['symbol'],'Test name','consolidated','c'*32,'2026-10-18T04:30:00+00:00')
     expected=build_calculation_trace(result['inputs'],result['rating'],result['inputMeta'])
     assert result['calculationTrace']==expected

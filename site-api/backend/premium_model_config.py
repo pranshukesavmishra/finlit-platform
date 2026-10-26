@@ -1,7 +1,7 @@
 """FinLit v3.6.1 configuration supplied by the project owner.
 Group fill values are the supplied 13–14 October 2026 snapshot, not live medians.
 """
-MODEL_VERSION = "3.6.9"
+MODEL_VERSION = "3.6.10"
 BASELINE_VERSION = "3.6.1-simple"
 FILL_VERSION = "2026-10-14"
 QUARTERS_JUDGED = 10
@@ -38,7 +38,7 @@ F_INSURER = {"SALES_STREAK": 20, "PROFIT_STREAK": 20, "SALES_GROWTH": 8, "PROFIT
              "SALES_CAGR": 12, "PROFIT_CAGR": 12, "NETWORTH_GROWTH": 20}
 V_STD = {"PE_VS_INDUSTRY": 40, "PE_VS_HISTORY": 30, "PEG": 30}
 V_LENDER = {"PB_VS_INDUSTRY": 40, "PB_VS_HISTORY": 30, "PE_VS_INDUSTRY": 30, "PEG": 20}   # PEG optional
-Q_LENDER = {"GROSS_NPA": 25, "NET_NPA": 25, "INTEREST_COVER": 25, "ROA": 25}
+Q_LENDER = {"GROSS_NPA": 25, "NET_NPA": 25, "CAPITAL_ADEQUACY": 25, "ROA": 25}
 
 GROUPS = {
     "LIGHT": group(F_STD, {"DEBT_TO_EQUITY": 20, "INTEREST_COVER": 20, "ROE": 35, "CASH_CONVERSION": 25}, V_STD,
@@ -62,17 +62,17 @@ GROUPS = {
     "BANK": group(F_LENDER, Q_LENDER, V_LENDER,
                   {"SALES_GROWTH": (5, 20), "PROFIT_GROWTH": (0, 25), "LOAN_GROWTH": (5, 20),
                    "GROSS_NPA": (6, 1.5), "NET_NPA": (2.5, 0.3), "CAPITAL_ADEQUACY": (12, 18), "ROA": (0.5, 1.8),
-                   # Owner-confirmed replacement, 24 October 2026.
+                   # Used only when capital adequacy is unavailable.
                    "INTEREST_COVER": (2, 8),
                    # Proposed financial-sector ROE scale for the industry-P/B fallback.
                    "ROE": (8, 18)}),
     "NBFC": group(F_LENDER, Q_LENDER, V_LENDER,
                   {"SALES_GROWTH": (5, 25), "PROFIT_GROWTH": (0, 25), "LOAN_GROWTH": (5, 25),
                    "GROSS_NPA": (6, 1.5), "NET_NPA": (3, 0.5), "CAPITAL_ADEQUACY": (15, 25), "INTEREST_COVER": (2, 8), "ROA": (1.0, 3.5)}),
-    "INSURANCE": group(F_INSURER, {"INTEREST_COVER": 50, "ROE": 50},
+    "INSURANCE": group(F_INSURER, {"FINANCIAL_LEVERAGE": 50, "ROE": 50},
                        {"PB_VS_INDUSTRY": 50, "PE_VS_INDUSTRY": 25, "PB_VS_HISTORY": 25, "PEG": 20},
                        {"SALES_GROWTH": (5, 20), "PROFIT_GROWTH": (0, 20), "NETWORTH_GROWTH": (5, 20),
-                        "SOLVENCY": (1.5, 2.2), "INTEREST_COVER": (2, 8), "ROE": (8, 18)}),
+                        "SOLVENCY": (1.5, 2.2), "FINANCIAL_LEVERAGE": (20, 5), "ROE": (8, 18)}),
 }
 
 POINTS_PER_GOOD_QUARTER = 10
