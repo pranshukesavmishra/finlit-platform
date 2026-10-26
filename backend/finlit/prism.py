@@ -533,7 +533,7 @@ async def _remember(app, symbol: str, statement: str, cache: Any, seconds: float
         universe = cache.get("universe")
         if isinstance(universe, list) and universe:
             await store.redis.set(f"prism:univ:{statement}:{symbol}", json.dumps([str(u) for u in universe][:500]), ex=UNIVERSE_TTL)
-        if cache.get("inputsReused") is False:    # only calculations that fetched everything say how long that takes
+        if cache.get("inputsReused") is False and seconds > 0:    # only calculations a member waited for, from scratch, say how long that takes
             await store.redis.lpush("prism:durations", f"{seconds:.1f}")
             await store.redis.ltrim("prism:durations", 0, 19)
     except Exception as exc:
@@ -747,7 +747,7 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             streak = 0
             cache = snapshot.pop("cache", None)
             await _save(store, symbol, statement, reader_view(snapshot), None)
-            await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)
+            await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
             done += 1
             await asyncio.sleep(0.2)
     finally:

@@ -32,7 +32,8 @@
 .pz-problem.locked, .pz-problem.expired { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); background: var(--gold-soft); }
 .pz-problem > svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--pz-weak); } .pz-problem p { margin: 4px 0 10px; color: var(--muted); font-size: 14px; line-height: 1.5; } .pz-problem b { color: var(--text); } .pz-problem .btn { height: 36px; }
 .pz-work { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; } .pz-work p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-.pz-spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--border-strong); border-top-color: var(--gold); animation: pz-rot 1s linear infinite; flex: none; } @keyframes pz-rot { to { transform: rotate(360deg); } }
+.pz-workbody { flex: 1; min-width: 0; } .pz-workbody p { max-width: 62ch; }
+.pz-prog { height: 8px; border-radius: 4px; background: var(--s2); overflow: hidden; margin: 12px 0 4px; } .pz-prog i { display: block; height: 100%; border-radius: 4px; background: var(--gold); transition: width .9s linear; }
 .pz-empty-card { text-align: center; display: grid; justify-items: center; gap: 10px; padding: 40px 20px; } .pz-empty-card h3 { font: 500 24px var(--serif); margin: 0; } .pz-empty-card p { max-width: 560px; color: var(--muted); margin: 0; font-size: 14.5px; line-height: 1.55; }
 .pz-ico { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); } .pz-ico svg { width: 26px; height: 26px; }
 .pz-caution { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 11px 14px; border-radius: 12px; background: rgba(224,160,40,.14); border: 1px solid rgba(224,160,40,.45); font-size: 13.5px; line-height: 1.5; }
@@ -124,7 +125,7 @@
   .pz-ft thead { display: none; } .pz-ft, .pz-ft tbody, .pz-ft tr, .pz-ft th, .pz-ft td { display: block; width: 100%; } .pz-ft tr { padding: 10px 0; border-bottom: 1px solid var(--border); } .pz-ft th, .pz-ft td { border: 0; padding: 2px 0; }
   .pz-ft td { display: flex; justify-content: space-between; gap: 12px; text-align: right; } .pz-ft td::before { content: attr(data-l); color: var(--faint); font-size: 12px; text-align: left; } .pz-ft td .pz-sw { margin-left: auto; }
 }
-@media (prefers-reduced-motion: reduce) { .pz-spin { animation-duration: 3s; } }
+@media (prefers-reduced-motion: reduce) { .pz-prog i { transition: none; } }
 @media print { .pz-acts { display: none; } }
 .pz-fb { display: block; width: 90px; height: 7px; border-radius: 4px; background: var(--s2); margin: 0 0 4px auto; overflow: hidden; } .pz-fb i { display: block; height: 100%; border-radius: 4px; background: var(--faint); } .pz-fb.pros i { background: var(--gain); } .pz-fb.cons i { background: var(--loss); } .pz-fb.mixed i { background: var(--gold); }
 @media (max-width: 720px) { .pz-ft td[data-l="Points"] { display: block; text-align: right; } .pz-ft td[data-l="Points"]::before { content: none; } .pz-fb { width: 100%; margin: 4px 0; } }

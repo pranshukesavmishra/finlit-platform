@@ -53,6 +53,9 @@ class FakeSite:
         self.answer = None                # a canned httpx.Response (or exception) for the next calculations
         self.gate = None                  # an asyncio.Event a calculation waits for
         self.started = asyncio.Event()
+        self.member_waiting = False       # the site backend turns the nightly job (priority "background") away while a member's calculation runs
+        self.per_symbol = {}              # query -> a canned httpx.Response for that company only
+        self.delay = 0.0                  # seconds each calculation takes
 
     def snapshot(self, sub, query, statement):
         snap = copy.deepcopy(SNAPSHOT)
@@ -73,11 +76,24 @@ class FakeSite:
             self.started.set()
             if self.gate:
                 await self.gate.wait()
+            if self.delay:
+                await asyncio.sleep(self.delay)
+            if body.get("priority") == "background" and self.member_waiting:
+                return httpx.Response(429, json={"detail": "A member is waiting for a report; the pre-calculation pauses."}, headers={"Retry-After": "3"})
             if isinstance(self.answer, Exception):
                 raise self.answer
             if self.answer is not None:
                 return self.answer
-            return httpx.Response(200, json=self.snapshot(sub, body["query"], body["statement_type"]))
+            if body["query"] in self.per_symbol:
+                return self.per_symbol[body["query"]]
+            snap = self.snapshot(sub, body["query"], body["statement_type"])
+            if body.get("cache"):      # what the real site backend adds after signing: the packed inputs, the peers' rows, the peers' symbols
+                row = f'{body["statement_type"]}|{datetime.now(prism.IST):%Y-%m-%d}|pr:pb,pe|PEERA'
+                snap["cache"] = {"inputs": "PACKED-" + body["query"] if body.get("keep") else None, "observations": {row: {"pe": 12.5, "pb": 2.0}},
+                                 "universe": ["PEERA", "PEERB"], "inputsReused": bool(body.get("inputs")), "seconds": 1.0}
+                if not body.get("keep"):
+                    del snap["cache"]["inputs"]
+            return httpx.Response(200, json=snap)
         if request.url.path == "/api/premium-reports/pdf":
             self.pdfs.append(sub)
             issued_sub, signed = self.issued.get(body["report"].get("id"), (None, {}))
@@ -102,6 +118,10 @@ async def env(store, monkeypatch):  # noqa: F811
     monkeypatch.setattr(prism, "WAIT_STEP", 0.02)
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM prism_reports")
+        await conn.execute("DELETE FROM prism_inputs")
+    for pattern in ("prism:obs:*", "prism:univ:*", "prism:job:*", "prism:lock:*", "prism:fail:*", "prism:durations"):
+        for key in [k async for k in store.redis.scan_iter(match=pattern)]:
+            await store.redis.delete(key)
     app, fake = await make_app(store)
     async with app.router.lifespan_context(app):
         yield app, fake
@@ -171,7 +191,7 @@ async def test_token_is_a_five_minute_admin_token_for_the_member_or_the_visitor(
     assert first["sub"] == f"prism:{gold.user_id}" and second["sub"] == "prism:visitor"
     for c in (first, second):
         assert c["role"] == "admin" and c["exp"] - c["iat"] == 300
-    assert fake.reports[0]["body"] == {"query": "TCS", "statement_type": "consolidated", "delivery": "inline"}
+    assert fake.reports[0]["body"] == {"query": "TCS", "statement_type": "consolidated", "delivery": "inline", "priority": "interactive", "keep": True, "cache": True}
 
 
 async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_the_pdf(env):
@@ -496,7 +516,7 @@ async def test_nightly_precompute_stores_ratings_in_order_and_stops_when_the_pro
         await conn.execute("DELETE FROM prism_reports")
         await conn.execute("DELETE FROM snapshots WHERE symbol IN ('PZA', 'PZB')")
         for sym in ("PZA", "PZB"):
-            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'price-MAX', '{}', 'x', now())", sym)
+            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'summary', '{}', 'x', now())", sym)
     settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
     fake = FakeSite()
     http = httpx.AsyncClient(transport=httpx.MockTransport(fake), base_url="http://site")
@@ -505,6 +525,7 @@ async def test_nightly_precompute_stores_ratings_in_order_and_stops_when_the_pro
     rows = {r["symbol"] for r in await store.pool.fetch("SELECT symbol FROM prism_reports")}
     assert {"PZA", "PZB"} <= rows
     assert all(r["sub"] == "prism:nightly" for r in fake.reports)
+    assert all(r["body"]["priority"] == "background" and r["body"]["keep"] is False and "inputs" not in r["body"] for r in fake.reports)
     again = await prism.precompute(store, settings, limit=10, client=http)      # fresh ratings are left alone
     assert again["calculated"] == 0
     async with store.pool.acquire() as conn:
@@ -514,3 +535,195 @@ async def test_nightly_precompute_stores_ratings_in_order_and_stops_when_the_pro
     assert down["calculated"] == 0 and 0 < len(down["failed"]) <= 3     # stops after three failures in a row
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM snapshots WHERE symbol IN ('PZA', 'PZB')")
+
+
+# ------------------------------------------------------------------ speed: what a calculation keeps, calculations behind the page, the nightly job
+async def test_a_calculation_keeps_its_inputs_and_peer_rows_for_the_next_one(env):
+    app, fake = env
+    gold = await member(app, "gold")
+    assert (await generate(gold)).status_code == 200
+    store = app.state.store
+    assert await store.pool.fetchval("SELECT body FROM prism_inputs WHERE symbol = 'TCS' AND statement = 'consolidated'") == "PACKED-TCS"
+    day = f"{datetime.now(prism.IST):%Y-%m-%d}"
+    assert json.loads(await store.redis.hget(f"prism:obs:consolidated:{day}", "pr:pb,pe|PEERA")) == {"pe": 12.5, "pb": 2.0}
+    assert json.loads(await store.redis.get("prism:univ:consolidated:TCS")) == ["PEERA", "PEERB"]
+    assert "inputs" not in fake.reports[0]["body"] and "observations" not in fake.reports[0]["body"]
+    # a recalculation soon after reuses the inputs and offers the peers' rows; one an hour later fetches again, but still offers the rows
+    assert (await generate(gold, refresh=True)).status_code == 200
+    second = fake.reports[1]["body"]
+    assert second["inputs"] == "PACKED-TCS" and f"consolidated|{day}|pr:pb,pe|PEERA" in second["observations"]
+    await store.pool.execute("UPDATE prism_inputs SET fetched_at = now() - interval '1 hour'")
+    assert (await generate(gold, refresh=True)).status_code == 200 and "inputs" not in fake.reports[2]["body"]
+    assert (await generate(gold)).json()["cached"] is True                # inside the six hours the stored rating answers: no call at all
+    await store.pool.execute("UPDATE prism_reports SET generated_at = now() - interval '7 hours'")
+    assert (await generate(gold)).status_code == 200 and fake.reports[3]["body"]["inputs"] == "PACKED-TCS"    # a plain request reuses a day-old copy
+    await store.pool.execute("UPDATE prism_inputs SET fetched_at = now() - interval '30 hours'")
+    await store.pool.execute("UPDATE prism_reports SET generated_at = now() - interval '7 hours'")
+    assert (await generate(gold)).status_code == 200 and "inputs" not in fake.reports[4]["body"]
+
+
+async def test_a_failed_calculation_keeps_nothing_and_a_broken_cache_never_fails_a_report(env, monkeypatch):
+    app, fake = env
+    gold = await member(app, "gold")
+    fake.answer = httpx.Response(502, json={"detail": "providers"})
+    assert (await generate(gold)).status_code == 502
+    assert await app.state.store.pool.fetchval("SELECT count(*) FROM prism_inputs WHERE symbol = 'TCS'") == 0
+    fake.answer = None
+
+    async def broken(*a, **k):
+        raise RuntimeError("redis down")
+    monkeypatch.setattr(app.state.store.redis, "hset", broken)
+    monkeypatch.setattr(app.state.store.redis, "hmget", broken)
+    assert (await generate(gold)).status_code == 200                      # what was learned could not be kept; the report is still stored
+
+
+async def test_a_background_calculation_answers_at_once_and_the_page_polls_until_it_is_ready(env):
+    app, fake = env
+    fake.gate = asyncio.Event()
+    gold = await member(app, "gold")
+    r = await generate(gold, background=True)
+    assert r.status_code == 202 and r.json()["status"] == "working" and r.json()["pollSeconds"] >= 1 and r.json()["expectedSeconds"] > 0
+    await asyncio.wait_for(fake.started.wait(), 5)
+    job = (await gold.get("/api/prism/jobs?symbol=TCS")).json()
+    assert job["state"] == "working" and job["elapsedSeconds"] >= 0
+    again = await generate(await member(app, "gold"), background=True)      # somebody opens the same company: it joins, nothing is calculated twice
+    assert again.status_code == 202 and len(fake.reports) == 1
+    assert (await gold.get("/api/prism/reports/latest?symbol=TCS")).json()["status"] == "none"
+    fake.gate.set()
+    for _ in range(100):
+        job = (await gold.get("/api/prism/jobs?symbol=TCS")).json()
+        if job["state"] != "working":
+            break
+        await asyncio.sleep(0.02)
+    assert job["state"] == "ready"
+    report = (await gold.get("/api/prism/reports/latest?symbol=TCS")).json()
+    assert report["rating"]["label"] and (await generate(gold)).json()["id"] == report["id"] and len(fake.reports) == 1
+    assert not await app.state.store.redis.exists("prism:lock:TCS:consolidated")       # the lock is released when the job ends
+    assert float(await app.state.store.redis.lindex("prism:durations", 0)) >= 0       # a from-scratch calculation's time feeds the progress bar
+
+
+async def test_a_failed_background_calculation_says_why_and_can_be_tried_again(env):
+    app, fake = env
+    gold = await member(app, "gold")
+    fake.per_symbol["NOPE"] = httpx.Response(404, json={"detail": "No Indian listed equity was found for this query."})
+    assert (await generate(gold, "NOPE", background=True)).status_code == 202
+    for _ in range(100):
+        job = (await gold.get("/api/prism/jobs?symbol=NOPE")).json()
+        if job["state"] != "working":
+            break
+        await asyncio.sleep(0.02)
+    assert job["state"] == "failed" and job["status"] == 404 and job["detail"] and job["code"] == "not_found"
+    fake.answer = httpx.Response(502, json={"detail": "providers"})
+    assert (await generate(gold, "INFY", background=True)).status_code == 202
+    for _ in range(100):
+        job = (await gold.get("/api/prism/jobs?symbol=INFY")).json()
+        if job["state"] != "working":
+            break
+        await asyncio.sleep(0.02)
+    assert job["state"] == "failed" and job["status"] == 502 and "try again" in job["detail"].lower()
+    fake.answer = None
+    await app.state.store.redis.delete("prism:job:consolidated:INFY")            # (the failed state also expires by itself after two minutes)
+    assert (await generate(gold, "INFY", background=True)).status_code == 202
+    for _ in range(100):
+        if (await gold.get("/api/prism/jobs?symbol=INFY")).json()["state"] == "ready":
+            break
+        await asyncio.sleep(0.02)
+    assert (await gold.get("/api/prism/reports/latest?symbol=INFY")).status_code == 200
+
+
+async def test_a_job_that_no_longer_exists_is_reported_failed_not_working_for_ever(env, monkeypatch):
+    app, fake = env
+    gold = await member(app, "gold")
+    stale = {"state": "working", "startedAt": datetime.now(timezone.utc).timestamp() - prism.JOB_WORKING_SECONDS - 5}
+    await app.state.store.redis.set("prism:job:consolidated:TCS", json.dumps(stale), ex=60)
+    job = (await gold.get("/api/prism/jobs?symbol=TCS")).json()
+    assert job["state"] == "failed" and job["detail"]
+    assert (await gold.get("/api/prism/jobs?symbol=INFY")).json() == {"state": "none"}
+
+
+async def test_background_calculations_follow_the_same_rules_as_the_button(env, monkeypatch):
+    app, fake = env
+    monkeypatch.setattr(prism, "DAILY_LIMIT", 1)
+    visitor, gold = client(app), await member(app, "gold")
+    assert (await generate(visitor, "TCS", background=True)).status_code == 403                  # plan rules
+    assert (await generate(visitor, "RELIANCE", background=True)).status_code == 202            # the showcase company
+    assert (await (await member(app, "basic")).get("/api/prism/jobs?symbol=TCS")).status_code == 403
+    assert (await gold.get("/api/prism/jobs?symbol=A%20B")).status_code == 422
+    assert (await generate(gold, "TCS", background=True)).status_code == 202
+    for _ in range(100):
+        if (await gold.get("/api/prism/jobs?symbol=TCS")).json()["state"] == "ready":
+            break
+        await asyncio.sleep(0.02)
+    r = await generate(gold, "INFY", background=True)                                              # one a day in this test
+    assert r.status_code == 429 and r.json()["status"] == "limit"
+    assert (await generate(gold, "TCS", background=True)).json()["cached"] is True                # a stored rating is simply returned
+
+
+async def _seed_summaries(store, symbols):
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports")
+        await conn.execute("DELETE FROM snapshots WHERE symbol LIKE 'PZ%'")
+        for sym in symbols:
+            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'summary', '{}', 'x', now())", sym)
+    for key in [k async for k in store.redis.scan_iter(match="prism:pre:fail:*")]:
+        await store.redis.delete(key)
+
+
+async def _drop_seeded(store):
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM snapshots WHERE symbol LIKE 'PZ%'")
+        await conn.execute("DELETE FROM prism_reports")
+
+
+async def test_nightly_precompute_covers_every_company_with_a_full_report_and_resumes_where_it_stopped(store):  # noqa: F811
+    symbols = [f"PZ{n:02d}" for n in range(30)]
+    await _seed_summaries(store, symbols)
+    settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
+    fake = FakeSite()
+    http = httpx.AsyncClient(transport=httpx.MockTransport(fake), base_url="http://site")
+    first = await prism.precompute(store, settings, limit=12, client=http)                    # a run cut short by its limit
+    assert first["calculated"] == 12 and first["remaining_candidates"] >= 18
+    second = await prism.precompute(store, settings, client=http)                              # the next night continues; nothing is done twice
+    assert second["calculated"] >= 18 and second["remaining_candidates"] == 0 and second["failed"] == []
+    called = [r["body"]["query"] for r in fake.reports]
+    assert len(called) == len(set(called)) and set(symbols) <= set(called)                     # every company exactly once
+    done = {r["symbol"] for r in await store.pool.fetch("SELECT symbol FROM prism_reports")}
+    assert set(symbols) <= done
+    assert (await prism.precompute(store, settings, client=http))["calculated"] == 0           # all fresh: nothing to do
+    assert await store.pool.fetchval("SELECT count(*) FROM prism_inputs WHERE symbol LIKE 'PZ%'") == 0     # the nightly run keeps no inputs (database size, bandwidth)
+    await _drop_seeded(store)
+
+
+async def test_nightly_precompute_stops_on_the_time_limit_and_does_not_retry_what_the_data_cannot_rate(store):  # noqa: F811
+    await _seed_summaries(store, ["PZ01", "PZ02", "PZ03", "PZ04"])
+    settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
+    fake = FakeSite()
+    fake.per_symbol["PZ01"] = httpx.Response(422, json={"detail": "This company cannot be rated as asked."})
+    http = httpx.AsyncClient(transport=httpx.MockTransport(fake), base_url="http://site")
+    out = await prism.precompute(store, settings, client=http)
+    assert out["calculated"] == 3 and out["failed"] == ["PZ01:422"]                            # the one it cannot rate does not stop the others
+    asked = sum(1 for r in fake.reports if r["body"]["query"] == "PZ01")
+    await store.pool.execute("DELETE FROM prism_reports WHERE symbol = 'PZ02'")
+    again = await prism.precompute(store, settings, client=http)
+    assert again["calculated"] == 1 and sum(1 for r in fake.reports if r["body"]["query"] == "PZ01") == asked     # not asked again the same night
+    timed = await prism.precompute(store, settings, max_minutes=0.0, days=0, client=http)
+    assert timed["calculated"] == 0
+    await _drop_seeded(store)
+
+
+async def test_nightly_precompute_waits_for_a_member_and_then_carries_on(store, monkeypatch):  # noqa: F811
+    await _seed_summaries(store, ["PZ01", "PZ02"])
+    monkeypatch.setattr(prism, "RETRY_AFTER_BACKGROUND", 0.01)
+    settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
+    fake = FakeSite()
+    fake.member_waiting = True
+    http = httpx.AsyncClient(transport=httpx.MockTransport(fake), base_url="http://site")
+
+    async def member_finishes():
+        await asyncio.sleep(0.15)
+        fake.member_waiting = False
+    waiter = asyncio.create_task(member_finishes())
+    out = await prism.precompute(store, settings, client=http)
+    await waiter
+    assert out["calculated"] == 2 and out["paused_for_members"] > 0 and out["failed"] == []
+    await _drop_seeded(store)

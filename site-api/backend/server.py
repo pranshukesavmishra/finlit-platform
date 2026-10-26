@@ -718,7 +718,11 @@ def _premium_dashboard_inputs(symbol, statement_type, now, observations=None):
     memo = _CallMemo()
     token = _call_memo.set(memo)
     try:
-        _premium_prefetch(memo, symbol, statement_type, now, observations)
+        def in_dashboard_cache(period):
+            entry = _stock_fundamentals_cache.get(f"finedge:{symbol}:{statement_type}:{period}")
+            return bool(entry and entry.get("model_inputs") is not None and monotonic() - entry["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS)
+        if not (in_dashboard_cache("yearly") and in_dashboard_cache("quarterly")):    # otherwise the dashboard's own cache answers, with no call
+            _premium_prefetch(memo, symbol, statement_type, now, observations)
         return _premium_dashboard_inputs_resolved(symbol, statement_type, now)
     finally:
         _call_memo.reset(token)
@@ -3847,9 +3851,10 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     if lean:
         for skipped in ("revenueSegments", "shareholding", "corporateActions", "competitors"):
             result["sources"].pop(skipped, None)    # not fetched for a premium report, so not claimed
-        _model_capture.update(model_inputs)
     else:
         _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
+    if _model_capture is not None:
+        _model_capture.update(model_inputs)
     return result
 
 

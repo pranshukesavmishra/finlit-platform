@@ -22,16 +22,17 @@ except ImportError:
 
 CR = 10_000_000
 # Reports share a bounded provider budget, including industry requests. A report needs about 140 small peer lookups; at two at a
-# time that alone took over a minute, so the default is 8 (PREMIUM_PROVIDER_SLOTS, 1 to 24).
+# time that alone took over a minute, so the default is 12 (PREMIUM_PROVIDER_SLOTS, 1 to 24).
 def _provider_slots():
     try:
-        return max(1, min(24, int(os.getenv("PREMIUM_PROVIDER_SLOTS", "8"))))
+        return max(1, min(24, int(os.getenv("PREMIUM_PROVIDER_SLOTS", "12"))))
     except ValueError:
-        return 8
+        return 12
 
 
 PROVIDER_SLOT_COUNT = _provider_slots()
 _PROVIDER_SLOTS = BoundedSemaphore(PROVIDER_SLOT_COUNT)
+NO_OBSERVATION = {"none": True}   # kept in place of a peer the provider answered for but gave nothing usable (so it is not asked again the same day)
 PEER_BUDGET_SECONDS = 45.0   # peers not looked up by then count as missing (and are listed as such); normally the lookups end in about 10
 _BENCHMARK_OBSERVATIONS = {}
 _BENCHMARK_CACHE_SECONDS = 15 * 60
@@ -196,10 +197,9 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None, 
     deadline = time.monotonic() + (PEER_BUDGET_SECONDS if budget_seconds is None else budget_seconds)
     scope = (statement_type, as_of.isoformat())
     def remembered(kind, symbol, compute):
-        """Through the kept observations when there are any, else straight to the lookup."""
-        if observations is None:
-            return compute()
-        return observations.get_or_compute(scope + (kind, symbol), compute)
+        """Through the kept observations when there are any, else straight to the lookup. NO_OBSERVATION reads as no observation."""
+        value = compute() if observations is None else observations.get_or_compute(scope + (kind, symbol), compute)
+        return None if value == NO_OBSERVATION else value
     def fetch(symbol):
         # A row looked up for P/E alone may lack the P/B a later report also wants, so the wanted metrics are part of the key.
         return remembered("pr:" + ",".join(sorted(selected & {"pe", "pb"})), symbol, lambda: fetch_ratios(symbol))
@@ -225,7 +225,7 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None, 
                 if len(_BENCHMARK_OBSERVATIONS) >= 2000:
                     _BENCHMARK_OBSERVATIONS.pop(next(iter(_BENCHMARK_OBSERVATIONS)))
                 _BENCHMARK_OBSERVATIONS[cache_key] = (time.monotonic(), row)
-            return row
+            return row if row is not None else NO_OBSERVATION
         except Exception: return None
     records = []
     if selected & {"pe", "pb"}:
@@ -267,7 +267,7 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None, 
                     if len(_BENCHMARK_OBSERVATIONS) >= 2000:
                         _BENCHMARK_OBSERVATIONS.pop(next(iter(_BENCHMARK_OBSERVATIONS)))
                     _BENCHMARK_OBSERVATIONS[cache_key] = (time.monotonic(), value)
-                return value
+                return value if value is not None else NO_OBSERVATION
             except Exception:
                 return None
         with ThreadPoolExecutor(max_workers=PROVIDER_SLOT_COUNT) as pool:

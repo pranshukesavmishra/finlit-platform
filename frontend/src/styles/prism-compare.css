@@ -55,9 +55,7 @@ div.ptile.pzs-t:hover { transform: none; box-shadow: none; border-color: color-m
 .pzs-link { font-size: 12.5px; color: var(--gold); font-weight: 600; }
 .pz-busy, .pz-err { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; line-height: 1.45; }
 .pz-err { color: var(--v-weak); } .pz-err svg { width: 15px; height: 15px; flex: none; }
-.pzs-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--gold); animation: pzspin 1s linear infinite; flex: none; }
-@keyframes pzspin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .pzs-spin { animation: none; } }
+.pzs-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--gold); flex: none; }
 .pz-comp { margin: 0; padding: 12px 22px 18px; }
 
 /* Pros and cons: the Prism sub-section */

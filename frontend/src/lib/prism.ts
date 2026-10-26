@@ -2,6 +2,7 @@
 // The research API (/api/prism/*) checks the plan, keeps the signed snapshot and serves the PDF; the browser only ever sees a PrismReport.
 // Shapes follow site-api/backend/premium_engine.py (rating), premium_presentation.py (review) and premium_completeness.py (completeness).
 // Contract: docs/prism/CONTRACT.md.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, ApiError, apiGet, apiSend, apiUrl, errorBody } from "./api";
 import { MINUS, nf } from "./format";
@@ -387,6 +388,94 @@ export function useGeneratePrism() {
       qc.invalidateQueries({ queryKey: ["prism-latest", v.symbol] });   // the stock page's card reads the same report under its own key
     },
   });
+}
+
+/* ------------------------------------------------------------------ a calculation that runs behind the page
+ * POST /api/prism/reports {background: true} answers at once; the page then asks GET /api/prism/jobs with a growing pause until the rating is
+ * stored. Nothing here animates in a loop: the bar only moves forward with the honest elapsed time, and a calculation that does not finish
+ * ends as a failure with a Retry button (it never waits for ever). */
+export type PrismJob = {
+  state: "working" | "ready" | "failed" | "none"; startedAt?: number; elapsedSeconds?: number; expectedSeconds?: number; pollSeconds?: number;
+  status?: number; code?: string; detail?: string; retry?: number | null;
+};
+/** The longest the page waits for one calculation before it says so (the service gives up on its own at about three minutes). */
+export const CALC_GIVE_UP_MS = 200_000;
+const POLL_STEPS = [1000, 1000, 1500, 2000, 2000, 3000, 3000, 4000, 5000];
+/** How long to wait before asking again after `attempt` answers: 1 s, 1 s, 1.5 s, 2 s ... never more than 5 s. */
+export const pollDelay = (attempt: number) => POLL_STEPS[Math.min(Math.max(0, attempt), POLL_STEPS.length - 1)];
+/** How full the bar is, 0 to 0.95: it follows the usual time, slows down once that has passed and never claims to be finished before the rating is. */
+export function progressFraction(elapsedSeconds: number, expectedSeconds: number): number {
+  const expected = Math.max(3, expectedSeconds || 12), t = Math.max(0, elapsedSeconds);
+  return t <= expected ? 0.85 * (t / expected) : Math.min(0.95, 0.85 + 0.10 * (1 - Math.exp(-(t - expected) / expected)));
+}
+/** The failure of a job, in words, as a Problem for the page (the same shape as a failed request). */
+export function jobProblem(job: Pick<PrismJob, "status" | "code" | "detail" | "retry">): Problem {
+  if (job.status === 404) return prismProblem(new ApiError(404, { status: "not_found" }));
+  if (job.status === 422) return prismProblem(new ApiError(422, { status: "bad_request", detail: job.detail }));
+  if (job.status === 429) return prismProblem(new ApiError(429, { status: job.code === "limit" ? "limit" : "busy", detail: job.detail, retryAfter: job.retry || undefined }));
+  if (job.status === 401 || job.status === 403) return prismProblem(new ApiError(job.status, {}));
+  return { kind: "unavailable", title: "The rating could not be calculated", text: job.detail || "The data providers did not answer in time. Nothing was changed. Please try again." };
+}
+const SLOW: Problem = { kind: "unavailable", title: "This is taking longer than usual", text: "The rating has not finished yet. Nothing was changed. Try again, or come back in a few minutes: it keeps going in the background." };
+export type Calc = { phase: "idle" } | { phase: "working"; startedAt: number; expectedSeconds: number } | { phase: "failed"; problem: Problem; retryable: boolean };
+
+/** Start (or join) a calculation behind the page and follow it until the stored rating can be shown. `start()` is for the button and for the
+ *  automatic start; the returned `calc` says what to draw. When the rating is ready the company's latest report is loaded into the page. */
+export function usePrismCalculation(symbol: string, statement: Statement) {
+  const qc = useQueryClient();
+  const [calc, setCalc] = useState<Calc>({ phase: "idle" });
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const run = useRef(0);                       // which start() is current: an older one's answers are ignored
+  const stop = () => { run.current += 1; clearTimeout(timer.current); };
+  useEffect(() => () => stop(), []);           // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { stop(); setCalc({ phase: "idle" }); }, [symbol, statement]);   // another company: forget this one's progress
+  const finish = useCallback(async (mine: number) => {
+    try { await qc.invalidateQueries({ queryKey: latestKey(symbol, statement) }); } finally { if (run.current === mine) setCalc({ phase: "idle" }); }
+    qc.invalidateQueries({ queryKey: ["prism-latest", symbol] });
+  }, [qc, symbol, statement]);
+  const follow = useCallback((mine: number, startedAt: number) => {
+    let attempt = 0, failures = 0;
+    const ask = async () => {
+      if (run.current !== mine) return;
+      if (Date.now() - startedAt > CALC_GIVE_UP_MS) { setCalc({ phase: "failed", problem: SLOW, retryable: true }); return; }
+      try {
+        const job = await apiGet<PrismJob>(`/api/prism/jobs?symbol=${encodeURIComponent(symbol)}&statement=${statement}`, { cache: "no-store" });
+        if (run.current !== mine) return;
+        failures = 0;
+        if (job.state === "ready") { await finish(mine); return; }
+        if (job.state === "failed") { setCalc({ phase: "failed", problem: jobProblem(job), retryable: job.status !== 429 || job.code !== "limit" }); return; }
+        if (job.state === "none") { setCalc({ phase: "failed", problem: jobProblem({}), retryable: true }); return; }
+      } catch (e) {
+        if (run.current !== mine) return;
+        if (!transient(e as ApiError) || ++failures > 3) { setCalc({ phase: "failed", problem: prismProblem(e), retryable: transient(e as ApiError) }); return; }
+      }
+      timer.current = setTimeout(ask, pollDelay(++attempt));
+    };
+    timer.current = setTimeout(ask, pollDelay(0));
+  }, [symbol, statement, finish]);
+  const start = useCallback(async (refresh = false) => {
+    stop();
+    const mine = run.current;
+    const startedAt = Date.now();
+    setCalc({ phase: "working", startedAt, expectedSeconds: 12 });
+    try {
+      const r = await apiSend<{ status?: string; elapsedSeconds?: number; expectedSeconds?: number; rating?: unknown }>("POST", "/api/prism/reports", { symbol, statement, refresh, background: true });
+      if (run.current !== mine) return;
+      if (r?.status === "working") {
+        const begun = startedAt - Math.max(0, r.elapsedSeconds ?? 0) * 1000;     // a calculation somebody else started has already been running
+        const expected = r.expectedSeconds ?? 12;
+        setCalc({ phase: "working", startedAt: begun, expectedSeconds: expected });
+        follow(mine, begun);
+      } else if (r?.rating) {                                                     // a stored rating answered at once
+        qc.setQueryData(latestKey(symbol, statement), r);
+        qc.invalidateQueries({ queryKey: ["prism-latest", symbol] });
+        setCalc({ phase: "idle" });
+      } else setCalc({ phase: "failed", problem: jobProblem({}), retryable: true });
+    } catch (e) {
+      if (run.current === mine) setCalc({ phase: "failed", problem: prismProblem(e), retryable: prismProblem(e).kind !== "limit" && prismProblem(e).kind !== "locked" });
+    }
+  }, [symbol, statement, qc, follow]);
+  return { calc, start };
 }
 
 /* ------------------------------------------------------------------ the companies a member opened lately (this browser only) */

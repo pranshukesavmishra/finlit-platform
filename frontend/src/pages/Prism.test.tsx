@@ -6,13 +6,13 @@ import report from "../lib/__fixtures__/prismReport.json";
 import variants from "../lib/__fixtures__/prismVariants.json";
 import type { PrismReport } from "../lib/prism";
 
-const state = vi.hoisted(() => ({ latest: null as unknown, gold: true }));
+const state = vi.hoisted(() => ({ latest: null as unknown, gold: true, calc: { phase: "idle" } as unknown }));
 vi.mock("../lib/prism", async (orig) => {
   const m = await orig<typeof import("../lib/prism")>();
   return {
     ...m,
     useLatestPrism: () => ({ data: state.latest, isLoading: false, isError: false, refetch: () => undefined }),
-    useGeneratePrism: () => ({ mutate: () => undefined, isPending: false, isError: false }),
+    usePrismCalculation: () => ({ calc: state.calc, start: () => Promise.resolve() }),
     usePrismStatus: () => ({ data: { name: "FinLit Prism", available: true, reason: null, modelVersion: "3.6.9" } }),
   };
 });
@@ -114,7 +114,38 @@ describe("Prism page", () => {
     state.latest = null; state.gold = true;
     const t = text(page("/prism/TCS"));
     expect(t).toContain("Generate the Prism rating");
-    expect(t).toContain("up to two minutes");
+    expect(t).toContain("under half a minute");
+  });
+  it("while a calculation runs it shows a plain progress bar with the real elapsed seconds, not a spinner", () => {
+    state.latest = null; state.gold = true;
+    state.calc = { phase: "working", startedAt: Date.now() - 7000, expectedSeconds: 14 };
+    const html = page("/prism/TCS"), t = text(html);
+    state.calc = { phase: "idle" };
+    expect(html).toContain('role="progressbar"');
+    expect(html).not.toContain("pz-spin");
+    expect(t).toContain("Calculating the rating");
+    expect(t).toMatch(/\b[6-8] seconds so far/);
+    expect(t).toContain("about 14 seconds");
+    expect(t).not.toContain("Generate the Prism rating");      // the empty card does not sit beside a running calculation
+    expect(t).not.toContain("two minutes");
+  });
+  it("a failed calculation says why and offers Retry, and is never left as a spinner", () => {
+    state.latest = null; state.gold = true;
+    state.calc = { phase: "failed", problem: { kind: "unavailable", title: "The rating could not be calculated", text: "The data providers did not answer in time." }, retryable: true };
+    const html = page("/prism/TCS"), t = text(html);
+    state.calc = { phase: "idle" };
+    expect(t).toContain("The rating could not be calculated");
+    expect(t).toContain("did not answer in time");
+    expect(html).toMatch(/>Retry</);
+    expect(html).not.toContain('role="progressbar"');
+  });
+  it("a running recalculation keeps the stored report on screen", () => {
+    state.latest = R; state.gold = true;
+    state.calc = { phase: "working", startedAt: Date.now(), expectedSeconds: 12 };
+    const t = text(page("/prism/EXAMPLE"));
+    state.calc = { phase: "idle" };
+    expect(t).toContain("Calculating the rating");
+    expect(t).toContain("Example Components Ltd");
   });
   it("shows the stored report with its actions", () => {
     state.latest = R; state.gold = true;
