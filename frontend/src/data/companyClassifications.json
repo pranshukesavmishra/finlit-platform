@@ -1,0 +1,33 @@
+{
+  "sector": [
+    "Civil Construction",
+    "Computers - Software & Consulting",
+    "Diversified FMCG",
+    "Gems, Jewellery And Watches",
+    "Iron & Steel",
+    "Non Banking Financial Company (NBFC)",
+    "Paints",
+    "Passenger Cars & Utility Vehicles",
+    "Pharmaceuticals",
+    "Power Generation",
+    "Private Sector Bank",
+    "Public Sector Bank",
+    "Refineries & Marketing",
+    "Telecom - Cellular & Fixed line services"
+  ],
+  "industry": [
+    "Automobiles",
+    "Banks",
+    "Construction",
+    "Consumer Durables",
+    "Diversified FMCG",
+    "Ferrous Metals",
+    "Finance",
+    "IT - Software",
+    "Petroleum Products",
+    "Pharmaceuticals & Biotechnology",
+    "Power",
+    "Telecom - Services"
+  ],
+  "_source": "Initial suggestions from FinEdge company-profile responses, verified 2026-10-17. Suggestions are not an exhaustive classification list; exact custom names remain supported."
+}

@@ -16,6 +16,8 @@ import { ProfitReality } from "../stock/ProfitReality";
 import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 import { ChartHelp } from "../components/ChartHelp";
+import { AssetQuality, CompanyBrowser, DataNotes, GrowthPanel, KeyFactors } from "./FundamentalsExtras";
+import { buildPanels, type DataFlag, type FundInput } from "../lib/fundamentalsLogic";
 
 type Pt = { period: string; value: number | null; change?: number | null };
 type HRow = { category?: string; label?: string; unit?: string; history?: Pt[]; children?: HRow[] };
@@ -29,9 +31,11 @@ type Fund = {
   shareholding?: HRow[]; shareholdingDetails?: HRow[]; ownershipStructure?: HRow[]; revenueSegments?: HRow[];
   corporateActions?: { type?: string; name?: string; purpose?: string; ex_date?: string; amount?: number | string | null; ratio?: string | null }[];
   competitors?: { name?: string; symbol?: string; sector?: string }[];
+  profile?: { sector?: string; industry?: string; marketCap?: unknown }; priceHistory?: { date: string; close: number | null }[];
+  bankAssetQuality?: HRow[]; bankAssetQualityStatementType?: string; dataQuality?: DataFlag[]; sources?: Record<string, string>;
 };
 
-const SECTIONS = [["snapshot", "Snapshot"], ["income", "Income statement"], ["balance", "Balance sheet"], ["cash", "Cash flow"], ["ratios", "Ratios"], ["owners", "Shareholders"], ["peers", "Peers & actions"]] as const;
+const SECTIONS = [["snapshot", "Snapshot"], ["factors", "Key factors"], ["income", "Income statement"], ["balance", "Balance sheet"], ["cash", "Cash flow"], ["ratios", "Ratios"], ["owners", "Shareholders"], ["peers", "Peers & actions"]] as const;
 type Sec = (typeof SECTIONS)[number][0];
 const PALETTE = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)", "var(--k6)", "var(--k7)", "var(--k8)"];
 const val = (v: unknown) => (typeof v === "number" ? (v < 0 ? MINUS : "") + nf(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2) : v == null || v === "" ? MINUS : String(v));
@@ -176,6 +180,7 @@ function Ratios({ d, limit }: { d: Fund; limit: number }) {
             })}</tbody></table></HScroll>
           <p className="pm-legend"><i style={{ background: "var(--gold)" }} />Company <i style={{ background: "var(--faint)" }} />Sector</p>
         </>) : <div className="pm-empty">No ratios were reported.</div>}
+      <AssetQuality rows={d.bankAssetQuality} basis={d.bankAssetQualityStatementType} />
       <div className="pm-sec"><h2>Profitability ratios <ChartHelp id="profit-ratios" /></h2>{mine.data?.history?.periods?.length ? <ProfitabilityRatios periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} />  : <Statement rows={own.length ? own : d.profitabilityRatios || []} limit={limit} unit="%" file={`${d.instrument?.symbol}-profitability`} />}</div>{mine.data?.history?.periods?.length ? <DuPont symbol={sym} periods={mine.data.history.periods} rows={mine.data.history.rows as Record<string, (number | null)[]>} lender={false} /> : null}{mine.data?.history?.periods?.length ? <ProfitReality symbol={sym} lender={false} /> : null}
     </>
   );
@@ -222,6 +227,8 @@ export function FundamentalsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period })}`, gold && company.length >= 2);
   useEffect(() => { const s = data?.instrument?.symbol; if (s) { pushRecent(s); setRecent(readRecent()); } }, [data?.instrument?.symbol]);
   const stored = useSection<Financials>((data?.instrument?.symbol || "").toUpperCase(), "financials", !!data?.instrument?.symbol).data;
+  const yearly = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period: "yearly" })}`, gold && company.length >= 2 && period === "quarterly" && !!data);
+  const panels = useMemo(() => (data ? buildPanels(data as FundInput, period === "quarterly" ? (yearly.data as FundInput | undefined) : undefined) : null), [data, yearly.data, period]) as ReturnType<typeof buildPanels>;
   if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
   const limit = period === "quarterly" ? 10 : 8;
   const status = (error as { status?: number } | null)?.status;
@@ -247,6 +254,7 @@ export function FundamentalsPage() {
           <div className="pm-seg" role="group" aria-label="Statement type">{(["consolidated", "standalone"] as const).map((s) => <button key={s} aria-pressed={statement === s} onClick={() => set({ s: s === "consolidated" ? "" : s })}>{s === "consolidated" ? "Consolidated" : "Standalone"}</button>)}</div>
           <div className="pm-seg" role="group" aria-label="Period">{(["yearly", "quarterly"] as const).map((s) => <button key={s} aria-pressed={period === s} onClick={() => set({ p: s === "yearly" ? "" : s })}>{s === "yearly" ? "Yearly" : "Quarterly"}</button>)}</div>
         </div>
+        <CompanyBrowser profile={data?.profile} onOpen={choose} />
         {recent.length > 0 && <div className="pm-recent" aria-label="Recently viewed"><span className="faint">Recent</span>{recent.map((s) => <button key={s} className={"fchip" + (s === sym ? " on" : "")} onClick={() => choose(s)}>{s}</button>)}</div>}
         {!company ? (
           <div className="pm-empty"><b>Pick a company to begin.</b><p>Try {["RELIANCE", "TCS", "HDFCBANK"].map((s, i) => <span key={s}>{i ? ", " : ""}<button className="alx-link" onClick={() => choose(s)}>{s}</button></span>)}.</p></div>
@@ -264,6 +272,8 @@ export function FundamentalsPage() {
             </div>
             <div className="pm-tabs" role="tablist" aria-label="Sections">{SECTIONS.map(([id, label]) => <button key={id} role="tab" aria-selected={sec === id} onClick={() => set({ t: id === "snapshot" ? "" : id })}>{label}</button>)}</div>
             {sec === "snapshot" && <Snapshot d={data} limit={limit} />}
+            {sec === "factors" && <KeyFactors p={panels} unitNote={data.incomeStatement?.units_in ? `In ${data.incomeStatement.units_in}` : undefined} />}
+            {sec === "income" && <GrowthPanel rows={gateIncome.length ? gateIncome : storedRows(stored, "income", quarterly)} period={period} />}
             {sec === "income" && <Statement rows={gateIncome.length ? gateIncome : storedRows(stored, "income", quarterly)} limit={limit} unit={gateIncome.length ? data.incomeStatement?.units_in : unitNote} file={`${sym}-income-${period}`} />}
             {sec === "balance" && <Statement rows={gateBalance.length ? gateBalance : storedRows(stored, "balance", quarterly)} limit={limit} unit={gateBalance.length ? data.balanceSheet?.units_in : unitNote} file={`${sym}-balance-${period}`} />}
             {sec === "cash" && <Statement rows={gateCash.length ? gateCash : storedRows(stored, "cash", quarterly)} limit={limit} unit={gateCash.length ? data.cashFlow?.units_in : unitNote} file={`${sym}-cashflow-${period}`} />}
@@ -274,6 +284,7 @@ export function FundamentalsPage() {
               {(data.competitors || []).length ? <div className="pm-peers">{data.competitors!.map((c, i) => <button key={i} className="pm-peer" onClick={() => c.symbol && choose(c.symbol)} disabled={!c.symbol}><span className="av mini" aria-hidden="true">{(c.name || c.symbol || "?").slice(0, 2).toUpperCase()}</span><span><b>{c.symbol || MINUS}</b><small>{c.name}</small><small className="faint">{c.sector}</small></span><Icon name="arrow" /></button>)}</div> : <div className="pm-empty">No peers were reported.</div>}
               <div className="pm-sec"><h2>Dividends and corporate actions</h2>
                 {(data.corporateActions || []).length ? <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></HScroll> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
+            <DataNotes flags={data.dataQuality} sources={data.sources} />
             <p className="pm-meta" style={{ marginTop: 22 }}>Figures come from company filings through FinEdge. Missing values show a dash. General information, not investment advice.</p>
           </>)}
       </div>

@@ -1,0 +1,16 @@
+.fx-panel { margin-bottom: 16px; min-width: 0; } .fx-sm { font-size: 12.5px; color: var(--faint); margin: 8px 0 0; }
+.fx-foot { display: flex; justify-content: flex-end; margin-top: 6px; } .fx-table { margin-top: 6px; } .fx-table caption { text-align: left; font-size: 12.5px; color: var(--muted); padding: 4px 0 8px; caption-side: top; }
+.fx-bars { display: grid; gap: 9px; } .fx-br { display: grid; grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) minmax(64px, auto); gap: 10px; align-items: center; font-size: 13.5px; }
+.fx-bl { color: var(--muted); min-width: 0; overflow-wrap: anywhere; } .fx-bv { font: 600 13px var(--mono); text-align: right; white-space: nowrap; } .fx-bv small { font: 400 11.5px var(--sans); color: var(--faint); }
+.fx-track { position: relative; height: 12px; border-radius: 6px; background: var(--s2); overflow: hidden; display: block; } .fx-track .fx-bar { position: absolute; top: 0; bottom: 0; border-radius: 6px; min-width: 2px; }
+.fx-bar.pos, .fx-bar.co { background: var(--gold); } .fx-bar.neg { background: var(--loss); } .fx-bar.se { background: var(--faint); opacity: .5; top: 7px; } .fx-bar.co { bottom: 5px; }
+.fx-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); } .fx-na { position: absolute; left: 6px; top: -2px; font-style: normal; color: var(--faint); font-size: 12px; }
+.fx-dna { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 18px; margin: 0; } .fx-dna dt { font-size: 12px; color: var(--muted); } .fx-dna dd { margin: 2px 0 0; font: 500 16px var(--serif); overflow-wrap: anywhere; }
+.fx-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; } .fx-tiles > div { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--s1); min-width: 0; }
+.fx-tiles small { display: block; font-size: 12px; color: var(--muted); } .fx-tiles b { display: block; font: 500 22px var(--serif); } .fx-tiles b.pos { color: var(--gain); } .fx-tiles b.neg { color: var(--loss); } .fx-tiles span { font-size: 11.5px; color: var(--faint); }
+.fx-notes, .fx-browser { margin: 18px 0 0; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); padding: 10px 16px; } .fx-notes summary, .fx-browser summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.fx-notes ul { padding-left: 18px; font-size: 13.5px; color: var(--muted); display: grid; gap: 8px; } .fx-bwrap { display: grid; gap: 10px; margin-top: 10px; } .fx-err { color: var(--loss); }
+@media (max-width: 600px) { .fx-br { grid-template-columns: minmax(0, 1fr) auto; } .fx-track { grid-column: 1 / -1; grid-row: 2; } .fx-tiles b { font-size: 18px; } .fx-notes, .fx-browser { padding: 10px 12px; } }
+
+/* statement tables sit directly in .wrap: keep their bleed from adding page-level sideways scroll */
+.wrap > .tw { max-width: 100%; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
