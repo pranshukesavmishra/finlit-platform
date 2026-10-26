@@ -1,0 +1,26 @@
+import { execSync } from "node:child_process";
+import { BASE, browser, newPage, api, post, login, shot, check, save, failures } from "./lib.mjs";
+// site backend must already be stopped
+const b = await browser();
+const p = await newPage(b, { width: 1400, height: 900 });
+const lg = await login(p, "gold@test.example");
+const uid = lg.user.id;
+const day = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10).replace(/-/g, "");
+let r = await post(p, "/api/prism/reports", { symbol: "HDFCBANK", refresh: true });
+check("3 site backend down -> 502 unavailable, calm text, no internals", r.status === 502 && r.body.status === "unavailable" && !/Traceback|127\.0\.0\.1|httpx|Connect/i.test(JSON.stringify(r.body)), JSON.stringify(r.body));
+const used = execSync(`redis-cli -n 12 get prism:day:${uid}:${day}`).toString().trim();
+check("3 failed calculation did not use up the allowance", used === "" || used === "0", "counter=" + used);
+const st = await api(p, "/api/prism/status");
+console.log("status", JSON.stringify(st.body));
+await p.goto(BASE + "/prism/HDFCBANK", { waitUntil: "networkidle" });
+await p.getByRole("button", { name: /Generate the Prism rating/ }).click();
+await p.waitForTimeout(2500);
+const dt = await p.locator("main").innerText();
+check("3 site down UI: calm message", /could not finish|try again|not connected/i.test(dt) && !/Traceback|ECONN/.test(dt), dt.replace(/\n+/g, " ").slice(280, 700));
+await shot(p, "3-site-down");
+await p.goto(BASE + "/stocks/RELIANCE", { waitUntil: "networkidle" });
+check("3 site down: stock page still shows stored Prism report", /OUT OF 100/i.test(await p.locator(".pz-right").innerText()), "");
+await shot(p, "3-site-down-stock");
+check("3 no page errors", p.errs.length === 0, p.errs.join(" | "));
+await b.close(); save("s3b");
+process.exit(failures() ? 1 : 0);
