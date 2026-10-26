@@ -77,13 +77,14 @@ const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "G
   { to: "/fii-dii", t: "FII/DII data", d: "What foreign and domestic institutions bought and sold today, their streaks, a five-year history, daily calendars, F&O positioning and a free CSV. Computed from published exchange files; information only.", tier: "Free" },
   { to: "/sip-calculator", t: "SIP calculator", d: "See what a monthly investment could grow to, with a yearly step-up, inflation, a goal planner, the cost of waiting and an after-tax estimate. Every step of the maths shown.", tier: "Free" },
   { to: "/dcf", t: "DCF calculator", d: "Work out what a business is worth from its future free cash flow: load a company's figures, set growth and discount rates, and see the value per share, the price after your margin of safety, and what today's price already assumes.", tier: "Gold" },
+  { to: "/eps-calculator", t: "EPS calculator", d: "Earnings per share, P/E and a future-price scenario: basic or diluted, Bear, Base and Bull cases, a sensitivity grid and the growth a target price needs. Information only.", tier: "Free" },
   { to: "/commodities", t: "Commodity prices", d: "Gold, silver, platinum, crude oil, natural gas, copper and aluminium: the MCX futures price, the international price in dollars and an indicative import parity with the customs duty shown. No sign-in needed.", tier: "Free" },
 ];
 
 function Platform({ total }: { total: number | null }) {
   return (
     <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Seventeen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Eighteen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
       <div className="plat">{PLATFORM.map((x, i) => (
         <Link key={x.t} to={x.to} className="plat-t">
           <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>

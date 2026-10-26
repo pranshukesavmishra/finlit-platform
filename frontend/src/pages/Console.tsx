@@ -169,6 +169,15 @@ function Health() {
         {h.coverage.mismatches.length > 0 ? <div className="formerr" role="alert"><b>{h.coverage.mismatches.length} companies where the provider sent data the report lacks:</b> {h.coverage.mismatches.map((m) => `${m.symbol} (${m.lines.join("; ")})`).join(" · ")}</div> : <p className="pos">None: every figure the provider sent is shown.</p>}
         {h.coverage.providerEmpty.length > 0 && <p className="muted">The provider sent nothing for: {h.coverage.providerEmpty.map((c) => `${c.symbol}${c.name ? " " + c.name : ""}`).join(", ")}.</p>}
       </div>}
+      <div style={{ marginTop: 14 }}>
+        <h3 style={{ margin: "0 0 6px", font: "600 15px var(--sans)" }}>Data integrity {h.integrity && <span className={h.integrity.level === "green" ? "pos" : "neg"}>{h.integrity.level === "green" ? "● green" : h.integrity.level === "amber" ? "● amber" : "● red"}</span>}</h3>
+        {!h.integrity ? <p className="muted">The nightly audit has not run yet. It samples up to 40 companies a night and checks prices, latest quarter, profit and loss sums, declared results and risk figures.</p> : (
+          <>
+            <p className="muted">Last audit {stamp(h.integrity.at)}, {h.integrity.sampled} companies sampled.</p>
+            <ul style={{ paddingLeft: 18 }}>{h.integrity.checks.map((c) => <li key={c.key}><b style={{ color: c.level === "green" ? "var(--gain)" : c.level === "amber" ? "var(--warn, #b7791f)" : "var(--loss)" }}>{c.level === "green" ? "Green" : c.level === "amber" ? "Amber" : "Red"}</b> · {c.label}: {c.message}{c.examples.length > 0 && <span className="muted mono"> e.g. {c.examples.join(" | ")}</span>}</li>)}</ul>
+          </>
+        )}
+      </div>
       {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
     </section>
   );

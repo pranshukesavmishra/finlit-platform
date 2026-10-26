@@ -1,0 +1,52 @@
+/* EPS calculator (pages/EpsCalculator.tsx). Builds on dcf.css; tokens only, so both themes follow. */
+.eps .card { overflow: hidden; }
+.eps-measure > span { font-weight: 600; font-size: 14px; }
+.eps-measure { margin: 0 0 16px; padding: 0; border: 0; }
+.eps-sum { margin-top: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.eps-sum.eps-sum3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.eps-formula { margin: 12px 0 0; }
+.eps-years { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 14px; align-items: center; }
+.eps-years input[type="range"] { width: 100%; accent-color: var(--gold); }
+.eps-years input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+.eps-cases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.eps-case { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: var(--s1); display: grid; gap: 10px; align-content: start; min-width: 0; }
+.eps-case.base { border-color: var(--gold); border-width: 2px; }
+.eps-case h3 { margin: 0; font-size: 16px; }
+.eps-case label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.eps-case input { font: 400 15px var(--mono); padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--s1); color: var(--text); width: 100%; }
+.eps-case input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.eps-case input[aria-invalid="true"] { border-color: var(--loss); }
+.eps-case dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 4px 0 0; font-size: 14px; }
+.eps-case dt { color: var(--muted); } .eps-case dd { margin: 0; text-align: right; font-family: var(--mono); overflow-wrap: anywhere; }
+.eps-case dd .up { color: var(--gain); } .eps-case dd .down { color: var(--loss); }
+
+.eps-tw { overflow-x: auto; max-width: 100%; }
+.eps-tw table { min-width: 100%; }
+.dcf-sens td.s-gain { background: var(--gain-soft); } .dcf-sens td.s-loss { background: var(--loss-soft); }
+.eps-gridopts { margin: 0 0 12px; padding: 0; border: 0; }
+
+.eps-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.eps-chart { margin: 0; min-width: 0; }
+.eps-chart figcaption { font-size: 14px; margin-bottom: 6px; }
+.eps-chart svg { width: 100%; height: auto; display: block; touch-action: pan-y; border-radius: 8px; }
+.eps-chart svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.eps-chart .gl { stroke: var(--border); stroke-width: 1; }
+.eps-chart .ax { fill: var(--faint); font: 11px var(--sans); }
+.eps-chart .bar { fill: var(--c1, var(--gold)); opacity: .75; } .eps-chart .bar.on { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+.eps-chart .ln { stroke: var(--gold); stroke-width: 2.5; stroke-linejoin: round; }
+.eps-chart .dot { fill: var(--gold); } .eps-chart .dot.on { stroke: var(--text); stroke-width: 2; }
+.eps-chart .cur { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; opacity: .6; }
+.eps-read { margin: 12px 0 6px; font-size: 14.5px; }
+.eps-read b { font-family: var(--mono); font-weight: 500; }
+
+.eps-rev { margin-top: 8px; align-items: start; }
+.eps-revlabel { font-weight: 600; font-size: 15px; }
+.eps-revout { font: 500 24px/1.2 var(--mono); padding: 6px 0; display: block; }
+
+@media (max-width: 900px) { .eps-charts, .eps-cases { grid-template-columns: minmax(0, 1fr); } .eps-sum.eps-sum3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .eps-sum { grid-template-columns: minmax(0, 1fr); } .eps-years { grid-template-columns: minmax(0, 1fr) 96px; } .eps-tw table { font-size: 13px; } }
+@media print {
+  .eps .dcf-co, .eps .dcf-acts, .eps-measure, .eps button.ghost { display: none !important; }
+  .eps .card { break-inside: avoid; }
+}

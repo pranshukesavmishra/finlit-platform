@@ -21,6 +21,7 @@ export const SECTIONS: NavSection[] = [
       i("/compare", "Compare companies", "Two to four companies side by side, in charts", "compare"),
       i("/prism", "FinLit Prism", "A company's financial health rated in four parts, with a PDF", "layers", { gold: true }),
       i("/dcf", "Fair value calculator", "Intrinsic value and margin of safety", "rupee", { gold: true }),
+      i("/eps-calculator", "EPS calculator", "Earnings per share, P/E and a future-price scenario", "gauge"),
       i("/premium/report", "Premium reports", "The full written report on a company", "notes", { gold: true }),
     ] },
     { title: "Charts", items: [

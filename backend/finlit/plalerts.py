@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .alertengine import deliver, watchlist_symbols
 from .auth.mailer import Mailer
-from .plflags import pl_flags
+from .plflags import pl_flags, period_views
 
 log = logging.getLogger("finlit.plalerts")
 
@@ -26,8 +26,31 @@ def kind_of(flag: Dict[str, Any]) -> str:
     return f"pl_flag_{flag['case']}"
 
 
-def message(symbol: str, flag: Dict[str, Any]) -> Tuple[str, str]:
-    return f"{symbol} – {flag['title']} ({flag['period']})", f"{flag['text']} {flag['why']} {FOOTER}"
+def _sg(v: float) -> str:
+    return ("−" if v < 0 else "+" if v > 0 else "") + f"{abs(v):.1f}%"
+
+
+def _view_line(v: Dict[str, Any], lender: bool) -> str:
+    g = v["growth"]
+    parts = [f"{n} {_sg(g[k])}" for n, k in (("total income" if lender else "revenue", "revenue"), ("net profit", "profit")) if g.get(k) is not None]
+    if not lender and g.get("operating") is not None:
+        parts.append(f"operating profit {_sg(g['operating'])}")
+    return f"{v['period']} against {v['against']}: " + ", ".join(parts) if parts else ""
+
+
+def message(symbol: str, flag: Dict[str, Any], views: Optional[Dict[str, Optional[Dict[str, Any]]]] = None, lender: bool = False) -> Tuple[str, str]:
+    """The title names the period kind ('latest quarter' or 'latest year') so a quarterly result is never taken for the annual one. When both
+    views exist, the body also gives the other one's figures."""
+    quarter = flag["scope"] == "quarterly"
+    title = f"{symbol} – {flag['title']}" + ("" if flag["case"] == 8 else " in the latest quarter" if quarter else " in the latest year") + f" ({flag['period']})"
+    extra = []
+    for sc in ("quarterly", "annual"):
+        v = (views or {}).get(sc)
+        if v:
+            ln = _view_line(v, lender)
+            if ln:
+                extra.append(f"{'Latest quarter' if sc == 'quarterly' else 'Latest year'}, {ln}.")
+    return title, " ".join([flag["text"], *extra, flag["why"], FOOTER])
 
 
 def link_for(symbol: str, flag: Dict[str, Any]) -> str:
@@ -42,8 +65,9 @@ def is_recent(table: Optional[Dict[str, Any]], today: date) -> bool:
         return False
 
 
-def fresh_flags(body: Dict[str, Any], today: date) -> List[Dict[str, Any]]:
-    """Flags for one company's financials section that are about a recently reported period."""
+def fresh_flags(body: Dict[str, Any], today: date, lender: bool = False) -> List[Dict[str, Any]]:
+    """Flags for one company's financials section that are about a recently reported period. The yearly and the quarterly tables are tested
+    separately, each with its own period, so a quarter that triggers is alerted as the quarter and a year as the year."""
     yearly = ((body.get("yearly") or {}).get("pl")) or None
     quarterly = ((body.get("quarterly") or {}).get("pl")) or None
     if yearly is not None:
@@ -51,7 +75,7 @@ def fresh_flags(body: Dict[str, Any], today: date) -> List[Dict[str, Any]]:
     if quarterly is not None:
         quarterly = {**quarterly, "period": "quarterly"}
     out = []
-    for f in pl_flags(yearly, quarterly):
+    for f in pl_flags(yearly, quarterly, lender):
         if is_recent(quarterly if f["scope"] == "quarterly" else yearly, today):
             out.append(f)
     return out
@@ -70,6 +94,11 @@ async def auto_pl_flags(pool, mailer: Mailer, site_url: str, today: Optional[dat
         if not symbols:
             return 0
         flags: Dict[str, List[Dict[str, Any]]] = {}
+        views: Dict[str, Dict[str, Optional[Dict[str, Any]]]] = {}
+        lenders = set()
+        for r in await conn.fetch("SELECT symbol, (body::jsonb #>> '{dataQuality,isBank}') AS b FROM snapshots WHERE symbol = ANY($1::text[]) AND section = 'summary' ORDER BY (statement = 'consolidated') DESC", symbols):
+            if r["b"] == "true":
+                lenders.add(r["symbol"])
         seen = set()
         # only the two profit-and-loss tables the flags read, cut inside the database (a whole financials report is ~40 KB)
         for r in await conn.fetch("SELECT symbol, jsonb_build_object('yearly', jsonb_build_object('pl', body::jsonb #> '{yearly,pl}'), "
@@ -79,7 +108,10 @@ async def auto_pl_flags(pool, mailer: Mailer, site_url: str, today: Optional[dat
                 continue
             seen.add(r["symbol"])
             try:
-                flags[r["symbol"]] = fresh_flags(json.loads(r["body"]), today)
+                data = json.loads(r["body"])
+                lend = r["symbol"] in lenders
+                flags[r["symbol"]] = fresh_flags(data, today, lend)
+                views[r["symbol"]] = period_views((data.get("yearly") or {}).get("pl"), (data.get("quarterly") or {}).get("pl"), lend)
             except (ValueError, TypeError, AttributeError):
                 continue
         for u in users:
@@ -96,7 +128,7 @@ async def auto_pl_flags(pool, mailer: Mailer, site_url: str, today: Optional[dat
                                                   u["id"], sym, kind_of(f), f["period"])
                         if not new:
                             continue
-                        title, body = message(sym, f)
+                        title, body = message(sym, f, views.get(sym), sym in lenders)
                         await deliver(conn, mailer, site_url, {"id": u["id"], "email": u["email"], "prefs": u["prefs"]},
                                       {"id": None, "symbol": sym, "channels": ["app", "browser"]}, title, body, link_for(sym, f))
                         n += 1

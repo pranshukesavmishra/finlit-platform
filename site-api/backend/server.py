@@ -15,6 +15,11 @@ from zoneinfo import ZoneInfo
 from time import monotonic, time, sleep
 from urllib.parse import quote, urlparse
 import asyncio
+import base64
+import contextvars
+import copy
+import threading
+import zlib
 import bcrypt
 from functools import lru_cache
 import hashlib
@@ -26,6 +31,7 @@ import json
 import math
 import requests
 import csv
+from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from html import escape
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -599,6 +605,13 @@ class PremiumReportRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
     statement_type: Literal["consolidated", "standalone"] = "consolidated"
     delivery: Literal["background", "inline"] = "background"
+    # inline calculations only. "background" (the nightly pre-calculation) gives way to a member waiting: it is turned away
+    # with 429 while any interactive calculation is running and is asked to come back in a few seconds.
+    priority: Literal["interactive", "background"] = "interactive"
+    inputs: Optional[str] = Field(default=None, max_length=4_000_000)         # model inputs kept from an earlier calculation (premium_cache.pack)
+    observations: Optional[Dict[str, Any]] = None                                # peer observations kept from earlier calculations
+    cache: bool = False                                                          # add a "cache" block to the answer (never part of the signed snapshot)
+    keep: bool = True                                                            # ...and in it the packed inputs of a fresh fetch, for the caller to keep
     # FinLit addition: Dhan daily candles from the research API (premium_supplied_candles.py); validated there, a bad value just means the usual providers.
     suppliedCandles: Optional[Dict[str, Any]] = None
 
@@ -614,6 +627,7 @@ def _generation_slots_setting():
 
 
 _premium_generation_slots = asyncio.Semaphore(_generation_slots_setting())
+_premium_interactive = 0      # interactive calculations queued or running; the background pre-calculation waits while this is above zero
 # Transient generation state only: no report collection, persistence or history API.
 _PREMIUM_JOB_TTL_SECONDS = 30 * 60
 _PREMIUM_JOB_LIMIT = 20
@@ -627,16 +641,157 @@ def _prune_premium_jobs():
             _premium_jobs.pop(key, None)
 
 
-def _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles=None):
-    """Use exactly the dashboard's resolved provider data, including its cache."""
+PREMIUM_PREFETCH_WORKERS = _env_int("PREMIUM_PREFETCH_WORKERS", 12, 1, 24)
+
+
+def _premium_prefetch_requests(symbol, statement_type, now):
+    """Every provider request the model's inputs always need, as (path, params): the resolver below asks for these one after another, so
+    they are asked for together first and its calls are then answered from memory. A request not listed here (a standalone fallback, say)
+    is simply made when the resolver reaches it."""
+    path, year = _stock_symbol_path(symbol), now.year
+    wanted = [(f"/company-profile/{path}", None)]
+    bases = ["c", "s"] if statement_type == "consolidated" else ["s"]
+    for code, period in (("pl", "annual"), ("bs", "annual"), ("cf", "annual"), ("pl", "quarterly"), ("bs", "quarterly"), ("cf", "quarterly")):
+        wanted.append((f"/financials/{path}", {"statement_type": bases[0], "statement_code": code, "period": period}))
+    if statement_type == "consolidated":   # the resolver compares revenue with the standalone statements, and bank asset quality may use them
+        wanted += [(f"/financials/{path}", {"statement_type": "s", "statement_code": "pl", "period": period}) for period in ("annual", "quarterly")]
+    typ = bases[0]
+    wanted += [(f"/ratios/{path}", {"statement_type": typ, "ratio_type": kind}) for kind in ("ef", "le", "li", "pr")]
+    wanted += [(f"/financial-metrics/{path}", {"statement_type": typ, "ratio_type": kind}) for kind in ("cu", "gr", "av")]
+    wanted += [(f"/basic-financials/{path}", {"statement_type": typ, "statement_code": "pl"}),
+               (f"/daily-price-ratios/{path}", {"statement_type": typ, "from": str(year), "to": str(year)}),
+               (f"/daily-price-ratios/{path}", {"statement_type": typ, "from": str(year - 5), "to": str(year)}),
+               ("/quote", {"symbol": symbol}),
+               (f"/daily-quotes/{path}", {"from": str(year - 6), "to": str(year)}),
+               (f"/peers/{path}", {"group": "industry"})]
+    wanted += [(f"/shareholdings/{kind}/{path}", {"period": "quarterly"}) for kind in ("summary", "distribution", "declaration")]
+    return wanted
+
+
+def _premium_prefetch(memo, symbol, statement_type, now, observations=None):
+    """Ask for all of `_premium_prefetch_requests` at once. Once the quote and the industry list are in, start looking up the peers' price
+    ratios too (the longest part of a report), so that they run while the statements are still being resolved."""
+    context = contextvars.copy_context()
+    results = {}
+
+    def one(request):
+        path, params = request
+        try:
+            results[(path, json.dumps(params or {}, sort_keys=True))] = context.copy().run(_finedge_get, path, params)
+        except Exception:
+            pass   # the resolver asks again and handles the failure as it always did
+
+    def warm_peers():
+        if observations is None:
+            return
+        try:
+            quote_payload = results.get(("/quote", json.dumps({"symbol": symbol}, sort_keys=True)))
+            peers = results.get((f"/peers/{_stock_symbol_path(symbol)}", json.dumps({"group": "industry"}, sort_keys=True)))
+            stamp = _quote_from_finedge_quote(quote_payload or {}, symbol).get("timestamp")
+            as_of = min(date.fromisoformat(str(stamp or "")[:10]), now.date())
+            try:
+                from backend.premium_benchmarks import peer_benchmark
+            except ImportError:
+                from premium_benchmarks import peer_benchmark
+            # the metrics the report will most likely ask for; a different set simply misses and is looked up then
+            peer_benchmark(_finedge_get, peers or {}, statement_type, as_of, None, ["pe", "pb"], observations=observations)
+        except Exception:
+            pass
+
+    pool = ThreadPoolExecutor(max_workers=PREMIUM_PREFETCH_WORKERS)
+    try:
+        requests_ = _premium_prefetch_requests(symbol, statement_type, now)
+        early = [r for r in requests_ if r[0] in ("/quote",) or r[0].startswith("/peers/")]
+        futures = [pool.submit(one, r) for r in early]
+        later = [pool.submit(one, r) for r in requests_ if r not in early]
+        for f in futures:
+            f.result()
+        warmer = threading.Thread(target=warm_peers, daemon=True)
+        warmer.start()
+        for f in later:
+            f.result()
+        return warmer
+    finally:
+        pool.shutdown(wait=True)
+
+
+def _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles=None, observations=None):
+    """Use exactly the dashboard's resolved provider data, including its cache. The calls are shared and made together (see _CallMemo), and
+    the extras the model never reads are skipped (see `lean` in _fetch_stock_fundamentals); what the model receives is the same."""
+    memo = _CallMemo()
+    token = _call_memo.set(memo)
+    try:
+        def in_dashboard_cache(period):
+            entry = _stock_fundamentals_cache.get(f"finedge:{symbol}:{statement_type}:{period}")
+            return bool(entry and entry.get("model_inputs") is not None and monotonic() - entry["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS)
+        if not (in_dashboard_cache("yearly") and in_dashboard_cache("quarterly")):    # otherwise the dashboard's own cache answers, with no call
+            _premium_prefetch(memo, symbol, statement_type, now, observations)
+        return _premium_dashboard_inputs_resolved(symbol, statement_type, now, supplied_candles=supplied_candles)
+    finally:
+        _call_memo.reset(token)
+
+
+def _technical_candle_date(now):
+    """The last completed daily session for the technical indicators: an unfinished session (before 16:00 IST) is excluded."""
+    ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
+    return ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
+
+
+def _premium_kept_with_current_technical(kept, now, supplied_candles):
+    """The raw inputs kept from an earlier calculation, with the technical candles made as current as a fresh fetch would have them, or None
+    when that cannot be done without fetching (the caller then fetches everything). Statements, ratios and ownership filings change slowly and
+    are reused; daily candles are not: supplied (Dhan) candles are the first choice whenever they are valid, exactly as in a fresh fetch, and
+    candles that were kept are used only when they end on today's last completed session and come from the same source a fresh fetch would use."""
+    try:
+        from backend.premium_supplied_candles import supplied_price_input, benchmarks_with_supplied
+        from backend.premium_technical_sources import load_benchmark_history
+    except ImportError:
+        from premium_supplied_candles import supplied_price_input, benchmarks_with_supplied
+        from premium_technical_sources import load_benchmark_history
+    candle_date = _technical_candle_date(now)
+    raw = dict(kept["raw"])
+    supplied = supplied_price_input(supplied_candles, candle_date)
+    if supplied is not None:
+        raw["technicalPriceInput"] = supplied
+        required_dates = [row["date"] for row in supplied["bars"][-505:]]
+        raw["technicalBenchmarks"] = benchmarks_with_supplied(supplied_candles, candle_date, required_dates,
+            lambda: load_benchmark_history(_finedge_get, candle_date, _fetch_upstox_price_history, required_dates))
+        return raw
+    price_input, benchmarks = raw.get("technicalPriceInput"), raw.get("technicalBenchmarks")
+    if not isinstance(price_input, dict) or not isinstance(benchmarks, dict):
+        return None
+    if price_input.get("throughDate") != candle_date.isoformat() or price_input.get("provider") == "Dhan":
+        return None
+    if any(isinstance(item, dict) and item.get("provider") == "Dhan" for item in benchmarks.values()):
+        return None
+    return raw
+
+
+def _premium_inputs_loader(kept, fresh, observations, supplied_candles=None):
+    """The `dashboard_load` of one calculation: inputs kept from an earlier one when they are still fresh enough, else the resolver's, which
+    are then copied into `fresh` (to be kept for next time). Either way the model receives the same kind of data."""
+    def load(symbol, statement_type, now):
+        if kept is not None:
+            current = _premium_kept_with_current_technical(kept, now, supplied_candles)
+            if current is not None:
+                return current, kept["sources"], kept["effective"], kept["sourcing"]
+        raw, sources, effective, sourcing = _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles, observations)
+        fresh.update({"symbol": symbol, "requested": statement_type, "fetchedAt": now.isoformat(), "raw": raw, "sources": sources,
+                      "effective": effective, "sourcing": sourcing})
+        return raw, sources, effective, sourcing
+    return load
+
+
+def _premium_dashboard_inputs_resolved(symbol, statement_type, now, lean=True, supplied_candles=None):
+    """lean=False is the resolver as it was before the premium report skipped the dashboard's extras (kept for the regression test)."""
     annual, quarterly = {}, {}
-    yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
+    yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual, _lean=lean)
     effective = yearly["statementType"]
-    quarterly_view = _fetch_stock_fundamentals(symbol, effective, "quarterly", quarterly)
+    quarterly_view = _fetch_stock_fundamentals(symbol, effective, "quarterly", quarterly, _lean=lean)
     if quarterly_view["statementType"] != effective:
         effective = quarterly_view["statementType"]
         annual = {}
-        yearly = _fetch_stock_fundamentals(symbol, effective, "yearly", annual)
+        yearly = _fetch_stock_fundamentals(symbol, effective, "yearly", annual, _lean=lean)
     quote_data = yearly.get("quote", {})
     raw = {"profile": annual.get("profile", {}), "annual": annual.get("income", {}),
         "quarterly": quarterly.get("income", {}), "balance": annual.get("balance", {}),
@@ -686,8 +841,7 @@ def _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles=None
         key = yearly.get("instrument", {}).get("upstoxInstrumentKey")
         return _fetch_upstox_price_history(key) if key else []
     # Exclude an unfinished daily session from technical indicators.
-    ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
-    candle_date = ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
+    candle_date = _technical_candle_date(now)
     # FinLit: supplied (Dhan) candles are the first choice per series when valid; the original calls are the unchanged fallback.
     raw["technicalPriceInput"] = prices_with_supplied(supplied_candles, candle_date, lambda: resolve_technical_prices(
         annual.get("technicalPrices", {}), yearly["sources"].get("priceHistory"),
@@ -708,7 +862,7 @@ async def _generate_premium_report(report_id, symbol, name, statement_type, crea
     try:
         async with _premium_generation_slots:
             report = await asyncio.to_thread(generate_report, _finedge_get, symbol, name, statement_type, report_id, created_at,
-                lambda s, t, n: _premium_dashboard_inputs(s, t, n, supplied_candles))
+                lambda s, t, n: _premium_dashboard_inputs(s, t, n, supplied_candles=supplied_candles))
             job =_premium_jobs.get(report_id)
             if job and job["expires"] > monotonic() and job["report"]["state"] == "generating":
                 job["report"] = report
@@ -735,16 +889,44 @@ async def create_premium_report(payload: PremiumReportRequest, background_tasks:
         except ImportError:
             from premium_service import generate_report
             from premium_snapshot import issue
+        global _premium_interactive
         report_id = uuid.uuid4().hex
         created_at = datetime.now(timezone.utc).isoformat()
+        background = payload.priority == "background"
+        if background and _premium_interactive > 0:
+            raise HTTPException(status_code=429, detail="A member is waiting for a report; the pre-calculation pauses.", headers={"Retry-After": "3"})
+        if not background:
+            _premium_interactive += 1
+        started = monotonic()
         try:
+            try:
+                from backend import premium_cache
+                from backend.premium_benchmarks import ObservationCache
+            except ImportError:
+                import premium_cache
+                from premium_benchmarks import ObservationCache
+            kept = premium_cache.usable_inputs(payload.inputs, symbol, payload.statement_type)
+            observations = ObservationCache(premium_cache.preload(payload.observations))
+            fresh = {}
             async with _premium_generation_slots:
                 report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at,
-                    lambda s, t, n: _premium_dashboard_inputs(s, t, n, payload.suppliedCandles))
+                                                 _premium_inputs_loader(kept, fresh, observations, payload.suppliedCandles), observations)
             snapshot = issue(report, _admin["sub"], token_secret())
+            report_cache = {"observations": premium_cache.flatten(observations.new), "universe": observations.universe(), "inputsReused": kept is not None and not fresh,
+                            "seconds": round(monotonic() - started, 1)}
+            if fresh and payload.keep:
+                try:
+                    report_cache["inputs"] = premium_cache.pack(fresh)
+                except (ValueError, TypeError):
+                    logger.info("Premium inputs for %s could not be packed for keeping", symbol)
+            if payload.cache:
+                snapshot = {**snapshot, "cache": report_cache}
         except Exception as exc:
             logger.warning("Inline premium report generation failed (%s): %s", type(exc).__name__, report_id)
             raise HTTPException(status_code=502, detail="The financial data providers could not complete this report. Please retry.") from None
+        finally:
+            if not background:
+                _premium_interactive -= 1
         return JSONResponse(snapshot, headers={"Cache-Control": "no-store"})
     if len(_premium_jobs) >= _PREMIUM_JOB_LIMIT:
         completed = next((key for key, job in _premium_jobs.items() if job["report"]["state"] != "generating"), None)
@@ -1369,7 +1551,51 @@ def _finedge_api_key():
     return api_key
 
 
+class _CallMemo:
+    """Provider answers kept for the length of ONE premium input assembly. The dashboard resolver runs twice (yearly, then quarterly) and asks
+    for the same statements, ratios and quotes both times; a prefetch also asks for them all at once. Two askers of one request share a
+    single call. Only successes are kept, so a failed call is still retried exactly as before."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._done = {}
+        self._inflight = {}
+        self.calls = 0
+        self.reused = 0
+
+    def get(self, path, params, call):
+        key = json.dumps([path, params or {}], sort_keys=True, default=str)
+        while True:
+            with self._lock:
+                if key in self._done:
+                    self.reused += 1
+                    return copy.deepcopy(self._done[key])
+                event = self._inflight.get(key)
+                if event is None:
+                    self._inflight[key] = event = threading.Event()
+                    break
+            event.wait(60)
+        try:
+            value = call(path, params)
+            with self._lock:
+                self._done[key] = value
+                self.calls += 1
+            return copy.deepcopy(value)
+        finally:
+            with self._lock:
+                self._inflight.pop(key, None)
+            event.set()
+
+
+_call_memo = contextvars.ContextVar("finedge_call_memo", default=None)
+
+
 def _finedge_get(path: str, params: Optional[Dict[str, Any]] = None):
+    memo = _call_memo.get()
+    return _finedge_get_retrying(path, params) if memo is None else memo.get(path, params, _finedge_get_retrying)
+
+
+def _finedge_get_retrying(path: str, params: Optional[Dict[str, Any]] = None):
     """Bounded retries shared by dashboard and reports; transient errors are not N/A."""
     for attempt in range(3):
         try:
@@ -3235,7 +3461,7 @@ def _remember_stock_fundamentals(cache_key, entry):
     _stock_fundamentals_cache[cache_key] = entry
 
 
-def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None):
+def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None, _lean=None):
     started_at = monotonic()
     instrument = _resolve_finedge_stock(query)
     symbol = instrument.get("symbol")
@@ -3255,6 +3481,10 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
             "upstoxSymbol": upstox_instrument.get("symbol"),
         }
 
+    # A premium report (`_model_capture`) needs the statements, ratios, quote, prices and ownership filings only. The dashboard's own extras
+    # (revenue segments, shareholding pattern, corporate actions, dividends, competitors with a quote each) feed nothing in the model: in
+    # that case they are not fetched, and the half-built view is not left in the dashboard's cache.
+    lean = (_model_capture is not None) if _lean is None else _lean
     cache_key = f"finedge:{symbol}:{statement_type}:{period}"
     cached = _stock_fundamentals_cache.get(cache_key)
     if cached and monotonic() - cached["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS:
@@ -3401,7 +3631,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     }
 
     finedge_type = "c" if effective_statement_type == "consolidated" else "s"
-    segment_payload = _safe_finedge_get(
+    segment_payload = {} if lean else _safe_finedge_get(
         f"/segment-revenue/{_stock_symbol_path(symbol)}",
         {"statement_type": finedge_type, "statement_code": "pl", "period": "annual" if period == "yearly" else "quarterly"},
         default={},
@@ -3568,31 +3798,31 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
                 "income_statement": _derive_income_metrics(_history_from_period_rows(quarterly_income_rows, "quarterly", INCOME_STATEMENT_ALIASES, scale=10_000_000)),
             }
     ratios = _reconcile_valuation_ratios(ratios, profile, income_statement, balance_sheet, price_ratio_snapshot, _ttm_net_profit_from_statement(quarterly_income_statement))
-    shareholding_payload = _safe_finedge_get(f"/shareholdings/pattern/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default=[])
+    shareholding_payload = [] if lean else _safe_finedge_get(f"/shareholdings/pattern/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default=[])
     ownership_summary = _safe_finedge_get(f"/shareholdings/summary/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_distribution = _safe_finedge_get(f"/shareholdings/distribution/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_declaration = _safe_finedge_get(f"/shareholdings/declaration/{_stock_symbol_path(symbol)}", {"period": "quarterly"}, default={})
     ownership_structure = _normalize_ownership_structure(ownership_summary, ownership_distribution, ownership_declaration)
     shareholding = _normalize_shareholding(shareholding_payload, "quarterly")
-    if not shareholding and upstox_isin:
+    if not shareholding and upstox_isin and not lean:
         shareholding = _normalize_upstox_shareholding(_safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/share-holdings", default=[]))
         if shareholding:
             data_sources["shareholding"] = "upstox"
-    actions_payload = _safe_finedge_get(
+    actions_payload = [] if lean else _safe_finedge_get(
         "/corporate-actions/all",
         {"symbol": symbol, "from_date": f"{current_year - 6}-01-01", "to_date": f"{current_year + 1}-12-31"},
         default=[],
     )
-    dividends_payload = _safe_finedge_get(f"/dividend/{_stock_symbol_path(symbol)}", default=[])
+    dividends_payload = [] if lean else _safe_finedge_get(f"/dividend/{_stock_symbol_path(symbol)}", default=[])
     corporate_actions = _normalize_corporate_actions(actions_payload, dividends_payload)
-    if not corporate_actions and upstox_isin:
+    if not corporate_actions and upstox_isin and not lean:
         corporate_actions = _normalize_corporate_actions(_safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/corporate-actions", default=[]))
         if corporate_actions:
             data_sources["corporateActions"] = "upstox"
-    competitors = _normalize_competitors(_safe_finedge_get(f"/peers/{_stock_symbol_path(symbol)}", default=[]), symbol)
+    competitors = [] if lean else _normalize_competitors(_safe_finedge_get(f"/peers/{_stock_symbol_path(symbol)}", default=[]), symbol)
     if competitors:
         competitors = _enrich_competitors_from_finedge(competitors)
-    if upstox_key and not competitors:
+    if upstox_key and not competitors and not lean:
         upstox_competitors = _normalize_upstox_competitors(
             _safe_upstox_get(f"/fundamentals/{quote(upstox_key, safe='')}/competitors", default=[]),
             competitors,
@@ -3688,7 +3918,11 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     model_inputs["leverage"] = ratio_payloads[1]
     model_inputs["secondaryLeverage"] = next((row.get("company_value") for row in upstox_ratio_payload
         if isinstance(row,dict) and re.sub(r'[^a-z]','',str(row.get('name','')).lower())=='financialleverage'),None) if isinstance(upstox_ratio_payload,list) else None
-    _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
+    if lean:
+        for skipped in ("revenueSegments", "shareholding", "corporateActions", "competitors"):
+            result["sources"].pop(skipped, None)    # not fetched for a premium report, so not claimed
+    else:
+        _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
     if _model_capture is not None:
         _model_capture.update(model_inputs)
     return result

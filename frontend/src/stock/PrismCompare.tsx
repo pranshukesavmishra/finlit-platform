@@ -68,14 +68,14 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
     onSuccess: (report) => { const next: PrismCardState = { kind: "report", report }; qc.setQueryData(["prism-latest", symbol, statement], next); qc.invalidateQueries({ queryKey: ["prism", "latest", symbol] }); },
   });
   const busy = run.isPending;
-  const status = busy ? <p className="pz-busy" role="status"><span className="pzs-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This can take up to two minutes; you can keep reading.</p>
+  const status = busy ? <p className="pz-busy" role="status"><span className="pzs-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This usually takes under half a minute; you can keep reading.</p>
     : run.isError ? <p className="pz-err" role="alert"><Icon name="alert" />{generateFailure(run.error)}</p> : null;
   if (state.kind === "none") return (
     <div className="dk-empty">
       <PrismGlyph parts={PRISM_PARTS.map(([k, n, w, c]) => ({ key: k, name: n, weight: w, value: null, color: c }))} score={null} size={120} />
       <div className="dk-empty-t">
         <h3>No Prism rating for {name} yet</h3>
-        <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which takes up to two minutes the first time. Nothing is calculated until you ask, and the result then stays stored here.</p>
+        <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which usually takes under half a minute the first time. Nothing is calculated until you ask, and the result then stays stored here.</p>
         <div className="dk-empty-a">
           <button className="btn primary dk-b" disabled={busy} onClick={() => run.mutate(false)}>{busy ? "Calculating…" : "Generate the Prism rating"} <Icon name="arrow" /></button>
           <Link className="pzs-link" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page for {symbol}</Link>

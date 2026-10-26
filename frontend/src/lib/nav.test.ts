@@ -10,7 +10,7 @@ describe("site map", () => {
     const names = (id: string) => SECTIONS.find((s) => s.id === id)!.groups.flatMap((g) => g.items.map((i) => i.label));
     expect(SECTIONS[0].groups.map((g) => g.title)).toEqual(["Find stocks", "Analyse a company", "Charts"]);
     expect(SECTIONS[0].groups[0].items.map((i) => i.label)).toEqual(["Stock screener", "Score screener", "Formula screener"]);
-    expect(SECTIONS[0].groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Fair value calculator", "Premium reports"]);
+    expect(SECTIONS[0].groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Fair value calculator", "EPS calculator", "Premium reports"]);
     expect(SECTIONS[0].groups[2].items.map((i) => i.label)).toEqual(["Chart builder", "Correlation charts"]);
     expect(names("markets")).toEqual(["FII & DII flows", "India economy", "Commodity prices"]);
     expect(names("news")).toEqual(["Results calendar", "Latest results", "IPO calendar", "News & filings"]);

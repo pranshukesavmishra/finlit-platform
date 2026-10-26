@@ -65,7 +65,8 @@
 .pzr-problem.locked, .pzr-problem.expired { border-color: color-mix(in srgb, var(--gold) 55%, var(--border)); background: var(--gold-soft); }
 .pzr-problem > svg { width: 20px; height: 20px; flex: none; margin-top: 2px; color: var(--pz-weak); } .pzr-problem p { margin: 4px 0 10px; color: var(--muted); font-size: 14px; line-height: 1.5; } .pzr-problem b { color: var(--text); } .pzr-problem .btn { height: 36px; }
 .pzr-work { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; } .pzr-work p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-.pzr-spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--border-strong); border-top-color: var(--gold); animation: pzr-rot 1s linear infinite; flex: none; } @keyframes pzr-rot { to { transform: rotate(360deg); } }
+.pzr-workbody { flex: 1; min-width: 0; } .pzr-workbody p { max-width: 62ch; }
+.pzr-prog { height: 8px; border-radius: 4px; background: var(--s2); overflow: hidden; margin: 12px 0 4px; } .pzr-prog i { display: block; height: 100%; border-radius: 4px; background: var(--gold); transition: width .9s linear; }
 .pzr-empty-card { text-align: center; display: grid; justify-items: center; gap: 10px; padding: 44px 20px; } .pzr-empty-card h3 { font: 500 24px var(--serif); margin: 0; } .pzr-empty-card p { max-width: 560px; color: var(--muted); margin: 0; font-size: 14.5px; line-height: 1.55; }
 .pzr-ico { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); } .pzr-ico svg { width: 26px; height: 26px; }
 .pzr-caution { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 11px 14px; border-radius: 12px; background: rgba(224,160,40,.14); border: 1px solid rgba(224,160,40,.45); font-size: 13.5px; line-height: 1.5; }
@@ -253,4 +254,4 @@
   .pzr-sec, .pzr-fp, .pzr-part, .pzr-ch, .pzr-peer, .pzr-col, .pzr-fr { break-inside: avoid; } .pzr-part, .pzr-fp, .pzr-wf, .pzr-ch, .pzr-peer, .pzr-check, .pzr-fresh { box-shadow: none; background: #fff; border-color: #bbb; }
   * { animation: none !important; transition: none !important; } .pzr-arc-fill { filter: none; }
 }
-@media (prefers-reduced-motion: reduce) { .pzr-spin { animation-duration: 3s; } .pzr-part, .pzr-rc { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pzr-prog i { transition: none; } .pzr-part, .pzr-rc { transition: none; } }

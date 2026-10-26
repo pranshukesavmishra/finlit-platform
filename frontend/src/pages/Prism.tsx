@@ -1,7 +1,8 @@
 // FinLit Prism (Gold): /prism finds a company, /prism/:symbol shows its stored rating or calculates one.
-// Replaces the upstream admin "Premium Report" page: no CMS token, no browser-held snapshot, no polling a background job.
+// Replaces the upstream admin "Premium Report" page: no CMS token, no browser-held snapshot. A calculation runs behind the page (POST with
+// background: true, then GET /api/prism/jobs) and the page shows the stored rating when it is ready.
 // The research API keeps the signed snapshot; the browser gets a PrismReport and downloads the PDF from the API.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { Gate } from "../components/Gate";
@@ -10,8 +11,8 @@ import { LandingBody, PRISM_WHAT, Picker } from "../components/prism/pzr/Landing
 import { useAuth } from "../lib/auth";
 import { useGold } from "../lib/premium";
 import {
-  PRISM_NAME, PRISM_NOTE, cleanSymbol, downloadPrismPdf, prismProblem, pushPrismRecent, statementWord,
-  useGeneratePrism, useLatestPrism, usePrismStatus, type PrismReport, type Problem, type Statement,
+  PRISM_NAME, PRISM_NOTE, cleanSymbol, downloadPrismPdf, prismProblem, progressFraction, pushPrismRecent, statementWord,
+  useLatestPrism, usePrismCalculation, usePrismStatus, type PrismReport, type Problem, type Statement,
 } from "../lib/prism";
 import { useDocTitle } from "../lib/title";
 import { PremiumHead } from "./Premium";
@@ -46,46 +47,61 @@ const Problem_ = ({ p, onRetry, retryLabel = "Try again" }: { p: Problem; onRetr
   <div className={"pzr-problem " + p.kind} role="alert"><Icon name="alert" /><div><b>{p.title}</b><p>{p.text}</p>{onRetry && <button type="button" className="btn" onClick={onRetry}>{retryLabel}</button>}</div></div>
 );
 
-function Working({ since }: { since: number }) {
-  const [s, setS] = useState(0);
-  useEffect(() => { const t = setInterval(() => setS(Math.round((Date.now() - since) / 1000)), 1000); return () => clearInterval(t); }, [since]);
+/** The honest wait: the seconds that have really passed and a bar that follows the usual time. Nothing moves in a loop. */
+function Working({ since, expected }: { since: number; expected: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const s = Math.max(0, Math.round((now - since) / 1000));
+  const pct = Math.round(progressFraction(s, expected) * 100);
   return (
-    <div className="card pzr-card pzr-work" role="status" aria-live="polite">
-      <span className="pzr-spin" aria-hidden="true" />
-      <div><b>Calculating the rating…</b><p>Reading financial statements and prices, and checking the inputs. This can take up to two minutes; keep this page open. {s > 0 && <span className="pzr-small">{s}s so far.</span>}</p></div>
+    <div className="card pzr-card pzr-work">
+      <div className="pzr-workbody">
+        <b role="status">Calculating the rating…</b>
+        <p>Reading the financial statements, prices and the industry's valuations, and checking the inputs. This usually takes about {Math.max(5, Math.round(expected))} seconds. You can keep this page open: the rating appears here by itself.</p>
+        <div className="pzr-prog" role="progressbar" aria-label="Calculation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: `${pct}%` }} /></div>
+        <p className="pzr-small">{s} second{s === 1 ? "" : "s"} so far</p>
+      </div>
     </div>
   );
 }
 
 function CompanyView({ symbol, statement }: { symbol: string; statement: Statement }) {
-  const latest = useLatestPrism(symbol, statement), gen = useGeneratePrism(), status = usePrismStatus();
-  const [downloading, setDownloading] = useState(false), [pdfErr, setPdfErr] = useState<Problem | null>(null), [started, setStarted] = useState(0);
+  const latest = useLatestPrism(symbol, statement), status = usePrismStatus(), { calc, start } = usePrismCalculation(symbol, statement);
+  const [downloading, setDownloading] = useState(false), [pdfErr, setPdfErr] = useState<Problem | null>(null);
   useEffect(() => { pushPrismRecent(symbol); }, [symbol]);
   const report = latest.data ?? null;
   const down = status.data && !status.data.available;
-  const run = (refresh: boolean) => { setPdfErr(null); setStarted(Date.now()); gen.mutate({ symbol, statement, refresh }); };
+  const run = (refresh: boolean) => { setPdfErr(null); void start(refresh); };
+  // A company opened with no rating starts calculating by itself, once, so the next visit is instant (and this one shows it as soon as it is ready).
+  const autoStarted = useRef("");
+  useEffect(() => {
+    const key = `${symbol}:${statement}`;
+    if (latest.isLoading || latest.isError || latest.data !== null || down || calc.phase !== "idle" || autoStarted.current === key) return;
+    autoStarted.current = key;
+    void start(false);
+  }, [latest.isLoading, latest.isError, latest.data, down, calc.phase, symbol, statement, start]);
   const download = async () => {
     if (!report) return;
     setDownloading(true); setPdfErr(null);
     try { await downloadPrismPdf(report); } catch (e) { setPdfErr(prismProblem(e)); } finally { setDownloading(false); }
   };
   useDocTitle(report ? `${report.company.name} ${PRISM_NAME}` : `${symbol} ${PRISM_NAME}`, `FinLit Prism financial-health rating for ${symbol}.`);
-  const busy = gen.isPending;
+  const busy = calc.phase === "working";
   const expired = pdfErr?.kind === "expired";
   return (
     <div aria-busy={busy || latest.isLoading}>
       {down && <div className="pzr-problem unavailable" role="note"><Icon name="alert" /><div><b>{PRISM_NAME} is not connected right now</b><p>{status.data?.reason || "The rating service is unavailable."} Stored ratings may still open.</p></div></div>}
       {latest.isLoading && <ReportSkeleton />}
       {latest.isError && !busy && <Problem_ p={prismProblem(latest.error)} onRetry={() => latest.refetch()} />}
-      {gen.isError && !busy && <Problem_ p={prismProblem(gen.error)} onRetry={prismProblem(gen.error).kind === "limit" ? undefined : () => run(!!report)} retryLabel="Calculate again" />}
+      {calc.phase === "failed" && <Problem_ p={calc.problem} onRetry={calc.retryable ? () => run(!!report) : undefined} retryLabel="Retry" />}
       {pdfErr && !expired && <Problem_ p={pdfErr} />}
       {expired && <Problem_ p={pdfErr!} onRetry={() => run(true)} retryLabel="Recalculate" />}
-      {busy && <Working since={started} />}
-      {!latest.isLoading && !latest.isError && !report && !busy && (
+      {calc.phase === "working" && <Working since={calc.startedAt} expected={calc.expectedSeconds} />}
+      {!latest.isLoading && !latest.isError && !report && calc.phase === "idle" && (
         <div className="card pzr-card pzr-empty-card">
           <div className="pzr-ico"><Icon name="prism" /></div>
           <h3>No {PRISM_NAME} rating for {symbol} yet</h3>
-          <p>Calculate it from the company's latest filings and prices. It takes up to two minutes and counts as one of your 20 calculations today. {statementWord(statement)} statements.</p>
+          <p>Calculate it from the company's latest filings and prices. It usually takes under half a minute and counts as one of your 20 calculations today. {statementWord(statement)} statements.</p>
           <button type="button" className="btn primary lg" disabled={!!down} onClick={() => run(false)}><Icon name="prism" />Generate the Prism rating</button>
           <p className="pzr-note">{PRISM_NOTE}</p>
         </div>

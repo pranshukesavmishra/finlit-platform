@@ -5,6 +5,7 @@ is available to service tests and offline tools with an injected connector.
 """
 import hashlib
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -12,7 +13,18 @@ from threading import BoundedSemaphore
 
 import requests
 
-_PROVIDER_SLOTS = BoundedSemaphore(2)
+# Reports share a bounded provider budget, including industry requests. A report needs about 140 small peer lookups; at two at a
+# time that alone took over a minute, so the default is 16 (PREMIUM_PROVIDER_SLOTS, 1 to 24; 8 took 30 s, 12 took 20 s, 16 took 18 s for a 137-peer industry).
+def _provider_slots():
+    try:
+        return max(1, min(24, int(os.getenv("PREMIUM_PROVIDER_SLOTS", "16"))))
+    except ValueError:
+        return 16
+
+
+PROVIDER_SLOT_COUNT = _provider_slots()
+_PROVIDER_SLOTS = BoundedSemaphore(PROVIDER_SLOT_COUNT)
+
 
 def provider_get(get, path, params):
     attempts = 1 if getattr(get, "_handles_transient_retries", False) else 3

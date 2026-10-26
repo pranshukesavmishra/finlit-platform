@@ -182,7 +182,7 @@ export function Treemap({ items, fmt, height = 280 }: { items: TItem[]; fmt: (x:
 }
 
 /* ---------- donut ---------- */
-export function Donut({ parts, center, sub }: { parts: { label: string; value: number; color: string }[]; center: string; sub?: string }) {
+export function Donut({ parts, center, sub }: { parts: { label: string; value: number; color: string; note?: string }[]; center: string; sub?: string }) {
   const [hv, setHv] = useState<number | null>(null);
   const total = parts.reduce((a, b) => a + b.value, 0) || 1, R = 70, r = 46, C = 90;
   let a0 = -Math.PI / 2;
@@ -193,7 +193,9 @@ export function Donut({ parts, center, sub }: { parts: { label: string; value: n
   return (
     <div className="dn">
       <svg viewBox="0 0 180 180" role="img" aria-label="Share breakdown" onMouseLeave={() => setHv(null)}>
-        {arcs.map(({ d, p, i }) => <path key={p.label} d={d} fill={p.color} opacity={hv == null || hv === i ? 1 : 0.45} onMouseEnter={() => setHv(i)} />)}
+        {parts.length === 1   /* one slice is a full circle: an arc that ends where it starts draws nothing, so a single part is drawn as a ring */
+          ? <circle cx={C} cy={C} r={(R + r) / 2} fill="none" stroke={parts[0].color} strokeWidth={R - r} onMouseEnter={() => setHv(0)}><title>{parts[0].label}</title></circle>
+          : arcs.map(({ d, p, i }) => <path key={p.label} d={d} fill={p.color} opacity={hv == null || hv === i ? 1 : 0.45} onMouseEnter={() => setHv(i)} tabIndex={0} onFocus={() => setHv(i)} onBlur={() => setHv(null)}><title>{`${p.label}: ${nf((p.value / total) * 100, 1)}%${p.note ? " (" + p.note + ")" : ""}`}</title></path>)}
         <text x="90" y="88" textAnchor="middle" fontFamily="var(--serif)" fontSize="22" fill="var(--text)">{cur ? nf((cur.value / total) * 100, 1) + "%" : center}</text>
         <text x="90" y="106" textAnchor="middle" fontSize="10" fill={AX}>{cur ? cur.label : sub}</text>
       </svg>

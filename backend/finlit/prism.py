@@ -10,13 +10,21 @@ The model runs in the site backend (site-api/backend, POST /api/premium-reports)
 is the members' door: it checks the plan here (Gold, administrators, and the showcase companies for everyone), then calls the site backend
 with a five-minute administrator token signed with the shared CMS_JWT_SECRET. That token never leaves this server.
 
-One calculation takes one to two minutes and many provider calls, so:
+A calculation used to take one to two minutes (some 250 provider calls, made a few at a time). It now makes the model's real requests together
+and keeps what it learned, so a company takes about 5 to 15 seconds the first time and under a second the next (see "Speed" below), and:
   * the reader view of the newest report per company and statement basis is kept in Postgres (prism_reports) and reused for 6 hours;
   * the full signed snapshot, which the PDF renderer needs and the browser never sees, is kept in Redis for its 30 minutes, with the token
     subject it was signed for (the site backend renders the PDF only for that same subject);
   * each member may calculate 20 reports a day (by the Indian date; administrators are not limited; visitors, who may only open the
     showcase companies, are counted by address), at most 2 calculations run at once in a process, and a Redis lock makes a second request
     for the same company wait for the first one's answer instead of calculating it again.
+
+Speed (nothing here changes a number; the model and the data it is fed are the same):
+  * the model inputs of a company (statements, prices, ratios, ownership filings, industry list) are kept in Postgres (prism_inputs) for 24
+    hours, packed; a repeat calculation (a recalculation after the 6 hours, say) then needs no provider call. "Recalculate" ignores them;
+  * the one price-ratio row per industry peer that a median used is kept in Redis for 4 days, shared by every company of that industry;
+  * a company opened with no rating starts calculating in the background (`background: true`), the page polls GET /api/prism/jobs and shows
+    the rating when it is ready; the nightly pre-calculation covers every company with a full report and yields to a member who is waiting.
 
 The rating describes a company's financial health from its filings and prices. It is not a recommendation.
 """
@@ -73,6 +81,16 @@ TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDa
 TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped")
 TECH_FACTOR = ("key", "label", "signal", "status", "detail")
 TECH_SOURCE = ("provider", "asOf", "bars")
+
+INPUT_SECONDS = 24 * 3600          # kept model inputs younger than this are reused
+REFRESH_REUSE_SECONDS = 900        # ...but "Recalculate" reuses only inputs younger than this (a repeated click), so it really refetches
+OBS_DAYS = 4                       # peer observations of the last four calendar days (IST) are offered to a calculation
+OBS_TTL = 5 * 86400
+UNIVERSE_TTL = 30 * 86400
+JOB_WORKING_SECONDS = LOCK_SECONDS
+JOB_DONE_SECONDS = 120
+DEFAULT_EXPECTED = 12.0            # seconds a calculation is expected to take until some have been timed
+RETRY_AFTER_BACKGROUND = 3.0       # the nightly job waits this long when the site backend says a member is waiting
 
 CALM = f"{PRISM_NAME} could not finish this calculation just now. Please try again in a few minutes."
 NOT_CONNECTED = f"{PRISM_NAME} is not connected right now. Please try again later."
@@ -393,24 +411,40 @@ async def create(request: Request) -> JSONResponse:
     if refresh and ctx.role != "admin" and not has(ctx.plan, "gold"):
         # A free account may open a showcase report, but forcing new calculations spends the paid data providers' quota.
         return _reply({"status": "plan_required", "detail": f"Recalculating is part of the Gold plan. {PRISM_NAME} reports are refreshed automatically.", "plan": "gold"}, 403)
+    background = body.get("background") is True     # answer at once (202) and calculate behind the page; it polls GET /api/prism/jobs
     row = await _stored(store, symbol, statement)
     if not refresh and _fresh(row):
         return _reply(_shape(row, cached=True))
     lock, token = f"prism:lock:{symbol}:{statement}", secrets.token_hex(8)
     if not await store.redis.set(lock, token, nx=True, ex=LOCK_SECONDS):
+        if background:                     # somebody is already calculating it: the page just waits for that one
+            return _reply(await _working(app, symbol, statement), 202)
         return await _wait_for(app, symbol, statement, lock, row["id"] if row else None)
+    handed_over = False
     try:
         if not refresh:                    # finished by another request between our read and the lock
             row = await _stored(store, symbol, statement)
             if _fresh(row):
                 return _reply(_shape(row, cached=True))
-        return await _calculate(request, ctx, symbol, statement)
+        if background:
+            counter, renew = await _count(request, ctx)
+            if renew:
+                return _reply({"status": "limit", "detail": f"You have used today's {DAILY_LIMIT} {PRISM_NAME} calculations. Stored reports stay open."}, 429, renew)
+            await _start_job(app, subject(ctx), symbol, statement, counter, refresh, lock, token)
+            handed_over = True             # the job releases the lock when it ends
+            return _reply(await _working(app, symbol, statement), 202)
+        return await _calculate(request, ctx, symbol, statement, refresh)
     finally:
-        try:
-            if (await store.redis.get(lock)) == token.encode():
-                await store.redis.delete(lock)
-        except Exception as exc:           # the lock expires by itself
-            log.warning("prism lock for %s not released: %s", symbol, type(exc).__name__)
+        if not handed_over:
+            await _release(store, lock, token)
+
+
+async def _release(store, lock: str, token: str) -> None:
+    try:
+        if (await store.redis.get(lock)) == token.encode():
+            await store.redis.delete(lock)
+    except Exception as exc:           # the lock expires by itself
+        log.warning("prism lock %s not released: %s", lock, type(exc).__name__)
 
 
 async def _wait_for(app, symbol: str, statement: str, lock: str, before: Optional[str]) -> JSONResponse:
@@ -448,24 +482,34 @@ async def _report_body(app, symbol: str, statement: str) -> Dict[str, Any]:
     return body
 
 
-async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) -> JSONResponse:
+async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str, refresh: bool = False) -> JSONResponse:
     app = request.app
-    redis = app.state.store.redis
     counter, renew = await _count(request, ctx)
     if renew:
         return _reply({"status": "limit", "detail": f"You have used today's {DAILY_LIMIT} {PRISM_NAME} calculations. Stored reports stay open."},
                       429, renew)
-    sub = subject(ctx)
+    status, body, retry = await _execute(app, subject(ctx), symbol, statement, counter, refresh)
+    return _reply(body, status, retry)
+
+
+async def _execute(app, sub: str, symbol: str, statement: str, counter: Optional[str], refresh: bool, *, keep: bool = True,
+                   background: bool = False, kept_seconds: Optional[float] = None) -> Tuple[int, Dict[str, Any], Optional[int]]:
+    """One calculation through the site backend, stored. (200, the report, None) or (status, an error body, Retry-After); a failure gives the
+    member's counted calculation back. `background` is the nightly job: it yields to members and its failures are not remembered."""
+    redis = app.state.store.redis
     r: Optional[httpx.Response] = None
+    started = time.monotonic()
     try:
         try:   # a request waits its turn (up to SLOT_WAIT seconds) instead of being turned away while another company is calculating
             await asyncio.wait_for(_slots(app).acquire(), SLOT_WAIT)
         except asyncio.TimeoutError:
             if counter:
                 await redis.decr(counter)
-            return _reply({"status": "busy", "detail": f"{PRISM_NAME} is calculating other companies. Please try again in a minute."}, 429, BUSY_RETRY)
+            return 429, {"status": "busy", "detail": f"{PRISM_NAME} is calculating other companies. Please try again in a minute."}, BUSY_RETRY
         try:
-            r = await _call(app, "/api/premium-reports", sub, await _report_body(app, symbol, statement))
+            payload = await _site_payload(app, symbol, statement, background=background, keep=keep,
+                                          kept_seconds=(REFRESH_REUSE_SECONDS if refresh else INPUT_SECONDS) if kept_seconds is None else kept_seconds)
+            r = await _call(app, "/api/premium-reports", sub, payload)
         finally:
             _slots(app).release()
     except httpx.HTTPError as exc:
@@ -475,12 +519,188 @@ async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) ->
         if counter:
             await redis.decr(counter)      # nothing was calculated: it does not use up the member's allowance
         status, body, retry = _failure(r)
-        await redis.set(f"prism:fail:{symbol}:{statement}", json.dumps([status, body, retry]), ex=FAIL_SECONDS)
-        return _reply(body, status, retry)
+        if not background:
+            await redis.set(f"prism:fail:{symbol}:{statement}", json.dumps([status, body, retry]), ex=FAIL_SECONDS)
+        return status, body, retry
+    cache = snapshot.pop("cache", None)    # not part of the signed snapshot: what the site backend asks us to keep
     view = reader_view(snapshot)
     until = await _keep_snapshot(redis, snapshot, sub, symbol)
     row = await _save(app.state.store, symbol, statement, view, until)
-    return _reply(_shape(row, cached=False))
+    await _remember(app, symbol, statement, cache, time.monotonic() - started)
+    return 200, _shape(row, cached=False), None
+
+
+# ------------------------------------------------------------------ what a calculation leaves behind for the next one
+def _asof_days(now: Optional[datetime] = None) -> list:
+    today = (now or datetime.now(timezone.utc)).astimezone(IST).date()
+    return [(today - timedelta(days=i)).isoformat() for i in range(OBS_DAYS)]
+
+
+async def _kept_inputs(store, symbol: str, statement: str, seconds: float) -> Optional[str]:
+    if seconds <= 0:
+        return None
+    try:
+        return await store.pool.fetchval("SELECT body FROM prism_inputs WHERE symbol = $1 AND statement = $2 AND fetched_at > now() - make_interval(secs => $3)",
+                                         symbol, statement, float(seconds))
+    except Exception as exc:
+        log.warning("prism kept inputs for %s not read: %s", symbol, type(exc).__name__)
+        return None
+
+
+async def _kept_observations(redis, symbol: str, statement: str) -> Dict[str, Any]:
+    """The peers' price-ratio rows an earlier calculation of this company looked up, if another company of its industry has since kept them
+    for a recent day: {'consolidated|2026-10-26|pr:pb,pe|INFY': row}. The site backend uses only the ones for the as-of date it settles on."""
+    try:
+        raw = await redis.get(f"prism:univ:{statement}:{symbol}")
+        symbols = json.loads(raw) if raw else []
+        fields = [f"{kind}|{sym}" for sym in symbols[:500] for kind in ("pr:pb,pe", "pr:pb", "pr:pe", "ev")]
+        out: Dict[str, Any] = {}
+        for day in (_asof_days() if fields else []):
+            for field, value in zip(fields, await redis.hmget(f"prism:obs:{statement}:{day}", fields)):
+                if value:
+                    out[f"{statement}|{day}|{field}"] = json.loads(value)
+        return out
+    except Exception as exc:
+        log.warning("prism kept observations for %s not read: %s", symbol, type(exc).__name__)
+        return {}
+
+
+async def _site_payload(app, symbol: str, statement: str, *, background: bool, keep: bool, kept_seconds: float) -> Dict[str, Any]:
+    body = await _report_body(app, symbol, statement)    # with Dhan's candles (`suppliedCandles`) when they could be fetched complete
+    body.update({"priority": "background" if background else "interactive", "keep": keep, "cache": True})
+    inputs = await _kept_inputs(app.state.store, symbol, statement, kept_seconds)
+    if inputs:
+        body["inputs"] = inputs
+    observations = await _kept_observations(app.state.store.redis, symbol, statement)
+    if observations:
+        body["observations"] = observations
+    return body
+
+
+async def _remember(app, symbol: str, statement: str, cache: Any, seconds: float) -> None:
+    """Keep the model inputs (24 hours, in Postgres), the new peer observations (4 days, in Redis) and how long a calculation from scratch
+    took (the page's progress bar). Best effort: the report is already stored."""
+    if not isinstance(cache, dict):
+        return
+    store = app.state.store
+    try:
+        packed = cache.get("inputs")
+        if isinstance(packed, str) and packed:
+            await store.pool.execute(
+                """INSERT INTO prism_inputs (symbol, statement, body, fetched_at) VALUES ($1, $2, $3, now())
+                   ON CONFLICT (symbol, statement) DO UPDATE SET body = EXCLUDED.body, fetched_at = EXCLUDED.fetched_at""", symbol, statement, packed)
+            await store.pool.execute("DELETE FROM prism_inputs WHERE fetched_at < now() - interval '2 days'")
+        new = cache.get("observations")
+        by_day: Dict[str, Dict[str, str]] = {}
+        for key, value in (new.items() if isinstance(new, dict) else []):
+            parts = str(key).split("|", 3)
+            if len(parts) == 4 and parts[0] == statement:
+                by_day.setdefault(parts[1], {})[f"{parts[2]}|{parts[3]}"] = json.dumps(value, allow_nan=False)
+        for day, mapping in by_day.items():
+            await store.redis.hset(f"prism:obs:{statement}:{day}", mapping=mapping)
+            await store.redis.expire(f"prism:obs:{statement}:{day}", OBS_TTL)
+        universe = cache.get("universe")
+        if isinstance(universe, list) and universe:
+            await store.redis.set(f"prism:univ:{statement}:{symbol}", json.dumps([str(u) for u in universe][:500]), ex=UNIVERSE_TTL)
+        if cache.get("inputsReused") is False and seconds > 0:    # only calculations a member waited for, from scratch, say how long that takes
+            await store.redis.lpush("prism:durations", f"{seconds:.1f}")
+            await store.redis.ltrim("prism:durations", 0, 19)
+    except Exception as exc:
+        log.warning("prism %s: what the calculation learned was not kept (%s)", symbol, type(exc).__name__)
+
+
+async def _expected_seconds(redis) -> float:
+    """How long a calculation from scratch usually takes (the median of the last twenty), for the progress bar."""
+    try:
+        values = sorted(float(v) for v in await redis.lrange("prism:durations", 0, 19))
+        return round(values[len(values) // 2], 1) if values else DEFAULT_EXPECTED
+    except Exception:
+        return DEFAULT_EXPECTED
+
+
+# ------------------------------------------------------------------ calculations that run behind the page
+def _job_key(statement: str, symbol: str) -> str:
+    return f"prism:job:{statement}:{symbol}"
+
+
+async def _start_job(app, sub: str, symbol: str, statement: str, counter: Optional[str], refresh: bool, lock: str, token: str) -> None:
+    redis = app.state.store.redis
+    await redis.set(_job_key(statement, symbol), json.dumps({"state": "working", "startedAt": time.time()}), ex=JOB_WORKING_SECONDS)
+    tasks = getattr(app.state, "prism_tasks", None)
+    if tasks is None:
+        tasks = app.state.prism_tasks = set()
+    task = asyncio.create_task(_run_job(app, sub, symbol, statement, counter, refresh, lock, token))
+    tasks.add(task)                         # a reference, or the task could be collected while it runs
+    task.add_done_callback(tasks.discard)
+
+
+async def _run_job(app, sub: str, symbol: str, statement: str, counter: Optional[str], refresh: bool, lock: str, token: str) -> None:
+    store = app.state.store
+    try:
+        status, body, retry = await _execute(app, sub, symbol, statement, counter, refresh)
+        done: Dict[str, Any] = {"state": "ready"} if status == 200 else {"state": "failed", "status": status, "code": body.get("status"), "detail": body.get("detail"), "retry": retry}
+    except Exception as exc:                # whatever happens, the page is told: it must never wait for a job that no longer exists
+        log.warning("prism job for %s failed: %s", symbol, type(exc).__name__)
+        try:
+            if counter:
+                await store.redis.decr(counter)
+        except Exception:
+            pass
+        done = {"state": "failed", "status": 502, "code": "unavailable", "detail": CALM, "retry": None}
+    try:
+        await store.redis.set(_job_key(statement, symbol), json.dumps({**done, "finishedAt": time.time()}), ex=JOB_DONE_SECONDS)
+    finally:
+        await _release(store, lock, token)
+
+
+async def _working(app, symbol: str, statement: str) -> Dict[str, Any]:
+    """The answer while a calculation of this company runs: when it started, how long it usually takes, how often to ask again."""
+    redis = app.state.store.redis
+    started = None
+    try:
+        raw = await redis.get(_job_key(statement, symbol))
+        job = json.loads(raw) if raw else {}
+        started = job.get("startedAt") if job.get("state") == "working" else None
+        if started is None:       # a request that is waiting inline holds the lock: the time left on it says how long it has run
+            left = await redis.ttl(f"prism:lock:{symbol}:{statement}")
+            started = time.time() - (LOCK_SECONDS - left) if isinstance(left, int) and left > 0 else time.time()
+    except Exception:
+        started = started or time.time()
+    return {"status": "working", "startedAt": started, "elapsedSeconds": round(max(0.0, time.time() - started), 1),
+            "expectedSeconds": await _expected_seconds(redis), "pollSeconds": 2}
+
+
+@router.get("/jobs")
+async def job(request: Request, symbol: str = Query("", max_length=40), statement: str = Query("consolidated", max_length=20)) -> JSONResponse:
+    """Where a calculation that was started with `background: true` is: working (with its elapsed seconds), ready (read /reports/latest),
+    failed (with the reason and, for a Retry button, whether trying again can help) or none (nothing running, nothing stored)."""
+    wanted = target(symbol, statement)
+    if not wanted:
+        return _bad("Choose a company symbol and a statement basis (consolidated or standalone).")
+    _, refusal = await _access(request, wanted[0])
+    if refusal:
+        return refusal
+    app = request.app
+    redis = app.state.store.redis
+    try:
+        raw = await redis.get(_job_key(wanted[1], wanted[0]))
+        state = json.loads(raw) if raw else None
+        if state and state.get("state") == "working":
+            elapsed = time.time() - float(state.get("startedAt") or 0)
+            if elapsed > JOB_WORKING_SECONDS:   # the process that ran it is gone: say so instead of waiting for ever
+                return _reply({"state": "failed", "status": 504, "code": "unavailable", "detail": CALM, "retry": None})
+            return _reply({"state": "working", **(await _working(app, *wanted))})
+        if state:
+            return _reply(state)
+        locked = await redis.exists(f"prism:lock:{wanted[0]}:{wanted[1]}")
+    except Exception as exc:
+        log.warning("prism job state for %s not read: %s", wanted[0], type(exc).__name__)
+        locked = False
+    if locked:
+        return _reply({"state": "working", **(await _working(app, *wanted))})
+    row = await _stored(app.state.store, *wanted)
+    return _reply({"state": "ready"} if row is not None else {"state": "none"})
+
 
 
 @router.get("/reports/{report_id}/pdf")
@@ -530,44 +750,85 @@ def _expired() -> JSONResponse:
 
 
 # ------------------------------------------------------------------ nightly pre-calculation
-async def precompute(store, settings, *, limit: int = 40, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None) -> Dict[str, Any]:
-    """Calculate the rating for the biggest companies that have none yet (or one older than `days`), one at a time, so that opening a
-    company shows its stored rating at once. The calculation is exactly the one a member's button runs; nothing is shortened. It stops at
-    the time limit, and after three failures in a row (a provider that is down or limiting requests should not be hammered)."""
+PRE_FAIL_SECONDS = 20 * 3600       # a company the data cannot rate is not tried again until the next night
+PRE_PAUSE_TRIES = 40               # times the nightly job waits for a member's calculation to finish before it gives that company up
+PRE_PROGRESS_KEY = "prism:pre:last"
+
+
+async def _pending(store, statement: str, days: int, limit: int, skip: list) -> list:
+    """Companies we hold a full report for (the stored summary) that have no rating or an old one, never-rated first and then the biggest.
+    Fresh ones are not listed, so a run that was stopped simply continues where it stopped, and `skip` leaves out what failed tonight."""
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "
+            "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
+            "WHERE (p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2)) AND NOT (s.symbol = ANY($4::text[])) "
+            "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3", statement, days, limit, skip)
+    return [r["symbol"] for r in rows]
+
+
+async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None) -> Dict[str, Any]:
+    """Calculate the rating of every company we hold a full report for that has none yet (or one older than `days`), one at a time (memory),
+    never-rated first and then the biggest. The calculation is exactly the one a member's button runs, from the same inputs. It is resumable
+    (what is stored counts as done), it gives way to a member who is waiting (the site backend turns it away while one is, and it waits a
+    few seconds), and it stops at the time limit and after three failures in a row (a provider that is down or limiting requests should not
+    be hammered). A company the data cannot rate is remembered for the night, so it does not block the ones behind it."""
     from types import SimpleNamespace
     app = SimpleNamespace(state=SimpleNamespace(store=store, settings=settings, prism_client=client))
     if not connected(settings):
         return {"status": "skipped", "reason": "not_configured"}
-    async with store.pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
-            "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
-            "WHERE p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) "
-            "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3", statement, days, limit)
-    started, done, failed, streak = time.monotonic(), 0, [], 0
+    redis = store.redis
+    skip: list = []
     try:
-        for row in rows:
+        async for key in redis.scan_iter(match=f"prism:pre:fail:{statement}:*", count=200):
+            skip.append((key.decode() if isinstance(key, bytes) else key).rsplit(":", 1)[1])
+    except Exception:
+        skip = []
+    symbols = await _pending(store, statement, days, limit, skip)
+    started, done, failed, streak, paused = time.monotonic(), 0, [], 0, 0
+    attempted = 0
+    try:
+        for symbol in symbols:
             if time.monotonic() - started > max_minutes * 60 or streak >= 3:
                 break
-            symbol = row["symbol"]
-            try:
-                r = await _call(app, "/api/premium-reports", "prism:nightly", await _report_body(app, symbol, statement))
-            except httpx.HTTPError as exc:
-                r = None
-                log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
+            attempted += 1
+            code, r, snapshot = 0, None, None
+            for _ in range(PRE_PAUSE_TRIES):
+                try:
+                    payload = await _site_payload(app, symbol, statement, background=True, keep=False, kept_seconds=0)
+                    r = await _call(app, "/api/premium-reports", "prism:nightly", payload)
+                except httpx.HTTPError as exc:
+                    r = None
+                    log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
+                code = r.status_code if r is not None else 0
+                if code == 429 and r is not None and "member is waiting" in (_upstream_detail(r) or ""):
+                    paused += 1                    # a member is waiting: let them go first
+                    await asyncio.sleep(RETRY_AFTER_BACKGROUND)
+                    continue
+                break
             snapshot = _ready(r)
             if snapshot is None:
-                code = r.status_code if r is not None else 0
                 failed.append(f"{symbol}:{code}")
                 streak = streak + 1 if code in (0, 429, 502, 503) else 0   # a company the data cannot rate (404/422) is not a provider outage
+                if streak == 0:
+                    await redis.set(f"prism:pre:fail:{statement}:{symbol}", str(code), ex=PRE_FAIL_SECONDS)
                 continue
             streak = 0
+            cache = snapshot.pop("cache", None)
             await _save(store, symbol, statement, reader_view(snapshot), None)
+            await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
             done += 1
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.2)
     finally:
         if client is None and getattr(app.state, "prism_client", None) is not None:
             await app.state.prism_client.aclose()
         if getattr(app.state, "prism_dhan", None) is not None:
             await app.state.prism_dhan.aclose()
-    return {"status": "ok" if done or not rows else "partial", "calculated": done, "failed": failed[:10], "remaining_candidates": max(0, len(rows) - done - len(failed))}
+    left = len(await _pending(store, statement, days, 5000, [])) if symbols else 0
+    out = {"status": "ok" if done or not symbols else "partial", "calculated": done, "failed": failed[:10], "paused_for_members": paused,
+           "remaining_candidates": left, "seconds": round(time.monotonic() - started)}
+    try:
+        await redis.set(PRE_PROGRESS_KEY, json.dumps({**out, "at": time.time()}), ex=7 * 86400)
+    except Exception:
+        pass
+    return out

@@ -101,6 +101,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   loads_paused && { log "boot-load skipped: heavy data loads were paused during the start-up wait"; exit 0; }
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
+  $PY -m finlit.worker refresh-results                 # first of all: anyone who reported while the site was down or restarting (the quarter page says "being updated" until this runs)
   $PY -m finlit.worker refresh-flows --only nse                    # the exchange's own FII/DII figures for the latest session (one request), even when the nightly run is recent
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars: light, and visible at once
   $PY -m finlit.worker refresh-universe
@@ -171,6 +172,7 @@ while true; do
   (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
   (( H == 18 && M == 25 )) && run_funds industry refresh-industry    # daily: AMFI's monthly category report (out around the 8th-10th); a 304 and nothing to do on other days
   (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
+  (( H == 3 && M == 40 )) && run light integrity audit-integrity   # nightly: 40 sampled companies, one provider call each; respects the loads switch (not in the always-allowed list)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( H == 2 && M == 40 )) && run heavy score-all score-all   # every listed company gets a score: SCORE_ALL_PER_RUN a night (score row only), the rest on later nights
@@ -178,7 +180,7 @@ while true; do
   (( H == 2 && M == 45 )) && run light indices refresh-indices   # nightly (a few small files): a failed boot download is retried the same night, not a week later
   (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
   (( H == 4 && M == 20 )) && run heavy history backfill-history   # nightly: older weekly closes (to 2004) for the leadership reliability backtest, a few hundred companies a night until every company has been tried
-  (( H == 5 && M == 10 )) && run heavy prism precompute-prism   # nightly: FinLit Prism ratings for the biggest companies without one, one at a time (about 90 s each), so a company opens with its rating stored
+  (( H == 5 && M == 10 )) && run heavy prism precompute-prism   # nightly: FinLit Prism ratings for every company with a full report that has none or an old one, one at a time (a few seconds each), resumable; yields to members
   (( D == 6 && H == 3 && M == 50 )) && run heavy leadership refresh-leadership   # weekly, Saturday, after Friday's close and the nightly loads: the Leader / In line / Laggard labels
   (( D == 7 && H == 4 && M == 10 )) && [ "$(date +%d)" -le 7 ] && [ $(( 10#$(date +%m) % 3 )) -eq 1 ] && run heavy leadership-backtest backtest-leadership   # quarterly (first Sunday of Jan, Apr, Jul, Oct): has leadership held in each group?
   (( H == 6 && M == 45 )) && run light calendars refresh-calendars
@@ -187,7 +189,7 @@ while true; do
   (( H == 19 && M == 10 )) && run light flows refresh-flows          # nightly: FII/DII flows (NSDL posts the day's report in the evening)
   (( H == 21 && M == 30 )) && run light flows-retry refresh-flows           # retry for a report NSDL posted late (a handful of requests; the rows already loaded are only updated)
   (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)
-  (( H >= 8 && H <= 23 && M == 20 )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
+  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
   (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens
   (( D == 7 && H == 18 && M == 30 )) && run light digest send-digest

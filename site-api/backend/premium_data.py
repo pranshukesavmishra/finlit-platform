@@ -224,6 +224,11 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
         day = field_date(row)
         close = first(row, "close_price", "close", "adjClose")
         volume = first(row, "volume", "tradedVolume")
+        # The provider pads days it has no trading record for (a holiday, a missed feed) with an all-zero row. That is not a session: keep it out
+        # so it neither breaks the 250-session closing-price window nor the 60-session turnover window. A zero close beside real
+        # prices or volume is still treated as a bad tick (None) below.
+        if not any((first(row, *names) or 0) for names in (("open_price", "open"), ("high_price", "high"), ("low_price", "low"), ("close_price", "close", "adjClose"), ("volume", "tradedVolume"))):
+            continue
         if day and day <= as_of: prices.append((day, close if close is not None and close > 0 else None, volume))
     prices = list({day: (day, close, volume) for day, close, volume in prices}.values())
     prices.sort()
@@ -255,7 +260,8 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
         if d["shares"] is not None:
             provenance["shares"] = {"ownership summary: paidUpEquityShares (quote discrepancy)"}
     returns = [prices[i][1] / prices[i - 1][1] - 1 for i in range(max(1, len(prices) - 250), len(prices)) if prices[i][1] is not None and prices[i - 1][1] is not None]
-    d["risk_calculation"] = {"returnCount": len(returns), "dailyStdDev": statistics.stdev(returns) if len(returns) >= 2 else None, "annualisationDays": 250, "drawdownWindow": 250, "turnoverWindow": 60}
+    d["risk_calculation"] = {"returnCount": len(returns), "dailyStdDev": statistics.stdev(returns) if len(returns) >= 2 else None, "annualisationDays": 250, "drawdownWindow": 250, "turnoverWindow": 60,
+                          "sessions": len(prices), "invalidCloseLast250": sum(close is None for _, close, _ in prices[-250:]), "missingVolumeLast60": sum(volume is None for _, _, volume in prices[-60:])}
     d["volatility_pct"] = statistics.stdev(returns) * math.sqrt(250) * 100 if len(returns) >= 60 else None
     incomplete_prices = any(close is None for _, close, _ in prices[-250:])
     if len(prices) >= 250 and not incomplete_prices:

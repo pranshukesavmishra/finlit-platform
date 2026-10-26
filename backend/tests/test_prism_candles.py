@@ -263,7 +263,7 @@ async def test_a_member_calculation_and_the_nightly_run_both_send_the_candles(st
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM prism_reports")
         await conn.execute("DELETE FROM snapshots WHERE symbol = 'PZC'")
-        await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ('PZC', 'consolidated', 'price-MAX', '{}', 'x', now())")
+        await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ('PZC', 'consolidated', 'summary', '{}', 'x', now())")
     async with app.router.lifespan_context(app):
         gold = await member(app, "gold")
         r = await gold.post("/api/prism/reports", json={"symbol": "TCS", "statement": "consolidated"})

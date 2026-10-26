@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { LETTERS, TERMS, TOPICS, norm, search } from "./glossary";
 
 describe("glossary", () => {
-  it("has the 316 terms, each complete", () => {
-    expect(TERMS.length).toBe(316);
+  it("has the 321 terms, each complete", () => {
+    expect(TERMS.length).toBe(321);
     TERMS.forEach((t) => expect(t.meaning && t.why && t.how && TOPICS.includes(t.topic) && LETTERS.includes(t.letter)).toBeTruthy());
   });
   it("ignores spaces and punctuation: EV / CFO finds EV/CFO", () => {

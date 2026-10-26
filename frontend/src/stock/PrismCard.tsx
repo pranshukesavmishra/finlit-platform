@@ -46,7 +46,7 @@ export async function loadPrismLatest(symbol: string, statement: string): Promis
 export const usePrismLatest = (symbol: string, statement: string, enabled: boolean) =>
   useQuery<PrismCardState>({ queryKey: ["prism-latest", symbol, statement], queryFn: () => loadPrismLatest(symbol, statement), enabled: enabled && !!symbol, staleTime: 60_000, retry: false });
 
-/** Calculate (or recalculate) the rating. Only ever called from a button; takes up to about two minutes. */
+/** Calculate (or recalculate) the rating. Only ever called from a button; usually takes under half a minute (the Prism page starts one by itself and follows it). */
 export async function generatePrism(symbol: string, statement: string, refresh: boolean): Promise<PrismLatest> {
   const r = await apiSend<unknown>("POST", "/api/prism/reports", { symbol, statement, refresh });
   if (!isReport(r)) throw new ApiError(502, { status: "unavailable", detail: "The rating came back in a form we could not read." });

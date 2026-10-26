@@ -4,22 +4,69 @@ import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from threading import Event, Lock
 
 try:
     from .financial_records import num, items, first, field_date
-    from .premium_provider import provider_get
+    from .premium_provider import provider_get, PROVIDER_SLOT_COUNT
     from .premium_data import adapt_inputs
     from .benchmark_resolution import select_reported_benchmarks
 except ImportError:
     from financial_records import num, items, first, field_date
-    from premium_provider import provider_get
+    from premium_provider import provider_get, PROVIDER_SLOT_COUNT
     from premium_data import adapt_inputs
     from benchmark_resolution import select_reported_benchmarks
 
+NO_OBSERVATION = {"none": True}   # kept in place of a peer the provider answered for but gave nothing usable (so it is not asked again the same day)
+PEER_BUDGET_SECONDS = 45.0   # peers not looked up by then count as missing (and are listed as such); normally the lookups end in about 10
 _BENCHMARK_OBSERVATIONS = {}
 _BENCHMARK_CACHE_SECONDS = 15 * 60
 
-def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
+
+class ObservationCache:
+    """Peer observations kept across reports: (basis, as-of date, kind, symbol) -> the row (or multiple) the median used. Thread-safe, and two
+    callers asking for the same key share one lookup. `preload` is what an earlier report kept; `new` is what this report looked up itself."""
+
+    def __init__(self, preload=None):
+        self.rows = dict(preload or {})
+        self.new = {}
+        self.hits = 0
+        self.touched = set()
+        self._lock = Lock()
+        self._inflight = {}
+
+    def universe(self):
+        """The peer symbols this report looked at (for the next report of the same company to know which kept rows to offer)."""
+        with self._lock:
+            return sorted({key[3] for key in self.touched if key[2].startswith("pr")})
+
+    def get_or_compute(self, key, compute):
+        with self._lock:
+            self.touched.add(key)
+            if key in self.rows:
+                self.hits += 1
+                return self.rows[key]
+            event = self._inflight.get(key)
+            mine = event is None
+            if mine:
+                event = self._inflight[key] = Event()
+        if not mine:
+            event.wait(PEER_BUDGET_SECONDS)
+            with self._lock:
+                return self.rows.get(key)
+        value = None
+        try:
+            value = compute()
+            return value
+        finally:
+            with self._lock:
+                if value is not None:
+                    self.rows[key] = self.new[key] = value
+                self._inflight.pop(key, None)
+            event.set()
+
+
+def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None, observations=None, budget_seconds=None):
     """Median of available positive industry observations, with explicit coverage."""
     selected = set(metrics) if metrics is not None else {"pe", "pb", "ev_ebitda"}
     symbols = peers.get("peers", []) if isinstance(peers, dict) else []
@@ -28,11 +75,22 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
     meta["metrics"] = {}
     if not selected or not symbols or len(symbols) > 500:
         return {}, {**meta, "note": "No peer calculation required, or industry universe unavailable or exceeds the on-demand limit."}
+    deadline = time.monotonic() + (PEER_BUDGET_SECONDS if budget_seconds is None else budget_seconds)
+    scope = (statement_type, as_of.isoformat())
+    def remembered(kind, symbol, compute):
+        """Through the kept observations when there are any, else straight to the lookup. NO_OBSERVATION reads as no observation."""
+        value = compute() if observations is None else observations.get_or_compute(scope + (kind, symbol), compute)
+        return None if value == NO_OBSERVATION else value
     def fetch(symbol):
+        # A row looked up for P/E alone may lack the P/B a later report also wants, so the wanted metrics are part of the key.
+        return remembered("pr:" + ",".join(sorted(selected & {"pe", "pb"})), symbol, lambda: fetch_ratios(symbol))
+    def fetch_ratios(symbol):
         cache_key = (get, symbol, statement_type, as_of)
         cached = _BENCHMARK_OBSERVATIONS.get(cache_key)
         if cached and time.monotonic() - cached[0] < _BENCHMARK_CACHE_SECONDS:
             return cached[1]
+        if time.monotonic() > deadline:
+            return None
         try:
             p = provider_get(get, f"/daily-price-ratios/{symbol}", {"statement_type": "c" if statement_type == "consolidated" else "s", "from": str(as_of.year - 1), "to": str(as_of.year)})
             rows = [r for r in items(p, "price_ratios", "data") if field_date(r) and 0 <= (as_of - field_date(r)).days <= 31]
@@ -48,11 +106,11 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
                 if len(_BENCHMARK_OBSERVATIONS) >= 2000:
                     _BENCHMARK_OBSERVATIONS.pop(next(iter(_BENCHMARK_OBSERVATIONS)))
                 _BENCHMARK_OBSERVATIONS[cache_key] = (time.monotonic(), row)
-            return row
+            return row if row is not None else NO_OBSERVATION
         except Exception: return None
     records = []
     if selected & {"pe", "pb"}:
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=PROVIDER_SLOT_COUNT) as pool:
             records = list(pool.map(fetch, symbols))
     meta["fetchedCount"] = sum(row is not None for row in records)
     meta["missingSymbols"] = [symbol for symbol, row in zip(symbols, records) if row is None]
@@ -74,6 +132,8 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
             result["industry_median_" + key] = statistics.median(positive)
     if "ev_ebitda" in selected and group in ("HEAVY", "UTILITY") and len(symbols) <= 100:
         def enterprise_multiple(symbol):
+            return remembered("ev", symbol, lambda: enterprise_multiple_lookup(symbol))
+        def enterprise_multiple_lookup(symbol):
             cache_key = (get, symbol, statement_type, as_of, "ev_ebitda")
             cached = _BENCHMARK_OBSERVATIONS.get(cache_key)
             if cached and time.monotonic() - cached[0] < _BENCHMARK_CACHE_SECONDS:
@@ -88,10 +148,10 @@ def peer_benchmark(get, peers, statement_type, as_of, group=None, metrics=None):
                     if len(_BENCHMARK_OBSERVATIONS) >= 2000:
                         _BENCHMARK_OBSERVATIONS.pop(next(iter(_BENCHMARK_OBSERVATIONS)))
                     _BENCHMARK_OBSERVATIONS[cache_key] = (time.monotonic(), value)
-                return value
+                return value if value is not None else NO_OBSERVATION
             except Exception:
                 return None
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=PROVIDER_SLOT_COUNT) as pool:
             multiples = list(pool.map(enterprise_multiple, symbols))
         positive = [value for value in multiples if value is not None and value > 0]
         meta["evCalculatedCount"] = sum(v is not None for v in multiples)
@@ -151,7 +211,7 @@ def derive_peer_ev_ebitda(raw, symbol, statement_type, as_of):
     return (market_cap + inputs['total_debt'] - inputs['cash']) / ebitda if ebitda > 0 else 0.
 
 
-def resolve_report_benchmarks(get, raw, statement_type, as_of, group, price_as_of=None):
+def resolve_report_benchmarks(get, raw, statement_type, as_of, group, price_as_of=None, observations=None):
     """Select reported comparisons first, calculating only unresolved peer metrics."""
     # Match benchmark observations to the report price date, not a later market close.
     try: benchmark_date = date.fromisoformat(price_as_of or as_of.isoformat())
@@ -160,7 +220,8 @@ def resolve_report_benchmarks(get, raw, statement_type, as_of, group, price_as_o
     wanted = [key for key in ("pe", "pb") if "industry_median_" + key not in reported]
     if group in ("HEAVY", "UTILITY") and "industry_median_ev_ebitda" not in reported:
         wanted.append("ev_ebitda")
-    benchmarks, benchmark_meta = peer_benchmark(get, raw.get("peers", {}), statement_type, min(benchmark_date, as_of), group, wanted)
+    kept = {} if observations is None else {"observations": observations}
+    benchmarks, benchmark_meta = peer_benchmark(get, raw.get("peers", {}), statement_type, min(benchmark_date, as_of), group, wanted, **kept)
     benchmarks.update(reported)
     benchmark_meta.setdefault("metrics", {}).update(reported_meta)
     providers = sorted({item["provider"] for item in benchmark_meta["metrics"].values() if item.get("value") is not None})

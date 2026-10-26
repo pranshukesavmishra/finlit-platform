@@ -116,6 +116,12 @@ def input_gaps(row, inputs, meta):
                 'CAPITAL_ADEQUACY':('capital_adequacy_pct','Capital adequacy disclosure'),
                 'SOLVENCY':('solvency_ratio','Solvency disclosure')}.get(metric)
         if spec: scalar(*spec)
+        risk = inputs.get('risk_calculation') or {}
+        if gaps and metric in ('BIGGEST_FALL','TRADING_VALUE') and risk.get('sessions') is not None:
+            n, bad = risk['sessions'], risk.get('invalidCloseLast250') if metric == 'BIGGEST_FALL' else risk.get('missingVolumeLast60')
+            need = 250 if metric == 'BIGGEST_FALL' else 60
+            why = f'the provider returned {n} trading sessions' + (f', {need} are needed' if n < need else '') + (f'; {bad} of the latest {need} have no valid ' + ('closing price' if metric == 'BIGGEST_FALL' else 'volume') if bad else '')
+            gaps[-1] = f'{gaps[-1]} ({why})'
     return gaps or [info.get('note') or 'Compatible observations for this factor on the selected statement basis']
 
 

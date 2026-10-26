@@ -1,0 +1,23 @@
+name: Smoke test the live site
+# Runs scripts/smoke.sh against the deployed site every 6 hours and on demand. It only fails visibly (red run); it opens no issues and sends nothing.
+# Read-only requests, a few dozen small ones: well inside the free hosting limits.
+on:
+  schedule: [{cron: "17 */6 * * *"}]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Site address to test
+        default: https://finlit-arug.onrender.com
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: bash scripts/smoke.sh "$BASE_URL"
+        env:
+          BASE_URL: ${{ inputs.base_url || 'https://finlit-arug.onrender.com' }}

@@ -20,6 +20,7 @@ from urllib.parse import quote as urlquote
 import httpx
 
 from .config import Settings, get_settings
+from .normalize.common import parse_date
 
 log = logging.getLogger("finlit.finedge")
 
@@ -78,6 +79,33 @@ def _has_rows(payload: Any) -> bool:
     if isinstance(payload, dict):
         return any(bool(v) for k, v in payload.items() if k not in {"symbol", "stock_symbol", "company_name", "ratio_type", "status"})
     return bool(payload)
+
+
+def _rows_of(payload: Any) -> list:
+    rows = payload.get("financials") if isinstance(payload, dict) else payload
+    return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+
+
+def latest_period_end(payload: Any) -> Optional[date]:
+    ends = []
+    for r in _rows_of(payload):
+        d = parse_date(r.get("period_end")) or (parse_date(f"{r.get('year')}-03-31") if r.get("year") else None)
+        if d:
+            ends.append(d)
+    return max(ends) if ends else None
+
+
+def stale_reason(bundle: Dict[str, Any], standalone_annual: Any, standalone_quarterly: Any) -> Optional[Dict[str, Any]]:
+    """None when the consolidated statements are current; else what is stale. Stale = the standalone latest quarter is at least two quarters
+    (about 180 days) newer, or its latest financial year at least a year (about 360 days) newer."""
+    cq, sq = latest_period_end(bundle.get("pl_quarterly")), latest_period_end(standalone_quarterly)
+    ca, sa = latest_period_end(bundle.get("pl_annual")), latest_period_end(standalone_annual)
+    q_stale = bool(cq and sq and (sq - cq).days >= 170)
+    a_stale = bool(ca and sa and (sa - ca).days >= 360)
+    if not (q_stale or a_stale):
+        return None
+    return {"consolidatedLatestQuarter": cq.isoformat() if cq else None, "standaloneLatestQuarter": sq.isoformat() if sq else None,
+            "consolidatedLatestYear": ca.isoformat() if ca else None, "standaloneLatestYear": sa.isoformat() if sa else None}
 
 
 # ---------------------------------------------------------------- fixture transport
@@ -201,8 +229,34 @@ class FinEdgeClient:
                 bundle.update(fallback)
                 errors.update(fallback_errors)
                 effective = "standalone"
+        if effective == "consolidated" and statement == "consolidated" and _has_rows(bundle.get("pl_annual")):
+            await self._prefer_current_basis(symbol, bundle, errors)
+            if bundle.get("basisChoice", {}).get("chosen") == "standalone":
+                effective = "standalone"
         bundle.update(symbol=symbol, statement=effective, requestedStatement=statement, errors=errors)
         return bundle
+
+    async def _prefer_current_basis(self, symbol: str, bundle: Dict[str, Any], errors: Dict[str, str]) -> None:
+        """Some companies' consolidated statements stop years before their standalone ones (SBFC: consolidated quarters end Mar 2025, standalone
+        Sep 2026). Two small extra calls (standalone annual and quarterly P&L; the annual one also serves the revenue guard) find out. When the
+        consolidated set is stale, the whole statement set is replaced by the standalone one, so no page mixes the two bases."""
+        small = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in ("pl_annual", "pl_quarterly")}
+        got, _errs = await self._fetch_many(small)
+        if got.get("pl_annual") is not None:
+            bundle["pl_annual_standalone"] = got["pl_annual"]   # worker + snapshot.basis_gaps reuse this instead of fetching it again
+        stale = stale_reason(bundle, got.get("pl_annual"), got.get("pl_quarterly"))
+        if not stale:
+            return
+        rest = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS and k not in small}
+        fallback, fallback_errors = await self._fetch_many(rest)
+        for key in STATEMENT_KEYS:
+            bundle.pop(key, None)
+            errors.pop(key, None)
+        bundle.update(fallback)
+        bundle.update({k: v for k, v in got.items()})
+        errors.update(fallback_errors)
+        bundle.pop("pl_annual_standalone", None)
+        bundle["basisChoice"] = {"chosen": "standalone", "requested": "consolidated", "reason": "stale_consolidated", **stale}
 
     async def stock_symbols(self) -> list:
         payload = await self.get("/stock-symbols", timeout=30)

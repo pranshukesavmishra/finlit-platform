@@ -128,7 +128,7 @@ export function HoldingsPage() {
   const exportCsv = () => saveFile("FinLit-portfolio.csv", ["Symbol,Company,Sector,Price,FinLit score,Band,Quality,Growth,Profitability,Balance sheet,Technical",
     ...lines.map((l) => [l.symbol, `"${csvText(l.name || "").replace(/"/g, '""')}"`, `"${csvText(l.row?.sector || "").replace(/"/g, '""')}"`, l.row?.price ?? "", l.row?.overall ?? "", l.row?.band ? BAND_LABEL[l.row.band] : "", ...PILLARS.map(([k]) => l.row?.[k] ?? "")].join(","))].join("\n"), "text/csv;charset=utf-8");
   const CAP_COLORS = ["var(--k1)", "var(--k7)", "var(--k3)", "var(--k4)", "var(--k2)", "var(--k8)"];
-  const capParts = CAP_BUCKETS.map((b, i) => ({ label: b.label, value: m.cap.get(b.id)?.length || 0, color: CAP_COLORS[i] })).filter((p) => p.value > 0);
+  const capParts = CAP_BUCKETS.map((b, i) => ({ label: b.label, value: m.cap.get(b.id)?.length || 0, color: CAP_COLORS[i], note: (m.cap.get(b.id) || []).slice(0, 6).join(", ") })).filter((p) => p.value > 0);
   const capUnknown = m.cap.get("unknown")?.length || 0;
   const donut = m.sector.slice(0, 7).map(([label, value], i) => ({ label, value, color: K[i % K.length] }));
   const empty = !lines.length;

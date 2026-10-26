@@ -92,3 +92,46 @@ def test_announcements_request_carries_the_required_date_range():
     from finlit.finedge import bundle_requests
     _, params, _ = bundle_requests("RELIANCE", "consolidated")["announcements"]
     assert params["symbol"] == "RELIANCE" and params["from_date"] < params["to_date"]
+
+
+def _stale_consolidated_client(cut_quarter: str, cut_year: str):
+    """Consolidated P&L rows stop at the given period ends; standalone is the full recorded set."""
+    base = fixture_transport()
+
+    def handler(request):
+        p = request.url.params
+        response = base.handle_request(request)
+        if p.get("statement_type") == "c" and p.get("statement_code") == "pl" and "/financials/" in request.url.path and "basic" not in request.url.path:
+            body = response.json()
+            cut = cut_quarter if p.get("period") == "quarterly" else cut_year
+            body["financials"] = [r for r in body["financials"] if str(r.get("period_end")) <= cut]
+            return httpx.Response(200, json=body)
+        return response
+
+    return FinEdgeClient(settings(), transport=httpx.MockTransport(handler))
+
+
+async def test_stale_consolidated_switches_every_statement_to_standalone_and_says_so():
+    full = fixture_transport()
+    async with FinEdgeClient(settings(), transport=full) as c0:
+        latest = (await c0.fetch_bundle("RELIANCE", "standalone"))["pl_quarterly"]["financials"]
+    last = max(str(r["period_end"]) for r in latest)
+    year = str(int(last[:4]) - 2) + last[4:]
+    async with _stale_consolidated_client(year, year) as client:
+        bundle = await client.fetch_bundle("RELIANCE", "consolidated")
+    assert bundle["statement"] == "standalone" and bundle["requestedStatement"] == "consolidated"
+    assert bundle["basisChoice"]["reason"] == "stale_consolidated"
+    assert max(str(r["period_end"]) for r in bundle["pl_quarterly"]["financials"]) == last
+    sections = build(bundle)
+    assert sections["summary"]["meta"]["statement"] == "standalone"
+    dq = sections["summary"]["dataQuality"]
+    assert dq["basis"]["chosen"] == "standalone"
+    assert any("standalone, which are up to date" in n and n.startswith("Consolidated statements stop at") for n in dq["notes"])
+
+
+async def test_healthy_consolidated_stays_consolidated_and_adds_no_note():
+    async with FinEdgeClient(settings()) as client:
+        bundle = await client.fetch_bundle("RELIANCE", "consolidated")
+    assert bundle["statement"] == "consolidated" and "basisChoice" not in bundle
+    assert "pl_annual_standalone" in bundle   # fetched once here, reused by the worker's revenue guard
+    assert not any("standalone, which are up to date" in n for n in build(bundle)["summary"]["dataQuality"]["notes"])

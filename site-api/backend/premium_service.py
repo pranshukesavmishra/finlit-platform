@@ -22,7 +22,7 @@ except ImportError:
     from premium_technical_sources import load_benchmark_history
 
 
-def generate_report(get, symbol, name, statement_type, report_id, created_at, dashboard_load=None):
+def generate_report(get, symbol, name, statement_type, report_id, created_at, dashboard_load=None, observations=None):
     now = datetime.now(timezone.utc)
     sourcing = {}
     requested_basis = statement_type
@@ -39,7 +39,7 @@ def generate_report(get, symbol, name, statement_type, report_id, created_at, da
     if statement_type != requested_basis:
         warnings.append(f'The dashboard resolved {requested_basis} financials to {statement_type}; this entire report uses that same effective statement basis.')
     benchmarks, benchmark_meta = resolve_report_benchmarks(
-        get, raw, statement_type, now.date(), group, meta.get("priceAsOf")
+        get, raw, statement_type, now.date(), group, meta.get("priceAsOf"), observations
     )
     inputs.setdefault("benchmark_details", {}).update(benchmark_meta["metrics"])
     inputs.update(benchmarks)

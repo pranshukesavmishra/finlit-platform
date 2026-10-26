@@ -73,7 +73,7 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if company:
             bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
                                     "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
-        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual"):   # for the consolidated-vs-standalone revenue guard; best effort
+        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual") and not bundle.get("pl_annual_standalone"):   # for the consolidated-vs-standalone revenue guard; best effort
             try:
                 path, params, _t = bundle_requests(symbol, "standalone")["pl_annual"]
                 bundle["pl_annual_standalone"] = await client.get(path, params, timeout=12, retries=1)
@@ -456,6 +456,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--seed", type=int, default=None)
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
     p_aud.add_argument("symbols", nargs="*")
+    sub.add_parser("audit-integrity", help="nightly: samples up to 40 companies (one provider call each) and checks prices, latest quarter, profit and loss identities, declared results and risk figures; stores the result for the admin Data health tab")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
     p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
@@ -472,8 +473,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
     p_ld.add_argument("--as-of", default=None, help="YYYY-MM-DD: the Friday to compute (default: the latest)")
     p_ld.add_argument("--if-stale", action="store_true", help="skip when the latest Friday is already done (a redeploy must not repeat the weekly run)")
-    p_pz = sub.add_parser("precompute-prism", help="nightly: FinLit Prism ratings for the biggest companies without one (or older than --days), so each company opens with its stored rating")
-    p_pz.add_argument("--limit", type=int, default=40, help="companies per run")
+    p_pz = sub.add_parser("precompute-prism", help="nightly: FinLit Prism ratings for every company with a full report that has none (or one older than --days), one at a time, resumable; yields to members")
+    p_pz.add_argument("--limit", type=int, default=800, help="companies per run (every company with a full report: about 500 today)")
     p_pz.add_argument("--max-minutes", type=float, default=100.0)
     p_pz.add_argument("--days", type=int, default=7, help="a stored rating older than this is calculated again")
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
@@ -829,6 +830,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .dhan import DhanClient
                 async with DhanClient(settings, store.redis) as dc:
                     print(await refresh_quotes(client, store, dhan_client=dc), "quotes updated")
+            elif args.cmd == "audit-integrity":
+                from . import integrity
+                from .sysctl import loads_enabled
+                if not await loads_enabled(store.pool):
+                    print("skipped: heavy data loads are paused by the admin switch")
+                else:
+                    res = await integrity.audit(store, client)
+                    print(res["level"], "sampled", res["sampled"], {c["key"]: f"{c['bad']}/{c['checked']}" for c in res["checks"]})
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
             elif args.cmd == "drain-queue":

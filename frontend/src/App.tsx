@@ -41,6 +41,7 @@ const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ 
 const OptionChainPage = lazy(() => import("./pages/OptionChain").then((m) => ({ default: m.OptionChainPage })));
 const CommoditiesPage = lazy(() => import("./pages/Commodities").then((m) => ({ default: m.CommoditiesPage })));
 const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
+const EpsCalculatorPage = lazy(() => import("./pages/EpsCalculator").then((m) => ({ default: m.EpsCalculatorPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Console = lazy(() => import("./pages/Console").then((m) => ({ default: m.Console })));
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="funds/:id" element={<FundDetailPage />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="dcf" element={<DcfPage />} />
+            <Route path="eps-calculator" element={<EpsCalculatorPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="forum/*" element={<ForumPage />} />

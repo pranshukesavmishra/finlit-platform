@@ -124,7 +124,7 @@ export function LandingBody({ statement, setStatement }: { statement: Statement;
         </div>
         <div className="pzr-what-h">
           <h3>How it works</h3>
-          <p>Choose a company. If a rating was calculated recently it opens at once; otherwise Prism calculates it from the latest filings and prices, which can take up to two minutes. Each member can calculate 20 a day.</p>
+          <p>Choose a company. If a rating was calculated recently it opens at once; otherwise Prism starts calculating it from the latest filings and prices, which usually takes under half a minute, and shows it here when it is ready. Each member can calculate 20 a day.</p>
           <p className="pzr-note">{PRISM_NOTE}</p>
         </div>
       </section>

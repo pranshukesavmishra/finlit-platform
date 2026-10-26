@@ -162,3 +162,37 @@ describe("a busy service is not a daily limit", () => {
     expect(prismProblem(new ApiError(429, { status: "limit", detail: "x", retryAfter: 600 })).kind).toBe("limit");
   });
 });
+
+describe("a calculation behind the page", () => {
+  it("polls with a growing pause that never passes five seconds", async () => {
+    const { pollDelay } = await import("./prism");
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 50].map(pollDelay)).toEqual([1000, 1000, 1500, 2000, 2000, 3000, 3000, 4000, 5000, 5000, 5000]);
+    expect(pollDelay(-3)).toBe(1000);
+  });
+  it("the bar follows the usual time, slows afterwards and never reaches 100%", async () => {
+    const { progressFraction } = await import("./prism");
+    expect(progressFraction(0, 12)).toBe(0);
+    expect(progressFraction(6, 12)).toBeCloseTo(0.425, 3);
+    expect(progressFraction(12, 12)).toBeCloseTo(0.85, 3);
+    const late = [13, 20, 60, 600].map((t) => progressFraction(t, 12));
+    expect(late.every((v, i) => v > (i ? late[i - 1] : 0.85) - 1e-9 && v <= 0.95)).toBe(true);
+    expect(progressFraction(10_000, 12)).toBeLessThanOrEqual(0.95);
+    expect(progressFraction(-5, 12)).toBe(0);
+    expect(progressFraction(5, 0)).toBeGreaterThan(0);       // a missing expectation falls back to a default
+    expect(progressFraction(5, NaN)).toBeGreaterThan(0);
+  });
+  it("explains each way a background calculation can end, in words", async () => {
+    const { jobProblem } = await import("./prism");
+    expect(jobProblem({ status: 404 }).kind).toBe("missing");
+    expect(jobProblem({ status: 422, detail: "This company cannot be rated as asked." }).text).toContain("cannot be rated");
+    const limit = jobProblem({ status: 429, code: "limit", detail: "You have used today's 20 FinLit Prism calculations.", retry: 3600 });
+    expect(limit.kind).toBe("limit");
+    expect(limit.text).toContain("today's 20");
+    expect(jobProblem({ status: 429, code: "busy", retry: 30 }).kind).toBe("unavailable");
+    expect(jobProblem({ status: 403 }).kind).toBe("locked");
+    const other = jobProblem({ status: 502, detail: "FinLit Prism could not finish this calculation just now. Please try again in a few minutes." });
+    expect(other.kind).toBe("unavailable");
+    expect(other.text).toContain("try again");
+    expect(jobProblem({}).text).toBeTruthy();
+  });
+});
