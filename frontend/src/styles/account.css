@@ -344,3 +344,12 @@
 .pf-cap-n { font-size: 12px; margin: 10px 0 0; line-height: 1.5; }
 :root .pf-cap-t th[scope="row"] { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--text); background: transparent; position: static; }
 @media (max-width: 560px) { .pf-cap .dn { grid-template-columns: 1fr; justify-items: center; } .pf-cap .dn svg { max-width: 190px; } .pf-cap .dn-k { width: 100%; } .pf-cap-t { font-size: 12.5px; } }
+
+/* admin System popover (header) */
+.ddm.sys-pop { width: 270px; padding: 14px; display: none; }
+.ddm.sys-pop.open { display: block; }
+.sys-pop p { margin: 8px 0; font-size: 13px; color: var(--muted); }
+.sys-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; cursor: pointer; }
+.sys-row input { width: 40px; height: 22px; accent-color: var(--gold); cursor: pointer; }
+.sys-pop .btn { margin-top: 6px; }
+@media (max-width: 480px) { .sys-dd { position: static; } .ddm.sys-pop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }

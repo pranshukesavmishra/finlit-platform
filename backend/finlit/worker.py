@@ -512,11 +512,17 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_fl.add_argument("--full", action="store_true", help="reload the full FPI history, month by month (the first run does this by itself)")
     p_fl.add_argument("--only", nargs="*", default=None, help="steps: fii dii nse oi nifty")
     p_fl.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_sw = sub.add_parser("switch-get", help="print 1 or 0 for an admin switch (loads: unreadable database = 0, paused); no migration, no other output")
+    p_sw.add_argument("name", choices=["loads", "web"])
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
 
     settings = settings or get_settings()
+    if args.cmd == "switch-get":   # before Store.connect: must stay quick and quiet, and must work when the database is down
+        from .sysctl import switch_get
+        print(await switch_get(settings, args.name))
+        return 0
     if args.cmd == "audit-coverage":   # needs the provider only, no database
         import random
         async with FinEdgeClient(settings) as client:

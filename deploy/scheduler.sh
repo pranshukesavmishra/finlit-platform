@@ -28,12 +28,19 @@ free_mb() {
     awk '/^MemAvailable:/ {print int($2 / 1024)}' /proc/meminfo 2>/dev/null || echo 99999
   fi
 }
+# The admin switch "Heavy data loads" (site header > System) is kept in the database; `worker switch-get loads` prints 1 (on) or 0 (paused), and 0
+# also when the database cannot be read. The env switches BOOT_LOAD_ENABLED and FUND_LOADS_ENABLED still apply on top: either one off = paused.
+loads_paused() {
+  [ "$($PY -m finlit.worker switch-get loads 2>/dev/null | tail -n 1)" = 1 ] && return 1
+  return 0
+}
 MIN_FREE_MB="${SCHED_MIN_FREE_MB:-120}"         # other jobs (quotes, alerts, emails, loads) start only with this much free
 FUNDS_MIN_FREE_MB="${SCHED_FUNDS_MIN_FREE_MB:-180}"   # fund jobs: the largest measured one peaks at 174 MB (ETF refresh)
 
 run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the same lock is still going, or if memory is short
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
+  case "$name" in quotes|alerts-live|alerts-daily|screens|digest) ;; *) loads_paused && { log "skip $name (heavy data loads are paused by the admin switch)"; return 0; } ;; esac
   ( flock -n 9 || { log "skip $name (busy)"; exit 0; }
     renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
     free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { log "skip $name (only ${free} MB free)"; exit 0; }
@@ -53,6 +60,7 @@ wait_memory() {  # wait_memory <name>: 0 once enough memory is free, 1 after 20 
 }
 run_funds() {  # run_funds <name> <args...>
   local name="$1"; shift
+  loads_paused && { log "skip $name (heavy data loads are paused by the admin switch)"; return 0; }
   [ "${FUND_LOADS_ENABLED:-0}" = 1 ] || { log "skip $name (ETF and fund loads are paused: set FUND_LOADS_ENABLED=1 to turn them on)"; return 0; }
   ( flock -w 10800 9 || { log "skip $name (fund jobs busy for 3 hours)"; exit 0; }
     wait_memory "$name" || exit 0
@@ -71,6 +79,7 @@ wait_web() {
 # One step of the ETF / mutual fund load: run it, log ONE line with its result, and report failure so the next step is not started.
 fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund jobs' lock, like the nightly runs
   local label="$1"; shift
+  loads_paused && { log "$label skipped: heavy data loads are paused by the admin switch"; return 1; }
   [ "${FUND_LOADS_ENABLED:-0}" = 1 ] || { log "$label skipped: ETF and fund loads are paused (FUND_LOADS_ENABLED is not 1)"; return 0; }
   local out rc
   exec 8>"$FUNDS_LOCK"; flock -w 10800 8 || { log "$label skipped: fund jobs busy for 3 hours"; exec 8>&-; return 1; }
@@ -85,9 +94,11 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 (
   flock 9
   [ "${BOOT_LOAD_ENABLED:-1}" = 1 ] || { log "boot-load skipped: BOOT_LOAD_ENABLED is not 1 (the big company, ETF and fund loads on start are switched off)"; exit 0; }
+  loads_paused && { log "boot-load skipped: heavy data loads are paused by the admin switch"; exit 0; }
   renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
   sleep "${BOOT_LOAD_DELAY_S:-240}"   # let the web server finish starting and fill its caches first; the loads below compete with it for the 512 MB
+  loads_paused && { log "boot-load skipped: heavy data loads were paused during the start-up wait"; exit 0; }
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
   $PY -m finlit.worker refresh-flows --only nse                    # the exchange's own FII/DII figures for the latest session (one request), even when the nightly run is recent
