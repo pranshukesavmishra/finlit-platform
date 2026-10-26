@@ -84,6 +84,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 # First start: universe, the biggest companies first, then as many as INGEST_LIMIT allows. Resumable.
 (
   flock 9
+  [ "${BOOT_LOAD_ENABLED:-1}" = 1 ] || { log "boot-load skipped: BOOT_LOAD_ENABLED is not 1 (the big company, ETF and fund loads on start are switched off)"; exit 0; }
   renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
   sleep "${BOOT_LOAD_DELAY_S:-240}"   # let the web server finish starting and fill its caches first; the loads below compete with it for the 512 MB
