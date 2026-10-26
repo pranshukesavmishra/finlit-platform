@@ -1,11 +1,19 @@
 // FinLit Prism end-to-end checks (run order s1a, s1b, s2b, s2c, s3, s3b, s456). Needs the local stack (dev/run_stack.sh style) with members
 // gold/silver/basic@test.example and admin@test.example; see docs/prism/DEPLOY.md. Not part of CI.
+// E2E_BASE (default http://localhost:4175) is the site, E2E_OUT (default <tmp>/finlit-e2e) where screenshots and results go.
+// With no server reachable (or no playwright installed) every script prints a SKIP line and exits 0 instead of failing.
 import { createRequire } from "node:module";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 const require = createRequire(import.meta.url);
-const { chromium } = require("playwright");
-export const BASE = "http://localhost:4175";
-export const OUT = "/tmp/claude-0/-home-user-finlit-platform/4f3a498e-7696-50d1-894f-bc0d537b492b/scratchpad/e2e";
+export const BASE = process.env.E2E_BASE || "http://localhost:4175";
+export const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), "finlit-e2e");
+fs.mkdirSync(OUT, { recursive: true });
+export const skip = (why) => { console.log(`SKIP  Prism end-to-end checks not run: ${why}`); process.exit(0); };
+let chromium;
+try { ({ chromium } = require("playwright")); } catch { skip("playwright is not installed (npm i -D playwright; npx playwright install chromium)"); }
+try { await fetch(BASE + "/", { signal: AbortSignal.timeout(4000) }); } catch { skip(`no server is reachable at ${BASE} (start the local stack, or set E2E_BASE)`); }
 export const PW = "E2e-Pass-Word-91x";
 export const ADMIN_PW = "Zq7-Pass-Word-91x";
 let failed = 0;

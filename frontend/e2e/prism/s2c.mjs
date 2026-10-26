@@ -14,12 +14,12 @@ await p.screenshot({ path: OUT + "/2-prism-page-1400.png", fullPage: true });
 for (const [name, re] of [["score ring/score", /62\.\d|OUT OF 100/i], ["four parts", /Fundamental[s]?[\s\S]*Valuation[\s\S]*Quality[\s\S]*Risk/], ["per-factor table", /factor|Weight|Points/i], ["financial history", /financial history|Quarterly|Annual/i], ["completeness", /complete|inputs available|missing/i], ["freshness", /fresh|calculated|as of/i], ["benchmark", /benchmark|peer|median/i], ["warnings", /warning|limitation|note/i], ["Download PDF", /PDF/]]) check(`2 full report: ${name}`, re.test(txt), "");
 check("2 full report: no errors", p.errs.length === 0, p.errs.join(" | "));
 // statement toggle
-await p.getByRole("button", { name: /Standalone/ }).first().click();
+await p.getByRole("group", { name: "Statement basis" }).getByRole("button", { name: /Standalone/ }).first().click();
 await p.waitForTimeout(1500);
 const t2 = await p.locator("main").innerText();
 check("2 statement toggle standalone shows empty/generate state (URL or text)", /standalone/i.test(t2) && (/Generate|no .*rating|not been/i.test(t2)), p.url());
 await shot(p, "2-prism-standalone");
-await p.locator(".pz-seg button", { hasText: "Consolidated" }).first().click();
+await p.getByRole("group", { name: "Statement basis" }).getByRole("button", { name: /Consolidated/ }).first().click();
 await p.waitForTimeout(1500);
 // PDF
 const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.getByRole("button", { name: /PDF/ }).first().click()]);
@@ -30,6 +30,7 @@ const pt = execSync(`pdftotext ${f} -`).toString();
 fs.writeFileSync(OUT + "/2-prism-pdf.txt", pt);
 const rep = (await api(p, "/api/prism/reports/latest?symbol=RELIANCE")).body;
 const score = String(Math.round(rep.rating.final * 10) / 10);
+check("2 PDF text has no advice words", !/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i.test(pt), pt.match(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i)?.[0] || "");
 check("2 PDF text has company name and score", /Reliance Industries/i.test(pt) && pt.includes(score.split(".")[0]), `score ${rep.rating.final}`);
 // 410
 execSync(`redis-cli -n 12 del prism:snap:${rep.id}`);
@@ -37,7 +38,7 @@ await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1000);
 await p.getByRole("button", { name: /PDF/ }).first().click();
 await p.waitForTimeout(2000);
 const t3 = await p.locator("main").innerText();
-check("2 410 path: UI says PDF no longer available + Recalculate", /window has passed|no longer available|expired/i.test(t3) && /Recalculate/.test(t3), "");
+check("2 410 path: UI says PDF no longer available + Recalculate", /PDF window passed|window has passed|no longer available|expired/i.test(t3) && /Recalculate/.test(t3), "");
 await shot(p, "2-prism-410");
 const r410 = await api(p, `/api/prism/reports/${rep.id}/pdf`);
 check("2 410 status from API", r410.status === 410 && r410.body.status === "expired", r410.status);

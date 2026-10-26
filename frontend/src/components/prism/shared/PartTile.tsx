@@ -1,5 +1,5 @@
 // One compact tile of a score dashboard: a mini ring with the number, the name, the status in WORDS, the weight (when it has one) and a bar with
-// tick marks at the label thresholds. Used for the five basic pillars and the four (soon five) Prism parts on the stock page, and free for the
+// tick marks at the label thresholds. Used for the five basic pillars and the four Prism parts on the stock page (the technical view is a separate row, not a part), and free for the
 // full Prism page. Colour only decorates: the status word and the number carry the meaning. Styles: styles/dash-shared.css (classes dk-*).
 import type { CSSProperties, ReactNode } from "react";
 import "../../../styles/dash-shared.css";

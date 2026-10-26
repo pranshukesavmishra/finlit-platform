@@ -6,7 +6,7 @@ for (const [w, h, tag] of [[1400, 900, "1400"], [390, 844, "390"], [360, 800, "3
   await login(p, "gold@test.example");
   const t0 = Date.now();
   await p.goto(BASE + "/stocks/RELIANCE", { waitUntil: "networkidle" });
-  await p.waitForSelector(".pz-right .pz-main", { timeout: 15000 });
+  await p.waitForSelector(".pz-right .dk-row", { timeout: 15000 });
   console.log(tag, "stored report on page after ms", Date.now() - t0);
   await p.waitForTimeout(1500);
   const g = await p.evaluate(() => {
@@ -25,9 +25,10 @@ for (const [w, h, tag] of [[1400, 900, "1400"], [390, 844, "390"], [360, 800, "3
   const parent = p.locator(".pz-right >> xpath=..");
   await parent.screenshot({ path: `${OUT}/2-compare-${tag}.png` });
   const txt = await p.locator(".pz-right").innerText();
-  check(`2 ${tag}: label, status, four parts, technical placeholder`, /AVERAGE|HEALTHY|STRONG|WEAK|POOR/i.test(txt) && /Provisional|Rated/i.test(txt) && ["Fundamentals", "Valuation", "Quality", "Risk"].every((x) => txt.includes(x)) && /coming soon/i.test(txt), txt.replace(/\n+/g, " ").slice(0, 200));
-  check(`2 ${tag}: part bars present (4 .pt-bar)`, (await p.locator(".pz-right .pt-bar").count()) === 4);
-  check(`2 ${tag}: compliance line`, /not a recommendation/i.test(txt) || /not a recommendation/i.test(await p.locator(".pz-comp").innerText()));
+  check(`2 ${tag}: label, status, four parts, technical view row or note`, /AVERAGE|HEALTHY|STRONG|WEAK|POOR/i.test(txt) && /Provisional|Rated/i.test(txt) && ["Fundamentals", "Valuation", "Quality", "Risk"].every((x) => txt.includes(x)) && /Technical/i.test(txt), txt.replace(/\n+/g, " ").slice(0, 200));
+  check(`2 ${tag}: four part tiles present`, (await p.locator(".pz-right .pzs-parts .dk-tile").count()) === 4);
+  check(`2 ${tag}: compliance wording on the card or the page`, /not a recommendation/i.test(txt) || /not a recommendation/i.test(await p.locator("main").innerText()));
+  check(`2 ${tag}: no advice words in the card`, !/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i.test(txt), txt.match(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i)?.[0] || "");
   check(`2 ${tag}: no page errors`, p.errs.length === 0, p.errs.join(" | "));
   if (tag === "1400") {
     const r1 = await api(p, "/api/prism/reports/latest?symbol=RELIANCE");

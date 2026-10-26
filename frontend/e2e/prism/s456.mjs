@@ -13,8 +13,8 @@ check("4 admin: refresh works, not limited", r.status === 200, r.status);
 const g = await newPage(b);
 const gl = await login(g, "gold@test.example");
 const cookies = (await g.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ");
-for (const base of ["http://localhost:4175", "http://127.0.0.1:8011", "http://127.0.0.1:8010"]) {
-  const res = await fetch(base + "/api/premium-reports", { method: "POST", headers: { "Content-Type": "application/json", Cookie: cookies, "X-CSRF-Token": gl.csrf, Origin: BASE }, body: JSON.stringify({ query: "TCS", statement_type: "consolidated", delivery: "inline" }) });
+for (const base of [BASE, "http://127.0.0.1:8011", "http://127.0.0.1:8010"]) {
+  let res; try { res = await fetch(base + "/api/premium-reports", { method: "POST", headers: { "Content-Type": "application/json", Cookie: cookies, "X-CSRF-Token": gl.csrf, Origin: BASE }, body: JSON.stringify({ query: "TCS", statement_type: "consolidated", delivery: "inline" }), signal: AbortSignal.timeout(8000) }); } catch { console.log(`SKIP  ${base} is not reachable`); continue; }
   const t = (await res.text()).slice(0, 160);
   check(`4 member session cookie on ${base}/api/premium-reports rejected`, [401, 403, 404, 405, 422].includes(res.status) && !/"state":"ready"/.test(t), `${res.status} ${t}`);
 }
@@ -35,16 +35,14 @@ for (const sym of ["RELIANCE", "HDFCBANK", "HDFCLIFE"]) {
 }
 check("6 groups differ: BANK / INSURANCE / not same as RELIANCE", out.HDFCBANK.rating.group !== out.RELIANCE.rating.group && out.HDFCLIFE.rating.group !== out.HDFCBANK.rating.group, [out.RELIANCE, out.HDFCBANK, out.HDFCLIFE].map((x) => x.rating.group).join(","));
 const labels = (s) => out[s].rating.metrics.map((m) => m.label).join("|");
-check("6 HDFCBANK has 'Net interest income' label", /Net interest income/i.test(labels("HDFCBANK")), "");
-check("6 HDFCLIFE has 'Net premium income' label", /Net premium income/i.test(labels("HDFCLIFE")), "");
-check("6 RELIANCE does not use bank/insurer labels", !/Net interest income|Net premium income/i.test(labels("RELIANCE")), "");
+check("6 the labels never call the income line net interest or net premium income", !/Net interest income|Net premium income/i.test(labels("HDFCBANK") + labels("HDFCLIFE") + labels("RELIANCE")), "");
 check("6 factor label sets differ between groups", labels("HDFCBANK") !== labels("RELIANCE") && labels("HDFCLIFE") !== labels("HDFCBANK"), "");
 for (const sym of ["HDFCBANK", "HDFCLIFE"]) {
   await p.goto(BASE + "/prism/" + sym, { waitUntil: "networkidle" }); await p.waitForTimeout(2000);
   const t = await p.locator("main").innerText();
   fs.writeFileSync(`${OUT}/6-${sym}-page.txt`, t);
   await p.screenshot({ path: `${OUT}/6-${sym}-page.png`, fullPage: true });
-  check(`6 ${sym} full page shows sales label`, sym === "HDFCBANK" ? /Net interest income/i.test(t) : /Net premium income/i.test(t), "");
+  check(`6 ${sym} full page says Sales with the sector note`, /\bSales\b/.test(t) && (sym === "HDFCBANK" ? /net interest income: interest earned less interest paid/i.test(t) : /net premium earned/i.test(t)) && !/Net premium income/i.test(t), "");
 }
 check("6 no page errors", p.errs.length === 0, p.errs.join(" | "));
 // ---------- 5 pages
