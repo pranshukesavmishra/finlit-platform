@@ -52,13 +52,13 @@ export function stockItem(r: SearchRow, q: Map<string, Quote>, mine?: Set<string
     date: x?.date ?? null, score: x?.score ?? null, band: x?.band ?? null, logo: x?.logo ?? null, tag: "Stock", ready: !!r[3], mine: mine?.has(r[0]) };
 }
 
-/** Stocks for a query, best first: the shared typo-tolerant rank, then companies the visitor follows, then size (the index order). */
-export function searchStocks(rows: readonly SearchRow[] | undefined, query: string, limit: number, mine: Set<string> = new Set()): { row: SearchRow; rank: number }[] {
+/** Stocks for a query, best first: the shared typo-tolerant rank, then companies the visitor follows, then size (the index order). `keep` limits it to the rows (by index position) that pass a filter. */
+export function searchStocks(rows: readonly SearchRow[] | undefined, query: string, limit: number, mine: Set<string> = new Set(), keep?: (i: number) => boolean): { row: SearchRow; rank: number }[] {
   if (!rows?.length || !query.trim()) return [];
   const qs = query.trim().toUpperCase();
   const out: { row: SearchRow; rank: number; i: number }[] = [];
   rows.forEach((r, i) => {
-    if (!r[0] || r[0].startsWith("^")) return;
+    if (!r[0] || r[0].startsWith("^") || (keep && !keep(i))) return;
     let rank = companyRank(query, r[0], r[1]);
     if (rank > 800 && rank < 900) rank = 899;                                // any symbol prefix: the larger company (index order) goes first
     if (r[2] && r[2] === qs) rank = Math.max(rank, 950);                    // BSE code

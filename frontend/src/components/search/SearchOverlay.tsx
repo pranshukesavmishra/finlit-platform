@@ -15,6 +15,8 @@ import {
   KIND_LABEL, TABS, allSections, amcLogo, flat, moversToday, quoteMap, searchStocks, stockItem, todayIST,
   type Band, type Item, type Quotes, type Section, type Tab,
 } from "../../lib/globalSearch";
+import { FilterMenu } from "./FilterMenu";
+import { NO_FILTER, capFacets, filterNoun, filterOn, filterPhrase, filterStocks, passes, sectorFacets, unknownCounts, type StockFilter } from "../../lib/searchFilters";
 import { FlagIN, Hl, Logo, PriceChange, Range52, ScoreRing, Spark } from "./parts";
 import "../../styles/search.css";
 
@@ -67,6 +69,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [sel, setSel] = useState(0);
+  const [filter, setFilter] = useState<StockFilter>(NO_FILTER);   // sector and market-cap choices: they narrow the stock rows of the All and Stocks tabs
+  const [menu, setMenu] = useState<"sector" | "cap" | null>(null);
   const [cap, setCap] = useState(PAGE);      // how many stocks are drawn: the list grows as it is scrolled, so every listed company can be reached
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
@@ -93,6 +97,12 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const mine = useMyCompanies();
   const mineSet = useMemo(() => new Set(mine.symbols), [mine.symbols]);
   const bySym = useMemo(() => new Map((idx.data?.rows || []).map((r) => [r[0], r] as [string, SearchRow])), [idx.data]);
+  const sectorOpts = useMemo(() => sectorFacets(idx.data), [idx.data]);
+  const capOpts = useMemo(() => capFacets(idx.data), [idx.data]);
+  const unknown = useMemo(() => unknownCounts(idx.data), [idx.data]);
+  const canFilter = (tab === "all" || tab === "stocks") && (sectorOpts.length > 0 || capOpts.some((c) => c.n > 0));   // an older server sends neither list: no controls then
+  const fOn = canFilter && filterOn(filter);
+  const keep = useMemo(() => (fOn ? (i: number) => passes(idx.data, i, filter) : undefined), [fOn, idx.data, filter]);
   const recent = useSyncExternalStore(visits.subscribe, () => JSON.stringify(visits.get()), () => "[]");
 
   const dq = useDebounced(q.trim(), 180);
@@ -108,7 +118,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   useEffect(() => {
     if (!open) return;
     back.current = document.activeElement as HTMLElement | null;
-    setQ(""); setSel(0); setTab("all");
+    setQ(""); setSel(0); setTab("all"); setFilter(NO_FILTER); setMenu(null);
     const t = window.setTimeout(() => input.current?.focus(), 20);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -119,7 +129,11 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     const rows = idx.data?.rows;
     const s = q.trim();
     if (tab === "global") return [];
-    const stockHits = (n: number) => searchStocks(rows, s, n, mineSet);
+    const stockHits = (n: number) => searchStocks(rows, s, n, mineSet, keep);
+    if (!s && fOn) {          // a filter replaces recent visits and movers: the list is the filtered companies, largest market value first
+      const got = filterStocks(idx.data, "", filter, cap, mineSet);
+      return got.rows.length ? [{ id: "filtered", title: `${filterNoun(filter)} · largest first`, items: got.rows.map((r) => stockItem(r, qmap, mineSet)) }] : [];
+    }
     if (!s) {
       const vs = (JSON.parse(recent) as Visit[]).filter((v) => tab === "all" || (tab === "stocks" && v.k === "stock") || v.k === tab).map((v): Item | null => {
         if (v.k === "stock") { const r = bySym.get(v.id); return r ? stockItem(r, qmap, mineSet) : null; }
@@ -148,10 +162,13 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     const hits = stockHits(8);
     const best = hits[0] && hits[0].rank >= 880 ? stockItem(hits[0].row, qmap, mineSet) : null;
     return allSections(hits.map((h) => stockItem(h.row, qmap, mineSet)), best, funds, etfs, news);
-  }, [idx.data, q, dq, tab, cap, qmap, mineSet, recent, bySym, logos, today, mfQ.data, etfQ.data, newsQ.data, hotMf.data, hotEtf.data, latest.data]);
+  }, [idx.data, q, dq, tab, cap, filter, fOn, keep, qmap, mineSet, recent, bySym, logos, today, mfQ.data, etfQ.data, newsQ.data, hotMf.data, hotEtf.data, latest.data]);
 
-  useEffect(() => { setCap(PAGE); }, [q, tab, open]);
-  const total = useMemo(() => (tab === "stocks" && q.trim() ? searchStocks(idx.data?.rows, q.trim(), 1e6, mineSet).length : (idx.data?.rows.length ?? 0)), [tab, q, idx.data, mineSet]);
+  useEffect(() => { setCap(PAGE); }, [q, tab, open, filter]);
+  const total = useMemo(() => {
+    if (fOn && (tab === "stocks" || !q.trim())) return filterStocks(idx.data, q.trim(), filter, 0, mineSet).total;
+    return tab === "stocks" && q.trim() ? searchStocks(idx.data?.rows, q.trim(), 1e6, mineSet).length : (idx.data?.rows.length ?? 0);
+  }, [tab, q, idx.data, mineSet, fOn, filter]);
   const more = (tab === "stocks" || (tab === "all" && !q.trim())) && cap < total;
   const grow = () => { const el = list.current; if (more && el && el.scrollTop + el.clientHeight > el.scrollHeight - 500) setCap((c) => c + 60); };
   const items = useMemo(() => flat(sections), [sections]);
@@ -159,7 +176,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const busy = (tab === "all" || tab === "mf") && dq.length >= 2 && mfQ.isFetching || (tab === "all" || tab === "etf") && dq.length >= 2 && etfQ.isFetching || (tab === "all" || tab === "news") && dq.length >= 3 && newsQ.isFetching;
   const waiting = q.trim() !== dq;
 
-  useEffect(() => { setSel(0); }, [q, tab]);
+  useEffect(() => { setSel(0); list.current?.scrollTo?.({ top: 0 }); }, [q, tab, filter]);
+  useEffect(() => { setMenu(null); }, [tab, open]);
   useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-i="${sel}"]`)?.scrollIntoView({ block: "nearest" }); }, [sel]);
   useEffect(() => { if (cur?.kind === "stock" && cur.ready) prefetchStock(qc, cur.sub, 120); }, [cur, qc]);
 
@@ -177,12 +195,17 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     else if (e.key === "Enter" && cur) { e.preventDefault(); pick(cur, e.ctrlKey || e.metaKey); }
     else if (e.key === "Tab") { e.preventDefault(); moveTab(e.shiftKey ? -1 : 1); }
     else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !q) { e.preventDefault(); moveTab(e.key === "ArrowRight" ? 1 : -1); }
+    else if (e.altKey && canFilter && (e.code === "KeyS" || e.code === "KeyM")) { e.preventDefault(); setMenu((m) => { const w = e.code === "KeyS" ? "sector" : "cap"; return m === w ? null : w; }); }
     else if (e.key === "Escape") { e.preventDefault(); if (q) setQ(""); else onClose(); }
   };
 
   if (!open) return null;
   const n = items.length;
-  const status = tab === "global" ? "Global markets are coming soon." : more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} companies · keep scrolling` : !q ? "" : waiting || busy ? "Searching…" : n ? `${n} result${n === 1 ? "" : "s"}` : "No matches";
+  const phrase = filterPhrase(filter), noun = filterNoun(filter, total), asked = q.trim() ? ` matching “${q.trim()}”` : "";
+  const filteredList = fOn && (tab === "stocks" || !q.trim());
+  const status = fOn && filteredList && tab !== "global" && total > 0 && !waiting ? (more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} ${noun}${asked} · keep scrolling` : `Showing all ${total.toLocaleString("en-IN")} ${noun}${asked}`)
+    : fOn && !filteredList && n && !waiting && !busy ? `${n} result${n === 1 ? "" : "s"} · stocks limited to ${phrase}`
+    : tab === "global" ? "Global markets are coming soon." : more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} companies · keep scrolling` : !q ? "" : waiting || busy ? "Searching…" : n ? `${n} result${n === 1 ? "" : "s"}` : "No matches";
   let i = -1;
   return (
     <>
@@ -207,6 +230,19 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             ))}
           </div>
+        {canFilter && (
+          <div className="gs-fl" role="group" aria-label="Narrow the stocks">
+            <FilterMenu name="Sector" clearLabel="Clear sector" value={filter.sector} open={menu === "sector"} onOpen={(v) => setMenu(v ? "sector" : null)} keyHint="Alt+S"
+              options={sectorOpts.map((o) => ({ id: o.name, label: o.name, n: o.n }))}
+              note={unknown.sector ? `${unknown.sector.toLocaleString("en-IN")} companies with no sector on file are left out while a sector is chosen.` : undefined}
+              onPick={(v) => { setFilter((f) => ({ ...f, sector: v })); input.current?.focus(); }} />
+            <FilterMenu name="Market cap" clearLabel="Clear market cap" value={filter.cap} open={menu === "cap"} onOpen={(v) => setMenu(v ? "cap" : null)} keyHint="Alt+M"
+              options={capOpts.map((o) => ({ id: o.id, label: o.label, hint: o.range, n: o.n }))}
+              note={unknown.cap ? `${unknown.cap.toLocaleString("en-IN")} companies with no market value on file are left out while a band is chosen.` : undefined}
+              onPick={(v) => { setFilter((f) => ({ ...f, cap: v as StockFilter["cap"] })); input.current?.focus(); }} />
+            {filterOn(filter) && <button type="button" className="gs-fx" onClick={() => { setFilter(NO_FILTER); input.current?.focus(); }}>Clear filters</button>}
+          </div>
+        )}
         </div>
         <div className="gs-body">
           <div className="gs-list" id="gsList" role="listbox" aria-label="Results" ref={list} onScroll={grow}>
@@ -214,7 +250,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             {tab !== "global" && idx.isLoading && <Skeleton />}
             {tab !== "global" && idx.isError && <p className="gs-empty">Search is unavailable right now. Please try again in a moment.</p>}
             {tab !== "global" && !idx.isLoading && !n && (
-              q ? (waiting || busy ? <Skeleton rows={3} /> : <NoMatch q={q} tab={tab} onTab={setTab} />)
+              fOn && !(q && (waiting || busy)) ? <FilterEmpty q={q.trim()} noun={filterNoun(filter, 2)} filter={filter} onFilter={(f) => { setFilter(f); input.current?.focus(); }} />
+                : q ? (waiting || busy ? <Skeleton rows={3} /> : <NoMatch q={q} tab={tab} onTab={setTab} />)
                 : tab === "mf" || tab === "etf" || tab === "news" ? <Skeleton rows={4} /> : <p className="gs-empty">Type a company, fund or ETF name.</p>
             )}
             {sections.map((sec) => (
@@ -308,6 +345,21 @@ function NoMatch({ q, tab, onTab }: { q: string; tab: Tab; onTab: (t: Tab) => vo
       <b>No {tab === "all" ? "results" : TABS.find((t) => t.key === tab)?.label.toLowerCase()} for “{q}”</b>
       <p>Check the spelling, or try a ticker such as RELIANCE or a fund house such as SBI.</p>
       {tab !== "all" && <button type="button" onClick={() => onTab("all")}>Search everything instead</button>}
+    </div>
+  );
+}
+
+/** Nothing passes the sector / market-cap choice (with or without a typed query): say so plainly and offer the way out. */
+function FilterEmpty({ q, noun, filter, onFilter }: { q: string; noun: string; filter: StockFilter; onFilter: (f: StockFilter) => void }) {
+  return (
+    <div className="gs-none-box" role="status">
+      <b>{q ? `No ${noun} match “${q}”` : `No ${noun} in the list`}</b>
+      <p>{q ? "Check the spelling, or widen the filters. " : ""}Companies with no sector or no market value on file are left out while that filter is chosen.</p>
+      <span className="gs-none-acts">
+        {filter.sector && filter.cap && <button type="button" onClick={() => onFilter({ ...filter, sector: null })}>Clear sector</button>}
+        {filter.sector && filter.cap && <button type="button" onClick={() => onFilter({ ...filter, cap: null })}>Clear market cap</button>}
+        <button type="button" onClick={() => onFilter(NO_FILTER)}>Clear {filter.sector && filter.cap ? "both" : "filter"}</button>
+      </span>
     </div>
   );
 }

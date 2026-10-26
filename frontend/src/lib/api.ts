@@ -79,6 +79,9 @@ export type Intraday = {
   series?: { t: string[]; o: number[]; h: number[]; l: number[]; c: number[]; v: (number | null)[] };
 };
 export type SearchRow = [symbol: string, name: string, bse: string | null, ready: number, nse?: string];
+/** /api/stocks/search-index. `sectors` is a lookup table; `sec[i]` is the row's index into it (-1: sector not known) and `mc[i]` its market value in
+ *  rupees crore, rounded up (0: not known). Both lists run parallel to `rows`; an older server sends neither. */
+export type SearchIndex = { fields: string[]; rows: SearchRow[]; sectors?: string[]; sec?: number[]; mc?: number[] };
 
 /** API origin. Empty in development (Vite proxies /api); in production set VITE_API_BASE=https://api.finlitventures.com. */
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") || "";
@@ -163,7 +166,7 @@ export const useIntraday = (s: string, range: IntradayRange, enabled = true) =>
   });
 
 export const useSearchIndex = (enabled: boolean) =>
-  useQuery<{ fields: string[]; rows: SearchRow[] }, ApiError>({
+  useQuery<SearchIndex, ApiError>({
     queryKey: ["search-index"], queryFn: () => apiGet("/api/stocks/search-index"), enabled, staleTime: 3_600_000, gcTime: Infinity,
   });
 /** Price, day change, score (or "locked" below Silver) and logo per company, joined to the name list by symbol. Private: varies by plan. */
