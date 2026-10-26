@@ -107,7 +107,7 @@ type TechnicalAssessment = {
   modelVersion: string;            // e.g. "st-lt-14.3"
   status: "ready" | "incomplete";  // ready only when both scores exist
   asOf: string | null;             // date of the latest daily close used (YYYY-MM-DD)
-  provider: string;                // "FinEdge" | "Upstox" | "Unavailable"
+  provider: string;                // "Dhan" | "FinEdge" | "Upstox" | "Unavailable"
   dailyBars: number; usableDailyBars: number; fresh: boolean;   // fresh: latest close is at most 10 days old
   shortTerm: Part; longTerm: Part;
   verdict: { label: string; tone: "positive" | "caution" | "negative" | "muted" };   // the model's own wording, e.g. "ACCUMULATE ON DIPS", "Unavailable"

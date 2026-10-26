@@ -6,9 +6,9 @@ Every file tracked in the upstream repository (`git ls-files` at upstream HEAD *
 
 | Status | Files | Meaning |
 | --- | ---: | --- |
-| `merged-identical` | 73 | a byte-identical copy exists in FinLit (checked with `cmp`) |
-| `merged-3way` | 6 | merged with FinLit's own changes; every upstream and every FinLit line proven present (section 2) |
-| `ported` | 17 | rewritten for the FinLit TypeScript site; being written now (planned path given) |
+| `merged-identical` | 68 | a byte-identical copy exists in FinLit (checked with `cmp`) |
+| `merged-3way` | 11 | merged with FinLit's own changes. Six (section 2): every upstream and every FinLit line proven present. Five premium files (premium_data, premium_completeness, premium_service, premium_benchmarks, premium_provider): FinLit additions on top of the verbatim import, listed under "Deliberate deviations" in section 2 (a few upstream lines are changed, not only added) |
+| `ported` | 17 | rewritten for the FinLit TypeScript site; rewritten for the FinLit TypeScript site (the FinLit file is given; deliberate deviations are marked) |
 | `equivalent-exists` | 67 | FinLit has its own implementation; the note says what (if anything) the upstream version has that FinLit lacks |
 | `not-merged` | 113 | deliberately not merged, with the reason |
 | **total** | **276** | |
@@ -23,7 +23,7 @@ Per directory:
 | `.emergent/markers` |  |  |  |  | 2 | 2 |
 | `.github/workflows` |  |  |  | 1 |  | 1 |
 | `assets/team` |  |  |  | 1 | 2 | 3 |
-| `backend` | 28 | 2 |  |  |  | 30 |
+| `backend` | 23 | 7 |  |  |  | 30 |
 | `backend/content_uploads` | 8 |  |  |  |  | 8 |
 | `backend/portfolio_data` | 1 |  |  |  |  | 1 |
 | `backend/portfolio_data/sources` |  |  |  |  | 2 | 2 |
@@ -148,16 +148,16 @@ For the user to decide. None of these is needed by FinLit Prism.
 | `backend/generate_portfolio_data.py` | `merged-identical` | `site-api/backend/generate_portfolio_data.py` | Unchanged on both sides since 67aab4f (FinLit copy already identical). |
 | `backend/market_data.py` | `merged-identical` | `site-api/backend/market_data.py` | Unchanged on both sides since 67aab4f (FinLit copy already identical). |
 | `backend/portfolio_report.py` | `merged-identical` | `site-api/backend/portfolio_report.py` | Unchanged on both sides since 67aab4f (FinLit copy already identical). |
-| `backend/premium_benchmarks.py` | `merged-identical` | `site-api/backend/premium_benchmarks.py` | Premium model: peer observation collection/cache and reported-first report benchmarks (split out of premium_data.py). New upstream since b112ba1, added verbatim. |
+| `backend/premium_benchmarks.py` | `merged-3way` | `site-api/backend/premium_benchmarks.py` | Premium model: peer observation collection/cache and reported-first report benchmarks (split out of premium_data.py). New upstream since b112ba1, added verbatim. NOT byte-identical: FinLit differences: an `ObservationCache` (peer observations kept across reports, thread-safe, one lookup shared by concurrent callers), `peer_benchmark` and `resolve_report_benchmarks` take `observations` (and a time budget `PEER_BUDGET_SECONDS`, default 45 s), a `NO_OBSERVATION` marker, and the provider-slot constant is imported from `premium_provider`. Same medians as upstream; fewer provider calls. |
 | `backend/premium_classification.py` | `merged-identical` | `site-api/backend/premium_classification.py` | Premium model: profile extraction and deterministic model-group classification (split out of premium_data.py). New upstream since b112ba1, added verbatim. |
-| `backend/premium_completeness.py` | `merged-identical` | `site-api/backend/premium_completeness.py` | Premium model: input completeness and history checks. New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
-| `backend/premium_data.py` | `merged-identical` | `site-api/backend/premium_data.py` | Premium model: model input loader (same loader as Stock Fundamentals). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
-| `backend/premium_engine.py` | `merged-identical` | `site-api/backend/premium_engine.py` | Premium model: deterministic scoring engine (3.6.9). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
+| `backend/premium_completeness.py` | `merged-3way` | `site-api/backend/premium_completeness.py` | Premium model: input completeness and history checks. New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); NOT byte-identical any more. FinLit difference: for the BIGGEST_FALL and TRADING_VALUE gaps the note says how many trading sessions the provider returned and how many of the latest 250 / 60 have no valid close / volume (reads the new `risk_calculation` fields). No upstream line is removed. |
+| `backend/premium_data.py` | `merged-3way` | `site-api/backend/premium_data.py` | Premium model: model input loader (same loader as Stock Fundamentals). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); NOT byte-identical any more. FinLit differences from the verbatim 6ed9d2a import: (1) the daily-price window skips all-zero rows (a provider pads a holiday or missed feed with an all-zero row; it is not a session), (2) `risk_calculation` also carries `sessions`, `invalidCloseLast250` and `missingVolumeLast60`, used by the completeness note below. |
+| `backend/premium_engine.py` | `merged-identical` | `site-api/backend/premium_engine.py` | Premium model: deterministic scoring engine (3.6.10). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
 | `backend/premium_model_config.py` | `merged-identical` | `site-api/backend/premium_model_config.py` | Premium model: weights, bands and thresholds. New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
 | `backend/premium_pdf.py` | `merged-identical` | `site-api/backend/premium_pdf.py` | Premium model: ReportLab PDF renderer. New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
 | `backend/premium_presentation.py` | `merged-identical` | `site-api/backend/premium_presentation.py` | Premium model: reader-facing review (pros/cons, notes). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
-| `backend/premium_provider.py` | `merged-identical` | `site-api/backend/premium_provider.py` | Premium model: shared bounded provider/retry budget and the standalone FinEdge input loader (split out of premium_data.py). New upstream since b112ba1, added verbatim. |
-| `backend/premium_service.py` | `merged-identical` | `site-api/backend/premium_service.py` | Premium model: report generation service (background / inline delivery). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); still byte-identical (`cmp`). |
+| `backend/premium_provider.py` | `merged-3way` | `site-api/backend/premium_provider.py` | Premium model: shared bounded provider/retry budget and the standalone FinEdge input loader (split out of premium_data.py). New upstream since b112ba1, added verbatim. NOT byte-identical: FinLit difference: the number of provider calls allowed at once is `PREMIUM_PROVIDER_SLOTS` (1 to 24, default 16) instead of upstream's fixed 2, exported as `PROVIDER_SLOT_COUNT`. |
+| `backend/premium_service.py` | `merged-3way` | `site-api/backend/premium_service.py` | Premium model: report generation service (background / inline delivery). New upstream since 67aab4f, added verbatim. Updated 26 Oct to upstream 6ed9d2a (engine 3.6.10 / ST-LT); NOT byte-identical any more. FinLit difference: `generate_report(..., observations=None)` takes peer observations kept by earlier reports and passes them to `resolve_report_benchmarks` (two changed lines: the signature and that call). |
 | `backend/premium_snapshot.py` | `merged-identical` | `site-api/backend/premium_snapshot.py` | Premium model: signed snapshot receipt (HS256, 30 min). New upstream since 67aab4f, added verbatim. |
 | `backend/premium_technical.py` | `merged-identical` | `site-api/backend/premium_technical.py` | ST/LT technical assessment: candle validation, series choice, signal aggregation, ratings/verdict, report contract. New upstream since b112ba1, added verbatim. |
 | `backend/premium_technical_sources.py` | `merged-identical` | `site-api/backend/premium_technical_sources.py` | ST/LT technical assessment: FinEdge index history, Upstox fallback, session-date checks, 15-minute cache. New upstream since b112ba1, added verbatim. |
@@ -291,7 +291,7 @@ For the user to decide. None of these is needed by FinLit Prism.
 | Upstream path | Status | FinLit location | Note |
 | --- | --- | --- | --- |
 | `frontend/src/App.css` | `equivalent-exists` | `frontend/src/styles/*.css` | App styles for the CRA site; FinLit has its own style sheets. |
-| `frontend/src/App.js` | `equivalent-exists` | `frontend/src/App.tsx` | Router. Every upstream route has a FinLit page except `/financial-product` (a "Coming soon" placeholder) and the admin sub-routes noted below. The two routes added since 67aab4f (`/blog/admin/premium-reports[/:reportId]`) become `/prism` and `/prism/:symbol` (to be ported: App.tsx routes). |
+| `frontend/src/App.js` | `equivalent-exists` | `frontend/src/App.tsx` | Router. Every upstream route has a FinLit page except `/financial-product` (a "Coming soon" placeholder) and the admin sub-routes noted below. The two routes added since 67aab4f (`/blog/admin/premium-reports[/:reportId]`) become `/prism` and `/prism/:symbol` (done: routes in App.tsx). |
 | `frontend/src/config.js` | `equivalent-exists` | frontend/src/content/site.ts (COMPANY) | Contact e-mail and LinkedIn URL. |
 | `frontend/src/index.css` | `equivalent-exists` | frontend/src/styles/theme.css, site.css | Global CSS/theme tokens. |
 | `frontend/src/index.js` | `equivalent-exists` | `frontend/src/main.tsx` | App entry. |
@@ -315,7 +315,7 @@ For the user to decide. None of these is needed by FinLit Prism.
 | Upstream path | Status | FinLit location | Note |
 | --- | --- | --- | --- |
 | `frontend/src/components/CommodityExplorer.jsx` | `equivalent-exists` | frontend/src/pages/Markets.tsx (Commodities tab) | Same FinEdge monthly-index / core-infra catalogue and history via `/api/premium/commodities*` (research API proxy). FinLit also has a public commodities page (pages/Commodities.tsx). Nothing upstream-only. |
-| `frontend/src/components/CompanyBrowser.jsx` | `equivalent-exists` | frontend/src/components/search/SearchOverlay.tsx, pages/Screener.tsx | FinLit finds companies by search/screener. Upstream-only: browsing by FinEdge sector/industry list (uses `/api/stocks/admin/fundamentals/browse` + companyClassifications.json). The research API already proxies it (`GET /api/premium/fundamentals/browse`) but no FinLit page calls it. Its "Select" mode is used by the premium page (to be ported: frontend/src/pages/Prism.tsx company picker). |
+| `frontend/src/components/CompanyBrowser.jsx` | `equivalent-exists` | frontend/src/components/search/SearchOverlay.tsx, pages/Screener.tsx | FinLit finds companies by search/screener. Upstream-only: browsing by FinEdge sector/industry list (uses `/api/stocks/admin/fundamentals/browse` + companyClassifications.json). The research API already proxies it (`GET /api/premium/fundamentals/browse`) but no FinLit page calls it. Its "Select" mode is used by the premium page (done: `Picker` in frontend/src/components/prism/pzr/Landing.tsx). |
 | `frontend/src/components/Contact.jsx` | `equivalent-exists` | frontend/src/pages/Contact.tsx, pages/Home.tsx (closing call to action) | Contact form posting to `/api/contact`. Upstream-only: the optional "investment size" field (`investment_size`, accepted by the site backend) and the form on the home page itself. |
 | `frontend/src/components/DetailedShareholding.jsx` | `equivalent-exists` | frontend/src/pages/Fundamentals.tsx (Shareholders tab, "Named shareholders" Tree) | Named shareholder tree from `shareholdingDetails`. |
 | `frontend/src/components/Footer.jsx` | `equivalent-exists` | frontend/src/components/Layout.tsx (footer) | Footer with contact e-mail/LinkedIn. |
@@ -325,11 +325,11 @@ For the user to decide. None of these is needed by FinLit Prism.
 | `frontend/src/components/Navbar.jsx` | `equivalent-exists` | frontend/src/components/Layout.tsx, lib/nav.ts | Navigation. |
 | `frontend/src/components/Performance.jsx` | `equivalent-exists` | `frontend/src/pages/Portfolio.tsx` | Portfolio KPIs and charts. Upstream also shows them as a section of the home page; FinLit shows them on /portfolio only. |
 | `frontend/src/components/Philosophy.jsx` | `equivalent-exists` | frontend/src/content/site.ts (PHILOSOPHY), pages/About.tsx (principles) | The philosophy chips are in content/site.ts but not rendered on FinLit's home page (FinLit home was redesigned). |
-| `frontend/src/components/PremiumFinancialHistory.jsx` | `ported` | to be ported: frontend/src/pages/Prism*.tsx (financial history section) | Premium report: quarterly/annual results and key ratios from `report.calculationTrace`. NOTE: CONTRACT.md strips `calculationTrace` from `PrismReport` and only adds `trends` (revenue, profit, eps), so the port must carry these rows another way (e.g. a `financialHistory` field) or this section is lost. Changed again upstream in 6ed9d2a (page split into hook + detail component). |
-| `frontend/src/components/PremiumInputCompleteness.jsx` | `ported` | to be ported: frontend/src/pages/Prism*.tsx (input completeness panel) | Premium report: missing factors / limited histories from `review.completeness` (premium_completeness.py). |
-| `frontend/src/components/PremiumReportDetail.jsx` | `ported` | to be ported: frontend/src/pages/PrismReport.tsx | New upstream (6ed9d2a): the completed-report rendering extracted from PremiumReportPage.jsx. |
-| `frontend/src/components/PremiumTechnicalAssessment.jsx` | `ported` | to be ported: frontend/src/pages/PrismReport.tsx (technicalAssessment section) | New upstream (6ed9d2a): ST/LT score cards, verdict, signals and missing inputs from `technicalAssessment` (see CONTRACT.md, section technicalAssessment; the research API strips weights and hashes; labels are relabelled by the display layer). |
-| `frontend/src/components/PremiumTechnicalAssessment.test.jsx` | `ported` | to be ported: frontend/src/pages/Prism*.test.tsx | New upstream (6ed9d2a): test of the technical assessment card. |
+| `frontend/src/components/PremiumFinancialHistory.jsx` | `ported` | frontend/src/components/prism/pzr/History.tsx (`HistoryTables`, charts) fed by `financialHistory` from `reader_view` in backend/finlit/prism.py | Premium report: quarterly/annual results and key ratios from `report.calculationTrace`. NOTE: CONTRACT.md strips `calculationTrace` from `PrismReport` and only adds `trends` (revenue, profit, eps), so the port must carry these rows another way (e.g. a `financialHistory` field) or this section is lost. Changed again upstream in 6ed9d2a (page split into hook + detail component). |
+| `frontend/src/components/PremiumInputCompleteness.jsx` | `ported` | frontend/src/components/prism/pzr/Health.tsx | Premium report: missing factors / limited histories from `review.completeness` (premium_completeness.py). |
+| `frontend/src/components/PremiumReportDetail.jsx` | `ported` | frontend/src/components/prism/ReportView.tsx | New upstream (6ed9d2a): the completed-report rendering extracted from PremiumReportPage.jsx. |
+| `frontend/src/components/PremiumTechnicalAssessment.jsx` | `ported` | frontend/src/components/prism/pzr/Technical.tsx, frontend/src/stock/PrismTechRow.tsx, frontend/src/lib/prismTechnical.ts | New upstream (6ed9d2a): ST/LT score cards, verdict, signals and missing inputs from `technicalAssessment` (see CONTRACT.md, section technicalAssessment; the research API strips weights and hashes; labels are relabelled by the display layer). |
+| `frontend/src/components/PremiumTechnicalAssessment.test.jsx` | `ported` | frontend/src/lib/prismTechnical.test.tsx | New upstream (6ed9d2a): test of the technical assessment card. |
 | `frontend/src/components/Process.jsx` | `equivalent-exists` | frontend/src/content/site.ts (PROCESS) | The 7-step investment process is in content/site.ts but not rendered anywhere in FinLit. |
 | `frontend/src/components/Reveal.jsx` | `equivalent-exists` | `frontend/src/components/Reveal.tsx` | Scroll reveal. |
 | `frontend/src/components/Services.jsx` | `equivalent-exists` | frontend/src/pages/Home.tsx, pages/Services.tsx, content/site.ts (SERVICES) | Services summary. |
@@ -438,24 +438,24 @@ For the user to decide. None of these is needed by FinLit Prism.
 | --- | --- | --- | --- |
 | `frontend/src/hooks/use-toast.js` | `equivalent-exists` | frontend/src/lib/ui.tsx (toast) | shadcn toast hook; FinLit has its own toast. |
 | `frontend/src/hooks/usePortfolioData.js` | `equivalent-exists` | frontend/src/pages/Portfolio.tsx (useQuery getPortfolio) | Portfolio fetch. Upstream merges with the bundled fallback; FinLit does not. |
-| `frontend/src/hooks/usePremiumReport.js` | `ported` | to be ported: frontend/src/lib/prism.ts | New upstream (6ed9d2a): the report workflow hook extracted from the page (generation, restore, download). |
-| `frontend/src/hooks/usePremiumReport.test.jsx` | `ported` | to be ported: frontend/src/lib/prism.test.ts | New upstream (6ed9d2a): tests of that hook. |
+| `frontend/src/hooks/usePremiumReport.js` | `ported` | frontend/src/lib/prism.ts (`usePrismCalculation`, `useLatestPrism`) | New upstream (6ed9d2a): the report workflow hook extracted from the page (generation, restore, download). |
+| `frontend/src/hooks/usePremiumReport.test.jsx` | `ported` | frontend/src/lib/prism.test.ts | New upstream (6ed9d2a): tests of that hook. |
 
 ### `frontend/src/lib`
 
 | Upstream path | Status | FinLit location | Note |
 | --- | --- | --- | --- |
-| `frontend/src/lib/cms.js` | `equivalent-exists` | frontend/src/pages/Admin.tsx (adminFetch), lib/siteApi.ts | CMS token + requests. The change since 67aab4f (`responseType: "blob"` for the premium PDF) is replaced by the research API PDF route (to be ported: frontend/src/lib/prism.ts). |
-| `frontend/src/lib/currentPremiumReport.js` | `ported` | to be ported: frontend/src/lib/prism.ts | Keeps the signed snapshot of the current report in sessionStorage for the PDF. By CONTRACT.md the snapshot stays server-side (Redis `prism:snap:{id}`, 30 min) and the browser only gets `pdfAvailableUntil`; the expiry logic moves there. |
-| `frontend/src/lib/currentPremiumReport.test.js` | `ported` | to be ported: frontend/src/lib/prism.test.ts | Tests snapshot expiry / reuse; to be re-expressed against `pdfAvailableUntil` and the 410 "expired" answer. |
+| `frontend/src/lib/cms.js` | `equivalent-exists` | frontend/src/pages/Admin.tsx (adminFetch), lib/siteApi.ts | CMS token + requests. The change since 67aab4f (`responseType: "blob"` for the premium PDF) is replaced by the research API PDF route (done: `downloadPrismPdf` in frontend/src/lib/prism.ts). |
+| `frontend/src/lib/currentPremiumReport.js` | `ported` | frontend/src/lib/prism.ts (`pdfOpen`) | DELIBERATE DEVIATION: not ported as written. Keeps the signed snapshot of the current report in sessionStorage for the PDF. By CONTRACT.md the snapshot stays server-side (Redis `prism:snap:{id}`, 30 min) and the browser only gets `pdfAvailableUntil`; the expiry logic is `pdfOpen(pdfAvailableUntil)` in lib/prism.ts; the signed snapshot is never in the browser. |
+| `frontend/src/lib/currentPremiumReport.test.js` | `ported` | frontend/src/lib/prism.test.ts | Tests snapshot expiry / reuse; re-expressed in lib/prism.test.ts against `pdfAvailableUntil` and the 410 "expired" answer. |
 | `frontend/src/lib/fundamentalGrowth.js` | `equivalent-exists` | frontend/src/stock/Sections*.tsx (YoY growth by line) | Growth maths for IncomeGrowthView (YoY/QoQ with missing-value reasons). See IncomeGrowthView. |
 | `frontend/src/lib/fundamentalGrowth.test.js` | `equivalent-exists` | `frontend/src/lib/qresults.test.ts` | Tests of the growth maths; FinLit tests its own quarter maths. |
-| `frontend/src/lib/premiumReportDownload.js` | `ported` | to be ported: frontend/src/lib/prism.ts | New upstream (6ed9d2a): signed-snapshot PDF download request; FinLit downloads through `/api/prism/reports/{id}/pdf`. |
-| `frontend/src/lib/premiumReportDownload.test.js` | `ported` | to be ported: frontend/src/lib/prism.test.ts | New upstream (6ed9d2a): tests of that download helper. |
-| `frontend/src/lib/premiumReportPolling.js` | `ported` | to be ported: frontend/src/lib/prism.ts / backend/finlit/prism.py | Polls `state: generating` with back-off on 408/429/5xx. CONTRACT.md uses inline delivery (the research API waits), so the retry/back-off behaviour moves to the research API call and the page's 429/502/503 handling. |
-| `frontend/src/lib/premiumReportPolling.test.js` | `ported` | to be ported: frontend/src/lib/prism.test.ts | Tests of the polling/back-off; to be re-expressed for the inline flow. |
-| `frontend/src/lib/premiumReportReview.js` | `ported` | to be ported: frontend/src/lib/prism.ts | Builds pros/cons from metrics for older reports without `review`. Server always returns `review` (premium_presentation.build_report_review); keep the fallback for stored rows. |
-| `frontend/src/lib/premiumReportReview.test.js` | `ported` | to be ported: frontend/src/lib/prism.test.ts | Test of the review fallback. |
+| `frontend/src/lib/premiumReportDownload.js` | `ported` | frontend/src/lib/prism.ts (`downloadPrismPdf`) | DELIBERATE DEVIATION: New upstream (6ed9d2a): signed-snapshot PDF download request; FinLit downloads through `/api/prism/reports/{id}/pdf`. |
+| `frontend/src/lib/premiumReportDownload.test.js` | `ported` | frontend/src/lib/prism.test.ts | New upstream (6ed9d2a): tests of that download helper. |
+| `frontend/src/lib/premiumReportPolling.js` | `ported` | frontend/src/lib/prism.ts (`backoff`, `transient`, background-job polling) / backend/finlit/prism.py | DELIBERATE DEVIATION: Polls `state: generating` with back-off on 408/429/5xx. CONTRACT.md uses inline delivery (the research API waits), so the retry/back-off behaviour moves to the research API call and the page's 429/502/503 handling. |
+| `frontend/src/lib/premiumReportPolling.test.js` | `ported` | frontend/src/lib/prism.test.ts | Tests of the polling/back-off; re-expressed in lib/prism.test.ts (`backoff`, `transient`) for the inline and background-job flow. |
+| `frontend/src/lib/premiumReportReview.js` | `ported` | frontend/src/lib/prism.ts (`prismReview`) | Builds pros/cons from metrics for older reports without `review`. Server always returns `review` (premium_presentation.build_report_review); keep the fallback for stored rows. |
+| `frontend/src/lib/premiumReportReview.test.js` | `ported` | frontend/src/lib/prism.test.ts | Test of the review fallback. |
 | `frontend/src/lib/utils.js` | `not-merged` | - | shadcn `cn()` class-name helper (clsx + tailwind-merge). |
 
 ### `frontend/src/pages`
@@ -466,7 +466,7 @@ For the user to decide. None of these is needed by FinLit Prism.
 | `frontend/src/pages/BlogAdminEditPage.jsx` | `equivalent-exists` | `frontend/src/pages/Admin.tsx` | PARTIAL: FinLit cannot edit an existing item (only publish/unpublish/delete). See features absent. |
 | `frontend/src/pages/BlogAdminLoginPage.jsx` | `equivalent-exists` | frontend/src/pages/Admin.tsx (AdminLogin), pages/Login.tsx | FinLit: member sign-in with MFA, then CMS token; password-only CMS login is off unless `CMS_PASSWORD_LOGIN=1`. |
 | `frontend/src/pages/BlogAdminNewPage.jsx` | `equivalent-exists` | frontend/src/pages/Admin.tsx (New article) | PARTIAL: text articles only (see ContentEditor). |
-| `frontend/src/pages/BlogAdminPage.jsx` | `equivalent-exists` | frontend/src/pages/Admin.tsx, pages/Console.tsx, pages/Premium.tsx | PARTIAL. FinLit lists content, contact messages and enquiries and links the Gold dashboards. Upstream-only: content search and status/type filter; the portfolio statement upload (`/api/portfolio/admin/upload`, `/api/portfolio/admin/report`) that refreshes /portfolio. The "Premium Report" link added since 67aab4f becomes the Prism entry (to be ported: nav.ts / Premium.tsx). |
+| `frontend/src/pages/BlogAdminPage.jsx` | `equivalent-exists` | frontend/src/pages/Admin.tsx, pages/Console.tsx, pages/Premium.tsx | PARTIAL. FinLit lists content, contact messages and enquiries and links the Gold dashboards. Upstream-only: content search and status/type filter; the portfolio statement upload (`/api/portfolio/admin/upload`, `/api/portfolio/admin/report`) that refreshes /portfolio. The "Premium Report" link added since 67aab4f becomes the Prism entry (done: nav.ts / pages/Premium.tsx). |
 | `frontend/src/pages/BlogAdminPreviewPage.jsx` | `equivalent-exists` | frontend/src/pages/Blog.tsx (BlogPost, published items only) | PARTIAL: no admin preview of a draft in FinLit. |
 | `frontend/src/pages/BlogDetailPage.jsx` | `equivalent-exists` | frontend/src/pages/Blog.tsx (BlogPost) | Article / PDF / image / download. |
 | `frontend/src/pages/BlogPage.jsx` | `equivalent-exists` | frontend/src/pages/Blog.tsx (Blog) | List with type filter and search. |
@@ -475,8 +475,8 @@ For the user to decide. None of these is needed by FinLit Prism.
 | `frontend/src/pages/Home.jsx` | `equivalent-exists` | `frontend/src/pages/Home.tsx` | Home. FinLit's redesigned home does not include upstream's Performance, Process, Philosophy and Testimonial sections (content kept in content/site.ts). |
 | `frontend/src/pages/MarketsPage.jsx` | `equivalent-exists` | `frontend/src/pages/Markets.tsx` | Market Events & Index Dashboard (IPO, results, announcements, transcripts, commodities, indices, index valuation) through `/api/premium/markets/*`; Gold instead of admin-only. |
 | `frontend/src/pages/PortfolioPage.jsx` | `equivalent-exists` | `frontend/src/pages/Portfolio.tsx` | Realised P&L report. |
-| `frontend/src/pages/PremiumReportPage.jsx` | `ported` | to be ported: frontend/src/pages/Prism.tsx + PrismReport.tsx (routes /prism, /prism/:symbol) | The premium report page (generate, statement choice, score parts, completeness, data freshness, business performance, pros/cons, review notes, financial history, PDF). Not the same as FinLit's existing `pages/PremiumReport.tsx` (FinLit-score printable report). Changed again upstream in 6ed9d2a (page split into hook + detail component). |
-| `frontend/src/components/PremiumReportDetail.test.jsx` | `ported` | to be ported: frontend/src/pages/Prism*.test.tsx | Renamed upstream from `pages/PremiumReportPage.test.jsx` (6ed9d2a): rendering, NOT RATED and PDF tests now target the extracted detail component. |
+| `frontend/src/pages/PremiumReportPage.jsx` | `ported` | frontend/src/pages/Prism.tsx + frontend/src/components/prism/ReportView.tsx (routes /prism, /prism/:symbol) | The premium report page (generate, statement choice, score parts, completeness, data freshness, business performance, pros/cons, review notes, financial history, PDF). Not the same as FinLit's existing `pages/PremiumReport.tsx` (FinLit-score printable report). Changed again upstream in 6ed9d2a (page split into hook + detail component). |
+| `frontend/src/components/PremiumReportDetail.test.jsx` | `ported` | frontend/src/pages/Prism.test.tsx | Renamed upstream from `pages/PremiumReportPage.test.jsx` (6ed9d2a): rendering, NOT RATED and PDF tests now target the extracted detail component. |
 | `frontend/src/pages/ServicesPage.jsx` | `equivalent-exists` | frontend/src/pages/Services.tsx, components/Enquiry.tsx | Services + enquiry to `/api/service-enquiry`. Prices intentionally not shown in FinLit. |
 | `frontend/src/pages/StockFundamentalsAdminPage.jsx` | `equivalent-exists` | frontend/src/pages/Fundamentals.tsx (+ stock/StockPage.tsx) | PARTIAL. FinLit's Gold "Stock Fundamental Data Dashboard" has snapshot, P&L, balance sheet, cash flow, ratios, profitability ratios, revenue segments, shareholding (pattern, structure, pledge, named holders), peers and corporate actions via `/api/premium/fundamentals`; price chart, returns, insights and data quality come from the research API on the stock page. Upstream-only: Bank Asset Quality (GNPA, NNPA, CET1), Data Quality Flags (FinEdge vs fallback provider disagreements), Dev Metrics (fetch timing), sector/industry company browser, the P&L "Growth %" YoY/QoQ view (added since 67aab4f), and the Stock DNA / Valuation / Quality / Technicals key-factor panels built from FinEdge highlights. |
 | `frontend/src/pages/WhatWeDoPage.jsx` | `equivalent-exists` | frontend/src/pages/Why.tsx, content/site.ts (WHY) | Why we exist. |
@@ -629,9 +629,21 @@ lines only in merged: []  only in expected: []
 Semantic check: the 26 upstream lines only add the technical-candle and benchmark capture, two model inputs and the `ZoneInfo` import; none calls a function FinLit replaced.
 `premium_service.py` and `premium_pdf.py` (the signed snapshot now carries `technicalAssessment`; the PDF renders it without provider calls) are byte-identical to upstream.
 
+## Deliberate deviations (premium files that are NOT byte-identical to upstream 6ed9d2a)
+
+Checked against the verbatim import (commit 6f28e02) with `git diff 6f28e02 HEAD -- site-api/backend/<file>`. The other premium files (premium_engine, premium_model_config, premium_trace, premium_presentation, premium_classification, premium_pdf) have an empty diff and stay byte-identical; premium_pdf.py is deliberately untouched, and the buy/sell-word relabelling happens on a copy of the report in technical_wording.py before it is rendered.
+
+| File | How it differs |
+| --- | --- |
+| `premium_data.py` | The daily-price window skips all-zero rows (a holiday or missed feed, not a session). `risk_calculation` also carries `sessions`, `invalidCloseLast250` and `missingVolumeLast60`. |
+| `premium_completeness.py` | The BIGGEST_FALL and TRADING_VALUE gap notes say how many sessions the provider returned and how many of the latest 250 / 60 have no valid close / volume (6 added lines). |
+| `premium_service.py` | `generate_report(..., observations=None)` and the call to `resolve_report_benchmarks` pass peer observations kept by earlier reports (2 changed lines). |
+| `premium_benchmarks.py` | `ObservationCache`, `observations` and a time budget (`PEER_BUDGET_SECONDS`, 45 s) in `peer_benchmark` / `resolve_report_benchmarks`, the `NO_OBSERVATION` marker, and the provider-slot import (70 lines added, 9 changed). |
+| `premium_provider.py` | Provider calls allowed at once come from `PREMIUM_PROVIDER_SLOTS` (1 to 24, default 16) instead of a fixed 2; `PROVIDER_SLOT_COUNT` is exported. |
+
 ## 3. Byte identity
 
-`cmp` of every `merged-identical` pair (60 files):
+`cmp` of every `merged-identical` pair (68 files):
 
 ```
 OK   backend/benchmark_resolution.py == site-api/backend/benchmark_resolution.py
@@ -650,13 +662,10 @@ OK   backend/generate_portfolio_data.py == site-api/backend/generate_portfolio_d
 OK   backend/market_data.py == site-api/backend/market_data.py
 OK   backend/portfolio_data/current.json == site-api/backend/portfolio_data/current.json
 OK   backend/portfolio_report.py == site-api/backend/portfolio_report.py
-OK   backend/premium_completeness.py == site-api/backend/premium_completeness.py
-OK   backend/premium_data.py == site-api/backend/premium_data.py
 OK   backend/premium_engine.py == site-api/backend/premium_engine.py
 OK   backend/premium_model_config.py == site-api/backend/premium_model_config.py
 OK   backend/premium_pdf.py == site-api/backend/premium_pdf.py
 OK   backend/premium_presentation.py == site-api/backend/premium_presentation.py
-OK   backend/premium_service.py == site-api/backend/premium_service.py
 OK   backend/premium_snapshot.py == site-api/backend/premium_snapshot.py
 OK   backend/premium_trace.py == site-api/backend/premium_trace.py
 OK   backend/pytest.ini == site-api/backend/pytest.ini
@@ -705,16 +714,11 @@ cmp identical: 60  differing: 0
 OK   backend/benchmark_resolution.py == site-api/backend/benchmark_resolution.py
 OK   backend/financial_records.py == site-api/backend/financial_records.py
 OK   backend/fundamental_resolution.py == site-api/backend/fundamental_resolution.py
-OK   backend/premium_benchmarks.py == site-api/backend/premium_benchmarks.py
 OK   backend/premium_classification.py == site-api/backend/premium_classification.py
-OK   backend/premium_completeness.py == site-api/backend/premium_completeness.py
-OK   backend/premium_data.py == site-api/backend/premium_data.py
 OK   backend/premium_engine.py == site-api/backend/premium_engine.py
 OK   backend/premium_model_config.py == site-api/backend/premium_model_config.py
 OK   backend/premium_pdf.py == site-api/backend/premium_pdf.py
 OK   backend/premium_presentation.py == site-api/backend/premium_presentation.py
-OK   backend/premium_provider.py == site-api/backend/premium_provider.py
-OK   backend/premium_service.py == site-api/backend/premium_service.py
 OK   backend/premium_technical.py == site-api/backend/premium_technical.py
 OK   backend/premium_technical_sources.py == site-api/backend/premium_technical_sources.py
 OK   backend/premium_trace.py == site-api/backend/premium_trace.py
