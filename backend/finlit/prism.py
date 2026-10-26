@@ -66,6 +66,12 @@ SLOT_WAIT = 60.0                   # how long a request waits for a free calcula
 # Engineering details of the signed snapshot that the browser never receives.
 INTERNAL = ("calculationTrace", "inputs", "inputHash", "snapshotReceipt", "snapshotExpiresAt")
 HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace the report's financial history shows
+# What readers may see of snapshot["technicalAssessment"] (docs/premium-st-lt-model.md, "Report contract"). Left out on purpose: inputHash,
+# sourceCodeSha256, each factor's internal weight; the model says weights and implementation hashes are not shown to report readers.
+TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh")
+TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped")
+TECH_FACTOR = ("key", "label", "signal", "status", "detail")
+TECH_SOURCE = ("provider", "asOf", "bars")
 
 CALM = f"{PRISM_NAME} could not finish this calculation just now. Please try again in a few minutes."
 NOT_CONNECTED = f"{PRISM_NAME} is not connected right now. Please try again later."
@@ -105,12 +111,56 @@ def subject(ctx: Ctx) -> str:
     return f"prism:{ctx.user_id}" if ctx.authed else "prism:visitor"
 
 
+def _plain(value: Any) -> bool:
+    return value is None or isinstance(value, (str, int, float, bool))
+
+
+def _pick(source: Any, keys: Tuple[str, ...]) -> Dict[str, Any]:
+    return {k: source[k] for k in keys if isinstance(source, dict) and k in source}
+
+
+def _horizon(part: Any) -> Dict[str, Any]:
+    """One horizon (shortTerm / longTerm) of the technical assessment; each factor loses its internal model `weight`."""
+    out = _pick(part, TECH_HORIZON)
+    out["factors"] = [_pick(f, TECH_FACTOR) for f in (part.get("factors") if isinstance(part, dict) else None) or [] if isinstance(f, dict)]
+    return out
+
+
+def technical_view(technical: Any) -> Optional[Dict[str, Any]]:
+    """The ST/LT `technicalAssessment` as readers may see it, or None when the snapshot has none (older snapshots) or it is not an object.
+    It is an allow-list: `inputHash`, `sourceCodeSha256`, factor weights and anything that is not a plain value (a raw candle or index
+    series, were one ever added) are not passed on. Scores, ratings and verdict labels are copied exactly as the model produced them."""
+    if not isinstance(technical, dict):
+        return None
+    out = _pick(technical, TECH_TOP)
+    for key in ("shortTerm", "longTerm"):
+        if key in technical:
+            out[key] = _horizon(technical[key])
+    if isinstance(technical.get("verdict"), dict):
+        out["verdict"] = _pick(technical["verdict"], ("label", "tone"))
+    if isinstance(technical.get("notes"), list):
+        out["notes"] = [n for n in technical["notes"] if isinstance(n, str)]
+    if isinstance(technical.get("observations"), dict):
+        out["observations"] = {k: v for k, v in technical["observations"].items()
+                               if _plain(v) or (isinstance(v, list) and len(v) <= 10 and all(isinstance(i, str) for i in v))}
+    if isinstance(technical.get("benchmarkSources"), dict):
+        out["benchmarkSources"] = {str(k): _pick(v, TECH_SOURCE) for k, v in technical["benchmarkSources"].items() if isinstance(v, dict)}
+    if isinstance(technical.get("options"), dict):
+        out["options"] = {k: v for k, v in technical["options"].items() if isinstance(v, bool)}
+    return out
+
+
 def reader_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     """The snapshot without its engineering details, plus `financialHistory`: the three reader-safe tables of the calculation trace
-    (quarterly and annual rows, and the key-ratio list), copied as they are. Nothing else of the trace (equations, hashes) is passed on."""
+    (quarterly and annual rows, and the key-ratio list), copied as they are. Nothing else of the trace (equations, hashes) is passed on.
+    `technicalAssessment` (engine 3.6.10 and later) is passed on through `technical_view`; snapshots without it simply have no such key."""
     trace = snapshot.get("calculationTrace") or {}
     history = {key: trace.get(key) or [] for key in HISTORY}
-    return {**{k: v for k, v in snapshot.items() if k not in INTERNAL}, "financialHistory": history}
+    view = {**{k: v for k, v in snapshot.items() if k not in INTERNAL and k != "technicalAssessment"}, "financialHistory": history}
+    technical = technical_view(snapshot.get("technicalAssessment"))
+    if technical is not None:
+        view["technicalAssessment"] = technical
+    return view
 
 
 def target(symbol: Any, statement: Any) -> Optional[Tuple[str, str]]:

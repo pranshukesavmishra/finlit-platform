@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from typing import Literal
 import uuid
 from datetime import date, datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from time import monotonic, time, sleep
 from urllib.parse import quote, urlparse
 import asyncio
@@ -643,6 +644,7 @@ def _premium_dashboard_inputs(symbol, statement_type, now):
         "asset_quality": {"financials": quarterly.get("assetQualityRows", [])},
         "asset_quality_basis": quarterly.get("assetQualityBasis"),
         "benchmarkObservations": annual.get("benchmarkObservations", []),
+        "leverage": annual.get("leverage", {}), "secondaryLeverage": annual.get("secondaryLeverage"),
         "quote": {symbol: {"current_price": quote_data.get("price"), "tradetime": quote_data.get("timestamp"),
                             "market_cap": quote_data.get("marketCap"), "shares": quote_data.get("shares")}}}
     resolved_profile = yearly.get("profile", {})
@@ -668,6 +670,25 @@ def _premium_dashboard_inputs(symbol, statement_type, now):
     # the dashboard's separate quarterly-CF availability into a model warning.
     quarterly_notes = [note for note in quarterly.get("resolutionNotes", []) if "cashflow" not in note.lower()]
     notes = list(dict.fromkeys(annual.get("resolutionNotes", []) + quarterly_notes))
+    # Technical candles must precede the dashboard's close-only display defaults.
+    # Keep their source and any fallback separate from financial-health inputs.
+    try:
+        from backend.premium_technical import resolve_technical_prices
+        from backend.premium_technical_sources import load_benchmark_history
+    except ImportError:
+        from premium_technical import resolve_technical_prices
+        from premium_technical_sources import load_benchmark_history
+    def load_technical_candles():
+        key = yearly.get("instrument", {}).get("upstoxInstrumentKey")
+        return _fetch_upstox_price_history(key) if key else []
+    # Exclude an unfinished daily session from technical indicators.
+    ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
+    candle_date = ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
+    raw["technicalPriceInput"] = resolve_technical_prices(
+        annual.get("technicalPrices", {}), yearly["sources"].get("priceHistory"),
+        candle_date, load_technical_candles)
+    raw["technicalBenchmarks"] = load_benchmark_history(_finedge_get, candle_date, _fetch_upstox_price_history,
+        [row["date"] for row in raw["technicalPriceInput"]["bars"][-505:]])
     return raw, sources, effective, {"yearly": yearly["sources"], "quarterly": quarterly_view["sources"],
         "requestedStatementType": statement_type, "effectiveStatementType": effective,
         "bankAssetQualityStatementType": quarterly.get("assetQualityBasis"), "notes": notes}
@@ -3420,6 +3441,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     benchmark_observations = reported_benchmarks(
         [row for payload in ratio_payloads + metric_payloads + [basic_financials_payload] for row in _payload_items(payload)],
         [], datetime.now(timezone.utc).isoformat())
+    upstox_ratio_payload = []
     if upstox_isin:
         finedge_ratio_keys = {str(ratio.get("name") or "").upper() for ratio in ratios if isinstance(ratio, dict)}
         upstox_ratio_payload = _safe_upstox_get(f"/fundamentals/{quote(upstox_isin, safe='')}/key-ratios", default=[])
@@ -3654,6 +3676,10 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
         "assetQualityRows": standalone_income_rows if bank_asset_quality_statement_type == "standalone" else income_rows,
         "assetQualityBasis": bank_asset_quality_statement_type, "resolutionNotes": resolution_notes,
         "benchmarkObservations": benchmark_observations}
+    model_inputs["technicalPrices"] = resolved_prices.get("prices", {})
+    model_inputs["leverage"] = ratio_payloads[1]
+    model_inputs["secondaryLeverage"] = next((row.get("company_value") for row in upstox_ratio_payload
+        if isinstance(row,dict) and re.sub(r'[^a-z]','',str(row.get('name','')).lower())=='financialleverage'),None) if isinstance(upstox_ratio_payload,list) else None
     _remember_stock_fundamentals(cache_key, {"data": result, "model_inputs": model_inputs, "fetched_at": monotonic()})
     if _model_capture is not None:
         _model_capture.update(model_inputs)

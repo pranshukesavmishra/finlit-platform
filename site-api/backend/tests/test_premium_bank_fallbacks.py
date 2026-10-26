@@ -63,39 +63,57 @@ def test_nbfc_does_not_use_bank_fallback():
 
 @pytest.mark.parametrize('group,weight', [('BANK',25),('NBFC',25),('INSURANCE',50)])
 @pytest.mark.parametrize('original', [None,0,18])
-def test_financial_quality_always_replaces_original_factor(group,weight,original):
+def test_lenders_prefer_capital_adequacy_and_only_replace_it_when_missing(group,weight,original):
     d=inputs();d.update(capital_adequacy_pct=original,solvency_ratio=original,profit_before_tax=400,interest_cost=100,total_debt=0)
     result=score_company(d,group);r={r['metric']:r for r in result['metrics']}
+    if group=='INSURANCE':
+        assert 'FINANCIAL_LEVERAGE' in r and 'INTEREST_COVER' not in r
+        assert r['FINANCIAL_LEVERAGE']['weight']==50
+        return
+    if group in ('BANK','NBFC') and original is not None:
+        assert r['CAPITAL_ADEQUACY']['value']==original
+        assert r['CAPITAL_ADEQUACY']['status']=='A'
+        assert r['CAPITAL_ADEQUACY']['weight']==weight
+        assert 'INTEREST_COVER' not in r
+        return
     assert 'CAPITAL_ADEQUACY' not in r and 'SOLVENCY' not in r
     cover=r['INTEREST_COVER']
     assert cover['value']==5 and cover['points']==50
     assert cover['weight']==weight and cover['share']==weight/100
-    assert not cover['fallbackFor'] and cover['status']=='A'
+    assert cover['fallbackFor']==('CAPITAL_ADEQUACY' if group in ('BANK','NBFC') else None)
+    assert cover['status']=='A'
     assert cover['unit']=='x' and (cover['worst'],cover['best'])==(2,8)
     review=build_report_review({'rating':result,'inputMeta':{},'statementType':'consolidated'})
     item=next(i for b in ['pros','cons','mixed'] for i in review['parts'][2][b] if i['metric']=='INTEREST_COVER')
-    assert 'unavailable' not in item['label'].lower()
+    assert ('unavailable' in item['label'].lower()) == (group in ('BANK','NBFC'))
     trace=build_calculation_trace(d,result,{})
     assert 'Annual PBT + interest cost' in next(i for i in trace['metrics'] if i['metric']=='INTEREST_COVER')['valueCalculation']
     assert sum(i['pointsEarned'] for i in result['metrics'])-result['capPointsLost']==pytest.approx(result['final'])
 
 
-@pytest.mark.parametrize('group', ['BANK','NBFC','INSURANCE'])
+@pytest.mark.parametrize('group', ['BANK','NBFC'])
 @pytest.mark.parametrize('interest,pbt,value,points',[(100,100,2,0),(100,400,5,50),(100,700,8,100),(100,-100,0,0),(0,100,None,100)])
 def test_financial_interest_cover_formula_and_approved_scale(group,interest,pbt,value,points):
-    d=inputs();d.update(profit_before_tax=pbt,interest_cost=interest)
+    d=inputs();d.update(profit_before_tax=pbt,interest_cost=interest,capital_adequacy_pct=None)
     cover=rows(d,group)['INTEREST_COVER']
     assert cover['value']==value and cover['points']==points and cover['status']=='A'
 
 
 @pytest.mark.parametrize('group', ['BANK','NBFC','INSURANCE'])
 @pytest.mark.parametrize('interest,pbt',[(None,100),(100,None),(None,None),(-10,100)])
-def test_financial_missing_interest_is_filled_even_when_original_factor_exists(group,interest,pbt):
+def test_lenders_with_capital_adequacy_do_not_need_interest_inputs(group,interest,pbt):
     d=inputs();d.update(capital_adequacy_pct=18,solvency_ratio=2,interest_cost=interest,profit_before_tax=pbt)
     result=score_company(d,group);r={r['metric']:r for r in result['metrics']}
-    assert 'CAPITAL_ADEQUACY' not in r and 'SOLVENCY' not in r
-    assert r['INTEREST_COVER']['status']=='F'
-    assert result['coverage']['quality']==(.5 if group=='INSURANCE' else .75)
+    if group=='INSURANCE':
+        assert r['FINANCIAL_LEVERAGE']['status']=='A'
+        assert 'INTEREST_COVER' not in r
+        assert result['coverage']['quality']==1
+        return
+    if group in ('BANK','NBFC'):
+        assert r['CAPITAL_ADEQUACY']['value']==18
+        assert 'INTEREST_COVER' not in r
+        assert result['coverage']['quality']==1
+        return
 
 
 @pytest.mark.parametrize('roe,points',[(8,0),(13,50),(18,100),(0,0),(-5,0)])
@@ -143,7 +161,7 @@ def test_bank_valuation_fallbacks_and_financial_quality_replacement_reconcile():
     result=score_company(d,'BANK');r={r['metric']:r for r in result['metrics']}
     assert r['PE_VS_HISTORY']['fallbackFor']=='PE_VS_INDUSTRY'
     assert r['ROE']['fallbackFor']=='PB_VS_INDUSTRY'
-    assert r['INTEREST_COVER']['fallbackFor'] is None
+    assert r['INTEREST_COVER']['fallbackFor']=='CAPITAL_ADEQUACY'
     assert sum(i['pointsEarned'] for i in result['metrics'])-result['capPointsLost']==pytest.approx(result['final'])
     assert not {'PE_VS_INDUSTRY','PB_VS_INDUSTRY','CAPITAL_ADEQUACY'} & r.keys()
     other=rows(d,'NBFC')

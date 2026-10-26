@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 
 import pytest
-from backend.premium_data import adapt_inputs, provider_get
+from backend.premium_data import adapt_inputs
+from backend.premium_provider import provider_get
 from backend.premium_engine import score_company
 
 AS_OF = date(2026, 10, 18)
@@ -132,7 +133,7 @@ def test_valuation_discrepancy_is_flagged_without_changing_documented_math():
 
 def test_provider_retries_transient_errors_but_not_entitlement_failures(monkeypatch):
     waits, calls = [], []
-    monkeypatch.setattr('backend.premium_data.time.sleep', waits.append)
+    monkeypatch.setattr('backend.premium_provider.time.sleep', waits.append)
     class ProviderError(Exception):
         def __init__(self, status): self.status_code = status
     def flaky(path, params):
@@ -225,7 +226,7 @@ def test_documented_scoring_matches_supplied_owner_code(case,monkeypatch):
         legacy=deepcopy(premium_engine.GROUPS)
         weights=legacy[case['group']]['weights']['quality']
         previous='SOLVENCY' if case['group']=='INSURANCE' else 'CAPITAL_ADEQUACY'
-        legacy[case['group']]['weights']['quality']={previous if k=='INTEREST_COVER' else k:v for k,v in weights.items()}
+        legacy[case['group']]['weights']['quality']={previous if k in ('INTEREST_COVER','FINANCIAL_LEVERAGE') else k:v for k,v in weights.items()}
         monkeypatch.setattr(premium_engine,'GROUPS',legacy)
     actual=score_company(case['input'],case['group'])
     expected=case['expected']

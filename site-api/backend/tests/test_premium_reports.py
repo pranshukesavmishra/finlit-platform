@@ -13,7 +13,9 @@ import pytest
 from pypdf import PdfReader
 from backend import server
 from backend.premium_engine import score_company
-from backend.premium_data import adapt_inputs, resolve_group, peer_benchmark
+from backend.premium_data import adapt_inputs
+from backend.premium_classification import resolve_group
+from backend.premium_benchmarks import peer_benchmark
 from backend.premium_pdf import render_premium_pdf
 def asgi_request(app, method, path, payload=None, headers=None):
     async def run():

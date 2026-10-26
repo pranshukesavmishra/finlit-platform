@@ -61,7 +61,7 @@ def test_report_and_trace_disclose_selected_period_without_claiming_short_histor
     report={'rating':rating,'inputs':data,'inputMeta':meta}
     review=build_report_review(report)
     factors={r['metric']:r for bucket in ('pros','cons','mixed') for r in review['parts'][0][bucket]}
-    assert factors['SALES_CAGR']['label']=='Revenue CAGR (3-year)'
+    assert factors['SALES_CAGR']['label']=='Sales CAGR (3-year)'
     assert factors['SALES_CAGR']['comparisonText']=='Period used: 2023 to 2026.'
     assert factors['PROFIT_CAGR']['label']=='Profit CAGR (1-year)'
     assert factors['PROFIT_CAGR']['comparisonText']=='Period used: 2025 to 2026.'

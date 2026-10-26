@@ -3,12 +3,14 @@
 The fake answers POST /api/premium-reports with a REAL signed snapshot: tests/fixtures/prism/snapshot_example.json was made once with the
 site backend's own pure pieces, so the stripping of internal fields is checked on the document the model really produces:
 
-    site-venv/bin/python make_fixture.py site-api/backend backend/tests/fixtures/prism/snapshot_example.json
+    cd site-api && PYTHONPATH=.:backend site-venv/bin/python ../backend/tests/fixtures/prism/make_fixture.py backend ../backend/tests/fixtures/prism/snapshot_example.json
 
-where make_fixture.py runs premium_engine.score_company(premium_example.json, "MFG"), premium_trace.build_calculation_trace,
-premium_presentation.build_report_review and premium_snapshot.issue(report, "prism:fixture", "f" * 40) on the report dictionary that
-premium_service.generate_report builds (symbol TCS, id "a" * 32, the dates of site-api/backend/tests/test_premium_reports.py), and writes
-the result with sorted keys. The research API does not depend on PyJWT, so the fixture is stored rather than built here.
+where make_fixture.py (next to the fixture) runs premium_engine.score_company(premium_example.json, "MFG") (engine 3.6.10),
+premium_trace.build_calculation_trace, premium_presentation.build_report_review, premium_technical.build_technical_assessment and
+premium_snapshot.issue(report, "prism:fixture", "f" * 40) on the report dictionary that premium_service.generate_report builds (symbol TCS,
+id "a" * 32), and writes the result with sorted keys. No provider is reachable offline, so the technicalAssessment is genuine engine output
+for SYNTHETIC candles and index series (seeded random walks, see the script). The research API does not depend on PyJWT, so the fixture is
+stored rather than built here.
 """
 
 import asyncio
@@ -188,7 +190,7 @@ async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_th
     assert timedelta(minutes=29) < until - datetime.now(timezone.utc) <= timedelta(minutes=30)
     row = await app.state.store.pool.fetchrow("SELECT * FROM prism_reports WHERE symbol = 'TCS' AND statement = 'consolidated'")
     stored = json.loads(row["report"])
-    assert row["id"] == body["id"] and row["model_version"] == "3.6.9" and row["label"] == "AVERAGE" and row["status"] == "RATED"
+    assert row["id"] == body["id"] and row["model_version"] == "3.6.10" and row["label"] == "AVERAGE" and row["status"] == "RATED"
     assert row["final"] == pytest.approx(SNAPSHOT["rating"]["final"])
     assert not set(prism.INTERNAL) & set(stored) and "cached" not in stored
     assert body["financialHistory"] == stored["financialHistory"] == prism.reader_view(SNAPSHOT)["financialHistory"]
@@ -205,6 +207,86 @@ def test_reader_view_of_the_real_snapshot():
     assert view["financialHistory"] == {k: trace[k] for k in ("quarterly", "annual", "latest")}   # verbatim, nothing more of the trace
     assert all(trace[k] for k in ("quarterly", "annual", "latest")) and "equation" not in json.dumps(view["financialHistory"]).lower()
     assert len(json.dumps(view)) < len(json.dumps(SNAPSHOT)) * 0.8       # the trace and inputs are most of the weight
+
+
+# ------------------------------------------------------------------ ST/LT technical assessment (engine 3.6.10)
+TECH = SNAPSHOT["technicalAssessment"]
+SECRET_KEYS = {"inputHash", "sourceCodeSha256", "weight"}
+
+
+def keys_anywhere(value, found=None):
+    """Every dictionary key at any depth."""
+    found = set() if found is None else found
+    if isinstance(value, dict):
+        for k, v in value.items():
+            found.add(k)
+            keys_anywhere(v, found)
+    elif isinstance(value, list):
+        for v in value:
+            keys_anywhere(v, found)
+    return found
+
+
+def test_the_real_snapshot_carries_a_complete_technical_assessment():
+    assert TECH["status"] == "ready" and TECH["modelVersion"] and SECRET_KEYS - {"weight"} <= set(TECH)
+    for key, count in (("shortTerm", 14), ("longTerm", 13)):
+        assert TECH[key]["status"] == "ready" and TECH[key]["availableCount"] == TECH[key]["requiredCount"] == count
+        assert all("weight" in f for f in TECH[key]["factors"])           # present in the signed document, which the PDF renders
+
+
+def test_technical_assessment_reaches_the_reader_without_hashes_weights_or_series():
+    view = prism.reader_view(SNAPSHOT)["technicalAssessment"]
+    assert not SECRET_KEYS & keys_anywhere(view) and not {"bars", "candles", "prices", "inputs"} & keys_anywhere({k: v for k, v in view.items() if k != "benchmarkSources"})
+    for key in ("modelVersion", "status", "asOf", "provider", "fresh", "dailyBars", "usableDailyBars", "verdict", "notes", "observations"):
+        assert view[key] == TECH[key]
+    for key in ("shortTerm", "longTerm"):
+        part, source = view[key], TECH[key]
+        assert {k: v for k, v in part.items() if k != "factors"} == {k: v for k, v in source.items() if k != "factors"}   # scores and ratings are untouched
+        assert [{k: v for k, v in f.items()} for f in part["factors"]] == [{k: v for k, v in f.items() if k != "weight"} for f in source["factors"]]
+        assert set(part["factors"][0]) == {"key", "label", "signal", "status", "detail"}
+    assert view["benchmarkSources"] == TECH["benchmarkSources"] and all(set(v) == {"provider", "asOf", "bars"} for v in view["benchmarkSources"].values())
+    assert view["benchmarkSources"]["Nifty 50"]["bars"] == 700 and isinstance(view["benchmarkSources"]["Nifty 50"]["bars"], int)
+
+
+def test_technical_view_drops_anything_that_is_not_for_readers():
+    hostile = copy.deepcopy(TECH)
+    hostile.update(inputHash="h", sourceCodeSha256="s", options={"sectorRS": False, "secret": "x"}, candles=[{"close": 1}], extra="x")
+    hostile["observations"].update(series=[1, 2, 3], nested={"a": 1})
+    hostile["benchmarkSources"]["Nifty 50"].update(bars=700, series=[1, 2], hash="x")
+    hostile["shortTerm"]["factors"][0].update(weight=99, series=[1], hash="y")
+    hostile["shortTerm"]["weights"] = [1]
+    view = prism.technical_view(hostile)
+    assert not SECRET_KEYS & keys_anywhere(view) and "candles" not in view and "extra" not in view
+    assert view["options"] == {"sectorRS": False}
+    assert "series" not in view["observations"] and "nested" not in view["observations"] and view["observations"]["benchmarksUsed"] == TECH["observations"]["benchmarksUsed"]
+    assert "series" not in view["benchmarkSources"]["Nifty 50"] and "weights" not in view["shortTerm"]
+    assert set(view["shortTerm"]["factors"][0]) == {"key", "label", "signal", "status", "detail"}
+
+
+def test_snapshots_without_a_technical_assessment_still_work():
+    older = {k: v for k, v in SNAPSHOT.items() if k != "technicalAssessment"}
+    view = prism.reader_view(older)
+    assert "technicalAssessment" not in view and view["rating"] == SNAPSHOT["rating"] and view["financialHistory"]
+    for odd in (None, [], "x", 5):
+        assert "technicalAssessment" not in prism.reader_view({**older, "technicalAssessment": odd})
+    incomplete = prism.reader_view({**older, "technicalAssessment": {"status": "incomplete", "shortTerm": {"score": None, "factors": []}}})
+    assert incomplete["technicalAssessment"] == {"status": "incomplete", "shortTerm": {"score": None, "factors": []}}
+
+
+async def test_technical_assessment_is_served_stored_and_kept_whole_for_the_pdf(env):
+    app, fake = env
+    gold = await member(app, "gold")
+    body = (await generate(gold)).json()
+    assert body["technicalAssessment"] == prism.technical_view(TECH) and not SECRET_KEYS & keys_anywhere(body["technicalAssessment"])
+    stored = json.loads((await app.state.store.pool.fetchrow("SELECT report FROM prism_reports WHERE symbol = 'TCS'"))["report"])
+    assert stored["technicalAssessment"] == body["technicalAssessment"]
+    assert (await gold.get("/api/prism/reports/latest?symbol=TCS")).json()["technicalAssessment"] == body["technicalAssessment"]
+    summary = (await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")).json()["summary"]
+    assert "technicalAssessment" not in summary
+    kept = json.loads(await app.state.store.redis.get(f"prism:snap:{body['id']}"))["snapshot"]
+    assert kept["technicalAssessment"] == TECH and kept["technicalAssessment"]["inputHash"]      # the signed document is unchanged
+    assert (await gold.get(f"/api/prism/reports/{body['id']}/pdf")).status_code == 200            # FakeSite compares it byte for byte with what it signed
+    assert fake.pdfs
 
 
 # ------------------------------------------------------------------ reuse, refresh and limits
@@ -381,7 +463,7 @@ async def test_status_reports_connection_and_model_version(env):
     assert body == {"name": "FinLit Prism", "available": True, "reason": None, "modelVersion": None}
     await generate(await member(app, "gold"))
     body = (await visitor.get("/api/prism/status")).json()
-    assert body["modelVersion"] == "3.6.9" and fake.pings == 1            # the reachability check is remembered for a minute
+    assert body["modelVersion"] == "3.6.10" and fake.pings == 1            # the reachability check is remembered for a minute
 
 
 async def test_status_when_unconfigured_or_unreachable(store):  # noqa: F811

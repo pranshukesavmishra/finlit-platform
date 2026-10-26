@@ -75,17 +75,50 @@ def render_premium_pdf(report):
     meta = report["inputMeta"]
     story.append(p(" | ".join(f"{label}: {meta.get(key) or 'unavailable'}" for key,label in (("quarterlyAsOf","Quarter"),("annualAsOf","Financial year"),("balanceAsOf","Balance sheet"),("ownershipAsOf","Ownership"),("priceAsOf","Price")))))
     story.append(p("This is a current model-based financial health assessment, not a target price or an investment recommendation. Market, accounting and data-provider limitations apply."))
+    technical = report.get("technicalAssessment")
+    if technical:
+        story.append(PageBreak())
+        story.append(p("Market outlook", "ReportTitle"))
+        story.append(p("Short & long-term assessment", "SectionTitle"))
+        story.append(p(f"Daily close: {technical.get('asOf') or 'Unavailable'} | Source: {technical.get('provider') or 'Unavailable'}"))
+        rows = [["Horizon", "Score (-100 to +100)", "Rating"]]
+        for key, label in (("shortTerm", "Short term"), ("longTerm", "Long term")):
+            part = technical[key]
+            rows.append([label + " / " + part["horizon"], number(part["score"]) if part["score"] is not None else "Unavailable", part["rating"]])
+        table(rows, [190, 160, 137])
+        section("Combined verdict: " + technical["verdict"]["label"])
+        if technical["longTerm"].get("stageCapped"):
+            story.append(p("The long-term score is limited to +19 by the current market stage."))
+        for note in technical.get("notes", []):
+            story.append(p(note))
+        story.append(p("Sector comparison is switched off. This assessment is separate from the financial-health score."))
+        section("Available signals")
+        rows = [["Horizon", "Signal", "Assessment", "Observation"]]
+        for key, label in (("shortTerm", "ST"), ("longTerm", "LT")):
+            for factor in technical[key]["factors"]:
+                if factor["status"] == "available":
+                    signal = factor["signal"]
+                    rows.append([label, factor["label"], "Supportive" if signal > 0 else "Unfavourable" if signal < 0 else "Neutral", factor["detail"]])
+        if len(rows) > 1:
+            table(rows, [35, 120, 72, 260], compact=True)
+        else:
+            story.append(p("No verified signals are available."))
+        section("Unavailable signals")
+        for key, label in (("shortTerm", "Short term"), ("longTerm", "Long term")):
+            part = technical[key]
+            missing = [factor["label"] for factor in part["factors"] if factor["status"] == "unavailable"]
+            story.append(p(f"{label}: {part['availableCount']} of {part['requiredCount']} required signals available. " + ("Missing: " + ", ".join(missing) + "." if missing else "No missing signals.")))
     story.append(PageBreak())
     story.append(p("Business performance", "ReportTitle"))
     section("Annual business performance")
-    rows = [["Financial year", "Revenue / NII (Cr)", "Net profit (Cr)", "EPS (INR)"]]
+    rows = [["Financial year", "Sales (Cr)", "Net profit (Cr)", "EPS (INR)"]]
     for row in report.get("trends", []): rows.append([row["period"], number(row["revenue"]), number(row["profit"]), number(row["eps"])])
     table(rows, [100, 140, 130, 117])
     # Three small, independently scaled trends keep EPS separate from monetary amounts.
     trends = report.get("trends", [])
     if len(trends) >= 2:
         drawing = Drawing(487, 112)
-        for chart_index, (key, title, unit, colour) in enumerate((("revenue", "Revenue / NII", "Cr", GOLD), ("profit", "Net profit", "Cr", colors.HexColor("#31846C")), ("eps", "EPS", "INR/share", colors.HexColor("#476DAB")))):
+        for chart_index, (key, title, unit, colour) in enumerate((("revenue", "Sales", "Cr", GOLD), ("profit", "Net profit", "Cr", colors.HexColor("#31846C")), ("eps", "EPS", "INR/share", colors.HexColor("#476DAB")))):
             offset = chart_index * 166
             drawing.add(String(offset + 4, 96, title, fontName="Helvetica-Bold", fontSize=9, fillColor=NAVY))
             values = [row.get(key) for row in trends if row.get(key) is not None]
@@ -146,7 +179,7 @@ def render_premium_pdf(report):
         story.append(p("Financial history", "ReportTitle"))
         story.append(p(f"{report['statementType'].title()} financial statements. Amounts in INR crore; EPS in INR per share."))
         story.append(p("Periods run oldest to newest. N/A indicates unavailable information."))
-        sales_label = "Net interest income" if rating['group'] in ("BANK","NBFC") else "Net premium income" if rating['group']=="INSURANCE" else "Sales"
+        sales_label = "Sales"
         section("Quarterly results")
         for offset in range(0,len(trace['quarterly']),7):
             chunk=trace['quarterly'][offset:offset+7]

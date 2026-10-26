@@ -11,13 +11,14 @@ def report(inputs, group='INSURANCE'):
     return {'inputs':inputs,'rating':score_company(inputs,group),'inputMeta':{}}
 
 
-def test_insurer_missing_expense_and_two_short_histories_are_separate():
+def test_insurer_missing_leverage_inputs_and_two_short_histories_are_separate():
     data={'sales_q':[100,110,120,130,140,150], 'net_profit_q':list(range(1,9)),
           'sales_y':[100,110], 'net_profit_y':[10,12,14,16], 'profit_before_tax':20}
     before=deepcopy(data)
     result=build_input_completeness(report(data))
     rows={i['metric']:i for i in result['items']}
-    assert rows['INTEREST_COVER']['missingInputs']==['Annual P&L interest expense']
+    assert rows['FINANCIAL_LEVERAGE']['missingInputs']==['Total assets on the same balance-sheet date','Book equity on the same balance-sheet date']
+    assert 'INTEREST_COVER' not in rows
     assert rows['SALES_STREAK']['kind']=='limitedHistory'
     assert rows['SALES_STREAK']['treatment'].startswith('2 of 10')
     assert rows['PROFIT_STREAK']['treatment'].startswith('4 of 10')

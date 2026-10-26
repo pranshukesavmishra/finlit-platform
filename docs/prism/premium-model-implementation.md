@@ -2,7 +2,7 @@
 
 This is the current engineering reference for FinLit's on-demand financial-health assessment. Read the [input/output contract](premium-model-input-output.md) for field definitions, request examples and result schemas, and [report lifecycle](premium-report-lifecycle.md) for deployment and snapshot handling.
 
-The deterministic engine is **3.6.9**, derived from the supplied **3.6.1-simple** model plus the project-approved changes described below. Missing-data point estimates use the supplied **2026-10-14** group snapshot. These versions are defined in `backend/premium_model_config.py`. This implementation evaluates financial health; input coverage is not a measure of predictive accuracy or investment returns.
+The deterministic engine is **3.6.10**, derived from the supplied **3.6.1-simple** model plus the project-approved changes described below. Missing-data point estimates use the supplied **2026-10-14** group snapshot. These versions are defined in `backend/premium_model_config.py`. This implementation evaluates financial health; input coverage is not a measure of predictive accuracy or investment returns.
 
 ## Architecture and execution path
 
@@ -23,10 +23,14 @@ flowchart TD
 | Module | Responsibility |
 | --- | --- |
 | `backend/server.py` | Authenticated routes, exact company resolution, provider connectors, dashboard capture, bounded generation concurrency and HTTP responses. |
+| `backend/financial_records.py` | Provider-neutral numeric/date parsing, row selection and the rupee-to-crore unit constant. No network or scoring dependencies. |
+| `backend/premium_classification.py` | Profile extraction and deterministic model-group classification, independent of financial adaptation and provider I/O. |
+| `backend/premium_provider.py` | Shared bounded provider/retry budget and the standalone FinEdge input loader used by tests/tools. |
 | `backend/fundamental_resolution.py` | Shared dashboard/report field recovery, financial identities, Q4 recovery, compatible Upstox statement rows and complete price-series recovery. |
 | `backend/financial_fields.py` | Shared aliases and precedence for annual P&L interest expense. |
-| `backend/premium_data.py` | Date/basis/unit normalization, group classification, canonical inputs, provenance, historical valuation medians and peer calculations. |
+| `backend/premium_data.py` | Pure date/basis/unit normalization into canonical financial inputs, provenance, risk observations and own-history valuation medians. No provider requests. |
 | `backend/benchmark_resolution.py` | Select reported industry/sector benchmarks and preserve their true scope and provider. |
+| `backend/premium_benchmarks.py` | Collect/cache peer observations, derive peer multiples through the canonical adapter, and coordinate reported-first report benchmarks. |
 | `backend/premium_model_config.py` | Versions, weights, bounds, fill points, window sizes, loss caps and rating thresholds. This is the parameter source of truth. |
 | `backend/premium_engine.py` | `score_company(inputs, group)`: pure calculation, with no network, database or clock access. |
 | `backend/premium_service.py` | Orchestrate loading, adapting, benchmarking, scoring and construction of one report. Production supplies `dashboard_load`; the direct FinEdge loader is a lower-level test/tool path. |
@@ -35,8 +39,11 @@ flowchart TD
 | `backend/premium_presentation.py` | Deterministic factor pros/cons, benchmark disclosures, reader notes and completeness summary. |
 | `backend/premium_snapshot.py` | Sign and verify the exact current report for serverless-safe PDF download. |
 | `backend/premium_pdf.py` | Render the verified snapshot, without provider fetches or recalculation. |
-| `frontend/src/pages/PremiumReportPage.jsx` | Company selection, inline generation, current-snapshot rendering, recalculation and PDF download. |
+| `frontend/src/pages/PremiumReportPage.jsx` | Route and company-selection UI; delegates stateful workflow to the report hook and completed-report rendering to the detail component. |
+| `frontend/src/hooks/usePremiumReport.js` | Current report state, debounced company suggestions, snapshot restoration, legacy polling/cancellation, generation, auth/error handling and download state. |
+| `frontend/src/components/PremiumReportDetail.jsx` | Completed-report rendering, category reviews, financial history and existing chart layout, independent of report generation state. |
 | `frontend/src/components/PremiumInputCompleteness.jsx` | Dedicated rendering of missing factors and short histories, including legacy-snapshot guidance. |
+| `frontend/src/lib/premiumReportDownload.js` | Signed-snapshot/legacy PDF download requests and temporary anchor/object-URL cleanup, with no score calculations. |
 
 ## Data sourcing and financial definitions
 
@@ -46,6 +53,7 @@ Production reports call `_premium_dashboard_inputs`, which uses the same yearly 
 - Statements have one effective consolidated/standalone basis. If the dashboard resolves consolidated requests to standalone, the entire report uses and discloses that effective basis. Bank NPA disclosures may use the dashboard's explicitly labelled standalone disclosure fallback; this exception does not switch the other statements' basis.
 - Monetary FinEdge statement amounts are converted from rupees to crore. Upstox financial amounts are accepted only for the requested basis and `units_in: "crore"`, then converted to the common raw representation. EPS remains rupees/share; price remains rupees/share; normalized shares are crore shares.
 - Future statement/history observations, and filings with a known future publication date, are excluded. Quarterly durations are 70-105 days; annual durations are 330-400 days when start dates are supplied. Duplicate periods prefer the latest reported restatement. Missing calendar periods stay as holes in chronological arrays. Stale, future or unverified quote dates produce a separate data-integrity caution rather than silently changing metric points.
+- The report uses the model names Sales streak, Sales growth and Sales CAGR across all groups; history tables and charts use Sales. This naming does not change the source-field mapping below.
 - Non-financial income means operating revenue. BANK/NBFC income means net interest income, using explicit NII or interest earned minus explicit interest expense. INSURANCE income means net premium income. Generic Upstox revenue cannot replace NII or net premium income.
 - Profit prefers owner-attributable earnings when reported, with the adapter's total-profit aliases used when a separate owner line is unavailable. Policyholder surplus is not a substitute for insurer shareholder profit.
 - Book equity is **total equity including non-controlling interests**, matching the owner model. Parent equity plus minority interest requires both amounts. Bank capital plus reserves is accepted only when the balance-sheet identity reconciles. ROE/ROA use latest equity/assets as specified by the model, not the separately retained annual-matching diagnostics.
@@ -97,12 +105,12 @@ The eight groups are LIGHT, MFG, HEAVY, UTILITY, REALTY, BANK, NBFC and INSURANC
 | HEAVY | D/E 30; interest cover 30; ROE 20; cash conversion 20 | EV/EBITDA industry 40; P/B industry 30; P/E history 30; optional PEG 20 |
 | UTILITY | D/E 25; interest cover 35; ROE 20; cash conversion 20 | P/B industry 35; EV/EBITDA industry 35; P/E industry 30; optional PEG 20 |
 | REALTY | D/E 35; interest cover 25; ROE 20; cash conversion 20 | P/B industry 60; P/E industry 40; optional PEG 20 |
-| BANK / NBFC | Gross NPA 25; net NPA 25; interest cover 25; ROA 25 | P/B industry 40; P/B history 30; P/E industry 30; optional PEG 20 |
-| INSURANCE | Interest cover 50; ROE 50 | P/B industry 50; P/E industry 25; P/B history 25; optional PEG 20 |
+| BANK / NBFC | Gross NPA 25; net NPA 25; capital adequacy (interest-cover fallback) 25; ROA 25 | P/B industry 40; P/B history 30; P/E industry 30; optional PEG 20 |
+| INSURANCE | Financial leverage 50; ROE 50 | P/B industry 50; P/E industry 25; P/B history 25; optional PEG 20 |
 
 All groups use Risk weights: volatility 30, maximum fall 30, trading value 20, pledge 20. Higher Risk scores mean lower assessed risk.
 
-Approved financial-sector changes are unconditional: interest cover replaces capital adequacy for BANK/NBFC and solvency for INSURANCE, using the 2x-8x range. Raw capital/solvency observations can remain in inputs but are not active Quality factors. BANK alone conditionally replaces an unavailable industry P/E slot with own P/E history, and an unavailable industry P/B slot with ROE. Replacements preserve the replaced slot's weight. A valid zero/loss score does not trigger a fallback.
+The owner-confirmed 26 October changes restore capital adequacy as the primary BANK/NBFC Quality input, with interest cover (2x–8x) used only if capital adequacy is missing. The original capital-adequacy ranges remain BANK 12%–18%, NBFC 15%–25%. Explicit zero is available data and does not trigger fallback. INSURANCE uses financial leverage (assets / equity), replacing interest cover in its 50-point Quality slot; ROE retains the other 50. The supplied function scores <=5x at 100, >=20x at 0 and otherwise rounds `100 * (20 - leverage) / 15` to two decimals. Non-positive equity is invalid: the leverage factor is unscored, counts as unavailable in coverage, and is explicitly flagged rather than receiving a point estimate. The calibration range is provisional. Solvency is retained only as a diagnostic. BANK alone conditionally replaces an unavailable industry P/E slot with own P/E history, and an unavailable industry P/B slot with ROE. Replacements preserve the replaced slot's weight. A valid zero/loss score does not trigger a fallback.
 
 ## Calculations and scoring
 
@@ -117,7 +125,7 @@ Common bounds, expressed as **0-point value -> 100-point value**: relative P/E, 
 | Margin change | Difference between comparable current/prior EBITDA-to-revenue margins, expressed in percentage points. |
 | Loan / net-worth growth | `(latest / matching balance one year earlier - 1) * 100`; the prior reporting month and day must match. |
 | Debt / equity | Latest total borrowings / latest total book equity. |
-| Interest cover | `(latest annual PBT + annual P&L interest expense) / interest expense`. Known zero expense has the model's special 100-point treatment; missing expense does not. Non-financial D/E below 0.1 makes this factor inapplicable. Financial groups always keep this factor. |
+| Interest cover | `(latest annual PBT + annual P&L interest expense) / interest expense`. Known zero expense has the model's special 100-point treatment; missing expense does not. Non-financial D/E below 0.1 makes this factor inapplicable. BANK/NBFC use this factor only when capital adequacy is unavailable. INSURANCE does not use interest cover. |
 | ROE / ROA | Latest annual profit / latest total equity or assets, multiplied by 100. |
 | Cash conversion | Sum of latest three annual operating cash flows / matching three annual profits, with all three periods present. |
 | P/E | Price / sum of latest four quarterly EPS. When fewer than four EPS slots exist, use supplied trailing EPS then annual EPS. Four or more slots with an interior/latest missing EPS do not silently fall back to annual EPS. |
@@ -183,9 +191,20 @@ Run the relevant regression suites from the repository root:
 ```sh
 PYTHONPATH=.:backend backend/.venv/bin/python -m pytest backend/tests/test_premium*.py backend/tests/test_required_input_recovery.py backend/tests/test_assessment_data_recovery.py backend/tests/test_fourth_quarter_recovery.py backend/tests/test_valuation_benchmarks.py backend/tests/test_flagged_company_lookup.py backend/tests/test_stock_fundamental_normalization.py
 cd frontend
-npm test -- --watchAll=false --runInBand src/pages/PremiumReportPage.test.jsx src/lib/premiumReportReview.test.js src/lib/currentPremiumReport.test.js src/lib/premiumReportPolling.test.js
+npm test -- --watchAll=false --runInBand src/components/PremiumReportDetail.test.jsx src/hooks/usePremiumReport.test.jsx src/lib/premiumReportDownload.test.js src/lib/premiumReportReview.test.js src/lib/currentPremiumReport.test.js src/lib/premiumReportPolling.test.js
 ```
 
 Tests cover pure-engine parity, approved loss/CAGR/BANK rules, compatible source recovery, website/PDF content, signed snapshot integrity and serverless delivery. The small provider/reference fixtures under `backend/tests/fixtures` are deliberate regression inputs. Generated spreadsheets, database captures, screenshots and previews belong in ignored `output/`, `outputs/` or `tmp/`, not Git.
 
+The boundaries are intentional: parsing/classification do not import the adapter or provider layer; the adapter does not perform I/O; benchmark collection may call the adapter and shared provider budget; the service coordinates these stages. On the frontend the page renders workflow state, the hook owns its transitions, and the detail view reads a completed snapshot. This keeps source recovery, numerical scoring and browser lifecycle changes independently reviewable.
+
 When changing a formula, weight, classification policy or fallback: update configuration/engine, version the numerical change, update both technical references, and add a regression describing the intended financial behavior. A new provider alias needs evidence of its meaning, units, period and statement basis. Never tune scores to a reference total or conceal an unresolved input by assigning an invented amount.
+
+## Additive ST/LT assessment
+
+Premium Reports also include the scoring-only ST/LT v14.3 market assessment.
+Its data, formulas, exclusions, missing-input behaviour and output contract are
+documented in [premium-st-lt-model.md](premium-st-lt-model.md). The financial-health
+engine and its score remain independent.
+
+Insurance leverage follows the same source order as the dashboard: its captured FinEdge leverage ratio first, assets/equity calculated from a matched balance-sheet row next, then the captured Upstox ratio; otherwise unavailable. Known non-positive current equity overrides a stale reported ratio and is flagged. The calculated path uses the owner-supplied `insurance_leverage_score` function; reported ratios use its identical point mapping.

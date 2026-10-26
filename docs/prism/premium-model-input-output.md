@@ -1,6 +1,6 @@
 # Premium model input/output contract
 
-This reference describes the implementation, not a provider's entire API schema. The adapter is the boundary between provider-specific data and the pure scoring engine. See [implementation and formulas](premium-model-implementation.md) and [report lifecycle](premium-report-lifecycle.md).
+This reference describes the implementation, not a provider's entire API schema. The pure `premium_data.adapt_inputs` adapter is the boundary between provider-specific data and the scoring engine. Parsing lives in `financial_records`, classification in `premium_classification`, network access in `premium_provider`, and peer collection in `premium_benchmarks`. See [implementation and formulas](premium-model-implementation.md) and [report lifecycle](premium-report-lifecycle.md).
 
 ## 1. Public application requests
 
@@ -107,7 +107,7 @@ Financial statement raw amounts use rupees internally. Normalized engine monetar
 | `trading_value_cr` | Average daily trading value, crore | Risk step score. |
 | `promoter_pledged_pct` | Percentage of promoter holdings pledged, 0-100 | Risk. Unknown values are excluded from scoring but reduce coverage. |
 
-Additional diagnostics are retained without automatically becoming active scoring factors: `annual_net_worth`, `annual_total_assets`, `capital_adequacy_pct`, `solvency_ratio`, `risk_calculation`, `valuation_unverified` and `benchmark_details`. Capital adequacy/solvency are not active Quality inputs in the current version.
+BANK/NBFC score `capital_adequacy_pct` as the primary Quality factor; interest cover replaces it only when unavailable. INSURANCE scores `financial_leverage` with `financial_leverage_source`: FinEdge reported ratio, then matched total assets / equity, then Upstox reported ratio. Its scale is <=5x:100, >=20x:0, otherwise round(100*(20-leverage)/15,2). Non-positive equity is invalid, unscored and flagged; missing inputs remain explicitly disclosed. The range is provisional. Additional diagnostics retained without automatically becoming active factors include `annual_net_worth`, `annual_total_assets`, `solvency_ratio`, `risk_calculation`, `valuation_unverified` and `benchmark_details`.
 
 `rating_blockers: list[str]` prevents an overall rating. `rating_cautions: list[str]` sets a separate review-required data-integrity flag without changing documented metric points.
 
@@ -201,3 +201,11 @@ This checks the scored factor list, not all optional raw provider fields. `reaso
 For a numerical investigation, preserve the effective group, `inputs`, chronology, versions, source/benchmark definitions and the unrounded rating. Run the pure engine on those exact inputs; a final reference score alone is insufficient to attribute a difference. Provider timing, statement basis, share-count definitions and benchmark scope can change results without a formula error.
 
 Store small deterministic inputs in `backend/tests/fixtures` with meaningful regression assertions. Keep bulk provider captures, temporary audit databases, workbook diagnostics and PDF previews out of source control. Update these contracts whenever an input's meaning, fallback, unit or output interpretation changes.
+
+## Additional market assessment output
+
+New report snapshots include `technicalAssessment` alongside the financial-health
+rating. It contains ST/LT scores, verdict, signal observations and explicit missing
+data. See [premium-st-lt-model.md](premium-st-lt-model.md) for its full contract.
+It is covered by the same snapshot signature and PDF export; there is no report
+history or TradingView runtime dependency.

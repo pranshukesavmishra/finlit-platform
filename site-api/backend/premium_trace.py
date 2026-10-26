@@ -42,6 +42,14 @@ def build_calculation_trace(d, rating, meta):
         ('annual_net_worth','Book equity matching annual profit','Cr'),('annual_total_assets','Assets matching annual profit','Cr'),
         ('volatility_pct','Annualised volatility','%'),('biggest_fall_pct','Maximum one-year drawdown','%'),
         ('trading_value_cr','Average daily trading value','Cr'),('promoter_pledged_pct','Promoter pledged shares','%')]
+    if rating['group']=='INSURANCE':
+        leverage_row = next((row for row in rating['metrics'] if row['metric']=='FINANCIAL_LEVERAGE'),{})
+        values['financial_leverage'] = leverage_row.get('value')
+        latest_specs += [('total_assets','Total assets','Cr'),('financial_leverage','Financial leverage (assets / equity)','x')]
+    if rating['group'] in ('BANK','NBFC','INSURANCE') and not any(row['metric']=='INTEREST_COVER' for row in rating['metrics']):
+        latest_specs = [spec for spec in latest_specs if spec[0] not in ('profit_before_tax','interest_cost')]
+    if any(row['metric']=='CAPITAL_ADEQUACY' for row in rating['metrics']):
+        latest_specs += [('capital_adequacy_pct','Capital adequacy','%')]
     latest = [{'key':key,'label':label,'value':values.get(key),'unit':unit} for key,label,unit in latest_specs]
     for row in latest:
         info = d.get('benchmark_details', {}).get(row['key'], {})
@@ -82,6 +90,11 @@ def build_calculation_trace(d, rating, meta):
                 formula=f'({fmt(d.get(a))} / {fmt(d.get(b))} - 1) x 100 = {fmt(row["value"])}%. Exact same reporting date a year earlier.'
             elif metric=='DEBT_TO_EQUITY': formula=f'Total debt / book equity = {fmt(debt)} / {fmt(nw)} = {fmt(row["value"])}x.'
             elif metric=='INTEREST_COVER': formula=f'(Annual PBT + interest cost) / interest cost = ({fmt(d.get("profit_before_tax"))} + {fmt(d.get("interest_cost"))}) / {fmt(d.get("interest_cost"))} = {fmt(row["value"])}x.'
+            elif metric=='FINANCIAL_LEVERAGE':
+                formula=f'Total assets / book equity from the same balance sheet = {fmt(d.get("total_assets"))} / {fmt(d.get("net_worth"))} = {fmt(row["value"])}x.'
+                if 'reported' in info.get('source',''):
+                    formula=f'{info["source"]}: {fmt(row["value"])}x (assets / equity), from the shared Stock Fundamentals source resolution.'
+                scoring='Owner-confirmed insurance rule: at or below 5x = 100; at or above 20x = 0; otherwise round(100 x (20 - leverage) / 15, 2). Non-positive equity is invalid, not scored.'
             elif metric in ('ROE','ROA'):
                 profit = d.get('net_profit_y',[])[-1] if d.get('net_profit_y') else None
                 denominator = nw if metric=='ROE' else d.get('total_assets')
@@ -135,7 +148,7 @@ def build_calculation_trace(d, rating, meta):
                      'Scale = clamp((value - worst) / (best - worst) x 100, 0, 100). Lower-is-better metrics have best below worst.',
                      'Component denominator excludes N and L metrics, retains filled and loss-rule metrics. Missing pledge still reduces input coverage.',
                      'PEG is core for LIGHT/MFG; other groups require at least 6 actual good profit quarters, with growth capped at 40%. Loss/non-positive-growth rules retain their weight.',
-                     'For non-financial groups, debt/equity below 0.1 excludes interest cover. BANK, NBFC and INSURANCE always score interest cover in Quality, replacing capital adequacy/solvency; missing inputs remain filled. Missing own valuation history substitutes an available positive industry median. Missing metrics use min(group median points, 50), except unknown pledge which is excluded.',
+                     'For non-financial groups, debt/equity below 0.1 excludes interest cover. BANK and NBFC use capital adequacy when available, otherwise interest cover in the same Quality slot. INSURANCE uses its configured Quality factors. Missing own valuation history substitutes an available positive industry median. Missing metrics use min(group median points, 50), except unknown pledge which is excluded.',
                      'Current non-positive profit scores zero for profit growth and profit CAGR. A good profit-streak quarter must be profitable; a short loss-making record blends with zero. Non-positive current operating margin scores zero for margin change.',
                      'Loss severity and group family may cap Fundamental first. If Fundamental or Quality is then below 35, Valuation is capped at 60. Both adjustments are applied before the final weighted mean.',
                      'Coverage below 80% or fewer than 6 comparable quarters: provisional; below 50%: unrated. Data-quality review flags are displayed separately from the model rating; unverified group classification prevents a valid rating.']}

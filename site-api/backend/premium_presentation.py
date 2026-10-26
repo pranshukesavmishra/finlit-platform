@@ -7,17 +7,18 @@ except ImportError:
     from premium_model_config import FLAG_RED, FLAG_GREEN
 PARTS = ("fundamental", "valuation", "quality", "risk")
 REASONS = {
-    "SALES_STREAK": ("Consistent year-on-year revenue growth.", "Revenue growth has been inconsistent."),
+    "SALES_STREAK": ("Consistent year-on-year sales growth.", "Sales growth has been inconsistent."),
     "PROFIT_STREAK": ("Consistent year-on-year profit growth.", "Profit growth has been inconsistent."),
-    "SALES_GROWTH": ("Strong recent revenue growth.", "Recent revenue growth is weak."),
+    "SALES_GROWTH": ("Strong recent sales growth.", "Recent sales growth is weak."),
     "PROFIT_GROWTH": ("Strong recent profit growth.", "Recent profit growth is weak."),
-    "SALES_CAGR": ("Strong revenue growth over the longer term.", "Longer-term revenue growth is weak."),
+    "SALES_CAGR": ("Strong sales growth over the longer term.", "Longer-term sales growth is weak."),
     "PROFIT_CAGR": ("Strong profit growth over the longer term.", "Longer-term profit growth is weak."),
     "MARGIN_CHANGE": ("Operating margins have improved.", "Operating margin performance is weak."),
     "LOAN_GROWTH": ("Strong expansion in the loan book.", "Loan-book growth is weak."),
     "NETWORTH_GROWTH": ("Strong growth in net worth.", "Net-worth growth is weak."),
     "DEBT_TO_EQUITY": ("Low borrowing relative to equity.", "High borrowing relative to equity."),
     "INTEREST_COVER": ("Earnings provide a strong cushion for interest payments.", "Earnings provide a limited cushion for interest payments."),
+    "FINANCIAL_LEVERAGE": ("Lower assets relative to equity support the insurer's capital position.", "High assets relative to equity indicate elevated financial leverage."),
     "ROE": ("Strong returns on shareholder equity.", "Low returns on shareholder equity."),
     "CASH_CONVERSION": ("Profits are well supported by operating cash flow.", "Operating cash flow provides weak support for reported profits."),
     "GROSS_NPA": ("Low gross non-performing loans support asset quality.", "High gross non-performing loans weaken asset quality."),
@@ -32,13 +33,14 @@ REASONS = {
     "PLEDGE": ("Low promoter pledging limits pledge-related risk.", "High promoter pledging increases pledge-related risk."),
 }
 MIXED = {
-    "SALES_STREAK": "Revenue growth is uneven across comparable quarters.",
+    "SALES_STREAK": "Sales growth is uneven across comparable quarters.",
     "PROFIT_STREAK": "Profit growth is uneven across comparable quarters.",
-    "SALES_GROWTH": "Recent revenue growth is moderate.", "PROFIT_GROWTH": "Recent profit growth is moderate.",
-    "SALES_CAGR": "Longer-term revenue growth is moderate.", "PROFIT_CAGR": "Longer-term profit growth is moderate.",
+    "SALES_GROWTH": "Recent sales growth is moderate.", "PROFIT_GROWTH": "Recent profit growth is moderate.",
+    "SALES_CAGR": "Longer-term sales growth is moderate.", "PROFIT_CAGR": "Longer-term profit growth is moderate.",
     "MARGIN_CHANGE": "Margin performance provides limited support.", "LOAN_GROWTH": "Loan-book growth is moderate.",
     "NETWORTH_GROWTH": "Net-worth growth is moderate.", "DEBT_TO_EQUITY": "Borrowing is at an intermediate level relative to equity.",
     "INTEREST_COVER": "Earnings provide a moderate cushion for interest payments.",
+    "FINANCIAL_LEVERAGE": "Assets relative to equity indicate moderate financial leverage.",
     "ROE": "Returns on equity are moderate.", "ROA": "Returns on assets are moderate.",
     "CASH_CONVERSION": "Operating cash flow provides moderate support for profits.",
     "GROSS_NPA": "Gross non-performing loans warrant monitoring.", "NET_NPA": "Net non-performing loans warrant monitoring.",
@@ -47,8 +49,8 @@ MIXED = {
     "VOLATILITY": "Share-price volatility warrants monitoring.", "BIGGEST_FALL": "The one-year price decline warrants monitoring.",
     "TRADING_VALUE": "Trading activity provides moderate liquidity.", "PLEDGE": "Some promoter holdings are pledged; monitor pledge levels.",
 }
-LABELS = {"SALES_STREAK": "Revenue growth consistency", "PROFIT_STREAK": "Profit growth consistency",
-          "SALES_GROWTH": "Revenue growth (12 months)", "SALES_CAGR": "Revenue CAGR",
+LABELS = {"SALES_STREAK": "Sales streak", "PROFIT_STREAK": "Profit streak",
+          "SALES_GROWTH": "Sales growth (12 months)", "SALES_CAGR": "Sales CAGR",
           "TRADING_VALUE": "Average daily trading value"}
 
 
@@ -65,17 +67,17 @@ def value_text(row):
 def factor(row, group):
     metric, state = row["metric"], row["status"]
     label = LABELS.get(metric, row["label"])
-    if group in ("BANK", "NBFC") and metric.startswith("SALES"):
-        label = label.replace("Revenue", "Net interest income")
-    elif group == "INSURANCE" and metric.startswith("SALES"):
-        label = label.replace("Revenue", "Net premium income")
     cagr_years = row.get("details", {}).get("years", 0) if metric in ("SALES_CAGR", "PROFIT_CAGR") else 0
     if cagr_years:
         label += f" ({cagr_years}-year)"
     item = {"metric": metric, "label": label, "valueText": value_text(row)}
+    if metric=='FINANCIAL_LEVERAGE' and row.get('details',{}).get('source'):
+        item['comparisonText'] = 'Source: ' + row['details']['source'] + '.'
     if state == "N":
         return "notApplicable", dict(item, summary="Not applicable to this assessment.")
     if state in ("F", "L") or row.get("points") is None:
+        if row.get("details",{}).get("invalid"):
+            return "unavailable", dict(item,valueText="Invalid",summary=row['details']['note'])
         summary = "Not reported; an estimate is used in the assessment." if state == "F" else "Not reported; not assessed."
         return "unavailable", dict(item, valueText="Not available", summary=summary)
     points = row["points"]
@@ -90,7 +92,7 @@ def factor(row, group):
     else:
         reason = REASONS.get(metric, ("Supports the assessment.", "Holds back the assessment."))[bucket == "cons"]
     if cagr_years and row.get("value") is not None:
-        subject = "revenue" if metric == "SALES_CAGR" else "profit"
+        subject = "sales" if metric == "SALES_CAGR" else "profit"
         quality = {"pros": "Strong", "cons": "Weak", "mixed": "Moderate"}[bucket]
         reason = f"{quality} {subject} growth over the {cagr_years}-year period."
     if row.get("value") is None:
@@ -123,10 +125,6 @@ def factor(row, group):
         reason = f"The current operating margin is {info['opMarginNow']:.2f}%; margin improvement provides no support until the margin turns positive."
     if state == "S":
         reason += " Industry data is used because company history is unavailable."
-    if group in ("BANK", "NBFC") and metric.startswith("SALES"):
-        reason = reason.replace("revenue", "net interest income").replace("Revenue", "Net interest income")
-    elif group == "INSURANCE" and metric.startswith("SALES"):
-        reason = reason.replace("revenue", "net premium income").replace("Revenue", "Net premium income")
     if row.get("fallbackFor") == "PE_VS_INDUSTRY":
         reason += " Company history is used because the industry P/E benchmark is unavailable."
     if row.get("fallbackFor") == "PB_VS_INDUSTRY":
@@ -152,7 +150,7 @@ def loss_review_note(rating):
         elif tier.startswith("persistent"):
             reason += f", with losses in {loss['lossYears3']} of the last {loss['years3']} financial years"
         if tier.endswith("deep"):
-            reason += f"; the net loss is {abs(loss['netMarginPct']):.1f}% of revenue"
+            reason += f"; the net loss is {abs(loss['netMarginPct']):.1f}% of sales"
     return f"The Fundamental score is limited to {loss['cap']:g}/100 because {reason}."
 
 
@@ -235,6 +233,8 @@ def build_report_review(report):
         notes.append("The industry P/B comparison is unavailable; the Valuation assessment uses return on equity instead.")
     if any(row.get("fallbackFor") == "CAPITAL_ADEQUACY" for row in rating["metrics"]):
         notes.append("Capital adequacy is unavailable; the Quality assessment uses interest coverage instead.")
+    if any(row['metric']=='FINANCIAL_LEVERAGE' for row in rating['metrics']):
+        notes.append("Insurance financial leverage uses assets divided by equity. Its 5x–20x scoring range is provisional, pending calibration against insurers' historical data.")
     missing = [r["label"] for p in parts for r in p["unavailable"]]
     if missing: notes.append("Unavailable information: " + ", ".join(missing) + ". Estimates are not presented as company strengths or weaknesses.")
     for warning in report.get("warnings", []):
