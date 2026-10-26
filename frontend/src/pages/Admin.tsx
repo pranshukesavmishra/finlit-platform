@@ -1,37 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ContentItem } from "../lib/siteApi";
 import { useAuth } from "../lib/auth";
-import { apiSend } from "../lib/api";
-import { ApiError, apiUrl } from "../lib/api";
+import { ApiError } from "../lib/api";
+import { adminFetch, buildPayload, draftFrom, filterItems, type AdminItem, hasSession, KEY, KINDS, openCms, REJECTED, type Filters } from "../lib/cms";
 import { dateIN } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
-
-// Admin session: same model as the current site (bearer token in sessionStorage, 8 h, signature checked by the server).
-// The platform plan replaces this with real accounts, passkeys and server-side sessions.
-const KEY = "cms_admin_token";
-const REJECTED = "cms_token_rejected";   // when the content service refused a token a moment ago: do not ask for another one in a loop
-const token = () => { try { return sessionStorage.getItem(KEY); } catch { return null; } };
-const hasSession = () => { const t = token(); if (!t) return false; try { const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.role === "admin" && p.exp * 1000 > Date.now(); } catch { return false; } };
-
-async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(apiUrl(path), { ...init, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token()}`, ...(init.headers || {}) } });
-  if (res.status === 401) { try { sessionStorage.removeItem(KEY); sessionStorage.setItem(REJECTED, String(Date.now())); } catch { /* ignore */ } throw new ApiError(401, { detail: "Your session expired. Please sign in again." }); }
-  const text = await res.text(); let data: any = {}; try { data = text ? JSON.parse(text) : {}; } catch { /* ignore */ }
-  if (!res.ok) throw new ApiError(res.status, { detail: typeof data.detail === "string" ? data.detail : "Request failed." });
-  return data as T;
-}
-
-/** Administrators sign in once, on the normal sign-in page. This exchanges that session for the CMS token, then opens the tools. */
-async function openCms(): Promise<{ ok: true } | { ok: false; why: "mfa" | "not_configured" | "other" }> {
-  try { const r = await apiSend<{ token: string }>("POST", "/api/me/cms-token"); sessionStorage.setItem(KEY, r.token); return { ok: true }; }
-  catch (e) {
-    const status = e instanceof ApiError ? String((e.body as { status?: string; detail?: { status?: string } })?.status ?? (e.body as { detail?: { status?: string } })?.detail?.status ?? "") : "";
-    return { ok: false, why: status === "mfa_required" || status === "mfa_setup_required" ? "mfa" : status === "cms_not_configured" ? "not_configured" : "other" };
-  }
-}
+import "../styles/cms.css";
 
 export function AdminLogin() {
   useDocTitle("Admin");
@@ -54,7 +31,7 @@ export function AdminLogin() {
 export function Admin() {
   useDocTitle("Admin");
   const nav = useNavigate(); const qc = useQueryClient(); const { toast } = useUI();
-  const [form, setForm] = useState({ title: "", excerpt: "", body: "" });
+  const [f, setF] = useState<Filters>({ q: "", status: "ALL", kind: "ALL" });
   const { ready, user } = useAuth();
   useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
@@ -63,28 +40,28 @@ export function Admin() {
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-content"] });
   const toggle = useMutation({
-    mutationFn: (c: ContentItem) => adminFetch(`/api/content/admin/items/${c.id}`, { method: "PUT", body: JSON.stringify({ title: c.title, slug: c.slug, excerpt: c.excerpt, contentType: c.contentType, articleBody: c.articleBody || "", articleFormat: (c as any).articleFormat || "HTML", author: c.author, status: c.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED", fileKey: c.fileKey || undefined, coverImageKey: c.coverImageKey || undefined, coverImageUrl: c.coverImageUrl || undefined }) }),
+    mutationFn: (c: ContentItem) => adminFetch(`/api/content/admin/items/${c.id}`, { method: "PUT", body: JSON.stringify(buildPayload({ ...draftFrom(c as AdminItem), status: c.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED" }, c.slug)) }),
     onSuccess: () => { refresh(); toast("Updated."); }, onError: (e: Error) => toast(e.message),
   });
   const del = useMutation({ mutationFn: (id: string) => adminFetch(`/api/content/admin/items/${id}`, { method: "DELETE" }), onSuccess: () => { refresh(); toast("Deleted."); }, onError: (e: Error) => toast(e.message) });
-  const create = useMutation({
-    mutationFn: () => adminFetch("/api/content/admin/items", { method: "POST", body: JSON.stringify({ title: form.title, excerpt: form.excerpt, contentType: "ARTICLE", articleFormat: "HTML", articleBody: form.body.split(/\n{2,}/).map((p) => `<p>${p.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string))}</p>`).join(""), status: "DRAFT" }) }),
-    onSuccess: () => { setForm({ title: "", excerpt: "", body: "" }); refresh(); toast("Draft created."); }, onError: (e: Error) => toast(e.message),
-  });
+  const shown = useMemo(() => filterItems(list.data || [], f), [list.data, f]);
   return (
     <section className="sec"><div className="wrap">
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}><h1 style={{ font: "300 40px var(--serif)", margin: 0 }}>Research publishing</h1>
         <div style={{ display: "flex", gap: 8 }}><Link className="btn" to="/blog">View blog</Link><button className="btn" onClick={() => { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } nav("/console"); }}>Back to console</button></div></div>
-      <div className="grid g2">
-        <div className="card"><div className="card-h"><h3>Content</h3><span className="s">{list.data?.length ?? 0} items</span></div>
-          <div className="tw"><table className="admin-t"><thead><tr><th>Title</th><th>Status</th><th>Updated</th><th /></tr></thead>
-            <tbody>{(list.data || []).map((c) => <tr key={c.id}><td><b>{c.title}</b><div className="faint" style={{ fontSize: 12 }}>{c.contentType}</div></td><td><span className={"chip " + (c.status === "PUBLISHED" ? "up" : "ghost")}>{c.status === "PUBLISHED" ? "Published" : "Draft"}</span></td><td>{c.updatedAt ? dateIN(c.updatedAt) : ""}</td>
-              <td style={{ whiteSpace: "nowrap" }}><button className="btn" style={{ height: 34 }} onClick={() => toggle.mutate(c)}>{c.status === "PUBLISHED" ? "Unpublish" : "Publish"}</button> <button className="btn" style={{ height: 34, color: "var(--loss)" }} onClick={() => { if (confirm(`Delete “${c.title}”? This cannot be undone.`)) del.mutate(c.id); }}>Delete</button></td></tr>)}</tbody></table></div></div>
-        <div className="card"><form className="form" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}><div className="card-h"><h3>New article</h3></div>
-          <label>Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required minLength={3} /></label>
-          <label>Excerpt<input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} maxLength={500} /></label>
-          <label>Body (blank line = new paragraph)<textarea rows={8} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} required /></label>
-          <button className="btn primary" disabled={create.isPending}>Save draft</button></form></div>
+      <div className="card cms-list"><div className="card-h"><h3>Posts</h3><span className="s">{shown.length === (list.data?.length ?? 0) ? `${shown.length} items` : `${shown.length} of ${list.data?.length ?? 0}`}</span><Link className="btn primary" to="/admin/posts/new">New post</Link></div>
+        <div className="filters cms-filters">
+          <input className="sbox" type="search" placeholder="Search title, summary, tags" aria-label="Search posts" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
+          <label className="cms-sel">Status<select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as Filters["status"] })}><option value="ALL">All</option><option value="DRAFT">Drafts</option><option value="PUBLISHED">Published</option></select></label>
+          <label className="cms-sel">Kind<select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as Filters["kind"] })}><option value="ALL">All</option>{KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}</select></label>
+          {(f.q || f.status !== "ALL" || f.kind !== "ALL") && <button className="btn" onClick={() => setF({ q: "", status: "ALL", kind: "ALL" })}>Clear</button>}</div>
+        {list.isLoading && <div className="skeleton" style={{ height: 120 }} />}
+        {list.isError && <div className="formerr" role="alert">Could not load the posts.</div>}
+        {!list.isLoading && !list.isError && !shown.length && <p className="muted" style={{ padding: "8px 16px" }}>{list.data?.length ? "No posts match these filters." : "No posts yet. Start with New post."}</p>}
+        {shown.length > 0 && <div className="tw"><table className="admin-t"><thead><tr><th>Title</th><th>Status</th><th>Updated</th><th /></tr></thead>
+          <tbody>{shown.map((c) => <tr key={c.id}><td><Link to={`/admin/posts/${c.id}`}><b>{c.title}</b></Link><div className="faint" style={{ fontSize: 12 }}>{KINDS.find((k) => k.kind === c.contentType)?.label || c.contentType}{(c as AdminItem).category ? ` · ${(c as AdminItem).category}` : ""}</div></td>
+            <td><span className={"chip " + (c.status === "PUBLISHED" ? "up" : "ghost")}>{c.status === "PUBLISHED" ? "Published" : "Draft"}</span></td><td>{c.updatedAt ? dateIN(c.updatedAt) : ""}</td>
+            <td className="cms-rowacts"><Link className="btn" to={`/admin/posts/${c.id}`} aria-label={`Edit ${c.title}`}>Edit</Link> <Link className="btn" to={`/admin/posts/${c.id}/preview`} aria-label={`Preview ${c.title}`}>Preview</Link> <button className="btn" onClick={() => toggle.mutate(c)} aria-label={`${c.status === "PUBLISHED" ? "Unpublish" : "Publish"} ${c.title}`}>{c.status === "PUBLISHED" ? "Unpublish" : "Publish"}</button> <button className="btn danger" aria-label={`Delete ${c.title}`} onClick={() => { if (confirm(`Delete “${c.title}”? This cannot be undone.`)) del.mutate(c.id); }}>Delete</button></td></tr>)}</tbody></table></div>}
       </div>
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Contact messages</h3><span className="s">{leads.data?.length ?? 0}</span></div>
         <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th></tr></thead>
