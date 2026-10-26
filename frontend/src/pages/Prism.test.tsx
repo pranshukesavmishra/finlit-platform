@@ -13,7 +13,7 @@ vi.mock("../lib/prism", async (orig) => {
     ...m,
     useLatestPrism: () => ({ data: state.latest, isLoading: false, isError: false, refetch: () => undefined }),
     useGeneratePrism: () => ({ mutate: () => undefined, isPending: false, isError: false }),
-    usePrismStatus: () => ({ data: { name: "FinLit Prism", available: true, reason: null, modelVersion: "3.6.9" } }),
+    usePrismStatus: () => ({ data: { name: "FinLit Prism", available: true, reason: null, modelVersion: "3.6.10" } }),
   };
 });
 vi.mock("../lib/premium", () => ({ useGold: () => state.gold, useSlashFocus: () => undefined, pushRecent: () => undefined, readRecent: () => [] }));
@@ -42,10 +42,10 @@ describe("Prism report", () => {
     expect(t).toContain("Rated");
     expect(t).toContain("100% of inputs available");
     expect(t).toContain("not a probability");
-    expect(t).toContain("Model 3.6.9");
+    expect(t).toContain("Model 3.6.10");
     for (const name of ["Fundamentals", "Valuation", "Quality", "Risk"]) expect(t).toContain(name);
     expect(t).toContain("40% of the overall score");
-    expect(t).toContain("Technical part coming soon");
+    expect(t).toContain("Technical view: separate from this score");
     expect(t).toContain("All applicable factors have usable inputs");
     for (const k of ["Fundamentals", "Valuation", "Quality", "Risk"]) expect(html).toContain(`aria-label="${k} factors"`);
     for (const w of ["Strengths", "Concerns", "Estimated or missing", "What moved the score"]) expect(t).toContain(w);

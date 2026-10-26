@@ -12,6 +12,12 @@ describe("Prism stylesheets", () => {
     const a = classes(read("./prism.css")), b = new Set([...classes(read("./prism-compare.css")), ...classes(read("./dash-shared.css"))]);
     expect([...b].filter((c) => a.has(c))).toEqual([]);
   });
+  it("prism-technical.css (pzt-) shares no class name with the other Prism stylesheets", () => {
+    const t = classes(read("./prism-technical.css")), others = new Set([...classes(read("./prism.css")), ...classes(read("./prism-compare.css")), ...classes(read("./dash-shared.css"))]);
+    expect(t.size).toBeGreaterThan(40);
+    expect([...t].filter((c) => others.has(c))).toEqual([]);
+    expect([...t].filter((c) => !c.startsWith(".pzt-"))).toEqual([]);
+  });
   it("the stock page's Prism cards cannot widen the page at 360 px (spectrum cards use shrinkable grid columns)", () => {
     const css = read("./stock2.css");
     expect(css).toMatch(/\.spc, \.spc-bar \{ grid-template-columns: minmax\(0, 1fr\); \}/);

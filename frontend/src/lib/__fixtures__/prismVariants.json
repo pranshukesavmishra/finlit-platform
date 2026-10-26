@@ -13,7 +13,7 @@
    "description": "A fictional manufacturer used to illustrate FinLit Prism."
   },
   "rating": {
-   "modelVersion": "3.6.9",
+   "modelVersion": "3.6.10",
    "baselineVersion": "3.6.1-simple",
    "fillVersion": "2026-10-14",
    "group": "MFG",
@@ -1552,7 +1552,7 @@
    "description": "A fictional manufacturer used to illustrate FinLit Prism."
   },
   "rating": {
-   "modelVersion": "3.6.9",
+   "modelVersion": "3.6.10",
    "baselineVersion": "3.6.1-simple",
    "fillVersion": "2026-10-14",
    "group": "MFG",

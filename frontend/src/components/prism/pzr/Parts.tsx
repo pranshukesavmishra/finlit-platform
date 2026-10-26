@@ -1,4 +1,4 @@
-// The part cards (one per part in the data, a quiet note when Technical is not there yet) and the "what moved the score" chart.
+// The part cards (one per part in the data, and a quiet note that the technical view is separate) and the "what moved the score" chart.
 import { useState } from "react";
 import { nf } from "../../../lib/format";
 import {
@@ -6,6 +6,7 @@ import {
   type PartKey, type PrismMetric, type PrismReport, type PrismReview, type ReviewPart,
 } from "../../../lib/prism";
 import { THRESHOLDS, bandLabel, capNotes, contributionTotal, contributions, partVar, topFactors } from "../../../lib/prismReport";
+import { parseTechnical } from "../../../lib/prismTechnical";
 import { ChartTable, ShowTable } from "../PrismCharts";
 
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -75,7 +76,7 @@ export function PartCards({ report, review }: { report: PrismReport; review: Pri
       {!isRated(report.rating) && <p className="pzr-withheld">Category scores are withheld because the company is not rated.</p>}
       <div className="pzr-parts">
         {keys.map((k, i) => <PartCard key={k} k={k} index={i} report={report} review={review} rows={report.rating.metrics.filter((m) => m.part === k)} />)}
-        {!keys.includes("technical") && <div className="pzr-part soon" role="note"><b>Technical part coming soon</b><span>Price trend and momentum signals. Not part of today's score; no number is shown until the model includes it.</span></div>}
+        {!keys.includes("technical") && <div className="pzr-part soon" role="note"><b>Technical view: separate from this score</b><span>{parseTechnical(report.technicalAssessment) ? "Short-term and long-term price trend. It is calculated on its own, is not a part of the score above and never changes it. See the Technical view below." : "Short-term and long-term price trend. It is not a part of the score above. This stored report does not include it; recalculate to add it."}</span></div>}
       </div>
     </section>
   );

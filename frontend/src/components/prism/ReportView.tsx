@@ -7,6 +7,8 @@ import { FactorExplorer } from "./pzr/Factors";
 import { Health, Peers } from "./pzr/Health";
 import { HistoryCharts, HistoryTables } from "./pzr/History";
 import { PartCards, Waterfall } from "./pzr/Parts";
+import { Technical, TechPointer } from "./pzr/Technical";
+import "../../styles/prism-technical.css";
 import type { PrismReport } from "../../lib/prism";
 
 export { istTime, LabelChip, StatusChip };
@@ -34,9 +36,11 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       {legacy && (
         <div className="pzr-caution" role="note"><Icon name="info" /><span>This stored report predates the reader commentary. <button type="button" className="pzr-link pzr-noprint" onClick={actions.onRecalculate}>Recalculate</button> for the full review.</span></div>
       )}
+      <TechPointer report={report} />
       <PartCards report={report} review={review} />
       <Waterfall report={report} />
       <FactorExplorer report={report} review={review} />
+      <Technical report={report} onRecalculate={actions.onRecalculate} />
       <section className="pzr-sec" aria-labelledby="pzr-h-hist">
         <header className="pzr-sh"><h3 id="pzr-h-hist">Financial history</h3><p>From the company's filings, on the same statement basis as the score.</p></header>
         <HistoryCharts report={report} />

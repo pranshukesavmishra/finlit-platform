@@ -16,6 +16,8 @@ export type PrismLatest = {
   rating: { final: number | null; label: PrismLabel; status: PrismStatus; parts: Partial<Record<PrismPart | "technical", number | null>>; partWeights?: Partial<Record<PrismPart | "technical", number>>; confidence: number; modelVersion?: string };
   review?: { parts?: { key: string; name: string; pros?: PrismReviewItem[]; cons?: PrismReviewItem[]; unavailable?: PrismReviewItem[]; notes?: string[] }[]; notes?: string[]; completeness?: { complete: boolean; missingFactorCount: number; limitedHistoryCount: number; items: { label: string; reason: string; treatment: string }[] } };
   pdfAvailableUntil?: string | null;
+  /** The independent short-term / long-term technical assessment (not a part of the score). Absent from older reports; read it with parseTechnical. */
+  technicalAssessment?: unknown;
 };
 export type PrismCardState = { kind: "report"; report: PrismLatest } | { kind: "none" } | { kind: "locked" } | { kind: "hidden" };
 

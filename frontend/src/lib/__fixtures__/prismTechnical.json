@@ -1,0 +1,1121 @@
+{
+ "ready": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 700,
+  "usableDailyBars": 700,
+  "fresh": true,
+  "shortTerm": {
+   "score": 63.541666666666664,
+   "rating": "Strong Buy",
+   "status": "ready",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 233.19 / 229.04 / 218.71; ADX 46.6."
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Close 236.45; EMA 20 229.04, rising over three sessions; ADX 46.6."
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "MACD 5.17; signal 5.08; histogram rising."
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Daily RSI (14): 69.0; bullish price regime."
+    },
+    {
+     "key": "obv",
+     "label": "Buying and selling volume",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV is above its 20-day EMA."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 98.4; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: 1.84 ATR above EMA 20."
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "5/5 upward EMA touches; 2/5 downward touches; 2 constructive small-body candles."
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility."
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.00%; no directional gap signal."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No directional candle signal."
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 0.5% / 3.9%."
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Overlapping value area; point of control is higher."
+    }
+   ],
+   "horizon": "5–20 sessions"
+  },
+  "longTerm": {
+   "score": 65.21739130434783,
+   "rating": "Strong Buy",
+   "status": "ready",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Stage 2: established advance."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 100.0; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "RS line at 52-week high; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +26.1% from EMA 200."
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "0 of the last three sessions exceeded 1.2 times their 50-day average volume."
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral."
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions."
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 218.71; EMA 200: 187.52."
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 76.1."
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week MACD 17.02; signal 14.58."
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 236.45 / 135.52."
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is above its 150-day EMA."
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 204.72; EMA 200: 187.52."
+    }
+   ],
+   "horizon": "6–18 months"
+  },
+  "verdict": {
+   "label": "STRONG BUY",
+   "tone": "positive"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 2,
+   "freshStage2": false,
+   "slope150Pct": 14.342814969436123,
+   "benchmark": "Nifty Midcap 100",
+   "benchmarksUsed": [
+    "Nifty Midcap 100"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 98.41269841269842,
+   "rsRatingLT": 100.0
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  }
+ },
+ "incomplete": {
+  "modelVersion": "st-lt-14.3",
+  "status": "incomplete",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 300,
+  "usableDailyBars": 300,
+  "fresh": true,
+  "shortTerm": {
+   "score": -8.333333333333334,
+   "rating": "Hold",
+   "status": "ready",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 139.27 / 139.51 / 138.36; ADX 12.6."
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Close 136.19; EMA 20 139.51, flat or falling over three sessions; ADX 12.6."
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "MACD 0.16; signal 0.75; histogram flat or falling."
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Daily RSI (14): 42.6; bullish price regime."
+    },
+    {
+     "key": "obv",
+     "label": "Buying and selling volume",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV is at or below its 20-day EMA."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 27.8; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: -1.34 ATR above EMA 20."
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "1/5 upward EMA touches; 3/5 downward touches; 0 constructive small-body candles."
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility."
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.54%; no directional gap signal."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No directional candle signal."
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 7.2% / 3.9%."
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Overlapping value area; point of control is higher."
+    }
+   ],
+   "horizon": "5–20 sessions"
+  },
+  "longTerm": {
+   "score": null,
+   "rating": "Unavailable",
+   "status": "incomplete",
+   "availableCount": 12,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Stage 2: established advance."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": null,
+     "status": "unavailable",
+     "detail": "Aligned stock and benchmark history is insufficient for the beta-adjusted relative strength percentile."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +5.3% from EMA 200."
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "0 of the last three sessions exceeded 1.2 times their 50-day average volume."
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Major swing failure: bearish, confirmed."
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions."
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 138.36; EMA 200: 129.29."
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 61.0."
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week MACD 4.39; signal 4.73."
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 146.16 / 106.14."
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is above its 150-day EMA."
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 135.44; EMA 200: 129.29."
+    }
+   ],
+   "horizon": "6–18 months"
+  },
+  "verdict": {
+   "label": "Unavailable",
+   "tone": "muted"
+  },
+  "notes": [
+   "An assessment is unavailable where required price or benchmark history is missing. Missing signals are listed below.",
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 2,
+   "freshStage2": false,
+   "slope150Pct": 6.1879336500362925,
+   "benchmark": "Nifty Midcap 100",
+   "benchmarksUsed": [
+    "Nifty Midcap 100",
+    "Nifty Smallcap 100"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 27.77777777777778,
+   "rsRatingLT": null
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  }
+ },
+ "capped": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 700,
+  "usableDailyBars": 700,
+  "fresh": true,
+  "shortTerm": {
+   "score": 43.75,
+   "rating": "Buy",
+   "status": "ready",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 140.69 / 137.83 / 130.90; ADX 45.8."
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Close 140.17; EMA 20 137.83, rising over three sessions; ADX 45.8."
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "MACD 4.05; signal 4.67; histogram flat or falling."
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Daily RSI (14): 66.2; bullish price regime."
+    },
+    {
+     "key": "obv",
+     "label": "Buying and selling volume",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV is above its 20-day EMA."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 92.1; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: 0.99 ATR above EMA 20."
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "5/5 upward EMA touches; 5/5 downward touches; 2 constructive small-body candles."
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility."
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: +0.74%; no directional gap signal."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No directional candle signal."
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 2.8% / 3.9%."
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Value area entirely above the preceding swing."
+    }
+   ],
+   "horizon": "5–20 sessions"
+  },
+  "longTerm": {
+   "score": 19,
+   "rating": "Hold",
+   "status": "ready",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": true,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Stage 4: declining."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 92.5; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +11.1% from EMA 200."
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "0 of the last three sessions exceeded 1.2 times their 50-day average volume."
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral."
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions."
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 130.90; EMA 200: 126.21."
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 66.4."
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week MACD 2.66; signal -0.47."
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 143.80 / 113.66."
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is above its 150-day EMA."
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 127.11; EMA 200: 126.21."
+    }
+   ],
+   "horizon": "6–18 months"
+  },
+  "verdict": {
+   "label": "BUY",
+   "tone": "positive"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 4,
+   "freshStage2": false,
+   "slope150Pct": -1.5709963407486427,
+   "benchmark": "Nifty Midcap 100",
+   "benchmarksUsed": [
+    "Nifty Midcap 100"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 92.06349206349206,
+   "rsRatingLT": 92.46031746031746
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  }
+ },
+ "mixed": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 700,
+  "usableDailyBars": 700,
+  "fresh": true,
+  "shortTerm": {
+   "score": -35.416666666666664,
+   "rating": "Reduce",
+   "status": "ready",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": -0.75,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 202.33 / 205.46 / 207.83; ADX 24.4."
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": -0.75,
+     "status": "available",
+     "detail": "Close 200.95; EMA 20 205.46, flat or falling over three sessions; ADX 24.4."
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "MACD -3.45; signal -3.14; histogram rising."
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Daily RSI (14): 39.3; bullish price regime."
+    },
+    {
+     "key": "obv",
+     "label": "Buying and selling volume",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV is at or below its 20-day EMA."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 20.6; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: -1.26 ATR above EMA 20."
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "3/5 upward EMA touches; 5/5 downward touches; 2 constructive small-body candles."
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility."
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.46%; no directional gap signal."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "Strong bullish candle."
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 8.5% / 3.9%."
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Value area entirely below the preceding swing."
+    }
+   ],
+   "horizon": "5–20 sessions"
+  },
+  "longTerm": {
+   "score": 22.82608695652174,
+   "rating": "Buy",
+   "status": "ready",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Stage 2: established advance."
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 3.2; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty Midcap 100."
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +3.7% from EMA 200."
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "0 of the last three sessions exceeded 1.2 times their 50-day average volume."
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral."
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions."
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 207.83; EMA 200: 193.71."
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 52.1."
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week MACD 7.27; signal 8.82."
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 223.45 / 158.99."
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is above its 150-day EMA."
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 203.95; EMA 200: 193.71."
+    }
+   ],
+   "horizon": "6–18 months"
+  },
+  "verdict": {
+   "label": "BUY THE DIP, WAIT FOR ST TURN",
+   "tone": "positive"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 2,
+   "freshStage2": false,
+   "slope150Pct": 8.464660831828086,
+   "benchmark": "Nifty Midcap 100",
+   "benchmarksUsed": [
+    "Nifty Midcap 100",
+    "Nifty Smallcap 100"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 20.634920634920636,
+   "rsRatingLT": 3.1746031746031744
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 700
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  }
+ }
+}

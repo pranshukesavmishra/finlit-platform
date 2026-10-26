@@ -20,7 +20,7 @@ import { PRISM_NOTE, PRISM_POINTS } from "./prismWords";
 
 const REPORT: PrismLatest = {
   id: "a".repeat(32), createdAt: "2026-10-20T09:00:00Z", completedAt: "2026-10-20T09:01:00Z", statementType: "consolidated", company: { symbol: "TCS", name: "Tata Consultancy Services" },
-  rating: { final: 71.26, label: "HEALTHY", status: "PROVISIONAL", parts: { fundamental: 78.4, valuation: 52, quality: 81, risk: null }, confidence: 0.764, modelVersion: "3.6.9" },
+  rating: { final: 71.26, label: "HEALTHY", status: "PROVISIONAL", parts: { fundamental: 78.4, valuation: 52, quality: 81, risk: null }, confidence: 0.764, modelVersion: "3.6.10" },
   review: { parts: [
     { key: "fundamental", name: "Fundamentals", pros: [{ metric: "PROFIT_CAGR", label: "Profit growth over years", valueText: "14%", summary: "Profit has compounded steadily." }, { metric: "A", label: "Second pro", valueText: "", summary: "s" }, { metric: "B", label: "Third pro", valueText: "", summary: "s" }], cons: [{ metric: "MARGIN_CHANGE", label: "Margin change", valueText: "-2 pp", summary: "Margins slipped." }] },
     { key: "valuation", name: "Valuation", pros: [], cons: [{ metric: "PE_REL", label: "P/E against industry", valueText: "1.4x", summary: "Priced above its industry." }] },
@@ -62,8 +62,8 @@ describe("FinLit Prism card", () => {
     expect(t).not.toContain("Third pro");
     expect(t).toContain("Priced above its industry.");
     expect(t).toContain("Recalculate");
-    expect(t).toContain("Technical: coming soon");   // no technical part yet, and no invented number
-    expect(html).toContain('class="dk-soon"');   // a slim inline chip, not a tile
+    expect(t).toContain("Technical view: recalculate to add");   // an older stored report: a quiet line, no invented number
+    expect(t).not.toContain("coming soon");
     expect(html.match(/class="dk-tile"/g)).toHaveLength(4);
     expect(html).toContain('href="/prism/TCS"');
     expect(t).toContain("Open the full Prism report");

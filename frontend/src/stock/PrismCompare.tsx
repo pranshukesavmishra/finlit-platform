@@ -15,6 +15,7 @@ import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { PrismGlyph } from "../components/prism/shared/PrismGlyph";
 import { LABEL, STATUS, fmtScore, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
 import { PRISM_NOTE, PRISM_PARTS, PRISM_POINTS } from "./prismWords";
+import { PrismTechRow } from "./PrismTechRow";
 import "../styles/prism-compare.css";
 
 const STATUS_NOTE: Record<PrismLatest["rating"]["status"], string> = {
@@ -84,7 +85,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
     </div>
   );
   const rep = state.report, r = rep.rating, rated = r.status !== "NOT RATED" && r.final != null, [word, tone] = LABEL[r.label];
-  const { parts, technicalSoon } = partsOf(r);
+  const { parts } = partsOf(r);
   return (
     <>
       <div className="dk-row" role="group" aria-label={prismSummary(r)}>
@@ -92,10 +93,11 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
         <div className="dk-words">
           <div className="dk-chips"><span className={"dk-st big " + tone}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span>{rated && <span className="dk-sc">{fmtScore(r.final as number)} out of 100</span>}</div>
           <p className={"dk-note" + (r.status === "RATED" ? " ok" : "")}>{STATUS_NOTE[r.status]}</p>
-          <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link>{technicalSoon && <span className="dk-soon" title="The model has no technical part yet, so no technical score is shown.">Technical: coming soon</span>}</p>
+          <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
         </div>
       </div>
       <Tiles r={r} />
+      <PrismTechRow report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
       <Notes r={rep} symbol={symbol} />
       <div className="dk-foot">
         <span className="dk-date"><Icon name="calendar" />Calculated {dateIN(rep.completedAt || rep.createdAt)}</span>
