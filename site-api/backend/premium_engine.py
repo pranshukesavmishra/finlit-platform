@@ -13,7 +13,7 @@ try:
         MODEL_VERSION, BASELINE_VERSION, FILL_VERSION, RATING_BANDS,
         QUARTERS_STORED, QUARTERS_JUDGED, POINTS_PER_GOOD_QUARTER,
         MISS_PENALTY, STREAK_MAGNITUDE_SHARE, PROFIT_TURNAROUND_POINTS,
-        LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE,
+        LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE, FL_NOT_MEANINGFUL_BELOW,
         PEG_CORE_GROUPS, PEG_MIN_PROFIT_STREAK, PEG_GROWTH_CAP,
         PROVISIONAL_BELOW, NOT_RATED_BELOW, PROVISIONAL_MIN_QUARTERS,
         FLAG_RED, FLAG_GREEN, PLEDGE_ALERT, VALUE_TRAP,
@@ -27,7 +27,7 @@ except ImportError:
         MODEL_VERSION, BASELINE_VERSION, FILL_VERSION, RATING_BANDS,
         QUARTERS_STORED, QUARTERS_JUDGED, POINTS_PER_GOOD_QUARTER,
         MISS_PENALTY, STREAK_MAGNITUDE_SHARE, PROFIT_TURNAROUND_POINTS,
-        LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE,
+        LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE, FL_NOT_MEANINGFUL_BELOW,
         PEG_CORE_GROUPS, PEG_MIN_PROFIT_STREAK, PEG_GROWTH_CAP,
         PROVISIONAL_BELOW, NOT_RATED_BELOW, PROVISIONAL_MIN_QUARTERS,
         FLAG_RED, FLAG_GREEN, PLEDGE_ALERT, VALUE_TRAP,
@@ -257,7 +257,12 @@ def score_company(d, group):
         put("NETWORTH_GROWTH", (value - 1) * 100 if value is not None else None)
         put("SOLVENCY", d.get("solvency_ratio"))
         ta = num(annual_assets)   # financial leverage = total assets / book equity (the equity multiplier); replaces interest cover for insurers
-        put("FINANCIAL_LEVERAGE", ta / nw if ta is not None and nw is not None and nw > 0 and ta > 0 else None, explicit_points=0. if nw is not None and nw <= 0 else None)
+        fl = ta / nw if ta is not None and nw is not None and nw > 0 and ta > 0 else None
+        if fl is not None and fl < FL_NOT_MEANINGFUL_BELOW:
+            statuses["FINANCIAL_LEVERAGE"] = "N"
+            details["FINANCIAL_LEVERAGE"] = {"note": f"Reported assets are under {FL_NOT_MEANINGFUL_BELOW:g} times equity, which leaves out policyholder funds, so leverage is not meaningful here"}
+        else:
+            put("FINANCIAL_LEVERAGE", fl, explicit_points=0. if nw is not None and nw <= 0 else None)
         value = ratio(annual_profit, annual_nw)
         put("ROE", value * 100 if value is not None else None, explicit_points=0. if annual_nw is not None and annual_nw <= 0 else None)
     else:

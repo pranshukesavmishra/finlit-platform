@@ -72,7 +72,7 @@ GROUPS = {
     "INSURANCE": group(F_INSURER, {"FINANCIAL_LEVERAGE": 50, "ROE": 50},
                        {"PB_VS_INDUSTRY": 50, "PE_VS_INDUSTRY": 25, "PB_VS_HISTORY": 25, "PEG": 20},
                        {"SALES_GROWTH": (5, 20), "PROFIT_GROWTH": (0, 20), "NETWORTH_GROWTH": (5, 20),
-                        "SOLVENCY": (1.5, 2.2), "FINANCIAL_LEVERAGE": (20, 6), "ROE": (8, 18)}),   # leverage: (0 points at, 100 points at) times, lower is better; insurers have no meaningful interest cover
+                        "SOLVENCY": (1.5, 2.2), "FINANCIAL_LEVERAGE": (35, 15), "ROE": (8, 18)}),   # leverage: (0 points at, 100 points at) times, lower is better; measured on live data: life insurers sit at about 21-33x on provider assets; insurers have no meaningful interest cover
 }
 
 POINTS_PER_GOOD_QUARTER = 10
@@ -85,6 +85,7 @@ CAGR_MIN_YEARS = 1              # At least two consecutive annual observations.
 PROFIT_TURNAROUND_POINTS = 70   # v3.6: only when the latest figure is a profit
 LOSS_NARROWED_POINTS = 30       # v3.6: still a loss, but smaller than before
 CASH_LOSS_POINTS = {"cash_positive": 50, "cash_negative": 0}   # v3.6: cash conversion when 3-year profit <= 0
+FL_NOT_MEANINGFUL_BELOW = 3.0   # insurers: below this the provider's asset figure leaves out policyholder funds (general insurers show about 1-1.6x), so leverage is not meaningful and is dropped
 IC_NOT_APPLICABLE_DE = 0.1      # v3.6: interest cover is dropped when debt/equity is below this
 PEG_CORE_GROUPS = ("LIGHT", "MFG")    # PEG always used (when P/E exists)
 # v3.6 fill for a metric with no data: the lower of the group median and 50 (FILL_DEFAULT).

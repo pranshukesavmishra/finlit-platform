@@ -160,11 +160,11 @@ def ins(**kw):
 
 
 def test_insurer_quality_uses_financial_leverage_not_interest_cover():
-    d=ins();result=score_company(d,'INSURANCE');r={x['metric']:x for x in result['metrics']}
+    d=ins(total_assets=2500);result=score_company(d,'INSURANCE');r={x['metric']:x for x in result['metrics']}
     assert 'INTEREST_COVER' not in r and 'SOLVENCY' not in r
     lev=r['FINANCIAL_LEVERAGE']
-    assert lev['value']==pytest.approx(10) and lev['unit']=='x' and (lev['worst'],lev['best'])==(20,6)
-    assert lev['points']==pytest.approx(100*(20-10)/(20-6)) and lev['status']=='A'
+    assert lev['value']==pytest.approx(25) and lev['unit']=='x' and (lev['worst'],lev['best'])==(35,15)
+    assert lev['points']==pytest.approx(100*(35-25)/(35-15)) and lev['status']=='A'
     assert lev['weight']==50 and r['ROE']['weight']==50
     review=build_report_review({'rating':result,'inputMeta':{},'statementType':'consolidated'})
     item=next(i for b in ['pros','cons','mixed'] for i in review['parts'][2][b] if i['metric']=='FINANCIAL_LEVERAGE')
@@ -173,9 +173,15 @@ def test_insurer_quality_uses_financial_leverage_not_interest_cover():
     assert sum(i['pointsEarned'] for i in result['metrics'])-result['capPointsLost']==pytest.approx(result['final'])
 
 
-@pytest.mark.parametrize('assets,points',[(2000,0),(3000,0),(600,100),(400,100)])
+@pytest.mark.parametrize('assets,points',[(4000,0),(3500,0),(1500,100),(500,100)])
 def test_insurer_financial_leverage_scale_ends(assets,points):
     assert rows(ins(total_assets=assets),'INSURANCE')['FINANCIAL_LEVERAGE']['points']==points
+
+
+@pytest.mark.parametrize('assets',[200,250])
+def test_insurer_leverage_under_three_times_is_not_meaningful_and_dropped(assets):
+    lev=rows(ins(total_assets=assets),'INSURANCE')['FINANCIAL_LEVERAGE']
+    assert lev['status']=='N' and 'policyholder' in str(lev.get('note') or lev.get('detail') or lev).lower()
 
 
 @pytest.mark.parametrize('equity',[0,-50])
