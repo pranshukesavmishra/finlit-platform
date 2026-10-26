@@ -62,6 +62,7 @@ FAIL_SECONDS = 30                  # how long a failed calculation's answer is h
 STATUS_SECONDS = 60                # the "is the site backend up" check is repeated at most this often
 PING_SECONDS = 3.0
 BUSY_RETRY = 30
+SLOT_WAIT = 60.0                   # how long a request waits for a free calculation slot before it is told the service is busy
 # Engineering details of the signed snapshot that the browser never receives.
 INTERNAL = ("calculationTrace", "inputs", "inputHash", "snapshotReceipt", "snapshotExpiresAt")
 HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace the report's financial history shows
@@ -382,8 +383,6 @@ async def _wait_for(app, symbol: str, statement: str, lock: str, before: Optiona
 async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) -> JSONResponse:
     app = request.app
     redis = app.state.store.redis
-    if _slots(app).locked():
-        return _reply({"status": "busy", "detail": f"{PRISM_NAME} is calculating other reports. Please try again shortly."}, 429, BUSY_RETRY)
     counter, renew = await _count(request, ctx)
     if renew:
         return _reply({"status": "limit", "detail": f"You have used today's {DAILY_LIMIT} {PRISM_NAME} calculations. Stored reports stay open."},
@@ -391,8 +390,16 @@ async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) ->
     sub = subject(ctx)
     r: Optional[httpx.Response] = None
     try:
-        async with _slots(app):
+        try:   # a request waits its turn (up to SLOT_WAIT seconds) instead of being turned away while another company is calculating
+            await asyncio.wait_for(_slots(app).acquire(), SLOT_WAIT)
+        except asyncio.TimeoutError:
+            if counter:
+                await redis.decr(counter)
+            return _reply({"status": "busy", "detail": f"{PRISM_NAME} is calculating other companies. Please try again in a minute."}, 429, BUSY_RETRY)
+        try:
             r = await _call(app, "/api/premium-reports", sub, {"query": symbol, "statement_type": statement, "delivery": "inline"})
+        finally:
+            _slots(app).release()
     except httpx.HTTPError as exc:
         log.warning("prism calculation for %s did not reach the site backend: %s", symbol, type(exc).__name__)
     snapshot = _ready(r)
