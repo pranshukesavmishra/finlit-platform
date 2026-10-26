@@ -49,6 +49,7 @@ from .auth.entitlements import has
 from .auth.routes import IST, NO_STORE, ip_of, pre_session_guard, secure_ctx
 from .auth.service import Ctx, current
 from .premium import gateway_token
+from .technical_wording import relabel_technical
 from .prism_candles import mark_down, supplied_candles
 
 log = logging.getLogger("finlit.prism")
@@ -170,7 +171,7 @@ def technical_view(technical: Any) -> Optional[Dict[str, Any]]:
         out["benchmarkSources"] = {str(k): _pick(v, TECH_SOURCE) for k, v in technical["benchmarkSources"].items() if isinstance(v, dict)}
     if isinstance(technical.get("options"), dict):
         out["options"] = {k: v for k, v in technical["options"].items() if isinstance(v, bool)}
-    return out
+    return relabel_technical(out)      # the model's own rating and verdict words (and factor wording) never reach a browser
 
 
 def reader_view(snapshot: Dict[str, Any]) -> Dict[str, Any]:
@@ -213,7 +214,10 @@ def _shape(row, cached: bool) -> Dict[str, Any]:
     """The PrismReport of a stored row: the reader view, whether it came from storage, and until when its PDF can be downloaded."""
     until = row["pdf_until"]
     live = until is not None and until > datetime.now(timezone.utc)
-    return {**json.loads(row["report"]), "cached": cached, "pdfAvailableUntil": until.isoformat() if live else None}
+    report = json.loads(row["report"])
+    if isinstance(report.get("technicalAssessment"), dict):       # reports stored before the mapping existed carry the model's raw words
+        report["technicalAssessment"] = relabel_technical(report["technicalAssessment"])
+    return {**report, "cached": cached, "pdfAvailableUntil": until.isoformat() if live else None}
 
 
 def _lines(view: Dict[str, Any], bucket: str, count: int = 2) -> list:

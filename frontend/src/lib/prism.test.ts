@@ -133,7 +133,7 @@ describe("labels and values", () => {
     expect(["STRONG", "HEALTHY", "AVERAGE", "WEAK", "POOR"].map((l) => labelTone(l as never).tone)).toEqual(["strong", "healthy", "average", "weak", "poor"]);
   });
   it("bands scores like the engine", () => { expect([80, 65, 50, 35, 10, null].map(scoreTone)).toEqual(["strong", "healthy", "average", "weak", "poor", "none"]); });
-  it("sorts factors like the reader view: >= 70 supports, < 40 holds back", () => {
+  it("sorts factors like the reader view: >= 70 supports, < 40 weighs on", () => {
     expect([100, 70, 69.9, 40, 39.9].map((points) => standing({ points, status: "A" }))).toEqual(["pros", "pros", "mixed", "mixed", "cons"]);
     expect(standing({ points: 50, status: "F" })).toBe("unavailable");
     expect(standing({ points: 50, status: "L" })).toBe("unavailable");

@@ -601,6 +601,9 @@ async def admin_stock_fundamentals(
     return JSONResponse(data, headers={"Cache-Control": "no-store"})
 
 
+SUPPLIED_CANDLES_MAX_BYTES = 1_500_000      # about 3x what the research API sends (a stock and four indices, six years); the 4 MB `inputs` cap is separate
+
+
 class PremiumReportRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
     statement_type: Literal["consolidated", "standalone"] = "consolidated"
@@ -885,6 +888,11 @@ async def _generate_premium_report(report_id, symbol, name, statement_type, crea
 @api_router.post("/premium-reports", status_code=202)
 async def create_premium_report(payload: PremiumReportRequest, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
     _prune_premium_jobs()
+    if payload.suppliedCandles is not None:
+        size = len(json.dumps(payload.suppliedCandles, separators=(",", ":"), default=str))
+        if size > SUPPLIED_CANDLES_MAX_BYTES:
+            logger.warning("suppliedCandles rejected: %d bytes is over the %d byte limit", size, SUPPLIED_CANDLES_MAX_BYTES)
+            raise HTTPException(status_code=413, detail="The supplied candles are too large. Six years of daily candles for a stock and four indices fit well under the limit.")
     instrument = await asyncio.to_thread(_resolve_finedge_stock, payload.query.strip())
     symbol = str(instrument.get("symbol") or "").upper()
     if not re.fullmatch(r"[A-Z0-9.&-]{1,30}", symbol):

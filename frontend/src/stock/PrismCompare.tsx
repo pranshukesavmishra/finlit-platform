@@ -54,7 +54,7 @@ function Notes({ r, symbol }: { r: PrismLatest; symbol: string }) {
   const pros = items(r, "pros"), cons = items(r, "cons");
   const col = (tone: "pro" | "con", list: typeof pros) => (
     <div className={"dk-pc " + tone}>
-      <div className="dk-pc-h"><Icon name={tone === "pro" ? "check" : "alert"} /><span>{tone === "pro" ? <>Supports<span className="hide-sm"> the rating</span></> : "Weighs on it"}</span><Link to={`/prism/${encodeURIComponent(symbol)}`} aria-label={`More about what ${tone === "pro" ? "supports" : "holds back"} the rating`}>More</Link></div>
+      <div className="dk-pc-h"><Icon name={tone === "pro" ? "check" : "alert"} /><span>{tone === "pro" ? <>Supports<span className="hide-sm"> the rating</span></> : "Weighs on it"}</span><Link to={`/prism/${encodeURIComponent(symbol)}`} aria-label={`More about what ${tone === "pro" ? "supports" : "weighs on"} the rating`}>More</Link></div>
       {list.length ? <ul>{list.map((i) => <li key={i.metric} title={`${i.label}. ${i.summary}`}><b>{i.label}</b><span>{i.summary}</span></li>)}</ul> : <p>Nothing stands out.</p>}
     </div>
   );
@@ -178,7 +178,7 @@ export function PrismDetail({ symbol, statement }: { symbol: string; statement: 
   );
 }
 
-/** The Prism sub-section of "Pros and cons": what holds up and what holds back each part, and what data was missing. Gold members, when a report is stored. */
+/** The Prism sub-section of "Pros and cons": what holds up and what weighs on each part, and what data was missing. Gold members, when a report is stored. */
 export function PrismMethod({ symbol, statement }: { symbol: string; statement: string }) {
   const gold = useGold();
   const open = useContext(OpenAccess);

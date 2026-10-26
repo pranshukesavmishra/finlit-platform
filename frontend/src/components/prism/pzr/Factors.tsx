@@ -76,7 +76,7 @@ export function FactorExplorer({ report, review }: { report: PrismReport; review
   return (
     <section className="pzr-sec" aria-labelledby="pzr-h-fx">
       <header className="pzr-sh"><h3 id="pzr-h-fx">Every factor</h3>
-        <p>Points run from 0 to 100. A factor supports the score at 70 or more and holds it back below 40. Estimated factors are never counted as strengths or concerns. A higher Risk score means lower risk.</p></header>
+        <p>Points run from 0 to 100. A factor supports the score at 70 or more and weighs on it below 40. Estimated factors are never counted as strengths or concerns. A higher Risk score means lower risk.</p></header>
       <div className="pzr-tools pzr-noprint">
         <div className="pzr-chipsrow" role="group" aria-label="Filter factors">
           {FILTERS.map((f) => <button key={f} type="button" className={"pzr-chip" + (filter === f ? " on" : "")} aria-pressed={filter === f} onClick={() => setFilter(f)}>{FILTER_WORD[f]} <small>{count(f)}</small></button>)}

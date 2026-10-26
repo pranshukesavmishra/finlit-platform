@@ -494,7 +494,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     x: "Score from 0 to 100.",
     y: "The pillars: quality, growth, profitability, balance sheet and technical.",
     read: "A fuller bar is a stronger pillar and the label beside it gives the band, such as strong or mixed.",
-    why: "It shows which areas lift the overall score and which hold it back.",
+    why: "It shows which areas lift the overall score and which weigh on it.",
   },
 
   /* ---------------------------------------------------------------- dashboard and watchlist */

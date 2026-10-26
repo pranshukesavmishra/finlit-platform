@@ -132,7 +132,7 @@ export const STATE_WORD: Record<FactorState, string> = {
 };
 export type Standing = "pros" | "cons" | "mixed" | "unavailable" | "notApplicable";
 export const STANDING_WORD: Record<Standing, string> = { pros: "Supports", cons: "Weighs on the score", mixed: "Mixed", unavailable: "Not available", notApplicable: "Not applicable" };
-/** Where a factor sits in the reader view: the same thresholds as premium_presentation (>= 70 supports, < 40 holds back). */
+/** Where a factor sits in the reader view: the same thresholds as premium_presentation (>= 70 supports, < 40 weighs on). */
 export function standing(row: Pick<PrismMetric, "status" | "points">): Standing {
   if (row.status === "N") return "notApplicable";
   if (row.status === "F" || row.status === "L" || row.points == null) return "unavailable";

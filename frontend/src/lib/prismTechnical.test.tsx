@@ -252,3 +252,17 @@ describe("legend, gauge and light-theme contrast", () => {
     for (const surface of ["bg", "s1", "s2", "s3"]) expect(ratio(hex("muted"), hex(surface))).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe("values already mapped by the API render the same as the model's raw words", () => {
+  it("rating", () => {
+    for (const [raw, mapped, score] of [["Strong Buy", "Strongly positive", 60], ["Buy", "Positive", 30], ["Hold", "Neutral", 0], ["Reduce", "Negative", -30], ["Sell", "Strongly negative", -60]] as const)
+      expect(ratingWord(mapped, score)).toEqual(ratingWord(raw, score));
+  });
+  it("verdict: a mapped label with the mapped or the model's tone gives the same tone and word", () => {
+    const base = { shortTerm: horizon(30, "Positive"), longTerm: horizon(30, "Positive") };
+    for (const [label, tone, expected] of [["Trend: positive", "pos", "pos"], ["Trend: positive", "positive", "pos"], ["Trend: mixed", "mixed", "mixed"], ["Trend: mixed", "caution", "mixed"], ["Trend: negative", "neg", "neg"], ["Trend: negative", "negative", "neg"]] as const) {
+      const v = verdictView({ ...base, verdict: { label, tone } });
+      expect([v.tone, v.word]).toEqual([expected, VERDICT_WORD[expected]]);
+    }
+  });
+});

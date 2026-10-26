@@ -257,12 +257,13 @@ def test_the_real_snapshot_carries_a_complete_technical_assessment():
 def test_technical_assessment_reaches_the_reader_without_hashes_weights_or_series():
     view = prism.reader_view(SNAPSHOT)["technicalAssessment"]
     assert not SECRET_KEYS & keys_anywhere(view) and not {"bars", "candles", "prices", "inputs"} & keys_anywhere({k: v for k, v in view.items() if k != "benchmarkSources"})
-    for key in ("modelVersion", "status", "asOf", "provider", "fresh", "dailyBars", "usableDailyBars", "verdict", "notes", "observations"):
+    for key in ("modelVersion", "status", "asOf", "provider", "fresh", "dailyBars", "usableDailyBars", "observations"):
         assert view[key] == TECH[key]
+    assert view["verdict"]["label"].startswith("Trend: ") and len(view["notes"]) == len(TECH["notes"])
     for key in ("shortTerm", "longTerm"):
         part, source = view[key], TECH[key]
-        assert {k: v for k, v in part.items() if k != "factors"} == {k: v for k, v in source.items() if k != "factors"}   # scores and ratings are untouched
-        assert [{k: v for k, v in f.items()} for f in part["factors"]] == [{k: v for k, v in f.items() if k != "weight"} for f in source["factors"]]
+        assert {k: v for k, v in part.items() if k not in ("factors", "rating")} == {k: v for k, v in source.items() if k not in ("factors", "rating")}   # scores are untouched
+        assert [(f["key"], f["signal"], f["status"]) for f in part["factors"]] == [(f["key"], f["signal"], f["status"]) for f in source["factors"]]
         assert set(part["factors"][0]) == {"key", "label", "signal", "status", "detail"}
     assert view["benchmarkSources"] == TECH["benchmarkSources"] and all(set(v) == {"provider", "asOf", "bars"} for v in view["benchmarkSources"].values())
     assert view["benchmarkSources"]["Nifty 50"]["bars"] == 700 and isinstance(view["benchmarkSources"]["Nifty 50"]["bars"], int)
@@ -292,8 +293,8 @@ def test_technical_view_only_passes_plain_values_under_allowed_keys():
     hostile["verdict"]["label"] = {"x": 1}
     view = prism.technical_view(hostile)
     assert "provider" not in view and "score" not in view["shortTerm"] and "detail" not in view["shortTerm"]["factors"][0]
-    assert "bars" not in view["benchmarkSources"]["Nifty 50"] and "label" not in view["verdict"]
-    assert view["longTerm"]["score"] == TECH["longTerm"]["score"] and view["verdict"]["tone"] == TECH["verdict"]["tone"]
+    assert "bars" not in view["benchmarkSources"]["Nifty 50"] and view["verdict"]["label"].startswith("Trend: ")
+    assert view["longTerm"]["score"] == TECH["longTerm"]["score"] and "tone" in view["verdict"]
     assert not {"nested", "close"} & keys_anywhere(view)
 
 
@@ -823,3 +824,52 @@ async def test_nightly_precompute_waits_for_a_member_and_then_carries_on(store, 
     await waiter
     assert out["calculated"] == 2 and out["paused_for_members"] > 0 and out["failed"] == []
     await _drop_seeded(store)
+
+
+# ---- the model's advice words never reach a browser
+BANNED = __import__("re").compile(r"\b(?:buy|buys|buying|bought|sell|sells|selling|sold|hold|holds|holding|reduce|reduces|reduced|reducing|avoid\w*|accumulat\w*|target\w*)\b", __import__("re").I)
+RATINGS = ((60, "Strong Buy"), (30, "Buy"), (0, "Hold"), (-30, "Reduce"), (-60, "Sell"))
+VERDICTS = ("STRONG BUY", "BUY", "BOUNCE ONLY, DON'T INVEST", "ACCUMULATE ON DIPS", "HOLD", "REDUCE", "BUY THE DIP, WAIT FOR ST TURN", "SELL / AVOID")
+
+
+@pytest.mark.parametrize("score,rating", RATINGS)
+@pytest.mark.parametrize("label", VERDICTS)
+def test_serialised_technical_view_has_no_advice_word(score, rating, label):
+    raw = copy.deepcopy(TECH)
+    for key in ("shortTerm", "longTerm"):
+        raw[key]["score"], raw[key]["rating"] = score, rating
+    raw["verdict"] = {"label": label, "tone": "positive"}
+    raw["shortTerm"]["factors"][0].update(label="Buying and selling volume", detail="Buyers hold the line; avoid chasing the target.")
+    raw["notes"] = ["Accumulate on dips is not advice; selling pressure eased."]
+    view = prism.reader_view({**SNAPSHOT, "technicalAssessment": raw})
+    text = json.dumps(view["technicalAssessment"])
+    assert BANNED.findall(text) == [], text
+    assert view["technicalAssessment"]["shortTerm"]["score"] == score
+    assert view["technicalAssessment"]["verdict"]["label"] in ("Trend: positive", "Trend: mixed", "Trend: negative")
+    assert view["technicalAssessment"]["shortTerm"]["rating"] in ("Strongly positive", "Positive", "Neutral", "Negative", "Strongly negative")
+
+
+async def test_a_report_stored_before_the_mapping_is_served_mapped(env):
+    app, fake = env
+    gold = await member(app, "gold")
+    body = (await generate(gold)).json()
+    raw = copy.deepcopy(TECH)
+    stored = {**body, "technicalAssessment": raw}
+    row = {"report": json.dumps(stored), "pdf_until": None}
+    served = prism._shape(row, True)
+    assert BANNED.findall(json.dumps(served["technicalAssessment"])) == []
+
+
+def test_research_api_wording_files_equal_the_site_api_ones():
+    from pathlib import Path
+    import importlib.util
+    here = Path(prism.__file__).parent
+    site = here.parents[1] / "site-api" / "backend"
+    assert (here / "technical_wording.json").read_bytes() == (site / "technical_wording.json").read_bytes()
+    spec = importlib.util.spec_from_file_location("site_tw", site / "technical_wording.py")
+    other = importlib.util.module_from_spec(spec); spec.loader.exec_module(other)
+    from finlit import technical_wording as mine
+    raw = copy.deepcopy(TECH)
+    assert mine.relabel_technical(raw) == other.relabel_technical(raw)
+    for text in ("Buying and selling volume", "Target price held; stop and exit", "plain text"):
+        assert mine.safe_text(text) == other.safe_text(text)

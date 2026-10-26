@@ -299,3 +299,18 @@ def test_a_bad_quote_price_basis_falls_back_through_the_dashboard(dashboard):
     assert raw["technicalPriceInput"]["provider"] != "Dhan"
     raw, *_ = server._premium_dashboard_inputs(symbol, "consolidated", NOW, payload(price=FIXTURE_PRICE * 1.1))
     assert raw["technicalPriceInput"]["provider"] == "Dhan"
+
+
+def test_oversized_supplied_candles_are_refused_with_413_and_a_log(monkeypatch, caplog):
+    from backend.tests.test_premium_reports import asgi_request, auth
+    monkeypatch.setattr(server, "_resolve_finedge_stock", lambda q: pytest.fail("must be refused before any provider call"))
+    big = {"stock": {"provider": "Dhan", "candles": [["2026-10-22", 1.0, 2.0, 0.5, 1.5, 3]] * 50000}}      # about 1.65 MB
+    assert len(json.dumps(big, separators=(",", ":"))) > server.SUPPLIED_CANDLES_MAX_BYTES
+    with caplog.at_level("WARNING"):
+        status, body = asgi_request(server.app, "POST", "/api/premium-reports", {"query": "TCS", "delivery": "inline", "suppliedCandles": big}, headers=auth())
+    assert status == 413 and "too large" in json.dumps(body).lower()
+    assert "suppliedCandles rejected" in caplog.text
+
+
+def test_a_normal_sized_payload_is_under_the_limit():
+    assert len(json.dumps(payload(1600), separators=(",", ":"))) < server.SUPPLIED_CANDLES_MAX_BYTES

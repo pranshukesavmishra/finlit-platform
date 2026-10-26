@@ -19,8 +19,18 @@ BANNED = re.compile(r"\b(?:buy|buys|buying|bought|sell|sells|selling|sold|hold|h
 FRONTEND_COPY = Path(__file__).resolve().parents[3] / "frontend" / "src" / "lib" / "technicalWording.json"
 
 
-def pdf_text(report):
+def pdf_full(report):
     return "\n".join(page.extract_text() for page in PdfReader(BytesIO(tw.render_compliant_pdf(report))).pages)
+
+
+def technical_section(text):
+    """The technical pages: from the 'Market outlook' title to the 'Business performance' title (static upstream disclaimers sit outside)."""
+    start, end = text.index("Market outlook"), text.index("Business performance")
+    return text[start:end]
+
+
+def pdf_text(report):
+    return technical_section(pdf_full(report))
 
 
 @pytest.fixture(scope="module")
@@ -104,5 +114,23 @@ def test_pdf_route_serves_the_relabelled_pdf(monkeypatch, base_report):
     memory_report(monkeypatch, deepcopy(base_report))
     status, pdf = asgi_request(server.app, "GET", "/api/premium-reports/" + "a" * 32 + "/pdf", headers=auth())
     assert status == 200 and pdf.startswith(b"%PDF")
-    text = "\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages)
+    text = technical_section("\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages))
     assert "Trend:" in text and BANNED.findall(text) == []
+
+
+@pytest.mark.parametrize("name,industry", [("Bajaj Holding & Investment Ltd", "Finance / Holding Company"), ("Target Corp", "Net Entry Tax Services"),
+                                           ("Hold Co", "Stop-loss and Cash Exit"), ("Sell Ltd", "Buy-side Research")])
+def test_company_names_and_industries_are_never_rewritten(base_report, name, industry):
+    report = deepcopy(base_report)
+    report["company"] = {**report["company"], "name": name, "industry": industry}
+    full = " ".join(pdf_full(report).split())
+    assert name in full and industry in full
+    assert BANNED.findall(technical_section(pdf_full(report))) == []      # while the technical section is fully relabelled
+
+
+def test_only_technical_fields_are_relabelled():
+    report = {"company": {"name": "Target Corp"}, "sector": "Holding", "technicalAssessment": {"notes": ["Target hit"], "shortTerm": {"score": 60, "rating": "Strong Buy", "factors": []}}}
+    out = tw.relabel_report(report)
+    assert out["company"] == {"name": "Target Corp"} and out["sector"] == "Holding"
+    assert out["technicalAssessment"]["shortTerm"]["rating"] == "Strongly positive" and out["technicalAssessment"]["notes"] == ["Level hit"]
+    assert report["technicalAssessment"]["shortTerm"]["rating"] == "Strong Buy"

@@ -2,12 +2,12 @@
 reads as an identical copy, so the screen and the PDF can never disagree.
 
 COMPLIANCE: the model's own rating words (Strong Buy ... Sell) and verdict labels are never shown to readers. premium_pdf.py is kept
-identical to upstream, so the report data is relabelled on a COPY before rendering, and every paragraph the PDF writes passes through
-`safe_text` as a last line of defence (this also rewrites the 'target price' disclaimer that upstream prints)."""
+identical to upstream, so the report data is relabelled on a COPY before rendering. ONLY the model-produced technical fields are touched
+(ratings, verdict, factor labels and details, notes): company names, industries, tickers and every other data field are never rewritten.
+The same code lives in backend/finlit/technical_wording.py (research API); tests compare the two."""
 import copy
 import json
 import re
-import threading
 from pathlib import Path
 
 WORDING = json.loads((Path(__file__).with_name("technical_wording.json")).read_text(encoding="utf-8"))
@@ -65,15 +65,20 @@ def relabel_technical(technical):
         part = out.get(key)
         if not isinstance(part, dict):
             continue
-        part["rating"] = rating_word(part.get("rating"), part.get("score"))
-        for factor in part.get("factors", []):
-            factor["label"] = safe_text(factor.get("label"))
-            factor["detail"] = safe_text(factor.get("detail"))
-    verdict = out.get("verdict") or {}
-    both = all(isinstance((out.get(k) or {}).get("score"), (int, float)) for k in ("shortTerm", "longTerm"))
-    tone = verdict_tone(verdict.get("label"), verdict.get("tone")) if both else "na"
-    out["verdict"] = {**verdict, "label": WORDING["verdictWords"][tone], "tone": tone}
-    out["notes"] = [safe_text(note) for note in out.get("notes", [])]
+        if "rating" in part:
+            part["rating"] = rating_word(part.get("rating"), part.get("score"))
+        for factor in part.get("factors") or []:
+            if isinstance(factor, dict):
+                for key in ("label", "detail"):
+                    if key in factor:
+                        factor[key] = safe_text(factor[key])
+    if isinstance(out.get("verdict"), dict):
+        verdict = out["verdict"]
+        both = all(isinstance((out.get(k) or {}).get("score"), (int, float)) for k in ("shortTerm", "longTerm"))
+        tone = verdict_tone(verdict.get("label"), verdict.get("tone")) if both else "na"
+        out["verdict"] = {**verdict, "label": WORDING["verdictWords"][tone], "tone": tone}
+    if isinstance(out.get("notes"), list):
+        out["notes"] = [safe_text(note) for note in out["notes"]]
     return out
 
 
@@ -84,25 +89,12 @@ def relabel_report(report):
     return {**report, "technicalAssessment": relabel_technical(report["technicalAssessment"])}
 
 
-_installed = False
-_install_lock = threading.Lock()
 
 
 def render_compliant_pdf(report):
-    """render_premium_pdf on the relabelled copy, with every paragraph passed through `safe_text`."""
-    global _installed
+    """render_premium_pdf on the relabelled copy."""
     try:
         from . import premium_pdf
     except ImportError:
         import premium_pdf
-    with _install_lock:
-        if not _installed:
-            original = premium_pdf.Paragraph
-
-            class SafeParagraph(original):
-                def __init__(self, text, *args, **kwargs):
-                    super().__init__(safe_text(text), *args, **kwargs)
-
-            premium_pdf.Paragraph = SafeParagraph
-            _installed = True
     return premium_pdf.render_premium_pdf(relabel_report(report))

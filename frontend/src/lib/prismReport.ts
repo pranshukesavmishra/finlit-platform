@@ -11,7 +11,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export const THRESHOLDS = [35, 50, 65, 80];
 /** Tick positions (0-100) drawn on every score bar: the label thresholds. */
 export const thresholdTicks = (): number[] => [...THRESHOLDS];
-/** Points ticks on a factor's points bar: below 40 holds back, 70 and above supports (the reader view's rule). */
+/** Points ticks on a factor's points bar: below 40 weighs on, 70 and above supports (the reader view's rule). */
 export const POINT_TICKS = [40, 70];
 
 /** One colour variable per part; a part the model adds later gets a spare hue, never a clash with the known four. */

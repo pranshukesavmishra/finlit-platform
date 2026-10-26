@@ -97,7 +97,7 @@ function Browse({ statement }: { statement: Statement }) {
   );
 }
 
-const WHAT = ["A score out of 100 and a label from Strong to Poor, or Not rated when the evidence is thin", "Four parts: Fundamentals, Valuation, Quality and Risk, each with what supports it and what holds it back", "Every factor with its value, points and status, and which inputs are missing", "A PDF of exactly the calculation you see"];
+const WHAT = ["A score out of 100 and a label from Strong to Poor, or Not rated when the evidence is thin", "Four parts: Fundamentals, Valuation, Quality and Risk, each with what supports it and what weighs on it", "Every factor with its value, points and status, and which inputs are missing", "A PDF of exactly the calculation you see"];
 export const PRISM_WHAT = WHAT;
 
 export function LandingBody({ statement, setStatement }: { statement: Statement; setStatement: (s: Statement) => void }) {
