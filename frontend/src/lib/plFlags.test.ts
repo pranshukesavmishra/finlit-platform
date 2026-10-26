@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import cases from "./fixtures/plFlags.cases.json";
-import { CASES, divergenceRun, highlightMap, move, plFlags, plInsights, priorIndex, T, type PlInput } from "./plFlags";
+import { CASES, divergenceRun, highlightMap, insightChip, move, plFlags, plInsights, priorIndex, T, type PlInput } from "./plFlags";
 import type { Table } from "./api";
 
 const tbl = (t: unknown): Table | undefined => t ? ({ unit: "Cr", period: "yearly", ...(t as object) } as Table) : undefined;
@@ -161,5 +161,19 @@ describe("plInsights: latest quarter and latest year together", () => {
     const after = plInsights({ quarterly: next })[0];
     expect(before.views.quarterly!.period).toBe("Sep 2026"); expect(after.views.quarterly!.period).toBe("Dec 2026");
     expect(after.case).toBe(6);
+  });
+});
+
+describe("insightChip", () => {
+  const view = (period: string) => ({ period } as never);
+  it("names the situation so two quarter insights never share a label", () => {
+    const a = insightChip({ case: 3, headline: "quarterly", views: { quarterly: view("Jun 2026") } } as never);
+    const b = insightChip({ case: 7, headline: "quarterly", views: { quarterly: view("Jun 2026") } } as never);
+    expect(a).toBe("Revenue up, profit down · Jun 2026 quarter");
+    expect(b).toBe("Net up, operating down · Jun 2026 quarter");
+    expect(a).not.toBe(b);
+  });
+  it("labels a year headline with the year", () => {
+    expect(insightChip({ case: 3, headline: "annual", views: { annual: view("FY26") } } as never)).toBe("Revenue up, profit down · FY26 year");
   });
 });

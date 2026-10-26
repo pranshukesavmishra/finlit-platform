@@ -262,6 +262,17 @@ export type Insight = {
   key: string;
 };
 
+/** Short names for the pager chips: two insights can share the same period, so the chip names the situation first. */
+export const CASE_SHORT: Record<CaseNo, string> = {
+  1: "Profit outpaces revenue", 2: "Revenue down, profit up", 3: "Revenue up, profit down", 4: "Sales up, profit flat",
+  5: "Profit up, sales flat", 6: "Both falling", 7: "Net up, operating down", 8: "Diverging for quarters",
+};
+/** The chip text of one insight: "Revenue up, profit down · Jun 2026 quarter" (the period part is unique within the same situation). */
+export function insightChip(f: Pick<Insight, "case" | "headline" | "views">): string {
+  const v = f.views[f.headline];
+  return `${CASE_SHORT[f.case]} · ${v?.period ?? ""} ${f.headline === "quarterly" ? "quarter" : "year"}`.replace(/\s+/g, " ").trim();
+}
+
 const iso = (t: Table, i: number): string | null => (typeof t.periodEnds?.[i] === "string" && day(t.periodEnds[i]) != null ? t.periodEnds[i] : null);
 const growthOf = (p: Pair): Growth => ({ revenue: p.rev?.pct == null ? null : r1(p.rev.pct), profit: pctPos(p.np) == null ? null : r1(pctPos(p.np)!), operating: pctPos(p.op) == null ? null : r1(pctPos(p.op)!) });
 

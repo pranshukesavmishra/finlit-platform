@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Financials } from "../lib/api";
-import { highlightMap, plInsights, type Growth, type Insight, type PeriodView, type Scope } from "../lib/plFlags";
+import { highlightMap, insightChip, plInsights, type Growth, type Insight, type PeriodView, type Scope } from "../lib/plFlags";
 import type { PlFlag } from "../lib/plFlags";
 import "../styles/plflags.css";
 
@@ -100,7 +100,7 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
       </div>
       {items.length > 1 && (
         <div className="plf-pager" role="tablist" aria-label="Flags">
-          {items.map((f, n) => <button key={f.key} type="button" role="tab" aria-selected={n === i} className={n === i ? "on" : ""} onClick={() => pick(n)}>{f.views[f.headline]!.period} · {f.headline === "quarterly" ? "Quarter" : "Year"}</button>)}
+          {items.map((f, n) => <button key={f.key} type="button" role="tab" aria-selected={n === i} className={n === i ? "on" : ""} onClick={() => pick(n)}>{insightChip(f)}</button>)}
         </div>
       )}
       <section className="plf-in">
