@@ -45,11 +45,18 @@ class ObservationCache:
         self.rows = dict(preload or {})
         self.new = {}
         self.hits = 0
+        self.touched = set()
         self._lock = Lock()
         self._inflight = {}
 
+    def universe(self):
+        """The peer symbols this report looked at (for the next report of the same company to know which kept rows to offer)."""
+        with self._lock:
+            return sorted({key[3] for key in self.touched if key[2].startswith("pr")})
+
     def get_or_compute(self, key, compute):
         with self._lock:
+            self.touched.add(key)
             if key in self.rows:
                 self.hits += 1
                 return self.rows[key]

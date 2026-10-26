@@ -75,5 +75,10 @@ def preload(flat):
     return out
 
 
+KEPT_ROW_FIELDS = ("pe", "pb", "source")    # the only fields of a peer's row the median reads
+
+
 def flatten(rows):
-    return {observation_key(key): value for key, value in rows.items()}
+    """The observations for transport: a peer's row is cut to the fields the industry median reads (the rest is the provider's other ratios)."""
+    return {observation_key(key): ({name: value[name] for name in KEPT_ROW_FIELDS if name in value} if isinstance(value, dict) else value)
+            for key, value in rows.items()}

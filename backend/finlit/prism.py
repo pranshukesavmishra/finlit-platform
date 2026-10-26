@@ -498,7 +498,7 @@ async def _kept_observations(redis, symbol: str, statement: str) -> Dict[str, An
 
 
 async def _site_payload(app, symbol: str, statement: str, *, background: bool, keep: bool, kept_seconds: float) -> Dict[str, Any]:
-    body: Dict[str, Any] = {"query": symbol, "statement_type": statement, "delivery": "inline", "priority": "background" if background else "interactive", "keep": keep}
+    body: Dict[str, Any] = {"query": symbol, "statement_type": statement, "delivery": "inline", "priority": "background" if background else "interactive", "keep": keep, "cache": True}
     inputs = await _kept_inputs(app.state.store, symbol, statement, kept_seconds)
     if inputs:
         body["inputs"] = inputs

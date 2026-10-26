@@ -609,7 +609,8 @@ class PremiumReportRequest(BaseModel):
     priority: Literal["interactive", "background"] = "interactive"
     inputs: Optional[str] = Field(default=None, max_length=4_000_000)         # model inputs kept from an earlier calculation (premium_cache.pack)
     observations: Optional[Dict[str, Any]] = None                                # peer observations kept from earlier calculations
-    keep: bool = True                                                            # send back the packed inputs of a fresh fetch for the caller to keep
+    cache: bool = False                                                          # add a "cache" block to the answer (never part of the signed snapshot)
+    keep: bool = True                                                            # ...and in it the packed inputs of a fresh fetch, for the caller to keep
 
 
 class PremiumSnapshotPDFRequest(BaseModel):
@@ -736,15 +737,16 @@ def _premium_inputs_loader(kept, fresh, observations):
     return load
 
 
-def _premium_dashboard_inputs_resolved(symbol, statement_type, now):
+def _premium_dashboard_inputs_resolved(symbol, statement_type, now, lean=True):
+    """lean=False is the resolver as it was before the premium report skipped the dashboard's extras (kept for the regression test)."""
     annual, quarterly = {}, {}
-    yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
+    yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual, _lean=lean)
     effective = yearly["statementType"]
-    quarterly_view = _fetch_stock_fundamentals(symbol, effective, "quarterly", quarterly)
+    quarterly_view = _fetch_stock_fundamentals(symbol, effective, "quarterly", quarterly, _lean=lean)
     if quarterly_view["statementType"] != effective:
         effective = quarterly_view["statementType"]
         annual = {}
-        yearly = _fetch_stock_fundamentals(symbol, effective, "yearly", annual)
+        yearly = _fetch_stock_fundamentals(symbol, effective, "yearly", annual, _lean=lean)
     quote_data = yearly.get("quote", {})
     raw = {"profile": annual.get("profile", {}), "annual": annual.get("income", {}),
         "quarterly": quarterly.get("income", {}), "balance": annual.get("balance", {}),
@@ -841,13 +843,15 @@ async def create_premium_report(payload: PremiumReportRequest, background_tasks:
                 report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at,
                                                  _premium_inputs_loader(kept, fresh, observations), observations)
             snapshot = issue(report, _admin["sub"], token_secret())
-            report_cache = {"observations": premium_cache.flatten(observations.new), "inputsReused": kept is not None, "seconds": round(monotonic() - started, 1)}
+            report_cache = {"observations": premium_cache.flatten(observations.new), "universe": observations.universe(), "inputsReused": kept is not None,
+                            "seconds": round(monotonic() - started, 1)}
             if fresh and payload.keep:
                 try:
                     report_cache["inputs"] = premium_cache.pack(fresh)
                 except (ValueError, TypeError):
                     logger.info("Premium inputs for %s could not be packed for keeping", symbol)
-            snapshot = {**snapshot, "cache": report_cache}
+            if payload.cache:
+                snapshot = {**snapshot, "cache": report_cache}
         except Exception as exc:
             logger.warning("Inline premium report generation failed (%s): %s", type(exc).__name__, report_id)
             raise HTTPException(status_code=502, detail="The financial data providers could not complete this report. Please retry.") from None
@@ -3388,7 +3392,7 @@ def _remember_stock_fundamentals(cache_key, entry):
     _stock_fundamentals_cache[cache_key] = entry
 
 
-def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None):
+def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", period: str = "yearly", _model_capture=None, _lean=None):
     started_at = monotonic()
     instrument = _resolve_finedge_stock(query)
     symbol = instrument.get("symbol")
@@ -3411,7 +3415,7 @@ def _fetch_stock_fundamentals(query: str, statement_type: str = "consolidated", 
     # A premium report (`_model_capture`) needs the statements, ratios, quote, prices and ownership filings only. The dashboard's own extras
     # (revenue segments, shareholding pattern, corporate actions, dividends, competitors with a quote each) feed nothing in the model: in
     # that case they are not fetched, and the half-built view is not left in the dashboard's cache.
-    lean = _model_capture is not None
+    lean = (_model_capture is not None) if _lean is None else _lean
     cache_key = f"finedge:{symbol}:{statement_type}:{period}"
     cached = _stock_fundamentals_cache.get(cache_key)
     if cached and monotonic() - cached["fetched_at"] < STOCK_FUNDAMENTALS_CACHE_SECONDS:
