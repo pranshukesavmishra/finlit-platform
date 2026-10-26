@@ -283,6 +283,20 @@ def test_technical_view_drops_anything_that_is_not_for_readers():
     assert set(view["shortTerm"]["factors"][0]) == {"key", "label", "signal", "status", "detail"}
 
 
+def test_technical_view_only_passes_plain_values_under_allowed_keys():
+    hostile = copy.deepcopy(TECH)
+    hostile["provider"] = ["Dhan"]
+    hostile["shortTerm"]["score"] = {"nested": 1}
+    hostile["shortTerm"]["factors"][0]["detail"] = [1, 2]
+    hostile["benchmarkSources"]["Nifty 50"]["bars"] = [{"close": 1}] * 3
+    hostile["verdict"]["label"] = {"x": 1}
+    view = prism.technical_view(hostile)
+    assert "provider" not in view and "score" not in view["shortTerm"] and "detail" not in view["shortTerm"]["factors"][0]
+    assert "bars" not in view["benchmarkSources"]["Nifty 50"] and "label" not in view["verdict"]
+    assert view["longTerm"]["score"] == TECH["longTerm"]["score"] and view["verdict"]["tone"] == TECH["verdict"]["tone"]
+    assert not {"nested", "close"} & keys_anywhere(view)
+
+
 def test_snapshots_without_a_technical_assessment_still_work():
     older = {k: v for k, v in SNAPSHOT.items() if k != "technicalAssessment"}
     view = prism.reader_view(older)

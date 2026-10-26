@@ -138,7 +138,8 @@ def _plain(value: Any) -> bool:
 
 
 def _pick(source: Any, keys: Tuple[str, ...]) -> Dict[str, Any]:
-    return {k: source[k] for k in keys if isinstance(source, dict) and k in source}
+    """The allow-listed keys of a dict, and only when the value is a plain value (a list or object under an allowed key is not passed on)."""
+    return {k: source[k] for k in keys if isinstance(source, dict) and k in source and _plain(source[k])}
 
 
 def _horizon(part: Any) -> Dict[str, Any]:
