@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import results
 from .finedge import FinEdgeClient, FinEdgeError, _rows_of, bundle_requests, latest_period_end, stale_reason
 from .normalize import statements
-from .screener.compute import quarter_block
+from .screener.compute import _round, quarter_block
 
 log = logging.getLogger("finlit.results_light")
 
@@ -31,10 +31,9 @@ MAX_AGE_DAYS = 4          # a declaration is chased for this many days
 RECHECK_MINUTES = 50      # a company the provider had nothing for is asked again after this long (the hourly run therefore asks again each hour)
 KEEP_QUARTERS = 3
 PER_RUN = 150
+STALE_DAYS = 170          # finedge.stale_reason: standalone this much newer than consolidated means consolidated is stale
 TOLERANCE = 10            # days between the quarter asked for and the provider's period end (same as the full path)
-# quarter_light column -> the screener metric of the same meaning
-COLS = {"revenue": "q_revenue", "operating_profit": "q_operating_profit", "net_profit": "q_net_profit", "eps": "q_eps", "sales_yoy": "q_sales_yoy",
-        "profit_yoy": "q_profit_yoy", "sales_qoq": "q_sales_qoq", "profit_qoq": "q_profit_qoq", "opm": "q_opm", "npm": "q_npm"}
+COLS = results.LIGHT_COLS   # quarter_light column -> the screener metric of the same meaning
 
 
 # ------------------------------------------------------------------ figures (pure)
@@ -43,6 +42,7 @@ def quarter_figures(payload: Any, e: date) -> Optional[Dict[str, Any]]:
     revenue nor net profit). Uses exactly the full pipeline's functions, so the same input gives the same numbers on both paths."""
     table = statements.profit_and_loss(_rows_of(payload), "quarterly")
     blk = quarter_block(table, e, TOLERANCE)
+    blk = {k: _round(k, v) for k, v in blk.items()}   # the full report stores its metrics rounded to 4 decimals (compute.py): round the same way so a row reads identically
     if not blk or (blk.get("q_revenue") is None and blk.get("q_net_profit") is None):
         return None
     op_row = (table.get("rows") or {}).get("operating_profit")
@@ -71,11 +71,14 @@ def _has_quarter(payload: Any, e: date) -> bool:
 
 
 async def fetch_quarter(client: FinEdgeClient, symbol: str, e: date) -> Dict[str, Any]:
-    """One call (consolidated) in the usual case. When consolidated does not hold the quarter, one more call (standalone) decides the basis by the
+    """One call (consolidated) in the usual case. When consolidated is missing or at least 170 days behind the quarter, one more call (standalone) decides the basis by the
     full ingest's rule: standalone when consolidated is missing or stale (finedge.stale_reason), else consolidated stays. Raises on a provider failure."""
     cons = await _get(client, symbol, "consolidated")
     basis, payload = "consolidated", cons
-    if not _has_quarter(cons, e):
+    cq = latest_period_end(cons)
+    # Consolidated is stale only when standalone is >= 170 days ahead of it, and standalone cannot be ahead of the declared quarter: so a consolidated
+    # that is less than that behind (the usual "provider has not published the quarter yet") needs no second call.
+    if not _has_quarter(cons, e) and (cq is None or (e + timedelta(days=TOLERANCE) - cq).days >= STALE_DAYS):
         stand = await _get(client, symbol, "standalone")
         no_cons = not _rows_of(cons)
         if (no_cons and _rows_of(stand)) or stale_reason({"pl_quarterly": cons}, None, stand):
@@ -120,10 +123,10 @@ STATE_SQL = (
     "LEFT JOIN listing_quotes l ON l.symbol = x.symbol")
 
 
-async def recent_declarations(store, today: date, days: int = MAX_AGE_DAYS) -> Dict[str, Tuple[str, date]]:
+async def recent_declarations(store, today: date, days: int = MAX_AGE_DAYS, force: bool = True) -> Dict[str, Tuple[str, date]]:
     """{symbol: (quarter key, declaration date)} for everyone who declared (a filing, or a board-meeting date that has passed) in the last `days`
     days. A company with two such quarters keeps the newest."""
-    decls = await results.get_declarations(store, force=True)
+    decls = await results.get_declarations(store, force=force)
     out: Dict[str, Tuple[str, date]] = {}
     for qk, by_sym in decls.items():
         for sym, d in by_sym.items():
@@ -209,7 +212,7 @@ async def coverage(store, today: Optional[date] = None, days: int = 3) -> Dict[s
     """Admin data-health: of the companies that declared in the last `days` days, how many have figures (full report or light row), how many wait
     for the provider, how many wait for us."""
     today = today or results.today_ist()
-    recent = await recent_declarations(store, today, days - 1)
+    recent = await recent_declarations(store, today, days - 1, force=False)
     st = await states(store, recent)
     n = {"full": 0, "light": 0, "provider": 0, "ours": 0}
     for s in st.values():

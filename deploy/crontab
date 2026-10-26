@@ -23,6 +23,7 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 10 20 * * *      root $W refresh-listing >> /var/log/finlit-ingest.log 2>&1
 # Companies that have just reported are rebuilt hourly, so their quarter shows within hours.
 20 8-23 * * *    root $W refresh-results >> /var/log/finlit-ingest.log 2>&1
+35 8-23 * * *    root $W refresh-results-light >> /var/log/finlit-ingest.log 2>&1
 # IPO and results calendars: each morning, and every three hours in market time.
 45 6 * * *       root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1
 5 9,12,15 * * 1-5 root $W refresh-calendars >> /var/log/finlit-ingest.log 2>&1

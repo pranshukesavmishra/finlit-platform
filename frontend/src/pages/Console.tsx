@@ -170,6 +170,7 @@ function Health() {
         {h.coverage.providerEmpty.length > 0 && <p className="muted">The provider sent nothing for: {h.coverage.providerEmpty.map((c) => `${c.symbol}${c.name ? " " + c.name : ""}`).join(", ")}.</p>}
       </div>}
       <div style={{ marginTop: 14 }}>
+        {h.resultsLight && <p className="muted" data-testid="results-light"><b>Quarter results, last {h.resultsLight.days} days:</b> {h.resultsLight.declared} declared · {h.resultsLight.filled} with figures ({h.resultsLight.fromFullReport} from the full report, {h.resultsLight.fromLightRow} from the light path) · {h.resultsLight.awaitingProvider} waiting for the data provider · {h.resultsLight.awaitingOurs} waiting for us.</p>}
         <h3 style={{ margin: "0 0 6px", font: "600 15px var(--sans)" }}>Data integrity {h.integrity && <span className={h.integrity.level === "green" ? "pos" : "neg"}>{h.integrity.level === "green" ? "● green" : h.integrity.level === "amber" ? "● amber" : "● red"}</span>}</h3>
         {!h.integrity ? <p className="muted">The nightly audit has not run yet. It samples up to 40 companies a night and checks prices, latest quarter, profit and loss sums, declared results and risk figures.</p> : (
           <>

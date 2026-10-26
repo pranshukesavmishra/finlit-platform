@@ -458,6 +458,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("audit-integrity", help="nightly: samples up to 40 companies (one provider call each) and checks prices, latest quarter, profit and loss identities, declared results and risk figures; stores the result for the admin Data health tab")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
+    p_rl = sub.add_parser("refresh-results-light", help="hourly: figures for companies that declared in the last 4 days and are not held in full (one provider call each: the quarterly P&L), biggest first, capped per run")
+    p_rl.add_argument("--limit", type=int, default=150, help="companies per run")
     p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
     p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
     p_sa.add_argument("--days", type=int, default=7, help="a score older than this many days is refreshed")
@@ -840,6 +842,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     print(res["level"], "sampled", res["sampled"], {c["key"]: f"{c['bad']}/{c['checked']}" for c in res["checks"]})
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
+            elif args.cmd == "refresh-results-light":
+                from . import results_light
+                from .sysctl import loads_enabled
+                if not await loads_enabled(store.pool):
+                    print("skipped: heavy data loads are paused by the admin switch")
+                else:
+                    print(await results_light.refresh_light(client, store, limit=args.limit))
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:

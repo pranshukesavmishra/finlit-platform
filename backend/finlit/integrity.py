@@ -167,6 +167,10 @@ async def _declared_check(store, conn, today: date) -> Tuple[int, List[str]]:
     old = {s: d for s, d in decls[qkey].items() if (today - d.date).days > DECLARED_GRACE_DAYS}
     if not old:
         return 0, []
+    answered = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM quarter_light WHERE quarter = $1 AND symbol = ANY($2::text[])", qkey, list(old))}   # figures from the light path, or the provider has none yet: not "being updated"
+    old = {s: d for s, d in old.items() if s not in answered}
+    if not old:
+        return 0, []
     got = {r["symbol"]: r["q"] for r in await conn.fetch(
         "SELECT DISTINCT ON (symbol) symbol, metrics->>'q_period_end' AS q FROM scores WHERE model = 'v1' AND symbol = ANY($1::text[]) "
         "ORDER BY symbol, (statement = 'consolidated') DESC, updated_at DESC", list(old))}

@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
@@ -44,7 +44,7 @@ function Scoreboard({ s, all, locked, q }: { s: QSummary; all: QSummary; locked:
   const filtered = s.companies !== all.companies;
   return (
     <section className="qr-tiles" aria-label="Scoreboard">
-      <Tile label="Declared" value={<>{nf(all.declared, 0)} <em>of {nf(all.companies, 0)}</em></>} sub={`${nf(all.due, 0)} still due${all.awaiting ? ` · ${nf(all.awaiting, 0)} being updated` : ""}`} help="qr-scoreboard" />
+      <Tile label="Declared" value={<>{nf(all.declared, 0)} <em>of {nf(all.companies, 0)}</em></>} sub={`${nf(all.due, 0)} still due${all.awaitingOurs ?? all.awaiting ? ` · ${nf(all.awaitingOurs ?? all.awaiting, 0)} being updated` : ""}${all.awaitingProvider ? ` · ${nf(all.awaitingProvider, 0)} awaiting the data provider` : ""}`} help="qr-scoreboard" />
       <Tile label="Median revenue growth" locked={locked} tone={s.medianRevenueYoY == null ? undefined : s.medianRevenueYoY >= 0 ? "up" : "down"} value={signedPct(s.medianRevenueYoY)} sub={`vs a year ago · ${nf(s.nRevenue || 0, 0)} companies`} />
       <Tile label="Median profit growth" locked={locked} tone={s.medianProfitYoY == null ? undefined : s.medianProfitYoY >= 0 ? "up" : "down"} value={signedPct(s.medianProfitYoY)} sub={`vs a year ago · ${nf(s.nProfit || 0, 0)} companies`} />
       <Tile label="Profit up" locked={locked} value={share(s.profitUpShare)} sub="of companies, vs a year ago" />
@@ -88,7 +88,8 @@ function Company({ r }: { r: QRow }) {
 
 function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void }) {
   const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
-  const note = r.status === "awaiting" ? <>Declared on {dayLabel(r.date)}. <b>Report is being updated.</b> Figures appear here as soon as the company's report is refreshed.</>
+  const note = r.status === "awaiting" && r.awaitingWhy === "provider" ? <>{awaitingText(r.date, r.awaitingWhy)}. We check again every hour.</>
+    : r.status === "awaiting" ? <>Declared on {dayLabel(r.date)}. <b>Report is being updated.</b> Figures appear here as soon as the company's report is refreshed.</>
     : r.status === "due" ? <>Results due on {dayLabel(r.date)}{r.confirmed ? "" : " (board-meeting date)"}.</>
     : r.status === "missing" ? <>Declared on {dayLabel(r.date)}. This quarter's figures are no longer stored{r.loadedPeriodEnd ? ` (we hold the quarter to ${new Date(r.loadedPeriodEnd + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })})` : ""}.</>
     : null;

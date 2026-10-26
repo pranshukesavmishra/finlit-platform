@@ -789,6 +789,11 @@ async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
     body["funds"] = await _funds_health(request.app.state.store.pool)
     from .. import integrity
     body["integrity"] = await integrity.last_result(request.app.state.store.pool)
+    try:
+        from .. import results_light
+        body["resultsLight"] = await results_light.coverage(request.app.state.store)
+    except Exception:   # the quarter-results count is optional for the rest of the panel
+        body["resultsLight"] = None
     st: Settings = request.app.state.settings
     # How this server tells visitors apart (rate limits, sign-in lockouts): the proxy chain it received from the administrator's own browser,
     # and the address it settled on. That address should be the administrator's own public IP; a Cloudflare or host address means more proxy

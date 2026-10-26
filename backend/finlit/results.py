@@ -50,7 +50,8 @@ DECL_KEY = "results:decl"  # the declarations worked out from the feed, kept in 
 PROBE_SQL = ("SELECT (SELECT count(*) FROM feed_items WHERE kind = 'result') AS fn, (SELECT max(id) FROM feed_items WHERE kind = 'result') AS fid, "
              "(SELECT count(*) FROM scores WHERE model = 'v1') AS sn, (SELECT max(changed_at)::text FROM scores WHERE model = 'v1') AS sa, "
              "(SELECT count(*) FROM companies) AS cn, (SELECT max(updated_at)::text FROM companies) AS ca, (SELECT count(*) FROM index_members) AS mn, "
-             "(SELECT count(*) FROM snapshots WHERE section = 'financials') AS gn, (SELECT max(generated_at)::text FROM snapshots WHERE section = 'financials') AS ga")
+             "(SELECT count(*) FROM snapshots WHERE section = 'financials') AS gn, (SELECT max(generated_at)::text FROM snapshots WHERE section = 'financials') AS ga, "
+             "(SELECT count(*) FROM quarter_light) AS ln, (SELECT max(checked_at)::text FROM quarter_light) AS la")
 EXPORT_ROWS = 4000
 DATE_MEANING = ("The date is the day the company announced (declared) its results: the date on the exchange filing, or the board-meeting date from the results calendar until the filing appears. "
                 "It is an Indian calendar date (IST).")
@@ -64,6 +65,9 @@ SORTS = {"date", "marketCap", *NUMERIC_SORTS}
 # every figure a row carries that Basic must not see
 FIGURES = ("revenue", "revenueYoY", "revenueQoQ", "operatingProfit", "opYoY", "opQoQ", "opYoYWhy", "opQoQWhy", "opm", "netProfit", "profitYoY", "profitQoQ", "npm", "npmChange", "eps", "gap")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# quarter_light column -> the q_* metric it holds (the same meaning as the stored full-report metric of that name)
+LIGHT_COLS = {"revenue": "q_revenue", "operating_profit": "q_operating_profit", "net_profit": "q_net_profit", "eps": "q_eps", "sales_yoy": "q_sales_yoy", "profit_yoy": "q_profit_yoy",
+              "sales_qoq": "q_sales_qoq", "profit_qoq": "q_profit_qoq", "opm": "q_opm", "npm": "q_npm"}
 METRIC_KEYS = ("q_revenue", "q_net_profit", "q_operating_profit", "q_eps", "q_sales_yoy", "q_profit_yoy", "q_sales_qoq", "q_profit_qoq", "q_opm", "q_npm", "q_period_end")
 
 
@@ -205,8 +209,10 @@ def status_of(decl_date: date, today: date, has_numbers: bool, loaded_end: Optio
     return "awaiting" if decl_date <= today else "due"
 
 
-def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e: date, today: date, cap: Optional[str], indices: List[str], opg: Optional[Dict[str, Any]] = None) -> dict:
-    """One row. `m` holds the q_* figures ALREADY checked to belong to quarter `e`; an empty/None-filled `m` means no figures."""
+def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e: date, today: date, cap: Optional[str], indices: List[str], opg: Optional[Dict[str, Any]] = None, light: Optional[dict] = None) -> dict:
+    """One row. `m` holds the q_* figures ALREADY checked to belong to quarter `e`; an empty/None-filled `m` means no figures.
+    `light` describes the light table's part in this row: {"used": the figures come from quarter_light, "basis": its statement basis, "asked": the provider
+    was asked and has no figures for this quarter yet}. A row's figures come from ONE source."""
     rev, np_, op = m.get("q_revenue"), m.get("q_net_profit"), m.get("q_operating_profit")
     has_numbers = rev is not None or np_ is not None
     ry, py = m.get("q_sales_yoy"), m.get("q_profit_yoy")
@@ -225,6 +231,8 @@ def build_row(sym: str, decl: Decl, base: dict, m: Dict[str, Optional[float]], e
         "revenue": _r(rev), "revenueYoY": _r(ry, 1), "revenueQoQ": _r(m.get("q_sales_qoq"), 1), "operatingProfit": _r(op), "opYoY": None, "opQoQ": None, "opYoYWhy": None, "opQoQWhy": None, "opm": _r(m.get("q_opm"), 1),
         "netProfit": _r(np_), "profitYoY": _r(py, 1), "profitQoQ": _r(m.get("q_profit_qoq"), 1), "npm": _r(npm, 1), "npmChange": _r(npm_change, 1),
         "eps": _r(m.get("q_eps")), "gap": _r(gap, 1), "flagged": bool(gap is not None and gap >= GAP_FLAG), "loss": bool(np_ is not None and np_ < 0),
+        "source": "light" if has_numbers and (light or {}).get("used") else ("full" if has_numbers else None), "basis": (light or {}).get("basis") if has_numbers and (light or {}).get("used") else None,
+        "awaitingWhy": ("provider" if (light or {}).get("asked") else "ours") if status == "awaiting" else None,
     }
     if has_numbers:
         g = opg if opg is not None else {}
@@ -391,6 +399,23 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
                         base[r["symbol"]]["q_period_end"] = blk.get("q_period_end") or quarter_block(qpl).get("q_period_end")
                 except (ValueError, TypeError, AttributeError):
                     continue
+        light_rows = await conn.fetch("SELECT symbol, statement, filled, period_end, provider_latest, " + ", ".join(LIGHT_COLS) + ", op_yoy, op_qoq, op_yoy_why, op_qoq_why"  # nosec B608 - fixed names
+                                      " FROM quarter_light WHERE quarter = $1 AND symbol = ANY($2::text[])", quarter_key(e), symbols)
+    # Companies the site does not hold in full: their figures come from the light table (one provider call, see results_light.py). A row takes its
+    # figures from ONE source: the full report when it already holds this quarter, else the light row. The two are never mixed.
+    used_light: Dict[str, dict] = {}
+    asked: set = set()
+    for r in light_rows:
+        sym, held = r["symbol"], metrics.get(r["symbol"]) or {}
+        if held.get("q_revenue") is not None or held.get("q_net_profit") is not None:
+            continue
+        if r["filled"] and r["period_end"] is not None and lo <= r["period_end"] <= hi:
+            pe = float(r["period_end"].year * 10000 + r["period_end"].month * 100 + r["period_end"].day)
+            metrics[sym] = {**{q: _f(r[c]) for c, q in LIGHT_COLS.items()}, "q_period_end": pe}
+            used_light[sym] = {"basis": r["statement"], "opg": {"opYoY": r["op_yoy"], "opQoQ": r["op_qoq"], "opYoYWhy": r["op_yoy_why"], "opQoQWhy": r["op_qoq_why"]}}
+            base.setdefault(sym, {"symbol": sym})["q_period_end"] = pe
+        elif not r["filled"] and (r["provider_latest"] is None or r["provider_latest"] <= hi):
+            asked.add(sym)   # we asked the provider and it has no figures for this quarter yet
     try:
         table = await get_table(store)
         cap_of = lambda s: table.cap[table.pos[s]] if s in table.pos else None   # noqa: E731
@@ -400,11 +425,14 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
     stmt_of = {r["symbol"]: r["statement"] for r in scored}
 
     def growth(s: str) -> Optional[Dict[str, Any]]:
+        if s in used_light:
+            return used_light[s]["opg"]
         m, h = metrics.get(s) or {}, hist.get((s, stmt_of.get(s, "")))
         if not h or (m.get("q_revenue") is None and m.get("q_net_profit") is None):
             return None
         return op_growth(h["ends"], h["op"], e, m.get("q_operating_profit"))
-    rows = [build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, [])), growth(s)) for s, d in decls.items()]
+    rows = [build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, [])), growth(s),
+                      {"used": s in used_light, "basis": (used_light.get(s) or {}).get("basis"), "asked": s in asked}) for s, d in decls.items()]
     counts: Dict[str, int] = {}
     for r in rows:
         if r["sector"]:
@@ -523,6 +551,7 @@ def summarize(rows: List[dict], today: date) -> Dict[str, Any]:
     med = lambda xs: round(median(xs), 1) if xs else None   # noqa: E731
     share = lambda xs, ok: round(sum(1 for x in xs if ok(x)) / len(xs) * 100, 1) if xs else None   # noqa: E731
     return {"companies": len(rows), "declared": len(declared), "due": sum(1 for r in rows if r["status"] == "due"), "awaiting": sum(1 for r in rows if r["status"] == "awaiting"),
+            "awaitingProvider": sum(1 for r in rows if r.get("awaitingWhy") == "provider"), "awaitingOurs": sum(1 for r in rows if r.get("awaitingWhy") == "ours"),
             "withNumbers": len(withnum), "medianRevenueYoY": med(ry), "medianProfitYoY": med(py), "profitUpShare": share(py, lambda x: x > 0), "marginUpShare": share(mc, lambda x: x > 0),
             "flagged": sum(1 for r in withnum if r["flagged"]), "nRevenue": len(ry), "nProfit": len(py), "nMargin": len(mc)}
 

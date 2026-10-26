@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeChip, addDays, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isRealDay, isWeekend, mondayOf, queryString, quarterStartOf, signedPct, todayIST, type QRow } from "./qresults";
+import { activeChip, awaitingText, statusText, addDays, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isRealDay, isWeekend, mondayOf, queryString, quarterStartOf, signedPct, todayIST, type QRow } from "./qresults";
 
 const base = { symbol: "ACME", revenue: 1057.8, revenueYoY: 37.2, revenueQoQ: 5.4, netProfit: 73.9, profitYoY: -36.2, profitQoQ: -35.6, opm: 12.34, npm: 6.99, eps: 3.1 };
 
@@ -81,5 +81,21 @@ describe("operating profit columns in the CSV", () => {
     const out = csvOf([r], "Q");
     expect(out).toContain("Operating profit YoY %,Operating profit QoQ %,OPM %");
     expect(out).toContain(",33,50,,20,10,");
+  });
+});
+
+describe("status text for declared companies without figures", () => {
+  it("says honestly when the data provider is the one that is behind", () => {
+    expect(awaitingText("2026-10-26", "provider")).toBe("Declared on 26 Oct; the data provider has not published the figures yet");
+    expect(statusText({ status: "awaiting", date: "2026-10-26", awaitingWhy: "provider" })).toBe("Declared on 26 Oct; the data provider has not published the figures yet");
+  });
+  it("keeps the generic text when it is our own report that lags (or the server does not say)", () => {
+    expect(statusText({ status: "awaiting", date: "2026-10-26", awaitingWhy: "ours" })).toBe("Declared, report being updated");
+    expect(statusText({ status: "awaiting", date: "2026-10-26" })).toBe("Declared, report being updated");
+  });
+  it("maps the other statuses unchanged", () => {
+    expect(statusText({ status: "declared", date: "2026-10-26" })).toBe("Declared");
+    expect(statusText({ status: "due", date: "2026-10-26" })).toBe("Due");
+    expect(statusText({ status: "missing", date: "2026-10-26" })).toBe("Figures not stored");
   });
 });

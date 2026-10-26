@@ -62,9 +62,9 @@ print(max(days) if days else '')")"
   if [ -n "$day" ]; then
     get "/api/results/quarter?date=$day&limit=1"; out=""
     if out="$(js "s=d.get('summary') or {}
-c,a=s.get('companies',0),s.get('awaiting',0)
+c,a=s.get('companies',0),s.get('awaitingOurs',s.get('awaiting',0))
 pct=100*a/c if c else 0
-print('%s: %d of %d being updated (%.0f%%)'%('$day',a,c,pct))
+print('%s: %d of %d being updated (%.0f%%); %d more wait for the data provider (not counted)'%('$day',a,c,pct,s.get('awaitingProvider',0)))
 sys.exit(0 if pct<=$MAX_UPDATING_PCT else 1)")"; then pass "results $out (limit $MAX_UPDATING_PCT%)"; else fail "results ${out:-unreadable} (limit $MAX_UPDATING_PCT%)"; fi
   else pass "results: no declared day older than today yet (nothing to check)"; fi
 else fail "quarter results -> HTTP $CODE"; fi

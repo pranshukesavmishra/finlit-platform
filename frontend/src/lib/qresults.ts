@@ -11,9 +11,13 @@ export type QRow = {
   revenue: number | null; revenueYoY: number | null; revenueQoQ: number | null; operatingProfit: number | null; opYoY: number | null; opQoQ: number | null; opYoYWhy: string | null; opQoQWhy: string | null; opm: number | null;
   netProfit: number | null; profitYoY: number | null; profitQoQ: number | null; npm: number | null; npmChange: number | null; eps: number | null;
   gap: number | null; flagged: boolean; loss: boolean;
+  /** Where the figures come from: the stored full report, or the light table (a smaller company, one provider call). Null without figures. */
+  source?: "full" | "light" | null; basis?: "consolidated" | "standalone" | null;
+  /** For an awaiting row: "provider" = we asked and the data provider has not published the quarter yet; "ours" = our own report is still being updated. */
+  awaitingWhy?: "provider" | "ours" | null;
 };
 export type QSummary = {
-  companies: number; declared: number; due: number; awaiting: number; withNumbers: number; flagged: number | null;
+  companies: number; declared: number; due: number; awaiting: number; awaitingProvider?: number; awaitingOurs?: number; withNumbers: number; flagged: number | null;
   medianRevenueYoY: number | null; medianProfitYoY: number | null; profitUpShare: number | null; marginUpShare: number | null; nRevenue: number | null; nProfit: number | null; nMargin: number | null;
 };
 export type QInfo = { key: string; label: string; fiscal: string; periodEnd: string; from: string; to: string };
@@ -146,12 +150,18 @@ const cell = (v: string | number | boolean | null | undefined) => {
 };
 export const CSV_HEAD = ["Declared on", "Symbol", "Company", "Sector", "Market cap (Rs Cr)", "Status", "Revenue (Rs Cr)", "Revenue YoY %", "Revenue QoQ %", "Operating profit (Rs Cr)", "Operating profit YoY %", "Operating profit QoQ %", "OPM %",
   "Net profit (Rs Cr)", "Profit YoY %", "Profit QoQ %", "NPM %", "Net margin change YoY (pts)", "EPS (Rs)", "Revenue vs profit gap (pts)", "Profit and sales moved apart"];
-const STATUS_TEXT: Record<QStatus, string> = { declared: "Declared", awaiting: "Declared, report being updated", due: "Due", missing: "Figures not stored" };
+const dayShort = (iso: string) => { const d = new Date(iso + "T00:00:00"); return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }); };
+/** The honest reason a declared company has no figures yet: the data provider is behind, or our own report is still being updated. */
+export const awaitingText = (date: string, why?: "provider" | "ours" | null): string =>
+  why === "provider" ? `Declared on ${dayShort(date)}; the data provider has not published the figures yet` : "Declared, report being updated";
+/** One plain status line per row (the CSV's Status column). */
+export const statusText = (r: Pick<QRow, "status" | "date" | "awaitingWhy">): string =>
+  r.status === "awaiting" ? awaitingText(r.date, r.awaitingWhy) : ({ declared: "Declared", due: "Due", missing: "Figures not stored", awaiting: "" } as Record<QStatus, string>)[r.status];
 
 export function csvOf(rows: QRow[], quarterLabel: string): string {
   const lines = [[`Quarter: ${quarterLabel}`], CSV_HEAD].map((l) => l.map(cell).join(","));
   for (const r of rows) {
-    lines.push([r.date, r.symbol, r.name, r.sector, r.marketCap, STATUS_TEXT[r.status], r.revenue, r.revenueYoY, r.revenueQoQ, r.operatingProfit, r.opYoY, r.opQoQ, r.opm, r.netProfit, r.profitYoY, r.profitQoQ, r.npm, r.npmChange, r.eps, r.gap,
+    lines.push([r.date, r.symbol, r.name, r.sector, r.marketCap, statusText(r), r.revenue, r.revenueYoY, r.revenueQoQ, r.operatingProfit, r.opYoY, r.opQoQ, r.opm, r.netProfit, r.profitYoY, r.profitQoQ, r.npm, r.npmChange, r.eps, r.gap,
       r.hasNumbers ? (r.flagged ? "Yes" : "No") : ""].map(cell).join(","));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";

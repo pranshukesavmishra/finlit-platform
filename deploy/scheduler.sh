@@ -102,6 +102,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
   $PY -m finlit.worker refresh-results                 # first of all: anyone who reported while the site was down or restarting (the quarter page says "being updated" until this runs)
+  $PY -m finlit.worker refresh-results-light           # right after: the smaller companies that reported (their quarterly figures only, one provider call each)
   $PY -m finlit.worker refresh-flows --only nse                    # the exchange's own FII/DII figures for the latest session (one request), even when the nightly run is recent
   $PY -m finlit.worker refresh-calendars               # IPO and results calendars: light, and visible at once
   $PY -m finlit.worker refresh-universe
@@ -133,6 +134,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   fi
   $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 1   # one company at a time: two at once pushed the 512 MB instance out of memory and the site answered 502/503
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
+  $PY -m finlit.worker refresh-results-light           # and the smaller companies that have
   $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
   $PY -m finlit.worker score-all                        # a score for every other listed company (score row only, capped per run, resumable)
@@ -190,6 +192,7 @@ while true; do
   (( H == 21 && M == 30 )) && run light flows-retry refresh-flows           # retry for a report NSDL posted late (a handful of requests; the rows already loaded are only updated)
   (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)
   (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
+  (( H >= 8 && H <= 23 && M == 35 )) && run light results-light refresh-results-light   # hourly: every company that declared in the last 4 days and is not held in full gets its quarter figures (one provider call each, 150 a run, biggest first)
   (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
   (( weekday && H == 7 && M == 30 )) && run light screens check-screens
   (( D == 7 && H == 18 && M == 30 )) && run light digest send-digest
