@@ -13,7 +13,6 @@
 import { MINUS } from "./format";
 import WORDING from "./technicalWording.json";
 
-export const TECH_NAME = "Technical view";
 /** What the technical view is, in plain words. Shown wherever it appears, next to the general Prism line. */
 export const TECH_NOTE = "Describes recent price and trend behaviour from past prices. It does not predict prices and is not a recommendation.";
 
@@ -122,6 +121,17 @@ export function scoreBand(score: number | null): TrendTone {
   if (score == null || !Number.isFinite(score)) return "na";
   return score >= BANDS.strongPositive ? "strongpos" : score >= BANDS.positive ? "pos" : score > BANDS.neutral ? "neutral" : score > BANDS.negative ? "neg" : "strongneg";
 }
+/** The legend under every gauge, written from the same BANDS the rating uses: it can never drift from `scoreBand`. */
+export function bandLegend(): string {
+  const n = (v: number) => (v > 0 ? "+" : v < 0 ? MINUS : "") + Math.abs(v);
+  const { strongPositive: a, positive: b, neutral: c, negative: d } = BANDS;
+  return `Strongly positive: ${n(a)} or more · Positive: ${n(b)} up to ${n(a)} · Neutral: above ${n(c)} up to ${n(b)} · Negative: above ${n(d)} up to ${n(c)} · Strongly negative: ${n(d)} or less.`;
+}
+/** Widths (percent of the -100..+100 scale) of the five gauge bands, lowest first, from BANDS. */
+export const bandWidths = (): number[] => {
+  const edges = [-100, BANDS.negative, BANDS.neutral, BANDS.positive, BANDS.strongPositive, 100];
+  return edges.slice(1).map((e, i) => (e - edges[i]) / 2);
+};
 const BAND_WORD = WORDING.bandWords as Record<TrendTone, string>;
 
 /** The word and tone for a horizon. The model's rating is used when it is one we know; otherwise the full-precision score decides.

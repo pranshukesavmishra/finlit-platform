@@ -8,7 +8,7 @@ import { Icon } from "../../../lib/icons";
 import { dateIN } from "../../../lib/format";
 import type { PrismReport } from "../../../lib/prism";
 import {
-  FACTOR_GROUP_WORD, STAGE_WORD, TECH_NOTE, disabledFactors, factorGroup, filterTechFactors, fmtScore, isFresh, parseTechnical, ratingWord, safeText,
+  BANDS, FACTOR_GROUP_WORD, bandLegend, bandWidths, STAGE_WORD, TECH_NOTE, disabledFactors, factorGroup, filterTechFactors, fmtScore, isFresh, parseTechnical, ratingWord, safeText,
   scalePos, scoreBand, signalWord, verdictView,
   type FactorGroup, type TechAssessment, type TechFactor, type TechHorizon, type TrendTone, type VerdictTone,
 } from "../../../lib/prismTechnical";
@@ -34,11 +34,11 @@ export function TechGauge({ score, label }: { score: number | null; label: strin
   return (
     <div className={"pzt-gauge " + tone} role="img" aria-label={label}>
       <div className="pzt-g-bar" aria-hidden="true">
-        <i className="b1" style={{ flex: 25 }} /><i className="b2" style={{ flex: 15 }} /><i className="b3" style={{ flex: 20 }} /><i className="b4" style={{ flex: 15 }} /><i className="b5" style={{ flex: 25 }} />
+        {bandWidths().map((w, i) => <i key={i} className={"b" + (i + 1)} style={{ flex: w }} />)}
         <u className="pzt-g-zero" />
         {score != null && <b className="pzt-g-mk" style={{ left: `${pos}%` }}><span>{fmtScore(score)}</span></b>}
       </div>
-      <div className="pzt-g-ticks" aria-hidden="true">{[[-100, "−100"], [-50, "−50"], [0, "0"], [50, "+50"], [100, "+100"]].map(([v, t]) => <span key={v} style={{ left: `${((v as number) + 100) / 2}%` }}>{t}</span>)}</div>
+      <div className="pzt-g-ticks" aria-hidden="true">{[[-100, "−100"], [BANDS.negative, "−50"], [0, "0"], [BANDS.strongPositive, "+50"], [100, "+100"]].map(([v, t]) => <span key={v} style={{ left: `${((v as number) + 100) / 2}%` }}>{t}</span>)}</div>
     </div>
   );
 }
@@ -49,13 +49,13 @@ function HorizonCard({ name, h, id }: { name: string; h: TechHorizon; id: string
     <article className={"pzt-card " + w.tone} aria-labelledby={id}>
       <header className="pzt-ch">
         <div><h4 id={id}>{name}</h4>{h.horizon && <p>Trend over about {h.horizon.replace("–", " to ")}</p>}</div>
-        <span className={"pzt-word " + w.tone} aria-label={`${name} trend: ${w.word}`}><i aria-hidden="true">{SHAPE[w.tone]}</i>{w.word}</span>
+        <span className={"pzt-word " + w.tone}><i aria-hidden="true">{SHAPE[w.tone]}</i>{w.word}</span>
       </header>
-      <p className="pzt-score" aria-label={have ? `${name} score ${fmtScore(h.score)} out of a range of minus 100 to plus 100` : `${name} score not available`}>
+      <p className="pzt-score">
         {have ? <>{fmtScore(h.score)}<small> on −100 to +100</small></> : <>Not available<small> score withheld</small></>}
       </p>
       <TechGauge score={h.score} label={horizonSummary(name, h)} />
-      <p className="pzt-legend">Strongly negative below −50 · Negative −50 to −20 · Neutral −20 to +20 · Positive +20 to +50 · Strongly positive +50 and above.</p>
+      <p className="pzt-legend">{bandLegend()}</p>
       <ul className="pzt-facts">
         <li className={h.availableCount < h.requiredCount ? "warn" : ""}><Icon name={h.availableCount < h.requiredCount ? "alert" : "check"} /><span><b>{h.availableCount} of {h.requiredCount}</b> signals available. {STATE_WORD[h.status]}.</span></li>
         {h.stageCapped && <li className="warn pzt-cap"><Icon name="info" /><span><b>Limited by the market stage.</b> When a stock is in Stage 3 (topping) or Stage 4 (declining), the model limits the long-term score to +19 at most, before the trend word is chosen.</span></li>}
@@ -80,7 +80,7 @@ function SignalRow({ f }: { f: TechFactor }) {
   const label = safeText(f.label), detail = safeText(f.detail);
   const word = g === "unavailable" || s == null ? "Unavailable" : signalWord(s);
   return (
-    <li className={"pzt-sg " + g} aria-label={`${label}: ${word.toLowerCase()}${detail ? `. ${detail}` : ""}`}>
+    <li className={"pzt-sg " + g}>
       <span className="pzt-sg-n"><b>{label}</b>{detail && <small>{detail}</small>}</span>
       <span className="pzt-sg-b" aria-hidden="true"><i className="pzt-sg-t">{s != null && s !== 0 && <em className={s > 0 ? "up" : "dn"} style={{ width: `${Math.abs(s) * 50}%` }} />}</i></span>
       <span className="pzt-sg-w"><i aria-hidden="true">{g === "supporting" ? "▲" : g === "adverse" ? "▼" : g === "neutral" ? "◆" : "–"}</i>{word}</span>
@@ -175,7 +175,7 @@ export function TechPointer({ report }: { report: PrismReport }) {
   const s = ratingWord(a.shortTerm.rating, a.shortTerm.score), l = ratingWord(a.longTerm.rating, a.longTerm.score);
   return (
     <p className="pzt-ptr pzr-noprint">
-      <Icon name="activity" /><span>Technical view: short term <b>{s.word.toLowerCase()}</b>, long term <b>{l.word.toLowerCase()}</b>. Separate from the score above. <a href={`#${TECH_ID}`} aria-label="Go to the technical view">See the details</a></span>
+      <Icon name="activity" /><span>Technical view: short term <b>{s.word.toLowerCase()}</b>, long term <b>{l.word.toLowerCase()}</b>. Separate from the score above. <a href={`#${TECH_ID}`}>See the details of the technical view</a></span>
     </p>
   );
 }

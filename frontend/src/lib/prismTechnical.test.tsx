@@ -170,7 +170,7 @@ describe("report page section", () => {
     expect(t).toContain("Aligned stock and benchmark history is insufficient");
     expect(t).toContain("Trend: not available");
     expect(t).toContain("score withheld");
-    expect(h).toContain("Long-term score not available".replace("Long-term", "Long term").replace("score not", "score not"));
+    expect(strip(h)).toContain("Not available score withheld");
   });
   it("older reports get a calm note and a recalculate action, and the Prism score is untouched", () => {
     const h = renderToStaticMarkup(<Technical report={OLD} onRecalculate={() => undefined} />), t = strip(h);
@@ -226,5 +226,29 @@ describe("one wording file shared with the PDF", () => {
     at(BANDS.neutral + 1e-9, "neutral"); at(BANDS.neutral, "neg");
     at(BANDS.negative + 1e-9, "neg"); at(BANDS.negative, "strongneg");
     at(100, "strongpos"); at(-100, "strongneg");
+  });
+});
+
+describe("legend, gauge and light-theme contrast", () => {
+  it("the legend is written from the same bands the rating uses", async () => {
+    const { bandLegend, bandWidths } = await import("./prismTechnical");
+    expect(bandLegend()).toBe("Strongly positive: +50 or more · Positive: +20 up to +50 · Neutral: above −20 up to +20 · Negative: above −50 up to −20 · Strongly negative: −50 or less.");
+    expect(bandWidths()).toEqual([25, 15, 20, 15, 25]);
+  });
+  it("the technical card shows that legend, and no aria-label sits on a plain span, paragraph or list item", () => {
+    const html = renderToStaticMarkup(<Technical report={withTech(fx.ready)} />);
+    expect(strip(html)).toContain("Strongly positive: +50 or more");
+    expect(html).not.toMatch(/<(span|p|li)\b[^>]*\baria-label=/);
+  });
+  it("`.pzt-rn small` keeps WCAG AA contrast (4.5:1) on every light surface", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync(new URL("../styles/prism-technical.css", import.meta.url), "utf8");
+    const base = readFileSync(new URL("../styles/finlit.css", import.meta.url), "utf8");
+    expect(css).not.toMatch(/\.pzt-rn small \{[^}]*opacity/);
+    const block = base.slice(base.indexOf(':root[data-theme="light"]'));
+    const hex = (name: string) => new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(block)![1];
+    const lum = (h: string) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const ratio = (a: string, b: string) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+    for (const surface of ["bg", "s1", "s2", "s3"]) expect(ratio(hex("muted"), hex(surface))).toBeGreaterThanOrEqual(4.5);
   });
 });
