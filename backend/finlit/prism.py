@@ -49,7 +49,7 @@ from .auth.entitlements import has
 from .auth.routes import IST, NO_STORE, ip_of, pre_session_guard, secure_ctx
 from .auth.service import Ctx, current
 from .premium import gateway_token
-from .prism_candles import supplied_candles
+from .prism_candles import mark_down, supplied_candles
 
 log = logging.getLogger("finlit.prism")
 router = APIRouter(prefix="/api/prism")
@@ -65,13 +65,16 @@ SLOTS = max(1, min(4, int(os.getenv("PRISM_SLOTS", "2") or 2)))   # calculations
 PDF_LIMIT = 30                     # PDF downloads per member (or visitor address) per 10 minutes; each is rendered by the site backend
 TOKEN_SECONDS = 300
 GENERATE_SECONDS = 170.0           # one calculation takes 60 to 120 seconds
-LOCK_SECONDS = int(GENERATE_SECONDS) + 30
+CANDLE_SECONDS = 60.0              # Dhan candles (see prism_candles.py) must not eat the calculation's time: after this, send none and the site backend falls back
+SLOT_WAIT = 60.0                   # how long a request waits for a free calculation slot before it is told the service is busy
+LOCK_MARGIN = 30.0
+# The per-company lock must outlive the longest a calculation can take: candles, then the wait for a slot, then the calculation, plus a margin.
+LOCK_SECONDS = int(CANDLE_SECONDS + SLOT_WAIT + GENERATE_SECONDS + LOCK_MARGIN)
 WAIT_STEP = 1.0                    # how often a request waiting for another one's calculation looks again
 FAIL_SECONDS = 30                  # how long a failed calculation's answer is handed to the requests that waited for it
 STATUS_SECONDS = 60                # the "is the site backend up" check is repeated at most this often
 PING_SECONDS = 3.0
 BUSY_RETRY = 30
-SLOT_WAIT = 60.0                   # how long a request waits for a free calculation slot before it is told the service is busy
 # Engineering details of the signed snapshot that the browser never receives.
 INTERNAL = ("calculationTrace", "inputs", "inputHash", "snapshotReceipt", "snapshotExpiresAt")
 HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace the report's financial history shows
@@ -465,8 +468,6 @@ async def _wait_for(app, symbol: str, statement: str, lock: str, before: Optiona
     return _reply({"status": "busy", "detail": f"{PRISM_NAME} is busy. Please try again shortly."}, 429, 5)
 
 
-CANDLE_SECONDS = 60.0               # Dhan candles (see prism_candles.py) must not eat the calculation's time: after this, send none and the site backend falls back
-
 
 async def _report_body(app, symbol: str, statement: str) -> Dict[str, Any]:
     """The body of POST /api/premium-reports. Dhan's daily candles are added as `suppliedCandles` when they could be fetched complete;
@@ -477,6 +478,7 @@ async def _report_body(app, symbol: str, statement: str) -> Dict[str, Any]:
     except Exception as exc:        # never let the extra source stop the calculation
         log.warning("prism candles for %s not sent: %s", symbol, type(exc).__name__)
         candles = None
+        await mark_down(getattr(getattr(app.state, "store", None), "redis", None))      # a timeout or crash: do not make the next report wait for Dhan too
     if candles:
         body["suppliedCandles"] = candles
     return body
@@ -500,6 +502,7 @@ async def _execute(app, sub: str, symbol: str, statement: str, counter: Optional
     r: Optional[httpx.Response] = None
     started = time.monotonic()
     try:
+        base = await _report_body(app, symbol, statement)      # Dhan's candles are fetched BEFORE a calculation slot is taken: waiting for Dhan never holds a slot
         try:   # a request waits its turn (up to SLOT_WAIT seconds) instead of being turned away while another company is calculating
             await asyncio.wait_for(_slots(app).acquire(), SLOT_WAIT)
         except asyncio.TimeoutError:
@@ -507,7 +510,7 @@ async def _execute(app, sub: str, symbol: str, statement: str, counter: Optional
                 await redis.decr(counter)
             return 429, {"status": "busy", "detail": f"{PRISM_NAME} is calculating other companies. Please try again in a minute."}, BUSY_RETRY
         try:
-            payload = await _site_payload(app, symbol, statement, background=background, keep=keep,
+            payload = await _site_payload(app, symbol, statement, background=background, keep=keep, base=base,
                                           kept_seconds=(REFRESH_REUSE_SECONDS if refresh else INPUT_SECONDS) if kept_seconds is None else kept_seconds)
             r = await _call(app, "/api/premium-reports", sub, payload)
         finally:
@@ -565,8 +568,9 @@ async def _kept_observations(redis, symbol: str, statement: str) -> Dict[str, An
         return {}
 
 
-async def _site_payload(app, symbol: str, statement: str, *, background: bool, keep: bool, kept_seconds: float) -> Dict[str, Any]:
-    body = await _report_body(app, symbol, statement)    # with Dhan's candles (`suppliedCandles`) when they could be fetched complete
+async def _site_payload(app, symbol: str, statement: str, *, background: bool, keep: bool, kept_seconds: float,
+                        base: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    body = dict(base) if base is not None else await _report_body(app, symbol, statement)    # with Dhan's candles (`suppliedCandles`) when they could be fetched complete
     body.update({"priority": "background" if background else "interactive", "keep": keep, "cache": True})
     inputs = await _kept_inputs(app.state.store, symbol, statement, kept_seconds)
     if inputs:

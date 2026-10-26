@@ -62,7 +62,7 @@ async def prepare(st, fake, **kw):
     """A state like the app's: the store, settings, and a Dhan client served by `fake`; Dhan ids for RELIANCE and the four indices."""
     from types import SimpleNamespace
     redis = st.redis
-    for key in ("dhan:token", "dhan:secmap", *[pc.CACHE_KEY + c for c in IDS]):
+    for key in ("dhan:token", "dhan:secmap", pc.DOWN_KEY, *[pc.CACHE_KEY + c for c in IDS]):
         await redis.delete(key)
     async with st.pool.acquire() as conn:
         await conn.execute("DELETE FROM dhan_instruments")
@@ -79,6 +79,7 @@ async def prepare(st, fake, **kw):
 
 @pytest.fixture(autouse=True)
 def no_waiting(monkeypatch):
+    monkeypatch.setattr(pc, "_down_until", 0.0)
     monkeypatch.setattr(pc, "CALL_GAP", 0.0)
 
 
@@ -276,3 +277,130 @@ async def test_a_member_calculation_and_the_nightly_run_both_send_the_candles(st
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM prism_reports")
         await conn.execute("DELETE FROM snapshots WHERE symbol = 'PZC'")
+
+
+# ------------------------------------------------------------------------------------------------------ review fixes
+def test_lock_outlives_candles_slot_wait_and_calculation():
+    assert prism.LOCK_SECONDS == int(prism.CANDLE_SECONDS + prism.SLOT_WAIT + prism.GENERATE_SECONDS + prism.LOCK_MARGIN) >= 320
+    assert prism.JOB_WORKING_SECONDS == prism.LOCK_SECONDS
+
+
+def scaled(n=600, split_at=None, factor=5, adjusted=False):
+    out = []
+    for i, d in enumerate(sessions(LAST, n)):
+        div = factor if adjusted or (split_at is not None and i >= split_at) else 1
+        out.append({"day": d, "open": (100 + i) / div, "high": (102 + i) / div, "low": (98 + i) / div, "close": (101 + i) / div, "volume": 5})
+    return out
+
+
+def test_implausible_daily_moves_are_refused_and_a_split_adjusted_series_is_not():
+    assert pc.clean(scaled(), LAST, 252) is not None
+    assert pc.clean(scaled(adjusted=True), LAST, 252) is not None                  # Dhan's adjusted series is smooth
+    got, why = pc.clean_reason(scaled(split_at=400), LAST, 252)                       # genuine unadjusted 1:5 split
+    assert got is None and "more than 40% in a day" in why
+    assert pc.clean(scaled(split_at=400, factor=2), LAST, 252) is None               # bonus 1:1
+    base = scaled()
+    for r in base[300:]:
+        for k in ("open", "high", "low", "close"):
+            r[k] *= 1.39
+    assert pc.clean(base, LAST, 252) is not None
+    for r in base[300:]:
+        for k in ("open", "high", "low", "close"):
+            r[k] *= 1.05
+    assert pc.clean(base, LAST, 252) is None                                          # now about 46% overnight
+
+
+def test_last_close_must_be_within_fifteen_percent_of_the_quote():
+    last = pc.clean(scaled(), LAST, 252)[-1][4]
+    assert pc.clean(scaled(), LAST, 252, last * 1.14) is not None and pc.clean(scaled(), LAST, 252, last / 1.14) is not None
+    assert pc.clean(scaled(), LAST, 252, last * 1.2) is None and pc.clean(scaled(), LAST, 252, last * 0.5) is None
+    for none in (None, 0, -1, float("nan")):
+        assert pc.clean(scaled(), LAST, 252, none) is not None
+
+
+def test_a_datetime_is_not_a_calendar_date():
+    r = rows()
+    r[7]["day"] = datetime(r[7]["day"].year, r[7]["day"].month, r[7]["day"].day)
+    assert pc.clean(r, LAST, 252) is None
+
+
+async def test_unexpected_answers_do_not_raise(store):  # noqa: F811
+    fake = FakeDhan({"2885": {**body(), "timestamp": [10 ** 20] * 1560}, **{i: body() for i in IDS.values()}})
+    got = await pc.supplied_candles(await prepare(store, fake), "RELIANCE", NOW)
+    assert "stock" not in got and set(got["indices"]) == set(IDS)
+
+
+async def test_a_crashing_stock_fetch_does_not_cancel_the_indices(store, monkeypatch):  # noqa: F811
+    state = await prepare(store, FakeDhan())
+
+    async def boom(*a, **k):
+        raise RuntimeError("unexpected")
+    monkeypatch.setattr(pc, "security_map", boom)
+    got = await pc.supplied_candles(state, "RELIANCE", NOW)
+    assert "stock" not in got and set(got["indices"]) == set(IDS)
+
+
+async def test_stock_failure_alone_does_not_pause_dhan_but_a_total_failure_does(store):  # noqa: F811
+    fake = FakeDhan({"2885": 500})
+    state = await prepare(store, fake)
+    got = await pc.supplied_candles(state, "RELIANCE", NOW)
+    assert "stock" not in got and len(got["indices"]) == 4 and await store.redis.get(pc.DOWN_KEY) is None
+    down = FakeDhan({i: 400 for i in ("2885", *IDS.values())})
+    state = await prepare(store, down)
+    assert await pc.supplied_candles(state, "RELIANCE", NOW) is None
+    assert await store.redis.get(pc.DOWN_KEY) is not None and 0 < await store.redis.ttl(pc.DOWN_KEY) <= 300
+    calls = len(down.calls)
+    assert await pc.supplied_candles(state, "RELIANCE", NOW) is None and len(down.calls) == calls     # no new Dhan call during the pause
+    await store.redis.delete(pc.DOWN_KEY)
+    down.series = {}
+    assert (await pc.supplied_candles(state, "RELIANCE", NOW)) is not None
+
+
+async def test_a_candle_timeout_in_a_report_pauses_dhan_too(store, monkeypatch):  # noqa: F811
+    app, fake = await make_app(store)
+    await store.redis.delete(pc.DOWN_KEY)
+
+    async def slow(state, symbol):
+        await prism.asyncio.sleep(5)
+    monkeypatch.setattr(prism, "supplied_candles", slow)
+    monkeypatch.setattr(prism, "CANDLE_SECONDS", 0.05)
+    async with app.router.lifespan_context(app):
+        await prism._report_body(app, "TCS", "consolidated")
+        assert await store.redis.get(pc.DOWN_KEY) is not None
+        await store.redis.delete(pc.DOWN_KEY)
+
+
+async def test_a_corrupt_cache_entry_is_a_miss(store):  # noqa: F811
+    fake = FakeDhan()
+    state = await prepare(store, fake)
+    await pc.supplied_candles(state, "RELIANCE", NOW)
+    n = len(fake.calls)
+    for bad in (b"not json", b'{"expected": "2026-10-22", "fetched": 1, "candles": [[1]]}', b'{"expected": 5, "candles": []}',
+                b'{"expected": "2026-10-22", "fetched": "x", "candles": [["2026-10-22", 1, 2, 3, 4, 5]]}', b'[1]'):
+        await store.redis.set(pc.CACHE_KEY + "NIF50", bad)
+        got = await pc.supplied_candles(state, "RELIANCE", NOW)
+        assert len(got["indices"]["NIF50"]["candles"]) == 1560
+
+
+def test_the_pacing_lock_works_in_every_event_loop():
+    import asyncio
+
+    async def use():
+        async with pc._pace_lock():
+            pass
+        return pc._pace_lock()
+    a, b = asyncio.run(use()), asyncio.run(use())
+    assert a is not b
+
+
+async def test_candles_are_fetched_before_a_calculation_slot_is_taken(store, monkeypatch):  # noqa: F811
+    app, site = await make_app(store)
+    seen = []
+
+    async def fake_candles(state, symbol):
+        seen.append(prism._slots(app)._value)
+        return None
+    monkeypatch.setattr(prism, "supplied_candles", fake_candles)
+    async with app.router.lifespan_context(app):
+        status, _, _ = await prism._execute(app, "prism:visitor", "TCS", "consolidated", None, False)
+    assert seen == [prism.SLOTS] and status in (200, 404, 422, 502, 503)

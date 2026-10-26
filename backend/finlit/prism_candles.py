@@ -25,9 +25,11 @@ import asyncio
 import json
 import logging
 import math
+import re
 import time
+import weakref
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -40,12 +42,42 @@ PROVIDER = "Dhan"
 INDEX_CODES = ("NIF50", "NIFMID100", "NIFSMA100", "NIF500")     # the site's benchmarks; ids come from indices.DHAN_INDEX, checked against dhan_indices
 HISTORY_DAYS = 365 * 6 + 20          # six years, as the model's FinEdge history; the long relative-strength rule needs 505 aligned sessions
 STOCK_MIN, INDEX_MIN, MAX_AGE_DAYS, MAX_ROWS = 252, 505, 10, 2000
-CALL_GAP = 0.34                      # about 3 data calls a second (Dhan allows 5; etf.py paces the same way); the quote jobs share the account
+CALL_GAP = 0.34                      # about 3 data calls a second, paced in THIS process only; Dhan's limit is per account and the quote jobs share it (DhanClient.daily does not pace)
+MAX_DAILY_MOVE = 0.40                # a close more than 40% from the previous close is an unadjusted split or bad data: the series is not sent
+MAX_QUOTE_GAP = 0.15                 # the stock's last close more than 15% from the stored quote price: not sent
+DOWN_KEY = "prism:candles:down"      # set for DOWN_SECONDS after Dhan failed outright, so an outage does not add CANDLE_SECONDS to every report
+DOWN_SECONDS = 300
+DATE_TEXT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 CACHE_KEY = "prism:candles:idx:"     # + index code
 CACHE_SECONDS = 3 * 24 * 3600
 RECHECK_SECONDS = 1800               # a cached index lacking the stock's newest session is not asked again for this long (Dhan may not have it yet)
-_pace_lock = asyncio.Lock()
+_pace_locks: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()   # one lock per event loop (a module-level Lock fails across loops)
 _last_call = 0.0
+_down_until = 0.0                    # in-process fallback when Redis cannot hold DOWN_KEY
+
+
+def _pace_lock() -> asyncio.Lock:
+    loop = asyncio.get_running_loop()
+    lock = _pace_locks.get(loop)
+    if lock is None:
+        lock = _pace_locks[loop] = asyncio.Lock()
+    return lock
+
+
+async def is_down(redis: Any) -> bool:
+    try:
+        return bool(await redis.get(DOWN_KEY))
+    except Exception:
+        return time.monotonic() < _down_until
+
+
+async def mark_down(redis: Any) -> None:
+    """Remember for DOWN_SECONDS that Dhan failed outright. Best effort."""
+    global _down_until
+    try:
+        await redis.set(DOWN_KEY, "1", ex=DOWN_SECONDS)
+    except Exception:
+        _down_until = time.monotonic() + DOWN_SECONDS
 
 
 def expected_session(now: datetime) -> date:
@@ -61,79 +93,105 @@ def _num(v: Any) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
-def clean(rows: List[dict], expected: date, minimum: int) -> Optional[List[list]]:
-    """Dhan's rows ({"day","open","high","low","close","volume"}) as [date, o, h, l, c, v], or None unless the whole series is complete and
-    consistent. Rows after the last completed session are dropped (today's partial candle)."""
+def clean_reason(rows: List[dict], expected: date, minimum: int, quote_price: Optional[float] = None) -> Tuple[Optional[List[list]], str]:
+    """Dhan's rows ({"day","open","high","low","close","volume"}) as [date, o, h, l, c, v], or (None, the reason) unless the whole series is
+    complete, consistent and plausible. Rows after the last completed session are dropped (today's partial candle)."""
     if not rows or len(rows) > MAX_ROWS:
-        return None
+        return None, "no rows or too many"
     out: List[list] = []
     previous: Optional[date] = None
     for r in rows:
         day = r.get("day") if isinstance(r, dict) else None
         vals = [r.get(k) for k in ("open", "high", "low", "close", "volume")] if isinstance(r, dict) else []
-        if not isinstance(day, date) or not all(_num(v) for v in vals):
-            return None
+        if type(day) is not date or not all(_num(v) for v in vals):       # type(): a datetime is not a calendar date
+            return None, "a row has no date or a missing/non-finite value"
         o, h, l, c, v = vals
         if min(o, h, l, c) <= 0 or v < 0 or not l <= min(o, c) <= max(o, c) <= h:
-            return None
+            return None, "a row is inconsistent"
         if previous is not None and day <= previous:
-            return None
+            return None, "dates are not strictly increasing"
         previous = day
         if day <= expected:
             out.append([day.isoformat(), o, h, l, c, v])
     if len(out) < minimum or not 0 <= (expected - date.fromisoformat(out[-1][0])).days <= MAX_AGE_DAYS:
-        return None
-    return out
+        return None, "too few sessions or the last session is too old"
+    for before, after in zip(out, out[1:]):
+        if abs(after[4] / before[4] - 1) > MAX_DAILY_MOVE:
+            return None, f"close moves more than {MAX_DAILY_MOVE:.0%} in a day on {after[0]} (unadjusted split or bad data)"
+    if _num(quote_price) and quote_price > 0 and abs(out[-1][4] / quote_price - 1) > MAX_QUOTE_GAP:
+        return None, f"last close is more than {MAX_QUOTE_GAP:.0%} from the quote price"
+    return out, ""
+
+
+def clean(rows: List[dict], expected: date, minimum: int, quote_price: Optional[float] = None) -> Optional[List[list]]:
+    return clean_reason(rows, expected, minimum, quote_price)[0]
+
+
+def _cache_ok(candles: Any) -> bool:
+    """A cached series must still look exactly like one we stored: a corrupt entry is a miss."""
+    if not isinstance(candles, list) or not 0 < len(candles) <= MAX_ROWS:
+        return False
+    for row in candles:
+        if not (isinstance(row, list) and len(row) == 6 and isinstance(row[0], str) and DATE_TEXT.fullmatch(row[0]) and all(_num(v) for v in row[1:])):
+            return False
+    return True
 
 
 async def _gap() -> None:
     global _last_call
-    async with _pace_lock:
+    async with _pace_lock():
         wait = _last_call + CALL_GAP - time.monotonic()
         if wait > 0:
             await asyncio.sleep(wait)
         _last_call = time.monotonic()
 
 
-async def _fetch(client: DhanClient, segment: str, security_id: str, instrument: str, now: datetime, expected: date, minimum: int) -> Optional[List[list]]:
+async def _fetch(client: DhanClient, segment: str, security_id: str, instrument: str, now: datetime, expected: date, minimum: int,
+                 quote_price: Optional[float] = None) -> Tuple[Optional[List[list]], bool]:
+    """(the clean series or None, whether the call itself failed). A series Dhan answered but that is doubtful is (None, False)."""
     start = now.astimezone(IST).date() - timedelta(days=HISTORY_DAYS)
     end = now.astimezone(IST).date() + timedelta(days=1)          # Dhan's end date is not included
     await _gap()
     try:
         rows = await client.daily(security_id, segment, start, end, instrument)
-    except (DhanError, httpx.HTTPError, ValueError, TypeError) as exc:
+    except (DhanError, httpx.HTTPError, ValueError, TypeError, OverflowError, OSError) as exc:
         log.warning("prism candles: Dhan %s/%s failed: %s", segment, security_id, type(exc).__name__)
-        return None
-    got = clean(rows, expected, minimum)
+        return None, True
+    got, reason = clean_reason(rows, expected, minimum, quote_price)
     if got is None:
-        log.warning("prism candles: Dhan %s/%s gave %d rows that are not a complete series", segment, security_id, len(rows or []))
-    return got
+        log.warning("prism candles: Dhan %s/%s not used (%d rows): %s", segment, security_id, len(rows or []), reason)
+    return got, False
 
 
 async def _cached(redis: Any, code: str) -> Optional[dict]:
     try:
         raw = await redis.get(CACHE_KEY + code)
         got = json.loads(raw) if raw else None
-        return got if isinstance(got, dict) and isinstance(got.get("candles"), list) and got["candles"] else None
+        if isinstance(got, dict) and isinstance(got.get("expected"), str) and _cache_ok(got.get("candles")):
+            float(got.get("fetched") or 0)
+            return got
+        if got is not None:
+            log.warning("prism candles: cached %s is corrupt; fetching again", code)
+        return None
     except Exception:
         return None
 
 
-async def _index(client: DhanClient, redis: Any, code: str, sid: str, now: datetime, expected: date, stock_through: Optional[str]) -> Optional[List[list]]:
+async def _index(client: DhanClient, redis: Any, code: str, sid: str, now: datetime, expected: date, stock_through: Optional[str]) -> Tuple[Optional[List[list]], bool]:
     held = await _cached(redis, code)
     if held and held.get("expected") == expected.isoformat():
         last = held["candles"][-1][0]
         lacks_stock_session = bool(stock_through) and last < stock_through and time.time() - float(held.get("fetched") or 0) > RECHECK_SECONDS
         if not lacks_stock_session:
-            return held["candles"]
-    fresh = await _fetch(client, "IDX_I", sid, "INDEX", now, expected, INDEX_MIN)
+            return held["candles"], False
+    fresh, failed = await _fetch(client, "IDX_I", sid, "INDEX", now, expected, INDEX_MIN)
     if fresh is None:
-        return None            # never serve an older cached series as if it were current
+        return None, failed    # never serve an older cached series as if it were current
     try:
         await redis.set(CACHE_KEY + code, json.dumps({"expected": expected.isoformat(), "fetched": time.time(), "candles": fresh}), ex=CACHE_SECONDS)
     except Exception:
         pass
-    return fresh
+    return fresh, False
 
 
 def dhan_client(state: Any, settings: Any, redis: Any) -> Optional[DhanClient]:
@@ -152,32 +210,67 @@ async def supplied_candles(state: Any, symbol: str, now: Optional[datetime] = No
     client = dhan_client(state, settings, getattr(store, "redis", None))
     if client is None:
         return None
+    redis = getattr(store, "redis", None)
+    if await is_down(redis):
+        log.warning("prism candles: Dhan failed a moment ago; not asked again for %d seconds", DOWN_SECONDS)
+        return None
     now = now or datetime.now(IST)
     expected = expected_session(now)
     out: Dict[str, Any] = {}
     stock_through: Optional[str] = None
+    calls = failures = 0
+    # The stock and the indices are independent: whatever goes wrong with one (even an unexpected error) never cancels the other.
     try:
-        sec = (await security_map(store, [symbol])).get(symbol)
-    except Exception as exc:
-        log.warning("prism candles: no security id for %s: %s", symbol, type(exc).__name__)
-        sec = None
-    if sec:
-        rows = await _fetch(client, sec[0], sec[1], "EQUITY", now, expected, STOCK_MIN)
-        if rows:
-            out["stock"] = {"provider": PROVIDER, "candles": rows}
-            stock_through = rows[-1][0]
-    try:
-        async with store.pool.acquire() as conn:
-            ids, _off = confirm(await conn.fetch("SELECT exch, security_id, symbol FROM dhan_indices"))
-    except Exception as exc:
-        log.warning("prism candles: Dhan index ids unavailable: %s", type(exc).__name__)
-        ids = {}
-    indices: Dict[str, Any] = {}
-    for code in INDEX_CODES:
-        if code in ids:
-            rows = await _index(client, store.redis, code, ids[code], now, expected, stock_through)
+        try:
+            sec = (await security_map(store, [symbol])).get(symbol)
+        except Exception as exc:
+            log.warning("prism candles: no security id for %s: %s", symbol, type(exc).__name__)
+            sec = None
+        if sec:
+            calls += 1
+            rows, failed = await _fetch(client, sec[0], sec[1], "EQUITY", now, expected, STOCK_MIN, await _quote_price(store, symbol))
+            failures += failed
             if rows:
-                indices[code] = {"provider": PROVIDER, "candles": rows}
-    if indices:
-        out["indices"] = indices
+                out["stock"] = {"provider": PROVIDER, "candles": rows}
+                stock_through = rows[-1][0]
+    except Exception as exc:
+        log.warning("prism candles: the stock series for %s failed: %s", symbol, type(exc).__name__)
+    try:
+        try:
+            async with store.pool.acquire() as conn:
+                ids, _off = confirm(await conn.fetch("SELECT exch, security_id, symbol FROM dhan_indices"))
+        except Exception as exc:
+            log.warning("prism candles: Dhan index ids unavailable: %s", type(exc).__name__)
+            ids = {}
+        indices: Dict[str, Any] = {}
+        for code in INDEX_CODES:
+            if code in ids:
+                calls += 1
+                try:
+                    rows, failed = await _index(client, redis, code, ids[code], now, expected, stock_through)
+                except Exception as exc:
+                    log.warning("prism candles: index %s failed: %s", code, type(exc).__name__)
+                    rows, failed = None, True
+                failures += failed
+                if rows:
+                    indices[code] = {"provider": PROVIDER, "candles": rows}
+        if indices:
+            out["indices"] = indices
+    except Exception as exc:
+        log.warning("prism candles: the index series failed: %s", type(exc).__name__)
+    if not out and calls and failures == calls:      # every call failed outright and nothing is cached: Dhan is down
+        await mark_down(redis)
     return out or None
+
+
+async def _quote_price(store: Any, symbol: str) -> Optional[float]:
+    """The stored quote price of the company (summary snapshot), or None: then the last-close check is simply not made."""
+    for statement in ("consolidated", "standalone"):
+        try:
+            got = await store.get_section(symbol, statement, "summary")
+            price = ((json.loads(got[0]) or {}).get("quote") or {}).get("price") if got else None
+        except Exception:
+            continue
+        if _num(price) and price > 0:
+            return float(price)
+    return None
