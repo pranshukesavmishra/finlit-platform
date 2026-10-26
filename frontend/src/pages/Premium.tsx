@@ -6,6 +6,8 @@ import { prefetchMarkets, useGold } from "../lib/premium";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
 import type { ReactNode } from "react";
+import { PRISM_NOTE, PRISM_PARTS } from "../stock/prismWords";
+import "../styles/prism-compare.css";
 
 const CARDS = [
   { to: "/premium/fundamentals", icon: "table", title: "Stock Fundamental Data Dashboard", text: "Every statement, ratio and shareholder of a listed company, in one place.",
@@ -15,6 +17,25 @@ const CARDS = [
   { to: "/premium/report", icon: "notes", title: "Premium Report", text: "A clean, printable research report for any company. Save it as a PDF to share.",
     points: ["FinLit score and what drives it", "Key ratios, ownership and peers", "One page you can print or save"] },
 ];
+
+/** FinLit Prism leads the hub: the advanced financial-health rating, with its four parts and their weights. */
+function PrismHubCard() {
+  return (
+    <Link to="/prism" className="pm-card pm-prism" aria-label="Open FinLit Prism, the advanced financial-health rating of any listed company">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <span className="ic"><Icon name="layers" /></span><span className="chip gold new">New in Gold</span>
+        <h2>FinLit Prism</h2>
+        <p>An advanced financial-health rating of any listed company, in four parts, with a downloadable PDF. Each company is read against its own industry group, so a bank, an insurer and a manufacturer are each judged on the measures that fit them.</p>
+        <ul>{["A score out of 100 and a plain label, from Strong to Poor", "Shows how much of the data was available, and says so when a rating is provisional", "The same report on screen and as a PDF"].map((p) => <li key={p}><Icon name="check" />{p}</li>)}</ul>
+      </div>
+      <div className="pm-pv" aria-hidden="true">
+        {PRISM_PARTS.map(([k, name, w]) => <div key={k}><b>{name}</b><span className="pc-bar"><i style={{ width: `${w * 2.5}%`, background: "var(--gold)" }} /></span><em>{w}%</em></div>)}
+        <small>The four parts and their share of the score. {PRISM_NOTE}</small>
+      </div>
+      <span className="go">Open FinLit Prism <Icon name="arrow" /></span>
+    </Link>
+  );
+}
 
 /** Locked view for people not on Gold: what the dashboard holds and one clear way to unlock it. */
 export function GoldLock({ title }: { title: string }) {
@@ -35,13 +56,14 @@ export function PremiumHead({ eyebrow, title, children }: { eyebrow: string; tit
 }
 
 export function PremiumHub() {
-  useDocTitle("Gold dashboards", "Stock fundamentals, market events and index dashboards, and printable premium reports for FinLit Gold members.");
+  useDocTitle("Gold dashboards", "FinLit Prism financial-health ratings, stock fundamentals, market events and index dashboards, and printable premium reports for FinLit Gold members.");
   const gold = useGold(); const qc = useQueryClient();
   return (
     <>
-      <PremiumHead eyebrow="Gold dashboards" title="The premium research desk."><p>Three tools built for serious investors. They open fast, stay up to date, and every number comes from the same sources our analysts use.</p></PremiumHead>
+      <PremiumHead eyebrow="Gold dashboards" title="The premium research desk."><p>Four tools built for serious investors. They open fast, stay up to date, and every number comes from the same sources our analysts use.</p></PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         {!gold && <p className="chip gold" style={{ height: "auto", padding: "8px 14px", whiteSpace: "normal", maxWidth: "100%", lineHeight: 1.4 }}><Icon name="crown" /> Included with the Gold plan. Open any tool to see how it works.</p>}
+        <PrismHubCard />
         <div className="pm-hub">
           {CARDS.map((c) => (
             <Link key={c.to} to={c.to} className="pm-card" onMouseEnter={() => gold && c.to.endsWith("markets") && prefetchMarkets(qc)}>

@@ -5,6 +5,8 @@
 # Mail goes to the `outbox` table (MAIL_MODE=console); FinEdge runs from recorded fixtures. Stop with: dev/run_stack.sh stop
 # LIVE_DATA=1 dev/run_stack.sh: use the real FinEdge key from the environment and the companies already loaded with
 #   `python -m finlit.worker ingest-all`; no fixtures and no fictional SMP- companies. SITE_BACKEND is then optional.
+# FinLit Prism works offline: without LIVE_DATA the site backend answers FinEdge from recorded responses for RELIANCE, TCS, MARUTI, NTPC,
+# DLF, HDFCBANK, BAJFINANCE and HDFCLIFE (dev/prism_fixtures.py; limits in docs/prism/DEPLOY.md). Needs the site venv (SITE_PY).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOG="${STACK_LOG:-/tmp/finlit-stack}"; mkdir -p "$LOG"

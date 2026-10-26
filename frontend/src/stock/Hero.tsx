@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -7,7 +7,10 @@ import { useUI, TIER } from "../lib/ui";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { Dial } from "../charts/Dial";
 import { Spark } from "../charts/Small";
-import { Gate } from "../components/Gate";
+import { Gate, OpenAccess } from "../components/Gate";
+import { PrismCompare } from "./PrismCompare";
+import { usePrismLatest } from "./PrismCard";
+import { apiUrl } from "../lib/api";
 import { Info } from "../components/Info";
 import { ChartHelp } from "../components/ChartHelp";
 import { LeadLine } from "./Leadership";
@@ -28,6 +31,10 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const chg = scoreChange(hist.data?.points);
   const [open, setOpen] = useState<string | null>(null);
   const [dl, setDl] = useState(false);
+  const open_ = useContext(OpenAccess);
+  const two = has("gold") || open_;   // Gold sees the score and FinLit Prism side by side
+  const prism = usePrismLatest(s.profile.symbol, s.meta.statement, two).data;
+  const prismRep = prism?.kind === "report" ? prism.report : null;
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
@@ -84,6 +91,9 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                   <div className="dl-menu" role="menu">
                     <button role="menuitem" onClick={() => download("pdf")}><b>Research note · PDF</b><span className="d">Print-ready report with charts</span></button>
                     <button role="menuitem" onClick={() => download("html")}><b>Offline copy · HTML</b><span className="d">One file that opens without internet</span></button>
+                    {prismRep && (Date.parse(prismRep.pdfAvailableUntil || "") > Date.now()
+                      ? <a role="menuitem" href={apiUrl(`/api/prism/reports/${encodeURIComponent(prismRep.id)}/pdf`)} download onClick={() => setDl(false)}><b>FinLit Prism · PDF</b><span className="d">The Prism rating as a report you can keep</span></a>
+                      : <Link role="menuitem" to={`/prism/${encodeURIComponent(p.symbol)}`} onClick={() => setDl(false)}><b>FinLit Prism · PDF</b><span className="d">Open the Prism page to save it as a PDF</span></Link>)}
                     <button role="menuitem" onClick={() => download("csv")}><b>Data · CSV</b><span className="d">Statements, ratios and scores for Excel</span></button>
                   </div>
                 )}
@@ -94,11 +104,13 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         </div>
         <TradingFacts s={s} />
 
+        <div className="pz-pair">
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
           <article className="report" aria-labelledby="reportTitle">
             <div className="rhead">
-              <div className="l"><span className="eyebrow" id="reportTitle">FinLit Research Report</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} />
-                {plan === "gold" ? <span className="tier gold">Advanced model</span> : <span className="tier silver">Basic model</span>}<span className="live">Updated {dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}</span></div>
+              <div className="l"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span><span className="chip ghost">{s.dataQuality.fundamentalsAsOf} · {s.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} />
+                {/* This score is the FinLit score for every plan; Gold's advanced model is FinLit Prism, a separate rating in its own section. */}
+                {plan === "gold" ? <a className="tier gold" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism</a> : <span className="tier silver">Basic model</span>}<span className="live">Updated {dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}</span></div>
               <div className="meta">Model {s.score.model} · <a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros & cons →</a></div>
             </div>
             <div className="rmain">
@@ -149,6 +161,8 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div></div>
           </article>
         </Gate>
+        <PrismCompare symbol={s.profile.symbol} name={p.name} statement={s.meta.statement} />
+        </div>
 
         <div className="kpis">
           {KPI_SPEC.map(([key, label, icon, color]) => {

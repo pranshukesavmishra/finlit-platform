@@ -28,7 +28,7 @@ def test_every_shown_key_has_a_complete_entry():
 
 
 def test_terms_complete_and_unique():
-    assert len(TERMS) == 313
+    assert len(TERMS) == 316
     for t in TERMS.values():
         assert t["meaning"] and t["why"] and t["how"] and t["topic"], t["term"]
 

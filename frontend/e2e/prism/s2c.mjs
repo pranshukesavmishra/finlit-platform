@@ -1,0 +1,46 @@
+import fs from "node:fs";
+import { execSync } from "node:child_process";
+import { BASE, browser, newPage, api, post, login, shot, check, save, failures, OUT } from "./lib.mjs";
+const b = await browser();
+const p = await newPage(b, { width: 1400, height: 900 });
+await login(p, "gold@test.example");
+await p.goto(BASE + "/stocks/RELIANCE", { waitUntil: "networkidle" });
+await p.getByRole("link", { name: /Open the full Prism report/ }).first().click();
+await p.waitForURL(/\/prism\/RELIANCE/);
+await p.waitForTimeout(2500);
+const txt = await p.locator("main").innerText();
+fs.writeFileSync(OUT + "/2-prism-page.txt", txt);
+await p.screenshot({ path: OUT + "/2-prism-page-1400.png", fullPage: true });
+for (const [name, re] of [["score ring/score", /62\.\d|OUT OF 100/i], ["four parts", /Fundamental[s]?[\s\S]*Valuation[\s\S]*Quality[\s\S]*Risk/], ["per-factor table", /factor|Weight|Points/i], ["financial history", /financial history|Quarterly|Annual/i], ["completeness", /complete|inputs available|missing/i], ["freshness", /fresh|calculated|as of/i], ["benchmark", /benchmark|peer|median/i], ["warnings", /warning|limitation|note/i], ["Download PDF", /PDF/]]) check(`2 full report: ${name}`, re.test(txt), "");
+check("2 full report: no errors", p.errs.length === 0, p.errs.join(" | "));
+// statement toggle
+await p.getByRole("button", { name: /Standalone/ }).first().click();
+await p.waitForTimeout(1500);
+const t2 = await p.locator("main").innerText();
+check("2 statement toggle standalone shows empty/generate state (URL or text)", /standalone/i.test(t2) && (/Generate|no .*rating|not been/i.test(t2)), p.url());
+await shot(p, "2-prism-standalone");
+await p.locator(".pz-seg button", { hasText: "Consolidated" }).first().click();
+await p.waitForTimeout(1500);
+// PDF
+const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 20000 }), p.getByRole("button", { name: /PDF/ }).first().click()]);
+const f = OUT + "/2-prism.pdf"; await dl.saveAs(f);
+const buf = fs.readFileSync(f);
+check("2 PDF header %PDF and > 5KB", buf.slice(0, 4).toString() === "%PDF" && buf.length > 5000, `${buf.length} bytes, ${dl.suggestedFilename()}`);
+const pt = execSync(`pdftotext ${f} -`).toString();
+fs.writeFileSync(OUT + "/2-prism-pdf.txt", pt);
+const rep = (await api(p, "/api/prism/reports/latest?symbol=RELIANCE")).body;
+const score = String(Math.round(rep.rating.final * 10) / 10);
+check("2 PDF text has company name and score", /Reliance Industries/i.test(pt) && pt.includes(score.split(".")[0]), `score ${rep.rating.final}`);
+// 410
+execSync(`redis-cli -n 12 del prism:snap:${rep.id}`);
+await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1000);
+await p.getByRole("button", { name: /PDF/ }).first().click();
+await p.waitForTimeout(2000);
+const t3 = await p.locator("main").innerText();
+check("2 410 path: UI says PDF no longer available + Recalculate", /window has passed|no longer available|expired/i.test(t3) && /Recalculate/.test(t3), "");
+await shot(p, "2-prism-410");
+const r410 = await api(p, `/api/prism/reports/${rep.id}/pdf`);
+check("2 410 status from API", r410.status === 410 && r410.body.status === "expired", r410.status);
+check("2 no page errors end", p.errs.length === 0, p.errs.join(" | "));
+await b.close(); save("s2c");
+process.exit(failures() ? 1 : 0);
