@@ -90,7 +90,7 @@ def factor(row, group):
     elif bucket == "mixed":
         reason = MIXED.get(metric, "In the middle assessment range.")
     else:
-        reason = REASONS.get(metric, ("Supports the assessment.", "Holds back the assessment."))[bucket == "cons"]
+        reason = REASONS.get(metric, ("Supports the assessment.", "Weighs on the assessment."))[bucket == "cons"]
     if cagr_years and row.get("value") is not None:
         subject = "sales" if metric == "SALES_CAGR" else "profit"
         quality = {"pros": "Strong", "cons": "Weak", "mixed": "Moderate"}[bucket]
