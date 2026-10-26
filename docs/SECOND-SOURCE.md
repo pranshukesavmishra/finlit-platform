@@ -8,7 +8,7 @@ Some companies (for example Spicy Entertainment & Media, BSE 540084) have nothin
 3. Admin, Data health shows one line: "Secondary source: connected", "not configured" (variable missing, feature fully off) or "token expired".
 
 ## Renewal
-Upstox analytics tokens expire (typically within a day or a few weeks, depending on the token type). When the line says "token expired", paste a fresh token into the same Render variable. Until you do, companies FinEdge covers are unaffected; only the companies that rely on the secondary source show gaps.
+**Use an Analytics Token, not the daily login token.** The normal Upstox access token ends every morning and cannot be renewed without a person logging in, so it is not suitable for a server. Upstox's *Analytics Token* is read-only (market data, historical candles, fundamentals; it cannot place orders), needs no static IP for those, and is valid for one year. Create it once: Upstox developer apps page, your app, the Analytics tab, "Generate Token"; paste it into the Render variable UPSTOX_ACCESS_TOKEN. Admin, Data health then shows how many days it has left, and turns to a warning 30 days before it ends. Renew it once a year the same way. When the line says "token expired", paste a fresh token into the same variable. Until you do, companies FinEdge covers are unaffected; only the companies that rely on the secondary source show gaps.
 
 ## What it does
 - Used only when FinEdge's price, annual statements, balance sheet, cash flow or quarterly results are empty for a company (checked at every rebuild, including when a visitor opens a company).
