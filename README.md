@@ -125,6 +125,8 @@ uvicorn finlit.api:create_app --factory --port 8000
 python -m pytest -q             # integration tests use finlit_test DB and Redis db 15; skipped if unreachable
 ```
 
+Before any push to main run `bash scripts/preflight.sh` (tests, types, build, bandit, gitleaks, secret scan; see `docs/PREFLIGHT-AND-SMOKE.md`); after a deploy run `bash scripts/smoke.sh https://finlit-arug.onrender.com`. Reported faults and their regression tests are listed in `docs/KNOWN-ISSUES.md`.
+
 ## Deploying (Stage 1)
 
 - **VPS:** one server (DigitalOcean Bangalore 4 GB, or Oracle Always Free in Mumbai/Hyderabad) runs

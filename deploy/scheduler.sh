@@ -172,6 +172,7 @@ while true; do
   (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
   (( H == 18 && M == 25 )) && run_funds industry refresh-industry    # daily: AMFI's monthly category report (out around the 8th-10th); a 304 and nothing to do on other days
   (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
+  (( H == 3 && M == 40 )) && run light integrity audit-integrity   # nightly: 40 sampled companies, one provider call each; respects the loads switch (not in the always-allowed list)
   (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
   (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
   (( H == 2 && M == 40 )) && run heavy score-all score-all   # every listed company gets a score: SCORE_ALL_PER_RUN a night (score row only), the rest on later nights

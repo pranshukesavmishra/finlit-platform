@@ -456,6 +456,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--seed", type=int, default=None)
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
     p_aud.add_argument("symbols", nargs="*")
+    sub.add_parser("audit-integrity", help="nightly: samples up to 40 companies (one provider call each) and checks prices, latest quarter, profit and loss identities, declared results and risk figures; stores the result for the admin Data health tab")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
     p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
@@ -829,6 +830,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .dhan import DhanClient
                 async with DhanClient(settings, store.redis) as dc:
                     print(await refresh_quotes(client, store, dhan_client=dc), "quotes updated")
+            elif args.cmd == "audit-integrity":
+                from . import integrity
+                from .sysctl import loads_enabled
+                if not await loads_enabled(store.pool):
+                    print("skipped: heavy data loads are paused by the admin switch")
+                else:
+                    res = await integrity.audit(store, client)
+                    print(res["level"], "sampled", res["sampled"], {c["key"]: f"{c['bad']}/{c['checked']}" for c in res["checks"]})
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
             elif args.cmd == "drain-queue":
