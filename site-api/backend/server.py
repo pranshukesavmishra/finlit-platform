@@ -615,6 +615,15 @@ class PremiumReportRequest(BaseModel):
     # FinLit addition: Dhan daily candles from the research API (premium_supplied_candles.py); validated there, a bad value just means the usual providers.
     suppliedCandles: Optional[Dict[str, Any]] = None
 
+    @field_validator("suppliedCandles", mode="before")
+    @classmethod
+    def _supplied_candles_only_if_an_object(cls, value):
+        """A bad extra source must never refuse the whole request: anything but an object is ignored (and logged), and the usual providers run."""
+        if value is not None and not isinstance(value, dict):
+            logger.warning("suppliedCandles ignored: expected an object, got %s", type(value).__name__)
+            return None
+        return value
+
 
 class PremiumSnapshotPDFRequest(BaseModel):
     report: Dict[str, Any]
@@ -743,14 +752,14 @@ def _premium_kept_with_current_technical(kept, now, supplied_candles):
     are reused; daily candles are not: supplied (Dhan) candles are the first choice whenever they are valid, exactly as in a fresh fetch, and
     candles that were kept are used only when they end on today's last completed session and come from the same source a fresh fetch would use."""
     try:
-        from backend.premium_supplied_candles import supplied_price_input, benchmarks_with_supplied
+        from backend.premium_supplied_candles import supplied_price_input, benchmarks_with_supplied, quote_price_from_raw
         from backend.premium_technical_sources import load_benchmark_history
     except ImportError:
-        from premium_supplied_candles import supplied_price_input, benchmarks_with_supplied
+        from premium_supplied_candles import supplied_price_input, benchmarks_with_supplied, quote_price_from_raw
         from premium_technical_sources import load_benchmark_history
     candle_date = _technical_candle_date(now)
     raw = dict(kept["raw"])
-    supplied = supplied_price_input(supplied_candles, candle_date)
+    supplied = supplied_price_input(supplied_candles, candle_date, quote_price_from_raw(raw))
     if supplied is not None:
         raw["technicalPriceInput"] = supplied
         required_dates = [row["date"] for row in supplied["bars"][-505:]]
@@ -832,11 +841,11 @@ def _premium_dashboard_inputs_resolved(symbol, statement_type, now, lean=True, s
     try:
         from backend.premium_technical import resolve_technical_prices
         from backend.premium_technical_sources import load_benchmark_history
-        from backend.premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied
+        from backend.premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied, quote_price_from_raw
     except ImportError:
         from premium_technical import resolve_technical_prices
         from premium_technical_sources import load_benchmark_history
-        from premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied
+        from premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied, quote_price_from_raw
     def load_technical_candles():
         key = yearly.get("instrument", {}).get("upstoxInstrumentKey")
         return _fetch_upstox_price_history(key) if key else []
@@ -845,7 +854,7 @@ def _premium_dashboard_inputs_resolved(symbol, statement_type, now, lean=True, s
     # FinLit: supplied (Dhan) candles are the first choice per series when valid; the original calls are the unchanged fallback.
     raw["technicalPriceInput"] = prices_with_supplied(supplied_candles, candle_date, lambda: resolve_technical_prices(
         annual.get("technicalPrices", {}), yearly["sources"].get("priceHistory"),
-        candle_date, load_technical_candles))
+        candle_date, load_technical_candles), quote_price_from_raw(raw))
     required_dates = [row["date"] for row in raw["technicalPriceInput"]["bars"][-505:]]
     raw["technicalBenchmarks"] = benchmarks_with_supplied(supplied_candles, candle_date, required_dates,
         lambda: load_benchmark_history(_finedge_get, candle_date, _fetch_upstox_price_history, required_dates))
