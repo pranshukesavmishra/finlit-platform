@@ -7,8 +7,10 @@ const PILLAR_COLOR: Record<string, string> = { quality: "--p-quality", growth: "
 const SHORT: Record<string, string> = { quality: "QUALITY", growth: "GROWTH", profitability: "PROFIT", balance: "BALANCE", technical: "TECHNICAL" };
 
 /** The research-score dial: 100 ticks for the overall score, one coloured arc per pillar. */
-export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
+export function Dial({ overall, pillars, onPillar, active, bandLabel, compact = false }: {
   overall: number | null; pillars: PillarSummary[]; onPillar: (key: string) => void; active: string | null; bandLabel: string;
+  /** Small version for the compact dashboard: no outer labels or inner numerals (the pillar tiles carry them), a wider click target on each arc. */
+  compact?: boolean;
 }) {
   const [shown, setShown] = useState(reduced() ? overall ?? 0 : 0);
   useEffect(() => {
@@ -27,7 +29,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
 
   const { wrap, svg } = useChart((s, _w, first) => {
     const C = 150, score = overall ?? 0, anim = first && !reduced();
-    s.setAttribute("viewBox", "-46 -30 392 360");
+    s.setAttribute("viewBox", compact ? "8 8 284 284" : "-46 -30 392 360");
     const defs = el("defs", {}, s);
     const lg = (id: string, stops: [number, string][], x2 = 1, y2 = 1) => { const g = el("linearGradient", { id, gradientUnits: "userSpaceOnUse", x1: 40, y1: 260, x2: 260 * x2, y2: 40 * y2 }, defs); stops.forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, g)); };
     lg("dg", [[0, "#8A6A25"], [0.5, "#D4B26A"], [1, "#F3E6BF"]]);
@@ -52,6 +54,12 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
       const [ex, ey] = polar(C, C, 128, af); const dot = el("circle", { cx: ex, cy: ey, r: 3.4, fill: "#fff", opacity: 0.95 }, s);
       if (anim) { [seg, gl].forEach((q) => { const len = q.getTotalLength(); q.style.strokeDasharray = String(len); q.style.strokeDashoffset = String(len); q.style.transition = `stroke-dashoffset 1s cubic-bezier(.16,1,.3,1) ${0.35 + i * 0.09}s`; }); dot.style.opacity = "0"; dot.style.transition = `opacity .3s ease ${1.2 + i * 0.09}s`; requestAnimationFrame(() => requestAnimationFrame(() => { seg.style.strokeDashoffset = "0"; gl.style.strokeDashoffset = "0"; dot.style.opacity = "0.95"; })); }
       seg.addEventListener("click", () => onPillar(p.key));
+      if (compact) {   // a wider invisible click target, and a tooltip; the pillar tiles beside the dial carry the names and numbers
+        const hit = el("path", { d: arcPath(C, C, 128, a0, a1), fill: "none", stroke: "transparent", "stroke-width": 26, "stroke-linecap": "round", style: "cursor:pointer" }, s);
+        hit.addEventListener("click", () => onPillar(p.key));
+        el("title", {}, hit).textContent = `${p.label} ${p.score ?? "n/a"}: select to see its inputs`;
+        return;
+      }
       // label: name over a big score, placed radially
       const mid = (a0 + a1) / 2, [lx, ly] = polar(C, C, 150, mid), anchor = mid > 20 && mid < 160 ? "start" : mid > 200 && mid < 340 ? "end" : "middle";
       const dy = mid > 100 && mid < 260 ? 10 : mid < 80 || mid > 280 ? -2 : 4;
@@ -64,7 +72,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
       const [x0, y0] = polar(C, C, 104, i * 3.6), [x1, y1] = polar(C, C, major ? 92 : mid ? 96 : 99, i * 3.6);
       el("line", { x1: x0, y1: y0, x2: x1, y2: y1, stroke: lit ? `hsl(${42 - (i / Math.max(score, 1)) * 6} 80% ${48 + (i / Math.max(score, 1)) * 18}%)` : "#5A5444", "stroke-width": major ? 2 : 1.2, opacity: lit ? 1 : major ? 0.9 : 0.55, "stroke-linecap": "round" }, s);
     }
-    [0, 25, 50, 75].forEach((n) => { const [x, y] = polar(C, C, 84, n * 3.6); el("text", { x, y: y + 3, "text-anchor": "middle", "font-size": 8.5, "font-family": "IBM Plex Mono, monospace", fill: "#97907F" }, s).textContent = String(n); });
+    if (!compact) [0, 25, 50, 75].forEach((n) => { const [x, y] = polar(C, C, 84, n * 3.6); el("text", { x, y: y + 3, "text-anchor": "middle", "font-size": 8.5, "font-family": "IBM Plex Mono, monospace", fill: "#97907F" }, s).textContent = String(n); });
     // score arc on the inside edge of the tick ring
     el("circle", { cx: C, cy: C, r: 110, fill: "none", stroke: "#3A3426", "stroke-width": 6 }, s);
     if (score > 0) {
@@ -79,13 +87,13 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel }: {
     // glass disc in the middle
     el("circle", { cx: C, cy: C, r: 76, fill: "url(#dd)", stroke: "#D4B26A", "stroke-opacity": 0.6, "stroke-width": 1.6 }, s);
     el("circle", { cx: C, cy: C, r: 70, fill: "none", stroke: "#D4B26A", "stroke-opacity": 0.22, "stroke-width": 1, "stroke-dasharray": "1 5", class: "dial-spin" }, s);
-  }, [overall, pillars, active]);
+  }, [overall, pillars, active, compact]);
 
   return (
-    <div className="dial" ref={wrap} role="img" aria-label={`FinLit research score ${overall ?? "not available"} out of 100, ${bandLabel}. ${pillars.map((p) => `${p.label} ${p.score ?? "n/a"}`).join(", ")}.`}>
+    <div className={"dial" + (compact ? " compact" : "")} ref={wrap} role="img" aria-label={`FinLit research score ${overall ?? "not available"} out of 100, ${bandLabel}. ${pillars.map((p) => `${p.label} ${p.score ?? "n/a"}`).join(", ")}.`}>
       <svg ref={svg} aria-hidden="true" />
       <div className="dcenter"><div className="n">{overall == null ? "—" : shown}</div><div className="of">/ 100</div></div>
-      <div className="dial-band"><span className={"vd " + (bandLabel === "Strong" ? "strong" : bandLabel === "Healthy" ? "healthy" : bandLabel === "Mixed" ? "mixed" : "weak")}>{bandLabel}</span><span className="faint">overall research score</span></div>
+      {!compact && <div className="dial-band"><span className={"vd " + (bandLabel === "Strong" ? "strong" : bandLabel === "Healthy" ? "healthy" : bandLabel === "Mixed" ? "mixed" : "weak")}>{bandLabel}</span><span className="faint">overall research score</span></div>}
     </div>
   );
 }

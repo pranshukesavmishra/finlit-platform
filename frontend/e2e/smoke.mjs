@@ -39,8 +39,8 @@ check("stock: report opens from search", true);
 
 // 3. Stock page content
 check("stock: price shown", await page.locator(".px").innerText().then((t) => /\d/.test(t)));
-check("stock: five pillars", (await page.locator(".ptile").count()) === 5);
-await page.locator(".ptile").first().click();
+check("stock: five pillars", (await page.locator(".dk-left button.dk-tile").count()) === 5);
+await page.locator(".dk-left button.dk-tile").first().click();
 check("stock: pillar drawer opens", await page.locator(".pdrawer.open").count().then((n) => n === 1));
 await page.waitForSelector("section:has(#price) .chart svg path", { timeout: 8000 });
 check("stock: price chart drawn", true);

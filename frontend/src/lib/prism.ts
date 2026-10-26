@@ -1,4 +1,4 @@
-// FinLit Prism: the Gold plan's advanced financial-health rating (engine 3.6.9, merged from Yusra-Khan532/financial-portfolio).
+// FinLit Prism: the Gold plan's advanced financial-health rating (engine 3.6.10, merged from Yusra-Khan532/financial-portfolio).
 // The research API (/api/prism/*) checks the plan, keeps the signed snapshot and serves the PDF; the browser only ever sees a PrismReport.
 // Shapes follow site-api/backend/premium_engine.py (rating), premium_presentation.py (review) and premium_completeness.py (completeness).
 // Contract: docs/prism/CONTRACT.md.
@@ -85,6 +85,8 @@ export type PrismReport = {
   company: { symbol: string; name: string; industry?: string | null; sector?: string | null; description?: string | null };
   rating: PrismRating; inputMeta: PrismInputMeta; warnings: string[]; sources: unknown[]; trends: Trend[];
   benchmark: PrismBenchmark; review?: PrismReview; financialHistory?: PrismHistory;
+  /** The technical (short-term / long-term) assessment: additive and independent of `rating`. Absent from older reports; read it with parseTechnical (lib/prismTechnical.ts). */
+  technicalAssessment?: unknown;
   /** True when served from storage instead of a fresh calculation. */
   cached: boolean;
   /** When the PDF of this calculation stops being downloadable (the signed snapshot lives 30 minutes); null once it has. */
@@ -388,6 +390,19 @@ export function useGeneratePrism() {
     },
   });
 }
+
+/** The small stored card (GET .../latest?view=summary): last score and label, no review body. Category scores are already withheld for NOT RATED. */
+export type PrismSummary = { id: string; final: number | null; label: PrismLabel; status: PrismStatusWord; confidence: number | null; parts: Record<PartKey, number | null> | null; partWeights: Record<PartKey, number> | null; generatedAt: string; modelVersion: string | null };
+export const summaryKey = (symbol: string, statement: Statement) => ["prism", "summary", symbol, statement] as const;
+/** The last stored score of a company for the landing cards; null when none is stored. Never calculates. */
+export const useStoredSummary = (symbol: string, statement: Statement = "consolidated") =>
+  useQuery<PrismSummary | null, ApiError>({
+    queryKey: summaryKey(symbol, statement), staleTime: 120_000, retry: false,
+    queryFn: async () => {
+      try { return (await apiGet<{ summary: PrismSummary }>(`/api/prism/reports/latest?symbol=${encodeURIComponent(symbol)}&statement=${statement}&view=summary`, { cache: "no-store" })).summary; }
+      catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e; }
+    },
+  });
 
 /* ------------------------------------------------------------------ the companies a member opened lately (this browser only) */
 const RECENT = "finlit-prism-recent";
