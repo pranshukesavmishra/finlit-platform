@@ -21,6 +21,7 @@ import "./styles/stock2.css";
 import "./styles/tools.css";
 import "./styles/charthelp.css";
 import "./styles/premium.css";
+import "./styles/fundamentals2.css";
 import "./styles/account.css";
 import "./styles/human-pages.css";
 import "./styles/theme.css";
