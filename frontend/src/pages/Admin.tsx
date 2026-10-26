@@ -8,13 +8,14 @@ import { ApiError, apiUrl } from "../lib/api";
 import { dateIN } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
+import { ADMIN_KEY, adminToken, hasAdminSession } from "../lib/adminSession";
 
 // Admin session: same model as the current site (bearer token in sessionStorage, 8 h, signature checked by the server).
 // The platform plan replaces this with real accounts, passkeys and server-side sessions.
-const KEY = "cms_admin_token";
+const KEY = ADMIN_KEY;
 const REJECTED = "cms_token_rejected";   // when the content service refused a token a moment ago: do not ask for another one in a loop
-const token = () => { try { return sessionStorage.getItem(KEY); } catch { return null; } };
-const hasSession = () => { const t = token(); if (!t) return false; try { const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.role === "admin" && p.exp * 1000 > Date.now(); } catch { return false; } };
+const token = adminToken;
+const hasSession = hasAdminSession;
 
 async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(apiUrl(path), { ...init, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token()}`, ...(init.headers || {}) } });
@@ -59,7 +60,7 @@ export function Admin() {
   useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
   const enquiries = useQuery({ queryKey: ["admin-enquiries"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone: string; services: string[]; message: string; created_at: string }[]>("/api/service-enquiry"), enabled: hasSession(), retry: false });
-  const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
+  const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; investment_size?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-content"] });
   const toggle = useMutation({
@@ -87,8 +88,8 @@ export function Admin() {
           <button className="btn primary" disabled={create.isPending}>Save draft</button></form></div>
       </div>
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Contact messages</h3><span className="s">{leads.data?.length ?? 0}</span></div>
-        <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th></tr></thead>
-          <tbody>{(leads.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.subject}</td><td style={{ whiteSpace: "normal", maxWidth: 360 }}>{l.message}</td></tr>)}</tbody></table></div></div>
+        <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Investment size</th><th>Subject</th><th>Message</th></tr></thead>
+          <tbody>{(leads.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.investment_size}</td><td>{l.subject}</td><td style={{ whiteSpace: "normal", maxWidth: 360 }}>{l.message}</td></tr>)}</tbody></table></div></div>
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Service enquiries</h3><span className="s">{enquiries.data?.length ?? 0}</span></div>
         <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Phone</th><th>Services</th><th>Message</th></tr></thead>
           <tbody>{(enquiries.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.phone}</td><td style={{ whiteSpace: "normal" }}>{l.services.join(", ")}</td><td style={{ whiteSpace: "normal", maxWidth: 320 }}>{l.message}</td></tr>)}

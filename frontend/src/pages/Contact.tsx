@@ -6,9 +6,12 @@ import { sendContact } from "../lib/siteApi";
 import { useDocTitle } from "../lib/title";
 import { Icon } from "../lib/icons";
 
+import { INVESTMENT_SIZES } from "../lib/investmentSizes";
+import "../styles/f3.css";
+
 export function Contact() {
   useDocTitle("Contact", "Write to the FinLit team about a portfolio review, financial planning, a plan on the website, or a question about the research.");
-  const [f, setF] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [f, setF] = useState({ name: "", email: "", phone: "", investment_size: "", subject: "", message: "" });
   const [err, setErr] = useState<string | null>(null);
   const m = useMutation({ mutationFn: sendContact, onError: (e: Error) => setErr(e.message) });
   const submit = (e: React.FormEvent) => {
@@ -17,7 +20,7 @@ export function Contact() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email)) return setErr("Enter a valid email address.");
     const d = f.phone.replace(/\D/g, ""); if (f.phone && (!/^\+?[\d\s\-()]+$/.test(f.phone) || d.length < 7 || d.length > 15)) return setErr("Enter a valid mobile number.");
     if (f.message.trim().length < 10) return setErr("Please write a few words so we know how to help (at least 10 characters).");
-    setErr(null); m.mutate({ name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() || undefined, subject: f.subject.trim() || undefined, message: f.message.trim() });
+    setErr(null); m.mutate({ name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() || undefined, investment_size: f.investment_size || undefined, subject: f.subject.trim() || undefined, message: f.message.trim() });
   };
   return (
     <>
@@ -28,6 +31,9 @@ export function Contact() {
             <form className="form" onSubmit={submit} noValidate>
               <div className="fgrid"><label>Name<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" required /></label><label>Email<input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" required /></label>
                 <label>Mobile (optional)<input type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} autoComplete="tel" /></label><label>Subject (optional)<input value={f.subject} maxLength={200} onChange={(e) => setF({ ...f, subject: e.target.value })} /></label></div>
+              <fieldset className="isz"><legend>Investment size (optional)</legend><p className="faint" style={{ margin: "0 0 8px", fontSize: 13 }}>Roughly how much you are thinking of investing. It only helps us prepare; you can leave it blank.</p>
+                <div className="isz-g">{INVESTMENT_SIZES.map((s) => <label key={s} className={f.investment_size === s ? "on" : ""}><input type="radio" name="investment_size" value={s} checked={f.investment_size === s} onChange={() => setF({ ...f, investment_size: s })} /><span>{s}</span></label>)}
+                  {f.investment_size && <button type="button" className="btn" onClick={() => setF({ ...f, investment_size: "" })}>Clear</button>}</div></fieldset>
               <label>Message<textarea rows={6} value={f.message} maxLength={5000} onChange={(e) => setF({ ...f, message: e.target.value })} required /></label>
               {err && <div className="formerr" role="alert">{err}</div>}
               <button className="btn primary lg" disabled={m.isPending}>{m.isPending ? "Sending…" : "Send message"}</button>

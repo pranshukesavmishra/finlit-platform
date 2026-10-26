@@ -69,6 +69,7 @@ def _alert_html(lead):
             {_row("Full Name", lead.get("name"))}
             {_row("Email Address", lead.get("email"))}
             {_row("Mobile Number", lead.get("phone"))}
+            {_row("Investment Size", lead.get("investment_size"))}
             {_row("Subject", lead.get("subject"))}
             {_row("Received", _fmt_ts(lead.get("created_at")))}
           </table>
