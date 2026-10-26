@@ -86,6 +86,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   flock 9
   renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
+  sleep "${BOOT_LOAD_DELAY_S:-240}"   # let the web server finish starting and fill its caches first; the loads below compete with it for the 512 MB
   # Order: what visitors see first (the company list, prices, index membership, the flagship stocks, ETFs and fund NAVs), then the company reports,
   # then the slow histories (macro, flows, fund history). A restart loses nothing: every step is resumable and skips what is already done.
   $PY -m finlit.worker refresh-flows --only nse                    # the exchange's own FII/DII figures for the latest session (one request), even when the nightly run is recent
@@ -117,7 +118,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
     [ -n "${DHAN_CLIENT_ID:-}" ] && fund_step boot-dhan-check dhan-check      # only when Dhan is set up: proves the credentials; the result is at /api/mf/status (run:dhan-check)
     fund_step boot-mf-history backfill-mf
   fi
-  $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 2
+  $PY -m finlit.worker ingest-all "${LIMIT_ARGS[@]}" --parallel 1   # one company at a time: two at once pushed the 512 MB instance out of memory and the site answered 502/503
   $PY -m finlit.worker refresh-results                 # anyone who has reported since the last run
   $PY -m finlit.worker refresh-macro --max-age-hours 20  # India macro data (MoSPI, RBI): the first run loads the full history (about 300 small requests)
   $PY -m finlit.worker refresh-flows --max-age-hours 20  # FII/DII flows (NSDL, NSE archive files): the first run loads the full FPI history, one request per month
