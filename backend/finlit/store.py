@@ -9,6 +9,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import math
 import logging
 import time
 import zlib
@@ -655,7 +656,9 @@ class Store:
 
     async def search_index(self) -> Tuple[bytes, bytes, str]:
         """Compact list for client-side search, pre-gzipped once (it is ~600 KB raw for ~5,700 stocks).
-        Rows are [symbol, name, bse, ready], biggest company first; the NSE code is sent only when it differs from the symbol."""
+        Rows are [symbol, name, bse, ready], biggest company first; the NSE code is sent only when it differs from the symbol.
+        Beside the rows, three parallel lists keep the payload small: `sectors` (distinct sector names, most companies first), `sec` (per row: index into
+        `sectors`, -1 when unknown) and `mc` (per row: market value in rupees crore rounded up, 0 when unknown)."""
         try:
             cached = await self.redis.hmget(SEARCH_KEY, ["body", "gzip", "etag"])
         except aioredis.RedisError as exc:
@@ -666,17 +669,30 @@ class Store:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 """SELECT c.symbol, c.name, c.nse_code, c.bse_code,
-                          EXISTS(SELECT 1 FROM snapshots s WHERE s.symbol = c.symbol AND s.section = 'summary') AS ready
+                          EXISTS(SELECT 1 FROM snapshots s WHERE s.symbol = c.symbol AND s.section = 'summary') AS ready,
+                          COALESCE(NULLIF(m.macro_sector, ''), NULLIF(m.sector, ''), NULLIF(c.sector, '')) AS sector,
+                          COALESCE(NULLIF(l.market_cap, 0), x.market_cap)::float8 AS mcap
                    FROM companies c
-                   LEFT JOIN LATERAL (SELECT market_cap FROM scores WHERE symbol = c.symbol AND market_cap IS NOT NULL ORDER BY updated_at DESC LIMIT 1) m ON true
-                   ORDER BY m.market_cap DESC NULLS LAST, c.symbol""")  # biggest companies first: the order of the list is the ranking the search shows
-        out = []
+                   LEFT JOIN listing_quotes l ON l.symbol = c.symbol
+                   LEFT JOIN LATERAL (SELECT market_cap FROM scores WHERE symbol = c.symbol AND market_cap IS NOT NULL ORDER BY updated_at DESC LIMIT 1) x ON true
+                   LEFT JOIN LATERAL (SELECT macro_sector, sector FROM scores WHERE symbol = c.symbol AND model = 'v1'
+                                      ORDER BY (statement = 'consolidated') DESC, updated_at DESC LIMIT 1) m ON true
+                   ORDER BY COALESCE(NULLIF(l.market_cap, 0), x.market_cap) DESC NULLS LAST, c.symbol""")  # biggest companies first: the order of the list is the ranking the search shows
+        counts: dict = {}
+        for r in rows:
+            if r["sector"]:
+                counts[r["sector"]] = counts.get(r["sector"], 0) + 1
+        sectors = sorted(counts, key=lambda k: (-counts[k], k))      # code 0 = the sector with most companies
+        code = {name: i for i, name in enumerate(sectors)}
+        out, sec, mc = [], [], []
         for r in rows:
             row = [r["symbol"], r["name"], r["bse_code"], int(r["ready"])]
             if r["nse_code"] and r["nse_code"] != r["symbol"]:
                 row.append(r["nse_code"])
             out.append(row)
-        body = dumps({"fields": ["symbol", "name", "bse", "ready", "nse"], "rows": out})
+            sec.append(code.get(r["sector"], -1))                       # -1: sector not known
+            mc.append(int(math.ceil(r["mcap"])) if r["mcap"] and r["mcap"] > 0 else 0)   # market value in rupees crore, rounded up (every band edge is a whole number, so the band is unchanged); 0: not known
+        body = dumps({"fields": ["symbol", "name", "bse", "ready", "nse"], "rows": out, "sectors": sectors, "sec": sec, "mc": mc})
         packed = gzip.compress(body, compresslevel=9, mtime=0)
         etag = etag_for(body)
         try:

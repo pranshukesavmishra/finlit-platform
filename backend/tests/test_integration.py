@@ -126,6 +126,34 @@ async def test_search_index(api):
     assert [row[0] for row in ready] == ["RELIANCE"]
 
 
+async def test_search_index_carries_sector_and_market_value(api, ingested):
+    """Sector and market value ride beside the rows as parallel lists: a sector table, one sector code per row, one whole-crore value per row."""
+    async with ingested.pool.acquire() as conn:
+        syms = [r["symbol"] for r in await conn.fetch("SELECT symbol FROM companies ORDER BY symbol LIMIT 6")]
+        await conn.execute("UPDATE companies SET sector = NULL")
+        for s, sec in zip(syms[:4], ["Banks", "Banks", "Information Technology", ""]):
+            await conn.execute("UPDATE companies SET sector = $2 WHERE symbol = $1", s, sec)
+        for s, cap in zip(syms[:4], [250000.4, 500.0, 500.2, -3]):
+            await conn.execute("INSERT INTO listing_quotes (symbol, price, change_pct, market_cap, updated_at) VALUES ($1, 10, 0, $2, now()) "
+                               "ON CONFLICT (symbol) DO UPDATE SET market_cap = EXCLUDED.market_cap", s, cap)
+    await ingested.invalidate_search()
+    data = (await api.get("/api/stocks/search-index")).json()
+    rows, sec, mc, names = data["rows"], data["sec"], data["mc"], data["sectors"]
+    assert len(sec) == len(mc) == len(rows)
+    assert names[0] == "Banks" and "Information Technology" in names and len(set(names)) == len(names)   # most companies first, each once
+    counts = [sec.count(i) for i in range(len(names))]
+    assert counts == sorted(counts, reverse=True)
+    at = {r[0]: i for i, r in enumerate(rows)}
+    assert [names[sec[at[s]]] for s in syms[:3]] == ["Banks", "Banks", "Information Technology"]
+    assert sec[at[syms[3]]] == -1 and sec[at[syms[4]]] == -1            # empty and missing sector are unknown, never a made-up one
+    assert mc[at[syms[0]]] == 250001 and mc[at[syms[1]]] == 500 and mc[at[syms[2]]] == 501   # rounded up: 500.2 stays above the 500 edge, 500.0 stays on it
+    assert mc[at[syms[3]]] == 0                                         # negative value is not a market value
+    known = [v for v in mc if v]
+    assert known == sorted(known, reverse=True) and mc.index(0) >= len(known)   # biggest company first, unknown values last
+    # nothing leaks into the row shape older readers use
+    assert all(len(r) in (4, 5) for r in rows)
+
+
 async def test_cold_redis_falls_back_to_postgres(api, ingested):
     await ingested.redis.flushdb()
     r = await api.get("/api/stocks/RELIANCE/ratios")
