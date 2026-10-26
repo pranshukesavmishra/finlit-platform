@@ -459,3 +459,45 @@ async def pdf(request: Request, report_id: str) -> Response:
 
 def _expired() -> JSONResponse:
     return _reply({"status": "expired", "detail": "The PDF of this calculation is no longer available. Recalculate to download a fresh one."}, 410)
+
+
+# ------------------------------------------------------------------ nightly pre-calculation
+async def precompute(store, settings, *, limit: int = 40, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None) -> Dict[str, Any]:
+    """Calculate the rating for the biggest companies that have none yet (or one older than `days`), one at a time, so that opening a
+    company shows its stored rating at once. The calculation is exactly the one a member's button runs; nothing is shortened. It stops at
+    the time limit, and after three failures in a row (a provider that is down or limiting requests should not be hammered)."""
+    from types import SimpleNamespace
+    app = SimpleNamespace(state=SimpleNamespace(store=store, settings=settings, prism_client=client))
+    if not connected(settings):
+        return {"status": "skipped", "reason": "not_configured"}
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
+            "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
+            "WHERE p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) "
+            "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3", statement, days, limit)
+    started, done, failed, streak = time.monotonic(), 0, [], 0
+    try:
+        for row in rows:
+            if time.monotonic() - started > max_minutes * 60 or streak >= 3:
+                break
+            symbol = row["symbol"]
+            try:
+                r = await _call(app, "/api/premium-reports", "prism:nightly", {"query": symbol, "statement_type": statement, "delivery": "inline"})
+            except httpx.HTTPError as exc:
+                r = None
+                log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
+            snapshot = _ready(r)
+            if snapshot is None:
+                code = r.status_code if r is not None else 0
+                failed.append(f"{symbol}:{code}")
+                streak = streak + 1 if code in (0, 429, 502, 503) else 0   # a company the data cannot rate (404/422) is not a provider outage
+                continue
+            streak = 0
+            await _save(store, symbol, statement, reader_view(snapshot), None)
+            done += 1
+            await asyncio.sleep(2)
+    finally:
+        if client is None and getattr(app.state, "prism_client", None) is not None:
+            await app.state.prism_client.aclose()
+    return {"status": "ok" if done or not rows else "partial", "calculated": done, "failed": failed[:10], "remaining_candidates": max(0, len(rows) - done - len(failed))}
