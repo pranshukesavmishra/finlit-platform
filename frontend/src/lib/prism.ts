@@ -389,6 +389,19 @@ export function useGeneratePrism() {
   });
 }
 
+/** The small stored card (GET .../latest?view=summary): last score and label, no review body. Category scores are already withheld for NOT RATED. */
+export type PrismSummary = { id: string; final: number | null; label: PrismLabel; status: PrismStatusWord; confidence: number | null; parts: Record<PartKey, number | null> | null; partWeights: Record<PartKey, number> | null; generatedAt: string; modelVersion: string | null };
+export const summaryKey = (symbol: string, statement: Statement) => ["prism", "summary", symbol, statement] as const;
+/** The last stored score of a company for the landing cards; null when none is stored. Never calculates. */
+export const useStoredSummary = (symbol: string, statement: Statement = "consolidated") =>
+  useQuery<PrismSummary | null, ApiError>({
+    queryKey: summaryKey(symbol, statement), staleTime: 120_000, retry: false,
+    queryFn: async () => {
+      try { return (await apiGet<{ summary: PrismSummary }>(`/api/prism/reports/latest?symbol=${encodeURIComponent(symbol)}&statement=${statement}&view=summary`, { cache: "no-store" })).summary; }
+      catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e; }
+    },
+  });
+
 /* ------------------------------------------------------------------ the companies a member opened lately (this browser only) */
 const RECENT = "finlit-prism-recent";
 export function readPrismRecent(): string[] {
