@@ -604,6 +604,12 @@ class PremiumReportRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
     statement_type: Literal["consolidated", "standalone"] = "consolidated"
     delivery: Literal["background", "inline"] = "background"
+    # inline calculations only. "background" (the nightly pre-calculation) gives way to a member waiting: it is turned away
+    # with 429 while any interactive calculation is running and is asked to come back in a few seconds.
+    priority: Literal["interactive", "background"] = "interactive"
+    inputs: Optional[str] = Field(default=None, max_length=4_000_000)         # model inputs kept from an earlier calculation (premium_cache.pack)
+    observations: Optional[Dict[str, Any]] = None                                # peer observations kept from earlier calculations
+    keep: bool = True                                                            # send back the packed inputs of a fresh fetch for the caller to keep
 
 
 class PremiumSnapshotPDFRequest(BaseModel):
@@ -617,6 +623,7 @@ def _generation_slots_setting():
 
 
 _premium_generation_slots = asyncio.Semaphore(_generation_slots_setting())
+_premium_interactive = 0      # interactive calculations queued or running; the background pre-calculation waits while this is above zero
 # Transient generation state only: no report collection, persistence or history API.
 _PREMIUM_JOB_TTL_SECONDS = 30 * 60
 _PREMIUM_JOB_LIMIT = 20
@@ -716,6 +723,19 @@ def _premium_dashboard_inputs(symbol, statement_type, now, observations=None):
         _call_memo.reset(token)
 
 
+def _premium_inputs_loader(kept, fresh, observations):
+    """The `dashboard_load` of one calculation: inputs kept from an earlier one when they are still fresh enough, else the resolver's, which
+    are then copied into `fresh` (to be kept for next time). Either way the model receives the same kind of data."""
+    def load(symbol, statement_type, now):
+        if kept is not None:
+            return kept["raw"], kept["sources"], kept["effective"], kept["sourcing"]
+        raw, sources, effective, sourcing = _premium_dashboard_inputs(symbol, statement_type, now, observations)
+        fresh.update({"symbol": symbol, "requested": statement_type, "fetchedAt": now.isoformat(), "raw": raw, "sources": sources,
+                      "effective": effective, "sourcing": sourcing})
+        return raw, sources, effective, sourcing
+    return load
+
+
 def _premium_dashboard_inputs_resolved(symbol, statement_type, now):
     annual, quarterly = {}, {}
     yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
@@ -798,15 +818,42 @@ async def create_premium_report(payload: PremiumReportRequest, background_tasks:
         except ImportError:
             from premium_service import generate_report
             from premium_snapshot import issue
+        global _premium_interactive
         report_id = uuid.uuid4().hex
         created_at = datetime.now(timezone.utc).isoformat()
+        background = payload.priority == "background"
+        if background and _premium_interactive > 0:
+            raise HTTPException(status_code=429, detail="A member is waiting for a report; the pre-calculation pauses.", headers={"Retry-After": "3"})
+        if not background:
+            _premium_interactive += 1
+        started = monotonic()
         try:
+            try:
+                from backend import premium_cache
+                from backend.premium_data import ObservationCache
+            except ImportError:
+                import premium_cache
+                from premium_data import ObservationCache
+            kept = premium_cache.usable_inputs(payload.inputs, symbol, payload.statement_type)
+            observations = ObservationCache(premium_cache.preload(payload.observations))
+            fresh = {}
             async with _premium_generation_slots:
-                report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at, _premium_dashboard_inputs)
+                report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at,
+                                                 _premium_inputs_loader(kept, fresh, observations), observations)
             snapshot = issue(report, _admin["sub"], token_secret())
+            report_cache = {"observations": premium_cache.flatten(observations.new), "inputsReused": kept is not None, "seconds": round(monotonic() - started, 1)}
+            if fresh and payload.keep:
+                try:
+                    report_cache["inputs"] = premium_cache.pack(fresh)
+                except (ValueError, TypeError):
+                    logger.info("Premium inputs for %s could not be packed for keeping", symbol)
+            snapshot = {**snapshot, "cache": report_cache}
         except Exception as exc:
             logger.warning("Inline premium report generation failed (%s): %s", type(exc).__name__, report_id)
             raise HTTPException(status_code=502, detail="The financial data providers could not complete this report. Please retry.") from None
+        finally:
+            if not background:
+                _premium_interactive -= 1
         return JSONResponse(snapshot, headers={"Cache-Control": "no-store"})
     if len(_premium_jobs) >= _PREMIUM_JOB_LIMIT:
         completed = next((key for key, job in _premium_jobs.items() if job["report"]["state"] != "generating"), None)

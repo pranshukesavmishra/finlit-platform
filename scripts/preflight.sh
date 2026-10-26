@@ -29,7 +29,7 @@ if [ -z "${SKIP_FRONTEND:-}" ]; then
   if [ -d frontend/node_modules/three ]; then step tsc bash -c "cd frontend && npx tsc --noEmit"
   else step tsc bash -c "cd frontend && ! npx tsc --noEmit | grep -v 'src/three' | grep -E 'error TS'"; fi
   step vitest bash -c "cd frontend && npx vitest run"
-  step build bash -c "cd frontend && npm run build"
+  if [ -d frontend/node_modules/three ]; then step build bash -c "cd frontend && npm run build"; else skip build "package three not installed (sandbox): CI builds it"; fi
 fi
 
 step shell-syntax bash -c 'for f in deploy/*.sh scripts/*.sh dev/*.sh; do [ -f "$f" ] || continue; bash -n "$f" || exit 1; done'

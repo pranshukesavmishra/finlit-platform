@@ -178,7 +178,7 @@ async def _next_sample(conn, n: int) -> Tuple[List[Tuple[str, str]], str]:
     cur = (await _meta_get(conn, META_CURSOR) or {}).get("after", "")
     q = ("SELECT DISTINCT ON (symbol) symbol, statement FROM scores WHERE model = 'v1' AND symbol {op} $1 "
          "ORDER BY symbol, (statement = 'consolidated') DESC, updated_at DESC LIMIT $2")
-    rows = await conn.fetch(q.format(op=">"), cur, n)   # nosec B608 - fixed text
+    rows = await conn.fetch(q.format(op=">"), cur, n)
     if len(rows) < n:    # end of the lap: continue from the start
         rows = list(rows) + list(await conn.fetch(q.format(op=">"), "", n - len(rows)))
     picks = [(r["symbol"], r["statement"]) for r in rows]
