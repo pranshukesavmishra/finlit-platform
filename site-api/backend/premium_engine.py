@@ -38,7 +38,7 @@ LABELS = {
     "SALES_GROWTH": "Sales growth (12 months)", "PROFIT_GROWTH": "Profit growth (12 months)",
     "SALES_CAGR": "Sales CAGR", "PROFIT_CAGR": "Profit CAGR", "MARGIN_CHANGE": "Operating margin change",
     "LOAN_GROWTH": "Loan growth", "NETWORTH_GROWTH": "Net worth growth",
-    "DEBT_TO_EQUITY": "Debt / equity", "INTEREST_COVER": "Interest cover", "ROE": "Return on equity",
+    "DEBT_TO_EQUITY": "Debt / equity", "INTEREST_COVER": "Interest cover", "FINANCIAL_LEVERAGE": "Financial leverage", "ROE": "Return on equity",
     "CASH_CONVERSION": "Cash conversion", "GROSS_NPA": "Gross NPA", "NET_NPA": "Net NPA",
     "CAPITAL_ADEQUACY": "Capital adequacy", "ROA": "Return on assets", "SOLVENCY": "Solvency ratio",
     "PE_VS_INDUSTRY": "P/E vs industry", "PE_VS_HISTORY": "P/E vs own history", "PEG": "PEG",
@@ -256,6 +256,8 @@ def score_company(d, group):
         value = ratio(nw, d.get("net_worth_1y_ago"))
         put("NETWORTH_GROWTH", (value - 1) * 100 if value is not None else None)
         put("SOLVENCY", d.get("solvency_ratio"))
+        ta = num(annual_assets)   # financial leverage = total assets / book equity (the equity multiplier); replaces interest cover for insurers
+        put("FINANCIAL_LEVERAGE", ta / nw if ta is not None and nw is not None and nw > 0 and ta > 0 else None, explicit_points=0. if nw is not None and nw <= 0 else None)
         value = ratio(annual_profit, annual_nw)
         put("ROE", value * 100 if value is not None else None, explicit_points=0. if annual_nw is not None and annual_nw <= 0 else None)
     else:
@@ -283,7 +285,7 @@ def score_company(d, group):
         else:
             put("CASH_CONVERSION", ratio(c3, p3))
 
-    if group in ("BANK", "NBFC", "INSURANCE"):
+    if group in ("BANK", "NBFC"):
         # Owner-confirmed unconditional replacement of capital adequacy/solvency.
         # Missing expense is not zero, and the non-financial D/E exclusion does
         # not remove a required financial-sector factor.

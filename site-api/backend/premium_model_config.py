@@ -69,10 +69,10 @@ GROUPS = {
     "NBFC": group(F_LENDER, Q_LENDER, V_LENDER,
                   {"SALES_GROWTH": (5, 25), "PROFIT_GROWTH": (0, 25), "LOAN_GROWTH": (5, 25),
                    "GROSS_NPA": (6, 1.5), "NET_NPA": (3, 0.5), "CAPITAL_ADEQUACY": (15, 25), "INTEREST_COVER": (2, 8), "ROA": (1.0, 3.5)}),
-    "INSURANCE": group(F_INSURER, {"INTEREST_COVER": 50, "ROE": 50},
+    "INSURANCE": group(F_INSURER, {"FINANCIAL_LEVERAGE": 50, "ROE": 50},
                        {"PB_VS_INDUSTRY": 50, "PE_VS_INDUSTRY": 25, "PB_VS_HISTORY": 25, "PEG": 20},
                        {"SALES_GROWTH": (5, 20), "PROFIT_GROWTH": (0, 20), "NETWORTH_GROWTH": (5, 20),
-                        "SOLVENCY": (1.5, 2.2), "INTEREST_COVER": (2, 8), "ROE": (8, 18)}),
+                        "SOLVENCY": (1.5, 2.2), "FINANCIAL_LEVERAGE": (20, 6), "ROE": (8, 18)}),   # leverage: (0 points at, 100 points at) times, lower is better; insurers have no meaningful interest cover
 }
 
 POINTS_PER_GOOD_QUARTER = 10

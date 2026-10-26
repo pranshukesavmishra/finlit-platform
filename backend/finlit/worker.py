@@ -73,7 +73,7 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
         if company:
             bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
                                     "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
-        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual"):   # for the consolidated-vs-standalone revenue guard; best effort
+        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual") and not bundle.get("pl_annual_standalone"):   # for the consolidated-vs-standalone revenue guard; best effort
             try:
                 path, params, _t = bundle_requests(symbol, "standalone")["pl_annual"]
                 bundle["pl_annual_standalone"] = await client.get(path, params, timeout=12, retries=1)

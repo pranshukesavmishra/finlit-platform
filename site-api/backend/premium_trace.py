@@ -81,6 +81,7 @@ def build_calculation_trace(d, rating, meta):
                 a,b = ('loans_now','loans_1y_ago') if metric=='LOAN_GROWTH' else ('net_worth','net_worth_1y_ago')
                 formula=f'({fmt(d.get(a))} / {fmt(d.get(b))} - 1) x 100 = {fmt(row["value"])}%. Exact same reporting date a year earlier.'
             elif metric=='DEBT_TO_EQUITY': formula=f'Total debt / book equity = {fmt(debt)} / {fmt(nw)} = {fmt(row["value"])}x.'
+            elif metric=='FINANCIAL_LEVERAGE': formula=f'Total assets / book equity = {fmt(d.get("total_assets"))} / {fmt(nw)} = {fmt(row["value"])}x. Lower means less borrowed money behind the assets.'
             elif metric=='INTEREST_COVER': formula=f'(Annual PBT + interest cost) / interest cost = ({fmt(d.get("profit_before_tax"))} + {fmt(d.get("interest_cost"))}) / {fmt(d.get("interest_cost"))} = {fmt(row["value"])}x.'
             elif metric in ('ROE','ROA'):
                 profit = d.get('net_profit_y',[])[-1] if d.get('net_profit_y') else None

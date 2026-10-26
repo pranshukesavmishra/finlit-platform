@@ -152,6 +152,14 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         # Years where consolidated and standalone revenue differ by more than 1% (the worker fetches the other basis when it can)
         "basisGaps": statements.basis_gaps(pl_rows, _rows(bundle.get("pl_annual_standalone"))) if statement == "consolidated" and bundle.get("pl_annual_standalone") else [],
     }
+    choice = bundle.get("basisChoice")
+    if choice:   # consolidated statements were out of date: every figure on the report is from the standalone ones, said in plain words
+        def _mon(iso):
+            d = parse_date(iso)
+            return d.strftime("%b %Y") if d else None
+        stops = _mon(choice.get("consolidatedLatestQuarter")) or _mon(choice.get("consolidatedLatestYear"))
+        quality["basis"] = {"chosen": "standalone", "requested": "consolidated", "reason": "stale_consolidated", **{k: v for k, v in choice.items() if k not in ("chosen", "requested", "reason")}}
+        quality["notes"] = [*quality["notes"], f"Consolidated statements stop at {stops}; figures shown are standalone, which are up to date." if stops else "Consolidated statements are out of date; figures shown are standalone, which are up to date."]
     if quality["plReconcile"]:
         logging.getLogger("finlit.snapshot").warning("P&L does not tie out for %s: %s", symbol, quality["plReconcile"][:6])
     if quality["basisGaps"]:

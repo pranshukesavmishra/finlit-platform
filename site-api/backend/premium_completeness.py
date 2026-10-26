@@ -72,8 +72,9 @@ def input_gaps(row, inputs, meta):
         scalar('interest_cost','Annual P&L interest expense')
         if num(inputs.get('interest_cost')) is not None and num(inputs['interest_cost']) < 0:
             gaps.append('Non-negative annual interest expense (reported expense is negative)')
-    elif metric in ('DEBT_TO_EQUITY','ROE','ROA','NETWORTH_GROWTH','LOAN_GROWTH'):
-        specs = {'DEBT_TO_EQUITY': [('total_debt','Total borrowings',False),('net_worth','Book equity',True)],
+    elif metric in ('DEBT_TO_EQUITY','ROE','ROA','NETWORTH_GROWTH','LOAN_GROWTH','FINANCIAL_LEVERAGE'):
+        specs = {'FINANCIAL_LEVERAGE': [('total_assets','Total assets',True),('net_worth','Book equity',True)],
+                 'DEBT_TO_EQUITY': [('total_debt','Total borrowings',False),('net_worth','Book equity',True)],
                  'ROE':[('net_worth','Book equity',True)], 'ROA':[('total_assets','Total assets',True)],
                  'NETWORTH_GROWTH':[('net_worth','Latest book equity',False),('net_worth_1y_ago','Book equity at the matching date a year earlier',True)],
                  'LOAN_GROWTH':[('loans_now','Latest loan book',False),('loans_1y_ago','Loan book at the matching date a year earlier',True)]}
