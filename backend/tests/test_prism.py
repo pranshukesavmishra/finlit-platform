@@ -89,10 +89,10 @@ class FakeSite:
             snap = self.snapshot(sub, body["query"], body["statement_type"])
             if body.get("cache"):      # what the real site backend adds after signing: the packed inputs, the peers' rows, the peers' symbols
                 row = f'{body["statement_type"]}|{datetime.now(prism.IST):%Y-%m-%d}|pr:pb,pe|PEERA'
-                snap["cache"] = {"inputs": "PACKED-" + body["query"] if body.get("keep") else None, "observations": {row: {"pe": 12.5, "pb": 2.0}},
-                                 "universe": ["PEERA", "PEERB"], "inputsReused": bool(body.get("inputs")), "seconds": 1.0}
-                if not body.get("keep"):
-                    del snap["cache"]["inputs"]
+                block = {"observations": {row: {"pe": 12.5, "pb": 2.0}}, "universe": ["PEERA", "PEERB"], "inputsReused": bool(body.get("inputs")), "seconds": 1.0}
+                if body.get("keep"):
+                    block["inputs"] = "PACKED-" + body["query"]
+                return httpx.Response(200, json={**snap, "cache": block})      # the stored (signed) snapshot stays without it
             return httpx.Response(200, json=snap)
         if request.url.path == "/api/premium-reports/pdf":
             self.pdfs.append(sub)
