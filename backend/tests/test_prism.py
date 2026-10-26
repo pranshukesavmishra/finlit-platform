@@ -489,3 +489,28 @@ async def test_pdf_downloads_are_rate_limited_and_ids_must_be_exactly_32_hex(env
     r = await gold.get(f"/api/prism/reports/{rid}/pdf")
     assert r.status_code == 429 and r.json()["status"] == "limit" and r.headers["retry-after"]
     assert (await (await member(app, "gold")).get(f"/api/prism/reports/{rid}%0A/pdf")).status_code == 404
+
+
+async def test_nightly_precompute_stores_ratings_in_order_and_stops_when_the_provider_is_down(store):  # noqa: F811
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports")
+        await conn.execute("DELETE FROM snapshots WHERE symbol IN ('PZA', 'PZB')")
+        for sym in ("PZA", "PZB"):
+            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'price-MAX', '{}', 'x', now())", sym)
+    settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
+    fake = FakeSite()
+    http = httpx.AsyncClient(transport=httpx.MockTransport(fake), base_url="http://site")
+    out = await prism.precompute(store, settings, limit=10, client=http)
+    assert out["calculated"] >= 2 and out["failed"] == []
+    rows = {r["symbol"] for r in await store.pool.fetch("SELECT symbol FROM prism_reports")}
+    assert {"PZA", "PZB"} <= rows
+    assert all(r["sub"] == "prism:nightly" for r in fake.reports)
+    again = await prism.precompute(store, settings, limit=10, client=http)      # fresh ratings are left alone
+    assert again["calculated"] == 0
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports")
+    fake.answer = httpx.Response(503, json={"detail": "down"})
+    down = await prism.precompute(store, settings, limit=10, client=http)
+    assert down["calculated"] == 0 and 0 < len(down["failed"]) <= 3     # stops after three failures in a row
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM snapshots WHERE symbol IN ('PZA', 'PZB')")

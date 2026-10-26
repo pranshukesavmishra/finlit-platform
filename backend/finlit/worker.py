@@ -472,6 +472,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
     p_ld.add_argument("--as-of", default=None, help="YYYY-MM-DD: the Friday to compute (default: the latest)")
     p_ld.add_argument("--if-stale", action="store_true", help="skip when the latest Friday is already done (a redeploy must not repeat the weekly run)")
+    p_pz = sub.add_parser("precompute-prism", help="nightly: FinLit Prism ratings for the biggest companies without one (or older than --days), so each company opens with its stored rating")
+    p_pz.add_argument("--limit", type=int, default=40, help="companies per run")
+    p_pz.add_argument("--max-minutes", type=float, default=100.0)
+    p_pz.add_argument("--days", type=int, default=7, help="a stored rating older than this is calculated again")
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
     p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
     p_bh.add_argument("--max-minutes", type=float, default=60.0)
@@ -739,6 +743,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
+        if args.cmd == "precompute-prism":
+            from . import prism
+            print(await prism.precompute(store, settings, limit=args.limit, max_minutes=args.max_minutes, days=args.days))
+            return 0
         if args.cmd in ("refresh-leadership", "backtest-leadership"):
             from datetime import date as _date
             from . import leadership
