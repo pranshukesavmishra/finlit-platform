@@ -41,6 +41,7 @@ from .auth.entitlements import has
 from .auth.routes import IST, NO_STORE, ip_of, pre_session_guard, secure_ctx
 from .auth.service import Ctx, current
 from .premium import gateway_token
+from .prism_candles import supplied_candles
 
 log = logging.getLogger("finlit.prism")
 router = APIRouter(prefix="/api/prism")
@@ -430,6 +431,23 @@ async def _wait_for(app, symbol: str, statement: str, lock: str, before: Optiona
     return _reply({"status": "busy", "detail": f"{PRISM_NAME} is busy. Please try again shortly."}, 429, 5)
 
 
+CANDLE_SECONDS = 60.0               # Dhan candles (see prism_candles.py) must not eat the calculation's time: after this, send none and the site backend falls back
+
+
+async def _report_body(app, symbol: str, statement: str) -> Dict[str, Any]:
+    """The body of POST /api/premium-reports. Dhan's daily candles are added as `suppliedCandles` when they could be fetched complete;
+    otherwise the body is exactly what it always was and the site backend uses FinEdge/Upstox."""
+    body: Dict[str, Any] = {"query": symbol, "statement_type": statement, "delivery": "inline"}
+    try:
+        candles = await asyncio.wait_for(supplied_candles(app.state, symbol), CANDLE_SECONDS)
+    except Exception as exc:        # never let the extra source stop the calculation
+        log.warning("prism candles for %s not sent: %s", symbol, type(exc).__name__)
+        candles = None
+    if candles:
+        body["suppliedCandles"] = candles
+    return body
+
+
 async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) -> JSONResponse:
     app = request.app
     redis = app.state.store.redis
@@ -447,7 +465,7 @@ async def _calculate(request: Request, ctx: Ctx, symbol: str, statement: str) ->
                 await redis.decr(counter)
             return _reply({"status": "busy", "detail": f"{PRISM_NAME} is calculating other companies. Please try again in a minute."}, 429, BUSY_RETRY)
         try:
-            r = await _call(app, "/api/premium-reports", sub, {"query": symbol, "statement_type": statement, "delivery": "inline"})
+            r = await _call(app, "/api/premium-reports", sub, await _report_body(app, symbol, statement))
         finally:
             _slots(app).release()
     except httpx.HTTPError as exc:
@@ -533,7 +551,7 @@ async def precompute(store, settings, *, limit: int = 40, max_minutes: float = 1
                 break
             symbol = row["symbol"]
             try:
-                r = await _call(app, "/api/premium-reports", "prism:nightly", {"query": symbol, "statement_type": statement, "delivery": "inline"})
+                r = await _call(app, "/api/premium-reports", "prism:nightly", await _report_body(app, symbol, statement))
             except httpx.HTTPError as exc:
                 r = None
                 log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
@@ -550,4 +568,6 @@ async def precompute(store, settings, *, limit: int = 40, max_minutes: float = 1
     finally:
         if client is None and getattr(app.state, "prism_client", None) is not None:
             await app.state.prism_client.aclose()
+        if getattr(app.state, "prism_dhan", None) is not None:
+            await app.state.prism_dhan.aclose()
     return {"status": "ok" if done or not rows else "partial", "calculated": done, "failed": failed[:10], "remaining_candidates": max(0, len(rows) - done - len(failed))}

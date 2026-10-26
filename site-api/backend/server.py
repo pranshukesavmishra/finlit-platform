@@ -599,6 +599,8 @@ class PremiumReportRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
     statement_type: Literal["consolidated", "standalone"] = "consolidated"
     delivery: Literal["background", "inline"] = "background"
+    # FinLit addition: Dhan daily candles from the research API (premium_supplied_candles.py); validated there, a bad value just means the usual providers.
+    suppliedCandles: Optional[Dict[str, Any]] = None
 
 
 class PremiumSnapshotPDFRequest(BaseModel):
@@ -625,7 +627,7 @@ def _prune_premium_jobs():
             _premium_jobs.pop(key, None)
 
 
-def _premium_dashboard_inputs(symbol, statement_type, now):
+def _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles=None):
     """Use exactly the dashboard's resolved provider data, including its cache."""
     annual, quarterly = {}, {}
     yearly = _fetch_stock_fundamentals(symbol, statement_type, "yearly", annual)
@@ -675,34 +677,39 @@ def _premium_dashboard_inputs(symbol, statement_type, now):
     try:
         from backend.premium_technical import resolve_technical_prices
         from backend.premium_technical_sources import load_benchmark_history
+        from backend.premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied
     except ImportError:
         from premium_technical import resolve_technical_prices
         from premium_technical_sources import load_benchmark_history
+        from premium_supplied_candles import prices_with_supplied, benchmarks_with_supplied
     def load_technical_candles():
         key = yearly.get("instrument", {}).get("upstoxInstrumentKey")
         return _fetch_upstox_price_history(key) if key else []
     # Exclude an unfinished daily session from technical indicators.
     ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
     candle_date = ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
-    raw["technicalPriceInput"] = resolve_technical_prices(
+    # FinLit: supplied (Dhan) candles are the first choice per series when valid; the original calls are the unchanged fallback.
+    raw["technicalPriceInput"] = prices_with_supplied(supplied_candles, candle_date, lambda: resolve_technical_prices(
         annual.get("technicalPrices", {}), yearly["sources"].get("priceHistory"),
-        candle_date, load_technical_candles)
-    raw["technicalBenchmarks"] = load_benchmark_history(_finedge_get, candle_date, _fetch_upstox_price_history,
-        [row["date"] for row in raw["technicalPriceInput"]["bars"][-505:]])
+        candle_date, load_technical_candles))
+    required_dates = [row["date"] for row in raw["technicalPriceInput"]["bars"][-505:]]
+    raw["technicalBenchmarks"] = benchmarks_with_supplied(supplied_candles, candle_date, required_dates,
+        lambda: load_benchmark_history(_finedge_get, candle_date, _fetch_upstox_price_history, required_dates))
     return raw, sources, effective, {"yearly": yearly["sources"], "quarterly": quarterly_view["sources"],
         "requestedStatementType": statement_type, "effectiveStatementType": effective,
         "bankAssetQualityStatementType": quarterly.get("assetQualityBasis"), "notes": notes}
 
 
-async def _generate_premium_report(report_id, symbol, name, statement_type, created_at):
+async def _generate_premium_report(report_id, symbol, name, statement_type, created_at, supplied_candles=None):
     try:
         from backend.premium_service import generate_report
     except ImportError:
         from premium_service import generate_report
     try:
         async with _premium_generation_slots:
-            report = await asyncio.to_thread(generate_report, _finedge_get, symbol, name, statement_type, report_id, created_at, _premium_dashboard_inputs)
-            job = _premium_jobs.get(report_id)
+            report = await asyncio.to_thread(generate_report, _finedge_get, symbol, name, statement_type, report_id, created_at,
+                lambda s, t, n: _premium_dashboard_inputs(s, t, n, supplied_candles))
+            job =_premium_jobs.get(report_id)
             if job and job["expires"] > monotonic() and job["report"]["state"] == "generating":
                 job["report"] = report
     except Exception:
@@ -732,7 +739,8 @@ async def create_premium_report(payload: PremiumReportRequest, background_tasks:
         created_at = datetime.now(timezone.utc).isoformat()
         try:
             async with _premium_generation_slots:
-                report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at, _premium_dashboard_inputs)
+                report = await asyncio.to_thread(generate_report, _finedge_get, symbol, instrument.get("name"), payload.statement_type, report_id, created_at,
+                    lambda s, t, n: _premium_dashboard_inputs(s, t, n, payload.suppliedCandles))
             snapshot = issue(report, _admin["sub"], token_secret())
         except Exception as exc:
             logger.warning("Inline premium report generation failed (%s): %s", type(exc).__name__, report_id)
@@ -749,7 +757,7 @@ async def create_premium_report(payload: PremiumReportRequest, background_tasks:
                "company": {"symbol": symbol, "name": instrument.get("name") or symbol}}
     _premium_jobs[report_id] = {"report": pending, "expires": monotonic() + _PREMIUM_JOB_TTL_SECONDS}
     asyncio.get_running_loop().call_later(_PREMIUM_JOB_TTL_SECONDS, _premium_jobs.pop, report_id, None)
-    background_tasks.add_task(_generate_premium_report, report_id, symbol, instrument.get("name"), payload.statement_type, created_at)
+    background_tasks.add_task(_generate_premium_report, report_id, symbol, instrument.get("name"), payload.statement_type, created_at, payload.suppliedCandles)
     return JSONResponse(pending, status_code=202, headers={"Cache-Control": "no-store"})
 
 
