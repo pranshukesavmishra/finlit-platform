@@ -300,6 +300,20 @@
    "aliases": []
   },
   {
+   "term": "Basic EPS",
+   "topic": "Valuation",
+   "meaning": "Earnings per share using only the shares that exist today: profit left for ordinary shareholders divided by the weighted average number of ordinary shares.",
+   "why": "It is the plain version of EPS, before counting shares that options or convertibles could add later.",
+   "how": "Compare it with diluted EPS: a large gap means many potential new shares.",
+   "formula": "Basic EPS = (Net profit − Preference dividends) ÷ Weighted average ordinary shares",
+   "id": "basic-eps",
+   "letter": "B",
+   "finlit": "FinLit shows the EPS the company reports; the calculator lets you enter your own figures.",
+   "aliases": [
+    "basic eps"
+   ]
+  },
+  {
    "term": "Basis of allotment",
    "topic": "IPOs and new share issues",
    "meaning": "The final decision on who gets how many shares, published by the registrar after the issue closes.",
@@ -996,6 +1010,20 @@
     "F&O",
     "futures and options",
     "futures and options, F&O"
+   ]
+  },
+  {
+   "term": "Diluted EPS",
+   "topic": "Valuation",
+   "meaning": "Earnings per share after counting shares that could be created from options, warrants and convertible bonds, which spreads the profit over more shares.",
+   "why": "It shows the lowest EPS owners could see if every such share were issued.",
+   "how": "Diluted EPS is equal to or below basic EPS; a big gap points to meaningful dilution.",
+   "formula": "Diluted EPS = Profit attributable to ordinary shareholders ÷ Diluted weighted average shares",
+   "id": "diluted-eps",
+   "letter": "D",
+   "finlit": "The share count behind FinLit's EPS is the diluted weighted average, shown in crore.",
+   "aliases": [
+    "diluted eps"
    ]
   },
   {
@@ -1793,6 +1821,21 @@
    "letter": "H",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Implied future price",
+   "topic": "Valuation",
+   "meaning": "The share price a scenario arrives at: projected EPS multiplied by the assumed target P/E.",
+   "why": "It turns two assumptions, EPS growth and a P/E multiple, into one price so the cases can be compared.",
+   "how": "It is a scenario, not a forecast, and it leaves out dividends, taxes and transaction costs.",
+   "formula": "Implied future price = Current EPS × (1 + g)^n × Target P/E",
+   "id": "implied-future-price",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "implied price",
+    "implied future share price"
+   ]
   },
   {
    "term": "Index",
@@ -4008,6 +4051,22 @@
    "aliases": []
   },
   {
+   "term": "Target P/E",
+   "topic": "Valuation",
+   "meaning": "The price-to-earnings multiple you assume the shares will trade at at the end of a scenario, used to turn a projected EPS into a price.",
+   "why": "The future price in a scenario depends as much on this assumed multiple as on EPS growth.",
+   "how": "Try several values: the sensitivity grid shows how the result moves. A multiple is an assumption, not a prediction.",
+   "formula": "Implied future price = Future EPS × Target P/E",
+   "id": "target-pe",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "target pe",
+    "target p/e multiple",
+    "target multiple"
+   ]
+  },
+  {
    "term": "Tax deduction",
    "topic": "Loans, tax and planning",
    "meaning": "An amount you can subtract from income before tax is calculated, such as Section 80C investments under the old tax regime.",
@@ -4279,6 +4338,21 @@
    "letter": "W",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Weighted average shares",
+   "topic": "Company statements",
+   "meaning": "The average number of shares outstanding during a period, with each share counted for the part of the period it existed.",
+   "why": "EPS divides profit by this figure, not by the count on the last day, so a mid-year share issue counts only for the months it was outstanding.",
+   "how": "If shares were issued late in the year, this number sits below the year-end count.",
+   "formula": "Weighted average shares = Σ (shares outstanding × fraction of the period outstanding)",
+   "id": "weighted-average-shares",
+   "letter": "W",
+   "finlit": "",
+   "aliases": [
+    "weighted average number of shares",
+    "weighted shares"
+   ]
   },
   {
    "term": "Working capital",
