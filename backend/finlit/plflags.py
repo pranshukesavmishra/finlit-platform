@@ -218,10 +218,45 @@ def divergence_run(q: Table) -> List[Dict[str, Any]]:
     return steps
 
 
-def pl_flags(annual: Optional[Table], quarterly: Optional[Table]) -> List[Dict[str, Any]]:
+def prepare(t: Optional[Table], lender: bool) -> Optional[Table]:
+    """For a lender (bank or NBFC) revenue means total income and operating profit is not a meaningful line, so it is dropped."""
+    if not t or not lender:
+        return t
+    rows = dict(t.get("rows") or {})
+    ti = rows.get("total_income")
+    if isinstance(ti, list) and any(_num(v) is not None for v in ti):
+        rows["revenue"] = ti
+    rows.pop("operating_profit", None)
+    return {**t, "rows": rows}
+
+
+def _growth(p: Dict[str, Optional[Move]]) -> Dict[str, Optional[float]]:
+    return {"revenue": None if not p["rev"] or p["rev"].pct is None else _r1(p["rev"].pct),
+            "profit": None if _pct_pos(p["np"]) is None else _r1(_pct_pos(p["np"])),
+            "operating": None if _pct_pos(p["op"]) is None else _r1(_pct_pos(p["op"]))}
+
+
+def period_views(annual: Optional[Table], quarterly: Optional[Table], lender: bool = False) -> Dict[str, Optional[Dict[str, Any]]]:
+    """Growth against the same period a year earlier for the latest quarter and the latest year, whether or not a flag fired: the numbers
+    shown beside a flag so that both views are always named (period, comparison period, period end)."""
+    out: Dict[str, Optional[Dict[str, Any]]] = {"annual": None, "quarterly": None}
+    for scope, t in (("annual", prepare(annual, lender)), ("quarterly", prepare(quarterly, lender))):
+        if not t or not t.get("periods"):
+            continue
+        i = len(t["periods"]) - 1
+        j = prior_index(t, i, "year")
+        if j is None:
+            continue
+        ends = t.get("periodEnds") or []
+        out[scope] = {"scope": scope, "label": "latest quarter" if scope == "quarterly" else "latest year", "period": t["periods"][i], "against": t["periods"][j],
+                      "periodEnd": ends[i] if i < len(ends) else None, "growth": _growth(_pair(t, i, j))}
+    return out
+
+
+def pl_flags(annual: Optional[Table], quarterly: Optional[Table], lender: bool = False) -> List[Dict[str, Any]]:
     """All flags for the latest annual and latest quarterly period; [] when the data supports none."""
     out: List[Dict[str, Any]] = []
-    a, q = annual, quarterly
+    a, q = prepare(annual, lender), prepare(quarterly, lender)
     if a and a.get("periods"):
         i = len(a["periods"]) - 1
         j = prior_index(a, i, "year")
