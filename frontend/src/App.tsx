@@ -18,6 +18,7 @@ import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows
 // Heavier pages load on demand so the first visit stays small and fast.
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
+const FinancialProduct = lazy(() => import("./pages/FinancialProduct").then((m) => ({ default: m.FinancialProduct })));
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
 const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m.Screener })));
@@ -128,6 +129,7 @@ export default function App() {
           <Route path="leadership-label" element={<LeadershipLabelPage />} />
           <Route path="contact" element={<Contact />} />
           <Route path="portfolio" element={<Portfolio />} />
+          <Route path="financial-product" element={<FinancialProduct />} />
           <Route path="blog" element={<Blog />} />
           <Route path="blog/:slug" element={<BlogPost />} />
           <Route path="legal/:doc" element={<Legal />} />

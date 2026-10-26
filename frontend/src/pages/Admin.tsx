@@ -36,7 +36,7 @@ export function Admin() {
   useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
   const enquiries = useQuery({ queryKey: ["admin-enquiries"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone: string; services: string[]; message: string; created_at: string }[]>("/api/service-enquiry"), enabled: hasSession(), retry: false });
-  const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
+  const leads = useQuery({ queryKey: ["admin-leads"], queryFn: () => adminFetch<{ id: string; name: string; email: string; phone?: string; investment_size?: string; subject?: string; message: string; created_at: string }[]>("/api/contact"), enabled: hasSession(), retry: false });
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-content"] });
   const toggle = useMutation({
@@ -64,8 +64,8 @@ export function Admin() {
             <td className="cms-rowacts"><Link className="btn" to={`/admin/posts/${c.id}`} aria-label={`Edit ${c.title}`}>Edit</Link> <Link className="btn" to={`/admin/posts/${c.id}/preview`} aria-label={`Preview ${c.title}`}>Preview</Link> <button className="btn" onClick={() => toggle.mutate(c)} aria-label={`${c.status === "PUBLISHED" ? "Unpublish" : "Publish"} ${c.title}`}>{c.status === "PUBLISHED" ? "Unpublish" : "Publish"}</button> <button className="btn danger" aria-label={`Delete ${c.title}`} onClick={() => { if (confirm(`Delete “${c.title}”? This cannot be undone.`)) del.mutate(c.id); }}>Delete</button></td></tr>)}</tbody></table></div>}
       </div>
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Contact messages</h3><span className="s">{leads.data?.length ?? 0}</span></div>
-        <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th></tr></thead>
-          <tbody>{(leads.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.subject}</td><td style={{ whiteSpace: "normal", maxWidth: 360 }}>{l.message}</td></tr>)}</tbody></table></div></div>
+        <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Investment size</th><th>Subject</th><th>Message</th></tr></thead>
+          <tbody>{(leads.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.investment_size}</td><td>{l.subject}</td><td style={{ whiteSpace: "normal", maxWidth: 360 }}>{l.message}</td></tr>)}</tbody></table></div></div>
       <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Service enquiries</h3><span className="s">{enquiries.data?.length ?? 0}</span></div>
         <div className="tw"><table className="admin-t"><thead><tr><th>When</th><th>Name</th><th>Email</th><th>Phone</th><th>Services</th><th>Message</th></tr></thead>
           <tbody>{(enquiries.data || []).slice(0, 50).map((l) => <tr key={l.id}><td>{dateIN(l.created_at)}</td><td>{l.name}</td><td>{l.email}</td><td>{l.phone}</td><td style={{ whiteSpace: "normal" }}>{l.services.join(", ")}</td><td style={{ whiteSpace: "normal", maxWidth: 320 }}>{l.message}</td></tr>)}

@@ -1,0 +1,45 @@
+/* Admin statement upload, Home performance/process/philosophy, coming-soon product page. Theme tokens only. */
+.stup { border: 1px solid var(--border-strong, var(--border)); border-radius: 6px; background: var(--s1); padding: 18px 20px; margin: 0 0 18px; }
+.stup h2 { font: 400 20px var(--serif); margin: 0 0 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.stup-tag { font: 700 10.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; background: var(--gold-soft); color: var(--gold); }
+.stup-now, .stup-note { margin: 0 0 10px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.stup-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.stup-file { flex: 1 1 240px; min-width: 0; } .stup-file input { width: 100%; max-width: 100%; color: var(--text); font: 14px var(--sans); }
+.stup-bar { position: relative; height: 22px; margin-top: 12px; border-radius: 4px; background: var(--s3); overflow: hidden; }
+.stup-bar i { position: absolute; inset: 0 auto 0 0; background: var(--gold); transition: width .2s; }
+.stup-bar span { position: relative; display: block; text-align: center; font: 600 12px/22px var(--sans); color: var(--text); }
+.stup-ok { margin: 12px 0 0; color: var(--gain); font-weight: 600; }
+.stup .formerr { margin-top: 10px; }
+
+.pf-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+.pf-kpis > div { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 6px; background: var(--s1); }
+.pf-kpis dt { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); }
+.pf-kpis dd { margin: 6px 0 4px; font: 300 clamp(24px, 3vw, 34px) var(--serif); overflow-wrap: anywhere; }
+.pf-kpis small { color: var(--muted); font-size: 12.5px; line-height: 1.4; display: block; }
+.pf-basis { margin: 0 0 8px; max-width: 80ch; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+@media (max-width: 900px) { .pf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .pf-kpis > div { padding: 14px; } .pf-kpis dd { font-size: 22px; } }
+
+.pr-steps { list-style: none; padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.pr-steps button { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--s1); color: var(--text); font: 600 13.5px/1.3 var(--sans); cursor: pointer; }
+.pr-steps button:hover { border-color: var(--gold); } .pr-steps button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pr-steps button.on { border-color: var(--gold); background: var(--gold-soft); }
+.pr-n { font: 600 12px var(--sans); color: var(--gold); font-variant-numeric: tabular-nums; }
+.pr-detail { display: flex; gap: 16px; align-items: baseline; padding: 18px 20px; border: 1px solid var(--border); border-radius: 4px; background: var(--s1); }
+.pr-detail h3 { font: 400 20px var(--serif); margin: 0 0 4px; } .pr-detail p { margin: 0; color: var(--muted); line-height: 1.6; }
+@media (max-width: 900px) { .pr-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.ph-band { border-block: 1px solid var(--border); padding: 22px 0; }
+.ph-band ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 26px; }
+.ph-band li { font: italic 400 clamp(18px, 2.4vw, 26px) var(--serif); color: var(--text); } .ph-band li:nth-child(even) { color: var(--gold); }
+
+.fp { min-height: 52vh; display: grid; place-items: center; text-align: center; padding: 56px 0; }
+.fp h1 { font: 300 clamp(40px, 8vw, 72px) var(--serif); margin: 10px 0 12px; }
+.fp p { color: var(--muted); max-width: 52ch; margin: 0 auto 22px; line-height: 1.6; }
+.fp .nf { justify-content: center; max-width: 480px; margin: 0 auto; }
+
+.isz { border: 0; padding: 0; margin: 0 0 14px; min-width: 0; } .isz legend { padding: 0; font-weight: 600; margin-bottom: 4px; }
+.isz-g { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.isz-g label { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--s1); cursor: pointer; font-weight: 500; }
+.isz-g label.on { border-color: var(--gold); background: var(--gold-soft); } .isz-g input { width: auto; height: auto; margin: 0; accent-color: var(--gold); }
+.isz-g label:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }

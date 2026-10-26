@@ -1,17 +1,15 @@
 // Content-admin helpers: the CMS session, authenticated requests, uploads, and the pure rules the editor uses.
 import { ApiError, apiUrl, apiSend } from "./api";
 import type { ContentItem } from "./siteApi";
+import { ADMIN_KEY, adminToken, hasAdminSession } from "./adminSession";
 
 export type Kind = ContentItem["contentType"];
 export type AdminItem = ContentItem & { articleFormat?: "MARKDOWN" | "HTML"; category?: string; tags?: string[]; inlineImageKeys?: string[] };
 
-export const KEY = "cms_admin_token";
+export const KEY = ADMIN_KEY;
 export const REJECTED = "cms_token_rejected";   // when the content service refused a token a moment ago: do not ask for another one in a loop
-export const token = () => { try { return sessionStorage.getItem(KEY); } catch { return null; } };
-export const hasSession = () => {
-  const t = token(); if (!t) return false;
-  try { const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.role === "admin" && p.exp * 1000 > Date.now(); } catch { return false; }
-};
+export const token = adminToken;
+export const hasSession = hasAdminSession;
 
 function expire(): never {
   try { sessionStorage.removeItem(KEY); sessionStorage.setItem(REJECTED, String(Date.now())); } catch { /* ignore */ }

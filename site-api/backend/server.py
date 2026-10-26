@@ -178,6 +178,8 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ---------- Models ----------
+# The Contact form's optional "investment size" choices (keep in step with frontend/src/lib/investmentSizes.ts).
+INVESTMENT_SIZES = ("Under ₹25L", "₹25L – ₹1 Cr", "₹1 Cr – ₹5 Cr", "₹5 Cr+")
 class ContactMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -198,6 +200,15 @@ class ContactCreate(BaseModel):
     investment_size: Optional[str] = Field(default=None, max_length=100)
     subject: Optional[str] = Field(default=None, max_length=200)
     message: str = Field(default="", max_length=5000)
+
+    @field_validator("investment_size")
+    @classmethod
+    def validate_investment_size(cls, value):
+        if value is None or not value.strip():
+            return None
+        if value.strip() not in INVESTMENT_SIZES:
+            raise ValueError("Choose one of the investment sizes listed.")
+        return value.strip()
 
     @field_validator("phone")
     @classmethod

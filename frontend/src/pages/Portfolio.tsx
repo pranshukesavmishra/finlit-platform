@@ -10,6 +10,8 @@ import { dateIN, MINUS, nf, signed } from "../lib/format";
 import { useDocTitle } from "../lib/title";
 import { Link } from "react-router";
 import { ChartHelp } from "../components/ChartHelp";
+import { StatementUpload } from "../components/StatementUpload";
+import { asOfLabel, loadState } from "../lib/portfolioView";
 
 const inr = (n: number) => (n < 0 ? MINUS : "") + "₹" + nf(Math.abs(n), 0);
 
@@ -37,17 +39,24 @@ function HBars({ rows, color }: { rows: { label: string; value: number }[]; colo
 
 export function Portfolio() {
   useDocTitle("Portfolio report", "FinLit's realised portfolio performance: P&L, ROI, win rate, charges and every trade, from the broker statement.");
-  const { data, isLoading, isError } = useQuery<PortfolioReport>({ queryKey: ["portfolio"], queryFn: getPortfolio, retry: 1, staleTime: 300_000 });
+  const { data, isLoading, error, refetch, isFetching } = useQuery<PortfolioReport>({ queryKey: ["portfolio"], queryFn: getPortfolio, retry: 1, staleTime: 300_000 });
+  const state = loadState(data, error);
   const [page, setPage] = useState(0);
   const [q, setQ] = useState("");
   const rows = useMemo(() => (data?.tradeLedger || []).filter((t) => !q || t.security.toLowerCase().includes(q.toLowerCase()) || t.symbol?.toLowerCase().includes(q.toLowerCase())), [data, q]);
   if (isLoading) return <div className="wrap state"><h1 className="sr-only">Portfolio</h1><div className="skeleton" style={{ height: 200 }} /></div>;
-  if (isError || !data) return <div className="wrap state"><h1 style={{ font: "300 32px var(--serif)" }}>The portfolio report is not available yet</h1><p>Please check back soon.</p></div>;
+  if (state !== "ready" || !data) return (
+    <div className="wrap state" role="status">
+      <h1 style={{ font: "300 32px var(--serif)" }}>{state === "offline" ? "We could not reach the portfolio report" : "The portfolio report is not available yet"}</h1>
+      <p>{state === "offline" ? "The server did not answer, so we are not showing any figures rather than old or guessed ones. Check your connection and try again." : "Please check back soon."}</p>
+      {state === "offline" && <p><button className="btn" onClick={() => refetch()} disabled={isFetching}>{isFetching ? "Trying…" : "Try again"}</button></p>}
+      <div style={{ maxWidth: 640, margin: "24px auto 0", textAlign: "left" }}><StatementUpload /></div>
+    </div>);
   const c = data.charts, per = 15, pages = Math.ceil(rows.length / per);
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" /><div className="eyebrow">Portfolio report</div><h1>Realised results, in the open.</h1><p>{data.profile.reportPeriod} · {data.profile.financialYear} · Capital deployed {data.profile.deployedCapital}. Realised profit and loss from the broker's statement, after all charges.</p></div></section>
-      <section className="sec" style={{ paddingTop: 16 }}><div className="wrap"><p className="faint" role="note" style={{ margin: "0 0 14px", maxWidth: "80ch", fontSize: 13.5 }}><b>Please read:</b> this is one personal account of the founder, unaudited, shown only to explain how we think. It is not a track record of any FinLit service or product, it does not predict future returns, and it is not investment advice. FinLit Ventures is not registered with SEBI or AMFI.</p>
+      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" /><div className="eyebrow">Portfolio report</div><h1>Realised results, in the open.</h1><p>{data.profile.reportPeriod} · {data.profile.financialYear} · Capital deployed {data.profile.deployedCapital}. Realised profit and loss from the broker's statement, after all charges.</p><p className="faint" style={{ marginTop: 8 }}>As of <b>{asOfLabel(data)}</b></p></div></section>
+      <section className="sec" style={{ paddingTop: 16 }}><div className="wrap"><StatementUpload current={data} /><p className="faint" role="note" style={{ margin: "0 0 14px", maxWidth: "80ch", fontSize: 13.5 }}><b>Please read:</b> this is one personal account of the founder, unaudited, shown only to explain how we think. It is not a track record of any FinLit service or product, it does not predict future returns, and it is not investment advice. FinLit Ventures is not registered with SEBI or AMFI.</p>
         <Reveal><div className="kpis-p">{[["Gross P&L", data.headline.grossPnl], ["Net P&L", data.headline.netPnl], ["Gross ROI", data.headline.grossRoi], ["Net ROI", data.headline.netRoi]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
         <Reveal delay={60}><div className="kpis-p" style={{ marginTop: 14 }}>{[["Trades", String(data.summary.tradeCount)], ["Win rate", ((data.summary.winningTrades / data.summary.tradeCount) * 100).toFixed(1) + "%"], ["Winners / losers", `${data.summary.winningTrades} / ${data.summary.losingTrades}`], ["Charges", data.charges.totalFormatted]].map(([k, v]) => <div className="kp" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>)}</div></Reveal>
         <Reveal><div className="card acc" style={{ marginTop: 16 }}><div className="card-h"><h3>Cumulative realised P&L<ChartHelp id="pf-cumulative" /></h3><span className="s">Gross, ₹</span></div><CumulativeLine data={c.cumulativeRealizedPnl} /></div></Reveal>
