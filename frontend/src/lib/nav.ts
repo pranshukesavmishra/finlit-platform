@@ -20,6 +20,7 @@ export const SECTIONS: NavSection[] = [
       i("/research", "Company report", "A report for every listed company: score, financials, ratios", "search"),
       i("/compare", "Compare companies", "Two to four companies side by side, in charts", "compare"),
       i("/dcf", "Fair value calculator", "Intrinsic value and margin of safety", "rupee", { gold: true }),
+      i("/eps-calculator", "EPS calculator", "Earnings per share, P/E and a future-price scenario", "gauge"),
       i("/premium/report", "Premium reports", "The full written report on a company", "notes", { gold: true }),
     ] },
     { title: "Charts", items: [
