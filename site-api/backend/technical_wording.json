@@ -1,0 +1,41 @@
+{
+  "_comment": "ONE wording table for the technical view. Read by site-api/backend/technical_wording.py (PDF) and, as an identical copy, by frontend/src/lib/prismTechnical.ts (web). The two files must stay byte-identical (tests in both suites). Compliance: the model's advice words are never shown to readers.",
+  "bands": {"strongPositive": 50, "positive": 20, "neutral": -20, "negative": -50},
+  "ratings": {
+    "strong buy": {"word": "Strongly positive", "tone": "strongpos"},
+    "buy": {"word": "Positive", "tone": "pos"},
+    "hold": {"word": "Neutral", "tone": "neutral"},
+    "reduce": {"word": "Negative", "tone": "neg"},
+    "sell": {"word": "Strongly negative", "tone": "strongneg"},
+    "unavailable": {"word": "Not available", "tone": "na"}
+  },
+  "bandWords": {"strongpos": "Strongly positive", "pos": "Positive", "neutral": "Neutral", "neg": "Negative", "strongneg": "Strongly negative", "na": "Not available"},
+  "verdicts": {
+    "STRONG BUY": "pos", "BUY": "pos", "BOUNCE ONLY, DON'T INVEST": "mixed",
+    "ACCUMULATE ON DIPS": "pos", "HOLD": "mixed", "REDUCE": "neg",
+    "BUY THE DIP, WAIT FOR ST TURN": "pos", "SELL / AVOID": "neg"
+  },
+  "toneAlias": {"positive": "pos", "bullish": "pos", "caution": "mixed", "neutral": "mixed", "mixed": "mixed", "negative": "neg", "bearish": "neg"},
+  "verdictWords": {"pos": "Trend: positive", "mixed": "Trend: mixed", "neg": "Trend: negative", "na": "Trend: not available"},
+  "forbidden": "\\b(?:buy\\w*|sell\\w*|hold(?:s|ing)?|reduc\\w*|avoid\\w*|target\\w*|accumulat\\w*|entry|exit|stop\\w*)\\b",
+  "phrases": [
+    ["^buying and selling volume$", "Volume flow (on-balance volume)"],
+    ["buying and selling volume", "volume flow"],
+    ["buying and selling", "up-day and down-day"],
+    ["buy(?:ing)? pressure", "upward pressure"],
+    ["sell(?:ing)? pressure", "downward pressure"],
+    ["target price", "price forecast"],
+    ["holds back", "weighs on"],
+    ["holds it back", "weighs on it"]
+  ],
+  "words": {
+    "buy": "positive", "buys": "positive", "buying": "upward", "buyer": "participant", "buyers": "participants",
+    "sell": "negative", "sells": "negative", "selling": "downward", "seller": "participant", "sellers": "participants",
+    "hold": "stay", "holds": "stays", "holding": "staying",
+    "reduce": "lower", "reduces": "lowers", "reduced": "lowered", "reducing": "lowering", "reduction": "decline",
+    "avoid": "steer clear of", "avoids": "steers clear of", "avoided": "steered clear of", "avoiding": "steering clear of",
+    "target": "level", "targets": "levels", "targeted": "levelled",
+    "accumulate": "build up", "accumulates": "builds up", "accumulated": "built up", "accumulating": "building up", "accumulation": "build-up",
+    "entry": "start", "exit": "end", "stop": "pause", "stops": "pauses", "stopped": "paused", "stopping": "pausing"
+  }
+}

@@ -999,11 +999,12 @@ async def premium_report_attachment(token: str):
 async def _premium_pdf_response(report):
     if report["state"] != "ready":
         raise HTTPException(status_code=409, detail="The report is not ready to download.")
+    # The model's buy/sell words must never reach a reader: render a relabelled COPY (premium_pdf.py itself stays identical to upstream).
     try:
-        from backend.premium_pdf import render_premium_pdf
+        from backend.technical_wording import render_compliant_pdf
     except ImportError:
-        from premium_pdf import render_premium_pdf
-    content = await asyncio.to_thread(render_premium_pdf, report)
+        from technical_wording import render_compliant_pdf
+    content = await asyncio.to_thread(render_compliant_pdf, report)
     filename = f"FinLit-Premium-{report['company']['symbol']}-{report['id'][:8]}.pdf"
     return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff"})
 

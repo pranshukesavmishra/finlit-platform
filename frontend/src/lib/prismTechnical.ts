@@ -11,6 +11,7 @@
 // about a rating goes through `ratingWord`, `verdictView` and `safeText` below; lib/prismTechnical.test.ts asserts that no rendered string
 // contains one of the forbidden words.
 import { MINUS } from "./format";
+import WORDING from "./technicalWording.json";
 
 export const TECH_NAME = "Technical view";
 /** What the technical view is, in plain words. Shown wherever it appears, next to the general Prism line. */
@@ -107,23 +108,21 @@ export function parseTechnical(raw: unknown): TechAssessment | null {
 /* ------------------------------------------------------------------ the one words table */
 export type TrendTone = "strongpos" | "pos" | "neutral" | "neg" | "strongneg" | "na";
 
+/** The wording table is ONE json file (lib/technicalWording.json), an identical copy of site-api/backend/technical_wording.json, which the PDF
+ *  reads: the web view and the PDF can never disagree (a test in each suite compares the two files byte for byte). */
+export const BANDS = WORDING.bands as { strongPositive: number; positive: number; neutral: number; negative: number };
+
 /** The model's rating words (upstream premium_technical.score_rating) -> the site's descriptive trend words. The ONLY place the two meet. */
-export const RATING_WORD: Record<string, { word: string; tone: TrendTone }> = {
-  "strong buy": { word: "Strongly positive", tone: "strongpos" },
-  buy: { word: "Positive", tone: "pos" },
-  hold: { word: "Neutral", tone: "neutral" },
-  reduce: { word: "Negative", tone: "neg" },
-  sell: { word: "Strongly negative", tone: "strongneg" },
-  unavailable: { word: "Not available", tone: "na" },
-};
+export const RATING_WORD = WORDING.ratings as Record<string, { word: string; tone: TrendTone }>;
 const NA = { word: "Not available", tone: "na" as TrendTone };
 
-/** The band of a full-precision score, with the model's boundaries: >= 50, >= 20, > -20, > -50. Exactly -50 is the lowest band. */
+/** The band of a full-precision score: >= 50 strongly positive, >= 20 positive, > -20 neutral, > -50 negative, else strongly negative
+ *  (so exactly -50 is the lowest band). The boundaries come from BANDS, which the legend on screen prints too. */
 export function scoreBand(score: number | null): TrendTone {
   if (score == null || !Number.isFinite(score)) return "na";
-  return score >= 50 ? "strongpos" : score >= 20 ? "pos" : score > -20 ? "neutral" : score > -50 ? "neg" : "strongneg";
+  return score >= BANDS.strongPositive ? "strongpos" : score >= BANDS.positive ? "pos" : score > BANDS.neutral ? "neutral" : score > BANDS.negative ? "neg" : "strongneg";
 }
-const BAND_WORD: Record<TrendTone, string> = { strongpos: "Strongly positive", pos: "Positive", neutral: "Neutral", neg: "Negative", strongneg: "Strongly negative", na: "Not available" };
+const BAND_WORD = WORDING.bandWords as Record<TrendTone, string>;
 
 /** The word and tone for a horizon. The model's rating is used when it is one we know; otherwise the full-precision score decides.
  *  A rating word we do not know is never shown. A horizon without a score is "Not available" whatever its rating says. */
@@ -136,14 +135,10 @@ export function ratingWord(rating: string | null | undefined, score: number | nu
 }
 
 export type VerdictTone = "pos" | "mixed" | "neg" | "na";
-/** The model's nine verdict labels with the tone it sends for each (premium_technical.combine_verdict), keyed by short-term / long-term band. */
-const VERDICTS: Record<string, VerdictTone> = {
-  "STRONG BUY": "pos", BUY: "pos", "BOUNCE ONLY, DON'T INVEST": "mixed",
-  "ACCUMULATE ON DIPS": "pos", HOLD: "mixed", REDUCE: "neg",
-  "BUY THE DIP, WAIT FOR ST TURN": "pos", "SELL / AVOID": "neg",
-};
-const TONE_ALIAS: Record<string, VerdictTone> = { positive: "pos", bullish: "pos", caution: "mixed", neutral: "mixed", mixed: "mixed", negative: "neg", bearish: "neg" };
-export const VERDICT_WORD: Record<VerdictTone, string> = { pos: "Trend: positive", mixed: "Trend: mixed", neg: "Trend: negative", na: "Trend: not available" };
+/** The model's verdict labels with the tone it sends for each (premium_technical.combine_verdict), from the shared wording file. */
+const VERDICTS = WORDING.verdicts as Record<string, VerdictTone>;
+const TONE_ALIAS = WORDING.toneAlias as Record<string, VerdictTone>;
+export const VERDICT_WORD = WORDING.verdictWords as Record<VerdictTone, string>;
 
 const normLabel = (s: string) => s.replace(/[‘’ʼ]/g, "'").replace(/\s+/g, " ").trim().toUpperCase();
 
@@ -159,28 +154,13 @@ export function verdictView(a: Pick<TechAssessment, "shortTerm" | "longTerm" | "
 }
 
 /* ------------------------------------------------------------------ safe wording of model-provided text */
-/** Words the site never shows (as whole words or word starts). */
-export const FORBIDDEN = /\b(?:buy\w*|sell\w*|hold(?:s|ing)?|reduc\w*|avoid\w*|target\w*|accumulat\w*|entry|exit|stop\w*)\b/i;
+/** Words the site never shows (as whole words or word starts). From the shared wording file. */
+export const FORBIDDEN = new RegExp(WORDING.forbidden, "i");
 
 /** Whole-label rewrites for model text that is built around an advice word. Checked first. */
-const PHRASES: [RegExp, string][] = [
-  [/^buying and selling volume$/i, "Volume flow (on-balance volume)"],
-  [/buying and selling volume/gi, "volume flow"],
-  [/buying and selling/gi, "up-day and down-day"],
-  [/buy(?:ing)? pressure/gi, "upward pressure"],
-  [/sell(?:ing)? pressure/gi, "downward pressure"],
-];
+const PHRASES: [RegExp, string][] = (WORDING.phrases as [string, string][]).map(([re, to]) => [new RegExp(re, "gi"), to]);
 /** Single-word rewrites for anything left. Descriptive, not advice. */
-const WORDS: Record<string, string> = {
-  buy: "positive", buys: "positive", buying: "upward", buyer: "participant", buyers: "participants",
-  sell: "negative", sells: "negative", selling: "downward", seller: "participant", sellers: "participants",
-  hold: "stay", holds: "stays", holding: "staying",
-  reduce: "lower", reduces: "lowers", reduced: "lowered", reducing: "lowering", reduction: "decline",
-  avoid: "steer clear of", avoids: "steers clear of", avoided: "steered clear of", avoiding: "steering clear of",
-  target: "level", targets: "levels", targeted: "levelled",
-  accumulate: "build up", accumulates: "builds up", accumulated: "built up", accumulating: "building up", accumulation: "build-up",
-  entry: "start", exit: "end", stop: "pause", stops: "pauses", stopped: "paused", stopping: "pausing",
-};
+const WORDS = WORDING.words as Record<string, string>;
 const matchCase = (from: string, to: string) => (from[0] && from[0] === from[0].toUpperCase() && from[0] !== from[0].toLowerCase() ? to[0].toUpperCase() + to.slice(1) : to);
 
 /** Model-provided text (factor labels, observations, notes) as it may be shown: advice words are replaced by descriptive ones. Idempotent. */

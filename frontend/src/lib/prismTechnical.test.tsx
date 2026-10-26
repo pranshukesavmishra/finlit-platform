@@ -7,7 +7,7 @@ import { PrismTechRow } from "../stock/PrismTechRow";
 import type { PrismReport } from "./prism";
 import type { PrismLatest } from "../stock/PrismCard";
 import {
-  FORBIDDEN, RATING_WORD, TECH_NOTE, VERDICT_WORD, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, verdictView,
+  BANDS, FORBIDDEN, RATING_WORD, TECH_NOTE, VERDICT_WORD, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, verdictView,
 } from "./prismTechnical";
 
 const A = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, parseTechnical(v)!])) as Record<"ready" | "incomplete" | "capped" | "mixed", NonNullable<ReturnType<typeof parseTechnical>>>;
@@ -205,4 +205,26 @@ describe("stock page row", () => {
     expect(t).toContain("Technical view: recalculate to add");
   });
   it("TECH_NOTE is honest", () => { expect(TECH_NOTE).toMatch(/does not predict prices/); expect(TECH_NOTE).not.toMatch(FORBIDDEN); });
+});
+
+describe("one wording file shared with the PDF", () => {
+  it("is byte-identical to the site-api copy that the PDF reads", async () => {
+    const { readFileSync } = await import("node:fs");
+    const web = readFileSync(new URL("./technicalWording.json", import.meta.url));
+    const pdf = readFileSync(new URL("../../../site-api/backend/technical_wording.json", import.meta.url));
+    expect(web.equals(pdf)).toBe(true);
+  });
+  it("no word on the shared table is an advice word", () => {
+    for (const r of Object.values(RATING_WORD)) expect(r.word).not.toMatch(FORBIDDEN);
+    for (const w of Object.values(VERDICT_WORD)) expect(w).not.toMatch(FORBIDDEN);
+  });
+  it("the band boundaries are the shared constants, at every edge", () => {
+    expect(BANDS).toEqual({ strongPositive: 50, positive: 20, neutral: -20, negative: -50 });
+    const at = (v: number, tone: string) => expect(scoreBand(v)).toBe(tone);
+    at(BANDS.strongPositive, "strongpos"); at(BANDS.strongPositive - 1e-9, "pos");
+    at(BANDS.positive, "pos"); at(BANDS.positive - 1e-9, "neutral");
+    at(BANDS.neutral + 1e-9, "neutral"); at(BANDS.neutral, "neg");
+    at(BANDS.negative + 1e-9, "neg"); at(BANDS.negative, "strongneg");
+    at(100, "strongpos"); at(-100, "strongneg");
+  });
 });
