@@ -5,7 +5,8 @@ import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { useAuth } from "../lib/auth";
 import { useUI } from "../lib/ui";
-import { useSearchIndex, type SearchRow } from "../lib/api";
+import type { SearchRow } from "../lib/api";
+import { FilterNote, SearchFilters, useIndexFilter } from "./SearchFilters";
 import { useUniverse } from "../lib/screener";
 import { askBrowserPermission, browserPermission, useAlerts, useCurrentValue, type Channel, type Created } from "../lib/alerts";
 import { GROUPS, LIVE_NOTE, METRICS, OP_LABEL, describe, fixedTarget, fmtValue, isEvent, type Op } from "../lib/alertCatalog";
@@ -14,18 +15,19 @@ import { GROUPS, LIVE_NOTE, METRICS, OP_LABEL, describe, fixedTarget, fmtValue, 
 export function StockPicker({ value, onChange, id }: { value: string; onChange: (symbol: string, name?: string) => void; id?: string }) {
   const [q, setQ] = useState(value), [open, setOpen] = useState(false), [sel, setSel] = useState(0);
   const box = useRef<HTMLDivElement>(null);
-  const { data } = useSearchIndex(true);
+  const sf = useIndexFilter();
   useEffect(() => setQ(value), [value]);
   useEffect(() => { const h = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
   const hits = useMemo<SearchRow[]>(() => {
-    const s = q.trim().toUpperCase(); if (!s || s === value) return [];
-    const rows = data?.rows || [];
+    const s = q.trim().toUpperCase(); if (s === value) return [];
+    const rows = sf.rows;
+    if (!s) return sf.on ? rows.slice(0, 7) : [];       // a filter with no text: the largest companies that pass
     const rank = (r: SearchRow) => (r[0] === s ? 0 : r[0].startsWith(s) ? 1 : r[1].toUpperCase().startsWith(s) ? 2 : 3);
     return rows.filter((r) => r[0].includes(s) || r[1].toUpperCase().includes(s)).sort((a, b) => rank(a) - rank(b) || b[3] - a[3]).slice(0, 7);
-  }, [q, data, value]);
+  }, [q, sf.rows, sf.on, value]);
   const pick = (r: SearchRow) => { onChange(r[0], r[1]); setQ(r[0]); setOpen(false); };
   return (
-    <div className="alx-pick" ref={box}>
+    <div className="alx-pick sf-host" ref={box}>
       <span className="alx-pi"><Icon name="search" /></span>
       <input id={id} value={q} placeholder="Search a company or ticker" autoComplete="off" role="combobox" aria-expanded={open && hits.length > 0} aria-controls={(id || "alx-st") + "-l"} aria-autocomplete="list"
         onChange={(e) => { setQ(e.target.value); setOpen(true); setSel(0); if (value) onChange(""); }} onFocus={() => setOpen(true)}
@@ -35,6 +37,8 @@ export function StockPicker({ value, onChange, id }: { value: string; onChange: 
           if (e.key === "Enter" && open && hits[sel]) { e.preventDefault(); pick(hits[sel]); }
           if (e.key === "Escape") setOpen(false);
         }} />
+      <SearchFilters variant="panel" className="sf-inline" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
+      {open && sf.on && !hits.length && q.trim() && q.trim().toUpperCase() !== value && <div className="alx-dd"><FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /></div>}
       {open && hits.length > 0 && (
         <ul id={(id || "alx-st") + "-l"} className="alx-dd" role="listbox">
           {hits.map((r, i) => <li key={r[0]} role="option" aria-selected={i === sel}><button type="button" className={i === sel ? "on" : ""} onMouseEnter={() => setSel(i)} onClick={() => pick(r)}><b>{r[0]}</b><small>{r[1]}</small></button></li>)}

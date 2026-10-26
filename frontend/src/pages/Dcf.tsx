@@ -1,10 +1,11 @@
 // DCF calculator (Gold): intrinsic value from a two-stage, ten-year free cash flow model, in the order of the FinLit formula sheet, with the
 // checks and analysis an analyst expects around it. All arithmetic lives in lib/dcf.ts (pure and tested); this page collects inputs, can
 // load a listed company's figures from its stored report (Gold, enforced by the server), and shows every step of the working.
+import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import { apiGet, apiSend, useSearchIndex, type ApiError, type Glossary } from "../lib/api";
+import { apiGet, apiSend, type ApiError, type Glossary } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { DEMO } from "../lib/demo";
 import { Icon } from "../lib/icons";
@@ -95,14 +96,15 @@ function CompanyLoader({ enabled, onLoad, loaded, initial }: { enabled: boolean;
   const [q, setQ] = useState("");
   const [sym, setSym] = useState<string | null>(initial);   // opened from a stock page ("Value (DCF)"): that company loads at once
   const [basis, setBasis] = useState<"latest" | "avg3" | "avg5">("latest");
-  const index = useSearchIndex(enabled && q.trim().length > 0);
+  const sf = useIndexFilter(true), index = sf.idx;   // the same index query the palette makes: no extra request
   const hits = useMemo(() => {
     const t = q.trim().toUpperCase();
-    if (!t || !index.data) return [];
-    const starts = index.data.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
-    const has = index.data.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t));
+    if (!index.data) return [];
+    if (!t) return sf.on ? sf.rows.slice(0, 8) : [];                 // a filter with no text: the largest companies that pass
+    const starts = sf.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
+    const has = sf.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t));
     return [...starts, ...has].slice(0, 8);
-  }, [q, index.data]);
+  }, [q, index.data, sf.rows, sf.on]);
   const company = useQuery<Company, ApiError>({ queryKey: ["dcf-company", sym], queryFn: () => apiGet(`/api/dcf/company/${encodeURIComponent(sym as string)}`), enabled: enabled && !!sym, retry: false, staleTime: 300_000 });
   useEffect(() => { if (company.data && company.data.symbol === sym) onLoad(company.data, basis); }, [company.data]);   // eslint-disable-line react-hooks/exhaustive-deps
   const c = loaded;
@@ -114,14 +116,15 @@ function CompanyLoader({ enabled, onLoad, loaded, initial }: { enabled: boolean;
         <label className="dcf-search"><Icon name="search" /><span className="sr-only">Search a company</span>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Company name or NSE symbol" autoComplete="off" spellCheck={false} maxLength={60}
             onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) { e.preventDefault(); setSym(hits[0][0]); setQ(""); } }} /></label>
+        <SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
         <label className="dcf-basis">Starting FCF
           <select value={basis} onChange={(e) => { const b = e.target.value as typeof basis; setBasis(b); if (company.data) onLoad(company.data, b); }}>
             <option value="latest">Latest year</option><option value="avg3">Average of 3 years</option><option value="avg5">Average of 5 years</option>
           </select></label>
       </div>
-      {q.trim() && hits.length > 0 && (
+      {(q.trim() || sf.on) && hits.length > 0 && (
         <ul className="dcf-hits" aria-label="Matching companies">{hits.map((h) => <li key={h[0]}><button onClick={() => { setSym(h[0]); setQ(""); }}><b>{h[1]}</b><span className="mono faint">{h[0]}</span></button></li>)}</ul>)}
-      {q.trim() && index.data && hits.length === 0 && <p className="faint">No listed company matches “{q.trim()}”.</p>}
+      {index.data && hits.length === 0 && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : q.trim() && <p className="faint">No listed company matches “{q.trim()}”.</p>)}
       {company.isFetching && <p className="muted" aria-live="polite">Loading {sym}…</p>}
       {company.isError && <p className="formerr" role="alert">{(company.error?.body?.detail as string) || "Could not load this company's figures."}</p>}
       {c && !company.isFetching && (

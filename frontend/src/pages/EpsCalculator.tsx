@@ -1,9 +1,10 @@
 // EPS calculator (free): earnings per share and P/E from four inputs, then a future-EPS and price scenario with Bear/Base/Bull cases, a
 // sensitivity grid, year-by-year charts, PEG and the growth a target price needs. All arithmetic lives in lib/epsCalc.ts (pure, tested).
 // A company can be loaded from our stored annual figures (net profit attributable to owners, diluted weighted shares, price); every field stays editable.
+import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useSearchIndex, useSection, useSummary, type Financials, type Glossary } from "../lib/api";
+import { useSection, useSummary, type Financials, type Glossary } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
 import { useDocTitle } from "../lib/title";
@@ -63,14 +64,15 @@ const round6 = (x: number) => String(Math.round(x * 1e6) / 1e6);
 function CompanyLoader({ initial, loaded, onLoad }: { initial: string | null; loaded: Loaded | null; onLoad: (patch: Partial<Form>, info: Loaded) => void }) {
   const [q, setQ] = useState("");
   const [sym, setSym] = useState<string | null>(initial);
-  const index = useSearchIndex(q.trim().length > 0);
+  const sf = useIndexFilter(true), index = sf.idx;   // the same index query the palette makes: no extra request
   const hits = useMemo(() => {
     const t = q.trim().toUpperCase();
-    if (!t || !index.data) return [];
-    const starts = index.data.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
-    const has = index.data.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t));
+    if (!index.data) return [];
+    if (!t) return sf.on ? sf.rows.slice(0, 8) : [];                 // a filter with no text: the largest companies that pass
+    const starts = sf.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
+    const has = sf.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t));
     return [...starts, ...has].slice(0, 8);
-  }, [q, index.data]);
+  }, [q, index.data, sf.rows, sf.on]);
   const summary = useSummary(sym ?? "", !!sym), fin = useSection<Financials>(sym ?? "", "financials", !!sym);
   const busy = !!sym && (summary.isFetching || fin.isFetching) && !(summary.data && fin.data);
   const failed = !!sym && (summary.isError || fin.isError);
@@ -101,9 +103,10 @@ function CompanyLoader({ initial, loaded, onLoad }: { initial: string | null; lo
         <label className="dcf-search"><Icon name="search" /><span className="sr-only">Search a company</span>
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Company name or NSE symbol" autoComplete="off" spellCheck={false} maxLength={60}
             onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) { e.preventDefault(); doneFor.current = null; setSym(hits[0][0]); setQ(""); } }} /></label>
+        <SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
       </div>
-      {q.trim() && hits.length > 0 && <ul className="dcf-hits" aria-label="Matching companies">{hits.map((h) => <li key={h[0]}><button type="button" onClick={() => { doneFor.current = null; setSym(h[0]); setQ(""); }}><b>{h[1]}</b><span className="mono faint">{h[0]}</span></button></li>)}</ul>}
-      {q.trim() && index.data && hits.length === 0 && <p className="faint">No listed company matches “{q.trim()}”.</p>}
+      {(q.trim() || sf.on) && hits.length > 0 && <ul className="dcf-hits" aria-label="Matching companies">{hits.map((h) => <li key={h[0]}><button type="button" onClick={() => { doneFor.current = null; setSym(h[0]); setQ(""); }}><b>{h[1]}</b><span className="mono faint">{h[0]}</span></button></li>)}</ul>}
+      {index.data && hits.length === 0 && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : q.trim() && <p className="faint">No listed company matches “{q.trim()}”.</p>)}
       {busy && <p className="muted" aria-live="polite">Loading {sym}…</p>}
       {failed && !busy && <p className="formerr" role="alert">Could not load this company's figures. Enter them by hand.</p>}
       {loaded && !busy && (

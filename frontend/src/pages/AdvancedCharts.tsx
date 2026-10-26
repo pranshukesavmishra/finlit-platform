@@ -2,10 +2,11 @@
 // regression line (docs/ADVANCED-CHARTS-PLAN.md). Every statistic comes from /api/advanced; this page only draws and words it.
 import { DrawLayer } from "../components/DrawLayer";
 import { viewId } from "../lib/drawings";
+import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { apiGet, useSearchIndex, ApiError, type Financials } from "../lib/api";
+import { apiGet, ApiError, type Financials } from "../lib/api";
 import { DEMO } from "../lib/demo";
 import { Icon } from "../lib/icons";
 import { RANK, useUI, type Plan } from "../lib/ui";
@@ -406,11 +407,12 @@ function PointsTable({ head, rows, caption }: { head: string[]; rows: (string | 
 
 /** Add-company chips with a typo-tolerant search; shows used/limit and the upgrade at the limit. */
 function Companies({ st, set, lim, plan, upgrade, status, mode, single }: { st: AdvState; set: (p: Partial<AdvState>) => void; lim: number; plan: Plan; upgrade: (t: Plan, why?: string) => void; status: { s: string; name?: string | null; status: string; reasonText?: string | null; reason?: string | null }[]; mode: Mode; single?: boolean }) {
-  const idx = useSearchIndex(true);
+  const sf = useIndexFilter(true), idx = sf.idx;
   const facets = useFacets();
   const rows = useMemo(() => [...(DEMO ? ((facets.data as { samples?: [string, string][] } | undefined)?.samples ?? []) : []), ...(idx.data?.rows ?? [])], [idx.data, facets.data]);
   const [q, setQ] = useState(""), [act, setAct] = useState(0), [open, setOpen] = useState(false);
-  const hits = useMemo(() => rankCompanies(rows, q, 8, st.companies), [rows, q, st.companies]);
+  const searchRows = useMemo(() => (sf.on ? sf.rows : rows), [sf.on, sf.rows, rows]);
+  const hits = useMemo(() => (q.trim() ? rankCompanies(searchRows, q, 8, st.companies) : sf.on ? searchRows.filter((r) => !st.companies.includes(r[0])).slice(0, 8).map((r) => ({ symbol: r[0], name: r[1], rank: 0 })) : []), [searchRows, q, st.companies, sf.on]);
   const max = single ? 1 : lim;
   const nameOf = (s: string) => status.find((x) => x.s === s)?.name || rows.find((r) => r[0] === s)?.[1] || s;
   const add = (s: string) => {
@@ -432,8 +434,9 @@ function Companies({ st, set, lim, plan, upgrade, status, mode, single }: { st: 
         aria-activedescendant={open && hits[act] ? `${id}-o${act}` : undefined}
         onChange={(e) => { setQ(e.target.value); setOpen(true); setAct(0); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setAct((a) => Math.min(hits.length - 1, a + 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setAct((a) => Math.max(0, a - 1)); } else if (e.key === "Enter" && hits[act]) { e.preventDefault(); add(hits[act].symbol); } else if (e.key === "Escape") { setQ(""); setOpen(false); } }} />
-      {open && q.trim() && <ul id={`${id}-l`} role="listbox" aria-label="Companies">{hits.map((h, i) => <li key={h.symbol} id={`${id}-o${i}`} role="option" aria-selected={i === act} onMouseDown={(e) => { e.preventDefault(); add(h.symbol); }}>{h.name} <small>{h.symbol}</small></li>)}
-        {!hits.length && <li className="faint" role="option" aria-selected={false} aria-disabled="true">{idx.isPending ? "Loading the company list…" : "No company matches."}</li>}</ul>}
+      {open && (q.trim() || sf.on) && <ul id={`${id}-l`} role="listbox" aria-label="Companies">{hits.map((h, i) => <li key={h.symbol} id={`${id}-o${i}`} role="option" aria-selected={i === act} onMouseDown={(e) => { e.preventDefault(); add(h.symbol); }}>{h.name} <small>{h.symbol}</small></li>)}
+        {!hits.length && <li className="faint" role="option" aria-selected={false} aria-disabled="true">{idx.isPending ? "Loading the company list…" : sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : "No company matches."}</li>}</ul>}
+      <SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
       {!single && st.companies.length >= lim && <p className="faint adv-limit">Your plan shows {lim} companies per chart. <button className="adv-link" onClick={() => upgrade(nextPlan(plan), `Comparing more than ${lim} companies`)}>More with {plan === "basic" ? "Silver" : "Gold"}</button></p>}
     </div>
   </div>;

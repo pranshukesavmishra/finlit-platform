@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cr, nf } from "../lib/format";
 import type { Row } from "../lib/screener";
+import { FilterNote, SearchFilters, useRowFilter } from "./SearchFilters";
 
 const ITEM = 56, VIEW = 336;
 const POPULAR: string[][] = [["TCS", "INFY"], ["INFY", "WIPRO"], ["TCS", "HCLTECH"], ["WIPRO", "TECHM"], ["HDFCBANK", "ICICIBANK"], ["ICICIBANK", "SBIN"], ["HDFCBANK", "KOTAKBANK"], ["SBIN", "PNB"], ["AXISBANK", "KOTAKBANK"], ["RELIANCE", "ONGC"], ["MARUTI", "TATAMOTORS"], ["HINDUNILVR", "ITC"], ["SUNPHARMA", "CIPLA"], ["BAJFINANCE", "BAJAJFINSV"]];
@@ -8,7 +9,7 @@ const ini = (r: Row) => (r.name || r.symbol).replace(/[^A-Za-z]/g, "").slice(0, 
 
 /** One field for the whole comparison: picked companies are chips with a cross, and the box beside them searches every listed company. */
 export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[]; ids: string[]; max: number; onChange: (ids: string[]) => void; onLimit: () => void }) {
-  const [open, setOpen] = useState(false), [q, setQ] = useState(""), [sector, setSector] = useState(""), [active, setActive] = useState(0), [top, setTop] = useState(0);
+  const [open, setOpen] = useState(false), [q, setQ] = useState(""), [active, setActive] = useState(0), [top, setTop] = useState(0);
   const box = useRef<HTMLDivElement>(null), input = useRef<HTMLInputElement>(null), scroller = useRef<HTMLDivElement>(null);
   const bySym = useMemo(() => new Map(rows.map((r) => [r.symbol, r])), [rows]);
   const picked = ids.map((s) => bySym.get(s)).filter((r): r is Row => !!r);
@@ -16,15 +17,16 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
 
   // every company, biggest first, so an empty box is a browsable list rather than a blank
   const all = useMemo(() => [...rows].sort((a, b) => (b.market_cap ?? -1) - (a.market_cap ?? -1) || a.symbol.localeCompare(b.symbol)), [rows]);
-  const sectors = useMemo(() => { const m = new Map<string, number>(); rows.forEach((r) => r.sector && m.set(r.sector, (m.get(r.sector) || 0) + 1)); return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])); }, [rows]);
+  const sf = useRowFilter(all, (r) => ({ sector: r.sector, cap: r.market_cap }));    // the shared sector and market-cap filters
+  const sector = sf.filter.sector ?? "";
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const hit = all.filter((r) => (!sector || r.sector === sector) && (!t || r.symbol.toLowerCase().includes(t) || (r.name || "").toLowerCase().includes(t)));
+    const hit = sf.rows.filter((r) => (!t || r.symbol.toLowerCase().includes(t) || (r.name || "").toLowerCase().includes(t)));
     return t ? hit.sort((a, b) => Number(b.symbol.toLowerCase().startsWith(t)) - Number(a.symbol.toLowerCase().startsWith(t)) || Number((b.name || "").toLowerCase().startsWith(t)) - Number((a.name || "").toLowerCase().startsWith(t))) : hit;
-  }, [all, q, sector]);
+  }, [sf.rows, q]);
 
   useEffect(() => { const h = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
-  useEffect(() => { setActive(0); scroller.current && (scroller.current.scrollTop = 0); setTop(0); }, [q, sector]);
+  useEffect(() => { setActive(0); scroller.current && (scroller.current.scrollTop = 0); setTop(0); }, [q, sf.filter]);
 
   const toggle = (sym: string) => {
     if (ids.includes(sym)) { onChange(ids.filter((s) => s !== sym)); return; }
@@ -62,8 +64,8 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
       <p className="cb-count" aria-live="polite">Compare 2 to {max} stocks · {ids.length} chosen{rows.length ? ` · ${nf(rows.length, 0)} companies to choose from` : ""}</p>
       {open && (
         <div className="cb-menu">
-          <div className="cb-tools"><label><span className="sr">Sector</span><select value={sector} onChange={(e) => setSector(e.target.value)} aria-label="Only show one sector"><option value="">All sectors ({nf(rows.length, 0)})</option>{sectors.map(([s, n]) => <option key={s} value={s}>{s} ({n})</option>)}</select></label>
-            {first?.sector && <button className={"cb-t" + (sector === first.sector ? " on" : "")} onClick={() => setSector(sector === first.sector ? "" : first.sector!)}>Only {first.sector}</button>}
+          <div className="cb-tools"><SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
+            {first?.sector && <button className={"cb-t" + (sector === first.sector ? " on" : "")} onClick={() => sf.setFilter({ ...sf.filter, sector: sector === first.sector ? null : first.sector })}>Only {first.sector}</button>}
             <span className="cb-n">{nf(list.length, 0)} {list.length === 1 ? "company" : "companies"}</span></div>
           <div className="cb-scroll" id="cb-list" role="listbox" aria-multiselectable="true" ref={scroller} style={{ height: Math.min(VIEW, Math.max(ITEM, list.length * ITEM)) }} onScroll={(e) => setTop((e.target as HTMLElement).scrollTop)}>
             <div style={{ height: list.length * ITEM, position: "relative" }}>
@@ -71,7 +73,7 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
                 <button key={r.symbol} id={`cb-o-${r.symbol}`} role="option" aria-selected={on} className={"cb-o" + (i === active ? " act" : "") + (on ? " on" : "")} style={{ position: "absolute", top: i * ITEM, height: ITEM }} onMouseMove={() => setActive(i)} onClick={() => toggle(r.symbol)}>
                   <span className="av mini" aria-hidden="true">{ini(r)}</span><span className="cb-nm"><b>{r.symbol}</b><small>{r.name}{r.sector ? ` · ${r.sector}` : ""}</small></span>
                   <span className="cb-mc">{r.market_cap != null ? "₹" + cr(r.market_cap) + " Cr" : ""}</span><span className="cb-st" aria-hidden="true">{on ? "✓" : "+"}</span></button>); })}
-              {!list.length && <p className="muted" style={{ padding: 16 }}>No company matches “{q}”. Try the ticker, or part of the name.</p>}
+              {!list.length && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : <p className="muted" style={{ padding: 16 }}>No company matches “{q}”. Try the ticker, or part of the name.</p>)}
             </div>
           </div>
           <p className="cb-hint">Scroll to browse every company, or type to search. Click to add, click again to remove. Arrow keys and Enter work too.</p>

@@ -1,0 +1,23 @@
+/* The Dashboard door: first in the desktop nav for signed-in members, and always visible in the phone header
+   (a Dashboard button when signed in, a Sign in button when not), so nobody has to open the menu to find it. */
+.mob-only { display: none; }
+.mnav .mg-first { padding-bottom: 6px; }
+.mnav .mdash { display: block; font-weight: 700; font-size: 17px; padding: 12px 14px; border-radius: 12px; background: var(--s2); border: 1px solid var(--border); color: var(--text); text-align: center; }
+@media (max-width: 760px) {
+  .mob-only.mob-cta { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; min-height: 38px; font-size: 13.5px; white-space: nowrap; }
+}
+@media (max-width: 380px) {
+  .mob-only.mob-cta { padding: 7px 11px; font-size: 13px; }
+}
+
+/* Sidebar groups as drop-downs: a quiet header with the page count and a chevron; the chevron turns when the group is open. */
+.side-gb { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; cursor: pointer; text-align: left; border-radius: 8px; }
+.side-gb:hover { background: var(--s2); }
+.side-gb:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.side-gb > span:first-child { flex: 1; }
+.side-gn { font-size: 10.5px; color: var(--faint); font-weight: 500; letter-spacing: 0; }
+.side-gc { width: 14px; height: 14px; transition: transform .15s; flex: none; }
+.side-gb[aria-expanded="true"] .side-gc { transform: rotate(180deg); }
+.side-gi { display: grid; gap: 2px; }
+.side-gi[hidden] { display: none; }
+.is-collapsed .side-gn, .is-collapsed .side-gc { display: none; }

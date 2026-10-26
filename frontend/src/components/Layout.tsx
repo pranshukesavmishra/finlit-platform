@@ -91,10 +91,12 @@ function Header({ onSearch }: { onSearch: () => void }) {
         ) : ready || DEMO ? (
           <><Link className="btn hide-sm signin-ghost" to="/login">Sign in</Link><Link className="btn primary hide-sm signin" to={DEMO ? "/login" : "/login?mode=signup"}>{DEMO ? "Sign in" : "Create account"}</Link></>
         ) : <span className="signin-ph" aria-hidden="true" />}
+        {user ? <Link className="btn primary mob-only mob-cta" to="/dashboard">Dashboard</Link> : (ready || DEMO) ? <Link className="btn primary mob-only mob-cta" to="/login">Sign in</Link> : null}
         <button className="icon-btn burger" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
       </div>
       {menu && (
         <nav className="mnav" aria-label="Mobile">
+          {user && <div className="mg mg-first"><NavLink to="/dashboard" className="mdash">Dashboard</NavLink></div>}
           {[...SECTIONS, MORE].map((m) => <div key={m.id} className="mg"><span className="mt">{m.label}</span>
             {m.groups.map((g, gi) => <Fragment key={gi}>{g.title && m.id !== "more" && <span className="mt2">{g.title}</span>}{g.title && m.id === "more" && <span className="mt2">{g.title}</span>}
               {g.items.map((it) => <NavLink key={it.to} to={it.to} end={it.end}>{it.label}{it.gold && <em className="gtag">Gold</em>}</NavLink>)}</Fragment>)}</div>)}
@@ -109,7 +111,7 @@ const pick = (id: string) => SECTIONS.find((x) => x.id === id)!.groups.flatMap((
 const FOOT: { title: string; items: { to: string; label: string }[] }[] = [
   { title: "Research", items: pick("research") },
   { title: "Markets and news", items: [...pick("markets"), ...pick("news")] },
-  { title: "Funds and My FinLit", items: [...pick("funds"), ...pick("myfinlit")] },
+  { title: "Funds and Workspace", items: [...pick("funds"), ...pick("myfinlit")] },
 ];
 
 function Footer() {

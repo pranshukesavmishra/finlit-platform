@@ -1,9 +1,10 @@
 import { DrawLayer } from "../components/DrawLayer";
 import { viewId } from "../lib/drawings";
+import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import { apiGet, apiSend, useSearchIndex, ApiError } from "../lib/api";
+import { apiGet, apiSend, ApiError } from "../lib/api";
 import { useIndices } from "../lib/indices";
 import { useAuth, type Plan } from "../lib/auth";
 import { DEMO } from "../lib/demo";
@@ -166,7 +167,7 @@ export function GraphStudio() {
   const [companies, setCompanies] = useState<string[]>(() => [...new Set(view.cells.flatMap((c) => c.series.map((s) => s.s)))].slice(0, 6));
   const [active, setActive] = useState(0), [tab, setTab] = useState<"list" | "drag">("list"), [group, setGroup] = useState("popular"), [q, setQ] = useState(""), [cq, setCq] = useState("");
   const [panel, setPanel] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= 900));
-  const idx = useSearchIndex(true);
+  const sf = useIndexFilter(true), idx = sf.idx;
   const feed = useIndices(true);
   const rows = useMemo(() => [...((idx.data?.rows as [string, string][] | undefined) ?? []), ...(feed.data?.items ?? []).map((x): [string, string] => [IDX + x.code, x.name])], [idx.data, feed.data]);
   const colors = useMemo(readColors, [theme]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -202,7 +203,8 @@ export function GraphStudio() {
   const nCo = (l: string[]) => l.filter((x) => !isIndexSym(x)).length;
   const addCompany = (s: string) => { if (companies.includes(s)) return; if (!isIndexSym(s) && nCo(companies) >= lim.companies) { upgrade(plan === "basic" ? "silver" : "gold", `Comparing more than ${lim.companies} companies`); return; } setCompanies([...companies, s]); setCq(""); };
   const removeCompany = (s: string) => { const left = companies.filter((x) => x !== s); setCompanies(left); set({ ...view, cells: view.cells.map((c) => ({ ...c, series: c.series.filter((x) => x.s !== s) })) }); };
-  const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1) return []; const f = rows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)), ixs = f.filter((r) => isIndexSym(r[0])).slice(0, 3); return [...f.filter((r) => !isIndexSym(r[0])).slice(0, 8 - ixs.length), ...ixs]; }, [cq, rows]);
+  const searchRows = useMemo(() => (sf.on ? (sf.rows as unknown as [string, string][]) : rows), [sf.on, sf.rows, rows]);   // with a filter on, indices (no sector or size) drop out
+  const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1) return sf.on ? searchRows.slice(0, 8) : []; const f = searchRows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)), ixs = f.filter((r) => isIndexSym(r[0])).slice(0, 3); return [...f.filter((r) => !isIndexSym(r[0])).slice(0, 8 - ixs.length), ...ixs]; }, [cq, searchRows, sf.on]);
   const setLayout = (l: string) => { if (cellCount(l) > lim.cells) { upgrade(plan === "basic" ? "silver" : "gold", `Layouts with ${cellCount(l)} charts`); return; } set({ ...view, layout: l }); };
 
   const save = async () => {
@@ -257,7 +259,9 @@ export function GraphStudio() {
           <div hidden={!panel}>
             <h2>1. Companies</h2>
             <div className="gx-chips">{companies.map((s) => <span key={s} className="gx-chip">{name(rows, s)}{isIndexSym(s) && <small> Index</small>}<button aria-label={`Remove ${name(rows, s)}`} onClick={() => removeCompany(s)}>×</button></span>)}</div>
-            <div className="gx-search"><label className="sr" htmlFor="gx-co">Add a company or index</label><input id="gx-co" value={cq} onChange={(e) => setCq(e.target.value)} placeholder={`Add a company or index (${nCo(companies)}/${lim.companies} companies)`} autoComplete="off" />
+            <div className="gx-search sf-host"><label className="sr" htmlFor="gx-co">Add a company or index</label><input id="gx-co" value={cq} onChange={(e) => setCq(e.target.value)} placeholder={`Add a company or index (${nCo(companies)}/${lim.companies} companies)`} autoComplete="off" />
+              <SearchFilters variant="panel" className="sf-inline" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
+              {sf.on && !hits.length && idx.data && <FilterNote filter={sf.filter} q={cq.trim()} onChange={sf.setFilter} />}
               {hits.length > 0 && <ul role="listbox" aria-label="Companies and indices">{hits.map((r) => <li key={r[0]} role="option" aria-selected={false}><button onClick={() => addCompany(r[0])}>{r[1]} <small>{isIndexSym(r[0]) ? "Index" : r[0]}</small></button></li>)}</ul>}</div>
             <h2>2. Measures</h2>
             <div className="gx-seg" role="tablist" aria-label="How to pick">{([["list", "Choose from list"], ["drag", "Drag & drop"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>

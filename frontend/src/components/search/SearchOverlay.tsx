@@ -15,8 +15,8 @@ import {
   KIND_LABEL, TABS, allSections, amcLogo, flat, moversToday, quoteMap, searchStocks, stockItem, todayIST,
   type Band, type Item, type Quotes, type Section, type Tab,
 } from "../../lib/globalSearch";
-import { FilterMenu } from "./FilterMenu";
-import { NO_FILTER, capFacets, filterNoun, filterOn, filterPhrase, filterStocks, passes, sectorFacets, unknownCounts, type StockFilter } from "../../lib/searchFilters";
+import { SearchFilters } from "../SearchFilters";
+import { NO_FILTER, filterNoun, filterOn, filterPhrase, filterStocks, hasFilterData, indexFacets, passes, type StockFilter } from "../../lib/searchFilters";
 import { FlagIN, Hl, Logo, PriceChange, Range52, ScoreRing, Spark } from "./parts";
 import "../../styles/search.css";
 
@@ -97,10 +97,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const mine = useMyCompanies();
   const mineSet = useMemo(() => new Set(mine.symbols), [mine.symbols]);
   const bySym = useMemo(() => new Map((idx.data?.rows || []).map((r) => [r[0], r] as [string, SearchRow])), [idx.data]);
-  const sectorOpts = useMemo(() => sectorFacets(idx.data), [idx.data]);
-  const capOpts = useMemo(() => capFacets(idx.data), [idx.data]);
-  const unknown = useMemo(() => unknownCounts(idx.data), [idx.data]);
-  const canFilter = (tab === "all" || tab === "stocks") && (sectorOpts.length > 0 || capOpts.some((c) => c.n > 0));   // an older server sends neither list: no controls then
+  const facets = useMemo(() => indexFacets(idx.data), [idx.data]);
+  const canFilter = (tab === "all" || tab === "stocks") && hasFilterData(idx.data);   // an older server sends neither list: no controls then
   const fOn = canFilter && filterOn(filter);
   const keep = useMemo(() => (fOn ? (i: number) => passes(idx.data, i, filter) : undefined), [fOn, idx.data, filter]);
   const recent = useSyncExternalStore(visits.subscribe, () => JSON.stringify(visits.get()), () => "[]");
@@ -203,7 +201,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const n = items.length;
   const phrase = filterPhrase(filter), noun = filterNoun(filter, total), asked = q.trim() ? ` matching “${q.trim()}”` : "";
   const filteredList = fOn && (tab === "stocks" || !q.trim());
-  const status = fOn && filteredList && tab !== "global" && total > 0 && !waiting ? (more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} ${noun}${asked} · keep scrolling` : `Showing all ${total.toLocaleString("en-IN")} ${noun}${asked}`)
+  const status = fOn && filteredList && total > 0 && !waiting ? (more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} ${noun}${asked} · keep scrolling` : `Showing all ${total.toLocaleString("en-IN")} ${noun}${asked}`)
     : fOn && !filteredList && n && !waiting && !busy ? `${n} result${n === 1 ? "" : "s"} · stocks limited to ${phrase}`
     : tab === "global" ? "Global markets are coming soon." : more ? `Showing ${Math.min(cap, total).toLocaleString("en-IN")} of ${total.toLocaleString("en-IN")} companies · keep scrolling` : !q ? "" : waiting || busy ? "Searching…" : n ? `${n} result${n === 1 ? "" : "s"}` : "No matches";
   let i = -1;
@@ -230,19 +228,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             ))}
           </div>
-        {canFilter && (
-          <div className="gs-fl" role="group" aria-label="Narrow the stocks">
-            <FilterMenu name="Sector" clearLabel="Clear sector" value={filter.sector} open={menu === "sector"} onOpen={(v) => setMenu(v ? "sector" : null)} keyHint="Alt+S"
-              options={sectorOpts.map((o) => ({ id: o.name, label: o.name, n: o.n }))}
-              note={unknown.sector ? `${unknown.sector.toLocaleString("en-IN")} companies with no sector on file are left out while a sector is chosen.` : undefined}
-              onPick={(v) => { setFilter((f) => ({ ...f, sector: v })); input.current?.focus(); }} />
-            <FilterMenu name="Market cap" clearLabel="Clear market cap" value={filter.cap} open={menu === "cap"} onOpen={(v) => setMenu(v ? "cap" : null)} keyHint="Alt+M"
-              options={capOpts.map((o) => ({ id: o.id, label: o.label, hint: o.range, n: o.n }))}
-              note={unknown.cap ? `${unknown.cap.toLocaleString("en-IN")} companies with no market value on file are left out while a band is chosen.` : undefined}
-              onPick={(v) => { setFilter((f) => ({ ...f, cap: v as StockFilter["cap"] })); input.current?.focus(); }} />
-            {filterOn(filter) && <button type="button" className="gs-fx" onClick={() => { setFilter(NO_FILTER); input.current?.focus(); }}>Clear filters</button>}
-          </div>
-        )}
+          {canFilter && <SearchFilters facets={facets} value={filter} onChange={setFilter} menu={menu} onMenu={setMenu} onDone={() => input.current?.focus()} />}
         </div>
         <div className="gs-body">
           <div className="gs-list" id="gsList" role="listbox" aria-label="Results" ref={list} onScroll={grow}>

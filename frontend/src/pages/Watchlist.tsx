@@ -12,6 +12,7 @@ import { DEMO } from "../lib/demo";
 import { cr, csvText, nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
+import { FilterNote, SearchFilters, useRowFilter } from "../components/SearchFilters";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
 import { ChartHelp } from "../components/ChartHelp";
 
@@ -32,13 +33,16 @@ export function signals(r: Row, target?: number): string[] {
   return out;
 }
 
-function Add({ rows, taken, onAdd }: { rows: Row[]; taken: string[]; onAdd: (r: Row) => void }) {
+function Add({ rows: all, taken, onAdd }: { rows: Row[]; taken: string[]; onAdd: (r: Row) => void }) {
   const [q, setQ] = useState(""), [open, setOpen] = useState(false), box = useRef<HTMLDivElement>(null);
   useEffect(() => { const h = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); }; document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
-  const s = q.trim().toLowerCase(), list = s ? rows.filter((r) => !taken.includes(r.symbol) && (r.symbol.toLowerCase().includes(s) || (r.name || "").toLowerCase().includes(s))).slice(0, 7) : [];
+  const sf = useRowFilter(all, (r) => ({ sector: r.sector, cap: r.market_cap }));
+  const rows = sf.rows, s = q.trim().toLowerCase();
+  const list = s ? rows.filter((r) => !taken.includes(r.symbol) && (r.symbol.toLowerCase().includes(s) || (r.name || "").toLowerCase().includes(s))).slice(0, 7) : sf.on ? [...rows].sort((a, b) => (b.market_cap ?? -1) - (a.market_cap ?? -1)).filter((r) => !taken.includes(r.symbol)).slice(0, 7) : [];
   return (
     <div className="wl-add" ref={box}>
-      <label><Icon name="table" /><input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="Add a stock to this list…" aria-label="Add a stock" /></label>
+      <label><Icon name="table" /><input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="Add a stock to this list…" aria-label="Add a stock" /><SearchFilters variant="panel" className="sf-inline" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} /></label>
+      {open && sf.on && !list.length && <div className="pk-m"><FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /></div>}
       {open && list.length > 0 && <div className="pk-m" role="listbox">{list.map((r) => <button key={r.symbol} role="option" aria-selected="false" onClick={() => { onAdd(r); setQ(""); setOpen(false); }}><b>{r.name}</b><small>{r.symbol} · {r.sector}</small></button>)}</div>}
     </div>
   );

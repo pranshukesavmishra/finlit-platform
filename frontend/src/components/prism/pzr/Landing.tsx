@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../../../lib/icons";
-import { useSearchIndex } from "../../../lib/api";
+import { FilterNote, SearchFilters, useIndexFilter } from "../../SearchFilters";
 import { rankCompanies } from "../../../lib/companySearch";
 import { useSlashFocus } from "../../../lib/premium";
 import { useUniverse } from "../../../lib/screener";
@@ -36,21 +36,23 @@ export function StatementSwitch({ value, set, disabled }: { value: Statement; se
 
 export function Picker({ statement, setStatement, big = false }: { statement: Statement; setStatement: (s: Statement) => void; big?: boolean }) {
   const nav = useNavigate();
-  const idx = useSearchIndex(true);
+  const sf = useIndexFilter();
   const [text, setText] = useState(""), [open, setOpen] = useState(false), [cur, setCur] = useState(0);
   const box = useRef<HTMLInputElement>(null);
   useSlashFocus(box);
-  const hits = useMemo(() => rankCompanies(idx.data?.rows, text, 8), [idx.data, text]);
+  const hits = useMemo(() => (text.trim() ? rankCompanies(sf.rows, text, 8) : sf.on ? sf.rows.slice(0, 8).map((r) => ({ symbol: r[0], name: r[1], rank: 0 })) : []), [sf.rows, sf.on, text]);   // a filter with no text: the largest companies that pass
   const go = (symbol: string) => { setText(""); setOpen(false); nav(`/prism/${encodeURIComponent(symbol)}${statement === "standalone" ? "?statement=standalone" : ""}`); };
   const submit = () => { const pick = hits[cur] ?? hits[0]; const typed = cleanSymbol(text); if (pick) go(pick.symbol); else if (typed) go(typed); };
   return (
     <div className={"pzr-pick" + (big ? " big" : "")}>
-      <div className="pm-search pzr-search">
+      <div className="pm-search pzr-search sf-host">
         <Icon name="search" />
         <input ref={box} value={text} role="combobox" aria-expanded={open && hits.length > 0} aria-controls="pz-sug" aria-autocomplete="list" aria-label="Choose a company"
           placeholder="Company name or symbol, for example TCS" autoComplete="off" onChange={(e) => { setText(e.target.value); setOpen(true); setCur(0); }}
           onBlur={() => setTimeout(() => setOpen(false), 150)} onFocus={() => setOpen(true)}
           onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setCur((c) => Math.min(hits.length - 1, c + 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setCur((c) => Math.max(0, c - 1)); } else if (e.key === "Enter") { e.preventDefault(); submit(); } else if (e.key === "Escape") setOpen(false); }} />
+        <SearchFilters variant="panel" className="sf-inline" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
+        {open && sf.on && !hits.length && text.trim() && <div className="pm-sug"><FilterNote filter={sf.filter} q={text.trim()} onChange={sf.setFilter} /></div>}
         {open && hits.length > 0 && <div className="pm-sug" id="pz-sug" role="listbox">{hits.map((h, i) => <button key={h.symbol} type="button" role="option" aria-selected={i === cur} className={i === cur ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => go(h.symbol)}><b>{h.symbol}</b><small>{h.name}</small></button>)}</div>}
       </div>
       <label className="pzr-lbl">Statement basis<StatementSwitch value={statement} set={setStatement} /></label>

@@ -10,6 +10,8 @@ import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
 import { MORE, SECTIONS, type NavItem } from "../lib/nav";
 
+const RESEARCH = SECTIONS.find((x) => x.id === "research")!;   // by id: the header order changes (Workspace comes first)
+
 type Item = { to: string; label: string; icon: string; badge?: string; end?: boolean; gold?: boolean; sub?: boolean };
 type Group = { title: string; items: Item[] };
 
@@ -29,6 +31,10 @@ export function AppShell() {
   useEffect(() => { const o = () => setOpen((v) => !v); addEventListener("finlit:open-side", o); return () => removeEventListener("finlit:open-side", o); }, []);
   useEffect(() => { try { localStorage.setItem("finlit-side", collapsed ? "1" : "0"); } catch { /* private mode */ } }, [collapsed]);
   useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open]);
+  // Each group is a drop-down: a header you click to show or hide its pages. The group holding the current page is always open;
+  // what you opened or closed by hand is remembered.
+  const [folded, setFolded] = useState<Record<string, boolean>>(() => { try { return JSON.parse(localStorage.getItem("finlit-side-groups") || "{}"); } catch { return {}; } });
+  const toggleGroup = (t: string, isOpen: boolean) => setFolded((f) => { const n = { ...f, [t]: isOpen }; try { localStorage.setItem("finlit-side-groups", JSON.stringify(n)); } catch { /* private mode */ } return n; });
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
   // The rail follows the site map (lib/nav.ts): the same five headings and groups as the header, plus the extras and the account.
@@ -40,11 +46,11 @@ export function AppShell() {
   const mine = (id: string, extra: Item[] = []) => [...SECTIONS.find((x) => x.id === id)!.groups.flatMap((g) => g.items).map(toItem), ...extra];
   const groups: Group[] = [
     { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
-    ...SECTIONS[0].groups.map((g) => ({ title: g.title || SECTIONS[0].label, items: g.items.map(toItem) })),
+    ...RESEARCH.groups.map((g) => ({ title: g.title || RESEARCH.label, items: g.items.map(toItem) })),
     { title: "Markets", items: mine("markets") },
     { title: "News & events", items: mine("news") },
     { title: "Funds", items: mine("funds") },
-    { title: "My FinLit", items: mine("myfinlit", [{ to: "/baskets", label: "My baskets", icon: "layers" }]) },
+    { title: "Your workspace", items: mine("myfinlit", [{ to: "/baskets", label: "My baskets", icon: "layers" }]).filter((x) => x.to !== "/dashboard") },
     { title: MORE.groups[0].title!, items: MORE.groups[0].items.map(toItem) },
     { title: "Learn", items: [{ to: "/glossary", label: "Glossary", icon: "book" }, { to: "/blog", label: "Insights & blog", icon: "spark" }, { to: "/documents", label: "Documents", icon: "layers" }, { to: "/forum", label: "Forums", icon: "users" }] },
     ...(user ? [{ title: "Account", items: [
@@ -55,6 +61,9 @@ export function AppShell() {
     ] }] : []),
   ];
 
+  const here = (g: Group) => g.items.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(i.to + "/")));
+  // open when the page you are on is inside it, otherwise what you chose; the one-page Overview group and the first visit start open for Find stocks
+  const groupOpen = (g: Group) => here(g) || folded[g.title] === true || (folded[g.title] === undefined && (g.items.length === 1 || g.title === "Find stocks"));
   return (
     <div className={"shell" + (collapsed ? " is-collapsed" : "") + (open ? " is-open" : "")}>
       <button className="shell-fab" onClick={() => setOpen(true)} aria-label="Open the product menu" aria-expanded={open}><Icon name="panel" /><span>Menu</span></button>
@@ -68,12 +77,16 @@ export function AppShell() {
         <nav>
           {groups.map((g) => (
             <div className="side-g" key={g.title}>
-              <div className="side-gt">{g.title}</div>
+              <button type="button" className="side-gt side-gb" aria-expanded={groupOpen(g)} aria-controls={"sg-" + g.title.replace(/\W+/g, "-")} onClick={() => toggleGroup(g.title, !groupOpen(g))}>
+                <span>{g.title}</span><span className="side-gn">{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+              <div id={"sg-" + g.title.replace(/\W+/g, "-")} className="side-gi" hidden={!groupOpen(g) && !collapsed}>
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
                   <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}
+              </div>
             </div>
           ))}
         </nav>

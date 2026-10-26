@@ -10,6 +10,13 @@ const i = (to: string, label: string, sub: string, icon: string, o: { gold?: boo
 
 /** The five main headings, in the order people use them. */
 export const SECTIONS: NavSection[] = [
+  { id: "myfinlit", label: "Workspace", groups: [{ items: [
+    i("/dashboard", "Dashboard", "Your stocks, alerts and scores in one place", "table"),
+    i("/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"),
+    i("/holdings", "My portfolio", "Score and mix of the shares you hold", "pie"),
+    i("/alerts", "Alerts", "Price, signals, scores and filings", "bell"),
+    i("/sip-calculator", "SIP calculator", "Plan a monthly investment, free", "spark"),
+  ] }] },
   { id: "research", label: "Research", wide: true, groups: [
     { title: "Find stocks", items: [
       i("/screener", "Stock screener", "Filter every listed company by size, valuation, growth and debt", "table"),
@@ -44,12 +51,6 @@ export const SECTIONS: NavSection[] = [
     i("/funds", "Mutual funds", "NAV, returns, fund size and risk for every scheme", "pie"),
     i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars"),
     i("/funds/insights", "Fund industry trends", "Industry assets, net flows and folios, month by month", "line"),
-  ] }] },
-  { id: "myfinlit", label: "My FinLit", groups: [{ items: [
-    i("/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"),
-    i("/holdings", "My portfolio", "Score and mix of the shares you hold", "pie"),
-    i("/alerts", "Alerts", "Price, signals, scores and filings", "bell"),
-    i("/sip-calculator", "SIP calculator", "Plan a monthly investment, free", "spark"),
   ] }] },
 ];
 

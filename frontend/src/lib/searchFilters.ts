@@ -1,7 +1,8 @@
-// Sector and market-cap filters of the site search: the pure part (no React), so it is tested without the page.
+// Sector and market-cap filters shared by every company search of the site (the Ctrl K palette and the company pickers): the pure part, no React.
 // The search index carries, beside its rows, a sector table (`sectors`), one sector code per row (`sec`, -1 = unknown) and one market value in
-// rupees crore per row (`mc`, 0 = unknown). A company whose sector or size is unknown is left out only while that filter is on, and is never
-// shown under a sector or band it does not belong to. The size bands are CAP_BUCKETS, the same ones the portfolio checker uses.
+// rupees crore per row (`mc`, 0 = unknown). The screener rows carry `sector` and `market_cap` directly; both feed the same functions through
+// `Sized` (sector name + crore). A company whose sector or size is unknown is left out only while that filter is on, and is never shown under a
+// sector or band it does not belong to. The size bands are CAP_BUCKETS, the same ones the portfolio checker uses.
 import { CAP_BUCKETS, capBucket, type CapBucket } from "./capBuckets";
 import { searchStocks } from "./globalSearch";
 import type { SearchIndex, SearchRow } from "./api";
@@ -13,59 +14,82 @@ export const filterOn = (f: StockFilter) => !!f.sector || !!f.cap;
 
 export type Facet = { name: string; n: number };
 export type CapFacet = { id: CapId; label: string; range: string; n: number };
+export type Facets = { sectors: Facet[]; caps: CapFacet[]; unknown: { sector: number; cap: number }; total: number };
+/** What a filter needs to know about one company: its sector name and market value in rupees crore (null when unknown). */
+export type Sized = { sector: string | null; cap: number | null };
 
 const isCompany = (r: SearchRow) => !!r[0] && !r[0].startsWith("^");
 
-/** The sector name of row i, or null when unknown. */
+/** The size band of a market value in crore, or null when it is not known. */
+export const bandOf = (crore: number | null | undefined): CapBucket | null => (crore != null && crore > 0 ? capBucket(crore) : null);
+
+/** Does a company pass the filter? Unknown sector or size fails only the filter that needs it. */
+export function passesValues(sector: string | null | undefined, crore: number | null | undefined, f: StockFilter): boolean {
+  if (f.sector && sector !== f.sector) return false;
+  if (f.cap && bandOf(crore)?.id !== f.cap) return false;
+  return true;
+}
+
+/** Sectors that really occur in the data with their company counts (most first, ties by name), the six bands with counts, and how many are unknown. */
+export function facetsOf(items: Iterable<Sized>): Facets {
+  const sec = new Map<string, number>(), cap = new Map<CapId, number>();
+  let unknownSector = 0, unknownCap = 0, total = 0;
+  for (const it of items) {
+    total += 1;
+    if (it.sector) sec.set(it.sector, (sec.get(it.sector) || 0) + 1); else unknownSector += 1;
+    const b = bandOf(it.cap);
+    if (b) cap.set(b.id, (cap.get(b.id) || 0) + 1); else unknownCap += 1;
+  }
+  return {
+    sectors: [...sec].map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)),
+    caps: CAP_BUCKETS.map((b) => ({ id: b.id, label: b.label, range: b.range, n: cap.get(b.id) || 0 })),
+    unknown: { sector: unknownSector, cap: unknownCap }, total,
+  };
+}
+
+/** The sector name of index row i, or null when unknown. */
 export function sectorAt(idx: SearchIndex | undefined, i: number): string | null {
   const c = idx?.sec?.[i];
   return c != null && c >= 0 ? idx?.sectors?.[c] ?? null : null;
 }
-/** The size band of row i, or null when the market value is unknown. */
+/** The size band of index row i, or null when the market value is unknown. */
 export function capAt(idx: SearchIndex | undefined, i: number): CapBucket | null {
-  const v = idx?.mc?.[i];
-  return v != null && v > 0 ? capBucket(v) : null;
+  return bandOf(idx?.mc?.[i]);
+}
+/** True when the index carries sector or market-value data at all (an older server sends neither: no controls then). */
+export const hasFilterData = (idx: SearchIndex | undefined) => !!(idx?.sec && idx.sectors?.length) || !!idx?.mc?.some((v) => v > 0);
+
+const facetCache = new WeakMap<SearchIndex, Facets>();
+/** Facets of the whole search index (companies only; index entries such as "^NSEI" are not companies). */
+export function indexFacets(idx: SearchIndex | undefined): Facets {
+  if (!idx) return facetsOf([]);
+  let f = facetCache.get(idx);
+  if (!f) { f = facetsOf(idx.rows.flatMap((r, i) => (isCompany(r) ? [{ sector: sectorAt(idx, i), cap: idx.mc?.[i] ?? null }] : []))); facetCache.set(idx, f); }
+  return f;
 }
 
-/** Sectors that really occur in the data with how many companies each has, most companies first (ties by name). */
-export function sectorFacets(idx: SearchIndex | undefined): Facet[] {
-  if (!idx?.sec || !idx.sectors) return [];
-  const n = new Map<string, number>();
-  idx.rows.forEach((r, i) => { if (!isCompany(r)) return; const s = sectorAt(idx, i); if (s) n.set(s, (n.get(s) || 0) + 1); });
-  return [...n].map(([name, c]) => ({ name, n: c })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
-}
-/** The six bands (largest first) with how many companies fall in each. */
-export function capFacets(idx: SearchIndex | undefined): CapFacet[] {
-  const n = new Map<CapId, number>();
-  if (idx?.mc) idx.rows.forEach((r, i) => { if (!isCompany(r)) return; const b = capAt(idx, i); if (b) n.set(b.id, (n.get(b.id) || 0) + 1); });
-  return CAP_BUCKETS.map((b) => ({ id: b.id, label: b.label, range: b.range, n: n.get(b.id) || 0 }));
-}
-/** How many companies have no sector / no market value in the index (they drop out while that filter is on). */
-export function unknownCounts(idx: SearchIndex | undefined): { sector: number; cap: number } {
-  let sector = 0, cap = 0;
-  idx?.rows.forEach((r, i) => { if (!isCompany(r)) return; if (!sectorAt(idx, i)) sector += 1; if (!capAt(idx, i)) cap += 1; });
-  return { sector, cap };
-}
+/** Does index row i pass the filter? */
+export const passes = (idx: SearchIndex | undefined, i: number, f: StockFilter) => passesValues(sectorAt(idx, i), idx?.mc?.[i], f);
 
-/** Does row i pass the filter? */
-export function passes(idx: SearchIndex | undefined, i: number, f: StockFilter): boolean {
-  if (f.sector && sectorAt(idx, i) !== f.sector) return false;
-  if (f.cap && capAt(idx, i)?.id !== f.cap) return false;
-  return true;
+/** Index rows that pass the filter, largest market value first (rows when no filter is on: the index itself, untouched). Companies pickers rank on top of this. */
+export function filteredRows(idx: SearchIndex | undefined, f: StockFilter): SearchRow[] {
+  const rows = idx?.rows || [];
+  if (!filterOn(f)) return rows;
+  const at: number[] = [];
+  rows.forEach((r, i) => { if (isCompany(r) && passes(idx, i, f)) at.push(i); });
+  at.sort((a, b) => (idx?.mc?.[b] || 0) - (idx?.mc?.[a] || 0) || a - b);
+  return at.map((i) => rows[i]);
 }
 
 /** Companies that pass the filter, in display order. With a query: best match first (the shared rank), then size. Without one: largest market value first. */
 export function filterStocks(idx: SearchIndex | undefined, query: string, f: StockFilter, limit: number, mine: Set<string> = new Set()): { rows: SearchRow[]; total: number } {
-  const all = idx?.rows;
-  if (!all?.length) return { rows: [], total: 0 };
+  if (!idx?.rows.length) return { rows: [], total: 0 };
   if (query.trim()) {
-    const hits = searchStocks(all, query, 1e9, mine, (i) => passes(idx, i, f));
+    const hits = searchStocks(idx.rows, query, 1e9, mine, (i) => passes(idx, i, f));
     return { rows: hits.slice(0, limit).map((h) => h.row), total: hits.length };
   }
-  const at: number[] = [];
-  all.forEach((r, i) => { if (isCompany(r) && passes(idx, i, f)) at.push(i); });
-  at.sort((a, b) => (idx?.mc?.[b] || 0) - (idx?.mc?.[a] || 0) || a - b);
-  return { rows: at.slice(0, limit).map((i) => all[i]), total: at.length };
+  const all = filteredRows(idx, f);
+  return { rows: all.slice(0, limit), total: all.length };
 }
 
 /** "Mega-cap Information Technology" (the filter in words; empty when none). */
