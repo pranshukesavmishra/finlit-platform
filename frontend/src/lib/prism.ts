@@ -131,7 +131,7 @@ export const STATE_WORD: Record<FactorState, string> = {
   F: "Estimated (group estimate)", N: "Not applicable", L: "Not reported, left out of the score",
 };
 export type Standing = "pros" | "cons" | "mixed" | "unavailable" | "notApplicable";
-export const STANDING_WORD: Record<Standing, string> = { pros: "Supports", cons: "Holds back", mixed: "Mixed", unavailable: "Not available", notApplicable: "Not applicable" };
+export const STANDING_WORD: Record<Standing, string> = { pros: "Supports", cons: "Weighs on the score", mixed: "Mixed", unavailable: "Not available", notApplicable: "Not applicable" };
 /** Where a factor sits in the reader view: the same thresholds as premium_presentation (>= 70 supports, < 40 holds back). */
 export function standing(row: Pick<PrismMetric, "status" | "points">): Standing {
   if (row.status === "N") return "notApplicable";
