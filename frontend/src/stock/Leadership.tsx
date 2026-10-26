@@ -61,7 +61,7 @@ export function LeadLine({ symbol, jump }: { symbol: string; jump: (id: string) 
   const q = useLeadership(symbol);
   const d = q.data;
   if (q.isLoading || !d) return <div className="ld-line ld-wait" aria-hidden="true" />;
-  if (!d.available) return <div className="ld-line"><span className="ld-empty" role="note">{d.display.line}</span></div>;
+  if (!d.available) return d.display ? <div className="ld-line"><span className="ld-empty" role="note">{d.display.line}</span></div> : null;   // switched off, or the first weekly run has not happened: nothing to say
   const parts = d.display.parts;
   return (
     <div className="ld-line">
@@ -156,13 +156,14 @@ export function LeadershipSection({ symbol, name }: { symbol: string; name: stri
     const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { rootMargin: "600px 0px" });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [!!lead]); // eslint-disable-line react-hooks/exhaustive-deps
   const hist = useLeadershipHistory(symbol, seen && !!lead?.available);
+  if (!lead || (!lead.available && !lead.display)) return null;
   return (
     <section className="block ld-sec" ref={host} style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
       <SectionHead id="leadership" no="Leadership" icon="medal" tier="basic" title="Where this stock stands among its peers" sub="How the last 12 months compare with the industry and the market, and whether that has meant anything here." color="--gold-deep" />
-      {!lead ? <div className="skeleton" style={{ height: 220 }} aria-hidden="true" /> : !lead.available ? (
-        <div className="card ld-emptycard"><p className="ld-empty" role="note">{lead.display.line}</p><p className="ld-foot">{LEAD_NOTE} <Link to={EXPLAINER}>How this works</Link></p></div>
+      {!lead.available ? (
+        <div className="card ld-emptycard"><p className="ld-empty" role="note">{lead.display?.line}</p><p className="ld-foot">{LEAD_NOTE} <Link to={EXPLAINER}>How this works</Link></p></div>
       ) : (
         <>
           <Plain>{lead.display.line}. {lead.display.note ? lead.display.note + ". " : ""}A label like this is a snapshot, so below is how the stock got here and whether being ahead has lasted in this part of the market.</Plain>

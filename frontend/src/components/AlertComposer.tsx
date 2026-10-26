@@ -1,3 +1,4 @@
+import { useFocusTrap } from "../lib/focusTrap";
 import { DEMO } from "../lib/demo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -191,6 +192,7 @@ export function AlertComposer({ preset, onDone, compact }: { preset?: Preset; on
 /** Dialog form used from stock pages and lists, so an alert is one click away wherever a company appears. */
 export function AlertModal({ open, onClose, preset }: { open: boolean; onClose: () => void; preset?: Preset }) {
   const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, open);
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();

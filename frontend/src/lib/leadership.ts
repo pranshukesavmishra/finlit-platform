@@ -17,7 +17,7 @@ export type LeadershipOn = {
   rank: number; label: LeadLabel; rawLabel: LeadLabel; direction: Direction; fundamentalNote: "below_peers" | "stronger_than_price" | null;
   fundamentalRank: number | null; fundamentalOf: number | null; labelSince: string | null; sectorReliability: Reliability; display: LeadDisplay; peers: LeadPeer[];
 };
-export type LeadershipOff = { available: false; reason: "history" | "stale" | "liquidity" | "group"; display: LeadDisplay };
+export type LeadershipOff = { available: false; reason: "history" | "stale" | "liquidity" | "group" | "hidden" | "pending"; display?: LeadDisplay };
 export type Leadership = LeadershipOn | LeadershipOff;
 export type LeadRun = { date: string; rank: number; ranked: number; label: LeadLabel; direction: Direction; rel52: number | null; rel52Market: number | null };
 export type LeadHistory = { available: boolean; rows: LeadRun[]; series: { dates: string[]; stock: (number | null)[]; sector: (number | null)[] | null; market: (number | null)[] | null } | null };

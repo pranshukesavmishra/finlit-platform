@@ -244,3 +244,12 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 :root .ddm.wide.right { left: auto; right: -300px; width: min(800px, calc(100vw - 48px)); }
 /* in the narrow left rail the Gold tag is a small gold dot (its name is the tooltip and the screen-reader label) */
 .side-l .gtag { font-size: 0; width: 8px; height: 8px; padding: 0; margin-left: 8px; border-radius: 50%; background: var(--gold); display: inline-block; vertical-align: middle; }
+
+/* Small-phone overflow fixes found by the audit crawl at 360 px (the page must never scroll sideways). */
+.dbars { grid-auto-columns: minmax(0, 1fr); }
+@media (max-width: 560px) {
+  .dbars { gap: 4px; } .dcol span { font-size: 9px; } .dcol .yoy { font-size: 8.5px; } .dcol em { font-size: 9px; }
+  .spc-grid { grid-template-columns: minmax(0, 1fr); }
+  .ipo-list { grid-template-columns: minmax(0, 1fr); } .ipo-h > div { min-width: 0; } .ipo-h h3 { overflow-wrap: anywhere; }
+}
+.spc { min-width: 0; } .ipo-c { min-width: 0; }
