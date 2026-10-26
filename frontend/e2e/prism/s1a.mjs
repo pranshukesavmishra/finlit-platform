@@ -1,0 +1,31 @@
+import { BASE, browser, newPage, api, post, login, shot, check, save, failures } from "./lib.mjs";
+// Scenario 1a: default showcase (RELIANCE open to everyone)
+const b = await browser();
+const v = await newPage(b);
+await v.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+let r = await api(v, "/api/prism/status");
+check("1a visitor: /api/prism/status public 200 available", r.status === 200 && r.body.available === true && r.body.name === "FinLit Prism", JSON.stringify(r.body));
+check("1a status no-store", /no-store/.test(r.headers["cache-control"] || ""), r.headers["cache-control"]);
+r = await api(v, "/api/prism/reports/latest?symbol=TCS");
+check("1a visitor: latest TCS -> 403 plan_required", r.status === 403 && r.body.status === "plan_required" && r.body.plan === "gold", JSON.stringify(r.body));
+r = await api(v, "/api/prism/reports/latest?symbol=RELIANCE");
+check("1a visitor: latest RELIANCE (showcase) is open: 404 none, not 403", r.status === 404 && r.body.status === "none", JSON.stringify(r.body));
+r = await api(v, "/api/prism/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ symbol: "TCS" }) });
+check("1a visitor: POST generate TCS -> 403", r.status === 403, JSON.stringify(r.body));
+await v.goto(BASE + "/stocks/RELIANCE", { waitUntil: "networkidle" });
+await shot(v, "1a-visitor-stock-RELIANCE-showcase");
+const txt = await v.locator("body").innerText();
+check("1a visitor showcase stock page mentions Prism", /FinLit Prism/.test(txt));
+check("1a visitor stock page no errors", v.errs.length === 0, v.errs.join(" | "));
+
+const m = await newPage(b);
+await login(m, "basic@test.example");
+r = await api(m, "/api/prism/reports/latest?symbol=TCS");
+check("1a basic: latest TCS -> 403 plan_required", r.status === 403 && r.body.status === "plan_required", JSON.stringify(r.body));
+r = await post(m, "/api/prism/reports", { symbol: "TCS", statement: "consolidated" });
+check("1a basic: POST generate TCS -> 403 plan_required", r.status === 403 && r.body.status === "plan_required", JSON.stringify(r.body));
+r = await api(m, "/api/prism/reports/" + "a".repeat(32) + "/pdf");
+check("1a basic: pdf of unknown id -> 404", r.status === 404, JSON.stringify(r.body));
+await b.close();
+save("s1a");
+process.exit(failures() ? 1 : 0);

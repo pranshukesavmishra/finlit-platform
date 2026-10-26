@@ -39,11 +39,11 @@ function Ring({ value, color }: { value: number | null; color: string }) {
 function Tiles({ r, example = false }: { r: PrismLatest["rating"]; example?: boolean }) {
   const { parts, technicalSoon } = partsOf(r);
   return (
-    <div className="pillars pz-parts" role="group" aria-label={example ? "The four parts of a Prism rating (example numbers)" : "The parts of the Prism rating"}>
+    <div className="pillars pzs-parts" role="group" aria-label={example ? "The four parts of a Prism rating (example numbers)" : "The parts of the Prism rating"}>
       {parts.map((p, i) => {
         const [word, tone] = partWord(p.value);
         return (
-          <div key={p.key} className="ptile pz-t" style={{ "--pc": `var(${p.color})` } as React.CSSProperties} role="group"
+          <div key={p.key} className="ptile pzs-t" style={{ "--pc": `var(${p.color})` } as React.CSSProperties} role="group"
             aria-label={p.value == null ? `${p.name}: no data` : `${p.name}: ${Math.round(p.value)} out of 100, ${word.toLowerCase()}. ${p.weight}% of the score`}>
             <div className="pt-top"><span className="pt-share">{p.weight}% of score</span><Ring value={p.value} color={p.color} /></div>
             <div className="pt-name">{p.name}</div>
@@ -52,7 +52,7 @@ function Tiles({ r, example = false }: { r: PrismLatest["rating"]; example?: boo
           </div>
         );
       })}
-      {technicalSoon && <div className="ptile pz-t pz-soon" style={{ "--pc": "var(--p-tech)" } as React.CSSProperties}><div className="pt-name">Technical</div><span className="vd na">Coming soon</span><div className="pt-ev">Technical: coming soon. The model has no technical part yet.</div></div>}
+      {technicalSoon && <div className="ptile pzs-t pz-soon" style={{ "--pc": "var(--p-tech)" } as React.CSSProperties}><div className="pt-name">Technical</div><span className="vd na">Coming soon</span><div className="pt-ev">Technical: coming soon. The model has no technical part yet.</div></div>}
     </div>
   );
 }
@@ -63,10 +63,10 @@ function Notes({ r }: { r: PrismLatest }) {
   const pros = items(r, "pros"), cons = items(r, "cons");
   if (!pros.length && !cons.length) return null;
   const col = (tone: "pro" | "con", list: typeof pros) => (
-    <div className={"pz-pc " + tone}><div className="kt"><Icon name={tone === "pro" ? "check" : "alert"} />{tone === "pro" ? "Supports the rating" : "Holds it back"}</div>
+    <div className={"pzs-pc " + tone}><div className="kt"><Icon name={tone === "pro" ? "check" : "alert"} />{tone === "pro" ? "Supports the rating" : "Holds it back"}</div>
       {list.length ? <ul>{list.map((i) => <li key={i.metric}><b>{i.label}</b><small>{i.summary}</small></li>)}</ul> : <p className="faint">Nothing stands out.</p>}</div>
   );
-  return <div className="pz-notes">{col("pro", pros)}{col("con", cons)}</div>;
+  return <div className="pzs-notes">{col("pro", pros)}{col("con", cons)}</div>;
 }
 
 function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardState, { kind: "locked" | "hidden" }>; symbol: string; statement: string; name: string }) {
@@ -76,17 +76,17 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
     onSuccess: (report) => { const next: PrismCardState = { kind: "report", report }; qc.setQueryData(["prism-latest", symbol, statement], next); },
   });
   const busy = run.isPending;
-  const status = busy ? <p className="pz-busy" role="status"><span className="pz-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This can take up to two minutes; you can keep reading.</p>
+  const status = busy ? <p className="pz-busy" role="status"><span className="pzs-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This can take up to two minutes; you can keep reading.</p>
     : run.isError ? <p className="pz-err" role="alert"><Icon name="alert" />{generateFailure(run.error)}</p> : null;
   if (state.kind === "none") return (
     <>
-      <div className="pz-empty">
+      <div className="pzs-empty">
         <h3>No Prism rating for {name} yet</h3>
         <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which takes up to two minutes the first time. Nothing is calculated until you ask, and the result then stays stored here.</p>
         <button className="btn primary" disabled={busy} onClick={() => run.mutate(false)}>{busy ? "Calculating…" : "Generate the Prism rating"} <Icon name="arrow" /></button>
         {status}
       </div>
-      <Link className="pz-link" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page for {symbol}</Link>
+      <Link className="pzs-link" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page for {symbol}</Link>
     </>
   );
   const rep = state.report, r = rep.rating, rated = r.status !== "NOT RATED" && r.final != null, [word, tone] = LABEL[r.label];
@@ -95,14 +95,14 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       <div className="pz-main" role="group" aria-label={prismSummary(r)}>
         <div className="pz-score">{rated ? <><b>{fmtScore(r.final as number)}</b><span>out of 100</span></> : <b className="pz-nr">Not rated</b>}</div>
         <div className="pz-words">
-          <div className="pz-chips"><span className={"vd " + tone}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span></div>
+          <div className="pzs-chips"><span className={"vd " + tone}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span></div>
           <p>{STATUS_NOTE[r.status]}</p>
-          <p className="pz-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
+          <p className="pzs-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
         </div>
       </div>
       <Tiles r={r} />
       <Notes r={rep} />
-      <div className="pz-foot">
+      <div className="pzs-foot">
         <span><Icon name="calendar" />Calculated {dateIN(rep.completedAt || rep.createdAt)} · {rep.statementType === "standalone" ? "Standalone" : "Consolidated"}</span>
         <span className="pz-act">
           <button className="btn" disabled={busy} onClick={() => run.mutate(true)}>{busy ? "Calculating…" : "Recalculate"}</button>
@@ -131,7 +131,7 @@ export function PrismCompare({ symbol, name, statement }: { symbol: string; name
         <OpenAccess.Provider value={false}>
           <Gate tier="gold" title="Unlock FinLit Prism" points={PRISM_POINTS}>
             {head("Example")}
-            <div className="pz-body"><div className="pz-main"><div className="pz-score"><b>{fmtScore(EXAMPLE.final as number)}</b><span>out of 100</span></div><div className="pz-words"><div className="pz-chips"><span className="vd healthy">Healthy</span><span className="pz-status rated">Rated</span></div><p>Example numbers, to show the layout.</p></div></div><Tiles r={EXAMPLE} example /></div>
+            <div className="pz-body"><div className="pz-main"><div className="pz-score"><b>{fmtScore(EXAMPLE.final as number)}</b><span>out of 100</span></div><div className="pz-words"><div className="pzs-chips"><span className="vd healthy">Healthy</span><span className="pz-status rated">Rated</span></div><p>Example numbers, to show the layout.</p></div></div><Tiles r={EXAMPLE} example /></div>
           </Gate>
         </OpenAccess.Provider>
       ) : (
