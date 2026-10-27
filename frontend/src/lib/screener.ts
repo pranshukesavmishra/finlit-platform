@@ -17,9 +17,9 @@ export function useUniverse(enabled = true) {
   return useQuery({
     queryKey: ["universe"], staleTime: 300_000, retry: 1, enabled,
     queryFn: async () => {
-      const d = await apiGet<{ rows: Row[]; sample?: boolean }>("/api/screener/universe");
+      const d = await apiGet<{ rows: Row[]; sample?: boolean; as_of?: string | null }>("/api/screener/universe");
       const rows: Row[] = d.rows.map((r) => ({ ...r, name: r.name || r.symbol }));
-      return { rows, sample: !!d.sample || rows.some((r) => r.sample) };
+      return { rows, sample: !!d.sample || rows.some((r) => r.sample), asOf: d.as_of ?? null };
     },
   });
 }

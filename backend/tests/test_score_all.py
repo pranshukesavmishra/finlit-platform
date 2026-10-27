@@ -64,7 +64,9 @@ async def test_prune_drops_the_heavy_part_and_keeps_every_score(ingested):
 
 
 async def test_the_universe_lists_every_company_scored_or_not(api):
-    rows = (await api.get("/api/screener/universe")).json()["rows"]
+    body = (await api.get("/api/screener/universe")).json()
+    rows = body["rows"]
+    assert len(body["as_of"]) == 10 and body["as_of"][4] == "-"      # the day the newest score was computed (the score screener states it)
     assert len(rows) > 5000                            # the whole symbol list, not just the stored reports
     by = {r["symbol"]: r for r in rows}
     assert by["RELIANCE"]["scored"] is True and by["RELIANCE"]["overall"] is not None
