@@ -21,10 +21,16 @@ import { useUI, type Plan } from "../lib/ui";
 import { Plain } from "../components/Plain";
 
 const css = (v: string) => `var(${v})`;
+/** Section header. A numbered section ("01 · Company overview") shows its number large, a thin rule, then the small label and the title; a section
+ *  without a number (Chart lab, Leadership) keeps its icon tile. */
 export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: string; no: string; icon: string; tier?: "basic" | "silver" | "gold"; title: string; sub?: string; color: string }) {
+  const m = /^(\d{1,2})\s*·\s*(.+)$/.exec(no);
   return (
     <div className="sh" id={id} style={{ "--sc": `var(${color})` } as React.CSSProperties}>
-      <div className="sh-l"><div className="sh-ic"><Icon name={icon} /></div><div><div className="no">{no} {tier && <TierChip tier={tier} />}</div><h2>{title}</h2></div></div>
+      <div className="sh-l">
+        {m ? <><span className="sh-n" aria-hidden="true">{m[1]}</span><span className="sh-rule" aria-hidden="true" /></> : <div className="sh-ic"><Icon name={icon} /></div>}
+        <div><div className="no">{m ? m[2] : no} {tier && <TierChip tier={tier} />}</div><h2>{title}</h2></div>
+      </div>
       {sub && <p className="hide-sm">{sub}</p>}
     </div>
   );

@@ -315,6 +315,10 @@ section.block { padding-block: 64px 0; }
 .sh-l { display: flex; gap: 16px; align-items: center; min-width: 0; }
 .sh-ic { width: 48px; height: 48px; flex: none; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, color-mix(in srgb, var(--sc) 80%, #fff), var(--sc) 55%, color-mix(in srgb, var(--sc) 70%, #000)); box-shadow: 0 12px 26px -12px var(--sc); }
 .sh-ic svg { width: 22px; height: 22px; }
+.sh-n { font: 400 64px/1 var(--serif); letter-spacing: -.03em; color: var(--sc); flex: none; font-variant-numeric: lining-nums; }
+.sh-rule { width: 1px; align-self: stretch; min-height: 52px; background: var(--border-strong, var(--border)); flex: none; }
+.sh-l:has(.sh-n) { gap: 18px; }
+.sh-l:has(.sh-n) h2 { font-size: 38px; }
 .sh .no { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: var(--sc); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
 h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.015em; }
 .sh p { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
@@ -660,6 +664,7 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
   section.block { padding-top: 48px; }
   h2 { font-size: 28px; }
   .sh-ic { width: 42px; height: 42px; }
+  .sh-n { font-size: 44px; } .sh-rule { min-height: 40px; } .sh-l:has(.sh-n) { gap: 12px; } .sh-l:has(.sh-n) h2 { font-size: 28px; }
   .divs { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 22px; }
   .divs::before { display: none; }
   .peer { grid-template-columns: 40px minmax(0, 1fr) 110px; }
