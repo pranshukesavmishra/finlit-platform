@@ -86,7 +86,7 @@ PROFIT_TURNAROUND_POINTS = 70   # v3.6: only when the latest figure is a profit
 LOSS_NARROWED_POINTS = 30       # v3.6: still a loss, but smaller than before
 CASH_LOSS_POINTS = {"cash_positive": 50, "cash_negative": 0}   # v3.6: cash conversion when 3-year profit <= 0
 IC_NOT_APPLICABLE_DE = 0.1      # v3.6: interest cover is dropped when debt/equity is below this
-PEG_CORE_GROUPS = ("LIGHT", "MFG")    # PEG always used (when P/E exists)
+PEG_CORE_GROUPS = ("LIGHT", "MFG", "BANK")    # PEG always used (when P/E exists). BANK added at the owner's request (October 2026): banks such as Kotak lost PEG to the six-quarter rule
 # v3.6 fill for a metric with no data: the lower of the group median and 50 (FILL_DEFAULT).
 # Medians of actual points across 1,146 NSE stocks (m-cap >= Rs 2,000 Cr), 13-14 Oct 2026; only those below 50 listed.
 FILL_DEFAULT = 50.0

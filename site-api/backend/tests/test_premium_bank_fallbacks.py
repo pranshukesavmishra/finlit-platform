@@ -169,3 +169,17 @@ def test_bank_valuation_fallbacks_and_financial_quality_replacement_reconcile():
     assert other['INTEREST_COVER']['points']==50
     assert other['PB_VS_INDUSTRY']['status']=='F'
     assert GROUPS==before
+
+
+def test_bank_peg_is_a_core_factor_even_without_a_six_quarter_profit_streak(monkeypatch):
+    """Owner's request (October 2026): a bank such as Kotak gets PEG whenever P/E exists and profit growth is positive; it no longer needs
+    six good profit quarters. A group outside the core list keeps the six-quarter rule (shown here by taking BANK out of the core list)."""
+    from backend import premium_engine
+    d = inputs()
+    d['net_profit_q'] = [100.0] * 14            # no quarter grew on the year before: a streak of zero
+    d['net_profit_y'] = [100.0, 130.0]          # but profit growth is positive
+    peg = next(r for r in score_company(d, 'BANK')['metrics'] if r['metric'] == 'PEG')
+    assert peg['status'] == 'A' and peg['value'] is not None and peg['weight'] == 20
+    monkeypatch.setattr(premium_engine, 'PEG_CORE_GROUPS', ('LIGHT', 'MFG'))
+    peg = next(r for r in score_company(d, 'BANK')['metrics'] if r['metric'] == 'PEG')
+    assert peg['status'] == 'N'

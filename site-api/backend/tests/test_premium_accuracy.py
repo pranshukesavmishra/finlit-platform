@@ -228,6 +228,10 @@ def test_documented_scoring_matches_supplied_owner_code(case,monkeypatch):
         previous='SOLVENCY' if case['group']=='INSURANCE' else 'CAPITAL_ADEQUACY'
         legacy[case['group']]['weights']['quality']={previous if k in ('INTEREST_COVER','FINANCIAL_LEVERAGE') else k:v for k,v in weights.items()}
         monkeypatch.setattr(premium_engine,'GROUPS',legacy)
+    if case['group']=='BANK':
+        from backend import premium_engine
+        # The oracle also predates the owner's October 2026 request that PEG is a core factor for banks.
+        monkeypatch.setattr(premium_engine,'PEG_CORE_GROUPS',('LIGHT','MFG'))
     actual=score_company(case['input'],case['group'])
     expected=case['expected']
     assert actual['final']==pytest.approx(expected['final'],abs=1e-6)
