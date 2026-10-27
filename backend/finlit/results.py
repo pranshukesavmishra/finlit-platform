@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 import orjson
-from fastapi import APIRouter, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from .auth.entitlements import has
 from .auth.routes import NO_STORE, fail
@@ -601,6 +601,107 @@ def select(rows: List[dict], *, q: str = "", sector: str = "", cap: str = "", in
     return sorted(known, key=lambda r: (r[key], r["date"]), reverse=desc) + sorted(rest, key=lambda r: (r["date"], mcap(r)), reverse=True)
 
 
+# ------------------------------------------------------------------ growth filters (QoQ / YoY thresholds)
+# metric -> (row field for the quarter-on-quarter growth, row field for the year-on-year growth). The filter reads the SAME rounded figures the table shows.
+GROWTH_FIELDS = {"revenue": ("revenueQoQ", "revenueYoY"), "operatingProfit": ("opQoQ", "opYoY"), "netProfit": ("profitQoQ", "profitYoY")}
+GROWTH_OPS = {">=": ">=", ">": ">", "<=": "<=", "<": "<", "ge": ">=", "gt": ">", "le": "<=", "lt": "<"}
+_NUM_RE = re.compile(r"^[+-]?(\d+(\.\d*)?|\.\d+)$")
+MAX_GROWTH = 1_000_000.0
+
+
+@dataclass(frozen=True)
+class GrowthCond:
+    metric: str
+    op: str
+    value: float
+
+
+@dataclass(frozen=True)
+class GrowthSpec:
+    qoq: Optional[GrowthCond] = None
+    yoy: Optional[GrowthCond] = None
+    join: str = "and"
+
+    @property
+    def active(self) -> bool:
+        return self.qoq is not None or self.yoy is not None
+
+
+def _cond(label: str, metric: str, op: str, value: str) -> Optional[GrowthCond]:
+    """One filter from its three query values. Empty value = filter off (metric and operator are still checked). Anything else wrong is a 400."""
+    metric, op, value = (metric or "").strip(), (op or "").strip(), (value or "").strip()
+    if metric and metric not in GROWTH_FIELDS:
+        raise fail(400, "bad_request", f"The {label} metric must be one of revenue, operatingProfit or netProfit.")
+    if op and op not in GROWTH_OPS:
+        raise fail(400, "bad_request", f"The {label} operator must be one of >=, >, <= or <.")
+    if value == "":
+        return None
+    if not metric or not op:
+        raise fail(400, "bad_request", f"Choose a metric and an operator for the {label} growth filter, or clear its value.")
+    if not _NUM_RE.match(value):
+        raise fail(400, "bad_request", f"The {label} growth value must be a plain number such as 1, -2.5 or 12.")
+    x = float(value)
+    if x != x or abs(x) > MAX_GROWTH:
+        raise fail(400, "bad_request", f"The {label} growth value is out of range.")
+    return GrowthCond(metric, GROWTH_OPS[op], x)
+
+
+def growth_params(qoqMetric: str = Query("", max_length=20), qoqOp: str = Query("", max_length=3), qoqValue: str = Query("", max_length=20),
+                  yoyMetric: str = Query("", max_length=20), yoyOp: str = Query("", max_length=3), yoyValue: str = Query("", max_length=20),
+                  join: str = Query("", max_length=3)) -> GrowthSpec:
+    j = (join or "and").strip().lower()
+    if j not in ("and", "or"):
+        raise fail(400, "bad_request", "The join must be and or or.")
+    return GrowthSpec(_cond("QoQ", qoqMetric, qoqOp, qoqValue), _cond("YoY", yoyMetric, yoyOp, yoyValue), j)
+
+
+def _meets(r: dict, c: Optional[GrowthCond], idx: int) -> bool:
+    """True only when the row HAS the growth figure and it passes. A missing figure never passes (not even for '<' or a negative limit)."""
+    if c is None or not r.get("hasNumbers"):
+        return False
+    v = r.get(GROWTH_FIELDS[c.metric][idx])
+    if v is None:
+        return False
+    return {">=": v >= c.value, ">": v > c.value, "<=": v <= c.value, "<": v < c.value}[c.op]
+
+
+def growth_filter(rows: List[dict], spec: GrowthSpec) -> Tuple[List[dict], Optional[Dict[str, Any]]]:
+    """Rows that pass the growth filters (order kept), and the four-way summary over EVERY company with figures in `rows` (before paging).
+    both + onlyQoQ + onlyYoY + neither == withFigures. With one filter on, the other side never passes: both and its 'only' are 0."""
+    if not spec.active:
+        return rows, None
+    both_on = spec.qoq is not None and spec.yoy is not None
+    flags = [(_meets(r, spec.qoq, 0), _meets(r, spec.yoy, 1)) for r in rows]
+    out = [r for r, (a, b) in zip(rows, flags) if (a and b if both_on and spec.join == "and" else a or b)]
+    base = [(r, f) for r, f in zip(rows, flags) if r.get("hasNumbers")]
+    both = sum(1 for _, (a, b) in base if a and b)
+    only_q = sum(1 for _, (a, b) in base if a and not b)
+    only_y = sum(1 for _, (a, b) in base if b and not a)
+    miss = lambda c, idx: sum(1 for r, _ in base if c is not None and r.get(GROWTH_FIELDS[c.metric][idx]) is None)   # noqa: E731
+    summary = {"qoq": spec.qoq is not None, "yoy": spec.yoy is not None, "join": spec.join, "withFigures": len(base), "both": both, "onlyQoQ": only_q, "onlyYoY": only_y,
+               "neither": len(base) - both - only_q - only_y, "matching": len(out), "qoqMissing": miss(spec.qoq, 0), "yoyMissing": miss(spec.yoy, 1)}
+    return out, summary
+
+
+TOP_SECTORS = 7
+CAP_ORDER = ("Large", "Mid", "Small")
+
+
+def distribution(rows: List[dict]) -> Dict[str, Any]:
+    """Sector (top few + Others) and market-cap-band counts over `rows`. Names and sizes only: no figure, so every plan may see it."""
+    sec: Dict[str, int] = {}
+    for r in rows:
+        if r.get("sector"):
+            sec[r["sector"]] = sec.get(r["sector"], 0) + 1
+    ranked = sorted(sec.items(), key=lambda kv: (-kv[1], kv[0]))
+    top, rest = ranked[:TOP_SECTORS], ranked[TOP_SECTORS:]
+    others = sum(n for _, n in rest) + sum(1 for r in rows if not r.get("sector"))
+    sectors = [{"name": k, "n": n} for k, n in top] + ([{"name": "Others", "n": others}] if others else [])
+    caps = [{"name": c, "n": sum(1 for r in rows if r.get("cap") == c)} for c in CAP_ORDER]
+    caps.append({"name": "Not classified", "n": sum(1 for r in rows if r.get("cap") not in CAP_ORDER)})
+    return {"total": len(rows), "sectors": sectors, "caps": [c for c in caps if c["n"]]}
+
+
 async def _symbols_of(request: Request, ctx, scope: str) -> Optional[set]:
     if scope == "all":
         return None
@@ -668,12 +769,14 @@ def date_facts(decls: Dict[str, Dict[str, Decl]], rng: Tuple[date, date], qkey: 
 
 
 async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str, index: str, scope: str, flagged: bool, status: str, sort: str, dir_: str,
-                  on: str = "", frm: str = "", to: str = ""):
+                  on: str = "", frm: str = "", to: str = "", growth: Optional[GrowthSpec] = None):
     ctx = await current(request)
     plan = ctx.plan if ctx.authed else "basic"
     silver = has(plan, "silver")
     if (sort in NUMERIC_SORTS or flagged) and not silver:
         raise fail(403, "plan_required", "Sorting and filtering by results figures is part of the Silver plan.", plan="silver")
+    if growth is not None and growth.active and not silver:
+        raise fail(403, "plan_required", "Filtering by growth is part of the Silver plan.", plan="silver")
     store = request.app.state.store
     today = today_ist()
     rng = parse_range(on, frm, to, today)
@@ -692,14 +795,15 @@ async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str,
             qkey = guess if guess in {x["key"] for x in quarters} else None
     qkey = qkey or default_quarter(quarters, today)
     if qkey is None:
-        return ctx, plan, quarters, None, [], [], today, None
+        return ctx, plan, quarters, None, [], [], today, None, None
     if parse_quarter(qkey) is None:
         raise fail(400, "bad_request", "Quarter must look like 2026-09 (a quarter-end month: 03, 06, 09 or 12).")
     entry = await get_entry(store, qkey)
     syms = await _symbols_of(request, ctx, scope)
     rows = select(entry.rows, q=q, sector=sector, cap=cap, index=index, symbols=syms, flagged=flagged, status=status, sort=sort, desc=dir_ == "desc", today=today.isoformat(),
                   date_from=rng[0].isoformat() if rng else "", date_to=rng[1].isoformat() if rng else "")
-    return ctx, plan, quarters, entry, rows, entry.rows, today, (date_facts(decls, rng, qkey) if rng else None)
+    rows, gsum = growth_filter(rows, growth or GrowthSpec())
+    return ctx, plan, quarters, entry, rows, entry.rows, today, (date_facts(decls, rng, qkey) if rng else None), gsum
 
 
 def _dump(body: dict) -> Response:
@@ -712,16 +816,18 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
                           scope: str = Query("all", pattern="^(all|watchlist|portfolio)$"), flagged: bool = False,
                           status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
                           offset: int = Query(0, ge=0, le=20000), limit: int = Query(PAGE, ge=1, le=100),
-                          on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10)):
+                          on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10),
+                          growth: GrowthSpec = Depends(growth_params)):
     """One quarter's results, newest declaration first. Without `quarter` the latest quarter with declarations is used."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     started = time.perf_counter()
-    ctx, plan, quarters, entry, rows, all_rows, today, dates = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to)
+    ctx, plan, quarters, entry, rows, all_rows, today, dates, gsum = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth)
     silver = has(plan, "silver")
     if entry is None:
         return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": None, "quarters": quarters, "rows": [], "total": 0, "offset": 0, "limit": limit,
-                      "summary": summarize([], today), "totals": summarize([], today), "days": [], "facets": {"sectors": [], "indices": []}, "dates": dates})
+                      "summary": summarize([], today), "totals": summarize([], today), "days": [], "facets": {"sectors": [], "indices": []}, "dates": dates,
+                      "growth": None, "distribution": distribution([])})
     page = rows[offset: offset + limit]
     out_rows = page if silver else [strip_figures(r) for r in page]
     summary = summarize(rows, today)
@@ -736,7 +842,7 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
     return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": entry.quarter, "quarters": quarters, "total": len(rows), "offset": offset, "limit": limit,
                   "summary": summary, "totals": totals, "rows": out_rows, "days": [{"date": d, "n": n} for d, n in sorted(per_day.items(), reverse=True)], "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(entry.loaded)),
                   "facets": {"sectors": [{"name": n, "n": c} for n, c in entry.sectors], "indices": [{"code": c, "n": n} for c, n in idx_counts.items()]},
-                  "dates": dates, "dateMeaning": DATE_MEANING, "gapFlag": GAP_FLAG, "took": round((time.perf_counter() - started) * 1000, 1)})
+                  "dates": dates, "dateMeaning": DATE_MEANING, "gapFlag": GAP_FLAG, "growth": gsum, "distribution": distribution(rows), "took": round((time.perf_counter() - started) * 1000, 1)})
 
 
 @router.get("/quarter/export")
@@ -744,12 +850,13 @@ async def quarter_export(request: Request, quarter: str = Query("", max_length=7
                          cap: str = Query("", pattern="^(Large|Mid|Small)?$"), index: str = Query("", pattern="^(NIFTY50|NIFTY100|NIFTY500)?$"),
                          scope: str = Query("all", pattern="^(all|watchlist|portfolio)$"), flagged: bool = False,
                          status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
-                         on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10)):
+                         on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10),
+                         growth: GrowthSpec = Depends(growth_params)):
     """The same rows without paging, as JSON the website turns into a CSV (Silver and Gold)."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     ctx = await current(request)
     if not has(ctx.plan if ctx.authed else "basic", "silver"):
         raise fail(403, "plan_required", "Downloading the quarter's results is part of the Silver plan.", plan="silver")
-    _, _, _, entry, rows, _, today, _ = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to)
+    _, _, _, entry, rows, _, today, _, _ = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth)
     return _dump({"quarter": entry.quarter if entry else None, "today": today.isoformat(), "rows": rows[:EXPORT_ROWS]})
