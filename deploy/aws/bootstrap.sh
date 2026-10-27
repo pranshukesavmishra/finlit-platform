@@ -28,7 +28,7 @@ sudo -n true 2>/dev/null || sudo true || die "this user cannot use sudo."
 [ "${VERSION_ID:-}" = "24.04" ] || echo "WARNING: tested on Ubuntu 24.04, this is ${VERSION_ID:-?}. Continuing."
 [ "$(dpkg --print-architecture)" = amd64 ] || echo "WARNING: written for x86_64; this is $(dpkg --print-architecture)."
 ME="$(id -un)"
-APT=(sudo env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confold -y)
+APT=(sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confold -y)
 
 if [ -n "$ADMIN_IP" ]; then
   printf '%s' "$ADMIN_IP" | grep -Eq '^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$' || die "ADMIN_IP must be an IPv4 address like 203.0.113.7 (or a range like 203.0.113.0/24)."
