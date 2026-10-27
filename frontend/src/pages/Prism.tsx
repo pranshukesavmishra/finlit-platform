@@ -87,6 +87,11 @@ function CompanyView({ symbol, statement }: { symbol: string; statement: Stateme
   };
   useDocTitle(report ? `${report.company.name} ${PRISM_NAME}` : `${symbol} ${PRISM_NAME}`, `FinLit Prism financial-health rating for ${symbol}.`);
   const busy = calc.phase === "working";
+  // No stored rating: calculate it as soon as the page opens (once per company; a failure shows its message and a retry button).
+  const autoRan = useRef("");
+  useEffect(() => {
+    if (!latest.isLoading && !latest.isError && !report && calc.phase === "idle" && !down && autoRan.current !== `${symbol}|${statement}`) { autoRan.current = `${symbol}|${statement}`; run(false); }
+  }, [latest.isLoading, latest.isError, report, calc.phase, down, symbol, statement]);   // eslint-disable-line react-hooks/exhaustive-deps
   const expired = pdfErr?.kind === "expired";
   return (
     <div aria-busy={busy || latest.isLoading}>
@@ -101,7 +106,7 @@ function CompanyView({ symbol, statement }: { symbol: string; statement: Stateme
         <div className="card pzr-card pzr-empty-card">
           <div className="pzr-ico"><Icon name="prism" /></div>
           <h3>No {PRISM_NAME} rating for {symbol} yet</h3>
-          <p>Calculate it from the company's latest filings and prices. It usually takes under half a minute and counts as one of your 20 calculations today. {statementWord(statement)} statements.</p>
+          <p>It is calculated from the company's latest filings and prices; this usually takes under half a minute. {statementWord(statement)} statements.</p>
           <button type="button" className="btn primary lg" disabled={!!down} onClick={() => run(false)}><Icon name="prism" />Generate the Prism rating</button>
           <p className="pzr-note">{PRISM_NOTE}</p>
         </div>

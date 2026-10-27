@@ -3,8 +3,8 @@
 // The left half uses the same row grid, so the two halves line up. The full lists live in PrismDetail, which the page shows under the pair
 // when the person presses "Show full breakdown".
 // Gold members (and everyone on a free example company) see the newest stored rating; others see a locked teaser.
-// Nothing is calculated here unless the person presses a button. Anything unexpected hides the half and the score fills the row.
-import { useContext } from "react";
+// A company with no stored rating is calculated automatically when the page opens; recalculating is a button. Anything unexpected hides the half and the score fills the row.
+import { useContext, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "../lib/icons";
@@ -68,6 +68,12 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
     onSuccess: (report) => { const next: PrismCardState = { kind: "report", report }; qc.setQueryData(["prism-latest", symbol, statement], next); qc.invalidateQueries({ queryKey: ["prism", "latest", symbol] }); },
   });
   const busy = run.isPending;
+  // A company with no stored rating is calculated as soon as the page opens (once per company; a failure shows its message and a retry button).
+  const started = useRef("");
+  const key = `${symbol}|${statement}`;
+  useEffect(() => {
+    if (state.kind === "none" && started.current !== key && !run.isPending) { started.current = key; run.mutate(false); }
+  }, [state.kind, key]);   // eslint-disable-line react-hooks/exhaustive-deps
   const status = busy ? <p className="pz-busy" role="status"><span className="pzs-spin" aria-hidden="true" />Calculating the rating from the latest filings and prices. This usually takes under half a minute; you can keep reading.</p>
     : run.isError ? <p className="pz-err" role="alert"><Icon name="alert" />{generateFailure(run.error)}</p> : null;
   if (state.kind === "none") return (
@@ -75,9 +81,9 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       <PrismGlyph parts={PRISM_PARTS.map(([k, n, w, c]) => ({ key: k, name: n, weight: w, value: null, color: c }))} score={null} size={120} />
       <div className="dk-empty-t">
         <h3>No Prism rating for {name} yet</h3>
-        <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which usually takes under half a minute the first time. Nothing is calculated until you ask, and the result then stays stored here.</p>
+        <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which usually takes under half a minute the first time. It is being calculated now and the result then stays stored here.</p>
         <div className="dk-empty-a">
-          <button className="btn primary dk-b" disabled={busy} onClick={() => run.mutate(false)}>{busy ? "Calculating…" : "Generate the Prism rating"} <Icon name="arrow" /></button>
+          <button className="btn primary dk-b" disabled={busy} onClick={() => run.mutate(false)}>{busy ? "Calculating…" : run.isError ? "Try again" : "Generate the Prism rating"} <Icon name="arrow" /></button>
           <Link className="pzs-link" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page for {symbol}</Link>
         </div>
         {status}
