@@ -47,6 +47,7 @@ from . import flows as flows_api
 from . import fundjobs, sysctl, wake
 from . import options as options_api
 from .auth import routes as auth_routes
+from .mcp import server as mcp_server
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
 from .auth.mailer import ConsoleMailer, ResendMailer
 from .auth.service import current
@@ -579,6 +580,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(dcf_api.router)
     app.include_router(options_api.router)
     app.include_router(results_api.router)
+    app.include_router(mcp_server.router)   # POST /mcp (MCP for AI assistants) and /.well-known/mcp.json: before the site-backend catch-all and the website
+    app.include_router(mcp_server.admin)   # /api/admin/mcp-stats
     app.include_router(prism.router)   # /api/prism/*: the members' door to the site backend's administrator-only /api/premium-reports
     if settings.site_api_url:
         register_catch_all(app, settings.site_api_url)  # last: everything the research API does not own

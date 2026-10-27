@@ -9,6 +9,8 @@ const SITE = process.env.SITE_API || "http://127.0.0.1:8001";
 const proxy: Record<string, ProxyOptions> = {
   "^/api/stocks/admin": { target: SITE, changeOrigin: true },
   "^/api/(stocks|screener|results|health|ping|auth|me|admin|ipos|feed|alerts|notifications|premium|notify|indices|compare|forum|graphs|advanced|etf|mf|dcf|search|logos|client-errors|macro|markets|flows|options|commodity-prices|prism)": { target: RESEARCH, changeOrigin: true },
+  "^/mcp$": { target: RESEARCH, changeOrigin: true, bypass: (req) => (req.method === "GET" && (req.headers.accept || "").includes("text/html") ? "/index.html" : undefined) },   // MCP endpoint for AI assistants; a browser opening /mcp gets the page
+  "^/.well-known/mcp.json": { target: RESEARCH, changeOrigin: true },
   "/api": { target: SITE, changeOrigin: true },
 };
 

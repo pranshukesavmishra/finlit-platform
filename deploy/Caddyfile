@@ -9,7 +9,7 @@
 	encode zstd gzip
 
 	# Research service (fast, precomputed stock reports)
-	@research path /api/stocks/search-index /api/markets/* /api/client-errors /api/macro /api/flows /api/admin/flows /api/admin/flows/* /api/search/* /api/logos/* /api/screener/* /api/results/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit /api/ipos /api/feed /api/admin/feed /api/admin/feed/* /api/admin/ipos /api/admin/ipos/* /api/admin/data-health /api/compare/* /api/forum/* /api/admin/forum/* /api/etf/* /api/mf/* /api/mf-compare /api/mf-compare/* /api/advanced/* /api/dcf/* /api/options/* /api/commodity-prices /api/prism/*
+	@research path /mcp /.well-known/mcp.json /api/admin/mcp-stats /api/stocks/search-index /api/markets/* /api/client-errors /api/macro /api/flows /api/admin/flows /api/admin/flows/* /api/search/* /api/logos/* /api/screener/* /api/results/* /api/health /api/auth/* /api/me /api/me/* /api/admin/users /api/admin/users/* /api/admin/plan-requests /api/admin/plan-requests/* /api/admin/audit /api/ipos /api/feed /api/admin/feed /api/admin/feed/* /api/admin/ipos /api/admin/ipos/* /api/admin/data-health /api/compare/* /api/forum/* /api/admin/forum/* /api/etf/* /api/mf/* /api/mf-compare /api/mf-compare/* /api/advanced/* /api/dcf/* /api/options/* /api/commodity-prices /api/prism/*
 	handle @research {
 		reverse_proxy research-api:8000
 	}
