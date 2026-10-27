@@ -223,7 +223,7 @@ async def load_contracts(store) -> List[dict]:
     out = [{"security_id": r["security_id"], "symbol": r["symbol"], "display_name": r["display_name"], "expiry": r["expiry"].isoformat(),
             "upper": str(r["upper_limit"]) if r["upper_limit"] is not None else None, "lower": str(r["lower_limit"]) if r["lower_limit"] is not None else None} for r in rows]
     try:
-        await redis.set(K_CONTRACTS, json.dumps(out), ex=86400 if out else 300)   # the daily instrument load clears it when the file is reloaded
+        await redis.set(K_CONTRACTS, json.dumps(out), ex=86400 if out else 6 * 3600)   # the instrument load (refresh-instruments) deletes it when the file is reloaded; an empty answer is not asked again every 5 minutes (that kept Neon awake)
     except Exception:
         pass
     return out
@@ -288,7 +288,9 @@ class Worker:
             await self.store.redis.set(K_HB, str(time.time()), ex=600)
         except Exception:
             pass
-        if self._is_due("cfg", 6 * 3600, mono):          # duty, hours and holidays change a few times a year: not every few minutes, so the free database can sleep
+        # Duty rates, hours and holidays change a few times a year. They are kept in Redis and read from Postgres only when that copy is over a day old
+        # (and then at most once an hour if the database does not answer), so this loop does not keep the free database awake.
+        if (not self.cfg or time.time() - float(self.cfg.get("t") or 0) > 24 * 3600) and self._is_due("cfg", 3600, mono):
             try:
                 self.cfg = await load_cfg(self.store)
                 await self._save(K_CFG, self.cfg)

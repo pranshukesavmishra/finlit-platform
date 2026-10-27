@@ -136,7 +136,7 @@ function Audit() {
 }
 
 function Health() {
-  const q = useQuery({ queryKey: ["admin-health"], queryFn: acct.adminHealth, retry: false, refetchInterval: 15_000 });
+  const q = useQuery({ queryKey: ["admin-health"], queryFn: acct.adminHealth, retry: false, refetchInterval: 300_000 });
   if (q.isError) return <div className="formerr">{msg(q.error)}</div>;
   const h = q.data;
   if (!h) return <div className="skeleton" style={{ height: 160 }} />;
@@ -147,7 +147,19 @@ function Health() {
       <p className="muted">How much of the market is loaded from FinEdge. Companies load in the background; any company a visitor opens is queued first.</p>
       <div className="hstat"><div><b>{h.universe.toLocaleString("en-IN")}</b><span>companies in the universe</span></div><div><b>{h.loaded.toLocaleString("en-IN")}</b><span>loaded ({pct}%)</span></div><div><b>{h.scored.toLocaleString("en-IN")}</b><span>with a FinLit score</span></div><div><b>{h.queued}</b><span>waiting in the queue</span></div></div>
       <div className="prog" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Share of companies loaded"><i style={{ width: `${pct}%` }} /></div>
-      <p className="muted">IPO and results calendars refresh by themselves (daily, and every few hours in market time). Results dates last refreshed: {h.calendars?.resultsAt ? stamp(h.calendars.resultsAt) : "not yet"}{h.calendars?.resultsThrough ? `, covering dates through ${h.calendars.resultsThrough}` : ""}. IPOs: {h.calendars?.ipoAt ? stamp(h.calendars.ipoAt) : "not yet"}.</p>
+      <p className="muted">IPO and results calendars refresh by themselves (in the morning and after the close). Results dates last refreshed: {h.calendars?.resultsAt ? stamp(h.calendars.resultsAt) : "not yet"}{h.calendars?.resultsThrough ? `, covering dates through ${h.calendars.resultsThrough}` : ""}. IPOs: {h.calendars?.ipoAt ? stamp(h.calendars.ipoAt) : "not yet"}.</p>
+      {h.dbWake && (
+        <div data-testid="db-wake">
+          <p className="muted">
+            <b>Database wake budget:</b>{" "}
+            {h.dbWake.available
+              ? <>about {h.dbWake.wakesToday} wake{h.dbWake.wakesToday === 1 ? "" : "s"} today ({h.dbWake.awakeMinutesToday} min awake) · this month about {h.dbWake.monthAwakeHours} awake hours = {h.dbWake.monthCuHours} of {h.dbWake.budgetCuHours} compute-hours ({h.dbWake.pct}%). </>
+              : <>not available (the counter in Redis could not be read). </>}
+            <span title={h.dbWake.assumption}>An estimate from this server's own timers and visitors; Neon's Usage page is the authority.</span>
+          </p>
+          {h.dbWake.warning && <div className="formerr" role="alert">{h.dbWake.warning}</div>}
+        </div>
+      )}
       {h.funds && (
         <p className="muted">
           ETFs: {h.funds.etf ? `${h.funds.etf.active} active of ${h.funds.etf.n}, last refresh ${h.funds.etf.last ? stamp(h.funds.etf.last) : "never"}` : "not set up"} ·

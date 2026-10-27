@@ -44,7 +44,7 @@ from . import macro as macro_api
 from . import clienterrors as clienterrors_api
 from . import markets as markets_api
 from . import flows as flows_api
-from . import fundjobs, sysctl
+from . import fundjobs, sysctl, wake
 from . import options as options_api
 from .auth import routes as auth_routes
 from .auth.entitlements import has, redact_section, redact_universe, varies_by_plan
@@ -152,12 +152,14 @@ def install_error_handlers(app: FastAPI) -> None:
         errors = [{k: v for k, v in e.items() if k in ("type", "loc", "msg")} for e in exc.errors()]
         return JSONResponse({"detail": errors}, status_code=422, headers={"Cache-Control": "no-store"})
 
+    for exc_type in wake.db_down_errors():   # quota exceeded (InsufficientResourcesError), too many connections, database starting up or unreachable
+        @app.exception_handler(exc_type)
+        async def database_down(request: Request, exc: Exception):
+            log.warning("%s %s: database refused or lost the connection (%s), answered 503", request.method, request.url.path, type(exc).__name__)
+            return JSONResponse({"status": "db_unavailable", "detail": wake.DB_DOWN_MESSAGE}, status_code=503,
+                                headers={"Cache-Control": "no-store", "Retry-After": "60"})
+
     @app.exception_handler(aioredis.RedisError)
-    @app.exception_handler(asyncpg.exceptions.InterfaceError)
-    @app.exception_handler(asyncpg.exceptions.PostgresConnectionError)
-    @app.exception_handler(asyncpg.exceptions.CannotConnectNowError)
-    @app.exception_handler(asyncpg.exceptions.TooManyConnectionsError)
-    @app.exception_handler(ConnectionError)
     @app.exception_handler(asyncio.TimeoutError)
     async def unavailable(request: Request, exc: Exception):
         log.warning("%s %s: %s, answered 503", request.method, request.url.path, type(exc).__name__)
@@ -208,7 +210,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             app.state.mailer = ResendMailer(settings.resend_api_key, settings.mail_from)
         else:
             app.state.mailer = ConsoleMailer(app.state.store.pool)
-        warm = asyncio.create_task(premium.warmer(app)) if settings.site_api_url and settings.cms_jwt_secret else None
+        warm = asyncio.create_task(premium.warmer(app)) if settings.site_api_url and settings.cms_jwt_secret else None   # provider and site-API calls only: no Postgres
 
         async def keep_lists_warm():
             """Search list and screener list are built once at start, so the first visitor does not wait for them. Not repeated on a timer: that would keep the free database awake all day."""
@@ -223,7 +225,15 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             except Exception:
                 logging.getLogger("finlit.api").exception("list warm-up failed")
 
-        lists = asyncio.create_task(keep_lists_warm())
+        async def start_warm_ups():
+            """Only when a visitor was on the site in the last 15 minutes (a restart during use). A cold start with nobody here must not wake the metered
+            database: the first visitor builds these lists, and every list is cached in Redis for the next one."""
+            if await wake.visitor_active(app.state.store.redis):
+                await keep_lists_warm()
+            else:
+                logging.getLogger("finlit.api").info("list warm-up skipped: no visitor in the last 15 minutes")
+
+        lists = asyncio.create_task(start_warm_ups())
         yield
         lists.cancel()
         if getattr(app.state, "index_client", None):
@@ -256,6 +266,17 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                        expose_headers=["ETag", "Server-Timing", "Retry-After"], allow_credentials=True, max_age=600)
     app.add_middleware(HealthSafeTrustedHost, allowed_hosts=settings.allowed_hosts)
     app.add_middleware(SecurityHeadersMiddleware)
+
+    @app.middleware("http")
+    async def note_visit(request: Request, call_next):
+        """Records that a visitor is here (one cheap Redis write every 20 s), so timers that touch the metered database run only while someone is looking.
+        Health checks, keep-alive pings, HEAD requests and static files do not count."""
+        path = request.scope.get("path", "")
+        if request.method != "HEAD" and path not in UNLIMITED_PATHS and not path.startswith(("/assets/", "/static/", "/demo/")) and "." not in path.rsplit("/", 1)[-1]:
+            store = getattr(app.state, "store", None)
+            if store is not None:
+                await wake.touch_visit(store.redis)
+        return await call_next(request)
 
     @app.middleware("http")
     async def retired_symbols(request: Request, call_next):
@@ -315,9 +336,34 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         """Always-cheap liveness check: touches no database, so platform health checks and keep-alive pings cannot keep a metered (serverless) database awake."""
         return JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
 
+    health_cache = {"t": 0.0, "postgres": True}
+
+    async def health_status() -> dict:
+        """Redis is checked every time. Postgres only when it matters: a monitor polling this URL must not keep the metered database awake, so the last
+        answer is reused for 10 minutes and refreshed only while a visitor is on the site, or once a minute while the last answer was a failure (to see it recover).
+        Each check gives up after 4 seconds: the health URL always answers quickly, also when the database refuses connections."""
+        store: Store = app.state.store
+        status = {"postgres": health_cache["postgres"], "redis": False}
+        age = time.monotonic() - health_cache["t"]
+        if (not health_cache["postgres"] and age > 60) or (age > 600 and await wake.visitor_active(store.redis)):
+            try:
+                async def one():
+                    async with store.pool.acquire() as conn:
+                        return await conn.fetchval("SELECT 1") == 1
+                status["postgres"] = bool(await asyncio.wait_for(one(), 4))
+            except Exception as exc:
+                logging.getLogger("finlit.api").warning("postgres health check failed: %s", type(exc).__name__)
+                status["postgres"] = False
+            health_cache.update(t=time.monotonic(), postgres=status["postgres"])
+        try:
+            status["redis"] = bool(await asyncio.wait_for(store.redis.ping(), 3))
+        except Exception:
+            logging.getLogger("finlit.api").warning("redis health check failed")
+        return status
+
     @app.get("/api/health")
     async def health():
-        status = await app.state.store.ping()
+        status = await health_status()
         ok = all(status.values())
         body = {"ok": ok, **status} if settings.environment == "development" else {"ok": ok}  # no internals on any deployed site
         return JSONResponse(body, status_code=200 if ok else 503, headers={"Cache-Control": "no-store"})

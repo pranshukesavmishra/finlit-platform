@@ -3,6 +3,15 @@
 # Data loads ("heavy") run one at a time; every other job has its own lock, so quotes, alerts and emails never block each other or a load.
 # A job that is still running when its next slot arrives is skipped, not stacked.
 # Runs for as long as the container is awake; the keep-alive workflow keeps it awake. Output: /tmp/scheduler.log
+#
+# DB WINDOWS. The database (Neon free plan) suspends 5 minutes after its last query and the plan allows a fixed number of compute hours a month, so
+# anything that touches Postgres on a short timer keeps it awake around the clock and uses the month's hours in about 17 days. Therefore:
+#   * the data jobs run in a few "DB windows" a day (night 01:00, morning 06:45, after the close 15:50 on weekdays, evening 19:10 and 21:10, late 23:30 IST):
+#     each window is one chain of jobs, one after the other, so the database wakes a handful of times a day and sleeps in between;
+#   * the few jobs outside a window run only while a visitor is on the site (Redis key last-visit, set by the web app: see backend/finlit/wake.py), or, for
+#     member price alerts, every 15 minutes in market hours and only if an alert or watchlist target exists (Redis flag, refreshed in every window);
+#   * the loops (waiting for opened-but-unloaded stocks, commodity prices into Redis) do not query Postgres while idle.
+# The wake budget (estimated wakes today, compute hours this month) is kept in Redis by the worker and shown in the admin Data health tab.
 set -uo pipefail
 cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
@@ -40,11 +49,16 @@ FUNDS_MIN_FREE_MB="${SCHED_FUNDS_MIN_FREE_MB:-180}"   # fund jobs: the largest m
 run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the same lock is still going, or if memory is short
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
-  case "$name" in quotes|alerts-live|alerts-daily|screens|digest) ;; *) loads_paused && { log "skip $name (heavy data loads are paused by the admin switch)"; return 0; } ;; esac
+  case "$name" in quotes|alerts-live|alerts-daily|screens|digest|drain) ;; *) loads_paused && { log "skip $name (heavy data loads are paused by the admin switch)"; return 0; } ;; esac
   ( flock -n 9 || { log "skip $name (busy)"; exit 0; }
     renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
     free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { log "skip $name (only ${free} MB free)"; exit 0; }
-    log "start $name"; $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
+    log "start $name"
+    # JOB_TIMEOUT_MIN (set by a window for the one job that can run for hours) stops the job politely; every load is resumable
+    local cap=(); [ -n "${JOB_TIMEOUT_MIN:-}" ] && cap=(timeout "${JOB_TIMEOUT_MIN}m")
+    ${cap[@]+"${cap[@]}"} $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
+  [ "${SYNC:-0}" = 1 ] && wait $!   # inside a DB window the jobs take turns instead of running side by side
+  return 0
 }
 
 # Fund data jobs (ETF and mutual fund loads, 117-174 MB each) take turns on one lock: a job that finds another running waits for it
@@ -65,12 +79,14 @@ run_funds() {  # run_funds <name> <args...>
   ( flock -w 10800 9 || { log "skip $name (fund jobs busy for 3 hours)"; exit 0; }
     wait_memory "$name" || exit 0
     log "start $name"; MALLOC_ARENA_MAX=2 $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"$FUNDS_LOCK" &
+  [ "${SYNC:-0}" = 1 ] && wait $!
+  return 0
 }
 
 # Waits (up to 10 minutes) until the web server answers, so the loads below never compete with it while it starts.
 wait_web() {
   for _ in $(seq 1 120); do
-    $PY -c "import sys,urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT:-8000}/api/health', timeout=3)" >/dev/null 2>&1 && return 0
+    $PY -c "import sys,urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT:-8000}/api/ping', timeout=3)" >/dev/null 2>&1 && return 0
     sleep 5
   done
   return 1
@@ -94,6 +110,8 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 (
   flock 9
   [ "${BOOT_LOAD_ENABLED:-1}" = 1 ] || { log "boot-load skipped: BOOT_LOAD_ENABLED is not 1 (the big company, ETF and fund loads on start are switched off)"; exit 0; }
+  # A restart or deploy must not start the whole load again when it finished less than 20 hours ago: every step would wake the database for hours (the DB windows run the same jobs nightly).
+  $PY -m finlit.wake flag-get bootload >/dev/null 2>&1 && { log "boot-load skipped: it finished in the last 20 hours (the nightly DB windows keep the data fresh)"; exit 0; }
   loads_paused && { log "boot-load skipped: heavy data loads are paused by the admin switch"; exit 0; }
   renice -n 15 -p $BASHPID >/dev/null 2>&1   # low CPU priority for the bulk loads; the reports visitors wait for (drain-queue) stay at normal priority
   log "start boot-load"
@@ -141,60 +159,117 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker refresh-leadership --if-stale --backfill-from 2022-10-01   # Leader / Laggard labels and their rank history (database only; skipped when this week's run is done)
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
+  $PY -m finlit.wake flag-set bootload 72000 >/dev/null 2>&1
   log "done boot-load"
 ) 9>/tmp/finlit-heavy.lock >> /tmp/job-boot-load.log 2>&1 &
 
-# Stocks opened before they were loaded are prepared in the background.
-( while true; do $PY -m finlit.worker drain-queue --loop >> /tmp/job-drain.log 2>&1; sleep 30; done ) &
+# Stocks opened before they were loaded are prepared in the background. The loop waits on a Redis flag (raised when a visitor opens such a stock), not on
+# Postgres, and does not query anything at start; if it ever exits (database refusing connections), it waits 2 minutes before trying again.
+( while true; do $PY -m finlit.worker drain-queue --loop >> /tmp/job-drain.log 2>&1; sleep 120; done ) &
 
 # Commodity prices: MCX futures (Dhan) every 10 seconds while MCX trades, international prices (metals.dev / MetalpriceAPI) every minute, into Redis.
 # Started only when at least one source is set up; the page says plainly which parts are not connected.
 # About 62 MB resident while running; COMMODITIES_WORKER=0 switches it off (the page then says the prices are not connected).
+# It reads Postgres at most once a day (duty rates, hours, holidays; kept in Redis) and writes one row set when a day's close arrives.
 if [ "${COMMODITIES_WORKER:-1}" != "0" ] && [ -n "${DHAN_CLIENT_ID:-}${METALS_DEV_API_KEY:-}${METALPRICEAPI_KEY:-}" ]; then
-  ( while true; do $PY -m finlit.worker refresh-commodities --loop >> /tmp/job-commodities.log 2>&1; sleep 30; done ) &
+  ( while true; do $PY -m finlit.worker refresh-commodities --loop >> /tmp/job-commodities.log 2>&1; sleep 120; done ) &
 fi
+
+# ---------------------------------------------------------------------------------------------------------------- the DB windows
+visitor_active() { $PY -m finlit.wake visit-active 15 >/dev/null 2>&1; }   # a visitor was on the site in the last 15 minutes (Redis only)
+alerts_active() { $PY -m finlit.wake alerts-active >/dev/null 2>&1; }       # some member alert or watchlist target exists (Redis flag; unknown = yes)
+refresh_alerts_flag() { $PY -m finlit.wake refresh-alerts >/dev/null 2>&1 || true; }   # inside a window the database is awake anyway: look once
+
+window() {  # window <name> <chain function>: runs the chain in the background, one chain of the same name at a time
+  local name="$1" chain="$2"
+  ( flock -n 7 || { log "skip window $name (the previous one is still running)"; exit 0; }
+    export SYNC=1; log "window $name: start"; "$chain"; log "window $name: end" ) 7>"/tmp/finlit-window-$name.lock" &
+}
+dow() { date +%u; }   # 1=Mon .. 7=Sun
+
+chain_night() {   # 01:00: the heavy loads and the audits, one after the other
+  local D; D="$(dow)"
+  refresh_alerts_flag
+  run light drain drain-queue                                      # stocks opened while the loop could not look
+  run heavy prune prune
+  JOB_TIMEOUT_MIN="${NIGHT_INGEST_MAX_MIN:-150}" run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2   # capped at 2.5 hours; resumable
+  (( D == 7 )) && run heavy universe refresh-universe
+  run heavy score-all score-all
+  run light indices refresh-indices
+  run light coverage audit-coverage --sample 80 --record
+  run light integrity audit-integrity
+  (( D == 6 )) && run heavy leadership refresh-leadership         # Saturday: after Friday's close
+  (( D == 7 )) && [ "$(date +%d)" -le 7 ] && [ $(( 10#$(date +%m) % 3 )) -eq 1 ] && run heavy leadership-backtest backtest-leadership   # first Sunday of Jan, Apr, Jul, Oct
+  run_funds mf-history backfill-mf
+  run heavy history backfill-history
+  run heavy prism precompute-prism
+  run_funds portfolios refresh-portfolios
+  run light logos refresh-logos
+}
+chain_morning() {   # 06:45: before the open
+  local D; D="$(dow)"
+  refresh_alerts_flag
+  run light drain drain-queue
+  run light calendars refresh-calendars
+  run_funds instruments refresh-instruments
+  (( D <= 5 )) && run light screens check-screens
+  run light results refresh-results
+  run light results-light refresh-results-light
+}
+chain_close() {   # 15:50 on weekdays: just after the close
+  run light listing refresh-listing --force                        # the day's final prices and moves from the exchange feed
+  run light results refresh-results
+  run light results-light refresh-results-light
+  run light calendars-day refresh-calendars
+}
+chain_evening1() {   # 19:10: the evening data (NSE, NSDL, MoSPI, RBI have posted by now)
+  local D; D="$(dow)"
+  refresh_alerts_flag
+  run light flows-nse refresh-flows --only nse
+  run_funds industry refresh-industry
+  run light macro refresh-macro
+  run light flows refresh-flows
+  (( D <= 5 )) && run light alerts-daily check-alerts --kind daily
+  (( D == 7 )) && run light digest send-digest
+  run light listing refresh-listing
+  run light results refresh-results
+  run light results-light refresh-results-light
+}
+chain_evening2() {   # 21:10: after AMFI publishes the day's NAVs
+  local D; D="$(dow)"
+  run_funds mf refresh-mf
+  run_funds facts refresh-facts
+  run light flows-retry refresh-flows
+  if (( D <= 5 )); then run_funds etf refresh-etf; run_funds etf-retry refresh-etf --resume; fi
+}
+chain_late() {   # 23:30: after AMFI's 11 pm deadline
+  local D; D="$(dow)"
+  run_funds mf-late refresh-mf
+  (( D <= 5 )) && run_funds etf-retry2 refresh-etf --resume
+}
 
 last=""
 while true; do
   now="$(date '+%M %H %u')"; [ "$now" = "$last" ] && { sleep 5; continue; }; last="$now"
   read -r M H D <<< "$now"; H=$((10#$H)); M=$((10#$M)); D=$((10#$D))   # D: 1=Mon .. 7=Sun
   weekday=$(( D >= 1 && D <= 5 )); market=$(( weekday && H >= 9 && H <= 15 ))
-  QE="${QUOTES_EVERY_MINUTES:-1}"   # minutes between live-price updates; 10 lets a serverless database (Neon free) sleep between runs
-  (( market && M % QE == 0 )) && run light quotes refresh-quotes
-  (( market && M % 10 == 0 )) && run light alerts-live check-alerts --kind live
-  (( weekday && H == 19 && M == 30 )) && run light alerts-daily check-alerts --kind daily
-  (( H == 1 && M == 5 )) && run heavy prune prune
-  (( H == 15 && M == 50 )) && run light listing refresh-listing --force   # just after the close: the day's final prices and moves from the exchange feed
-  (( H == 20 && M == 10 )) && run light listing refresh-listing   # nightly, after the close: all ~5,800 companies' prices in two provider calls and one short write, then the database may sleep
-  (( weekday && H == 20 && M == 40 )) && run_funds etf refresh-etf    # nightly after the close: ETF prices and history (Upstox), paced (ETF_CALLS_PER_MINUTE)
-  (( weekday && ((H == 22 && M == 10) || (H == 23 && M == 40)) )) && run_funds etf-retry refresh-etf --resume   # retries: only the ETFs the nightly run could not fetch (none left = no provider calls)
-  (( H == 21 && M == 10 )) && run_funds mf refresh-mf                 # nightly: AMFI publishes the day's NAVs in the evening
-  (( H == 23 && M == 30 )) && run_funds mf-late refresh-mf            # again after AMFI's 11 pm deadline: most fund houses publish after 21:10, so this run brings the day's NAVs
-  (( H == 7 && M == 50 )) && run_funds instruments refresh-instruments   # daily before the open: Dhan's public instrument file (new listings and ETFs, surveillance changes, F&O additions)
-  (( H == 21 && M == 40 )) && run_funds facts refresh-facts           # nightly, after the NAVs: fund size (quarterly average AUM), expense ratios, launch dates (AMFI)
-  (( H == 18 && M == 25 )) && run_funds industry refresh-industry    # daily: AMFI's monthly category report (out around the 8th-10th); a 304 and nothing to do on other days
-  (( H == 4 && M == 40 )) && run_funds portfolios refresh-portfolios   # holdings and exit loads: fund-house files only when a new month is out (files already read are skipped)
-  (( H == 3 && M == 40 )) && run light integrity audit-integrity   # nightly: 40 sampled companies, one provider call each; respects the loads switch (not in the always-allowed list)
-  (( H == 3 && M == 10 )) && run light coverage audit-coverage --sample 80 --record   # a rotating sample of the whole market: what the provider sent against what the reports show
-  (( H == 1 && M == 30 )) && run heavy ingest ingest-all --hours 20 "${LIMIT_ARGS[@]}" --parallel 2
-  (( H == 2 && M == 40 )) && run heavy score-all score-all   # every listed company gets a score: SCORE_ALL_PER_RUN a night (score row only), the rest on later nights
-  (( D == 7 && H == 2 && M == 15 )) && run heavy universe refresh-universe
-  (( H == 2 && M == 45 )) && run light indices refresh-indices   # nightly (a few small files): a failed boot download is retried the same night, not a week later
-  (( H == 3 && M == 40 )) && run_funds mf-history backfill-mf       # five-year NAV history, one fund house at a time: resumes where a restart stopped it, and does nothing once every house is done
-  (( H == 4 && M == 20 )) && run heavy history backfill-history   # nightly: older weekly closes (to 2004) for the leadership reliability backtest, a few hundred companies a night until every company has been tried
-  (( H == 5 && M == 10 )) && run heavy prism precompute-prism   # nightly: FinLit Prism ratings for every company with a full report that has none or an old one, one at a time (a few seconds each), resumable; yields to members
-  (( D == 6 && H == 3 && M == 50 )) && run heavy leadership refresh-leadership   # weekly, Saturday, after Friday's close and the nightly loads: the Leader / In line / Laggard labels
-  (( D == 7 && H == 4 && M == 10 )) && [ "$(date +%d)" -le 7 ] && [ $(( 10#$(date +%m) % 3 )) -eq 1 ] && run heavy leadership-backtest backtest-leadership   # quarterly (first Sunday of Jan, Apr, Jul, Oct): has leadership held in each group?
-  (( H == 6 && M == 45 )) && run light calendars refresh-calendars
-  (( H == 18 && M == 50 )) && run light macro refresh-macro          # nightly: India macro data (MoSPI publishes CPI and IIP around 16:00 IST on release days; RBI's WSS on Fridays)
-  (( H == 18 && (M == 0 || M == 40) )) && run light flows-nse refresh-flows --only nse   # the exchange posts the day's FII/DII cash report after about 17:30 IST: one request each
-  (( H == 19 && M == 10 )) && run light flows refresh-flows          # nightly: FII/DII flows (NSDL posts the day's report in the evening)
-  (( H == 21 && M == 30 )) && run light flows-retry refresh-flows           # retry for a report NSDL posted late (a handful of requests; the rows already loaded are only updated)
-  (( H == 5 && M == 25 )) && run light logos refresh-logos          # nightly: up to 150 company and fund-house logos from their own websites (robots.txt obeyed)
-  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && run light results refresh-results   # hourly: companies that have just reported are rebuilt, so their quarter shows within hours
-  (( H >= 8 && H <= 23 && M == 35 )) && run light results-light refresh-results-light   # hourly: every company that declared in the last 4 days and is not held in full gets its quarter figures (one provider call each, 150 a run, biggest first)
-  (( market && M == 5 && H % 3 == 0 )) && run light calendars-day refresh-calendars
-  (( weekday && H == 7 && M == 30 )) && run light screens check-screens
-  (( D == 7 && H == 18 && M == 30 )) && run light digest send-digest
+  QE="${QUOTES_EVERY_MINUTES:-1}"   # minutes between live-price updates while a visitor is on the site
+
+  # The DB windows (see the top of this file)
+  (( H == 1 && M == 0 )) && window night chain_night
+  (( H == 6 && M == 45 )) && window morning chain_morning
+  (( weekday && H == 15 && M == 50 )) && window close chain_close
+  (( H == 19 && M == 10 )) && window evening1 chain_evening1
+  (( H == 21 && M == 10 )) && window evening2 chain_evening2
+  (( H == 23 && M == 30 )) && window late chain_late
+
+  # Outside a window: member price alerts, every 15 minutes in market hours, only when an alert or watchlist target exists (prices are refreshed just before)
+  if (( market && M % 15 == 0 )) && alerts_active; then
+    ( export SYNC=1; run light quotes refresh-quotes; run light alerts-live check-alerts --kind live ) &
+  fi
+  # Outside a window: only while a visitor was on the site in the last 15 minutes
+  (( market && M % QE == 0 )) && visitor_active && run light quotes refresh-quotes
+  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && visitor_active && run light results refresh-results            # companies that have just reported are rebuilt within the hour
+  (( H >= 8 && H <= 23 && M == 35 )) && visitor_active && run light results-light refresh-results-light            # their quarter figures, one provider call each
   sleep 20
 done

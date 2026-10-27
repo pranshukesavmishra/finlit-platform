@@ -6,6 +6,7 @@ must also carry the session's CSRF token and come from an allowed origin.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from .. import wake
 from ..config import Settings
 from ..security import client_ip
 from . import crypto, mailer as mail
@@ -388,8 +390,11 @@ async def login(request: Request, response: Response, body: SignIn):
     # attacker's attempts from elsewhere cannot lock the owner out: there is no account-wide lock, only these budgets.
     await limit(request, "loginpair", email_hash(email) + "|" + ip, 10, 900)
     await limit(request, "loginmail", email_hash(email), 200, 3600)
-    async with pool.acquire() as conn:
-        u = await conn.fetchrow("SELECT * FROM users WHERE lower(email) = $1", email)
+    try:
+        async with pool.acquire() as conn:
+            u = await conn.fetchrow("SELECT * FROM users WHERE lower(email) = $1", email)
+    except asyncio.TimeoutError:   # the database did not answer in time (waking up, or refusing): other database errors get the same answer from the global handler
+        raise fail(503, "db_unavailable", wake.DB_DOWN_MESSAGE)
     if u is None:
         await crypto.verify_password(crypto.dummy_hash(), body.password)
         raise invalid
@@ -661,6 +666,8 @@ async def put_watchlist(request: Request, body: WatchlistIn, ctx: Ctx = Depends(
         raise fail(422, "duplicate_list")
     meta = {k: v.model_dump() for k, v in body.meta.items() if SYMBOL.match(k)}
     await save_state(request, ctx, "watchlist", {"lists": [lst.model_dump() for lst in body.lists], "meta": meta})
+    if any(m.get("target") for m in meta.values()):
+        await wake.set_alerts_flag(request.app.state.store.redis, True)   # a price target now exists: the market-hours check must run (the next DB window corrects a false alarm)
     return {"status": "saved"}
 
 
@@ -794,6 +801,7 @@ async def admin_data_health(request: Request, ctx: Ctx = Depends(admin_ctx)):
         body["resultsLight"] = await results_light.coverage(request.app.state.store)
     except Exception:   # the quarter-results count is optional for the rest of the panel
         body["resultsLight"] = None
+    body["dbWake"] = await wake.stats(request.app.state.store.redis)   # estimated wakes today and compute hours this month, from Redis counters (no Postgres)
     st: Settings = request.app.state.settings
     # How this server tells visitors apart (rate limits, sign-in lockouts): the proxy chain it received from the administrator's own browser,
     # and the address it settled on. That address should be the administrator's own public IP; a Cloudflare or host address means more proxy

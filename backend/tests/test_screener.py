@@ -19,6 +19,16 @@ def test_catalogue_is_consistent():
     assert sum(1 for m in CATALOG if m.tier == "basic") >= 10
 
 
+@pytest.fixture(autouse=True)
+def fresh_screener_table():
+    """The screener table is a module-level cache. App start-up no longer builds it when nobody is on the site, so a table left by an earlier test
+    module (another database state) must not be served to the tests below: the first request builds it from this test's own data."""
+    from finlit.screener import data
+    data.reset()
+    yield
+    data.reset()
+
+
 def test_metrics_from_a_real_company(reliance_sections):
     m = compute(reliance_sections)
     assert len(m) >= 150

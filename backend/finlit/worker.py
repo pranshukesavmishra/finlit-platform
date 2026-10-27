@@ -25,7 +25,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import orjson
 
-from . import snapshot
+from . import snapshot, wake
 from .config import Settings, get_settings
 from .finedge import FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
 from .normalize import market
@@ -250,10 +250,12 @@ async def _retry_dropped(store: Store, results: List[dict], attempts: int = 2) -
             await store.enqueue(sym, "consolidated")
 
 
-async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 6 * 3600.0) -> int:
+async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 24 * 3600.0) -> int:
     """With loop=True the idle wait watches a Redis flag set by enqueue, and looks at Postgres only when the flag is up (or every
-    `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day."""
-    total, last_db = 0, float("-inf")
+    `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day.
+    The loop does not look at start-up either (a restart would wake the database for nothing): items left over from before are taken by the one-shot
+    `drain-queue` that every DB window runs, and by the flag, which enqueue raises for an hour."""
+    total, last_db = 0, (time.monotonic() if loop else float("-inf"))
     while True:
         if loop and time.monotonic() - last_db < recheck_seconds:
             try:
@@ -552,7 +554,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         for sym in res["providerEmpty"][:15]:
             print("provider sent nothing:", sym)
         return 1 if res["mismatches"] else 0
-    store = await Store.connect(settings, migrate=True)
+    looping = args.cmd in ("drain-queue", "refresh-commodities") and getattr(args, "loop", False)
+    # The two never-ending loops (waiting for the Redis flag; prices into Redis) start without a migration and without any query: the first thing they
+    # need from Postgres, if anything, wakes it then. Every other command is a job: it connects, works, closes, and tells the wake budget (Redis) when.
+    store = await Store.connect(settings, migrate=not looping)
+    if not looping:
+        await wake.mark_start(store.redis, args.cmd)
     try:
         if args.cmd == "migrate":
             print("migrated; timescale =", store.timescale)
@@ -852,6 +859,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:
+        if not looping:
+            await wake.mark_end(store.redis, args.cmd)
         await store.close()
     return 0
 

@@ -119,6 +119,7 @@ async def _upstox_health(redis) -> dict:
     return await health_line(redis)
 
 
+IDLE_CONNECTION_SECONDS = 30.0   # a pooled connection unused for this long is closed (see Store.connect)
 REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "40"))   # below Render Key Value's connection cap; the worker opens its own
 REDIS_TIMEOUT = 3.0   # seconds: a hung Redis must fail a request quickly (it is a cache: callers fall back to Postgres), not hold it for 15 s
 
@@ -148,13 +149,15 @@ class Store:
     # ------------------------------------------------------------ lifecycle
 
     @classmethod
-    async def connect(cls, settings: Optional[Settings] = None, migrate: bool = False, acquire_timeout: Optional[float] = None) -> "Store":
+    async def connect(cls, settings: Optional[Settings] = None, migrate: bool = False, acquire_timeout: Optional[float] = None, idle_seconds: float = IDLE_CONNECTION_SECONDS) -> "Store":
         """`acquire_timeout`: the API passes a few seconds so a stalled database answers 503 instead of hanging; jobs wait as long as needed."""
         settings = settings or get_settings()
         dsn, extra = prepare_dsn(settings.database_url)
-        # Idle connections are closed after 60 s: serverless Postgres (Neon) suspends after 5 idle minutes and would otherwise leave dead pooled connections.
-        pool = _Pool(dsn, connection_class=asyncpg.Connection, record_class=asyncpg.Record, init_size=None, min_size=1, max_size=10, max_queries=50000,
-                     loop=None, connect=None, setup=None, init=None, reset=None, max_inactive_connection_lifetime=60, command_timeout=10, timeout=15, **extra)
+        # min_size=0 and a 30 s idle lifetime: asyncpg never closes the last "floor" connection of a pool (min_size>=1), so a web server or a job pool with
+        # min_size=1 kept one connection open for ever and a serverless database (Neon) could not suspend. Now the pool holds no connection while nothing runs,
+        # and nothing connects at start-up (the first query does).
+        pool = _Pool(dsn, connection_class=asyncpg.Connection, record_class=asyncpg.Record, init_size=None, min_size=0, max_size=10, max_queries=50000,
+                     loop=None, connect=None, setup=None, init=None, reset=None, max_inactive_connection_lifetime=idle_seconds, command_timeout=10, timeout=15, **extra)
         pool.acquire_timeout = acquire_timeout
         await pool
         redis = _redis(settings.redis_url)

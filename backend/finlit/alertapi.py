@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 from . import alertengine as eng
+from . import wake
 from .auth.routes import NO_STORE, SYMBOL, Ctx, fail, limit, secure_ctx
 
 router = APIRouter(prefix="/api")
@@ -130,6 +131,7 @@ async def create_alert(request: Request, body: AlertIn, ctx: Ctx = Depends(secur
             "INSERT INTO alerts (user_id, symbol, metric, op, value, keyword, channels, repeat, note, met, last_value) "
             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
             ctx.user_id, body.symbol, body.metric, body.op, body.value, keyword, channels, body.repeat, (body.note or "").strip() or None, met, current if current is not None else seen)
+    await wake.set_alerts_flag(request.app.state.store.redis, True)   # an alert exists: the market-hours check must run (the next DB window corrects a false alarm)
     out = alert_json(row)
     out["alreadyMet"] = bool(met) if body.op != "event" else False
     out["current"] = current

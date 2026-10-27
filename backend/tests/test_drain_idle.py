@@ -29,10 +29,10 @@ async def test_idle_drain_loop_does_not_poll_postgres():
     store = StubStore()
     task = asyncio.create_task(worker.drain_queue(None, store, loop=True, idle_seconds=0.01))
     await asyncio.sleep(0.3)
-    assert store.claims == 1  # one look at start-up, then it only watches Redis
+    assert store.claims == 0  # no look at start-up either (a restart must not wake the database): it only watches Redis
     store.redis.flag = True   # a visitor opens a company that is not loaded yet
     await asyncio.sleep(0.1)
-    assert store.claims == 2 and store.redis.flag is False
+    assert store.claims == 1 and store.redis.flag is False
     await asyncio.sleep(0.2)
-    assert store.claims == 2
+    assert store.claims == 1
     task.cancel()
