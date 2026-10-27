@@ -32,7 +32,7 @@ def _sg(v: float) -> str:
 
 def _view_line(v: Dict[str, Any], lender: bool) -> str:
     g = v["growth"]
-    parts = [f"{n} {_sg(g[k])}" for n, k in (("total income" if lender else "revenue", "revenue"), ("net profit", "profit")) if g.get(k) is not None]
+    parts = [f"{n} {_sg(g[k])}" for n, k in (("revenue", "revenue"), ("net profit", "profit")) if g.get(k) is not None]
     if not lender and g.get("operating") is not None:
         parts.append(f"operating profit {_sg(g['operating'])}")
     return f"{v['period']} against {v['against']}: " + ", ".join(parts) if parts else ""

@@ -99,13 +99,15 @@ def test_a_quarter_missing_never_shifts_the_comparison():
     assert [(f["case"], f["against"]) for f in fl] == [(3, "Sep 2025")]
 
 
-def test_lenders_use_total_income_and_have_no_operating_profit():
+def test_lenders_use_the_revenue_line_and_have_no_operating_profit():
     today = date(2026, 10, 26)
     q = _q([100, 100, 100, 100, 110], [20, 20, 20, 20, 22], total_income=[200, 200, 200, 200, 200], operating_profit=[50, 50, 50, 50, 40])
     assert [f["case"] for f in pa.fresh_flags({"quarterly": {"pl": q}}, today)] == [7]            # a company: operating profit fell, net rose
-    assert pa.fresh_flags({"quarterly": {"pl": q}}, today, lender=True) == []                      # a lender: total income flat, no operating profit
+    assert [f["case"] for f in pa.fresh_flags({"quarterly": {"pl": q}}, today, lender=True)] != [7]   # a lender: no operating profit, so case 7 cannot fire
     from finlit.plflags import period_views
     v = period_views(None, q, lender=True)["quarterly"]
-    assert v["growth"] == {"revenue": 0.0, "profit": 10.0, "operating": None}
+    assert v["growth"] == {"revenue": 10.0, "profit": 10.0, "operating": None}                      # the Revenue line (100 to 110), the same as the statements and the results table
+    only_total = {**q, "rows": {k: x for k, x in q["rows"].items() if k != "revenue"}}
+    assert period_views(None, only_total, lender=True)["quarterly"]["growth"]["revenue"] == 0.0   # no Revenue line at all: total income stands in
     _, text = pa.message("KOTAK", {"case": 5, "title": "t", "period": "Sep 2026", "scope": "quarterly", "text": "x.", "why": "w."}, {"quarterly": v}, True)
-    assert "total income" in text and "operating" not in text
+    assert "revenue" in text and "total income" not in text and "operating" not in text
