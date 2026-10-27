@@ -72,6 +72,10 @@ Compared with `Financial-Portfolio` at commit `6ed9d2a` (merge of PR #40, the ve
 7. **Known limits** are in `docs/KNOWN-ISSUES.md` and `docs/LAUNCH-STATUS.md`. ETF and fund data loads are paused by default
    (`FUND_LOADS_ENABLED`), and holdings, expense ratios and exit loads for funds are not loaded yet (`docs/NEXT-STEPS-FUNDS.md`).
 
+8. **Secret scanning:** `gitleaks` over the full git history of the source repository is clean. A scan of the plain folder reports 5 false
+   positives of rule `generic-api-key`: the names of metrics in `frontend/public/demo/RELIANCE/ratios.json` and browser storage keys in
+   `frontend/src/lib/prefs.ts` and `frontend/src/lib/mf.ts`. They are not credentials; add them to the company's gitleaks allowlist.
+
 ## 5. Where to start reading
 
 `README.md` (overview and speed design), `docs/TECHNICAL-DOCUMENT.md`, `docs/platform-plan.md`, `docs/prism/CONTRACT.md`,
