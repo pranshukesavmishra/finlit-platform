@@ -176,6 +176,33 @@ if [ "${COMMODITIES_WORKER:-1}" != "0" ] && [ -n "${DHAN_CLIENT_ID:-}${METALS_DE
   ( while true; do $PY -m finlit.worker refresh-commodities --loop >> /tmp/job-commodities.log 2>&1; sleep 120; done ) &
 fi
 
+# ---------------------------------------------------------------------------------------------------------------- Prism ratings, ahead of time
+# Every company with a full report gets its FinLit Prism rating calculated in the background, so a report opens with the rating already there.
+# This is its OWN loop (its own lock), not the end of the boot chain above: that chain is hours long and a restart starts it again, so a rating
+# queued behind it was never reached. Each round works through what is missing (never-rated first, then the biggest), one company at a time,
+# gives way to a member who is waiting, stops after three failures in a row and is simply started again by the next round. Resumable: a stored
+# rating counts as done. PRISM_PRECOMPUTE_ENABLED=0 switches it off; the admin switch "Heavy data loads" pauses it like the other loads.
+(
+  [ "${PRISM_PRECOMPUTE_ENABLED:-1}" = 1 ] || { log "prism-precompute loop off: PRISM_PRECOMPUTE_ENABLED is not 1"; exit 0; }
+  flock -n 8 || exit 0
+  sleep "${PRISM_PRECOMPUTE_DELAY_S:-180}"
+  while true; do
+    if loads_paused; then
+      log "prism-precompute: waiting (heavy data loads are paused by the admin switch)"
+    else
+      free="$(free_mb)"
+      if [ "$free" -lt "${PRISM_MIN_FREE_MB:-250}" ]; then
+        log "prism-precompute: waiting (only ${free} MB free)"
+      else
+        log "start prism-precompute"
+        timeout "${PRISM_ROUND_MAX_MIN:-60}m" nice -n 10 $PY -m finlit.worker precompute-prism --max-minutes "${PRISM_ROUND_MAX_MIN:-55}" --limit "${PRISM_ROUND_LIMIT:-800}" >> /tmp/job-prism-loop.log 2>&1
+        log "done prism-precompute rc=$?"
+      fi
+    fi
+    sleep "${PRISM_LOOP_SLEEP_S:-300}"
+  done
+) 8>/tmp/finlit-prism-loop.lock >> /tmp/job-prism-loop.log 2>&1 &
+
 # ---------------------------------------------------------------------------------------------------------------- the DB windows
 visitor_active() { $PY -m finlit.wake visit-active 15 >/dev/null 2>&1; }   # a visitor was on the site in the last 15 minutes (Redis only)
 alerts_active() { $PY -m finlit.wake alerts-active >/dev/null 2>&1; }       # some member alert or watchlist target exists (Redis flag; unknown = yes)

@@ -41,6 +41,7 @@ services:
       - {key: ADMIN_REQUIRE_MFA, value: "0"}    # TEMPORARY, the founder switched the admin authenticator off until launch: set back to "1" before going live (administrators then need their authenticator code)
       - {key: SCORE_ALL_PER_RUN, value: "1500"}  # other listed companies scored each night (score row only); all ~5,800 are covered within a few nights
       - {key: INGEST_LIMIT, value: "500"}      # companies loaded in the background after each start (resumable)
+      - {key: PRISM_PRECOMPUTE_ENABLED, value: "0"}   # the always-on Prism rating loop needs memory and keeps the database awake: it runs on the AWS server, not on this 512 MB free plan (the nightly window still calculates some)
       - {key: RATE_LIMIT_PER_MINUTE, value: "1200"}
       # Optional, add later in the Environment tab: GEMINI_API_KEY (FinLit AI chat), RESEND_API_KEY + SENDER_EMAIL +
       # CONTACT_RECIPIENT_EMAIL (contact and enquiry emails), UPSTOX_ACCESS_TOKEN (NIFTY ticker strip).
