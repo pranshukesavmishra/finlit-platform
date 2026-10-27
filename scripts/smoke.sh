@@ -46,9 +46,11 @@ stock() {  # stock <SYMBOL>: a price and a score (a company still loading answer
     [ "$CODE" = 200 ] && break
     sleep 5
   done
-  if [ "$CODE" = 200 ] && out="$(js "q=(d.get('quote') or {}).get('price'); o=(d.get('score') or {}).get('overall')
-print('price',q,'score',o)
-sys.exit(0 if (q or 0)>0 and o is not None else 1)")"; then pass "$s summary: $out"; else fail "$s summary lacks a price or a score (HTTP $CODE ${out:-})"; fi
+  # A visitor who is not signed in sees the score only for the free sample companies; for every other company the API answers with the
+  # band 'locked' and no number (plan gating, not a fault). So: a price is required; the score must be a number OR be locked with all pillars present.
+  if [ "$CODE" = 200 ] && out="$(js "q=(d.get('quote') or {}).get('price'); sc=d.get('score') or {}; o=sc.get('overall'); locked=(sc.get('band') or {}).get('key')=='locked' and len(sc.get('pillars') or [])>=4
+print('price',q,'score',o if o is not None else ('locked (sign in to see)' if locked else None))
+sys.exit(0 if (q or 0)>0 and (o is not None or locked) else 1)")"; then pass "$s summary: $out"; else fail "$s summary lacks a price or a score (HTTP $CODE ${out:-})"; fi
 }
 stock RELIANCE
 stock "$SMALLCAP"
