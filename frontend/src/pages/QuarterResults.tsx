@@ -7,10 +7,11 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
+import { GrowthCharts, GrowthPanel } from "../components/QrGrowth";
 import "../styles/qresults.css";
 
 const SORTS: [string, string, boolean][] = [   // value, label, needs Silver
@@ -183,7 +184,8 @@ export function QuarterResultsPage() {
   const quarter = sp.get("quarter") || undefined;
   const sel = useMemo(() => dateFromParams(sp), [sp]);
   const hasDate = !!(sel.date || sel.from || sel.to);
-  const p: QParams = { ...f, quarter, q: f.q, offset, ...sel };
+  const growth = useMemo(() => growthFromParams(sp), [sp]);   // the growth filters live in the address, like the quarter and the dates
+  const p: QParams = { ...f, quarter, q: f.q, offset, ...sel, ...growthQuery(growth) };
   const res = useQuarterResults(p);
   const d = res.data;
   const dateErr = res.error instanceof ApiError && res.error.status === 400 ? res.error.message : null;   // a bad or future date in the address: say so, never show a blank
@@ -200,6 +202,11 @@ export function QuarterResultsPage() {
     for (const [k, v] of Object.entries(next || {})) if (v) n.set(k, v);
     setSp(n); setOffset(0); setMsg("");
   };
+  const setGrowth = (next: GrowthState) => {
+    if (growthOn(next) && !silver) return need("Filtering by growth is part of the Silver plan.");   // Basic sees the panel; the figures behind it are Silver
+    setSp(growthToParams(sp, next), { replace: true }); setOffset(0);
+  };
+  const growthLocked = res.error instanceof ApiError && res.error.status === 403;
   const apply = (next: DateSel) => { const bad = dateProblem(next, today); if (bad) setMsg(bad); else setDates(next); };
   const chips = dateChips(today), chipOn = activeChip(sel, today);
   const need = (why: string) => upgrade("silver", why);
@@ -263,7 +270,8 @@ export function QuarterResultsPage() {
       </header>
 
       {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}
-      {res.isError && !dateErr && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
+      {growthLocked && <div className="formerr" role="alert">Filtering by growth is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setSp(growthToParams(sp, { ...growth, qoq: { ...growth.qoq, value: "" }, yoy: { ...growth.yoy, value: "" } }), { replace: true })}>Remove the growth filter</button></div>}
+      {res.isError && !dateErr && !growthLocked && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
       {d && !dateErr && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
 
       {locked && (
@@ -316,6 +324,9 @@ export function QuarterResultsPage() {
         </div>
       </section>
 
+      <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} />
+      <GrowthCharts summary={d?.growth} dist={d?.distribution} locked={!silver} />
+
       <section className="card qr-card">
         <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>{q ? `${q.label}` : "Results"}<span className="muted qr-count"> · {nf(total, 0)} {total === 1 ? "company" : "companies"}</span></h3>
           <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span></div>
@@ -329,7 +340,7 @@ export function QuarterResultsPage() {
           <DateEmpty dates={d.dates} sel={sel} today={today} quarterLabel={q?.label || "quarter"} filtersOn={filtersOn} onPick={(day) => setDates({ date: day }, true)}
             onQuarter={(key) => { const n = new URLSearchParams(sp); n.set("quarter", key); setSp(n); setOffset(0); }} onClearFilters={clearFilters} />
         ) : !d?.rows.length ? (
-          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? "Try removing a filter." : "Results dates appear here as companies announce them."}</p>
+          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? (growthOn(growth) ? "No company with figures meets the growth filter you set. Try a lower threshold or switch AND to OR." : "Try removing a filter.") : "Results dates appear here as companies announce them."}</p>
             {f.scope === "watchlist" && <Link className="btn" to="/watchlist">Build a watchlist</Link>}{f.scope === "portfolio" && <Link className="btn" to="/holdings">Add holdings</Link>}</div>
         ) : (
           <HScroll label="results table" className="qr-scroll">

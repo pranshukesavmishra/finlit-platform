@@ -26,7 +26,13 @@ export type QResp = {
   total: number; offset: number; limit: number; summary: QSummary; totals: QSummary; rows: QRow[]; days: { date: string; n: number }[];
   facets: { sectors: { name: string; n: number }[]; indices: { code: string; n: number }[] }; gapFlag?: number; updatedAt?: string;
   dates?: QDates | null; dateMeaning?: string;
+  /** Null when no growth filter is on. Counts are over every company with figures (before paging). */
+  growth?: GrowthSummary | null; distribution?: QDistribution;
 };
+export type GrowthSummary = {
+  qoq: boolean; yoy: boolean; join: "and" | "or"; withFigures: number; both: number; onlyQoQ: number; onlyYoY: number; neither: number; matching: number; qoqMissing: number; yoyMissing: number;
+};
+export type QDistribution = { total: number; sectors: { name: string; n: number }[]; caps: { name: string; n: number }[] };
 /** What the server found for a date filter, before the other filters: the quarters announced in range, the nearest days with results, what we hold. */
 export type QDates = {
   from: string; to: string; single: boolean; inQuarter: boolean; quarters: { key: string; label: string; fiscal: string; n: number }[];
@@ -36,7 +42,61 @@ export type QParams = {
   quarter?: string; q?: string; sector?: string; cap?: string; index?: string; scope?: "all" | "watchlist" | "portfolio"; flagged?: boolean; status?: string;
   sort?: string; dir?: "asc" | "desc"; offset?: number; limit?: number;
   date?: string; from?: string; to?: string;   // the announcement date (one day) or a from-to range, India dates as YYYY-MM-DD
+} & Partial<Record<(typeof GROWTH_KEYS)[number], string>>;
+
+// ------------------------------------------------------------ growth filters
+// Two filters (QoQ, YoY) with a metric, an operator and a per-cent value, joined by AND / OR. The state lives in the page address under the same names the
+// server reads, and the SERVER does the filtering, so the counts and the table always cover every matching company.
+export const GROWTH_KEYS = ["qoqMetric", "qoqOp", "qoqValue", "yoyMetric", "yoyOp", "yoyValue", "join"] as const;
+export type GrowthMetric = "revenue" | "operatingProfit" | "netProfit";
+export type GrowthOp = ">=" | ">" | "<=" | "<";
+export const GROWTH_METRICS: [GrowthMetric, string][] = [["revenue", "Revenue"], ["operatingProfit", "Operating profit"], ["netProfit", "Net profit"]];
+export const GROWTH_OPS: GrowthOp[] = [">=", ">", "<=", "<"];
+export type GrowthCond = { metric: GrowthMetric; op: GrowthOp; value: string };
+export type GrowthState = { qoq: GrowthCond; yoy: GrowthCond; join: "and" | "or" };
+export const DEFAULT_COND: GrowthCond = { metric: "netProfit", op: ">=", value: "" };
+export const DEFAULT_GROWTH: GrowthState = { qoq: DEFAULT_COND, yoy: DEFAULT_COND, join: "and" };
+/** The same rule the server applies: a plain decimal, optional sign, no exponent or words. */
+export const VALUE_RE = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
+export const cleanValue = (v: string) => v.trim().replace(/\u2212/g, "-");   // a typed or pasted minus sign (U+2212) counts as a minus
+export const valueProblem = (v: string): string | null => {
+  const t = cleanValue(v);
+  if (t === "") return null;
+  if (!VALUE_RE.test(t) || !Number.isFinite(Number(t))) return "Type a number such as 1, -2.5 or 12 (per cent).";
+  return Math.abs(Number(t)) > 1_000_000 ? "That number is too large." : null;
 };
+const cond = (sp: URLSearchParams, k: "qoq" | "yoy"): GrowthCond => {
+  const m = sp.get(k + "Metric") as GrowthMetric | null, o = sp.get(k + "Op") as GrowthOp | null;
+  return { metric: m && GROWTH_METRICS.some(([x]) => x === m) ? m : DEFAULT_COND.metric, op: o && GROWTH_OPS.includes(o) ? o : DEFAULT_COND.op, value: sp.get(k + "Value") || "" };
+};
+export const growthFromParams = (sp: URLSearchParams): GrowthState => ({ qoq: cond(sp, "qoq"), yoy: cond(sp, "yoy"), join: sp.get("join") === "or" ? "or" : "and" });
+/** A filter is on when its value is a valid number. */
+export const condOn = (c: GrowthCond) => cleanValue(c.value) !== "" && valueProblem(c.value) === null;
+export const growthOn = (g: GrowthState) => condOn(g.qoq) || condOn(g.yoy);
+export const growthIsDefault = (g: GrowthState) => JSON.stringify(g) === JSON.stringify(DEFAULT_GROWTH);
+/** Write the state into a copy of the address: only what differs from the defaults, so a clean address stays clean. */
+export function growthToParams(sp: URLSearchParams, g: GrowthState): URLSearchParams {
+  const n = new URLSearchParams(sp);
+  for (const k of GROWTH_KEYS) n.delete(k);
+  for (const [k, c] of [["qoq", g.qoq], ["yoy", g.yoy]] as const) {
+    const v = cleanValue(c.value);
+    if (c.metric !== DEFAULT_COND.metric || c.op !== DEFAULT_COND.op || v !== "") { n.set(k + "Metric", c.metric); n.set(k + "Op", c.op); }
+    if (v !== "") n.set(k + "Value", v);
+  }
+  if (g.join === "or") n.set("join", "or");
+  return n;
+}
+/** The query values the server reads. An invalid value is left out (the field shows its message), never sent. */
+export const growthQuery = (g: GrowthState): Partial<QParams> => {
+  const out: Record<string, string> = {};
+  for (const [k, c] of [["qoq", g.qoq], ["yoy", g.yoy]] as const) if (condOn(c)) { out[k + "Metric"] = c.metric; out[k + "Op"] = c.op; out[k + "Value"] = cleanValue(c.value); }
+  if (growthOn(g)) out.join = g.join;
+  return out;
+};
+export const metricLabel = (m: GrowthMetric) => GROWTH_METRICS.find(([x]) => x === m)?.[1] || m;
+export const opWords = (o: GrowthOp) => ({ ">=": "at least", ">": "more than", "<=": "at most", "<": "less than" })[o];
+/** Share in per cent for a legend, one decimal; 0 when there is nothing to divide. */
+export const pctOf = (n: number, total: number) => (total > 0 ? (n / total) * 100 : 0);
 
 export const PAGE = 50;
 export const GAP_FLAG = 15;
