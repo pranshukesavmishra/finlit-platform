@@ -128,7 +128,7 @@ function Footer() {
           <div className="fbrand"><b>{COMPANY.name}</b><p>Research and tools for Indian stocks. We are a technology company and are not registered with SEBI or AMFI.</p>
             <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><a href={COMPANY.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></div>
           {FOOT.map((col) => <div key={col.title}><b>{col.title}</b>{col.items.map((it) => <Link key={it.to} to={it.to}>{it.label}</Link>)}</div>)}
-          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/plans">Pricing</Link><Link to="/blog">Blog</Link><Link to="/forum">Forums</Link><Link to="/glossary">Glossary</Link><Link to="/contact">Contact</Link>
+          <div><b>Company</b><Link to="/about">About</Link><Link to="/why-we-exist">Why we exist</Link><Link to="/services">Services</Link><Link to="/plans">Pricing</Link><Link to="/blog">Blog</Link><Link to="/forum">Forums</Link><Link to="/glossary">Glossary</Link><Link to="/mcp">Connect AI</Link><Link to="/contact">Contact</Link>
             <Link to="/legal/terms">Terms</Link><Link to="/legal/privacy">Privacy</Link><Link to="/legal/disclosures">Research disclosures</Link>{!user && <Link to="/login">Sign in</Link>}</div>
         </div>
         <div className="ffine">

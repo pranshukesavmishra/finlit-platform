@@ -33,6 +33,7 @@ const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.C
 const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ default: m.GraphStudio })));
 const AdvancedCharts = lazy(() => import("./pages/AdvancedCharts").then((m) => ({ default: m.AdvancedCharts })));
 const LeadershipLabelPage = lazy(() => import("./pages/LeadershipLabel").then((m) => ({ default: m.LeadershipLabelPage })));
+const ConnectAIPage = lazy(() => import("./pages/ConnectAI").then((m) => ({ default: m.ConnectAIPage })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
 const MacroPage = lazy(() => import("./pages/Macro").then((m) => ({ default: m.MacroPage })));
@@ -124,6 +125,7 @@ export default function App() {
           <Route path="faq" element={<Navigate to="/#faq" replace />} />
           <Route path="services" element={<Services />} />
           <Route path="about" element={<About />} />
+          <Route path="mcp" element={<ConnectAIPage />} />
           <Route path="why-we-exist" element={<Why />} />
           <Route path="leadership-label" element={<LeadershipLabelPage />} />
           <Route path="contact" element={<Contact />} />

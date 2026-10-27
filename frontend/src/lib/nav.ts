@@ -68,6 +68,7 @@ export const MORE: NavSection = { id: "more", label: "More", groups: [
     i("/blog", "Insights & blog", "Research notes and explainers", "spark"),
     i("/glossary", "Glossary", "Terms in plain words, with formulas", "book"),
     i("/documents", "Documents", "Annual reports and presentations", "layers"),
+    i("/mcp", "Connect AI assistants", "Free, read-only data for Claude, ChatGPT and Cursor", "spark"),
   ] },
   { title: "Company", items: [
     i("/services", "Services", "Portfolio reviews and financial planning", "wallet"),
