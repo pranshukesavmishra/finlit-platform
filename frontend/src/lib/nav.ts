@@ -19,7 +19,7 @@ export const SECTIONS: NavSection[] = [
   { id: "research", label: "Research", wide: true, groups: [
     { title: "Find stocks", items: [
       i("/screener", "Stock screener", "Filter every listed company by size, valuation, growth and debt", "table"),
-      i("/score-screener", "Score screener", "Size, sector and FinLit score ranges, kept simple", "quality"),
+      i("/score-screener", "Score screener", "Filter by size, sector and FinLit Fundamental, Technical and Overall scores", "quality"),
       i("/query-builder", "Query builder", "Type a rule like P/E < 15, get the companies; save baskets", "notes"),
     ] },
     { title: "Analyse a company", items: [

@@ -36,3 +36,7 @@ Fonts are bundled with the site (`@fontsource`), so no request goes to Google Fo
 - **Existing data:** `python -m finlit.worker rebuild-metrics` recomputes every company from what is already stored (database only, seconds). The scheduler runs it on start (`--only-missing`) for companies loaded before the screener existed or before a newer metric such as `q_period_end` was added.
 - **Saved-screen emails** use the same rules and only mail filters the member's plan includes.
 - The static demo (`VITE_DEMO=1`) keeps the small client-side screener (`ScreenerLite`); the live site uses `ScreenerPro`.
+
+## Score screener (advanced)
+
+`/score-screener` filters the whole company universe by size (SEBI buckets: top 100 Large, next 150 Mid, rest Small), sector (multi-select), and the FinLit Fundamental, Technical, Overall and four pillar scores, by band or exact min-max. Definitions are unchanged: Fundamental = rounded average of the four business pillars (needs 3 of 4), Technical = the technical pillar, Overall = the stored FinLit overall. Missing values show a dash with a reason and never pass a score filter. Score bands stay a Silver feature. Logic lives in `frontend/src/lib/scoreScreen.ts` (tested); the whole state is in the URL; CSV export lists the filters and data date in its header. `/api/screener/universe` now also returns `as_of`, the day the newest score was computed.
