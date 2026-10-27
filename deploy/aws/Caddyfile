@@ -1,0 +1,32 @@
+# Front door for the whole site. SITE_ADDRESS comes from docker-compose.aws.yml:
+#   a domain name  -> automatic HTTPS (certificate from Let's Encrypt, renewed by Caddy itself, plain http redirected to https)
+#   ":80"          -> plain http on whatever address the server has (use this until you own a domain)
+{
+	admin off
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# Security headers. "?" = only when the app has not already set the same header.
+	header {
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "SAMEORIGIN"
+		?Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Browsers ignore this over plain http, so it only takes effect once a domain with https is used.
+		?Strict-Transport-Security "max-age=2592000"
+		-Server
+	}
+
+	# Vite names these files after their content (index-3fa9c1.js), so they can be cached for a year.
+	@hashed path /assets/*
+	header @hashed >Cache-Control "public, max-age=31536000, immutable"
+
+	# Caddy puts the address it actually saw into X-Forwarded-For and discards whatever the visitor sent,
+	# which is exactly what the app expects (CLIENT_IP_HEADER=x-forwarded-for).
+	reverse_proxy app:8000 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}

@@ -15,3 +15,6 @@ node_modules/
 site-api/backend/content_uploads/*
 # agent working copies (Claude Code)
 .claude/worktrees/
+
+# AWS deployment: the real settings file lives outside the clone (/opt/finlit/.env.aws); never commit a filled-in copy
+.env.aws

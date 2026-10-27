@@ -1,0 +1,156 @@
+# The whole FinLit site on ONE small server (AWS EC2 t3.small: 2 vCPU, 2 GB RAM + 2 GB swap).
+# Written for the layout deploy.sh creates:   /opt/finlit/.env.aws   and   /opt/finlit/src/finlit-platform/  (this file lives in deploy/aws/ there).
+# Normally you never run this by hand: use deploy.sh. If you do, from the finlit-platform folder:
+#   ENV_FILE=/opt/finlit/.env.aws docker compose -p finlit -f deploy/aws/docker-compose.aws.yml --env-file /opt/finlit/.env.aws up -d
+#
+# Memory plan (2 GB total): Postgres shared_buffers 256 MB (limit 640 MB), Redis maxmemory 256 MB (limit 320 MB),
+# app limit 1200 MB (website + research API + site backend + background jobs), Caddy about 40 MB; the rest is the OS and the 2 GB swapfile.
+# The limits are ceilings, not reservations: normal use is well below them.
+# Only Caddy publishes ports (80 and 443). The database, Redis and the app are reachable only on the private compose network.
+name: finlit
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+
+services:
+  app:
+    build:
+      context: ../..                 # the finlit-platform folder, where the Dockerfile lives
+      dockerfile: Dockerfile
+      labels:
+        finlit.commit: ${GIT_COMMIT:-unknown}
+    image: finlit-app:current        # deploy.sh keeps the one before it as finlit-app:previous (for "deploy.sh rollback")
+    env_file: ${ENV_FILE:-../../.env.aws}   # deploy.sh sets ENV_FILE=/opt/finlit/.env.aws (outside the git clone)
+    environment:
+      # Built here from the passwords in the env file, so the two can never disagree.
+      DATABASE_URL: postgresql://finlit:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.aws}@db:5432/finlit
+      REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env.aws}@redis:6379/0
+      PORT: "8000"
+      # Caddy is the only thing in front of the app. It replaces any X-Forwarded-For a visitor sends with the real address it saw, and the app
+      # reads the chain from the right, skipping private (Docker network) addresses, so rate limits and sign-in lockouts see the real visitor.
+      CLIENT_IP_HEADER: x-forwarded-for
+      TZ: Asia/Kolkata
+    expose: ["8000"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    mem_limit: 1200m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    init: true
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ping', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 180s             # database migrations run first on every start
+
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: finlit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.aws}   # used only when the data volume is created; see README before changing it later
+      POSTGRES_DB: finlit
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=60
+      - -c
+      - random_page_cost=1.1            # SSD (gp3)
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - wal_buffers=8MB
+      - -c
+      - max_wal_size=1GB
+      - -c
+      - min_wal_size=128MB
+    volumes: [pgdata:/var/lib/postgresql/data]
+    mem_limit: 640m
+    security_opt: ["no-new-privileges:true"]
+    shm_size: 128mb
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finlit -d finlit"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    # Cache only, rebuilt from Postgres when empty: no snapshots, no append file. The password comes from the environment, not the command line.
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --save '' --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env.aws}
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    mem_limit: 320m
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  caddy:
+    image: caddy:2
+    # DOMAIN set  -> https://DOMAIN with a free certificate (needs the DNS A record first).   DOMAIN empty -> plain http on the server's address.
+    environment:
+      SITE_ADDRESS: ${DOMAIN:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data             # certificates: keep this volume, or Let's Encrypt limits are hit again
+      - caddy_config:/config
+    depends_on: [app]
+    mem_limit: 128m
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  # Nightly dump of the database at 20:30 UTC (02:00 IST) into the "backups" volume, newest 7 kept. Restore: see backup.sh and the README.
+  backup:
+    image: timescale/timescaledb:2.17.2-pg16
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    command: ["loop"]
+    environment:
+      PGHOST: db
+      PGUSER: finlit
+      PGDATABASE: finlit
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      db: {condition: service_healthy}
+    mem_limit: 128m
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  backups:
