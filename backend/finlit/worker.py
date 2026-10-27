@@ -481,6 +481,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_pz.add_argument("--limit", type=int, default=800, help="companies per run (every company with a full report: about 500 today)")
     p_pz.add_argument("--max-minutes", type=float, default=100.0)
     p_pz.add_argument("--days", type=int, default=7, help="a stored rating older than this is calculated again")
+    p_pz.add_argument("--shard", default=None, help="PART/OF, for example 0/2: work only on the companies whose symbol hashes to this part, so several workers can run side by side")
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
     p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
     p_bh.add_argument("--max-minutes", type=float, default=60.0)
@@ -755,7 +756,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
         if args.cmd == "precompute-prism":
             from . import prism
-            print(await prism.precompute(store, settings, limit=args.limit, max_minutes=args.max_minutes, days=args.days))
+            shard = None
+            if args.shard:
+                part, _, of = args.shard.partition("/")
+                if not (part.isdigit() and of.isdigit() and int(of) >= 1 and int(part) < int(of)):
+                    raise SystemExit("--shard must look like 0/2 (part/of, part below of)")
+                shard = (int(part), int(of))
+            print(await prism.precompute(store, settings, limit=args.limit, max_minutes=args.max_minutes, days=args.days, shard=shard))
             return 0
         if args.cmd in ("refresh-leadership", "backtest-leadership"):
             from datetime import date as _date

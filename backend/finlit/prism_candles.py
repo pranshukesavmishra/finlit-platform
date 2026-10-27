@@ -93,11 +93,29 @@ def _num(v: Any) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
+def collapse_repeats(rows: List[dict]) -> List[dict]:
+    """Dhan now and then sends the same day twice: an exact copy, or a second record with the same open, high, low and close but a smaller volume
+    (a partial record of the same session; the complete one is never smaller). Such a repeat is one session, not two: keep the record with the
+    larger volume. Two records of one day whose prices differ cannot be told apart and are left as they are, so the strict check below still
+    refuses the series (nothing is merged by guesswork)."""
+    out: List[dict] = []
+    for r in rows or []:
+        prev = out[-1] if out else None
+        if (isinstance(r, dict) and isinstance(prev, dict) and type(r.get("day")) is date and r.get("day") == prev.get("day")
+                and all(r.get(k) == prev.get(k) for k in ("open", "high", "low", "close")) and _num(r.get("volume")) and _num(prev.get("volume"))):
+            if r["volume"] > prev["volume"]:
+                out[-1] = r
+            continue
+        out.append(r)
+    return out
+
+
 def clean_reason(rows: List[dict], expected: date, minimum: int, quote_price: Optional[float] = None) -> Tuple[Optional[List[list]], str]:
     """Dhan's rows ({"day","open","high","low","close","volume"}) as [date, o, h, l, c, v], or (None, the reason) unless the whole series is
     complete, consistent and plausible. Rows after the last completed session are dropped (today's partial candle)."""
     if not rows or len(rows) > MAX_ROWS:
         return None, "no rows or too many"
+    rows = collapse_repeats(rows)
     out: List[list] = []
     previous: Optional[date] = None
     for r in rows:

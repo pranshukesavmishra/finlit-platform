@@ -32,6 +32,7 @@ The rating describes a company's financial health from its filings and prices. I
 from __future__ import annotations
 
 import asyncio
+import zlib
 import json
 import logging
 import os
@@ -39,7 +40,7 @@ import re
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from fastapi import APIRouter, Query, Request
@@ -776,7 +777,15 @@ async def _pending(store, statement: str, days: int, limit: int, skip: list) -> 
     return [r["symbol"] for r in rows]
 
 
-async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None) -> Dict[str, Any]:
+def in_shard(symbols: List[str], shard: Optional[Tuple[int, int]]) -> List[str]:
+    """Several workers side by side: each takes the companies whose symbol hashes to its part, so no company is calculated twice and none is left out."""
+    if not shard:
+        return symbols
+    part, of = shard
+    return [x for x in symbols if zlib.crc32(x.encode()) % of == part]
+
+
+async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None, shard: Optional[Tuple[int, int]] = None) -> Dict[str, Any]:
     """Calculate the rating of every company we hold a full report for that has none yet (or one older than `days`), one at a time (memory),
     never-rated first and then the biggest. The calculation is exactly the one a member's button runs, from the same inputs. It is resumable
     (what is stored counts as done), it gives way to a member who is waiting (the site backend turns it away while one is, and it waits a
@@ -794,6 +803,7 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
     except Exception:
         skip = []
     symbols = await _pending(store, statement, days, limit, skip)
+    symbols = in_shard(symbols, shard)
     started, done, failed, streak, paused = time.monotonic(), 0, [], 0, 0
     attempted = 0
     try:

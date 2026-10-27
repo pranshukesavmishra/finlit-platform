@@ -95,7 +95,7 @@ def rows(n=600, **over):
     ("nan", lambda r: r[7].update(open=float("nan"))),
     ("negative volume", lambda r: r[7].update(volume=-1)),
     ("high below close", lambda r: r[7].update(high=10.5)),
-    ("duplicate day", lambda r: r.insert(8, dict(r[8]))),
+    ("same day twice with different prices", lambda r: r.insert(8, {**r[8], "close": 10.5})),
     ("unsorted", lambda r: r.reverse()),
     ("bool", lambda r: r[7].update(open=True)),
 ])
@@ -103,6 +103,21 @@ def test_one_bad_row_rejects_the_whole_series(name, mutate):
     r = rows()
     mutate(r)
     assert pc.clean(r, LAST, 252) is None, name
+
+
+def test_a_day_sent_twice_is_one_session_when_the_prices_agree():
+    """Dhan now and then repeats a day (seen on live data: an exact copy, and a copy with a much smaller volume). One session, not two:
+    the larger volume is kept. Two records of one day with different prices are still refused."""
+    r = rows()
+    r.insert(8, dict(r[7]))                                    # an exact copy
+    r.insert(11, {**r[10], "volume": 2})                       # a partial copy after the complete record
+    r.insert(14, {**r[13], "volume": 1}); r[14], r[13] = {**r[13]}, {**r[13], "volume": 1}   # partial record first, complete one after
+    got = pc.clean(r, LAST, 252)
+    assert got is not None and len(got) == 600
+    assert [row[0] for row in got] == sorted({row[0] for row in got})              # strictly increasing
+    assert {row[5] for row in got} == {5}                                         # the complete record (volume 5) always wins
+    clash = rows(); clash.insert(8, {**clash[8], "close": 10.5})
+    assert pc.clean(clash, LAST, 252) is None
 
 
 def test_clean_series_rules():

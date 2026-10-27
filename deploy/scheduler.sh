@@ -191,12 +191,16 @@ fi
       log "prism-precompute: waiting (heavy data loads are paused by the admin switch)"
     else
       free="$(free_mb)"
-      if [ "$free" -lt "${PRISM_MIN_FREE_MB:-250}" ]; then
+      if [ "$free" -lt "${PRISM_MIN_FREE_MB:-350}" ]; then
         log "prism-precompute: waiting (only ${free} MB free)"
       else
-        log "start prism-precompute"
-        timeout "${PRISM_ROUND_MAX_MIN:-60}m" nice -n 10 $PY -m finlit.worker precompute-prism --max-minutes "${PRISM_ROUND_MAX_MIN:-55}" --limit "${PRISM_ROUND_LIMIT:-800}" >> /tmp/job-prism-loop.log 2>&1
-        log "done prism-precompute rc=$?"
+        n="${PRISM_WORKERS:-2}"   # side by side, each on its own share of the companies; the site backend runs up to PRISM_SLOTS (2) calculations at once
+        log "start prism-precompute ($n workers)"
+        for k in $(seq 0 $((n - 1))); do
+          timeout "${PRISM_ROUND_MAX_MIN:-60}m" nice -n 10 $PY -m finlit.worker precompute-prism --shard "$k/$n" --max-minutes "${PRISM_ROUND_MAX_MIN:-55}" --limit "${PRISM_ROUND_LIMIT:-800}" >> /tmp/job-prism-loop.log 2>&1 &
+        done
+        wait
+        log "done prism-precompute"
       fi
     fi
     sleep "${PRISM_LOOP_SLEEP_S:-300}"
