@@ -146,13 +146,15 @@ describe("plInsights: latest quarter and latest year together", () => {
     for (const c of cases.cases) { const qq = (c as { quarterly?: unknown }).quarterly; if (qq) plInsights({ quarterly: tbl(qq) }).forEach((x) => seen.add(x.case)); }
     expect(seen.has(8)).toBe(true);
   });
-  it("lenders: revenue is total income and operating profit is never used", () => {
+  it("lenders: revenue is the statement's Revenue line (total income only when there is none) and operating profit is never used", () => {
     const rows = { revenue: [100, 110], total_income: [200, 200], net_profit: [20, 22], operating_profit: [50, 40] };
     expect(plInsights({ annual: Y(rows.revenue, rows.net_profit, { operating_profit: rows.operating_profit }) }).map((x) => x.case)).toEqual([7]);
     const lend = plInsights({ lender: true, annual: Y(rows.revenue, rows.net_profit, { total_income: rows.total_income, operating_profit: rows.operating_profit }) });
-    expect(lend).toEqual([]);   // total income flat, profit flat: no case, and case 7 cannot fire without operating profit
+    expect(lend.map((x) => x.case)).not.toContain(7);   // case 7 cannot fire without operating profit
     const k = plInsights({ lender: true, annual: Y([100, 110], [10, 9], { total_income: [200, 230], operating_profit: [5, 4] }) })[0];
-    expect(k.views.annual!.growth).toEqual({ revenue: 15, profit: -10, operating: null });
+    expect(k.views.annual!.growth).toEqual({ revenue: 10, profit: -10, operating: null });
+    const only = plInsights({ lender: true, annual: tbl({ period: "yearly", periods: ["FY25", "FY26"], periodEnds: ["2025-03-31", "2026-03-31"], rows: { total_income: [200, 230], net_profit: [10, 9] } }) })[0];
+    expect(only.views.annual!.growth.revenue).toBe(15);   // no Revenue line: total income stands in
     expect(k.lender).toBe(true);
   });
   it("the quarterly series is read from the same table, so a new quarter changes the headline without a code change", () => {

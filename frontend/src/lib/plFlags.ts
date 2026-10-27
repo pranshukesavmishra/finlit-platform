@@ -42,7 +42,7 @@ export type PlFlag = {
   periods: string[];        // period labels (column headers) to highlight
   key: string;              // unique per case + scope + period, also the alert de-duplication key
 };
-/** lender: a bank or NBFC. Its revenue is total income and it has no operating profit, so case 7 and operating growth are never used. */
+/** lender: a bank or NBFC. Its revenue is the statement's Revenue line and it has no operating profit, so case 7 and operating growth are never used. */
 export type PlInput = { annual?: Table | null; quarterly?: Table | null; lender?: boolean };
 
 export const CASES: Record<CaseNo, { id: string; title: string; severity: Severity; why: string }> = {
@@ -87,12 +87,13 @@ function annualFallback(t: Table | null | undefined, i: number, back: "year" | "
   return a && b && (+a[1] - +b[1] + 100) % 100 === 1 ? i - 1 : null;
 }
 
-/** For a lender (bank or NBFC) revenue means total income, and operating profit is not a meaningful line, so it is dropped. */
+/** For a lender (bank or NBFC) revenue is the same Revenue line the statements and the results table show (so every screen agrees); total income is
+ *  used only when a company has no Revenue line at all. Operating profit is not a meaningful line for a lender, so it is dropped. */
 export function prepare(t: Table | null | undefined, lender: boolean): Table | null | undefined {
   if (!t || !lender) return t;
   const rows = { ...t.rows };
-  const ti = rows.total_income;
-  if (Array.isArray(ti) && ti.some((v) => num(v) != null)) rows.revenue = ti;
+  const has = (xs: unknown) => Array.isArray(xs) && xs.some((v) => num(v) != null);
+  if (!has(rows.revenue) && has(rows.total_income)) rows.revenue = rows.total_income;
   delete rows.operating_profit;
   return { ...t, rows };
 }

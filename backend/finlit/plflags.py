@@ -219,13 +219,13 @@ def divergence_run(q: Table) -> List[Dict[str, Any]]:
 
 
 def prepare(t: Optional[Table], lender: bool) -> Optional[Table]:
-    """For a lender (bank or NBFC) revenue means total income and operating profit is not a meaningful line, so it is dropped."""
+    """For a lender (bank or NBFC) revenue is the same Revenue line the statements and the results table show; total income is used only when a company has no Revenue line. Operating profit is not a meaningful line for a lender, so it is dropped."""
     if not t or not lender:
         return t
     rows = dict(t.get("rows") or {})
-    ti = rows.get("total_income")
-    if isinstance(ti, list) and any(_num(v) is not None for v in ti):
-        rows["revenue"] = ti
+    has = lambda xs: isinstance(xs, list) and any(_num(v) is not None for v in xs)
+    if not has(rows.get("revenue")) and has(rows.get("total_income")):
+        rows["revenue"] = rows["total_income"]
     rows.pop("operating_profit", None)
     return {**t, "rows": rows}
 

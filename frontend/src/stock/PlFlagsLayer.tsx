@@ -67,7 +67,7 @@ export const dmy = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}/.test(d) ? `$
 const line = (g: Growth, lender: boolean) => [["revenue", g.revenue], ["net profit", g.profit], ...(lender ? [] : [["operating profit", g.operating]])].filter((x) => x[1] != null).map((x) => `${x[0]} ${sgn(x[1] as number)}`).join(", ");
 
 function Block({ v, lender }: { v: PeriodView; lender: boolean }) {
-  const revLabel = lender ? "Total income growth" : "Revenue growth";
+  const revLabel = "Revenue growth";
   const q = v.scope === "quarterly";
   return (
     <div className="plf-blk" role="tabpanel">
@@ -119,7 +119,7 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
         {TABS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       <div className="plf-pane" role="tabpanel">{body}</div>
-      <p className="plf-f">Based on reported figures{x.lender ? " (for a bank or lender, revenue is total income and operating profit is not shown)" : ""}. Information only, not advice.</p>
+      <p className="plf-f">Based on reported figures{x.lender ? " (for a bank or lender, operating profit is not shown)" : ""}. Information only, not advice.</p>
     </aside>
   );
 }
