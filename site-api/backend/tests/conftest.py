@@ -14,6 +14,7 @@ os.environ["CMS_ADMIN_EMAIL"] = "admin@example.test"
 os.environ["CMS_ADMIN_PASSWORD_HASH"] = "not-used-by-these-tests"
 os.environ["RESEND_API_KEY"] = "test-resend-key"
 os.environ["CONTACT_RECIPIENT_EMAIL"] = "owner@example.com"
+os.environ["MCP_INTERNAL_URL"] = "off"   # the chat never reaches for a data endpoint unless a test supplies one
 
 from backend import server
 

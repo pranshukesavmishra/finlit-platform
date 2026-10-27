@@ -42,10 +42,12 @@ try:
     from backend.email_service import send_lead_emails, send_service_enquiry_email, EmailNotConfigured
     from backend.portfolio_report import read_current_portfolio_report, save_portfolio_upload
     from backend.market_data import ENDPOINTS as MARKET_ENDPOINTS, market_params, normalize_market_payload
+    from backend import mcp_tools
 except ModuleNotFoundError:
     from email_service import send_lead_emails, send_service_enquiry_email, EmailNotConfigured
     from portfolio_report import read_current_portfolio_report, save_portfolio_upload
     from market_data import ENDPOINTS as MARKET_ENDPOINTS, market_params, normalize_market_payload
+    import mcp_tools
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -4076,6 +4078,32 @@ def plain_chat_text(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
+CHAT_TOOL_RULES = (
+    "\n\nFinLit data tools: you can call tools that return verified figures from FinLit's database (prices, financial statements, ratios, shareholding, results, "
+    "screener, index levels, institutional flows, IPOs, funds, ETFs). These tools are the approved, verified data source for the rule above about market figures. "
+    "Use a tool for EVERY number about a company, fund, ETF, index or the market. Never invent, estimate or recall a figure from memory. Answer only from what the tools returned. "
+    "If a figure is null, missing, locked or a tool returns an error, say plainly that it is not available; never write zero or a guess in its place. "
+    "Give the as-of date (asOf) from the result next to the figures. If you only know a company's name, call search_stocks first. Use as few calls as needed. "
+    "A locked FinLit score is a Silver plan feature on the website: say so. "
+    "Describe the data neutrally. Never say or imply that anyone should buy, sell, hold, reduce, avoid or accumulate a security, and never give a price target or a prediction."
+)
+CHAT_TOOL_FALLBACK = "I couldn't finish looking that up. Please ask a narrower question, for example about one company or one figure."
+_RECOMMENDATION_PATTERNS = (
+    re.compile(r"\b(should|could|can|would|must|ought to|better to|recommend\w*|suggest\w*|advis\w*|consider|time to|good time to)\b[^.!?\n]{0,50}\b(buy|buying|sell|selling|hold|holding|accumulate|accumulating|reduce|reducing|avoid|avoiding)\b", re.I),
+    re.compile(r"\b(price target|target price|buy rating|sell rating|hold rating|strong buy|a buy|a sell|worth buying|good buy|buying opportunity|accumulate)\b", re.I),
+)
+
+
+def strip_recommendations(text: str) -> str:
+    """Safety net for answers built from tool data: any sentence that reads as advice to buy, sell, hold, reduce, avoid or accumulate, or as a target, is dropped."""
+    lines = []
+    for line in text.split("\n"):
+        kept = [x for x in re.split(r"(?<=[.!?])\s+", line) if x.strip() and not any(p.search(x) for p in _RECOMMENDATION_PATTERNS)]
+        if kept or not line.strip():
+            lines.append(" ".join(kept))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
 CHAT_MAX_REQUESTS_PER_MINUTE = 10
 CHAT_RATE_WINDOW_SECONDS = 60
 CHAT_INITIAL_OUTPUT_TOKENS = 700
@@ -4130,51 +4158,100 @@ async def chat(payload: ChatRequest, request: Request):
         contents.append({"role": "user", "parts": [{"text": payload.message.strip()}]})
         client = genai.Client(api_key=api_key)
 
-        async def generate(output_limit):
+        # FinLit data tools (through the research API's MCP endpoint). Any problem here leaves the chat working as it always did, without tools.
+        tool_config = None
+        try:
+            offered = await run_in_threadpool(mcp_tools.get_tools, client_ip)
+            if offered:
+                tool_config = [types.Tool(function_declarations=[types.FunctionDeclaration(**d) for d in mcp_tools.declarations(offered)])]
+        except Exception as exc:
+            logger.warning("FinLit AI tools not attached (event=chat_tools_unavailable, exception_type=%s)", type(exc).__name__)
+            tool_config = None
+        system_instruction = FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES + (CHAT_TOOL_RULES if tool_config else "")
+
+        async def generate(output_limit, with_tools=True):
+            options = {"system_instruction": system_instruction, "max_output_tokens": output_limit}
+            if tool_config and with_tools:
+                options["tools"] = tool_config
+                options["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)   # this code runs the tools, to count and limit them
             return await run_in_threadpool(
                 client.models.generate_content,
                 model=model_id,
                 contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES,
-                    max_output_tokens=output_limit,
-                ),
+                config=types.GenerateContentConfig(**options),
             )
 
-        result = await generate(CHAT_INITIAL_OUTPUT_TOKENS)
-        attempt = 1
-        finish_reason = gemini_finish_reason(result)
-        if finish_reason == "MAX_TOKENS":
-            logger.warning(
-                "FinLit AI generation truncated (event=gemini_max_tokens, finish_reason=%s, attempt=%s, "
-                "output_token_limit=%s, model_id=%s, bounded_history_length=%s)",
-                finish_reason,
-                attempt,
-                CHAT_INITIAL_OUTPUT_TOKENS,
-                model_id,
-                bounded_history_length,
-            )
-            attempt = 2
-            result = await generate(CHAT_RETRY_OUTPUT_TOKENS)
+        async def complete(with_tools=True):
+            result = await generate(CHAT_INITIAL_OUTPUT_TOKENS, with_tools)
+            attempt = 1
             finish_reason = gemini_finish_reason(result)
-        if finish_reason == "MAX_TOKENS":
-            logger.warning(
-                "FinLit AI generation truncated (event=gemini_max_tokens, finish_reason=%s, attempt=%s, "
-                "output_token_limit=%s, model_id=%s, bounded_history_length=%s)",
-                finish_reason,
-                attempt,
-                CHAT_RETRY_OUTPUT_TOKENS,
-                model_id,
-                bounded_history_length,
-            )
-            raise HTTPException(
-                status_code=502,
-                detail="FinLit AI couldn’t complete that response. Please try a more focused question.",
-            )
-        answer = plain_chat_text(result.text or "")
+            if finish_reason == "MAX_TOKENS":
+                logger.warning(
+                    "FinLit AI generation truncated (event=gemini_max_tokens, finish_reason=%s, attempt=%s, "
+                    "output_token_limit=%s, model_id=%s, bounded_history_length=%s)",
+                    finish_reason,
+                    attempt,
+                    CHAT_INITIAL_OUTPUT_TOKENS,
+                    model_id,
+                    bounded_history_length,
+                )
+                attempt = 2
+                result = await generate(CHAT_RETRY_OUTPUT_TOKENS, with_tools)
+                finish_reason = gemini_finish_reason(result)
+            if finish_reason == "MAX_TOKENS":
+                logger.warning(
+                    "FinLit AI generation truncated (event=gemini_max_tokens, finish_reason=%s, attempt=%s, "
+                    "output_token_limit=%s, model_id=%s, bounded_history_length=%s)",
+                    finish_reason,
+                    attempt,
+                    CHAT_RETRY_OUTPUT_TOKENS,
+                    model_id,
+                    bounded_history_length,
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail="FinLit AI couldn’t complete that response. Please try a more focused question.",
+                )
+            return result, finish_reason
+
+        result, finish_reason = await complete()
+        tools_used, tool_rounds, gave_up = [], 0, False
+        while tool_config:
+            wanted = list(getattr(result, "function_calls", None) or [])
+            if not wanted:
+                break
+            if tool_rounds >= mcp_tools.MAX_TOOL_ROUNDS:    # the round limit: no more tools, the model must answer with what it has
+                gave_up = True
+                break
+            tool_rounds += 1
+            candidates = getattr(result, "candidates", None) or []
+            model_turn = getattr(candidates[0], "content", None) if candidates else None
+            contents.append(model_turn or {"role": "model", "parts": [{"function_call": {"name": c.name, "args": dict(c.args or {})}} for c in wanted]})
+            replies = []
+            for position, call in enumerate(wanted):
+                if position < mcp_tools.MAX_CALLS_PER_ROUND:
+                    succeeded, output = await run_in_threadpool(mcp_tools.call_tool, call.name, dict(call.args or {}), client_ip)
+                    if succeeded and call.name not in tools_used:
+                        tools_used.append(call.name)
+                else:
+                    output = {"error": "Too many tool calls at once; ask for fewer."}
+                replies.append({"function_response": {"name": call.name, "response": output}})
+            contents.append({"role": "user", "parts": replies})
+            result, finish_reason = await complete()
+        if gave_up:
+            logger.warning("FinLit AI tool round limit reached (event=chat_tool_round_limit, tool_rounds=%s)", tool_rounds)
+            contents.append({"role": "user", "parts": [{"text": "Answer now from the tool results you already have; say what could not be found."}]})
+            result, finish_reason = await complete(with_tools=False)
+        answer = plain_chat_text(getattr(result, "text", None) or "")
+        if gave_up and not answer:
+            answer = CHAT_TOOL_FALLBACK
+        if tool_config and tools_used:
+            answer = strip_recommendations(answer) or CHAT_TOOL_FALLBACK
         if not answer:
             raise RuntimeError("Gemini returned an empty response")
-        logger.info("FinLit AI response ready (finish_reason=%s, response_chars=%s)", finish_reason, len(answer))
+        if tools_used:
+            answer += "\n\nData from FinLit tools: " + ", ".join(tools_used)
+        logger.info("FinLit AI response ready (finish_reason=%s, response_chars=%s, tool_rounds=%s, tools_used=%s)", finish_reason, len(answer), tool_rounds, ",".join(tools_used) or "none")
         return ChatResponse(response=answer)
     except HTTPException:
         raise
