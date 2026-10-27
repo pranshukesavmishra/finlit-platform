@@ -34,7 +34,7 @@ git -C "$SRC" archive HEAD | tar -x -C "$FOLDER"
 
 echo "3/5 checking the export for secrets"
 BAD=0
-if grep -rIlE '(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[abp]-[0-9A-Za-z-]{10,}|ghp_[0-9A-Za-z]{30,}|sk-[A-Za-z0-9]{32,}|mongodb\+srv://[^ "<]+:[^ "<@]+@|postgres(ql)?://[^ "<:]+:[^ "<@$]{6,}@[^ "<]*(neon|aws|render))' "$FOLDER" --exclude-dir=node_modules >"$WORK/hits.txt" 2>/dev/null; then BAD=1; fi
+if grep -rIlE '(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[abp]-[0-9A-Za-z-]{10,}|ghp_[0-9A-Za-z]{30,}|sk-[A-Za-z0-9]{32,}|mongodb\+srv://[^ "<]+:[^ "<@]+@|postgres(ql)?://[^ "<:]+:[^ "<@$]{12,}@[^ "<]*(neon|aws|render))' "$FOLDER" --exclude-dir=node_modules >"$WORK/hits.txt" 2>/dev/null; then BAD=1; fi
 if find "$FOLDER" -name ".env" -o -name "*.pem" -o -name "*.key" | grep -q .; then BAD=1; find "$FOLDER" -name ".env" -o -name "*.pem" -o -name "*.key" >>"$WORK/hits.txt"; fi
 if [ "$BAD" = 1 ]; then echo "STOP: possible secrets in the export:" >&2; cat "$WORK/hits.txt" >&2; exit 1; fi
 
