@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
@@ -86,6 +86,32 @@ function Company({ r }: { r: QRow }) {
   );
 }
 
+/** "Detailed view": the same quarter, laid out in groups (revenue, operating profit, net profit, per share, basis), plus the one-line summary to copy.
+ *  A native <details>, so it opens and closes with a click or the keyboard and needs no state. Every figure is the row's own; a missing one shows a dash. */
+function Detail({ r, fiscal, line }: { r: QRow; fiscal?: string; line: string }) {
+  const kv = (label: string, value: ReactNode) => <div className="qr-kv"><dt>{label}</dt><dd>{value}</dd></div>;
+  const groups: { title: string; rows: [string, ReactNode][] }[] = [
+    { title: "Revenue", rows: [["Rs crore", money(r.revenue)], ["Change on a year ago", <Chg v={r.revenueYoY} />], ["Change on the last quarter", <Chg v={r.revenueQoQ} />]] },
+    { title: "Operating profit", rows: [["Rs crore", <Plain text={money(r.operatingProfit)} why={r.opYoYWhy} />], ["Change on a year ago", <Chg v={r.opYoY} why={r.opYoYWhy} />], ["Change on the last quarter", <Chg v={r.opQoQ} why={r.opQoQWhy} />], ["Operating margin (OPM)", <Plain text={pc1(r.opm)} why={r.opYoYWhy} />]] },
+    { title: "Net profit", rows: [["Rs crore", <b>{money(r.netProfit)}</b>], ["Change on a year ago", <Chg v={r.profitYoY} />], ["Change on the last quarter", <Chg v={r.profitQoQ} />], ["Net margin (NPM)", pc1(r.npm)], ...(r.npmChange != null ? [["Net margin, change on a year ago", `${r.npmChange > 0 ? "+" : r.npmChange < 0 ? MINUS : ""}${nf(Math.abs(r.npmChange), 1)} pts`] as [string, ReactNode]] : [])] },
+    { title: "Per share and basis", rows: [["Earnings per share (Rs)", r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(Math.abs(r.eps), 2)], ["Quarter", `${fiscal ? fiscal + " · " : ""}ended ${r.periodEnd ? new Date(r.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}`], ["Declared", dayLabel(r.date)], ["Accounts", r.basis === "standalone" ? "Standalone" : r.basis === "consolidated" ? "Consolidated" : "—"]] },
+  ];
+  return (
+    <details className="qr-detail">
+      <summary><span>Detailed view</span><Icon name="arrow" className="qr-chev" /></summary>
+      <div className="qr-groups">
+        {groups.map((g) => (
+          <section key={g.title} className="qr-group" aria-label={g.title}>
+            <h4>{g.title}</h4>
+            <dl>{g.rows.map(([label, value]) => <Fragment key={label}>{kv(label, value)}</Fragment>)}</dl>
+          </section>
+        ))}
+      </div>
+      <p className="qr-line"><code>{line}</code><Copy text={line} /></p>
+    </details>
+  );
+}
+
 function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void }) {
   const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
   const note = r.status === "awaiting" && r.awaitingWhy === "provider" ? <>{awaitingText(r.date, r.awaitingWhy)}. We check again every hour.</>
@@ -110,12 +136,12 @@ function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked
         <tr className={"qr-sub" + (r.flagged ? " flag" : "")}>
           <td colSpan={COLS}>
             <div className="qr-sticky qr-lines">
-              {line && <p className="qr-line"><code>{line}</code><Copy text={line} /></p>}
               {r.flagged && (
                 <p className="qr-flag"><span className="chip down"><Icon name="alert" /> {GAP_LABEL}</span>
                   <span>Revenue {signedPct(r.revenueYoY, 0)}, profit {signedPct(r.profitYoY, 0)}: {nf(r.gap || 0, 0)} points apart.</span>
                   <Link to={gapAlertLink(r.symbol)}>Set the alert</Link><Link to={`/stocks/${r.symbol}#quarter`}>Open the report</Link></p>
               )}
+              {line && <Detail r={r} fiscal={fiscal} line={line} />}
             </div>
           </td>
         </tr>

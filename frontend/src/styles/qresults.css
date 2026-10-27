@@ -81,3 +81,19 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
   .qr-dates .wl-sel:first-child { flex-basis: 100%; } .qr-or { display: none; }
   .qr-fd .chips button { padding: 8px 10px; }
 }
+
+/* Detailed view: one click opens the quarter in groups (revenue, operating profit, net profit, per share and basis) */
+.qr-detail { border: 1px solid var(--line, rgba(0,0,0,.12)); border-radius: var(--r-s, 8px); background: var(--s2); }
+.qr-detail > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; padding: 9px 12px; font: 600 13px var(--sans); color: var(--gold); }
+.qr-detail > summary::-webkit-details-marker { display: none; }
+.qr-detail > summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-s, 8px); }
+.qr-detail .qr-chev { width: 14px; height: 14px; transform: rotate(90deg); transition: transform .15s; }
+.qr-detail[open] .qr-chev { transform: rotate(-90deg); }
+.qr-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; padding: 4px 12px 12px; }
+.qr-group { background: var(--s1); border: 1px solid var(--line, rgba(0,0,0,.08)); border-radius: var(--r-s, 8px); padding: 10px 12px; }
+.qr-group h4 { margin: 0 0 6px; font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.qr-group dl { margin: 0; display: grid; gap: 5px; }
+.qr-kv { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; }
+.qr-kv dt { color: var(--muted); } .qr-kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.qr-detail > .qr-line { padding: 0 12px 12px; }
+@media (prefers-reduced-motion: reduce) { .qr-detail .qr-chev { transition: none; } }
