@@ -25,7 +25,7 @@
 .dk-tile.is-btn:focus-visible { outline: 2px solid #F4EFE3; outline-offset: 2px; }
 .dk-t-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
 .dk-t-w { font: 600 11.5px/1.2 var(--mono, ui-monospace, monospace); color: var(--muted, #D2CEC4); padding-top: 1px; letter-spacing: .02em; }
-.dk-t-ic { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; color: var(--pc); background: color-mix(in srgb, var(--pc) 18%, transparent); } .dk-t-ic svg { width: 14px; height: 14px; }
+.dk-t-ic { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; color: var(--pillar, var(--pc)); background: color-mix(in srgb, var(--pillar, var(--pc)) 18%, transparent); } .dk-t-ic svg { width: 14px; height: 14px; }
 .dk-t-name { font-size: 12.5px; font-weight: 600; line-height: 1.25; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dk-t-note { font-size: 11.5px; color: var(--muted, #D2CEC4); line-height: 1.35; margin-top: 2px; }
 
@@ -65,3 +65,10 @@
   .dk-ring-fg, .dk-bar-fill, .dk-bar em, .dk-gl-fill, .dk-gl-end { animation: none !important; }
   .dk-tile { transition: none; }
 }
+
+/* Score bands: green from 70, orange from 50 to under 70, red under 50. The whole tile (background, border, ring, bar) takes the band's colour so the three read apart at a glance. */
+:root { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; }
+.dk-tile.band-hi, .dk-tile.band-mid, .dk-tile.band-lo { border-width: 1.5px; }
+.dk-tile.band-hi  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-hi) 30%, transparent), color-mix(in srgb, var(--band-hi) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-hi) 70%, transparent); }
+.dk-tile.band-mid { background: linear-gradient(160deg, color-mix(in srgb, var(--band-mid) 30%, transparent), color-mix(in srgb, var(--band-mid) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-mid) 70%, transparent); }
+.dk-tile.band-lo  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-lo) 30%, transparent), color-mix(in srgb, var(--band-lo) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-lo) 70%, transparent); }

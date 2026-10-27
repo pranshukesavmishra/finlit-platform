@@ -37,6 +37,12 @@ export type PartTileProps = {
 
 const R = 15;
 
+/** The colour band of a score, as the founder set it: green from 70, orange from 50 to under 70, red under 50. Colour decorates the tile; the status word keeps
+ *  the model's own labels, and the number says the rest. */
+export type Band = "hi" | "mid" | "lo" | "na";
+export const bandOf = (v: number | null | undefined): Band => (v == null || !Number.isFinite(v) ? "na" : v >= 70 ? "hi" : v >= 50 ? "mid" : "lo");
+const BAND_COLOR: Record<Exclude<Band, "na">, string> = { hi: "var(--band-hi)", mid: "var(--band-mid)", lo: "var(--band-lo)" };
+
 const ZONES: Record<number, string[]> = { 3: ["#E8808A", "#D4B26A", "#9BC48A", "#5FB88E"], 4: ["#E8808A", "#E0955F", "#D4B26A", "#9BC48A", "#5FB88E"] };
 /** The bar's background: one faintly tinted zone per label band (red, amber, green), cut at the thresholds. A hint only; the word says the status. */
 export function zoneBg(ticks: number[]): string {
@@ -50,7 +56,10 @@ export function tileLabel(name: string, value: number | null, word: string, weig
 
 export function PartTile({ name, value, word, tone, color, weight, note, icon, index = 0, onPress, pressed, label, ticks = TICKS }: PartTileProps) {
   const v = value == null ? 0 : Math.max(0, Math.min(100, value));
-  const style = { "--pc": `var(${color})`, "--i": index } as CSSProperties;
+  const band = bandOf(value);
+  // Every accent of the tile (tint, border, ring, bar) follows the score band; the corner icon keeps the part's own colour so the parts stay recognisable.
+  const style = { "--pc": band === "na" ? `var(${color})` : BAND_COLOR[band], "--pillar": `var(${color})`, "--i": index } as CSSProperties;
+  const cls = "dk-tile band-" + band;
   const inner = (
     <>
       <span className="dk-t-top">
@@ -71,6 +80,6 @@ export function PartTile({ name, value, word, tone, color, weight, note, icon, i
     </>
   );
   return onPress
-    ? <button type="button" className={"dk-tile is-btn" + (pressed ? " hot" : "")} style={style} aria-expanded={!!pressed} onClick={onPress}>{inner}</button>
-    : <div className="dk-tile" style={style} role="group" aria-label={label ?? tileLabel(name, value, word, weight)}>{inner}</div>;
+    ? <button type="button" className={cls + " is-btn" + (pressed ? " hot" : "")} style={style} aria-expanded={!!pressed} onClick={onPress}>{inner}</button>
+    : <div className={cls} style={style} role="group" aria-label={label ?? tileLabel(name, value, word, weight)}>{inner}</div>;
 }
