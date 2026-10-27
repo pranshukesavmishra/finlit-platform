@@ -634,6 +634,35 @@ async def test_nightly_precompute_stores_ratings_in_order_and_stops_when_the_pro
         await conn.execute("DELETE FROM snapshots WHERE symbol IN ('PZA', 'PZB')")
 
 
+async def test_a_company_that_fails_upstream_does_not_block_the_queue_behind_it(store):  # noqa: F811
+    """A calculation that comes back 502 used to be met first in every round and, with two more failures, end the round before the companies behind
+    it were reached. It now waits (45 minutes) and the others are calculated."""
+    syms = ("PZA", "PZB", "PZC")
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM prism_reports")
+        await conn.execute("DELETE FROM snapshots WHERE symbol = ANY($1::text[])", list(syms))
+        for sym in syms:
+            await conn.execute("INSERT INTO snapshots (symbol, statement, section, body, etag, generated_at) VALUES ($1, 'consolidated', 'summary', '{}', 'x', now())", sym)
+    for sym in syms:
+        await store.redis.delete(f"prism:pre:fail:consolidated:{sym}")
+    settings = make_settings(site_api_url="http://site", cms_jwt_secret=SECRET)
+    fake = FakeSite()
+
+    def handler(request):
+        return httpx.Response(502, json={"detail": "upstream"}) if b"PZA" in request.content else fake(request)
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://site")
+    first = await prism.precompute(store, settings, limit=10, client=http)
+    assert any(f.startswith("PZA:") for f in first["failed"])
+    assert {"PZB", "PZC"} <= {r["symbol"] for r in await store.pool.fetch("SELECT symbol FROM prism_reports")}
+    second = await prism.precompute(store, settings, limit=10, client=http, days=0)       # everything is "old" now, yet PZA is left to wait
+    assert not any(f.startswith("PZA:") for f in second["failed"])
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM snapshots WHERE symbol = ANY($1::text[])", list(syms))
+    for sym in syms:
+        await store.redis.delete(f"prism:pre:fail:consolidated:{sym}")
+
+
 # ------------------------------------------------------------------ speed: what a calculation keeps, calculations behind the page, the nightly job
 async def test_a_calculation_keeps_its_inputs_and_peer_rows_for_the_next_one(env):
     app, fake = env

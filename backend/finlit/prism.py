@@ -760,6 +760,7 @@ def _expired() -> JSONResponse:
 
 
 # ------------------------------------------------------------------ nightly pre-calculation
+PRE_RETRY_SECONDS = 45 * 60         # a company whose calculation failed upstream (502) is tried again after this
 PRE_FAIL_SECONDS = 20 * 3600       # a company the data cannot rate is not tried again until the next night
 PRE_PAUSE_TRIES = 40               # times the nightly job waits for a member's calculation to finish before it gives that company up
 PRE_PROGRESS_KEY = "prism:pre:last"
@@ -828,9 +829,14 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             snapshot = _ready(r)
             if snapshot is None:
                 failed.append(f"{symbol}:{code}")
+                log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
                 streak = streak + 1 if code in (0, 429, 502, 503) else 0   # a company the data cannot rate (404/422) is not a provider outage
                 if streak == 0:
                     await redis.set(f"prism:pre:fail:{statement}:{symbol}", str(code), ex=PRE_FAIL_SECONDS)
+                elif code == 502:
+                    # This company's calculation failed upstream. Leave it for a while instead of meeting it first in every round: it used to head the
+                    # queue each time, fail three in a row and end the round, so the companies behind it were never reached.
+                    await redis.set(f"prism:pre:fail:{statement}:{symbol}", str(code), ex=PRE_RETRY_SECONDS)
                 continue
             streak = 0
             cache = snapshot.pop("cache", None)
