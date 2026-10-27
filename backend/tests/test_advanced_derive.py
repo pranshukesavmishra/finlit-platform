@@ -251,7 +251,11 @@ def test_missing_sections_never_invent():
     assert not [k for k in lt if k.startswith("ax_") and k not in ("ax_miss",)]
     assert all(v for v in lt["ax_miss"].values())
     s = copy.deepcopy(sections({"revenue": [1.0, 2.0]}, ends=["2025-12-31", "2026-12-31"], hist={"periods": ["FY26"], "rows": {"roe": [5.0]}}))
-    assert derive.latest(s, {})["ax_miss"]["roe"] == "non_march"
+    # a December-year company keeps the provider's yearly ratio row that carries its own year's label (it used to be refused as "non_march")
+    got = derive.latest(s, {})
+    assert "roe" not in got["ax_miss"] and got["ax_roe"] == 5.0
+    s2 = copy.deepcopy(sections({"revenue": [1.0, 2.0]}, ends=["2025-12-31", "2026-12-31"], hist={"periods": ["FY20"], "rows": {"roe": [5.0]}}))
+    assert derive.latest(s2, {})["ax_miss"]["roe"] == "no_fy"   # a year the provider did not send is missing, with its reason
 
 
 def test_provider_yearly_pe_pb_definition(reliance_sections):

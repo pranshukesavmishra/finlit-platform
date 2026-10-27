@@ -96,7 +96,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "pr": bundle.get("ratios_pr"), "le": bundle.get("ratios_le"), "li": bundle.get("ratios_li"),
         "ef": bundle.get("ratios_ef"), "basic": bundle.get("basic"), "gr": bundle.get("growth"),
     }
-    first_pass = ratios.build_ratios(family_payloads)
+    fy_month = statements.fiscal_year_end_month(pl)   # March for most companies; December and others keep their own yearly ratio rows
+    first_pass = ratios.build_ratios(family_payloads, fy_month=fy_month)
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
     lender = statements.is_bank(pl_rows)
     computed = derived.compute(statements.calc_view(pl), bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender, statements.calc_view(pl_q))
@@ -117,7 +118,7 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     if growth_from_quarter:   # growth measured over one quarter says so, instead of passing for a full-year figure
         derived_periods.update({"sales_growth_latest": "Latest quarter vs year ago", "profit_growth_latest": "Latest quarter vs year ago"})
-    ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v})
+    ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v}, fy_month=fy_month)
     _fill_profitability(ratio_view, pl, bs, lender)
     _adjust_for_discontinued(ratio_view, pl, pl_q, bs, market_cap)
     _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))

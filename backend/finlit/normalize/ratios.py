@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from .common import parse_date, pct, rnd, to_number
+from .common import fiscal_year_label, parse_date, pct, rnd, to_number
 from .glossary import GLOSSARY
 
 # FinEdge key -> (our key, transform)
@@ -70,22 +70,25 @@ def _items(payload: Any, key: str) -> List[dict]:
     return payload if isinstance(payload, list) else []
 
 
-def _fy(row: dict) -> Optional[str]:
+def _fy(row: dict, fy_month: int = 3) -> Optional[str]:
+    """The fiscal-year label of a yearly ratio row, or None for an interim row. `fy_month` is the month the company's financial year ends
+    (March for most; December for ABB, CRISIL, Castrol and others). A "Dec 2024" row of a March company is interim and dropped; the same row of
+    a December company is its yearly figure and is labelled exactly as its statements are (fiscal_year_label: year ended Dec 2024 -> FY25)."""
     header = str(row.get("header") or "")
     if header.upper() == "TTM":
         return "TTM"
     parsed = parse_date(f"01-{header[:3]}-{header[-4:]}") if len(header) >= 8 else None
-    if parsed and parsed.month == 3:
-        return f"FY{parsed.year % 100:02d}"
-    return None  # interim headers such as "Dec 2024" are dropped from annual history
+    if parsed and parsed.month == fy_month:
+        return fiscal_year_label(parsed)
+    return None  # interim headers (any other month) are dropped from annual history
 
 
-def family_rows(family: str, payload: Any) -> Dict[str, Dict[str, Optional[float]]]:
+def family_rows(family: str, payload: Any, fy_month: int = 3) -> Dict[str, Dict[str, Optional[float]]]:
     """-> {"TTM": {key: value}, "FY26": {...}, ...}"""
     mapping = FAMILY_MAP[family]
     out: Dict[str, Dict[str, Optional[float]]] = {}
     for row in _items(payload, "ratios"):
-        label = _fy(row)
+        label = _fy(row, fy_month)
         if not label:
             continue
         values = out.setdefault(label, {})
@@ -104,13 +107,13 @@ DISTINCT_PAIRS = [("roe", "roce")]
 
 
 def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[float]]] = None,
-                 derived_periods: Optional[Dict[str, str]] = None) -> dict:
+                 derived_periods: Optional[Dict[str, str]] = None, fy_month: int = 3) -> dict:
     """payloads: {"pr": ..., "le": ..., "li": ..., "ef": ..., "basic": ..., "gr": ...}."""
     derived_periods = derived_periods or {}
     notes: List[str] = []
     by_period: Dict[str, Dict[str, Optional[float]]] = {}
     for family in ("pr", "le", "li", "ef", "basic"):
-        for period, values in family_rows(family, payloads.get(family)).items():
+        for period, values in family_rows(family, payloads.get(family), fy_month).items():
             by_period.setdefault(period, {}).update(values)
 
     annual = sorted((p for p in by_period if p != "TTM"), key=lambda p: int(p[2:]))[-10:]

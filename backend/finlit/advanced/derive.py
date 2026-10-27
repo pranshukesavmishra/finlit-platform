@@ -282,9 +282,8 @@ class Company:
 
     def hist(self, mid: str, i: int) -> Val:
         key = HIST_KEYS[mid]
-        end = self.end(i)
-        if end is not None and end.month != 3:
-            return None, "non_march"
+        # The provider's yearly ratio rows are kept for every year-end month (labelled like the statements, see normalize/ratios._fy), so a
+        # December-year company reads its own rows here; a missing year says "no_fy".
         if key not in self.hist_rows:
             if self.is_bank and mid in LENDER_DROP:
                 return None, "lender"

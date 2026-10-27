@@ -373,3 +373,13 @@ def is_bank(pl_rows: List[Row]) -> bool:
         if interest > 0 and (not to_number(row.get("revenueFromOperations")) or interest >= 0.5 * base):
             return True
     return False
+
+
+def fiscal_year_end_month(table: dict) -> int:
+    """The month the company's financial year ends, from its yearly statement dates (the most common month of the last five years). March when unknown."""
+    months = []
+    for end in (table.get("periodEnds") or [])[-5:]:
+        d = parse_date(end) if end else None
+        if d:
+            months.append(d.month)
+    return max(set(months), key=months.count) if months else 3
