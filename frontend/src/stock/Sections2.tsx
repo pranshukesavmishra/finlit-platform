@@ -3,9 +3,9 @@ import { Icon } from "../lib/icons";
 import { arcPath } from "../lib/svg";
 
 import { LineChart } from "../charts/LineChart";
-import { cr, dateIN, initials, nf, num, pct, signed } from "../lib/format";
+import { cr, dateIN, initials, nf, pct, signed } from "../lib/format";
 import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
-import { OWN_COLOR, PILLAR_COLOR } from "./derive";
+import { OWN_COLOR } from "./derive";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
@@ -204,41 +204,17 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
 }
 
 /* ---------------- How the score works ---------------- */
-export function MethodSection({ s, r }: { s: Summary; r?: Ratios }) {
-  const [tab, setTab] = useState(0);
+export function MethodSection({ s }: { s: Summary }) {
   const dq = s.dataQuality, ck = dq.checks;
   const passPct = ck.total ? (ck.passed / ck.total) * 100 : 100;
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall and in each of the five areas." color="--info" />
+      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall." color="--info" />
       <div className="pc-g pc-all">
         <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
         <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
       </div>
       <div className="mth">
-        {(() => {
-          const pls = r?.score.pillars || [], cur = pls[Math.min(tab, pls.length - 1)];
-          if (!cur) return null;
-          const col = v(PILLAR_COLOR[cur.key] || "--gold"), scored = cur.inputs.filter((i) => i.score != null);
-          return (
-            <div className="card acc mp" style={{ "--ac": col, "--pc": col } as React.CSSProperties}>
-              <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Pros and cons by area</h3><span className="s">Pick a pillar</span></div>
-              <div className="mp-tabs" role="tablist">{pls.map((p, i) => <button key={p.key} role="tab" aria-selected={i === tab} className={i === tab ? "on" : ""} style={{ "--pc": v(PILLAR_COLOR[p.key] || "--gold") } as React.CSSProperties} onClick={() => setTab(i)}><b>{p.score ?? "—"}</b><span>{p.label}</span></button>)}</div>
-              {(() => {
-                const say = (i: (typeof cur.inputs)[number]) => <li key={i.key}><b>{i.label}</b> <span className="mono">{i.value == null ? "n/a" : num(i.value)}</span><small>{i.lowerIsBetter ? "lower is better" : "higher is better"} · {i.score} points</small></li>;
-                const pro = scored.filter((i) => (i.score as number) >= 76).sort((x, y) => (y.score as number) - (x.score as number)), con = scored.filter((i) => (i.score as number) <= 38).sort((x, y) => (x.score as number) - (y.score as number));
-                const mid = scored.length - pro.length - con.length, missing = cur.inputs.length - scored.length;
-                return (<>
-                  <div className="pc-g">
-                    <div className="pcb pro"><h4><Icon name="check" /> Pros</h4>{pro.length ? <ul>{pro.map(say)}</ul> : <p className="faint">Nothing stands out as strong here.</p>}</div>
-                    <div className="pcb con"><h4><Icon name="alert" /> Cons</h4>{con.length ? <ul>{con.map(say)}</ul> : <p className="faint">Nothing stands out as weak here.</p>}</div>
-                  </div>
-                  <p className="faint" style={{ fontSize: 12.5, margin: "12px 0 0" }}>{cur.label}: {pro.length} strong, {con.length} weak{mid > 0 ? `, ${mid} in between` : ""}{missing > 0 ? `, ${missing} not available for this company` : ""}. Each input is scored 18 to 92 against fixed thresholds and averaged into the area score. Information only, not investment advice.</p>
-                </>);
-              })()}
-            </div>
-          );
-        })()}
         <div className="card acc mth-dq" style={{ "--ac": ck.status === "ok" ? "var(--gain)" : "var(--warn)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name={ck.status === "ok" ? "check" : "alert"} /></span>Data checks before publishing</h3><span className="s">{ck.passed} of {ck.total} passed</span></div>
           <div className="dq-bar"><b style={{ width: `${passPct}%` }} /></div>

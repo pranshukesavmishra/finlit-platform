@@ -118,7 +118,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
         <DiscussionLink symbol={symbol} />
-        <ErrorBoundary section="This section"><MethodSection s={s} r={ratios} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><MethodSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><LeadershipSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
       </div>
       <PlansBand id="plans" />
