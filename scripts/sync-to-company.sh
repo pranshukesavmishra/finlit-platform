@@ -48,7 +48,9 @@ fi
 
 echo "4/6 checking for secrets"
 BAD=0
-if grep -rIlE '(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[abp]-[0-9A-Za-z-]{10,}|ghp_[0-9A-Za-z]{30,}|sk-[A-Za-z0-9]{32,}|mongodb\+srv://[^ "<]+:[^ "<@]+@|postgres(ql)?://[^ "<:]+:[^ "<@$]{12,}@)' "$FOLDER" > "$WORK/hits.txt" 2>/dev/null; then BAD=1; fi
+# real key formats: everywhere; a database address with a password: everywhere except test folders (they use made-up passwords on purpose)
+if grep -rIlE '(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[abp]-[0-9A-Za-z-]{10,}|ghp_[0-9A-Za-z]{30,}|sk-[A-Za-z0-9]{32,})' "$FOLDER" > "$WORK/hits.txt" 2>/dev/null; then BAD=1; fi
+if grep -rIlE --exclude-dir=tests --exclude-dir=node_modules '(mongodb\+srv://[^ "<]+:[^ "<@]+@|postgres(ql)?://[^ "<:]+:[^ "<@$]{12,}@)' "$FOLDER" >> "$WORK/hits.txt" 2>/dev/null; then BAD=1; fi
 if find "$FOLDER" \( -name ".env" -o -name "*.pem" -o -name "*.key" \) | grep -q .; then BAD=1; find "$FOLDER" \( -name ".env" -o -name "*.pem" -o -name "*.key" \) >> "$WORK/hits.txt"; fi
 if [ "$BAD" = 1 ]; then echo "STOP: possible secrets:" >&2; cat "$WORK/hits.txt" >&2; exit 1; fi
 
