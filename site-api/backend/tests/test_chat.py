@@ -210,3 +210,43 @@ def test_plain_chat_text_strips_markdown():
     assert "*" not in out.replace("- ", "") and "#" not in out
     assert out.startswith("A mutual fund pools money.")
     assert "- Pooling: many" in out
+
+
+def test_chat_falls_back_to_the_next_model_when_google_is_busy(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    tried = []
+
+    class Busy(Exception):
+        code = 503
+
+    def generate_content(**kwargs):
+        tried.append(kwargs["model"])
+        if len(tried) < 3:
+            raise Busy("overloaded")
+        return SimpleNamespace(text="Answer from the third model.")
+
+    install_fake_genai(monkeypatch, generate_content)
+    result = asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
+    assert result.response == "Answer from the third model."
+    assert tried == ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]
+    assert "event=gemini_model_fallback" in caplog.text
+
+
+def test_chat_does_not_try_other_models_for_a_bad_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    tried = []
+
+    class Denied(Exception):
+        code = 403
+
+    def generate_content(**kwargs):
+        tried.append(kwargs["model"])
+        raise Denied("no")
+
+    install_fake_genai(monkeypatch, generate_content)
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
+    assert error.value.status_code == 502 and tried == ["gemini-3.8-flash"]

@@ -4140,6 +4140,7 @@ async def chat(payload: ChatRequest, request: Request):
         raise HTTPException(status_code=503, detail="FinLit AI is temporarily unavailable. Please try again later.")
 
     model_id = os.environ.get("GEMINI_MODEL", "").strip() or "gemini-3.8-flash"   # GEMINI_MODEL lets the model be changed without editing code
+    chat_models = [model_id] + [m for m in (x.strip() for x in os.environ.get("GEMINI_MODEL_FALLBACKS", "gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash").split(",")) if m and m != model_id]
     bounded_history_length = sum(1 for turn in payload.history[-12:] if turn.content.strip())
     logger.info(
         "FinLit AI Gemini request (model_id=%s, bounded_history_length=%s)",
@@ -4174,12 +4175,20 @@ async def chat(payload: ChatRequest, request: Request):
             if tool_config and with_tools:
                 options["tools"] = tool_config
                 options["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)   # this code runs the tools, to count and limit them
-            return await run_in_threadpool(
-                client.models.generate_content,
-                model=model_id,
-                contents=contents,
-                config=types.GenerateContentConfig(**options),
-            )
+            # Google answers 429/500/503 when a model is busy: the next model in the list takes the question, so the chat keeps working.
+            for position, name in enumerate(chat_models):
+                try:
+                    return await run_in_threadpool(
+                        client.models.generate_content,
+                        model=name,
+                        contents=contents,
+                        config=types.GenerateContentConfig(**options),
+                    )
+                except Exception as exc:
+                    busy = getattr(exc, "code", None) in (429, 500, 503)
+                    if not busy or position == len(chat_models) - 1:
+                        raise
+                    logger.warning("FinLit AI model busy, trying the next one (event=gemini_model_fallback, provider_status=%s, model_id=%s)", getattr(exc, "code", None), name)
 
         async def complete(with_tools=True):
             result = await generate(CHAT_INITIAL_OUTPUT_TOKENS, with_tools)
