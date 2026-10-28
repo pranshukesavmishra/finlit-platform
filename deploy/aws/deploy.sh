@@ -277,6 +277,9 @@ cmd_restore() {
 }
 
 main() {
+  case "${1:-deploy}" in   # one deploy, rollback or restore at a time (a person and the automatic deploy must never overlap)
+    deploy|rollback|restore) mkdir -p "$STATE"; exec 9>"$STATE/deploy.lock"; flock -n 9 || die "another deploy, rollback or restore is running right now: wait for it to finish" ;;
+  esac
   case "${1:-deploy}" in
     deploy)   cmd_deploy ;;
     rollback) cmd_rollback ;;

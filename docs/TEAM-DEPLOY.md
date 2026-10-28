@@ -26,5 +26,18 @@ Secrets (FinEdge key, Mongo URL, passwords) live only in `/opt/finlit/.env.aws` 
 ## 4. Bringing work from `pranshukesavmishra/finlit-platform` into the company repository
 `scripts/sync-to-company.sh` (dry run) and `scripts/sync-to-company.sh --push` put everything done since the last delivery onto a new branch `pranshu-sync-<sha>` of the company repository, inside `finlit-platform/`, as a three-way patch: changes the team made inside that folder are kept, a conflict stops the script and nothing is pushed. Then open a pull request from that branch and merge it. (`scripts/export-to-company.sh` is only for the very first delivery.)
 
-## 5. Later: deploying by itself
-Possible next step: a timer on the server that fetches `main` every few minutes and runs the deploy, with an automatic rollback when `/api/health` fails. Not built yet; ask for it when the team wants to deploy without logging in.
+## 5. Automatic deploys (merge to `main` and the site updates by itself)
+A timer on the server (`deploy/aws/auto-deploy.sh`, installed by `deploy/aws/install-auto-deploy.sh`) looks at the company repository every 5 minutes. When `main` has a new commit it:
+1. takes a database backup,
+2. runs the normal deploy (`deploy.sh`: fetch, rebuild, restart, wait for `/api/health`),
+3. if the new version is not healthy, goes back to the previous build by itself and does NOT retry that commit (it waits for the next new commit),
+4. writes everything to `/opt/finlit/logs/auto-deploy.log`.
+So the team only merges a pull request to `main`; the change is live within about 5-10 minutes (the site may answer 503 for up to a minute while it restarts). Database changes (migrations) move forward and are not undone by a rollback; the nightly and pre-deploy backups exist for that.
+
+**Install once, on the server** (after the company repository's `main` contains the kit, i.e. after the sync pull request is merged):
+`bash /opt/finlit/src/finlit-platform/deploy/aws/install-auto-deploy.sh`
+(the settings default to the company repository, branch `main`, folder `finlit-platform`; override with REPO_URL / REPO_BRANCH / REPO_SUBDIR).
+Look: `bash /opt/finlit/bin/auto-deploy.sh status`. Check now: `... now`. Stop: `... pause` (and `... resume`). Remove: `sudo systemctl disable --now finlit-auto-deploy.timer`.
+Private repository: put a read-only token alone in `/opt/finlit/git-token` (`chmod 600`).
+
+**Protect `main` on GitHub** (repository Settings, Branches, rule for `main`: require a pull request and at least one approval, no direct pushes). Whatever lands on `main` runs on the server, so this review step is the safety gate. Do not give the server a token that can push.
