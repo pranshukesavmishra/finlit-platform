@@ -127,10 +127,10 @@ function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked
         {note ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky">{note}</span></td>
           : locked ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
           : <>
-            <td>{money(r.revenue)}</td><td><Chg v={r.revenueYoY} /></td><td><Chg v={r.revenueQoQ} /></td>
-            <td><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td><Chg v={r.opYoY} why={r.opYoYWhy} /></td><td><Chg v={r.opQoQ} why={r.opQoQWhy} /></td><td><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
-            <td><b>{money(r.netProfit)}</b></td><td><Chg v={r.profitYoY} /></td><td><Chg v={r.profitQoQ} /></td><td>{pc1(r.npm)}</td>
-            <td>{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
+            <td className="qg1 qgs">{money(r.revenue)}</td><td className="qg1"><Chg v={r.revenueYoY} /></td><td className="qg1"><Chg v={r.revenueQoQ} /></td>
+            <td className="qg2 qgs"><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td className="qg2"><Chg v={r.opYoY} why={r.opYoYWhy} /></td><td className="qg2"><Chg v={r.opQoQ} why={r.opQoQWhy} /></td><td className="qg2"><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
+            <td className="qg3 qgs"><b>{money(r.netProfit)}</b></td><td className="qg3"><Chg v={r.profitYoY} /></td><td className="qg3"><Chg v={r.profitQoQ} /></td><td className="qg3">{pc1(r.npm)}</td>
+            <td className="qgs">{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
           </>}
       </tr>
       {(line || r.flagged) && (
@@ -346,8 +346,8 @@ export function QuarterResultsPage() {
           <HScroll label="results table" className="qr-scroll">
             <table className="qtt qr-t">
               <thead>
-                <tr className="qr-grp"><th rowSpan={2} scope="col">Company</th><th colSpan={3} scope="colgroup">Revenue</th><th colSpan={4} scope="colgroup">Operating profit</th><th colSpan={4} scope="colgroup">Net profit</th><th rowSpan={2} scope="col">EPS</th></tr>
-                <tr><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">OPM</th><th scope="col">Rs Cr</th><th scope="col">YoY</th><th scope="col">QoQ</th><th scope="col">NPM</th></tr>
+                <tr className="qr-grp"><th rowSpan={2} scope="col">Company</th><th colSpan={3} scope="colgroup" className="qg1 qgs">Revenue</th><th colSpan={4} scope="colgroup" className="qg2 qgs">Operating profit</th><th colSpan={4} scope="colgroup" className="qg3 qgs">Net profit</th><th rowSpan={2} scope="col" className="qgs">EPS</th></tr>
+                <tr><th scope="col" className="qg1 qgs">Rs Cr</th><th scope="col" className="qg1">YoY</th><th scope="col" className="qg1">QoQ</th><th scope="col" className="qg2 qgs">Rs Cr</th><th scope="col" className="qg2">YoY</th><th scope="col" className="qg2">QoQ</th><th scope="col" className="qg2">OPM</th><th scope="col" className="qg3 qgs">Rs Cr</th><th scope="col" className="qg3">YoY</th><th scope="col" className="qg3">QoQ</th><th scope="col" className="qg3">NPM</th></tr>
               </thead>
               <tbody>{body}</tbody>
             </table>

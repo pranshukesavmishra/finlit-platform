@@ -131,3 +131,14 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 .qg-foot { grid-column: 1 / -1; margin: 0; font-size: 12px; }
 @media (max-width: 1000px) { .qg-grid { grid-template-columns: 1fr; } .qg-join { grid-auto-flow: column; justify-content: center; } .qg-charts { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .qg-fields { grid-template-columns: 1fr 1fr; } .qg-val { grid-column: 1 / -1; } .qg { padding: 14px 12px; } }
+
+/* the three figure groups read as three blocks: own colour, tint, a divider before each, a coloured line under each heading */
+.qr-t { --qg1: var(--p-quality); --qg2: var(--p-growth); --qg3: var(--gold); }
+.qr-t .qgs { border-left: 1px solid var(--border-strong); }
+.qr-t td.qg1, .qr-t th.qg1 { background: color-mix(in srgb, var(--qg1) 7%, transparent); }
+.qr-t td.qg2, .qr-t th.qg2 { background: color-mix(in srgb, var(--qg2) 7%, transparent); }
+.qr-t td.qg3, .qr-t th.qg3 { background: color-mix(in srgb, var(--qg3) 7%, transparent); }
+.qr-t thead tr.qr-grp th.qg1 { color: var(--qg1); border-bottom: 2px solid var(--qg1); }
+.qr-t thead tr.qr-grp th.qg2 { color: var(--qg2); border-bottom: 2px solid var(--qg2); }
+.qr-t thead tr.qr-grp th.qg3 { color: var(--qg3); border-bottom: 2px solid var(--qg3); }
+.qr-t thead tr.qr-grp th { font-size: 12px; font-weight: 700; letter-spacing: .08em; }
