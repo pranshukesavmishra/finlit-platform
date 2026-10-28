@@ -1,5 +1,8 @@
 # How the team changes and deploys the FinLit site
 
+## 0. Which website is the main one
+**The main FinLit website is the one on AWS** (the server described in `docs/AWS-DEPLOY.md`; it runs the code in `finlit-platform/`). The older sites are legacy and will be retired once the AWS site has its domain: the Vercel sites built from the root folders of this repository (`frontend/`, `backend/`), and the Render copy. Do new work in `finlit-platform/` only; a change in the root folders reaches only the legacy Vercel site.
+
 ## 1. Where to make changes (important)
 The company repository `Yusra-Khan532/Financial-Portfolio` holds TWO things:
 - the **old app** in its root folders (`frontend/`, `backend/`, ...): the server does NOT run this;
