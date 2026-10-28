@@ -14,6 +14,29 @@
 - **Left out on purpose (owner's decisions, October 2026):** HDFC (its service answers only requests carrying hdfcfund.com as Origin) and Kotak (captcha
   and bot check). Edelweiss and Navi are behind bot protection; Union's site is unreachable from the sandbox; Carnelian publishes no portfolio file yet.
   No adapter spoofs a header or goes around a challenge; keep it that way.
+- **Expense ratio (TER) from the fund houses' own pages (step `ter` of `refresh-portfolios`, `finlit/disclosure_parsers/ter.py`, Oct 2026):** AMFI's TER feed
+  (`refresh-facts` step_ter, `mf_ter`) is empty because AMFI does not answer our AWS (Sydney) address range. SEBI makes every fund house publish scheme-wise,
+  plan-wise TER daily, so the nightly job reads those pages and stores one family-keyed fact `ter` = `{regular, direct}` (percent a year, total TER) with the
+  house's date, source name and page URL (`disclosure_facts`). `disclosure.get_facts` shows AMFI's figure when `mf_ter` has the scheme, else the fund
+  house's (with a note). A house already stored today is not asked again (`disclosure_runs` source `ter:<house>`); `--only ter` re-runs it. One or two
+  requests per house, one second apart. Refused, never stored: TER outside 0 to 3.5, Direct above Regular, a row older than 45 days, a sheet without the
+  SEBI header; an ETF filed as Regular 0.00 beside a real Direct figure is read as Direct only. Checked Oct 28 2026 against the dev copy of `mf_schemes`:
+  Growth plans with a TER, Regular 312 of 1,686 and Direct 301 of 1,665 (SBI 97 of 97 Direct, Nippon 81 of 108 families, Tata 61, Sundaram 35, Canara 27).
+  Sources (all plain GETs, no login or token):
+  - SBI: `https://www.sbimf.com/docs/default-source/ter_allschemes/current-year-ter.xlsx` (linked from `/total-expense-ratio`), one row per scheme and day.
+  - Nippon India: `https://mf.nipponindiaim.com/TotalExpenseRatio/TotalExpenseRatio<FY>.xlsx` (FY like `2026-2027`; percent signs in text cells; listed on
+    `/investor-services/downloads/total-expense-ratio-of-mutual-fund-schemes`).
+  - Tata: the `.xls` link for the current year on `https://www.tatamutualfund.com/expense-ratio/total-expense-ratio` (file name changes each upload, so the
+    page is read first; old OLE2 format, read with `disclosure_parsers/xls.py`; its last day can lag by about two weeks, inside the 45-day limit).
+  - Sundaram: `https://www.sundarammutual.com/ter` loads its table with one AjaxPro POST (`/ajax/Views_TER_V2,App_Web_bvj3k5zr.ashx?_method=DailyTER&_session=no`,
+    empty body); the method id in the URL may change when they redeploy (then the step reports an error for `sundaram` and the others still run).
+  - Canara Robeco: `https://www.canararobeco.com/wp-json/ter/v1/records?from_date=&to_date=` (the JSON their `/expense-ratio` page reads; last 7 days asked).
+  Not read, and why: UTI (the page's own API `prod-api-investor.utimf.com/api/v1/scheduler/getTerData` answers 401 without a session token: not touched);
+  ICICI Prudential (F5 bot-defence script on the page); Axis (Next.js app calling a gateway, no public file found); DSP (`/ter-historical` shows a static table
+  dated 31 Mar 2026 only: too old, the 45-day rule would drop it; revisit if they refresh it); Mirae (page loads its list through a WCF `AjaxService`, not
+  tried); Quant (`/Total-Expense-Ratio` is an ASP.NET pager of 2020-era rows); PPFAS (only the 2018 notice PDF and change notices); Franklin, Bandhan, Invesco,
+  Motilal, WhiteOak, JioBlackRock (pages are script shells, no file or API found without a browser); ABSL and HSBC (connection from the sandbox timed out);
+  HDFC and Kotak (excluded by the owner); Edelweiss (403). Next: Mirae's AjaxService, DSP when refreshed, and the houses above from Render's address.
 - Still open: risk-o-meter and managers for ICICI, Kotak, HDFC, ABSL, UTI, Bandhan, Invesco, HSBC, Franklin, Mahindra, Bajaj, JM (no machine-readable
   source that follows the rules was found; PPFAS and Old Bridge publish PDFs only). AMFI's fund-performance feed (benchmark + risk) is 403 from the
   sandbox: check `parts.performance` in the `refresh-portfolios` status on Render.

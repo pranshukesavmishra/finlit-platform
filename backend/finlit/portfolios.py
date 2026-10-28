@@ -5,7 +5,7 @@ facts into what the fund pages show (disclosure.get_facts calls extra_facts here
 
 Read side (never raises on missing data)
     get_portfolio(pool, key)  {asOf, previousAsOf, source, sourceUrl, holdings[], exited[], summary{}} or None
-    extra_facts(pool, key)    {exitLoad, benchmark, riskometer, managers, launchDate} for finlit.disclosure.get_facts, each {value, asOf, source} or None
+    extra_facts(pool, key)    {exitLoad, benchmark, riskometer, managers, launchDate, ter} for finlit.disclosure.get_facts, each {value, asOf, source} or None
   `key` is an AMFI scheme code or an ISIN; schemes are stored by FAMILY (mf_schemes.family): the plans and options of one scheme share a portfolio.
 
 Write side: `python -m finlit.worker refresh-portfolios` -> refresh(store, settings, only=None). Each step and fund house fails alone; a file that fails
@@ -42,7 +42,7 @@ log = logging.getLogger("finlit.portfolios")
 
 __all__ = ["Holding", "Portfolio", "Verdict", "validate", "isin_ok", "get_portfolio", "extra_facts", "refresh", "KEEP_MONTHS"]
 
-STEP_NAMES = ("isin", "performance", "loads", "managers")
+STEP_NAMES = ("isin", "performance", "loads", "managers", "ter")
 KEEP_MONTHS = 3                      # monthly disclosures kept per scheme
 MIN_KEEP_RATIO = 0.9                 # a re-read file with fewer holdings than this share of the stored one is not applied
 CLS = {"equity": "e", "debt": "d", "cash": "c", "other": "o"}
@@ -314,7 +314,8 @@ def _iso(d: Optional[date]) -> Optional[str]:
 
 async def extra_facts(pool, key) -> Optional[dict]:
     """What this module knows about a scheme beyond AMFI's TER / AUM / master (finlit.disclosure merges it into the fund page's facts):
-    exitLoad, benchmark, riskometer, managers, launchDate (AMFI scheme details, a second source), monthEndAum. Each is {value, asOf, source, ...}
+    exitLoad, benchmark, riskometer, managers, launchDate (AMFI scheme details, a second source), monthEndAum, ter (the fund house's own
+    TER page: {value: {regular, direct} in percent, asOf, source, sourceUrl}). Each is {value, asOf, source, ...}
     or None when not loaded. None when the key is not a known scheme."""
     async with pool.acquire() as conn:
         fkey = await _family(conn, key)
@@ -333,7 +334,10 @@ async def extra_facts(pool, key) -> Optional[dict]:
     def fact(value, f, **extra) -> dict:
         return {"value": value, "asOf": _iso(f["as_of"]), "source": f["source"], **({"sourceUrl": f["source_url"]} if f.get("source_url") else {}), **extra}
 
-    out: Dict[str, Optional[dict]] = {k: None for k in ("exitLoad", "benchmark", "riskometer", "managers", "launchDate", "monthEndAum")}
+    out: Dict[str, Optional[dict]] = {k: None for k in ("exitLoad", "benchmark", "riskometer", "managers", "launchDate", "monthEndAum", "ter")}
+    tr = val("ter")
+    if tr and (tr[0].get("regular") is not None or tr[0].get("direct") is not None):
+        out["ter"] = fact({"regular": tr[0].get("regular"), "direct": tr[0].get("direct")}, tr[1])
     el = val("exitload")
     if el:
         out["exitLoad"] = fact(el[0]["text"], el[1])
@@ -551,6 +555,25 @@ async def step_managers(pool, idx: Index) -> dict:
             "matched": {k: v.get("matched") for k, v in stats.items() if "error" not in v}}
 
 
+async def step_ter(pool, client, idx: Index, today: date, force: bool = False) -> dict:
+    """Total expense ratio (Regular and Direct plan) from each fund house's own daily TER page, for when AMFI's TER feed is out of reach
+    (finlit/disclosure_parsers/ter.py: each house fails alone, polite pacing). Resumable: a house already stored today is not asked again (`force` re-asks)."""
+    from .disclosure_parsers import ter
+    done = [] if force else [k for k in ter.SOURCES if await _run_done(pool, f"ter:{k}", today.isoformat())]
+    rows, stats = await ter.collect(idx, today, client=client, skip=done)
+    stored = await put_facts(pool, rows)
+    fam_house = {r[0]: r[4] for r in rows}
+    for k, st in stats.items():
+        if "error" in st:
+            await _run_mark(pool, f"ter:{k}", today.isoformat(), "error", {"error": st["error"]})
+        else:
+            await _run_mark(pool, f"ter:{k}", today.isoformat(), "done", {x: y for x, y in st.items() if x != "unmatched"})
+    failed = sorted(k for k, v in stats.items() if "error" in v)
+    return {"status": "partial" if failed else "ok", "families": len(fam_house), "stored": stored, "alreadyDone": done, "failedSources": failed,
+            "matched": {k: v.get("matched") for k, v in stats.items() if "error" not in v},
+            "refused": {k: v.get("refused") for k, v in stats.items() if v.get("refused")}}
+
+
 # ------------------------------------------------------------------------------------------------------------- steps: fund houses
 
 def _members(path: str) -> Iterable[Tuple[str, str]]:
@@ -689,7 +712,8 @@ async def refresh(store, settings=None, only: Optional[Sequence[str]] = None, mo
         if len(idx.by_code) < 1000:
             return {"status": "failed", "why": "mf_schemes is empty or short: run refresh-mf first", "steps": {}, "amc": {}}
         steps = [("isin", lambda: step_isin(pool, today)), ("performance", lambda: step_performance(pool, client, idx, today)),
-                 ("loads", lambda: step_loads(pool, client, idx, today)), ("managers", lambda: step_managers(pool, idx))]
+                 ("loads", lambda: step_loads(pool, client, idx, today)), ("managers", lambda: step_managers(pool, idx)),
+                 ("ter", lambda: step_ter(pool, client, idx, today, force))]
         for name, fn in steps:
             if want and name not in want:
                 continue

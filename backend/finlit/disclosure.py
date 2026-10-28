@@ -401,6 +401,16 @@ def _ter_fact(ter, plan: str) -> dict:
     return {"value": f"{v:.2f}% a year", "asOf": ter["ter_date"].isoformat(), "source": SRC_TER}
 
 
+def _house_ter_fact(extra: dict, plan: str) -> Optional[dict]:
+    """The fund house's own TER (portfolios.step_ter) for a plan, used only when AMFI's file has no figure for it."""
+    t = extra.get("ter")
+    v = (t or {}).get("value", {}).get(plan.lower()) if t else None
+    if v is None:
+        return None
+    return {"value": f"{v:.2f}% a year", "asOf": t["asOf"], "source": t["source"], **({"sourceUrl": t["sourceUrl"]} if t.get("sourceUrl") else {}),
+            "note": "From the fund house's own daily TER disclosure."}
+
+
 def _etf_ter_fact(ter) -> dict:
     """An ETF has one plan. AMFI files its TER under Regular for most ETFs and under Direct for others (checked: 251 and 108 of 361, never both)."""
     if ter is None:
@@ -452,10 +462,18 @@ async def get_facts(pool, key) -> Optional[dict]:
     out = {"aum": aum, "launchDate": launch, "benchmark": extra.get("benchmark") or {"unavailable": NO_BENCHMARK},
            "riskometer": extra.get("riskometer") or {"unavailable": NO_RISKOMETER}, "managers": extra.get("managers") or {"unavailable": NO_MANAGERS}}
     if isinstance(key, int) or str(key).isdigit():     # a mutual fund page: both plans' TER, the scheme's minimum, exit load unknown
-        out.update(terRegular=_ter_fact(ter, "Regular"), terDirect=_ter_fact(ter, "Direct"), minInvestment={"unavailable": NO_MINIMUM},
+        tr, td = _ter_fact(ter, "Regular"), _ter_fact(ter, "Direct")
+        if "unavailable" in tr:    # AMFI's TER wins when it has the figure; else the fund house's own page
+            tr = _house_ter_fact(extra, "Regular") or tr
+        if "unavailable" in td:
+            td = _house_ter_fact(extra, "Direct") or td
+        out.update(terRegular=tr, terDirect=td, minInvestment={"unavailable": NO_MINIMUM},
                    exitLoad=extra.get("exitLoad") or {"unavailable": NO_EXIT_LOAD})
     else:                                              # an ETF page: one plan (AMFI files it as Regular), bought and sold on the exchange
-        out.update(ter=_etf_ter_fact(ter), trackingError={"unavailable": NO_TRACKING},
+        te = _etf_ter_fact(ter)
+        if "unavailable" in te:
+            te = _house_ter_fact(extra, "Regular") or _house_ter_fact(extra, "Direct") or te
+        out.update(ter=te, trackingError={"unavailable": NO_TRACKING},
                    minInvestment={"value": "1 unit, bought on the stock exchange", "source": SRC_EXCHANGE},
                    exitLoad={"value": "None when sold on the stock exchange", "source": SRC_EXCHANGE})
     return out
