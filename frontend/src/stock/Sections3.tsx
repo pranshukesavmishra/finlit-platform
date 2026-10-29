@@ -1,6 +1,6 @@
 import { HScroll } from "../components/HScroll";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Icon } from "../lib/icons";
 import { Gate, TierChip } from "../components/Gate";
@@ -259,6 +259,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
       <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
+      <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>
         <div className="spc-grid">{spec.map(([ic, k, val, c], i) => {
           const sp = SPEC[k], pos = ((sp.at(val)) / sp.stops.length) * 100;

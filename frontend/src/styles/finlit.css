@@ -162,8 +162,8 @@ a { color: inherit; }
 .hero { overflow: hidden; padding-block: 30px 40px; }
 .crumbs { font-size: 12.5px; color: var(--faint); display: flex; gap: 8px; align-items: center; margin-bottom: 18px; }
 .crumbs a { text-decoration: none; color: var(--muted); } .crumbs a:hover { color: var(--gold); }
-.idrow { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 22px 32px; align-items: flex-end; }
-.idrow .idl { flex: 1 1 560px; }
+.idrow { display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
+.idrow .idl { flex: none; }
 .idl { display: flex; gap: 18px; align-items: center; min-width: 0; }
 .badge { width: 64px; height: 64px; flex: none; border-radius: 18px; display: grid; place-items: center; font: 700 22px/1 var(--sans); letter-spacing: -.02em; color: #363124;
   background: linear-gradient(140deg, #FFE27A, #F5B82E 55%, #D88A12); box-shadow: 0 10px 30px -10px rgba(245,184,46,.6), inset 0 1px 0 rgba(255,255,255,.6); }
@@ -171,11 +171,12 @@ a { color: inherit; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { display: inline-flex; align-items: center; height: 24px; padding: 0 9px; border-radius: 6px; font-size: 12px; color: var(--muted); background: var(--s2); border: 1px solid var(--border); white-space: nowrap; }
 .tag.tk { font-family: var(--mono); color: var(--text); font-weight: 500; letter-spacing: .04em; }
-.idr { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+.idr { display: flex; align-items: flex-end; gap: 16px 22px; flex-wrap: wrap; justify-content: space-between; }   /* price and trend always on the left; the buttons sit at the right when they fit, else wrap underneath at the left */
+.pxg { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
 .px { font-size: 44px; font-weight: 600; letter-spacing: -.03em; line-height: 1; }
 .px-sub { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12.5px; color: var(--faint); white-space: nowrap; }
 .spark-hero { width: 150px; height: 54px; }
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; transition: border-color .15s, background-color .15s, transform .15s, box-shadow .15s; text-decoration: none; }
 .btn:hover { border-color: var(--gold); transform: translateY(-1px); }
 .btn svg { width: 17px; height: 17px; }

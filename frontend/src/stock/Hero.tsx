@@ -73,6 +73,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div>
           </div>
           <div className="idr">
+            <div className="pxg">
             <div>
               <div className="px"><span className="rs">₹</span>{q.price == null ? MINUS : nf(q.price)}</div>
               {q.price == null && cov && cov.reasons.length > 0 && <div className="cov-note" role="note">No price shown: {cov.reasons[0]}.</div>}
@@ -80,11 +81,11 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                 <span>{asOf && !Number.isNaN(+asOf) ? `NSE · ${dateIN(asOf.toISOString(), { day: "numeric", month: "short" })}, ${asOf.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })} IST` : "NSE"}</span></div>
             </div>
             <svg className="spark-hero" aria-label="One-year price trend" role="img" viewBox="0 0 150 54"><HeroSpark values={s.sparkline.c} /></svg>
+            </div>
             <div className="actions">
               <AlertButton symbol={s.profile.symbol} className="btn" label="Set alert" />
               <button className={"btn " + (watch ? "on" : "primary")} aria-pressed={watch} onClick={toggleWatch}><Icon name="spark" /><span>{watch ? "Watching" : "Watchlist"}</span>{!has("silver") && <Icon name="lock" className="lk" />}</button>
               <Link className="btn" to={`/dcf?sym=${encodeURIComponent(s.profile.symbol)}&load=1`} title="Value this company with the DCF calculator (Gold)"><Icon name="rupee" /><span>Value (DCF)</span>{!has("gold") && <Icon name="lock" className="lk" />}</Link>
-              <Link className="btn" to={`/outlook/${encodeURIComponent(s.profile.symbol)}`} title="Profit and revenue outlook from the company's own history (Gold)"><Icon name="activity" /><span>Profit and revenue outlook</span>{!has("gold") && <Icon name="lock" className="lk" />}</Link>
               <div className="dl" style={{ position: "relative" }}>
                 <button className="btn" aria-haspopup="menu" aria-expanded={dl} onClick={() => { if (!dl && !need("silver", "Downloads and data export")) return; setDl((d) => !d); }}>
                   <Icon name="table" /><span>Download</span>{!has("silver") && <Icon name="lock" className="lk" />}</button>
