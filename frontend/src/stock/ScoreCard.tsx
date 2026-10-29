@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Icon } from "../lib/icons";
 import { dateIN, num } from "../lib/format";
 import { useUI } from "../lib/ui";
+import { bandInk, scoreBand } from "../lib/scoreBands";
 import { Dial } from "../charts/Dial";
 import { ChartHelp } from "../components/ChartHelp";
 import { PartTile, type Tone } from "../components/prism/shared/PartTile";
@@ -14,6 +15,7 @@ import { PILLAR_COLOR, PILLAR_ICON } from "./derive";
 
 /** Where the FinLit score changes its word (45 / 62 / 78, see backend analytics/scoring.py); drawn as the ticks on every pillar bar. */
 export const SCORE_TICKS = [45, 62, 78];
+const bandStyle = (v: number | null | undefined) => (scoreBand(v) === "na" ? undefined : ({ "--tc": bandInk(scoreBand(v)) } as React.CSSProperties));
 const toneOf = (key: string | undefined, score: number | null): Tone => score == null ? "na" : key === "strong" ? "strong" : key === "healthy" ? "healthy" : key === "mixed" ? "mixed" : "weak";
 
 export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; ratios?: Ratios; jump: (id: string) => void; two: boolean; expanded: boolean }) {
@@ -41,7 +43,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
         <div className="dk-read">
           <div className="dk-rk">
             <span className="label">The read</span>
-            <span className={"dk-st big " + bandTone}>{s.score.overall == null ? "Not scored yet" : s.score.band.label}</span>
+            <span className={"dk-st big " + bandTone} style={bandStyle(s.score.overall)}>{s.score.overall == null ? "Not scored yet" : s.score.band.label}</span>
             {chg && <span className={"dk-delta " + (chg.delta > 0 ? "up" : chg.delta < 0 ? "down" : "")} title={`Compared with ${dateIN(chg.since)}`}>{chg.delta > 0 ? "▲ +" : chg.delta < 0 ? "▼ −" : "● "}{Math.abs(chg.delta)} points since {dateIN(chg.since, { day: "numeric", month: "short" })}</span>}
           </div>
           <p className={"dk-thesis" + (expanded ? " full" : "")}>{thesis}</p>
