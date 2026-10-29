@@ -40,3 +40,4 @@
 :root:not([data-theme="light"]) .pg-cta, :root:not([data-theme="light"]) .pg-tabs span.on, :root:not([data-theme="light"]) .pg-btn, :root:not([data-theme="light"]) .pg-av { color: #0B0C0F; }
 @media (prefers-reduced-motion: reduce) { .pg-card, .pg-link svg, .pg-cta { transition: none; } .pg-card:hover, .pg-card:focus-within { transform: none; } .pg-card:hover .pg-link svg { transform: none; } }
 :root[data-theme="light"] .pg-cta, :root[data-theme="light"] .pg-btn, :root[data-theme="light"] .pg-av, :root[data-theme="light"] .pg-tabs span.on { background: color-mix(in srgb, var(--ac) 76%, #000); }
+.pg-li { grid-template-columns: minmax(0, 1fr) auto auto; white-space: nowrap; } .pg-li span { overflow: hidden; text-overflow: ellipsis; }
