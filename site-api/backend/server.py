@@ -4120,6 +4120,10 @@ def gemini_finish_reason(response) -> str:
     return str(getattr(reason, "name", reason)).rsplit(".", 1)[-1].upper()
 
 
+CHAT_CALL_SECONDS = 25      # one Gemini call; a slower one moves on to the next model
+CHAT_TOTAL_SECONDS = 60     # the whole answer
+
+
 @api_router.post("/chat", response_model=ChatResponse)
 async def chat(payload: ChatRequest, request: Request):
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -4170,25 +4174,38 @@ async def chat(payload: ChatRequest, request: Request):
             tool_config = None
         system_instruction = FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES + (CHAT_TOOL_RULES if tool_config else "")
 
+        chat_deadline = monotonic() + CHAT_TOTAL_SECONDS   # the whole answer, tool rounds included, stays inside the site's 75 s proxy limit
+
         async def generate(output_limit, with_tools=True):
             options = {"system_instruction": system_instruction, "max_output_tokens": output_limit}
+            thinking = getattr(types, "ThinkingConfig", None)
+            if thinking:
+                options["thinking_config"] = thinking(thinking_level="low")   # a chat answer does not need long hidden reasoning (it took minutes)
             if tool_config and with_tools:
                 options["tools"] = tool_config
                 options["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)   # this code runs the tools, to count and limit them
             # Google answers 429/500/503 when a model is busy: the next model in the list takes the question, so the chat keeps working.
             for position, name in enumerate(chat_models):
+                remaining = chat_deadline - monotonic()
+                if remaining < 4:
+                    raise TimeoutError("FinLit AI answer deadline reached")
+                call_options = dict(options)
+                http_options = getattr(types, "HttpOptions", None)
+                if http_options:
+                    call_options["http_options"] = http_options(timeout=int(min(CHAT_CALL_SECONDS, remaining) * 1000))
                 try:
                     return await run_in_threadpool(
                         client.models.generate_content,
                         model=name,
                         contents=contents,
-                        config=types.GenerateContentConfig(**options),
+                        config=types.GenerateContentConfig(**call_options),
                     )
                 except Exception as exc:
-                    busy = getattr(exc, "code", None) in (429, 500, 503)
+                    slow = "timeout" in type(exc).__name__.lower() or getattr(exc, "code", None) in (408, 504)
+                    busy = getattr(exc, "code", None) in (429, 500, 503) or slow
                     if not busy or position == len(chat_models) - 1:
                         raise
-                    logger.warning("FinLit AI model busy, trying the next one (event=gemini_model_fallback, provider_status=%s, model_id=%s)", getattr(exc, "code", None), name)
+                    logger.warning("FinLit AI model busy or slow, trying the next one (event=gemini_model_fallback, provider_status=%s, slow=%s, model_id=%s)", getattr(exc, "code", None), slow, name)
 
         async def complete(with_tools=True):
             result = await generate(CHAT_INITIAL_OUTPUT_TOKENS, with_tools)

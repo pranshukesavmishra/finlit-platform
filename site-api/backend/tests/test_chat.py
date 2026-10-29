@@ -250,3 +250,42 @@ def test_chat_does_not_try_other_models_for_a_bad_key(monkeypatch):
     with pytest.raises(HTTPException) as error:
         asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
     assert error.value.status_code == 502 and tried == ["gemini-3.8-flash"]
+
+
+def test_chat_moves_to_the_next_model_when_one_is_too_slow(monkeypatch, caplog):
+    caplog.set_level("INFO")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    tried = []
+
+    class ReadTimeout(Exception):
+        pass
+
+    def generate_content(**kwargs):
+        tried.append(kwargs["model"])
+        if len(tried) == 1:
+            raise ReadTimeout("took too long")
+        return SimpleNamespace(text="Fast answer from the second model.")
+
+    install_fake_genai(monkeypatch, generate_content)
+    result = asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
+    assert result.response == "Fast answer from the second model."
+    assert tried[:2] == ["gemini-3.8-flash", "gemini-3.7-flash"] and "slow=True" in caplog.text
+
+
+def test_chat_asks_for_low_thinking_and_a_time_limit(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    seen = {}
+
+    def generate_content(**kwargs):
+        seen.update(kwargs["config"])
+        return SimpleNamespace(text="ok")
+
+    install_fake_genai(monkeypatch, generate_content)
+    server_types = sys.modules["google.genai"].types
+    server_types.ThinkingConfig = lambda **kw: ("thinking", kw)
+    server_types.HttpOptions = lambda **kw: ("http", kw)
+    asyncio.run(server.chat(server.ChatRequest(message="hello"), request()))
+    assert seen["thinking_config"] == ("thinking", {"thinking_level": "low"})
+    assert seen["http_options"][0] == "http" and 1000 <= seen["http_options"][1]["timeout"] <= 25000
