@@ -292,11 +292,11 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
   },
   segments: {
     title: "Where the revenue comes from",
-    what: "The company's latest revenue split by business segment, with each segment's growth on the year and its profit margin where reported.",
-    x: "Each segment's share of total revenue, in per cent, shown as a band and as bars.",
-    y: "Segments, largest first.",
-    read: "A wide slice means a big part of revenue. If one segment is 70% or more, the business depends mostly on that one.",
-    why: "Revenue spread across several segments tends to be less risky than revenue from just one.",
+    what: "The company's latest revenue split by business segment (the bar and tiles), then how that split has changed year by year (the stacked chart and the trends table).",
+    x: "Top: each segment's share of the sum of segment revenues, in per cent. Chart: the financial year (April to March), every year shown. Switch between rupees crore (L means lakh crore) and share of revenue.",
+    y: "Segments, largest first. In the chart each colour is one segment, the same colour in the tiles, the chart and the table.",
+    read: "A wide slice means a big part of revenue. In the trends table, the arrow shows whether a segment's share rose or fell in percentage points since its first comparable year, and 'growth a year' is its compound yearly revenue growth over the same years (three or more needed). Companies sometimes reorganise their segments, so a flag warns when years may not be comparable.",
+    why: "Revenue spread across several segments tends to be less risky than revenue from just one, and the history shows which parts of the business are growing or shrinking. The shares are of the sum of segment revenues, which can differ from reported revenue. Information only, not advice.",
   },
   "profit-ratios": {
     title: "Profitability ratios",

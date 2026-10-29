@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
+from . import segment_trends
 from .common import crore, fiscal_year_label, iso, parse_date, rnd, to_number
 
 
@@ -176,7 +177,7 @@ def peer_symbols(payload: Any, self_symbol: str) -> List[str]:
     return out[:12]
 
 
-def segments(payload: Any, limit: int = 6) -> dict:
+def segments(payload: Any, limit: int = 10) -> dict:
     rows = payload.get("segment_revenues") if isinstance(payload, dict) else None
     periods = []
     for row in rows or []:
@@ -202,9 +203,10 @@ def segments(payload: Any, limit: int = 6) -> dict:
             data = by_key.get(key, {})
             table[key]["revenue"].append(crore(data.get("segmentRevenue")))
             table[key]["ebit"].append(crore(data.get("segmentProfitLossBeforeTaxAndFinanceCosts")))
-    # Keep only segments that report something in the latest year.
-    table = {display[k]: v for k, v in table.items() if v["revenue"] and v["revenue"][-1] not in (None, 0)}
-    names = list(table)
+    # Keep every segment that reported something in any year (the history view needs the ones that were folded away), but
+    # the latest-year tiles below only use those that report in the latest year.
+    table = {display[k]: v for k, v in table.items() if any(x not in (None, 0) for x in v["revenue"])}
+    names = [n for n, v in table.items() if v["revenue"] and v["revenue"][-1] not in (None, 0)]
     latest_total = sum((table[n]["revenue"][-1] or 0) for n in names) if periods else 0
     summary = []
     for name in names:
@@ -229,4 +231,5 @@ def segments(payload: Any, limit: int = 6) -> dict:
                       "sharePct": round(revenue / latest_total * 100, 2) if latest_total else None,
                       "growthPct": round((revenue / before - 1) * 100, 2) if revenue and before else None,
                       "includes": [s["name"] for s in minor if s["name"].lower() != "others"]})
-    return {"unit": "Cr", "periods": [p for p, _ in periods], "segments": table, "latest": major}
+    labels = [p for p, _ in periods]
+    return {"unit": "Cr", "periods": labels, "segments": table, "latest": major, "insights": segment_trends.build_insights(labels, table)}

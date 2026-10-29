@@ -1,0 +1,417 @@
+{
+ "meta": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "generatedAt": "2026-10-20T09:00:00Z",
+  "version": 1,
+  "scoreModel": "3.6.10"
+ },
+ "unit": "Cr",
+ "periods": [
+  "FY19",
+  "FY20",
+  "FY21",
+  "FY22",
+  "FY23",
+  "FY24",
+  "FY25",
+  "FY26"
+ ],
+ "segments": {
+  "Oil to Chemicals (O2C)": {
+   "revenue": [
+    320547.0,
+    299079.0,
+    275426.0,
+    456147.0,
+    544929.0,
+    507913.0,
+    512829.0,
+    505114.0
+   ],
+   "ebit": [
+    19349.0,
+    21156.0,
+    28657.0,
+    44425.0,
+    50595.0,
+    45799.0,
+    30366.0,
+    34925.0
+   ]
+  },
+  "Petrochemicals": {
+   "revenue": [
+    168075.0,
+    140896.0,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "ebit": [
+    31531.0,
+    25265.0,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "Oil and Gas": {
+   "revenue": [
+    2613.0,
+    1639.0,
+    791.0,
+    6329.0,
+    16463.0,
+    24523.0,
+    25101.0,
+    23765.0
+   ],
+   "ebit": [
+    -216.0,
+    241.0,
+    42.0,
+    2459.0,
+    10902.0,
+    15019.0,
+    15777.0,
+    13454.0
+   ]
+  },
+  "Others": {
+   "revenue": [
+    1685.0,
+    2296.0,
+    902.0,
+    1462.0,
+    2270.0,
+    41120.0,
+    18231.0,
+    16880.0
+   ],
+   "ebit": [
+    107.0,
+    122.0,
+    -15.0,
+    -8.0,
+    -147.0,
+    1202.0,
+    3444.0,
+    500.0
+   ]
+  },
+  "Financial Services": {
+   "revenue": [
+    null,
+    616.0,
+    1190.0,
+    1387.0,
+    1464.0,
+    null,
+    null,
+    null
+   ],
+   "ebit": [
+    null,
+    616.0,
+    1190.0,
+    1397.0,
+    1445.0,
+    null,
+    null,
+    null
+   ]
+  },
+  "Digital Services": {
+   "revenue": [
+    null,
+    null,
+    960.0,
+    1291.0,
+    1992.0,
+    1916.0,
+    1279.0,
+    1362.0
+   ],
+   "ebit": [
+    null,
+    null,
+    136.0,
+    187.0,
+    234.0,
+    306.0,
+    116.0,
+    86.0
+   ]
+  },
+  "Retail": {
+   "revenue": [
+    null,
+    null,
+    102.0,
+    82.0,
+    85.0,
+    74.0,
+    64.0,
+    6.0
+   ],
+   "ebit": [
+    null,
+    null,
+    38.0,
+    27.0,
+    31.0,
+    29.0,
+    13.0,
+    1.0
+   ]
+  }
+ },
+ "latest": [
+  {
+   "name": "Oil to Chemicals (O2C)",
+   "revenue": 505114.0,
+   "ebit": 34925.0,
+   "sharePct": 92.32,
+   "growthPct": -1.5
+  },
+  {
+   "name": "Oil and Gas",
+   "revenue": 23765.0,
+   "ebit": 13454.0,
+   "sharePct": 4.34,
+   "growthPct": -5.32
+  },
+  {
+   "name": "Others",
+   "revenue": 18248.0,
+   "ebit": 587.0,
+   "sharePct": 3.34,
+   "growthPct": -6.77,
+   "includes": [
+    "Digital Services",
+    "Retail"
+   ]
+  }
+ ],
+ "insights": {
+  "basis": "Shares are of the sum of the segment revenues. Inter-segment sales are removed from reported revenue, so that sum can differ from the company's reported revenue.",
+  "thresholds": {
+   "minYears": 3,
+   "growingCagrPct": 5.0,
+   "growingMaxShareLossPp": 2.0,
+   "decliningCagrPct": -2.0,
+   "newWithinYears": 2,
+   "jumpFactor": 3.0
+  },
+  "latestPeriod": "FY26",
+  "rows": [
+   {
+    "name": "Oil to Chemicals (O2C)",
+    "trend": "growing",
+    "trendLabel": "Growing",
+    "firstReported": "FY19",
+    "lastReported": "FY26",
+    "window": [
+     "FY19",
+     "FY26"
+    ],
+    "years": 8,
+    "revenue": 505114.0,
+    "sharePct": 92.32,
+    "shareStartPct": 65.03,
+    "shareChangePp": 27.29,
+    "cagrPct": 6.71,
+    "yoyPct": -1.5,
+    "marginPct": 6.91,
+    "marginChangePp": 0.88,
+    "definitionChanged": true,
+    "definitionYear": "FY24",
+    "definitionNote": "Oil to Chemicals (O2C) revenue moved sharply in FY24 while Others moved the other way by a similar amount; the split between them may have been redrawn.",
+    "definitionKind": "jump",
+    "windowAffected": true,
+    "note": null,
+    "gap": false
+   },
+   {
+    "name": "Oil and Gas",
+    "trend": "growing",
+    "trendLabel": "Growing",
+    "firstReported": "FY19",
+    "lastReported": "FY26",
+    "window": [
+     "FY19",
+     "FY26"
+    ],
+    "years": 8,
+    "revenue": 23765.0,
+    "sharePct": 4.34,
+    "shareStartPct": 0.53,
+    "shareChangePp": 3.81,
+    "cagrPct": 37.08,
+    "yoyPct": -5.32,
+    "marginPct": 56.61,
+    "marginChangePp": 64.88,
+    "definitionChanged": false,
+    "definitionYear": null,
+    "definitionNote": null,
+    "definitionKind": null,
+    "windowAffected": false,
+    "note": null,
+    "gap": false
+   },
+   {
+    "name": "Others",
+    "trend": "growing",
+    "trendLabel": "Growing",
+    "firstReported": "FY19",
+    "lastReported": "FY26",
+    "window": [
+     "FY19",
+     "FY26"
+    ],
+    "years": 8,
+    "revenue": 16880.0,
+    "sharePct": 3.09,
+    "shareStartPct": 0.34,
+    "shareChangePp": 2.74,
+    "cagrPct": 38.98,
+    "yoyPct": -7.41,
+    "marginPct": 2.96,
+    "marginChangePp": -3.39,
+    "definitionChanged": true,
+    "definitionYear": "FY24",
+    "definitionNote": "Others revenue jumped by more than 3x in FY24 while Oil to Chemicals (O2C) moved the other way by a similar amount; the split between them may have been redrawn.",
+    "definitionKind": "jump",
+    "windowAffected": true,
+    "note": null,
+    "gap": false
+   },
+   {
+    "name": "Digital Services",
+    "trend": "growing",
+    "trendLabel": "Growing",
+    "firstReported": "FY21",
+    "lastReported": "FY26",
+    "window": [
+     "FY21",
+     "FY26"
+    ],
+    "years": 6,
+    "revenue": 1362.0,
+    "sharePct": 0.25,
+    "shareStartPct": 0.34,
+    "shareChangePp": -0.09,
+    "cagrPct": 7.25,
+    "yoyPct": 6.49,
+    "marginPct": 6.31,
+    "marginChangePp": -7.85,
+    "definitionChanged": true,
+    "definitionYear": "FY21",
+    "definitionNote": "Digital Services started in FY21, the year Petrochemicals stopped being reported; the two may be a reorganisation of the same business.",
+    "definitionKind": "started",
+    "windowAffected": false,
+    "note": null,
+    "gap": false
+   },
+   {
+    "name": "Retail",
+    "trend": "declining",
+    "trendLabel": "Declining",
+    "firstReported": "FY21",
+    "lastReported": "FY26",
+    "window": [
+     "FY21",
+     "FY26"
+    ],
+    "years": 6,
+    "revenue": 6.0,
+    "sharePct": 0.0,
+    "shareStartPct": 0.04,
+    "shareChangePp": -0.04,
+    "cagrPct": -43.26,
+    "yoyPct": -90.62,
+    "marginPct": 16.67,
+    "marginChangePp": -20.59,
+    "definitionChanged": true,
+    "definitionYear": "FY21",
+    "definitionNote": "Retail started in FY21, the year Petrochemicals stopped being reported; the two may be a reorganisation of the same business.",
+    "definitionKind": "started",
+    "windowAffected": false,
+    "note": null,
+    "gap": false
+   },
+   {
+    "name": "Petrochemicals",
+    "trend": "discontinued",
+    "trendLabel": "Discontinued / merged",
+    "firstReported": "FY19",
+    "lastReported": "FY20",
+    "window": null,
+    "years": 0,
+    "revenue": null,
+    "sharePct": null,
+    "shareStartPct": null,
+    "shareChangePp": null,
+    "cagrPct": null,
+    "yoyPct": null,
+    "marginPct": null,
+    "marginChangePp": null,
+    "definitionChanged": true,
+    "definitionYear": "FY21",
+    "definitionNote": "Petrochemicals stopped being reported in FY21, the year Digital Services started; the two may be a reorganisation of the same business.",
+    "definitionKind": "stopped",
+    "windowAffected": false,
+    "note": "Not reported in FY26; last reported in FY20.",
+    "lastRevenue": 140896.0,
+    "lastSharePct": 31.7,
+    "gap": false
+   },
+   {
+    "name": "Financial Services",
+    "trend": "discontinued",
+    "trendLabel": "Discontinued / merged",
+    "firstReported": "FY20",
+    "lastReported": "FY23",
+    "window": null,
+    "years": 0,
+    "revenue": null,
+    "sharePct": null,
+    "shareStartPct": null,
+    "shareChangePp": null,
+    "cagrPct": null,
+    "yoyPct": null,
+    "marginPct": null,
+    "marginChangePp": null,
+    "definitionChanged": false,
+    "definitionYear": null,
+    "definitionNote": null,
+    "definitionKind": null,
+    "windowAffected": false,
+    "note": "Not reported in FY26; last reported in FY23.",
+    "lastRevenue": 1464.0,
+    "lastSharePct": 0.26,
+    "gap": false
+   }
+  ],
+  "sentences": [
+   "Oil and Gas had the fastest revenue growth among the segments, 37.1% a year from FY19 to FY26 (\u20b92,613 Cr to \u20b923,765 Cr), including a single-year change of more than three times in FY22.",
+   "Oil and Gas gained the most share of segment revenue: from 0.5% to 4.3% (3.8 percentage points up) over FY19 to FY26.",
+   "Petrochemicals (last reported FY20) and Financial Services (last reported FY23) are not reported in FY26; the company may have merged them into another segment or stopped reporting.",
+   "The largest segment (Oil to Chemicals (O2C)) went from 65.0% to 92.3% of segment revenue between FY19 and FY26, so revenue became more concentrated."
+  ],
+  "cautions": [
+   "Segment definitions can change when a company reorganises; years before FY21 may not be comparable for Petrochemicals (Digital Services and Retail first reported in FY21).",
+   "Segment definitions can change when a company reorganises; years before FY24 may not be comparable for Others and Oil to Chemicals (O2C).",
+   "Revenue changed by more than three times in a single year for Oil and Gas (FY22); read those growth rates with care."
+  ],
+  "status": "ok",
+  "statusText": ""
+ }
+}
