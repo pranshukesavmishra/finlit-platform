@@ -228,10 +228,9 @@ def test_documented_scoring_matches_supplied_owner_code(case,monkeypatch):
         previous='SOLVENCY' if case['group']=='INSURANCE' else 'CAPITAL_ADEQUACY'
         legacy[case['group']]['weights']['quality']={previous if k in ('INTEREST_COVER','FINANCIAL_LEVERAGE') else k:v for k,v in weights.items()}
         monkeypatch.setattr(premium_engine,'GROUPS',legacy)
-    if case['group']=='BANK':
-        from backend import premium_engine
-        # The oracle also predates the owner's October 2026 request that PEG is a core factor for banks.
-        monkeypatch.setattr(premium_engine,'PEG_CORE_GROUPS',('LIGHT','MFG'))
+    from backend import premium_engine
+    # The oracle also predates the owner's requests that PEG is a core factor for banks (October 2026) and for every group (29 October 2026).
+    monkeypatch.setattr(premium_engine,'PEG_CORE_GROUPS',('LIGHT','MFG'))
     actual=score_company(case['input'],case['group'])
     expected=case['expected']
     assert actual['final']==pytest.approx(expected['final'],abs=1e-6)
@@ -261,14 +260,27 @@ def test_all_seven_historical_reference_symbols_reproduce_the_original_cagr_poli
     # fallback. Preserve that historical check; current windows have dedicated
     # arithmetic and disclosure tests in test_premium_cagr_windows.py.
     monkeypatch.setattr('backend.premium_engine.CAGR_MIN_YEARS',3)
+    monkeypatch.setattr('backend.premium_engine.PEG_CORE_GROUPS',('LIGHT','MFG','BANK'))   # and it predates PEG being core for every group (29 October 2026)
     result=score_company(case['inputs'],case['group'])
     assert result['final']==pytest.approx(case['expectedScore'],abs=1e-8)
     assert result['parts']==pytest.approx(case['expectedParts'],abs=1e-8)
 
 
-def test_full_user_reliance_screenshot_reproduces_score_and_all_categories():
+def test_full_user_reliance_screenshot_reproduces_score_and_all_categories(monkeypatch):
+    # The screenshot was taken before PEG became core for every group (29 October 2026); the current rule has its own test below.
+    monkeypatch.setattr('backend.premium_engine.PEG_CORE_GROUPS',('LIGHT','MFG','BANK'))
     case=json.loads((Path(__file__).parent/'fixtures'/'premium_reliance_screenshot.json').read_text())
     result=score_company(case['inputs'],'HEAVY')
     assert result['final']==pytest.approx(case['expectedScore'],abs=.05)
     assert result['parts']==pytest.approx(case['expectedParts'],abs=.05)
     assert result['confidence']==pytest.approx(.98)
+
+
+def test_reliance_now_gets_a_peg_and_the_score_moves_as_documented():
+    """Owner request, 29 October 2026: PEG is core for every group, so Reliance (HEAVY) is no longer 'PEG not applicable'."""
+    case=json.loads((Path(__file__).parent/'fixtures'/'premium_reliance_screenshot.json').read_text())
+    result=score_company(case['inputs'],'HEAVY')
+    peg=[m for m in result['metrics'] if m['metric']=='PEG'][0] if 'metrics' in result else None
+    if peg is not None:
+        assert peg['status']!='N' and peg['value'] is not None
+    assert result['final']==pytest.approx(55.45,abs=.05)     # was 56.6 with PEG left out

@@ -86,7 +86,7 @@ PROFIT_TURNAROUND_POINTS = 70   # v3.6: only when the latest figure is a profit
 LOSS_NARROWED_POINTS = 30       # v3.6: still a loss, but smaller than before
 CASH_LOSS_POINTS = {"cash_positive": 50, "cash_negative": 0}   # v3.6: cash conversion when 3-year profit <= 0
 IC_NOT_APPLICABLE_DE = 0.1      # v3.6: interest cover is dropped when debt/equity is below this
-PEG_CORE_GROUPS = ("LIGHT", "MFG", "BANK")    # PEG always used (when P/E exists). BANK added at the owner's request (October 2026): banks such as Kotak lost PEG to the six-quarter rule
+PEG_CORE_GROUPS = ("LIGHT", "MFG", "HEAVY", "UTILITY", "REALTY", "BANK", "NBFC", "INSURANCE")    # PEG always used when P/E and positive profit growth exist. BANK added at the owner's request (October 2026): banks such as Kotak lost PEG to the six-quarter rule. Every other group added at the owner's request (29 Oct 2026): Reliance (HEAVY) showed PEG as not applicable with real earnings and growth
 # v3.6 fill for a metric with no data: the lower of the group median and 50 (FILL_DEFAULT).
 # Medians of actual points across 1,146 NSE stocks (m-cap >= Rs 2,000 Cr), 13-14 Oct 2026; only those below 50 listed.
 FILL_DEFAULT = 50.0
@@ -106,7 +106,7 @@ FILL_OVERRIDES = {
 PROVISIONAL_BELOW = 0.80        # data confidence below this -> PROVISIONAL (label at most HEALTHY)
 NOT_RATED_BELOW = 0.50          # data confidence below this -> NOT RATED
 PROVISIONAL_MIN_QUARTERS = 6    # fewer comparable quarters than this -> PROVISIONAL
-PEG_MIN_PROFIT_STREAK = 6             # other groups: PEG only for proven growers (ACTUAL good quarters)
+PEG_MIN_PROFIT_STREAK = 6             # used only if a group is taken out of PEG_CORE_GROUPS: PEG then needs this many ACTUAL good quarters
 PEG_GROWTH_CAP = 40                   # % growth used in PEG is capped here
 FLAG_RED, FLAG_GREEN = 40, 70         # metric points: < 40 red flag, 40-69 amber, >= 70 strength
 PLEDGE_ALERT = 25                     # % pledged that triggers a hard alert

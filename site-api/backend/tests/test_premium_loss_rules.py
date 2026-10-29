@@ -101,7 +101,9 @@ def test_single_loss_quarter_does_not_replace_profitable_ttm_with_a_loss(inputs)
     assert metric(result, "PROFIT_STREAK")["value"] == 3
 
 
-def test_loss_quarters_no_longer_unlock_optional_peg(inputs):
+def test_loss_quarters_no_longer_unlock_optional_peg(inputs, monkeypatch):
+    # Only a group that is taken out of the core list has an optional PEG (all groups are core since 29 October 2026).
+    monkeypatch.setattr("backend.premium_engine.PEG_CORE_GROUPS", ("LIGHT", "MFG", "BANK"))
     inputs["net_profit_q"] = [-20.] * 8 + [-10.] * 6
     result = score_company(inputs, "HEAVY")
     assert metric(result, "PROFIT_STREAK")["value"] == 0

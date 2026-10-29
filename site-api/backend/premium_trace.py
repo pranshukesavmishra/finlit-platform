@@ -147,7 +147,7 @@ def build_calculation_trace(d, rating, meta):
                      'Calendar period labels identify reporting periods. Filing availability and retrieval dates are recorded separately.',
                      'Scale = clamp((value - worst) / (best - worst) x 100, 0, 100). Lower-is-better metrics have best below worst.',
                      'Component denominator excludes N and L metrics, retains filled and loss-rule metrics. Missing pledge still reduces input coverage.',
-                     'PEG is core for LIGHT, MFG and BANK; other groups require at least 6 actual good profit quarters, with growth capped at 40%. Loss/non-positive-growth rules retain their weight.',
+                     'PEG is used for every group whenever P/E and positive profit growth exist, with growth capped at 40%. Loss/non-positive-growth rules retain their weight.',
                      'For non-financial groups, debt/equity below 0.1 excludes interest cover. BANK and NBFC use capital adequacy when available, otherwise interest cover in the same Quality slot. INSURANCE uses its configured Quality factors. Missing own valuation history substitutes an available positive industry median. Missing metrics use min(group median points, 50), except unknown pledge which is excluded.',
                      'Current non-positive profit scores zero for profit growth and profit CAGR. A good profit-streak quarter must be profitable; a short loss-making record blends with zero. Non-positive current operating margin scores zero for margin change.',
                      'Loss severity and group family may cap Fundamental first. If Fundamental or Quality is then below 35, Valuation is capped at 60. Both adjustments are applied before the final weighted mean.',

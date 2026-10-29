@@ -102,11 +102,11 @@ The eight groups are LIGHT, MFG, HEAVY, UTILITY, REALTY, BANK, NBFC and INSURANC
 | --- | --- | --- |
 | LIGHT | D/E 20; interest cover 20; ROE 35; cash conversion 25 | P/E industry 40; P/E history 30; PEG 30 |
 | MFG | D/E 25; interest cover 25; ROE 30; cash conversion 20 | P/E industry 40; P/E history 30; PEG 30 |
-| HEAVY | D/E 30; interest cover 30; ROE 20; cash conversion 20 | EV/EBITDA industry 40; P/B industry 30; P/E history 30; optional PEG 20 |
-| UTILITY | D/E 25; interest cover 35; ROE 20; cash conversion 20 | P/B industry 35; EV/EBITDA industry 35; P/E industry 30; optional PEG 20 |
-| REALTY | D/E 35; interest cover 25; ROE 20; cash conversion 20 | P/B industry 60; P/E industry 40; optional PEG 20 |
+| HEAVY | D/E 30; interest cover 30; ROE 20; cash conversion 20 | EV/EBITDA industry 40; P/B industry 30; P/E history 30; PEG 20 |
+| UTILITY | D/E 25; interest cover 35; ROE 20; cash conversion 20 | P/B industry 35; EV/EBITDA industry 35; P/E industry 30; PEG 20 |
+| REALTY | D/E 35; interest cover 25; ROE 20; cash conversion 20 | P/B industry 60; P/E industry 40; PEG 20 |
 | BANK / NBFC | Gross NPA 25; net NPA 25; capital adequacy (interest-cover fallback) 25; ROA 25 | P/B industry 40; P/B history 30; P/E industry 30; PEG 20 (core for BANK, optional for NBFC) |
-| INSURANCE | Financial leverage 50; ROE 50 | P/B industry 50; P/E industry 25; P/B history 25; optional PEG 20 |
+| INSURANCE | Financial leverage 50; ROE 50 | P/B industry 50; P/E industry 25; P/B history 25; PEG 20 |
 
 All groups use Risk weights: volatility 30, maximum fall 30, trading value 20, pledge 20. Higher Risk scores mean lower assessed risk.
 
@@ -132,7 +132,7 @@ Common bounds, expressed as **0-point value -> 100-point value**: relative P/E, 
 | P/B | Price * reconciled crore shares / latest book equity in crore. |
 | EV/EBITDA | `(price * shares + debt - cash) / latest four-quarter EBITDA`, all monetary amounts in crore. |
 | Relative valuation multiple | Company's calculated multiple / selected benchmark. A reported company ratio is not automatically substituted for the model's documented denominator. |
-| PEG | Calculated P/E / positive profit growth capped at 40%. Prefer profit CAGR, otherwise recent profit growth. Core for LIGHT, MFG and BANK (BANK added at the owner's request, October 2026); other groups need at least six actual good profit quarters, subject to loss rules. |
+| PEG | Calculated P/E / positive profit growth capped at 40%. Prefer profit CAGR, otherwise recent profit growth. Core for every group (BANK added at the owner's request in October 2026, the other groups on 29 October 2026 after Reliance showed PEG as not applicable); subject to loss rules. A group taken out of the core list would need at least six actual good profit quarters. |
 | Volatility | Sample standard deviation of up to 250 daily returns * sqrt(250) * 100, with at least 60 valid returns. Invalid closes are not bridged. |
 | Maximum fall | Largest close-to-running-peak decline over a complete 250-session window. |
 | Trading value | Mean of close * volume over the latest 60 complete sessions, converted to crore. |
