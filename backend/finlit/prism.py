@@ -82,11 +82,12 @@ BUSY_RETRY = 30
 # Engineering details of the signed snapshot that the browser never receives.
 INTERNAL = ("calculationTrace", "inputs", "inputHash", "snapshotReceipt", "snapshotExpiresAt")
 HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace the report's financial history shows
-# What readers may see of snapshot["technicalAssessment"] (docs/premium-st-lt-model.md, "Report contract"). Left out on purpose: inputHash,
-# sourceCodeSha256, each factor's internal weight; the model says weights and implementation hashes are not shown to report readers.
+# What readers may see of snapshot["technicalAssessment"] (docs/prism/premium-st-lt-model.md, "Report contract"). Left out on purpose: inputHash and
+# sourceCodeSha256. Each factor's weight IS passed on now (the indicator publishes them; the breakdown table shows weight and points, see
+# docs/technicals/README.md); the older model note said weights are not shown, and removing "weight" here removes the column again.
 TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh")
-TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped")
-TECH_FACTOR = ("key", "label", "signal", "status", "detail")
+TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore")
+TECH_FACTOR = ("key", "label", "signal", "status", "detail", "weight")
 TECH_SOURCE = ("provider", "asOf", "bars")
 
 INPUT_SECONDS = 24 * 3600          # kept model inputs younger than this are reused
@@ -147,9 +148,23 @@ def _pick(source: Any, keys: Tuple[str, ...]) -> Dict[str, Any]:
 
 
 def _horizon(part: Any) -> Dict[str, Any]:
-    """One horizon (shortTerm / longTerm) of the technical assessment; each factor loses its internal model `weight`."""
+    """One horizon (shortTerm / longTerm) of the technical assessment. Each factor gets its `points` and the horizon its `divisor`, worked out here
+    from the weights and signals the signed document already holds (points = weight x signal x 100 / weights in use, the indicator's own rule), so a
+    report stored before the breakdown existed shows it too and the points always add up to the score (before the long-term stage cap)."""
     out = _pick(part, TECH_HORIZON)
-    out["factors"] = [_pick(f, TECH_FACTOR) for f in (part.get("factors") if isinstance(part, dict) else None) or [] if isinstance(f, dict)]
+    factors = [_pick(f, TECH_FACTOR) for f in (part.get("factors") if isinstance(part, dict) else None) or [] if isinstance(f, dict)]
+    weight = lambda f: f.get("weight") if isinstance(f.get("weight"), (int, float)) and not isinstance(f.get("weight"), bool) and f["weight"] > 0 else None
+    for f in factors:
+        if weight(f) is None or f.get("status") == "disabled":   # a switched-off row is not counted, so it shows no weight
+            f.pop("weight", None)
+    in_use = [f for f in factors if f.get("status") != "disabled"]
+    if in_use and all("weight" in f for f in in_use):
+        divisor = sum(f["weight"] for f in in_use)
+        out["divisor"] = divisor
+        for f in in_use:
+            if f.get("status") == "available" and isinstance(f.get("signal"), (int, float)) and not isinstance(f.get("signal"), bool):
+                f["points"] = f["weight"] * f["signal"] * 100 / divisor
+    out["factors"] = factors
     return out
 
 

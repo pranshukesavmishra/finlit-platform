@@ -1,0 +1,252 @@
+{
+ "available": true,
+ "asOf": "2026-10-23",
+ "stale": false,
+ "held": false,
+ "peerGroup": {
+  "id": "pl-it",
+  "name": "IT",
+  "short": "IT",
+  "kind": "industry",
+  "ranked": 11,
+  "source": "list",
+  "listed": 14,
+  "listAsOf": "2026-10-27",
+  "leaderSlots": 4
+ },
+ "benchmarks": {
+  "sector": {
+   "code": "NIFIT",
+   "name": "Nifty IT",
+   "kind": "index",
+   "ret52": null
+  },
+  "market": {
+   "code": "NIF50",
+   "name": "Nifty 50",
+   "ret52": null
+  }
+ },
+ "rel": {
+  "w13": 0.1338,
+  "w26": 0.137,
+  "w52": 0.1402,
+  "w52Market": -0.0679
+ },
+ "rank": 6,
+ "label": "leader",
+ "rawLabel": "in_line",
+ "direction": "gaining",
+ "fundamentalNote": null,
+ "fundamentalRank": null,
+ "fundamentalOf": null,
+ "labelSince": "2025-08-25",
+ "sectorReliability": {
+  "tier": "mixed",
+  "hitRate6m": 0.6,
+  "checks": 269,
+  "periods": [
+   {
+    "years": "2005-09",
+    "hitRate6m": 0.35
+   },
+   {
+    "years": "2010-14",
+    "hitRate6m": 0.68
+   },
+   {
+    "years": "2015-19",
+    "hitRate6m": 0.48
+   },
+   {
+    "years": "2020-26",
+    "hitRate6m": 0.74
+   }
+  ],
+  "from": "2005",
+  "to": "2026",
+  "sentence": "In IT, leadership has held in some periods and not others: 60% of checks since 2005, from 35% in 2005-09 to 74% in 2020-26.",
+  "source": "spec"
+ },
+ "display": {
+  "chip": "Leader",
+  "line": "6th of 11 IT peers · +14.0 pts vs Nifty IT · −6.8 pts vs Nifty 50 (12 months) · gaining over 3 months",
+  "parts": {
+   "rank": "6th of 11 IT peers",
+   "sector": {
+    "pts": "+14.0",
+    "name": "Nifty IT",
+    "v": 0.1402
+   },
+   "market": {
+    "pts": "−6.8",
+    "name": "Nifty 50",
+    "v": -0.0679
+   },
+   "direction": "gaining"
+  },
+  "note": null,
+  "tooltip": "Based on price performance over the last 12 months compared with 11 IT companies and Nifty IT. Describes the past; not a recommendation.",
+  "pending": "This week the ranking says In line. It becomes the label if the next weekly run says the same."
+ },
+ "peers": [
+  {
+   "symbol": "LTM",
+   "name": "LTIMindtree",
+   "rank": 1,
+   "label": "leader",
+   "rawLabel": "leader",
+   "direction": null,
+   "rel13": 0.0235,
+   "rel52": 1.2144,
+   "rel52Market": 1.0063,
+   "marketCap": null
+  },
+  {
+   "symbol": "WIPRO",
+   "name": "Wipro",
+   "rank": 2,
+   "label": "leader",
+   "rawLabel": "leader",
+   "direction": null,
+   "rel13": 0.1912,
+   "rel52": 0.3343,
+   "rel52Market": 0.1262,
+   "marketCap": null
+  },
+  {
+   "symbol": "INFY",
+   "name": "Infosys",
+   "rank": 3,
+   "label": "leader",
+   "rawLabel": "leader",
+   "direction": null,
+   "rel13": -0.0609,
+   "rel52": 0.2295,
+   "rel52Market": 0.0213,
+   "marketCap": null
+  },
+  {
+   "symbol": "KPITTECH",
+   "name": "KPIT Technologies",
+   "rank": 4,
+   "label": "leader",
+   "rawLabel": "leader",
+   "direction": null,
+   "rel13": 0.0633,
+   "rel52": 0.2273,
+   "rel52Market": 0.0191,
+   "marketCap": null
+  },
+  {
+   "symbol": "TECHM",
+   "name": "Tech Mahindra",
+   "rank": 5,
+   "label": "in_line",
+   "rawLabel": "in_line",
+   "direction": null,
+   "rel13": 0.0191,
+   "rel52": 0.1499,
+   "rel52Market": -0.0583,
+   "marketCap": null
+  },
+  {
+   "symbol": "TCS",
+   "name": "Tata Consultancy Services",
+   "rank": 6,
+   "label": "leader",
+   "rawLabel": "in_line",
+   "direction": null,
+   "rel13": 0.1338,
+   "rel52": 0.1402,
+   "rel52Market": -0.0679,
+   "marketCap": null
+  },
+  {
+   "symbol": "COFORGE",
+   "name": "Coforge",
+   "rank": 7,
+   "label": "in_line",
+   "rawLabel": "in_line",
+   "direction": null,
+   "rel13": -0.0321,
+   "rel52": 0.0882,
+   "rel52Market": -0.12,
+   "marketCap": null
+  },
+  {
+   "symbol": "TATAELXSI",
+   "name": "Tata Elxsi",
+   "rank": 8,
+   "label": "in_line",
+   "rawLabel": "in_line",
+   "direction": null,
+   "rel13": -0.0833,
+   "rel52": 0.0706,
+   "rel52Market": -0.1375,
+   "marketCap": null
+  },
+  {
+   "symbol": "MPHASIS",
+   "name": "Mphasis",
+   "rank": 9,
+   "label": "in_line",
+   "rawLabel": "in_line",
+   "direction": null,
+   "rel13": -0.1769,
+   "rel52": 0.0428,
+   "rel52Market": -0.1654,
+   "marketCap": null
+  },
+  {
+   "symbol": "PERSISTENT",
+   "name": "Persistent Systems",
+   "rank": 10,
+   "label": "laggard",
+   "rawLabel": "laggard",
+   "direction": null,
+   "rel13": -0.0787,
+   "rel52": -0.0884,
+   "rel52Market": -0.2965,
+   "marketCap": null
+  },
+  {
+   "symbol": "HCLTECH",
+   "name": "HCL Technologies",
+   "rank": 11,
+   "label": "laggard",
+   "rawLabel": "laggard",
+   "direction": null,
+   "rel13": -0.0704,
+   "rel52": -0.2805,
+   "rel52Market": -0.4886,
+   "marketCap": null
+  }
+ ],
+ "notRanked": [
+  {
+   "symbol": "OFSS",
+   "name": "Oracle Financial Services Software",
+   "reason": "liquidity",
+   "text": "Too thinly traded"
+  },
+  {
+   "symbol": "HEXT",
+   "name": "Hexaware Technologies",
+   "reason": "no_prices",
+   "text": "No price history stored here yet"
+  },
+  {
+   "symbol": "BSOFT",
+   "name": "Birlasoft",
+   "reason": "history",
+   "text": "Under a year of prices"
+  }
+ ],
+ "runs52": {
+  "leader": 52,
+  "in_line": 0,
+  "laggard": 0,
+  "total": 52
+ }
+}

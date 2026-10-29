@@ -5,7 +5,7 @@ import { HScroll } from "../components/HScroll";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import {
-  LABEL_WORD, monthYear, ordinal, pts, rankStory, relativeSentence, tone, useLeadership, useLeadershipHistory,
+  LABEL_WORD, groupSourceLine, monthYear, ordinal, pts, rankStory, relativeSentence, sectorBench, tone, useLeadership, useLeadershipHistory,
   type Direction, type LeadHistory, type LeadLabel, type LeadPeer, type LeadRun, type LeadershipOn, type Reliability,
 } from "../lib/leadership";
 
@@ -81,6 +81,7 @@ export function LeadLine({ symbol, jump }: { symbol: string; jump: (id: string) 
         <LeadTip text={d.display.tooltip || ""} />
       </div>
       {d.display.note && <div className="ld-caution" role="note"><Icon name="alert" /><span>{d.display.note}</span></div>}
+      {d.display.pending && <div className="ld-stale" role="note">{d.display.pending}</div>}
       {d.stale && <div className="ld-stale" role="note">Last updated {monthYear(d.asOf)}; this week's refresh has not come through yet.</div>}
       {d.display.benchmarkNote && <div className="ld-stale" role="note">{d.display.benchmarkNote}</div>}
     </div>
@@ -88,8 +89,27 @@ export function LeadLine({ symbol, jump }: { symbol: string; jump: (id: string) 
 }
 
 /* ------------------------------------------------------------------ 2. the peer ranking table (Peers section) */
-type Row = { symbol: string; name: string; rank: number | null; label: LeadLabel | null; direction: Direction; rel52: number | null; rel13: number | null; rel52Market: number | null };
+type Row = { symbol: string; name: string; rank: number | null; label: LeadLabel | null; thisWeek: LeadLabel | null; direction: Direction; rel52: number | null; rel13: number | null; rel52Market: number | null };
 type SortKey = "rank" | "name" | "rel52" | "rel13" | "rel52Market";
+
+/** Above the table: the status sentence, this week's own answer when it differs, what the figures are measured against, how long the label has stood, and the peer group. */
+export function RankingStatus({ lead }: { lead: LeadershipOn }) {
+  const d = lead.display, g = lead.peerGroup, r = lead.runs52, slots = g.leaderSlots;
+  const peerAvg = lead.benchmarks.sector.kind === "peer_average";
+  return (
+    <div className="ld-status">
+      <p className="ld-sline"><LeadChip label={lead.label} /><span>{d.line}</span></p>
+      {d.pending && <p className="ld-pend" role="note">{d.pending}</p>}
+      <ul className="ld-facts">
+        <li>The 12-month and 3-month figures are against <b>{sectorBench(lead)}</b>{peerAvg ? ", because there is no matching sector index" : ""}{lead.benchmarks.market ? <>; the market figure is against <b>{lead.benchmarks.market.name}</b></> : ""}.</li>
+        {slots != null && slots > 0 && <li>The top {slots} of {g.ranked} can be Leaders (12-month figure above 0) and the bottom {slots} Laggards (below 0); the rest are In line.</li>}
+        {lead.labelSince && <li>This label has stood since {new Date(lead.labelSince + "T00:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}.</li>}
+        {r && r.total > 0 && <li>Over the last 52 weeks ({r.total} {r.total === 1 ? "check" : "checks"}): Leader {r.leader} · In line {r.in_line} · Laggard {r.laggard}.</li>}
+        <li>{groupSourceLine(lead)}</li>
+      </ul>
+    </div>
+  );
+}
 
 export function PeerRanking({ lead, self, extras }: { lead: LeadershipOn; self: string; extras: { symbol: string; name: string | null }[] }) {
   const nav = useNavigate();
@@ -97,9 +117,10 @@ export function PeerRanking({ lead, self, extras }: { lead: LeadershipOn; self: 
   const [dir, setDir] = useState<1 | -1>(1);
   const [all, setAll] = useState(false);
   const rows = useMemo<Row[]>(() => {
-    const ranked: Row[] = lead.peers.map((p) => ({ symbol: p.symbol, name: p.name || p.symbol, rank: p.rank, label: p.label, direction: p.direction, rel52: p.rel52, rel13: p.rel13, rel52Market: p.rel52Market }));
+    const ranked: Row[] = lead.peers.map((p) => ({ symbol: p.symbol, name: p.name || p.symbol, rank: p.rank, label: p.label, thisWeek: p.rawLabel && p.rawLabel !== p.label ? p.rawLabel : null, direction: p.direction, rel52: p.rel52, rel13: p.rel13, rel52Market: p.rel52Market }));
     const seen = new Set(ranked.map((r) => r.symbol));
-    const rest: Row[] = extras.filter((e) => !seen.has(e.symbol) && e.symbol !== self).map((e) => ({ symbol: e.symbol, name: e.name || e.symbol, rank: null, label: null, direction: null, rel52: null, rel13: null, rel52Market: null }));
+    // On the indicator's own list the companies that are not ranked are named (with the reason) under the table; the data provider's peers are only added for an industry group
+    const rest: Row[] = (lead.peerGroup.source === "list" ? [] : extras).filter((e) => !seen.has(e.symbol) && e.symbol !== self).map((e) => ({ symbol: e.symbol, name: e.name || e.symbol, rank: null, label: null, thisWeek: null, direction: null, rel52: null, rel13: null, rel52Market: null }));
     const val = (r: Row): number | string => (key === "name" ? r.name.toLowerCase() : key === "rank" ? (r.rank ?? 1e9) : ((r[key] as number | null) ?? -1e9));
     const base = key === "rank" || key === "name" ? 1 : -1;   // the number columns open best-first
     ranked.sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : a.symbol.localeCompare(b.symbol)) * dir * base; });
@@ -115,17 +136,18 @@ export function PeerRanking({ lead, self, extras }: { lead: LeadershipOn; self: 
   );
   return (
     <div className="card acc ld-rank-card" style={{ "--ac": "var(--gold)", marginTop: 16 } as React.CSSProperties}>
-      <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>How it ranks among {lead.peerGroup.ranked} {lead.peerGroup.short} peers</h3><span className="s">12-month return against {lead.benchmarks.sector.name}</span></div>
+      <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>How it ranks among {lead.peerGroup.ranked} {lead.peerGroup.short} peers</h3><span className="s">12-month return against {sectorBench(lead)}</span></div>
+      <RankingStatus lead={lead} />
       <HScroll label="peer ranking">
         <table className="ld-tbl">
-          <caption className="sr-only">Peers ranked by their 12-month return against {lead.benchmarks.sector.name}. Status is given in words.</caption>
+          <caption className="sr-only">Peers ranked by their 12-month return against {sectorBench(lead)}. Status is given in words.</caption>
           <thead><tr>{th("rank", "#", "n")}{th("name", "Company")}<th scope="col">Status</th>{th("rel52", "vs sector, 12M", "r")}{th("rel13", "vs sector, 3M", "r")}{th("rel52Market", "vs market, 12M", "r")}</tr></thead>
           <tbody>
             {shown.map((r) => (
               <tr key={r.symbol} className={(r.symbol === self ? "me " : "") + (r.label ? "" : "none")} onClick={() => r.symbol !== self && nav(`/stocks/${r.symbol}`)} aria-current={r.symbol === self ? "true" : undefined}>
                 <td className="n">{r.rank ?? "—"}</td>
                 <th scope="row" className="nm">{r.symbol === self ? <b>{r.name}<span className="you"> · this company</span></b> : <Link to={`/stocks/${r.symbol}`} onClick={(e) => e.stopPropagation()}>{r.name}</Link>}<span className="tk">{r.symbol}</span></th>
-                <td>{r.label ? <><LeadChip label={r.label} />{r.direction && <span className={"ld-dir ld-dsm " + r.direction} title={dirWord(r.direction)}>{r.direction === "gaining" ? "▲" : "▼"}<span className="sr-only"> {dirWord(r.direction)}</span></span>}</> : <span className="ld-nh">Not enough history</span>}</td>
+                <td>{r.label ? <><LeadChip label={r.label} />{r.direction && <span className={"ld-dir ld-dsm " + r.direction} title={dirWord(r.direction)}>{r.direction === "gaining" ? "▲" : "▼"}<span className="sr-only"> {dirWord(r.direction)}</span></span>}{r.thisWeek && <span className="ld-tw">This week: {LABEL_WORD[r.thisWeek]}</span>}</> : <span className="ld-nh">Not enough history</span>}</td>
                 <td className="r"><Pt v={r.rel52} /></td><td className="r"><Pt v={r.rel13} /></td><td className="r"><Pt v={r.rel52Market} /></td>
               </tr>
             ))}
@@ -133,6 +155,12 @@ export function PeerRanking({ lead, self, extras }: { lead: LeadershipOn; self: 
         </table>
       </HScroll>
       {rows.length > LIMIT && <button type="button" className="btn ld-more" onClick={() => setAll((a) => !a)}>{all ? "Show fewer" : `Show all ${rows.length} companies`}</button>}
+      {(lead.notRanked?.length ?? 0) > 0 && (
+        <details className="ld-nr">
+          <summary>Not ranked this week ({lead.notRanked!.length})</summary>
+          <ul>{lead.notRanked!.map((n) => <li key={n.symbol}><b>{n.name === n.symbol ? n.symbol : n.name}</b>{n.name !== n.symbol && <span className="tk">{n.symbol}</span>}<span className="why">{n.text}</span></li>)}</ul>
+        </details>
+      )}
       <p className="ld-foot">{LEAD_NOTE} <Link to={EXPLAINER}>How this works</Link></p>
     </div>
   );
@@ -350,7 +378,7 @@ function ReliabilityCard({ lead }: { lead: LeadershipOn }) {
               <div className="ld-bar"><i style={{ width: `${rate}%` }} className={r.tier} /><u style={{ left: "50%" }} /><em style={{ left: "50%" }}>coin flip</em></div><b>{rate}%</b></div>
             <div className="ld-rel-per">{r.periods.map((p) => { const v = Math.round(p.hitRate6m * 100); return <div key={p.years} className="ld-pbar"><div className="ld-pcol"><i style={{ height: `${v}%` }} className={v >= 50 ? "ok" : "no"} /><u /></div><b>{v}%</b><span>{p.years}</span></div>; })}</div>
           </div>
-          <div className="ld-foot2"><span className="ld-sm">{r.checks} checks, {r.from} to {r.to}. A share of past checks, not a forecast.</span><ShowTable on={table} set={setTable} /></div>
+          <div className="ld-foot2"><span className="ld-sm">{r.source === "spec" ? "From the developer spec's own backtest of this group: " : ""}{r.checks} checks, {r.from} to {r.to}. A share of past checks, not a forecast.</span><ShowTable on={table} set={setTable} /></div>
           {table && <ChartTable caption={concl} head={["Period", "Checks where leaders beat laggards"]} rows={[["Overall", `${rate}% of ${r.checks}`], ...r.periods.map((p) => [p.years, `${Math.round(p.hitRate6m * 100)}%`])]} />}
         </>
       ) : (

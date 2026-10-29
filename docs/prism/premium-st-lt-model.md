@@ -103,8 +103,13 @@ index master and Upstox's official NSE instrument list.
   the source's default 1.0. Excess returns use ordinary 21/63/126/189/252-session
   percentage returns. ST/LT weighted excess returns are ranked against their
   previous 126/252 observations, counting ties as less-than-or-equal.
-- EMA recursion is seeded at the first observed value. ATR/RSI/ADX use Wilder
-  smoothing with an initial arithmetic mean; ATR's first TR uses high-low.
+- EMA recursion follows Pine's `ta.ema`: no value until `length` consecutive
+  observations, then their simple average, then recursive (changed with the
+  finlit_technicals v1.1 delivery; before, it was seeded at the first observed
+  value, which differs from the chart for histories under about 1,000 sessions
+  and flipped a close EMA 100 / EMA 200 comparison in 2 of 90 test series).
+  ATR/RSI/ADX use Wilder smoothing with an initial arithmetic mean; ATR's first
+  TR uses high-low.
   BB standard deviation and beta variance are population calculations.
 - Stage uses 150-day SMA, its 50-session slope and slope 50 sessions earlier,
   plus the exact breakout-volume rules. Fresh Stage 2 lasts <=60 sessions after
@@ -113,7 +118,11 @@ index master and Upstox's official NSE instrument list.
   Verdict bands: >=20 bullish, <=-20 bearish, otherwise neutral. All nine
   combinations use the source matrix and its green/amber/red mapping.
 - Scores retain full precision for ratings/verdict. Rounding is display-only.
-  Weights and implementation hashes are not shown to report readers.
+  Implementation hashes are not shown to report readers. Each row's weight is shown
+  (the indicator publishes them; see docs/technicals/README.md): the report shows
+  weight and points per row, the divisor, the ADX trend factor and the stage
+  limit. The model's own verdict words are never shown; the nine verdict cells
+  are shown as the descriptive trend alignment (short-term band x long-term band).
 
 ## Missing data and availability
 
@@ -143,7 +152,7 @@ Nifty 500 benchmark fallback and is disclosed.
 
 Each horizon contains nullable `score`, `rating`, `status`, `horizon`,
 `availableCount`, `requiredCount`, `stageCapped`, and `factors`. Factors contain
-`key`, `label`, internal `weight`, nullable `signal`, `status`
+`key`, `label`, `weight`, nullable `signal`, `status`
 (available/unavailable/disabled), and a reader-facing observation or missing reason.
 `observations` exposes stage, freshness of Stage 2, SMA slope, selected benchmark,
 benchmarks used over the comparison window, beta and ST/LT RS percentiles.

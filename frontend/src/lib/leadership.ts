@@ -5,21 +5,28 @@ import { ApiError, apiGet } from "./api";
  *  reads this one object, so the copy cannot disagree between them. It describes past price performance only. */
 export type LeadLabel = "leader" | "in_line" | "laggard";
 export type Direction = "gaining" | "weakening" | null;
-export type LeadPeer = { symbol: string; name: string | null; rank: number; label: LeadLabel; direction: Direction; rel13: number | null; rel52: number | null; rel52Market: number | null; marketCap: number | null };
-export type Reliability = { tier: "consistent" | "mixed" | "not_reliable" | "insufficient"; hitRate6m: number | null; checks: number; from: string | null; to: string | null; periods: { years: string; hitRate6m: number; checks?: number }[]; sentence?: string };
+/** `rawLabel` is that peer's own answer this week; it differs from `label` (the published one) while the stability rule waits for a second weekly run. */
+export type LeadPeer = { symbol: string; name: string | null; rank: number; label: LeadLabel; rawLabel?: LeadLabel | null; direction: Direction; rel13: number | null; rel52: number | null; rel52Market: number | null; marketCap: number | null };
+/** `source` "spec" is the developer spec's own backtest (since 2005); "site" (or absent) is this site's, from the weekly prices it stores. */
+export type Reliability = { tier: "consistent" | "mixed" | "not_reliable" | "insufficient"; hitRate6m: number | null; checks: number; from: string | null; to: string | null; periods: { years: string; hitRate6m: number; checks?: number }[]; sentence?: string; source?: "spec" | "site" };
+/** A company on the group's list (or in its industry) that was left out of this week's ranking, with the reason in words. */
+export type NotRanked = { symbol: string; name: string; reason: "history" | "stale" | "liquidity" | "no_prices" | "not_covered" | string; text: string };
 export type LeadParts = { rank: string; sector: { pts: string; name: string; v: number | null }; market: { pts: string; name: string; v: number | null } | null; direction: Direction };
-export type LeadDisplay = { chip: string | null; line: string; parts?: LeadParts; note: string | null; tooltip: string | null; benchmarkNote?: string };
+export type LeadDisplay = { chip: string | null; line: string; parts?: LeadParts; note: string | null; tooltip: string | null; benchmarkNote?: string; pending?: string | null };
 export type LeadershipOn = {
   available: true; asOf: string; stale: boolean; held: boolean;
-  peerGroup: { id: string; name: string; short: string; kind: "industry" | "sector"; ranked: number };
+  /** `source` "list" is the indicator's peer list (`listed` names on it, as of `listAsOf`); "industry" (or absent, on older data) is the data provider's industry. */
+  peerGroup: { id: string; name: string; short: string; kind: "industry" | "sector"; ranked: number; source?: "list" | "industry"; listed?: number | null; listAsOf?: string | null; leaderSlots?: number };
   benchmarks: { sector: { code: string | null; name: string; kind: "index" | "peer_average"; ret52: number | null }; market: { code: string; name: string; ret52: number | null } | null };
   rel: { w13: number | null; w26: number | null; w52: number | null; w52Market: number | null };
   rank: number; label: LeadLabel; rawLabel: LeadLabel; direction: Direction; fundamentalNote: "below_peers" | "stronger_than_price" | null;
   fundamentalRank: number | null; fundamentalOf: number | null; labelSince: string | null; sectorReliability: Reliability; display: LeadDisplay; peers: LeadPeer[];
+  /** Absent on an answer from before the peer lists. `runs52`: the published labels over the last 52 weeks (a count of the weekly checks that exist). */
+  notRanked?: NotRanked[]; runs52?: { leader: number; in_line: number; laggard: number; total: number } | null;
 };
 export type LeadershipOff = { available: false; reason: "history" | "stale" | "liquidity" | "group" | "hidden" | "pending"; display?: LeadDisplay };
 export type Leadership = LeadershipOn | LeadershipOff;
-export type LeadRun = { date: string; rank: number; ranked: number; label: LeadLabel; direction: Direction; rel52: number | null; rel52Market: number | null };
+export type LeadRun = { date: string; rank: number; ranked: number; label: LeadLabel; rawLabel?: LeadLabel | null; direction: Direction; rel13?: number | null; rel52: number | null; rel52Market: number | null };
 export type LeadHistory = { available: boolean; rows: LeadRun[]; series: { dates: string[]; stock: (number | null)[]; sector: (number | null)[] | null; market: (number | null)[] | null } | null };
 
 const retry = (n: number, e: unknown) => !(e instanceof ApiError && e.status < 500) && n < 1;
@@ -55,4 +62,17 @@ export function relativeSentence(name: string, bench: string, last: number | nul
   const d = Math.round((last - 100) * 10) / 10;
   if (d === 0) return `Over ${range}, ${name} has matched ${bench}.`;
   return `Over ${range}, ${name} has ${d > 0 ? "outperformed" : "been behind"} ${bench} by ${Math.abs(d).toFixed(1)} points.`;
+}
+
+/** The two figures that say what the table is measured against, in words (the sector index, or the peers' average when there is none). */
+export const sectorBench = (lead: Pick<LeadershipOn, "benchmarks">): string => (lead.benchmarks.sector.kind === "peer_average" ? "the average of its ranked peers" : lead.benchmarks.sector.name);
+
+/** The "Peers" line under the table's header: where the peer group comes from. */
+export function groupSourceLine(lead: Pick<LeadershipOn, "peerGroup">): string {
+  const g = lead.peerGroup;
+  if (g.source === "list") {
+    const of = g.listed != null && g.listed > g.ranked ? `${g.ranked} of the ${g.listed} names on the list are ranked` : `all ${g.ranked} names on the list are ranked`;
+    return `Peer group: the ${g.name} list${g.listAsOf ? `, as of ${new Date(g.listAsOf + "T00:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}` : ""}; ${of}.`;
+  }
+  return `Peer group: companies in the same ${g.kind === "sector" ? "sector" : "industry"} (${g.name}), ${g.ranked} ranked.`;
 }

@@ -98,8 +98,10 @@ def test_complete_primary_avoids_secondary_and_close_only_uses_one_secondary_ser
 
 
 def test_indicator_history_has_explicit_warmup_and_gaps_are_not_compressed():
-    assert ema([1,2,3,4], 3) == [1,1.5,2.25,3.125]
-    assert ema([1,2,3,None,4,5,6], 3) == [1,1.5,2.25,None,4,4.5,5.25]
+    # Pine's ta.ema: nothing until `length` consecutive observations, then their average, then recursive; a gap restarts the warm-up
+    # (the values are the ones finlit_technicals v1.1 gives, which follows the chart).
+    assert ema([1,2,3,4], 3) == [None,None,2.0,3.0]
+    assert ema([1,2,3,None,4,5,6], 3) == [None,None,2.0,None,None,None,5.0]
     assert rsi(list(range(1,17)))[-1] == 100
     assert rsi([1]*20)[-1] is None
 

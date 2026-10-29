@@ -82,15 +82,19 @@ def relative_strength(bars, packs, shares_cr):
 
 
 def ema(values, length):
-    """Pine's recursive EMA, seeded at the first valid observation."""
-    result, previous = [], None
+    """Pine's ta.ema: no value until `length` consecutive observations exist, then seeded with their simple average, then recursive.
+    (An earlier version seeded at the first observation; that differs from the chart for histories shorter than about 1,000 sessions,
+    enough to flip a close EMA 100 / EMA 200 comparison. finlit_technicals v1.1 follows Pine, and so does this.)"""
+    result, previous, window, alpha = [], None, [], 2 / (length + 1)
     for value in values:
         if value is None:
-            previous = None
+            previous, window = None, []
         elif previous is None:
-            previous = value
+            window.append(value)
+            if len(window) == length:
+                previous = sum(window) / length
         else:
-            previous += 2 / (length + 1) * (value - previous)
+            previous += alpha * (value - previous)
         result.append(previous)
     return result
 

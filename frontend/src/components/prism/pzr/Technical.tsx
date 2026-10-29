@@ -10,12 +10,12 @@ import type { PrismReport } from "../../../lib/prism";
 import {
   BANDS, FACTOR_GROUP_WORD, bandLegend, bandWidths, STAGE_WORD, TECH_NOTE, disabledFactors, factorGroup, filterTechFactors, fmtScore, isFresh, parseTechnical, ratingWord, safeText,
   scalePos, scoreBand, signalWord, verdictView,
-  type FactorGroup, type TechAssessment, type TechFactor, type TechHorizon, type TrendTone, type VerdictTone,
+  type FactorGroup, type TechAssessment, type TechFactor, type TechHorizon, type TrendTone,
 } from "../../../lib/prismTechnical";
+import { Breakdown, TrendAlignmentBlock } from "./TechBreakdown";
 
 export const TECH_ID = "pzr-technical";
 const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "◆", neg: "▼", strongneg: "▼▼", na: "–" };
-const VSHAPE: Record<VerdictTone, string> = { pos: "▲", mixed: "◆", neg: "▼", na: "–" };
 const FILTERS: (FactorGroup | "all")[] = ["all", "supporting", "adverse", "neutral", "unavailable"];
 const STATE_WORD = { ready: "Complete", incomplete: "Incomplete: score withheld" } as const;
 const minus = (s: string) => s.replace("-", "−");
@@ -61,17 +61,6 @@ function HorizonCard({ name, h, id }: { name: string; h: TechHorizon; id: string
         {h.stageCapped && <li className="warn pzt-cap"><Icon name="info" /><span><b>Limited by the market stage.</b> When a stock is in Stage 3 (topping) or Stage 4 (declining), the model limits the long-term score to +19 at most, before the trend word is chosen.</span></li>}
       </ul>
     </article>
-  );
-}
-
-function VerdictChip({ a }: { a: TechAssessment }) {
-  const v = verdictView(a);
-  return (
-    <div className={"pzt-verdict " + v.tone} role="group" aria-label={`Combined trend: ${v.word.replace("Trend: ", "")}. ${v.detail}`}>
-      <span className="pzt-vk">Combined trend</span>
-      <span className={"pzt-vchip " + v.tone}><i aria-hidden="true">{VSHAPE[v.tone]}</i>{v.word}</span>
-      <span className="pzt-vd">{v.detail} It needs both scores and is separate from the 0 to 100 financial-health score.</span>
-    </div>
   );
 }
 
@@ -204,11 +193,12 @@ export function Technical({ report, onRecalculate }: { report: PrismReport; onRe
         <HorizonCard name="Short term" h={a.shortTerm} id="pzt-st" />
         <HorizonCard name="Long term" h={a.longTerm} id="pzt-lt" />
       </div>
-      <VerdictChip a={a} />
+      <TrendAlignmentBlock a={a} />
       <Missing a={a} />
       <div className="pzt-blk"><h4>Every signal</h4>
         <p className="pzt-sub">Each signal scores from −1 (adverse) to +1 (supporting) and the scores are combined into the numbers above. Neutral means the signal is flat; unavailable means it could not be calculated.</p>
         <Signals a={a} /></div>
+      <Breakdown a={a} onRecalculate={onRecalculate} />
       <div className="pzt-blk"><h4>What the market shows</h4><Observations a={a} /></div>
       <Source a={a} />
       <p className="pzr-small pzt-line">{TECH_NOTE} It is not an investment recommendation.</p>

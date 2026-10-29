@@ -236,7 +236,7 @@ def test_reader_view_of_the_real_snapshot():
 
 # ------------------------------------------------------------------ ST/LT technical assessment (engine 3.6.10)
 TECH = SNAPSHOT["technicalAssessment"]
-SECRET_KEYS = {"inputHash", "sourceCodeSha256", "weight"}
+SECRET_KEYS = {"inputHash", "sourceCodeSha256"}
 
 
 def keys_anywhere(value, found=None):
@@ -253,23 +253,23 @@ def keys_anywhere(value, found=None):
 
 
 def test_the_real_snapshot_carries_a_complete_technical_assessment():
-    assert TECH["status"] == "ready" and TECH["modelVersion"] and SECRET_KEYS - {"weight"} <= set(TECH)
+    assert TECH["status"] == "ready" and TECH["modelVersion"] and SECRET_KEYS <= set(TECH)
     for key, count in (("shortTerm", 14), ("longTerm", 13)):
         assert TECH[key]["status"] == "ready" and TECH[key]["availableCount"] == TECH[key]["requiredCount"] == count
         assert all("weight" in f for f in TECH[key]["factors"])           # present in the signed document, which the PDF renders
 
 
-def test_technical_assessment_reaches_the_reader_without_hashes_weights_or_series():
+def test_technical_assessment_reaches_the_reader_without_hashes_or_series():
     view = prism.reader_view(SNAPSHOT)["technicalAssessment"]
     assert not SECRET_KEYS & keys_anywhere(view) and not {"bars", "candles", "prices", "inputs"} & keys_anywhere({k: v for k, v in view.items() if k != "benchmarkSources"})
     for key in ("modelVersion", "status", "asOf", "provider", "fresh", "dailyBars", "usableDailyBars", "observations"):
         assert view[key] == TECH[key]
-    assert view["verdict"]["label"].startswith("Trend: ") and len(view["notes"]) == len(TECH["notes"])
+    assert view["verdict"]["label"] == view["trendAlignment"]["label"] and len(view["notes"]) == len(TECH["notes"])
     for key in ("shortTerm", "longTerm"):
         part, source = view[key], TECH[key]
-        assert {k: v for k, v in part.items() if k not in ("factors", "rating")} == {k: v for k, v in source.items() if k not in ("factors", "rating")}   # scores are untouched
+        assert {k: v for k, v in part.items() if k not in ("factors", "rating", "divisor")} == {k: v for k, v in source.items() if k not in ("factors", "rating")}   # scores are untouched
         assert [(f["key"], f["signal"], f["status"]) for f in part["factors"]] == [(f["key"], f["signal"], f["status"]) for f in source["factors"]]
-        assert set(part["factors"][0]) == {"key", "label", "signal", "status", "detail"}
+        assert set(part["factors"][0]) == {"key", "label", "signal", "status", "detail", "weight", "points"}
     assert view["benchmarkSources"] == TECH["benchmarkSources"] and all(set(v) == {"provider", "asOf", "bars"} for v in view["benchmarkSources"].values())
     assert view["benchmarkSources"]["Nifty 50"]["bars"] == 700 and isinstance(view["benchmarkSources"]["Nifty 50"]["bars"], int)
 
@@ -279,14 +279,38 @@ def test_technical_view_drops_anything_that_is_not_for_readers():
     hostile.update(inputHash="h", sourceCodeSha256="s", options={"sectorRS": False, "secret": "x"}, candles=[{"close": 1}], extra="x")
     hostile["observations"].update(series=[1, 2, 3], nested={"a": 1})
     hostile["benchmarkSources"]["Nifty 50"].update(bars=700, series=[1, 2], hash="x")
-    hostile["shortTerm"]["factors"][0].update(weight=99, series=[1], hash="y")
+    hostile["shortTerm"]["factors"][0].update(series=[1], hash="y")
     hostile["shortTerm"]["weights"] = [1]
     view = prism.technical_view(hostile)
     assert not SECRET_KEYS & keys_anywhere(view) and "candles" not in view and "extra" not in view
     assert view["options"] == {"sectorRS": False}
     assert "series" not in view["observations"] and "nested" not in view["observations"] and view["observations"]["benchmarksUsed"] == TECH["observations"]["benchmarksUsed"]
     assert "series" not in view["benchmarkSources"]["Nifty 50"] and "weights" not in view["shortTerm"]
-    assert set(view["shortTerm"]["factors"][0]) == {"key", "label", "signal", "status", "detail"}
+    assert set(view["shortTerm"]["factors"][0]) == {"key", "label", "signal", "status", "detail", "weight", "points"}
+
+
+def test_breakdown_points_add_up_to_the_stored_score_and_the_alignment_is_derived():
+    """The real stored snapshot (engine 3.6.10): weights and signals are in the signed document, so the breakdown is exact without a recalculation."""
+    view = prism.technical_view(TECH)
+    for key, divisor in (("shortTerm", 96), ("longTerm", 92)):
+        part = view[key]
+        assert part["divisor"] == divisor == sum(f["weight"] for f in part["factors"] if f["status"] != "disabled")
+        total = sum(f["points"] for f in part["factors"] if f["status"] == "available")
+        if not TECH[key]["stageCapped"]:
+            assert total == pytest.approx(TECH[key]["score"], abs=1e-9)      # exactly the stored score
+        assert all(f["points"] == pytest.approx(f["weight"] * f["signal"] * 100 / divisor) for f in part["factors"] if f["status"] == "available")
+        assert all("weight" not in f and "points" not in f for f in part["factors"] if f["status"] == "disabled")
+    align = view["trendAlignment"]
+    assert align["label"] and len(align["cells"]) == 9 and sum(c["current"] for c in align["cells"]) == 1
+    assert view["verdict"] == {"label": align["label"], "tone": align["tone"]}
+
+
+def test_no_weight_means_no_breakdown_and_no_invented_number():
+    old = copy.deepcopy(TECH)
+    for f in old["shortTerm"]["factors"]:
+        f.pop("weight", None)
+    part = prism.technical_view(old)["shortTerm"]
+    assert "divisor" not in part and all("points" not in f and "weight" not in f for f in part["factors"])
 
 
 def test_technical_view_only_passes_plain_values_under_allowed_keys():
@@ -298,7 +322,7 @@ def test_technical_view_only_passes_plain_values_under_allowed_keys():
     hostile["verdict"]["label"] = {"x": 1}
     view = prism.technical_view(hostile)
     assert "provider" not in view and "score" not in view["shortTerm"] and "detail" not in view["shortTerm"]["factors"][0]
-    assert "bars" not in view["benchmarkSources"]["Nifty 50"] and view["verdict"]["label"].startswith("Trend: ")
+    assert "bars" not in view["benchmarkSources"]["Nifty 50"] and view["verdict"]["label"] == "Trend alignment: not available"
     assert view["longTerm"]["score"] == TECH["longTerm"]["score"] and "tone" in view["verdict"]
     assert not {"nested", "close"} & keys_anywhere(view)
 
@@ -886,7 +910,7 @@ def test_serialised_technical_view_has_no_advice_word(score, rating, label):
     text = json.dumps(view["technicalAssessment"])
     assert BANNED.findall(text) == [], text
     assert view["technicalAssessment"]["shortTerm"]["score"] == score
-    assert view["technicalAssessment"]["verdict"]["label"] in ("Trend: positive", "Trend: mixed", "Trend: negative")
+    assert view["technicalAssessment"]["verdict"]["label"] == view["technicalAssessment"]["trendAlignment"]["label"]
     assert view["technicalAssessment"]["shortTerm"]["rating"] in ("Strongly positive", "Positive", "Neutral", "Negative", "Strongly negative")
 
 
@@ -914,6 +938,10 @@ def test_research_api_wording_files_equal_the_site_api_ones():
     assert mine.relabel_technical(raw) == other.relabel_technical(raw)
     for text in ("Buying and selling volume", "Target price held; stop and exit", "plain text"):
         assert mine.safe_text(text) == other.safe_text(text)
+    for st in (None, 60, 20, 19.99, 0, -19.99, -20, -60):      # the trend alignment (shown on the Prism card) is one rule in three places
+        for lt in (None, 60, 20, 19.99, 0, -20, -60):
+            assert mine.trend_alignment(st, lt) == other.trend_alignment(st, lt)
+    assert (here.parents[1] / "frontend" / "src" / "lib" / "technicalWording.json").read_bytes() == (here / "technical_wording.json").read_bytes()
 
 
 # ------------------------------------------------------------------ /api/prism/scores (the Gold search palette)

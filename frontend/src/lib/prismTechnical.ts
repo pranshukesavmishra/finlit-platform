@@ -3,8 +3,10 @@
 //
 // The assessment is additive and independent: `report.technicalAssessment` sits beside `rating` in the stored report. It is NOT a fifth part of the
 // 0-100 Prism score and never changes it. Older reports do not have the field; `parseTechnical` then returns null and the screens say so calmly.
-// Model: docs of the upstream repo, premium-st-lt-model.md (model st-lt-14.3). The browser never receives factor weights or hashes, and this
-// file never reads, shows or requires them.
+// Model: docs of the upstream repo, premium-st-lt-model.md (model st-lt-14.3). The browser never receives hashes. It does receive each row's
+// weight and points (the indicator publishes them) for the "How these scores are built" table; a report stored before that existed has neither,
+// and the table says so and offers a recalculation. The trend alignment (short-term band x long-term band) is worked out HERE from the two scores
+// with the shared wording file, exactly as the API does (a test compares them), so it also exists for a report stored before it did.
 //
 // COMPLIANCE (owner's rule): the site never gives buy / sell / hold / avoid advice and is not SEBI registered. The model's own rating words
 // (Strong Buy, Buy, Hold, Reduce, Sell) and verdict labels (STRONG BUY ... SELL / AVOID) are therefore NEVER shown. Everything a person reads
@@ -18,7 +20,11 @@ export const TECH_NOTE = "Describes recent price and trend behaviour from past p
 
 /* ------------------------------------------------------------------ types */
 export type FactorStatus = "available" | "unavailable" | "disabled";
-export type TechFactor = { key: string; label: string; signal: number | null; status: FactorStatus; detail: string };
+export type TechFactor = {
+  key: string; label: string; signal: number | null; status: FactorStatus; detail: string;
+  /** The indicator's weight of this row and its points (weight x signal x 100 / weights in use). Null on a report stored before the breakdown existed. */
+  weight: number | null; points: number | null;
+};
 export type TechHorizon = {
   /** -100..+100 at full precision, or null when a required signal is missing. Rounded only for display (`fmtScore`). */
   score: number | null;
@@ -29,11 +35,17 @@ export type TechHorizon = {
   horizon: string | null;
   availableCount: number; requiredCount: number;
   stageCapped: boolean;
+  /** The score before the long-term stage limit (+19), present only when that limit lowered the score. */
+  uncappedScore: number | null;
+  /** The weights in use (96 short term, 92 long term with the sector row off); null when the report has no weights. */
+  divisor: number | null;
   factors: TechFactor[];
 };
 export type TechObservations = {
   stage: 1 | 2 | 3 | 4 | null; freshStage2: boolean | null; slope150Pct: number | null;
   benchmark: string | null; benchmarksUsed: string[]; beta: number | null; rsRatingST: number | null; rsRatingLT: number | null;
+  /** ADX and the factor (1, 0.75 or 0.5) the first three short-term rows are multiplied by; null on older reports. */
+  adx: number | null; trendMultiplier: number | null;
 };
 export type TechBenchmarkSource = { name: string; provider: string | null; asOf: string | null; bars: number | null };
 export type TechAssessment = {
@@ -60,8 +72,9 @@ function parseFactor(v: unknown): TechFactor | null {
   let signal = num(f.signal);
   if (signal != null && (signal < -1 || signal > 1)) signal = null;       // the model never sends this; treat it as no signal rather than draw it
   if (status !== "available") signal = null;
-  if (status === "available" && signal == null) return { key, label, signal: null, status: "unavailable", detail: str(f.detail) ?? str(f.reason) ?? str(f.observation) ?? "" };
-  return { key, label, signal, status, detail: str(f.detail) ?? str(f.reason) ?? str(f.observation) ?? "" };
+  const weight = (num(f.weight) ?? 0) > 0 ? num(f.weight) : null, points = status === "available" && signal != null ? num(f.points) : null;
+  if (status === "available" && signal == null) return { key, label, signal: null, status: "unavailable", detail: str(f.detail) ?? str(f.reason) ?? str(f.observation) ?? "", weight, points: null };
+  return { key, label, signal, status, detail: str(f.detail) ?? str(f.reason) ?? str(f.observation) ?? "", weight, points };
 }
 
 function parseHorizon(v: unknown): TechHorizon {
@@ -71,7 +84,8 @@ function parseHorizon(v: unknown): TechHorizon {
   const factors = (Array.isArray(h.factors) ? h.factors : []).map(parseFactor).filter((f): f is TechFactor => f != null);
   return {
     score, rating: str(h.rating), status: score != null && h.status !== "incomplete" ? "ready" : "incomplete", horizon: str(h.horizon),
-    availableCount: count(h.availableCount), requiredCount: count(h.requiredCount), stageCapped: h.stageCapped === true && score != null, factors,
+    availableCount: count(h.availableCount), requiredCount: count(h.requiredCount), stageCapped: h.stageCapped === true && score != null,
+    uncappedScore: score != null && h.stageCapped === true ? num(h.uncappedScore) : null, divisor: (num(h.divisor) ?? 0) > 0 ? num(h.divisor) : null, factors,
   };
 }
 
@@ -81,6 +95,7 @@ function parseObservations(v: unknown): TechObservations {
   return {
     stage: st === 1 || st === 2 || st === 3 || st === 4 ? st : null, freshStage2: typeof o.freshStage2 === "boolean" ? o.freshStage2 : null, slope150Pct: num(o.slope150Pct),
     benchmark: str(o.benchmark), benchmarksUsed: strs(o.benchmarksUsed), beta: num(o.beta), rsRatingST: num(o.rsRatingST), rsRatingLT: num(o.rsRatingLT),
+    adx: num(o.adx), trendMultiplier: num(o.trendMultiplier),
   };
 }
 
@@ -145,23 +160,42 @@ export function ratingWord(rating: string | null | undefined, score: number | nu
 }
 
 export type VerdictTone = "pos" | "mixed" | "neg" | "na";
-/** The model's verdict labels with the tone it sends for each (premium_technical.combine_verdict), from the shared wording file. */
-const VERDICTS = WORDING.verdicts as Record<string, VerdictTone>;
-const TONE_ALIAS = WORDING.toneAlias as Record<string, VerdictTone>;
-export const VERDICT_WORD = WORDING.verdictWords as Record<VerdictTone, string>;
+export type TrendBand = "positive" | "neutral" | "negative";
+export type AlignCell = { stBand: TrendBand; ltBand: TrendBand; code: string; label: string; tone: VerdictTone; current: boolean };
+/** How the short-term and the long-term trend line up. The label only describes the two trends. */
+export type TrendAlignment = { label: string; code: string; tone: VerdictTone; stBand: TrendBand; ltBand: TrendBand; stBandWord: string; ltBandWord: string; rule: string; cells: AlignCell[] };
 
-const normLabel = (s: string) => s.replace(/[‘’ʼ]/g, "'").replace(/\s+/g, " ").trim().toUpperCase();
-
-/** The combined verdict as the site words it. Needs both scores (as the model does). The tone comes from the label, then from the model's own
- *  tone field; the sentence under the chip names each horizon so the chip is never read on its own. */
-export function verdictView(a: Pick<TechAssessment, "shortTerm" | "longTerm" | "verdict">): { tone: VerdictTone; word: string; detail: string } {
-  const st = a.shortTerm, lt = a.longTerm;
-  if (st.score == null || lt.score == null) return { tone: "na", word: VERDICT_WORD.na, detail: "A combined view needs both the short-term and the long-term score." };
-  const label = a.verdict.label ? normLabel(a.verdict.label) : "";
-  const tone = VERDICTS[label] ?? (a.verdict.tone ? TONE_ALIAS[a.verdict.tone.trim().toLowerCase()] : undefined) ?? "na";
-  const s = ratingWord(st.rating, st.score).word.toLowerCase(), l = ratingWord(lt.rating, lt.score).word.toLowerCase();
-  return { tone, word: VERDICT_WORD[tone], detail: `Short term ${s}; long term ${l}.` };
+/** The nine cells and the band rule come from the shared wording file (finlit_technicals v1.1, stlt.ALIGNMENT): the same words on the screen, in the PDF and in the API. */
+const ALIGN = WORDING.alignment as { bands: { positive: number; negative: number }; bandWords: Record<TrendBand, string>; rule: string; notAvailable: string; cells: { st: TrendBand; lt: TrendBand; code: string; label: string; tone: VerdictTone }[] };
+export const ALIGN_NA = ALIGN.notAvailable;
+export const BAND_ORDER: TrendBand[] = ["positive", "neutral", "negative"];
+export const ALIGN_BAND_WORD = ALIGN.bandWords;
+/** positive at +20 or more, negative at -20 or less, neutral in between; null without a score. */
+export const trendBand = (score: number | null | undefined): TrendBand | null =>
+  score == null || !Number.isFinite(score) ? null : score >= ALIGN.bands.positive ? "positive" : score <= ALIGN.bands.negative ? "negative" : "neutral";
+/** null unless both scores exist (an alignment needs both, as the combined view always did). */
+export function trendAlignment(shortScore: number | null | undefined, longScore: number | null | undefined): TrendAlignment | null {
+  const st = trendBand(shortScore), lt = trendBand(longScore);
+  if (!st || !lt) return null;
+  const cells = ALIGN.cells.map((c) => ({ stBand: c.st, ltBand: c.lt, code: c.code, label: c.label, tone: c.tone, current: c.st === st && c.lt === lt }));
+  const now = cells.find((c) => c.current)!;
+  return { label: now.label, code: now.code, tone: now.tone, stBand: st, ltBand: lt, stBandWord: ALIGN_BAND_WORD[st], ltBandWord: ALIGN_BAND_WORD[lt], rule: ALIGN.rule, cells };
 }
+/** The model's own verdict labels (a cross-check only: its nine cells are the alignment's nine cells, with the same tone). */
+export const MODEL_VERDICT_TONE = WORDING.verdicts as Record<string, VerdictTone>;
+
+/** The combined trend as the site words it: the descriptive alignment label (the model's verdict label is never shown). Needs both scores. The sentence
+ *  names each horizon so the chip is never read on its own. */
+export function verdictView(a: Pick<TechAssessment, "shortTerm" | "longTerm">): { tone: VerdictTone; word: string; detail: string } {
+  const st = a.shortTerm, lt = a.longTerm;
+  const al = trendAlignment(st.score, lt.score);
+  if (!al) return { tone: "na", word: ALIGN_NA, detail: "A trend alignment needs both the short-term and the long-term score." };
+  const s = ratingWord(st.rating, st.score).word.toLowerCase(), l = ratingWord(lt.rating, lt.score).word.toLowerCase();
+  return { tone: al.tone, word: al.label, detail: `Short term ${s}; long term ${l}.` };
+}
+
+/** How a row turns its reading into a signal (the indicator's rule, in our words). */
+export const HOW = WORDING.how as { st: Record<string, string>; lt: Record<string, string> };
 
 /* ------------------------------------------------------------------ safe wording of model-provided text */
 /** Words the site never shows (as whole words or word starts). From the shared wording file. */
@@ -237,6 +271,8 @@ export function allShownText(a: TechAssessment): string[] {
     for (const f of h.factors) out.push(safeText(f.label), safeText(f.detail));
   }
   const v = verdictView(a); out.push(v.word, v.detail);
+  const al = trendAlignment(a.shortTerm.score, a.longTerm.score); if (al) out.push(al.rule, ...al.cells.map((c) => c.label), al.stBandWord, al.ltBandWord);
+  out.push(...Object.values(HOW.st), ...Object.values(HOW.lt));
   out.push(...a.notes.map(safeText), a.observations.benchmark ?? "", ...a.observations.benchmarksUsed, ...a.benchmarkSources.map((s) => `${s.name} ${s.provider ?? ""}`));
   return out;
 }

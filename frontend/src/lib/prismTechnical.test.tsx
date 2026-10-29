@@ -1,20 +1,23 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import fx from "./__fixtures__/prismTechnical.json";
+import built from "./__fixtures__/prismTechnicalBuilt.json";
 import report from "./__fixtures__/prismReport.json";
 import { Technical, TechPointer } from "../components/prism/pzr/Technical";
 import { PrismTechRow } from "../stock/PrismTechRow";
+import { TrendMap, alignmentSentence, fmtPoints, fmtSignal } from "../components/prism/pzr/TechBreakdown";
 import type { PrismReport } from "./prism";
 import type { PrismLatest } from "../stock/PrismCard";
 import {
-  BANDS, FORBIDDEN, RATING_WORD, TECH_NOTE, VERDICT_WORD, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, verdictView,
+  ALIGN_NA, BANDS, FORBIDDEN, HOW, MODEL_VERDICT_TONE, RATING_WORD, TECH_NOTE, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, trendAlignment, trendBand,
+  verdictView,
 } from "./prismTechnical";
 
 const A = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, parseTechnical(v)!])) as Record<"ready" | "incomplete" | "capped" | "mixed", NonNullable<ReturnType<typeof parseTechnical>>>;
 const withTech = (a: unknown) => ({ ...(report as unknown as PrismReport), technicalAssessment: a }) as PrismReport;
 const OLD = report as unknown as PrismReport;
 const strip = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
-const horizon = (score: number | null, rating: string | null) => ({ score, rating, status: "ready" as const, horizon: null, availableCount: 1, requiredCount: 1, stageCapped: false, factors: [] });
+const horizon = (score: number | null, rating: string | null) => ({ score, rating, status: "ready" as const, horizon: null, availableCount: 1, requiredCount: 1, stageCapped: false, uncappedScore: null, divisor: null, factors: [] });
 
 describe("rating words: the model's advice words never reach the screen", () => {
   it("maps every upstream rating", () => {
@@ -38,29 +41,39 @@ describe("rating words: the model's advice words never reach the screen", () => 
   });
 });
 
-describe("verdict words: all nine combinations of the model", () => {
-  // upstream premium_technical.combine_verdict: rows = short-term band (>=20, between, <=-20), columns = long-term band
+describe("trend alignment: all nine combinations (finlit_technicals v1.1, stlt.ALIGNMENT)", () => {
+  // short-term band x long-term band; the labels are the team's, the tone is the model's own nine-cell verdict (BUY ... SELL, never shown)
   const MATRIX: [number, number, string, string, "pos" | "mixed" | "neg"][] = [
-    [20, 20, "STRONG BUY", "positive", "pos"], [20, 0, "BUY", "positive", "pos"], [20, -20, "BOUNCE ONLY, DON'T INVEST", "caution", "mixed"],
-    [0, 20, "ACCUMULATE ON DIPS", "positive", "pos"], [0, 0, "HOLD", "caution", "mixed"], [0, -20, "REDUCE", "negative", "neg"],
-    [-20, 20, "BUY THE DIP, WAIT FOR ST TURN", "positive", "pos"], [-20, 0, "REDUCE", "negative", "neg"], [-20, -20, "SELL / AVOID", "negative", "neg"],
+    [20, 20, "Strong on both timeframes", "STRONG BUY", "pos"], [20, 0, "Short-term strength, no long-term trend", "BUY", "pos"],
+    [20, -20, "Short-term bounce within a long-term downtrend", "BOUNCE ONLY, DON'T INVEST", "mixed"],
+    [0, 20, "Long-term uptrend, short-term pause", "ACCUMULATE ON DIPS", "pos"], [0, 0, "No clear trend", "HOLD", "mixed"],
+    [0, -20, "Long-term downtrend, short-term flat", "REDUCE", "neg"],
+    [-20, 20, "Short-term pullback within a long-term uptrend", "BUY THE DIP, WAIT FOR ST TURN", "pos"], [-20, 0, "Short-term weakness, no long-term trend", "REDUCE", "neg"],
+    [-20, -20, "Weak on both timeframes", "SELL / AVOID", "neg"],
   ];
-  it.each(MATRIX)("short %s, long %s: %s", (st, lt, label, tone, expected) => {
-    const v = verdictView({ shortTerm: horizon(st, null), longTerm: horizon(lt, null), verdict: { label, tone } });
+  it.each(MATRIX)("short %s, long %s: %s", (st, lt, label, model, expected) => {
+    const v = verdictView({ shortTerm: horizon(st, null), longTerm: horizon(lt, null) });
+    expect(v.word).toBe(label);
     expect(v.tone).toBe(expected);
-    expect(v.word).toBe(VERDICT_WORD[expected]);
+    expect(MODEL_VERDICT_TONE[model]).toBe(expected);       // same nine cells and same tone as the model's own verdict
     expect(`${v.word} ${v.detail}`).not.toMatch(FORBIDDEN);
-    // the label alone is enough: a missing or odd tone field gives the same answer
-    expect(verdictView({ shortTerm: horizon(st, null), longTerm: horizon(lt, null), verdict: { label, tone: "odd" } }).tone).toBe(expected);
+    const al = trendAlignment(st, lt)!;
+    expect(al.cells).toHaveLength(9); expect(al.cells.filter((c) => c.current)).toHaveLength(1); expect(al.cells.find((c) => c.current)!.label).toBe(label);
+    expect(new Set(al.cells.map((c) => c.label)).size).toBe(9);
   });
-  it("falls back to the tone, accepts bullish/neutral/bearish, and needs both scores", () => {
-    const base = { shortTerm: horizon(30, "Buy"), longTerm: horizon(30, "Buy") };
-    expect(verdictView({ ...base, verdict: { label: "NEW LABEL", tone: "negative" } }).word).toBe("Trend: negative");
-    expect(verdictView({ ...base, verdict: { label: null, tone: "bullish" } }).word).toBe("Trend: positive");
-    expect(verdictView({ ...base, verdict: { label: null, tone: "bearish" } }).word).toBe("Trend: negative");
-    expect(verdictView({ ...base, verdict: { label: null, tone: "neutral" } }).word).toBe("Trend: mixed");
-    expect(verdictView({ ...base, verdict: { label: "NEW LABEL", tone: null } }).word).toBe("Trend: not available");
-    expect(verdictView({ shortTerm: horizon(30, "Buy"), longTerm: horizon(null, null), verdict: { label: "BUY", tone: "positive" } }).word).toBe("Trend: not available");
+  it("the band rule: +20 or more positive, -20 or less negative", () => {
+    expect([20, 19.99, -19.99, -20, 0].map((x) => trendBand(x))).toEqual(["positive", "neutral", "neutral", "negative", "neutral"]);
+    expect([null, undefined, NaN].map((x) => trendBand(x))).toEqual([null, null, null]);
+    expect(trendAlignment(35.3, 39.3)?.label).toBe("Strong on both timeframes");
+    expect(trendAlignment(-30, 25)?.code).toBe("st_negative_lt_positive");
+  });
+  it("needs both scores, says so, and never shows a verdict word of the model", () => {
+    const one = verdictView({ shortTerm: horizon(30, "Buy"), longTerm: horizon(null, null) });
+    expect(one.word).toBe(ALIGN_NA); expect(one.tone).toBe("na");
+    expect(trendAlignment(30, null)).toBeNull();
+  });
+  it("shows the working: both scores, both bands and the label", () => {
+    expect(alignmentSentence({ shortTerm: horizon(39.3, null), longTerm: horizon(35.3, null) })).toBe("Short-term +39 (Positive) × long-term +35 (Positive) = Strong on both timeframes.");
   });
 });
 
@@ -90,8 +103,9 @@ describe("parser", () => {
   it("keeps the model's numbers exactly and drops weights and hashes", () => {
     const a = A.ready;
     expect((fx.ready as { shortTerm: { score: number } }).shortTerm.score).toBe(a.shortTerm.score);
-    expect(JSON.stringify(a)).not.toMatch(/weight|inputHash|sourceCodeSha256/i);
-    expect(JSON.stringify(fx)).not.toMatch(/"weight"|inputHash|sourceCodeSha256/);   // the fixtures are what the browser receives
+    expect(JSON.stringify(a)).not.toMatch(/inputHash|sourceCodeSha256/i);
+    expect(JSON.stringify(fx)).not.toMatch(/"weight"|inputHash|sourceCodeSha256/);   // the older fixtures: reports stored before the breakdown existed
+    expect(JSON.stringify(built)).not.toMatch(/inputHash|sourceCodeSha256/);          // and the new ones carry weights and points but never a hash
     expect(A.capped.longTerm.stageCapped).toBe(true);
     expect(A.capped.longTerm.score).toBe(19);
     expect(A.incomplete.status).toBe("incomplete"); expect(A.incomplete.longTerm.score).toBeNull(); expect(A.incomplete.shortTerm.score).not.toBeNull();
@@ -137,15 +151,15 @@ describe("report page section", () => {
     expect(t).toContain("Where this comes from");
     expect(t).toContain("23 Oct 2026");
     expect(t).toContain("FinEdge");
-    expect(h).not.toMatch(/weight|inputHash/i);
+    expect(h).not.toMatch(/inputHash|sourceCodeSha256/i);
   });
   it("ready: both scores, words, signals, observations and sources", () => {
     const h = html(fx.ready), t = strip(h);
     expect(t).toContain("+64");   // 63.54 rounded for display
     expect(t).toContain("+65");
     expect(t).toContain("Strongly positive");
-    expect(t).toContain("Trend: positive");
-    expect(t).toContain("Short term strongly positive; long term strongly positive.");
+    expect(t).toContain("Strong on both timeframes");
+    expect(t).toContain("Short-term +64 (Positive) × long-term +65 (Positive) = Strong on both timeframes.");
     expect(h).toContain('aria-label="Short term: +64 on a scale from minus 100 to plus 100, strongly positive. 14 of 14 signals available."');
     expect(t).toContain("Volume flow (on-balance volume)");
     expect(t).toContain("Stage 2: advancing");
@@ -156,7 +170,7 @@ describe("report page section", () => {
   it("mixed: opposite horizons are both stated beside the chip", () => {
     const t = strip(html(fx.mixed));
     expect(t).toContain("−35"); expect(t).toContain("+23");
-    expect(t).toContain("Short term negative; long term positive.");
+    expect(t).toContain("Short-term −35 (Negative) × long-term +23 (Positive) = Short-term pullback within a long-term uptrend.");
   });
   it("capped: says why the long-term score is limited", () => {
     const t = strip(html(fx.capped));
@@ -168,7 +182,7 @@ describe("report page section", () => {
     const h = html(fx.incomplete), t = strip(h);
     expect(t).toContain("Some inputs are missing");
     expect(t).toContain("Aligned stock and benchmark history is insufficient");
-    expect(t).toContain("Trend: not available");
+    expect(t).toContain(ALIGN_NA);
     expect(t).toContain("score withheld");
     expect(strip(h)).toContain("Not available score withheld");
   });
@@ -216,7 +230,7 @@ describe("one wording file shared with the PDF", () => {
   });
   it("no word on the shared table is an advice word", () => {
     for (const r of Object.values(RATING_WORD)) expect(r.word).not.toMatch(FORBIDDEN);
-    for (const w of Object.values(VERDICT_WORD)) expect(w).not.toMatch(FORBIDDEN);
+    for (const c of trendAlignment(30, 30)!.cells) expect(c.label).not.toMatch(FORBIDDEN);
   });
   it("the band boundaries are the shared constants, at every edge", () => {
     expect(BANDS).toEqual({ strongPositive: 50, positive: 20, neutral: -20, negative: -50 });
@@ -258,11 +272,80 @@ describe("values already mapped by the API render the same as the model's raw wo
     for (const [raw, mapped, score] of [["Strong Buy", "Strongly positive", 60], ["Buy", "Positive", 30], ["Hold", "Neutral", 0], ["Reduce", "Negative", -30], ["Sell", "Strongly negative", -60]] as const)
       expect(ratingWord(mapped, score)).toEqual(ratingWord(raw, score));
   });
-  it("verdict: a mapped label with the mapped or the model's tone gives the same tone and word", () => {
-    const base = { shortTerm: horizon(30, "Positive"), longTerm: horizon(30, "Positive") };
-    for (const [label, tone, expected] of [["Trend: positive", "pos", "pos"], ["Trend: positive", "positive", "pos"], ["Trend: mixed", "mixed", "mixed"], ["Trend: mixed", "caution", "mixed"], ["Trend: negative", "neg", "neg"], ["Trend: negative", "negative", "neg"]] as const) {
-      const v = verdictView({ ...base, verdict: { label, tone } });
-      expect([v.tone, v.word]).toEqual([expected, VERDICT_WORD[expected]]);
+  it("the alignment on the screen is the one the API sends with the report", () => {
+    for (const k of Object.keys(built) as (keyof typeof built)[]) {
+      const v = built[k] as unknown as { shortTerm: { score: number }; longTerm: { score: number }; trendAlignment: { label: string; code: string; tone: string; cells: unknown[] }; verdict: { label: string; tone: string } };
+      const mine = trendAlignment(v.shortTerm.score, v.longTerm.score)!;
+      expect([mine.label, mine.code, mine.tone]).toEqual([v.trendAlignment.label, v.trendAlignment.code, v.trendAlignment.tone]);
+      expect(v.verdict).toEqual({ label: mine.label, tone: mine.tone });
+      expect(JSON.parse(JSON.stringify(mine.cells.map((c) => ({ stBand: c.stBand, ltBand: c.ltBand, code: c.code, label: c.label, tone: c.tone, current: c.current }))))).toEqual(v.trendAlignment.cells);
     }
+  });
+});
+
+describe("trend alignment and the build-up on the report page", () => {
+  const html = (a: unknown, rc?: () => void) => renderToStaticMarkup(<Technical report={withTech(a)} onRecalculate={rc} />);
+  it.each(Object.keys(built))("%s: the alignment label, the nine-cell map with the current cell marked once, no advice word", (k) => {
+    const v = (built as unknown as Record<string, { shortTerm: { score: number }; longTerm: { score: number } }>)[k];
+    const h = html(v), t = strip(h), al = trendAlignment(v.shortTerm.score, v.longTerm.score)!;
+    expect(t).toContain("Trend alignment"); expect(t).toContain(al.label);
+    expect(t).toContain("Trend map: the short-term band down the side, the long-term band across the top");
+    for (const c of al.cells) expect(t).toContain(c.label);
+    expect((h.match(/aria-current="true"/g) || []).length).toBe(1);
+    expect(h).not.toMatch(FORBIDDEN);
+    expect(h).not.toMatch(/<(span|p|li)\b[^>]*\baria-label=/);
+  });
+  it("renders the trend map alone with the highlighted cell", () => {
+    const h = renderToStaticMarkup(<TrendMap al={trendAlignment(-30, 25)!} />);
+    expect((h.match(/pzt-mc /g) || []).length).toBe(9);
+    expect(h).toMatch(/pzt-mc neg now[^>]*aria-current="true"|pzt-mc pos now[^>]*aria-current="true"/);
+    expect(strip(h)).toContain("Short-term pullback within a long-term uptrend");
+  });
+  it("the build-up table: every row with reading, signal, weight and points; the points add up to the score", () => {
+    const v = built.smallcap_stage2 as never as { shortTerm: { score: number; divisor: number; factors: { key: string; label: string; signal: number | null; weight?: number; points?: number; status: string }[] }; longTerm: { score: number; divisor: number; factors: { points?: number; status: string }[] } };
+    const t = strip(html(v));
+    expect(t).toContain("How these scores are built");
+    expect(t).toContain("Short term: how the score is built"); expect(t).toContain("Long term: how the score is built");
+    for (const c of ["Reading now", "Signal", "Weight", "Points", "Total of the points", "weights in use 96", "weights in use 92"]) expect(t).toContain(c);
+    for (const f of v.shortTerm.factors.filter((x) => x.status === "available")) { expect(t).toContain(f.label.replace("&", "&")); expect(t).toContain(fmtSignal(f.signal as number)); expect(t).toContain(fmtPoints(f.points as number)); }
+    const sum = (rows: { points?: number }[]) => rows.reduce((s, f) => s + (f.points ?? 0), 0);
+    expect(sum(v.shortTerm.factors)).toBeCloseTo(v.shortTerm.score, 9);
+    expect(sum(v.longTerm.factors)).toBeCloseTo(v.longTerm.score, 9);
+    expect(v.shortTerm.divisor).toBe(96); expect(v.longTerm.divisor).toBe(92);
+    expect(t).toContain("Switched off in this model");
+    expect(t).toContain("How it is read");
+    for (const how of [HOW.st.ema_stack, HOW.lt.stage]) expect(t).toContain(how.slice(0, 40));
+  });
+  it("the ADX trend factor and the stage limit are explained from the report's own numbers", () => {
+    const t = strip(html(built.stage3_cap_binds));
+    expect(t).toMatch(/Trend factor\. ADX is \d+\.\d, so the first three rows/);
+    expect(t).toMatch(/×(1\.00|0\.75|0\.50)/);
+    expect(t).toContain("Market stage."); expect(t).toContain("Stage 3: topping");
+    expect(t).toMatch(/\+21\.20 became \+19/);
+    const t2 = strip(html(built.smallcap_stage2));
+    expect(t2).toContain("The +19 limit applies only in Stage 3 and Stage 4.");
+  });
+  it("a report stored before the breakdown existed still shows the alignment, says why there is no table, and offers a recalculation", () => {
+    const t = strip(html(fx.ready, () => undefined));
+    expect(t).toContain("Strong on both timeframes");
+    expect(t).toContain("This stored report was made before the breakdown existed");
+    expect(t).toContain("Recalculate to add the breakdown");
+    expect(t).not.toContain("Total of the points");
+    expect(strip(html(fx.ready))).not.toContain("Recalculate to add the breakdown");
+  });
+  it("every string of the breakdown passes the compliance scan", () => {
+    for (const k of Object.keys(built)) for (const s of allShownText(parseTechnical((built as Record<string, unknown>)[k])!)) expect(s, s).not.toMatch(FORBIDDEN);
+    expect(Object.values(HOW.st).concat(Object.values(HOW.lt)).filter((x) => FORBIDDEN.test(x))).toEqual([]);
+  });
+});
+
+describe("the stock page row shows the alignment under both bars", () => {
+  const L = (a?: unknown) => ({ technicalAssessment: a }) as unknown as PrismLatest;
+  it("label, shape and a spoken summary; nothing when a score is missing", () => {
+    const h = renderToStaticMarkup(<PrismTechRow report={L(built.smallcap_stage2)} />), t = strip(h);
+    expect(t).toContain("Trend alignment"); expect(t).toContain("Long-term uptrend, short-term pause");
+    expect(h).toContain("Trend alignment: Long-term uptrend, short-term pause.");
+    expect(h).not.toMatch(FORBIDDEN);
+    expect(strip(renderToStaticMarkup(<PrismTechRow report={L(fx.incomplete)} />))).not.toContain("Trend alignment");
   });
 });

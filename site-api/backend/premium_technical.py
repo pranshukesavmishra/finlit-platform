@@ -63,14 +63,21 @@ def normalise_bars(payload, as_of):
         day = field_date(row)
         if not day or day > as_of:
             continue
-        bar = {"date": day.isoformat()}
-        for key, aliases in {
+        aliased = {
             "open": ("open", "open_price", "openPrice"),
             "high": ("high", "high_price", "highPrice"),
             "low": ("low", "low_price", "lowPrice"),
             "close": ("close", "close_price", "closePrice"),
             "volume": ("volume", "tradedVolume"),
-        }.items():
+        }
+        # The provider pads days it has no trading record for (a holiday, a missed feed) with an all-zero row. That is not a session and the chart
+        # has no bar there: keep it out, as the financial-health inputs already do (premium_data). A zero beside real prices or volume stays a bad bar,
+        # and a row with missing (not zero) values stays a gap. (Before this, one such row, e.g. on 3 Sep 2026, cut the usable history to the
+        # bars after it and withheld both scores.)
+        if all(first(row, *names) == 0 for names in aliased.values()):
+            continue
+        bar = {"date": day.isoformat()}
+        for key, aliases in aliased.items():
             value = first(row, *aliases)
             bar[key] = value if value is not None and (value >= 0 if key == "volume" else value > 0) else None
         if all(bar[k] is not None for k in ("open", "high", "low", "close")):
@@ -143,9 +150,10 @@ def summarise_signals(specs, signals, sector_enabled=False, value_enabled=True, 
         complete = False
     raw_score = 100 * sum(row["weight"] * row["signal"] for row in known) / denominator if complete else None
     score = min(raw_score, 19) if raw_score is not None and has_stage and stage in (3, 4) else raw_score
+    capped = score is not None and score != raw_score
     return {"score": score, "rating": score_rating(score),
             "status": "ready" if complete else "incomplete", "availableCount": len(known), "requiredCount": len(enabled),
-            "stageCapped": score is not None and score != raw_score, "factors": rows}
+            "stageCapped": capped, **({"uncappedScore": raw_score} if capped else {}), "factors": rows}
 
 
 def build_technical_assessment(price_input, as_of, benchmarks=None, shares_cr=None):

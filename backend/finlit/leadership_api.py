@@ -24,7 +24,7 @@ from . import indices
 from .auth.routes import Ctx, admin_ctx
 from .auth.service import current
 from .background import etag_matches
-from .leadership import STALE_AFTER_RUNS, Prices, display, reliability_sentence
+from .leadership import STALE_AFTER_RUNS, UNRANKED_TEXT, Prices, display, pending_line, reliability_sentence, top_count
 from .store import Store
 
 router = APIRouter()
@@ -83,16 +83,18 @@ def shape_reliability(row: Optional[dict]) -> Dict[str, Any]:
         return {"tier": "insufficient", "hitRate6m": None, "checks": 0, "from": None, "to": None, "periods": []}
     periods = row["periods"]
     periods = json.loads(periods) if isinstance(periods, str) else (periods or [])
-    return {"tier": row["tier"], "hitRate6m": _f(row["hit_rate"]), "checks": row["checks"], "from": _day(row["window_start"])[:7] if row["window_start"] else None,
-            "to": _day(row["window_end"])[:7] if row["window_end"] else None, "periods": periods}
+    spec = row.get("method") == "spec"     # the developer spec's own backtest (since 2005), not this site's
+    return {"tier": row["tier"], "hitRate6m": _f(row["hit_rate"]), "checks": row["checks"], "from": (str(row["window_start"].year) if spec else _day(row["window_start"])[:7]) if row["window_start"] else None,
+            "to": (str(row["window_end"].year) if spec else _day(row["window_end"])[:7]) if row["window_end"] else None, "periods": periods, "source": "spec" if spec else "site"}
 
 
-def shape(row: dict, rel: Optional[dict], peers: List[dict]) -> Dict[str, Any]:
-    """The `leadership` object for a stock that has a label."""
+def shape(row: dict, rel: Optional[dict], peers: List[dict], unranked: Optional[List[dict]] = None, runs: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+    """The `leadership` object for a stock that has a label. `unranked` and `runs` are what the newer columns and tables add (an older row has neither)."""
     stale = (row["stale_runs"] or 0) >= STALE_AFTER_RUNS
     shown = display(label=row["label"], rank=row["rank"], ranked=row["ranked"], group_short=row["group_short"] or row["group_name"] or "",
                     sector_name=row["sector_name"] or "its peers", market_name=row["market_name"], rel52=_f(row["rel52"]), rel52_market=_f(row["rel52_market"]),
                     direction=row["direction"], fundamental=row["fundamental"], fund_rank=row["fund_rank"], fund_n=row["fund_n"])
+    shown["pending"] = pending_line(row["raw_label"], row["label"])
     if row["sector_kind"] == "peer_average":
         shown["tooltip"] = (shown["tooltip"] or "").replace(f" and {row['sector_name']}", " and the average of those peers")
         shown["benchmarkNote"] = "There is no matching sector index, so the average return of the peers stands in for it."
@@ -100,13 +102,14 @@ def shape(row: dict, rel: Optional[dict], peers: List[dict]) -> Dict[str, Any]:
     reliability["sentence"] = reliability_sentence(row["group_name"] or "this group", reliability)
     return {
         "available": True, "asOf": _day(row["as_of"]), "stale": stale, "held": bool(row["held"]),
-        "peerGroup": {"id": row["group_id"], "name": row["group_name"], "short": row["group_short"], "kind": row["group_kind"], "ranked": row["ranked"]},
+        "peerGroup": {"id": row["group_id"], "name": row["group_name"], "short": row["group_short"], "kind": row["group_kind"], "ranked": row["ranked"],
+                      "source": row.get("group_source") or "industry", "listed": row.get("group_listed"), "listAsOf": _day(row.get("list_as_of")), "leaderSlots": top_count(row["ranked"] or 0)},
         "benchmarks": {"sector": {"code": row["sector_code"], "name": row["sector_name"], "kind": row["sector_kind"], "ret52": _f(row["sector_ret52"])},
                        "market": {"code": row["market_code"], "name": row["market_name"], "ret52": _f(row["market_ret52"])} if row["market_code"] else None},
         "rel": {"w13": _f(row["rel13"]), "w26": _f(row["rel26"]), "w52": _f(row["rel52"]), "w52Market": _f(row["rel52_market"])},
         "rank": row["rank"], "label": row["label"], "rawLabel": row["raw_label"], "direction": row["direction"],
         "fundamentalNote": row["fundamental"], "fundamentalRank": row["fund_rank"], "fundamentalOf": row["fund_n"], "labelSince": _day(row["label_since"]),
-        "sectorReliability": reliability, "display": shown, "peers": peers,
+        "sectorReliability": reliability, "display": shown, "peers": peers, "notRanked": unranked or [], "runs52": runs,
     }
 
 
@@ -131,11 +134,21 @@ async def leadership(request: Request, symbol: str) -> Response:
                                                                                            market_name=None, rel52=None, rel52_market=None, direction=None,
                                                                                            fundamental=None, fund_rank=None, fund_n=None, reason=why)}, started, cache=cache)
         rel = await conn.fetchrow("SELECT * FROM sector_reliability WHERE group_id = $1", row["group_id"])
-        peer_rows = await conn.fetch("SELECT symbol, name, rank, label, direction, rel13, rel52, rel52_market, market_cap FROM leadership WHERE group_id = $1 AND as_of = $2 "
+        peer_rows = await conn.fetch("SELECT symbol, name, rank, label, raw_label, direction, rel13, rel52, rel52_market, market_cap FROM leadership WHERE group_id = $1 AND as_of = $2 "
                                      "ORDER BY rank", row["group_id"], row["as_of"])
-    peers = [{"symbol": p["symbol"], "name": p["name"], "rank": p["rank"], "label": p["label"], "direction": p["direction"], "rel13": _f(p["rel13"]),
+        # peers of a group's list that were left out this week, and why (a stock's own group; older databases may not have the table yet)
+        try:
+            gone = await conn.fetch("SELECT symbol, name, reason FROM leadership_unranked WHERE group_id = $1 ORDER BY name, symbol", row["group_id"])
+        except Exception:
+            gone = []
+        counts = await conn.fetch("SELECT label, count(*) AS n FROM leadership_history WHERE symbol = $1 AND run_date > $2 AND label IS NOT NULL GROUP BY label",
+                                  symbol, row["as_of"] - timedelta(days=364))
+    peers = [{"symbol": p["symbol"], "name": p["name"], "rank": p["rank"], "label": p["label"], "rawLabel": p["raw_label"], "direction": p["direction"], "rel13": _f(p["rel13"]),
               "rel52": _f(p["rel52"]), "rel52Market": _f(p["rel52_market"]), "marketCap": _f(p["market_cap"])} for p in peer_rows]
-    return _reply(request, shape(dict(row), dict(rel) if rel else None, peers), started, cache=cache)
+    unranked = [{"symbol": g["symbol"], "name": g["name"] or g["symbol"], "reason": g["reason"], "text": UNRANKED_TEXT.get(g["reason"], "Not ranked this week")} for g in gone]
+    by_label = {c["label"]: int(c["n"]) for c in counts}
+    runs = {"leader": by_label.get("leader", 0), "in_line": by_label.get("in_line", 0), "laggard": by_label.get("laggard", 0), "total": sum(by_label.values())} if by_label else None
+    return _reply(request, shape(dict(row), dict(rel) if rel else None, peers, unranked, runs), started, cache=cache)
 
 
 def _rebased(p: Prices, days: List[date]) -> List[Optional[float]]:
@@ -172,11 +185,11 @@ async def leadership_history(request: Request, symbol: str, statement: str = Que
     cache = CACHE if shown else PRIVATE
     async with store.pool.acquire() as conn:
         now = await conn.fetchrow("SELECT sector_code, sector_kind, market_code FROM leadership WHERE symbol = $1", symbol)
-        runs = await conn.fetch("SELECT run_date, rank, ranked, label, direction, rel52, rel52_market FROM leadership_history WHERE symbol = $1 ORDER BY run_date", symbol)
+        runs = await conn.fetch("SELECT run_date, rank, ranked, label, raw_label, direction, rel13, rel52, rel52_market FROM leadership_history WHERE symbol = $1 ORDER BY run_date", symbol)
     if now is None or not runs:
         return _reply(request, {"available": False, "rows": [], "series": None}, started, cache=cache)
-    rows = [{"date": r["run_date"].isoformat(), "rank": r["rank"], "ranked": r["ranked"], "label": r["label"], "direction": r["direction"],
-             "rel52": _f(r["rel52"]), "rel52Market": _f(r["rel52_market"])} for r in runs]
+    rows = [{"date": r["run_date"].isoformat(), "rank": r["rank"], "ranked": r["ranked"], "label": r["label"], "rawLabel": r["raw_label"], "direction": r["direction"],
+             "rel13": _f(r["rel13"]), "rel52": _f(r["rel52"]), "rel52Market": _f(r["rel52_market"])} for r in runs]
     series = None
     hit = await store.get_section(symbol, statement, "price-MAX")
     if hit is not None:

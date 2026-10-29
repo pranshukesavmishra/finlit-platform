@@ -8,6 +8,7 @@ from pathlib import Path
 
 WORDING = json.loads((Path(__file__).with_name("technical_wording.json")).read_text(encoding="utf-8"))
 BANDS = WORDING["bands"]
+ALIGNMENT = WORDING["alignment"]
 FORBIDDEN = re.compile(WORDING["forbidden"], re.I)
 _PHRASES = [(re.compile(pattern, re.I), to) for pattern, to in WORDING["phrases"]]
 
@@ -54,6 +55,31 @@ def verdict_tone(label, tone):
     return WORDING["verdicts"].get(normal) or WORDING["toneAlias"].get(str(tone or "").strip().lower()) or "na"
 
 
+def _number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value == value and value not in (float("inf"), float("-inf"))
+
+
+def trend_band(score):
+    """positive (+20 or more), negative (-20 or less), neutral in between; None without a score. The band rule of the trend alignment."""
+    if not _number(score):
+        return None
+    return "positive" if score >= ALIGNMENT["bands"]["positive"] else "negative" if score <= ALIGNMENT["bands"]["negative"] else "neutral"
+
+
+def trend_alignment(short_score, long_score):
+    """How the short-term and the long-term trend line up (short-term band x long-term band, 9 cells; finlit_technicals v1.1 stlt.ALIGNMENT).
+    None unless both scores are numbers. The label only describes the two trends. Derived from the two scores alone, so a report stored before
+    this existed gets it too."""
+    st, lt = trend_band(short_score), trend_band(long_score)
+    if st is None or lt is None:
+        return None
+    cells = [{"stBand": c["st"], "ltBand": c["lt"], "code": c["code"], "label": c["label"], "tone": c["tone"], "current": c["st"] == st and c["lt"] == lt} for c in ALIGNMENT["cells"]]
+    now = next(c for c in cells if c["current"])
+    words = ALIGNMENT["bandWords"]
+    return {"label": now["label"], "code": now["code"], "tone": now["tone"], "stBand": st, "ltBand": lt, "stBandWord": words[st], "ltBandWord": words[lt],
+            "rule": ALIGNMENT["rule"], "cells": cells}
+
+
 def relabel_technical(technical):
     """A relabelled COPY of a technicalAssessment: descriptive rating and verdict words, safe factor text and notes."""
     out = copy.deepcopy(technical)
@@ -68,11 +94,12 @@ def relabel_technical(technical):
                 for key in ("label", "detail"):
                     if key in factor:
                         factor[key] = safe_text(factor[key])
-    if isinstance(out.get("verdict"), dict):
-        verdict = out["verdict"]
-        both = all(isinstance((out.get(k) or {}).get("score"), (int, float)) for k in ("shortTerm", "longTerm"))
-        tone = verdict_tone(verdict.get("label"), verdict.get("tone")) if both else "na"
-        out["verdict"] = {**verdict, "label": WORDING["verdictWords"][tone], "tone": tone}
+    both = all(isinstance(out.get(k), dict) for k in ("shortTerm", "longTerm"))
+    align = trend_alignment(out["shortTerm"].get("score"), out["longTerm"].get("score")) if both else None
+    if align:
+        out["trendAlignment"] = align
+    if isinstance(out.get("verdict"), dict):   # the model's verdict label is replaced by the descriptive alignment label (same nine cells, same tone)
+        out["verdict"] = {**out["verdict"], "label": align["label"] if align else ALIGNMENT["notAvailable"], "tone": align["tone"] if align else "na"}
     if isinstance(out.get("notes"), list):
         out["notes"] = [safe_text(note) for note in out["notes"]]
     return out

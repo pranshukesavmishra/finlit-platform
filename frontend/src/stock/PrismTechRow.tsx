@@ -3,10 +3,11 @@
 // from before the technical view gets one quiet line; nothing is invented. Words and shapes carry the meaning, colour only decorates.
 import { Icon } from "../lib/icons";
 import type { PrismLatest } from "./PrismCard";
-import { fmtScore, parseTechnical, ratingWord, scalePos, type TechHorizon, type TrendTone } from "../lib/prismTechnical";
+import { fmtScore, parseTechnical, ratingWord, scalePos, trendAlignment, type TechHorizon, type TrendTone, type VerdictTone } from "../lib/prismTechnical";
 import "../styles/prism-technical.css";
 
 const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "◆", neg: "▼", strongneg: "▼▼", na: "–" };
+const VSHAPE: Record<VerdictTone, string> = { pos: "▲", mixed: "◆", neg: "▼", na: "–" };
 
 function Mini({ label, h }: { label: string; h: TechHorizon }) {
   const w = ratingWord(h.rating, h.score), has = h.score != null;
@@ -22,7 +23,8 @@ function Mini({ label, h }: { label: string; h: TechHorizon }) {
 /** What a screen reader hears for the row. */
 export function techRowSummary(h: { shortTerm: TechHorizon; longTerm: TechHorizon }): string {
   const one = (n: string, x: TechHorizon) => x.score == null ? `${n} not available` : `${n} ${fmtScore(x.score)} on a scale from minus 100 to plus 100, ${ratingWord(x.rating, x.score).word.toLowerCase()}`;
-  return `Technical view, separate from the Prism score: ${one("short term", h.shortTerm)}; ${one("long term", h.longTerm)}.`;
+  const al = trendAlignment(h.shortTerm.score, h.longTerm.score);
+  return `Technical view, separate from the Prism score: ${one("short term", h.shortTerm)}; ${one("long term", h.longTerm)}.${al ? ` Trend alignment: ${al.label}.` : ""}`;
 }
 
 export function PrismTechRow({ report, onRecalculate, busy }: { report: PrismLatest; onRecalculate?: () => void; busy?: boolean }) {
@@ -32,10 +34,12 @@ export function PrismTechRow({ report, onRecalculate, busy }: { report: PrismLat
       <p className="pzt-row quiet" role="note"><Icon name="activity" /><span>Technical view: {onRecalculate ? <button type="button" disabled={busy} onClick={onRecalculate}>recalculate to add</button> : "recalculate to add"}</span></p>
     );
   }
+  const al = trendAlignment(a.shortTerm.score, a.longTerm.score);
   return (
     <div className="pzt-row" role="group" aria-label={techRowSummary(a)} title="Technical view: describes recent price and trend behaviour from past prices; it does not predict prices.">
       <Mini label="Short term" h={a.shortTerm} />
       <Mini label="Long term" h={a.longTerm} />
+      {al && <p className={"pzt-ra " + al.tone}><small>Trend alignment</small><span><i aria-hidden="true">{VSHAPE[al.tone]}</i>{al.label}</span></p>}
     </div>
   );
 }

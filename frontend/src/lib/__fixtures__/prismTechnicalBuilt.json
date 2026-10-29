@@ -1,0 +1,1689 @@
+{
+ "stage3_cap_binds": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 900,
+  "usableDailyBars": 900,
+  "fresh": true,
+  "shortTerm": {
+   "score": 47.395833333333336,
+   "rating": "Positive",
+   "status": "ready",
+   "horizon": "5–20 sessions",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "divisor": 96,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 238.62 / 235.80 / 230.87; ADX 24.3.",
+     "weight": 10,
+     "points": 7.8125
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "Close 242.79; EMA 20 235.80, rising over three sessions; ADX 24.3.",
+     "weight": 8,
+     "points": 6.25
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "MACD 3.24; signal 2.88; histogram rising.",
+     "weight": 6,
+     "points": 4.6875
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Daily RSI (14): 68.8; bullish price regime.",
+     "weight": 8,
+     "points": 8.333333333333334
+    },
+    {
+     "key": "obv",
+     "label": "Volume flow (on-balance volume)",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV is above its 20-day EMA.",
+     "weight": 4,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 90.5; benchmark: Nifty 500.",
+     "weight": 8,
+     "points": 8.333333333333334
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Price extension: 2.03 ATR above EMA 20.",
+     "weight": 4,
+     "points": -2.0833333333333335
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "5/5 upward EMA touches; 1/5 downward touches; 0 constructive small-body candles.",
+     "weight": 10,
+     "points": 7.8125
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Squeeze breakout.",
+     "weight": 5,
+     "points": 5.208333333333333
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.26%; no directional gap signal.",
+     "weight": 3,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No directional candle signal.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 0.7% / 1.0%.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Overlapping value area; point of control is lower.",
+     "weight": 6,
+     "points": -3.125
+    }
+   ]
+  },
+  "longTerm": {
+   "score": 19,
+   "rating": "Neutral",
+   "status": "ready",
+   "horizon": "6–18 months",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": true,
+   "uncappedScore": 21.195652173913043,
+   "divisor": 92,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": -0.75,
+     "status": "available",
+     "detail": "Stage 3: topping.",
+     "weight": 18,
+     "points": -14.673913043478262
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 30.6; benchmark: Nifty 500.",
+     "weight": 12,
+     "points": -6.521739130434782
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty 500.",
+     "weight": 10,
+     "points": 10.869565217391305
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +10.7% from EMA 200.",
+     "weight": 7,
+     "points": 7.608695652173913
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "1 of the last three sessions exceeded 1.2 times their 50-day average volume.",
+     "weight": 7,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 230.87; EMA 200: 219.39.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 60.9.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week MACD 4.36; signal 3.39.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 243.05 / 184.03.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is at or below its 150-day EMA.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 227.28; EMA 200: 219.39.",
+     "weight": 2,
+     "points": 2.1739130434782608
+    }
+   ]
+  },
+  "verdict": {
+   "label": "Short-term strength, no long-term trend",
+   "tone": "pos"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week.",
+   "Shares outstanding are unavailable, so benchmark selection falls back to Nifty 500 under the model's rule."
+  ],
+  "observations": {
+   "stage": 3,
+   "freshStage2": false,
+   "slope150Pct": 1.3056515864847018,
+   "adx": 24.27398059646541,
+   "trendMultiplier": 0.75,
+   "benchmark": "Nifty 500",
+   "benchmarksUsed": [
+    "Nifty 500"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 90.47619047619048,
+   "rsRatingLT": 30.555555555555557
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  },
+  "trendAlignment": {
+   "label": "Short-term strength, no long-term trend",
+   "code": "st_positive_lt_neutral",
+   "tone": "pos",
+   "stBand": "positive",
+   "ltBand": "neutral",
+   "stBandWord": "Positive",
+   "ltBandWord": "Neutral",
+   "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+   "cells": [
+    {
+     "stBand": "positive",
+     "ltBand": "positive",
+     "code": "st_positive_lt_positive",
+     "label": "Strong on both timeframes",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "neutral",
+     "code": "st_positive_lt_neutral",
+     "label": "Short-term strength, no long-term trend",
+     "tone": "pos",
+     "current": true
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "negative",
+     "code": "st_positive_lt_negative",
+     "label": "Short-term bounce within a long-term downtrend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "positive",
+     "code": "st_neutral_lt_positive",
+     "label": "Long-term uptrend, short-term pause",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "neutral",
+     "code": "st_neutral_lt_neutral",
+     "label": "No clear trend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "negative",
+     "code": "st_neutral_lt_negative",
+     "label": "Long-term downtrend, short-term flat",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "positive",
+     "code": "st_negative_lt_positive",
+     "label": "Short-term pullback within a long-term uptrend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "neutral",
+     "code": "st_negative_lt_neutral",
+     "label": "Short-term weakness, no long-term trend",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "negative",
+     "code": "st_negative_lt_negative",
+     "label": "Weak on both timeframes",
+     "tone": "neg",
+     "current": false
+    }
+   ]
+  }
+ },
+ "smallcap_stage2": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 700,
+  "usableDailyBars": 700,
+  "fresh": true,
+  "shortTerm": {
+   "score": -8.333333333333334,
+   "rating": "Neutral",
+   "status": "ready",
+   "horizon": "5–20 sessions",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "divisor": 96,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 405.50 / 401.81 / 382.27; ADX 32.9.",
+     "weight": 10,
+     "points": 10.416666666666666
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Close 390.58; EMA 20 401.81, flat or falling over three sessions; ADX 32.9.",
+     "weight": 8,
+     "points": -8.333333333333334
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "MACD 7.48; signal 10.94; histogram flat or falling.",
+     "weight": 6,
+     "points": -6.25
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Daily RSI (14): 46.5; bullish price regime.",
+     "weight": 8,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "obv",
+     "label": "Volume flow (on-balance volume)",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV is at or below its 20-day EMA.",
+     "weight": 4,
+     "points": -4.166666666666667
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 23.0; benchmark: Nifty Smallcap 100.",
+     "weight": 8,
+     "points": -4.166666666666667
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: -1.05 ATR above EMA 20.",
+     "weight": 4,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "2/5 upward EMA touches; 4/5 downward touches; 0 constructive small-body candles.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.16%; no directional gap signal.",
+     "weight": 3,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Upper-wick rejection or wide bearish candle.",
+     "weight": 10,
+     "points": -10.416666666666666
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 9.9% / 0.7%.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Value area entirely above the preceding swing.",
+     "weight": 6,
+     "points": 6.25
+    }
+   ]
+  },
+  "longTerm": {
+   "score": 37.5,
+   "rating": "Positive",
+   "status": "ready",
+   "horizon": "6–18 months",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "divisor": 92,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Stage 2: established advance.",
+     "weight": 18,
+     "points": 9.782608695652174
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 36.5; benchmark: Nifty Smallcap 100.",
+     "weight": 12,
+     "points": -6.521739130434782
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty Smallcap 100.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price is +22.7% from EMA 200.",
+     "weight": 7,
+     "points": 7.608695652173913
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "0 of the last three sessions exceeded 1.2 times their 50-day average volume.",
+     "weight": 7,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 200 is rising over 20 sessions.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 50: 382.27; EMA 200: 318.21.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 80.8.",
+     "weight": 5,
+     "points": -2.717391304347826
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Previous-week MACD 34.25; signal 28.24.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 430.63 / 224.55.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is above its 150-day EMA.",
+     "weight": 5,
+     "points": 5.434782608695652
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "EMA 100: 355.56; EMA 200: 318.21.",
+     "weight": 2,
+     "points": 2.1739130434782608
+    }
+   ]
+  },
+  "verdict": {
+   "label": "Long-term uptrend, short-term pause",
+   "tone": "pos"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 2,
+   "freshStage2": false,
+   "slope150Pct": 15.092172288580596,
+   "adx": 32.910046955693836,
+   "trendMultiplier": 1.0,
+   "benchmark": "Nifty Smallcap 100",
+   "benchmarksUsed": [
+    "Nifty Smallcap 100"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 23.015873015873016,
+   "rsRatingLT": 36.507936507936506
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  },
+  "trendAlignment": {
+   "label": "Long-term uptrend, short-term pause",
+   "code": "st_neutral_lt_positive",
+   "tone": "pos",
+   "stBand": "neutral",
+   "ltBand": "positive",
+   "stBandWord": "Neutral",
+   "ltBandWord": "Positive",
+   "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+   "cells": [
+    {
+     "stBand": "positive",
+     "ltBand": "positive",
+     "code": "st_positive_lt_positive",
+     "label": "Strong on both timeframes",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "neutral",
+     "code": "st_positive_lt_neutral",
+     "label": "Short-term strength, no long-term trend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "negative",
+     "code": "st_positive_lt_negative",
+     "label": "Short-term bounce within a long-term downtrend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "positive",
+     "code": "st_neutral_lt_positive",
+     "label": "Long-term uptrend, short-term pause",
+     "tone": "pos",
+     "current": true
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "neutral",
+     "code": "st_neutral_lt_neutral",
+     "label": "No clear trend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "negative",
+     "code": "st_neutral_lt_negative",
+     "label": "Long-term downtrend, short-term flat",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "positive",
+     "code": "st_negative_lt_positive",
+     "label": "Short-term pullback within a long-term uptrend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "neutral",
+     "code": "st_negative_lt_neutral",
+     "label": "Short-term weakness, no long-term trend",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "negative",
+     "code": "st_negative_lt_negative",
+     "label": "Weak on both timeframes",
+     "tone": "neg",
+     "current": false
+    }
+   ]
+  }
+ },
+ "bounce_in_downtrend": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 900,
+  "usableDailyBars": 900,
+  "fresh": true,
+  "shortTerm": {
+   "score": 44.791666666666664,
+   "rating": "Positive",
+   "status": "ready",
+   "horizon": "5–20 sessions",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "divisor": 96,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 31.36 / 31.06 / 30.90; ADX 21.8.",
+     "weight": 10,
+     "points": 7.8125
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "Close 31.68; EMA 20 31.06, rising over three sessions; ADX 21.8.",
+     "weight": 8,
+     "points": 6.25
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "MACD 0.31; signal 0.25; histogram rising.",
+     "weight": 6,
+     "points": 4.6875
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Daily RSI (14): 59.5; bearish price regime.",
+     "weight": 8,
+     "points": -4.166666666666667
+    },
+    {
+     "key": "obv",
+     "label": "Volume flow (on-balance volume)",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "OBV is above its 20-day EMA.",
+     "weight": 4,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 93.7; benchmark: Nifty 500.",
+     "weight": 8,
+     "points": 8.333333333333334
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: 1.11 ATR above EMA 20.",
+     "weight": 4,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.75,
+     "status": "available",
+     "detail": "5/5 upward EMA touches; 3/5 downward touches; 1 constructive small-body candles.",
+     "weight": 10,
+     "points": 7.8125
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Expanded volatility.",
+     "weight": 5,
+     "points": -2.6041666666666665
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.09%; no directional gap signal.",
+     "weight": 3,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Small-body candle near EMA 9.",
+     "weight": 10,
+     "points": 5.208333333333333
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 2.3% / 1.0%.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Overlapping value area; point of control is higher.",
+     "weight": 6,
+     "points": 3.125
+    }
+   ]
+  },
+  "longTerm": {
+   "score": -32.608695652173914,
+   "rating": "Negative",
+   "status": "ready",
+   "horizon": "6–18 months",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "divisor": 92,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Stage 4: declining.",
+     "weight": 18,
+     "points": -19.565217391304348
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 97.2; benchmark: Nifty 500.",
+     "weight": 12,
+     "points": 13.043478260869565
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty 500.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Price is -8.3% from EMA 200.",
+     "weight": 7,
+     "points": -7.608695652173913
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "2 of the last three sessions exceeded 1.2 times their 50-day average volume.",
+     "weight": 7,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 200 is flat or falling over 20 sessions.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 50: 30.90; EMA 200: 34.54.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 46.3.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week MACD -1.62; signal -2.02.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 45.95 / 29.46.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is at or below its 150-day EMA.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 100: 31.74; EMA 200: 34.54.",
+     "weight": 2,
+     "points": -2.1739130434782608
+    }
+   ]
+  },
+  "verdict": {
+   "label": "Short-term bounce within a long-term downtrend",
+   "tone": "mixed"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week.",
+   "Shares outstanding are unavailable, so benchmark selection falls back to Nifty 500 under the model's rule."
+  ],
+  "observations": {
+   "stage": 4,
+   "freshStage2": false,
+   "slope150Pct": -7.833809583128504,
+   "adx": 21.805198106499585,
+   "trendMultiplier": 0.75,
+   "benchmark": "Nifty 500",
+   "benchmarksUsed": [
+    "Nifty 500"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 93.65079365079364,
+   "rsRatingLT": 97.22222222222223
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  },
+  "trendAlignment": {
+   "label": "Short-term bounce within a long-term downtrend",
+   "code": "st_positive_lt_negative",
+   "tone": "mixed",
+   "stBand": "positive",
+   "ltBand": "negative",
+   "stBandWord": "Positive",
+   "ltBandWord": "Negative",
+   "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+   "cells": [
+    {
+     "stBand": "positive",
+     "ltBand": "positive",
+     "code": "st_positive_lt_positive",
+     "label": "Strong on both timeframes",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "neutral",
+     "code": "st_positive_lt_neutral",
+     "label": "Short-term strength, no long-term trend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "negative",
+     "code": "st_positive_lt_negative",
+     "label": "Short-term bounce within a long-term downtrend",
+     "tone": "mixed",
+     "current": true
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "positive",
+     "code": "st_neutral_lt_positive",
+     "label": "Long-term uptrend, short-term pause",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "neutral",
+     "code": "st_neutral_lt_neutral",
+     "label": "No clear trend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "negative",
+     "code": "st_neutral_lt_negative",
+     "label": "Long-term downtrend, short-term flat",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "positive",
+     "code": "st_negative_lt_positive",
+     "label": "Short-term pullback within a long-term uptrend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "neutral",
+     "code": "st_negative_lt_neutral",
+     "label": "Short-term weakness, no long-term trend",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "negative",
+     "code": "st_negative_lt_negative",
+     "label": "Weak on both timeframes",
+     "tone": "neg",
+     "current": false
+    }
+   ]
+  }
+ },
+ "largecap_stage4": {
+  "modelVersion": "st-lt-14.3",
+  "status": "ready",
+  "asOf": "2026-10-23",
+  "provider": "FinEdge",
+  "dailyBars": 800,
+  "usableDailyBars": 800,
+  "fresh": true,
+  "shortTerm": {
+   "score": -1.0416666666666667,
+   "rating": "Neutral",
+   "status": "ready",
+   "horizon": "5–20 sessions",
+   "availableCount": 14,
+   "requiredCount": 14,
+   "stageCapped": false,
+   "divisor": 96,
+   "factors": [
+    {
+     "key": "ema_stack",
+     "label": "EMA alignment",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "EMA 9 / 20 / 50: 182.10 / 180.83 / 182.75; ADX 21.0.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "price_ema20",
+     "label": "Price and short-term trend",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Close 179.10; EMA 20 180.83, rising over three sessions; ADX 21.0.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "macd",
+     "label": "Daily MACD",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "MACD 0.86; signal 0.30; histogram flat or falling.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "rsi",
+     "label": "Daily RSI",
+     "signal": -0.5,
+     "status": "available",
+     "detail": "Daily RSI (14): 46.8; bearish price regime.",
+     "weight": 8,
+     "points": -4.166666666666667
+    },
+    {
+     "key": "obv",
+     "label": "Volume flow (on-balance volume)",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV is at or below its 20-day EMA.",
+     "weight": 4,
+     "points": -4.166666666666667
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 46.8; benchmark: Nifty 50.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "extension",
+     "label": "Price extension",
+     "signal": 1.0,
+     "status": "available",
+     "detail": "Price extension: -0.48 ATR above EMA 20.",
+     "weight": 4,
+     "points": 4.166666666666667
+    },
+    {
+     "key": "consolidation",
+     "label": "9 EMA consolidation",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "2/5 upward EMA touches; 1/5 downward touches; 1 constructive small-body candles.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "squeeze",
+     "label": "Volatility squeeze",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Normal volatility.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "gap",
+     "label": "Opening gap",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Opening gap: -0.10%; no directional gap signal.",
+     "weight": 3,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "candles",
+     "label": "Candle and price action",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No directional candle signal.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active swing failure; neutral.",
+     "weight": 8,
+     "points": 0.0
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Stock / benchmark drawdown over 20 sessions: 4.4% / 0.7%.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "value_migration",
+     "label": "Value-area migration",
+     "signal": 0.5,
+     "status": "available",
+     "detail": "Overlapping value area; point of control is higher.",
+     "weight": 6,
+     "points": 3.125
+    }
+   ]
+  },
+  "longTerm": {
+   "score": -64.1304347826087,
+   "rating": "Strongly negative",
+   "status": "ready",
+   "horizon": "6–18 months",
+   "availableCount": 13,
+   "requiredCount": 13,
+   "stageCapped": false,
+   "divisor": 92,
+   "factors": [
+    {
+     "key": "stage",
+     "label": "Market stage",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Stage 4: declining.",
+     "weight": 18,
+     "points": -19.565217391304348
+    },
+    {
+     "key": "rs_rating",
+     "label": "Relative strength rating",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Beta-adjusted relative strength percentile: 7.9; benchmark: Nifty 50.",
+     "weight": 12,
+     "points": -13.043478260869565
+    },
+    {
+     "key": "leadership",
+     "label": "Relative strength leadership",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "RS line at 52-week mid-range; benchmark: Nifty 50.",
+     "weight": 10,
+     "points": 0.0
+    },
+    {
+     "key": "sector",
+     "label": "Sector relative strength",
+     "signal": null,
+     "status": "disabled",
+     "detail": "Optional factor is switched off."
+    },
+    {
+     "key": "price_ema200",
+     "label": "Price vs long-term trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Price is -4.2% from EMA 200.",
+     "weight": 7,
+     "points": -7.608695652173913
+    },
+    {
+     "key": "volume_persistence",
+     "label": "Breakout volume persistence",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "2 of the last three sessions exceeded 1.2 times their 50-day average volume.",
+     "weight": 7,
+     "points": 0.0
+    },
+    {
+     "key": "sfp",
+     "label": "Major swing failure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "No active major swing failure; neutral.",
+     "weight": 6,
+     "points": 0.0
+    },
+    {
+     "key": "ema200_slope",
+     "label": "Long-term trend direction",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 200 is flat or falling over 20 sessions.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "ema50_200",
+     "label": "Medium vs long-term trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 50: 182.75; EMA 200: 186.97.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "weekly_rsi",
+     "label": "Weekly RSI",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "Previous-week RSI (14): 48.3.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "weekly_macd",
+     "label": "Weekly MACD",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "Previous-week MACD -3.38; signal -1.47.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "structure",
+     "label": "52-week price structure",
+     "signal": 0.0,
+     "status": "available",
+     "detail": "252-session closing high / low: 214.03 / 170.03.",
+     "weight": 5,
+     "points": 0.0
+    },
+    {
+     "key": "obv_trend",
+     "label": "Long-term volume trend",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "OBV's 50-day EMA is at or below its 150-day EMA.",
+     "weight": 5,
+     "points": -5.434782608695652
+    },
+    {
+     "key": "ema100_200",
+     "label": "Long-term EMA alignment",
+     "signal": -1.0,
+     "status": "available",
+     "detail": "EMA 100: 186.27; EMA 200: 186.97.",
+     "weight": 2,
+     "points": -2.1739130434782608
+    }
+   ]
+  },
+  "verdict": {
+   "label": "Long-term downtrend, short-term flat",
+   "tone": "neg"
+  },
+  "notes": [
+   "Scores use the latest completed daily session; weekly signals use the preceding week."
+  ],
+  "observations": {
+   "stage": 4,
+   "freshStage2": false,
+   "slope150Pct": -1.8103868589245176,
+   "adx": 21.00792803024878,
+   "trendMultiplier": 0.75,
+   "benchmark": "Nifty 50",
+   "benchmarksUsed": [
+    "Nifty 50"
+   ],
+   "beta": 0.3,
+   "rsRatingST": 46.82539682539682,
+   "rsRatingLT": 7.936507936507937
+  },
+  "benchmarkSources": {
+   "Nifty 500": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty 50": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Midcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   },
+   "Nifty Smallcap 100": {
+    "provider": "FinEdge",
+    "asOf": "2026-10-23",
+    "bars": 1100
+   }
+  },
+  "options": {
+   "sectorRS": false,
+   "valueMigration": true
+  },
+  "trendAlignment": {
+   "label": "Long-term downtrend, short-term flat",
+   "code": "st_neutral_lt_negative",
+   "tone": "neg",
+   "stBand": "neutral",
+   "ltBand": "negative",
+   "stBandWord": "Neutral",
+   "ltBandWord": "Negative",
+   "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+   "cells": [
+    {
+     "stBand": "positive",
+     "ltBand": "positive",
+     "code": "st_positive_lt_positive",
+     "label": "Strong on both timeframes",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "neutral",
+     "code": "st_positive_lt_neutral",
+     "label": "Short-term strength, no long-term trend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "positive",
+     "ltBand": "negative",
+     "code": "st_positive_lt_negative",
+     "label": "Short-term bounce within a long-term downtrend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "positive",
+     "code": "st_neutral_lt_positive",
+     "label": "Long-term uptrend, short-term pause",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "neutral",
+     "code": "st_neutral_lt_neutral",
+     "label": "No clear trend",
+     "tone": "mixed",
+     "current": false
+    },
+    {
+     "stBand": "neutral",
+     "ltBand": "negative",
+     "code": "st_neutral_lt_negative",
+     "label": "Long-term downtrend, short-term flat",
+     "tone": "neg",
+     "current": true
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "positive",
+     "code": "st_negative_lt_positive",
+     "label": "Short-term pullback within a long-term uptrend",
+     "tone": "pos",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "neutral",
+     "code": "st_negative_lt_neutral",
+     "label": "Short-term weakness, no long-term trend",
+     "tone": "neg",
+     "current": false
+    },
+    {
+     "stBand": "negative",
+     "ltBand": "negative",
+     "code": "st_negative_lt_negative",
+     "label": "Weak on both timeframes",
+     "tone": "neg",
+     "current": false
+    }
+   ]
+  }
+ }
+}

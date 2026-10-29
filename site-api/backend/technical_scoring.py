@@ -23,7 +23,7 @@ def scoring_signals(bars, benchmarks, shares_cr, as_of):
     e = {length:ema(c,length) for length in (9,20,50,100,200)}
     atr, adx = atr_adx(bars)
     avg50, vol3 = sma(v,50), sma(v,3)
-    ext = [(price-average)/a if a is not None and a > 0 else None for price,average,a in zip(c,e[20],atr)]
+    ext = [(price-average)/a if average is not None and a is not None and a > 0 else None for price,average,a in zip(c,e[20],atr)]
     ranges = [high-low for high,low in zip(h,l)]
     patterns = swing_patterns(bars,avg50)
     highs60, lows15 = rolling(h,60,max,False), rolling(l,15,min,False)
@@ -52,6 +52,7 @@ def scoring_signals(bars, benchmarks, shares_cr, as_of):
     sg = lambda condition: 1. if condition else -1.
     if n>=200 and adx[-1] is not None:
         mult = 1. if adx[-1]>25 else .5 if adx[-1]<20 else .75
+        meta.update(adx=adx[-1], trendMultiplier=mult)    # the trend factor the first three short-term rows are multiplied by
         st["ema_stack"] = ((sg(e[9][-1]>e[20][-1])+sg(e[20][-1]>e[50][-1]))/2*mult, f"EMA 9 / 20 / 50: {e[9][-1]:.2f} / {e[20][-1]:.2f} / {e[50][-1]:.2f}; ADX {adx[-1]:.1f}.")
         st["price_ema20"] = ((sg(c[-1]>e[20][-1])+sg(e[20][-1]>e[20][-4]))/2*mult, f"Close {c[-1]:.2f}; EMA 20 {e[20][-1]:.2f}, {'rising' if e[20][-1]>e[20][-4] else 'flat or falling'} over three sessions; ADX {adx[-1]:.1f}.")
         line, signal, histogram = macd(c)

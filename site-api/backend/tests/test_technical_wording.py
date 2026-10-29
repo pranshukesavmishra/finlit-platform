@@ -71,14 +71,16 @@ def test_every_rating_and_verdict_combination_is_relabelled(base_report, st, lt)
     assert BANNED.findall(text) == []
     words = {"Strongly positive", "Positive", "Neutral", "Negative", "Strongly negative"}
     assert any(w in text for w in words)
-    assert re.search(r"Trend: (positive|mixed|negative)", text)
+    align = tw.trend_alignment(st, lt)
+    assert align["label"] in " ".join(text.split())                       # the descriptive alignment label stands where the model's verdict label was
+    assert tw.verdict_tone(tech["verdict"]["label"], None) == align["tone"]   # and it is the same nine cells and the same tone as the model's own verdict
 
 
 def test_unavailable_assessment_and_unknown_words(base_report):
     report = deepcopy(base_report)
     report["technicalAssessment"] = build_technical_assessment({}, ASOF)
     text = pdf_text(report)
-    assert "Trend: not available" in text and BANNED.findall(text) == []
+    assert "Trend alignment: not available" in text and BANNED.findall(text) == []
     report = deepcopy(base_report)
     tech = report["technicalAssessment"]
     tech["shortTerm"]["rating"] = "Accumulate"
@@ -115,7 +117,7 @@ def test_pdf_route_serves_the_relabelled_pdf(monkeypatch, base_report):
     status, pdf = asgi_request(server.app, "GET", "/api/premium-reports/" + "a" * 32 + "/pdf", headers=auth())
     assert status == 200 and pdf.startswith(b"%PDF")
     text = technical_section("\n".join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages))
-    assert "Trend:" in text and BANNED.findall(text) == []
+    assert "Combined verdict:" in text and BANNED.findall(text) == []
 
 
 @pytest.mark.parametrize("name,industry", [("Bajaj Holding & Investment Ltd", "Finance / Holding Company"), ("Target Corp", "Net Entry Tax Services"),
@@ -134,3 +136,24 @@ def test_only_technical_fields_are_relabelled():
     assert out["company"] == {"name": "Target Corp"} and out["sector"] == "Holding"
     assert out["technicalAssessment"]["shortTerm"]["rating"] == "Strongly positive" and out["technicalAssessment"]["notes"] == ["Level hit"]
     assert report["technicalAssessment"]["shortTerm"]["rating"] == "Strong Buy"
+
+
+def _strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings(item)
+
+
+def test_trend_alignment_labels_and_how_texts_have_no_advice_word():
+    """Every string the breakdown can show (the nine alignment labels, the rule, and the 'how the reading becomes a signal' text of each row)."""
+    texts = list(_strings(tw.WORDING["alignment"])) + list(_strings(tw.WORDING["how"]))
+    assert len(texts) > 40
+    assert [t for t in texts if tw.FORBIDDEN.search(t)] == []
+    # every row key the engine can emit has its text, for both horizons
+    from backend.premium_technical import ST, LT
+    assert {k for k, *_ in ST} == set(tw.WORDING["how"]["st"]) and {k for k, *_ in LT} == set(tw.WORDING["how"]["lt"])

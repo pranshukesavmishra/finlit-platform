@@ -16,7 +16,59 @@
     "BUY THE DIP, WAIT FOR ST TURN": "pos", "SELL / AVOID": "neg"
   },
   "toneAlias": {"pos": "pos", "neg": "neg", "na": "na", "positive": "pos", "bullish": "pos", "caution": "mixed", "neutral": "mixed", "mixed": "mixed", "negative": "neg", "bearish": "neg"},
-  "verdictWords": {"pos": "Trend: positive", "mixed": "Trend: mixed", "neg": "Trend: negative", "na": "Trend: not available"},
+  "alignment": {
+    "_comment": "Trend alignment = short-term band x long-term band (finlit_technicals v1.1, stlt.ALIGNMENT). Bands: +20 or more Positive, -20 or less Negative, otherwise Neutral. The labels only describe the two trends; the tone is decoration (a shape and a colour), never advice.",
+    "bands": {"positive": 20, "negative": -20},
+    "bandWords": {"positive": "Positive", "neutral": "Neutral", "negative": "Negative"},
+    "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+    "notAvailable": "Trend alignment: not available",
+    "cells": [
+      {"st": "positive", "lt": "positive", "code": "st_positive_lt_positive", "label": "Strong on both timeframes", "tone": "pos"},
+      {"st": "positive", "lt": "neutral", "code": "st_positive_lt_neutral", "label": "Short-term strength, no long-term trend", "tone": "pos"},
+      {"st": "positive", "lt": "negative", "code": "st_positive_lt_negative", "label": "Short-term bounce within a long-term downtrend", "tone": "mixed"},
+      {"st": "neutral", "lt": "positive", "code": "st_neutral_lt_positive", "label": "Long-term uptrend, short-term pause", "tone": "pos"},
+      {"st": "neutral", "lt": "neutral", "code": "st_neutral_lt_neutral", "label": "No clear trend", "tone": "mixed"},
+      {"st": "neutral", "lt": "negative", "code": "st_neutral_lt_negative", "label": "Long-term downtrend, short-term flat", "tone": "neg"},
+      {"st": "negative", "lt": "positive", "code": "st_negative_lt_positive", "label": "Short-term pullback within a long-term uptrend", "tone": "pos"},
+      {"st": "negative", "lt": "neutral", "code": "st_negative_lt_neutral", "label": "Short-term weakness, no long-term trend", "tone": "neg"},
+      {"st": "negative", "lt": "negative", "code": "st_negative_lt_negative", "label": "Weak on both timeframes", "tone": "neg"}
+    ]
+  },
+  "how": {
+    "st": {
+      "ema_stack": "(±1 for EMA 9 against EMA 20, ±1 for EMA 20 against EMA 50) ÷ 2 × the trend factor.",
+      "price_ema20": "(±1 for the close against EMA 20, ±1 for EMA 20 rising over 3 sessions) ÷ 2 × the trend factor.",
+      "macd": "(±1 for MACD against its signal line, ±1 for the histogram rising) ÷ 2 × the trend factor.",
+      "rsi": "With the close and EMA 50 above EMA 200: RSI 55 to 75 = +1, 75 to 80 = +0.5, above 80 = −0.5, 45 to 55 = +0.5, 40 to 45 = 0, below 40 = −1. With both below EMA 200: 60 or more = 0, 40 to 60 = −0.5, below 40 = −1. Otherwise: 55 to 70 = +1, 70 to 80 = +0.5, 45 to 55 = 0, 30 to 45 = −0.5, else −1.",
+      "obv": "+1 when on-balance volume is above its 20-day EMA, −1 when it is not.",
+      "rs_rating": "0.6 × the 21-day and 0.4 × the 63-day return in excess of the index (adjusted for beta), ranked against the previous 126 sessions: 85 or more = +1, 70 to 85 = +0.5, 40 to 70 = 0, 20 to 40 = −0.5, below 20 = −1.",
+      "extension": "Under 2 ATR above EMA 20 = +1, 2 to 3 ATR = −0.5, 3 ATR or more = −1 (stretched).",
+      "consolidation": "In an uptrend (close above EMA 50 and EMA 9 > 20 > 50) with the close within 2% above EMA 9: a full pullback match = +1, 4 of the last 5 sessions touching EMA 9 = +0.75, 3 = +0.5, plus 0.25 for 2 or more small-bodied candles. The mirror image in a downtrend counts −0.5 or −1.",
+      "squeeze": "Breakout from a squeeze = +1, a squeeze with positive momentum = +0.5, any other squeeze = −0.25, unusually wide volatility = −0.5.",
+      "gap": "A breakaway gap up = +1, an exhaustion gap up = −1, a gap down that closes lower = −0.5.",
+      "sector": "Return against the sector index over 63 sessions: above +5% = +1, +1% to +5% = +0.5, within ±1% = 0, −1% to −5% = −0.5, below −5% = −1. Switched off in this model.",
+      "candles": "A climax run = −1; a hammer or bullish engulfing candle at EMA 9 above EMA 20 = +1; a small-bodied candle at EMA 9 and the point of control = +1; a strong bullish bar = +0.75; an upper-wick rejection or wide bearish bar = −1; a small-bodied candle at EMA 9 = +0.5; plus 0.25 for a dry-volume pullback above EMA 20.",
+      "sfp": "An active bullish swing failure = +0.75 (+1 once confirmed), a bearish one = −0.75 (−1 once confirmed); if both are active, the newer one counts.",
+      "leadership": "A strong leader while the index falls = +1, staying firm while the index falls = +0.5, lagging a weak index = −0.5.",
+      "value_migration": "This swing's value area against the previous swing's: entirely higher = +1, centre higher = +0.5, centre lower = −0.5, entirely lower = −1."
+    },
+    "lt": {
+      "price_ema200": "More than 2% above EMA 200 = +1, more than 2% below = −1, within ±2% = 0.",
+      "ema200_slope": "+1 when EMA 200 is rising over 20 sessions, −1 when it is not.",
+      "ema50_200": "+1 when EMA 50 is above EMA 200, −1 when it is not.",
+      "ema100_200": "+1 when EMA 100 is above EMA 200, −1 when it is not.",
+      "weekly_rsi": "Weekly RSI (last completed week) 55 to 75 = +1, 45 to 55 = 0, 40 to 45 or above 75 = −0.5, below 40 = −1.",
+      "weekly_macd": "(±1 for weekly MACD against its signal line, ±1 for weekly MACD against zero) ÷ 2.",
+      "rs_rating": "0.4 × the 63-day, 0.2 × the 126-day, 0.2 × the 189-day and 0.2 × the 252-day return in excess of the index (adjusted for beta), ranked against the previous 252 sessions: 85 or more = +1, 70 to 85 = +0.5, 40 to 70 = 0, 20 to 40 = −0.5, below 20 = −1.",
+      "structure": "Within 15% of the 52-week closing high and 30% or more above the low = +1; below 60% of the high = −1; otherwise 0.",
+      "obv_trend": "+1 when the 50-day EMA of on-balance volume is above its 150-day EMA, −1 when it is not.",
+      "stage": "Stage 2 fresh advance = +1, Stage 2 established = +0.5, Stage 1 = 0, Stage 3 = −0.75, Stage 4 = −1. The stage comes from the slope of the 150-day average (flat within ±1.5%) and the close against it. In Stage 3 or Stage 4 the long-term score is limited to +19.",
+      "sector": "The same signal as the short-term sector row. Switched off in this model.",
+      "volume_persistence": "Within 10 sessions of a base breakout: 2 or 3 heavy-volume sessions of the last 3 = +1, 1 = 0, none = −0.5. Later in Stage 2: 2 or 3 heavy sessions = +0.5.",
+      "sfp": "The same rule as the short-term swing failure, on 15-session swings and active three times as long.",
+      "leadership": "A new 52-week high while the index is down = +1; the stock-to-index ratio at a 52-week high = +1 (price still 3% or more below its high) or +0.75; staying firm against a weak index = +0.5; the ratio at a 52-week low = −1; lagging a weak index = −0.5."
+    }
+  },
   "forbidden": "\\b(?:buy\\w*|sell\\w*|hold(?:s|ing)?|reduc\\w*|avoid\\w*|target\\w*|accumulat\\w*|entry|exit|stop\\w*)\\b",
   "phrases": [
     ["^buying and selling volume$", "Volume flow (on-balance volume)"],

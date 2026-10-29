@@ -127,3 +127,55 @@
   .pzt-rv.pzt-rv { justify-content: flex-end; font-size: 15px; } .pzt-rs.pzt-rs { grid-column: 1 / -1; }
 }
 
+/* trend alignment: the 3 x 3 map (the highlighted cell is where the company is now) */
+.pzt-mapw { flex: 1 1 100%; margin-top: 4px; overflow-x: visible; }
+.pzt-map { width: 100%; border-collapse: separate; border-spacing: 6px; table-layout: fixed; font-size: 12.5px; }
+.pzt-map caption { caption-side: bottom; text-align: left; color: var(--muted); padding: 4px 6px 0; font-size: 12px; line-height: 1.5; }
+.pzt-map thead td { width: 92px; }
+.pzt-map th, .pzt-map thead td { background: none; border: 0; } .pzt-map th { font-weight: 700; text-align: left; color: var(--text); padding: 4px 6px; line-height: 1.3; vertical-align: middle; }
+.pzt-map th small { display: block; font: 700 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.pzt-mc { --t: var(--t-na); text-align: left; white-space: normal; padding: 10px 10px 11px; border-radius: 12px; border: 1px solid var(--border); background: var(--s1); color: var(--muted); line-height: 1.4; vertical-align: top; overflow-wrap: anywhere; }
+.pzt-mc.pos { --t: var(--t-p); } .pzt-mc.mixed { --t: var(--t-n); } .pzt-mc.neg { --t: var(--t-ng); }
+.pzt-mc.now { color: var(--text); font-weight: 700; border-color: color-mix(in srgb, var(--t) 75%, var(--border)); background: color-mix(in srgb, var(--t) 16%, var(--s1)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--t) 50%, transparent); }
+.pzt-now { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--text); color: var(--s1); font: 700 10px/16px var(--sans); letter-spacing: .08em; text-transform: uppercase; vertical-align: 1px; }
+.pzt-vd span { display: inline; }
+
+/* how these scores are built */
+.pzt-bds { display: grid; gap: 12px; min-width: 0; }
+.pzt-bd { min-width: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--s1); box-shadow: var(--shadow); }
+.pzt-bd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 12px 18px; font: 700 15px var(--sans); color: var(--text); border-radius: 16px; }
+.pzt-bd > summary::-webkit-details-marker { display: none; }
+.pzt-bd > summary small { margin-left: auto; font: 600 13px var(--sans); color: var(--muted); font-variant-numeric: tabular-nums; }
+.pzt-bd > summary .pzt-chev { width: 16px; height: 16px; flex: none; color: var(--muted); transform: rotate(90deg); transition: transform .2s; }
+.pzt-bd[open] > summary .pzt-chev { transform: rotate(-90deg); }
+.pzt-bd > summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pzt-bd[open] > summary { border-bottom: 1px solid var(--border); border-radius: 16px 16px 0 0; }
+.pzt-bd > .pzt-sub, .pzt-bd > .pzt-none, .pzt-bd > .pzt-tw, .pzt-bd > .pzt-fact { margin-left: 18px; margin-right: 18px; }
+.pzt-bd > .pzt-sub { margin-top: 12px; } .pzt-bd > .pzt-eq { margin-top: 10px; font-variant-numeric: tabular-nums; } .pzt-bd > .pzt-none { padding: 12px 0 14px; }
+.pzt-bd > .pzt-tw { margin-top: 0; }
+.pzt-bt { min-width: 640px; } .pzt-bt th, .pzt-bt td { white-space: normal; vertical-align: top; padding: 8px 12px 8px 0; }
+.pzt-bt th, .pzt-bt td { background: none; border-bottom: 1px solid var(--border); }
+.pzt-bt th[scope="row"] { min-width: 170px; font: 500 13px/1.4 var(--sans); text-transform: none; letter-spacing: 0; color: var(--text); } .pzt-bt th[scope="row"] b { font-weight: 700; color: var(--text); display: block; }
+.pzt-bt tfoot th[scope="row"] { font-weight: 700; }
+.pzt-bt td.pzt-rd { min-width: 220px; color: var(--muted); line-height: 1.5; } .pzt-bt .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pzt-bt tr.off th, .pzt-bt tr.off td { color: var(--muted); } .pzt-bt tr.off b { color: var(--muted); }
+.pzt-bt tfoot th, .pzt-bt tfoot td { border-top: 2px solid var(--border-strong); border-bottom: 0; color: var(--text); padding-top: 10px; }
+.pzt-off-t { color: var(--muted); }
+.pzt-how { margin-top: 3px; } .pzt-how summary { cursor: pointer; font: 500 11.5px var(--sans); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; list-style: none; width: max-content; }
+.pzt-how summary::-webkit-details-marker { display: none; } .pzt-how summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
+.pzt-how p { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); max-width: 520px; }
+.pzt-fact { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; margin-top: 12px; margin-bottom: 16px; font-size: 13px; line-height: 1.55; color: var(--text); } .pzt-fact svg { width: 16px; height: 16px; margin-top: 3px; color: var(--muted); } .pzt-fact.quiet { color: var(--muted); }
+.pzt-fact b { font-weight: 700; }
+
+/* the stock page card: the alignment under the two bars */
+.pzt-ra { --t: var(--t-na); grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--border); min-width: 0; }
+.pzt-ra.pos { --t: var(--t-p); } .pzt-ra.mixed { --t: var(--t-n); } .pzt-ra.neg { --t: var(--t-ng); }
+.pzt-ra small { font: 700 10.5px/1.25 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pzt-ra span { font: 700 15px/1.3 var(--sans); color: var(--text); } .pzt-ra i { font-style: normal; font-size: 11px; letter-spacing: -2px; margin-right: 7px; color: var(--t); }
+@media (max-width: 560px) {
+  .pzt-map { border-spacing: 4px; font-size: 11.5px; } .pzt-map thead td { width: 62px; } .pzt-mc { padding: 8px 6px 9px; } .pzt-map th { padding: 2px 3px; }
+  .pzt-bd > summary { padding: 10px 14px; font-size: 14px; gap: 8px; } .pzt-bd > summary > span { flex: 1 1 auto; min-width: 0; } .pzt-bd > summary small { flex: none; margin-left: 0; font-size: 12px; text-align: right; } .pzt-bd > .pzt-sub, .pzt-bd > .pzt-none, .pzt-bd > .pzt-tw, .pzt-bd > .pzt-fact { margin-left: 14px; margin-right: 14px; }
+}
+@media print {
+  .pzt-bd, .pzt-mc { box-shadow: none; background: #fff; break-inside: avoid; }
+}
