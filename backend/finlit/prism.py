@@ -4,6 +4,8 @@
     GET  /api/prism/reports/latest?symbol=TCS&statement=...       the newest stored report for a company, without calculating;
                                                                   add &view=summary for the small card the stock page shows
     POST /api/prism/reports  {"symbol", "statement", "refresh"}   calculate, or reuse a stored report under 6 hours old
+    GET  /api/prism/scores?symbols=TCS,INFY,...                   Gold only: the stored final, four category scores and short/long technical scores
+                                                                  of up to 40 companies at once (the search palette); nothing is calculated
     GET  /api/prism/reports/{id}/pdf                              the PDF of exactly that calculation, while its snapshot lives (30 minutes)
 
 The model runs in the site backend (site-api/backend, POST /api/premium-reports). Those routes are for administrators only, so this module
@@ -50,7 +52,7 @@ from .auth.entitlements import has
 from .auth.routes import IST, NO_STORE, ip_of, pre_session_guard, secure_ctx
 from .auth.service import Ctx, current
 from .premium import gateway_token
-from .technical_wording import relabel_technical
+from .technical_wording import rating_word, relabel_technical
 from .prism_candles import mark_down, supplied_candles
 
 log = logging.getLogger("finlit.prism")
@@ -390,6 +392,53 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     if row is None:
         return _reply({"status": "none", "detail": f"No {PRISM_NAME} report has been calculated for this company yet."}, 404)
     return _reply({"summary": _summary(row)} if view == "summary" else _shape(row, cached=True))
+
+
+SCORES_MAX = 40
+SCORES_MAX_AGE = 60                # seconds a browser may reuse a scores answer
+_PARTS = ("fundamental", "valuation", "quality", "risk")
+
+
+def _num(path: str) -> str:
+    """SQL: the number at a jsonb path of the stored report, or null when it is missing or not a number (no big JSON leaves the database)."""
+    return f"CASE WHEN jsonb_typeof(report #> '{{{path}}}') = 'number' THEN (report #>> '{{{path}}}')::float8 END"
+
+
+_SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, status, generated_at, "
+               + ", ".join(f"{_num('rating,parts,' + k)} AS p_{k}" for k in _PARTS) + ", "
+               + ", ".join(f"{_num('technicalAssessment,' + h + ',score')} AS {h.lower()}_score, report #>> '{{technicalAssessment,{h},rating}}' AS {h.lower()}_rating"
+                           for h in ("shortTerm", "longTerm"))
+               + " FROM prism_reports WHERE symbol = ANY($1::text[]) ORDER BY symbol, (statement = 'consolidated') DESC")
+
+
+def _tech_score(row, horizon: str) -> Dict[str, Any]:
+    score = row[f"{horizon.lower()}_score"]
+    return {"score": score, "word": rating_word(row[f"{horizon.lower()}_rating"], score)}
+
+
+@router.get("/scores")
+async def scores(request: Request, symbols: str = Query("", max_length=1200)) -> JSONResponse:
+    """The stored Prism scores of up to 40 companies, for the search results. Gold members and administrators only (the same rule as the
+    reports); the consolidated report is used, else the standalone one. A company with no stored report is simply absent from `scores`.
+    Technical rating words are the site's descriptive words (never the model's), as in the reports."""
+    ctx = await current(request)
+    if ctx.role != "admin" and not has(ctx.plan, "gold"):
+        detail = f"{PRISM_NAME} is part of the Gold plan." if ctx.authed else f"Sign in with the Gold plan to see {PRISM_NAME}."
+        return _reply({"status": "plan_required", "detail": detail, "plan": "gold"}, 403)
+    wanted = list(dict.fromkeys(s.strip().upper() for s in symbols.split(",") if s.strip()))
+    if not wanted or len(wanted) > SCORES_MAX or not all(SYMBOL.match(s) for s in wanted):
+        return _bad(f"Send between 1 and {SCORES_MAX} company symbols, separated by commas.")
+    rows = await request.app.state.store.pool.fetch(_SCORES_SQL, wanted)
+    out: Dict[str, Any] = {}
+    for r in rows:
+        rated = r["status"] != "NOT RATED" and r["final"] is not None
+        out[r["symbol"]] = {
+            "rated": rated, "final": r["final"] if rated else None, "label": r["label"], "status": r["status"], "statement": r["statement"],
+            "parts": {k: r[f"p_{k}"] for k in _PARTS} if rated else None,       # a company the model did not rate shows no category scores
+            "shortTerm": _tech_score(r, "shortTerm"), "longTerm": _tech_score(r, "longTerm"),
+            "generatedAt": r["generated_at"].isoformat(),
+        }
+    return JSONResponse({"scores": out}, headers={"Cache-Control": f"private, max-age={SCORES_MAX_AGE}", "Vary": "Cookie"})
 
 
 @router.post("/reports")

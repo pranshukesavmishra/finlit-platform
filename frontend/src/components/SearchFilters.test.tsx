@@ -19,6 +19,7 @@ vi.mock("../lib/api", async (orig) => ({
   prefetchStock: () => undefined,
 }));
 vi.mock("../lib/screener", () => ({ useUniverse: () => ({ data: undefined }) }));
+vi.mock("../lib/premium", () => ({ useGold: () => false }));   // the palette shows the Gold Prism scores only to Gold members
 vi.mock("../lib/mycompanies", () => ({ useMyCompanies: () => ({ symbols: [] }) }));
 
 import { FilterNote, SearchFilters } from "./SearchFilters";

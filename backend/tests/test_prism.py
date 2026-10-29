@@ -902,3 +902,48 @@ def test_research_api_wording_files_equal_the_site_api_ones():
     assert mine.relabel_technical(raw) == other.relabel_technical(raw)
     for text in ("Buying and selling volume", "Target price held; stop and exit", "plain text"):
         assert mine.safe_text(text) == other.safe_text(text)
+
+
+# ------------------------------------------------------------------ /api/prism/scores (the Gold search palette)
+async def test_scores_are_gold_only_and_small(env):
+    app, _ = env
+    gold = await member(app, "gold")
+    await generate(gold)
+    for c in (client(app), await member(app, "basic"), await member(app, "silver")):
+        r = await c.get("/api/prism/scores?symbols=TCS")
+        assert r.status_code == 403 and r.json()["status"] == "plan_required" and "scores" not in r.json()
+    assert (await (await member(app, "basic", role="admin")).get("/api/prism/scores?symbols=TCS")).status_code == 200
+    assert (await gold.get("/api/prism/scores?symbols=")).status_code == 422
+    assert (await gold.get("/api/prism/scores?symbols=" + ",".join(f"S{i}" for i in range(41)))).status_code == 422
+    assert (await gold.get("/api/prism/scores?symbols=TCS,bad%20one")).status_code == 422
+
+
+async def test_scores_carry_only_the_needed_fields(env):
+    app, _ = env
+    gold = await member(app, "gold")
+    await generate(gold)
+    r = await gold.get("/api/prism/scores?symbols=tcs,NOSUCH,TCS")
+    assert r.status_code == 200 and r.headers["cache-control"].startswith("private")
+    body = r.json()["scores"]
+    assert list(body) == ["TCS"]                                           # a company with no stored report is absent
+    t = body["TCS"]
+    assert t["rated"] and t["final"] == pytest.approx(SNAPSHOT["rating"]["final"]) and t["status"] == "RATED"
+    assert t["parts"] == {k: pytest.approx(SNAPSHOT["rating"]["parts"][k]) for k in ("fundamental", "valuation", "quality", "risk")}
+    ta = SNAPSHOT["technicalAssessment"]
+    assert t["shortTerm"]["score"] == pytest.approx(ta["shortTerm"]["score"]) and t["longTerm"]["score"] == pytest.approx(ta["longTerm"]["score"])
+    assert t["shortTerm"]["word"] == "Neutral"                              # the model said Hold (-14.8): the site's word is shown, never the model's
+    assert "report" not in t and "financialHistory" not in json.dumps(body)
+
+
+async def test_scores_prefer_consolidated_and_withhold_parts_when_not_rated(env):
+    app, _ = env
+    gold = await member(app, "gold")
+    async with app.state.store.pool.acquire() as conn:
+        for sym, st, final, status in (("AAA", "standalone", 41.0, "RATED"), ("AAA", "consolidated", 77.0, "RATED"), ("BBB", "standalone", None, "NOT RATED")):
+            report = {"rating": {"final": final, "status": status, "parts": {"fundamental": 50, "valuation": 60, "quality": 70, "risk": 80}}}
+            await conn.execute("INSERT INTO prism_reports (symbol, statement, id, report, final, label, status) VALUES ($1,$2,$3,$4::jsonb,$5,'X',$6)",
+                               sym, st, uuid.uuid4().hex, json.dumps(report), final, status)
+    body = (await gold.get("/api/prism/scores?symbols=AAA,BBB")).json()["scores"]
+    assert body["AAA"]["final"] == 77.0 and body["AAA"]["statement"] == "consolidated"
+    assert body["AAA"]["shortTerm"] == {"score": None, "word": "Not available"}      # an older report without the technical view
+    assert body["BBB"]["rated"] is False and body["BBB"]["parts"] is None and body["BBB"]["final"] is None

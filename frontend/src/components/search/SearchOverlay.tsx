@@ -17,6 +17,9 @@ import {
 } from "../../lib/globalSearch";
 import { SearchFilters } from "../SearchFilters";
 import { NO_FILTER, filterNoun, filterOn, filterPhrase, filterStocks, hasFilterData, indexFacets, passes, type StockFilter } from "../../lib/searchFilters";
+import { useGold } from "../../lib/premium";
+import { usePrismScores, type PrismScoreMap } from "../../lib/prismScores";
+import { PrismChips, PrismPreviewScores, stateOf } from "./prismParts";
 import { FlagIN, Hl, Logo, PriceChange, Range52, ScoreRing, Spark } from "./parts";
 import "../../styles/search.css";
 
@@ -32,6 +35,25 @@ function allStocks(rows: readonly SearchRow[] | undefined, q: Map<string, { pric
   const all = (rows || []).filter((r) => !r[0].startsWith("^"));
   const priced = all.filter((r) => q.get(r[0])?.price != null);
   return priced.length >= 4 ? [...priced, ...all.filter((r) => q.get(r[0])?.price == null)] : all;
+}
+
+/** Symbols of the stock rows currently scrolled into view in the list (rows carry data-sym); the first rows until the browser reports. */
+function useVisibleSymbols(list: React.RefObject<HTMLDivElement | null>, items: Item[], on: boolean): string[] {
+  const [seen, setSeen] = useState<string[]>([]);
+  useEffect(() => {
+    const root = list.current;
+    if (!on || !root) { setSeen([]); return; }
+    const syms = items.filter((x) => x.kind === "stock").map((x) => x.sub);
+    if (typeof IntersectionObserver === "undefined") { setSeen(syms.slice(0, 12)); return; }
+    const vis = new Set<string>();
+    const io = new IntersectionObserver((es) => {
+      for (const e of es) { const s = (e.target as HTMLElement).dataset.sym; if (!s) continue; if (e.isIntersecting) vis.add(s); else vis.delete(s); }
+      setSeen([...vis]);
+    }, { root, rootMargin: "120px 0px" });
+    root.querySelectorAll<HTMLElement>("[data-sym]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [list, items, on]);
+  return seen;
 }
 
 function useDebounced<T>(v: T, ms: number): T {
@@ -171,6 +193,11 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const grow = () => { const el = list.current; if (more && el && el.scrollTop + el.clientHeight > el.scrollHeight - 500) setCap((c) => c + 60); };
   const items = useMemo(() => flat(sections), [sections]);
   const cur = items[Math.min(sel, Math.max(0, items.length - 1))];
+  // Gold: the stored Prism scores of the rows on screen (and the highlighted one), asked in batches after a short pause.
+  const gold = useGold();
+  const seen = useVisibleSymbols(list, items, open && gold);
+  const wanted = useMemo(() => (cur?.kind === "stock" ? [...seen, cur.sub] : seen), [seen, cur]);
+  const prism = usePrismScores(wanted, open && gold && tab !== "global");
   const busy = (tab === "all" || tab === "mf") && dq.length >= 2 && mfQ.isFetching || (tab === "all" || tab === "etf") && dq.length >= 2 && etfQ.isFetching || (tab === "all" || tab === "news") && dq.length >= 3 && newsQ.isFetching;
   const waiting = q.trim() !== dq;
 
@@ -247,11 +274,11 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                   {sec.id === "recent" && <button type="button" onClick={() => visits.clear()}>Clear</button>}
                   {sec.more && tab === "all" && <button type="button" onClick={() => setTab(sec.more!.tab)}>{sec.more.label} →</button>}
                 </div>
-                {sec.items.map((it) => { i += 1; const me = i; return <Row key={sec.id + it.key} it={it} q={q.trim()} today={today} id={`gs-o-${me}`} active={me === sel} index={me} best={sec.id === "best"} onHover={() => setSel(me)} onPick={pick} />; })}
+                {sec.items.map((it) => { i += 1; const me = i; return <Row key={sec.id + it.key} it={it} gold={gold} prism={prism} q={q.trim()} today={today} id={`gs-o-${me}`} active={me === sel} index={me} best={sec.id === "best"} onHover={() => setSel(me)} onPick={pick} />; })}
               </div>
             ))}
           </div>
-          {cur && tab !== "global" && <Preview it={cur} today={today} onOpen={() => pick(cur)} />}
+          {cur && tab !== "global" && <Preview it={cur} gold={gold} prism={prism} today={today} onOpen={() => pick(cur)} onClose={onClose} />}
         </div>
         <div className="gs-foot">
           <span className="gs-keys"><kbd>↑</kbd><kbd>↓</kbd> move <kbd>Enter</kbd> open <kbd>Tab</kbd> switch filter <kbd>Esc</kbd> {q ? "clear" : "close"}</span>
@@ -262,9 +289,9 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   );
 }
 
-function Row({ it, q, today, id, active, index, best, onHover, onPick }: { it: Item; q: string; today: string; id: string; active: boolean; index: number; best: boolean; onHover: () => void; onPick: (it: Item, newTab?: boolean) => void }) {
+function Row({ it, gold, prism, q, today, id, active, index, best, onHover, onPick }: { it: Item; gold: boolean; prism: PrismScoreMap; q: string; today: string; id: string; active: boolean; index: number; best: boolean; onHover: () => void; onPick: (it: Item, newTab?: boolean) => void }) {
   return (
-    <div id={id} data-i={index} role="option" aria-selected={active} className={`gs-row k-${it.kind}${active ? " on" : ""}${best ? " best" : ""}`} onMouseMove={active ? undefined : onHover}
+    <div id={id} data-i={index} data-sym={gold && it.kind === "stock" ? it.sub : undefined} role="option" aria-selected={active} className={`gs-row k-${it.kind}${gold && it.kind === "stock" ? " pz" : ""}${active ? " on" : ""}${best ? " best" : ""}`} onMouseMove={active ? undefined : onHover}
       onClick={(e) => onPick(it, e.ctrlKey || e.metaKey)} onAuxClick={(e) => { if (e.button === 1) onPick(it, true); }}>
       <Logo src={it.logo} name={it.title} kind={it.kind} size={best ? 46 : 40} />
       <span className="gs-main">
@@ -277,7 +304,7 @@ function Row({ it, q, today, id, active, index, best, onHover, onPick }: { it: I
         </span>
       </span>
       {it.kind !== "news" && <PriceChange price={it.price} chg={it.chg} date={it.date} today={today} unit={it.kind === "mf" ? "NAV ₹" : "₹"} />}
-      {it.kind === "stock" ? <ScoreRing score={it.score} band={it.band} /> : it.kind !== "news" ? <span className="gs-score gs-none gs-metric">{metricBadge(it)}</span> : null}
+      {it.kind === "stock" ? (gold ? <PrismChips state={stateOf(prism, it.sub)} /> : <ScoreRing score={it.score} band={it.band} />) : it.kind !== "news" ? <span className="gs-score gs-none gs-metric">{metricBadge(it)}</span> : null}
       <span className={`gs-tag t-${it.kind}`}>{it.kind === "news" ? (it.tag || "News") : KIND_LABEL[it.kind]}{it.external && <svg viewBox="0 0 24 24" aria-label="opens the source"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>}</span>
     </div>
   );
@@ -289,7 +316,8 @@ function metricBadge(it: Item) {
   return <><span className={`gs-ring gs-pct ${m.value >= 0 ? "up" : "down"}`}>{m.value < 0 ? MINUS : "+"}{nf(m.value, m.value >= 100 || m.value <= -100 ? 0 : 1)}%</span><span className="gs-band">{m.label}</span></>;
 }
 
-function Preview({ it, today, onOpen }: { it: Item; today: string; onOpen: () => void }) {
+function Preview({ it, gold, prism, today, onOpen, onClose }: { it: Item; gold: boolean; prism: PrismScoreMap; today: string; onOpen: () => void; onClose: () => void }) {
+  const nav = useNavigate();
   const ready = it.kind === "stock" && !!it.ready;
   const s = useSummary(it.sub, ready);
   const sum = ready && s.data && s.data.meta?.symbol === it.sub ? s.data : null;
@@ -303,7 +331,8 @@ function Preview({ it, today, onOpen }: { it: Item; today: string; onOpen: () =>
       {it.kind !== "news" && <div className="gs-pre-px"><PriceChange price={sum?.quote.price ?? it.price} chg={sum?.quote.changePct ?? it.chg} date={it.date} today={today} unit={it.kind === "mf" ? "NAV ₹" : "₹"} /></div>}
       {sum && <Spark values={sum.sparkline.c} up={up} />}
       {sum && <Range52 low={sum.range52.low} high={sum.range52.high} price={sum.quote.price} />}
-      {it.kind === "stock" && (
+      {it.kind === "stock" && gold && <PrismPreviewScores state={stateOf(prism, it.sub)} />}
+      {it.kind === "stock" && !gold && (
         <div className="gs-pre-sc">
           <ScoreRing score={it.score ?? sum?.score.overall} band={it.band ?? (sum?.score.band.key as Item["band"])} size={54} />
           {sum?.score.pillars?.length ? (
@@ -316,6 +345,7 @@ function Preview({ it, today, onOpen }: { it: Item; today: string; onOpen: () =>
       )}
       {it.kind === "news" && <p className="gs-pre-note">{it.meta ? `Source: ${it.meta}. ` : ""}{it.external ? "Opens the original announcement in a new tab." : "Opens the company's report."}</p>}
       <button type="button" className="gs-open" onClick={onOpen}>{it.kind === "news" ? "Open" : it.kind === "stock" ? "Open the full report" : it.kind === "mf" ? "Open the fund" : "Open the ETF"} <span aria-hidden="true">→</span></button>
+      {it.kind === "stock" && gold && <button type="button" className="gs-open gs-open-2" onClick={() => { onClose(); nav(`/prism/${encodeURIComponent(it.sub)}`); }}>Open Prism <span aria-hidden="true">→</span></button>}
       <p className="gs-pre-f">Information only, not advice.</p>
     </aside>
   );
