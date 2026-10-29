@@ -13,3 +13,31 @@
 .dp-find { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; max-width: 80ch; padding: 10px 12px; border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); } .dp-find svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--warn); }
 
 .dp-head { margin: 8px 0 -4px; } .dp-head h3 { display: flex; align-items: center; gap: 10px; font-size: 22px; margin: 0 0 4px; } .dp-head p { margin: 0; font-size: 15px; max-width: 70ch; }
+
+/* Decoding ROE (stock/DecodeRoe.tsx), below the DuPont analysis card */
+.dp-deep { display: grid; gap: 16px; }
+.dp-bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; } .dp-bar .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .dp-bar .seg::-webkit-scrollbar { display: none; } .dp-csv { margin-left: auto; } .dp-comp { height: auto; min-height: 24px; white-space: normal; }
+.dp-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } @media (max-width: 700px) { .dp-sum { grid-template-columns: 1fr; } }
+.dp-stat { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; background: var(--s1); } .dp-stat .k { font-size: 12.5px; color: var(--muted); } .dp-stat small { font-size: 12.5px; color: var(--muted); }
+.dp-badge { font: 600 20px var(--serif); } .dp-badge.off { color: var(--muted); }
+.dp-parts { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; } .dp-parts li { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; font-size: 13px; cursor: help; } .dp-parts li b { font: 600 13px var(--mono); } .dp-parts li small { grid-column: 1 / -1; }
+.dp-chart { width: 100%; } .dp-chart svg { max-width: 100%; height: auto; } .dp-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 0 0; padding: 0; font-size: 12.5px; color: var(--muted); } .dp-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.dp-legend .ln { display: inline-block; width: 26px; height: 3px; border-radius: 2px; } .dp-legend .ln.dot { background: none; height: 0; border-top: 3px dotted currentColor; }
+.dp-t caption { text-align: left; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); caption-side: top; } .dp-t th[scope="row"] { text-align: left; position: sticky; left: 0; background: var(--s1); font: 400 15px var(--sans); letter-spacing: 0; text-transform: none; color: var(--text); vertical-align: top; } .dp-t td.left { text-align: left; white-space: normal; min-width: 200px; font-size: 13px; } .dp-t tr.sub th[scope="row"] { padding-left: 24px; color: var(--muted); font-size: 13px; } .dp-t tr.tot th[scope="row"] { font-weight: 700; }
+.dp-t td { vertical-align: top; } .dp-na { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 1px; color: var(--muted); } .dp-na small { font-size: 10.5px; line-height: 1.2; max-width: 11ch; white-space: normal; text-align: right; color: var(--faint); } .dp-na[tabindex] { cursor: help; border-radius: 4px; } .dp-na[tabindex]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dp-caution { color: var(--warn); } .dp-caution small { color: var(--warn); } .dp-lq { color: var(--warn); font-weight: 600; }
+.dp-hint { min-height: 1.4em; margin: 8px 0 0; font-size: 13px; } .dp-gaps { margin: 6px 0 0; padding-left: 18px; font-size: 13px; max-width: 80ch; color: var(--muted); } .dp-gaps li { margin: 2px 0; }
+.dp-avgs { margin-top: 18px; } .dp-at { max-width: 560px; }
+.dp-flags { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .dp-flags .dp-find { margin: 0; }
+.dp-ins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } @media (max-width: 700px) { .dp-ins { grid-template-columns: 1fr; } }
+.dp-insc { border: 1px solid var(--border); border-left: 3px solid var(--gold); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; } .dp-insc p { margin: 0; } .dp-insc ul { margin: 0; padding-left: 16px; font-size: 12.5px; color: var(--muted); }
+.dp-eq { flex-wrap: wrap; }
+.dp-sliders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 4px 0 12px; } @media (max-width: 700px) { .dp-sliders { grid-template-columns: 1fr; } }
+.dp-sl { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; } .dp-sl label { font-size: 13px; color: var(--muted); } .dp-sl output { font: 600 14px var(--mono); } .dp-sl input { grid-column: 1 / -1; width: 100%; accent-color: var(--gold); } .dp-sl input:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.dp-simout { margin: 6px 0; font-size: 15px; } .dp-simout b { font: 600 20px var(--serif); } .dp-simout small { font-size: 12.5px; color: var(--muted); }
+.dp-need { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); } .dp-need label { font-size: 14px; } .dp-goal { width: 5.5ch; margin: 0 4px; padding: 3px 6px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--s2); color: var(--text); font: 600 14px var(--mono); }
+.dp-how { display: flex; width: 100%; align-items: center; gap: 8px; background: none; border: 0; padding: 0; color: var(--text); font: 600 15px var(--sans); cursor: pointer; text-align: left; } .dp-how svg { width: 16px; height: 16px; color: var(--gold); } .dp-how span:last-child { margin-left: auto; font: 600 18px var(--mono); } .dp-how:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+.dp-howbody { margin-top: 14px; display: grid; gap: 10px; } .dp-pick { font-size: 13.5px; color: var(--muted); } .dp-pick select { margin-left: 8px; padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--s2); color: var(--text); font: inherit; }
+.dp-how-t td, .dp-how-t th { white-space: normal; text-align: left; } .dp-how-t td:last-child { text-align: right; white-space: nowrap; font-weight: 600; } .dp-how-t th[scope="row"] { min-width: 120px; } .dp-how-t td { min-width: 140px; }
+.dp-notes { margin: 0; padding-left: 18px; font-size: 12.5px; max-width: 84ch; } .dp-notes li { margin: 4px 0; }
+.dp-deep .dp-head { margin: 8px 0 -4px; }
