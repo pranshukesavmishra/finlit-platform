@@ -11,6 +11,7 @@ import { Icon } from "../lib/icons";
 import { dateIN } from "../lib/format";
 import { useGold } from "../lib/premium";
 import { Gate, OpenAccess } from "../components/Gate";
+import { bandInk, partHint, scoreBand } from "../lib/scoreBands";
 import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { PrismGlyph } from "../components/prism/shared/PrismGlyph";
 import { LABEL, STATUS, fmtScore, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
@@ -41,9 +42,12 @@ export function partsOf(r: PrismLatest["rating"]): { parts: Part[]; technicalSoo
 function Tiles({ r, example = false }: { r: PrismLatest["rating"]; example?: boolean }) {
   const { parts } = partsOf(r);
   return (
-    <div className="dk-tiles pzs-parts" style={{ "--n": parts.length } as React.CSSProperties} role="group" aria-label={example ? "The four parts of a Prism rating (example numbers)" : "The parts of the Prism rating"}>
-      {parts.map((p, i) => { const [word, tone] = partWord(p.value); return <PartTile key={p.key} name={p.name} value={p.value} word={word} tone={tone as Tone} color={p.color} weight={p.weight} index={i} />; })}
-    </div>
+    <section className="dk-grp fund" aria-label="Fundamental part of the Prism rating">
+      <h4 className="dk-gh"><span>Fundamental</span><small>Higher is better for all four<span className="hide-sm"> (a high Risk score means lower risk)</span></small></h4>
+      <div className="dk-tiles pzs-parts" style={{ "--n": parts.length } as React.CSSProperties} role="group" aria-label={example ? "The four fundamental parts of a Prism rating (example numbers)" : "The fundamental parts of the Prism rating"}>
+        {parts.map((p, i) => { const [word, tone] = partWord(p.value); return <PartTile key={p.key} name={p.name} value={p.value} word={word} tone={tone as Tone} color={p.color} weight={p.weight} index={i} hint={partHint(p.key)} />; })}
+      </div>
+    </section>
   );
 }
 
@@ -97,13 +101,16 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       <div className="dk-row" role="group" aria-label={prismSummary(r)}>
         <PrismGlyph parts={parts.map((p) => ({ key: p.key, name: p.name, weight: p.weight, value: p.value, color: p.color }))} score={rated ? (r.final as number) : null} size={150} />
         <div className="dk-words">
-          <div className="dk-chips"><span className={"dk-st big " + tone}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span>{rated && <span className="dk-sc">{fmtScore(r.final as number)} out of 100</span>}</div>
+          <div className="dk-chips"><span className={"dk-st big " + tone} style={rated ? ({ "--tc": bandInk(scoreBand(r.final)) } as React.CSSProperties) : undefined}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span>{rated && <span className="dk-sc">{fmtScore(r.final as number)} out of 100</span>}</div>
           <p className={"dk-note" + (r.status === "RATED" ? " ok" : "")}>{STATUS_NOTE[r.status]}</p>
           <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
         </div>
       </div>
       <Tiles r={r} />
-      <PrismTechRow report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
+      <section className="dk-grp tech" aria-label="Technical view, separate from the Prism score">
+        <h4 className="dk-gh"><span>Technical</span><small>Separate from the score<span className="hide-sm"> · scale −100 to +100</span></small></h4>
+        <PrismTechRow report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
+      </section>
       <details className="dk-more">
         <summary><span>What supports and weighs on the rating, data date, recalculate</span><Icon name="arrow" className="dk-chev" /></summary>
         <Notes r={rep} symbol={symbol} />

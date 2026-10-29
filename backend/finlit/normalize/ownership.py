@@ -25,10 +25,14 @@ def _quarter_key(label: str):
     return parsed
 
 
-def shareholding(payload: Any, limit: int = 12) -> dict:
+def shareholding(payload: Any, limit: Optional[int] = None) -> dict:
+    """Every quarter the provider reports (FinEdge sends Jun 2016 onwards, about 41 quarters: roughly 5 small series of
+    numbers, ~2 KB, so nothing is dropped). Pass `limit` to keep only the last N quarters."""
     p = payload if isinstance(payload, dict) else {}
     columns = [c for c in (p.get("columns") or []) if _quarter_key(c)]
-    columns = sorted(set(columns), key=_quarter_key)[-max(limit, 5):]
+    columns = sorted(set(columns), key=_quarter_key)
+    if limit:
+        columns = columns[-max(limit, 5):]
     series: Dict[str, List[Optional[float]]] = {b: [None] * len(columns) for b in BUCKETS}
     for row in p.get("rows") or []:
         bucket = CATEGORY_BUCKET.get(str(row.get("catagory") or row.get("category") or "").replace(" ", "").lower())
@@ -53,8 +57,7 @@ def shareholding(payload: Any, limit: int = 12) -> dict:
             "change1yPts": rnd(now - before) if now is not None and before is not None else None,
         })
     latest.sort(key=lambda item: BUCKETS.index(item["key"]))
-    keep = columns[-limit:]
-    offset = len(columns) - len(keep)
+    keep, offset = columns, 0
     return {
         "periods": keep,
         "asOf": columns[-1] if columns else None,

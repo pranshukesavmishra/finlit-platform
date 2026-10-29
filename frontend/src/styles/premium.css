@@ -219,7 +219,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offs
 
 /* section nav: underline tabs, not pills */
 .secnav { box-shadow: none; }
-.secnav a { border-radius: 0; padding: 8px 12px; }
+.secnav a { border-radius: 0; padding: 9px 15px; }
 .secnav a.active { color: var(--text); }
 .secnav .pill { top: auto; bottom: 0; height: 2px; border-radius: 0; background: var(--gold); box-shadow: none; }
 

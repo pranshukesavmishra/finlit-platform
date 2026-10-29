@@ -4,7 +4,8 @@ import { Icon } from "../lib/icons";
 import { BAND_NAME, portfolioInsights, type InsightLine, type ShareNote } from "../lib/portfolioInsights";
 
 /** Plain-language read of the portfolio (equal-weight). Informational only, not investment advice. */
-const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
+import { scoreBand } from "../lib/scoreBands";
+const lvl = scoreBand;   // one colour rule for every score: lib/scoreBands.ts
 const BAND_C: Record<string, string> = { strong: "var(--v-strong)", healthy: "var(--k1)", mixed: "var(--k4)", watch: "var(--v-weak)" };
 
 function Names({ items }: { items: ShareNote[] }) {

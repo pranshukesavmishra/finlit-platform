@@ -2,6 +2,7 @@
 // tick marks at the label thresholds. Used for the five basic pillars and the four Prism parts on the stock page (the technical view is a separate row, not a part), and free for the
 // full Prism page. Colour only decorates: the status word and the number carry the meaning. Styles: styles/dash-shared.css (classes dk-*).
 import type { CSSProperties, ReactNode } from "react";
+import { bandInk, scoreBand, type ScoreBand } from "../../../lib/scoreBands";
 import "../../../styles/dash-shared.css";
 
 export type Tone = "strong" | "healthy" | "mixed" | "weak" | "na";
@@ -33,14 +34,16 @@ export type PartTileProps = {
   /** Override the accessible name. Default: "Name: 74 out of 100, healthy. 40% of the score" / "Name: no data". */
   label?: string;
   ticks?: number[];
+  /** "Higher is better" caption under the name (short), and the full sentence for the tooltip and screen readers (long). */
+  hint?: { short: string; long: string } | null;
 };
 
 const R = 15;
 
 /** The colour band of a score, as the founder set it: green from 70, orange from 50 to under 70, red under 50. Colour decorates the tile; the status word keeps
  *  the model's own labels, and the number says the rest. */
-export type Band = "hi" | "mid" | "lo" | "na";
-export const bandOf = (v: number | null | undefined): Band => (v == null || !Number.isFinite(v) ? "na" : v >= 70 ? "hi" : v >= 50 ? "mid" : "lo");
+export type Band = ScoreBand;
+export const bandOf = scoreBand;
 const BAND_COLOR: Record<Exclude<Band, "na">, string> = { hi: "var(--band-hi)", mid: "var(--band-mid)", lo: "var(--band-lo)" };
 
 const ZONES: Record<number, string[]> = { 3: ["#E8808A", "#D4B26A", "#9BC48A", "#5FB88E"], 4: ["#E8808A", "#E0955F", "#D4B26A", "#9BC48A", "#5FB88E"] };
@@ -54,7 +57,7 @@ export function tileLabel(name: string, value: number | null, word: string, weig
   return value == null ? `${name}: no data` : `${name}: ${Math.round(value)} out of 100, ${word.toLowerCase()}.${weight != null ? ` ${weight}% of the score` : ""}`;
 }
 
-export function PartTile({ name, value, word, tone, color, weight, note, icon, index = 0, onPress, pressed, label, ticks = TICKS }: PartTileProps) {
+export function PartTile({ name, value, word, tone, color, weight, note, icon, index = 0, onPress, pressed, label, ticks = TICKS, hint }: PartTileProps) {
   const v = value == null ? 0 : Math.max(0, Math.min(100, value));
   const band = bandOf(value);
   // Every accent of the tile (tint, border, ring, bar) follows the score band; the corner icon keeps the part's own colour so the parts stay recognisable.
@@ -70,7 +73,8 @@ export function PartTile({ name, value, word, tone, color, weight, note, icon, i
         {icon ? <span className="dk-t-ic" aria-hidden="true">{icon}</span> : weight != null ? <span className="dk-t-w" title={`${weight}% of the score`}>{weight}%</span> : null}
       </span>
       <span className="dk-t-name">{name}</span>
-      <span className={"dk-st " + tone}>{word}</span>
+      {hint && <span className="dk-t-hint" title={hint.long}>{hint.short}</span>}
+      <span className={"dk-st " + tone} style={band === "na" ? undefined : ({ "--tc": bandInk(band) } as CSSProperties)}>{word}</span>
       <span className="dk-bar" aria-hidden="true" style={{ background: zoneBg(ticks) }}>
         <i className="dk-bar-fill" style={{ width: `${v}%` }} />
         {ticks.map((t) => <u key={t} style={{ left: `${t}%` }} />)}
@@ -81,5 +85,5 @@ export function PartTile({ name, value, word, tone, color, weight, note, icon, i
   );
   return onPress
     ? <button type="button" className={cls + " is-btn" + (pressed ? " hot" : "")} style={style} aria-expanded={!!pressed} onClick={onPress}>{inner}</button>
-    : <div className={cls} style={style} role="group" aria-label={label ?? tileLabel(name, value, word, weight)}>{inner}</div>;
+    : <div className={cls} style={style} role="group" title={hint?.long} aria-label={label ?? tileLabel(name, value, word, weight) + (hint ? " " + hint.long : "")}>{inner}</div>;
 }

@@ -14,13 +14,13 @@
 
 /* ---------- tile ---------- */
 .dk-tile { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 8px 8px 9px 9px; border-radius: 14px; overflow: hidden; text-align: left; color: var(--text, #F9F8F5);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--pc) 17%, transparent), rgba(255,255,255,.028) 62%), rgba(255,255,255,.012);
-  border: 1px solid color-mix(in srgb, var(--pc) 30%, rgba(255,255,255,.08));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 10px 24px -18px color-mix(in srgb, var(--pc) 55%, #000);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--pc) 17%, transparent), rgba(var(--dk-w, 255,255,255),.028) 62%), rgba(var(--dk-w, 255,255,255),.012);
+  border: 1px solid color-mix(in srgb, var(--pc) 30%, rgba(var(--dk-w, 255,255,255),.08));
+  box-shadow: inset 0 1px 0 rgba(var(--dk-w, 255,255,255),.07), 0 10px 24px -18px color-mix(in srgb, var(--pc) 55%, #000);
   transition: border-color .18s, box-shadow .18s, transform .18s; }
 .dk-tile::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--pc) 85%, #fff) 50%, transparent); opacity: .55; pointer-events: none; }
 .dk-tile.is-btn { cursor: pointer; }
-.dk-tile.is-btn:hover { border-color: color-mix(in srgb, var(--pc) 70%, transparent); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 14px 30px -18px color-mix(in srgb, var(--pc) 80%, #000); transform: translateY(-1px); }
+.dk-tile.is-btn:hover { border-color: color-mix(in srgb, var(--pc) 70%, transparent); box-shadow: inset 0 1px 0 rgba(var(--dk-w, 255,255,255),.09), 0 14px 30px -18px color-mix(in srgb, var(--pc) 80%, #000); transform: translateY(-1px); }
 .dk-tile.is-btn.hot, .dk-tile.is-btn[aria-expanded="true"] { border-color: var(--pc); box-shadow: 0 0 0 1px var(--pc), 0 14px 30px -18px color-mix(in srgb, var(--pc) 80%, #000); }
 .dk-tile.is-btn:focus-visible { outline: 2px solid #F4EFE3; outline-offset: 2px; }
 .dk-t-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
@@ -31,7 +31,7 @@
 
 .dk-ring { position: relative; width: 38px; height: 38px; flex: none; }
 .dk-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
-.dk-ring-bg { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 4; }
+.dk-ring-bg { fill: none; stroke: rgba(var(--dk-w, 255,255,255),.1); stroke-width: 4; }
 .dk-ring-fg { fill: none; stroke: var(--pc); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--pc) 60%, transparent)); animation: dk-ring 1s cubic-bezier(.16,1,.3,1) calc(.25s + var(--i, 0) * .07s) backwards; }
 .dk-ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 400 15px/1 var(--serif, Georgia, serif); font-variant-numeric: tabular-nums; }
 @keyframes dk-ring { from { stroke-dasharray: 0 100; } }
@@ -40,8 +40,8 @@
 .dk-bar { position: relative; display: block; height: 5px; margin-top: 6px; border-radius: 3px;
   background: linear-gradient(90deg, rgba(232,128,138,.32) 0 35%, rgba(224,149,95,.30) 35% 50%, rgba(212,178,106,.30) 50% 65%, rgba(155,196,138,.30) 65% 80%, rgba(95,184,142,.34) 80%); }
 .dk-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 45%, transparent), var(--pc)); transform-origin: left; animation: dk-grow 1s cubic-bezier(.16,1,.3,1) calc(.3s + var(--i, 0) * .07s) backwards; }
-.dk-bar u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,.55); text-decoration: none; pointer-events: none; }
-.dk-bar em { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #FFF6DC; border: 2px solid var(--pc); box-shadow: 0 0 0 2px rgba(0,0,0,.35); animation: dk-pop .5s ease calc(.9s + var(--i, 0) * .07s) backwards; }
+.dk-bar u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: rgba(var(--dk-w, 255,255,255),.55); text-decoration: none; pointer-events: none; }
+.dk-bar em { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--dk-knob, #FFF6DC); border: 2px solid var(--pc); box-shadow: 0 0 0 2px rgba(0,0,0,.35); animation: dk-pop .5s ease calc(.9s + var(--i, 0) * .07s) backwards; }
 @keyframes dk-grow { from { transform: scaleX(0); } }
 @keyframes dk-pop { from { opacity: 0; transform: scale(.4); } }
 
@@ -49,12 +49,12 @@
 .dk-gl { display: inline-block; flex: none; position: relative; line-height: 0; }
 .dk-gl svg { width: 100%; height: 100%; overflow: visible; }
 .dk-gl-halo { fill: color-mix(in srgb, var(--gold, #D4B26A) 14%, transparent); filter: blur(10px); }
-.dk-gl-tick { stroke: rgba(255,255,255,.2); stroke-width: .8; stroke-linecap: round; } .dk-gl-tick.maj { stroke: rgba(255,255,255,.38); stroke-width: 1.2; }
-.dk-gl-track { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 9; stroke-linecap: round; }
+.dk-gl-tick { stroke: rgba(var(--dk-w, 255,255,255),.2); stroke-width: .8; stroke-linecap: round; } .dk-gl-tick.maj { stroke: rgba(var(--dk-w, 255,255,255),.38); stroke-width: 1.2; }
+.dk-gl-track { fill: none; stroke: rgba(var(--dk-w, 255,255,255),.1); stroke-width: 9; stroke-linecap: round; }
 .dk-gl-fill { fill: none; stroke: var(--pc); stroke-width: 9; stroke-linecap: round; animation: dk-ring 1.1s cubic-bezier(.16,1,.3,1) calc(.2s + var(--i, 0) * .1s) backwards; }
 .dk-gl-fill.glow { opacity: .55; stroke-width: 11; }
-.dk-gl-end { fill: #FFF6DC; animation: dk-pop .4s ease calc(1s + var(--i, 0) * .1s) backwards; }
-.dk-gl-sep { stroke: rgba(10,10,12,.9); stroke-width: 2.4; }
+.dk-gl-end { fill: var(--dk-knob, #FFF6DC); animation: dk-pop .4s ease calc(1s + var(--i, 0) * .1s) backwards; }
+.dk-gl-sep { stroke: var(--dk-sep, rgba(10,10,12,.9)); stroke-width: 2.4; }
 .dk-gl-disc { stroke: var(--gold, #D4B26A); stroke-opacity: .55; stroke-width: 1.2; }
 .dk-gl-ring2 { fill: none; stroke: var(--gold, #D4B26A); stroke-opacity: .22; stroke-width: .8; stroke-dasharray: 1 4; }
 .dk-gl-num { font: 400 33px var(--serif, Georgia, serif); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -67,8 +67,9 @@
 }
 
 /* Score bands: green from 70, orange from 50 to under 70, red under 50. The whole tile (background, border, ring, bar) takes the band's colour so the three read apart at a glance. */
-:root { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; }
+/* --band-*-ink are the same three colours for TEXT on the card (number, word): lighter on the dark card, darker on the paper card, so each keeps AA contrast. */
+:root { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
 .dk-tile.band-hi, .dk-tile.band-mid, .dk-tile.band-lo { border-width: 1.5px; }
-.dk-tile.band-hi  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-hi) 30%, transparent), color-mix(in srgb, var(--band-hi) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-hi) 70%, transparent); }
-.dk-tile.band-mid { background: linear-gradient(160deg, color-mix(in srgb, var(--band-mid) 30%, transparent), color-mix(in srgb, var(--band-mid) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-mid) 70%, transparent); }
-.dk-tile.band-lo  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-lo) 30%, transparent), color-mix(in srgb, var(--band-lo) 9%, transparent) 70%), rgba(255,255,255,.012); border-color: color-mix(in srgb, var(--band-lo) 70%, transparent); }
+.dk-tile.band-hi  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-hi) 30%, transparent), color-mix(in srgb, var(--band-hi) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-hi) 70%, transparent); }
+.dk-tile.band-mid { background: linear-gradient(160deg, color-mix(in srgb, var(--band-mid) 30%, transparent), color-mix(in srgb, var(--band-mid) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-mid) 70%, transparent); }
+.dk-tile.band-lo  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-lo) 30%, transparent), color-mix(in srgb, var(--band-lo) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-lo) 70%, transparent); }

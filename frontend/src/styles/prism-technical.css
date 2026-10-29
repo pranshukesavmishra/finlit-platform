@@ -126,3 +126,4 @@
   .pzt-rn.pzt-rn { grid-row: auto; display: block; font-size: 11px; letter-spacing: .08em; white-space: normal; } .pzt-rn.pzt-rn small { display: inline; } .pzt-rn.pzt-rn small::after { content: " "; }
   .pzt-rv.pzt-rv { justify-content: flex-end; font-size: 15px; } .pzt-rs.pzt-rs { grid-column: 1 / -1; }
 }
+
