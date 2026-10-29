@@ -180,11 +180,14 @@ export function impliedReturn(i: DcfInputs): number | null {
 }
 
 export const STATUS_TEXT: Record<DcfStatus, { label: string; text: string }> = {
-  buy: { label: "Passes margin of safety", text: "The current price is at or below the buy price: a potential buy on these assumptions." },
-  fair: { label: "Fair range", text: "The current price is between the buy price and the intrinsic value." },
-  overvalued: { label: "Above intrinsic value", text: "The current price is above the intrinsic value on these assumptions (overvalued)." },
+  buy: { label: "Price below estimated value", text: "The current price is at or below the buy price (intrinsic value less the margin of safety) on these assumptions (undervalued)." },
+  fair: { label: "Price near estimated value", text: "The current price is between the buy price and the intrinsic value on these assumptions (fairly valued)." },
+  overvalued: { label: "Price above estimated value", text: "The current price is above the intrinsic value on these assumptions (overvalued)." },
   "not-meaningful": { label: "Not meaningful", text: "Equity value is zero or negative in this model, so there is no intrinsic value per share to compare with the price." },
 };
+
+/** Short pill text for the verdict banner. */
+export const STATUS_PILL: Record<DcfStatus, string> = { buy: "Undervalued on this model", fair: "Fairly valued on this model", overvalued: "Overvalued on this model", "not-meaningful": "Not meaningful" };
 
 export type Scenario = { key: "bear" | "base" | "bull"; label: string; probability: number; g1: number; g2: number; r: number };
 /** Bear, base and bull cases: each its own growth and discount rate, the rest shared. The weighted value is Σ pᵢ × IVᵢ (probabilities in %,

@@ -11,3 +11,5 @@
 .dp-tile.up { border-color: color-mix(in srgb, var(--gain) 45%, var(--border)); } .dp-tile.down { border-color: color-mix(in srgb, var(--warn) 50%, var(--border)); }
 .dp-say { margin: 8px 0 0; max-width: 78ch; } .dp-note { font-size: 12.5px; margin: 10px 0 0; max-width: 80ch; } .dp-more { margin-top: 10px; }
 .dp-find { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; max-width: 80ch; padding: 10px 12px; border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); } .dp-find svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--warn); }
+
+.dp-head { margin: 8px 0 -4px; } .dp-head h3 { display: flex; align-items: center; gap: 10px; font-size: 22px; margin: 0 0 4px; } .dp-head p { margin: 0; font-size: 15px; max-width: 70ch; }

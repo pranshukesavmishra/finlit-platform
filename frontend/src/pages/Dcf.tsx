@@ -15,7 +15,7 @@ import { csvText, dateIN, nf } from "../lib/format";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
 import {
-  GROWTH_PRESETS, INDIA_DEFAULTS, MOS_PRESETS, STATUS_TEXT, around, costOfCapital, defaultScenarios, impliedGrowth, impliedReturn, run, scenarios, sensitivity,
+  GROWTH_PRESETS, INDIA_DEFAULTS, MOS_PRESETS, STATUS_PILL, STATUS_TEXT, around, costOfCapital, defaultScenarios, impliedGrowth, impliedReturn, run, scenarios, sensitivity,
   type CostOfCapital, type DcfInputs, type DcfResult, type GrowthPreset, type Issue, type Scenario,
 } from "../lib/dcf";
 import { With3D } from "../charts/With3D";
@@ -431,7 +431,15 @@ export function DcfPage() {
               <div className="dcf-k"><span>Current price</span><b>{rs(inputs.price)}</b><small>{loaded?.priceAsOf && form.symbol === loaded.symbol ? dateIN(loaded.priceAsOf.slice(0, 10)) : "as entered"}</small></div>
               <div className="dcf-k"><span>Upside / downside</span><b className={res.upside >= 0 ? "up" : "down"}>{res.equity > 0 ? sgn(res.upside) : "—"}</b><small>intrinsic value vs price</small></div>
               <div className="dcf-k"><span>Buy price ({nf(inputs.mos, 0)}% margin)</span><b>{res.equity > 0 ? rs(res.buyPrice) : "—"}</b><small>intrinsic value × (1 − margin)</small></div>
-              <div className={"dcf-status st-" + res.status}><b>{STATUS_TEXT[res.status].label}</b><span>{STATUS_TEXT[res.status].text}</span></div>
+              <div className={"dcf-status st-" + res.status} role="status">
+                <span className="dcf-st-ico" aria-hidden="true"><Icon name={res.status === "buy" ? "check" : res.status === "overvalued" ? "alert" : "info"} /></span>
+                <div className="dcf-st-body">
+                  <b>{STATUS_TEXT[res.status].label}</b>
+                  <p>{res.equity > 0 && res.status !== "fair" ? <>Current price is <strong>{nf(Math.abs((inputs.price / res.iv - 1) * 100), 1)}% {inputs.price > res.iv ? "higher" : "lower"}</strong> than estimated intrinsic value under these assumptions.</> : STATUS_TEXT[res.status].text}</p>
+                  {res.equity > 0 && <small>Intrinsic value: {rs(res.iv)} • Current price: {rs(inputs.price)} • {res.upside >= 0 ? "Upside" : "Downside"} to intrinsic value: {nf(Math.abs(res.upside), 1)}%</small>}
+                </div>
+                <span className="dcf-st-pill">{STATUS_PILL[res.status]}</span>
+              </div>
             </section>
 
             {out.warnings.length > 0 && <section className="dcf-warn" aria-label="Checks on these assumptions"><h3><Icon name="info" /> Worth a second look</h3><ul>{out.warnings.map((w) => <li key={w.text}>{w.text}</li>)}</ul></section>}

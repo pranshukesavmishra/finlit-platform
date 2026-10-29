@@ -63,8 +63,14 @@
 .dcf-k b.up { color: var(--gain); } .dcf-k b.down { color: var(--loss); }
 .dcf-k.main { border-width: 2px; }
 .dcf-k.main.st-buy { border-color: var(--gain); } .dcf-k.main.st-overvalued { border-color: var(--loss); } .dcf-k.main.st-fair { border-color: var(--gold); }
-.dcf-status { grid-column: 1 / -1; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; }
-.dcf-status.st-buy { background: var(--gain-soft); } .dcf-status.st-overvalued { background: var(--loss-soft); } .dcf-status.st-fair { background: var(--gold-soft); } .dcf-status.st-not-meaningful { background: var(--s3); }
+.dcf-status { grid-column: 1 / -1; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 16px 20px; border-radius: 14px; border: 1px solid var(--st); background: var(--st-soft); color: var(--ink); }
+.dcf-status.st-buy { --st: var(--gain); --st-soft: var(--gain-soft); } .dcf-status.st-overvalued { --st: var(--loss); --st-soft: var(--loss-soft); } .dcf-status.st-fair { --st: #d9822b; --st-soft: rgba(217,130,43,.13); } .dcf-status.st-not-meaningful { --st: var(--line); --st-soft: var(--s3); }
+.dcf-st-ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--st); color: #fff; flex: none; }
+.dcf-st-ico svg { width: 24px; height: 24px; }
+.dcf-st-body { flex: 1 1 280px; min-width: 0; display: grid; gap: 4px; }
+.dcf-st-body b { font-size: 18px; letter-spacing: .03em; text-transform: uppercase; color: var(--st); }
+.dcf-st-body p { margin: 0; font-size: 15px; } .dcf-st-body small { color: var(--mute, var(--ink)); opacity: .8; font-size: 13px; }
+.dcf-st-pill { padding: 7px 16px; border-radius: 999px; background: var(--st); color: #fff; font-weight: 600; font-size: 13px; white-space: nowrap; }
 
 .dcf-kv { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 14px; font-size: 14px; color: var(--muted); }
 .dcf-kv b { color: var(--text); font-family: var(--mono); font-weight: 500; margin-left: 6px; }

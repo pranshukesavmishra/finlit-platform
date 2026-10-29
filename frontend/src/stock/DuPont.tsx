@@ -33,7 +33,8 @@ export function DuPont({ symbol, periods, rows, lender }: { symbol: string; peri
           {m.findings.map((t, i) => <p className="dp-find" key={i}><Icon name="alert" />{t}</p>)}
         </div>
       )}
-      {years.length >= 1 && years.some((y) => y.roe != null) && (
+      {years.length >= 1 && years.some((y) => y.roe != null) && (<>
+        <div className="dp-head"><h3><span className="ci"><Icon name="layers" /></span>Decoding ROE</h3><p className="faint">Return on equity broken into the three things that drive it: how much profit each ₹100 of sales leaves, how hard the assets work, and how much of the balance sheet is funded by equity.</p></div>
         <div className="card dp-card">
           <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>DuPont analysis<ChartHelp id="dupont" /></h3><span className="s">What drives the return on equity</span></div>
           <p className="dp-eq"><b>ROE</b> = <span>Net profit margin</span> × <span>Asset turnover</span> × <span>Equity multiplier</span></p>
@@ -63,7 +64,7 @@ export function DuPont({ symbol, periods, rows, lender }: { symbol: string; peri
           {d.words.map((t, i) => <p className={i === d.words.length - 1 ? "faint dp-note" : "dp-say"} key={i}>{t}</p>)}
           {flagged.map((y) => <p className="dp-find" key={y.period}><Icon name="alert" /><span><b>{fy(y.period)}:</b> {y.flag}</span></p>)}
           <p className="faint dp-note">Worked out from the company's own statements, using each year-end balance sheet. Net profit is the part that belongs to the company's shareholders. Information only, not investment advice.</p>
-        </div>
+        </div></>
       )}
     </div>
   );
