@@ -183,17 +183,6 @@ function exportCsv(f: Form, rows: (string | number)[][]) {
   URL.revokeObjectURL(a.href);
 }
 
-const FORMULAS: [string, string][] = [
-  ["Basic EPS", "(Net profit − Preference dividends) ÷ Weighted average ordinary shares"],
-  ["Diluted EPS", "Profit attributable to ordinary shareholders ÷ Diluted weighted average shares"],
-  ["Current P/E", "Current share price ÷ EPS"],
-  ["Future EPS", "Current EPS × (1 + g)^n"],
-  ["Implied future price", "Future EPS × Target P/E"],
-  ["Potential price return", "(Future price ÷ Current price − 1) × 100"],
-  ["PEG ratio", "P/E ÷ EPS growth (%)"],
-  ["Growth needed", "((Target price ÷ Target P/E) ÷ EPS)^(1/n) − 1"],
-];
-
 // ------------------------------------------------------------------------------------------------------------- page
 export function EpsCalculatorPage() {
   useDocTitle("EPS calculator", "Earnings per share, P/E and a future-price scenario: basic or diluted EPS, Bear/Base/Bull cases, a sensitivity grid, PEG and the growth a target price needs.");
@@ -373,12 +362,6 @@ export function EpsCalculatorPage() {
           <p className="faint">The link carries your inputs in the address and nothing else.</p>
         </section>
 
-        <section className="card" aria-labelledby="eps-f-h">
-          <h2 id="eps-f-h">Formulas</h2>
-          <div className="eps-tw"><table><caption className="sr-only">Formulas used by the calculator</caption><thead><tr><th scope="col">Measure</th><th scope="col">Formula</th></tr></thead>
-            <tbody>{FORMULAS.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table></div>
-          <p className="faint">g = annual EPS growth, n = number of years. The price is worked from the unrounded EPS; figures are rounded to 2 decimals only for display.</p>
-        </section>
         <p className="faint dcf-disc">Information only, not investment advice. Results are scenarios from the numbers you enter, not forecasts. <Link to="/glossary#earnings-per-share-eps">What is EPS?</Link></p>
       </div>
     </>
