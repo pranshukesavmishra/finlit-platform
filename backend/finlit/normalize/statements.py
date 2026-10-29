@@ -264,7 +264,8 @@ def _equity(r: Row) -> Optional[float]:
     total = to_number(r.get("totalEquity"))
     if total:
         return crore(total - (to_number(r.get("nonControllingInterest")) or 0))
-    banked = sum_present(r.get("capital"), r.get("reserves")) if r.get("capital") is not None else None
+    capital = _first(r, "capital", "equityCapital")      # banks say `capital`, other companies `equityCapital`; the older years often have only these two
+    banked = sum_present(capital, r.get("reserves")) if capital is not None and r.get("reserves") is not None else None
     return crore(banked)
 
 

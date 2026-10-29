@@ -97,3 +97,11 @@ def test_shareholding_keeps_the_providers_whole_history():
     cut = ownership.shareholding(raw, limit=12)
     assert cut["periods"] == full["periods"][-12:] and cut["series"]["promoters"] == full["series"]["promoters"][-12:]
     assert cut["latest"] == full["latest"]
+
+
+def test_equity_falls_back_to_share_capital_plus_reserves_for_older_years():
+    from finlit.normalize import statements as st
+    assert st._equity({"equityCapital": 1_000_000_000, "reserves": 9_000_000_000}) == st.crore(10_000_000_000)
+    assert st._equity({"capital": 1_000_000_000, "reserves": 9_000_000_000}) == st.crore(10_000_000_000)
+    assert st._equity({"equityCapital": 1_000_000_000}) is None          # one half alone is not the total
+    assert st._equity({"totalEquity": 5_000_000_000, "equityCapital": 1, "reserves": 1}) == st.crore(5_000_000_000)
