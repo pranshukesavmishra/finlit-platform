@@ -29,6 +29,7 @@ const PrismPage = lazy(() => import("./pages/Prism").then((m) => ({ default: m.P
 const QueryBuilder = lazy(() => import("./pages/QueryBuilder").then((m) => ({ default: m.QueryBuilder })));
 const BasketsPage = lazy(() => import("./pages/Baskets").then((m) => ({ default: m.BasketsPage })));
 const ScoreScreener = lazy(() => import("./pages/ScoreScreener").then((m) => ({ default: m.ScoreScreener })));
+const AdvancedScoreScreener = lazy(() => import("./pages/AdvancedScoreScreener").then((m) => ({ default: m.AdvancedScoreScreener })));
 const Compare = lazy(() => import("./pages/Compare").then((m) => ({ default: m.Compare })));
 const GraphStudio = lazy(() => import("./pages/GraphStudio").then((m) => ({ default: m.GraphStudio })));
 const AdvancedCharts = lazy(() => import("./pages/AdvancedCharts").then((m) => ({ default: m.AdvancedCharts })));
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="query-builder" element={<QueryBuilder />} />
             <Route path="baskets" element={<BasketsPage />} />
             <Route path="score-screener" element={<ScoreScreener />} />
+            <Route path="advanced-score-screener" element={<AdvancedScoreScreener />} />
             <Route path="premium" element={<PremiumHub />} />
             <Route path="premium/markets" element={<MarketsPage />} />
             <Route path="premium/fundamentals" element={<FundamentalsPage />} />

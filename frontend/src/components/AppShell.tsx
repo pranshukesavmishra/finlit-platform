@@ -83,7 +83,7 @@ export function AppShell() {
               <div id={"sg-" + g.title.replace(/\W+/g, "-")} className="side-gi" hidden={!groupOpen(g) && !collapsed}>
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
-                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l">{i.label}{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
+                  <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l"><span className="side-lt">{i.label}</span>{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}
               </div>

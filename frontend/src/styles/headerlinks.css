@@ -18,6 +18,6 @@
 .side-gn { font-size: 10.5px; color: var(--faint); font-weight: 500; letter-spacing: 0; }
 .side-gc { width: 14px; height: 14px; transition: transform .15s; flex: none; }
 .side-gb[aria-expanded="true"] .side-gc { transform: rotate(180deg); }
-.side-gi { display: grid; gap: 2px; }
+.side-gi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .side-gi[hidden] { display: none; }
 .is-collapsed .side-gn, .is-collapsed .side-gc { display: none; }

@@ -4,6 +4,7 @@
 import { csvText } from "./format";
 import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
+import { BANDS as TREND_EDGES, ratingWord, scoreBand as trendTone } from "./prismTechnical";
 import { LABEL_WORD, LABEL_SLUG, PRISM_LABELS, PRISM_NAMES, PRISM_RANGE_KEYS, isLabel, labelFromSlug, prismRangeValue, hasPrism, type PrismCol, type PrismLabel, type PrismRangeKey } from "./scorePrism";
 
 export type Cap = "Large" | "Mid" | "Small";
@@ -14,6 +15,25 @@ export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
 export type RangeKey = "f" | "t" | "o" | PrismRangeKey;
 export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol;
 export type Range = { min: number | null; max: number | null };
+/** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strongly positive" counted as Positive and "Strongly negative" as Negative. */
+export type TechBand = "pos" | "neutral" | "neg";
+export type TechKey = "st" | "lt";
+export const TECH_KEYS: TechKey[] = ["st", "lt"];
+export const TECH_BAND_ORDER: TechBand[] = ["pos", "neutral", "neg"];
+const sgn = (v: number) => (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v);
+export const TECH_BANDS: Record<TechBand, { label: string; short: string }> = {
+  pos: { label: `Positive (${sgn(TREND_EDGES.positive)} and above)`, short: "Positive" },
+  neutral: { label: `Neutral (above ${sgn(TREND_EDGES.neutral)} up to ${sgn(TREND_EDGES.positive)})`, short: "Neutral" },
+  neg: { label: `Negative (${sgn(TREND_EDGES.neutral)} and below)`, short: "Negative" },
+};
+export const TECH_NAMES: Record<TechKey, string> = { st: "Short-term technical", lt: "Long-term technical" };
+/** The band of a technical score, from the same edges as the Prism card; null when there is no score. */
+export const techBandOf = (score: number | null | undefined): TechBand | null => {
+  const t = trendTone(score ?? null);
+  return t === "na" ? null : t === "strongpos" || t === "pos" ? "pos" : t === "neutral" ? "neutral" : "neg";
+};
+/** The site's descriptive word for a technical score (never the model's own word). */
+export const trendWord = (score: number | null | undefined): string | null => (score == null ? null : ratingWord(null, score).word);
 
 export const CAPS: Cap[] = ["Large", "Mid", "Small"];
 export const BAND_KEYS: BandKey[] = ["f", "t", "q", "g", "p", "b"];
@@ -67,15 +87,16 @@ export type Filters = {
   ranges: Record<RangeKey, Range>;
   labels: PrismLabel[];     // FinLit Prism rating labels (any of these)
   rated: boolean;           // only companies that have a Prism score
+  tech: Record<TechKey, TechBand[]>;   // Prism short-term and long-term technical views (any of these bands)
 };
 export const emptyFilters = (): Filters => ({
   caps: [], sectors: [],
   bands: { f: [], t: [], q: [], g: [], p: [], b: [] },
   ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { min: null, max: null }])) as Filters["ranges"],
-  labels: [], rated: false,
+  labels: [], rated: false, tech: { st: [], lt: [] },
 });
 export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], sectors: [...f.sectors], bands: Object.fromEntries(BAND_KEYS.map((k) => [k, [...f.bands[k]]])) as Filters["bands"],
-  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated });
+  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] } });
 
 export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
 export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max));
@@ -88,6 +109,7 @@ export function passes(r: Item, f: Filters, skip?: "caps" | "sectors"): boolean 
   if (skip !== "sectors" && f.sectors.length && !(r.sector && f.sectors.includes(r.sector))) return false;
   if (f.rated && !hasPrism(r)) return false;
   if (f.labels.length && !(isLabel(r.prism_label) && f.labels.includes(r.prism_label))) return false;
+  if (!TECH_KEYS.every((k) => { const b = techBandOf(r[k === "st" ? "prism_st_score" : "prism_lt_score"]); return !f.tech[k].length || (b != null && f.tech[k].includes(b)); })) return false;
   return BAND_KEYS.every((k) => inBands(bandValue(r, k), f.bands[k])) && RANGE_KEYS.every((k) => inRange(rangeValue(r, k), f.ranges[k]));
 }
 export const applyFilters = (items: Item[], f: Filters) => items.filter((r) => passes(r, f));
@@ -132,26 +154,25 @@ export function withPreset(f: Filters, p: Preset): Filters {
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 export const activePreset = (f: Filters) => PRESETS.find((p) => same(f.bands.f, p.f) && same(f.bands.t, p.t) && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null)?.id ?? null;
 
-/** Views that use the FinLit score and the Prism rating together (Gold). A preset OWNS the Prism score, its four categories, the rating labels, the
- *  "rated only" switch and the FinLit Overall range: choosing it sets those exactly (cleared where it names nothing), every other filter stays. */
-export type PrismPreset = { id: string; label: string; say: string; ranges: Partial<Record<RangeKey, Range>>; labels: PrismLabel[]; rated: boolean };
+/** Views of the advanced screener, built from the Prism parts only. A preset OWNS the Prism score, its four parts, the rating labels, the "rated only"
+ *  switch and the two technical views: choosing it sets those exactly (cleared where it names nothing), every other filter stays. */
+export type PrismPreset = { id: string; label: string; say: string; ranges: Partial<Record<RangeKey, Range>>; labels: PrismLabel[]; rated: boolean; tech?: Partial<Record<TechKey, TechBand[]>> };
 const min = (n: number): Range => ({ min: n, max: null });
 export const PRISM_PRESETS: PrismPreset[] = [
-  { id: "bothscores", label: "FinLit and Prism both strong", say: "FinLit overall 78 or more and a Prism rating of Strong or Healthy.", ranges: { o: min(78) }, labels: ["STRONG", "HEALTHY"], rated: true },
-  { id: "qualityvalue", label: "Quality at a fair valuation", say: "Prism Quality 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zq: min(65), zv: min(50) }, labels: [], rated: true },
-  { id: "steady", label: "Steady and lower risk", say: "Prism Fundamentals 65 or more and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { zf: min(65), zr: min(65) }, labels: [], rated: true },
-  { id: "prismstrong", label: "Prism Strong", say: "A Prism rating of Strong (80 and above).", ranges: {}, labels: ["STRONG"], rated: true },
-  { id: "differ", label: "The two scores differ", say: "FinLit overall 78 or more but a Prism rating of Average, Weak or Poor. Open the report to see why.", ranges: { o: min(78) }, labels: ["AVERAGE", "WEAK", "POOR"], rated: true },
+  { id: "strongsafe", label: "Prism strong and lower risk", say: "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { z: min(80), zr: min(65) }, labels: [], rated: true },
+  { id: "fairvalue", label: "Strong fundamentals at a fair valuation", say: "Prism Fundamentals 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
+  { id: "bothtech", label: "Positive on both technical views", say: "Prism's short-term and long-term technical views are both Positive (above the Neutral band).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
+  { id: "weakvalue", label: "Fundamentals strong but valuation weak", say: "Prism Fundamentals 65 or more but Prism Valuation 50 or less: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50 } }, labels: [], rated: true },
 ];
-const OWNED: RangeKey[] = ["o", ...PRISM_RANGE_KEYS];
+const OWNED: RangeKey[] = [...PRISM_RANGE_KEYS];
 const none = (): Range => ({ min: null, max: null });
 export function withPrismPreset(f: Filters, p: PrismPreset): Filters {
   const n = cloneFilters(f);
   OWNED.forEach((k) => { n.ranges[k] = { ...none(), ...(p.ranges[k] || {}) }; });
-  n.labels = [...p.labels]; n.rated = p.rated;
+  n.labels = [...p.labels]; n.rated = p.rated; n.tech = { st: [...(p.tech?.st ?? [])], lt: [...(p.tech?.lt ?? [])] };
   return n;
 }
-export const activePrismPreset = (f: Filters) => PRISM_PRESETS.find((p) => f.rated === p.rated && same(f.labels, p.labels)
+export const activePrismPreset = (f: Filters) => PRISM_PRESETS.find((p) => f.rated === p.rated && same(f.labels, p.labels) && same(f.tech.st, p.tech?.st ?? []) && same(f.tech.lt, p.tech?.lt ?? [])
   && OWNED.every((k) => { const want = { ...none(), ...(p.ranges[k] || {}) }; return f.ranges[k].min === want.min && f.ranges[k].max === want.max; }))?.id ?? null;
 /** Clearing a Prism preset again removes what it set. */
 export const withoutPrismPreset = (f: Filters): Filters => withPrismPreset(f, { id: "", label: "", say: "", ranges: {}, labels: [], rated: false });
@@ -167,6 +188,7 @@ export function chipsFor(f: Filters): Chip[] {
   BAND_KEYS.forEach((k) => { if (f.bands[k].length) out.push({ id: "band:" + k, label: `${NAMES[k]}: ${BAND_ORDER.filter((b) => f.bands[k].includes(b)).map((b) => BANDS[b].short).join(", ")}` }); });
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null || r.max != null) out.push({ id: "range:" + k, label: `${NAMES[k]}: ${rangeText(r)}` }); });
   if (f.labels.length) out.push({ id: "labels", label: `Prism rating: ${PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_WORD[l]).join(", ")}` });
+  TECH_KEYS.forEach((k) => { if (f.tech[k].length) out.push({ id: "tech:" + k, label: `${TECH_NAMES[k]}: ${TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).map((b) => TECH_BANDS[b].short).join(", ")}` }); });
   if (f.rated) out.push({ id: "rated", label: "Only companies rated by Prism" });
   return out;
 }
@@ -178,6 +200,7 @@ export function removeChip(f: Filters, id: string): Filters {
   else if (id.startsWith("range:")) n.ranges[id.slice(6) as RangeKey] = { min: null, max: null };
   else if (id === "labels") n.labels = [];
   else if (id === "rated") n.rated = false;
+  else if (id.startsWith("tech:")) n.tech[id.slice(5) as TechKey] = [];
   return n;
 }
 
@@ -244,22 +267,35 @@ export const SORT_KEYS: SortKey[] = ["name", "price", "market_cap", "sector", "f
   "prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"];
 const num = (s: string | null) => { if (s == null || s.trim() === "") return null; const n = Number(s); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null; };
 const parseBands = (s: string | null): Band[] => BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
+const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
+/** Which page reads the address: the Basic score screener (FinLit score only), the Advanced one (Prism only), or both (the pure logic and its tests). */
+export type Scope = "all" | "basic" | "advanced";
+const FINLIT_SORT: SortKey[] = ["f", "t", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance"];
+const PRISM_SORT: SortKey[] = ["prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"];
+const PRISM_PARAMS = [...PRISM_RANGE_KEYS.flatMap((k) => [k + "min", k + "max"]), "pl", "rated", "st", "lt"];
+/** True when an address carries anything the Advanced screener owns (a Prism filter, or a sort on a Prism column): old shared links of the single page. */
+export const hasPrismParams = (p: URLSearchParams) => PRISM_PARAMS.some((k) => p.has(k)) || PRISM_SORT.some((k) => p.get("sort") === k);
 
 /** Reads the address. Unknown or broken values are ignored, so a hand-edited link never breaks the page. Old links (?cap=Large&sector=X&f=high) still work. */
-export function parseState(p: URLSearchParams): State {
+export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
   const f = emptyFilters();
   const caps = (p.get("cap") || "").split(",");
   f.caps = CAPS.filter((c) => caps.includes(c));
   f.sectors = [...new Set(p.getAll("sector").filter(Boolean))];
-  BAND_KEYS.forEach((k) => { f.bands[k] = parseBands(p.get(k)); });
+  const finlit = scope !== "advanced", prism = scope !== "basic";
+  BAND_KEYS.forEach((k) => { f.bands[k] = finlit ? parseBands(p.get(k)) : []; });
   RANGE_KEYS.forEach((k) => {
+    if (!(PRISM_RANGE_KEYS as string[]).includes(k) ? !finlit : !prism) return;
     let min = num(p.get(k + "min")), max = num(p.get(k + "max"));
     if (min != null && max != null && min > max) [min, max] = [max, min];
     f.ranges[k] = { min, max };
   });
-  f.labels = (p.get("pl") || "").split(",").map(labelFromSlug).filter((l): l is PrismLabel => !!l).sort((a, b) => PRISM_LABELS.indexOf(a) - PRISM_LABELS.indexOf(b));
-  f.rated = p.get("rated") === "1";
-  const key = SORT_KEYS.find((k) => k === p.get("sort"));
+  if (prism) {
+    f.labels = (p.get("pl") || "").split(",").map(labelFromSlug).filter((l): l is PrismLabel => !!l).sort((a, b) => PRISM_LABELS.indexOf(a) - PRISM_LABELS.indexOf(b));
+    f.rated = p.get("rated") === "1";
+    f.tech = { st: parseTech(p.get("st")), lt: parseTech(p.get("lt")) };
+  }
+  const key = SORT_KEYS.find((k) => k === p.get("sort") && !(scope === "basic" && PRISM_SORT.includes(k)) && !(scope === "advanced" && FINLIT_SORT.includes(k)));
   const sort: Sort = key ? { key, dir: p.get("dir") === "asc" ? 1 : p.get("dir") === "desc" ? -1 : firstDir(key) } : DEFAULT_SORT;
   const size = PAGE_SIZES.find((n) => n === Number(p.get("size"))) ?? 10;
   const page = Math.max(0, (Math.floor(Number(p.get("page"))) || 1) - 1);
@@ -273,6 +309,7 @@ export function serializeState(s: State): URLSearchParams {
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + "max", String(r.max)); });
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");
+  TECH_KEYS.forEach((k) => { if (f.tech[k].length) p.set(k, TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).join(",")); });
   if (s.sort.key !== DEFAULT_SORT.key || s.sort.dir !== DEFAULT_SORT.dir) { p.set("sort", s.sort.key); p.set("dir", s.sort.dir === 1 ? "asc" : "desc"); }
   if (s.size !== 10) p.set("size", String(s.size));
   if (s.page > 0) p.set("page", String(s.page + 1));
@@ -289,26 +326,28 @@ export function describeFilters(f: Filters): string[] {
   return c.length ? c.map((x) => x.label) : ["None (all companies)"];
 }
 /** Rows as CSV with a commented header (filters, sort, data date, what a blank means). A missing value is a blank cell, never 0.
- *  `prism` adds the FinLit Prism columns (Gold); a plan without them gets the original columns and a line saying why. */
-export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; prism?: boolean; prismAsOf?: string | null }): string {
+ *  `mode` "basic" is the FinLit score columns (Silver); "advanced" is the FinLit Prism columns only (Gold), with the technical views in the site's descriptive words. */
+export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; mode?: "basic" | "advanced"; prismAsOf?: string | null }): string {
+  const adv = o.mode === "advanced";
   const head = [
-    "# FinLit Score screener export",
+    adv ? "# FinLit Advanced score screener export (FinLit Prism)" : "# FinLit Basic score screener export",
     `# Exported on: ${o.exportedOn}`,
-    `# Scores computed on: ${o.asOf ?? "date not available"}`,
+    adv ? `# Prism ratings as of: ${o.prismAsOf ?? "date not available"}` : `# Scores computed on: ${o.asOf ?? "date not available"}`,
     `# Rows: ${rows.length} (${o.scope === "selected" ? "selected rows only" : "all filtered rows"}; ${o.total} companies match the filters)`,
     ...describeFilters(o.filters).map((x, i) => `# ${i === 0 ? "Filters: " : "         "}${x}`),
     `# Sorted by: ${o.sort.key} ${o.sort.dir === 1 ? "ascending" : "descending"}`,
-    "# Blank cell = not available (not scored, not enough data, not rated yet, or not in your plan). It is never zero.",
-    "# Fundamental = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score.",
-    ...(o.prism ? [`# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Fundamentals, Valuation, Quality and Risk are its four parts (a higher Risk score means lower risk). Ratings as of: ${o.prismAsOf ?? "date not available"}.`,
-      "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word."] : ["# FinLit Prism columns are part of the Gold plan and are not in this file."]),
+    `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
+    ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Fundamentals, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
+      "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word."]
+      : ["# Fundamental = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];
-  const cols = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)", "Fundamental", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall",
-    ...(o.prism ? ["Prism", "Prism label", "Prism status", "Prism Fundamentals", "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"] : [])];
-  const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap), n(r.f),
-    n(r.pillar_quality), n(r.pillar_growth), n(r.pillar_profitability), n(r.pillar_balance), n(r.t), n(r.overall),
-    ...(o.prism ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
-      csvText(r.prism_st ?? ""), n(r.prism_st_score), csvText(r.prism_lt ?? ""), n(r.prism_lt_score), r.prism_at ?? ""] : [])].map(cell).join(","));
+  const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
+  const cols = adv ? [...base, "Prism", "Prism label", "Prism status", "Prism Fundamentals", "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
+    : [...base, "Fundamental", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
+  const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
+    ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
+      csvText(trendWord(r.prism_st_score) ?? ""), n(r.prism_st_score), csvText(trendWord(r.prism_lt_score) ?? ""), n(r.prism_lt_score), r.prism_at ?? ""]
+      : [n(r.f), n(r.pillar_quality), n(r.pillar_growth), n(r.pillar_profitability), n(r.pillar_balance), n(r.t), n(r.overall)])].map(cell).join(","));
   return [...head, cols.join(","), ...lines].join("\r\n") + "\r\n";
 }

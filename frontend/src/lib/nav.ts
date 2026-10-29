@@ -19,7 +19,8 @@ export const SECTIONS: NavSection[] = [
   { id: "research", label: "Research", wide: true, groups: [
     { title: "Find stocks", items: [
       i("/screener", "Stock screener", "Filter every listed company by size, valuation, growth and debt", "table"),
-      i("/score-screener", "Advanced score screener", "Every listed company with its FinLit score and FinLit Prism rating, filtered by size, sector and both scores", "quality"),
+      i("/score-screener", "Basic score screener", "Every listed company with its FinLit score, filtered by size, sector and score", "quality"),
+      i("/advanced-score-screener", "Advanced score screener", "Every listed company with its FinLit Prism rating: four fundamental parts and two technical views", "layers", { gold: true }),
       i("/query-builder", "Query builder", "Type a rule like P/E < 15, get the companies; save baskets", "notes"),
     ] },
     { title: "Analyse a company", items: [

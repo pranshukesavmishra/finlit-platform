@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
+import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, hasPrismParams, techBandOf, trendWord, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
 import { PRESETS, applyFilters, activePreset, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
   summarize, toCsv, validate, withPreset, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
 import type { Row } from "./screener";
@@ -293,26 +293,81 @@ describe("Prism sorting", () => {
   });
 });
 
-describe("Prism presets", () => {
-  const items = [pr("A", 70, "HEALTHY", { prism_quality: 80, prism_valuation: 55, overall: 80 }), pr("B", 70, "HEALTHY", { prism_quality: 80, prism_valuation: 40, overall: 60 }),
-    pr("C", 50, "AVERAGE", { prism_quality: 90, prism_valuation: 60, overall: 85 }), pr("D", null, null, { overall: 90 })];
+describe("Prism presets (advanced screener: Prism parts only)", () => {
+  const items = [
+    pr("A", 85, "STRONG", { prism_fundamental: 80, prism_valuation: 55, prism_risk: 70, prism_st_score: 30, prism_lt_score: 25 }),
+    pr("B", 85, "STRONG", { prism_fundamental: 80, prism_valuation: 40, prism_risk: 50, prism_st_score: 30, prism_lt_score: 10 }),
+    pr("C", 60, "AVERAGE", { prism_fundamental: 66, prism_valuation: 60, prism_risk: 90, prism_st_score: 5, prism_lt_score: 45 }),
+    pr("D", null, null, {})];
   const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
-  it("Quality at a fair valuation uses the Quality and Valuation parts", () => expect(run("qualityvalue")).toEqual(["A", "C"]));
-  it("FinLit and Prism both strong needs FinLit 78+ and a Strong or Healthy rating", () => expect(run("bothscores")).toEqual(["A"]));
-  it("the two scores differ: FinLit 78+ but Prism Average, Weak or Poor, and only where Prism rated", () => expect(run("differ")).toEqual(["C"]));
-  it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
-    const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"];
-    const n = withPrismPreset(f, PRISM_PRESETS[1]);
-    expect(n.sectors).toEqual(["IT"]); expect(n.ranges.z).toEqual({ min: null, max: null }); expect(n.labels).toEqual([]);
-    expect(activePrismPreset(n)).toBe("qualityvalue"); expect(activePrismPreset(emptyFilters())).toBeNull();
-    const off = withoutPrismPreset(n);
-    expect(activePrismPreset(off)).toBeNull(); expect(chipsFor(off).map((c) => c.id)).toEqual(["sector:IT"]);
+  it("has the four views, none of them using the FinLit score", () => {
+    expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong fundamentals at a fair valuation", "Positive on both technical views", "Fundamentals strong but valuation weak"]);
+    PRISM_PRESETS.forEach((p) => expect(Object.keys(p.ranges).every((k) => ["z", "zf", "zv", "zq", "zr"].includes(k))).toBe(true));
   });
-  it("the Prism presets leave the FinLit Fundamental and Technical bands alone and use no advice wording", () => {
-    const f = emptyFilters(); f.bands.f = ["high"];
-    expect(withPrismPreset(f, PRISM_PRESETS[0]).bands.f).toEqual(["high"]);
+  it("Prism strong and lower risk: Prism 80+ and Risk 65+", () => expect(run("strongsafe")).toEqual(["A"]));
+  it("Strong fundamentals at a fair valuation: Fundamentals 65+ and Valuation 50+", () => expect(run("fairvalue")).toEqual(["A", "C"]));
+  it("Positive on both technical views: both scores at +20 or more", () => expect(run("bothtech")).toEqual(["A"]));   // B long term +10 is Neutral; C short term +5 is Neutral
+  it("Fundamentals strong but valuation weak: Fundamentals 65+ and Valuation 50 or less", () => expect(run("weakvalue")).toEqual(["B"]));
+  it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
+    const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"]; f.tech.st = ["neg"]; f.ranges.o = { min: 50, max: null };
+    const n = withPrismPreset(f, PRISM_PRESETS[1]);
+    expect(n.sectors).toEqual(["IT"]); expect(n.ranges.z).toEqual({ min: null, max: null }); expect(n.labels).toEqual([]); expect(n.tech).toEqual({ st: [], lt: [] });
+    expect(n.ranges.o).toEqual({ min: 50, max: null });
+    expect(activePrismPreset(n)).toBe("fairvalue"); expect(activePrismPreset(emptyFilters())).toBeNull();
+    const t = withPrismPreset(emptyFilters(), PRISM_PRESETS[2]);
+    expect(t.tech).toEqual({ st: ["pos"], lt: ["pos"] }); expect(activePrismPreset(t)).toBe("bothtech");
+    const off = withoutPrismPreset(n);
+    expect(activePrismPreset(off)).toBeNull(); expect(chipsFor(off).map((c) => c.id)).toEqual(["sector:IT", "range:o"]);
+  });
+  it("uses no advice wording", () => {
     const text = PRISM_PRESETS.map((p) => p.label + " " + p.say).join(" ").toLowerCase();
     expect(text).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/);
+  });
+});
+
+describe("technical view bands", () => {
+  it("use the Prism card's edges: +20 and above Positive (strongly positive included), above -20 Neutral, -20 and below Negative", () => {
+    expect([100, 50, 20, 19.9, 0, -19.9, -20, -50, -100].map(techBandOf)).toEqual(["pos", "pos", "pos", "neutral", "neutral", "neutral", "neg", "neg", "neg"]);
+    expect(techBandOf(null)).toBeNull(); expect(techBandOf(undefined)).toBeNull();
+  });
+  it("filter by band on either view; a missing score never passes; bands are OR within a view and AND across the two", () => {
+    const x = [pr("A", 80, "STRONG", { prism_st_score: 30, prism_lt_score: -30 }), pr("B", 80, "STRONG", { prism_st_score: 0, prism_lt_score: 0 }), pr("C", 80, "STRONG", { prism_st_score: null, prism_lt_score: null }), pr("D", null, null)];
+    const f = emptyFilters(); f.tech.st = ["pos", "neutral"];
+    expect(syms(applyFilters(x, f))).toEqual(["A", "B"]);
+    f.tech.lt = ["neg"]; expect(syms(applyFilters(x, f))).toEqual(["A"]);
+  });
+  it("words come from the score (the site's descriptive words), whatever the model said", () => {
+    expect(trendWord(22.5)).toBe("Positive"); expect(trendWord(-60)).toBe("Strongly negative"); expect(trendWord(null)).toBeNull();
+  });
+  it("chips, address and removal", () => {
+    const f = emptyFilters(); f.tech.st = ["neg", "pos"]; f.tech.lt = ["neutral"];
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Short-term technical: Positive, Negative", "Long-term technical: Neutral"]);
+    const qs = serializeState({ filters: f, sort: DEFAULT_SORT, size: 10, page: 0 }).toString();
+    expect(qs).toBe("st=pos%2Cneg&lt=neutral");
+    expect(parseState(new URLSearchParams(qs)).filters.tech).toEqual({ st: ["pos", "neg"], lt: ["neutral"] });
+    expect(parseState(new URLSearchParams("st=bogus&lt=")).filters.tech).toEqual({ st: [], lt: [] });
+    expect(removeChip(f, "tech:st").tech).toEqual({ st: [], lt: ["neutral"] });
+  });
+});
+
+describe("one address, two pages", () => {
+  const qs = "cap=Large&f=high&t=mid&omin=70&zmin=60&zrmin=50&pl=strong&rated=1&st=pos&lt=neg&sort=prism_final";
+  it("the basic page reads only the FinLit score and ignores Prism parts and a Prism sort", () => {
+    const b = parseState(new URLSearchParams(qs), "basic");
+    expect(b.filters.bands.f).toEqual(["high"]); expect(b.filters.ranges.o.min).toBe(70); expect(b.filters.caps).toEqual(["Large"]);
+    expect(b.filters.ranges.z).toEqual({ min: null, max: null }); expect(b.filters.labels).toEqual([]); expect(b.filters.rated).toBe(false); expect(b.filters.tech).toEqual({ st: [], lt: [] });
+    expect(b.sort).toEqual(DEFAULT_SORT);
+  });
+  it("the advanced page reads only the Prism filters and ignores FinLit bands, ranges and sorts", () => {
+    const a = parseState(new URLSearchParams(qs), "advanced");
+    expect(a.filters.bands.f).toEqual([]); expect(a.filters.ranges.o).toEqual({ min: null, max: null }); expect(a.filters.caps).toEqual(["Large"]);
+    expect(a.filters.ranges.z.min).toBe(60); expect(a.filters.labels).toEqual(["STRONG"]); expect(a.filters.rated).toBe(true); expect(a.filters.tech).toEqual({ st: ["pos"], lt: ["neg"] });
+    expect(a.sort.key).toBe("prism_final");
+    expect(parseState(new URLSearchParams("sort=overall"), "advanced").sort).toEqual(DEFAULT_SORT);
+  });
+  it("tells an old shared link that carries Prism filters (or a Prism sort) from a FinLit-only one", () => {
+    for (const q of ["zmin=60", "zfmax=80", "pl=strong", "rated=1", "st=pos", "lt=neg", "sort=prism_risk", "f=high&zvmin=5"]) expect(hasPrismParams(new URLSearchParams(q)), q).toBe(true);
+    for (const q of ["", "f=high&t=mid&omin=70", "cap=Large&sector=IT&sort=overall&dir=desc&size=20&page=2"]) expect(hasPrismParams(new URLSearchParams(q)), q).toBe(false);
   });
 });
 
@@ -339,16 +394,20 @@ describe("Prism chips, address and summary", () => {
 
 describe("Prism CSV", () => {
   const o = { filters: emptyFilters(), sort: DEFAULT_SORT, scope: "filtered" as const, total: 3, asOf: "2026-10-26", exportedOn: "2026-10-29" };
-  it("Gold gets the Prism columns with words, blanks (never 0) and the ratings date; other plans keep the original columns and are told why", () => {
-    const rows = [pr("S", 85.4, "STRONG", { prism_status: "RATED", prism_st: "Positive", prism_lt: "Neutral", prism_at: "2026-10-27", prism_st_score: 22.5, prism_lt_score: -4 }), pr("X", null, null)];
-    const gold = toCsv(rows, { ...o, prism: true, prismAsOf: "2026-10-27" }).split("\r\n");
-    const head = gold.findIndex((l) => l.startsWith("Symbol,"));
-    expect(gold[head]).toMatch(/,Overall,Prism,Prism label,Prism status,Prism Fundamentals,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on$/);
-    expect(gold[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
-    expect(gold[head + 2]).toMatch(/,60,,,,,,,,,,,,$/);
-    expect(gold.join("\n")).toMatch(/Ratings as of: 2026-10-27/);
-    const silver = toCsv(rows, o);
-    expect(silver).not.toMatch(/Prism label/); expect(silver).toMatch(/FinLit Prism columns are part of the Gold plan/);
+  const rows = [pr("S", 85.4, "STRONG", { prism_status: "RATED", prism_st: "Buy", prism_lt: "Hold", prism_at: "2026-10-27", prism_st_score: 22.5, prism_lt_score: -4 }), pr("X", null, null)];
+  it("advanced: only the Prism columns, words from the scores (never the model's), blanks (never 0) and the ratings date", () => {
+    const lines = toCsv(rows, { ...o, mode: "advanced", prismAsOf: "2026-10-27" }).split("\r\n");
+    const head = lines.findIndex((l) => l.startsWith("Symbol,"));
+    expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Fundamentals,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
+    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
+    expect(lines[head + 2]).toMatch(/,,,,,,,,,,,,$/);
+    const all = lines.join("\n");
+    expect(all).toMatch(/Prism ratings as of: 2026-10-27/); expect(all).not.toMatch(/Fundamental,Quality|Overall|\bBuy\b|\bHold\b/);
+  });
+  it("basic: only the FinLit score columns and no Prism column at all", () => {
+    const csv = toCsv(rows, { ...o, mode: "basic" });
+    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Fundamental,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
+    expect(csv).not.toMatch(/Prism/i);
   });
 });
 

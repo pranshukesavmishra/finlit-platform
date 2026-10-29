@@ -37,6 +37,10 @@ Fonts are bundled with the site (`@fontsource`), so no request goes to Google Fo
 - **Saved-screen emails** use the same rules and only mail filters the member's plan includes.
 - The static demo (`VITE_DEMO=1`) keeps the small client-side screener (`ScreenerLite`); the live site uses `ScreenerPro`.
 
-## Score screener (advanced)
+## Two score screeners
+
+There are two pages, one model each. The **Basic score screener** (`/score-screener`, Silver) is the FinLit score only. The **Advanced score screener** (`/advanced-score-screener`, Gold only) is FinLit Prism only: the Prism score with its rating word, the four fundamental parts (Fundamentals, Valuation, Quality, Risk; each 0 to 100, a high Risk score means lower risk) and the short-term and long-term technical views (-100 to +100, shown in the site's descriptive words, filtered as Positive / Neutral / Negative with the Prism card's bands). A plan below Gold sees an upgrade page with a static, labelled example, and the page never requests `/api/screener/universe` for it (the server also removes every Prism field below Gold: `redact_universe`). Old `/score-screener` links that carry Prism parameters (`z*min`, `z*max`, `pl`, `rated`, `st`, `lt`, or a `sort=prism_*`) are redirected, parameters unchanged, to the Advanced page. Shared code: `frontend/src/components/screener/` (state hook, frame, cells, controls) and `frontend/src/lib/scoreScreen.ts`.
+
+## Basic score screener
 
 `/score-screener` filters the whole company universe by size (SEBI buckets: top 100 Large, next 150 Mid, rest Small), sector (multi-select), and the FinLit Fundamental, Technical, Overall and four pillar scores, by band or exact min-max. Definitions are unchanged: Fundamental = rounded average of the four business pillars (needs 3 of 4), Technical = the technical pillar, Overall = the stored FinLit overall. Missing values show a dash with a reason and never pass a score filter. Score bands stay a Silver feature. Logic lives in `frontend/src/lib/scoreScreen.ts` (tested); the whole state is in the URL; CSV export lists the filters and data date in its header. `/api/screener/universe` now also returns `as_of`, the day the newest score was computed.
