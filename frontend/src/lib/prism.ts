@@ -346,7 +346,7 @@ export function prismProblem(err: unknown, now = Date.now()): Problem {
   const detail = e?.body.detail;
   if (status === 401 || status === 403) return { kind: "locked", title: `${PRISM_NAME} is part of Gold`, text: "Sign in with a Gold plan to open and calculate Prism ratings." };
   if (status === 404) return { kind: "missing", title: "We could not find this company", text: "Check the symbol, or choose the company from the search box." };
-  if (status === 410) return { kind: "expired", title: "The PDF window has passed", text: "The PDF of a calculation can be downloaded for 30 minutes. Recalculate to download a fresh PDF." };
+  if (status === 410) return { kind: "expired", title: "This PDF is not available", text: "The PDF of this report could not be found. Recalculate to create a fresh report, then download it." };
   if (status === 422) return { kind: "invalid", title: "That request was not accepted", text: detail || "Choose a listed company and a statement basis, then try again." };
   if (status === 429 && e?.body.status === "busy") {
     const secs = e.body.retryAfter || 30;

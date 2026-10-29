@@ -29,6 +29,16 @@ def test_inline_generation_and_pdf_survive_another_instance_without_jobs(monkeyp
     assert server._premium_jobs=={}
 
 
+def test_stored_report_pdf_renders_from_the_reader_view_at_any_time(monkeypatch, example):
+    report=sample_report(example)
+    stored={k:v for k,v in report.items() if k not in('calculationTrace','inputs','inputHash')}
+    stored['financialHistory']={k:(report.get('calculationTrace') or {}).get(k) or [] for k in('quarterly','annual','latest')}
+    assert asgi_request(server.app,'POST','/api/premium-reports/pdf-stored',{'report':stored})[0]==401
+    status,body=asgi_request(server.app,'POST','/api/premium-reports/pdf-stored',{'report':stored},auth())
+    assert status==200 and body.startswith(b'%PDF')
+    assert asgi_request(server.app,'POST','/api/premium-reports/pdf-stored',{'report':{'state':'ready'}},auth())[0]==400
+
+
 def test_snapshot_rejects_changes_expiry_different_admin_and_wrong_token_purpose():
     secret='test-snapshot-secret-with-over-32-bytes'
     signed=premium_snapshot.issue({'id':'a'*32,'state':'ready','rating':{'final':50.0}},'admin',secret)

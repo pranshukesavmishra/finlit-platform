@@ -2,7 +2,7 @@
 // and a score scale with the label thresholds. Status is always written in words next to any colour.
 import { Icon } from "../../../lib/icons";
 import {
-  PRISM_NAME, PRISM_NOTE, completenessNote, notRatedReason, ringWhy, STATUS_TEXT, STATUS_WORD, isRated, labelTone, partInfo, partShare, pctWhole, pdfOpen, ringSentence, score1, statementWord,
+  PRISM_NAME, PRISM_NOTE, completenessNote, notRatedReason, ringWhy, STATUS_TEXT, STATUS_WORD, isRated, labelTone, partInfo, partShare, pctWhole, ringSentence, score1, statementWord,
   type PrismRating, type PrismReport,
 } from "../../../lib/prism";
 import { THRESHOLDS, arcSegments, partVar } from "../../../lib/prismReport";
@@ -15,9 +15,6 @@ export const istTime = (iso: string | null | undefined, withDate = true) => {
 
 export type ReportActions = {
   onRecalculate?: () => void; recalculating?: boolean;
-  onDownload?: () => void; downloading?: boolean;
-  /** Set once the server said the PDF window has passed (410). */
-  pdfExpired?: boolean;
 };
 
 export function StatusChip({ status }: { status: PrismReport["rating"]["status"] }) {
@@ -96,7 +93,6 @@ export function ScoreScale({ rating }: { rating: Pick<PrismRating, "status" | "f
 
 export function Hero({ report, actions }: { report: PrismReport; actions: ReportActions }) {
   const { rating, company } = report;
-  const open = pdfOpen(report) && !actions.pdfExpired;
   return (
     <section className="pzr-hero" aria-label={`${PRISM_NAME} rating for ${company.name}`}>
       <div className="pzr-hero-in">
@@ -115,10 +111,7 @@ export function Hero({ report, actions }: { report: PrismReport; actions: Report
           <p className="pzr-cov"><Icon name="quality" /><span><b>{pctWhole(rating.confidence)} of inputs available</b>, and {rating.judgedQuarters} of 10 comparable quarters.</span></p>
           <p className="pzr-cov-n">This is completeness of the data behind the score. It is not a probability and does not predict returns.{completenessNote(rating) ? " " + completenessNote(rating) : ""}</p>
           <div className="pzr-acts pzr-noprint">
-            {open
-              ? <button type="button" className="btn primary" onClick={actions.onDownload} disabled={actions.downloading}><Icon name="download" />{actions.downloading ? "Preparing PDF…" : "Download PDF"}</button>
-              : <button type="button" className="btn" disabled title="The PDF window for this calculation has passed"><Icon name="download" />PDF window passed</button>}
-            <button type="button" className={"btn" + (open ? "" : " primary")} onClick={actions.onRecalculate} disabled={actions.recalculating}><Icon name="refresh" />{actions.recalculating ? "Recalculating…" : "Recalculate"}</button>
+            <button type="button" className="btn" onClick={actions.onRecalculate} disabled={actions.recalculating}><Icon name="refresh" />{actions.recalculating ? "Recalculating…" : "Recalculate"}</button>
           </div>
         </div>
         <div className="pzr-hero-r">
@@ -130,7 +123,6 @@ export function Hero({ report, actions }: { report: PrismReport; actions: Report
       <div className="pzr-hero-foot">
         <span>Model {rating.modelVersion}</span>
         <span>Calculated {istTime(report.createdAt)}{report.cached ? " · stored report" : ""}</span>
-        <span>{open ? `PDF of this calculation available until ${istTime(report.pdfAvailableUntil, false)}` : "PDF window passed: recalculate to download a PDF."}</span>
       </div>
       <p className="pzr-note">{PRISM_NOTE}</p>
     </section>

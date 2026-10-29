@@ -50,7 +50,7 @@ class FakeSite:
     """The site backend's three routes Prism uses, with its require_admin and snapshot rules reduced to what Prism relies on."""
 
     def __init__(self):
-        self.reports, self.pdfs, self.pings = [], [], 0
+        self.reports, self.pdfs, self.stored_pdfs, self.pings = [], [], [], 0
         self.issued = {}                  # id -> (token subject, signed snapshot)
         self.answer = None                # a canned httpx.Response (or exception) for the next calculations
         self.gate = None                  # an asyncio.Event a calculation waits for
@@ -105,6 +105,11 @@ class FakeSite:
             if sub != issued_sub or body["receipt"] != signed["snapshotReceipt"] or body["report"] != unsigned:
                 return httpx.Response(400, json={"detail": "This report is expired or has changed. Generate a fresh report before downloading."})
             return httpx.Response(200, content=b"%PDF-1.4 prism", headers={"content-type": "application/pdf"})
+        if request.url.path == "/api/premium-reports/pdf-stored":
+            self.stored_pdfs.append((sub, body["report"]))
+            if self.answer is not None:
+                return self.answer
+            return httpx.Response(200, content=b"%PDF-1.4 stored", headers={"content-type": "application/pdf"})
         return httpx.Response(404, json={"detail": "Not Found"})
 
 
@@ -320,7 +325,7 @@ async def test_technical_assessment_is_served_stored_and_kept_whole_for_the_pdf(
     assert "technicalAssessment" not in summary
     kept = json.loads(await app.state.store.redis.get(f"prism:snap:{body['id']}"))["snapshot"]
     assert kept["technicalAssessment"] == TECH and kept["technicalAssessment"]["inputHash"]      # the signed document is unchanged
-    assert (await gold.get(f"/api/prism/reports/{body['id']}/pdf")).status_code == 200            # FakeSite compares it byte for byte with what it signed
+    assert (await (await member(app, "gold", "admin")).get(f"/api/prism/reports/{body['id']}/pdf")).status_code == 200            # FakeSite compares it byte for byte with what it signed
     assert fake.pdfs
 
 
@@ -460,8 +465,9 @@ async def test_not_connected_without_the_shared_secret(store):  # noqa: F811
 # ------------------------------------------------------------------ PDF
 async def test_pdf_of_exactly_that_calculation(env):
     app, fake = env
-    owner, other = await member(app, "gold"), await member(app, "gold")
+    owner, other = await member(app, "gold"), await member(app, "gold", "admin")
     report = (await generate(owner)).json()
+    assert (await owner.get(f"/api/prism/reports/{report['id']}/pdf")).status_code == 403          # for now administrators only
     r = await other.get(f"/api/prism/reports/{report['id']}/pdf")
     assert r.status_code == 200 and r.content == b"%PDF-1.4 prism" and r.headers["content-type"] == "application/pdf"
     assert r.headers["content-disposition"] == f'attachment; filename="FinLit-Prism-TCS-{report["id"][:8]}.pdf"'
@@ -470,15 +476,19 @@ async def test_pdf_of_exactly_that_calculation(env):
     assert (await (await member(app, "silver")).get(f"/api/prism/reports/{report['id']}/pdf")).status_code == 403
 
 
-async def test_pdf_after_the_snapshot_is_gone_is_410_and_unknown_ids_404(env):
+async def test_pdf_of_a_stored_report_works_after_the_snapshot_is_gone_and_unknown_ids_404(env):
     app, fake = env
     gold = await member(app, "gold")
     report = (await generate(gold)).json()
     await app.state.store.redis.delete(f"prism:snap:{report['id']}")
-    r = await gold.get(f"/api/prism/reports/{report['id']}/pdf")
-    assert r.status_code == 410 and r.json()["status"] == "expired" and fake.pdfs == []
-    assert (await gold.get(f"/api/prism/reports/{'b' * 32}/pdf")).status_code == 404
-    assert (await gold.get("/api/prism/reports/not-an-id/pdf")).status_code == 404
+    admin = await member(app, "gold", "admin")
+    r = await admin.get(f"/api/prism/reports/{report['id']}/pdf")
+    assert r.status_code == 200 and r.content == b"%PDF-1.4 stored"
+    assert (await admin.get(f"/api/prism/reports/{report['id']}/pdf")).content == b"%PDF-1.4 stored" and len(fake.stored_pdfs) == 1      and fake.pdfs == []      # the second download comes from the cache
+    assert len(fake.stored_pdfs) == 1 and fake.stored_pdfs[0][1]["id"] == report["id"] and "financialHistory" in fake.stored_pdfs[0][1]
+    assert (await (await member(app, "silver")).get(f"/api/prism/reports/{report['id']}/pdf")).status_code == 403
+    assert (await admin.get(f"/api/prism/reports/{'b' * 32}/pdf")).status_code == 404
+    assert (await admin.get("/api/prism/reports/not-an-id/pdf")).status_code == 404
 
 
 async def test_pdf_refused_by_the_site_backend_as_changed_is_410(env):
@@ -486,7 +496,8 @@ async def test_pdf_refused_by_the_site_backend_as_changed_is_410(env):
     gold = await member(app, "gold")
     report = (await generate(gold)).json()
     fake.answer = httpx.Response(400, json={"detail": "This report is expired or has changed."})
-    assert (await gold.get(f"/api/prism/reports/{report['id']}/pdf")).status_code == 410
+    admin = await member(app, "gold", "admin")
+    assert (await admin.get(f"/api/prism/reports/{report['id']}/pdf")).status_code == 410      # the site backend refuses both the snapshot and the stored copy
     assert await app.state.store.redis.get(f"prism:snap:{report['id']}") is None
 
 
@@ -602,6 +613,7 @@ async def test_pdf_downloads_are_rate_limited_and_ids_must_be_exactly_32_hex(env
     monkeypatch.setattr(prism, "PDF_LIMIT", 2)
     gold = await member(app, "gold")
     rid = (await generate(gold)).json()["id"]
+    gold = await member(app, "gold", "admin")
     assert [(await gold.get(f"/api/prism/reports/{rid}/pdf")).status_code for _ in range(2)] == [200, 200]
     r = await gold.get(f"/api/prism/reports/{rid}/pdf")
     assert r.status_code == 429 and r.json()["status"] == "limit" and r.headers["retry-after"]

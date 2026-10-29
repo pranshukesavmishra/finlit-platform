@@ -49,7 +49,7 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       <Peers report={report} />
       <Health report={report} completeness={review.completeness} onRecalculate={actions.onRecalculate} notes={review.notes} />
       <footer className="pzr-foot">
-        <p>This report assesses financial health using available financial and market information, with estimates where information is missing. It is not an investment recommendation or a prediction of future returns. The PDF of a calculation can be downloaded for 30 minutes; after that, recalculate to download a fresh one.</p>
+        <p>This report assesses financial health using available financial and market information, with estimates where information is missing. It is not an investment recommendation or a prediction of future returns.</p>
         <p className="pzr-note">{PRISM_NOTE}</p>
       </footer>
     </article>

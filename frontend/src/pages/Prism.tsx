@@ -65,7 +65,8 @@ function Working({ since, expected }: { since: number; expected: number }) {
   );
 }
 
-function CompanyView({ symbol, statement }: { symbol: string; statement: Statement }) {
+function CompanyView({ symbol, statement, picker }: { symbol: string; statement: Statement; picker: React.ReactNode }) {
+  const { isAdmin } = useAuth();
   const latest = useLatestPrism(symbol, statement), status = usePrismStatus(), { calc, start } = usePrismCalculation(symbol, statement);
   const [downloading, setDownloading] = useState(false), [pdfErr, setPdfErr] = useState<Problem | null>(null);
   useEffect(() => { pushPrismRecent(symbol); }, [symbol]);
@@ -95,6 +96,13 @@ function CompanyView({ symbol, statement }: { symbol: string; statement: Stateme
   const expired = pdfErr?.kind === "expired";
   return (
     <div aria-busy={busy || latest.isLoading}>
+      <div className="pzr-pagebar">
+        {picker}
+        {isAdmin && report && (
+          <button type="button" className="btn primary pzr-dl" onClick={download} disabled={downloading} title="Download the full Prism report of this company as a PDF (administrators only)">
+            <Icon name="download" />{downloading ? "Preparing PDF…" : "Download report (PDF)"}</button>
+        )}
+      </div>
       {down && <div className="pzr-problem unavailable" role="note"><Icon name="alert" /><div><b>{PRISM_NAME} is not connected right now</b><p>{status.data?.reason || "The rating service is unavailable."} Stored ratings may still open.</p></div></div>}
       {latest.isLoading && <ReportSkeleton />}
       {latest.isError && !busy && <Problem_ p={prismProblem(latest.error)} onRetry={() => latest.refetch()} />}
@@ -111,7 +119,7 @@ function CompanyView({ symbol, statement }: { symbol: string; statement: Stateme
           <p className="pzr-note">{PRISM_NOTE}</p>
         </div>
       )}
-      {report && <PrismReportView key={report.id} report={report} actions={{ onRecalculate: () => run(true), recalculating: busy, onDownload: download, downloading, pdfExpired: expired }} />}
+      {report && <PrismReportView key={report.id} report={report} actions={{ onRecalculate: () => run(true), recalculating: busy, }} />}
     </div>
   );
 }
@@ -129,8 +137,8 @@ export function PrismPage() {
     <>
       <Head><p>{symbol} · {statementWord(statement)} statements. <Link to="/prism">Another company</Link></p></Head>
       <div className="wrap pzr-page" style={{ paddingBottom: 56 }}>
-        <div className="pzr-pagebar"><Picker statement={statement} setStatement={(s) => setSp(s === "standalone" ? { statement: s } : {}, { replace: true })} /></div>
-        <CompanyView key={symbol + statement} symbol={symbol} statement={statement} />
+        <CompanyView key={symbol + statement} symbol={symbol} statement={statement}
+          picker={<Picker statement={statement} setStatement={(s) => setSp(s === "standalone" ? { statement: s } : {}, { replace: true })} />} />
       </div>
     </>
   );

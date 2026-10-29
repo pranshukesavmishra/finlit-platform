@@ -257,3 +257,5 @@
 @media (prefers-reduced-motion: reduce) { .pzr-prog i { transition: none; } .pzr-part, .pzr-rc { transition: none; } }
 
 .pzr-hint { color: var(--muted) !important; font-weight: 600; }
+.pzr-pagebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+.pzr-pagebar .pzr-dl { margin-left: auto; min-height: 44px; font-size: 15px; }

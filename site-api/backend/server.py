@@ -630,6 +630,10 @@ class PremiumReportRequest(BaseModel):
         return value
 
 
+class PremiumStoredPDFRequest(BaseModel):
+    report: Dict[str, Any]
+
+
 class PremiumSnapshotPDFRequest(BaseModel):
     report: Dict[str, Any]
     receipt: str = Field(min_length=16, max_length=2048)
@@ -1038,6 +1042,19 @@ async def download_current_premium_snapshot(payload: PremiumSnapshotPDFRequest, 
         report = verify(payload.report, payload.receipt, _admin["sub"], token_secret())
     except Exception:
         raise HTTPException(status_code=400, detail="This report is expired or has changed. Generate a fresh report before downloading.") from None
+    return await _premium_pdf_response(report)
+
+
+@api_router.post("/premium-reports/pdf-stored")
+async def download_stored_premium_report(payload: PremiumStoredPDFRequest, _admin=Depends(require_admin)):
+    """The PDF of a report the research API stored (its reader view). Only the research API calls this, with its own signed gateway token:
+    a stored report has no 30-minute receipt any more, and its financial history sits under `financialHistory` instead of `calculationTrace`."""
+    report = dict(payload.report)
+    history = report.pop("financialHistory", None)
+    if report.get("state") != "ready" or not isinstance(report.get("company"), dict) or not isinstance(report.get("rating"), dict):
+        raise HTTPException(status_code=400, detail="This stored report cannot be turned into a PDF.")
+    if isinstance(history, dict) and history.get("annual") is not None and history.get("quarterly") is not None:
+        report["calculationTrace"] = history
     return await _premium_pdf_response(report)
 
 

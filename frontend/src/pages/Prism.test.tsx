@@ -6,7 +6,7 @@ import report from "../lib/__fixtures__/prismReport.json";
 import variants from "../lib/__fixtures__/prismVariants.json";
 import type { PrismReport } from "../lib/prism";
 
-const state = vi.hoisted(() => ({ latest: null as unknown, gold: true, calc: { phase: "idle" } as unknown }));
+const state = vi.hoisted(() => ({ latest: null as unknown, gold: true, admin: true, calc: { phase: "idle" } as unknown }));
 vi.mock("../lib/prism", async (orig) => {
   const m = await orig<typeof import("../lib/prism")>();
   return {
@@ -18,7 +18,7 @@ vi.mock("../lib/prism", async (orig) => {
   };
 });
 vi.mock("../lib/premium", () => ({ useGold: () => state.gold, useSlashFocus: () => undefined, pushRecent: () => undefined, readRecent: () => [] }));
-vi.mock("../lib/auth", () => ({ useAuth: () => ({ showcase: [] }) }));
+vi.mock("../lib/auth", () => ({ useAuth: () => ({ showcase: [], isAdmin: state.admin }) }));
 vi.mock("../lib/api", async (orig) => ({ ...(await orig<typeof import("../lib/api")>()), useSearchIndex: () => ({ data: undefined }) }));
 vi.mock("../lib/screener", () => ({ useUniverse: () => ({ data: undefined, isLoading: false, isError: false }) }));
 vi.mock("../lib/ui", () => ({ useUI: () => ({ has: () => state.gold, upgrade: () => undefined }), TIER: { gold: { n: "Gold", ic: "crown", tc: "--t-gold" } } }));
@@ -105,10 +105,11 @@ describe("limited and not-rated reports", () => {
     expect(t).toContain("Recalculate this report to see the latest missing-input");
     expect(t).not.toContain("All applicable scoring factors have usable inputs");
   });
-  it("offers a recalculation, not a download, once the PDF window has passed", () => {
-    const t = text(renderToStaticMarkup(<PrismReportView report={{ ...R, pdfAvailableUntil: "2000-01-01T00:00:00+00:00" }} actions={{}} />));
-    expect(t).toContain("PDF window passed");
-    expect(t).not.toContain("Download PDF");
+  it("has no PDF button or PDF window in the report itself: the download sits in the page bar", () => {
+    const t = text(renderToStaticMarkup(<PrismReportView report={{ ...R, pdfAvailableUntil: null }} actions={{}} />));
+    expect(t).not.toContain("PDF window");
+    expect(t).not.toContain("Download");
+    expect(t).toContain("Recalculate");
   });
 });
 
@@ -153,9 +154,12 @@ describe("Prism page", () => {
   it("shows the stored report with its actions", () => {
     state.latest = R; state.gold = true;
     const t = text(page("/prism/EXAMPLE"));
-    expect(t).toContain("Download PDF");
+    expect(t).toContain("Download report (PDF)");
     expect(t).toContain("Recalculate");
     expect(t).toContain("Statement basis");
+    state.admin = false;
+    expect(text(page("/prism/EXAMPLE"))).not.toContain("Download report (PDF)");      // administrators only, for now
+    state.admin = true;
   });
   it("locks the page for other plans and previews a fictional example", () => {
     state.gold = false;

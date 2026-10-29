@@ -93,9 +93,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                   <div className="dl-menu" role="menu">
                     <button role="menuitem" onClick={() => download("pdf")}><b>Research note · PDF</b><span className="d">Print-ready report with charts</span></button>
                     <button role="menuitem" onClick={() => download("html")}><b>Offline copy · HTML</b><span className="d">One file that opens without internet</span></button>
-                    {prismRep && (Date.parse(prismRep.pdfAvailableUntil || "") > Date.now()
-                      ? <a role="menuitem" href={apiUrl(`/api/prism/reports/${encodeURIComponent(prismRep.id)}/pdf`)} download onClick={() => setDl(false)}><b>FinLit Prism · PDF</b><span className="d">The Prism rating as a report you can keep</span></a>
-                      : <Link role="menuitem" to={`/prism/${encodeURIComponent(p.symbol)}`} onClick={() => setDl(false)}><b>FinLit Prism · PDF</b><span className="d">Open the Prism page to save it as a PDF</span></Link>)}
+                    {prismRep && isAdmin && <a role="menuitem" href={apiUrl(`/api/prism/reports/${encodeURIComponent(prismRep.id)}/pdf`)} download onClick={() => setDl(false)}><b>FinLit Prism · PDF</b><span className="d">The full Prism report of this company</span></a>}
                     <button role="menuitem" onClick={() => download("csv")}><b>Data · CSV</b><span className="d">Statements, ratios and scores for Excel</span></button>
                   </div>
                 )}

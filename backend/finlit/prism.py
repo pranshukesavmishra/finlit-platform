@@ -807,9 +807,14 @@ async def pdf(request: Request, report_id: str) -> Response:
         return _reply({"status": "not_found", "detail": "No such report."}, 404)
     app = request.app
     ctx = await current(request)
+    if ctx.role != "admin":      # for now only administrators download the PDF
+        return _reply({"status": "plan_required", "detail": "The PDF download is available to administrators only.", "plan": "admin"}, 403)
     allowed, wait = await app.state.limiter.hit("prism-pdf", ctx.user_id or "ip:" + ip_of(request), PDF_LIMIT, 600, fail_open=False)
     if not allowed:
         return _reply({"status": "limit", "detail": "Too many PDF downloads. Please wait a few minutes."}, 429, wait or 60)
+    cached = await _pdf_cached(app.state.store.redis, report_id)
+    if cached is not None:       # rendered before: served straight from the cache, no site-backend call
+        return _pdf_response(cached, report_id)
     raw = await app.state.store.redis.get(f"prism:snap:{report_id}")
     kept = json.loads(raw) if raw else None
     symbol = kept["symbol"] if kept else await app.state.store.pool.fetchval("SELECT symbol FROM prism_reports WHERE id = $1", report_id)
@@ -818,29 +823,64 @@ async def pdf(request: Request, report_id: str) -> Response:
     _, refusal = await _access(request, symbol)
     if refusal:
         return refusal
-    if kept is None:
-        return _expired()
     if not connected(app.state.settings):
         return _reply({"status": "unavailable", "detail": NOT_CONNECTED}, 503)
-    snapshot = dict(kept["snapshot"])
-    receipt = snapshot.pop("snapshotReceipt")
     try:
-        r = await _call(app, "/api/premium-reports/pdf", kept["sub"], {"report": snapshot, "receipt": receipt})
+        if kept is not None:      # a calculation from the last 30 minutes: the signed snapshot, with the full calculation trace
+            snapshot = dict(kept["snapshot"])
+            receipt = snapshot.pop("snapshotReceipt")
+            r = await _call(app, "/api/premium-reports/pdf", kept["sub"], {"report": snapshot, "receipt": receipt})
+        else:                     # any stored report, at any time: rendered from the stored reader view
+            row = await app.state.store.pool.fetchrow("SELECT report FROM prism_reports WHERE id = $1", report_id)
+            if row is None:
+                return _reply({"status": "not_found", "detail": "No such report."}, 404)
+            r = await _call(app, "/api/premium-reports/pdf-stored", ctx.user_id or "member", {"report": json.loads(row["report"])})
     except httpx.HTTPError as exc:
         log.warning("prism PDF for %s did not reach the site backend: %s", symbol, type(exc).__name__)
         return _reply({"status": "unavailable", "detail": "The PDF could not be prepared just now. Please try again in a moment."}, 502)
     if r.status_code == 200 and r.headers.get("content-type", "").startswith("application/pdf"):
-        filename = f"FinLit-Prism-{symbol}-{report_id[:8]}.pdf"
-        return Response(content=r.content, media_type="application/pdf",
-                        headers={**NO_STORE, "Content-Disposition": f'attachment; filename="{filename}"', "X-Content-Type-Options": "nosniff"})
-    if r.status_code == 400:               # the site backend no longer accepts this snapshot (expired or changed)
+        await _pdf_keep(app.state.store.redis, report_id, symbol, r.content)
+        return _pdf_response({"symbol": symbol, "body": r.content}, report_id)
+    if r.status_code == 400 and kept is not None:    # the signed snapshot expired or changed: fall back to the stored report
         await app.state.store.redis.delete(f"prism:snap:{report_id}")
+        return await pdf(request, report_id)
+    if r.status_code == 400:
         return _expired()
     if r.status_code in (401, 403):
         status, body = _refused(r)
         return _reply(body, status)
     log.warning("site backend answered a Prism PDF with HTTP %s", r.status_code)
     return _reply({"status": "unavailable", "detail": "The PDF could not be prepared just now. Please try again in a moment."}, 502)
+
+
+PDF_CACHE_SECONDS = 86400
+PDF_CACHE_MAX = 4_000_000
+
+
+async def _pdf_cached(redis, report_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        body, symbol = await redis.get(f"prism:pdf:{report_id}"), await redis.get(f"prism:pdfsym:{report_id}")
+    except Exception:
+        return None
+    if not body or not symbol:
+        return None
+    return {"symbol": symbol.decode() if isinstance(symbol, bytes) else symbol, "body": body if isinstance(body, bytes) else body.encode("latin-1")}
+
+
+async def _pdf_keep(redis, report_id: str, symbol: str, body: bytes) -> None:
+    if len(body) > PDF_CACHE_MAX:
+        return
+    try:
+        await redis.set(f"prism:pdf:{report_id}", body, ex=PDF_CACHE_SECONDS)
+        await redis.set(f"prism:pdfsym:{report_id}", symbol, ex=PDF_CACHE_SECONDS)
+    except Exception as exc:
+        log.warning("prism PDF not cached: %s", type(exc).__name__)
+
+
+def _pdf_response(item: Dict[str, Any], report_id: str) -> Response:
+    filename = f"FinLit-Prism-{item['symbol']}-{report_id[:8]}.pdf"
+    return Response(content=item["body"], media_type="application/pdf",
+                    headers={**NO_STORE, "Content-Disposition": f'attachment; filename="{filename}"', "X-Content-Type-Options": "nosniff"})
 
 
 def _expired() -> JSONResponse:
