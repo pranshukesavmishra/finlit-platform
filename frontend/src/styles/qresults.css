@@ -142,3 +142,8 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 .qr-t thead tr.qr-grp th.qg2 { color: var(--qg2); border-bottom: 2px solid var(--qg2); }
 .qr-t thead tr.qr-grp th.qg3 { color: var(--qg3); border-bottom: 2px solid var(--qg3); }
 .qr-t thead tr.qr-grp th { font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+/* every column gets its own divider; the group starts keep the stronger one, and every second column in a group is a shade deeper */
+.qr-t thead tr:not(.qr-grp) th:not(:first-child), .qr-t tr.qr-r td.qg1, .qr-t tr.qr-r td.qg2, .qr-t tr.qr-r td.qg3, .qr-t tr.qr-r td.qgs { border-left: 1px solid var(--border); }
+.qr-t thead tr:not(.qr-grp) th.qgs, .qr-t tr.qr-r td.qgs { border-left: 2px solid var(--border-strong); }
+.qr-t tr.qr-r td.qg1:nth-child(even), .qr-t tr.qr-r td.qg2:nth-child(even), .qr-t tr.qr-r td.qg3:nth-child(even) { box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--text) 3.5%, transparent); }
+.qr-t thead th, .qr-t tr.qr-r td { padding-left: 12px; padding-right: 12px; }
