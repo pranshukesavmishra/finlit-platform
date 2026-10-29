@@ -211,7 +211,7 @@ export function ScreenerPro() {
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
         <div className="eyebrow">Stock screener</div><h1>Find the companies that fit your rules.</h1>
-        <p>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Advanced score screener</Link>. Prefer typing? Use the <Link to="/query-builder">Query builder</Link>.</p></div></section>
+        <p>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Basic score screener</Link> (Silver) or the <Link to="/advanced-score-screener">Advanced score screener</Link> (Gold). Prefer typing? Use the <Link to="/query-builder">Query builder</Link>.</p></div></section>
       <div className="wrap scr-wrap">
         <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
           <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0}>

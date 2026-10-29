@@ -1,6 +1,6 @@
 # FinLit Prism: how coverage grows (Advanced score screener)
 
-The Advanced score screener (`/score-screener`) lists every listed company with the FinLit score (Silver) and the FinLit Prism rating (Gold).
+The Advanced score screener (`/advanced-score-screener`, Gold only) lists every listed company with the FinLit Prism rating, its four parts and its two technical views. (The FinLit score has its own page, the Basic score screener at `/score-screener`, Silver.)
 A Prism rating takes about 30 seconds and about 25 FinEdge calls, and the provider calls are rate limited and shared, so the rating cannot be
 calculated for 5,800 companies at once. Coverage grows in steps, and the page always says how far it has got ("Prism has rated X of Y companies").
 

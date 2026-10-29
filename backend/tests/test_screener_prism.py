@@ -9,7 +9,7 @@ import pytest
 
 from finlit import prism, prism_screen
 from finlit.api import create_app
-from finlit.auth.entitlements import PRISM_FIELDS, redact_universe
+from finlit.auth.entitlements import MODEL_FIELDS, PRISM_FIELDS, redact_universe
 from test_auth import new_client, signed_in  # noqa: F401
 from test_integration import ingested, make_settings, store  # noqa: F401  (fixtures)
 from test_prism import SECRET, FakeSite
@@ -66,6 +66,23 @@ def test_redaction_by_plan():
     assert silver[0]["prism_final"] == 60                                                        # the showcase company stays open
     basic = redact_universe(rows, "basic", {"TCS"})
     assert basic[1]["overall"] is None and all(basic[1][f] is None for f in PRISM_FIELDS) and basic[0]["prism_final"] == 60
+
+
+def test_two_screeners_two_plans_prism_only_for_gold_and_the_finlit_score_only_for_silver_and_up():
+    """Basic score screener = Silver (FinLit score fields); Advanced score screener = Gold (Prism fields). Every field of each model is checked, not a sample."""
+    full = {f: 61.5 for f in PRISM_FIELDS + MODEL_FIELDS}
+    rows = [{"symbol": "SHOWCASE", **full}, {"symbol": "OTHER", **full}]
+    for plan in ("basic", "silver"):                                                              # Prism: not for Basic, not for Silver
+        out = {r["symbol"]: r for r in redact_universe(rows, plan, {"SHOWCASE"})}
+        assert all(out["OTHER"][f] is None for f in PRISM_FIELDS), plan
+        assert not any("61.5" in repr(v) for k, v in out["OTHER"].items() if k.startswith("prism_")), plan
+        assert all(out["SHOWCASE"][f] == 61.5 for f in PRISM_FIELDS + MODEL_FIELDS), plan           # the free example company stays open
+    assert all(r[f] is None for r in redact_universe(rows, "basic", {"SHOWCASE"}) if r["symbol"] == "OTHER" for f in MODEL_FIELDS)   # FinLit score: not for Basic
+    silver = next(r for r in redact_universe(rows, "silver", {"SHOWCASE"}) if r["symbol"] == "OTHER")
+    assert all(silver[f] == 61.5 for f in MODEL_FIELDS)                                           # ... but for Silver
+    gold = redact_universe(rows, "gold", {"SHOWCASE"})
+    assert all(r[f] == 61.5 for r in gold for f in PRISM_FIELDS + MODEL_FIELDS)                  # Gold sees both
+    assert redact_universe(rows, "silver", {"SHOWCASE"})[1] is not rows[1] and rows[1]["prism_final"] == 61.5     # the shared cache rows are never changed
 
 
 async def test_the_universe_lists_the_newest_rating_prefers_consolidated_and_keeps_locked_values_on_the_server(app):
