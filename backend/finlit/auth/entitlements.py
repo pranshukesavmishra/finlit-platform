@@ -93,6 +93,7 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
             data["locked"] = True
     elif section == "segments":
         data["segments"], data["latest"], data["periods"] = {}, [], []
+        data.pop("insights", None)
     elif section.startswith("price-"):
         tech = data.get("technical")
         if tech:

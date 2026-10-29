@@ -59,7 +59,21 @@ export type Events = {
   dividendsByFY: { periods: string[]; dps: number[]; dpsUnadjusted: number[]; basis: string };
 };
 export type Segment = { name: string; revenue: number | null; ebit: number | null; sharePct: number | null; growthPct: number | null; includes?: string[] };
-export type Segments = { meta: Meta; unit: string; periods: string[]; segments: Record<string, { revenue: Series; ebit: Series }>; latest: Segment[] };
+export type SegmentTrend = "growing" | "declining" | "steady" | "new" | "discontinued" | "short";
+/** One segment's trend over its comparable window (the longest unbroken run of positive-revenue years ending at the latest year). */
+export type SegmentTrendRow = {
+  name: string; trend: SegmentTrend; trendLabel: string; firstReported: string | null; lastReported: string | null;
+  window: [string, string] | null; years: number; revenue: number | null; sharePct: number | null; shareStartPct: number | null; shareChangePp: number | null;
+  cagrPct: number | null; yoyPct: number | null; marginPct: number | null; marginChangePp: number | null;
+  definitionChanged: boolean; definitionYear: string | null; definitionNote: string | null; definitionKind?: "stopped" | "started" | "jump" | null;
+  windowAffected: boolean; gap: boolean; note: string | null; lastRevenue?: number | null; lastSharePct?: number | null;
+};
+/** Server-computed history insights (backend/finlit/normalize/segment_trends.py). Absent on reports stored before it existed. */
+export type SegmentInsights = {
+  status: "ok" | "short" | "single" | "none"; statusText: string; latestPeriod: string | null; basis: string;
+  thresholds?: Record<string, number>; rows: SegmentTrendRow[]; sentences: string[]; cautions: string[];
+};
+export type Segments = { meta: Meta; unit: string; periods: string[]; segments: Record<string, { revenue: Series; ebit: Series }>; latest: Segment[]; insights?: SegmentInsights };
 export type PeerItem = { symbol: string; name: string | null; sector?: string | null; overall?: number | null; band?: string | null; price?: number | null; market_cap?: number | null; pe?: number | null; roe?: number | null };
 export type Peers = { meta: Meta; symbols: string[]; items?: PeerItem[] };
 export type Technical = {

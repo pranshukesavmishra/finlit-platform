@@ -11,6 +11,8 @@ import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
 import { PrismMethod } from "./PrismCompare";
+import { SegmentHistory } from "./SegmentMix";
+import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
 
 const v = (n: string) => `var(${n})`;
 
@@ -252,22 +254,25 @@ export function MethodSection({ s }: { s: Summary }) {
 export function SegmentCard({ seg }: { seg?: Segments }) {
   const latest = seg?.latest || [];
   const top = latest[0], conc = top?.sharePct ?? 0;
+  const colors = segmentColors(segmentNames(seg)).color;  // one colour per segment, shared by the strip, the tiles, the chart and the table
+  const col = (name: string) => colors[name] ?? OTHERS_COLOR;
   return (
     <div className="card acc" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
       <div className="card-h"><h3 className="seg-title"><span className="ci"><Icon name="pie" /></span>Where the revenue comes from<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
       {latest.length ? (
         <>
-          <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x, i) => <span key={x.name} title={`${x.name}: ${pct(x.sharePct)}`} style={{ flex: Math.max(x.sharePct || 0, 7), background: `var(--c${(i % 5) + 1})` }}><b className={(x.sharePct || 0) < 9 ? "sm" : ""}>{(x.sharePct || 0) >= 10 ? pct(x.sharePct, 0) : pct(x.sharePct, 1)}</b></span>)}</div>
-          <ul className="seg-l2">{latest.map((x, i) => (
-            <li key={x.name} style={{ "--bc": `var(--c${(i % 5) + 1})` } as React.CSSProperties}>
+          <div className="rib" role="img" aria-label="Revenue share by segment">{latest.map((x) => <span key={x.name} title={`${x.name}: ${pct(x.sharePct)}`} style={{ flex: Math.max(x.sharePct || 0, 7), "--bc": col(x.name) } as React.CSSProperties}><b className={(x.sharePct || 0) < 9 ? "xs" : ""}>{(x.sharePct || 0) >= 10 ? pct(x.sharePct, 0) : pct(x.sharePct, 1)}</b></span>)}</div>
+          <ul className="seg-l2">{latest.map((x) => (
+            <li key={x.name} style={{ "--bc": col(x.name) } as React.CSSProperties}>
               <div className="sl-h"><i /><b>{x.name}</b><em>{pct(x.sharePct)}</em></div>
               <div className="sl-bar"><span style={{ width: `${Math.min(100, x.sharePct || 0)}%` }} /></div>
               <div className="sl-m"><span>₹{cr(x.revenue)} Cr revenue</span><span className={x.growthPct == null ? "" : x.growthPct >= 0 ? "pos" : "neg"}>{signed(x.growthPct, 1)} vs last year</span>{x.ebit != null && x.revenue ? <span>{nf((x.ebit / x.revenue) * 100, 1)}% margin</span> : null}</div>
               {x.includes?.length ? <div className="sl-i">Includes {x.includes.join(", ")}</div> : null}
             </li>))}</ul>
           <div className={"seg-note " + (conc >= 70 ? "warn" : "")}>{conc >= 70 ? `${top.name} brings in ${nf(conc, 0)}% of revenue, so the business depends mostly on one segment.` : "Revenue is spread across several segments, which spreads the risk."}</div>
+          <SegmentHistory seg={seg} />
         </>
-      ) : <p className="muted">This company does not report revenue by segment.</p>}
+      ) : <p className="muted">{seg ? "Segment history is not available for this company." : "This company does not report revenue by segment."}</p>}
     </div>
   );
 }
