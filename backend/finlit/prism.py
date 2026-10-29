@@ -799,7 +799,7 @@ async def _pending(store, statement: str, days: int, limit: int, skip: list, sta
     Fresh ones are not listed, so a run that was stopped simply continues where it stopped, and `skip` leaves out what failed tonight."""
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "
+            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "  # nosec B608 (only module constants are interpolated; values are bound)
             "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
             f"WHERE {STALE_SQL + ' AND $2::int IS NOT NULL' if stale_only else '(p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) OR ' + STALE_SQL + ')'} AND NOT (s.symbol = ANY($4::text[])) "
             f"ORDER BY ({STALE_SQL}) DESC, (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3",
