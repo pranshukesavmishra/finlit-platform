@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeFor, badgeView, dotLabel, industryText, marketCapLine, partHint, scoreBand } from "./scoreBands";
+import { badgeFor, badgeView, dotLabel, industryText, marketCapLine, partHint, scoreBand, goldDots, type PrismInput } from "./scoreBands";
 
 describe("score colour bands", () => {
   it("green from 70, orange 50 to 69, red under 50, grey without a score", () => {
@@ -40,5 +40,42 @@ describe("header facts", () => {
     expect(partHint("risk")!.long).toContain("lower risk");
     expect(partHint("valuation")!.short).toBe("Higher is better");
     expect(partHint("technical")).toBeNull();
+  });
+});
+
+describe("Gold header dots (FinLit Prism)", () => {
+  const rep = (over: Record<string, unknown> = {}): PrismInput => ({ kind: "report", final: 61, word: "Average", status: "RATED", parts: { fundamental: 68.8, valuation: 42.4, quality: 73.2, risk: 49.9 },
+    short: { score: 1, rating: "Hold" }, long: { score: 63, rating: "Strong Buy" }, ...over } as PrismInput);
+  it("six dots: four fundamental then two technical, letters F V Q R S L", () => {
+    const d = goldDots(rep())!;
+    expect(d.map((x) => x.letter).join("")).toBe("FVQRSL");
+    expect(d.map((x) => x.group)).toEqual(["fund", "fund", "fund", "fund", "tech", "tech"]);
+  });
+  it("0-100 dots use the shared band rule and the Prism words", () => {
+    const d = goldDots(rep())!;
+    expect(d[0]).toMatchObject({ band: "mid", label: "Fundamentals 69: orange, healthy" });
+    expect(d[1]).toMatchObject({ band: "lo", label: "Valuation 42: red, weak" });
+    expect(d[2]).toMatchObject({ band: "hi", label: "Quality 73: green, healthy" });
+    expect(d[3].band).toBe("lo");
+  });
+  it("technical dots use the trend bands and descriptive words, never the model's own", () => {
+    const d = goldDots(rep())!;
+    expect(d[4]).toMatchObject({ band: "mid", label: "Short-term technical +1: orange, neutral" });
+    expect(d[5]).toMatchObject({ band: "hi", label: "Long-term technical +63: green, strongly positive" });
+    expect(goldDots(rep({ short: { score: -30, rating: "Reduce" } }))![4]).toMatchObject({ band: "lo", label: "Short-term technical −30: red, negative" });
+    expect(d.map((x) => x.label).join(" ")).not.toMatch(/\b(buy|sell|hold|reduce)\b/i);
+  });
+  it("a missing part or technical score is grey", () => {
+    const d = goldDots(rep({ parts: { fundamental: 70 }, short: null }))!;
+    expect(d[1]).toMatchObject({ band: "na", label: "Valuation: grey, not available" });
+    expect(d[4]).toMatchObject({ band: "na", label: "Short-term technical: grey, not available" });
+  });
+  it("no stored rating: six grey dots; NOT RATED: grey with the report's reason; loading: nothing", () => {
+    expect(goldDots({ kind: "none" })!.every((x) => x.band === "na" && x.label.endsWith("not rated yet"))).toBe(true);
+    const n = goldDots(rep({ status: "NOT RATED", final: null, reason: "Industry not yet mapped to a model group." }))!;
+    expect(n).toHaveLength(6); expect(n.every((x) => x.band === "na")).toBe(true);
+    expect(n[0].label).toBe("Fundamentals: grey, not rated: Industry not yet mapped to a model group");
+    expect(goldDots(rep({ status: "NOT RATED", reason: null }))![2].label).toBe("Quality: grey, not rated");
+    for (const k of ["loading", "hidden", "locked"] as const) expect(goldDots({ kind: k })).toBeNull();
   });
 });

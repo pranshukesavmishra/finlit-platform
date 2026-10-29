@@ -22,8 +22,9 @@ import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
+import { navFor } from "../lib/sectionNav";
+import { SectionsMenu } from "./SectionsMenu";
 
-const NAV: [string, string, string][] = [["business", "Company", "building"], ["notes", "Scorecard", "notes"], ["price", "Price", "line"], ["quarter", "Quarter", "notes"], ["financials", "Financials", "bars"], ["trends", "Trends", "line"], ["ratios", "Ratios", "gauge"], ["ownership", "Ownership", "pie"], ["peers", "Peers", "layers"], ["insights", "Insights", "crown"], ["dividends", "Dividends", "coins"], ["method", "Pros & cons", "info"], ["leadership", "Leadership", "medal"], ["plans", "Plans", "medal"]];
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
@@ -43,7 +44,7 @@ export function StockPage() {
   const seg = useSection<Segments>(symbol, "segments", ready).data;
   const events = useSection<Events>(symbol, "events", ready).data;
   const lead = useLeadership(symbol, ready).data;
-  const navItems = useMemo(() => NAV.filter(([id]) => id !== "leadership" || !!(lead && (lead.available || lead.display))), [lead]);   // no pill for a section that is switched off
+  const navItems = useMemo(() => navFor(!!(lead && (lead.available || lead.display))), [lead]);   // no pill for a section that is switched off
   const tech = usePrice(symbol, "1Y", ready).data?.technical;   // waits for the summary, so a new stock is asked for once, not twice
   useDocTitle(s ? `${s.profile.name} research` : `${symbol} research`, s ? `FinLit research report for ${s.profile.name}: score ${s.score.overall ?? "n/a"}, financials, ratios, ownership and peers.` : undefined);
 
@@ -107,6 +108,7 @@ export function StockPage() {
       <div className={"secnav" + (stuck ? " stuck" : "")} id="secnav">
         <div className="wrap">
           <div className="mini" aria-hidden="true"><span className="bd">{s.profile.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}</span><b>{s.profile.nse}</b><span>₹{nf(q?.price ?? 0)}</span><span className={(q?.changePct ?? 0) >= 0 ? "pos" : "neg"}>{signed(q?.changePct)}</span><span className="sc">{s.score.overall ?? "—"}</span></div>
+          <SectionsMenu items={navItems} active={active} onPick={jump} />
           <div className={"snav" + (edge.l ? " edge-l" : "") + (edge.r ? " edge-r" : "")}>
           {edge.l && <button type="button" className="snav-arrow" aria-label="Earlier sections" onClick={() => slide(-1)}>‹</button>}
           <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>

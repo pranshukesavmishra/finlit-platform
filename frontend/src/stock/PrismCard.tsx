@@ -13,7 +13,7 @@ export type PrismReviewItem = { metric: string; label: string; valueText: string
 export type PrismLatest = {
   id: string; createdAt: string; completedAt: string; statementType: "consolidated" | "standalone";
   company: { symbol: string; name: string };
-  rating: { final: number | null; label: PrismLabel; status: PrismStatus; parts: Partial<Record<PrismPart | "technical", number | null>>; partWeights?: Partial<Record<PrismPart | "technical", number>>; confidence: number; modelVersion?: string };
+  rating: { final: number | null; label: PrismLabel; status: PrismStatus; parts: Partial<Record<PrismPart | "technical", number | null>>; partWeights?: Partial<Record<PrismPart | "technical", number>>; confidence: number; modelVersion?: string; notRatedReasons?: { code: "classification" | "insufficient_history" | "low_confidence" | "data_integrity"; text: string }[] };
   review?: { parts?: { key: string; name: string; pros?: PrismReviewItem[]; cons?: PrismReviewItem[]; unavailable?: PrismReviewItem[]; notes?: string[] }[]; notes?: string[]; completeness?: { complete: boolean; missingFactorCount: number; limitedHistoryCount: number; items: { label: string; reason: string; treatment: string }[] } };
   pdfAvailableUntil?: string | null;
   /** The independent short-term / long-term technical assessment (not a part of the score). Absent from older reports; read it with parseTechnical. */

@@ -2,6 +2,8 @@
 // grey when there is no score. Colour only decorates; the model's own word (Strong / Healthy / Mixed / Weak) and the number carry the meaning,
 // and the model's thresholds and labels are not changed here. Also: the market-cap line, and which score badge a plan may see.
 import { capSize, nf } from "./format";
+import { scoreTone } from "./prism";
+import { fmtScore, ratingWord, type TrendTone } from "./prismTechnical";
 
 export type ScoreBand = "hi" | "mid" | "lo" | "na";
 export const BAND_GREEN = 70, BAND_ORANGE = 50;
@@ -40,7 +42,10 @@ export function industryText(p: { industry?: string | null; subIndustry?: string
   return i || s || p.sector?.trim() || null;
 }
 
-export type PrismInput = { kind: "loading" | "none" | "hidden" | "locked" } | { kind: "report"; final: number | null; word: string; status: string };
+/** The technical scores of a stored Prism report, as the dots need them: the model's rating word (never shown) and the -100..+100 score of each horizon. */
+export type TechIn = { score: number | null; rating: string | null };
+export type PrismInput = { kind: "loading" | "none" | "hidden" | "locked" }
+  | { kind: "report"; final: number | null; word: string; status: string; parts?: Partial<Record<string, number | null>>; short?: TechIn | null; long?: TechIn | null; reason?: string | null };
 export type BadgeView =
   | { kind: "none" }
   | { kind: "basic"; score: number | null; word: string | null; band: ScoreBand }
@@ -62,4 +67,39 @@ export function badgeView(plan: Plan, admin: boolean, basic: { overall: number |
 export function partHint(key: string): { short: string; long: string } | null {
   if (key === "risk") return { short: "Higher is better", long: "Higher is better: a higher Risk score means lower risk." };
   return ["fundamental", "valuation", "quality"].includes(key) ? { short: "Higher is better", long: "Higher is better: a higher score is a stronger result." } : null;
+}
+
+/* ---- Gold header dots: the six FinLit Prism parameters (4 fundamental, 2 technical) ---- */
+export type GoldDot = { key: string; name: string; letter: string; group: "fund" | "tech"; value: number | null; band: ScoreBand; label: string };
+/** Fundamental parts in the Prism order, then the two technical horizons. Letter F V Q R S L. */
+export const GOLD_DOTS: { key: string; name: string; letter: string; group: "fund" | "tech"; what: string }[] = [
+  { key: "fundamental", name: "Fundamentals", letter: "F", group: "fund", what: "how steadily sales and profit grow" },
+  { key: "valuation", name: "Valuation", letter: "V", group: "fund", what: "the share price against earnings, book value and its own history" },
+  { key: "quality", name: "Quality", letter: "Q", group: "fund", what: "financial strength: borrowing, interest cover, returns, cash backing" },
+  { key: "risk", name: "Risk", letter: "R", group: "fund", what: "price swings, largest fall, trading activity, pledged shares" },
+  { key: "shortTerm", name: "Short-term technical", letter: "S", group: "tech", what: "recent price trend over weeks" },
+  { key: "longTerm", name: "Long-term technical", letter: "L", group: "tech", what: "price trend over months" },
+];
+/** Trend tone to the shared dot colour: positive green, neutral orange, negative red, grey when absent (the colours the Prism card's technical bars use). */
+export const trendBand = (t: TrendTone): ScoreBand => (t === "strongpos" || t === "pos" ? "hi" : t === "neutral" ? "mid" : t === "strongneg" || t === "neg" ? "lo" : "na");
+/** The six dots for Gold, or null while the report loads or when the server hides it (nothing is drawn: no flicker). A company with no stored or no usable rating
+ *  gets six grey dots whose tooltip says why. */
+export function goldDots(prism: PrismInput): GoldDot[] | null {
+  if (prism.kind === "loading" || prism.kind === "hidden" || prism.kind === "locked") return null;
+  const grey = (reason: string): GoldDot[] => GOLD_DOTS.map((d) => ({ key: d.key, name: d.name, letter: d.letter, group: d.group, value: null, band: "na", label: `${d.name}: grey, ${reason}` }));
+  if (prism.kind !== "report") return grey("not rated yet");
+  if (prism.status === "NOT RATED") return grey(prism.reason ? `not rated: ${prism.reason.replace(/[.\s]+$/, "")}` : "not rated");
+  return GOLD_DOTS.map((d) => {
+    const base = { key: d.key, name: d.name, letter: d.letter, group: d.group };
+    if (d.group === "fund") {
+      const v = prism.parts?.[d.key] ?? null;
+      if (v == null || !Number.isFinite(v)) return { ...base, value: null, band: "na" as ScoreBand, label: `${d.name}: grey, not available` };
+      const word = scoreTone(v);
+      return { ...base, value: v, band: scoreBand(v), label: `${d.name} ${Math.round(v)}: ${BAND_NAME[scoreBand(v)]}, ${word}` };
+    }
+    const t = d.key === "shortTerm" ? prism.short : prism.long, v = t?.score ?? null;
+    if (v == null || !Number.isFinite(v)) return { ...base, value: null, band: "na" as ScoreBand, label: `${d.name}: grey, not available` };
+    const w = ratingWord(t?.rating, v), band = trendBand(w.tone);
+    return { ...base, value: v, band, label: `${d.name} ${fmtScore(v)}: ${BAND_NAME[band]}, ${w.word.toLowerCase()}` };
+  });
 }

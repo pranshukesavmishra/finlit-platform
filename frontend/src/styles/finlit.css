@@ -694,8 +694,9 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
 
 /* section bar of the stock page: bigger text, every section reachable (arrows and edge fades show there is more) */
 .secnav .wrap { height: 62px; }
-.secnav a { font-size: 15px; padding: 9px 15px; gap: 8px; }
-.secnav a svg { width: 17px; height: 17px; }
+.secnav nav a { font-size: 16px; font-weight: 600; padding: 9px 9px; gap: 6px; white-space: nowrap; }
+.secnav nav a svg { width: 18px; height: 18px; }
+.secnav nav { gap: 0; }
 .snav { position: relative; display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .snav nav { flex: 1; }
 .snav.edge-r nav { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
@@ -704,3 +705,33 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
 .snav-arrow { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0 0 2px; }
 .snav-arrow:hover { border-color: var(--gold); color: var(--gold); }
 .snav-arrow:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* "All sections": button at the left end of the bar + a panel listing every section (icon, name, hint). On a phone the panel is a sheet under the bar. */
+.secnav .wrap { position: relative; }
+.sx { flex: none; }
+.sx-b { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px; border-radius: 999px; cursor: pointer; font-size: 16px; font-weight: 600; color: var(--text); border: 1px solid var(--border-strong); background: var(--s1); white-space: nowrap; }
+.sx-b svg { width: 18px; height: 18px; flex: none; color: var(--gold); }
+.sx-b:hover, .sx-b[aria-expanded="true"] { border-color: var(--gold); }
+.sx-b:focus-visible, .sx-i:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.sx-p { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: min(880px, 100%); max-height: calc(100vh - 160px); overflow: auto; padding: 12px; border-radius: 16px;
+  background: var(--s1); border: 1px solid var(--border-strong); box-shadow: 0 24px 50px -20px rgba(0,0,0,.55); }
+.sx-p[hidden] { display: none; } .sx-w { display: none; }
+.sx-g { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.secnav .sx-i { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 12px; border-radius: 12px; cursor: pointer; color: var(--text); border: 1px solid transparent; }
+.secnav .sx-i:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.secnav .sx-i.on { background: color-mix(in srgb, var(--gold) 16%, transparent); border-color: color-mix(in srgb, var(--gold) 55%, transparent); }
+.sx-ic { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--gold) 14%, transparent); color: var(--gold); }
+.sx-ic svg { width: 20px; height: 20px; }
+.sx-t { min-width: 0; display: grid; gap: 2px; } .sx-t b { font-size: 16px; font-weight: 600; } .sx-t small { font-size: 13px; line-height: 1.35; color: var(--muted); }
+@media (max-width: 1000px) { .sx-g { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .secnav .wrap { gap: 8px; }
+  .sx-d { display: none; } .sx-w { display: inline; } .sx-b { padding: 0 12px; min-height: 40px; }
+  .sx-p { position: fixed; top: calc(62px + 62px + env(safe-area-inset-top, 0px) + 6px); left: 12px; right: 12px; width: auto; max-height: calc(100dvh - 130px - 104px - env(safe-area-inset-top, 0px)); }
+}
+@media (max-width: 460px) { .sx-g { grid-template-columns: 1fr; } }
+
+/* the bar may use more than the page column so more sections sit inline; the mini price block only where there is room beside all of them */
+.secnav .wrap { max-width: 1760px; }
+.secnav .mini { display: none; }
+@media (min-width: 2040px) { .secnav .mini { display: flex; } }

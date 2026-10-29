@@ -21,6 +21,8 @@ import { TradingFacts } from "./TradingFacts";
 import { NameDots, SubLine } from "./HeaderScore";
 import { LABEL } from "./PrismCard";
 import type { Plan, PrismInput } from "../lib/scoreBands";
+import { notRatedReason } from "../lib/prism";
+import { parseTechnical } from "../lib/prismTechnical";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
   ["market_cap", "Market cap", "cap", "--p-growth"], ["pe", "P/E", "tag", "--p-quality"], ["pb", "P/B", "id", "--p-quality"], ["ev_ebitda", "EV/EBITDA", "gauge", "--p-quality"],
@@ -38,7 +40,12 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const prism = usePrismLatest(s.profile.symbol, s.meta.statement, two || isAdmin).data;
   const prismRep = prism?.kind === "report" ? prism.report : null;
   const effPlan: Plan = two || isAdmin ? "gold" : has("silver") ? "silver" : "basic";
-  const prismIn: PrismInput = !prism ? { kind: "loading" } : prism.kind === "report" ? { kind: "report", final: prism.report.rating.final, word: LABEL[prism.report.rating.label][0], status: prism.report.rating.status } : { kind: prism.kind };
+  const tech = prismRep ? parseTechnical(prismRep.technicalAssessment) : null;
+  const prismIn: PrismInput = !prism ? { kind: "loading" } : prism.kind === "report"
+    ? { kind: "report", final: prism.report.rating.final, word: LABEL[prism.report.rating.label][0], status: prism.report.rating.status, parts: prism.report.rating.parts,
+        short: tech && { score: tech.shortTerm.score, rating: tech.shortTerm.rating }, long: tech && { score: tech.longTerm.score, rating: tech.longTerm.rating },
+        reason: notRatedReason(prism.report.rating) }
+    : { kind: prism.kind };
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
@@ -66,7 +73,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
           <div className="idl">
             <div className="badge" aria-hidden="true">{initials(p.name)}</div>
             <div style={{ minWidth: 0 }}>
-              <div className="hs-name"><h1>{p.name}</h1><NameDots score={s.score} plan={effPlan} admin={isAdmin} /></div>
+              <div className="hs-name"><h1>{p.name}</h1><NameDots score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} /></div>
               <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
               <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
               <LeadLine symbol={p.symbol} jump={jump} />
