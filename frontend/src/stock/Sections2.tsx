@@ -6,6 +6,7 @@ import { LineChart } from "../charts/LineChart";
 import { cr, dateIN, initials, nf, pct, signed } from "../lib/format";
 import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
 import { OWN_COLOR } from "./derive";
+import { ownershipAt, ownershipYears } from "../lib/ownershipYears";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
@@ -51,42 +52,57 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
 
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
+  const [pick, setPick] = useState<number | null>(null);
   if (!o) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
   if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
-  const prom = o.latest.find((l) => l.key === "promoters"), fii = o.latest.find((l) => l.key === "fii"), n = o.periods.length;
-  const items = o.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
+  const years = ownershipYears(o.periods), idx = pick != null && pick < o.periods.length ? pick : o.periods.length - 1;
+  const view = ownershipAt(o, idx) ?? { asOf: o.asOf ?? "", index: idx, year: null, comparedWith: o.comparedWith, basis: null, latest: o.latest.map((l) => ({ ...l, before: null })) };
+  const sel = years.find((y) => y.index === idx)?.year ?? years.find((y) => y.year === view.year)?.year;
+  const prom = view.latest.find((l) => l.key === "promoters"), fii = view.latest.find((l) => l.key === "fii");
+  const items = view.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
-  const rows = o.latest.filter((l) => (l.value ?? 0) >= 0.5).map((l) => { const st = (o.series[l.key] || []).find((x) => x != null) ?? null; return { ...l, start: st as number | null }; });
-  const scale = Math.max(...rows.flatMap((r) => [r.value ?? 0, r.start ?? 0]), 1);
-  const then = o.periods[0], now = o.periods[n - 1];
+  const rows = view.latest.filter((l) => (l.value ?? 0) >= 0.5 || (l.before ?? 0) >= 0.5);
+  const scale = Math.max(...rows.flatMap((r) => [r.value ?? 0, r.before ?? 0]), 1);
+  const then = view.comparedWith, now = view.asOf, isLatest = idx === o.periods.length - 1;
+  const chart = Object.keys(o.series).filter((k) => OWN_COLOR[k] && k !== "others" && o.series[k].some((x) => x != null)).map((k) => ({ key: k, label: o.latest.find((l) => l.key === k)?.label.replace(/\s*\(.*\)/, "") ?? k, color: v(OWN_COLOR[k]), values: o.series[k] }));
+  const top = Math.min(100, Math.ceil(Math.max(...chart.flatMap((x) => x.values.filter((q): q is number => q != null)), 1) / 10) * 10);
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${o.asOf}${o.comparedWith ? `, with the change since ${o.comparedWith}` : ""}.`} color="--p-balance" />
+      <SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${now}${then ? `, with the change since ${then}` : ""}.`} color="--p-balance" />
+      {years.length > 0 && <div className="own-yr"><label htmlFor="own-year">Year</label>
+        <select id="own-year" value={sel ?? ""} onChange={(e) => { const y = years.find((q) => q.year === +e.target.value); if (y) setPick(y.index); }}>{years.map((y) => <option key={y.year} value={y.year}>{y.year}</option>)}</select>
+        <span>Showing the latest filing in {sel ?? "the year"}: <b>{now}</b>{isLatest ? " (most recent)" : ""}. {then ? `Changes compare with the ${view.basis}, ${then}.` : "There is no earlier filing to compare with."}</span></div>}
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
         <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners today<ChartHelp id="own-donut" /></h3><span className="s">Hover a slice</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners {isLatest ? "today" : `in ${now}`}<ChartHelp id="own-donut" /></h3><span className="s">Hover a slice</span></div>
           <OwnDonut items={items} hl={hl} setHl={setHl} />
-          <div className="odl">{o.latest.map((l) => { const c = v(OWN_COLOR[l.key] || "--faint"); return (
+          <div className="odl">{view.latest.map((l) => { const c = v(OWN_COLOR[l.key] || "--faint"); return (
             <button key={l.key} className={"odl-r" + (hl === l.key ? " on" : "")} style={{ "--oc": c } as React.CSSProperties} onMouseEnter={() => setHl(l.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(l.key)} onBlur={() => setHl(null)}>
               <i /><span><b>{label(l)}</b><small>{OWN_WORDS[l.key] || ""}</small></span><em>{pct(l.value, 1)}</em>
             </button>); })}</div>
         </div>
         <div className="card acc own-c" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold<ChartHelp id="own-bought-sold" /></h3><span className="s">{then} compared with {now}</span></div>
-          <div className="cmpk"><span><i className="k-then" />{then}</span><span><i className="k-now" />{now}</span></div>
+          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold<ChartHelp id="own-bought-sold" /></h3><span className="s">{then ? `${then} compared with ${now}` : `${now}, no earlier filing to compare`}</span></div>
+          <div className="cmpk"><span><i className="k-then" />{then ?? "Earlier"}</span><span><i className="k-now" />{now}</span></div>
           <div className="cmpl">{rows.map((r) => {
-            const c = v(OWN_COLOR[r.key] || "--faint"), d = r.start == null ? 0 : (r.value as number) - r.start, flat = Math.abs(d) < 0.05;
+            const c = v(OWN_COLOR[r.key] || "--faint"), d = r.before == null ? null : (r.value as number) - r.before, flat = d != null && Math.abs(d) < 0.05;
             return (
               <div className="cmp-r" key={r.key} style={{ "--oc": c } as React.CSSProperties}>
-                <div className="cr-h"><b>{label(r)}</b><span className={"cmp-d " + (flat ? "" : d > 0 ? "up" : "down")}>{flat ? "Unchanged" : d > 0 ? `▲ Bought ${nf(d, 1)} pts` : `▼ Sold ${nf(Math.abs(d), 1)} pts`}</span></div>
-                <div className="cmp-b"><span className="cmp-lbl">{then}</span><div className="cmp-trk"><i className="cmp-fill then" style={{ width: `${((r.start ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{nf(r.start ?? 0, 1)}%</span></div>
+                <div className="cr-h"><b>{label(r)}</b><span className={"cmp-d " + (d == null || flat ? "" : d > 0 ? "up" : "down")}>{d == null ? "No earlier figure" : flat ? "Unchanged" : d > 0 ? `▲ Bought ${nf(d, 1)} pts` : `▼ Sold ${nf(Math.abs(d), 1)} pts`}</span></div>
+                <div className="cmp-b"><span className="cmp-lbl">{then ?? "Earlier"}</span><div className="cmp-trk"><i className="cmp-fill then" style={{ width: `${((r.before ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{r.before == null ? "—" : nf(r.before, 1) + "%"}</span></div>
                 <div className="cmp-b now"><span className="cmp-lbl">{now}</span><div className="cmp-trk"><i className="cmp-fill" style={{ width: `${((r.value ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{nf(r.value ?? 0, 1)}%</span></div>
               </div>
             );
           })}</div>
         </div>
       </div>
+      {o.periods.length >= 2 && chart.length > 0 && <div className="card acc own-hist" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
+        <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>How the shareholding pattern changed</h3><span className="s">{o.periods[0]} to {o.periods[o.periods.length - 1]}, % of shares held each quarter</span></div>
+        <LineChart periods={o.periods} fmt={(x) => nf(x, 1) + "%"} height={300} area domain={[0, top]} series={chart} />
+        <div className="clg" role="list" aria-label="Chart legend">{chart.map((x) => <span key={x.key} role="listitem"><i style={{ background: x.color }} />{x.label}</span>)}</div>
+        <p className="faint own-note">Hover or touch the chart for the exact percentage in each quarter. Information only, not advice.</p>
+      </div>}
     </section>
   );
 }
