@@ -18,3 +18,7 @@ site-api/backend/content_uploads/*
 
 # AWS deployment: the real settings file lives outside the clone (/opt/finlit/.env.aws); never commit a filled-in copy
 .env.aws
+
+# a symlink named node_modules (worktrees) is a file, not a folder: ignore it too
+frontend/node_modules
+node_modules
