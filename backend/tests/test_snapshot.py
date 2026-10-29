@@ -56,8 +56,9 @@ def test_price_ranges(reliance_sections):
 def test_corrections_from_page_audit(reliance_sections):
     s = reliance_sections
     metrics = {m["key"]: m for m in s["summary"]["keyMetrics"]}
-    # 1. P/E re-priced at the live quote (41.36x at the 28 Sep close of 1,198.50 -> 1,184)
-    assert metrics["pe"]["value"] == 40.86 and metrics["pe"]["period"] == "Today"
+    # 1. P/E is FinEdge's own figure as sent (41.36x in its daily price-ratio file for 28 Sep); it is no longer re-priced at the live quote
+    # (the old expectation was 40.86x, our own override of FinEdge's number), and the period says which day it is for
+    assert metrics["pe"]["value"] == 41.36 and metrics["pe"]["period"] == "As of 28 Sep 2026"
     # 2. FinEdge's TTM ROCE duplicated TTM ROE; we show FY26 ROCE and say so
     assert metrics["roe"]["value"] != metrics["roce"]["value"] and metrics["roce"]["period"] == "FY26"
     assert s["summary"]["dataQuality"]["notes"]

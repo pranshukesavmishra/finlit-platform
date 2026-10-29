@@ -26,7 +26,7 @@ from .normalize import events, market, ownership, ratios, statements
 from .normalize.common import parse_date
 from .normalize.glossary import describe
 
-SNAPSHOT_VERSION = 4   # 4: since-listing return, profitability ratios filled on the provider's definitions, discontinued-operations profit kept out of P/E, ROE and margins. 3: profit and equity attributable to shareholders, lender handling, calendar return windows, one EV. Older reports are rebuilt first.
+SNAPSHOT_VERSION = 5   # 5: FinEdge's own market cap (quote, else profile: one on the whole page), P/E, P/B, P/S and P/FCF are shown as sent; ours only as a labelled fallback. 4: since-listing return, profitability ratios filled on the provider's definitions, discontinued-operations profit kept out of P/E, ROE and margins. 3: profit and equity attributable to shareholders, lender handling, calendar return windows, one EV. Older reports are rebuilt first.
 SECTIONS = ("summary", "financials", "ratios", "price", "ownership", "events", "segments", "peers", "stats")
 # Chart ranges are cut at ingest time so the API only ever streams stored bytes.
 # Short ranges keep daily candles; long ranges are downsampled to weekly closes.
@@ -74,7 +74,6 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     prof = market.profile(bundle.get("profile"), bundle.get("symbol_row"))
     live = market.quote(bundle.get("quote"), symbol)
     history = market.price_history(bundle.get("daily_quotes"))
-    closes_by_day = dict(zip(history["t"], history["c"]))
     price = live.get("price") or market.latest_close(history)
     live_day = parse_date(live.get("asOf"))
     if live_day and live_day.year < 1990:  # FinEdge sends 0001-01-01 for quotes it has no date for
@@ -98,17 +97,28 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     fy_month = statements.fiscal_year_end_month(pl)   # March for most companies; December and others keep their own yearly ratio rows
     first_pass = ratios.build_ratios(family_payloads, fy_month=fy_month)
+    # ONE market cap for the whole page: FinEdge's live quote figure (price x shares, "Today") when it sends one, else the profile's. The profile
+    # figure is a stale daily file (RELIANCE: 16.79 lakh Cr against 16.02 lakh Cr at the quote's price), and the company's own older site shows the
+    # quote's figure too. Profile card, quote, ratio strip, score inputs and screener metrics all read this one number.
     market_cap = live.get("marketCapCr") or prof.get("marketCapCr")
+    cap_source = "quote" if live.get("marketCapCr") else ("profile" if prof.get("marketCapCr") else None)
+    if market_cap:
+        prof["marketCapCr"] = live["marketCapCr"] = market_cap
+        prof["marketCapSource"] = cap_source
     lender = statements.is_bank(pl_rows)
     computed = derived.compute(statements.calc_view(pl), bs, cf, first_pass["latest"], bundle.get("basic"), market_cap, dividend_yield, lender, statements.calc_view(pl_q))
     growth_from_quarter = computed.pop("growth_basis", None) == "quarter"
-    computed.update(_valuation_at_price(bundle.get("daily_price_ratios"), closes_by_day, price))
+    # FinEdge's own P/E, P/B, P/S and P/FCF (its daily price-ratio file, as sent) win; ours are only a labelled fallback for a ratio it sent none for.
+    provider_val = ratios.price_ratio_latest(bundle.get("daily_price_ratios"))
+    provider_asof = parse_date(provider_val.pop("asOf", None))
+    fallback_val, fallback_notes = _fallback_valuation(market_cap, pl, pl_q, bs, cf, {k for k, v in provider_val.items() if v is not None})
+    computed.update({k: v for k, v in fallback_val.items() if v is not None})
     dividends_fy = events.dividends_by_fiscal_year(actions)
     fy = (pl.get("periods") or [None])[-1]
     computed["dividend_payout"] = _payout(dividends_fy, pl, fy)
     years = computed.get("sales_cagr_years")
     derived_periods = {
-        **{k: "Today" for k in ("pe", "pb", "ps", "pfcf", "market_cap")},
+        **fallback_periods(fallback_val, pl, pl_q, bs, cf),
         "dividend_yield": "TTM", "ev_ebitda": "TTM",
         **{k: fy for k in ("opm", "npm", "cfo_to_pat", "fcf_to_pat", "sales_growth_latest", "profit_growth_latest",
                            "dividend_payout") if fy},
@@ -118,10 +128,20 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     }
     if growth_from_quarter:   # growth measured over one quarter says so, instead of passing for a full-year figure
         derived_periods.update({"sales_growth_latest": "Latest quarter vs year ago", "profit_growth_latest": "Latest quarter vs year ago"})
-    ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v}, fy_month=fy_month)
+    as_of_text = f"As of {provider_asof:%d %b %Y}" if provider_asof else "Latest"
+    provider_periods = {k: as_of_text for k in provider_val} | {"market_cap": "Today" if cap_source == "quote" else "Company profile"}
+    notes_for = dict(fallback_notes)
+    if computed.get("dividend_yield") is not None:   # FinEdge sends no yield for a company: it is worked out from FinEdge's own dividend history
+        notes_for["dividend_yield"] = ("FinEdge sends no dividend yield; worked out by FinLit as the dividends FinEdge lists for the last 12 months divided by the price."
+                                       if computed["dividend_yield"] else "FinEdge lists no dividend paid in the last 12 months, so the yield is 0.")
+    if computed.get("ev_ebitda") is not None:
+        notes_for["ev_ebitda"] = "FinEdge sends no EV/EBITDA; worked out by FinLit as (market cap + borrowings - cash) divided by FinEdge's trailing-twelve-month EBITDA."
+    ratio_view = ratios.build_ratios(family_payloads, computed, {k: v for k, v in derived_periods.items() if v}, fy_month=fy_month,
+                                     provider={**provider_val, "market_cap": market_cap}, provider_periods=provider_periods, fallback_notes=notes_for)
     _fill_profitability(ratio_view, pl, bs, lender)
     _adjust_for_discontinued(ratio_view, pl, pl_q, bs, market_cap)
     _apply_applicability(ratio_view, lender, statements.latest(bs, "total_equity"))
+    ratio_view["blanks"] = _valuation_blanks(ratio_view, provider_val, market_cap, lender, statements.latest(bs, "total_equity"))
 
     metrics: Dict[str, Optional[float]] = {k: v["value"] for k, v in ratio_view["latest"].items()}
     metrics.update({k: v for k, v in computed.items() if v is not None})
@@ -378,7 +398,8 @@ def _adjust_for_discontinued(ratio_view: dict, pl: dict, pl_q: dict, bs: dict, m
         ttm = sum(qn) - sum(x or 0 for x in qd)
         if sum(x or 0 for x in qd) and abs(sum(x or 0 for x in qd)) >= MATERIAL_DISCONTINUED_PE * abs(sum(qn)):
             if ttm > 0:
-                latest["pe"]["value"] = round(market_cap / ttm, 2)
+                latest["pe"].update(value=round(market_cap / ttm, 2), period="TTM", rule="override",
+                                    note="FinLit used profit from continuing operations only; FinEdge's P/E includes a one-off gain from a discontinued business.")
             else:
                 latest.pop("pe", None)
     ratio_view.setdefault("notes", []).append(
@@ -426,16 +447,96 @@ def _append_live_bar(history: dict, live: dict, as_of: Optional[date]) -> bool:
     return True
 
 
-def _valuation_at_price(daily_ratios: Any, closes_by_day: Dict[str, float], price: Optional[float]) -> Dict[str, Optional[float]]:
-    """FinEdge's daily P/E, P/B, P/S and P/FCF are computed at that day's close. Re-price them at the
-    live quote so they agree with the price in the header (RELIANCE: 41.36x at ₹1,198.50 is 40.86x at ₹1,184)."""
-    latest = ratios.price_ratio_latest(daily_ratios)
-    as_of = latest.pop("asOf", None)
-    close = closes_by_day.get(as_of) if as_of else None
-    if not price or not close:
-        return latest
-    factor = price / close
-    return {k: (round(v * factor, 2) if v is not None else None) for k, v in latest.items()}
+VALUATION_KEYS = ("market_cap", "pe", "pb", "ps", "pfcf", "ev_ebitda", "dividend_yield")
+
+
+def _ttm(table: dict, key: str):
+    """-> (value, label, how): the last four quarters added up, else the latest full year."""
+    q = [v for v in ((table or {}).get("rows") or {}).get(key) or []]
+    if len(q) >= 4 and None not in q[-4:]:
+        return sum(q[-4:]), "TTM", "the last four quarters"
+    return None, None, None
+
+
+def fallback_periods(values: Dict[str, Optional[float]], pl: dict, pl_q: dict, bs: dict, cf: dict) -> Dict[str, str]:
+    fy = (pl.get("periods") or [None])[-1]
+    out = {}
+    for key in values:
+        if values[key] is None:
+            continue
+        if key in ("pe", "ps"):
+            out[key] = "TTM" if _ttm(pl_q, "net_profit" if key == "pe" else "revenue")[0] is not None else (fy or "Latest")
+        elif key == "pb":
+            out[key] = (bs.get("periods") or [None])[-1] or "Latest"
+        else:
+            out[key] = (cf.get("periods") or [None])[-1] or "Latest"
+    return out
+
+
+def _fallback_valuation(market_cap: Optional[float], pl: dict, pl_q: dict, bs: dict, cf: dict, supplied: set):
+    """Our own P/E, P/B, P/S and P/FCF, ONLY for the ratios FinEdge did not send (its file holds 0 or nothing). Returns (values, plain-words notes).
+    A loss, or no equity, gives no ratio at all (never a negative one)."""
+    values: Dict[str, Optional[float]] = {}
+    notes: Dict[str, str] = {}
+    if not market_cap:
+        return values, notes
+
+    def money(v):
+        return f"Rs {v:,.0f} Cr"
+    if "pe" not in supplied:
+        profit, label, how = _ttm(pl_q, "net_profit")
+        if profit is None:
+            profit = statements.latest(pl, "net_profit")
+            how = f"the latest full year ({(pl.get('periods') or ['?'])[-1]})"
+        if profit and profit > 0:
+            values["pe"] = round(market_cap / profit, 2)
+            notes["pe"] = f"FinEdge sent no P/E; worked out by FinLit as market cap {money(market_cap)} divided by net profit of {how} ({money(profit)})."
+    if "pb" not in supplied:
+        equity = statements.latest(bs, "total_equity")
+        if equity and equity > 0:
+            values["pb"] = round(market_cap / equity, 2)
+            notes["pb"] = f"FinEdge sent no P/B; worked out by FinLit as market cap {money(market_cap)} divided by shareholders' equity at {(bs.get('periods') or ['?'])[-1]} ({money(equity)})."
+    if "ps" not in supplied:
+        sales, label, how = _ttm(pl_q, "revenue")
+        if sales is None:
+            sales = statements.latest(pl, "revenue")
+            how = f"the latest full year ({(pl.get('periods') or ['?'])[-1]})"
+        if sales and sales > 0:
+            values["ps"] = round(market_cap / sales, 2)
+            notes["ps"] = f"FinEdge sent no P/S; worked out by FinLit as market cap {money(market_cap)} divided by sales of {how} ({money(sales)})."
+    if "pfcf" not in supplied:
+        fcf = statements.latest(cf, "free_cash_flow")
+        if fcf and fcf > 0:
+            values["pfcf"] = round(market_cap / fcf, 2)
+            notes["pfcf"] = f"FinEdge sent no price to free cash flow; worked out by FinLit as market cap {money(market_cap)} divided by free cash flow of {(cf.get('periods') or ['?'])[-1]} ({money(fcf)})."
+    return values, notes
+
+
+def _valuation_blanks(ratio_view: dict, provider_val: dict, market_cap: Optional[float], lender: bool, equity: Optional[float]) -> Dict[str, str]:
+    """A plain-words reason for every valuation figure that ends up without a number."""
+    latest = ratio_view.get("latest") or {}
+    out: Dict[str, str] = {}
+    for key in VALUATION_KEYS:
+        if key in latest:
+            continue
+        label = GLOSSARY_LABELS.get(key, key)
+        if key in NOT_FOR_LENDERS and lender:
+            out[key] = f"{label} is not shown for banks and lenders: their debt is their raw material."
+        elif key in NOT_FOR_NEGATIVE_EQUITY and equity is not None and equity <= 0:
+            out[key] = f"{label} is not shown because shareholders' equity is zero or negative."
+        elif key == "market_cap":
+            out[key] = "FinEdge sent no market cap for this company (neither in its live quote nor its profile)."
+        elif not market_cap:
+            out[key] = f"{label} needs the market cap, which FinEdge did not send."
+        elif key in ("pe", "ps", "pfcf", "pb", "ev_ebitda"):
+            out[key] = f"FinEdge sent no {label} and it cannot be worked out: the profit, equity, sales, free cash flow or EBITDA it needs is zero, negative or missing."
+        else:
+            out[key] = f"No {label}: FinEdge sent none and there is no dividend in the last 12 months to work it out from."
+    return out
+
+
+GLOSSARY_LABELS = {"market_cap": "Market cap", "pe": "P/E", "pb": "P/B", "ps": "P/S", "pfcf": "Price to free cash flow",
+                   "ev_ebitda": "EV/EBITDA", "dividend_yield": "Dividend yield"}
 
 
 def _payout(dividends_fy: dict, pl: dict, fy: Optional[str]) -> Optional[float]:

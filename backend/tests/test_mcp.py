@@ -423,7 +423,7 @@ async def test_screener_equals_the_screener_route_and_stays_in_the_free_tier(app
         route = await site(c, "/api/screener/query", json=body)
         got = (await ok(c, "screen_stocks", {"filters": {"pe": {"max": 60}}, "limit": 5}))["data"]
         assert got["matched"] == route["total"] and [r["symbol"] for r in got["rows"]] == [r["symbol"] for r in route["rows"]]
-        assert [r["values"] for r in got["rows"]] == [r["v"] for r in route["rows"]] and got["rows"][0]["values"]["pe"] == 40.86
+        assert [r["values"] for r in got["rows"]] == [r["v"] for r in route["rows"]] and got["rows"][0]["values"]["pe"] == 41.36
         # a Silver filter is refused by the route and by the tool (the key is not even offered)
         assert (await c.post("/api/screener/query", json={"filters": {"revenue": {"min": 1}}})).status_code == 403
         assert "not a filter" in await err(c, "screen_stocks", {"filters": {"revenue": {"min": 1}}})

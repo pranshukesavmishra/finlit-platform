@@ -4,6 +4,7 @@
     python -m finlit.worker refresh-universe            # stock list for search
     python -m finlit.worker ingest RELIANCE TCS ...     # build snapshots now
     python -m finlit.worker probe RELIANCE              # is the key + network + plan good for every endpoint?
+    python -m finlit.worker compare-provider --symbols LUMAXTECH   # FinEdge raw figure vs our stored report, with the rule behind each
     python -m finlit.worker ingest-all --limit 500      # load the whole universe (resumable; run without --limit for everything)
     python -m finlit.worker refresh-stale --hours 24    # nightly fundamentals refresh
     python -m finlit.worker refresh-quotes              # live price patch, every minute in market hours
@@ -213,6 +214,8 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         if old.get("price") == live["price"]:   # unchanged price: nothing to rewrite (the trade time alone is not worth a write)
             return
         summary["quote"] = {**old, **{k: v for k, v in live.items() if v is not None}}
+        if summary["quote"].get("marketCapCr") and isinstance(summary.get("profile"), dict):   # one market cap on the page: the profile card follows the quote
+            summary["profile"]["marketCapCr"], summary["profile"]["marketCapSource"] = summary["quote"]["marketCapCr"], "quote"
         for k in ("upperCircuit", "lowerCircuit"):   # a price band belongs to the quote it came with: never an older day's band beside a newer price
             if live.get(k) is None:
                 summary["quote"].pop(k, None)
@@ -459,6 +462,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
     p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("audit-integrity", help="nightly: samples up to 40 companies (one provider call each) and checks prices, latest quarter, profit and loss identities, declared results and risk figures; stores the result for the admin Data health tab")
+    p_cp = sub.add_parser("compare-provider", help="for chosen companies (or a random sample with stored reports): FinEdge's raw figure next to the figure our report shows, the difference, a verdict and the rule that produced ours (exit 1 on any unexplained mismatch)")
+    p_cp.add_argument("--symbols", nargs="*", default=[], help="companies to check")
+    p_cp.add_argument("--sample", type=int, default=0, help="or: this many random companies that have a stored report")
+    p_cp.add_argument("--seed", type=int, default=None)
+    p_cp.add_argument("--discover", action="store_true", help="also read financial-metrics cu and av and list any EV/EBITDA or yield field FinEdge sends (2 more calls per company)")
+    p_cp.add_argument("--pause", type=float, default=0.4, help="seconds between provider calls")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_rl = sub.add_parser("refresh-results-light", help="hourly: figures for companies that declared in the last 4 days and are not held in full (one provider call each: the quarterly P&L), biggest first, capped per run")
     p_rl.add_argument("--limit", type=int, default=150, help="companies per run")
@@ -854,6 +863,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 else:
                     res = await integrity.audit(store, client)
                     print(res["level"], "sampled", res["sampled"], {c["key"]: f"{c['bad']}/{c['checked']}" for c in res["checks"]})
+            elif args.cmd == "compare-provider":
+                from . import provider_compare
+                if not args.symbols and not args.sample:
+                    print("give --symbols A B C or --sample N")
+                    return 2
+                res = await provider_compare.run(store, client, args.symbols, args.sample, args.seed, discover_fields=args.discover or bool(args.symbols and len(args.symbols) <= 3), pause=args.pause)
+                print(provider_compare.render(res))
+                return 1 if res["mismatches"] else 0
             elif args.cmd == "refresh-results":
                 print(await refresh_results(client, store))
             elif args.cmd == "refresh-results-light":

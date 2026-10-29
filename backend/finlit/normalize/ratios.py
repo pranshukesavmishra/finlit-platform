@@ -98,18 +98,26 @@ def family_rows(family: str, payload: Any, fy_month: int = 3) -> Dict[str, Dict[
     return out
 
 
-# Our own figures replace FinEdge's for these keys (computed at the live price or from the statements
-# shown on the page, so every number on the page agrees with every other).
-DERIVED_WINS = {"pe", "pb", "ps", "pfcf", "ev_ebitda", "dividend_yield", "market_cap", "cfo_to_pat", "fcf_to_pat",
-                "liabilities_to_assets", "dividend_payout", "revenue_cagr_3y", "revenue_cagr_5y"}
+# Our own figures replace FinEdge's for these keys, because they are a different measure or basis from anything FinEdge sends
+# (cash conversion; liabilities over assets; dividend declared for the year over EPS; sales growth measured on the statements table shown).
+# Valuation (market cap, P/E, P/B, P/S, P/FCF, EV/EBITDA, dividend yield) is NOT in this set: FinEdge's own figure wins whenever FinEdge sends it
+# (passed in as `provider`), and our calculation is only a FALLBACK for a key FinEdge sent nothing for, with a plain-words note.
+DERIVED_WINS = {"cfo_to_pat", "fcf_to_pat", "liabilities_to_assets", "dividend_payout", "revenue_cagr_3y", "revenue_cagr_5y"}
+RULE_PROVIDER, RULE_FALLBACK, RULE_OVERRIDE = "finedge", "fallback", "override"   # which rule produced a shown figure
 # Pairs that are different measures and should never be identical in the same period.
 DISTINCT_PAIRS = [("roe", "roce")]
 
 
 def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[float]]] = None,
-                 derived_periods: Optional[Dict[str, str]] = None, fy_month: int = 3) -> dict:
-    """payloads: {"pr": ..., "le": ..., "li": ..., "ef": ..., "basic": ..., "gr": ...}."""
+                 derived_periods: Optional[Dict[str, str]] = None, fy_month: int = 3,
+                 provider: Optional[Dict[str, Optional[float]]] = None, provider_periods: Optional[Dict[str, str]] = None,
+                 fallback_notes: Optional[Dict[str, str]] = None) -> dict:
+    """payloads: {"pr": ..., "le": ..., "li": ..., "ef": ..., "basic": ..., "gr": ...}.
+    provider: FinEdge's own valuation figures (market cap, P/E, P/B ...) in display units; they win over `derived`, which only fills a gap
+    (its entry then carries `fallback_notes[key]`, the plain-words reason)."""
     derived_periods = derived_periods or {}
+    provider_periods = provider_periods or {}
+    fallback_notes = fallback_notes or {}
     notes: List[str] = []
     by_period: Dict[str, Dict[str, Optional[float]]] = {}
     for family in ("pr", "le", "li", "ef", "basic"):
@@ -127,7 +135,7 @@ def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[
                 value, period = v, candidate
                 break
         if value is not None:
-            latest[key] = {"value": value, "period": period}
+            latest[key] = {"value": value, "period": period, "rule": RULE_PROVIDER}
 
     # FinEdge's TTM row sometimes repeats one value for two different ratios (RELIANCE: ROE = ROCE =
     # 6.93% in TTM while every annual row differs). Fall back to the latest full year for the second.
@@ -136,20 +144,28 @@ def build_ratios(payloads: Dict[str, Any], derived: Optional[Dict[str, Optional[
         if a and b and a["period"] == b["period"] == "TTM" and a["value"] == b["value"] and annual:
             fy = next((p for p in reversed(annual) if by_period.get(p, {}).get(second) is not None), None)
             if fy and by_period[fy].get(second) != by_period[fy].get(first):
-                latest[second] = {"value": by_period[fy][second], "period": fy}
+                latest[second] = {"value": by_period[fy][second], "period": fy, "rule": RULE_PROVIDER}
                 notes.append(f"Source TTM {second.upper()} repeated TTM {first.upper()}; showing {fy} {second.upper()} instead.")
 
     growth = (payloads.get("gr") or {}).get("financial_metrics") if isinstance(payloads.get("gr"), dict) else None
     for source_key, key in GROWTH_MAP.items():
         value = pct((growth or {}).get(source_key))
         if value is not None:
-            latest[key] = {"value": value, "period": key.rsplit("_", 1)[-1].upper()}  # "5Y" / "3Y"
+            latest[key] = {"value": value, "period": key.rsplit("_", 1)[-1].upper(), "rule": RULE_PROVIDER}  # "5Y" / "3Y"
+
+    for key, value in (provider or {}).items():   # FinEdge's own valuation figure, as sent
+        if value is not None:
+            latest[key] = {"value": round(value, 2), "period": provider_periods.get(key, "Latest"), "rule": RULE_PROVIDER}
 
     for key, value in (derived or {}).items():
-        if key.endswith("_years"):
+        if key.endswith("_years") or value is None:
             continue
-        if value is not None and (key not in latest or key in DERIVED_WINS):
-            latest[key] = {"value": round(value, 2), "period": derived_periods.get(key, "Latest")}
+        if key in latest and key not in DERIVED_WINS:
+            continue   # FinEdge sent it: ours is not used
+        rule = RULE_OVERRIDE if key in latest else RULE_FALLBACK
+        latest[key] = {"value": round(value, 2), "period": derived_periods.get(key, "Latest"), "rule": rule}
+        if key in fallback_notes:
+            latest[key]["note"] = fallback_notes[key]
 
     for key, entry in latest.items():
         meta = GLOSSARY.get(key, {})
