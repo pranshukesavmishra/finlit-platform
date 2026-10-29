@@ -52,6 +52,15 @@ export function StockPage() {
   const idrow = useRef<HTMLDivElement>(null);
   const links = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
+  const [edge, setEdge] = useState({ l: false, r: false });   // more sections beyond the left / right end of the bar: arrows and a fade say so
+  useEffect(() => {
+    const el = links.current; if (!el) return;
+    const upd = () => setEdge({ l: el.scrollLeft > 4, r: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+    upd(); el.addEventListener("scroll", upd, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(upd) : null; ro?.observe(el);
+    return () => { el.removeEventListener("scroll", upd); ro?.disconnect(); };
+  }, [s]);
+  const slide = (d: number) => links.current?.scrollBy({ left: d * links.current.clientWidth * 0.6, behavior: "smooth" });
 
   useEffect(() => {
     if (!s) return;
@@ -98,7 +107,11 @@ export function StockPage() {
       <div className={"secnav" + (stuck ? " stuck" : "")} id="secnav">
         <div className="wrap">
           <div className="mini" aria-hidden="true"><span className="bd">{s.profile.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}</span><b>{s.profile.nse}</b><span>₹{nf(q?.price ?? 0)}</span><span className={(q?.changePct ?? 0) >= 0 ? "pos" : "neg"}>{signed(q?.changePct)}</span><span className="sc">{s.score.overall ?? "—"}</span></div>
+          <div className={"snav" + (edge.l ? " edge-l" : "") + (edge.r ? " edge-r" : "")}>
+          {edge.l && <button type="button" className="snav-arrow" aria-label="Earlier sections" onClick={() => slide(-1)}>‹</button>}
           <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
+          {edge.r && <button type="button" className="snav-arrow" aria-label="More sections" onClick={() => slide(1)}>›</button>}
+          </div>
         </div>
       </div>
       <div className="wrap">

@@ -2,6 +2,7 @@
 // part's own score; the overall number sits in the middle. Pure SVG, no chart library; the entrance animation is CSS and switches off for
 // prefers-reduced-motion. Styles: styles/dash-shared.css (classes dk-gl*).
 import { useId, type CSSProperties } from "react";
+import { bandVar, scoreBand } from "../../../lib/scoreBands";
 import "../../../styles/dash-shared.css";
 
 export type GlyphPart = { key: string; name: string; /** share of the score, any positive number (percent or fraction) */ weight: number; /** 0..100 or null */ value: number | null; /** CSS custom property name, e.g. "--p-growth" */ color: string };
@@ -37,14 +38,14 @@ export function PrismGlyph({ parts, score, size = 150, caption = "out of 100", a
     <span className="dk-gl" style={{ width: size, height: size }} {...(ariaLabel ? { role: "img", "aria-label": ariaLabel } : { "aria-hidden": true })}>
       <svg viewBox="0 0 160 160">
         <defs>
-          <radialGradient id={`${id}d`} cx=".5" cy=".3" r=".85"><stop offset="0" stopColor="#4A4232" /><stop offset=".6" stopColor="#2A261C" /><stop offset="1" stopColor="#17140E" /></radialGradient>
+          <radialGradient id={`${id}d`} cx=".5" cy=".3" r=".85"><stop offset="0" stopColor="var(--dk-disc-1)" /><stop offset=".6" stopColor="var(--dk-disc-2)" /><stop offset="1" stopColor="var(--dk-disc-3)" /></radialGradient>
           <linearGradient id={`${id}n`} x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stopColor="#FFF6DC" /><stop offset=".6" stopColor="#E8D29B" /><stop offset="1" stopColor="#C9A24E" /></linearGradient>
           <filter id={`${id}g`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3" /></filter>
         </defs>
         <circle className="dk-gl-halo" cx={C} cy={C} r="66" />
         {ticks.map((i) => { const [x0, y0] = pt(77, i * 6), [x1, y1] = pt(i % 5 === 0 ? 72.5 : 74.5, i * 6); return <line key={i} className={"dk-gl-tick" + (i % 5 === 0 ? " maj" : "")} x1={x0.toFixed(2)} y1={y0.toFixed(2)} x2={x1.toFixed(2)} y2={y1.toFixed(2)} />; })}
         {arcs.map((a, i) => (
-          <g key={a.key} style={{ "--pc": `var(${a.color})`, "--i": i } as CSSProperties}>
+          <g key={a.key} style={{ "--pc": bandVar(scoreBand(a.value)), "--i": i } as CSSProperties}>
             <path className="dk-gl-track" d={a.d} />
             {a.value != null && a.value > 0 && <>
               <path className="dk-gl-fill glow" d={a.d} pathLength={100} strokeDasharray={`${a.value} 100`} filter={`url(#${id}g)`} />
@@ -58,7 +59,7 @@ export function PrismGlyph({ parts, score, size = 150, caption = "out of 100", a
         <circle className="dk-gl-ring2" cx={C} cy={C} r="43" />
         {score == null
           ? <text className="dk-gl-nr" x={C} y={C + 5} textAnchor="middle">Not rated</text>
-          : <><text className="dk-gl-num" x={C} y={C + 9} textAnchor="middle" fill={`url(#${id}n)`}>{score.toFixed(1)}</text><text className="dk-gl-cap" x={C} y={C + 27} textAnchor="middle">{example ? "EXAMPLE" : caption.toUpperCase()}</text></>}
+          : <><text className={"dk-gl-num band-" + scoreBand(score)} x={C} y={C + 9} textAnchor="middle">{score.toFixed(1)}</text><text className="dk-gl-cap" x={C} y={C + 27} textAnchor="middle">{example ? "EXAMPLE" : caption.toUpperCase()}</text></>}
       </svg>
     </span>
   );
