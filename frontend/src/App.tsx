@@ -41,6 +41,8 @@ const FiiDiiPage = lazy(() => import("./pages/FiiDii").then((m) => ({ default: m
 const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ default: m.SipCalculator })));
 const OptionChainPage = lazy(() => import("./pages/OptionChain").then((m) => ({ default: m.OptionChainPage })));
 const CommoditiesPage = lazy(() => import("./pages/Commodities").then((m) => ({ default: m.CommoditiesPage })));
+const OutlookPage = lazy(() => import("./pages/Outlook").then((m) => ({ default: m.OutlookPage })));
+const OutlookIndexPage = lazy(() => import("./pages/Outlook").then((m) => ({ default: m.OutlookIndexPage })));
 const DcfPage = lazy(() => import("./pages/Dcf").then((m) => ({ default: m.DcfPage })));
 const EpsCalculatorPage = lazy(() => import("./pages/EpsCalculator").then((m) => ({ default: m.EpsCalculatorPage })));
 const Account = lazy(() => import("./pages/Account").then((m) => ({ default: m.Account })));
@@ -102,6 +104,8 @@ export default function App() {
             <Route path="funds/:id" element={<FundDetailPage />} />
             <Route path="watchlist" element={<WatchlistPage />} />
             <Route path="dcf" element={<DcfPage />} />
+            <Route path="outlook" element={<OutlookIndexPage />} />
+            <Route path="outlook/:symbol" element={<OutlookPage />} />
             <Route path="eps-calculator" element={<EpsCalculatorPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
             <Route path="alerts" element={<AlertsPage />} />
