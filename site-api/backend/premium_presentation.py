@@ -248,6 +248,7 @@ def build_report_review(report):
     # Preserve substantive data concerns in plain language; omit provider plumbing.
     for message in inputs.get("rating_blockers", []) + inputs.get("rating_cautions", []):
         if "solvency ratio has unverified units" in message: notes.append("The solvency ratio's units need verification against the issuer disclosure; interpret the Quality assessment with caution.")
+        elif "not yet mapped to a model group" in message: notes.append(message + " The overall rating is withheld until it is mapped.")
         elif "classification" in message: notes.append("The company's industry classification needs confirmation; the overall rating is withheld.")
         elif "Quarterly" in message: notes.append("Quarterly results are incomplete or more than 200 days old.")
         elif "freshness" in message: notes.append("The market price is more than 10 days old.")
@@ -261,6 +262,12 @@ def build_report_review(report):
     if requested and requested != report["statementType"]:
         notes.append(f"{requested.title()} statements were unavailable; this report uses {report['statementType']} statements.")
     if rating["status"] == "PROVISIONAL": notes.append("This assessment is provisional because the available financial history or data coverage is limited.")
-    if rating["status"] == "NOT RATED": notes.append("There is insufficient verified information to provide an overall rating.")
+    if rating["status"] == "NOT RATED":
+        reasons = rating.get("notRatedReasons") or []
+        for reason in reasons:
+            if reason["code"] != "classification": notes.append("Not rated: " + reason["text"])
+        if not reasons: notes.append("There is insufficient verified information to provide an overall rating.")
+        elif rating.get("confidence", 0) >= 0.5:
+            notes.append("The inputs-available figure is the share of model inputs that were found. A rating can still be withheld by a separate check, here: " + reasons[0]["text"])
     if rating.get("valuationCapped"): notes.append("Weak business fundamentals or financial quality limit the valuation assessment.")
     return {"parts": parts, "notes": list(dict.fromkeys(notes)), "completeness": build_input_completeness(report)}

@@ -491,6 +491,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_pz.add_argument("--max-minutes", type=float, default=100.0)
     p_pz.add_argument("--days", type=int, default=7, help="a stored rating older than this is calculated again")
     p_pz.add_argument("--shard", default=None, help="PART/OF, for example 0/2: work only on the companies whose symbol hashes to this part, so several workers can run side by side")
+    p_pz.add_argument("--stale-not-rated", action="store_true", help="only the companies NOT RATED by the old classification check (report older than the current classification rules); at most 300 per run, 1 second apart. Run once after deploying the classification fix")
+    p_ap = sub.add_parser("audit-prism", help="why are companies NOT RATED or PROVISIONAL? Buckets by reason (classification label, low confidence, thin history), one database query, no provider calls; stores the summary in mf_meta ('prism-audit:last')")
+    p_ap.add_argument("--statement", default="consolidated", choices=("consolidated", "standalone"))
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
     p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
     p_bh.add_argument("--max-minutes", type=float, default=60.0)
@@ -763,6 +766,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
+        if args.cmd == "audit-prism":
+            from . import prism_audit
+            res = await prism_audit.audit(store, args.statement)
+            print(prism_audit.render(res))
+            return 0
         if args.cmd == "precompute-prism":
             from . import prism
             shard = None
@@ -771,7 +779,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 if not (part.isdigit() and of.isdigit() and int(of) >= 1 and int(part) < int(of)):
                     raise SystemExit("--shard must look like 0/2 (part/of, part below of)")
                 shard = (int(part), int(of))
-            print(await prism.precompute(store, settings, limit=args.limit, max_minutes=args.max_minutes, days=args.days, shard=shard))
+            print(await prism.precompute(store, settings, limit=args.limit, max_minutes=args.max_minutes, days=args.days, shard=shard, stale_not_rated=args.stale_not_rated))
             return 0
         if args.cmd in ("refresh-leadership", "backtest-leadership"):
             from datetime import date as _date

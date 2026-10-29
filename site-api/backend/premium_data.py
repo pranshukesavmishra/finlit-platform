@@ -10,12 +10,12 @@ from datetime import date
 
 try:
     from .financial_records import CR, num, items, first, field_date
-    from .premium_classification import resolve_group, profile_from
+    from .premium_classification import resolve_group, profile_from, label_text, CLASSIFICATION_VERSION
     from .financial_fields import INTEREST_COST_FIELDS
     from .premium_model_config import QUARTERS_STORED, CAGR_MAX_YEARS
 except ImportError:
     from financial_records import CR, num, items, first, field_date
-    from premium_classification import resolve_group, profile_from
+    from premium_classification import resolve_group, profile_from, label_text, CLASSIFICATION_VERSION
     from financial_fields import INTEREST_COST_FIELDS
     from premium_model_config import QUARTERS_STORED, CAGR_MAX_YEARS
 
@@ -319,7 +319,7 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
     if incomplete_prices:
         cautions.append("Invalid closing prices occur in the recent daily series. Returns across those gaps are excluded; complete-window drawdown and trading value remain unavailable where affected.")
     if defaulted:
-        blockers.append("The model group could not be verified from the company classification.")
+        blockers.append(f'The company\'s industry label "{label_text(profile) or "none given"}" is not yet mapped to a model group.')
     if not end_q or (as_of - end_q).days > 200:
         cautions.append("Quarterly financials are missing or more than 200 days old.")
     try:
@@ -335,7 +335,7 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
     d["rating_blockers"], d["rating_cautions"] = blockers, cautions
     warnings.extend(blockers + cautions)
     chronology = {"quarterly": [f"{key // 4}-{(key % 4) * 3 + 3:02d}" for key in qkeys], "annual": [str(year) for year in ykeys]}
-    meta = {"groupDefaulted": defaulted, "statementType": statement_type, "quarterlyAsOf": end_q.isoformat() if end_q else None,
+    meta = {"groupDefaulted": defaulted, "classificationVersion": CLASSIFICATION_VERSION, "groupLabel": label_text(profile), "statementType": statement_type, "quarterlyAsOf": end_q.isoformat() if end_q else None,
             "annualAsOf": max(a).isoformat() if a else None, "balanceAsOf": max(b).isoformat() if b else None,
             "ownershipAsOf": own_date.isoformat() if own_date else None, "priceAsOf": quote_date,
             "assetQualityStatementType": raw.get("asset_quality_basis", statement_type),

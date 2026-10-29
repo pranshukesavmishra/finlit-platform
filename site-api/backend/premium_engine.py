@@ -204,6 +204,20 @@ def label(score):
     return next((name for threshold, name in RATING_BANDS if score >= threshold), RATING_BANDS[-1][1])
 
 
+def not_rated_reasons(d, confidence, enough, sales_q):
+    """Why a company is NOT RATED, most specific first, in plain words. Presentation only: no score or threshold depends on it."""
+    reasons = []
+    for blocker in d.get("rating_blockers", []):
+        code = "classification" if "model group" in blocker else "data_integrity"
+        reasons.append({"code": code, "text": blocker})
+    if not enough:
+        have = sum(num(v) is not None for v in sales_q)
+        reasons.append({"code": "insufficient_history", "text": f"Not enough reported history: {have} quarter(s) of sales found; at least 4 quarters (or 2 annual results) are needed. This is usual for a recently listed company."})
+    if confidence < NOT_RATED_BELOW:
+        reasons.append({"code": "low_confidence", "text": f"Only {confidence * 100:.0f}% of the inputs the model needs could be found; at least {NOT_RATED_BELOW * 100:.0f}% are needed."})
+    return reasons
+
+
 def score_company(d, group):
     if group not in GROUPS:
         raise ValueError("Unsupported model group")
@@ -465,9 +479,11 @@ def score_company(d, group):
             alerts.append(f"{metric} did not beat last year in either of the latest two quarters; the growth run is broken.")
     best_part = max(parts, key=lambda p: PART_WEIGHTS[p] * (parts[p] or 0))
     worst_part = max(parts, key=lambda p: PART_WEIGHTS[p] * (100 - (parts[p] or 0)))
-    headline = "Not rated: insufficient verified inputs or unresolved data integrity issues." if status == "NOT RATED" else f"{rating.title()} assessment: {best_part.title()} contributes most to the score; {worst_part.title()} accounts for the largest shortfall."
+    reasons = not_rated_reasons(d, confidence, enough, sales_q) if status == "NOT RATED" else []
+    headline = ("Not rated: " + reasons[0]["text"] if reasons else "Not rated: insufficient verified inputs or unresolved data integrity issues.") if status == "NOT RATED" else f"{rating.title()} assessment: {best_part.title()} contributes most to the score; {worst_part.title()} accounts for the largest shortfall."
     return {"modelVersion": MODEL_VERSION, "baselineVersion": BASELINE_VERSION, "fillVersion": FILL_VERSION,
             "group": group, "final": final if status != "NOT RATED" else None, "label": rating, "status": status,
+            "notRatedReasons": reasons,
             "confidence": confidence, "coverage": coverage, "dataIntegrityStatus": "REVIEW REQUIRED" if d.get("rating_cautions") or d.get("rating_blockers") or details.get('FINANCIAL_LEVERAGE',{}).get('invalid') else "PASS", "parts": parts, "partWeights": PART_WEIGHTS,
             "judgedQuarters": judged, "metrics": rows, "strengths": strengths, "weaknesses": weaknesses,
             "flags": [row for row in actual if row["points"] < FLAG_GREEN], "alerts": alerts,

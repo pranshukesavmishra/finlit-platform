@@ -1,7 +1,7 @@
 // One FinLit Prism report: hero with the prism ring, the parts, what moved the score, every factor, financial history, valuation against
 // the benchmark, and completeness and freshness. NOT RATED never shows category scores. Layout lives in styles/prism-report.css (pzr-*).
 import { Icon } from "../../lib/icons";
-import { PRISM_NAME, PRISM_NOTE, incomeNote, incomeWord, prismReview } from "../../lib/prism";
+import { PRISM_NAME, PRISM_NOTE, incomeNote, incomeWord, notRatedReason, prismReview } from "../../lib/prism";
 import { Hero, istTime, LabelChip, StatusChip, type ReportActions } from "./pzr/Hero";
 import { FactorExplorer } from "./pzr/Factors";
 import { Health, Peers } from "./pzr/Health";
@@ -31,7 +31,7 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       {example && <p className="pzr-example-b" role="note"><b>Example</b> A fictional company, to show the layout. Not a real rating.</p>}
       <Hero report={report} actions={actions} />
       {report.rating.dataIntegrityStatus === "REVIEW REQUIRED" && (
-        <div className="pzr-caution" role="note"><Icon name="alert" /><span><b>Data check: review required.</b> Some inputs could not be fully verified (see the review notes below). The caution does not change the score; read the result with it in mind.</span></div>
+        <div className="pzr-caution" role="note"><Icon name="alert" /><span><b>Data check: review required.</b> {notRatedReason(report.rating) ?? "Some inputs could not be fully verified"} (see the review notes below). The caution does not change the score; read the result with it in mind.</span></div>
       )}
       {legacy && (
         <div className="pzr-caution" role="note"><Icon name="info" /><span>This stored report predates the reader commentary. <button type="button" className="pzr-link pzr-noprint" onClick={actions.onRecalculate}>Recalculate</button> for the full review.</span></div>

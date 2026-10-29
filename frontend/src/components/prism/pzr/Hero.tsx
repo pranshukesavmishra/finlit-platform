@@ -2,7 +2,7 @@
 // and a score scale with the label thresholds. Status is always written in words next to any colour.
 import { Icon } from "../../../lib/icons";
 import {
-  PRISM_NAME, PRISM_NOTE, STATUS_TEXT, STATUS_WORD, isRated, labelTone, partInfo, partShare, pctWhole, pdfOpen, ringSentence, score1, statementWord,
+  PRISM_NAME, PRISM_NOTE, completenessNote, notRatedReason, ringWhy, STATUS_TEXT, STATUS_WORD, isRated, labelTone, partInfo, partShare, pctWhole, pdfOpen, ringSentence, score1, statementWord,
   type PrismRating, type PrismReport,
 } from "../../../lib/prism";
 import { THRESHOLDS, arcSegments, partVar } from "../../../lib/prismReport";
@@ -59,7 +59,7 @@ export function PrismRing({ rating, size = 300 }: { rating: Pick<PrismRating, "s
         <text x="150" y="108" textAnchor="middle" className="pzr-ring-k">{labelTone(rating.label).word}</text>
       </> : <>
         <text x="150" y="150" textAnchor="middle" className="pzr-ring-nr">Not rated</text>
-        <text x="150" y="176" textAnchor="middle" className="pzr-ring-u">not enough evidence</text>
+        <text x="150" y="176" textAnchor="middle" className="pzr-ring-u">{ringWhy(rating)}</text>
       </>}
     </svg>
   );
@@ -111,9 +111,9 @@ export function Hero({ report, actions }: { report: PrismReport; actions: Report
           <div className="pzr-chips">
             <LabelChip label={rating.label} /><StatusChip status={rating.status} />
           </div>
-          <p className="pzr-lede">{STATUS_TEXT[rating.status]}</p>
+          <p className="pzr-lede">{notRatedReason(rating) ?? STATUS_TEXT[rating.status]}</p>
           <p className="pzr-cov"><Icon name="quality" /><span><b>{pctWhole(rating.confidence)} of inputs available</b>, and {rating.judgedQuarters} of 10 comparable quarters.</span></p>
-          <p className="pzr-cov-n">This is completeness of the data behind the score. It is not a probability and does not predict returns.</p>
+          <p className="pzr-cov-n">This is completeness of the data behind the score. It is not a probability and does not predict returns.{completenessNote(rating) ? " " + completenessNote(rating) : ""}</p>
           <div className="pzr-acts pzr-noprint">
             {open
               ? <button type="button" className="btn primary" onClick={actions.onDownload} disabled={actions.downloading}><Icon name="download" />{actions.downloading ? "Preparing PDF…" : "Download PDF"}</button>

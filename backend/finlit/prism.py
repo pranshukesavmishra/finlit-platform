@@ -241,8 +241,30 @@ def _summary(row) -> Dict[str, Any]:
             "topPros": _lines(view, "pros"), "topCons": _lines(view, "cons")}
 
 
+# Mirrors CLASSIFICATION_VERSION in site-api/backend/premium_classification.py (a test keeps them equal). Bump both when the group rules change
+# what a stored NOT RATED report would show: reports of an older version that were withheld by the classification check are then stale.
+CLASSIFICATION_VERSION = 2
+CLASSIFICATION_MARK = "model group"      # in the rating's alerts of a report withheld by the classification check, before and after the fix
+
+
+def stale_classification(report: Any) -> bool:
+    """True for a stored report that was NOT RATED because of the classification check and was calculated before the current rules."""
+    if isinstance(report, (str, bytes)):
+        try:
+            report = json.loads(report)
+        except ValueError:
+            return False
+    if not isinstance(report, dict) or (report.get("rating") or {}).get("status") != "NOT RATED":
+        return False
+    version = (report.get("inputMeta") or {}).get("classificationVersion")
+    if isinstance(version, int) and not isinstance(version, bool) and version >= CLASSIFICATION_VERSION:
+        return False
+    return any(CLASSIFICATION_MARK in str(a) for a in (report.get("rating") or {}).get("alerts") or [])
+
+
 def _fresh(row) -> bool:
-    return row is not None and (datetime.now(timezone.utc) - row["generated_at"]).total_seconds() < REUSE_SECONDS
+    return (row is not None and (datetime.now(timezone.utc) - row["generated_at"]).total_seconds() < REUSE_SECONDS
+            and not stale_classification(row["report"]))
 
 
 def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
@@ -851,15 +873,22 @@ PRE_PAUSE_TRIES = 40               # times the nightly job waits for a member's 
 PRE_PROGRESS_KEY = "prism:pre:last"
 
 
-async def _pending(store, statement: str, days: int, limit: int, skip: list) -> list:
+STALE_SQL = ("(p.status = 'NOT RATED' AND COALESCE(NULLIF(regexp_replace(COALESCE(p.report->'inputMeta'->>'classificationVersion', ''), '[^0-9]', '', 'g'), '')::int, 0) < $5 "
+             "AND (p.report->'rating'->'alerts')::text LIKE '%model group%')")
+STALE_MAX = 300                    # --stale-not-rated recalculates at most this many companies per run (run it again for more)
+STALE_PAUSE = 1.0                  # seconds between two companies of that run, so the data provider is never hammered
+
+
+async def _pending(store, statement: str, days: int, limit: int, skip: list, stale_only: bool = False) -> list:
     """Companies we hold a full report for (the stored summary) that have no rating or an old one, never-rated first and then the biggest.
     Fresh ones are not listed, so a run that was stopped simply continues where it stopped, and `skip` leaves out what failed tonight."""
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "
+            "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "  # nosec B608 (only module constants are interpolated; values are bound)
             "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
-            "WHERE (p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2)) AND NOT (s.symbol = ANY($4::text[])) "
-            "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3", statement, days, limit, skip)
+            f"WHERE {STALE_SQL + ' AND $2::int IS NOT NULL' if stale_only else '(p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) OR ' + STALE_SQL + ')'} AND NOT (s.symbol = ANY($4::text[])) "
+            f"ORDER BY ({STALE_SQL}) DESC, (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3",
+            statement, days, limit, skip, CLASSIFICATION_VERSION)
     return [r["symbol"] for r in rows]
 
 
@@ -876,7 +905,8 @@ def in_shard(symbols: List[str], shard: Optional[Tuple[int, int]]) -> List[str]:
     return [x for x in symbols if zlib.crc32(x.encode()) % of == part]
 
 
-async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None, shard: Optional[Tuple[int, int]] = None) -> Dict[str, Any]:
+async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None, shard: Optional[Tuple[int, int]] = None,
+                      stale_not_rated: bool = False) -> Dict[str, Any]:
     """Calculate the rating of every company we hold a full report for that has none yet (or one older than `days`), one at a time (memory),
     never-rated first and then the biggest. The calculation is exactly the one a member's button runs, from the same inputs. It is resumable
     (what is stored counts as done), it gives way to a member who is waiting (the site backend turns it away while one is, and it waits a
@@ -893,7 +923,9 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             skip.append((key.decode() if isinstance(key, bytes) else key).rsplit(":", 1)[1])
     except Exception:
         skip = []
-    symbols = await _pending(store, statement, days, limit, skip)
+    if stale_not_rated:
+        limit = min(limit, STALE_MAX)
+    symbols = await _pending(store, statement, days, limit, skip, stale_only=stale_not_rated)
     symbols = in_shard(symbols, shard)
     started, done, failed, streak, paused = time.monotonic(), 0, [], 0, 0
     attempted = 0
@@ -922,9 +954,13 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
             return False, code
         cache = snapshot.pop("cache", None)
-        await _save(store, symbol, statement, reader_view(snapshot), None)
+        view = reader_view(snapshot)
+        await _save(store, symbol, statement, view, None)
+        if stale_classification(view):
+            # The site backend still runs the old classification rules (not deployed yet): do not calculate this company again tonight.
+            await redis.set(f"prism:pre:fail:{statement}:{symbol}", "stale-model", ex=PRE_FAIL_SECONDS)
         await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(STALE_PAUSE if stale_not_rated else 0.2)
         return True, code
 
     try:
@@ -975,7 +1011,7 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             await app.state.prism_client.aclose()
         if getattr(app.state, "prism_dhan", None) is not None:
             await app.state.prism_dhan.aclose()
-    left = len(await _pending(store, statement, days, 5000, [])) if symbols else 0
+    left = len(await _pending(store, statement, days, 5000, [], stale_only=stale_not_rated)) if symbols else 0
     out = {"status": "ok" if done or not symbols else "partial", "calculated": done, "failed": failed[:10], "paused_for_members": paused,
            "remaining_candidates": left, "seconds": round(time.monotonic() - started),
            "widened": widened, "widen_refused": widen_skipped, "widen_paused_for_members": widen_paused}
