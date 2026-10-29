@@ -3,6 +3,9 @@ import { Icon } from "../lib/icons";
 import { arcPath } from "../lib/svg";
 
 import { LineChart } from "../charts/LineChart";
+import { OwnershipBars } from "../charts/OwnershipBars";
+import { OwnershipYearPicker } from "./OwnershipYearPicker";
+import { selectionInfo } from "../lib/ownershipBars";
 import { cr, dateIN, initials, nf, pct, signed } from "../lib/format";
 import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
 import { OWN_COLOR } from "./derive";
@@ -57,21 +60,18 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
   if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
   const years = ownershipYears(o.periods), idx = pick != null && pick < o.periods.length ? pick : o.periods.length - 1;
   const view = ownershipAt(o, idx) ?? { asOf: o.asOf ?? "", index: idx, year: null, comparedWith: o.comparedWith, basis: null, latest: o.latest.map((l) => ({ ...l, before: null })) };
-  const sel = years.find((y) => y.index === idx)?.year ?? years.find((y) => y.year === view.year)?.year;
+  const sel = view.year ?? years.find((y) => y.index === idx)?.year;
   const prom = view.latest.find((l) => l.key === "promoters"), fii = view.latest.find((l) => l.key === "fii");
   const items = view.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
   const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
   const rows = view.latest.filter((l) => (l.value ?? 0) >= 0.5 || (l.before ?? 0) >= 0.5);
   const scale = Math.max(...rows.flatMap((r) => [r.value ?? 0, r.before ?? 0]), 1);
   const then = view.comparedWith, now = view.asOf, isLatest = idx === o.periods.length - 1;
-  const chart = Object.keys(o.series).filter((k) => OWN_COLOR[k] && k !== "others" && o.series[k].some((x) => x != null)).map((k) => ({ key: k, label: o.latest.find((l) => l.key === k)?.label.replace(/\s*\(.*\)/, "") ?? k, color: v(OWN_COLOR[k]), values: o.series[k] }));
-  const top = Math.min(100, Math.ceil(Math.max(...chart.flatMap((x) => x.values.filter((q): q is number => q != null)), 1) / 10) * 10);
+  const selInfo = selectionInfo(o.periods, idx);
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
       <SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${now}${then ? `, with the change since ${then}` : ""}.`} color="--p-balance" />
-      {years.length > 0 && <div className="own-yr"><label htmlFor="own-year">Year</label>
-        <select id="own-year" value={sel ?? ""} onChange={(e) => { const y = years.find((q) => q.year === +e.target.value); if (y) setPick(y.index); }}>{years.map((y) => <option key={y.year} value={y.year}>{y.year}</option>)}</select>
-        <span>Showing the latest filing in {sel ?? "the year"}: <b>{now}</b>{isLatest ? " (most recent)" : ""}. {then ? `Changes compare with the ${view.basis}, ${then}.` : "There is no earlier filing to compare with."}</span></div>}
+      {years.length > 0 && <OwnershipYearPicker years={years.map((y) => y.year)} selected={sel ?? null} onPick={(y) => { const f = years.find((q) => q.year === y); if (f) setPick(f.index); }} cap={{ now, then, basis: view.basis, isLatest, year: selInfo.year, isYearLatest: selInfo.isYearLatest, yearLatest: selInfo.yearLatest }} />}
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
         <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
@@ -97,12 +97,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
           })}</div>
         </div>
       </div>
-      {o.periods.length >= 2 && chart.length > 0 && <div className="card acc own-hist" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-        <div className="card-h"><h3><span className="ci"><Icon name="line" /></span>How the shareholding pattern changed</h3><span className="s">{o.periods[0]} to {o.periods[o.periods.length - 1]}, % of shares held each quarter</span></div>
-        <LineChart periods={o.periods} fmt={(x) => nf(x, 1) + "%"} height={300} area domain={[0, top]} series={chart} />
-        <div className="clg" role="list" aria-label="Chart legend">{chart.map((x) => <span key={x.key} role="listitem"><i style={{ background: x.color }} />{x.label}</span>)}</div>
-        <p className="faint own-note">Hover or touch the chart for the exact percentage in each quarter. Information only, not advice.</p>
-      </div>}
+      <OwnershipBars o={o} selected={idx} onSelect={setPick} />
     </section>
   );
 }
