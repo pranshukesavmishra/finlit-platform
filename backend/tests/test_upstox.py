@@ -65,7 +65,7 @@ def test_empty_finedge_filled_from_upstox_with_right_units():
 def test_good_finedge_untouched_no_calls():
     calls = []
     cl = upstox.UpstoxClient(S(), transport=httpx.MockTransport(handler_factory(calls)))
-    b = {"symbol": "X", "quote": {"X": {"current_price": 10}}, "pl_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]}, "bs_annual": {"financials": [{"period_end": "2025-03-31"}]},
+    b = {"symbol": "X", "quote": {"X": {"current_price": 10}}, "pl_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]}, "bs_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]},
          "cf_annual": {"financials": [{"period_end": "2025-03-31"}]}, "pl_quarterly": {"financials": [{"period_end": "2025-03-31"}]}}
     before = dict(b)
     run(upstox.supplement(b, cl, {}))
@@ -187,3 +187,51 @@ async def test_an_expired_note_applies_only_to_the_token_it_was_recorded_for():
     assert (await upstox.health_line(R(f"expired|1|{upstox.token_tag(old)}"), s))["state"] == "connected"      # a fresh token clears the old note
     assert (await upstox.health_line(R(f"expired|1|{upstox.token_tag(new)}"), s))["state"] == "token_expired"
     assert (await upstox.health_line(R("expired|1"), s))["state"] == "token_expired"                           # a note from before fingerprints still counts
+
+
+def _full_bs(assets, equity, periods):
+    pts = lambda vals: [{"value": v, "period": p} for p, v in zip(periods, vals)]
+    return {"full_statement": [{"particular": "Total Assets", "history": pts(assets)}, {"particular": "Equity Capital", "history": pts(equity)},
+                               {"particular": "Current Assets", "history": pts(assets)}]}
+
+
+def _fe_bs(years, assets, equity):
+    return [{"period_end": f"{y}-03-31", "assets": a * 1e7, "totalEquity": e * 1e7} for y, a, e in zip(years, assets, equity)]
+
+
+PER5 = ["Mar 2025", "Mar 2024", "Mar 2023", "Mar 2022", "Mar 2021"]
+
+
+def test_balance_rows_reads_the_full_statement_shape_and_keeps_the_old_one():
+    rows = upstox.balance_rows(_full_bs([7579.52, 6799.46], [4308.53, 3663.37], ["Mar 2026", "Mar 2025"]))
+    assert [r["period_end"] for r in rows] == ["2025-03-31", "2026-03-31"]
+    assert rows[-1]["assets"] == pytest.approx(7579.52e7) and rows[-1]["totalEquity"] == pytest.approx(4308.53e7)
+    assert upstox.balance_rows(BS)[-1]["assets"] == 120.0 * 1e7 and "totalEquity" not in upstox.balance_rows(BS)[-1]
+    assert upstox.balance_rows(_full_bs([100.0], [150.0], ["Mar 2025"]))[0].get("totalEquity") is None     # equity above total assets is another line
+
+
+def test_older_balance_sheet_years_added_when_both_sources_agree():
+    up = upstox.balance_rows(_full_bs([6800, 6091, 5088, 4400, 3900], [3663, 3230, 2478, 2100, 1800], PER5))
+    fe = _fe_bs([2023, 2024, 2025], [5088, 6091, 6800], [2478, 3230, 3663])
+    why: list = []
+    longer = upstox.extend_balance(fe, up, why=why)
+    assert [r["period_end"][:4] for r in longer] == ["2021", "2022", "2023", "2024", "2025"] and why == []
+    assert longer[-3:] == fe                                                                  # the provider's rows are untouched
+
+
+def test_older_balance_sheet_years_refused_on_disagreement_or_unverifiable_equity():
+    fe = _fe_bs([2023, 2024, 2025], [5088, 6091, 6800], [2478, 3230, 3663])
+    w1: list = []
+    assert upstox.extend_balance(fe, upstox.balance_rows(_full_bs([6800, 6091, 5088, 4400, 3900], [3663, 3230, 1200, 2100, 1800], PER5)), why=w1) is None and "equity" in w1[0]
+    w2: list = []
+    assert upstox.extend_balance(fe, upstox.balance_rows(_full_bs([9000, 9100, 9200, 4400, 3900], [3663, 3230, 2478, 2100, 1800], PER5)), why=w2) is None and "total assets" in w2[0]
+    w3: list = []
+    no_equity = [{"period_end": f"{y}-03-31", "assets": a * 1e7} for y, a in zip([2023, 2024, 2025], [5088, 6091, 6800])]
+    assert upstox.extend_balance(no_equity, upstox.balance_rows(_full_bs([6800, 6091, 5088, 4400, 3900], [3663, 3230, 2478, 2100, 1800], PER5)), why=w3) is None and "could not be checked" in w3[0]
+
+
+def test_extended_balance_sheet_gives_equity_for_the_older_years():
+    from finlit.normalize import statements as st
+    rows = upstox.extend_balance(_fe_bs([2024, 2025], [6091, 6800], [3230, 3663]), upstox.balance_rows(
+        _full_bs([6800, 6091, 5088], [3663, 3230, 2478], ["Mar 2025", "Mar 2024", "Mar 2023"])))
+    assert st._equity(rows[0]) == pytest.approx(2478.0)

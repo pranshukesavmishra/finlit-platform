@@ -816,7 +816,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 async with store.pool.acquire() as conn:
                     short = [(r["symbol"], r["statement"]) for r in await conn.fetch(
                         "SELECT symbol, statement FROM snapshots WHERE section = 'financials' "
-                        "AND (jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 4 OR jsonb_array_length(body::jsonb #> '{yearly,cf,periods}') BETWEEN 1 AND 3) "
+                        "AND (jsonb_array_length(body::jsonb #> '{yearly,pl,periods}') BETWEEN 1 AND 4 OR jsonb_array_length(body::jsonb #> '{yearly,cf,periods}') BETWEEN 1 AND 3 "
+                        "OR jsonb_array_length(body::jsonb #> '{yearly,bs,periods}') BETWEEN 1 AND 4) "
                         "ORDER BY symbol, statement")]
                 print(len(short), "reports with a short history", short[:30])
                 results = await ingest_many(client, store, short, parallel=2) if short else []

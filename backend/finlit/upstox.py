@@ -255,13 +255,82 @@ def income_rows(payload: Any) -> List[dict]:
     return rows
 
 
+_BS_ASSETS = ("total assets", "total equity & liabilities", "total equity and liabilities")
+_BS_EQUITY = ("equity capital", "total equity", "shareholders funds", "shareholders' funds", "net worth")
+
+
 def balance_rows(payload: Any) -> List[dict]:
-    rows = []
-    for pt in (payload.get("history") if isinstance(payload, dict) else None) or []:
+    """Yearly balance-sheet rows from either shape the source has used: `history` points with total_asset, or `full_statement`, a list of
+    {particular, history: [{value, period}]} in crore. Its line named 'Equity Capital' holds the shareholders' total equity (IRCTC Mar 2025:
+    3,663 Cr against 160 Cr of share capital), so it is read as total equity; callers that add older years check it against the provider's own
+    equity on the years both hold before using it."""
+    if not isinstance(payload, dict):
+        return []
+    by: Dict[date, Dict[str, float]] = {}
+    for pt in payload.get("history") or []:
         d, a = period_end(pt.get("period")) if isinstance(pt, dict) else None, _num(pt.get("total_asset")) if isinstance(pt, dict) else None
         if d and a:
-            rows.append({"period_end": d.isoformat(), "year": d.year + (1 if d.month > 3 else 0), "assets": a * CRORE})
+            by.setdefault(d, {})["assets"] = a
+    for line in payload.get("full_statement") or []:
+        name = str(line.get("particular") or "").strip().lower() if isinstance(line, dict) else ""
+        field = "assets" if name in _BS_ASSETS[:1] else "totalEquity" if name in _BS_EQUITY else None
+        if field is None and name in _BS_ASSETS[1:]:
+            field = "assets_alt"
+        for pt in (line.get("history") or []) if field else []:
+            d, v = period_end(pt.get("period")) if isinstance(pt, dict) else None, _num(pt.get("value")) if isinstance(pt, dict) else None
+            if d and v is not None:
+                by.setdefault(d, {})[field] = v
+    rows = []
+    for d, f in by.items():
+        a = f.get("assets") or f.get("assets_alt")
+        if not a:
+            continue
+        r = {"period_end": d.isoformat(), "year": d.year + (1 if d.month > 3 else 0), "assets": a * CRORE}
+        if f.get("totalEquity") is not None and 0 < f["totalEquity"] <= a:      # equity above total assets would be another line: not used
+            r["totalEquity"] = f["totalEquity"] * CRORE
+        rows.append(r)
     return sorted(rows, key=lambda r: r["period_end"])
+
+
+def extend_balance(fe_rows: List[dict], up_rows: List[dict], why: Optional[list] = None, tolerance: float = DISAGREE) -> Optional[List[dict]]:
+    """The provider's balance-sheet rows plus the second source's rows for OLDER years (total assets and total equity, which is what ROE and the
+    DuPont split need). Added only when both sources agree on the years they share: total assets within `tolerance`, and equity within 10% against the
+    provider's total equity (or, when it sends only the owners' share, that). Without at least one verified equity year nothing is added. The
+    provider's rows are never changed."""
+    from .normalize.statements import _equity
+    note = why if why is not None else []
+    have = {_ym(r): r for r in fe_rows if isinstance(r, dict) and _ym(r)}
+    if not have:
+        note.append("the provider's balance sheets have no readable dates")
+        return None
+    for months in (0, 3):
+        up = {_ym(r): r for r in (_shifted(x, months) for x in up_rows) if _ym(r)}
+        common = sorted(set(have) & set(up))
+        ok, judged_equity, gap = bool(common), 0, None
+        for k in common:
+            a, b = _field(have[k], "assets"), _num(up[k].get("assets"))
+            if a is not None and b is not None and abs(a - b) / max(abs(b), 1) > tolerance:
+                ok, gap = False, f"total assets {k}: {a / CRORE:,.0f} Cr against {b / CRORE:,.0f} Cr"
+            ue = _num(up[k].get("totalEquity"))
+            fe = _num(have[k].get("totalEquity")) or ((_equity(have[k]) or 0) * CRORE or None)
+            if ue is not None and fe:
+                judged_equity += 1
+                if abs(fe - ue) / max(abs(ue), 1) > 0.10:
+                    ok, gap = False, f"equity {k}: {fe / CRORE:,.0f} Cr against {ue / CRORE:,.0f} Cr"
+        if not common:
+            note.append(f"balance sheet: no common year at offset {months}")
+        elif not ok:
+            note.append(f"balance sheet: disagree at offset {months}: {gap}")
+        elif not judged_equity:
+            note.append("balance sheet: equity could not be checked against the provider's on any common year")
+        else:
+            first = min(have)
+            older = [up[k] for k in sorted(up) if k < first and up[k].get("totalEquity") is not None]
+            if not older:
+                note.append("balance sheet: the second source holds no older year with equity")
+                return None
+            return sorted([*older, *have.values()], key=lambda r: _ym(r) or "")
+    return None
 
 
 def cash_rows(payload: Any) -> List[dict]:
@@ -423,7 +492,8 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
     p = coverage.provider_side(bundle)
     need = {"quote": not p["quote"] and p["closes"] == 0, "pl": p["annual"] == 0, "bs": p["balance"] == 0, "cf": p["cash"] == 0, "ql": p["quarterly"] == 0}
     short = 0 < p["annual"] < 5            # the provider holds only a few years: older ones may be had from the second source, if it agrees on the years both have
-    if not any(need.values()) and not short:
+    short_bs = 0 < p["balance"] < 5
+    if not any(need.values()) and not short and not short_bs:
         return bundle
     symbol = str(bundle["symbol"]).upper()
     c = company or {}
@@ -468,6 +538,14 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
                                 bundle["_history_note"] += " Cash flow older years are from the second source, whose operating cash flow can differ from the provider's by up to 15% on the years both hold."
                             else:
                                 bundle["_history_note"] += " Cash flow: older years not added: " + "; ".join(why_cf or ["the second source returned no cash flow"])
+        if short_bs and not need["bs"] and isinstance(bundle.get("bs_annual"), dict):
+            why_bs: list = []
+            longer_bs = extend_balance(bundle["bs_annual"].get("financials") or [], balance_rows(await stmts("balance-sheet", "yearly")), why=why_bs)
+            note_bs = ("Balance sheets: older years (total assets and equity) added from a second source (Upstox), agreeing with the provider on the years both hold."
+                       if longer_bs else "Balance sheets: older years not added: " + "; ".join(why_bs or ["the second source returned none"]))
+            bundle["_history_note"] = (bundle.get("_history_note") + " " if bundle.get("_history_note") else "") + note_bs
+            if longer_bs:
+                bundle["bs_annual"] = {**bundle["bs_annual"], "financials": longer_bs}; src["bs_annual"] = "finedge+upstox:older years"
         if need["ql"]:
             rows = income_rows(await stmts("income-statement", "quarterly"))
             if rows:
