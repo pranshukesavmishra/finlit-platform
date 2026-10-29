@@ -6,6 +6,7 @@ import {
   type PartKey, type PrismMetric, type PrismReport, type PrismReview, type ReviewPart,
 } from "../../../lib/prism";
 import { THRESHOLDS, bandLabel, capNotes, contributionTotal, contributions, partVar, topFactors } from "../../../lib/prismReport";
+import { partHint } from "../../../lib/scoreBands";
 import { parseTechnical } from "../../../lib/prismTechnical";
 import { ChartTable, ShowTable } from "../PrismCharts";
 
@@ -51,7 +52,7 @@ function PartCard({ k, index, report, review, rows }: { k: PartKey; index: numbe
     <button type="button" className="pzr-part" onClick={() => goToPart(k)} style={{ "--c": color } as React.CSSProperties}
       aria-label={`${partInfo(k).name}: ${score == null ? "not rated" : `${score1(score)} out of 100, ${word}`}. Counts for ${partShare(rating.partWeights, k)} percent of the score. Go to its factors.`}>
       <span className="pzr-part-h"><MiniRing score={score} color={color} />
-        <span className="pzr-part-t"><b>{partInfo(k).name}</b><small>{partShare(rating.partWeights, k)}% of the overall score</small></span>
+        <span className="pzr-part-t"><b>{partInfo(k).name}</b><small>{partShare(rating.partWeights, k)}% of the overall score</small>{partHint(k) && <small className="pzr-hint" title={partHint(k)!.long}>{partHint(k)!.short}{k === "risk" ? ": higher means lower risk" : ""}</small>}</span>
         <span className={"pzr-part-w " + tone}><i aria-hidden="true" />{word}</span>
       </span>
       <ThresholdBar value={score} color={color} />
@@ -72,7 +73,7 @@ export function PartCards({ report, review }: { report: PrismReport; review: Pri
   const keys = partsOf(report.rating);
   return (
     <section className="pzr-sec" aria-labelledby="pzr-h-parts">
-      <header className="pzr-sh"><h3 id="pzr-h-parts">The parts of the score</h3><p>Each part has a fixed share of the overall score. Select a card to jump to its factors. Ticks mark 35, 50, 65 and 80, where the labels change.</p></header>
+      <header className="pzr-sh"><h3 id="pzr-h-parts">The parts of the score</h3><p>Each part has a fixed share of the overall score. Select a card to jump to its factors. Ticks mark 35, 50, 65 and 80, where the labels change. For all four, higher is better: a higher Risk score means lower risk.</p></header>
       {!isRated(report.rating) && <p className="pzr-withheld">Category scores are withheld because the company is not rated.</p>}
       <div className="pzr-parts">
         {keys.map((k, i) => <PartCard key={k} k={k} index={i} report={report} review={review} rows={report.rating.metrics.filter((m) => m.part === k)} />)}
