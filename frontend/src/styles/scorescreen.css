@@ -46,11 +46,10 @@
   .ss-foot { justify-content: center; }
 }
 /* FinLit Prism columns, filters and explainer (tones are the --pz-* tokens of prism.css, light and dark) */
-.pzs-n { --t: var(--pz-none); background: color-mix(in srgb, var(--t) 15%, var(--s1)); color: var(--t); }
-.pzs-n.strong, .pzs-l b.strong { --t: var(--pz-strong); } .pzs-n.healthy, .pzs-l b.healthy { --t: var(--pz-healthy); } .pzs-n.average, .pzs-l b.average { --t: var(--pz-average); }
-.pzs-n.weak, .pzs-l b.weak { --t: var(--pz-weak); } .pzs-n.poor, .pzs-l b.poor { --t: var(--pz-poor); }
+.pzs-n.hi { background: var(--gain-soft); color: var(--gain); } .pzs-n.mid { background: var(--warn-soft); color: var(--warn); } .pzs-n.lo { background: var(--loss-soft); color: var(--loss); }
+.pzs-l b.hi { color: var(--gain); } .pzs-l b.mid { color: var(--warn); } .pzs-l b.lo { color: var(--loss); }
 .pzs { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; } .sx-t .pzs-c .ssp { min-width: 40px; }
-.pzs-l { display: grid; text-align: left; font-family: var(--sans); line-height: 1.15; } .pzs-l b { --t: var(--pz-none); color: var(--t); font-size: 13px; font-weight: 700; } .pzs-l small { color: var(--faint); font-size: 11.5px; }
+.pzs-l { display: grid; text-align: left; font-family: var(--sans); line-height: 1.15; } .pzs-l b { font-size: 13px; font-weight: 700; } .pzs-l small { color: var(--faint); font-size: 11.5px; }
 .pzs-no { display: inline-flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 2px 8px; font: 13px var(--sans); color: var(--muted); }
 .pzs-go { font-size: 12.5px; color: var(--gold); text-decoration: underline; text-underline-offset: 2px; } .pzs-go:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
 .pzs-w { display: inline-grid; justify-items: end; line-height: 1.15; font-family: var(--sans); } .pzs-w b { font-size: 13px; font-weight: 600; } .pzs-w small { color: var(--faint); font: 11.5px var(--mono); }

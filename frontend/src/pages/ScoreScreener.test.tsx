@@ -247,7 +247,7 @@ describe("Advanced score screener: FinLit Prism", () => {
   it("says rated X of Y and explains both scores", () => {
     open();
     expect(document.querySelector(".pzs-cover")!.textContent).toMatch(/Prism has rated 4 of 6 companies \(67%\)/);
-    expect(document.querySelector(".pzs-cover")!.textContent).toMatch(/about 30 more a night/);
+    expect(document.querySelector(".pzs-cover")!.textContent).toMatch(/about 30 beyond the companies with a full report/);
     expect(screen.getByText("What the two scores mean")).toBeTruthy();
     expect(document.querySelector(".pzs-explain")!.textContent).toMatch(/Strong 80 and above, Healthy 65 to 79/);
   });

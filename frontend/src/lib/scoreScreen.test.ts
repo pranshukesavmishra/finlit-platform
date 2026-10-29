@@ -351,3 +351,11 @@ describe("Prism CSV", () => {
     expect(silver).not.toMatch(/Prism label/); expect(silver).toMatch(/FinLit Prism columns are part of the Gold plan/);
   });
 });
+
+describe("colour rule", () => {
+  it("scores are coloured by the site's one rule (70 / 50), while the model's word labels keep their own bands", async () => {
+    const { level, bandName } = await import("./scoreScreen");
+    expect([level(70), level(69), level(50), level(49), level(null)]).toEqual(["hi", "mid", "mid", "lo", "na"]);
+    expect([bandName(78), bandName(62), bandName(45), bandName(44)]).toEqual(["Strong", "Healthy", "Mixed", "Watch"]);
+  });
+});

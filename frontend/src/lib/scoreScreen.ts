@@ -2,6 +2,7 @@
 // No score is computed differently here than on the stock page: Fundamental is the average of the four business pillars, Technical is the
 // technical pillar, Overall is the FinLit overall score as stored. A missing score is null and never passes a score filter or counts as zero.
 import { csvText } from "./format";
+import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
 import { LABEL_WORD, LABEL_SLUG, PRISM_LABELS, PRISM_NAMES, PRISM_RANGE_KEYS, isLabel, labelFromSlug, prismRangeValue, hasPrism, type PrismCol, type PrismLabel, type PrismRangeKey } from "./scorePrism";
 
@@ -34,8 +35,8 @@ export const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; sh
 export const NAMES: Record<BandKey | RangeKey, string> = { f: "Fundamental", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
 export const PAGE_SIZES = [5, 10, 20, 50];
 
-/** Colour level of a score: the model's own bands (Strong 78+, Watch under 45; everything between is "mid"). */
-export const level = (v: number | null) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
+/** Colour level of a score: the site's one colour rule (green 70+, orange 50 to 69, red under 50), see lib/scoreBands.ts. Colour only decorates; the model's word and the number carry the meaning. */
+export const level = scoreBand;
 /** The model's four band names for a score. */
 export const bandName = (v: number | null) => (v == null ? null : v >= 78 ? "Strong" : v >= 62 ? "Healthy" : v >= 45 ? "Mixed" : "Watch");
 

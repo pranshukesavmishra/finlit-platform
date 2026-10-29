@@ -17,7 +17,8 @@ import {
   nextSort, pageList, pageOf, parseState, removeChip, serializeState, sortRows, summarize, toCsv, validate, withoutPrismPreset, withPreset, withPrismPreset, withScores,
   type Band, type BandKey, type Filters, type Item, type RangeKey, type SortKey, type State,
 } from "../lib/scoreScreen";
-import { EXPLAIN, LABEL_WORD, PRISM_LABELS, PRISM_PARTS, PRISM_STATUS_WORD, coverageFrom, coverageLine, hasPrism, labelTone, prismCell, prismReason, toneOf, type PrismLabel } from "../lib/scorePrism";
+import { scoreBand } from "../lib/scoreBands";
+import { EXPLAIN, LABEL_WORD, PRISM_LABELS, PRISM_PARTS, PRISM_STATUS_WORD, coverageFrom, coverageLine, hasPrism, prismCell, prismReason, type PrismLabel } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
 /** Advanced score screener: the whole company universe with the FinLit score (Silver) and the FinLit Prism rating (Gold), side by side. Informational; not a recommendation. */
@@ -30,7 +31,7 @@ const Score = ({ r, k, locked }: { r: Item; k: "f" | "t" | "overall" | (typeof P
 /** The Prism rating: score and label in words; a company without one says why and (Gold) links to its Prism page, which starts the calculation. */
 const PrismScore = ({ r, gold }: { r: Item; gold: boolean }) => {
   if (hasPrism(r)) {
-    const tone = labelTone(r.prism_label), word = LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label;
+    const tone = scoreBand(r.prism_final), word = LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label;
     return (<span className="pzs"><span className={"ssp pzs-n " + tone}>{Math.round(r.prism_final as number)}</span><span className="pzs-l"><b className={tone}>{word}</b>{r.prism_status && r.prism_status !== "RATED" && <small>{PRISM_STATUS_WORD[r.prism_status] ?? r.prism_status}</small>}</span></span>);
   }
   const why = prismReason(r, gold), cell = prismCell(r, gold);
@@ -39,7 +40,7 @@ const PrismScore = ({ r, gold }: { r: Item; gold: boolean }) => {
     {cell === "not-yet" && <Link to={`/prism/${encodeURIComponent(r.symbol)}`} className="pzs-go" aria-label={`Rate ${r.symbol} with Prism now`}>Rate now</Link>}</span>);
 };
 const PrismPart = ({ r, v, gold }: { r: Item; v: number | null | undefined; gold: boolean }) => {
-  if (v != null) return <span className={"ssp pzs-n " + toneOf(v)}>{Math.round(v)}</span>;
+  if (v != null) return <span className={"ssp pzs-n " + scoreBand(v)}>{Math.round(v)}</span>;
   const why = prismReason(r, gold, "part");
   return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
 };
