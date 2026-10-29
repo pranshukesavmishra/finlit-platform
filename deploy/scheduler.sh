@@ -181,7 +181,8 @@ fi
 # This is its OWN loop (its own lock), not the end of the boot chain above: that chain is hours long and a restart starts it again, so a rating
 # queued behind it was never reached. Each round works through what is missing (never-rated first, then the biggest), one company at a time,
 # gives way to a member who is waiting, stops after three failures in a row and is simply started again by the next round. Resumable: a stored
-# rating counts as done. PRISM_PRECOMPUTE_ENABLED=0 switches it off; the admin switch "Heavy data loads" pauses it like the other loads.
+# rating counts as done. After the companies with a full report it also widens coverage by PRISM_WIDEN_PER_NIGHT (default 30, 0 = off) further companies a night,
+# biggest first, paused while members use Prism (docs/prism/COVERAGE_PLAN.md). PRISM_PRECOMPUTE_ENABLED=0 switches it off; the admin switch "Heavy data loads" pauses it like the other loads.
 (
   [ "${PRISM_PRECOMPUTE_ENABLED:-1}" = 1 ] || { log "prism-precompute loop off: PRISM_PRECOMPUTE_ENABLED is not 1"; exit 0; }
   flock -n 8 || exit 0

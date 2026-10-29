@@ -736,6 +736,21 @@ class Store:
                 "ORDER BY symbol, (statement = $2) DESC, updated_at DESC LIMIT $3", model, statement, limit)
         return [dict(r) for r in rows]
 
+    async def prism_cards(self, symbols: Optional[List[str]] = None, statement: str = "consolidated") -> List[dict]:
+        """The newest FinLit Prism rating per company for the screener (consolidated if there is one, else standalone): one query that reads the
+        rating columns and the small `card`, never the report. `symbols` limits it (the showcase companies for a plan without Prism)."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT DISTINCT ON (symbol) symbol, final, label, status, generated_at, card FROM prism_reports "
+                "WHERE ($2::text[] IS NULL OR symbol = ANY($2::text[])) ORDER BY symbol, (statement = $1) DESC, generated_at DESC", statement, symbols)
+        return [dict(r) for r in rows]
+
+    async def prism_coverage(self, statement: str = "consolidated") -> List[dict]:
+        """symbol and status of every company's newest rating (no json read): the counts behind 'rated X of Y'."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT DISTINCT ON (symbol) symbol, status FROM prism_reports ORDER BY symbol, (statement = $1) DESC, generated_at DESC", statement)
+        return [dict(r) for r in rows]
+
     async def ping(self) -> Dict[str, bool]:
         status = {"postgres": False, "redis": False}
         try:

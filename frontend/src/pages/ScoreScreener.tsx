@@ -13,23 +13,46 @@ import { useWatchlist, watch } from "../lib/watchlist";
 import { cr, nf, dateIN, MINUS } from "../lib/format";
 import { ChartHelp } from "../components/ChartHelp";
 import {
-  BANDS, BAND_ORDER, CAPS, PAGE_SIZES, PILLARS, PRESETS, activePreset, applyFilters, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, level, missingReason,
-  nextSort, pageList, pageOf, parseState, removeChip, serializeState, sortRows, summarize, toCsv, validate, withPreset, withScores,
+  BANDS, BAND_ORDER, CAPS, PAGE_SIZES, PILLARS, PRESETS, PRISM_PRESETS, activePreset, activePrismPreset, applyFilters, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, level, missingReason,
+  nextSort, pageList, pageOf, parseState, removeChip, serializeState, sortRows, summarize, toCsv, validate, withoutPrismPreset, withPreset, withPrismPreset, withScores,
   type Band, type BandKey, type Filters, type Item, type RangeKey, type SortKey, type State,
 } from "../lib/scoreScreen";
+import { scoreBand } from "../lib/scoreBands";
+import { EXPLAIN, LABEL_WORD, PRISM_LABELS, PRISM_PARTS, PRISM_STATUS_WORD, coverageFrom, coverageLine, hasPrism, prismCell, prismReason, type PrismLabel } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
-/** Score screener: filter the whole company universe by size, sector and FinLit scores. Informational; not a recommendation. */
+/** Advanced score screener: the whole company universe with the FinLit score (Silver) and the FinLit Prism rating (Gold), side by side. Informational; not a recommendation. */
 const Score = ({ r, k, locked }: { r: Item; k: "f" | "t" | "overall" | (typeof PILLARS)[number]["col"]; locked: boolean }) => {
   const v = k === "f" ? r.f : k === "t" ? r.t : r[k];
   if (v != null) return <span className={"ssp " + level(v)}>{v}</span>;
   const why = missingReason(r, k, locked);
   return <span className="ssp na" title={why}>{locked ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
 };
+/** The Prism rating: score and label in words; a company without one says why and (Gold) links to its Prism page, which starts the calculation. */
+const PrismScore = ({ r, gold }: { r: Item; gold: boolean }) => {
+  if (hasPrism(r)) {
+    const tone = scoreBand(r.prism_final), word = LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label;
+    return (<span className="pzs"><span className={"ssp pzs-n " + tone}>{Math.round(r.prism_final as number)}</span><span className="pzs-l"><b className={tone}>{word}</b>{r.prism_status && r.prism_status !== "RATED" && <small>{PRISM_STATUS_WORD[r.prism_status] ?? r.prism_status}</small>}</span></span>);
+  }
+  const why = prismReason(r, gold), cell = prismCell(r, gold);
+  if (cell === "locked") return <span className="ssp na" title={why}><Icon name="lock" /><span className="sr">Not available: {why}</span></span>;
+  return (<span className="pzs-no" title={why}>{cell === "not-yet" ? "Not rated yet" : "Not rated"}<span className="sr">: {why}</span>
+    {cell === "not-yet" && <Link to={`/prism/${encodeURIComponent(r.symbol)}`} className="pzs-go" aria-label={`Rate ${r.symbol} with Prism now`}>Rate now</Link>}</span>);
+};
+const PrismPart = ({ r, v, gold }: { r: Item; v: number | null | undefined; gold: boolean }) => {
+  if (v != null) return <span className={"ssp pzs-n " + scoreBand(v)}>{Math.round(v)}</span>;
+  const why = prismReason(r, gold, "part");
+  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
+};
+const PrismTrend = ({ r, word, score, gold, col }: { r: Item; word: string | null | undefined; score: number | null | undefined; gold: boolean; col: "st" | "lt" }) => {
+  if (word && score != null) return <span className="pzs-w" title={`${word} (${score > 0 ? "+" : score < 0 ? MINUS : ""}${nf(Math.abs(score), 0)} on a scale of ${MINUS}100 to +100)`}><b>{word}</b><small>{score > 0 ? "+" : score < 0 ? MINUS : ""}{nf(Math.abs(score), 0)}</small></span>;
+  const why = prismReason(r, gold, col);
+  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
+};
 const Dash = ({ why }: { why: string }) => <span title={why}>{MINUS}<span className="sr"> not available: {why}</span></span>;
 const med = (v: number | null) => (v == null ? null : nf(v, v % 1 ? 1 : 0));
 
-function HowDialog({ asOf, onClose }: { asOf: string | null; onClose: () => void }) {
+function HowDialog({ asOf, prismAsOf, onClose }: { asOf: string | null; prismAsOf: string | null; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useFocusTrap(ref, true);
   useEffect(() => { ref.current?.scrollTo?.(0, 0); }, []);   // focus lands on the last link; keep the title in view
@@ -45,8 +68,13 @@ function HowDialog({ asOf, onClose }: { asOf: string | null; onClose: () => void
         <dt>Technical</dt><dd>The technical pillar: how the price is trending against its 50 and 200 day averages, and its momentum.</dd>
         <dt>Overall</dt><dd>The FinLit overall score shown on every company page: the average of the pillar scores that are available, rounded to a whole number.</dd>
         <dt>Bands</dt><dd>Strong 78 and above, Healthy 62 to 77, Mixed 45 to 61, Watch under 45. The filter groups Healthy and Mixed together as 45 to 77. Bands use whole numbers: 44 is Watch, 45 is Mixed, 77 is Healthy, 78 is Strong.</dd>
+        <dt>FinLit Prism</dt><dd>{EXPLAIN.prism} It is a Gold feature. {prismAsOf ? <>Newest ratings were calculated on {dateIN(prismAsOf)}.</> : null}</dd>
+        <dt>Prism parts</dt><dd>{PRISM_PARTS.map((x) => `${x.label}: ${x.say}`).join(" ")}</dd>
+        <dt>Short and long term</dt><dd>{EXPLAIN.technical}</dd>
+        <dt>Why two scores</dt><dd>{EXPLAIN.differ}</dd>
+        <dt>Not rated yet</dt><dd>Prism ratings are calculated about 30 seconds each from the provider's data, so they are added in steps: first for companies with a full report, then a few hundred more companies every night, largest first. A company without one shows "Not rated yet" and a Rate now link to its Prism page, which starts the calculation when opened. "Not rated" means Prism looked and the filed data was not enough.</dd>
         <dt>Size</dt><dd>Follows SEBI's rule, ranked by market value among the companies loaded here: the 100 largest are Large cap, the next 150 Mid cap, the rest Small cap.</dd>
-        <dt>Missing data</dt><dd>A dash means the figure is not available (not scored yet, not enough data, or not in your plan). It never counts as a pass and is never treated as zero.</dd>
+        <dt>Missing data</dt><dd>A dash or a lock means the figure is not available (not scored yet, not enough data, or not in your plan). It never counts as a pass and is never treated as zero.</dd>
         <dt>Data date</dt><dd>{asOf ? <>Newest scores were computed on {dateIN(asOf)}. </> : <>The score date is not available right now. </>}Scores refresh every night; prices come from the latest market refresh.</dd>
       </dl>
       <p className="muted">This describes financial health and price trend from filings and prices. It is information, not a recommendation. <Link to="/glossary">See the glossary</Link>.</p>
@@ -56,7 +84,7 @@ function HowDialog({ asOf, onClose }: { asOf: string | null; onClose: () => void
 
 export function ScoreScreener() {
   const [sideW, setSide] = useSideWidth("score");
-  useDocTitle("Score screener", "Filter companies by their FinLit scores: size, sector, Fundamental, Technical and Overall.");
+  useDocTitle("Advanced score screener", "Every listed company with its FinLit score and its FinLit Prism rating: filter, sort, compare and export by size, sector and both scores.");
   const { data, isLoading, isError } = useUniverse();
   const { has, upgrade, toast } = useUI();
   const nav = useNavigate();
@@ -68,13 +96,15 @@ export function ScoreScreener() {
   const [secQ, setSecQ] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
-  const silver = has("silver"), locked = !silver, maxCompare = has("gold") ? 4 : 2;
+  const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
   const appliedKey = filtersKey(applied);
   useEffect(() => { setDraft(cloneFilters(applied)); }, [appliedKey]);   // eslint-disable-line react-hooks/exhaustive-deps -- back/forward or a pasted link refreshes the sidebar
 
   const items = useMemo(() => withScores(data?.rows || []), [data]);
   const unscored = useMemo(() => items.filter((r) => r.scored === false).length, [items]);
   const asOf = data?.asOf ?? null;
+  const cover = useMemo(() => (data?.prism ?? (gold ? { ...coverageFrom(data?.rows || []), as_of: null } : null)), [data, gold]);
+  const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
   const facets = useMemo(() => facetCounts(items, draft), [items, draft]);
   const rows = useMemo(() => sortRows(applyFilters(items, applied), sort), [items, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
   const sum = useMemo(() => summarize(rows), [rows]);
@@ -97,6 +127,12 @@ export function ScoreScreener() {
   const allStrong = PILLARS.every((x) => draft.bands[x.k].length === 1 && draft.bands[x.k][0] === "high");
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
   const preset = activePreset(applied);
+  const prismPreset = activePrismPreset(applied);
+  const pickPrismPreset = (id: string) => {
+    if (!gold) { upgrade("gold", "FinLit Prism views come with the Gold plan."); return; }
+    apply(prismPreset === id ? withoutPrismPreset(draft) : withPrismPreset(draft, PRISM_PRESETS.find((p) => p.id === id)!));
+  };
+  const setLabel = (l: PrismLabel) => setDraft((d) => ({ ...d, labels: toggle(d.labels, l) }));
   const usePreset = (id: string) => {
     if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
     apply(preset === id ? { ...draft, bands: { ...draft.bands, f: [], t: [] } } : withPreset(draft, PRESETS.find((p) => p.id === id)!));
@@ -120,7 +156,7 @@ export function ScoreScreener() {
   };
   const exportCsv = (scope: "selected" | "filtered") => {
     const list = scope === "selected" ? selRows : rows;
-    const csv = toCsv(list, { filters: applied, sort, scope, total: rows.length, asOf, exportedOn: new Date().toISOString().slice(0, 10) });
+    const csv = toCsv(list, { filters: applied, sort, scope, total: rows.length, asOf, exportedOn: new Date().toISOString().slice(0, 10), prism: gold, prismAsOf });
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `finlit-score-screen-${new Date().toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -138,6 +174,11 @@ export function ScoreScreener() {
       <label>Max<input type="number" inputMode="numeric" min={0} max={100} step={1} value={draft.ranges[k].max ?? ""} onChange={(e) => setRange(k, "max", e.target.value)} placeholder="100" aria-invalid={!!problems[k]} /></label>
       {problems[k] && <p className="sx-err" role="alert">{problems[k]}</p>}
     </div>);
+  const slider = (k: RangeKey, end: "min" | "max", label: string) => {
+    const dflt = end === "min" ? 0 : 100, cur = draft.ranges[k][end];
+    return (<label className="pzs-sl">{end === "min" ? "From" : "To"}<input type="range" min={0} max={100} step={1} value={cur ?? dflt} aria-label={`${label} slider, ${end === "min" ? "lowest" : "highest"} score`}
+      onChange={(e) => setRange(k, end, Number(e.target.value) === dflt ? "" : e.target.value)} /><output>{cur ?? dflt}</output></label>);
+  };
   const bandBoxes = (k: "f" | "t", label: string) => (
     <fieldset className="ss-fs"><legend>{label} score</legend>
       {BAND_ORDER.map((b) => <label key={b}><input type="checkbox" checked={draft.bands[k].includes(b)} onChange={() => setBand(k, b)} /><span>{BANDS[b].label}</span></label>)}
@@ -150,14 +191,16 @@ export function ScoreScreener() {
     ["Sectors", isLoading ? "…" : nf(sum.sectors, 0)],
     ["Median Fundamental", med(sum.medF) ?? MINUS, sum.medF == null ? (locked ? "Scores are part of the Silver plan" : "No company in this result has a Fundamental score") : `Middle value of ${nf(sum.nF, 0)} companies with a Fundamental score`],
     ["Median Technical", med(sum.medT) ?? MINUS, sum.medT == null ? (locked ? "Scores are part of the Silver plan" : "No company in this result has a Technical score") : `Middle value of ${nf(sum.nT, 0)} companies with a Technical score`],
+    ["Median Prism", med(sum.medZ) ?? MINUS, sum.medZ == null ? (gold ? "No company in this result has a Prism rating yet" : "Prism is part of the Gold plan") : `Middle value of ${nf(sum.nZ, 0)} companies with a Prism rating`],
+    ["Rated by Prism", isLoading ? "…" : gold ? nf(sum.nZ, 0) : MINUS, gold ? `${nf(sum.nZ, 0)} of the ${nf(sum.found, 0)} companies in this result have a Prism rating` : "Prism is part of the Gold plan"],
     ["Active filters", nf(filterCount, 0)],
   ];
 
   return (
     <>
       <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Score screener</div><h1>Filter companies by their FinLit scores.</h1>
-        <p>Choose a size, sectors and score ranges. Every company is scored from its latest statements and prices. Need more rules? Use the <Link to="/screener">full screener</Link>.</p></div></section>
+        <div className="eyebrow">Advanced score screener</div><h1>Every listed company, scored two ways.</h1>
+        <p>See the FinLit score and the FinLit Prism rating side by side for the whole market, then filter, sort, compare and export by size, sector and either score. Need more rules? Use the <Link to="/screener">full screener</Link>.</p></div></section>
       <div className="wrap scr-wrap">
         <div className={"scr sx" + (drawer ? " sx-open" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
           {drawer && <div className="sx-back" onClick={() => setDrawer(false)} aria-hidden="true" />}
@@ -167,6 +210,10 @@ export function ScoreScreener() {
               <div className="label">Quick views <ChartHelp id="score-filter" /></div>
               <div className="sx-presets" role="group" aria-label="Quick views by score band">
                 {PRESETS.map((p) => <button key={p.id} type="button" className={"bandc" + (preset === p.id ? " on" : "")} aria-pressed={preset === p.id} title={p.say} onClick={() => usePreset(p.id)}>{locked && <Icon name="lock" />} {p.label}</button>)}
+              </div>
+              <div className="label" style={{ marginTop: 14 }}>Views using both scores</div>
+              <div className="sx-presets" role="group" aria-label="Quick views using the FinLit score and the Prism rating">
+                {PRISM_PRESETS.map((p) => <button key={p.id} type="button" className={"bandc" + (prismPreset === p.id ? " on" : "")} aria-pressed={prismPreset === p.id} title={p.say} onClick={() => pickPrismPreset(p.id)}>{!gold && <Icon name="lock" />} {p.label}</button>)}
               </div>
               <div className="label" style={{ marginTop: 18 }}>Market cap</div>
               <div className="sx-opts" role="group" aria-label="Market cap size">
@@ -198,6 +245,23 @@ export function ScoreScreener() {
                 {bandBoxes("t", "Technical")}
                 <fieldset className="ss-fs"><legend>Overall score</legend>{rangeBox("o", "Overall")}</fieldset>
               </>)}
+              <div className="label" style={{ marginTop: 18, display: "flex", justifyContent: "space-between" }}>Prism filters<span className="faint">Gold</span></div>
+              {!gold ? (
+                <div className="scr-lock"><b><Icon name="lock" /> Prism filters are part of Gold</b><span>See and filter by the FinLit Prism rating, its label, its four parts and the short and long term reading.</span>
+                  <button type="button" className="btn primary" onClick={() => upgrade("gold", "FinLit Prism filters come with the Gold plan.")}>Unlock with Gold</button></div>
+              ) : (<>
+                <fieldset className="ss-fs"><legend>Prism rating</legend>
+                  <label className={"sx-opt" + (draft.rated ? " on" : "")}><input type="checkbox" checked={draft.rated} onChange={() => setDraft((d) => ({ ...d, rated: !d.rated }))} /><span>Only companies rated by Prism</span></label>
+                  <div className="pzs-chips" role="group" aria-label="Prism rating label">
+                    {PRISM_LABELS.map((l) => <button key={l} type="button" className={"bandc pzs-chip" + (draft.labels.includes(l) ? " on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => setLabel(l)}>{LABEL_WORD[l]}</button>)}
+                  </div>
+                  {rangeBox("z", "Prism")}
+                  <div className="pzs-sls">{slider("z", "min", "Prism")}{slider("z", "max", "Prism")}</div>
+                </fieldset>
+                <details className="pzs-parts"><summary>Prism parts (Fundamentals, Valuation, Quality, Risk)</summary>
+                  {PRISM_PARTS.map((x) => <fieldset key={x.range} className="ss-fs"><legend title={x.say}>Prism {x.label}</legend>{rangeBox(x.range, "Prism " + x.label)}</fieldset>)}
+                </details>
+              </>)}
               <div className="sx-hint" role="status" aria-live="polite">{bad ? "Fix the highlighted ranges to apply." : dirty ? "Unsaved changes. Press Apply filters (or Enter) to update the table." : ""}</div>
               <div className="ss-actions"><button type="submit" className="btn primary" disabled={bad}>Apply filters</button><button type="button" className="btn" onClick={clear}>Clear all</button></div>
             </form>
@@ -212,6 +276,17 @@ export function ScoreScreener() {
             <div className="ss-stats sx-stats" aria-label="Summary">
               {tiles.map(([l, v, why]) => <div key={l} className="ss-stat" title={why}><b>{v}</b><small>{l}</small></div>)}
             </div>
+            <details className="pzs-explain">
+              <summary>What the two scores mean</summary>
+              <div className="pzs-two">
+                <div><b>FinLit score</b><p>{EXPLAIN.finlit}</p></div>
+                <div><b>FinLit Prism <span className="faint">(Gold)</span></b><p>{EXPLAIN.prism}</p></div>
+              </div>
+              <p className="muted">{EXPLAIN.differ} {EXPLAIN.technical}</p>
+            </details>
+            {!isLoading && (() => { const line = coverageLine(cover); if (!line || !cover) return null; const n = cover.rated + cover.provisional;
+              return (<div className="pzs-cover" role="note"><p>{line} {cover.per_night ? `More are added every night, largest first (about ${nf(cover.per_night, 0)} beyond the companies with a full report).` : "More are added over time, largest first."} Not rated yet? {gold ? "Use Rate now on its row: its Prism page starts the calculation." : "Prism columns are part of the Gold plan."}</p>
+                <div className="pzs-bar" aria-hidden="true"><i style={{ width: Math.min(100, (n / cover.total) * 100) + "%" }} /></div></div>); })()}
             {!isLoading && unscored > 0 && <p className="muted" role="note">{nf(unscored, 0)} of {nf(items.length, 0)} listed companies are not scored yet. Scoring fills in every night, or open a company's report to score it now.</p>}
             {chips.length > 0 && <div className="scr-chips" aria-label="Active filters">{chips.map((c) => <button type="button" key={c.id} className="fchip" onClick={() => drop(c.id)} aria-label={`Remove filter ${c.label}`}>{c.label}<span aria-hidden="true">×</span></button>)}<button type="button" className="alx-link" onClick={clear}>Clear all</button></div>}
             {mix.length > 0 && (
@@ -235,12 +310,17 @@ export function ScoreScreener() {
                 </div>
                 <HScroll className="scr-tw" label="results table"><table className="scr-t ss-t sx-t">
                   <caption className="sr">Companies matching the filters, {sort.key === "name" ? "sorted by name" : "sorted by " + sort.key}. Select a column heading to sort.</caption>
-                  <thead><tr>
+                  <thead><tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit score</th><th scope="colgroup" colSpan={7}>FinLit Prism{!gold && <> <Icon name="lock" /></>}</th><th scope="col"><span className="sr">Actions</span></th></tr>
+                  <tr>
                     <th scope="col"><input ref={headBox} type="checkbox" checked={allOnPage} onChange={toggleAll} aria-label="Select all companies on this page" disabled={!pg.view.length} /></th>
                     <th scope="col" className="sx-n">#</th>
                     {th("name", "Stock", "stick")}{th("price", "LTP (₹)")}{th("market_cap", "Market cap")}{th("sector", "Sector")}{th("f", "Fundamental", "", "score-table")}
                     {PILLARS.map((x) => <Fragment key={x.k}>{th(x.col, x.short, "ss-ph", undefined, x.say)}</Fragment>)}
-                    {th("t", "Technical")}{th("overall", "Overall")}<th scope="col">Action</th></tr></thead>
+                    {th("t", "Technical")}{th("overall", "Overall")}
+                    {th("prism_final", "Prism", "pzs-h", undefined, EXPLAIN.prism)}
+                    {PRISM_PARTS.map((x) => <Fragment key={x.col}>{th(x.col, x.label, "ss-ph", undefined, "Prism " + x.label + ": " + x.say)}</Fragment>)}
+                    {th("prism_st_score", "Short term", "ss-ph", undefined, "Prism's short term (5 to 20 sessions) price-trend reading")}{th("prism_lt_score", "Long term", "ss-ph", undefined, "Prism's long term (6 to 18 months) price-trend reading")}
+                    <th scope="col">Action</th></tr></thead>
                   <tbody>{pg.view.map((r, i) => {
                     const on = sel.includes(r.symbol);
                     return (
@@ -254,11 +334,14 @@ export function ScoreScreener() {
                       <td><Score r={r} k="f" locked={locked} /></td>
                       {PILLARS.map((x) => <td key={x.k} className="ss-pc"><Score r={r} k={x.col} locked={locked} /></td>)}
                       <td><Score r={r} k="t" locked={locked} /></td><td><Score r={r} k="overall" locked={locked} /></td>
+                      <td className="pzs-c"><PrismScore r={r} gold={gold} /></td>
+                      {PRISM_PARTS.map((x) => <td key={x.col} className="ss-pc"><PrismPart r={r} v={r[x.col]} gold={gold} /></td>)}
+                      <td><PrismTrend r={r} word={r.prism_st} score={r.prism_st_score} gold={gold} col="st" /></td><td><PrismTrend r={r} word={r.prism_lt} score={r.prism_lt_score} gold={gold} col="lt" /></td>
                       <td className="ss-act"><Link className="btn" to={`/stocks/${r.symbol}`} aria-label={`Open ${r.symbol} report`}>Report</Link>
                         <button type="button" className={"btn" + (watch.has(r.symbol) ? " on" : "")} aria-pressed={watch.has(r.symbol)} aria-label={`${watch.has(r.symbol) ? "Remove" : "Add"} ${r.symbol} ${watch.has(r.symbol) ? "from" : "to"} watchlist`} onClick={() => addWatch(r.symbol)}><Icon name="wallet" /></button></td>
                     </tr>);
                   })}
-                    {!rows.length && <tr><td colSpan={15} className="empty">No companies match all of these filters. Try loosening one, or clear them all.</td></tr>}
+                    {!rows.length && <tr><td colSpan={21} className="empty">No companies match all of these filters. Try loosening one, or clear them all.</td></tr>}
                   </tbody>
                 </table></HScroll>
                 <div className="ss-foot">
@@ -277,7 +360,7 @@ export function ScoreScreener() {
           </section>
         </div>
       </div>
-      {how && <HowDialog asOf={asOf} onClose={() => setHow(false)} />}
+      {how && <HowDialog asOf={asOf} prismAsOf={prismAsOf} onClose={() => setHow(false)} />}
     </>
   );
 }

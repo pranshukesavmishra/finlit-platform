@@ -88,7 +88,8 @@ def test_universe_redaction_keeps_showcase():
     rows = [{"symbol": "RELIANCE", "overall": 62, "band": "healthy"}, {"symbol": "TCS", "overall": 80, "band": "strong"}]
     out = redact_universe(rows, "basic", {"RELIANCE"})
     assert out[0]["overall"] == 62 and out[1]["overall"] is None and out[1]["band"] is None
-    assert redact_universe(rows, "silver", {"RELIANCE"}) == rows
+    assert redact_universe(rows, "silver", {"RELIANCE"})[1]["overall"] == 80       # Silver keeps the FinLit score (its Prism figures are Gold: tests/test_screener_prism.py)
+    assert redact_universe(rows, "gold", {"RELIANCE"}) == rows
 
 
 def test_which_sections_vary():

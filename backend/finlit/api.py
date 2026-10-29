@@ -28,6 +28,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from . import alertapi, commodities, indices, intraday, leadership_api, notify, premium, prism
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
+from . import prism_screen
 from .screener import api as screener_api
 from .screener import qapi as screener_qapi
 from .advanced import api as advanced_api
@@ -184,9 +185,19 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         stamps = [r["updated_at"] for r in rows if r.get("overall") is not None and hasattr(r.get("updated_at"), "date")]
         as_of = max(stamps).date().isoformat() if stamps else None     # when the newest score in this list was computed
         rows = rows + await app.state.store.light_rows()      # every listed company, so the screener counts all of them (unscored ones carry no figures but their price)
+        showcase = set(settings.showcase_symbols)
+        try:    # FinLit Prism: one small query (rating columns and the card, never the report); a plan below Gold only reads the showcase companies
+            stored = prism_screen.cards(await app.state.store.prism_cards(None if level == "gold" else sorted(showcase)))
+            cover = prism_screen.coverage(await app.state.store.prism_coverage(), len(rows))
+            cover["as_of"] = max((v["prism_at"] for v in stored.values() if v.get("prism_at")), default=None) if level == "gold" else None
+            cover["per_night"] = prism.widen_per_night()
+        except Exception:
+            logging.getLogger("finlit.api").exception("screener universe: Prism ratings not read")
+            stored, cover = {}, None
         out = []
         for r in rows:
             r = {k: v for k, v in r.items() if k not in ("statement", "model", "updated_at")}
+            r.update(stored.get(r["symbol"]) or prism_screen.blank())
             r["scored"] = r["symbol"] in scored        # decided before a plan's redaction removes the score, so the page can say how many are scored
             for k, v in list(r.items()):
                 if v is not None and not isinstance(v, (int, str, bool, float)):
@@ -194,8 +205,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 if isinstance(r[k], float):
                     r[k] = round(r[k], 2)   # two decimals is all any list shows; it roughly halves the download
             out.append(r)
-        out = redact_universe(out, level, set(settings.showcase_symbols))
-        body = orjson.dumps({"rows": out, "as_of": as_of})
+        out = redact_universe(out, level, showcase)
+        body = orjson.dumps({"rows": out, "as_of": as_of, "prism": cover})
         etag = '"' + hashlib.sha1(body).hexdigest()[:20] + '"'  # nosec B324 - cache validator, not security
         try:
             await app.state.store.redis.hset(f"universe:{level}", mapping={"body": body, "etag": etag})
@@ -535,9 +546,10 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     @app.get("/api/screener/universe")
     async def universe(request: Request):
         """Every scored company in one response; the website filters and compares in the browser.
-        Built once per few minutes and kept in Redis, one copy per access level (model scores are a Silver feature)."""
+        Built once per few minutes and kept in Redis, one copy per access level (model scores are a Silver feature, FinLit Prism a Gold one)."""
         started = time.perf_counter()
-        level = "silver" if has((await current(request)).plan, "silver") else "basic"
+        ctx = await current(request)
+        level = "gold" if has(ctx.plan, "gold") or ctx.role == "admin" else "silver" if has(ctx.plan, "silver") else "basic"     # FinLit Prism is a Gold feature
         redis = app.state.store.redis
         try:
             hit = await redis.hmget(f"universe:{level}", ["body", "etag"])

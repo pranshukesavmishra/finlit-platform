@@ -642,7 +642,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     x: "The score columns, from Fundamental to Overall.",
     y: "Companies, one row each. Scores run from 0 to 100.",
     read: "Higher numbers are better. Select a column heading to sort by it.",
-    why: "It shows where each company is strong or weak, and a score screen narrows a long list rather than telling you what to buy.",
+    why: "It shows where each company is strong or weak, and a score screen narrows a long list.",
   },
   "profit-reality": {
     title: "Profit Reality Check",

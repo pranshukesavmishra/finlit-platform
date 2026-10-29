@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
 import { PRESETS, applyFilters, activePreset, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
   summarize, toCsv, validate, withPreset, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
 import type { Row } from "./screener";
@@ -238,5 +239,123 @@ describe("CSV", () => {
   });
   it("says when it exports only the selected rows", () => {
     expect(toCsv([rows[0]], { filters: emptyFilters(), sort: DEFAULT_SORT, scope: "selected", total: 9, asOf: null, exportedOn: "x" })).toMatch(/Rows: 1 \(selected rows only; 9 companies match the filters\)\r\n# Filters: None/);
+  });
+});
+
+
+// ---------- FinLit Prism
+const pr = (symbol: string, final: number | null, label: string | null, o: Partial<Row> = {}) =>
+  it1(symbol, 60, 60, { prism_state: label ? "stored" : "none", prism_final: final, prism_label: label, prism_status: final == null ? (label ? "NOT RATED" : null) : "RATED", prism_fundamental: final, prism_valuation: final, prism_quality: final, prism_risk: final, prism_st_score: final == null ? null : final - 50, prism_lt_score: final == null ? null : 50 - final, ...o });
+const PZ = [pr("S", 85, "STRONG"), pr("H", 66, "HEALTHY"), pr("A", 55, "AVERAGE"), pr("W", 40, "WEAK"), pr("P", 20, "POOR"), pr("N", null, "NOT RATED"), pr("X", null, null)];
+
+describe("Prism filters", () => {
+  it("rated-only keeps companies with a Prism score and drops both 'not rated' kinds", () => {
+    const f = emptyFilters(); f.rated = true;
+    expect(syms(applyFilters(PZ, f))).toEqual(["S", "H", "A", "W", "P"]);
+  });
+  it("label chips are OR within the group and never match a company without a stored rating", () => {
+    const f = emptyFilters(); f.labels = ["STRONG", "NOT RATED"];
+    expect(syms(applyFilters(PZ, f))).toEqual(["S", "N"]);
+  });
+  it("the Prism range is inclusive and a missing score never passes it or counts as zero", () => {
+    const f = emptyFilters(); f.ranges.z = { min: 55, max: 85 };
+    expect(syms(applyFilters(PZ, f))).toEqual(["S", "H", "A"]);
+    f.ranges.z = { min: null, max: 30 };
+    expect(syms(applyFilters(PZ, f))).toEqual(["P"]);       // N and X have no score: not 'under 30'
+  });
+  it("each part has its own range", () => {
+    const x = [pr("A", 70, "HEALTHY", { prism_quality: 90, prism_valuation: 10 }), pr("B", 70, "HEALTHY", { prism_quality: 90, prism_valuation: 60 })];
+    const f = emptyFilters(); f.ranges.zq = { min: 80, max: null }; f.ranges.zv = { min: 50, max: null };
+    expect(syms(applyFilters(x, f))).toEqual(["B"]);
+  });
+  it("rows from a plan or a server without Prism fields simply have no rating", () => {
+    const bare = it1("Z", 60, 60);
+    const f = emptyFilters(); f.rated = true;
+    expect(applyFilters([bare], f)).toEqual([]);
+    expect(applyFilters([bare], emptyFilters())).toHaveLength(1);
+  });
+  it("validation covers the Prism ranges", () => {
+    const f = emptyFilters(); f.ranges.z = { min: 90, max: 10 }; f.ranges.zq = { min: -5, max: null };
+    expect(Object.keys(validate(f))).toEqual(["z", "zq"]);
+  });
+});
+
+describe("Prism sorting", () => {
+  it("every score column sorts both ways with missing last", () => {
+    for (const key of ["prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"] as const) {
+      expect(SORT_KEYS).toContain(key);
+      const down = sortRows(PZ, { key, dir: -1 }), up = sortRows(PZ, { key, dir: 1 });
+      expect(syms(down).slice(-2)).toEqual(["N", "X"]); expect(syms(up).slice(-2)).toEqual(["N", "X"]);
+    }
+    expect(syms(sortRows(PZ, { key: "prism_final", dir: -1 })).slice(0, 5)).toEqual(["S", "H", "A", "W", "P"]);
+    expect(syms(sortRows(PZ, { key: "prism_lt_score", dir: -1 })).slice(0, 2)).toEqual(["P", "W"]);
+    expect(nextSort(DEFAULT_SORT, "prism_final")).toEqual({ key: "prism_final", dir: -1 });
+  });
+});
+
+describe("Prism presets", () => {
+  const items = [pr("A", 70, "HEALTHY", { prism_quality: 80, prism_valuation: 55, overall: 80 }), pr("B", 70, "HEALTHY", { prism_quality: 80, prism_valuation: 40, overall: 60 }),
+    pr("C", 50, "AVERAGE", { prism_quality: 90, prism_valuation: 60, overall: 85 }), pr("D", null, null, { overall: 90 })];
+  const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
+  it("Quality at a fair valuation uses the Quality and Valuation parts", () => expect(run("qualityvalue")).toEqual(["A", "C"]));
+  it("FinLit and Prism both strong needs FinLit 78+ and a Strong or Healthy rating", () => expect(run("bothscores")).toEqual(["A"]));
+  it("the two scores differ: FinLit 78+ but Prism Average, Weak or Poor, and only where Prism rated", () => expect(run("differ")).toEqual(["C"]));
+  it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
+    const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"];
+    const n = withPrismPreset(f, PRISM_PRESETS[1]);
+    expect(n.sectors).toEqual(["IT"]); expect(n.ranges.z).toEqual({ min: null, max: null }); expect(n.labels).toEqual([]);
+    expect(activePrismPreset(n)).toBe("qualityvalue"); expect(activePrismPreset(emptyFilters())).toBeNull();
+    const off = withoutPrismPreset(n);
+    expect(activePrismPreset(off)).toBeNull(); expect(chipsFor(off).map((c) => c.id)).toEqual(["sector:IT"]);
+  });
+  it("the Prism presets leave the FinLit Fundamental and Technical bands alone and use no advice wording", () => {
+    const f = emptyFilters(); f.bands.f = ["high"];
+    expect(withPrismPreset(f, PRISM_PRESETS[0]).bands.f).toEqual(["high"]);
+    const text = PRISM_PRESETS.map((p) => p.label + " " + p.say).join(" ").toLowerCase();
+    expect(text).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/);
+  });
+});
+
+describe("Prism chips, address and summary", () => {
+  it("one removable chip each for the labels, the rated switch and each Prism range", () => {
+    const f = emptyFilters(); f.labels = ["HEALTHY", "STRONG"]; f.rated = true; f.ranges.z = { min: 60, max: null }; f.ranges.zr = { min: null, max: 40 };
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Prism score: 60 or more", "Prism Risk: 40 or less", "Prism rating: Strong, Healthy", "Only companies rated by Prism"]);
+    expect(chipsFor(removeChip(removeChip(f, "labels"), "rated")).map((c) => c.id)).toEqual(["range:z", "range:zr"]);
+  });
+  it("round-trips through the address and ignores junk", () => {
+    const f = emptyFilters(); f.labels = ["STRONG", "NOT RATED"]; f.rated = true; f.ranges.z = { min: 40, max: 90 }; f.ranges.zv = { min: 55, max: null };
+    const s = { filters: f, sort: { key: "prism_quality" as const, dir: 1 as const }, size: 20, page: 1 };
+    const qs = serializeState(s).toString();
+    expect(qs).toContain("pl=strong%2Cnotrated"); expect(qs).toContain("rated=1");
+    expect(parseState(new URLSearchParams(qs))).toEqual(s);
+    const bad = parseState(new URLSearchParams("pl=bogus,Strong&rated=yes&zmin=abc&zmax=500&sort=prism_evil"));
+    expect(bad.filters.labels).toEqual([]); expect(bad.filters.rated).toBe(false); expect(bad.filters.ranges.z).toEqual({ min: null, max: 100 }); expect(bad.sort).toEqual(DEFAULT_SORT);
+  });
+  it("summary counts and medians the Prism scores that exist", () => {
+    expect(summarize(PZ)).toMatchObject({ nZ: 5, medZ: 55 });
+    expect(summarize([])).toMatchObject({ nZ: 0, medZ: null });
+  });
+});
+
+describe("Prism CSV", () => {
+  const o = { filters: emptyFilters(), sort: DEFAULT_SORT, scope: "filtered" as const, total: 3, asOf: "2026-10-26", exportedOn: "2026-10-29" };
+  it("Gold gets the Prism columns with words, blanks (never 0) and the ratings date; other plans keep the original columns and are told why", () => {
+    const rows = [pr("S", 85.4, "STRONG", { prism_status: "RATED", prism_st: "Positive", prism_lt: "Neutral", prism_at: "2026-10-27", prism_st_score: 22.5, prism_lt_score: -4 }), pr("X", null, null)];
+    const gold = toCsv(rows, { ...o, prism: true, prismAsOf: "2026-10-27" }).split("\r\n");
+    const head = gold.findIndex((l) => l.startsWith("Symbol,"));
+    expect(gold[head]).toMatch(/,Overall,Prism,Prism label,Prism status,Prism Fundamentals,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on$/);
+    expect(gold[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
+    expect(gold[head + 2]).toMatch(/,60,,,,,,,,,,,,$/);
+    expect(gold.join("\n")).toMatch(/Ratings as of: 2026-10-27/);
+    const silver = toCsv(rows, o);
+    expect(silver).not.toMatch(/Prism label/); expect(silver).toMatch(/FinLit Prism columns are part of the Gold plan/);
+  });
+});
+
+describe("colour rule", () => {
+  it("scores are coloured by the site's one rule (70 / 50), while the model's word labels keep their own bands", async () => {
+    const { level, bandName } = await import("./scoreScreen");
+    expect([level(70), level(69), level(50), level(49), level(null)]).toEqual(["hi", "mid", "mid", "lo", "na"]);
+    expect([bandName(78), bandName(62), bandName(45), bandName(44)]).toEqual(["Strong", "Healthy", "Mixed", "Watch"]);
   });
 });
