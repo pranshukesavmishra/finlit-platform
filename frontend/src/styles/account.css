@@ -353,3 +353,21 @@
 .sys-row input { width: 40px; height: 22px; accent-color: var(--gold); cursor: pointer; }
 .sys-pop .btn { margin-top: 6px; }
 @media (max-width: 480px) { .sys-dd { position: static; } .ddm.sys-pop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
+
+/* ---- My portfolio: model banner, tab strip (Overview, Ratios, Financials) and the cells of the three tables ---- */
+.pf-model { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; padding: 14px 18px; border: 1px solid var(--border); border-left: 4px solid var(--gold); border-radius: 12px; background: var(--s2); }
+.pf-model p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text); } .pf-model a { color: var(--gold); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.pf-model .ci { flex: none; margin-top: 2px; }
+.pf-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--border); margin: 6px 0 14px; -webkit-overflow-scrolling: touch; } .pf-tabs::-webkit-scrollbar { display: none; }
+.pf-tabs button { flex: none; font: 700 12.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; padding: 12px 16px; border: 0; background: none; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.pf-tabs button:hover { color: var(--text); } .pf-tabs button.on { color: var(--text); border-bottom-color: var(--gold); } .pf-tabs button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 6px; }
+.pf-tabs-card .card-h { flex-wrap: wrap; gap: 8px 12px; } .pf-tabs-card .card-h .s { margin-left: auto; }
+.pf-period { align-self: center; } .pf-period button { padding: 6px 12px; min-height: 32px; }
+.pf-t small { display: block; line-height: 1.3; } .pf-t td:first-child { min-width: 170px; white-space: normal; } .pf-t td small.muted, .pf-t td small.faint { font-size: 12px; }
+.pf-t .pf-size { display: block; font-size: 11.5px; color: var(--faint); } .pf-dash { color: var(--faint); cursor: help; } .pf-wait { text-align: left !important; white-space: normal !important; }
+.pf-t td { vertical-align: middle; } .pf-t .pzs { justify-content: flex-start; } .pf-t .pzs-no { justify-content: flex-start; } .pf-t .pzs-w { justify-items: start; }
+.pf-avg th, .pf-avg td { border-top: 2px solid var(--border-strong); font-weight: 700; background: var(--s2); } .pf-avg th small { font-weight: 400; }
+.pf-fine { font-size: 12.5px; margin: 10px 4px 0; line-height: 1.55; }
+@media (max-width: 560px) { .pf-tabs button { padding: 12px 14px; } .hold-q { min-width: 0; width: 100%; } .pf-tabs-card .card-h .s { margin-left: 0; } }
+.pf-mix { display: inline-flex; gap: 10px; font: 700 30px/1 var(--mono) !important; } .pf-mix i { font-style: normal; } .pf-mix .hi { color: var(--band-hi-ink); } .pf-mix .mid { color: var(--band-mid-ink); } .pf-mix .lo { color: var(--band-lo-ink); }
+.pf-t { position: relative; }
