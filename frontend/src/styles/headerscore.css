@@ -42,3 +42,8 @@
 }
 :root[data-theme="light"] .hs-leg-p { background: #FFFEFA; color: #1C1A15; border-color: #DBD2BE; box-shadow: 0 18px 40px -14px rgba(35,32,24,.35); } :root[data-theme="light"] .hs-leg-p .hs-leg-n { color: #675F50; }
 :root[data-theme="light"] .hs-leg-p .hs-dot.band-na { color: #4A463B; box-shadow: inset 0 0 0 1.5px #675F50; }
+
+/* Gold: six FinLit Prism dots, a thin gap (with a hairline) between the four fundamental and the two technical */
+.hs-dots li.hs-gap { margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--border-strong, var(--border)); }
+.hs-leg-g { grid-template-columns: 1fr; } .hs-leg-g li { display: flex; align-items: flex-start; gap: 8px; } .hs-leg-g .hs-dot { width: 18px; height: 18px; font-size: 9.5px; cursor: default; box-shadow: none; flex: none; }
+.hs-leg-p .hs-leg-g { gap: 6px; }
