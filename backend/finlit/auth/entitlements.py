@@ -17,6 +17,9 @@ BASIC_HISTORY_KEYS = ("gross_margin", "operating_margin", "net_margin", "roe", "
 GOLD_RATIO_GROUPS = {"leverage", "liquidity", "efficiency", "quality", "shareholder"}
 # Technical fields a Silver account may keep (the 50-day average and the 200-day gap show in the free stats row).
 KEEP_TECHNICAL = ("price", "ema50", "vsEma200Pct")
+# FinLit Prism figures on a screener row (Gold; the showcase companies stay open to everyone, as on the Prism page itself).
+PRISM_FIELDS = ("prism_state", "prism_final", "prism_label", "prism_status", "prism_at", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk",
+                "prism_st", "prism_lt", "prism_st_score", "prism_lt_score")
 MODEL_FIELDS = ("overall", "band", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical")
 
 LIMITS = {
@@ -101,16 +104,18 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
 
 
 def redact_universe(rows: list, plan: str, showcase: set) -> list:
-    """The screener list: model scores are a Silver feature (the showcase company stays open as the free example)."""
-    if has(plan, "silver"):
+    """The screener list: the FinLit score figures are a Silver feature and the FinLit Prism figures a Gold feature (the showcase company stays
+    open as the free example). A locked field is present and null, so the browser cannot tell a locked value from a missing one."""
+    if has(plan, "gold"):
         return rows
+    silver = has(plan, "silver")
     out = []
     for r in rows:
         if r.get("symbol") in showcase:
             out.append(r)
             continue
         r = dict(r)
-        for f in MODEL_FIELDS:
+        for f in PRISM_FIELDS + (() if silver else MODEL_FIELDS):
             r[f] = None
         out.append(r)
     return out

@@ -5,8 +5,8 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Row } from "../lib/screener";
 
-const st = vi.hoisted(() => ({ plan: "gold" as "basic" | "silver" | "gold", rows: [] as unknown[], upgrade: vi.fn(), toast: vi.fn() }));
-vi.mock("../lib/screener", async (orig) => ({ ...(await orig<typeof import("../lib/screener")>()), useUniverse: () => ({ data: { rows: st.rows, sample: true, asOf: "2026-10-26" }, isLoading: false, isError: false }) }));
+const st = vi.hoisted(() => ({ plan: "gold" as "basic" | "silver" | "gold", rows: [] as unknown[], cover: null as unknown, upgrade: vi.fn(), toast: vi.fn() }));
+vi.mock("../lib/screener", async (orig) => ({ ...(await orig<typeof import("../lib/screener")>()), useUniverse: () => ({ data: { rows: st.rows, sample: true, asOf: "2026-10-26", prism: st.cover }, isLoading: false, isError: false }) }));
 vi.mock("../lib/ui", () => ({
   useUI: () => ({ has: (t: string) => ({ basic: 0, silver: 1, gold: 2 })[st.plan] >= ({ basic: 0, silver: 1, gold: 2 } as Record<string, number>)[t], upgrade: st.upgrade, toast: st.toast }),
   TIER: { gold: { n: "Gold" }, silver: { n: "Silver" } },
@@ -32,7 +32,7 @@ const symbols = () => within(screen.getByRole("table")).getAllByRole("row").slic
 const hint = () => document.querySelector(".sx-hint")!;
 const sector = (name: string) => screen.getByRole("checkbox", { name: new RegExp("^" + name) });
 
-beforeEach(() => { st.plan = "gold"; st.rows = DATA; localStorage.clear(); watch.reset(); st.upgrade.mockReset(); st.toast.mockReset(); });
+beforeEach(() => { st.plan = "gold"; st.rows = DATA; st.cover = null; localStorage.clear(); watch.reset(); st.upgrade.mockReset(); st.toast.mockReset(); });
 afterEach(cleanup);
 
 describe("Score screener page", () => {
@@ -167,7 +167,7 @@ describe("Score screener page", () => {
     expect(text).toMatch(/Scores computed on: 2026-10-26/);
     expect(text).toMatch(/# Filters: Banks\r\n#          IT\r\n#          Auto/);
     expect(text).toMatch(/Rows: 1 \(selected rows only; 6 companies match the filters\)/);
-    expect(text).toContain("\r\n" + ["GGG", "GGG Limited", "Auto", "", "", "", "", "", "", "", "", "60", ""].join(",") + "\r\n");   // blanks, never zeros
+    expect(text).toContain("\r\n" + ["GGG", "GGG Limited", "Auto", "", "", "", "", "", "", "", "", "60", "", ...Array(12).fill("")].join(",") + "\r\n");   // blanks, never zeros
     fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
     const all = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
     expect(all.match(/\r\n[A-Z]{3},/g)).toHaveLength(6);
@@ -217,5 +217,125 @@ describe("Score screener page", () => {
     const mix = screen.getByLabelText("Sector mix of the result");
     expect(mix.textContent).toMatch(/Metals 14/);
     expect(mix.textContent).toMatch(/Sector not listed 1/);
+  });
+});
+
+// ---- FinLit Prism columns, filters, presets and plan gating
+const pz = (final: number | null, label: string, o: Partial<Row> = {}): Partial<Row> => ({
+  prism_state: "stored", prism_final: final, prism_label: label, prism_status: final == null ? "NOT RATED" : "RATED", prism_at: "2026-10-27",
+  prism_fundamental: final, prism_valuation: final == null ? null : 50, prism_quality: final == null ? null : 70, prism_risk: final == null ? null : 60,
+  prism_st: final == null ? null : "Positive", prism_lt: final == null ? null : "Neutral", prism_st_score: final == null ? null : 22, prism_lt_score: final == null ? null : -4, ...o,
+});
+const PDATA: Row[] = [
+  mk("AAA", "Banks", 90, 90, 9000, pz(85, "STRONG")), mk("BBB", "Banks", 80, 30, 8000, pz(66, "HEALTHY")), mk("CCC", "IT", 50, 85, 7000, pz(55, "AVERAGE")),
+  mk("DDD", "IT", 44, 45, 6000, { prism_state: "stored", prism_final: null, prism_label: "NOT RATED", prism_status: "NOT RATED" }),
+  mk("EEE", "Auto", 77, 78, 5000, { prism_state: "none" }), mk("FFF", "Auto", 60, 60, 4000, pz(30, "POOR", { prism_status: "PROVISIONAL" })),
+];
+
+describe("Advanced score screener: FinLit Prism", () => {
+  beforeEach(() => { st.rows = PDATA; st.cover = { rated: 3, provisional: 1, not_rated: 1, stored: 5, total: 6, as_of: "2026-10-27", per_night: 30 }; });
+  const rowOf = (s: string) => screen.getByRole("checkbox", { name: `Select ${s}` }).closest("tr")!;
+
+  it("shows the Prism score with its label in words, the four parts and the short and long term words", () => {
+    open();
+    const r = rowOf("AAA").textContent!;
+    expect(r).toMatch(/85\s*Strong/); expect(r).toMatch(/Positive\+22/); expect(r).toMatch(/Neutral\u22124/);
+    expect(rowOf("FFF").textContent).toMatch(/30\s*PoorProvisional/);
+    expect(screen.getByRole("columnheader", { name: /FinLit Prism/ })).toBeTruthy();
+  });
+
+  it("says rated X of Y and explains both scores", () => {
+    open();
+    expect(document.querySelector(".pzs-cover")!.textContent).toMatch(/Prism has rated 4 of 6 companies \(67%\)/);
+    expect(document.querySelector(".pzs-cover")!.textContent).toMatch(/about 30 more a night/);
+    expect(screen.getByText("What the two scores mean")).toBeTruthy();
+    expect(document.querySelector(".pzs-explain")!.textContent).toMatch(/Strong 80 and above, Healthy 65 to 79/);
+  });
+
+  it("a company without a rating says Not rated yet with the reason and a Rate now link to its Prism page; a refusal says why", () => {
+    open();
+    const e = rowOf("EEE");
+    expect(e.textContent).toMatch(/Not rated yet/);
+    expect(within(e).getByRole("link", { name: "Rate EEE with Prism now" }).getAttribute("href")).toBe("/prism/EEE");
+    expect(within(e).getAllByTitle(/Ratings are added every night, largest companies first/).length).toBeGreaterThan(0);
+    const d = rowOf("DDD");
+    expect(d.textContent).toMatch(/Not rated/); expect(d.textContent).not.toMatch(/Rate now/);
+    expect(within(d).getAllByTitle(/could not rate this company/).length).toBeGreaterThan(0);
+  });
+
+  it("filters by label chips, the rated-only switch and the exact range, and writes them to the address", () => {
+    open();
+    const prism = screen.getByRole("group", { name: "Prism rating label" });
+    fireEvent.click(within(prism).getByRole("button", { name: "Strong" })); fireEvent.click(within(prism).getByRole("button", { name: "Healthy" }));
+    fireEvent.submit(prism.closest("form")!);
+    expect(symbols()).toEqual(["AAA", "BBB"]); expect(loc()).toBe("/score-screener?pl=strong%2Chealthy");
+    expect(screen.getByRole("button", { name: "Remove filter Prism rating: Strong, Healthy" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter Prism rating: Strong, Healthy" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Only companies rated by Prism" }));
+    fireEvent.submit(prism.closest("form")!);
+    expect(symbols()).toEqual(["AAA", "BBB", "CCC", "FFF"]); expect(loc()).toBe("/score-screener?rated=1");
+    fireEvent.change(within(screen.getByRole("group", { name: "Prism score, exact range" })).getByLabelText("Min"), { target: { value: "60" } });
+    fireEvent.submit(prism.closest("form")!);
+    expect(symbols()).toEqual(["AAA", "BBB"]);
+    fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
+    expect(symbols()).toHaveLength(6);
+  });
+
+  it("the slider sets the same range as the boxes; sliding back to the end clears it", () => {
+    open();
+    const s = screen.getByRole("slider", { name: "Prism slider, lowest score" });
+    fireEvent.change(s, { target: { value: "60" } });
+    expect((within(screen.getByRole("group", { name: "Prism score, exact range" })).getByLabelText("Min") as HTMLInputElement).value).toBe("60");
+    fireEvent.change(s, { target: { value: "0" } });
+    expect((within(screen.getByRole("group", { name: "Prism score, exact range" })).getByLabelText("Min") as HTMLInputElement).value).toBe("");
+  });
+
+  it("sorts on Prism and each part, companies without a value last", () => {
+    open("?size=50");
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Prism" }));
+    expect(symbols()).toEqual(["AAA", "BBB", "CCC", "FFF", "DDD", "EEE"]);
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Prism" }));
+    expect(symbols()).toEqual(["FFF", "CCC", "BBB", "AAA", "DDD", "EEE"]);
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Long term" }));
+    expect(loc()).toContain("sort=prism_lt_score");
+  });
+
+  it("a Prism view applies at once, can be switched off, and uses no advice wording", () => {
+    open();
+    fireEvent.click(screen.getByRole("button", { name: /Quality at a fair valuation/ }));
+    expect(symbols()).toEqual(["AAA", "BBB", "CCC", "FFF"]);
+    fireEvent.click(screen.getByRole("button", { name: /Quality at a fair valuation/ }));
+    expect(symbols()).toHaveLength(6);
+    expect(loc()).toBe("/score-screener");
+    fireEvent.click(screen.getByRole("button", { name: /FinLit and Prism both strong/ }));
+    expect(symbols()).toEqual(["AAA", "BBB"]);
+    expect(document.body.textContent?.toLowerCase()).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate)\b/);
+  });
+
+  it("exports the Prism columns for Gold, with blanks for unrated companies", async () => {
+    open();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    let blob: Blob | null = null;
+    URL.createObjectURL = vi.fn((b: Blob) => { blob = b; return "blob:x"; }); URL.revokeObjectURL = vi.fn();
+    fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
+    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
+    expect(text).toMatch(/Ratings as of: 2026-10-27/);
+    expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,90,90,90,90,90,90,90,85,Strong,RATED,85,50,70,60,Positive,22,Neutral,-4,2026-10-27");
+    expect(text).toContain("EEE,EEE Limited,Auto,Large cap,100,5000,77,77,77,77,77,78,77,,,,,,,,,,,,");
+  });
+
+  it("Silver sees the FinLit score and locked Prism columns with an upgrade prompt; the server sends no Prism values", () => {
+    st.plan = "silver"; st.rows = PDATA.map((r) => ({ ...r, ...Object.fromEntries(Object.keys(r).filter((k) => k.startsWith("prism_")).map((k) => [k, null])) }));
+    open();
+    expect(screen.getByText(/Prism filters are part of Gold/)).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Prism rating label" })).toBeNull();
+    const a = rowOf("AAA");
+    expect(within(a).getAllByText(/Not available: FinLit Prism is part of the Gold plan/).length).toBeGreaterThan(0);
+    expect(a.textContent).not.toMatch(/Rate now|Not rated yet/);            // locked, not "not rated": no Rate now link for a plan that cannot use it
+    fireEvent.click(screen.getByRole("button", { name: /Quality at a fair valuation/ }));
+    expect(st.upgrade).toHaveBeenCalledWith("gold", expect.any(String));
+    expect(loc()).toBe("/score-screener");
+    fireEvent.click(screen.getByRole("button", { name: /Unlock with Gold/ }));
+    expect(st.upgrade).toHaveBeenCalledTimes(2);
   });
 });

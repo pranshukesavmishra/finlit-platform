@@ -3,7 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import { MINUS, cr, nf } from "./format";
 
-export type Row = {
+/** FinLit Prism figures on a row (Gold; null when locked, not stored yet or not calculated). prism_state "stored" means a rating row exists, "none" that none does. */
+export type PrismFields = {
+  prism_state?: "stored" | "none" | null; prism_final?: number | null; prism_label?: string | null; prism_status?: string | null; prism_at?: string | null;
+  prism_fundamental?: number | null; prism_valuation?: number | null; prism_quality?: number | null; prism_risk?: number | null;
+  prism_st?: string | null; prism_lt?: string | null; prism_st_score?: number | null; prism_lt_score?: number | null;
+};
+export type PrismCoverage = { rated: number; provisional: number; not_rated: number; stored: number; total: number; as_of?: string | null; per_night?: number };
+export type Row = PrismFields & {
   symbol: string; name: string | null; sector: string | null; sample?: boolean; scored?: boolean;
   overall: number | null; band: string | null;
   pillar_quality: number | null; pillar_growth: number | null; pillar_profitability: number | null; pillar_balance: number | null; pillar_technical: number | null;
@@ -11,15 +18,15 @@ export type Row = {
   dividend_yield: number | null; debt_to_equity: number | null; sales_cagr: number | null; profit_cagr: number | null;
   operating_margin: number | null; change_pct: number | null; return_1m: number | null; return_1y: number | null;
 };
-export type NumKey = Exclude<keyof Row, "symbol" | "name" | "sector" | "sample" | "band" | "scored">;
+export type NumKey = Exclude<keyof Row, "symbol" | "name" | "sector" | "sample" | "band" | "scored" | keyof PrismFields>;
 
 export function useUniverse(enabled = true) {
   return useQuery({
     queryKey: ["universe"], staleTime: 300_000, retry: 1, enabled,
     queryFn: async () => {
-      const d = await apiGet<{ rows: Row[]; sample?: boolean; as_of?: string | null }>("/api/screener/universe");
+      const d = await apiGet<{ rows: Row[]; sample?: boolean; as_of?: string | null; prism?: PrismCoverage | null }>("/api/screener/universe");
       const rows: Row[] = d.rows.map((r) => ({ ...r, name: r.name || r.symbol }));
-      return { rows, sample: !!d.sample || rows.some((r) => r.sample), asOf: d.as_of ?? null };
+      return { rows, sample: !!d.sample || rows.some((r) => r.sample), asOf: d.as_of ?? null, prism: d.prism ?? null };
     },
   });
 }

@@ -245,17 +245,32 @@ def _fresh(row) -> bool:
     return row is not None and (datetime.now(timezone.utc) - row["generated_at"]).total_seconds() < REUSE_SECONDS
 
 
+def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
+    """The few figures the Advanced score screener lists (migration 070): the four category scores (none for a company the model did not rate),
+    the short and long term technical scores with the model's rating word, and the confidence. Copied exactly; the words are relabelled on reading."""
+    rating = view.get("rating") or {}
+    technical = view.get("technicalAssessment") if isinstance(view.get("technicalAssessment"), dict) else {}
+
+    def horizon(key: str) -> Dict[str, Any]:
+        part = technical.get(key) if isinstance(technical.get(key), dict) else {}
+        return {"score": part.get("score"), "rating": part.get("rating")}
+    return {"parts": None if rating.get("status") == "NOT RATED" else rating.get("parts"), "st": horizon("shortTerm"), "lt": horizon("longTerm"),
+            "confidence": rating.get("confidence")}
+
+
 async def _save(store, symbol: str, statement: str, view: Dict[str, Any], pdf_until: Optional[datetime]):
     rating = view.get("rating") or {}
     final = rating.get("final")
     return await store.pool.fetchrow(
-        """INSERT INTO prism_reports (symbol, statement, id, report, model_version, final, label, status, generated_at, pdf_until)
-           VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9)
+        """INSERT INTO prism_reports (symbol, statement, id, report, model_version, final, label, status, generated_at, pdf_until, card)
+           VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9, $10::jsonb)
            ON CONFLICT (symbol, statement) DO UPDATE SET id = EXCLUDED.id, report = EXCLUDED.report, model_version = EXCLUDED.model_version,
-               final = EXCLUDED.final, label = EXCLUDED.label, status = EXCLUDED.status, generated_at = EXCLUDED.generated_at, pdf_until = EXCLUDED.pdf_until
+               final = EXCLUDED.final, label = EXCLUDED.label, status = EXCLUDED.status, generated_at = EXCLUDED.generated_at, pdf_until = EXCLUDED.pdf_until,
+               card = EXCLUDED.card
            RETURNING id, report, generated_at, pdf_until""",
         symbol, statement, view["id"], json.dumps(view, allow_nan=False), rating.get("modelVersion"),
-        float(final) if isinstance(final, (int, float)) else None, rating.get("label"), rating.get("status"), pdf_until)
+        float(final) if isinstance(final, (int, float)) else None, rating.get("label"), rating.get("status"), pdf_until,
+        json.dumps(card_of(view), allow_nan=False))
 
 
 async def _keep_snapshot(redis, snapshot: Dict[str, Any], sub: str, symbol: str) -> Optional[datetime]:
@@ -507,6 +522,8 @@ async def _execute(app, sub: str, symbol: str, statement: str, counter: Optional
     redis = app.state.store.redis
     r: Optional[httpx.Response] = None
     started = time.monotonic()
+    if not background:
+        await _members_active(redis)
     try:
         base = await _report_body(app, symbol, statement)      # Dhan's candles are fetched BEFORE a calculation slot is taken: waiting for Dhan never holds a slot
         try:   # a request waits its turn (up to SLOT_WAIT seconds) instead of being turned away while another company is calculating
@@ -760,6 +777,74 @@ def _expired() -> JSONResponse:
 
 
 # ------------------------------------------------------------------ nightly pre-calculation
+MEMBER_ACTIVE_KEY = "prism:member:active"
+MEMBER_ACTIVE_SECONDS = 600         # a member's calculation (or one that is waiting) keeps the widening paused for this long after it started
+WIDEN_DEFAULT = 30                  # extra companies per night when PRISM_WIDEN_PER_NIGHT is not set
+WIDEN_REFUSED_SECONDS = 7 * 86400   # a company the provider refused (or the model could not rate) is not tried again for a week
+WIDEN_REFRESH_DAYS = 30             # a widened rating older than this is calculated again, after the companies that have none
+WIDEN_ZONE = "Asia/Kolkata"
+
+
+async def _members_active(redis) -> None:
+    """Note that a member is using Prism right now (a calculation started for them). Best effort."""
+    try:
+        await redis.set(MEMBER_ACTIVE_KEY, "1", ex=MEMBER_ACTIVE_SECONDS)
+    except Exception:
+        pass
+
+
+def widen_per_night() -> int:
+    """PRISM_WIDEN_PER_NIGHT: how many companies WITHOUT a full stored report may be rated each night (0 switches widening off). Bad values mean 0."""
+    raw = os.getenv("PRISM_WIDEN_PER_NIGHT")
+    if raw is None or raw.strip() == "":
+        return WIDEN_DEFAULT
+    try:
+        return max(0, min(2000, int(raw)))
+    except ValueError:
+        return 0
+
+
+def _widen_day(now: Optional[datetime] = None) -> str:
+    return (now or datetime.now(timezone.utc)).astimezone(IST).date().isoformat()
+
+
+async def widen_candidates(store, statement: str, limit: int, skip: list) -> list:
+    """The next companies to rate beyond the ones with a full report: listed companies with a market value, biggest first, that have no rating
+    (or one older than WIDEN_REFRESH_DAYS, after those), leaving out `skip` (refused this week). Only a symbol the Prism page itself accepts is listed."""
+    async with store.pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT c.symbol FROM companies c JOIN listing_quotes q ON q.symbol = c.symbol AND q.market_cap > 0 "
+            "LEFT JOIN prism_reports p ON p.symbol = c.symbol AND p.statement = $1 "
+            "WHERE (p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2)) AND NOT (c.symbol = ANY($4::text[])) "
+            "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC, c.symbol LIMIT $3", statement, WIDEN_REFRESH_DAYS, limit, skip)
+    return [r["symbol"] for r in rows if SYMBOL.match(r["symbol"])]
+
+
+async def _widen_budget_left(redis, per_night: int) -> int:
+    try:
+        used = int(await redis.get(f"prism:widen:day:{_widen_day()}") or 0)
+    except Exception:
+        return 0                       # no way to count: do not widen (the budget is what keeps the free tier safe)
+    return max(0, per_night - used)
+
+
+async def _widen_take(redis, per_night: int) -> bool:
+    """Spend one unit of tonight's budget; False when it is used up. Counted per attempt, so a refusing provider cannot be hit more than the budget."""
+    try:
+        key = f"prism:widen:day:{_widen_day()}"
+        n = await redis.incr(key)
+        if n == 1:
+            await redis.expire(key, 2 * 86400)
+        return n <= per_night
+    except Exception:
+        return False
+
+
+async def _members_busy(redis) -> bool:
+    try:
+        return bool(await redis.exists(MEMBER_ACTIVE_KEY))
+    except Exception:
+        return True                    # cannot tell: stay out of the members' way
 PRE_RETRY_SECONDS = 45 * 60         # a company whose calculation failed upstream (502) is tried again after this
 PRE_FAIL_SECONDS = 20 * 3600       # a company the data cannot rate is not tried again until the next night
 PRE_PAUSE_TRIES = 40               # times the nightly job waits for a member's calculation to finish before it gives that company up
@@ -776,6 +861,11 @@ async def _pending(store, statement: str, days: int, limit: int, skip: list) -> 
             "WHERE (p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2)) AND NOT (s.symbol = ANY($4::text[])) "
             "ORDER BY (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3", statement, days, limit, skip)
     return [r["symbol"] for r in rows]
+
+
+def symbols_left_for_us(symbols: List[str], attempted: int) -> bool:
+    """True when this worker's own full-report queue was not finished (stopped early): widening waits until it is."""
+    return attempted < len(symbols)
 
 
 def in_shard(symbols: List[str], shard: Optional[Tuple[int, int]]) -> List[str]:
@@ -807,29 +897,43 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
     symbols = in_shard(symbols, shard)
     started, done, failed, streak, paused = time.monotonic(), 0, [], 0, 0
     attempted = 0
+    widened, widen_paused, widen_skipped = 0, False, 0
+
+    async def one(symbol: str) -> Tuple[bool, int]:
+        """Calculate and store one company's rating the way a member's button does. (stored, status code); pauses while a member is waiting."""
+        nonlocal paused
+        code, r = 0, None
+        for _ in range(PRE_PAUSE_TRIES):
+            try:
+                payload = await _site_payload(app, symbol, statement, background=True, keep=False, kept_seconds=0)
+                r = await _call(app, "/api/premium-reports", "prism:nightly", payload)
+            except httpx.HTTPError as exc:
+                r = None
+                log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
+            code = r.status_code if r is not None else 0
+            if code == 429 and r is not None and "member is waiting" in (_upstream_detail(r) or ""):
+                paused += 1                    # a member is waiting: let them go first
+                await asyncio.sleep(RETRY_AFTER_BACKGROUND)
+                continue
+            break
+        snapshot = _ready(r)
+        if snapshot is None:
+            failed.append(f"{symbol}:{code}")
+            log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
+            return False, code
+        cache = snapshot.pop("cache", None)
+        await _save(store, symbol, statement, reader_view(snapshot), None)
+        await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
+        await asyncio.sleep(0.2)
+        return True, code
+
     try:
         for symbol in symbols:
             if time.monotonic() - started > max_minutes * 60 or streak >= 3:
                 break
             attempted += 1
-            code, r, snapshot = 0, None, None
-            for _ in range(PRE_PAUSE_TRIES):
-                try:
-                    payload = await _site_payload(app, symbol, statement, background=True, keep=False, kept_seconds=0)
-                    r = await _call(app, "/api/premium-reports", "prism:nightly", payload)
-                except httpx.HTTPError as exc:
-                    r = None
-                    log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
-                code = r.status_code if r is not None else 0
-                if code == 429 and r is not None and "member is waiting" in (_upstream_detail(r) or ""):
-                    paused += 1                    # a member is waiting: let them go first
-                    await asyncio.sleep(RETRY_AFTER_BACKGROUND)
-                    continue
-                break
-            snapshot = _ready(r)
-            if snapshot is None:
-                failed.append(f"{symbol}:{code}")
-                log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
+            ok, code = await one(symbol)
+            if not ok:
                 streak = streak + 1 if code in (0, 429, 502, 503) else 0   # a company the data cannot rate (404/422) is not a provider outage
                 if streak == 0:
                     await redis.set(f"prism:pre:fail:{statement}:{symbol}", str(code), ex=PRE_FAIL_SECONDS)
@@ -839,11 +943,33 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
                     await redis.set(f"prism:pre:fail:{statement}:{symbol}", str(code), ex=PRE_RETRY_SECONDS)
                 continue
             streak = 0
-            cache = snapshot.pop("cache", None)
-            await _save(store, symbol, statement, reader_view(snapshot), None)
-            await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
             done += 1
-            await asyncio.sleep(0.2)
+        # Widening (docs/prism/COVERAGE_PLAN.md): after everything with a full report is done, a bounded number of further companies a night.
+        per_night = widen_per_night()
+        if per_night and streak < 3 and time.monotonic() - started <= max_minutes * 60 and len(symbols) < limit and not symbols_left_for_us(symbols, attempted):
+            wskip: list = []
+            try:
+                async for key in redis.scan_iter(match=f"prism:widen:refused:{statement}:*", count=200):
+                    wskip.append((key.decode() if isinstance(key, bytes) else key).rsplit(":", 1)[1])
+            except Exception:
+                wskip = []
+            budget = await _widen_budget_left(redis, per_night)
+            queue = in_shard(await widen_candidates(store, statement, max(budget, 0) * 2 + 10, wskip), shard) if budget else []
+            for symbol in queue:
+                if time.monotonic() - started > max_minutes * 60 or streak >= 3:
+                    break
+                if await _members_busy(redis):
+                    widen_paused = True            # members are using Prism: leave the provider to them, the next round continues
+                    break
+                if not await _widen_take(redis, per_night):
+                    break
+                ok, code = await one(symbol)
+                if ok:
+                    streak, widened = 0, widened + 1
+                    continue
+                streak = streak + 1 if code in (0, 429, 502, 503) else 0
+                widen_skipped += 1
+                await redis.set(f"prism:widen:refused:{statement}:{symbol}", str(code), ex=WIDEN_REFUSED_SECONDS)   # not again for a week, whatever the reason
     finally:
         if client is None and getattr(app.state, "prism_client", None) is not None:
             await app.state.prism_client.aclose()
@@ -851,7 +977,8 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
             await app.state.prism_dhan.aclose()
     left = len(await _pending(store, statement, days, 5000, [])) if symbols else 0
     out = {"status": "ok" if done or not symbols else "partial", "calculated": done, "failed": failed[:10], "paused_for_members": paused,
-           "remaining_candidates": left, "seconds": round(time.monotonic() - started)}
+           "remaining_candidates": left, "seconds": round(time.monotonic() - started),
+           "widened": widened, "widen_refused": widen_skipped, "widen_paused_for_members": widen_paused}
     try:
         await redis.set(PRE_PROGRESS_KEY, json.dumps({**out, "at": time.time()}), ex=7 * 86400)
     except Exception:
