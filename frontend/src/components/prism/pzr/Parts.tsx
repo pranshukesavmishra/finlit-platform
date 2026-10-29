@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { nf } from "../../../lib/format";
 import {
-  factorValue, isRated, labelTone, partInfo, partShare, partsOf, pctWhole, score1, scoreTone,
+  factorValue, isRated, labelTone, partInfo, partShare, partsOf, partsSentence, pctWhole, score1, scoreTone,
   type PartKey, type PrismMetric, type PrismReport, type PrismReview, type ReviewPart,
 } from "../../../lib/prism";
 import { THRESHOLDS, bandLabel, capNotes, contributionTotal, contributions, partVar, topFactors } from "../../../lib/prismReport";
@@ -73,7 +73,7 @@ export function PartCards({ report, review }: { report: PrismReport; review: Pri
   return (
     <section className="pzr-sec" aria-labelledby="pzr-h-parts">
       <header className="pzr-sh"><h3 id="pzr-h-parts">The parts of the score</h3><p>Each part has a fixed share of the overall score. Select a card to jump to its factors. Ticks mark 35, 50, 65 and 80, where the labels change.</p></header>
-      {!isRated(report.rating) && <p className="pzr-withheld">Category scores are withheld because the company is not rated.</p>}
+      {!isRated(report.rating) && <p className="pzr-withheld">{partsSentence(report.rating)}</p>}
       <div className="pzr-parts">
         {keys.map((k, i) => <PartCard key={k} k={k} index={i} report={report} review={review} rows={report.rating.metrics.filter((m) => m.part === k)} />)}
         {!keys.includes("technical") && <div className="pzr-part soon" role="note"><b>Technical view: separate from this score</b><span>{parseTechnical(report.technicalAssessment) ? "Short-term and long-term price trend. It is calculated on its own, is not a part of the score above and never changes it. See the Technical view below." : "Short-term and long-term price trend. It is not a part of the score above. This stored report does not include it; recalculate to add it."}</span></div>}

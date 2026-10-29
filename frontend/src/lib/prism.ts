@@ -49,6 +49,8 @@ export type PrismRating = {
   metrics: PrismMetric[]; loss?: PrismLoss; lossCapped?: boolean; valuationCapped?: boolean;
   adjustments?: { metric: string; part: PartKey; rawScore: number; cap: number; pointsLost?: number }[]; capPointsLost?: number;
   alerts?: string[]; headline?: string;
+  /** Why the company is not rated, most specific first (engine 3.6.10 with the classification fix); absent on older stored reports. */
+  notRatedReasons?: { code: "classification" | "insufficient_history" | "low_confidence" | "data_integrity"; text: string }[];
 };
 export type ReviewItem = { metric: string; label: string; valueText: string; summary: string; comparisonText?: string };
 export type ReviewPart = {
@@ -126,6 +128,25 @@ export const STATUS_TEXT: Record<PrismStatusWord, string> = {
   PROVISIONAL: "The financial history or data coverage is limited, so the label is capped at Healthy.",
   "NOT RATED": "There is not enough verified information for an overall rating, so no category scores are shown.",
 };
+/** The specific reason a company is not rated (for example an industry label not yet mapped), or null for a rated company or an older report. */
+export function notRatedReason(rating: Pick<PrismRating, "status" | "notRatedReasons">): string | null {
+  return rating.status === "NOT RATED" ? rating.notRatedReasons?.[0]?.text ?? null : null;
+}
+/** The short words under "Not rated" in the ring. */
+export function ringWhy(rating: Pick<PrismRating, "status" | "notRatedReasons">): string {
+  switch (rating.notRatedReasons?.[0]?.code) {
+    case "classification": return "industry not mapped";
+    case "insufficient_history": return "not enough history";
+    case "low_confidence": return "too few inputs found";
+    case "data_integrity": return "data check failed";
+    default: return "not enough evidence";
+  }
+}
+/** When the inputs figure is high yet the rating is withheld, say so: the figure is the share of inputs found, not a pass mark. */
+export function completenessNote(rating: Pick<PrismRating, "status" | "confidence" | "notRatedReasons">): string | null {
+  return rating.status === "NOT RATED" && rating.confidence >= 0.5 && rating.notRatedReasons?.length
+    ? "This is the share of inputs found. The rating is withheld by a separate check, described above." : null;
+}
 export const STATE_WORD: Record<FactorState, string> = {
   A: "Reported or calculated", Z: "Loss rule applied", S: "Industry benchmark in place of own history",
   F: "Estimated (group estimate)", N: "Not applicable", L: "Not reported, left out of the score",
@@ -297,7 +318,7 @@ export function growthSentence(points: GrowthPoint[], incomeLabel = "Sales"): st
 }
 /** Category scores in one sentence, with the highest and lowest; withheld when not rated. */
 export function partsSentence(rating: Pick<PrismRating, "status" | "parts" | "partWeights">): string {
-  if (!isRated(rating)) return "Category scores are withheld because the company is not rated.";
+  if (!isRated(rating)) return "Category scores are withheld because the company is not rated" + (notRatedReason(rating as PrismRating) ? `: ${notRatedReason(rating as PrismRating)}` : ".");
   const known = partsOf(rating).filter((k) => rating.parts[k] != null);
   if (!known.length) return "No category scores are available.";
   const hi = known.reduce((a, b) => (rating.parts[b]! > rating.parts[a]! ? b : a)), lo = known.reduce((a, b) => (rating.parts[b]! < rating.parts[a]! ? b : a));
@@ -306,7 +327,7 @@ export function partsSentence(rating: Pick<PrismRating, "status" | "parts" | "pa
 export function ringSentence(rating: Pick<PrismRating, "status" | "final" | "label">): string {
   return isRated(rating) && rating.final != null
     ? `${PRISM_NAME} score ${score1(rating.final)} out of 100: ${LABEL_WORD[rating.label]}. Status: ${STATUS_WORD[rating.status]}.`
-    : `${PRISM_NAME}: not rated. There is not enough verified information for an overall score.`;
+    : `${PRISM_NAME}: not rated. ${notRatedReason(rating as PrismRating) ?? "There is not enough verified information for an overall score."}`;
 }
 
 /* ------------------------------------------------------------------ errors and retries (intent of upstream lib/premiumReportPolling.js) */

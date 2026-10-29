@@ -222,3 +222,16 @@ describe("income wording and the PDF download", () => {
     vi.useRealTimers(); vi.unstubAllGlobals();
   });
 });
+
+describe("not-rated reasons", () => {
+  const base = { status: "NOT RATED" as const, confidence: 1 };
+  it("shows the report's specific reason and explains the full inputs figure", async () => {
+    const { notRatedReason, ringWhy, completenessNote } = await import("./prism");
+    const r = { ...base, notRatedReasons: [{ code: "classification" as const, text: 'The company\'s industry label "X" is not yet mapped to a model group.' }] };
+    expect(notRatedReason(r)).toContain('"X" is not yet mapped');
+    expect(ringWhy(r)).toBe("industry not mapped");
+    expect(completenessNote(r)).toContain("share of inputs found");
+    expect(ringWhy(base)).toBe("not enough evidence");
+    expect(notRatedReason({ status: "RATED", notRatedReasons: r.notRatedReasons })).toBeNull();
+  });
+});

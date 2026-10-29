@@ -1,23 +1,62 @@
 """Company classification and profile selection, independent of provider I/O."""
 import re
 
+# Bump when the rules below change what a stored report would show. Reports stamped with an older
+# version that were NOT RATED because of the classification blocker are recalculated by the nightly job.
+CLASSIFICATION_VERSION = 2
+
+# Precedence (first match wins). Financial labels are resolved before UTILITY/HEAVY because FinEdge puts
+# "Financial Services" in macro_sector for every financial company, and words such as "infrastructure" or
+# "power" appear in lender names ("Infrastructure Finance", "Power Finance").
+RULES = [
+    ("INSURANCE", r"insurance"),
+    ("NBFC", r"nbfc|non.?bank|housing finance|financial company|finance company|infrastructure finance|power finance|micro.?finance|consumer finance|specialized finance|specialised finance|financial institution|gold loan|leasing|lending"),
+    ("BANK", r"\bbanks?\b|banking"),
+    # Asset-light financial services (fee income, no balance-sheet lending) stay LIGHT.
+    ("LIGHT", r"asset management|brok|exchange|capital markets?|depositor|clearing|rating agenc|credit information|registrar|fintech|financial technology|payment"),
+    # Generic financial labels (Finance, Financial Services, holding / investment / diversified financial
+    # companies such as Bajaj Finserv, whose earnings are dominated by lending and insurance subsidiaries)
+    # use the NBFC model: gross/net NPA, capital adequacy fallback, ROA, P/B, P/E, PEG.
+    ("NBFC", r"financ|holding compan|investment compan|diversified financial|\bloans?\b"),
+    ("REALTY", r"real estate|realty"),
+    ("UTILITY", r"power|utilities|telecom|construction|infrastructure"),
+    ("HEAVY", r"cement|metal|steel|mining|oil|petroleum|refiner|gas"),
+    ("LIGHT", r"software|information technology|\bit -|fmcg|fast moving|pharma|media|entertainment|asset management|brok|exchange|retail|hotel|restaurant|consumer services"),
+    # LIGHT/MFG fallbacks for labels that used to fall through are in FALLBACK_RULES, applied after the
+    # recognised-manufacturing check so that no previously recognised label changes group.
+]
+
+FALLBACK_RULES = [
+    # Asset-light trade and services.
+    ("LIGHT", r"\bservices?\b|\btrading\b|\btraders?\b|wholesale|distribut|education|\bschools?\b|staffing|consult|advertis|e-?commerce|\bleisure\b|\bonline\b|marketing"),
+    # Product businesses with plant and inventory: manufacturing.
+    ("MFG", r"agricultur|\bagro|farm|paper|printing|publication|plastic|packag|shipping|\bships?\b|airline|aviation|\bsugar|\btea\b|\bcoffee|fertili[sz]er|jewel|\bgems?\b|food|beverage|tobacco|leather|footwear|apparel|garment|ceramic|glass|rubber|furniture|paint|cable|wire|electronic|appliance|semiconductor|fibre|fiber|yarn|pesticide|agrochemical|fisher|aqua|edible|dairy|\bcotton\b|\bsilk\b|\bwood\b|timber|\bsalt\b|\bpipes?\b|\btyres?\b|battery|batteries|bearing"),
+]
+
+
 def resolve_group(profile):
     text = " ".join(str(profile.get(key) or "") for key in ("industry", "sector", "sub_industry", "macro_sector")).lower()
-    rules = [
-        ("INSURANCE", r"insurance"), ("NBFC", r"nbfc|non.?bank|housing finance|financial company|finance company"),
-        ("BANK", r"\bbanks?\b|banking"), ("REALTY", r"real estate|realty"),
-        ("UTILITY", r"power|utilities|telecom|construction|infrastructure"),
-        ("HEAVY", r"cement|metal|steel|mining|oil|petroleum|refiner|gas"),
-        ("LIGHT", r"software|information technology|\bit -|fmcg|fast moving|pharma|media|entertainment|asset management|brok|exchange|retail|hotel|restaurant|consumer services"),
-    ]
-    for group, pattern in rules:
+    for group, pattern in RULES:
         # Vehicle manufacturing is not construction/infrastructure activity.
         # Preserve the precedence of financial groups and real estate.
         if group == "UTILITY" and re.search(r"\bautomobiles?\b|\bauto parts\b|\bvehicles?\b", text):
             return "MFG", False
         if re.search(pattern, text): return group, False
-    known_mfg = bool(re.search(r"auto|capital goods|engineering|chemical|textile|defen|hospital|diagnostic|logistic|transport|consumer durable|manufactur|machiner|electrical|industrial", text))
-    return "MFG", not known_mfg
+    if re.search(r"auto|capital goods|engineering|chemical|textile|defen|hospital|diagnostic|logistic|transport|consumer durable|manufactur|machiner|electrical|industrial", text):
+        return "MFG", False
+    for group, pattern in FALLBACK_RULES:
+        if re.search(pattern, text): return group, False
+    return "MFG", True
+
+
+def label_text(profile):
+    """The company's own classification labels for display: distinct industry / sector / sub-industry values."""
+    seen = []
+    for key in ("industry", "sector", "sub_industry"):
+        value = str(profile.get(key) or "").strip()
+        if value and value.lower() not in [v.lower() for v in seen]:
+            seen.append(value)
+    return " / ".join(seen) or str(profile.get("macro_sector") or "").strip()
 
 def profile_from(raw):
     p = raw.get("profile", {})
