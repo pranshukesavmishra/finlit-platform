@@ -10,6 +10,7 @@ import { useSummary, useSearchIndex, type Summary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
+import { PlatformGrid } from "../components/PlatformGrid";
 import { useAuth } from "../lib/auth";
 import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
@@ -60,40 +61,11 @@ const STEPS: [string, string][] = [
   ["Keep an eye on it", "Add it to a watchlist or set an alert on price, RSI, score, a ratio or a new filing."],
 ];
 
-const PLATFORM: { to: string; t: string; d: string; tier: "Free" | "Silver" | "Gold"; math?: boolean }[] = [
-  { to: "/research", t: "Stock research", d: "A report for every listed company: statements, ratios, peers, ownership, price and filings.", tier: "Free" },
-  { to: "/screener", t: "Screener", d: "Write the company you want as a few rules. You get every company that passes all of them. 160+ filters.", tier: "Free", math: true },
-  { to: "/query-builder", t: "Query builder", d: "Type your rule in plain words, like Market cap > 500 AND P/E < 15. Every word is checked as you type, and you can keep each query as a named basket.", tier: "Free" },
-  { to: "/compare", t: "Compare", d: "Two to four companies side by side, with charts and the five-pillar view.", tier: "Free" },
-  { to: "/watchlist", t: "Watchlists", d: "Named lists with notes and price targets, grouped by industry, size or FinLit band.", tier: "Silver" },
-  { to: "/holdings", t: "Portfolio tracker", d: "Value, profit and loss, allocation and a health read of what you own. Import from CSV.", tier: "Silver" },
-  { to: "/alerts", t: "Alerts", d: "Told when a price, RSI, score, ratio, result or filing crosses the line you set.", tier: "Free" },
-  { to: "/news", t: "News", d: "Market news and company updates: filings, announcements and results. Filter by company, category or your watchlist.", tier: "Free" },
-  { to: "/forum", t: "Discussion forums", d: "Talk about listed companies with other investors. Information and opinion only, moderated, never tips.", tier: "Free" },
-  { to: "/etfs", t: "ETFs", d: "Every exchange-traded fund: price, returns over 1 month to 5 years, volatility and worst fall, with a chart and plain-words terms.", tier: "Free" },
-  { to: "/funds", t: "Mutual funds", d: "Every scheme from AMFI: NAV, returns, risk, category and plan, with a chart and side-by-side compare. Information only.", tier: "Free" },
-  { to: "/graphs", t: "Graph Studio", d: "Put several graphs side by side: pick companies and measures, choose a chart type for each, and see patterns and correlation.", tier: "Free" },
-  { to: "/macro", t: "India macro insights", d: "CPI and WPI inflation, GDP growth, jobs, the RBI repo rate, forex reserves and the rupee from MoSPI and the RBI, with full history, an inflation-target check and a chart you build yourself.", tier: "Free" },
-  { to: "/fii-dii", t: "FII/DII data", d: "What foreign and domestic institutions bought and sold today, their streaks, a five-year history, daily calendars, F&O positioning and a free CSV. Computed from published exchange files; information only.", tier: "Free" },
-  { to: "/sip-calculator", t: "SIP calculator", d: "See what a monthly investment could grow to, with a yearly step-up, inflation, a goal planner, the cost of waiting and an after-tax estimate. Every step of the maths shown.", tier: "Free" },
-  { to: "/dcf", t: "DCF calculator", d: "Work out what a business is worth from its future free cash flow: load a company's figures, set growth and discount rates, and see the value per share, the price after your margin of safety, and what today's price already assumes.", tier: "Gold" },
-  { to: "/eps-calculator", t: "EPS calculator", d: "Earnings per share, P/E and a future-price scenario: basic or diluted, Bear, Base and Bull cases, a sensitivity grid and the growth a target price needs. Information only.", tier: "Free" },
-  { to: "/commodities", t: "Commodity prices", d: "Gold, silver, platinum, crude oil, natural gas, copper and aluminium: the MCX futures price, the international price in dollars and an indicative import parity with the customs duty shown. No sign-in needed.", tier: "Free" },
-];
-
-function Platform({ total }: { total: number | null }) {
+/** The platform grid sits first; below it, the two lenses (fundamental and technical) are explained in a short note. */
+function Lenses() {
   return (
-    <section className="sec hh-sec" id="platform"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">The tools</div><h2>Eighteen tools, one login</h2><p>Use them in any order. Most people start with a report and end up in the screener.</p></Reveal>
-      <div className="plat">{PLATFORM.map((x, i) => (
-        <Link key={x.t} to={x.to} className="plat-t">
-          <span className="plat-n">{String(i + 1).padStart(2, "0")}</span><span className={"tier-tag " + x.tier.toLowerCase()}>{x.tier === "Free" ? "Free account" : x.tier}</span>
-          <h3>{x.t}</h3><p>{x.d}</p>
-          {x.math && <div className="plat-math" aria-label="Example screen">{"{"} P/E <i>&lt;</i> 20 {"}"} <i>AND</i> {"{"} ROE <i>&gt;</i> 15% {"}"} <i>AND</i> {"{"} D/E <i>&lt;</i> 0.5 {"}"}<br /><i>→</i> <b>matches</b> out of {total ? <>{inr(total)} companies</> : "every listed company"}</div>}
-          <span className="plat-m">Open <Icon name="arrow" /></span>
-        </Link>))}
-      </div>
-      <div className="split" role="note" aria-label="Fundamental and technical analysis">
+    <section className="sec hh-sec" aria-label="Fundamental and technical analysis" style={{ paddingTop: 0 }}><div className="wrap">
+      <div className="split" role="note">
         <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Fundamental</h3><p>The business itself: quality, growth, profitability and balance sheet, read from the company's statements.</p></div>
         <div><h3><span className="mark" style={{ background: "var(--p-tech)" }} />Technical</h3><p>The share price only: trend, momentum and moving averages, read from the price chart.</p></div>
         <p className="split-note"><b>These are two different lenses and we do not blend them.</b> Each gets its own score so you can read it on its own.</p>
@@ -186,7 +158,8 @@ export function Home() {
         </dl>
       </div></section>
 
-      <Platform total={counts?.all ?? null} />
+      <PlatformGrid />
+      <Lenses />
       <Method s={s} failed={sErr} />
 
       <section className="sec hh-sec"><div className="wrap">
