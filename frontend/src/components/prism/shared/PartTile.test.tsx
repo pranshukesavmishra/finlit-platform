@@ -19,3 +19,11 @@ describe("score bands: green from 70, orange from 50 to under 70, red under 50",
     expect(tile(null).style.getPropertyValue("--pc")).toBe("var(--p-growth)");
   });
 });
+
+describe("higher is better hint", () => {
+  it("shows the caption and the full sentence on the tile", () => {
+    const html = render(<PartTile name="Risk" value={74} word="Healthy" tone="healthy" color="--p-risk" hint={{ short: "Higher is better", long: "Higher is better: a higher Risk score means lower risk." }} />).container.innerHTML;
+    expect(html).toContain("Higher is better");
+    expect(html).toContain("a higher Risk score means lower risk");
+  });
+});

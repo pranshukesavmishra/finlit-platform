@@ -10,7 +10,8 @@ export type PortfolioLabProps = {
   universe: Row[];
 };
 
-const lvl = (v: number | null | undefined) => (v == null ? "na" : v >= 78 ? "hi" : v >= 45 ? "mid" : "lo");
+import { scoreBand } from "../lib/scoreBands";
+const lvl = scoreBand;   // one colour rule for every score: lib/scoreBands.ts
 const sg = (d: number | null) => (d == null ? "—" : d > 0 ? `+${d}` : d < 0 ? `−${Math.abs(d)}` : "0");
 const show = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? "—" : String(Math.round(v)));
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { missingChunks, techColor, techFill, techText, type PrismScore } from "./prismScores";
-import { scoreBand100, scoreBandColor } from "./scoreBandColor";
+import { finalColor } from "./prismScores";
 import { PrismChips, PrismPreviewScores, stateOf } from "../components/search/prismParts";
 
 const S: PrismScore = {
@@ -11,9 +11,8 @@ const S: PrismScore = {
 
 describe("score bands", () => {
   it("green from 70, orange 50-69, red below 50", () => {
-    expect([100, 70, 69.9, 50, 49.9, 0].map(scoreBand100)).toEqual(["green", "green", "orange", "orange", "red", "red"]);
-    expect(scoreBand100(null)).toBeNull();
-    expect(scoreBandColor(null)).toBe("var(--faint)");
+    expect([100, 70, 69.9, 50, 49.9].map(finalColor)).toEqual(["var(--band-hi)", "var(--band-hi)", "var(--band-mid)", "var(--band-mid)", "var(--band-lo)"]);
+    expect(finalColor(null)).toBe("var(--faint)");
   });
   it("technical scores keep their sign and trend band", () => {
     expect(techText(34.2)).toBe("+34"); expect(techText(-22.4)).toMatch(/^[−-]22$/); expect(techText(null)).toBe("—");

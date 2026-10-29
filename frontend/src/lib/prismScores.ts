@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import { fmtScore, scoreBand, type TrendTone } from "./prismTechnical";
-import { scoreBandColor } from "./scoreBandColor";
+import { bandVar, scoreBand as band100 } from "./scoreBands";
 
 export const PRISM_PARTS = ["fundamental", "valuation", "quality", "risk"] as const;
 export type PrismPartKey = (typeof PRISM_PARTS)[number];
@@ -38,7 +38,8 @@ export function techColor(score: number | null): string {
   const t: TrendTone = scoreBand(score);
   return t === "na" ? "var(--faint)" : t === "strongpos" || t === "pos" ? "var(--gain)" : t === "neutral" ? "var(--warn)" : "var(--loss)";
 }
-export const finalColor = scoreBandColor;
+/** Colour of a 0-100 score by the shared rule (green 70+, orange 50-69, red below 50, grey when missing). */
+export const finalColor = (v: number | null | undefined) => bandVar(band100(v));
 
 /** Fetches the stored scores of the given (visible) symbols, once each, batched, after a pause so scrolling and typing do not storm the server. */
 export function usePrismScores(symbols: readonly string[], enabled: boolean, waitMs = 250): PrismScoreMap {

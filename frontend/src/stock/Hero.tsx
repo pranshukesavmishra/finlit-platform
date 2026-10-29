@@ -2,8 +2,9 @@ import { useContext, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
-import { MINUS, capSize, dateIN, fmtUnit, initials, nf, signed } from "../lib/format";
+import { MINUS, dateIN, fmtUnit, initials, nf, signed } from "../lib/format";
 import { useUI, TIER } from "../lib/ui";
+import { useAuth } from "../lib/auth";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { Spark } from "../charts/Small";
 import { Gate, OpenAccess } from "../components/Gate";
@@ -17,6 +18,9 @@ import { LeadLine } from "./Leadership";
 import { type Financials, type Ratios, type Summary } from "../lib/api";
 import { csvOf, metric, offlineHtml, saveFile } from "./derive";
 import { TradingFacts } from "./TradingFacts";
+import { NameDots, SubLine } from "./HeaderScore";
+import { LABEL } from "./PrismCard";
+import type { Plan, PrismInput } from "../lib/scoreBands";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
   ["market_cap", "Market cap", "cap", "--p-growth"], ["pe", "P/E", "tag", "--p-quality"], ["pb", "P/B", "id", "--p-quality"], ["ev_ebitda", "EV/EBITDA", "gauge", "--p-quality"],
@@ -30,8 +34,11 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const [dl, setDl] = useState(false);
   const open_ = useContext(OpenAccess);
   const two = has("gold") || open_;   // Gold sees the score and FinLit Prism side by side
-  const prism = usePrismLatest(s.profile.symbol, s.meta.statement, two).data;
+  const { isAdmin } = useAuth();
+  const prism = usePrismLatest(s.profile.symbol, s.meta.statement, two || isAdmin).data;
   const prismRep = prism?.kind === "report" ? prism.report : null;
+  const effPlan: Plan = two || isAdmin ? "gold" : has("silver") ? "silver" : "basic";
+  const prismIn: PrismInput = !prism ? { kind: "loading" } : prism.kind === "report" ? { kind: "report", final: prism.report.rating.final, word: LABEL[prism.report.rating.label][0], status: prism.report.rating.status } : { kind: prism.kind };
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
@@ -59,8 +66,9 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
           <div className="idl">
             <div className="badge" aria-hidden="true">{initials(p.name)}</div>
             <div style={{ minWidth: 0 }}>
-              <h1>{p.name}</h1>
-              <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{capSize(p.marketCapCr) && <span className="tag">{capSize(p.marketCapCr)}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
+              <div className="hs-name"><h1>{p.name}</h1><NameDots score={s.score} plan={effPlan} admin={isAdmin} /></div>
+              <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
+              <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
               <LeadLine symbol={p.symbol} jump={jump} />
             </div>
           </div>

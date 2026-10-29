@@ -37,21 +37,20 @@ function allStocks(rows: readonly SearchRow[] | undefined, q: Map<string, { pric
   return priced.length >= 4 ? [...priced, ...all.filter((r) => q.get(r[0])?.price == null)] : all;
 }
 
-/** Symbols of the stock rows currently scrolled into view in the list (rows carry data-sym); the first rows until the browser reports. */
+/** Symbols of the stock rows currently in view in the list (rows carry data-sym), measured on every change of the list and on scroll. */
 function useVisibleSymbols(list: React.RefObject<HTMLDivElement | null>, items: Item[], on: boolean): string[] {
   const [seen, setSeen] = useState<string[]>([]);
   useEffect(() => {
     const root = list.current;
     if (!on || !root) { setSeen([]); return; }
-    const syms = items.filter((x) => x.kind === "stock").map((x) => x.sub);
-    if (typeof IntersectionObserver === "undefined") { setSeen(syms.slice(0, 12)); return; }
-    const vis = new Set<string>();
-    const io = new IntersectionObserver((es) => {
-      for (const e of es) { const s = (e.target as HTMLElement).dataset.sym; if (!s) continue; if (e.isIntersecting) vis.add(s); else vis.delete(s); }
-      setSeen([...vis]);
-    }, { root, rootMargin: "120px 0px" });
-    root.querySelectorAll<HTMLElement>("[data-sym]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const measure = () => {
+      const box = root.getBoundingClientRect(), out: string[] = [];
+      root.querySelectorAll<HTMLElement>("[data-sym]").forEach((el) => { const r = el.getBoundingClientRect(); if (r.bottom > box.top - 120 && r.top < box.bottom + 120) out.push(el.dataset.sym!); });
+      setSeen((old) => (old.length === out.length && old.every((s, i) => s === out[i]) ? old : out));
+    };
+    const t = window.setTimeout(measure, 30);
+    root.addEventListener("scroll", measure, { passive: true });
+    return () => { window.clearTimeout(t); root.removeEventListener("scroll", measure); };
   }, [list, items, on]);
   return seen;
 }

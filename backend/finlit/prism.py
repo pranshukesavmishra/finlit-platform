@@ -404,7 +404,7 @@ def _num(path: str) -> str:
     return f"CASE WHEN jsonb_typeof(report #> '{{{path}}}') = 'number' THEN (report #>> '{{{path}}}')::float8 END"
 
 
-_SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, status, generated_at, "
+_SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, status, generated_at, "  # nosec B608: built only from constant names, never from a request value
                + ", ".join(f"{_num('rating,parts,' + k)} AS p_{k}" for k in _PARTS) + ", "
                + ", ".join(f"{_num('technicalAssessment,' + h + ',score')} AS {h.lower()}_score, report #>> '{{technicalAssessment,{h},rating}}' AS {h.lower()}_rating"
                            for h in ("shortTerm", "longTerm"))

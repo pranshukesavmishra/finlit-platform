@@ -81,3 +81,19 @@ def test_quote_time_is_ist_not_utc():
     assert market.ist_timestamp("2026-09-29 09:15:00") == "2026-09-29T09:15:00+05:30"
     assert market.ist_timestamp("2026-09-29T10:00:00+05:30") == "2026-09-29T10:00:00+05:30"
     assert market.ist_timestamp("garbage") is None and market.ist_timestamp(None) is None
+
+
+def test_shareholding_keeps_the_providers_whole_history():
+    import json
+    from pathlib import Path
+    from finlit.normalize import ownership
+    raw = json.loads((Path(__file__).parent / "fixtures" / "finedge" / "shareholdings_pattern_reliance_period_quarterly.json").read_text())
+    full = ownership.shareholding(raw)
+    assert len(full["periods"]) == len(raw["columns"]) == 41
+    assert full["periods"][0] == "Jun 2016" and full["periods"][-1] == full["asOf"] == "Jun 2026"
+    assert all(len(v) == 41 for v in full["series"].values())
+    assert len(json.dumps(full)) < 6000                      # still a small array of numbers
+    assert full["comparedWith"] == "Jun 2025"
+    cut = ownership.shareholding(raw, limit=12)
+    assert cut["periods"] == full["periods"][-12:] and cut["series"]["promoters"] == full["series"]["promoters"][-12:]
+    assert cut["latest"] == full["latest"]

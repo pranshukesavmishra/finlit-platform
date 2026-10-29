@@ -152,6 +152,8 @@
 .gs-src { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 
+/* the shared band colours (same values as dash-shared.css, which loads only with the dashboards) */
+.gs { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; }
 /* Gold: three Prism scores per row (rating, short-term technical, long-term technical) and six in the preview */
 .gs-row.k-stock.pz { grid-template-columns: auto minmax(0, 1fr) auto 176px 58px; }
 .gs-pzs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; align-items: start; justify-items: center; }
