@@ -66,18 +66,29 @@ const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 export const dmy = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}/.test(d) ? `${+d.slice(8, 10)} ${MON[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}` : "");
 const line = (g: Growth, lender: boolean) => [["revenue", g.revenue], ["net profit", g.profit], ...(lender ? [] : [["operating profit", g.operating]])].filter((x) => x[1] != null).map((x) => `${x[0]} ${sgn(x[1] as number)}`).join(", ");
 
-function Block({ v, lender }: { v: PeriodView; lender: boolean }) {
-  const revLabel = "Revenue growth";
+const tiles = (g: Growth, lender: boolean) => (
+  <div className="plf-tiles">
+    <Tile label="Revenue growth" v={g.revenue} />
+    <Tile label="Net profit growth" v={g.profit} />
+    {!lender && g.operating != null && <Tile label="Operating profit growth" v={g.operating} />}
+  </div>
+);
+
+/** A quarter shows both comparisons as boxes (against the previous quarter, then against the same quarter a year earlier); the year shows the year,
+ *  and says in one line how the latest quarter has moved since (`recent`), so a year that fell is not read without the newest quarter. */
+export function Block({ v, lender, recent }: { v: PeriodView; lender: boolean; recent?: PeriodView }) {
   const q = v.scope === "quarterly";
   return (
     <div className="plf-blk" role="tabpanel">
-      <p className="plf-vs"><b>{v.period}</b> compared with <b>{v.against}</b>{q ? " (the same quarter a year earlier)" : ""}{v.periodEnd ? `. Period ended ${dmy(v.periodEnd)}, against ${dmy(v.againstEnd)}.` : "."}</p>
-      <div className="plf-tiles">
-        <Tile label={revLabel} v={v.growth.revenue} />
-        <Tile label="Net profit growth" v={v.growth.profit} />
-        {!lender && v.growth.operating != null && <Tile label="Operating profit growth" v={v.growth.operating} />}
-      </div>
-      {q && v.qoq && line(v.qoq.growth, lender) && <p className="plf-qoq">Quarter on quarter, {v.qoq.period} against {v.qoq.against}: {line(v.qoq.growth, lender)}.</p>}
+      {q && v.qoq && line(v.qoq.growth, lender) && (
+        <>
+          <p className="plf-vs"><b>Quarter on quarter:</b> <b>{v.qoq.period}</b> compared with <b>{v.qoq.against}</b> (the quarter before).</p>
+          {tiles(v.qoq.growth, lender)}
+        </>
+      )}
+      <p className={"plf-vs" + (q && v.qoq ? " plf-vs2" : "")}>{q && <b>Year on year: </b>}<b>{v.period}</b> compared with <b>{v.against}</b>{q ? " (the same quarter a year earlier)" : ""}{v.periodEnd ? `. Period ended ${dmy(v.periodEnd)}, against ${dmy(v.againstEnd)}.` : "."}</p>
+      {tiles(v.growth, lender)}
+      {!q && recent && line(recent.growth, lender) && <p className="plf-qoq">Since then, the latest quarter ({recent.period}) against the same quarter a year earlier: {line(recent.growth, lender)}.</p>}
       <p className="plf-sum">{v.triggered ? v.text!.replace(/ Compared with [^.]*\.$/, "") : `This situation does not show in the ${q ? "latest quarter" : "latest year"}.`}</p>
     </div>
   );
@@ -112,7 +123,7 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
           </div>
         )}
         {scopes.length === 1 && <p className="plf-lbl">{v.label}</p>}
-        <Block v={v} lender={x.lender} />
+        <Block v={v} lender={x.lender} recent={sc === "annual" ? x.views.quarterly : undefined} />
       </section>
       <h4>Explore this insight</h4>
       <div className="plf-tabs" role="tablist">

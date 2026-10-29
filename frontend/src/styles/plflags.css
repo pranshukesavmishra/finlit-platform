@@ -42,3 +42,5 @@ td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent
 .plf-lbl { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .plf-qoq { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .plf-blk .plf-vs { margin: 0 0 12px; line-height: 1.5; } .plf-blk .plf-vs b { color: var(--text); }
+
+.plf-blk .plf-vs2 { margin-top: 16px; }
