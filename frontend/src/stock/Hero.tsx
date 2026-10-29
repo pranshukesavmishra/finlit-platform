@@ -84,6 +84,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
               <AlertButton symbol={s.profile.symbol} className="btn" label="Set alert" />
               <button className={"btn " + (watch ? "on" : "primary")} aria-pressed={watch} onClick={toggleWatch}><Icon name="spark" /><span>{watch ? "Watching" : "Watchlist"}</span>{!has("silver") && <Icon name="lock" className="lk" />}</button>
               <Link className="btn" to={`/dcf?sym=${encodeURIComponent(s.profile.symbol)}&load=1`} title="Value this company with the DCF calculator (Gold)"><Icon name="rupee" /><span>Value (DCF)</span>{!has("gold") && <Icon name="lock" className="lk" />}</Link>
+              <Link className="btn" to={`/outlook/${encodeURIComponent(s.profile.symbol)}`} title="Profit and revenue outlook from the company's own history (Gold)"><Icon name="activity" /><span>Profit and revenue outlook</span>{!has("gold") && <Icon name="lock" className="lk" />}</Link>
               <div className="dl" style={{ position: "relative" }}>
                 <button className="btn" aria-haspopup="menu" aria-expanded={dl} onClick={() => { if (!dl && !need("silver", "Downloads and data export")) return; setDl((d) => !d); }}>
                   <Icon name="table" /><span>Download</span>{!has("silver") && <Icon name="lock" className="lk" />}</button>
