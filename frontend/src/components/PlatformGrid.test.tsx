@@ -14,7 +14,7 @@ const routes = new Set([...app.matchAll(/path="([^"]+)"/g)].map((m) => "/" + m[1
 describe("Explore our platform grid", () => {
   it("renders 13 cards with the exact titles, in order", () => {
     expect((html.match(/class="pg-card"/g) ?? []).length).toBe(13);
-    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research", "Revenue and Profit Outlook", "Smart Finance Calculators"];
+    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research", "Revenue and Profit Forecasting", "Smart Finance Calculators"];
     expect(PLATFORM_CARDS.map((c) => c.title)).toEqual(titles);
     titles.forEach((t) => expect(html).toContain(t));
     expect(html).not.toContain("Value Smarter");
@@ -32,7 +32,7 @@ describe("Explore our platform grid", () => {
     expect(filterByTier(PLATFORM_CARDS, "all")).toHaveLength(13);
     const by = (k: "basic" | "silver" | "gold") => filterByTier(PLATFORM_CARDS, k).map((c) => c.title);
     expect(by("silver")).toEqual(["Track with Watchlists", "Analyse Your Portfolio"]);
-    expect(by("gold")).toEqual(["Revenue and Profit Outlook"]);
+    expect(by("gold")).toEqual(["Revenue and Profit Forecasting"]);
     expect(by("basic")).toHaveLength(10);
     expect(TIER_FILTERS.map((f) => f.label)).toEqual(["All", "Free", "Silver", "Gold"]);
     PLATFORM_CARDS.forEach((c) => expect(by(PLAN_TIER[c.plan])).toContain(c.title));
