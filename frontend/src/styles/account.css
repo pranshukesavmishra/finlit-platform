@@ -371,3 +371,5 @@
 @media (max-width: 560px) { .pf-tabs button { padding: 12px 14px; } .hold-q { min-width: 0; width: 100%; } .pf-tabs-card .card-h .s { margin-left: 0; } }
 .pf-mix { display: inline-flex; gap: 10px; font: 700 30px/1 var(--mono) !important; } .pf-mix i { font-style: normal; } .pf-mix .hi { color: var(--band-hi-ink); } .pf-mix .mid { color: var(--band-mid-ink); } .pf-mix .lo { color: var(--band-lo-ink); }
 .pf-t { position: relative; }
+.rc-upd { font-size: 13px; margin: 0 0 10px; }
+.rc-stale { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--warn); border-radius: 6px; background: var(--warn-soft); color: var(--text); font-size: 14px; }

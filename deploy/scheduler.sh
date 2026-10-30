@@ -46,13 +46,16 @@ loads_paused() {
 MIN_FREE_MB="${SCHED_MIN_FREE_MB:-120}"         # other jobs (quotes, alerts, emails, loads) start only with this much free
 FUNDS_MIN_FREE_MB="${SCHED_FUNDS_MIN_FREE_MB:-180}"   # fund jobs: the largest measured one peaks at 174 MB (ETF refresh)
 
+# A skipped results job leaves a one-line reason in Redis (no database), shown at /api/results/status as lastSkipped; the same line goes to the log.
+skipped() { log "skip $1 (${2#skipped: })"; case "$1" in calendars*|results*) $PY -m finlit.wake note "$1" "$2" >/dev/null 2>&1 ;; esac; return 0; }
+
 run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the same lock is still going, or if memory is short
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
-  case "$name" in quotes|alerts-live|alerts-daily|screens|digest|drain) ;; *) loads_paused && { log "skip $name (heavy data loads are paused by the admin switch)"; return 0; } ;; esac
-  ( flock -n 9 || { log "skip $name (busy)"; exit 0; }
+  case "$name" in quotes|alerts-live|alerts-daily|screens|digest|drain) ;; *) loads_paused && { skipped "$name" "skipped: heavy data loads are paused by the admin switch"; return 0; } ;; esac
+  ( flock -n 9 || { skipped "$name" "skipped: the previous run was still going"; exit 0; }
     renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
-    free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { log "skip $name (only ${free} MB free)"; exit 0; }
+    free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { skipped "$name" "skipped: only ${free} MB of memory free"; exit 0; }
     log "start $name"
     # JOB_TIMEOUT_MIN (set by a window for the one job that can run for hours) stops the job politely; every load is resumable
     local cap=(); [ -n "${JOB_TIMEOUT_MIN:-}" ] && cap=(timeout "${JOB_TIMEOUT_MIN}m")
@@ -274,13 +277,19 @@ chain_evening2() {   # 21:10: after AMFI publishes the day's NAVs
   run_funds facts refresh-facts
   run light flows-retry refresh-flows
   if (( D <= 5 )); then run_funds etf refresh-etf; run_funds etf-retry refresh-etf --resume; fi
+  run light results refresh-results                                # most companies declare between 15:00 and 23:59 IST: pick them up in the late windows too
+  run light results-light refresh-results-light
 }
 chain_late() {   # 23:30: after AMFI's 11 pm deadline
   local D; D="$(dow)"
   run_funds mf-late refresh-mf
   (( D <= 5 )) && run_funds etf-retry2 refresh-etf --resume
+  run light calendars-late refresh-calendars                       # board-meeting dates announced during the day
+  run light results refresh-results
+  run light results-light refresh-results-light
 }
 
+results_gate() { [ "${RESULTS_NEED_VISITOR:-0}" != 1 ] || visitor_active; }   # see the results jobs below
 last=""
 while true; do
   now="$(date '+%M %H %u')"; [ "$now" = "$last" ] && { sleep 5; continue; }; last="$now"
@@ -302,7 +311,11 @@ while true; do
   fi
   # Outside a window: only while a visitor was on the site in the last 15 minutes
   (( market && M % QE == 0 )) && visitor_active && run light quotes refresh-quotes
-  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && visitor_active && run light results refresh-results            # companies that have just reported are rebuilt within the hour
-  (( H >= 8 && H <= 23 && M == 35 )) && visitor_active && run light results-light refresh-results-light            # their quarter figures, one provider call each
+  # Results jobs: every hour from 08:20 to 23:59 IST, every day including weekends (companies declare on Saturdays too), NO visitor needed: a declaration
+  # must not wait for someone to open the site. Each run asks the database for a short list first and does nothing when it is empty. RESULTS_NEED_VISITOR=1
+  # restores the old rule (only while a visitor was on the site in the last 15 minutes) for a metered database.
+  (( H >= 8 && H <= 23 && M == 5 )) && results_gate && run light calendars-hourly refresh-calendars                  # new board-meeting dates (two provider calls)
+  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && results_gate && run light results refresh-results              # companies that have just reported are rebuilt within the hour
+  (( H >= 8 && H <= 23 && M == 35 )) && results_gate && run light results-light refresh-results-light              # their quarter figures, one provider call each
   sleep 20
 done

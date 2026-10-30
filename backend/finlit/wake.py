@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
 
 IST = ZoneInfo("Asia/Kolkata")
+NOTE_PREFIX = "wake:note:"
 K_VISIT = "wake:last-visit"
 K_ALERTS = "wake:alerts-active"
 K_RUNNING = "wake:running"        # how many database jobs are running now (expires by itself if a job dies without ending)
@@ -221,6 +222,9 @@ async def _cli(argv: list) -> int:
         if cmd == "flag-set":      # flag-set NAME SECONDS
             await redis.set("wake:flag:" + argv[1], "1", ex=int(argv[2]))
             return 0
+        if cmd == "note":          # note NAME TEXT...: why a scheduled job did not run (shown at /api/results/status); Redis only, kept 3 days
+            await redis.set(NOTE_PREFIX + argv[1], json.dumps({"at": datetime.now(IST).isoformat(timespec="seconds"), "why": " ".join(argv[2:])[:200]}), ex=3 * 86400)
+            return 0
         if cmd == "start":
             await mark_start(redis, argv[1] if len(argv) > 1 else "")
             return 0
@@ -237,7 +241,7 @@ async def _cli(argv: list) -> int:
             finally:
                 await mark_end(redis, "refresh-alerts")
             return 0
-        print("usage: python -m finlit.wake visit-active [minutes] | alerts-active | flag-get NAME | flag-set NAME SECONDS | start NAME | end NAME | stats | refresh-alerts", file=sys.stderr)
+        print("usage: python -m finlit.wake visit-active [minutes] | alerts-active | flag-get NAME | flag-set NAME SECONDS | note NAME TEXT | start NAME | end NAME | stats | refresh-alerts", file=sys.stderr)
         return 2
     except Exception as exc:   # a gate that cannot read Redis must not crash the scheduler: callers read the exit status
         print(f"wake {cmd}: {type(exc).__name__}", file=sys.stderr)

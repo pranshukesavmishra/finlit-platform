@@ -111,7 +111,8 @@ async def test_new_quarter_is_declared_with_figures_and_provider_gap_stays_await
     books = {"AAA": {"c": upto(20260630)}, "BBB": {"c": behind}, "CCC": {"c": STALE_C, "s": upto(20260630)}, "DDD": {"c": 400}, "EEE": {"c": upto(20260630)}}
     async with provider(books, calls) as client:
         out = await L.refresh_light(client, store, today=TODAY, pause=0)
-    assert out == {"candidates": 5, "tried": 5, "filled": 3, "providerPending": 1, "failed": 1}
+    assert out == {"candidates": 5, "tried": 5, "filled": 3, "providerPending": 1, "failed": 1, "errors": out["errors"]}
+    assert next(iter(out["errors"])).startswith("FinEdgeError HTTP 400")             # the log and the status page say which HTTP status the provider sent
     assert ("FULL", "c") not in calls                                         # held in full: not asked
     assert [c[0] for c in calls if c[1] == "c"] == ["AAA", "BBB", "CCC", "DDD", "EEE"]   # biggest market cap first, one consolidated call each
     rows = await rows_of(store)

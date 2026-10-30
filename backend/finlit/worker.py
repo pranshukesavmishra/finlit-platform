@@ -27,6 +27,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import orjson
 
 from . import snapshot, wake
+from .calendars import why as fail_reason
 from .config import Settings, get_settings
 from .finedge import FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
 from .normalize import market
@@ -331,10 +332,10 @@ async def score_all(client: FinEdgeClient, store: Store, limit: int = 1500, days
     return {**done, "tried": tried, "waiting": len(pending) - tried}
 
 
-async def results_candidates(store: Store, today: Optional[date] = None, max_age_days: int = 4) -> List[str]:
+async def results_candidates(store: Store, today: Optional[date] = None, max_age_days: int = 4, with_dates: bool = False) -> List:
     """Companies that have declared quarterly results (a filing, or a board-meeting date that has passed) within the last `max_age_days`
     and whose stored report is still on an older quarter: biggest first. Only companies the site keeps in full (the top INGEST_LIMIT
-    set, or any with a stored report) are returned."""
+    set, or any with a stored report) are returned. With `with_dates`, (symbol, declaration date) pairs."""
     from . import results
     today = today or results.today_ist()
     decls = await results.get_declarations(store, force=True)
@@ -364,30 +365,55 @@ async def results_candidates(store: Store, today: Optional[date] = None, max_age
         rn = int(r["rn"]) if r["rn"] is not None else 10 ** 9
         if r["held"] or rn <= (int(os.getenv("INGEST_LIMIT") or 0) or 100000):
             out.append((rn, r["symbol"]))
-    return [sym for _, sym in sorted(out)]
+    return [(sym, recent[sym]) if with_dates else sym for _, sym in sorted(out)]
 
 
 async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120, retry_minutes: int = 50) -> dict:
     """Run every hour: a company that has just reported is rebuilt from the provider, so its new quarter shows on the site within hours
     (the provider usually has it within a few hours of the filing). A company the provider has not updated yet is tried again an hour
     later, and for up to four days after its declaration."""
+    from . import results
     todo = []
-    for sym in await results_candidates(store):
+    today = results.today_ist()
+    for sym, declared in await results_candidates(store, with_dates=True):
+        wait = results.retry_minutes(retry_minutes, declared, today)   # asked every run for two days, then less often: a late provider is not hammered
         try:
-            if await store.redis.set(f"results:try:{sym}", 1, ex=retry_minutes * 60, nx=True):
+            if await store.redis.set(f"results:try:{sym}", 1, ex=wait * 60, nx=True):
                 todo.append(sym)
         except Exception:
             todo.append(sym)
         if len(todo) >= limit:
             break
     done = {"candidates": len(todo), "ok": 0, "failed": 0}
+    reasons: Dict[str, int] = {}
     for i in range(0, len(todo), 30):
         for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3):
             done["ok" if r["status"] in ("ok", "warnings") else "failed"] += 1
+            if r["status"] not in ("ok", "warnings"):   # why a rebuild did not store: rejected by the quality gate, or the provider did not answer
+                reason = f"{r['status']}: {str((r.get('errors') or {}).get('error') or 'quality gate')[:80]}"
+                reasons[reason] = reasons.get(reason, 0) + 1
+    if reasons:
+        done["why"] = dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:4])
     if todo:
         await store.invalidate_search()
     log.info("refresh-results: %s", done)
     return done
+
+
+async def _record_results_run(store: Store, cmd: str, status: str, counts: dict, extra: dict, error: Optional[str] = None) -> None:
+    """Outcome of refresh-calendars / refresh-results / refresh-results-light for /api/mf/status and /api/results/status: when, how it ended, counts and the
+    newest result date held, so a stale pipeline shows from a browser. Never raises."""
+    from . import results
+    from .mf import record_run
+    try:
+        async with store.pool.acquire() as conn:
+            newest = await results.newest_result_date(conn, results.today_ist())
+    except Exception:
+        newest = None
+    info = {"status": status, "counts": counts, "newestResultDate": newest.isoformat() if newest else None, **{k: v for k, v in extra.items() if v}}
+    if error:
+        info["error"] = error
+    await record_run(store, cmd, info)
 
 
 async def audit_coverage(client: FinEdgeClient, symbols: List[str]) -> dict:
@@ -859,7 +885,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 print(await refresh_logos(store, client, limit=args.limit, profile_limit=args.profiles))
             elif args.cmd == "refresh-calendars":
                 from .calendars import refresh_calendars
-                print(await refresh_calendars(client, store))
+                rep: dict = {}
+                try:
+                    counts = await refresh_calendars(client, store, report=rep)
+                except Exception as exc:
+                    await _record_results_run(store, args.cmd, "failed", {}, rep, error=fail_reason(exc))
+                    raise
+                print(counts)
+                await _record_results_run(store, args.cmd, "failed" if rep.get("errors") else "ok", counts, rep)
             elif args.cmd == "refresh-quotes":
                 from .dhan import DhanClient
                 async with DhanClient(settings, store.redis) as dc:
@@ -881,14 +914,28 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 print(provider_compare.render(res))
                 return 1 if res["mismatches"] else 0
             elif args.cmd == "refresh-results":
-                print(await refresh_results(client, store))
+                try:
+                    res = await refresh_results(client, store)
+                except Exception as exc:
+                    await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
+                    raise
+                print(res)
+                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] else "ok", {k: v for k, v in res.items() if k != "why"}, {"why": res.get("why")} if res.get("why") else {})
             elif args.cmd == "refresh-results-light":
                 from . import results_light
                 from .sysctl import loads_enabled
                 if not await loads_enabled(store.pool):
                     print("skipped: heavy data loads are paused by the admin switch")
+                    await _record_results_run(store, args.cmd, "skipped", {}, {"why": "heavy data loads are paused by the admin switch"})
                 else:
-                    print(await results_light.refresh_light(client, store, limit=args.limit))
+                    try:
+                        res = await results_light.refresh_light(client, store, limit=args.limit)
+                    except Exception as exc:
+                        await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
+                        raise
+                    print(res)
+                    await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] else "partial" if res["failed"] else "ok",
+                                              {k: v for k, v in res.items() if isinstance(v, int)}, {"errors": res["errors"]} if res.get("errors") else {})
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:
