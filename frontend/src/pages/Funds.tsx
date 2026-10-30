@@ -25,6 +25,7 @@ import { FactsCard } from "../mf/Facts";
 import { ReturnsBlock } from "../mf/Returns";
 import { HoldingsSection } from "../holdings";
 import { FundScoreCard } from "../mf/ScoreCard";
+import { MF_METHOD_URL, MF_SCORE_COMPLIANCE } from "../lib/mfScore";
 import { ScoreCompare } from "../mf/ScoreCompare";
 import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
@@ -58,6 +59,7 @@ function Legend() {
         <b> SIP returns</b> are the yearly rate (XIRR) of putting the same amount in every month for the last 3 or 5 years: one instalment at the last NAV of each month, everything valued at the latest NAV. A scheme without a month-end NAV for every one of those months shows a dash.
         Returns are worked out for <GTerm id="growth-option">Growth</GTerm> options only (<GTerm id="idcw-income-distribution-cum-capital-withdrawal">IDCW</GTerm> payouts change the NAV). Compare <GTerm id="direct-plan">Direct</GTerm> with Direct and <GTerm id="regular-plan">Regular</GTerm> with Regular.</p>
       <p><b>Fund size</b> is AMFI's average assets under management for the latest quarter, all plans of the scheme together (where AMFI lists none, the fund house's month-end net assets; the tooltip says which). <b>Expense ratio</b> is the plan's own total expense ratio from AMFI's latest file, percent a year.</p>
+      <p><b>Health score</b> (Gold) is the FinLit Mutual Fund Health Score, 0 to 100, with its label. {MF_SCORE_COMPLIANCE} <Link to={MF_METHOD_URL}>How it works</Link>.</p>
       <p><b>Return and cost bands.</b> The small word under a return places it in a band: for 1 year, Negative, 0–8%, 8–15% or Above 15%; for 3 and 5 years (yearly rates), Below 8%, 8–12%, 12–15% or Above 15%. Under an expense ratio it says Low, Moderate or High against the median of the same category and plan (20% or more under or over it).
         These are screening bands, not performance standards: equity, debt and hybrid funds need different yardsticks, so compare a fund with its own category. Funds younger than the period show <b>Insufficient history</b> rather than being left out. A fund's benchmark return is not shown yet because AMFI does not put it in the NAV files.</p>
       <div className="mf-bands">
@@ -75,11 +77,13 @@ function Legend() {
 }
 
 export function FundListPage() {
-  const { toast } = useUI();
+  const { toast, has } = useUI();
   const nav = useNavigate();
   const [sp, setSp] = useSearchParams();
   const q = useMemo(() => parseQuery(sp), [sp]);
-  const eq = useMemo(() => effectiveQuery(q), [q]);   // with no chosen order: largest funds first
+  const canScore = has("gold");
+  // with no chosen order: largest funds first. The server refuses the score order below Gold (an order would give the ranking away), so a shared link to it falls back to the same
+  const eq = useMemo(() => { const e = effectiveQuery(q); return e.sort === "score" && !canScore ? { ...e, sort: "aum" as const, dir: "desc" as const } : e; }, [q, canScore]);
   const [text, setText] = useState(q.q);
   const [cols, setCols] = useState<ColId[]>(readCols);
   const [tray, toggle, clear] = useTray();

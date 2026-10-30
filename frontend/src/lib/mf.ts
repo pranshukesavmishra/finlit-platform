@@ -143,6 +143,7 @@ export const COL_GROUPS = { ret: "Returns", sip: "SIP returns (XIRR)" } as const
 export const COLUMNS: ColDef[] = [
   { id: "amc", label: "Fund house", hint: "The company that runs the scheme (also shown under the scheme's name)", sort: "amc", num: false },
   { id: "category", label: "Category", hint: "The group AMFI files the scheme in", sort: "category", num: false },
+  { id: "score", label: "Health score", hint: "FinLit Mutual Fund Health Score, 0 to 100 (Gold plan). Describes the fund's past health against similar funds; not a recommendation", sort: "score", num: true },
   { id: "plan", label: "Plan", hint: "Direct or Regular", sort: null, num: false },
   { id: "option", label: "Option", hint: "Growth or IDCW (payout)", sort: null, num: false },
   { id: "nav", label: "NAV", hint: "Net asset value of one unit, latest", sort: "nav", num: true },
@@ -155,11 +156,10 @@ export const COLUMNS: ColDef[] = [
   { id: "sip5y", label: "5 yrs", hint: "Yearly rate (XIRR) of a monthly SIP of equal amounts over the last 5 years, valued at the latest NAV", sort: "sip5y", num: true, group: "sip" },
   { id: "aum", label: "Fund size", hint: "Assets under management (AUM), all plans of the scheme together, rupees crore", sort: "aum", num: true },
   { id: "ter", label: "Expense ratio", hint: "Total expense ratio (TER) of this plan, percent a year", sort: "ter", num: true },
-  { id: "score", label: "Health score", hint: "FinLit Mutual Fund Health Score, 0 to 100 (Silver plan). Describes the fund's past health against similar funds; not a recommendation", sort: "score", num: true },
   { id: "checklist", label: "Checklist", hint: "How many of five plain checks the scheme passes against its category (see the legend below the table)", sort: "checklist", num: true },
 ];
-export const DEFAULT_COLS: ColId[] = ["category", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "score", "checklist"];
-const COLS_KEY = "finlit-mf-cols-v3";
+export const DEFAULT_COLS: ColId[] = ["category", "score", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "checklist"];
+const COLS_KEY = "finlit-mf-cols-v4";   // v4: the Health score column moved up next to the scheme; older saved choices are not carried over, so everyone sees it where the eye lands
 const ALL_IDS = new Set<string>(COLUMNS.map((c) => c.id));
 
 /** Saved column choice, cleaned of anything unknown; the default when nothing valid is saved (storage can be blocked). */
@@ -275,7 +275,7 @@ export function toggleCat(cats: string[] | null, key: string, allKeys: string[])
 export const toggleAll = (cats: string[] | null): string[] | null => (cats === null ? [] : null);
 /** A row's value for a sort key, for sorting rows already in the browser (the ready list). */
 export function rowSortValue(r: FundRow, key: SortKey): number | string | null {
-  if (key === "score") return null;   // the score is not in the list rows: the server sorts it (Silver)
+  if (key === "score") return null;   // the score is not in the list rows: the server sorts it (Gold)
   if (key === "checklist") return r.checklist ? r.checklist.pass * 8 + r.checklist.of : null;
   const v = r[key];
   return v == null ? null : (v as number | string);

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type ApiError } from "./api";
 import { scoreBand, type ScoreBand } from "./scoreBands";
+import { nf } from "./format";
 
 export const MF_SCORE_NAME = "FinLit Mutual Fund Health Score";
 export const MF_SCORE_COMPLIANCE = "Describes the fund's health from its past NAVs, costs and holdings; not a recommendation. Information only, not investment advice.";
@@ -32,6 +33,9 @@ export type FundScore = {
 export type ScoreItem = { code: number | null; symbol: string | null; plan: string; group: string | null; final: number | null; label: string | null; status: string | null; reason: string | null;
   pillars: Record<string, number | null> | null; rank: number | null; rankOf: number | null; flags: string[]; confidence: number | null };
 export type ScoreList = { locked: boolean; items: ScoreItem[]; total: number | null };
+/** One sub-category of the Funds dashboard: median of the scored Direct-plan funds, how many, and the counts in the three colour bands. */
+export type CategoryScore = { median: number; n: number; green: number; orange: number; red: number };
+export type CategoryScores = { locked: boolean; plan?: string; runDate: string | null; items: Record<string, CategoryScore>; disclaimer: string; method: string };
 
 export const useFundScore = (code: number, kind: "mf" | "etf" = "mf", symbol = "") =>
   useQuery<FundScore, ApiError>({
@@ -43,6 +47,15 @@ export const useScores = (codes: number[], enabled = true) => {
   const ids = [...new Set(codes)].slice(0, 100).sort((a, b) => a - b).join(",");
   return useQuery<ScoreList, ApiError>({ queryKey: ["mfscore", "list", ids], queryFn: () => apiGet<ScoreList>(`/api/mf/scores?codes=${ids}`), enabled: enabled && ids.length > 0, staleTime: 300_000, retry: 1 });
 };
+
+/** Scores of the ETFs on a list page (up to 100 symbols): private to the plan, null fields below Gold. */
+export const useEtfScores = (symbols: string[], enabled = true) => {
+  const ids = [...new Set(symbols.map((x) => x.toUpperCase()))].slice(0, 100).sort().join(",");
+  return useQuery<ScoreList, ApiError>({ queryKey: ["mfscore", "etf-list", ids], queryFn: () => apiGet<ScoreList>(`/api/mf/scores?symbols=${encodeURIComponent(ids)}`), enabled: enabled && ids.length > 0, staleTime: 300_000, retry: 1 });
+};
+/** Median score, count and band split per category for the /funds cards. Gold only; below that the server sends `locked` and no number. */
+export const useCategoryScores = (enabled = true) =>
+  useQuery<CategoryScores, ApiError>({ queryKey: ["mfscore", "categories"], queryFn: () => apiGet<CategoryScores>("/api/mf/scores/categories"), enabled, staleTime: 300_000, retry: 1 });
 
 export const SCORE_BANDS = [["Poor", 0, 35], ["Weak", 35, 50], ["Average", 50, 65], ["Healthy", 65, 80], ["Strong", 80, 100]] as const;
 export const scoreText = (v: number | null | undefined) => (v == null ? "—" : v.toFixed(1));
@@ -84,3 +97,30 @@ export const GROUP_WEIGHTS: { group: string; name: string; w: [number, number, n
   { group: "HY-AGGR", name: "Hybrid: Aggressive, Balanced", w: [35, 30, 15, 20] }, { group: "HY-DYN", name: "Hybrid: Dynamic Allocation, Multi Asset", w: [30, 35, 15, 20] },
   { group: "SOL", name: "Solution oriented: Retirement, Children's", w: [30, 35, 15, 20] }, { group: "OT-PASSIVE", name: "Others: Index funds and ETFs", w: [20, 15, 40, 25] }, { group: "OT-OTHER", name: "Others: Fund of funds and the rest", w: [30, 30, 20, 20] },
 ];
+
+/** The two measures only ETFs have, called out on the ETF page. `tone`: lift or watch when the measure is one of the reasons listed, else neutral; gap when it could not be measured. */
+export type EtfMeasure = { id: "ETF_LIQUIDITY" | "ETF_PREMIUM"; label: string; tone: "lift" | "watch" | "neutral" | "gap"; points: number | null; text: string };
+const ETF_IDS = ["ETF_LIQUIDITY", "ETF_PREMIUM"] as const;
+export function etfMeasures(s: Pick<FundScore, "final" | "metrics" | "reasons">): EtfMeasure[] {
+  if (s.final == null) return [];
+  const out: EtfMeasure[] = [];
+  for (const id of ETF_IDS) {
+    const m = s.metrics?.find((x) => x.id === id);
+    if (!m || m.state === "N") continue;
+    const label = m.label || (id === "ETF_LIQUIDITY" ? "How easily it trades" : "Price against NAV");
+    if (m.state === "F") {
+      const g = s.reasons?.gaps.find((x) => x.id === id);
+      out.push({ id, label, tone: "gap", points: null, text: `Not measured: ${g?.text || "no usable value"}. The group value was used.` });
+      continue;
+    }
+    const lift = s.reasons?.strengths.find((x) => x.id === id), watch = s.reasons?.watchouts.find((x) => x.id === id);
+    let text = (lift || watch)?.text ?? "";
+    if (!text && m.own != null) {
+      text = id === "ETF_LIQUIDITY" ? `It traded about ₹${nf(m.own, m.own >= 10 ? 0 : 2)} crore a day on the exchange.`
+        : m.own === 0 ? "Its exchange price matched its NAV on the NAV date."
+          : `Its exchange price was ${nf(Math.abs(m.own), 2)}% ${m.own > 0 ? "above" : "below"} its NAV on the NAV date.`;
+    }
+    out.push({ id, label, tone: lift ? "lift" : watch ? "watch" : "neutral", points: m.points, text });
+  }
+  return out;
+}

@@ -13,6 +13,7 @@ import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common
 import { EtfChart } from "./EtfChart";
 import { EtfHoldings } from "./Holdings";
 import { ReturnsBlock } from "./Returns";
+import { FundScoreCard } from "../mf/ScoreCard";
 
 const isRange = (v: string | null): v is RangeKey => !!v && (RANGES as readonly string[]).includes(v);
 
@@ -58,6 +59,8 @@ export function EtfDetailPage() {
       </header>
 
       <ReturnsBlock head={d.headline} asOf={d.priceDate} />
+
+      <FundScoreCard kind="etf" symbol={d.symbol} />
 
       <section className="card etf-sec" aria-labelledby="h-chart">
         <div className="card-h"><h3 id="h-chart"><span className="ci"><Icon name="line" /></span>Price chart</h3>

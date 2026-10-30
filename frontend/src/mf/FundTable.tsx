@@ -10,16 +10,8 @@ import { dateIN } from "../lib/format";
 import { Fig, PlanChip } from "./Bits";
 import { tintOf } from "../lib/mfSummary";
 import { useUI } from "../lib/ui";
-import { Icon } from "../lib/icons";
-import { bandOf, scoreText, useScores, type ScoreItem } from "../lib/mfScore";
-
-/** The Health score cell: number with a colour band and its label; a lock below Silver; the specific reason where there is no score. */
-function ScoreCell({ item, locked, why }: { item?: ScoreItem; locked: boolean; why: string }) {
-  if (locked) return <span className="mf-na" title="The Health score is part of the Silver plan."><Icon name="lock" /><span className="sr-only">Locked: Silver plan</span></span>;
-  if (!item || item.final == null) return <span className="mf-na" title={item?.reason || why} aria-label={`No score. ${item?.reason || why}`}>—{item?.status === "NOT RATED" && <small>not rated</small>}</span>;
-  const band = bandOf(item.final);
-  return <span className="mfs-cell" title={`${item.label}${item.status === "PROVISIONAL" ? ", provisional" : ""}. Describes the past; not a recommendation.`}><b className={"mfs-pv b-" + band}>{scoreText(item.final)}</b><small>{item.label}{item.status === "PROVISIONAL" ? " · provisional" : ""}</small></span>;
-}
+import { useScores, type ScoreItem } from "../lib/mfScore";
+import { ScoreCell } from "./ScoreCell";
 
 const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 const MARK = { pass: "✓", fail: "✗", unknown: "–" } as const;
@@ -53,7 +45,7 @@ function ChecklistCell({ r, peers }: { r: FundRow; peers?: Record<string, PeerSt
 const Bar = ({ v, max }: { v: number | null | undefined; max: number }) =>
   v == null || !max ? null : <i className={"mf-rbar " + (v < 0 ? "neg" : "pos")} style={{ width: `${Math.max(4, Math.min(100, (Math.abs(v) / max) * 100))}%` }} aria-hidden="true" />;
 type Scale = Partial<Record<ColId, number>>;
-type Scores = { map: Map<number | null, ScoreItem>; locked: boolean };
+type Scores = { map: Map<number | null, ScoreItem>; locked: boolean; loading: boolean };
 
 function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: Scale = {}, scores?: Scores) {
   const why = noReturnsText(r.noReturns);
@@ -93,7 +85,7 @@ function cell(c: ColDef, r: FundRow, peers?: Record<string, PeerStats>, scale: S
         return <span className="mf-aum" title={`Total expense ratio of the ${r.plan} plan, percent a year${r.terDate ? `, as of ${dateIN(r.terDate)}` : ""} (AMFI)`}>{terText(r.ter)}
           {cost && <small className={"mf-band c" + cost.step} title="Against the median of the same category and plan: low is 20% or more under it, high is 20% or more over it.">{cost.label} for category</small>}</span>;
       })();
-    case "score": return <ScoreCell item={scores?.map.get(r.code)} locked={!!scores?.locked} why={r.optionClass !== "Growth" ? "Not scored: IDCW and other options inherit the Growth plan's score, see the Growth plan." : !r.active ? "Not scored: stopped publishing NAVs." : "Not scored yet."} />;
+    case "score": return <ScoreCell item={scores?.map.get(r.code)} locked={!!scores?.locked} loading={!!scores?.loading} why={r.optionClass !== "Growth" ? "Not scored: IDCW and other options inherit the Growth plan's score, see the Growth plan." : !r.active ? "Not scored: stopped publishing NAVs." : "Not scored yet."} />;
     case "checklist": return <ChecklistCell r={r} peers={peers} />;
   }
 }
@@ -114,8 +106,8 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
   const defs = COLUMNS.filter((c) => cols.includes(c.id));
   const { has } = useUI();
   const showScore = defs.some((c) => c.id === "score");
-  const sq = useScores(rows.map((r) => r.code), showScore && has("silver"));
-  const scores: Scores = { map: new Map((sq.data?.items || []).map((i) => [i.code, i])), locked: showScore && (!has("silver") || !!sq.data?.locked) };
+  const sq = useScores(rows.map((r) => r.code), showScore && has("gold"));
+  const scores: Scores = { map: new Map((sq.data?.items || []).map((i) => [i.code, i])), locked: showScore && (!has("gold") || !!sq.data?.locked), loading: sq.isLoading };
   // the heading row above: neighbouring columns of one group share a heading ("Returns", "SIP returns")
   const runs: { group?: ColDef["group"]; n: number }[] = [];
   for (const c of defs) { const last = runs[runs.length - 1]; if (last && last.group === c.group) last.n++; else runs.push({ group: c.group, n: 1 }); }

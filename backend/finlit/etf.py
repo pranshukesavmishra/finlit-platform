@@ -1224,7 +1224,11 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
     q = q.strip()[:60]
     cats = _csv(category, [*CATEGORIES, "none"])
     assets = _csv(asset, GROUPS)
-    sort = sort if sort in LIST_FIELDS else "turnover"
+    by_score = sort == "score"
+    if by_score:   # the order would say what the score says: Gold only, never kept by a shared cache
+        from .mfscore.api import require_score_plan
+        await require_score_plan(request)
+    sort = sort if sort in LIST_FIELDS or by_score else "turnover"
     desc = (order or ("asc" if sort == "name" else "desc")).lower() != "asc"
     limit, offset = max(1, min(limit, 100)), max(0, min(offset, 5000))
     ranges = {k: (_bound(qp.get(k + "Min")), _bound(qp.get(k + "Max"))) for k in FILTER_KEYS}
@@ -1267,9 +1271,15 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
             elif (lo is None or v >= lo) and (hi is None or v <= hi):
                 keep.append(r)
         pool = keep
-    col = LIST_FIELDS[sort]
+    col = "score" if by_score else LIST_FIELDS[sort]
+    finals: Dict[str, float] = {}
+    if by_score:
+        async with request.app.state.store.pool.acquire() as conn:
+            finals = {r["symbol"]: float(r["final"]) for r in await conn.fetch("SELECT symbol, final FROM mf_scores WHERE kind = 'etf' AND final IS NOT NULL")}
 
     def val(r):
+        if by_score:
+            return finals.get(r["symbol"])
         if col == "from52":
             return (r["price"] / r["high52"] - 1) if r.get("price") and r.get("high52") else None
         return r.get(col)
@@ -1284,7 +1294,10 @@ async def list_etfs(request: Request, q: str = "", category: str = "", asset: st
     body = {"items": [row_view(r) for r in page], "total": len(ordered), "universe": len(rows), "hotCount": sum(1 for r in rows if r.get("hot")), "offset": offset, "limit": limit,
             "excluded": excluded, "categories": fc, "groups": fg,
             "asOf": cache["asOf"], "updatedAt": cache["updatedAt"], "source": SOURCE, "disclaimer": DISCLAIMER}
-    return _json(body)
+    res = _json(body)
+    if by_score:
+        res.headers["Cache-Control"], res.headers["Vary"] = "private, no-store", "Cookie"
+    return res
 
 
 async def cold_history(app, r: dict) -> Tuple[Optional[dict], Optional[str]]:

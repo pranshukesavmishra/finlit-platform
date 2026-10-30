@@ -77,7 +77,7 @@ export function stamp(iso: string | null | undefined): string {
 export const tone = (v: number | null | undefined): "up" | "down" | "flat" => (v == null || v === 0 ? "flat" : v > 0 ? "up" : "down");
 
 // ------------------------------------------------------------------------------------------------ columns of the list
-export type ColKey = "category" | "price" | "change" | "ret1y" | "ret5y" | "turnover" | "premium" | "fundHouse";
+export type ColKey = "category" | "price" | "change" | "ret1y" | "ret5y" | "score" | "turnover" | "premium" | "fundHouse";
 export type Col = {
   key: ColKey; label: string; short: string; sort: string | null; get: (i: EtfItem) => number | string | null; text: (i: EtfItem) => string;
   why?: string; term?: GlossName; def: boolean; help: string; num: boolean;
@@ -86,6 +86,7 @@ const num = (f: (i: EtfItem) => number | null, fmt: (v: number | null) => string
 /** The list shows exactly three return columns: 1 day, 1 year, 5 years. 5 years is the TOTAL price change over the five years, not a yearly rate. */
 export const COLUMNS: Col[] = [
   { key: "category", label: "Category", short: "Category", sort: null, def: true, num: false, help: "What the ETF follows, taken from its registered name. Blank when the name does not say clearly.", get: (i) => i.categoryLabel, text: (i) => i.categoryLabel ?? "—" },
+  { key: "score", label: "Health score", short: "Health score", sort: "score", def: true, num: true, help: "FinLit Mutual Fund Health Score, 0 to 100 (Gold plan). Describes the ETF's past health from its prices, costs and holdings; not a recommendation.", get: () => null, text: () => "—" },
   { key: "price", label: "Price (₹)", short: "Price", sort: "price", def: true, num: true, help: "Last close on the NSE.", ...num((i) => i.price, (v) => rupee(v)) },
   { key: "change", label: "1-day change", short: "1 day", sort: "change", def: true, num: true, help: "Change from the previous close to the last close.", ...num((i) => i.changePct, (v) => move(v), "change") },
   { key: "ret1y", label: "1-year price return", short: "1 year", sort: "ret1y", def: true, num: true, help: "Price change over 1 year. Dividends are not included.", term: "Price return", ...num((i) => i.ret1y, (v) => pct(v), "ret_1y") },

@@ -206,7 +206,7 @@ async def _write(store, funds):
     return sc
 
 
-def _app(store, plan="silver", role="visitor"):
+def _app(store, plan="gold", role="visitor"):
     from finlit.auth.service import Ctx
     app = FastAPI()
     app.include_router(score_api.router)
@@ -234,7 +234,7 @@ async def test_job_rows_and_api_gating(store, monkeypatch):
         await c.executemany(job.UPSERT, [job.row(s, {f.key: f for f in funds}[s.key], RUN) for s in score_universe(funds, RUN)])   # idempotent
         assert await c.fetchval("SELECT count(*) FROM mf_scores") == 20
     code = funds[0].code
-    async with await _client(store, monkeypatch, "silver") as c:
+    async with await _client(store, monkeypatch, "gold") as c:
         r = await c.get(f"/api/mf/scores?codes={code}")
         assert r.status_code == 200 and r.headers["cache-control"] == "private, no-store"
         it = r.json()["items"][0]
@@ -243,7 +243,7 @@ async def test_job_rows_and_api_gating(store, monkeypatch):
         assert len(lst["items"]) == 5 and lst["total"] == 10
         fs = [i["final"] for i in lst["items"]]
         assert fs == sorted(fs, reverse=True)
-    async with await _client(store, monkeypatch, "silver") as c:
+    async with await _client(store, monkeypatch, "gold") as c:
         # the specific route is not claimed by an integer path
         assert (await c.get("/api/mf/scores?sort=bogus")).status_code == 400
     async with await _client(store, monkeypatch, "basic") as c:
@@ -272,7 +272,7 @@ async def test_not_rated_and_inherited_and_unscored_answers(store, monkeypatch):
     tiny = fund("mf:910001", "EQ-LARGE", "large-cap", months=8, seed=3)
     tiny.code, tiny.category = 910001, "Equity Scheme - Large Cap Fund"
     await _write(store, [tiny])
-    async with await _client(store, monkeypatch, "silver") as c:
+    async with await _client(store, monkeypatch, "gold") as c:
         n = (await c.get("/api/mf/910001/score")).json()
         assert n["status"] == "NOT RATED" and n["final"] is None and "under 12 months" in n["reason"] and n["pillars"][0]["score"] is None
         i = (await c.get("/api/mf/910002/score")).json()
@@ -285,7 +285,7 @@ async def test_not_rated_and_inherited_and_unscored_answers(store, monkeypatch):
         await c.execute("DELETE FROM mf_schemes WHERE code IN (910001, 910002, 910003)")
 
 
-async def test_the_fund_list_sorts_by_score_for_silver_only(store, monkeypatch):
+async def test_the_fund_list_sorts_by_score_for_gold_only(store, monkeypatch):
     from finlit import mf
     app = FastAPI()
     app.include_router(score_api.router)
@@ -300,6 +300,82 @@ async def test_the_fund_list_sorts_by_score_for_silver_only(store, monkeypatch):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         r = await c.get("/api/mf?sort=score&dir=desc")
         assert r.status_code == 403
-        ctx["v"] = Ctx(user_id="u", plan="silver")
+        ctx["v"] = Ctx(user_id="u", plan="gold")
         r = await c.get("/api/mf?sort=score&dir=desc")
         assert r.status_code == 200 and r.headers["cache-control"] == "private, no-store"
+
+
+# ---------------------------------------------------------------------------------------- the category dashboard, ETF symbols and the ETF list order
+def test_dashboard_summary_median_counts_and_bands():
+    from finlit.mfscore.dashboard import band_of, median, summarize
+    assert median([]) is None and median([40.0]) == 40.0 and median([10, 90, 50, 30]) == 40.0 and median([3, 1, 2]) == 2
+    assert [band_of(v) for v in (70.0, 69.9, 50.0, 49.9, 0.0, 100.0)] == ["green", "orange", "orange", "red", "red", "green"]
+    out = summarize([("large-cap", 80.0), ("large-cap", 60.0), ("large-cap", 40.0), ("large-cap", None), ("mid-cap", None), ("small-cap", 55.55)])
+    assert out["large-cap"] == {"median": 60.0, "n": 3, "green": 1, "orange": 1, "red": 1}
+    assert out["small-cap"]["median"] == 55.5 or out["small-cap"]["median"] == 55.6
+    assert "mid-cap" not in out                       # no scored fund: no entry, never a made-up zero
+
+
+async def test_category_dashboard_is_gold_only_and_direct_plan_only(store, monkeypatch):
+    async with store.pool.acquire() as c:
+        await c.execute("DELETE FROM mf_scores")
+    async with await _client(store, monkeypatch, "gold") as c:
+        r = (await c.get("/api/mf/scores/categories")).json()
+        assert r["locked"] is False and r["runDate"] is None and r["items"] == {}          # the score job has not run: the page says "Not scored yet"
+    funds = universe(10, ["EQ-LARGE"])
+    for i, f in enumerate(funds):
+        f.code, f.key, f.category = 900000 + i, f"mf:{900000 + i}", "Equity Scheme - Large Cap Fund"
+    sc = await _write(store, funds)
+    direct = sorted(round(s.final, 1) for s, f in zip(sc, funds) if f.plan == "Direct" and s.final is not None)
+    async with await _client(store, monkeypatch, "gold") as c:
+        r = await c.get("/api/mf/scores/categories")
+        assert r.headers["cache-control"] == "private, no-store"
+        it = r.json()["items"]["large-cap"]
+        assert it["n"] == len(direct) and it["green"] + it["orange"] + it["red"] == it["n"]            # the Regular plan funds are not counted
+        assert abs(it["median"] - (direct[len(direct) // 2] if len(direct) % 2 else (direct[len(direct) // 2 - 1] + direct[len(direct) // 2]) / 2)) <= 0.11
+        assert r.json()["plan"] == "Direct" and r.json()["disclaimer"].startswith("Describes the fund's health")
+    for plan in ("basic", "silver"):
+        async with await _client(store, monkeypatch, plan) as c:
+            r = await c.get("/api/mf/scores/categories")
+            assert r.json()["locked"] is True and r.json()["items"] == {} and "median" not in r.text and "large-cap" not in r.text
+
+
+async def test_scores_by_etf_symbol_are_redacted_for_basic(store, monkeypatch):
+    etfs = [fund(f"etf:ZZ{i}", "OT-PASSIVE", "etf", plan="ETF", seed=40 + i, kind="etf", symbol=f"ZZ{i}", family_key="nifty50") for i in range(4)]
+    await _write(store, etfs)
+    async with await _client(store, monkeypatch, "gold") as c:
+        r = (await c.get("/api/mf/scores?symbols=zz0,ZZ1,ZZNONE")).json()
+        by = {i["symbol"]: i for i in r["items"]}
+        assert set(by) == {"ZZ0", "ZZ1"} and by["ZZ0"]["final"] is not None and by["ZZ0"]["plan"] == "ETF" and by["ZZ0"]["code"] is None
+        assert (await c.get("/api/mf/scores?symbols=bad%20one")).status_code == 400
+    async with await _client(store, monkeypatch, "basic") as c:
+        r = await c.get("/api/mf/scores?symbols=ZZ0,ZZ1")
+        assert r.json()["locked"] is True and all(i["final"] is None and i["pillars"] is None and i["label"] is None for i in r.json()["items"])
+        assert (await c.get("/api/mf/scores?plan=ETF")).json()["items"] == []
+
+
+async def test_the_etf_list_sorts_by_score_for_gold_only(store, monkeypatch):
+    from finlit import etf
+    etfs = [fund(f"etf:ZY{i}", "OT-PASSIVE", "etf", plan="ETF", seed=60 + i, drift=0.2 + i * 0.3, kind="etf", symbol=f"ZY{i}", family_key="nifty50") for i in range(4)]
+    sc = await _write(store, etfs)
+    finals = {s.key.split(":")[1]: s.final for s in sc}
+    rows = [{"symbol": f"ZY{i}", "display_name": f"Test ETF {i}", "isin": f"INF00000000{i}", "category": None, "price_date": date(2026, 10, 29), "updated_at": None, "hot": False} for i in range(4)]
+    app, _ = _app(store)
+    app.include_router(etf.router)
+    app.state.etf_cache = {"at": 1e18, "rows": rows, "by": {r["symbol"]: r for r in rows}, "words": {}, "asOf": "2026-10-29", "updatedAt": None}
+    ctx = {"v": None}
+    from finlit.auth.service import Ctx
+
+    async def cur(request):
+        return ctx["v"]
+    monkeypatch.setattr(score_api, "current", cur)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
+        ctx["v"] = Ctx(user_id="u", plan="basic")
+        assert (await c.get("/api/etf?sort=score&order=desc")).status_code == 403
+        assert (await c.get("/api/etf?sort=turnover")).headers["cache-control"].startswith("public")      # the plain list is unchanged
+        ctx["v"] = Ctx(user_id="u", plan="gold")
+        r = await c.get("/api/etf?sort=score&order=desc")
+        assert r.status_code == 200 and r.headers["cache-control"] == "private, no-store"
+        got = [i["symbol"] for i in r.json()["items"]]
+        assert got == sorted(got, key=lambda s: -finals[s])
+        assert "final" not in r.text                                                                       # the list itself carries no score; the page asks /api/mf/scores

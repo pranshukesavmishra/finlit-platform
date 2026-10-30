@@ -14,7 +14,7 @@ const routes = new Set([...app.matchAll(/path="([^"]+)"/g)].map((m) => "/" + m[1
 describe("Explore our platform grid", () => {
   it("renders 13 cards with the exact titles, in order", () => {
     expect((html.match(/class="pg-card"/g) ?? []).length).toBe(13);
-    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research", "Revenue and Profit Forecasting", "Smart Finance Calculators"];
+    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research and Health Score", "Revenue and Profit Forecasting", "Smart Finance Calculators"];
     expect(PLATFORM_CARDS.map((c) => c.title)).toEqual(titles);
     titles.forEach((t) => expect(html).toContain(t));
     expect(html).not.toContain("Value Smarter");
@@ -45,6 +45,13 @@ describe("Explore our platform grid", () => {
     expect(goldBadges).toHaveLength(1);
     expect((html.match(/class="pg-badge silver"/g) ?? []).length).toBe(2);
     expect(html).toContain("Free, Silver and Gold");
+  });
+  it("the fund research card names the Health Score and says it is Silver and Gold, with no advice words", () => {
+    const c = PLATFORM_CARDS.find((x) => x.n === "11")!;
+    expect(c.title).toBe("Mutual Fund Research and Health Score");
+    expect(c.plan).toBe("FREE ACCOUNT");                                  // the page it opens (Fund Compare) is free; only the score inside is paid
+    expect(c.bullets.some((b) => /^Health score \(Gold\): the Mutual Fund Health Score/.test(b))).toBe(true);
+    expect(`${c.desc} ${c.bullets.join(" ")}`).not.toMatch(/\b(buy|sell|hold|recommend\w*|best|should|advice)\b/i);
   });
   it("never nests a link inside a link", () => { expect(html).not.toMatch(/<a\b(?:(?!<\/a>)[\s\S])*<a\b/); });
   it("the Gold banner lists only what Gold really adds, and never the admin-only Prism PDF", () => {

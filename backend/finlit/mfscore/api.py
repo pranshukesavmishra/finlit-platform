@@ -1,6 +1,6 @@
 """GET /api/mf/{code}/score, GET /api/mf/etf/{symbol}/score and GET /api/mf/scores: the Mutual Fund Health Score, read from mf_scores.
 
-Plan gating, enforced here and not only on the page: the score is a Silver feature (like the FinLit stock score). A Basic account (or a visitor) gets
+Plan gating, enforced here and not only on the page: the score is a Gold feature. A Basic or Silver account (or a visitor) gets
 a locked answer with no value, no pillar, no breakdown, no rank and no order: a locked field is present and null, so the browser cannot tell a locked value from a
 missing one (as the screener's list does). Schemes named in MF_SCORE_SHOWCASE (scheme codes, none by default: the site has no free fund showcase list) stay open to everyone.
 Answers that depend on the plan are private and never stored by a shared cache.
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Query, Request
@@ -20,6 +21,7 @@ from ..auth.entitlements import has
 from ..auth.routes import fail
 from ..auth.service import current
 from . import MODEL_VERSION
+from .dashboard import summarize
 from .groups import GROUP_NAMES
 from .reasons import texts
 from .sheets import PILLAR_NAMES, PILLARS, WEIGHTS
@@ -29,6 +31,7 @@ router = APIRouter(prefix="/api/mf")
 DISCLAIMER = "Describes the fund's health from its past NAVs, costs and holdings; not a recommendation. Information only, not investment advice."
 METHOD_URL = "/methodology/mf-score"
 PRIVATE = "private, no-store"
+SYMBOL_RE = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 SORTS = {"final": "final", "perf": "perf", "risk": "risk", "cost": "cost", "quality": "quality", "rank": "percentile", "name": "key"}
 LIST_COLS = "key, kind, code, symbol, plan, grp, sub, category, final, label, status, reason, perf, risk, cost, quality, rank, rank_of, rank_scope, percentile, flags, confidence, run_date"
 NOT_SCORED = {
@@ -45,17 +48,17 @@ def showcase() -> set:
 
 
 async def may_see(request: Request, code: Optional[int] = None) -> bool:
-    """Silver and above (an admin too), or a showcase scheme."""
+    """Gold (an admin too), or a showcase scheme."""
     if code is not None and code in showcase():
         return True
     ctx = await current(request)
-    return has(ctx.plan, "silver") or ctx.role == "admin"
+    return has(ctx.plan, "gold") or ctx.role == "admin"
 
 
 async def require_score_plan(request: Request) -> None:
     """For routes whose ORDER would say what the value says (the fund list sorted by score)."""
     if not await may_see(request):
-        raise fail(403, "plan_required", "The Mutual Fund Health Score is part of the Silver plan.", plan="silver")
+        raise fail(403, "plan_required", "The Mutual Fund Health Score is part of the Gold plan.", plan="gold")
 
 
 def _load(v: Any) -> Any:
@@ -72,8 +75,8 @@ def pillars_view(group: str, r: Dict[str, Any], values: bool = True) -> List[Dic
 
 
 def locked_payload(group: Optional[str], plan: Optional[str], **extra: Any) -> Dict[str, Any]:
-    """What a plan below Silver gets: the model's fixed shape (pillar names and weights, which are not values) and nothing a fund scored."""
-    return {"locked": True, "plan": "silver", "detail": "The Mutual Fund Health Score is part of the Silver plan.", "group": group, "groupName": GROUP_NAMES.get(group or ""),
+    """What a plan below Gold gets: the model's fixed shape (pillar names and weights, which are not values) and nothing a fund scored."""
+    return {"locked": True, "plan": "gold", "detail": "The FinLit Mutual Fund Health Score is part of the Gold plan.", "group": group, "groupName": GROUP_NAMES.get(group or ""),
             "fundPlan": plan, "final": None, "label": None, "status": None, "pillars": [{"key": p, "name": PILLAR_NAMES[p], "weight": w, "score": None} for p, w in zip(PILLARS, WEIGHTS[group])] if group in WEIGHTS else [],
             "disclaimer": DISCLAIMER, "method": METHOD_URL, "model": MODEL_VERSION, **extra}
 
@@ -134,9 +137,9 @@ async def _row(conn, key: str):
 
 @router.get("/scores")
 async def scores(request: Request, group: str = Query("", max_length=12), category: str = Query("", max_length=160), plan: str = Query("", max_length=10),
-                 codes: str = Query("", max_length=1200), sort: str = Query("final", max_length=10), dir: str = Query("desc", pattern="^(asc|desc)$"),
+                 codes: str = Query("", max_length=1200), symbols: str = Query("", max_length=2400), sort: str = Query("final", max_length=10), dir: str = Query("desc", pattern="^(asc|desc)$"),
                  status: str = Query("", max_length=12), limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0, le=100000)) -> JSONResponse:
-    """Scores for tables: by scheme codes (up to 100: the funds on the page), or a group / category, sorted. Silver and above; below that the values are
+    """Scores for tables: by scheme codes (up to 100: the funds on the page), or a group / category, sorted. Gold only; below that the values are
     null for the codes asked and a list query returns nothing (its order would leak the ranking)."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort column.")
@@ -152,17 +155,21 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
         raise fail(400, "bad_request", "codes must be scheme codes separated by commas.")
     if len(ids) > 100 or any(not 0 < c < 10 ** 7 for c in ids):
         raise fail(400, "bad_request", "Up to 100 scheme codes.")
+    syms = list(dict.fromkeys(x.strip().upper() for x in symbols.split(",") if x.strip()))
+    if len(syms) > 100 or any(not SYMBOL_RE.match(x) for x in syms):
+        raise fail(400, "bad_request", "Up to 100 ETF symbols.")
     seen = showcase()
     full = await may_see(request)
-    if not full and not ids:
-        return _json({"locked": True, "plan": "silver", "total": None, "items": [], "disclaimer": DISCLAIMER, "method": METHOD_URL})
+    if not full and not ids and not syms:
+        return _json({"locked": True, "plan": "gold", "total": None, "items": [], "disclaimer": DISCLAIMER, "method": METHOD_URL})
     where, args = [], []
 
     def arg(v):
         args.append(v)
         return f"${len(args)}"
-    if ids:
-        where.append(f"code = ANY({arg(ids)}::int[])")
+    if ids or syms:   # the funds on a page: scheme codes and/or ETF symbols
+        picks = ([f"code = ANY({arg(ids)}::int[])"] if ids else []) + ([f"(kind = 'etf' AND symbol = ANY({arg(syms)}::text[]))"] if syms else [])
+        where.append("(" + " OR ".join(picks) + ")")
     for col, v in (("grp", group), ("category", category), ("plan", plan), ("status", status)):
         if v:
             where.append(f"{col} = {arg(v)}")
@@ -174,7 +181,7 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
         run = await conn.fetchval("SELECT max(run_date) FROM mf_scores")
     items = []
     for r in rows:
-        open_ = full or (r["code"] in seen)
+        open_ = full or (r["code"] is not None and r["code"] in seen)
         item = {"code": r["code"], "symbol": r["symbol"], "plan": r["plan"], "group": r["grp"]}
         if open_:
             item.update(final=r["final"], label=r["label"], status=r["status"], reason=r["reason"], pillars={"performance": r["perf"], "risk": r["risk"], "cost": r["cost"], "quality": r["quality"]},
@@ -183,6 +190,16 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
         else:
             item.update(final=None, label=None, status=None, reason=None, pillars=None, rank=None, rankOf=None, rankScope=None, percentile=None, flags=[], confidence=None, category=None)
         items.append(item)
+    if syms:   # an ETF asked for with no row: say why (a symbol the exchange list does not know is left out)
+        have_s = {i["symbol"] for i in items}
+        gone = [x for x in syms if x not in have_s]
+        if gone:
+            async with request.app.state.store.pool.acquire() as conn:
+                known = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM etf_funds WHERE symbol = ANY($1::text[])", gone)}
+            for x in gone:
+                if x in known:
+                    items.append({"code": None, "symbol": x, "plan": "ETF", "group": None, "final": None, "label": None, "status": None, "pillars": None, "rank": None, "rankOf": None,
+                                  "rankScope": None, "percentile": None, "flags": [], "confidence": None, "category": None, "reason": NOT_SCORED["etf_no_price"] if full else None})
     if ids:   # a scheme asked for with no row: say why (the page shows the reason, never a blank)
         have = {i["code"] for i in items}
         missing = [c for c in ids if c not in have]
@@ -197,6 +214,19 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
                               "rankScope": None, "percentile": None, "flags": [], "confidence": None, "category": None,
                               "reason": (NOT_SCORED["inactive"] if not s["active"] else NOT_SCORED["idcw"] if s["option_class"] != "Growth" else NOT_SCORED["no_plan"] if s["plan"] not in ("Direct", "Regular") else NOT_SCORED["not_yet"]) if full else None})
     return _json({"locked": not full, "total": total if full else None, "runDate": run.isoformat() if run else None, "items": items, "disclaimer": DISCLAIMER, "method": METHOD_URL, "model": MODEL_VERSION})
+
+
+@router.get("/scores/categories")
+async def category_scores(request: Request) -> JSONResponse:
+    """The Funds dashboard: median Health score, number scored and band counts per sub-category, over scored Direct-plan mutual funds. Gold only; a
+    plan below that gets `locked` and no number at all (the cards would otherwise show what the list hides). `runDate` is null until the score job has run."""
+    if not await may_see(request):
+        return _json({"locked": True, "plan": "gold", "items": {}, "runDate": None, "disclaimer": DISCLAIMER, "method": METHOD_URL})
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch("SELECT sub, final FROM mf_scores WHERE kind = 'mf' AND plan = 'Direct' AND final IS NOT NULL")
+        run = await conn.fetchval("SELECT max(run_date) FROM mf_scores")
+    return _json({"locked": False, "plan": "Direct", "runDate": run.isoformat() if run else None, "items": summarize((r["sub"], r["final"]) for r in rows),
+                  "disclaimer": DISCLAIMER, "method": METHOD_URL, "model": MODEL_VERSION})
 
 
 async def resolve_mf(conn, code: int):
