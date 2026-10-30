@@ -50,8 +50,11 @@ describe("pure helpers", () => {
     expect(back.cost).toEqual(["70", ""]);
     expect(queryToParams(emptyQuery()).toString()).toBe("");
     const sp = serverParams(q, { limit: 50, offset: 100 });
-    expect(sp.get("cost_min")).toBe("70") && expect(sp.get("offset")).toBe("100") && expect(sp.get("plan")).toBe("all");
-    expect(csvUrl(q)).toContain("format=csv") && expect(csvUrl(q)).toContain("limit=6000");
+    expect(sp.get("cost_min")).toBe("70");
+    expect(sp.get("offset")).toBe("100");
+    expect(sp.get("plan")).toBe("all");
+    expect(csvUrl(q)).toContain("format=csv");
+    expect(csvUrl(q)).toContain("limit=6000");
   });
   it("shows and clears active filter chips", () => {
     const q = { ...emptyQuery(), min: "60", labels: ["Strong", "Healthy"], terMax: "1" };
