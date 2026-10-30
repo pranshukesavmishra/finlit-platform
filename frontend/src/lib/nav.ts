@@ -2,11 +2,11 @@
 // so a page is named, grouped and ordered the same way everywhere. Each entry is [path, label, one line about it, icon].
 // `gold` marks tools that need the Gold plan (shown as a small tag, never hidden: locked tools stay visible behind an unlock card).
 
-export type NavItem = { to: string; label: string; sub: string; icon: string; gold?: boolean; end?: boolean };
+export type NavItem = { to: string; label: string; sub: string; icon: string; gold?: boolean; end?: boolean; not?: string };
 export type NavGroup = { title?: string; items: NavItem[] };
 export type NavSection = { id: string; label: string; wide?: boolean; groups: NavGroup[] };
 
-const i = (to: string, label: string, sub: string, icon: string, o: { gold?: boolean; end?: boolean } = {}): NavItem => ({ to, label, sub, icon, ...o });
+const i = (to: string, label: string, sub: string, icon: string, o: { gold?: boolean; end?: boolean; not?: string } = {}): NavItem => ({ to, label, sub, icon, ...o });
 
 /** The five main headings, in the order people use them. */
 export const SECTIONS: NavSection[] = [
@@ -53,7 +53,8 @@ export const SECTIONS: NavSection[] = [
   ] }] },
   { id: "funds", label: "Funds", groups: [{ items: [
     i("/funds", "Mutual funds", "NAV, returns, fund size and risk for every scheme", "pie"),
-    i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars"),
+    i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars", { not: "/etfs/compare-index-funds" }),
+    i("/etfs/compare-index-funds", "ETF vs index fund", "One index, the ETFs and index funds that follow it, side by side", "compare"),
     i("/funds/insights", "Fund industry trends", "Industry assets, net flows and folios, month by month", "line"),
   ] }] },
 ];
@@ -84,6 +85,6 @@ MORE.wide = true;
 /** Pricing sits in the header on its own. */
 export const PRICING: NavItem = i("/plans", "Pricing", "Free, Silver and Gold", "crown");
 
-/** Does this address belong to the item (itself or a page under it)? `end` items match only themselves. */
-export const isHere = (path: string, it: NavItem) => path === it.to || (!it.end && path.startsWith(it.to + "/"));
+/** Does this address belong to the item (itself or a page under it)? `end` items match only themselves; `not` names a sibling page that has its own item. */
+export const isHere = (path: string, it: NavItem) => path === it.to || (!it.end && path.startsWith(it.to + "/") && !(it.not && (path === it.not || path.startsWith(it.not + "/"))));
 export const sectionHere = (path: string, s: NavSection) => s.groups.some((g) => g.items.some((it) => isHere(path, it)));

@@ -60,6 +60,7 @@ const ForumPage = lazy(() => import("./pages/Forum").then((m) => ({ default: m.F
 const EtfListPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfListPage })));
 const EtfDetailPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfDetailPage })));
 const EtfComparePage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfComparePage })));
+const EtfVsIndexPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfVsIndexPage })));
 const FundListPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundListPage })));
 const FundDetailPage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundDetailPage })));
 const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundComparePage })));
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="graphs/advanced/:section" element={<AdvancedCharts />} />
             <Route path="etfs" element={<EtfListPage />} />
             <Route path="etfs/compare" element={<EtfComparePage />} />
+            <Route path="etfs/compare-index-funds" element={<EtfVsIndexPage />} />
             <Route path="etfs/:symbol" element={<EtfDetailPage />} />
             <Route path="commodities" element={<CommoditiesPage />} />
             <Route path="funds" element={<FundListPage />} />
