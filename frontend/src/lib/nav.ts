@@ -53,9 +53,7 @@ export const SECTIONS: NavSection[] = [
   ] }] },
   { id: "funds", label: "Funds", groups: [{ items: [
     i("/funds", "Mutual funds", "NAV, returns, fund size and risk for every scheme", "pie"),
-    i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars", { not: "/etfs/compare-index-funds" }),
-    i("/etfs/compare-index-funds", "ETF vs index fund", "One index, the ETFs and index funds that follow it, side by side", "compare"),
-    i("/funds/insights", "Fund industry trends", "Industry assets, net flows and folios, month by month", "line"),
+    i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars"),
   ] }] },
 ];
 

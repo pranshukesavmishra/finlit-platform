@@ -28,6 +28,7 @@ import { FundScoreCard } from "../mf/ScoreCard";
 import { ScoreCompare } from "../mf/ScoreCompare";
 import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
+import "../styles/etfvs.css";
 
 const HEAD = (title: string, lead: string) => (
   <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
@@ -115,7 +116,12 @@ export function FundListPage() {
       <div className="wrap mf">
         <CategoryCards q={q} onPick={(c) => set({ tab: c.tab, cats: [c.key], view: "" })} />
         <CategoryPicker q={q} subs={subs} loading={filt.isLoading} onTab={(tab) => set({ tab, cats: null })} onCats={(cats) => set({ cats })} />
-        <p className="faint mf-fine" style={{ margin: 0 }}>Where the industry's money sits and moves each month: <Link to="/funds/insights">Mutual Fund Insights</Link>.</p>
+        <Link className="evi-promo" to="/funds/insights">
+          <span className="evi-promo-ic" aria-hidden="true"><Icon name="line" /></span>
+          <span className="evi-promo-t"><b>Fund industry trends <span className="evi-badge">Industry</span></b>
+            <small>Where the industry's money sits and moves, month by month: assets, net flows and folios by fund category.</small></span>
+          <span className="evi-promo-go" aria-hidden="true">Open →</span>
+        </Link>
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">
