@@ -23,8 +23,10 @@ from datetime import date
 
 try:
     from .premium_technical_sources import BENCHMARKS
+    from .technical_series import fit_range
 except ImportError:
     from premium_technical_sources import BENCHMARKS
+    from technical_series import fit_range
 
 PROVIDER = "Dhan"
 MAX_ROWS = 2000                 # six years is about 1,550 sessions; anything larger is not what the research API sends
@@ -60,7 +62,7 @@ def check_series(series, as_of, minimum, quote_price=None):
     rows = series.get("candles")
     if not isinstance(rows, list) or not minimum <= len(rows) <= MAX_ROWS:
         return None, "too few or too many candles"
-    bars, previous = [], None
+    bars, previous, fixed = [], None, 0
     for row in rows:
         if not isinstance(row, (list, tuple)) or len(row) != 6:
             return None, "a candle does not have six fields"
@@ -71,13 +73,20 @@ def check_series(series, as_of, minimum, quote_price=None):
         if not all(_number(v) for v in values):
             return None, "a candle value is missing or not a finite number"
         o, h, l, c, v = values
-        if min(o, h, l, c) <= 0 or v < 0 or not l <= min(o, c) <= max(o, c) <= h:
+        if min(o, h, l, c) <= 0 or v < 0:
             return None, "a candle is inconsistent"
+        fitted = fit_range(o, h, l, c)
+        if fitted is None:
+            return None, "a candle is inconsistent"
+        h, l = fitted
         if previous is not None and day <= previous:
             return None, "dates are not strictly increasing"
         previous = day
         if day <= as_of:
             bars.append({"date": row[0], "open": o, "high": h, "low": l, "close": c, "volume": v})
+            fixed += (h, l) != (row[2], row[3])
+    if fixed:
+        log.info("supplied candles: %d candle(s) had an open or close within %.2f%% outside the high-low range and were fitted to it", fixed, 100 * 0.0005)
     if len(bars) < minimum or not 0 <= (as_of - date.fromisoformat(bars[-1]["date"])).days <= MAX_AGE_DAYS:
         return None, "too few sessions or the last session is too old"
     for before, after in zip(bars, bars[1:]):

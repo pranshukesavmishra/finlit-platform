@@ -3,14 +3,14 @@
 Pine defines formulas; FinEdge, calculations and Upstox supply the observations.
 No missing signal is filled or silently removed from the denominator.
 """
-from datetime import date
+from datetime import date, timedelta
 import hashlib
 import json
 
 try:
-    from .technical_series import ema, rma, rsi, macd, atr_adx, obv, weekly_closes
+    from .technical_series import ema, rma, rsi, macd, atr_adx, obv, weekly_closes, fit_range
 except ImportError:
-    from technical_series import ema, rma, rsi, macd, atr_adx, obv, weekly_closes
+    from technical_series import ema, rma, rsi, macd, atr_adx, obv, weekly_closes, fit_range
 
 try:
     from .financial_records import field_date, first, items, num
@@ -81,10 +81,22 @@ def normalise_bars(payload, as_of):
             value = first(row, *aliases)
             bar[key] = value if value is not None and (value >= 0 if key == "volume" else value > 0) else None
         if all(bar[k] is not None for k in ("open", "high", "low", "close")):
-            if not bar["low"] <= min(bar["open"], bar["close"]) <= max(bar["open"], bar["close"]) <= bar["high"]:
+            fitted = fit_range(bar["open"], bar["high"], bar["low"], bar["close"])
+            if fitted is None:
                 bar.update(open=None, high=None, low=None)
+            else:
+                bar["high"], bar["low"] = fitted
         result[day] = bar
     return [result[day] for day in sorted(result)]
+
+
+def last_completed_session(now):
+    """The date of the last COMPLETED daily session at `now` (any timezone): today's from 16:00 IST (the exchange closes 15:30), else yesterday's.
+    Weekends and holidays are not guessed: the newest bar a provider holds up to this date is the session. The Indian date is used, never the
+    container's or UTC's (a report made at 02:00 IST is still on the previous Indian day)."""
+    from zoneinfo import ZoneInfo
+    ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
+    return ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
 
 
 def has_ohlcv(bars, count=252):
@@ -188,7 +200,7 @@ def build_technical_assessment(price_input, as_of, benchmarks=None, shares_cr=No
     digest = hashlib.sha256(json.dumps({"prices":bars,"benchmarks":benchmarks or {},"shares_cr":shares_cr,"source":SOURCE_SHA256},sort_keys=True,allow_nan=False).encode()).hexdigest()
     return {"modelVersion":MODEL_VERSION, "sourceCodeSha256":SOURCE_SHA256, "inputHash":digest, "status":"ready" if short["score"] is not None and long["score"] is not None else "incomplete",
             "asOf":bars[-1]["date"] if bars else None, "provider":price_input.get("provider","Unavailable"),
-            "dailyBars":len(bars), "usableDailyBars":len(valid), "fresh":fresh,
+            "dailyBars":len(bars), "usableDailyBars":len(valid), "fresh":fresh, "sharesCr":shares_cr,
             "shortTerm":{**short,"horizon":"5–20 sessions"}, "longTerm":{**long,"horizon":"6–18 months"},
             "verdict":combine_verdict(short["score"],long["score"]), "notes":list(dict.fromkeys(notes)),
             "observations":observations,

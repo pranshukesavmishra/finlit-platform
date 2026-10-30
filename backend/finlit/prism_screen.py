@@ -24,7 +24,8 @@ def shape(row: Dict[str, Any]) -> Dict[str, Any]:
     card = json.loads(card) if isinstance(card, str) else (card or {})
     parts = card.get("parts") if isinstance(card.get("parts"), dict) else {}
     out: Dict[str, Any] = {"prism_state": "stored", "prism_final": _num(row.get("final")), "prism_label": row.get("label"), "prism_status": row.get("status"),
-                           "prism_at": row["generated_at"].date().isoformat() if row.get("generated_at") else None}
+                           "prism_at": row["generated_at"].date().isoformat() if row.get("generated_at") else None,
+                           "prism_tech_at": card.get("technicalBarDate") if isinstance(card.get("technicalBarDate"), str) else None}
     for k in PARTS:
         out["prism_" + k] = _num(parts.get(k))
     for key, name in (("st", "prism_st"), ("lt", "prism_lt")):
@@ -42,7 +43,7 @@ def cards(rows: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
 def blank() -> Dict[str, Any]:
     """The fields of a company with no stored rating: present and empty, state 'none' (the page explains and offers to start one)."""
     return {"prism_state": "none", "prism_final": None, "prism_label": None, "prism_status": None, "prism_at": None, "prism_fundamental": None,
-            "prism_valuation": None, "prism_quality": None, "prism_risk": None, "prism_st": None, "prism_lt": None, "prism_st_score": None, "prism_lt_score": None}
+            "prism_valuation": None, "prism_quality": None, "prism_risk": None, "prism_st": None, "prism_lt": None, "prism_st_score": None, "prism_lt_score": None, "prism_tech_at": None}
 
 
 def coverage(rows: List[Dict[str, Any]], total: int) -> Dict[str, Any]:

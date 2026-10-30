@@ -7,7 +7,7 @@ import { MINUS, cr, nf } from "./format";
 export type PrismFields = {
   prism_state?: "stored" | "none" | null; prism_final?: number | null; prism_label?: string | null; prism_status?: string | null; prism_at?: string | null;
   prism_fundamental?: number | null; prism_valuation?: number | null; prism_quality?: number | null; prism_risk?: number | null;
-  prism_st?: string | null; prism_lt?: string | null; prism_st_score?: number | null; prism_lt_score?: number | null;
+  prism_st?: string | null; prism_lt?: string | null; prism_st_score?: number | null; prism_lt_score?: number | null; prism_tech_at?: string | null;
 };
 export type PrismCoverage = { rated: number; provisional: number; not_rated: number; stored: number; total: number; as_of?: string | null; per_night?: number };
 export type Row = PrismFields & {

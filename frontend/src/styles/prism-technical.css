@@ -170,6 +170,7 @@
 /* the stock page card: the alignment under the two bars */
 .pzt-ra { --t: var(--t-na); grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--border); min-width: 0; }
 .pzt-ra.pos { --t: var(--t-p); } .pzt-ra.mixed { --t: var(--t-n); } .pzt-ra.neg { --t: var(--t-ng); }
+.pzt-asof { grid-column: 1 / -1; margin: 0; padding-top: 8px; font: 400 12px/1.4 var(--sans); color: var(--muted); } .pzt-asof b { color: var(--text); font-weight: 600; }
 .pzt-ra small { font: 700 10.5px/1.25 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .pzt-ra span { font: 700 15px/1.3 var(--sans); color: var(--text); } .pzt-ra i { font-style: normal; font-size: 11px; letter-spacing: -2px; margin-right: 7px; color: var(--t); }
 @media (max-width: 560px) {

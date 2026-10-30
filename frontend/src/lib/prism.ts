@@ -83,6 +83,7 @@ export type PrismHistory = {
   annual: { period: string; sales: number | null; profit: number | null; cashFlow: number | null; netWorth: number | null }[];
   latest: { key: string; label: string; value: number | null; unit: string }[];
 };
+export type TechnicalStamp = { asOf: string | null; calculatedAt: string | null; stale: boolean; refreshing: boolean };
 export type PrismReport = {
   id: string; createdAt: string; completedAt: string; statementType: Statement; state?: string;
   company: { symbol: string; name: string; industry?: string | null; sector?: string | null; description?: string | null };
@@ -90,6 +91,9 @@ export type PrismReport = {
   benchmark: PrismBenchmark; review?: PrismReview; financialHistory?: PrismHistory;
   /** The technical (short-term / long-term) assessment: additive and independent of `rating`. Absent from older reports; read it with parseTechnical (lib/prismTechnical.ts). */
   technicalAssessment?: unknown;
+  /** The technical view's own date: the last candle it was calculated on (`asOf`, the day the scores describe), when it was calculated, whether a newer completed session
+   *  exists, and whether a refresh of just this view was started by opening the page. The rest of the report is as of `createdAt`. */
+  technical?: TechnicalStamp;
   /** True when served from storage instead of a fresh calculation. */
   cached: boolean;
   /** When the PDF of this calculation stops being downloadable (the signed snapshot lives 30 minutes); null once it has. */
@@ -433,7 +437,7 @@ export function useGeneratePrism() {
 }
 
 /** The small stored card (GET .../latest?view=summary): last score and label, no review body. Category scores are already withheld for NOT RATED. */
-export type PrismSummary = { id: string; final: number | null; label: PrismLabel; status: PrismStatusWord; confidence: number | null; parts: Record<PartKey, number | null> | null; partWeights: Record<PartKey, number> | null; generatedAt: string; modelVersion: string | null };
+export type PrismSummary = { id: string; final: number | null; label: PrismLabel; status: PrismStatusWord; confidence: number | null; parts: Record<PartKey, number | null> | null; partWeights: Record<PartKey, number> | null; generatedAt: string; modelVersion: string | null; technical?: TechnicalStamp };
 export const summaryKey = (symbol: string, statement: Statement) => ["prism", "summary", symbol, statement] as const;
 /** The last stored score of a company for the landing cards; null when none is stored. Never calculates. */
 export const useStoredSummary = (symbol: string, statement: Statement = "consolidated") =>

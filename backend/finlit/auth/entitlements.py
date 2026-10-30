@@ -19,7 +19,7 @@ GOLD_RATIO_GROUPS = {"leverage", "liquidity", "efficiency", "quality", "sharehol
 KEEP_TECHNICAL = ("price", "ema50", "vsEma200Pct")
 # FinLit Prism figures on a screener row (Gold; the showcase companies stay open to everyone, as on the Prism page itself).
 PRISM_FIELDS = ("prism_state", "prism_final", "prism_label", "prism_status", "prism_at", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk",
-                "prism_st", "prism_lt", "prism_st_score", "prism_lt_score")
+                "prism_st", "prism_lt", "prism_st_score", "prism_lt_score", "prism_tech_at")
 MODEL_FIELDS = ("overall", "band", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance", "pillar_technical")
 
 LIMITS = {

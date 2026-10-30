@@ -518,6 +518,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_pz.add_argument("--days", type=int, default=7, help="a stored rating older than this is calculated again")
     p_pz.add_argument("--shard", default=None, help="PART/OF, for example 0/2: work only on the companies whose symbol hashes to this part, so several workers can run side by side")
     p_pz.add_argument("--stale-not-rated", action="store_true", help="only the companies NOT RATED by the old classification check (report older than the current classification rules); at most 300 per run, 1 second apart. Run once after deploying the classification fix")
+    p_rt = sub.add_parser("refresh-technicals", help="daily, after the close: recalculate ONLY the short/long-term technical view of every stored Prism report from fresh Dhan daily candles (the report's other figures are untouched); resumable, paced, gives way to members; result at /api/technicals/status")
+    p_rt.add_argument("--limit", type=int, default=2500, help="companies per run")
+    p_rt.add_argument("--max-minutes", type=float, default=45.0)
+    p_rt.add_argument("--shard", default=None, help="PART/OF, for example 0/2: only the companies whose symbol hashes to this part")
+    p_rt.add_argument("--symbols", nargs="*", default=None, help="only these companies (default: every stored report that is behind the newest session)")
+    p_rt.add_argument("--force", action="store_true", help="recalculate even companies already at the newest session")
     p_ap = sub.add_parser("audit-prism", help="why are companies NOT RATED or PROVISIONAL? Buckets by reason (classification label, low confidence, thin history), one database query, no provider calls; stores the summary in mf_meta ('prism-audit:last')")
     p_ap.add_argument("--statement", default="consolidated", choices=("consolidated", "standalone"))
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
@@ -814,6 +820,18 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             await record_run(store, args.cmd, {k: v for k, v in result.items() if k != "groups"})
             print(json.dumps(result, default=str)[:3000])
             return 0 if result.get("status") in ("ok", "skipped") else 1
+        if args.cmd == "refresh-technicals":
+            from . import prism_technical
+            shard = None
+            if args.shard:
+                part, _, of = args.shard.partition("/")
+                if not (part.isdigit() and of.isdigit() and int(of) >= 1 and int(part) < int(of)):
+                    raise SystemExit("--shard must look like 0/2 (part/of, part below of)")
+                shard = (int(part), int(of))
+            result = await prism_technical.refresh(store, settings, limit=args.limit, max_minutes=args.max_minutes, shard=shard,
+                                                   symbols=[s.upper() for s in args.symbols] if args.symbols else None, force=args.force)
+            print(json.dumps(result, default=str)[:3000])
+            return 0 if result.get("status") in ("ok", "skipped", "partial") else 1
         if args.cmd == "audit-prism":
             from . import prism_audit
             res = await prism_audit.audit(store, args.statement)

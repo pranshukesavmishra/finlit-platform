@@ -1,5 +1,10 @@
 # Technical scores and Leader / In line / Laggard: the finlit_technicals v1.1 delivery
 
+> **Freshness (read this first):** the technical scores are refreshed every trading evening by `refresh-technicals` and carry the date of the last
+> candle they describe ("Technical view as of ..."). Why they used to be late, the fixes, the cross-check against independent indicator code and how to
+> verify from a browser: [INCIDENT-2026-10.md](INCIDENT-2026-10.md) and [CROSSCHECK.md](CROSSCHECK.md). The basic FinLit score's Technical pillar is a
+> different number, rebuilt nightly with each company's snapshot (up to a day old), not by this job.
+
 The team delivered a Python package, `finlit_technicals` v1.1, with ports of two TradingView indicators:
 "ST/LT Score Breakdown & Peers v1.2" (short-term and long-term scores, every component, trend alignment) and
 "Leader & Laggard vs Peers v1.0" (label, ranks, peers table, weekly history). This note says what was done with it, why,
@@ -115,7 +120,10 @@ may be used on the site.
 
 * **Technical scores** are calculated by the existing Prism calculation, one company at a time: about 0.4 s of one core for 700 daily bars and 0.6 s for
   1,500 (pure Python; measured here). The package says about 0.5 s per stock for both indicators with numpy. Nothing was added to that path except a
-  few extra numbers, so the nightly `precompute-prism` job (which already yields to members) is unchanged. If you ever want scores for every listed
+  few extra numbers, so the nightly `precompute-prism` job (which already yields to members) is unchanged. **Update (Oct 2026, see INCIDENT-2026-10.md):** that job
+  recalculates a report only when it is older than 7 days, so the technical view was often days old. A separate daily job, `refresh-technicals` (weekdays 18:30 IST,
+  retries 21:10 and 06:45), now recalculates **only** the technical view of every stored report from the day's final Dhan candles (about 0.6 s of one core each) and
+  every screen shows "Technical view as of <date>"; `GET /api/technicals/status` shows what the job did. If you ever want scores for every listed
   company every night (about 1,300 on the package's lists), that is 8 to 13 minutes of one core: batch it the way `precompute-prism` is batched, never
   as a new parallel job on the 2 vCPU server.
 * **Leader / Laggard**: the weekly job did one ranking per industry; it now does one per peer list (95 lists of at most 35 names). Ranking all

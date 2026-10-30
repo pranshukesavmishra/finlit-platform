@@ -1,6 +1,7 @@
 // The hero of a Prism report: company, the signature prism ring (four arcs, length = weight, fill = score), chips, coverage, actions
 // and a score scale with the label thresholds. Status is always written in words next to any colour.
 import { Icon } from "../../../lib/icons";
+import { dateIN } from "../../../lib/format";
 import {
   PRISM_NAME, PRISM_NOTE, completenessNote, notRatedReason, ringWhy, STATUS_TEXT, STATUS_WORD, isRated, labelTone, partInfo, partShare, pctWhole, ringSentence, score1, statementWord,
   type PrismRating, type PrismReport,
@@ -179,6 +180,7 @@ export function Hero({ report, actions }: { report: PrismReport; actions: Report
       <div className="pzr-hero-foot">
         <span>Model {rating.modelVersion}</span>
         <span>Calculated {istTime(report.createdAt)}{report.cached ? " · stored report" : ""}</span>
+        {report.technical?.asOf && <span data-testid="tech-asof">Technical view as of {dateIN(report.technical.asOf)}{report.technical.refreshing ? " (updating)" : ""}</span>}
       </div>
       <p className="pzr-note">{PRISM_NOTE}</p>
     </section>

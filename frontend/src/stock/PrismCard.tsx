@@ -18,6 +18,8 @@ export type PrismLatest = {
   pdfAvailableUntil?: string | null;
   /** The independent short-term / long-term technical assessment (not a part of the score). Absent from older reports; read it with parseTechnical. */
   technicalAssessment?: unknown;
+  /** The technical view's own date (see lib/prism.ts TechnicalStamp). */
+  technical?: { asOf: string | null; calculatedAt: string | null; stale: boolean; refreshing: boolean };
 };
 export type PrismCardState = { kind: "report"; report: PrismLatest } | { kind: "none" } | { kind: "locked" } | { kind: "hidden" };
 
@@ -44,7 +46,9 @@ export async function loadPrismLatest(symbol: string, statement: string): Promis
 }
 
 export const usePrismLatest = (symbol: string, statement: string, enabled: boolean) =>
-  useQuery<PrismCardState>({ queryKey: ["prism-latest", symbol, statement], queryFn: () => loadPrismLatest(symbol, statement), enabled: enabled && !!symbol, staleTime: 60_000, retry: false });
+  useQuery<PrismCardState>({ queryKey: ["prism-latest", symbol, statement], queryFn: () => loadPrismLatest(symbol, statement), enabled: enabled && !!symbol, staleTime: 60_000, retry: false,
+    /** A company opened with an out-of-date technical view starts a refresh of that view alone; ask again every 20 s while it runs (the server stops saying "refreshing" after about 2.5 minutes). */
+    refetchInterval: (q) => (q.state.data?.kind === "report" && q.state.data.report.technical?.refreshing ? 20_000 : false) });
 
 /** Calculate (or recalculate) the rating. Only ever called from a button; usually takes under half a minute (the Prism page starts one by itself and follows it). */
 export async function generatePrism(symbol: string, statement: string, refresh: boolean): Promise<PrismLatest> {

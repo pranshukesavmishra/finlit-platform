@@ -338,7 +338,7 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
     `# Sorted by: ${o.sort.key} ${o.sort.dir === 1 ? "ascending" : "descending"}`,
     `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
     ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Fundamentals, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
-      "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word."]
+      "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
       : ["# Fundamental = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];

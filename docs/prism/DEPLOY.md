@@ -151,3 +151,10 @@ cd site-api && PYTHONPATH=.:backend python -m pytest -q -c backend/pytest.ini ba
 
 CI (`.github/workflows/ci.yml`, job `site-api`) runs exactly this on Python 3.13. The tests need no provider key and no network; they include
 `test_start_without_mongo.py` (starts the server without `MONGO_URL`, generates a report and its PDF, checks database routes answer 503 at once).
+
+## Daily technical refresh (`refresh-technicals`)
+
+The short- and long-term technical views are stored inside each Prism report and are NOT refreshed by the 7-day report cadence. `refresh-technicals`
+(weekdays 18:30 IST, retries 21:10 and 06:45; `deploy/scheduler.sh`, `deploy/crontab`) recalculates only that view from the day's final Dhan candles through the site
+backend's `POST /api/premium-reports/technical` (deploy the site backend and the research API together). No migration. After a deploy run it once by hand
+(command in `docs/technicals/INCIDENT-2026-10.md`, section 7) and check `GET /api/technicals/status`.
