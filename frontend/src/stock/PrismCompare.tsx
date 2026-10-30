@@ -11,44 +11,28 @@ import { Icon } from "../lib/icons";
 import { dateIN } from "../lib/format";
 import { useGold } from "../lib/premium";
 import { Gate, OpenAccess } from "../components/Gate";
-import { bandInk, partHint, scoreBand } from "../lib/scoreBands";
-import { PartTile, type Tone } from "../components/prism/shared/PartTile";
+import { parseTechnical } from "../lib/prismTechnical";
 import { PrismGlyph } from "../components/prism/shared/PrismGlyph";
-import { LABEL, STATUS, fmtScore, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
+import { STATUS, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
 import { PRISM_NOTE, PRISM_PARTS, PRISM_POINTS } from "./prismWords";
-import { PrismTechRow } from "./PrismTechRow";
+import { CardSkeleton, FundamentalSection, TechnicalSection } from "./PrismCardView";
+import { type CardPart } from "./prismCardLogic";
 import "../styles/prism-compare.css";
+import "../styles/prism-card.css";
 
 const STATUS_NOTE: Record<PrismLatest["rating"]["status"], string> = {
   RATED: "Enough of the data was available for a full rating.",
   PROVISIONAL: "Some data is missing or the record is short, so this is a first view and is shown at most as Healthy.",
   "NOT RATED": "Too little verified data to rate this company, so there is no score.",
 };
-/** Words for a part's score, on the same scale as the overall label. Colour is decoration; the word carries the meaning. */
-const partWord = (v: number | null | undefined): [string, string] => v == null ? ["No data", "na"] : v >= 80 ? ["Strong", "strong"] : v >= 65 ? ["Healthy", "healthy"] : v >= 50 ? ["Average", "mixed"] : v >= 35 ? ["Weak", "weak"] : ["Poor", "weak"];
-
-type Part = { key: string; name: string; weight: number; color: string; value: number | null };
 /** The parts to draw, from the data: the four of the model, and a technical part the moment the model sends one. */
-export function partsOf(r: PrismLatest["rating"]): { parts: Part[]; technicalSoon: boolean } {
+export function partsOf(r: PrismLatest["rating"]): { parts: CardPart[]; technicalSoon: boolean } {
   const w = r.partWeights ?? {};
   const rated = r.status !== "NOT RATED";   // the model withholds category scores for a company it did not rate; so do we
-  const parts: Part[] = PRISM_PARTS.map(([k, name, share, color]) => ({ key: k, name, weight: Math.round((w[k] ?? share / 100) * 100), color, value: rated ? r.parts?.[k] ?? null : null }));
+  const parts: CardPart[] = PRISM_PARTS.map(([k, name, share, color]) => ({ key: k, name, weight: Math.round((w[k] ?? share / 100) * 100), color, value: rated ? r.parts?.[k] ?? null : null }));
   const tech = rated ? r.parts?.technical : null;
   if (tech !== undefined && w.technical != null) parts.push({ key: "technical", name: "Technical", weight: Math.round(w.technical * 100), color: "--p-tech", value: tech });
   return { parts, technicalSoon: !parts.some((p) => p.key === "technical") };
-}
-
-/** One row of compact tiles: the four parts, and a fifth the moment the data has a technical part. */
-function Tiles({ r, example = false }: { r: PrismLatest["rating"]; example?: boolean }) {
-  const { parts } = partsOf(r);
-  return (
-    <section className="dk-grp fund" aria-label="Fundamental part of the Prism rating">
-      <h4 className="dk-gh"><span>Fundamental</span><small>Higher is better for all four<span className="hide-sm"> (a high Risk score means lower risk)</span></small></h4>
-      <div className="dk-tiles pzs-parts" style={{ "--n": parts.length } as React.CSSProperties} role="group" aria-label={example ? "The four fundamental parts of a Prism rating (example numbers)" : "The fundamental parts of the Prism rating"}>
-        {parts.map((p, i) => { const [word, tone] = partWord(p.value); return <PartTile key={p.key} name={p.name} value={p.value} word={word} tone={tone as Tone} color={p.color} weight={p.weight} index={i} hint={partHint(p.key)} />; })}
-      </div>
-    </section>
-  );
 }
 
 const items = (r: PrismLatest, kind: "pros" | "cons") => (r.review?.parts ?? []).flatMap((p) => p[kind] ?? []).slice(0, 2);
@@ -94,23 +78,20 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       </div>
     </div>
   );
-  const rep = state.report, r = rep.rating, rated = r.status !== "NOT RATED" && r.final != null, [word, tone] = LABEL[r.label];
+  const rep = state.report, r = rep.rating;
   const { parts } = partsOf(r);
   return (
     <>
-      <div className="dk-row" role="group" aria-label={prismSummary(r)}>
-        <PrismGlyph parts={parts.map((p) => ({ key: p.key, name: p.name, weight: p.weight, value: p.value, color: p.color }))} score={rated ? (r.final as number) : null} size={150} />
-        <div className="dk-words">
-          <div className="dk-chips"><span className={"dk-st big " + tone} style={rated ? ({ "--tc": bandInk(scoreBand(r.final)) } as React.CSSProperties) : undefined}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span>{rated && <span className="dk-sc">{fmtScore(r.final as number)} out of 100</span>}</div>
-          <p className={"dk-note" + (r.status === "RATED" ? " ok" : "")}>{STATUS_NOTE[r.status]}</p>
-          <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
-        </div>
+      <div className="pcx-body" role="group" aria-label={prismSummary(r)}>
+        <FundamentalSection r={r} parts={parts}>
+          <div className="dk-words">
+            <div className="dk-chips"><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span></div>
+            {r.status !== "RATED" && <p className="dk-note">{STATUS_NOTE[r.status]}</p>}
+            <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
+          </div>
+        </FundamentalSection>
+        <TechnicalSection a={parseTechnical(rep.technicalAssessment)} report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
       </div>
-      <Tiles r={r} />
-      <section className="dk-grp tech" aria-label="Technical view, separate from the Prism score">
-        <h4 className="dk-gh"><span>Technical</span><small>Separate from the score<span className="hide-sm"> · scale −100 to +100</span></small></h4>
-        <PrismTechRow report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />
-      </section>
       <details className="dk-more">
         <summary><span>What supports and weighs on the rating, data date, recalculate</span><Icon name="arrow" className="dk-chev" /></summary>
         <Notes r={rep} symbol={symbol} />
@@ -119,7 +100,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
           <button className="btn dk-b" disabled={busy} onClick={() => run.mutate(true)}>{busy ? "Calculating…" : "Recalculate"}</button>
         </div>
       </details>
-      <div className="dk-cta"><Link className="btn primary dk-b" to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report <Icon name="arrow" /></Link></div>
+      <div className="dk-cta"><span className="pcx-upd">Updated {dateIN(rep.completedAt || rep.createdAt)}</span><Link className="btn primary dk-b" to={`/prism/${encodeURIComponent(symbol)}`}>Open the full Prism report <Icon name="arrow" /></Link></div>
       {status}
     </>
   );
@@ -143,10 +124,7 @@ export function PrismCompare({ symbol, name, statement }: { symbol: string; name
         <OpenAccess.Provider value={false}>
           <Gate tier="gold" title="Unlock FinLit Prism" points={PRISM_POINTS}>
             {head("Example")}
-            <div className="dk-body">
-              <div className="dk-row"><PrismGlyph parts={ex.map((p) => ({ key: p.key, name: p.name, weight: p.weight, value: p.value, color: p.color }))} score={EXAMPLE.final} size={150} example />
-                <div className="dk-words"><div className="dk-chips"><span className="dk-st big healthy">Healthy</span><span className="pz-status rated">Rated</span></div><p className="dk-note">Example numbers, to show the layout.</p></div></div>
-              <Tiles r={EXAMPLE} example />
+            <div className="dk-body"><div className="pcx-body"><FundamentalSection r={EXAMPLE} parts={ex} example><p className="dk-note">Example numbers, to show the layout.</p></FundamentalSection></div>
             </div>
           </Gate>
         </OpenAccess.Provider>
@@ -154,7 +132,7 @@ export function PrismCompare({ symbol, name, statement }: { symbol: string; name
         <>
           {head(state?.kind === "report" ? (state.report.statementType === "standalone" ? "Standalone" : "Consolidated") : undefined)}
           <div className="dk-body">
-            {!state ? <div className="dk-skel" aria-hidden="true"><div className="skeleton s-row" /><div className="skeleton s-tiles" /><div className="skeleton s-notes" /></div> : <Body state={state} symbol={symbol} statement={statement} name={name} />}
+            {!state ? <CardSkeleton /> : <Body state={state} symbol={symbol} statement={statement} name={name} />}
           </div>
         </>
       )}
