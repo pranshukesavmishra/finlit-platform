@@ -9,6 +9,7 @@ import { usePortfolio } from "../lib/portfolio";
 import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
 import { MORE, SECTIONS, type NavItem } from "../lib/nav";
+import { badgeFor } from "../lib/sideGroups";
 
 const RESEARCH = SECTIONS.find((x) => x.id === "research")!;   // by id: the header order changes (Workspace comes first)
 
@@ -70,17 +71,19 @@ export function AppShell() {
       {open && <div className="shell-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
       <aside className="side" aria-label="Product navigation">
         <div className="side-top">
-          <span className="side-t">Workspace</span>
+          <span className="side-t"><span className="side-tb" aria-hidden="true"><Icon name="grid" /></span>Workspace</span>
           <button className="side-toggle hide-sm" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand the side menu" : "Collapse the side menu"} aria-pressed={collapsed} title={collapsed ? "Expand" : "Collapse"}><Icon name="panel" /></button>
           <button className="side-toggle show-sm" onClick={() => setOpen(false)} aria-label="Close the product menu">✕</button>
         </div>
         <nav>
-          {groups.map((g) => (
-            <div className="side-g" key={g.title}>
-              <button type="button" className="side-gt side-gb" aria-expanded={groupOpen(g)} aria-controls={"sg-" + g.title.replace(/\W+/g, "-")} onClick={() => toggleGroup(g.title, !groupOpen(g))}>
-                <span>{g.title}</span><span className="side-gn">{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+          {groups.map((g) => {
+            const gid = "sg-" + g.title.replace(/\W+/g, "-"), isOpen = groupOpen(g), b = badgeFor(g.title);
+            return (
+            <div className={"side-g" + (isOpen ? " is-open" : "")} key={g.title} style={{ "--gt": `var(${b.tone})` } as React.CSSProperties}>
+              <button type="button" className="side-gt side-gb" aria-expanded={isOpen} aria-controls={gid} onClick={() => toggleGroup(g.title, !isOpen)}>
+                <span className="side-gbd" aria-hidden="true"><Icon name={b.icon} /></span><span className="side-gname">{g.title}</span><span className="side-gn" aria-label={g.items.length + (g.items.length === 1 ? " page" : " pages")}>{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
               </button>
-              <div id={"sg-" + g.title.replace(/\W+/g, "-")} className="side-gi" hidden={!groupOpen(g) && !collapsed}>
+              <div id={gid} className="side-gi" role="region" aria-label={g.title} hidden={!isOpen && !collapsed}>
               {g.items.map((i) => (
                 <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
                   <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l"><span className="side-lt">{i.label}</span>{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
@@ -88,7 +91,8 @@ export function AppShell() {
               ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
         <div className="side-foot">
           <div className="side-plan" style={{ "--tc": `var(${TIER[plan].tc})` } as React.CSSProperties}>

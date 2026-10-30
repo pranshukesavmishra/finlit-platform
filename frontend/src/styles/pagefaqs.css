@@ -1,6 +1,6 @@
 /* "Questions about this page" panel at the bottom of each page, and the All FAQs hub */
 .pfq { margin: 40px 0 0; padding: 0 20px; }
-main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 272px; }
+main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 300px; }
 main:has(.shell.is-collapsed) > .pfq { padding-left: 96px; }
 .pfq-in { max-width: 900px; margin: 0 auto 0 0; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
 main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
