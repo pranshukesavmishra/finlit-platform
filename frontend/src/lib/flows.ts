@@ -7,7 +7,11 @@ export type Side = { buy: number | null; sell: number | null; net: number | null
 /** One trading day of cash-market activity. `dii` is null on days (or in a whole deployment) where no permitted source publishes it. */
 export type FlowDay = { d: string; fii: Side; dii: Side | null };
 export type Streak = { side: "buying" | "selling" | "flat"; days: number; since: string | null; sum: number; velocity: number | null };
-export type Period = { key: string; label: string; from: string; to: string; days: number; fii: number | null; diiNet: number | null; fiiBuy: number | null; fiiSell: number | null };
+export type Period = { key: string; label: string; from: string; to: string; days: number; fii: number | null; diiNet: number | null; fiiBuy: number | null; fiiSell: number | null;
+  /** Sessions in the window that have a DII figure (optional: older payloads lack it). */
+  diiDays?: number;
+  /** Only when the window starts before the DII report does: FII, DII and their sum over the sessions from the first DII day, with the dates they cover. */
+  common?: { from: string; to: string; days: number; fii: number; dii: number; overall: number } | null };
 /** Futures and options positioning by participant (open interest, contracts) from the exchanges' participant-wise files; null when not published to us. */
 export type Positioning = {
   asOf: string;
@@ -30,7 +34,9 @@ export type Flows = {
   correlation: { index: string; label: string; fiiVsIndex: number | null; diiVsIndex: number | null; days: number } | null;
   /** Optional (backwards compatible): the index's daily close over the same sessions, for the Flow vs Nifty chart. The page degrades to the correlation figures alone when it is absent. */
   index?: { d: string; close: number }[] | null;
-  coverage: { from: string | null; to: string | null; sessions: number; diiSessions: number };
+  coverage: { from: string | null; to: string | null; sessions: number; diiSessions: number;
+    /** First day shown with a DII figure, the date the official DII report begins, and the reason earlier days are empty (optional: older payloads lack them). */
+    diiFrom?: string | null; diiPublishedFrom?: string | null; diiReason?: string };
   sources: SourceNote[];
   disclaimer: string;
 };

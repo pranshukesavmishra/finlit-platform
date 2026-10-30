@@ -22,6 +22,18 @@ export function diiState(f: Pick<Flows, "days" | "coverage">): "full" | "partial
   return n === 0 ? "none" : n === f.days.length ? "full" : "partial";
 }
 
+/** Why a DII square or figure is empty: the day is before the official DII report begins ("unpublished"), or the report should have a figure and has none ("missing"). */
+export const diiGap = (d: string, publishedFrom: string | null | undefined): "unpublished" | "missing" => (publishedFrom && d < publishedFrom ? "unpublished" : "missing");
+
+/** The sessions where FII and DII both exist, with the dates they run over and their totals. FII is also given over exactly those sessions, so the two are
+ *  compared like for like; the whole-range FII total is a different period. Null when no session has both. */
+export function commonSpan(days: FlowDay[]): { from: string; to: string; n: number; fii: number; dii: number; overall: number } | null {
+  const w = days.filter((d) => d.fii.net != null && d.dii?.net != null);
+  if (!w.length) return null;
+  const fii = sumOf(w.map((d) => d.fii.net!)), dii = sumOf(w.map((d) => d.dii!.net!));
+  return { from: w[0].d, to: w[w.length - 1].d, n: w.length, fii, dii, overall: fii + dii };
+}
+
 /** Sessions inside the last `months` calendar months of the data (0 = all). */
 export function sinceMonths<T extends { d: string }>(rows: T[], months: number): T[] {
   if (!rows.length || !months) return rows;
@@ -120,7 +132,7 @@ export function level(v: number | null, scale: number): number {
   const k = Math.max(1, Math.ceil(Math.min(1, Math.abs(v) / scale) * 4));
   return v > 0 ? k : -k;
 }
-/** Total of a side over the last `months` calendar months of the data. */
+/** Total of a side over the last `months` calendar months of the data (for DII: over the sessions that have it; see commonSpan for the period). */
 export function totalSince(days: FlowDay[], s: SideKey, months: number): number | null {
   const v = sinceMonths(days, months).map((d) => netOf(d, s)).filter((x): x is number => x != null);
   return v.length ? Math.round(sumOf(v)) : null;

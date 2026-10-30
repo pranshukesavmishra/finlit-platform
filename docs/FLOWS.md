@@ -27,7 +27,10 @@ AMFI (no daily equity flow), `archives.nseindia.com` other paths (no cash-market
 * Streak, velocity, last30, mood, `fiiShareOfSelling` (a fraction 0..1), `combinedNet`, correlation: as specified (correlation = Pearson of daily net
   with the Nifty 50 same-day % change, from 30 common sessions).
 * A window sum (period, month, year) is given only when every session in it has the figure; a part-sum is never shown. DII totals therefore
-  show null for windows reaching before 1 June 2026. `index` (optional) is the Nifty close over the same sessions as `days`.
+  show null for windows reaching before 1 June 2026; such a period then carries `common` (FII, DII and their sum over the sessions from the first DII day, with
+  the dates), and `diiDays`. `coverage` has `diiFrom` (first DII day shown), `diiPublishedFrom` (the date NSDL's DII report begins) and `diiReason`. The page
+  draws the DII and Overall lines and totals only over sessions that have both, names that period beside every total, and shows days before
+  `diiPublishedFrom` as "not published" (empty outline), distinct from "missing session" (hatched, a day the report should have). `index` (optional) is the Nifty close over the same sessions as `days`.
 * NSDL's daily figures are provisional and revised; the job re-reads the current and previous month nightly. Rows with a net that is not
   purchases minus sales, out-of-range amounts or future dates are left out at publish time.
 * No number is ever estimated; unavailable = null and `sources[]` says so.

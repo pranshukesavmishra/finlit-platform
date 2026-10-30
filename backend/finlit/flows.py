@@ -45,6 +45,7 @@ CACHE = "public, max-age=600, stale-while-revalidate=3600"
 IST = timezone(timedelta(hours=5, minutes=30))
 FIRST = date(2010, 1, 1)                      # the stock-exchange route is split out in NSDL's tables from at least 2010; before that the layout differs
 DII_START = date(2026, 6, 1)                  # NSDL's first DII report; nothing earlier is published
+DII_REASON = "NSDL publishes the DII report from 1 June 2026; earlier DII days are not available from any official free source, so they are left empty, never estimated."
 INDEX, INDEX_LABEL = "NIF50", "Nifty 50"
 DAYS_SHOWN_YEARS = 5
 MIN_CORR = 30
@@ -538,16 +539,31 @@ def total(rows: List[Row], attr: str) -> Optional[float]:
     return r2(sum(vals)) if vals and all(v is not None for v in vals) else None
 
 
+def common(rows: List[Row]) -> Optional[dict]:
+    """For a window that starts before the DII report exists: FII, DII and their sum over the sessions from the first DII day on, with the dates they
+    cover, so a headline never sets a 12-month FII total against a 5-month DII total. None when the window has full DII (the plain totals say it), has
+    none, or has a session without a figure after the first DII day (a part-sum is never given)."""
+    first = next((i for i, r in enumerate(rows) if r.dn is not None), None)
+    if first is None or first == 0:
+        return None
+    w = rows[first:]
+    f, d = total(w, "fn"), total(w, "dn")
+    if f is None or d is None:
+        return None
+    return {"from": w[0].d.isoformat(), "to": w[-1].d.isoformat(), "days": len(w), "fii": f, "dii": d, "overall": r2(f + d)}
+
+
 def period(key: str, label: str, rows: List[Row], start: Optional[date], today: date) -> dict:
     return {"key": key, "label": label, "from": (rows[0].d if rows else start or today).isoformat(), "to": (rows[-1].d if rows else today).isoformat(), "days": len(rows),
-            "fii": total(rows, "fn"), "diiNet": total(rows, "dn"), "fiiBuy": total(rows, "fb"), "fiiSell": total(rows, "fs")}
+            "fii": total(rows, "fn"), "diiNet": total(rows, "dn"), "fiiBuy": total(rows, "fb"), "fiiSell": total(rows, "fs"),
+            "diiDays": sum(r.dn is not None for r in rows), "common": common(rows)}
 
 
 def rolling(n: int, rows: List[Row], today: date) -> dict:
     w = rows[-n:]
     p = period(f"r{n}", f"Last {n} sessions", w, None, today)
     if len(w) < n:                                  # fewer sessions than the window asks for: the days are counted, the sums are not given
-        p.update(fii=None, diiNet=None, fiiBuy=None, fiiSell=None)
+        p.update(fii=None, diiNet=None, fiiBuy=None, fiiSell=None, common=None)
     return p
 
 
@@ -701,7 +717,8 @@ async def build(store, today: date) -> dict:
         "fpi": fpi_detail([dict(r) for r in recs]),
         "correlation": correlation(shown, closes),
         "index": [{"d": r.d.isoformat(), "close": closes[r.d]} for r in shown if r.d in closes] or None,
-        "coverage": {"from": days[0]["d"] if days else None, "to": days[-1]["d"] if days else None, "sessions": sum(r.fn is not None for r in shown), "diiSessions": sum(r.dn is not None for r in shown)},
+        "coverage": {"from": days[0]["d"] if days else None, "to": days[-1]["d"] if days else None, "sessions": sum(r.fn is not None for r in shown), "diiSessions": sum(r.dn is not None for r in shown),
+                     "diiFrom": next((r.d.isoformat() for r in shown if r.dn is not None), None), "diiPublishedFrom": DII_START.isoformat(), "diiReason": DII_REASON},
         "sources": notes_for(rows, issues, runs, positions, closes, today),
         "disclaimer": "Figures are reproduced from the official publishers (NSDL, NSE archives) in Rs crore, or worked out from them as described. NSDL's daily figures are provisional and are revised as custodians confirm trades. "
                       "A figure no permitted source publishes is left empty, never estimated. Information only, not investment advice.",

@@ -10,8 +10,8 @@ import { useUI } from "../lib/ui";
 import { MINUS, dateIN, nf } from "../lib/format";
 import { useFlows, type Flows, type FlowDay, type Period, type Side, type Streak } from "../lib/flows";
 import {
-  RANGES, absorption, ageLabel, combined, corrWords, cumulative, diiState, filterDays, grp, indexCorrelation, inr, isRange, level, monthGrid,
-  movingAverage, netOf, percentileOf, perDay, rangeRows, sortDays, splitOf, summarize, toCsv, topRuns, totalSince, type RangeKey, type SideKey, type SortKey,
+  RANGES, absorption, ageLabel, combined, commonSpan, corrWords, cumulative, diiGap, diiState, filterDays, grp, indexCorrelation, inr, isRange, level, monthGrid,
+  movingAverage, netOf, percentileOf, perDay, rangeRows, sinceMonths, sortDays, splitOf, summarize, toCsv, topRuns, totalSince, type RangeKey, type SideKey, type SortKey,
 } from "../lib/flowsMath";
 import { BarChart, CAL_LEGEND, CalendarHeat, LineChart } from "../components/FlowsCharts";
 import "../styles/flows.css";
@@ -80,7 +80,10 @@ function Activities({ f, st, range, setRange, view, setView }: Ctx) {
   const side: SideKey = st === "none" ? "fii" : bside;
   const maAll = useMemo(() => movingAverage(f.days.map((d) => netOf(d, side)), 20), [f.days, side]);
   const maRows = useMemo(() => { const off = f.days.length - rows.length; return maAll.slice(off); }, [maAll, f.days.length, rows.length]);
-  const tot = (s: SideKey | "all") => { const v = rows.map((d) => (s === "all" ? combined(d) : netOf(d, s))).filter((x): x is number => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
+  const tot = (s: SideKey) => { const v = rows.map((d) => netOf(d, s)).filter((x): x is number => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
+  const both = useMemo(() => commonSpan(rows), [rows]);                       // DII and Overall are summed over the sessions that have both, never over the whole range
+  const gapDays = rows.filter((d) => d.dii?.net == null).length, from = f.coverage.diiPublishedFrom;
+  const short = (d: string) => dateIN(d, { day: "numeric", month: "short", year: "2-digit" });
   return (
     <section className="fl-panel" aria-labelledby="flAct" id="chart">
       <div className="fl-ph"><h2 id="flAct">FII/DII activities {view === "cum" ? "· cumulative net flows (₹ crore)" : "· daily net flows (₹ crore)"}</h2>
@@ -97,11 +100,13 @@ function Activities({ f, st, range, setRange, view, setView }: Ctx) {
         : <BarChart rows={rows.map((d) => ({ d: d.d, v: netOf(d, side) }))} ma={maRows} maLabel="20-session average" name={side === "fii" ? "FII" : "DII"} />}
       <p className="fl-sum" aria-label="Totals for the range">
         <span>{rows.length} sessions · {rows.length ? `${dateIN(rows[0].d, { day: "numeric", month: "short", year: "2-digit" })} to ${dateIN(rows[rows.length - 1].d, { day: "numeric", month: "short", year: "2-digit" })}` : ""}</span>
-        <span>FII <b className={tone(tot("fii"))}>{inr(tot("fii"), { sign: true })}</b></span>
-        {st !== "none" && <><span>DII <b className={tone(tot("dii"))}>{inr(tot("dii"), { sign: true })}</b></span><span>Overall <b className={tone(tot("all"))}>{inr(tot("all"), { sign: true })}</b></span></>}
+        <span>FII{st !== "none" && gapDays > 0 ? " (whole range)" : ""} <b className={tone(tot("fii"))}>{inr(tot("fii"), { sign: true })}</b></span>
+        {st !== "none" && !gapDays && <><span>DII <b className={tone(tot("dii"))}>{inr(tot("dii"), { sign: true })}</b></span><span>Overall <b className={tone(both?.overall)}>{inr(both?.overall, { sign: true })}</b></span></>}
+        {st !== "none" && gapDays > 0 && both && <span className="fl-sum-b"><em>Where DII exists, {short(both.from)} to {short(both.to)} ({both.n} sessions):</em> FII <b className={tone(both.fii)}>{inr(both.fii, { sign: true })}</b> · DII <b className={tone(both.dii)}>{inr(both.dii, { sign: true })}</b> · Overall <b className={tone(both.overall)}>{inr(both.overall, { sign: true })}</b></span>}
         {view === "bars" && <span><i className="fl-dv" style={{ width: 18, height: 4, background: "var(--gold)", marginLeft: 0, marginRight: 6 }} />20-session average of the net</span>}
       </p>
-      <p className="fl-foot">{view === "cum" ? "Each line is a running total of daily net flow from the first session in the range, so it starts at zero. A rising line means net buying over the period; a falling line, net selling. On the axis, k is thousand crore and L is lakh crore (₹1,00,000 crore)." : "Green bars are net buying days and red bars net selling days. The gold line is the average of the latest 20 sessions, which smooths daily noise."}{st === "partial" && " DII is missing for some sessions; those days add nothing to the DII and Overall lines."}</p>
+      <p className="fl-foot">{view === "cum" ? "Each line is a running total of daily net flow from the first session in the range, so it starts at zero. A rising line means net buying over the period; a falling line, net selling. On the axis, k is thousand crore and L is lakh crore (₹1,00,000 crore)." : "Green bars are net buying days and red bars net selling days. The gold line is the average of the latest 20 sessions, which smooths daily noise."}{st === "partial" && gapDays > 0 && (() => { const un = rows.filter((d) => d.dii?.net == null && diiGap(d.d, from) === "unpublished").length, miss = gapDays - un;
+          return ` DII and Overall are counted only on sessions that have both FII and DII, so those two lines start where DII starts${both ? ` (${short(both.from)})` : ""}.` + (un ? ` ${f.coverage.diiReason ?? `The official DII report begins ${from ? short(from) : "later"}; earlier days are not published.`}` : "") + (miss ? ` ${miss} session${miss === 1 ? " has" : "s have"} no DII figure although the report exists; ${miss === 1 ? "it adds" : "they add"} nothing to those lines.` : ""); })()}</p>
     </section>
   );
 }
@@ -146,7 +151,7 @@ function DayDetail({ f, day }: { f: Flows; day: string }) {
   const pf = percentileOf(f.days, "fii", d.fii.net), pd = percentileOf(f.days, "dii", d.dii?.net ?? null);
   const box = (name: string, s: Side | null, p: ReturnType<typeof percentileOf>) => (
     <div><span>{name}</span><b className={tone(s?.net)}>{s?.net == null ? "—" : <>{arrow(s.net)}{inr(s.net)}</>}</b>
-      <small>{s ? `Buy ${inr(s.buy)} · Sell ${inr(s.sell)}` : "No figure published"}</small>
+      <small>{s ? `Buy ${inr(s.buy)} · Sell ${inr(s.sell)}` : name.startsWith("DII") && diiGap(d.d, f.coverage.diiPublishedFrom) === "unpublished" ? `Not published: the official DII report begins ${longDate(f.coverage.diiPublishedFrom!)}` : "No figure published"}</small>
       {p && <small>{s!.net! < 0 ? "Selling" : "Buying"} bigger than {p.pct.toFixed(0)}% of sessions</small>}</div>);
   const c = combined(d);
   return (
@@ -156,20 +161,22 @@ function DayDetail({ f, day }: { f: Flows; day: string }) {
 }
 function Calendars({ f, st, day, setDay }: Ctx) {
   const sel = day && f.days.some((d) => d.d === day) ? day : f.days.length ? f.days[f.days.length - 1].d : null;
-  const t1f = totalSince(f.days, "fii", 12), t1d = totalSince(f.days, "dii", 12);
-  const missing = f.days.filter((d) => d.dii?.net == null).length;
+  const t1f = totalSince(f.days, "fii", 12), yr = sinceMonths(f.days, 12), t1d = commonSpan(yr), from = f.coverage.diiPublishedFrom;
+  const yrGap = yr.filter((d) => d.dii?.net == null), un = yrGap.filter((d) => diiGap(d.d, from) === "unpublished").length, missing = yrGap.length - un;
+  const short = (d: string) => dateIN(d, { day: "numeric", month: "short", year: "numeric" });
   return (
     <section className="fl-panel" aria-labelledby="flCal" id="calendar">
       <div className="fl-ph"><h2 id="flCal">Daily flow calendar · last year</h2></div>
       <p className="fl-note">One square per trading day. Deeper green is bigger net buying, deeper red bigger net selling; the scale is set by that side's own 92nd-percentile day, so a few extreme days do not wash out the rest. Select any day to read its figures.</p>
       <div className="fl-cals">
-        <div><div className="fl-cal-h"><h3>FII / FPI daily net</h3><b className={tone(t1f)}>1Y FII: {inr(t1f)}</b></div>
+        <div><div className="fl-cal-h"><h3>FII / FPI daily net</h3><b className={tone(t1f)}>1Y FII: {inr(t1f)}</b>{st !== "none" && t1d && yrGap.length > 0 && <small className="fl-cal-sub">same {t1d.n} sessions as DII: {inr(t1d.fii, { sign: true })}</small>}</div>
           <CalendarHeat days={f.days} side="fii" selected={sel} onSelect={setDay} name="FII" /></div>
-        <div><div className="fl-cal-h"><h3>DII daily net</h3>{st !== "none" && <b className={tone(t1d)}>1Y DII: {inr(t1d)}</b>}</div>
-          {st === "none" ? <p className="fl-na">{NO_DII}</p> : <CalendarHeat days={f.days} side="dii" selected={sel} onSelect={setDay} name="DII" />}</div>
+        <div><div className="fl-cal-h"><h3>DII daily net</h3>{st !== "none" && t1d && <b className={tone(t1d.dii)}>{yrGap.length > 0 ? `DII since ${short(t1d.from)}` : "1Y DII"}: {inr(t1d.dii, { sign: yrGap.length > 0 })}</b>}</div>
+          {st === "none" ? <p className="fl-na">{NO_DII}</p> : <CalendarHeat days={f.days} side="dii" selected={sel} onSelect={setDay} name="DII" publishedFrom={from} />}</div>
       </div>
-      <div className="fl-legend" aria-label="Colour key"><span style={{ margin: "0 6px 0 0" }}>▼ Selling</span>{CAL_LEGEND.map((l) => <i key={l} className="fl-cell" data-l={l} style={{ aspectRatio: "auto" }} />)}<span>Buying ▲</span><i className="fl-cell" data-n="1" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>no figure</span></div>
-      {st === "partial" && <p className="fl-foot">DII is missing for {missing.toLocaleString("en-IN")} sessions; those squares are hatched, not zero.</p>}
+      <div className="fl-legend" aria-label="Colour key"><span style={{ margin: "0 6px 0 0" }}>▼ Selling</span>{CAL_LEGEND.map((l) => <i key={l} className="fl-cell" data-l={l} style={{ aspectRatio: "auto" }} />)}<span>Buying ▲</span><i className="fl-cell" data-n="1" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>missing session</span>{un > 0 && <><i className="fl-cell" data-n="2" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>not published</span></>}</div>
+      {st === "partial" && un > 0 && <p className="fl-foot">DII squares with an empty outline are days before the official DII report begins{from ? ` (${short(from)})` : ""}: not published, not zero. {f.coverage.diiReason ?? ""} The DII total above covers only the {t1d ? `${t1d.n.toLocaleString("en-IN")} sessions from ${short(t1d.from)}` : "sessions that have it"}; the FII figure beside it is shown over the same sessions for a fair comparison.</p>}
+      {st === "partial" && missing > 0 && <p className="fl-foot">DII is missing for {missing.toLocaleString("en-IN")} session{missing === 1 ? "" : "s"} although the report exists; those squares are hatched, not zero.</p>}
       {sel && <DayDetail f={f} day={sel} />}
     </section>
   );
@@ -272,18 +279,19 @@ function Periods({ f, st }: Ctx) {
     <div><h3>{p.label}</h3><small>{dateIN(p.from, { day: "numeric", month: "short" })} to {dateIN(p.to, { day: "numeric", month: "short", year: "numeric" })} · {p.days} sessions</small>
       <dl><div><dt>FII net</dt><dd className={tone(p.fii)}>{inr(p.fii, { sign: true })}</dd></div><div><dt>FII per session</dt><dd>{inr(perDay(p, "fii"), { sign: true })}</dd></div>
         {st !== "none" && <><div><dt>DII net</dt><dd className={tone(p.diiNet)}>{inr(p.diiNet, { sign: true })}</dd></div><div><dt>DII per session</dt><dd>{inr(perDay(p, "dii"), { sign: true })}</dd></div></>}
+        {st !== "none" && p.diiNet == null && p.common && <div><dt>Where DII exists ({dateIN(p.common.from, { day: "numeric", month: "short" })} to {dateIN(p.common.to, { day: "numeric", month: "short", year: "2-digit" })}, {p.common.days} sessions)</dt><dd>FII {inr(p.common.fii, { sign: true })} · DII {inr(p.common.dii, { sign: true })} · Overall {inr(p.common.overall, { sign: true })}</dd></div>}
         <div><dt>FII gross buy / sell</dt><dd>{p.fiiBuy == null ? "—" : `${compactCr(p.fiiBuy)} / ${compactCr(p.fiiSell ?? 0)}`}</dd></div></dl></div>);
   const sel = (v: string | undefined, set: (s: string) => void, lab: string) => <label>{lab}<select value={v} onChange={(e) => set(e.target.value)}>{ps.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}</select></label>;
   return (
     <section className="fl-panel" aria-labelledby="flPer">
       <div className="fl-ph"><h2 id="flPer">Compare periods</h2></div>
-      <p className="fl-note">Pick any two periods. Periods differ in length, so the per-session average is shown too.</p>
+      <p className="fl-note">Pick any two periods. Periods differ in length, so the per-session average is shown too. A DII total is given only when every session in the period has a DII figure; where the period starts before the DII report does, the DII figure beside it covers only the sessions from {f.coverage.diiPublishedFrom ? dateIN(f.coverage.diiPublishedFrom, { day: "numeric", month: "short", year: "numeric" }) : "its first day"}, and says so.</p>
       <div className="fl-pick">{sel(a, setA, "Period A")}{sel(b, setB, "Period B")}</div>
       <div className="fl-cmp">{card(pa)}{card(pb)}</div>
       <div className="fl-tw"><table className="fl-t"><thead><tr><th scope="col">Period</th><th scope="col" className="fl-hide-sm">Sessions</th><th scope="col">FII net</th>{st !== "none" && <th scope="col">DII net</th>}<th scope="col" className="fl-hide-sm">FII per session</th></tr></thead>
         <tbody>{ps.map((p) => (
           <tr key={p.key}><th scope="row">{p.label}</th><td className="fl-hide-sm">{p.days}</td>
-            <td className={tone(p.fii)}>{arrow(p.fii)}{inr(p.fii)}</td>{st !== "none" && <td className={tone(p.diiNet)}>{arrow(p.diiNet)}{inr(p.diiNet)}</td>}
+            <td className={tone(p.fii)}>{arrow(p.fii)}{inr(p.fii)}</td>{st !== "none" && <td className={tone(p.diiNet)} title={p.diiNet == null && p.common ? `DII exists for ${p.common.days} of ${p.days} sessions, from ${p.common.from}; over those: FII ${inr(p.common.fii, { sign: true })}, DII ${inr(p.common.dii, { sign: true })}` : undefined}>{arrow(p.diiNet)}{inr(p.diiNet)}{p.diiNet == null && p.common ? <small className="fl-since"> {inr(p.common.dii, { sign: true })} since {dateIN(p.common.from, { day: "numeric", month: "short" })}</small> : null}</td>}
             <td className="fl-hide-sm">{inr(perDay(p, "fii"))}<i className="fl-dv" style={{ width: `${Math.max(2, (Math.abs(perDay(p, "fii") ?? 0) / mx) * 60)}px`, background: (p.fii ?? 0) >= 0 ? "var(--gain)" : "var(--loss)" }} /></td></tr>))}</tbody></table></div>
     </section>
   );
@@ -360,7 +368,7 @@ function Sources({ f, st }: Ctx) {
   return (
     <section className="fl-panel fl-src" aria-labelledby="flSrc" id="sources">
       <div className="fl-ph"><h2 id="flSrc">Sources and method</h2>{f.updatedAt && <span className="fl-chip">Refreshed {dateIN(f.updatedAt)}</span>}</div>
-      <p className="fl-note">{c.sessions.toLocaleString("en-IN")} sessions{c.from && c.to ? ` from ${dateIN(c.from)} to ${dateIN(c.to)}` : ""}. {st === "full" ? "DII figures are present for every session." : st === "partial" ? `DII figures exist for ${c.diiSessions.toLocaleString("en-IN")} of them; the rest are shown as gaps, never as zero.` : "No DII figures could be obtained from the sources we are allowed to use, so every DII view says so instead of showing a number."}</p>
+      <p className="fl-note">{c.sessions.toLocaleString("en-IN")} sessions{c.from && c.to ? ` from ${dateIN(c.from)} to ${dateIN(c.to)}` : ""}. {st === "full" ? "DII figures are present for every session." : st === "partial" ? `DII figures exist for ${c.diiSessions.toLocaleString("en-IN")} of them${c.diiFrom ? `, from ${dateIN(c.diiFrom)}` : ""}. ${c.diiReason ?? "The rest are shown as gaps, never as zero."}` : "No DII figures could be obtained from the sources we are allowed to use, so every DII view says so instead of showing a number."}</p>
       <ul>{f.sources.map((s) => (
         <li key={s.id}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.label}</a><span><b className={`fl-badge ${s.status}`}>{STATUS[s.status]}</b>{s.lastDate ? ` · latest ${dateIN(s.lastDate)}` : ""}</span><span>{s.covers}{s.note ? ` ${s.note}` : ""}</span></li>))}</ul>
       <ol className="fl-method">

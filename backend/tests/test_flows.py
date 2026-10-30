@@ -129,6 +129,26 @@ def test_periods_sum_only_what_every_session_has():
     assert flows.grouped(only_dii, "%Y", "y") == [{"y": "2026", "fii": 20.0, "dii": 25.0, "days": 2}]
 
 
+def test_a_window_that_starts_before_the_dii_report_gives_the_common_period_and_never_a_part_sum():
+    """400 sessions of FII, DII for the last 150 only (the shape of the live data: NSDL's DII report starts on 1 Jun 2026)."""
+    from datetime import timedelta
+    days, d = [], D(2025, 9, 1)
+    while len(days) < 400:
+        if d.weekday() < 5:
+            days.append(d)
+        d += timedelta(days=1)
+    rows = [row(x, fn=-10.0, dn=4.0 if i >= 250 else None) for i, x in enumerate(days)]
+    today = days[-1]
+    p = {x["key"]: x for x in flows.periods(rows, today)}
+    r365 = p["r365"]
+    assert r365["days"] == 365 and r365["fii"] == -3650.0 and r365["diiNet"] is None and r365["diiDays"] == 150      # the headline DII total is not a 150-day sum under a 365-day label
+    assert r365["common"] == {"from": days[250].isoformat(), "to": today.isoformat(), "days": 150, "fii": -1500.0, "dii": 600.0, "overall": -900.0}
+    assert p["r30"]["diiNet"] == 120.0 and p["r30"]["common"] is None and p["r30"]["diiDays"] == 30      # fully covered: the plain totals say it
+    assert flows.common([row(days[0], fn=1.0), row(days[1], fn=1.0)]) is None and flows.common([]) is None
+    gap = [row(days[0], fn=1.0), row(days[1], fn=1.0, dn=2.0), row(days[2], fn=1.0), row(days[3], fn=1.0, dn=2.0)]
+    assert flows.common(gap) is None                                                                  # a missing session after the start: no part-sum either
+
+
 def test_pearson_and_the_30_session_floor():
     xs = list(range(40))
     assert flows.pearson(xs, [2 * x + 1 for x in xs]) == 1.0 and flows.pearson(xs, [-x for x in xs]) == -1.0
@@ -337,6 +357,24 @@ async def test_without_dii_the_page_still_works_and_says_why(fstore):
     assert p["streaks"]["dii"] is None and p["last30"]["dii"] is None and all(d["dii"] is None for d in p["days"])
     dii = {s["id"]: s for s in p["sources"]}["dii"]
     assert dii["status"] == "unavailable" and dii["lastDate"] is None and "estimated" in dii["note"]
+
+
+@pytest.mark.integration
+async def test_the_payload_states_where_the_dii_report_starts_and_why(fstore):
+    from datetime import timedelta
+    async with fstore.pool.acquire() as conn:
+        d, i = D(2025, 9, 1), 0
+        while i < 400:
+            if d.weekday() < 5:
+                await flows.save_manual(conn, flows.ManualIn(d=d, fii={"net": -10.0}, dii={"net": 4.0} if i >= 250 else None), D(2027, 6, 30))
+                i += 1
+            d += timedelta(days=1)
+    p = await flows.publish(fstore, D(2027, 6, 30))
+    c = p["coverage"]
+    assert c["diiSessions"] == 150 and c["diiFrom"] == p["days"][250]["d"] and c["diiPublishedFrom"] == "2026-10-14" and "not available from any official free source" in c["diiReason"]
+    assert p["days"][249]["dii"] is None and p["days"][250]["dii"]["net"] == 4.0
+    r365 = {x["key"]: x for x in p["periods"]}["r365"]
+    assert r365["diiNet"] is None and r365["common"]["days"] == 150 and r365["common"]["overall"] == -900.0
 
 
 # ---- the admin route
