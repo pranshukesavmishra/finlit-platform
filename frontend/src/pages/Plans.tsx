@@ -1,9 +1,11 @@
 import { Icon } from "../lib/icons";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
 import { useAuth } from "../lib/auth";
 import { DEMO } from "../lib/demo";
 import { useDocTitle } from "../lib/title";
+import { planTarget } from "../lib/planTarget";
 
 const PLANS: { k: Plan; tag: string; desc: string; price: string; per: string; cta: string; inc: string; feat?: boolean; f: [string, string][] }[] = [
   { k: "basic", tag: "Free", desc: "Look up any listed company and run a simple screen. No card needed.", price: "Free", per: "no card needed", cta: "Create a free account", inc: "What you get",
@@ -39,6 +41,19 @@ export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1
   const H = h1 ? "h1" : "h2";
   const { plan, upgrade } = useUI();
   const { user } = useAuth();
+  const loc = useLocation();
+  const [target, setTarget] = useState<Plan | null>(null);
+  // /plans#gold or /plans?plan=gold: scroll to that plan, focus it and highlight it.
+  useEffect(() => {
+    const k = compact ? null : planTarget(loc.hash, loc.search);
+    setTarget(k);
+    if (!k) return;
+    const el = document.getElementById(`plan-${k}`);
+    if (!el) return;
+    const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = window.setTimeout(() => { el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); el.focus({ preventScroll: true }); }, 80);
+    return () => window.clearTimeout(t);
+  }, [compact, loc.hash, loc.search]);
   const cta = (k: Plan, label: string) => DEMO ? (plan === k ? "Previewing " + TIER[k].n : label) : plan === k && (user || k === "basic") ? (user ? "Your plan" : "Included for everyone") : k === "basic" ? "Create a free account" : user ? `Request ${TIER[k].n}` : label;
   const go = (k: Plan) => { if (!DEMO && k === "basic") return; upgrade(k); if (DEMO) window.scrollTo({ top: 0, behavior: "smooth" }); };
   return (
@@ -59,7 +74,7 @@ export function PlansBand({ id, h1 = false, compact = false }: { id?: string; h1
         {!compact && (
         <div className="pgrid">
           {PLANS.map((p) => (
-            <div key={p.k} id={`plan-${p.k}`} data-cur={DEMO ? "Previewing" : "Your plan"} className={`plan ${p.feat ? "feat" : ""} ${plan === p.k && (DEMO || user || p.k === "basic") ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
+            <div key={p.k} id={`plan-${p.k}`} data-cur={DEMO ? "Previewing" : "Your plan"} tabIndex={-1} className={`plan ${p.feat ? "feat" : ""} ${target === p.k ? "target" : ""} ${plan === p.k && (DEMO || user || p.k === "basic") ? "current" : ""}`} style={{ "--tc": `var(${TIER[p.k].tc})` } as React.CSSProperties}>
               <PlanArt k={p.k} />
               <div className="plan-top"><div className="plan-name"><span className="pi"><Icon name={TIER[p.k].ic} /></span>{TIER[p.k].n}</div><span className="ribbon">{p.tag}</span></div>
               <p className="plan-desc">{p.desc}</p>
