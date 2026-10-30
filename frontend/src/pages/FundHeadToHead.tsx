@@ -16,6 +16,7 @@ import {
 } from "../lib/mfCompare";
 import { H2HChart, RangeBars, SIDE_COLOR, SIDE_DASH, SIDE_LETTER, type SideSeries } from "../mf/H2HChart";
 import { Foot, GTerm } from "../mf/Bits";
+import { ScoreCompare } from "../mf/ScoreCompare";
 import "../styles/mf.css";
 import "../styles/mfcompare.css";
 
@@ -385,6 +386,7 @@ export function FundHeadToHead() {
             <section id="h2h-panel" className="card mf-card h2h-panel" aria-label={CARDS.find((c) => c.id === s.card)!.title}>
               {s.card === "returns" ? <ReturnsPanel d={d} names={names} /> : s.card === "risk" ? <RiskPanel d={d} names={names} /> : s.card === "consistency" ? <ConsistencyPanel d={d} names={names} /> : <CostsPanel d={d} names={names} />}
             </section>
+            <ScoreCompare codes={[d.funds.a.code, d.funds.b.code]} names={[shortName(d.funds.a.name), shortName(d.funds.b.name)]} />
             <div className="card mf-card h2h-about">
               <h4 className="mf-h4">About the category average</h4>
               <p className="muted">{d.category.pending ? d.category.why : d.category.note || d.category.why}{d.category.membersAtStart != null && d.category.members ? ` ${d.category.membersAtStart} of the ${d.category.members} had a NAV on the first day of this period; younger funds join on their first NAV.` : ""} {d.category.survivorship}</p>

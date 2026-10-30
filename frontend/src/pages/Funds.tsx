@@ -24,6 +24,8 @@ import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
 import { FactsCard } from "../mf/Facts";
 import { ReturnsBlock } from "../mf/Returns";
 import { HoldingsSection } from "../holdings";
+import { FundScoreCard } from "../mf/ScoreCard";
+import { ScoreCompare } from "../mf/ScoreCompare";
 import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
 
@@ -265,6 +267,7 @@ export function FundDetailPage() {
         return g ? <p className="mf-note" role="note"><Icon name="info" /><span>Returns are shown for the Growth option of this fund: <Link to={`/funds/${g.code}`}>{g.name}</Link>.</span></p> : null;
       })()}
       <ReturnsBlock d={d} />
+      <FundScoreCard code={d.code} />
       <NavChart key={d.code} d={d} />
       <div className="mf-grid">
         <FactsCard facts={facts.data} loading={facts.isLoading} failed={facts.isError} />
@@ -358,6 +361,7 @@ function CompareTable({ funds }: { funds: CompareFund[] }) {
           <th scope="col" key={f.code}><i className="mf-sw" style={{ borderColor: SERIES_STYLE[i].color, borderTopStyle: i === 0 ? "solid" : i === 1 ? "dashed" : "dotted" }} aria-hidden="true" /><Link to={`/funds/${f.code}`}>{f.name}</Link></th>))}</tr></thead>
         <tbody>{body}</tbody>
       </table></div>
+      <ScoreCompare codes={funds.map((f) => f.code)} names={funds.map(shortName)} />
       {notes.length > 0 && <ol className="mf-notes faint" aria-label="Why some figures are blank">{notes.map((n, i) => <li key={i} value={i + 1}><sup>{String.fromCharCode(97 + (i % 26))}</sup> {n}</li>)}</ol>}
     </>
   );
