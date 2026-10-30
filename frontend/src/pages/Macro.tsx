@@ -256,30 +256,6 @@ function Coverage({ m }: { m: Macro }) {
   );
 }
 
-const FAQ: [string, string][] = [
-  ["What is the current RBI repo rate?", "The repo rate is the rate at which the Reserve Bank of India lends to commercial banks against government securities. It is the RBI's main policy tool for managing inflation and liquidity. The rate shown on this page is read from rbi.org.in; the history is every Monetary Policy Committee decision since April 2016."],
-  ["What is the difference between CPI and WPI inflation?", "CPI (consumer price index) measures what households pay for a basket of goods and services; it is the inflation the RBI targets. WPI (wholesale price index) measures prices of goods traded in bulk between businesses, before they reach shops. WPI moves more with commodity and fuel prices and can lead CPI, but does not always."],
-  ["What is the RBI's inflation target?", "The Government has set the RBI a target of 4% CPI inflation with a tolerance band of 2% to 6%, for 1 April 2026 to 31 March 2031. If inflation averages outside the band for three quarters in a row, the RBI must tell the Government why and what it will do."],
-  ["How is quarterly GDP growth calculated?", "The National Statistics Office publishes GDP levels for each quarter, in constant prices (real) and current prices (nominal). Growth on this page is each quarter against the same quarter a year earlier, within one base year, so seasonality and re-basing do not distort it."],
-  ["How is WPI inflation worked out, when MoSPI publishes an index?", "MoSPI publishes the wholesale price index, not a rate. Each month's inflation here is the index divided by the index of the same month a year earlier, minus one, always inside a single base year (2011-12 = 100 until December 2023, 2022-23 = 100 after). We never compare across a re-base."],
-  ["Why does CPI change base in the chart?", "MoSPI moved CPI to a new base (2024 = 100) in 2026 and published a back series. We use MoSPI's published rates for the back series and the new series; for 2025, the new series' first year, no rate is published, so the change is worked out from the new index against the back series' index of the same month, both on the same base."],
-  ["What are India's forex reserves made up of?", "Foreign currency assets (mostly foreign government securities and deposits), gold, Special Drawing Rights (SDRs) held with the IMF, and India's reserve position in the IMF. The weekly RBI release shows each, and the changes over the week, the financial year and the year."],
-  ["How often is this data updated?", "The page refreshes every night. CPI and the industrial production index are released monthly by MoSPI around the 12th, WPI around the 14th, quarterly GDP about two months after the quarter ends, and the RBI's reserves and credit figures weekly or fortnightly. The Data coverage table shows the latest date of each series."],
-  ["Where does this data come from?", "CPI, WPI, GDP, the index of industrial production and unemployment come from the Ministry of Statistics and Programme Implementation (MoSPI) and the National Statistics Office through MoSPI's public eSankhyiki API. Policy rates, reserves, credit and exchange rates come from the Reserve Bank of India and FBIL. Every figure is reproduced as published or worked out from published figures as stated; none is estimated or forecast."],
-];
-
-function Faq() {
-  const [open, setOpen] = useState<number | null>(0);
-  return (
-    <section className="mc-panel" aria-labelledby="mcFaq" id="faq">
-      <div className="mc-ph"><h2 id="mcFaq">Frequently asked questions</h2></div>
-      <div className="mc-faq">{FAQ.map(([q, a], i) => (
-        <div key={q} className={open === i ? "on" : ""}><h3><button type="button" aria-expanded={open === i} aria-controls={`faq${i}`} onClick={() => setOpen(open === i ? null : i)}>{q}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" /></svg></button></h3>
-          {open === i && <p id={`faq${i}`}>{a}</p>}</div>))}</div>
-    </section>
-  );
-}
-
 // ------------------------------------------------------------------------------------------------------------- page
 export function MacroPage() {
   useDocTitle("India macro insights", "India macro insights: CPI and WPI inflation, GDP growth, industrial production, unemployment, the RBI repo rate, forex reserves, the rupee and bank credit, from MoSPI and the RBI, with full history.");
@@ -311,7 +287,6 @@ export function MacroPage() {
           <Compare m={m} />
           <div className="mc-cols"><Rates m={m} /><Reserves m={m} /></div>
           <Coverage m={m} />
-          <Faq />
           <section className="mc-panel mc-src-list" aria-labelledby="mcSrc"><h2 id="mcSrc">Sources</h2><ul>{m.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.name}</a><span>{s.covers}</span></li>)}</ul>
             <p className="mc-foot">{m.disclaimer} <Link to="/screener">Screen companies</Link> · <Link to="/sip-calculator">SIP calculator</Link></p></section>
         </>}

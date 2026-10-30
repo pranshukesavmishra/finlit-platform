@@ -38,8 +38,7 @@
 :root:not([data-theme="light"]) .pl-card,
 :root:not([data-theme="light"]) .wk,
 :root:not([data-theme="light"]) .rc,
-:root:not([data-theme="light"]) .hstat > div,
-:root:not([data-theme="light"]) .faq details { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 120px); box-shadow: var(--shadow); }
+:root:not([data-theme="light"]) .hstat > div { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 120px); box-shadow: var(--shadow); }
 :root:not([data-theme="light"]) .card.acc::before { opacity: .9; }
 :root:not([data-theme="light"]) .side { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 50%, var(--s1)), var(--s1)); box-shadow: var(--shadow); }
 :root:not([data-theme="light"]) .side-i.on { background: var(--s3); }

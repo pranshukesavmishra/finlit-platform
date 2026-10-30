@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { faqForPath } from "../lib/pageFaqs";
 import { ASSISTANT } from "../content/site";
 import { askAssistant } from "../lib/siteApi";
 import { Icon } from "../lib/icons";
@@ -23,6 +24,8 @@ export function Assistant() {
   if (loc.pathname.startsWith("/admin")) return null;
 
   const cur = ASSISTANT[node];
+  const pageFaq = faqForPath(loc.pathname);   // suggested questions = this page's FAQ set
+  const askPage = (q: string, a: string) => setMsgs((m) => [...m, { role: "user", content: q }, { role: "assistant", content: a }]);
   const run = (a: { type: string; to?: string; target?: string; service?: string }, label: string) => {
     if (a.type === "menu" && a.target) { setMsgs((m) => [...m, { role: "user", content: label }]); setNode(a.target); }
     if (a.type === "navigate" && a.to) { nav(a.to); setOpen(false); }
@@ -50,6 +53,9 @@ export function Assistant() {
             {msgs.map((m, i) => <div key={i} className={"bub " + (m.role === "user" ? "me" : "bot")} style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>)}
             {busy && <div className="bub bot typing"><i /><i /><i /></div>}
             {cur.answer && node !== "main" && <div className="bub bot" style={{ whiteSpace: "pre-wrap" }}>{cur.answer}</div>}
+            {node === "main" && pageFaq && <div className="chips" aria-label={`Questions about ${pageFaq.title}`}>
+              {pageFaq.items.slice(0, 4).map((it) => <button key={it.q} onClick={() => askPage(it.q, it.a)}>{it.q}</button>)}
+            </div>}
             <div className="chips">
               {[...cur.options, ...(cur.additionalOptions || [])].map((o) => <button key={o.label} onClick={() => run(o.action, o.label)}>{o.label}</button>)}
               {node !== "main" && <button className="back" onClick={() => setNode("main")}>← {cur.backLabel || "Main menu"}</button>}

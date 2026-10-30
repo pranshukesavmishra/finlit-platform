@@ -89,7 +89,6 @@
 .cmp .yes.ck { background: var(--gain); color: #fff; } .cmp .x-no { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--loss-soft); color: var(--loss); font: 700 14px var(--sans); }
 .cmp .yes.ck svg { display: none; } .cmp .yes.ck::before { content: "✓"; font: 700 14px var(--sans); }
 .cmp .soon-tag { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); font: 700 10.5px var(--sans); letter-spacing: .04em; text-transform: uppercase; }
-.faq-g { margin: 26px 0 8px; font: 600 12px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); } .faq-g:first-child { margin-top: 0; }
 @media (max-width: 860px) { .soon { grid-template-columns: 1fr; padding: 22px; } .split { grid-template-columns: 1fr; } }
 .cmp .cta-r td { padding-top: 14px; } .cmp .cta-r .btn { height: 38px; font-size: 13.5px; padding: 0 12px; white-space: normal; line-height: 1.2; }
 /* screener: chips and the filter card (valuation and every other group) */

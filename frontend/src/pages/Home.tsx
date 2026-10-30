@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { COMPANY, SERVICES } from "../content/site";
-import { FAQ_GROUPS } from "../content/faq";
 import { NotifyForm } from "../components/NotifyForm";
 import { Icon } from "../lib/icons";
 import { Reveal } from "../components/Reveal";
@@ -101,15 +100,6 @@ function Method({ s, failed }: { s?: Summary; failed?: boolean }) {
   );
 }
 
-function Faq() {
-  return (
-    <section className="sec hh-sec" id="faq"><div className="wrap faq-w">
-      <Reveal className="hh-head"><div className="hh-kicker">Questions</div><h2>Questions people ask first</h2><p>Tap a question to open the answer.</p></Reveal>
-      {FAQ_GROUPS.map((g) => <div key={g.title}><h3 className="faq-g">{g.title}</h3><div className="faq">{g.items.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></div>)}
-    </div></section>
-  );
-}
-
 export function Home() {
   useDocTitle("Research on every listed Indian stock", "FinLit Ventures: a research report and a 0 to 100 score for every listed Indian stock, a screener, watchlists and alerts. Information only, not investment advice.");
   const enquire = useEnquiry();
@@ -118,7 +108,6 @@ export function Home() {
   const webgl = use3d();
   const { data: idx } = useSearchIndex(true);
   const counts = useMemo(() => idx ? { all: idx.rows.length, ready: idx.rows.filter((r) => r[3]).length } : null, [idx]);
-  useEffect(() => { if (location.hash === "#faq") setTimeout(() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }), 200); }, []);   // /faq lands here
   const notify = () => { const el = document.getElementById("coming-soon"); el?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => el?.querySelector<HTMLInputElement>("input[type=email]")?.focus({ preventScroll: true }), 500); };
   return (
     <div className="hh">
@@ -171,7 +160,6 @@ export function Home() {
       </div></section>
 
       <PlansBand id="pricing" compact />
-      <Faq />
 
       <section className="sec hh-sec"><div className="wrap"><div className="hh-end"><h2>Want to talk about your portfolio?</h2><p>Tell us where you are. We will tell you what we would look at first.</p><div className="cta-row"><button className="btn primary lg" onClick={() => enquire()}>Get in touch</button><Link className="btn lg" to="/services">Services and pricing</Link></div><p className="hh-fine">{COMPANY.disclaimer}</p></div></div></section>
     </div>

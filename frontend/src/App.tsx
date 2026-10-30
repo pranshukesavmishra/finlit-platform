@@ -11,6 +11,7 @@ import { Services } from "./pages/Services";
 import { About } from "./pages/About";
 import { Why } from "./pages/Why";
 import { Contact } from "./pages/Contact";
+import { FaqsPage } from "./pages/Faqs";
 import { Legal, NotFound } from "./pages/Legal";
 import { Login } from "./pages/Login";
 import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows";
@@ -132,7 +133,7 @@ export default function App() {
           <Route path="sip-calculator" element={<SipCalculator />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="pricing" element={<Navigate to="/plans" replace />} />
-          <Route path="faq" element={<Navigate to="/#faq" replace />} />
+          <Route path="faq" element={<FaqsPage />} />
           <Route path="services" element={<Services />} />
           <Route path="about" element={<About />} />
           <Route path="mcp" element={<ConnectAIPage />} />

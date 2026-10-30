@@ -1,0 +1,46 @@
+/* "Questions about this page" panel at the bottom of each page, and the All FAQs hub */
+.pfq { margin: 40px 0 0; padding: 0 20px; }
+main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 272px; }
+main:has(.shell.is-collapsed) > .pfq { padding-left: 96px; }
+.pfq-in { max-width: 900px; margin: 0 auto 0 0; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
+main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
+.pfq-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.pfq-k { display: block; font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+.pfq-h h2, .pfq-hub h1 { margin: 0; font: 400 26px/1.2 var(--serif); color: var(--text); }
+.pfq-h h2 small, .pfq-pgh h3 small { font: 500 13px var(--sans); color: var(--faint); margin-left: 6px; white-space: nowrap; }
+.pfq-plan { flex: none; font: 700 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--s3); color: var(--muted); white-space: nowrap; }
+.pfq-plan.gold { background: var(--gold-soft); color: var(--gold); } .pfq-plan.free { background: var(--gain-soft); color: var(--gain); }
+.pfq-plan.silver { background: color-mix(in srgb, var(--t-silver, #8A8F98) 18%, var(--s1)); }
+.pfq-list { border-top: 1px solid var(--border); }
+.pfq-i { border-bottom: 1px solid var(--border); }
+.pfq-i h3, .pfq-i h4 { margin: 0; font: inherit; }
+.pfq-q { all: unset; box-sizing: border-box; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 4px; cursor: pointer; font: 600 16px/1.4 var(--sans); color: var(--text); }
+.pfq-q:hover { color: var(--gold); }
+.pfq-q:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.pfq-q svg { width: 18px; height: 18px; flex: none; fill: none; stroke: var(--gold); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.pfq-i.on .pfq-q svg { transform: rotate(180deg); }
+.pfq-a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
+.pfq-a > div { overflow: hidden; min-height: 0; visibility: hidden; transition: visibility 0s .25s; }
+.pfq-i.on .pfq-a { grid-template-rows: 1fr; } .pfq-i.on .pfq-a > div { visibility: visible; transition-delay: 0s; }
+.pfq-a p { margin: 0; padding: 0 4px 18px; font: 400 15px/1.7 var(--sans); color: var(--muted); max-width: 72ch; }
+.pfq-f { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; font: 400 13px var(--sans); color: var(--faint); }
+.pfq-f a { color: var(--gold); font-weight: 600; text-decoration: none; } .pfq-f a:hover { text-decoration: underline; }
+/* hub */
+.pfq-hub { padding-top: 32px; padding-bottom: 48px; max-width: 920px; }
+.pfq-hub-h p { color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 66ch; }
+.pfq-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; } .pfq-jump a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font: 600 13px var(--sans); text-decoration: none; } .pfq-jump a:hover { color: var(--gold); border-color: var(--gold); }
+.pfq-sech { margin: 36px 0 4px; font: 600 12px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+.pfq-pg { margin-top: 18px; scroll-margin-top: 80px; }
+.pfq-pgh { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+.pfq-pgh h3 { margin: 0; font: 400 22px var(--serif); } .pfq-pgh h3 a { color: var(--text); text-decoration: none; } .pfq-pgh h3 a:hover { color: var(--gold); }
+@media (max-width: 960px) { main:has(.shell) > .pfq { padding-left: 20px !important; } .pfq-in { margin: 0 auto; } }
+@media (max-width: 720px) {
+  .pfq { margin-top: 28px; padding: 0 16px; }
+  main:has(.shell) > .pfq { padding-left: 16px !important; }
+  .pfq-in { padding: 20px 16px 16px; border-radius: 16px; }
+  .pfq-h { flex-direction: column; gap: 8px; } .pfq-h h2 { font-size: 22px; }
+  .pfq-h h2 small { display: block; margin: 2px 0 0; }
+  .pfq-q { padding: 14px 2px; min-height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) { .pfq-a, .pfq-a > div, .pfq-q svg { transition: none !important; } }
+@media print { .pfq { display: none !important; } }

@@ -95,8 +95,7 @@
 .hh-svc p + p { max-width: 70ch; }
 .hh-first .btn { margin-top: 12px; }
 
-/* faq + close, quieter */
-.hh .faq-g { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+/* close, quieter */
 .hh-end { max-width: 62ch; padding-top: 18px; border-top: 2px solid var(--text); }
 .hh-end h2 { font: 400 clamp(26px, 3.4vw, 38px)/1.15 var(--serif); margin: 0 0 8px; } .hh-end p { color: var(--muted); }
 .hh-end .cta-row { margin-top: 16px; }

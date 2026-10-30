@@ -189,7 +189,7 @@ check("visitor: /admin/login sends people to the one sign-in page", /\/login\?ne
 await vpx.goto(base + "/", { waitUntil: "networkidle" });
 await vpx.getByRole("button", { name: /^Products/ }).click();
 check("home: Products menu lists the tools", (await vpx.getByRole("menuitem", { name: /Alerts/ }).count()) === 1 && (await vpx.getByRole("menuitem", { name: /Screener/ }).count()) === 1);
-check("home: pricing and FAQ sections present", (await vpx.locator("#pricing").count()) === 1 && (await vpx.locator("#faq details").count()) >= 6);
+check("home: pricing section present", (await vpx.locator("#pricing").count()) === 1);
 check("home: footer has no public admin link", (await vpx.locator("footer").getByText("CMS admin").count()) === 0);
 await vcx.close();
 

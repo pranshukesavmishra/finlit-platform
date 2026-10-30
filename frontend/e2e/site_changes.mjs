@@ -1,4 +1,4 @@
-// The website changes: 7 features, tagline, coming soon + email, comparison with ✓/✕, FAQ, removed sections, score in the research report (no extra strip).
+// The website changes: 7 features, tagline, coming soon + email, comparison with ✓/✕, removed sections, score in the research report (no extra strip).
 //   PM_PASSWORD=... node e2e/site_changes.mjs http://localhost:4173
 import { chromium } from "playwright";
 const B = process.argv[2] || "http://localhost:4173", OUT = process.env.SHOTS || "/tmp/claude-0/shots";
@@ -20,9 +20,6 @@ async function page(who, w = 1366) {
   check("removed: results, process, founder", !/Results, reported openly/i.test(body) && !/From research to portfolio decisions/i.test(body) && !/Meet the founder/i.test(body));
   check("pricing: comparison table with green ticks and red crosses", (await p.locator("#pricing .cmp .yes.ck").count()) > 10 && (await p.locator("#pricing .cmp .x-no").count()) > 10);
   check("pricing: equity research report marked coming soon", (await p.locator("#pricing .soon-tag").count()) === 1);
-  const groups = await p.locator(".faq-g").allInnerTexts(); check("faq: five groups", groups.length === 5, groups.join(" | "));
-  const qn = await p.locator(".faq details").count(); check("faq: all questions, expandable", qn >= 18, String(qn));
-  await p.locator(".faq details summary").first().click(); check("faq: a question opens", (await p.locator(".faq details[open] p").count()) === 1);
   // notify form
   await p.locator("#coming-soon input[type=email]").fill("not-an-email"); await p.locator("#coming-soon button.btn").click(); check("notify: bad address is refused kindly", (await p.locator("#coming-soon .nf-err").count()) === 1);
   const addr = `site-check-${Date.now()}@example.com`; await p.locator("#coming-soon input[type=email]").fill(addr); await p.locator("#coming-soon button.btn").click(); await p.waitForTimeout(800);
