@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
-import { dayLabel, useFeed, type FeedItem, who } from "../lib/feed";
+import { dayLabel, staleResultsNote, useFeed, useResultsStatus, type FeedItem, who } from "../lib/feed";
+import { addDays, todayIST } from "../lib/qresults";
 import { useWatchlist } from "../lib/watchlist";
 import { ChartHelp } from "../components/ChartHelp";
 
@@ -17,7 +18,9 @@ export function ResultsPage() {
   const [pick, setPick] = useState<string | null>(null);
   // the month on screen (plus the days of the neighbouring months shown in its grid), and separately the next dates coming up
   const winFrom = ymd(new Date(month.getFullYear(), month.getMonth(), 1)), winTo = ymd(new Date(month.getFullYear(), month.getMonth() + 1, 0));
-  const monthQ = useFeed("result", { limit: 3000, from: winFrom, to: winTo }), soonQ = useFeed("result", { upcoming: true, limit: 60 }), doneQ = useFeed("result", { before: ymd(new Date()), limit: 30 });
+  const monthQ = useFeed("result", { limit: 3000, from: winFrom, to: winTo }), soonQ = useFeed("result", { upcoming: true, limit: 60 }), doneQ = useFeed("result", { before: addDays(todayIST(), 1), limit: 30 });   // before tomorrow = up to and including today (IST): what was declared today belongs here
+  const st = useResultsStatus(), staleNote = staleResultsNote(st.data);
+  const runAt = [st.data?.lastRun.calendars?.at, st.data?.lastRun.results?.at].filter(Boolean).sort().pop();
   const { isLoading, isError } = monthQ;
   const keep = (list?: FeedItem[]) => (list || []).filter((i) => !onlyMine || (i.symbol && mine.includes(i.symbol)));
   const items = useMemo(() => keep(monthQ.data), [monthQ.data, onlyMine, mine]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -36,6 +39,8 @@ export function ResultsPage() {
       <header className="dash-h"><div><div className="eyebrow">Market</div><h1>Results calendar</h1><p className="muted">Board-meeting dates for quarterly results, and the filings once they are out. Dates are as announced to the exchanges.</p></div>
         <Link className="btn primary" to="/results/quarter"><Icon name="notes" /> See all quarter results</Link>
         <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
+      {staleNote && <div className="rc-stale" role="status">{staleNote}</div>}
+      <p className="muted rc-upd">{runAt ? `Updated ${new Date(runAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })} IST` : st.data ? "Update time not recorded yet" : ""}{st.data?.newestResultInDb ? ` · newest result held: ${dayLabel(st.data.newestResultInDb)}` : ""}</p>
       {isError && <div className="formerr">The calendar could not be loaded. Please try again shortly.</div>}
       <div className="rc-grid">
         <section className="card">

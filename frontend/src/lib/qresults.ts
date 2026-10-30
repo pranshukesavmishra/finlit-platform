@@ -15,6 +15,10 @@ export type QRow = {
   source?: "full" | "light" | null; basis?: "consolidated" | "standalone" | null;
   /** For an awaiting row: "provider" = we asked and the data provider has not published the quarter yet; "ours" = our own report is still being updated. */
   awaitingWhy?: "provider" | "ours" | null;
+  /** For an awaiting row: "recent" = declared today (the provider is normally still catching up), "late" = declared on an earlier day. */
+  awaitingStage?: "recent" | "late" | null;
+  /** When we last asked the provider about this company (ISO, UTC), and the newest quarter the provider holds for it (ISO date). Null when not asked yet. */
+  lastCheckedAt?: string | null; providerLatest?: string | null;
 };
 export type QSummary = {
   companies: number; declared: number; due: number; awaiting: number; awaitingProvider?: number; awaitingOurs?: number; withNumbers: number; flagged: number | null;
@@ -214,6 +218,16 @@ const dayShort = (iso: string) => { const d = new Date(iso + "T00:00:00"); retur
 /** The honest reason a declared company has no figures yet: the data provider is behind, or our own report is still being updated. */
 export const awaitingText = (date: string, why?: "provider" | "ours" | null): string =>
   why === "provider" ? `Declared on ${dayShort(date)}; the data provider has not published the figures yet` : "Declared, report being updated";
+const istTime = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false }) + " IST on " + d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }); };
+/** The sentence under a declared company that has no figures yet. Declared today: the usual lag. Declared on an earlier day: say it is still loading, that we are
+ *  retrying, when we last asked and what the provider holds, so a stuck company is visible and not passed off as normal. */
+export const awaitingNote = (r: Pick<QRow, "date" | "awaitingWhy" | "awaitingStage" | "lastCheckedAt" | "providerLatest">): string => {
+  const prov = r.awaitingWhy === "provider";
+  if (r.awaitingStage !== "late") return prov ? `${awaitingText(r.date, "provider")}. We check again every hour.` : "Declared, report being updated. Figures appear here as soon as the company's report is refreshed.";
+  const last = r.lastCheckedAt ? istTime(r.lastCheckedAt) : "";
+  const held = r.providerLatest ? new Date(r.providerLatest + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "";
+  return `Declared on ${dayShort(r.date)}; still loading, we are retrying. ` + (prov ? "The data provider has not published this quarter" + (held ? ` (its newest is ${held})` : "") + "." : "Our report has not been rebuilt for this quarter yet.") + (last ? ` Last checked ${last}.` : " Not checked yet.");
+};
 /** One plain status line per row (the CSV's Status column). */
 export const statusText = (r: Pick<QRow, "status" | "date" | "awaitingWhy">): string =>
   r.status === "awaiting" ? awaitingText(r.date, r.awaitingWhy) : ({ declared: "Declared", due: "Due", missing: "Figures not stored", awaiting: "" } as Record<QStatus, string>)[r.status];

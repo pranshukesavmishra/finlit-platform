@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingNote, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
@@ -115,7 +115,8 @@ function Detail({ r, fiscal, line }: { r: QRow; fiscal?: string; line: string })
 
 function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void }) {
   const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
-  const note = r.status === "awaiting" && r.awaitingWhy === "provider" ? <>{awaitingText(r.date, r.awaitingWhy)}. We check again every hour.</>
+  const note = r.status === "awaiting" && r.awaitingStage === "late" ? <>{awaitingNote(r)}</>
+    : r.status === "awaiting" && r.awaitingWhy === "provider" ? <>{awaitingNote(r)}</>
     : r.status === "awaiting" ? <>Declared on {dayLabel(r.date)}. <b>Report is being updated.</b> Figures appear here as soon as the company's report is refreshed.</>
     : r.status === "due" ? <>Results due on {dayLabel(r.date)}{r.confirmed ? "" : " (board-meeting date)"}.</>
     : r.status === "missing" ? <>Declared on {dayLabel(r.date)}. This quarter's figures are no longer stored{r.loadedPeriodEnd ? ` (we hold the quarter to ${new Date(r.loadedPeriodEnd + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "numeric" })})` : ""}.</>

@@ -22,3 +22,21 @@ export const docType = (i: FeedItem): string => {
 
 /** What to call a feed row: the ticker, except for BSE-only companies whose "ticker" is a number such as 539984; then the name. */
 export const who = (x: { symbol?: string | null; company?: string | null }) => (x.symbol && !/^\d+$/.test(x.symbol) ? x.symbol : x.company || x.symbol || "");
+
+/** What GET /api/results/status says: when each results job last ran and the newest result held. */
+export type RunInfo = { at?: string; status?: string; counts?: Record<string, number>; newestResultDate?: string | null; error?: string } | null;
+export type ResultsStatus = { todayIST: string; newestResultInDb: string | null; newestFilingInDb: string | null; upcomingCount: number; lastRun: { calendars: RunInfo; results: RunInfo; resultsLight: RunInfo } };
+export const useResultsStatus = () => useQuery({ queryKey: ["results-status"], staleTime: 60_000, retry: 0, queryFn: () => apiGet<ResultsStatus>("/api/results/status") });
+
+const dayNum = (iso: string) => Math.round(new Date(iso + "T00:00:00Z").getTime() / 86_400_000);
+/** Results seasons in India: the weeks after each quarter closes (15 Jan to 14 Feb, 15 Apr to 31 May, 15 Jul to 14 Aug, 15 Oct to 14 Nov). */
+export const inResultsSeason = (iso: string) => { const m = +iso.slice(5, 7), d = +iso.slice(8, 10); return (m === 1 && d >= 15) || (m === 2 && d <= 14) || (m === 4 && d >= 15) || m === 5 || (m === 7 && d >= 15) || (m === 8 && d <= 14) || (m === 10 && d >= 15) || (m === 11 && d <= 14); };
+/** A neutral note when, on a weekday in results season, the newest result held is more than 2 days old; else null. */
+export const staleResultsNote = (s?: Pick<ResultsStatus, "todayIST" | "newestResultInDb"> | null): string | null => {
+  if (!s || !s.todayIST) return null;
+  const dow = new Date(s.todayIST + "T00:00:00Z").getUTCDay();
+  if (dow === 0 || dow === 6 || !inResultsSeason(s.todayIST)) return null;
+  if (s.newestResultInDb && dayNum(s.todayIST) - dayNum(s.newestResultInDb) <= 2) return null;
+  const since = s.newestResultInDb ? new Date(s.newestResultInDb + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : null;
+  return since ? `The latest results have not been refreshed since ${since}. We are checking again every hour.` : "No results are held yet. We are checking again every hour.";
+};

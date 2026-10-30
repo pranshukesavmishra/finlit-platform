@@ -13,10 +13,24 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 log = logging.getLogger("finlit.calendars")
 LIST_KEYS = ("data", "rows", "results", "items", "ipos", "calendar")
 SOURCE_RESULTS = "FinEdge results calendar"
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def today_ist() -> date:
+    """The Indian calendar day, whatever the server clock's zone is (a one-off `docker compose exec` may not carry TZ)."""
+    return datetime.now(IST).date()
+
+
+def why(exc: BaseException) -> str:
+    """A short reason for a log line or the status page: the exception class, plus the provider's HTTP status and first words when it sent one."""
+    status = getattr(exc, "status", None)
+    text = " ".join(str(exc).split())[:120]
+    return f"{type(exc).__name__}" + (f" HTTP {status}" if status else "") + (f": {text}" if text else "")
 
 
 def rows_of(payload: Any) -> List[dict]:
@@ -110,23 +124,41 @@ def ipo_rows(payload: Any) -> List[tuple]:
     return out
 
 
-async def refresh_calendars(client, store, days_back: int = 100, days_ahead: int = 120, ipo_back: int = 90) -> Dict[str, int]:
-    """Pull results dates and IPOs; returns how many of each were stored. A provider failure leaves the old data in place."""
-    today = date.today()
+async def refresh_calendars(client, store, days_back: int = 100, days_ahead: int = 120, ipo_back: int = 90, report: Optional[dict] = None) -> Dict[str, int]:
+    """Pull results dates and IPOs; returns how many of each were stored. A provider failure leaves the old data in place.
+    `report` (optional) is filled with the reasons: errors per part, rows the provider sent and rows dropped, and the newest date stored."""
+    today = today_ist()
     counts = {"results": 0, "ipos": 0}
+    rep = report if report is not None else {}
+    rep.setdefault("errors", {})
     try:
         payload = await client.get("/results-calendar", {"from_date": (today - timedelta(days=days_back)).isoformat(), "to_date": (today + timedelta(days=days_ahead)).isoformat()}, timeout=40)
+        sent = rows_of(payload)
         rows = result_rows(payload)
+        rep["resultsSent"], rep["resultsDropped"] = len(sent), len(sent) - len(rows)
+        if sent and len(rows) < len(sent):
+            log.warning("results calendar: %d of %d rows had no usable symbol or date and were skipped (first row keys: %s)", len(sent) - len(rows), len(sent), sorted(sent[0])[:12])
+        if not sent:
+            rep["errors"]["results"] = "the provider sent no rows"
+            log.warning("results calendar not refreshed: the provider sent no rows for %s to %s", today - timedelta(days=days_back), today + timedelta(days=days_ahead))
+        elif not rows:
+            rep["errors"]["results"] = f"{len(sent)} rows sent, none with a symbol and a readable date (keys: {', '.join(sorted(sent[0])[:10])})"
+            log.warning("results calendar not refreshed: %s", rep["errors"]["results"])
         if rows:
+            # Delete only what the provider's answer covers: if it sends upcoming dates alone, the past dates already stored (the record that a company's
+            # meeting has happened) stay. Rows from the earliest date it sent (at the latest from today) onward are replaced, so a date that moved never leaves a second copy.
+            floor = min(today, max(today - timedelta(days=days_back), min(r[6] for r in rows)))   # never above today: a future date that moved or was dropped is always replaced
             async with store.pool.acquire() as conn:
                 async with conn.transaction():
-                    # dates move: replace the provider's rows in the window rather than piling up old guesses
-                    await conn.execute("DELETE FROM feed_items WHERE source = $1 AND item_date >= $2", SOURCE_RESULTS, today - timedelta(days=days_back))
+                    await conn.execute("DELETE FROM feed_items WHERE source = $1 AND item_date >= $2", SOURCE_RESULTS, floor)
                     await conn.executemany("INSERT INTO feed_items (kind, title, symbol, company, source, link, item_date, category, period, summary, auto, dedupe) "
                                            "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (dedupe) DO NOTHING", rows)
             counts["results"] = len(rows)
+            rep["newestSent"] = max(r[6] for r in rows).isoformat()
+            rep["oldestSent"] = min(r[6] for r in rows).isoformat()
     except Exception as exc:
-        log.warning("results calendar not refreshed: %s", type(exc).__name__)
+        rep["errors"]["results"] = why(exc)
+        log.warning("results calendar not refreshed: %s", why(exc))
     try:
         payload = await client.get("/ipo-calendar", {"from_date": (today - timedelta(days=ipo_back)).isoformat(), "to_date": (today + timedelta(days=days_ahead)).isoformat()}, timeout=40)
         rows = ipo_rows(payload)
@@ -142,6 +174,7 @@ async def refresh_calendars(client, store, days_back: int = 100, days_ahead: int
                     "issue_size_cr = COALESCE(EXCLUDED.issue_size_cr, ipos.issue_size_cr), note = EXCLUDED.note, updated_at = now()", rows)
             counts["ipos"] = len(rows)
     except Exception as exc:
-        log.warning("IPO calendar not refreshed: %s", type(exc).__name__)
+        rep["errors"]["ipos"] = why(exc)
+        log.warning("IPO calendar not refreshed: %s", why(exc))
     log.info("calendars refreshed: %s", counts)
     return counts

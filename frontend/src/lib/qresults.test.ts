@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeChip, awaitingText, statusText, addDays, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isRealDay, isWeekend, mondayOf, queryString, quarterStartOf, signedPct, todayIST, type QRow } from "./qresults";
+import { activeChip, awaitingNote, awaitingText, statusText, addDays, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isRealDay, isWeekend, mondayOf, queryString, quarterStartOf, signedPct, todayIST, type QRow } from "./qresults";
 
 const base = { symbol: "ACME", revenue: 1057.8, revenueYoY: 37.2, revenueQoQ: 5.4, netProfit: 73.9, profitYoY: -36.2, profitQoQ: -35.6, opm: 12.34, npm: 6.99, eps: 3.1 };
 
@@ -97,5 +97,16 @@ describe("status text for declared companies without figures", () => {
     expect(statusText({ status: "declared", date: "2026-10-26" })).toBe("Declared");
     expect(statusText({ status: "due", date: "2026-10-26" })).toBe("Due");
     expect(statusText({ status: "missing", date: "2026-10-26" })).toBe("Figures not stored");
+  });
+});
+
+describe("the line under a declared company without figures", () => {
+  const r = { date: "2026-10-29", awaitingWhy: "provider" as const, lastCheckedAt: "2026-10-30T07:05:00Z", providerLatest: "2026-06-30" };
+  it("declared today: the usual lag", () => {
+    expect(awaitingNote({ ...r, awaitingStage: "recent" })).toBe("Declared on 29 Oct; the data provider has not published the figures yet. We check again every hour.");
+  });
+  it("declared on an earlier day: says it is still loading, when we last asked and what the provider holds", () => {
+    expect(awaitingNote({ ...r, awaitingStage: "late" })).toBe("Declared on 29 Oct; still loading, we are retrying. The data provider has not published this quarter (its newest is Jun 2026). Last checked 12:35 IST on 30 Oct.");
+    expect(awaitingNote({ ...r, awaitingWhy: "ours", awaitingStage: "late", lastCheckedAt: null, providerLatest: null })).toBe("Declared on 29 Oct; still loading, we are retrying. Our report has not been rebuilt for this quarter yet. Not checked yet.");
   });
 });

@@ -308,8 +308,9 @@ def test_scheduler_main_loop_runs_only_gated_jobs():
     body = loop.split("# Outside a window: member price alerts")[1]
     for line in body.splitlines():
         if re.search(r"\brun(_funds)? ", line) and not line.strip().startswith("#"):
-            assert "visitor_active" in line or "SYNC=1" in line, line
+            assert "visitor_active" in line or "SYNC=1" in line or "results_gate" in line, line   # results_gate = no visitor needed unless RESULTS_NEED_VISITOR=1 (a metered database)
     assert "alerts_active" in body and "M % 15 == 0" in body
+    assert "visitor_active" in re.search(r"results_gate\(\) \{[^\n]*", SCHEDULER).group(0) and "RESULTS_NEED_VISITOR" in SCHEDULER
 
 
 def test_scheduler_windows_cover_the_nightly_jobs_and_the_loops_are_quiet():

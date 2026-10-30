@@ -21,6 +21,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import results
+from .calendars import why
 from .finedge import FinEdgeClient, FinEdgeError, _rows_of, bundle_requests, latest_period_end, stale_reason
 from .normalize import statements
 from .screener.compute import _round, quarter_block
@@ -31,6 +32,7 @@ MAX_AGE_DAYS = 4          # a declaration is chased for this many days
 RECHECK_MINUTES = 50      # a company the provider had nothing for is asked again after this long (the hourly run therefore asks again each hour)
 KEEP_QUARTERS = 3
 PER_RUN = 150
+MAX_IN_A_ROW = 10         # this many provider failures in a row end the run (a refusing or down provider is not asked 150 more times)
 STALE_DAYS = 170          # finedge.stale_reason: standalone this much newer than consolidated means consolidated is stale
 TOLERANCE = 10            # days between the quarter asked for and the provider's period end (same as the full path)
 COLS = results.LIGHT_COLS   # quarter_light column -> the screener metric of the same meaning
@@ -173,7 +175,8 @@ async def candidates(store, today: Optional[date] = None, recheck_minutes: int =
     for sym, s in st.items():
         if s["source"] in ("full", "light"):
             continue
-        if s["checkedAt"] is not None and (now - s["checkedAt"]) < timedelta(minutes=recheck_minutes):
+        # asked again every run for the first two days, then every 3 hours, then every 5 (results.retry_minutes): a late provider is not hammered
+        if s["checkedAt"] is not None and (now - s["checkedAt"]) < timedelta(minutes=results.retry_minutes(recheck_minutes, recent[sym][1], today)):
             continue
         todo.append((-(s["mcap"] if s["mcap"] is not None else -1.0), sym, s["quarter"]))
     return [(sym, qk) for _, sym, qk in sorted(todo)]
@@ -185,7 +188,9 @@ async def refresh_light(client: FinEdgeClient, store, limit: int = PER_RUN, toda
     skipped; the company is asked again next run. Resumable by construction: a filled company is never asked again, an unfilled one only after
     `recheck_minutes`."""
     todo = (await candidates(store, today, recheck_minutes))
-    out = {"candidates": len(todo), "tried": 0, "filled": 0, "providerPending": 0, "failed": 0}
+    out: Dict[str, Any] = {"candidates": len(todo), "tried": 0, "filled": 0, "providerPending": 0, "failed": 0}
+    errors: Dict[str, int] = {}
+    in_a_row = 0
     deadline = time.monotonic() + max_minutes * 60
     for sym, qk in todo[:limit]:
         if time.monotonic() > deadline:
@@ -199,11 +204,21 @@ async def refresh_light(client: FinEdgeClient, store, limit: int = PER_RUN, toda
             async with store.pool.acquire() as conn:
                 filled = await save(conn, sym, qk, got)
             out["filled" if filled else "providerPending"] += 1
+            in_a_row = 0
         except Exception as exc:   # one company never stops the run
             out["failed"] += 1
-            log.info("results-light %s failed: %s", sym, type(exc).__name__)
+            in_a_row += 1
+            reason = why(exc)
+            errors[reason] = errors.get(reason, 0) + 1
+            log.warning("results-light %s failed: %s", sym, reason)
+            if in_a_row >= MAX_IN_A_ROW:   # the provider is refusing or down: stop here, the next run starts again
+                log.warning("results-light stopped after %d failures in a row (last: %s)", in_a_row, reason)
+                out["stoppedEarly"] = True
+                break
         if pause:
             await asyncio.sleep(pause)
+    if errors:
+        out["errors"] = dict(sorted(errors.items(), key=lambda kv: -kv[1])[:4])
     log.info("refresh-results-light: %s", out)
     return out
 
