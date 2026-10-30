@@ -27,7 +27,7 @@ export const SECTIONS: NavSection[] = [
       i("/research", "Company report", "A report for every listed company: score, financials, ratios", "search"),
       i("/compare", "Compare companies", "Two to four companies side by side, in charts", "compare"),
       i("/prism", "FinLit Prism", "A company's financial health rated in four parts, with a PDF", "layers", { gold: true }),
-      i("/outlook", "Profit and revenue outlook", "An outlook score and indicative growth range from a company's own history", "activity", { gold: true }),
+      i("/outlook", "Profit and revenue outlook", "Revenue and profit estimates from a company's own history and its sector", "activity", { gold: true }),
       i("/premium/report", "Premium reports", "The full written report on a company", "notes", { gold: true }),
     ] },
     { title: "Investment calculators", items: [

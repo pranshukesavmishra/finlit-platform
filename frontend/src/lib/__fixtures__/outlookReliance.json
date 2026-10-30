@@ -1,0 +1,1364 @@
+{
+ "revenue:short": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "revenue",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 50,
+   "co_3y": 10,
+   "co_5y": 5,
+   "sec_1y": 25,
+   "sec_3y": 5,
+   "sec_5y": 5
+  },
+  "defaultWeights": {
+   "co_1y": 50,
+   "co_3y": 10,
+   "co_5y": 5,
+   "sec_1y": 25,
+   "sec_3y": 5,
+   "sec_5y": 5
+  },
+  "adjustedYears": [],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 384904.0,
+     "reportedCr": 384904.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 350880.0,
+     "reportedCr": 350880.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY21",
+     "valueCr": 265069.0,
+     "reportedCr": 265069.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY22",
+     "valueCr": 445375.0,
+     "reportedCr": 445375.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 543249.0,
+     "reportedCr": 543249.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 547942.0,
+     "reportedCr": 547942.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 532792.0,
+     "reportedCr": 532792.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 524105.0,
+     "reportedCr": 524105.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 2.43,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company revenue growth (1Y)",
+     "who": "company",
+     "weightPct": 50,
+     "effectiveWeightPct": 50.0,
+     "valuePct": -1.63,
+     "rawPct": -1.63,
+     "capped": false,
+     "contributionPts": -0.82,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company revenue CAGR (3Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": -1.19,
+     "rawPct": -1.19,
+     "capped": false,
+     "contributionPts": -0.12,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company revenue CAGR (5Y)",
+     "who": "company",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 14.61,
+     "rawPct": 14.61,
+     "capped": false,
+     "contributionPts": 0.73,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector revenue growth (1Y)",
+     "who": "sector",
+     "weightPct": 25,
+     "effectiveWeightPct": 25.0,
+     "valuePct": 7.65,
+     "rawPct": 7.65,
+     "capped": false,
+     "contributionPts": 1.91,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector revenue CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 7.95,
+     "rawPct": 7.95,
+     "capped": false,
+     "contributionPts": 0.4,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector revenue CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 6.4,
+     "rawPct": 6.4,
+     "capped": false,
+     "contributionPts": 0.32,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 524105.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 536840.75,
+     "growthPct": 2.43,
+     "changeCr": 12735.75
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "short",
+   "years": 1,
+   "label": "Short-term",
+   "span": "1 year (FY+1)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ },
+ "revenue:mid": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "revenue",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 10,
+   "co_3y": 40,
+   "co_5y": 10,
+   "sec_1y": 20,
+   "sec_3y": 10,
+   "sec_5y": 10
+  },
+  "defaultWeights": {
+   "co_1y": 10,
+   "co_3y": 40,
+   "co_5y": 10,
+   "sec_1y": 20,
+   "sec_3y": 10,
+   "sec_5y": 10
+  },
+  "adjustedYears": [],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 384904.0,
+     "reportedCr": 384904.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 350880.0,
+     "reportedCr": 350880.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY21",
+     "valueCr": 265069.0,
+     "reportedCr": 265069.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY22",
+     "valueCr": 445375.0,
+     "reportedCr": 445375.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 543249.0,
+     "reportedCr": 543249.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 547942.0,
+     "reportedCr": 547942.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 532792.0,
+     "reportedCr": 532792.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 524105.0,
+     "reportedCr": 524105.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 3.79,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company revenue growth (1Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": -1.63,
+     "rawPct": -1.63,
+     "capped": false,
+     "contributionPts": -0.16,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company revenue CAGR (3Y)",
+     "who": "company",
+     "weightPct": 40,
+     "effectiveWeightPct": 40.0,
+     "valuePct": -1.19,
+     "rawPct": -1.19,
+     "capped": false,
+     "contributionPts": -0.48,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company revenue CAGR (5Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 14.61,
+     "rawPct": 14.61,
+     "capped": false,
+     "contributionPts": 1.46,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector revenue growth (1Y)",
+     "who": "sector",
+     "weightPct": 20,
+     "effectiveWeightPct": 20.0,
+     "valuePct": 7.65,
+     "rawPct": 7.65,
+     "capped": false,
+     "contributionPts": 1.53,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector revenue CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 7.95,
+     "rawPct": 7.95,
+     "capped": false,
+     "contributionPts": 0.8,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector revenue CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 6.4,
+     "rawPct": 6.4,
+     "capped": false,
+     "contributionPts": 0.64,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 524105.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 543968.58,
+     "growthPct": 3.79,
+     "changeCr": 19863.58
+    },
+    {
+     "period": "FY28",
+     "valueCr": 564584.99,
+     "growthPct": 3.79,
+     "changeCr": 20616.41
+    },
+    {
+     "period": "FY29",
+     "valueCr": 585982.76,
+     "growthPct": 3.79,
+     "changeCr": 21397.77
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "mid",
+   "years": 3,
+   "label": "Mid-term",
+   "span": "3 years (FY+1 to FY+3)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ },
+ "revenue:long": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "revenue",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 5,
+   "co_3y": 15,
+   "co_5y": 40,
+   "sec_1y": 20,
+   "sec_3y": 5,
+   "sec_5y": 15
+  },
+  "defaultWeights": {
+   "co_1y": 5,
+   "co_3y": 15,
+   "co_5y": 40,
+   "sec_1y": 20,
+   "sec_3y": 5,
+   "sec_5y": 15
+  },
+  "adjustedYears": [],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 384904.0,
+     "reportedCr": 384904.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 350880.0,
+     "reportedCr": 350880.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY21",
+     "valueCr": 265069.0,
+     "reportedCr": 265069.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY22",
+     "valueCr": 445375.0,
+     "reportedCr": 445375.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 543249.0,
+     "reportedCr": 543249.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 547942.0,
+     "reportedCr": 547942.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 532792.0,
+     "reportedCr": 532792.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 524105.0,
+     "reportedCr": 524105.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 8.47,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company revenue growth (1Y)",
+     "who": "company",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": -1.63,
+     "rawPct": -1.63,
+     "capped": false,
+     "contributionPts": -0.08,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company revenue CAGR (3Y)",
+     "who": "company",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": -1.19,
+     "rawPct": -1.19,
+     "capped": false,
+     "contributionPts": -0.18,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company revenue CAGR (5Y)",
+     "who": "company",
+     "weightPct": 40,
+     "effectiveWeightPct": 40.0,
+     "valuePct": 14.61,
+     "rawPct": 14.61,
+     "capped": false,
+     "contributionPts": 5.84,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector revenue growth (1Y)",
+     "who": "sector",
+     "weightPct": 20,
+     "effectiveWeightPct": 20.0,
+     "valuePct": 7.65,
+     "rawPct": 7.65,
+     "capped": false,
+     "contributionPts": 1.53,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector revenue CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 7.95,
+     "rawPct": 7.95,
+     "capped": false,
+     "contributionPts": 0.4,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector revenue CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": 6.4,
+     "rawPct": 6.4,
+     "capped": false,
+     "contributionPts": 0.96,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 524105.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 568496.69,
+     "growthPct": 8.47,
+     "changeCr": 44391.69
+    },
+    {
+     "period": "FY28",
+     "valueCr": 616648.36,
+     "growthPct": 8.47,
+     "changeCr": 48151.67
+    },
+    {
+     "period": "FY29",
+     "valueCr": 668878.48,
+     "growthPct": 8.47,
+     "changeCr": 52230.12
+    },
+    {
+     "period": "FY30",
+     "valueCr": 725532.49,
+     "growthPct": 8.47,
+     "changeCr": 56654.01
+    },
+    {
+     "period": "FY31",
+     "valueCr": 786985.09,
+     "growthPct": 8.47,
+     "changeCr": 61452.6
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "long",
+   "years": 5,
+   "label": "Long-term",
+   "span": "5 years (FY+1 to FY+5)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ },
+ "profit:short": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "profit",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 35,
+   "co_3y": 10,
+   "co_5y": 5,
+   "sec_1y": 25,
+   "sec_3y": 5,
+   "sec_5y": 5,
+   "margin": 15
+  },
+  "defaultWeights": {
+   "co_1y": 35,
+   "co_3y": 10,
+   "co_5y": 5,
+   "sec_1y": 25,
+   "sec_3y": 5,
+   "sec_5y": 5,
+   "margin": 15
+  },
+  "adjustedYears": [
+   "FY20",
+   "FY21"
+  ],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 35163.0,
+     "reportedCr": 35163.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 34156.88,
+     "reportedCr": 30903.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY21",
+     "valueCr": 27640.0,
+     "reportedCr": 31944.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY22",
+     "valueCr": 39084.0,
+     "reportedCr": 39084.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 44205.0,
+     "reportedCr": 44205.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 42042.0,
+     "reportedCr": 42042.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 35262.0,
+     "reportedCr": 35262.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 43851.0,
+     "reportedCr": 43851.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 16.89,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company net profit growth (1Y)",
+     "who": "company",
+     "weightPct": 35,
+     "effectiveWeightPct": 35.0,
+     "valuePct": 24.36,
+     "rawPct": 24.36,
+     "capped": false,
+     "contributionPts": 8.53,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company net profit CAGR (3Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": -0.27,
+     "rawPct": -0.27,
+     "capped": false,
+     "contributionPts": -0.03,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company net profit CAGR (5Y)",
+     "who": "company",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 9.67,
+     "rawPct": 9.67,
+     "capped": false,
+     "contributionPts": 0.48,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector net profit growth (1Y)",
+     "who": "sector",
+     "weightPct": 25,
+     "effectiveWeightPct": 25.0,
+     "valuePct": 11.95,
+     "rawPct": 11.95,
+     "capped": false,
+     "contributionPts": 2.99,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector net profit CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 10.1,
+     "rawPct": 10.1,
+     "capped": false,
+     "contributionPts": 0.51,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector net profit CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 9.0,
+     "rawPct": 9.0,
+     "capped": false,
+     "contributionPts": 0.45,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "margin",
+     "label": "Net profit margin trend",
+     "who": "company",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": 26.42,
+     "rawPct": 26.42,
+     "capped": false,
+     "contributionPts": 3.96,
+     "status": "ok",
+     "method": "Relative change in the net profit margin, latest year against the year before",
+     "reason": null,
+     "detail": null
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 43851.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 51257.43,
+     "growthPct": 16.89,
+     "changeCr": 7406.43
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "short",
+   "years": 1,
+   "label": "Short-term",
+   "span": "1 year (FY+1)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ },
+ "profit:mid": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "profit",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 10,
+   "co_3y": 25,
+   "co_5y": 10,
+   "sec_1y": 20,
+   "sec_3y": 10,
+   "sec_5y": 10,
+   "margin": 15
+  },
+  "defaultWeights": {
+   "co_1y": 10,
+   "co_3y": 25,
+   "co_5y": 10,
+   "sec_1y": 20,
+   "sec_3y": 10,
+   "sec_5y": 10,
+   "margin": 15
+  },
+  "adjustedYears": [
+   "FY20",
+   "FY21"
+  ],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 35163.0,
+     "reportedCr": 35163.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 34156.88,
+     "reportedCr": 30903.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY21",
+     "valueCr": 27640.0,
+     "reportedCr": 31944.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY22",
+     "valueCr": 39084.0,
+     "reportedCr": 39084.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 44205.0,
+     "reportedCr": 44205.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 42042.0,
+     "reportedCr": 42042.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 35262.0,
+     "reportedCr": 35262.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 43851.0,
+     "reportedCr": 43851.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 11.6,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company net profit growth (1Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 24.36,
+     "rawPct": 24.36,
+     "capped": false,
+     "contributionPts": 2.44,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company net profit CAGR (3Y)",
+     "who": "company",
+     "weightPct": 25,
+     "effectiveWeightPct": 25.0,
+     "valuePct": -0.27,
+     "rawPct": -0.27,
+     "capped": false,
+     "contributionPts": -0.07,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company net profit CAGR (5Y)",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 9.67,
+     "rawPct": 9.67,
+     "capped": false,
+     "contributionPts": 0.97,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector net profit growth (1Y)",
+     "who": "sector",
+     "weightPct": 20,
+     "effectiveWeightPct": 20.0,
+     "valuePct": 11.95,
+     "rawPct": 11.95,
+     "capped": false,
+     "contributionPts": 2.39,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector net profit CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 10.1,
+     "rawPct": 10.1,
+     "capped": false,
+     "contributionPts": 1.01,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector net profit CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 9.0,
+     "rawPct": 9.0,
+     "capped": false,
+     "contributionPts": 0.9,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "margin",
+     "label": "Net profit margin trend",
+     "who": "company",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": 26.42,
+     "rawPct": 26.42,
+     "capped": false,
+     "contributionPts": 3.96,
+     "status": "ok",
+     "method": "Relative change in the net profit margin, latest year against the year before",
+     "reason": null,
+     "detail": null
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 43851.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 48937.72,
+     "growthPct": 11.6,
+     "changeCr": 5086.72
+    },
+    {
+     "period": "FY28",
+     "valueCr": 54614.49,
+     "growthPct": 11.6,
+     "changeCr": 5676.78
+    },
+    {
+     "period": "FY29",
+     "valueCr": 60949.77,
+     "growthPct": 11.6,
+     "changeCr": 6335.28
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "mid",
+   "years": 3,
+   "label": "Mid-term",
+   "span": "3 years (FY+1 to FY+3)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ },
+ "profit:long": {
+  "symbol": "RELIANCE",
+  "statement": "standalone",
+  "kind": "profit",
+  "mode": "model",
+  "name": "Reliance Industries Ltd",
+  "isLender": false,
+  "asOf": {
+   "yearly": "FY26"
+  },
+  "reportGeneratedAt": "2026-10-30T12:41:59+00:00",
+  "weights": {
+   "co_1y": 5,
+   "co_3y": 15,
+   "co_5y": 30,
+   "sec_1y": 20,
+   "sec_3y": 5,
+   "sec_5y": 15,
+   "margin": 10
+  },
+  "defaultWeights": {
+   "co_1y": 5,
+   "co_3y": 15,
+   "co_5y": 30,
+   "sec_1y": 20,
+   "sec_3y": 5,
+   "sec_5y": 15,
+   "margin": 10
+  },
+  "adjustedYears": [
+   "FY20",
+   "FY21"
+  ],
+  "history": {
+   "unit": "Rs crore",
+   "points": [
+    {
+     "period": "FY19",
+     "valueCr": 35163.0,
+     "reportedCr": 35163.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY20",
+     "valueCr": 34156.88,
+     "reportedCr": 30903.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY21",
+     "valueCr": 27640.0,
+     "reportedCr": 31944.0,
+     "adjusted": true
+    },
+    {
+     "period": "FY22",
+     "valueCr": 39084.0,
+     "reportedCr": 39084.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY23",
+     "valueCr": 44205.0,
+     "reportedCr": 44205.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY24",
+     "valueCr": 42042.0,
+     "reportedCr": 42042.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY25",
+     "valueCr": 35262.0,
+     "reportedCr": 35262.0,
+     "adjusted": false
+    },
+    {
+     "period": "FY26",
+     "valueCr": 43851.0,
+     "reportedCr": 43851.0,
+     "adjusted": false
+    }
+   ]
+  },
+  "rate": {
+   "ratePct": 10.97,
+   "rows": [
+    {
+     "key": "co_1y",
+     "label": "Company net profit growth (1Y)",
+     "who": "company",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 24.36,
+     "rawPct": 24.36,
+     "capped": false,
+     "contributionPts": 1.22,
+     "status": "ok",
+     "method": "Year on year",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_3y",
+     "label": "Company net profit CAGR (3Y)",
+     "who": "company",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": -0.27,
+     "rawPct": -0.27,
+     "capped": false,
+     "contributionPts": -0.04,
+     "status": "ok",
+     "method": "Compound yearly growth over 3 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "co_5y",
+     "label": "Company net profit CAGR (5Y)",
+     "who": "company",
+     "weightPct": 30,
+     "effectiveWeightPct": 30.0,
+     "valuePct": 9.67,
+     "rawPct": 9.67,
+     "capped": false,
+     "contributionPts": 2.9,
+     "status": "ok",
+     "method": "Compound yearly growth over 5 years",
+     "reason": null,
+     "detail": null
+    },
+    {
+     "key": "sec_1y",
+     "label": "Sector net profit growth (1Y)",
+     "who": "sector",
+     "weightPct": 20,
+     "effectiveWeightPct": 20.0,
+     "valuePct": 11.95,
+     "rawPct": 11.95,
+     "capped": false,
+     "contributionPts": 2.39,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_3y",
+     "label": "Sector net profit CAGR (3Y)",
+     "who": "sector",
+     "weightPct": 5,
+     "effectiveWeightPct": 5.0,
+     "valuePct": 10.1,
+     "rawPct": 10.1,
+     "capped": false,
+     "contributionPts": 0.51,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "sec_5y",
+     "label": "Sector net profit CAGR (5Y)",
+     "who": "sector",
+     "weightPct": 15,
+     "effectiveWeightPct": 15.0,
+     "valuePct": 9.0,
+     "rawPct": 9.0,
+     "capped": false,
+     "contributionPts": 1.35,
+     "status": "ok",
+     "method": "Median of 12 peers in Oil and gas (industry)",
+     "reason": null,
+     "detail": "12 peers"
+    },
+    {
+     "key": "margin",
+     "label": "Net profit margin trend",
+     "who": "company",
+     "weightPct": 10,
+     "effectiveWeightPct": 10.0,
+     "valuePct": 26.42,
+     "rawPct": 26.42,
+     "capped": false,
+     "contributionPts": 2.64,
+     "status": "ok",
+     "method": "Relative change in the net profit margin, latest year against the year before",
+     "reason": null,
+     "detail": null
+    }
+   ],
+   "unavailable": [],
+   "weightLeftPct": 100
+  },
+  "forecast": {
+   "available": true,
+   "reason": null,
+   "base": {
+    "period": "FY26",
+    "valueCr": 43851.0
+   },
+   "years": [
+    {
+     "period": "FY27",
+     "valueCr": 48661.45,
+     "growthPct": 10.97,
+     "changeCr": 4810.45
+    },
+    {
+     "period": "FY28",
+     "valueCr": 53999.62,
+     "growthPct": 10.97,
+     "changeCr": 5338.16
+    },
+    {
+     "period": "FY29",
+     "valueCr": 59923.37,
+     "growthPct": 10.97,
+     "changeCr": 5923.76
+    },
+    {
+     "period": "FY30",
+     "valueCr": 66496.97,
+     "growthPct": 10.97,
+     "changeCr": 6573.59
+    },
+    {
+     "period": "FY31",
+     "valueCr": 73791.69,
+     "growthPct": 10.97,
+     "changeCr": 7294.72
+    }
+   ],
+   "rule": "The weighted rate is held constant for every forecast year; each year starts from the one before."
+  },
+  "horizon": {
+   "key": "long",
+   "years": 5,
+   "label": "Long-term",
+   "span": "5 years (FY+1 to FY+5)"
+  },
+  "inputCapPct": 50.0,
+  "minPeers": 5,
+  "disclaimer": "Estimates from the company's own history and its sector, not a prediction or advice. The weights are starting values and have not yet been validated."
+ }
+}
