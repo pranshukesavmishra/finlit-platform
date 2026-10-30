@@ -126,6 +126,12 @@ export function FundListPage() {
             <small>Where the industry's money sits and moves, month by month: assets, net flows and folios by fund category.</small></span>
           <span className="evi-promo-go" aria-hidden="true">Open →</span>
         </Link>
+        <Link className="evi-promo" to="/fund-score-screener">
+          <span className="evi-promo-ic" aria-hidden="true"><Icon name="quality" /></span>
+          <span className="evi-promo-t"><b>Fund score screener <span className="evi-badge">Gold</span></b>
+            <small>Every scored fund with its Health Score and four parts: filter by category, cost, size and age, see category leaderboards, compare and download.</small></span>
+          <span className="evi-promo-go" aria-hidden="true">Open →</span>
+        </Link>
         <Controls q={q} text={text} onText={setText} set={set} filters={filt.data} loading={list.isFetching} />
 
         <div className="mf-bar">

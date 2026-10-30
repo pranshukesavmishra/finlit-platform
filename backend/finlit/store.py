@@ -611,6 +611,8 @@ class Store:
             out["feed"] = int((await conn.execute("DELETE FROM feed_items WHERE item_date < current_date - $1::int", feed_days)).split()[-1])
             out["runs"] = int((await conn.execute("DELETE FROM ingest_runs WHERE started_at < now() - interval '30 days'")).split()[-1])
             out["history"] = int((await conn.execute("DELETE FROM score_history WHERE day < current_date - 800")).split()[-1])
+            from .mfscore.scorehist import prune as prune_mf_score_history   # Mutual Fund Health Score history: three years
+            out["mf_score_history"] = await prune_mf_score_history(conn)
         for sym in drop:
             for st in ("consolidated", "standalone"):
                 try:

@@ -68,3 +68,17 @@ Gold (and admin) see the score (founder decision: a Gold feature). Basic, Silver
 5. Exit load for ETFs: F (unknown) or 100 (no exit load by construction)?
 6. Fixed-term and interval funds: ACCRUAL is a default only.
 7. Should peers include funds of other houses only, or all houses (now: all)?
+
+## Upgrades (migration 073): history, breakdown, screener, leaderboard, compare, alerts, admin view
+
+All Gold only and server-redacted: below Gold the answer is `locked` with no value, no fund and no order (private, no-store). A Gold answer is kept in Redis for ten minutes AFTER the plan check, under a key made of the query.
+
+- **History.** Table `mf_score_history`: one row per scheme per ISO week (`week` = Monday; the last `score-mf` run of the week replaces the earlier ones, so a re-run is idempotent), written in the same transaction as `mf_scores`. Three-year retention: `prune` (`finlit.mfscore.scorehist.prune`). API: `GET /api/mf/{code}/score/history`, `GET /api/mf/etf/{symbol}/score/history`, `GET /api/mf/scores/history?codes=` (Fund Compare lines). The "what changed since last month" sentence is built from the stored rows (`scorehist.changed_since`): the latest row against the row nearest 28 days before it, never nearer than 21 days.
+- **Breakdown.** `GET /api/mf/{code}/score` now also carries `categoryMedian` (median parts of the category and plan, for the radar) and `whyText` on each measure. Fund page: radar, Data gaps box, NAV history length, peer set size and kind, measure-by-measure table (`src/mf/ScoreBreakdown.tsx`).
+- **Fund score screener** `/fund-score-screener` (card on the Mutual funds page and a link from the method page; not in the sidebar). `GET /api/mf/score-screener` (filters, sort with missing last, paging, `format=csv`, up to 6,000 rows) and `/api/mf/score-screener/facets`. Category leaderboard: `GET /api/mf/leaderboard?sub=&plan=`.
+- **Compare.** Rings, radar overlay, ahead / level / behind per part (level = within 3 points, stated on the page), score lines over time, ETF vs index fund link for index funds.
+- **Alerts.** Table `mf_score_alerts` (`band`: the label changed between two weekly rows; `move`: the score moved N points). `GET/POST/DELETE /api/mf/score-alerts`. `score-mf` fires them after writing the week's rows (at most one message per alert per week), in-app notification plus email when chosen and when the member's alert emails are on. They count against the member's alert cap (Gold 300).
+- **Score chip** (`ScoreChip`) beside fund names in the funds list and the search overlay, from the one batch endpoint `/api/mf/scores?codes=`.
+- **Admin** (`/api/admin/mf-score/health`, `/calibration`; Console, Data health tab): last run, counts by status, histogram per group, measures filled, zero-rule counters, NOT RATED by reason, top missing inputs, peer set sizes, and an INTERNAL descriptive look back by score quintile (needs stored history of at least `months_ago` months; never public, not a forecast).
+- Fixed on the way: the run record's `status` was overwritten by the per-status counts (now `byStatus`), which also made `--max-age-hours` never skip.
+- Speed on 5,120 synthetic funds: scoring about 4 s, rows 1 s, write with history and alerts about 2.3 s in one transaction; peak memory about 225 MB.

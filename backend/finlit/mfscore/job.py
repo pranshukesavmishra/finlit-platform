@@ -21,6 +21,7 @@ from .groups import type_of_group
 from .loader import load_etf, load_mf
 from .model import FundIn, Score
 from .toolkit import is_missing
+from . import scorehist
 
 log = logging.getLogger("finlit.mfscore")
 
@@ -78,12 +79,12 @@ def summarise(scores: Sequence[Score]) -> Dict[str, Any]:
         funds_with_gaps += gaps > 0
         for k, n in s.counters.items():
             zero["fund:" + k] += n
-    return {"scores": len(scores), "status": dict(Counter(s.status for s in scores)), "states": dict(states), "fundsWithAGap": funds_with_gaps,
+    return {"scores": len(scores), "byStatus": dict(Counter(s.status for s in scores)), "states": dict(states), "fundsWithAGap": funds_with_gaps,
             "zeroRules": dict(sorted(zero.items())), "groups": dict(sorted(by_group.items())), "flags": dict(Counter(f for s in scores for f in s.flags)),
             "capped": sum(1 for s in scores if s.cap), "nearIdentical": sum(1 for s in scores if s.near_identical)}
 
 
-async def run(store, settings=None, *, symbols: Optional[Sequence[str]] = None, limit: Optional[int] = None, run_date: Optional[date] = None) -> dict:
+async def run(store, settings=None, *, symbols: Optional[Sequence[str]] = None, limit: Optional[int] = None, run_date: Optional[date] = None, mailer=None) -> dict:
     """Score the universe and store the result. Returns the counts."""
     t0 = time.perf_counter()
     run_date = run_date or today_ist()
@@ -103,12 +104,18 @@ async def run(store, settings=None, *, symbols: Optional[Sequence[str]] = None, 
     rows = [row(s, by_key[s.key], run_date) for s in pick]
     full = not (symbols or limit)
     async with store.pool.acquire() as conn, conn.transaction():
+        mails: List[dict] = []
         if rows:
             await conn.executemany(UPSERT, rows)
+            # history in the same transaction: one row per scheme per ISO week (this run replaces the week's earlier one), then the score alerts that row triggers
+            await conn.executemany(scorehist.HISTORY_INSERT, [scorehist.history_row(r, run_date) for r in rows])
+            mails = await scorehist.fire_alerts(conn, scorehist.week_of(run_date), [r[0] for r in rows])
         removed = 0
         if full:   # a fund that is no longer active or listed has no score any more
             removed = int((await conn.execute("DELETE FROM mf_scores WHERE run_date < $1", run_date)).split()[-1])
-    out = {"status": "ok", "runDate": run_date.isoformat(), "universe": len(funds), "written": len(rows), "removed": removed, "partial": not full,
+    if mails and mailer is not None:
+        await scorehist.send_mails(mails, mailer, getattr(settings, "public_site_url", "") or "")
+    out = {"status": "ok", "alertsFired": len(mails), "runDate": run_date.isoformat(), "universe": len(funds), "written": len(rows), "removed": removed, "partial": not full,
            "seconds": round(time.perf_counter() - t0, 1), "loadSeconds": round(t_load, 1), "scoreSeconds": round(t_score, 1), **summarise(scores)}
     log.info("score-mf: %s", json.dumps({k: v for k, v in out.items() if k not in ("zeroRules", "states", "groups")}, default=str))
     return out

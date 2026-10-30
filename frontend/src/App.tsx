@@ -19,6 +19,7 @@ import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows
 // Heavier pages load on demand so the first visit stays small and fast.
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
+const FundScoreScreener = lazy(() => import("./pages/FundScoreScreener").then((m) => ({ default: m.FundScoreScreenerPage })));
 const MfScoreMethod = lazy(() => import("./pages/MfScoreMethod").then((m) => ({ default: m.MfScoreMethodPage })));
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
@@ -104,6 +105,7 @@ export default function App() {
             <Route path="etfs/compare-index-funds" element={<EtfVsIndexPage />} />
             <Route path="etfs/:symbol" element={<EtfDetailPage />} />
             <Route path="commodities" element={<CommoditiesPage />} />
+            <Route path="fund-score-screener" element={<FundScoreScreener />} />
             <Route path="methodology/mf-score" element={<MfScoreMethod />} />
             <Route path="funds" element={<FundListPage />} />
             <Route path="funds/compare" element={<FundComparePage />} />

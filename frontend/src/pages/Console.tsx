@@ -9,6 +9,7 @@ import { useAuth } from "../lib/auth";
 import { TIER, useUI } from "../lib/ui";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
+import { ScoreAdminPanel } from "../mf/ScoreAdminPanel";
 import { fundJobLine, fundPollMs } from "../lib/fundJobs";
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—");
@@ -74,7 +75,7 @@ export function Console() {
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
       {tab === "content" && <ContentAdmin />}
-      {tab === "data" && <><Health /><FundLoads /><Features /><NotifyList /></>}
+      {tab === "data" && <><Health /><ScoreAdminPanel /><FundLoads /><Features /><NotifyList /></>}
       {tab === "audit" && <Audit />}
     </div>
   );

@@ -106,8 +106,10 @@ def payload(r: Dict[str, Any], *, inherited: Optional[Dict[str, Any]] = None) ->
     b = _load(r["breakdown"]) or {}
     t = texts()["metrics"]
     metrics = []
+    tx = texts()
     for m in b.get("metrics", []):
-        metrics.append({**m, "label": t.get(m["id"], {}).get("label", m["id"])})
+        table = {"F": "gaps", "N": "na", "S": "substitutes"}.get(m["state"])
+        metrics.append({**m, "label": t.get(m["id"], {}).get("label", m["id"]), "whyText": (tx.get(table, {}).get(m.get("why") or "") if table else None)})
     n_f = sum(1 for m in metrics if m["state"] == "F")
     n_all = sum(1 for m in metrics if m["state"] != "N")
     rated = r["final"] is not None
@@ -293,4 +295,17 @@ async def _answer(request: Request, row, inherited, why, code: Optional[int]) ->
     if row is None:
         return _json({"locked": False, "final": None, "status": "NOT SCORED", "reason": NOT_SCORED.get(why or "not_yet", NOT_SCORED["not_yet"]), "pillars": [], "reasons": {}, "metrics": [],
                       "disclaimer": DISCLAIMER, "method": METHOD_URL, "model": MODEL_VERSION})
-    return _json(payload(row, inherited=inherited))
+    body = payload(row, inherited=inherited)
+    if row["final"] is not None:   # the category's median parts, for the radar: the same category and plan (the tracking family for index funds and ETFs)
+        body["categoryMedian"] = await category_median(request, row)
+    return _json(body)
+
+
+async def category_median(request: Request, row) -> Dict[str, Any]:
+    async with request.app.state.store.pool.acquire() as conn:
+        m = await conn.fetchrow("SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY perf) AS perf, percentile_cont(0.5) WITHIN GROUP (ORDER BY risk) AS risk, "
+                                "percentile_cont(0.5) WITHIN GROUP (ORDER BY cost) AS cost, percentile_cont(0.5) WITHIN GROUP (ORDER BY quality) AS quality, "
+                                "percentile_cont(0.5) WITHIN GROUP (ORDER BY final) AS final, count(*) AS n FROM mf_scores WHERE sub = $1 AND plan = $2 AND final IS NOT NULL", row["sub"], row["plan"])
+    r1 = lambda v: None if v is None else round(float(v), 1)  # noqa: E731
+    return {"performance": r1(m["perf"]), "risk": r1(m["risk"]), "cost": r1(m["cost"]), "quality": r1(m["quality"]), "final": r1(m["final"]), "n": m["n"],
+            "plan": row["plan"], "categoryLabel": _sub_label(row["category"]) if row["kind"] == "mf" else "Exchange-traded funds"}
