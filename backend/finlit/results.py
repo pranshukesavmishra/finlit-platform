@@ -620,26 +620,33 @@ _NUM_RE = re.compile(r"^[+-]?(\d+(\.\d*)?|\.\d+)$")
 MAX_GROWTH = 1_000_000.0
 
 
+PERIODS = ("qoq", "yoy")
+# The six cells of the filter grid (rows Revenue, Operating profit, Net profit; columns QoQ, YoY): cell key -> (metric, period). Query names are <cell>Op and <cell>Value.
+GROWTH_CELLS = {"revQoQ": ("revenue", "qoq"), "revYoY": ("revenue", "yoy"), "opQoQ": ("operatingProfit", "qoq"), "opYoY": ("operatingProfit", "yoy"),
+                "npQoQ": ("netProfit", "qoq"), "npYoY": ("netProfit", "yoy")}
+METRIC_WORDS = {"revenue": "revenue", "operatingProfit": "operating profit", "netProfit": "net profit"}
+
+
 @dataclass(frozen=True)
 class GrowthCond:
     metric: str
+    period: str   # "qoq" or "yoy"
     op: str
     value: float
 
 
 @dataclass(frozen=True)
 class GrowthSpec:
-    qoq: Optional[GrowthCond] = None
-    yoy: Optional[GrowthCond] = None
-    join: str = "and"
+    conds: Tuple[GrowthCond, ...] = ()
+    join: str = "and"   # "and" = every filled condition must hold, "or" = at least one
 
     @property
     def active(self) -> bool:
-        return self.qoq is not None or self.yoy is not None
+        return bool(self.conds)
 
 
-def _cond(label: str, metric: str, op: str, value: str) -> Optional[GrowthCond]:
-    """One filter from its three query values. Empty value = filter off (metric and operator are still checked). Anything else wrong is a 400."""
+def _cond(label: str, metric: str, period: str, op: str, value: str) -> Optional[GrowthCond]:
+    """One condition from its query values. Empty value = off (metric and operator are still checked). Anything else wrong is a 400."""
     metric, op, value = (metric or "").strip(), (op or "").strip(), (value or "").strip()
     if metric and metric not in GROWTH_FIELDS:
         raise fail(400, "bad_request", f"The {label} metric must be one of revenue, operatingProfit or netProfit.")
@@ -654,43 +661,55 @@ def _cond(label: str, metric: str, op: str, value: str) -> Optional[GrowthCond]:
     x = float(value)
     if x != x or abs(x) > MAX_GROWTH:
         raise fail(400, "bad_request", f"The {label} growth value is out of range.")
-    return GrowthCond(metric, GROWTH_OPS[op], x)
+    return GrowthCond(metric, period, GROWTH_OPS[op], x)
 
 
-def growth_params(qoqMetric: str = Query("", max_length=20), qoqOp: str = Query("", max_length=3), qoqValue: str = Query("", max_length=20),
-                  yoyMetric: str = Query("", max_length=20), yoyOp: str = Query("", max_length=3), yoyValue: str = Query("", max_length=20),
-                  join: str = Query("", max_length=3)) -> GrowthSpec:
-    j = (join or "and").strip().lower()
+def growth_params(request: Request) -> GrowthSpec:
+    """Reads the grid cells (revQoQOp / revQoQValue ... npYoYValue) and, for links shared before the grid existed, the old qoqMetric/qoqOp/qoqValue and yoy... trio.
+    The old trio is read first, so a grid cell for the same metric and period replaces it."""
+    qp = request.query_params
+    get = lambda k: qp.get(k, "")[:20]   # noqa: E731
+    j = (get("join") or "and").strip().lower()
     if j not in ("and", "or"):
         raise fail(400, "bad_request", "The join must be and or or.")
-    return GrowthSpec(_cond("QoQ", qoqMetric, qoqOp, qoqValue), _cond("YoY", yoyMetric, yoyOp, yoyValue), j)
+    found: Dict[Tuple[str, str], GrowthCond] = {}
+    for per in PERIODS:
+        c = _cond(per.upper(), get(per + "Metric"), per, get(per + "Op"), get(per + "Value"))
+        if c is not None:
+            found[(c.metric, per)] = c
+    for cell, (metric, per) in GROWTH_CELLS.items():
+        c = _cond(f"{METRIC_WORDS[metric]} {per.upper()}", metric, per, get(cell + "Op") or ">=", get(cell + "Value"))
+        if c is not None:
+            found[(metric, per)] = c
+    return GrowthSpec(tuple(found[v] for v in GROWTH_CELLS.values() if v in found), j)
 
 
-def _meets(r: dict, c: Optional[GrowthCond], idx: int) -> bool:
+def _meets(r: dict, c: GrowthCond) -> bool:
     """True only when the row HAS the growth figure and it passes. A missing figure never passes (not even for '<' or a negative limit)."""
-    if c is None or not r.get("hasNumbers"):
+    if not r.get("hasNumbers"):
         return False
-    v = r.get(GROWTH_FIELDS[c.metric][idx])
+    v = r.get(GROWTH_FIELDS[c.metric][PERIODS.index(c.period)])
     if v is None:
         return False
     return {">=": v >= c.value, ">": v > c.value, "<=": v <= c.value, "<": v < c.value}[c.op]
 
 
 def growth_filter(rows: List[dict], spec: GrowthSpec) -> Tuple[List[dict], Optional[Dict[str, Any]]]:
-    """Rows that pass the growth filters (order kept), and the four-way summary over EVERY company with figures in `rows` (before paging).
-    both + onlyQoQ + onlyYoY + neither == withFigures. With one filter on, the other side never passes: both and its 'only' are 0."""
+    """Rows that pass the growth conditions (order kept: all of them with join 'and', at least one with 'or'), and the summary over EVERY company with figures
+    in `rows` (before paging). metAll + metSome + metNone == withFigures, where 'met' counts the conditions a company passes; a missing figure never passes."""
     if not spec.active:
         return rows, None
-    both_on = spec.qoq is not None and spec.yoy is not None
-    flags = [(_meets(r, spec.qoq, 0), _meets(r, spec.yoy, 1)) for r in rows]
-    out = [r for r, (a, b) in zip(rows, flags) if (a and b if both_on and spec.join == "and" else a or b)]
-    base = [(r, f) for r, f in zip(rows, flags) if r.get("hasNumbers")]
-    both = sum(1 for _, (a, b) in base if a and b)
-    only_q = sum(1 for _, (a, b) in base if a and not b)
-    only_y = sum(1 for _, (a, b) in base if b and not a)
-    miss = lambda c, idx: sum(1 for r, _ in base if c is not None and r.get(GROWTH_FIELDS[c.metric][idx]) is None)   # noqa: E731
-    summary = {"qoq": spec.qoq is not None, "yoy": spec.yoy is not None, "join": spec.join, "withFigures": len(base), "both": both, "onlyQoQ": only_q, "onlyYoY": only_y,
-               "neither": len(base) - both - only_q - only_y, "matching": len(out), "qoqMissing": miss(spec.qoq, 0), "yoyMissing": miss(spec.yoy, 1)}
+    k = len(spec.conds)
+    hits = [[_meets(r, c) for c in spec.conds] for r in rows]
+    ok = (lambda h: all(h)) if spec.join == "and" else (lambda h: any(h))
+    out = [r for r, h in zip(rows, hits) if ok(h)]
+    base = [(r, h) for r, h in zip(rows, hits) if r.get("hasNumbers")]
+    met_all = sum(1 for _, h in base if all(h))
+    met_none = sum(1 for _, h in base if not any(h))
+    conds = [{"metric": c.metric, "period": c.period, "op": c.op, "value": c.value, "met": sum(1 for _, h in base if h[i]),
+              "missing": sum(1 for r, _ in base if r.get(GROWTH_FIELDS[c.metric][PERIODS.index(c.period)]) is None)} for i, c in enumerate(spec.conds)]
+    summary = {"join": spec.join, "k": k, "withFigures": len(base), "matching": len(out), "metAll": met_all, "metNone": met_none,
+               "metSome": len(base) - met_all - met_none, "conditions": conds}
     return out, summary
 
 

@@ -33,9 +33,10 @@ export type QResp = {
   /** Null when no growth filter is on. Counts are over every company with figures (before paging). */
   growth?: GrowthSummary | null; distribution?: QDistribution;
 };
-export type GrowthSummary = {
-  qoq: boolean; yoy: boolean; join: "and" | "or"; withFigures: number; both: number; onlyQoQ: number; onlyYoY: number; neither: number; matching: number; qoqMissing: number; yoyMissing: number;
-};
+/** One filled condition as the server counted it: how many companies with figures meet it, and how many have no such figure (and so cannot). */
+export type GrowthCondSummary = { metric: GrowthMetric; period: "qoq" | "yoy"; op: GrowthOp; value: number; met: number; missing: number };
+/** metAll + metSome + metNone = withFigures. "Matching" is metAll with AND and metAll + metSome with OR. */
+export type GrowthSummary = { join: "and" | "or"; k: number; withFigures: number; matching: number; metAll: number; metSome: number; metNone: number; conditions: GrowthCondSummary[] };
 export type QDistribution = { total: number; sectors: { name: string; n: number }[]; caps: { name: string; n: number }[] };
 /** What the server found for a date filter, before the other filters: the quarters announced in range, the nearest days with results, what we hold. */
 export type QDates = {
@@ -46,20 +47,34 @@ export type QParams = {
   quarter?: string; q?: string; sector?: string; cap?: string; index?: string; scope?: "all" | "watchlist" | "portfolio"; flagged?: boolean; status?: string;
   sort?: string; dir?: "asc" | "desc"; offset?: number; limit?: number;
   date?: string; from?: string; to?: string;   // the announcement date (one day) or a from-to range, India dates as YYYY-MM-DD
-} & Partial<Record<(typeof GROWTH_KEYS)[number], string>>;
+} & Partial<Record<`${CellKey}Op` | `${CellKey}Value` | "join", string>>;
 
 // ------------------------------------------------------------ growth filters
-// Two filters (QoQ, YoY) with a metric, an operator and a per-cent value, joined by AND / OR. The state lives in the page address under the same names the
-// server reads, and the SERVER does the filtering, so the counts and the table always cover every matching company.
-export const GROWTH_KEYS = ["qoqMetric", "qoqOp", "qoqValue", "yoyMetric", "yoyOp", "yoyValue", "join"] as const;
+// A grid of up to six thresholds: Revenue, Operating profit and Net profit, each against the quarter before (QoQ) and the same quarter a year earlier (YoY).
+// An empty cell is off. The filled cells combine with AND ("all") or OR ("any"). The state lives in the page address under the names the server reads, and the
+// SERVER does the filtering, so the counts and the table always cover every matching company.
 export type GrowthMetric = "revenue" | "operatingProfit" | "netProfit";
+export type GrowthPeriod = "qoq" | "yoy";
 export type GrowthOp = ">=" | ">" | "<=" | "<";
 export const GROWTH_METRICS: [GrowthMetric, string][] = [["revenue", "Revenue"], ["operatingProfit", "Operating profit"], ["netProfit", "Net profit"]];
 export const GROWTH_OPS: GrowthOp[] = [">=", ">", "<=", "<"];
-export type GrowthCond = { metric: GrowthMetric; op: GrowthOp; value: string };
-export type GrowthState = { qoq: GrowthCond; yoy: GrowthCond; join: "and" | "or" };
-export const DEFAULT_COND: GrowthCond = { metric: "netProfit", op: ">=", value: "" };
-export const DEFAULT_GROWTH: GrowthState = { qoq: DEFAULT_COND, yoy: DEFAULT_COND, join: "and" };
+export const GROWTH_PERIODS: [GrowthPeriod, string][] = [["qoq", "QoQ"], ["yoy", "YoY"]];
+/** The grid cells, row by row; the key is also the query name (<key>Op, <key>Value). */
+export const GROWTH_CELLS = ["revQoQ", "revYoY", "opQoQ", "opYoY", "npQoQ", "npYoY"] as const;
+export type CellKey = (typeof GROWTH_CELLS)[number];
+export const CELL_OF: Record<CellKey, [GrowthMetric, GrowthPeriod]> = {
+  revQoQ: ["revenue", "qoq"], revYoY: ["revenue", "yoy"], opQoQ: ["operatingProfit", "qoq"], opYoY: ["operatingProfit", "yoy"], npQoQ: ["netProfit", "qoq"], npYoY: ["netProfit", "yoy"],
+};
+/** Which row field each cell reads: the SAME rounded figure the table shows. */
+export const FIELD_OF: Record<CellKey, keyof QRow> = { revQoQ: "revenueQoQ", revYoY: "revenueYoY", opQoQ: "opQoQ", opYoY: "opYoY", npQoQ: "profitQoQ", npYoY: "profitYoY" };
+export const cellKeyOf = (m: GrowthMetric, p: GrowthPeriod): CellKey => GROWTH_CELLS.find((k) => CELL_OF[k][0] === m && CELL_OF[k][1] === p) as CellKey;
+export const GROWTH_KEYS: string[] = [...GROWTH_CELLS.flatMap((k) => [k + "Op", k + "Value"]), "join", "qoqMetric", "qoqOp", "qoqValue", "yoyMetric", "yoyOp", "yoyValue"];
+export type GrowthCond = { op: GrowthOp; value: string };
+export type GrowthJoin = "and" | "or";
+export type GrowthState = { cells: Record<CellKey, GrowthCond>; join: GrowthJoin };
+export const DEFAULT_COND: GrowthCond = { op: ">=", value: "" };
+export const emptyCells = (): Record<CellKey, GrowthCond> => Object.fromEntries(GROWTH_CELLS.map((k) => [k, DEFAULT_COND])) as Record<CellKey, GrowthCond>;
+export const DEFAULT_GROWTH: GrowthState = { cells: emptyCells(), join: "and" };
 /** The same rule the server applies: a plain decimal, optional sign, no exponent or words. */
 export const VALUE_RE = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
 export const cleanValue = (v: string) => v.trim().replace(/\u2212/g, "-");   // a typed or pasted minus sign (U+2212) counts as a minus
@@ -69,22 +84,36 @@ export const valueProblem = (v: string): string | null => {
   if (!VALUE_RE.test(t) || !Number.isFinite(Number(t))) return "Type a number such as 1, -2.5 or 12 (per cent).";
   return Math.abs(Number(t)) > 1_000_000 ? "That number is too large." : null;
 };
-const cond = (sp: URLSearchParams, k: "qoq" | "yoy"): GrowthCond => {
-  const m = sp.get(k + "Metric") as GrowthMetric | null, o = sp.get(k + "Op") as GrowthOp | null;
-  return { metric: m && GROWTH_METRICS.some(([x]) => x === m) ? m : DEFAULT_COND.metric, op: o && GROWTH_OPS.includes(o) ? o : DEFAULT_COND.op, value: sp.get(k + "Value") || "" };
+const opOf = (o: string | null): GrowthOp => (o && (GROWTH_OPS as string[]).includes(o) ? (o as GrowthOp) : DEFAULT_COND.op);
+/** Reads the address. Links shared before the grid existed carried one metric per column (?qoqMetric=revenue&qoqOp=>=&qoqValue=5&yoyMetric=...): each is placed in
+ *  its grid cell, so those links still open with the same filter. A grid cell in the address wins over an old-style value for the same cell. */
+export const growthFromParams = (sp: URLSearchParams): GrowthState => {
+  const cells = emptyCells();
+  for (const [per] of GROWTH_PERIODS) {
+    const value = sp.get(per + "Value") || "";
+    if (value === "") continue;
+    const m = sp.get(per + "Metric");
+    const metric = GROWTH_METRICS.some(([x]) => x === m) ? (m as GrowthMetric) : "netProfit";   // the old default metric was net profit
+    cells[cellKeyOf(metric, per)] = { op: opOf(sp.get(per + "Op")), value };
+  }
+  for (const k of GROWTH_CELLS) {
+    const value = sp.get(k + "Value") || "", o = sp.get(k + "Op");
+    if (value !== "" || o) cells[k] = { op: opOf(o), value };
+  }
+  return { cells, join: sp.get("join") === "or" ? "or" : "and" };
 };
-export const growthFromParams = (sp: URLSearchParams): GrowthState => ({ qoq: cond(sp, "qoq"), yoy: cond(sp, "yoy"), join: sp.get("join") === "or" ? "or" : "and" });
-/** A filter is on when its value is a valid number. */
+/** A condition is on when its value is a valid number. */
 export const condOn = (c: GrowthCond) => cleanValue(c.value) !== "" && valueProblem(c.value) === null;
-export const growthOn = (g: GrowthState) => condOn(g.qoq) || condOn(g.yoy);
+export const onCells = (g: GrowthState): CellKey[] => GROWTH_CELLS.filter((k) => condOn(g.cells[k]));
+export const growthOn = (g: GrowthState) => onCells(g).length > 0;
 export const growthIsDefault = (g: GrowthState) => JSON.stringify(g) === JSON.stringify(DEFAULT_GROWTH);
-/** Write the state into a copy of the address: only what differs from the defaults, so a clean address stays clean. */
+/** Write the state into a copy of the address: only what differs from the defaults, so a clean address stays clean. Old-style keys are dropped (the grid keys replace them). */
 export function growthToParams(sp: URLSearchParams, g: GrowthState): URLSearchParams {
   const n = new URLSearchParams(sp);
   for (const k of GROWTH_KEYS) n.delete(k);
-  for (const [k, c] of [["qoq", g.qoq], ["yoy", g.yoy]] as const) {
-    const v = cleanValue(c.value);
-    if (c.metric !== DEFAULT_COND.metric || c.op !== DEFAULT_COND.op || v !== "") { n.set(k + "Metric", c.metric); n.set(k + "Op", c.op); }
+  for (const k of GROWTH_CELLS) {
+    const c = g.cells[k], v = cleanValue(c.value);
+    if (v !== "" || c.op !== DEFAULT_COND.op) n.set(k + "Op", c.op);
     if (v !== "") n.set(k + "Value", v);
   }
   if (g.join === "or") n.set("join", "or");
@@ -93,12 +122,29 @@ export function growthToParams(sp: URLSearchParams, g: GrowthState): URLSearchPa
 /** The query values the server reads. An invalid value is left out (the field shows its message), never sent. */
 export const growthQuery = (g: GrowthState): Partial<QParams> => {
   const out: Record<string, string> = {};
-  for (const [k, c] of [["qoq", g.qoq], ["yoy", g.yoy]] as const) if (condOn(c)) { out[k + "Metric"] = c.metric; out[k + "Op"] = c.op; out[k + "Value"] = cleanValue(c.value); }
+  for (const k of onCells(g)) { out[k + "Op"] = g.cells[k].op; out[k + "Value"] = cleanValue(g.cells[k].value); }
   if (growthOn(g)) out.join = g.join;
   return out;
 };
+/** Does this row meet the condition in this cell? A missing figure never does (the same rule as the server). */
+export function cellHit(r: QRow, k: CellKey, c: GrowthCond): boolean {
+  if (!condOn(c) || !r.hasNumbers) return false;
+  const v = r[FIELD_OF[k]] as number | null, t = Number(cleanValue(c.value));
+  return v == null ? false : c.op === ">=" ? v >= t : c.op === ">" ? v > t : c.op === "<=" ? v <= t : v < t;
+}
 export const metricLabel = (m: GrowthMetric) => GROWTH_METRICS.find(([x]) => x === m)?.[1] || m;
+export const periodLabel = (p: GrowthPeriod) => (p === "qoq" ? "QoQ" : "YoY");
 export const opWords = (o: GrowthOp) => ({ ">=": "at least", ">": "more than", "<=": "at most", "<": "less than" })[o];
+/** Quick fills for the grid. Each sets all six cells (so it replaces what was typed) and the join. */
+export type GrowthPreset = { id: string; label: string; hint: string; cells: Partial<Record<CellKey, GrowthCond>>; join: GrowthJoin };
+const four = (op: GrowthOp, value: string): Partial<Record<CellKey, GrowthCond>> => ({ revQoQ: { op, value }, revYoY: { op, value }, npQoQ: { op, value }, npYoY: { op, value } });
+export const GROWTH_PRESETS: GrowthPreset[] = [
+  { id: "growing", label: "Revenue and net profit both growing", hint: "Revenue and net profit growth above 0% on the quarter before and on a year ago: all four conditions", cells: four(">", "0"), join: "and" },
+  { id: "strong", label: "10% or more on all four", hint: "Revenue and net profit growth of at least 10% on the quarter before and on a year ago: all four conditions", cells: four(">=", "10"), join: "and" },
+];
+export const applyPreset = (p: GrowthPreset): GrowthState => ({ cells: { ...emptyCells(), ...p.cells }, join: p.join });
+/** The preset the grid exactly equals, if any (so its button can show as pressed). */
+export const activePreset = (g: GrowthState): string | null => GROWTH_PRESETS.find((p) => JSON.stringify(applyPreset(p)) === JSON.stringify({ ...g, cells: Object.fromEntries(GROWTH_CELLS.map((k) => [k, { op: g.cells[k].op, value: cleanValue(g.cells[k].value) }])) }))?.id ?? null;
 /** Share in per cent for a legend, one decimal; 0 when there is nothing to divide. */
 export const pctOf = (n: number, total: number) => (total > 0 ? (n / total) * 100 : 0);
 
