@@ -8,6 +8,7 @@ import {
   type Col, type ColKey, type EtfItem, type FilterKey, type ListState,
 } from "../lib/etf";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
+import "../styles/etfvs.css";
 
 const COLS_KEY = "finlit-etf-cols";
 const readCols = (): ColKey[] => {
@@ -59,6 +60,12 @@ export function EtfListPage() {
         <p>Price and 1-day, 1-year and 5-year returns for every ETF we find on the exchange. Search, filter, sort and compare up to four. Information only: nothing here is advice to buy or sell.</p></div></section>
 
       <div className="wrap etf-page">
+        <Link className="evi-promo" to="/etfs/compare-index-funds">
+          <span className="evi-promo-ic" aria-hidden="true"><Icon name="compare" /></span>
+          <span className="evi-promo-t"><b>ETF vs Index Fund <span className="evi-badge">Compare</span></b>
+            <small>Pick an index such as the Nifty 50, then see the ETFs and direct-plan index funds that follow it side by side: returns, costs, tracking and risk.</small></span>
+          <span className="evi-promo-go" aria-hidden="true">Open →</span>
+        </Link>
         <div className="etf-tools">
           <label className="etf-search"><Icon name="search" /><span className="sr-only">Search ETFs by name, symbol, fund house or ISIN</span>
             <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Search: nifty bank, gold, liquid, HDFC, INF204KB14I2…" autoComplete="off" spellCheck={false} maxLength={60} />

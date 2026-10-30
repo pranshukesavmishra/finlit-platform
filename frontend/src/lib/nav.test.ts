@@ -16,7 +16,7 @@ describe("site map", () => {
     expect(RESEARCH.groups[3].items.map((i) => i.label)).toEqual(["Chart builder", "Correlation charts"]);
     expect(names("markets")).toEqual(["FII & DII flows", "India economy", "Commodity prices"]);
     expect(names("news")).toEqual(["Results calendar", "Latest results", "IPO calendar", "News & filings"]);
-    expect(names("funds")).toEqual(["Mutual funds", "ETFs", "Fund industry trends"]);
+    expect(names("funds")).toEqual(["Mutual funds", "ETFs", "ETF vs index fund", "Fund industry trends"]);
     expect(names("myfinlit")).toEqual(["Dashboard", "Watchlists", "My portfolio", "Alerts"]);
   });
   it("marks the Gold tools of the Research menu", () => {

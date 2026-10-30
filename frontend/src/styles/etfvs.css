@@ -1,0 +1,99 @@
+/* ETF vs index fund (/etfs/compare-index-funds) and its card on the ETF list. Colours come only from the theme variables, so light, dark and the palettes all work. */
+.evi-badge { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 10px; border-radius: 99px; font: 600 11.5px/1.5 var(--sans); letter-spacing: .04em; color: var(--gain); background: var(--gain-soft); border: 1px solid color-mix(in srgb, var(--gain) 45%, transparent); }
+/* the card on the ETF list */
+.evi-promo { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding: 18px 20px; margin: 0 0 20px; border: 1px solid var(--border-strong); border-radius: 16px; background: var(--s1); color: var(--text); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.evi-promo:hover { border-color: var(--gold); box-shadow: var(--lift); }
+.evi-promo:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.evi-promo-ic, .evi-badge-ic, .evi-tic { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); flex: none; }
+.evi-promo-ic svg, .evi-badge-ic svg, .evi-tic svg { width: 22px; height: 22px; }
+.evi-promo-t { display: grid; gap: 4px; min-width: 0; } .evi-promo-t b { font-size: 17px; font-weight: 600; } .evi-promo-t small { color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 70ch; }
+.evi-promo-go { color: var(--gold); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.evi-crumb { margin-top: 14px; font-size: 14px; } .evi-crumb a { color: var(--gold); font-weight: 600; }
+/* selector card */
+.evi-select { padding: 22px; }
+.evi-sel-h { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; } .evi-sel-h h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; } .evi-sel-h p { margin: 0; font-size: 14px; line-height: 1.5; max-width: 62ch; }
+.evi-form { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.evi-form > .evi-check, .evi-form > .evi-hint, .evi-form > .evi-go { grid-column: 1 / -1; }
+.evi-field { position: relative; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.evi-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.evi-sel { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); color: var(--text); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.evi-sel:hover:not(:disabled) { border-color: var(--gold); } .evi-sel:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } .evi-sel:disabled { opacity: .6; cursor: not-allowed; }
+.evi-sel .ph { color: var(--faint); } .evi-sel > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evi-chev { width: 14px; height: 14px; transform: rotate(90deg); flex: none; color: var(--muted); }
+select.evi-native { appearance: auto; padding: 0 10px; }
+.evi-pop { position: absolute; z-index: 40; top: 76px; left: 0; right: 0; display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--s1); box-shadow: var(--lift); }
+.evi-pop .etf-search { height: 42px; }
+.evi-list { list-style: none; margin: 0; padding: 0; max-height: min(320px, 50vh); overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.evi-list li { border-bottom: 1px solid var(--border); } .evi-list li:last-child { border: 0; }
+.evi-list button { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; border: 0; background: var(--s1); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.evi-list button:hover:not(:disabled), .evi-list button:focus-visible { background: var(--s2); outline: none; } .evi-list button:disabled { opacity: .45; cursor: not-allowed; } .evi-list button.on { background: var(--gold-soft); }
+.evi-box { width: 20px; height: 20px; border: 1.5px solid var(--border-strong); border-radius: 5px; display: grid; place-items: center; font-size: 13px; color: var(--on-gold); } .evi-list .on .evi-box { background: var(--gold); border-color: var(--gold); }
+.evi-it { display: grid; min-width: 0; } .evi-it b { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; } .evi-it small { color: var(--faint); font-size: 12.5px; }
+.evi-tag2 { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+.evi-none { padding: 12px; font-size: 14px; }
+.evi-chips { margin: 0; }
+.evi-check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; } .evi-check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--gold); flex: none; } .evi-check span { display: grid; gap: 2px; font-size: 14px; } .evi-check small { color: var(--faint); font-size: 12.5px; line-height: 1.45; max-width: 80ch; }
+.evi-go { height: 56px; width: 100%; border: 0; border-radius: 14px; background: var(--text); color: var(--bg); font: 600 17px var(--sans); cursor: pointer; transition: opacity .15s, transform .15s; }
+.evi-go:hover:not(:disabled) { transform: translateY(-1px); } .evi-go:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; } .evi-go:disabled { opacity: .4; cursor: not-allowed; }
+.evi-hint { margin: 0; font-size: 13px; line-height: 1.5; }
+/* results */
+.evi-results { margin-top: 22px; display: grid; gap: 18px; }
+.evi-results .card { margin-top: 0 !important; }
+.evi-h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.evi-dash { padding: 20px; }
+.evi-tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.evi-tile { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--s2); color: var(--text); text-decoration: none; min-height: 72px; }
+.evi-tile:hover { border-color: var(--gold); } .evi-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.evi-tile b { display: block; font-size: 15px; font-weight: 600; } .evi-tile small { color: var(--muted); font-size: 12.5px; line-height: 1.35; } .evi-go2 { color: var(--gold); font-weight: 700; }
+.evi-tic { width: 38px; height: 38px; } .evi-tic svg { width: 19px; height: 19px; }
+.evi-prods { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; }
+.evi-prods li { display: flex; gap: 10px; align-items: flex-start; min-width: 0; } .evi-prods svg { margin-top: 8px; flex: none; } .evi-prods b { font-size: 14px; overflow-wrap: anywhere; } .evi-prods small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.evi-allbtns { display: flex; gap: 8px; }
+.evi-sticky { position: sticky; top: 8px; z-index: 20; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 12px; background: color-mix(in srgb, var(--s1) 94%, transparent); backdrop-filter: blur(6px); box-shadow: var(--lift); font-size: 13.5px; }
+.evi-sticky ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; } .evi-sticky li { display: inline-flex; gap: 6px; align-items: center; }
+.evi-edit { margin-left: auto; border: 0; background: none; color: var(--gold); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 6px; } .evi-edit:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.evi-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; } .evi-notes li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.55; color: var(--muted); padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--s1); } .evi-notes svg { width: 16px; height: 16px; flex: none; margin-top: 3px; }
+.evi-sec { scroll-margin-top: 76px; }
+.evi-sh { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 4px 0; text-align: left; }
+.evi-sh:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 6px; }
+.evi-caret { color: var(--muted); transition: transform .15s; transform: rotate(-90deg); display: inline-block; } .evi-caret.open { transform: none; }
+.evi-h3 { margin: 26px 0 10px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; } .evi-h3:first-child { margin-top: 0; }
+.evi-ranges { margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.evi-tw { margin-top: 0; }
+.evi-table { min-width: 560px; }
+.evi-table thead th.evi-ph { white-space: normal; min-width: 150px; text-align: right; vertical-align: top; padding-right: 12px; }
+.evi-table thead th.evi-ph a { color: var(--text); font-weight: 600; display: block; text-align: right; } .evi-table thead th small { display: block; font-weight: 400; color: var(--faint); font-size: 11.5px; margin-top: 2px; line-height: 1.3; } .evi-table thead th svg { display: block; margin-left: auto; margin-bottom: 4px; }
+.evi-table td.evi-txt { font-family: var(--sans); font-size: 13px; white-space: normal; min-width: 150px; }
+.evi-arith { font: 400 12px/1.5 var(--sans); color: var(--muted); white-space: normal; display: block; text-align: left; }
+.evi-fine { margin: 10px 2px 0; font-size: 13px; line-height: 1.55; max-width: 95ch; }
+.evi-callout { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s2); font-size: 13.5px; line-height: 1.55; } .evi-callout svg { width: 16px; height: 16px; flex: none; margin-top: 3px; color: var(--gold); }
+.evi-empty { color: var(--muted); padding: 8px 0; margin: 0; }
+.evi-err { color: var(--loss); font-size: 13.5px; margin: 8px 0 0; }
+.evi-h2h { margin: 12px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.7; color: var(--muted); } .evi-h2h b { color: var(--text); }
+.evi-calc { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 10px; }
+.evi-calc label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); min-width: 0; }
+.evi-calc input { height: 44px; width: 160px; max-width: 100%; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s1); color: var(--text); padding: 0 12px; font: inherit; font-family: var(--mono); font-size: 15px; } .evi-calc input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.evi-sum { margin: 0 0 14px; font-size: 15px; line-height: 1.65; max-width: 80ch; }
+.evi-sumtable { min-width: 620px; } .evi-sumtable th[scope="rowgroup"] { vertical-align: top; font-weight: 600; color: var(--gold); } .evi-sumtable td { white-space: normal; vertical-align: top; }
+.evi-tag { display: inline-flex; gap: 6px; align-items: center; margin: 0 8px 4px 0; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--border-strong); background: var(--s2); font-size: 13px; font-weight: 600; } .evi-tag.level { color: var(--muted); font-weight: 500; }
+.evi-vals { display: grid; gap: 2px; font-size: 13px; color: var(--muted); } .evi-vals b { color: var(--text); font-family: var(--mono); font-weight: 400; }
+.evi-foot { margin-top: 0; }
+@media (max-width: 900px) {
+  .evi-form { grid-template-columns: 1fr; }
+  .evi-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .evi-prods { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .evi-promo { grid-template-columns: auto 1fr; padding: 14px; } .evi-promo-go { display: none; }
+  .evi-select, .evi-dash { padding: 16px; }
+  .evi-tiles { grid-template-columns: 1fr; }
+  .evi-pop { position: static; margin-top: 4px; }
+  .evi-sticky { position: static; box-shadow: none; }
+  .evi-edit { margin-left: 0; }
+  .evi-calc input { width: 100%; } .evi-calc label { flex: 1 1 140px; }
+  .evi-table { min-width: 0; font-size: 13px; } .evi-table th, .evi-table td { padding: 9px 7px; }
+  .evi-table thead th.evi-ph { min-width: 112px; }
+  .evi-table .etf-first { min-width: 104px; max-width: 120px; width: 112px; white-space: normal; }
+  .evi-sumtable { min-width: 0; }
+}
+.evi-sec .btn svg, .evi-allbtns .btn svg { width: 16px; height: 16px; flex: none; }
