@@ -8,12 +8,13 @@ import { useContext, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "../lib/icons";
+import { inputsLine, notRatedLede } from "../lib/prism";
 import { dateIN } from "../lib/format";
 import { useGold } from "../lib/premium";
 import { Gate, OpenAccess } from "../components/Gate";
 import { parseTechnical } from "../lib/prismTechnical";
 import { PrismGlyph } from "../components/prism/shared/PrismGlyph";
-import { STATUS, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
+import { STATUS, generateFailure, generatePrism, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
 import { PRISM_NOTE, PRISM_PARTS, PRISM_POINTS } from "./prismWords";
 import { CardSkeleton, FundamentalSection, TechnicalSection } from "./PrismCardView";
 import { type CardPart } from "./prismCardLogic";
@@ -23,7 +24,7 @@ import "../styles/prism-card.css";
 const STATUS_NOTE: Record<PrismLatest["rating"]["status"], string> = {
   RATED: "Enough of the data was available for a full rating.",
   PROVISIONAL: "Some data is missing or the record is short, so this is a first view and is shown at most as Healthy.",
-  "NOT RATED": "Too little verified data to rate this company, so there is no score.",
+  "NOT RATED": "The overall rating is withheld.",
 };
 /** The parts to draw, from the data: the four of the model, and a technical part the moment the model sends one. */
 export function partsOf(r: PrismLatest["rating"]): { parts: CardPart[]; technicalSoon: boolean } {
@@ -78,7 +79,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       </div>
     </div>
   );
-  const rep = state.report, r = rep.rating;
+  const rep = state.report, r = rep.rating, inp = inputsLine(r);
   const { parts } = partsOf(r);
   return (
     <>
@@ -86,8 +87,8 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
         <FundamentalSection r={r} parts={parts}>
           <div className="dk-words">
             <div className="dk-chips"><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span></div>
-            {r.status !== "RATED" && <p className="dk-note">{STATUS_NOTE[r.status]}</p>}
-            <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
+            {r.status !== "RATED" && <p className={"dk-note" + (r.status === "NOT RATED" ? " why" : "")}>{r.status === "NOT RATED" ? notRatedLede(r) : STATUS_NOTE[r.status]}</p>}
+            <p className={"dk-cov" + (inp.ok ? "" : " held")}><Icon name={inp.ok ? "check" : "info"} />{inp.text}{inp.note ? <span className="dk-cov-n"> · {inp.note}</span> : null} · <Link to="/glossary#coverage-prism">what this means</Link>{r.status === "NOT RATED" && <> · <Link to={`/prism/${encodeURIComponent(symbol)}`}>Why is this not rated?</Link></>}</p>
           </div>
         </FundamentalSection>
         <TechnicalSection a={parseTechnical(rep.technicalAssessment)} report={rep} onRecalculate={() => run.mutate(true)} busy={busy} />

@@ -260,7 +260,7 @@ def _summary(row) -> Dict[str, Any]:
 
 # Mirrors CLASSIFICATION_VERSION in site-api/backend/premium_classification.py (a test keeps them equal). Bump both when the group rules change
 # what a stored NOT RATED report would show: reports of an older version that were withheld by the classification check are then stale.
-CLASSIFICATION_VERSION = 2
+CLASSIFICATION_VERSION = 3
 CLASSIFICATION_MARK = "model group"      # in the rating's alerts of a report withheld by the classification check, before and after the fix
 
 

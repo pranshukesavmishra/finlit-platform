@@ -10,12 +10,12 @@ from datetime import date
 
 try:
     from .financial_records import CR, num, items, first, field_date
-    from .premium_classification import resolve_group, profile_from, label_text, CLASSIFICATION_VERSION
+    from .premium_classification import resolve_group, profile_from, label_text, unmapped_reason, CLASSIFICATION_VERSION
     from .financial_fields import INTEREST_COST_FIELDS
     from .premium_model_config import QUARTERS_STORED, CAGR_MAX_YEARS
 except ImportError:
     from financial_records import CR, num, items, first, field_date
-    from premium_classification import resolve_group, profile_from, label_text, CLASSIFICATION_VERSION
+    from premium_classification import resolve_group, profile_from, label_text, unmapped_reason, CLASSIFICATION_VERSION
     from financial_fields import INTEREST_COST_FIELDS
     from premium_model_config import QUARTERS_STORED, CAGR_MAX_YEARS
 
@@ -24,7 +24,7 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
     profile = profile_from(raw)
     group, defaulted = resolve_group(profile)
     warnings = []
-    if defaulted: warnings.append("Industry mapping used the MFG default; confirm the classification before relying on the score.")
+    if defaulted: warnings.append("No model group matched the industry label; the manufacturing default was used only to compute the inputs.")
     provenance = {}
     qrows = items(raw.get("quarterly"), "financials", "data")
     arows = items(raw.get("annual"), "financials", "data")
@@ -319,7 +319,7 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
     if incomplete_prices:
         cautions.append("Invalid closing prices occur in the recent daily series. Returns across those gaps are excluded; complete-window drawdown and trading value remain unavailable where affected.")
     if defaulted:
-        blockers.append(f'The company\'s industry label "{label_text(profile) or "none given"}" is not yet mapped to a model group.')
+        blockers.append(unmapped_reason(profile))
     if not end_q or (as_of - end_q).days > 200:
         cautions.append("Quarterly financials are missing or more than 200 days old.")
     try:

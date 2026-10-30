@@ -248,7 +248,7 @@ def build_report_review(report):
     # Preserve substantive data concerns in plain language; omit provider plumbing.
     for message in inputs.get("rating_blockers", []) + inputs.get("rating_cautions", []):
         if "solvency ratio has unverified units" in message: notes.append("The solvency ratio's units need verification against the issuer disclosure; interpret the Quality assessment with caution.")
-        elif "not yet mapped to a model group" in message: notes.append(message + " The overall rating is withheld until it is mapped.")
+        elif "no model group for" in message or "not yet mapped to a model group" in message: notes.append(message)
         elif "classification" in message: notes.append("The company's industry classification needs confirmation; the overall rating is withheld.")
         elif "Quarterly" in message: notes.append("Quarterly results are incomplete or more than 200 days old.")
         elif "freshness" in message: notes.append("The market price is more than 10 days old.")

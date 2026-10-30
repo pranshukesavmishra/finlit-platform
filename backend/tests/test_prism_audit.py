@@ -13,7 +13,7 @@ from test_prism import SECRET, SNAPSHOT, FakeSite
 
 pytestmark = pytest.mark.integration
 OLD = "The model group could not be verified from the company classification."
-NEW = 'The company\'s industry label "Zzyzx Widgets" is not yet mapped to a model group.'
+NEW = 'Prism has no model group for this industry yet ("Zzyzx Widgets"). The inputs were available; the rating needs the industry rules extended.'
 
 
 def report(symbol, status, confidence=1.0, alerts=(), reasons=None, version=None, industry="Finance", sector="Holding Companies", judged=10, missing=()):
@@ -24,6 +24,20 @@ def report(symbol, status, confidence=1.0, alerts=(), reasons=None, version=None
         rating["notRatedReasons"] = reasons
     meta = {} if version is None else {"classificationVersion": version}
     return {"id": symbol.ljust(32, "0")[:32].lower(), "rating": rating, "inputMeta": meta, "company": {"symbol": symbol, "industry": industry, "sector": sector}}
+
+
+async def test_label_of_reads_the_old_and_the_new_wording():
+    assert prism_audit.label_of({"alerts": [NEW]}) == "Zzyzx Widgets"
+    assert prism_audit.label_of({"alerts": ['The company\'s industry label "Old Label" is not yet mapped to a model group.']}) == "Old Label"
+    assert prism_audit.label_of({"alerts": ['Prism has no model group for this instrument ("REIT"): Trusts are not rated by this model.']}) == "REIT"
+
+
+def test_stale_classification_is_counted_and_listed_in_the_rendering():
+    rows = [{"symbol": "COALINDIA", "status": "NOT RATED", "alerts": [OLD], "confidence": 1.0, "classification_version": "2"},
+            {"symbol": "BBB", "status": "NOT RATED", "alerts": [NEW], "confidence": 1.0, "classification_version": str(prism.CLASSIFICATION_VERSION)}]
+    out = prism_audit.summarise(rows)
+    assert out["staleClassification"] == {"count": 1, "symbols": ["COALINDIA"]}
+    assert "precompute-prism --stale-not-rated" in prism_audit.render({**out, "statement": "consolidated"})
 
 
 async def put(store, rows):  # noqa: F811
@@ -38,7 +52,7 @@ async def put(store, rows):  # noqa: F811
 ROWS = [
     report("BAJAJFINSV", "NOT RATED", alerts=[OLD, "NOT RATED: 55% data confidence and 10 comparable quarters."]),
     report("AAA", "NOT RATED", alerts=[OLD], industry="Trading", sector="Trading & Distributors"),
-    report("BBB", "NOT RATED", alerts=[NEW], version=2, reasons=[{"code": "classification", "text": NEW}]),
+    report("BBB", "NOT RATED", alerts=[NEW], version=prism.CLASSIFICATION_VERSION, reasons=[{"code": "classification", "text": NEW}]),
     report("CCC", "NOT RATED", confidence=.3, missing=("PEG", "Pledge")),
     report("DDD", "NOT RATED", confidence=.4, missing=("PEG",)),
     report("EEE", "NOT RATED", reasons=[{"code": "insufficient_history", "text": "x"}], alerts=["Not enough reported history: 2 quarter(s)"], missing=("Sales CAGR",)),
