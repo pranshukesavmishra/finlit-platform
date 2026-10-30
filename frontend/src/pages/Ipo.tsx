@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { listingGain, minInvest, useIpos, type Ipo } from "../lib/ipo";
+import { asOf, IpoDrawer } from "./IpoDrawer";
 import { MINUS, nf } from "../lib/format";
 import { ChartHelp } from "../components/ChartHelp";
 
@@ -9,7 +10,7 @@ const DAY = 86_400_000;
 const d0 = (iso: string) => new Date(iso + "T00:00:00").getTime();
 const short = (iso: string | null) => (iso ? new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—");
 const STATUS: Record<Ipo["status"], { label: string; colour: string }> = { open: { label: "Open now", colour: "var(--gain)" }, upcoming: { label: "Upcoming", colour: "var(--k1)" }, closed: { label: "Closed", colour: "var(--k4)" }, listed: { label: "Listed", colour: "var(--k7)" } };
-const money = (v: number | null) => (v == null ? "—" : "₹" + nf(v, v % 1 ? 2 : 0));
+const money = (v: number) => "₹" + nf(v, v % 1 ? 2 : 0);
 const FILTERS = [["all", "All"], ["open", "Open now"], ["upcoming", "Upcoming"], ["closed", "Closed"], ["listed", "Listed"]] as const;
 
 /** A two-month strip: every issue is a bar from its opening to its closing day, so overlaps and quiet weeks are obvious. */
@@ -32,12 +33,36 @@ function Strip({ rows }: { rows: Ipo[] }) {
   );
 }
 
+/** One card: only the facts that exist. Tapping it opens the full details. */
+function Card({ r, onOpen }: { r: Ipo; onOpen: () => void }) {
+  const g = listingGain(r), mi = minInvest(r), st = STATUS[r.status], sub = r.details?.subscription?.overall;
+  const cells: [string, string, string?][] = [];
+  cells.push(["Opens", short(r.openDate)], ["Closes", short(r.closeDate)]);
+  if (r.listingDate) cells.push(["Lists", short(r.listingDate)]);
+  if (r.priceHigh != null) cells.push(["Price band", r.priceLow != null && r.priceLow !== r.priceHigh ? `${money(r.priceLow)} – ${money(r.priceHigh)}` : money(r.priceHigh)]);
+  if (r.lotSize) cells.push(["Lot size", `${r.lotSize} shares`]);
+  if (mi != null) cells.push(["Minimum investment", "₹" + nf(mi, 0)]);
+  if (r.issueSizeCr != null) cells.push(["Issue size", `₹${nf(r.issueSizeCr, 0)} Cr`]);
+  if (r.status === "listed" && g != null) cells.push(["Listing price vs issue price", (g >= 0 ? "▲ +" : "▼ " + MINUS) + nf(Math.abs(g), 1) + "%", g >= 0 ? "up" : "down"]);
+  if (sub != null) cells.push(["Times subscribed", nf(sub, 2) + "x"]);
+  const meta = [r.sector, r.kind === "sme" ? "SME" : "Mainboard", r.details?.exchange?.join(" / "), r.symbol].filter(Boolean).join(" · ");
+  return (
+    <article className="card ipo-c" style={{ "--tc": st.colour } as React.CSSProperties}>
+      <div className="ipo-h"><div><h3>{r.name}</h3><p>{meta}</p></div><span className="ipo-st"><i />{st.label}</span></div>
+      <dl className="ipo-d">{cells.map(([k, v, c]) => <div key={k}><dt>{k}</dt><dd className={c || ""}>{v}</dd></div>)}</dl>
+      <div className="ipo-foot"><button className="ipo-more" onClick={onOpen} aria-label={`Details: ${r.name}`}>Details →</button></div>
+    </article>
+  );
+}
+
 export function IpoPage() {
-  useDocTitle("IPO calendar", "Open, upcoming and recently listed IPOs in India: dates, price band, lot size, minimum investment and listing gain.");
+  useDocTitle("IPO calendar", "Open, upcoming and recently listed IPOs in India: dates, price band, lot size, minimum investment and listing price against issue price.");
   const { data, isLoading, isError } = useIpos();
   const [f, setF] = useState<(typeof FILTERS)[number][0]>("all");
   const [kind, setKind] = useState<"all" | "mainboard" | "sme">("all");
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState<Ipo | null>(null);
+  const closeDrawer = useCallback(() => setOpen(null), []);
   const rows = data || [];
   const by = (s: Ipo["status"]) => rows.filter((r) => r.status === s);
   const shown = useMemo(() => rows.filter((r) => (f === "all" || r.status === f) && (kind === "all" || r.kind === kind) && (!q.trim() || r.name.toLowerCase().includes(q.trim().toLowerCase()))).sort((a, b) => {
@@ -47,12 +72,14 @@ export function IpoPage() {
   const month = rows.filter((r) => r.status === "listed" && Date.now() - d0(r.listingDate || r.closeDate) < 31 * DAY);
   const avgGain = (() => { const g = month.map(listingGain).filter((v): v is number => v != null); return g.length ? g.reduce((a, b) => a + b, 0) / g.length : null; })();
 
+  const stamp = asOf(rows.map((r) => r.updatedAt).filter((v): v is string => !!v).sort().pop());
+  const fromProvider = rows.some((r) => r.source === "FinEdge");
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>IPO calendar</h1><p className="muted">Issues that are open, coming up and recently listed, updated automatically from exchange data. For information only; read the offer document before you apply.</p></div></header>
+      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>IPO calendar</h1><p className="muted">Issues that are open, coming up and recently listed, updated automatically from exchange data. For information only; the offer document is the authoritative source.</p></div></header>
       <div className="ipo-k">
         {([["open", "Open now", by("open").length], ["upcoming", "Upcoming", by("upcoming").length], ["listed", "Listed in the last 30 days", month.length]] as const).map(([k, l, n]) => <div key={k} className="card ipo-t" style={{ "--tc": STATUS[k].colour } as React.CSSProperties}><b>{n}</b><span>{l}</span></div>)}
-        <div className="card ipo-t" style={{ "--tc": "var(--k3)" } as React.CSSProperties}><b className={avgGain == null ? "" : avgGain >= 0 ? "up" : "down"}>{avgGain == null ? "—" : (avgGain >= 0 ? "+" : MINUS) + nf(Math.abs(avgGain), 1) + "%"}</b><span>Average listing gain (last 30 days)</span></div>
+        <div className="card ipo-t" style={{ "--tc": "var(--k3)" } as React.CSSProperties}><b className={avgGain == null ? "" : avgGain >= 0 ? "up" : "down"}>{avgGain == null ? "—" : (avgGain >= 0 ? "+" : MINUS) + nf(Math.abs(avgGain), 1) + "%"}</b><span>Average listing price against issue price (last 30 days)</span></div>
       </div>
       <section className="card ipo-s"><div className="card-h"><h3><span className="ci"><Icon name="calendar" /></span>Next seven weeks<ChartHelp id="ipo-timeline" /></h3><span className="s">Bar = application window</span></div>{isLoading ? <div className="skeleton" style={{ height: 160 }} /> : <Strip rows={rows} />}
         <div className="clg">{(Object.keys(STATUS) as Ipo["status"][]).map((s) => <span key={s}><i style={{ background: STATUS[s].colour }} />{STATUS[s].label}</span>)}</div></section>
@@ -63,21 +90,14 @@ export function IpoPage() {
       </div>
       {isError && <div className="formerr">The calendar could not be loaded. Please try again shortly.</div>}
       {!isLoading && !isError && !rows.length && <div className="card dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>No issues listed yet</b><p>The calendar is updated by the FinLit team. Check back soon.</p></div>}
-      <div className="ipo-list">
-        {shown.map((r) => { const g = listingGain(r), mi = minInvest(r), st = STATUS[r.status]; return (
-          <article key={r.id} className="card ipo-c" style={{ "--tc": st.colour } as React.CSSProperties}>
-            <div className="ipo-h"><div><h3>{r.name}</h3><p>{r.sector || "—"} · {r.kind === "sme" ? "SME" : "Mainboard"}{r.symbol ? ` · ${r.symbol}` : ""}</p></div><span className="ipo-st"><i />{st.label}</span></div>
-            <dl className="ipo-d">
-              <div><dt>Opens</dt><dd>{short(r.openDate)}</dd></div><div><dt>Closes</dt><dd>{short(r.closeDate)}</dd></div><div><dt>Lists</dt><dd>{short(r.listingDate)}</dd></div>
-              <div><dt>Price band</dt><dd>{r.priceLow != null && r.priceHigh != null ? `${money(r.priceLow)} – ${money(r.priceHigh)}` : money(r.priceHigh)}</dd></div>
-              <div><dt>Lot size</dt><dd>{r.lotSize ?? "—"}{r.lotSize ? " shares" : ""}</dd></div><div><dt>Minimum to apply</dt><dd>{mi != null ? "₹" + nf(mi, 0) : "—"}</dd></div>
-              <div><dt>Issue size</dt><dd>{r.issueSizeCr != null ? `₹${nf(r.issueSizeCr, 0)} Cr` : "—"}</dd></div>
-              {r.status === "listed" && <div><dt>Listing gain</dt><dd className={g == null ? "" : g >= 0 ? "up" : "down"}>{g == null ? "—" : (g >= 0 ? "▲ +" : "▼ " + MINUS) + nf(Math.abs(g), 1) + "%"}</dd></div>}
-            </dl>
-            {(r.note || r.link) && <p className="ipo-n">{r.note}{r.link && <> <a href={r.link} target="_blank" rel="noopener noreferrer">Offer document ↗</a></>}</p>}
-          </article>); })}
-      </div>
+      {(["open", "upcoming", "closed", "listed"] as const).map((st) => { const sec = shown.filter((r) => r.status === st); return sec.length ? (
+        <section key={st} className="ipo-sec" aria-label={STATUS[st].label}>
+          <h2 className="ipo-sec-h"><i style={{ background: STATUS[st].colour }} />{STATUS[st].label} <span>{sec.length}</span></h2>
+          <div className="ipo-list">{sec.map((r) => <Card key={r.id} r={r} onOpen={() => setOpen(r)} />)}</div>
+        </section>) : null; })}
       {rows.length > 0 && !shown.length && <p className="muted" style={{ padding: 24, textAlign: "center" }}>No issues match these filters.</p>}
+      {rows.length > 0 && (stamp || fromProvider) && <p className="ipo-asof muted">{stamp && <>Data as of {stamp}</>}{stamp && fromProvider && " · "}{fromProvider && "Source: FinEdge"}</p>}
+      {open && <IpoDrawer ipo={open} chip={STATUS[open.status]} onClose={closeDrawer} />}
     </div>
   );
 }

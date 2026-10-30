@@ -175,6 +175,24 @@
 .ipo-st { display: inline-flex; gap: 6px; align-items: center; font: 700 11.5px var(--sans); padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--tc) 14%, var(--s1)); white-space: nowrap; } .ipo-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); }
 .ipo-d { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin: 0; } .ipo-d dt { font-size: 11.5px; color: var(--faint); } .ipo-d dd { margin: 2px 0 0; font: 600 14px var(--mono); } .ipo-d dd.up { color: var(--gain); } .ipo-d dd.down { color: var(--loss); }
 .ipo-n { margin: 0; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; } .ipo-n a { color: var(--gold); font-weight: 600; }
+.ipo-sec { margin: 0 0 22px; } .ipo-sec-h { display: flex; align-items: center; gap: 8px; font: 600 15px var(--sans); margin: 0 0 10px; } .ipo-sec-h i { width: 10px; height: 10px; border-radius: 50%; } .ipo-sec-h span { color: var(--faint); font-weight: 500; }
+.ipo-foot { display: flex; justify-content: flex-end; } .ipo-more { background: none; border: 0; color: var(--gold); font: 600 13px var(--sans); cursor: pointer; padding: 6px 2px; } .ipo-more:hover { text-decoration: underline; }
+.ipo-asof { text-align: center; font-size: 12.5px; margin: 8px 0 0; }
+.ipo-dr-bg { position: fixed; inset: 0; z-index: 80; background: rgba(8, 10, 16, .55); display: flex; justify-content: flex-end; }
+.ipo-dr { width: min(480px, 100%); height: 100%; overflow-y: auto; background: var(--s1); color: var(--text); border-left: 5px solid var(--tc); padding: 20px 22px 28px; display: grid; align-content: start; gap: 18px; outline: none; box-shadow: -12px 0 40px rgba(0, 0, 0, .25); }
+.ipo-dr-h { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; } .ipo-dr-h h2 { font: 400 24px/1.2 var(--serif); margin: 0 0 8px; overflow-wrap: anywhere; }
+.ipo-dr-x { background: var(--s2); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 10px; font-size: 22px; line-height: 1; cursor: pointer; flex: none; }
+.ipo-dr-s h3 { font: 700 11.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; }
+.ipo-kv { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 0; } .ipo-kv dt { font-size: 11.5px; color: var(--faint); } .ipo-kv dd { margin: 2px 0 0; font: 600 14px var(--mono); overflow-wrap: anywhere; }
+.ipo-sum { margin: 0; font-size: 13.5px; line-height: 1.55; } .ipo-sum b { font-family: var(--mono); }
+.ipo-perf { background: var(--s2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; } .ipo-perf h3 { margin: 0; } .ipo-perf p { margin: 0; font-size: 12.5px; }
+.ipo-perf .ipo-perf-n { font: 300 34px/1.1 var(--serif); } .ipo-perf-n small { font: 600 13px var(--mono); } .ipo-perf-n.up { color: var(--gain); } .ipo-perf-n.down { color: var(--loss); }
+.ipo-tl { list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 0; } .ipo-tl li { position: relative; display: flex; justify-content: space-between; gap: 12px; padding: 0 0 12px 20px; border-left: 2px solid var(--border); margin-left: 5px; font-size: 13.5px; } .ipo-tl li:last-child { padding-bottom: 0; border-left-color: transparent; }
+.ipo-tl i { position: absolute; left: -7px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--tc); border: 2px solid var(--s1); } .ipo-tl span { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+.ipo-sub { width: 100%; border-collapse: collapse; font-size: 13.5px; } .ipo-sub th, .ipo-sub td { padding: 7px 0; border-bottom: 1px solid var(--border); text-align: left; font-weight: 500; } .ipo-sub td, .ipo-sub thead th:last-child { text-align: right; font-family: var(--mono); font-weight: 600; } .ipo-sub thead th { font-size: 11.5px; color: var(--faint); }
+.ipo-ul { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 4px; } .ipo-ul a { color: var(--gold); font-weight: 600; }
+.ipo-dr-f { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 12px; }
+@media (max-width: 520px) { .ipo-dr { padding: 16px 16px 24px; border-left-width: 0; border-top: 5px solid var(--tc); } .ipo-dr-bg { align-items: flex-end; } .ipo-dr { height: auto; max-height: 92vh; border-radius: 18px 18px 0 0; width: 100%; } }
 @media (max-width: 520px) { .ipo-list { grid-template-columns: 1fr; } .ipo-d { grid-template-columns: repeat(2, 1fr); } }
 
 /* ---- results calendar, news, documents ---- */

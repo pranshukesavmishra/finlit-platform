@@ -972,11 +972,14 @@ def ipo_status(row: Any, today: _date) -> str:
 
 
 def ipo_json(row: Any, today: _date) -> Dict[str, Any]:
+    det = row["details"] if "details" in row.keys() else None
+    det = json.loads(det) if isinstance(det, str) else det
     f = lambda v: float(v) if v is not None else None  # noqa: E731
     return {"id": row["id"], "name": row["name"], "symbol": row["symbol"], "kind": row["kind"], "sector": row["sector"], "status": ipo_status(row, today),
             "openDate": row["open_date"].isoformat(), "closeDate": row["close_date"].isoformat(), "listingDate": row["listing_date"].isoformat() if row["listing_date"] else None,
             "priceLow": f(row["price_low"]), "priceHigh": f(row["price_high"]), "lotSize": row["lot_size"], "issueSizeCr": f(row["issue_size_cr"]),
-            "listingPrice": f(row["listing_price"]), "note": row["note"], "link": row["link"]}
+            "listingPrice": f(row["listing_price"]), "note": row["note"], "link": row["link"],
+            "details": det if isinstance(det, dict) else {}, "updatedAt": row["updated_at"].isoformat() if row["updated_at"] else None, "source": row["source"]}
 
 
 IPO_COLS = "name, symbol, kind, sector, open_date, close_date, listing_date, price_low, price_high, lot_size, issue_size_cr, listing_price, note, link"
@@ -986,7 +989,8 @@ IPO_COLS = "name, symbol, kind, sector, open_date, close_date, listing_date, pri
 async def list_ipos(request: Request):
     """Public. Nearest first: open and upcoming issues, then the recent past."""
     async with request.app.state.store.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM ipos ORDER BY open_date DESC LIMIT 300")
+        rows = await conn.fetch("SELECT id, name, symbol, kind, sector, open_date, close_date, listing_date, price_low, price_high, lot_size, issue_size_cr, listing_price, note, link, details, updated_at, source "
+                                "FROM ipos ORDER BY open_date DESC LIMIT 300")   # not `raw`: it is for later features, not for the page
     today = datetime.now(IST).date()   # India's date: an IPO opening today must read "Open" from midnight IST, not 05:30
     return Response(content=json.dumps({"ipos": [ipo_json(r, today) for r in rows]}), media_type="application/json",
                     headers={"Cache-Control": "public, max-age=120, stale-while-revalidate=600"})

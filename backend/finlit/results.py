@@ -922,7 +922,11 @@ async def pipeline_status(store, today: Optional[date] = None) -> Dict[str, Any]
                 skipped[job] = orjson.loads(raw)
     except Exception:   # nosec B110 - Redis down: the notes are simply not shown
         pass
-    return {"todayIST": today.isoformat(), "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
+    cal = dict(last.get("calendars") or {})
+    ipo_fields = cal.pop("ipoFields", None)   # shown once, at the top level: the field names the provider's /ipo-calendar rows really carry, and one sample row
+    if last.get("calendars") is not None:
+        last["calendars"] = cal
+    return {"todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
             "upcomingCount": int(upcoming or 0), "companiesWithResultsDateTodayOrYesterday": int(declared_recent or 0),
             "lastRun": last, "lastSkipped": skipped}
 
