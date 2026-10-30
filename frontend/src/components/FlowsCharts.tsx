@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { niceTicks } from "../lib/etf";
 import { MINUS, dateIN, nf } from "../lib/format";
-import { calendar, grp, inr, level, type Cal, type Pt, type SideKey } from "../lib/flowsMath";
+import { calendar, diiGap, grp, inr, level, type Cal, type Pt, type SideKey } from "../lib/flowsMath";
 import type { FlowDay } from "../lib/flows";
 
 export function useWidth(min = 300): [React.RefObject<HTMLDivElement | null>, number] {
@@ -140,12 +140,14 @@ export function MiniBars({ rows, name }: { rows: { d: string; v: number | null }
 
 // ------------------------------------------------------------------------------------------------------------- calendar
 const WD = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-export function CalendarHeat({ days, side, selected, onSelect, name }: { days: FlowDay[]; side: SideKey; selected: string | null; onSelect: (d: string) => void; name: string }) {
+export function CalendarHeat({ days, side, selected, onSelect, name, publishedFrom }: { days: FlowDay[]; side: SideKey; selected: string | null; onSelect: (d: string) => void; name: string; publishedFrom?: string | null }) {
   const cal: Cal = useMemo(() => calendar(days, side), [days, side]);
   const labels = useMemo(() => new Map(cal.cells.map((c) => {
+    const un = c.v == null && side === "dii" && diiGap(c.d, publishedFrom) === "unpublished";
+    if (un) return [c.d, { title: `${dlabel(c.d)}: not published (the official DII report begins ${dlabel(publishedFrom!)})`, aria: `${dlabel(c.d)}: ${name} not published, the official report begins ${dlabel(publishedFrom!)}` }] as const;
     const w = `${dlabel(c.d)}: ${c.v == null ? "no figure" : (c.v > 0 ? "▲ " : c.v < 0 ? "▼ " : "") + inr(c.v)}`;
     return [c.d, { title: w, aria: `${dlabel(c.d)}: ${name} ${c.v == null ? "no figure published" : (c.v > 0 ? "net buying " : c.v < 0 ? "net selling " : "flat ") + inr(c.v)}` }] as const;
-  })), [cal, name]);
+  })), [cal, name, side, publishedFrom]);
   const scroller = useRef<HTMLDivElement>(null), byDate = useMemo(() => new Map(cal.cells.map((c) => [c.d, c])), [cal]);
   useEffect(() => { const el = scroller.current; if (el) el.scrollLeft = el.scrollWidth; }, [cal]);
   const dates = useMemo(() => cal.cells.map((c) => c.d), [cal]);
@@ -167,7 +169,7 @@ export function CalendarHeat({ days, side, selected, onSelect, name }: { days: F
             <div className="fl-cal-g" style={{ gridTemplateColumns: `repeat(${cal.cols}, minmax(0, 1fr))` }}>
               {cal.cells.map((c) => {
                 const l = level(c.v, cal.scale);
-                return <button key={c.d} type="button" data-d={c.d} data-l={l} data-n={c.v == null ? 1 : undefined} className={"fl-cell" + (selected === c.d ? " sel" : "")} style={{ gridColumn: c.col + 1, gridRow: c.row + 1 }} tabIndex={c.d === tabbable ? 0 : -1}
+                return <button key={c.d} type="button" data-d={c.d} data-l={l} data-n={c.v == null ? (side === "dii" && diiGap(c.d, publishedFrom) === "unpublished" ? 2 : 1) : undefined} className={"fl-cell" + (selected === c.d ? " sel" : "")} style={{ gridColumn: c.col + 1, gridRow: c.row + 1 }} tabIndex={c.d === tabbable ? 0 : -1}
                   aria-pressed={selected === c.d} aria-label={labels.get(c.d)!.aria} title={labels.get(c.d)!.title}
                   onClick={() => onSelect(c.d)} onKeyDown={(e) => key(e, c.d)} />;
               })}
