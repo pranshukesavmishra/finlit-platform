@@ -36,6 +36,7 @@ from . import compare as compare_api
 from . import etf as etf_api
 from . import mf as mf_api
 from . import mf_insights
+from .mfscore import api as mf_score_api
 from . import graphviews as graphviews_api
 from . import forum as forum_api
 from . import dcf as dcf_api
@@ -574,6 +575,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(advanced_api.router)
     app.include_router(compare_api.router)
     app.include_router(etf_api.router)
+    app.include_router(mf_score_api.router)   # /api/mf/scores and /api/mf/{code}/score: before mf_api, whose /api/mf/{code} would otherwise claim /api/mf/scores
     app.include_router(mf_insights.router)   # before mf_api: its /api/mf/{code} would otherwise claim /api/mf/insights
     app.include_router(mf_api.router)
     app.include_router(search_api.router)

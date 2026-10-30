@@ -1728,7 +1728,8 @@ LIST_COLS = ("code, name, amc, category, scheme_type, plan, option_class, option
 # Volatility, drawdown and the other periods are on the scheme's own page.
 SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "navDate": "nav_date", "r1y": "r1y", "r3y": "r3y", "r5y": "r5y",
          "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)", "sip3y": "sip3y", "sip5y": "sip5y", "aum": "aum_lakh", "ter": "ter",
-         "checklist": "(chk_pass * 8 + chk_known)"}
+         "checklist": "(chk_pass * 8 + chk_known)",
+         "score": "(SELECT sc.final FROM mf_scores sc WHERE sc.key = 'mf:' || mf_schemes.code::text)"}   # the Mutual Fund Health Score (finlit/mfscore): Silver and above, see list_funds
 MAX_CATEGORIES = 80
 PLANS = ("Direct", "Regular", "Unspecified")
 OPTIONS = ("Growth", "IDCW", "Other", "All")   # no choice means Growth; "All" turns the default off
@@ -1847,6 +1848,9 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         raise fail(400, "bad_request", "Unknown plan or option.")
     if sort and sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort column.")
+    if sort == "score":   # the order of the score says what the score says: Silver and above, and never kept by a shared cache
+        from .mfscore.api import require_score_plan
+        await require_score_plan(request)
     if group and group not in TAB_KEYS:
         raise fail(400, "bad_request", "Unknown category group: use equity, hybrid, debt, solution or other.")
     cats = sorted({c.strip() for c in categories if c.strip()})
@@ -1900,7 +1904,10 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
         peers = {k: v for k, v in (dash.get("peers") or {}).items() if k in want}
         return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": items, "peers": peers,
                 "checklist": {"checks": [{"key": k, "rule": t} for k, t in CHECKS], "minPeers": CHECK_MIN_PEERS}, **facts}
-    return await cached_json(request, "list", key, build)
+    res = await cached_json(request, "list", key, build)
+    if sort == "score":
+        res.headers["Cache-Control"], res.headers["Vary"] = "private, no-store", "Cookie"
+    return res
 
 
 _tab_cache: Dict[str, object] = {"ver": None, "tabs": None, "at": 0.0}

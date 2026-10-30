@@ -163,6 +163,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   $PY -m finlit.worker refresh-leadership --if-stale --backfill-from 2022-10-01   # Leader / Laggard labels and their rank history (database only; skipped when this week's run is done)
   # fund holdings and exit loads (fund houses' monthly portfolios, AMFI scheme details): last, so stock loads come first; waits its turn with the other fund jobs; skipped if it ran in the last 20 hours
   flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker refresh-portfolios --max-age-hours 20 >> /tmp/job-portfolios.log 2>&1
+  flock -w 10800 "$FUNDS_LOCK" env MALLOC_ARENA_MAX=2 $PY -m finlit.worker score-mf --max-age-hours 20 >> /tmp/job-score-mf.log 2>&1
   $PY -m finlit.wake flag-set bootload 72000 >/dev/null 2>&1
   log "done boot-load"
 ) 9>/tmp/finlit-heavy.lock >> /tmp/job-boot-load.log 2>&1 &
@@ -240,6 +241,7 @@ chain_night() {   # 01:00: the heavy loads and the audits, one after the other
   run heavy history backfill-history
   run heavy prism precompute-prism
   run_funds portfolios refresh-portfolios
+  run_funds score-mf score-mf                                      # the Mutual Fund Health Score: after the portfolios it reads, same lock and memory rules as the other fund jobs
   run light logos refresh-logos
 }
 chain_morning() {   # 06:45: before the open

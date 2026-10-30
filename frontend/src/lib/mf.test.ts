@@ -95,9 +95,9 @@ describe("list address", () => {
     expect(activeFilterCount({ ...PAGE_DEFAULTS, q: "x", sort: "r1y", amc: "A", min1y: "1", stopped: true, cats: ["elss"] })).toBe(3);
     expect(activeFilterCount({ ...PAGE_DEFAULTS, plan: "" })).toBe(1);
   });
-  it("the table offers the owner's columns: returns over 1, 3 and 5 years, SIP over 3 and 5, fund size, expense ratio, checklist", () => {
+  it("the table offers the owner's columns: returns over 1, 3 and 5 years, SIP over 3 and 5, fund size, expense ratio, health score, checklist", () => {
     const ids = COLUMNS.map((c) => c.id);
-    expect(ids).toEqual(["amc", "category", "plan", "option", "nav", "navDate", "change", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "checklist"]);
+    expect(ids).toEqual(["amc", "category", "plan", "option", "nav", "navDate", "change", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "score", "checklist"]);
     expect(COLUMNS.filter((c) => c.group === "ret").map((c) => c.id)).toEqual(["change", "r1y", "r3y", "r5y"]);
     expect(COLUMNS.filter((c) => c.group === "sip").map((c) => c.id)).toEqual(["sip3y", "sip5y"]);
     expect(COLUMNS.every((c) => c.sort !== null || ["plan", "option"].includes(c.id))).toBe(true);
@@ -105,7 +105,7 @@ describe("list address", () => {
     expect(COLUMNS.find((c) => c.id === "r5y")!.hint).toMatch(/CAGR/);
   });
   it("the default columns are the dashboard's", () => {
-    expect(DEFAULT_COLS).toEqual(["category", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "checklist"]); expect(readCols()).toEqual(DEFAULT_COLS);
+    expect(DEFAULT_COLS).toEqual(["category", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "score", "checklist"]); expect(readCols()).toEqual(DEFAULT_COLS);
   });
   it("fund size and expense ratio text", () => {
     expect(aumText(147064.25)).toBe("₹1,47,064 Cr"); expect(aumText(45.3)).toBe("₹45.30 Cr"); expect(aumText(null)).toBe("—");

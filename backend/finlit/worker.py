@@ -549,6 +549,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
     p_dc.add_argument("--months", type=int, default=None, help="month-ends to read per fund house (default: the latest 3)")
     p_dc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran in the last N hours")
+    p_sc = sub.add_parser("score-mf", help="daily, after refresh-portfolios: FinLit Mutual Fund Health Score of every Growth scheme and ETF (finlit/mfscore; one transaction, idempotent); recorded at /api/mf/status (run:score-mf)")
+    p_sc.add_argument("--symbols", nargs="*", default=None, help="AMFI scheme codes or ETF symbols: the whole universe is scored (peer medians need it) but only these are written")
+    p_sc.add_argument("--limit", type=int, default=None, help="testing only: score just the first N schemes and N ETFs (their peer sets are then not the real ones); never removes other rows")
+    p_sc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -792,6 +796,22 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
+        if args.cmd == "score-mf":
+            from .mf import last_run_age_hours, record_run
+            from .mfscore import job as score_job
+            if args.max_age_hours and not (args.symbols or args.limit):
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            try:
+                result = await score_job.run(store, settings, symbols=args.symbols, limit=args.limit)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            await record_run(store, args.cmd, {k: v for k, v in result.items() if k != "groups"})
+            print(json.dumps(result, default=str)[:3000])
+            return 0 if result.get("status") in ("ok", "skipped") else 1
         if args.cmd == "audit-prism":
             from . import prism_audit
             res = await prism_audit.audit(store, args.statement)

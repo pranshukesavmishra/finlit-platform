@@ -336,3 +336,40 @@
 /* return and cost bands: one quiet word under the figure, tinted by where it sits */
 .mf-band { display: block; font: 600 10.5px var(--sans); letter-spacing: .01em; color: var(--muted); white-space: nowrap; }
 .mf-band.b0 { color: var(--loss); } .mf-band.b3, .mf-band.c1 { color: var(--gain); } .mf-band.c3 { color: var(--loss); }
+
+/* FinLit Mutual Fund Health Score (mf/ScoreCard.tsx, ScoreCompare.tsx, pages/MfScoreMethod.tsx). Colours: the site's band rule, green 70, orange 50, red under 50. */
+.mfs-top { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+.mfs-ringbox { display: grid; justify-items: center; gap: 10px; }
+.mfs-ring .mfs-n { font: 600 30px var(--mono, monospace); fill: var(--text); } .mfs-ring .mfs-u { font: 500 9px var(--sans); fill: var(--muted); }
+.mfs-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.mfs-label { display: inline-flex; align-items: center; gap: 7px; font: 600 18px var(--serif); } .mfs-label i { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.b-hi { color: var(--band-hi-ink); } .b-mid { color: var(--band-mid-ink); } .b-lo { color: var(--band-lo-ink); } .b-na { color: var(--faint); }
+.mfs-status { font: 700 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--muted); }
+.mfs-status.provisional { border-style: dashed; color: var(--text); } .mfs-status.not-rated, .mfs-status.not-scored { color: var(--faint); }
+.mfs-pillars { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.mfs-pillars li { display: grid; grid-template-columns: 150px 1fr 56px; gap: 12px; align-items: center; }
+.mfs-pn { font-weight: 600; font-size: 14px; } .mfs-pn small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.mfs-bar { height: 10px; border-radius: 6px; background: var(--s3); overflow: hidden; } .mfs-bar i { display: block; height: 100%; border-radius: 6px; }
+.mfs-pv { font: 700 15px var(--mono, monospace); text-align: right; } .mfs-pillars .mfs-pv sup { font-size: 9px; margin-left: 2px; color: var(--muted); }
+.mfs-grp { margin: 16px 0 4px; font-size: 14px; color: var(--muted); } .mfs-grp b { color: var(--text); } .mfs-grp small { display: block; margin-top: 2px; }
+.mfs-conf { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--muted); margin: 6px 0; } .mfs-conf svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+.mfs-nr { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); } .mfs-nr b { color: var(--text); }
+.mfs-reasons { margin-top: 18px; }
+.mfs-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mfs-why h4 { margin: 0 0 8px; font: 700 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.mfs-why ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.mfs-why li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; font-size: 13.5px; line-height: 1.5; color: var(--muted); } .mfs-why li b { color: var(--text); }
+.mfs-why.good svg { color: var(--band-hi-ink); width: 16px; height: 16px; margin-top: 2px; } .mfs-why.watch svg { color: var(--band-mid-ink); width: 16px; height: 16px; margin-top: 2px; }
+.mfs-gaps { margin: 12px 0 4px; font-size: 13px; color: var(--muted); } .mfs-gaps summary { cursor: pointer; font-weight: 600; } .mfs-gaps ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.mfs-scale { display: flex; margin-top: 16px; border-radius: 6px; overflow: hidden; font-size: 10.5px; text-align: center; }
+.mfs-scale span { padding: 3px 0; color: var(--muted); background: var(--s2); border-left: 1px solid var(--bg); }
+.mfs-cell { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.2; } .mfs-cell small { font-size: 11px; color: var(--muted); }
+.mfs-metrics td, .mfs-metrics th { font-size: 13px; }
+.mfs-list { padding-left: 18px; display: grid; gap: 8px; line-height: 1.55; } .mfs-method .card p { line-height: 1.6; max-width: 80ch; }
+@media (max-width: 640px) {
+  .mfs-top { grid-template-columns: 1fr; gap: 16px; }
+  .mfs-pillars li { grid-template-columns: 1fr 56px; gap: 4px 10px; } .mfs-pillars .mfs-bar { grid-column: 1 / -1; grid-row: 2; }
+  .mfs-cols { grid-template-columns: 1fr; }
+}
+.mfs-card, .mfs-cmpcard, .mf-table, .mfs-method { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
+:root[data-theme="light"] .mfs-card, :root[data-theme="light"] .mfs-cmpcard, :root[data-theme="light"] .mf-table, :root[data-theme="light"] .mfs-method { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }

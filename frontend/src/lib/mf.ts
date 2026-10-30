@@ -134,8 +134,8 @@ export const terText = (v: number | null | undefined) => (v == null ? "—" : nf
 
 // ------------------------------------------------------------------------------------------------ list columns
 
-export type SortKey = "name" | "amc" | "category" | "nav" | "navDate" | "change" | "r1y" | "r3y" | "r5y" | "sip3y" | "sip5y" | "aum" | "ter" | "checklist";
-export type ColId = "amc" | "category" | "plan" | "option" | "nav" | "navDate" | "change" | "r1y" | "r3y" | "r5y" | "sip3y" | "sip5y" | "aum" | "ter" | "checklist";
+export type SortKey = "name" | "amc" | "category" | "nav" | "navDate" | "change" | "r1y" | "r3y" | "r5y" | "sip3y" | "sip5y" | "aum" | "ter" | "checklist" | "score";
+export type ColId = "amc" | "category" | "plan" | "option" | "nav" | "navDate" | "change" | "r1y" | "r3y" | "r5y" | "sip3y" | "sip5y" | "aum" | "ter" | "checklist" | "score";
 /** `group` puts neighbouring columns under one heading in the table ("Returns", "SIP returns"). */
 export type ColDef = { id: ColId; label: string; hint: string; sort: SortKey | null; num: boolean; group?: "ret" | "sip" };
 export const COL_GROUPS = { ret: "Returns", sip: "SIP returns (XIRR)" } as const;
@@ -155,9 +155,10 @@ export const COLUMNS: ColDef[] = [
   { id: "sip5y", label: "5 yrs", hint: "Yearly rate (XIRR) of a monthly SIP of equal amounts over the last 5 years, valued at the latest NAV", sort: "sip5y", num: true, group: "sip" },
   { id: "aum", label: "Fund size", hint: "Assets under management (AUM), all plans of the scheme together, rupees crore", sort: "aum", num: true },
   { id: "ter", label: "Expense ratio", hint: "Total expense ratio (TER) of this plan, percent a year", sort: "ter", num: true },
+  { id: "score", label: "Health score", hint: "FinLit Mutual Fund Health Score, 0 to 100 (Silver plan). Describes the fund's past health against similar funds; not a recommendation", sort: "score", num: true },
   { id: "checklist", label: "Checklist", hint: "How many of five plain checks the scheme passes against its category (see the legend below the table)", sort: "checklist", num: true },
 ];
-export const DEFAULT_COLS: ColId[] = ["category", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "checklist"];
+export const DEFAULT_COLS: ColId[] = ["category", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "score", "checklist"];
 const COLS_KEY = "finlit-mf-cols-v3";
 const ALL_IDS = new Set<string>(COLUMNS.map((c) => c.id));
 
@@ -274,6 +275,7 @@ export function toggleCat(cats: string[] | null, key: string, allKeys: string[])
 export const toggleAll = (cats: string[] | null): string[] | null => (cats === null ? [] : null);
 /** A row's value for a sort key, for sorting rows already in the browser (the ready list). */
 export function rowSortValue(r: FundRow, key: SortKey): number | string | null {
+  if (key === "score") return null;   // the score is not in the list rows: the server sorts it (Silver)
   if (key === "checklist") return r.checklist ? r.checklist.pass * 8 + r.checklist.of : null;
   const v = r[key];
   return v == null ? null : (v as number | string);
