@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, cellHit, DEFAULT_GROWTH, type CellKey, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingText, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
@@ -113,7 +113,9 @@ function Detail({ r, fiscal, line }: { r: QRow; fiscal?: string; line: string })
   );
 }
 
-function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void }) {
+function Row({ r, fiscal, locked, onUnlock, hit }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void; hit: (k: CellKey) => boolean }) {
+  const h = (k: CellKey) => (hit(k) ? " qr-hit" : "");
+  const tag = (k: CellKey) => (hit(k) ? <span className="sr-only"> (meets your growth filter)</span> : null);
   const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
   const note = r.status === "awaiting" && r.awaitingWhy === "provider" ? <>{awaitingText(r.date, r.awaitingWhy)}. We check again every hour.</>
     : r.status === "awaiting" ? <>Declared on {dayLabel(r.date)}. <b>Report is being updated.</b> Figures appear here as soon as the company's report is refreshed.</>
@@ -127,9 +129,9 @@ function Row({ r, fiscal, locked, onUnlock }: { r: QRow; fiscal?: string; locked
         {note ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky">{note}</span></td>
           : locked ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
           : <>
-            <td className="qg1 qgs">{money(r.revenue)}</td><td className="qg1"><Chg v={r.revenueYoY} /></td><td className="qg1"><Chg v={r.revenueQoQ} /></td>
-            <td className="qg2 qgs"><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td className="qg2"><Chg v={r.opYoY} why={r.opYoYWhy} /></td><td className="qg2"><Chg v={r.opQoQ} why={r.opQoQWhy} /></td><td className="qg2"><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
-            <td className="qg3 qgs"><b>{money(r.netProfit)}</b></td><td className="qg3"><Chg v={r.profitYoY} /></td><td className="qg3"><Chg v={r.profitQoQ} /></td><td className="qg3">{pc1(r.npm)}</td>
+            <td className="qg1 qgs">{money(r.revenue)}</td><td className={"qg1" + h("revYoY")}><Chg v={r.revenueYoY} />{tag("revYoY")}</td><td className={"qg1" + h("revQoQ")}><Chg v={r.revenueQoQ} />{tag("revQoQ")}</td>
+            <td className="qg2 qgs"><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td className={"qg2" + h("opYoY")}><Chg v={r.opYoY} why={r.opYoYWhy} />{tag("opYoY")}</td><td className={"qg2" + h("opQoQ")}><Chg v={r.opQoQ} why={r.opQoQWhy} />{tag("opQoQ")}</td><td className="qg2"><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
+            <td className="qg3 qgs"><b>{money(r.netProfit)}</b></td><td className={"qg3" + h("npYoY")}><Chg v={r.profitYoY} />{tag("npYoY")}</td><td className={"qg3" + h("npQoQ")}><Chg v={r.profitQoQ} />{tag("npQoQ")}</td><td className="qg3">{pc1(r.npm)}</td>
             <td className="qgs">{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
           </>}
       </tr>
@@ -249,10 +251,10 @@ export function QuarterResultsPage() {
         last = r.date;
         out.push(<tr key={"d" + r.date} className="qr-day"><td colSpan={COLS}><div className="qr-sticky"><b>{dayLabel(r.date)}</b><span>{days.get(r.date) || ""} {days.get(r.date) === 1 ? "company" : "companies"}</span></div></td></tr>);
       }
-      out.push(<Row key={r.symbol} r={r} fiscal={q?.fiscal} locked={locked} onUnlock={() => need("Results figures, growth and margin are part of the Silver plan.")} />);
+      out.push(<Row key={r.symbol} r={r} fiscal={q?.fiscal} locked={locked} hit={(k) => cellHit(r, k, growth.cells[k])} onUnlock={() => need("Results figures, growth and margin are part of the Silver plan.")} />);
     }
     return out;
-  }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked, growth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="wrap ipo qr">
@@ -270,7 +272,7 @@ export function QuarterResultsPage() {
       </header>
 
       {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}
-      {growthLocked && <div className="formerr" role="alert">Filtering by growth is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setSp(growthToParams(sp, { ...growth, qoq: { ...growth.qoq, value: "" }, yoy: { ...growth.yoy, value: "" } }), { replace: true })}>Remove the growth filter</button></div>}
+      {growthLocked && <div className="formerr" role="alert">Filtering by growth is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setSp(growthToParams(sp, DEFAULT_GROWTH), { replace: true })}>Remove the growth filter</button></div>}
       {res.isError && !dateErr && !growthLocked && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
       {d && !dateErr && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
 
@@ -340,7 +342,7 @@ export function QuarterResultsPage() {
           <DateEmpty dates={d.dates} sel={sel} today={today} quarterLabel={q?.label || "quarter"} filtersOn={filtersOn} onPick={(day) => setDates({ date: day }, true)}
             onQuarter={(key) => { const n = new URLSearchParams(sp); n.set("quarter", key); setSp(n); setOffset(0); }} onClearFilters={clearFilters} />
         ) : !d?.rows.length ? (
-          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? (growthOn(growth) ? "No company with figures meets the growth filter you set. Try a lower threshold or switch AND to OR." : "Try removing a filter.") : "Results dates appear here as companies announce them."}</p>
+          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? (growthOn(growth) ? "No company with figures meets the growth conditions you set. Try a lower threshold, or switch from Match all to Match any." : "Try removing a filter.") : "Results dates appear here as companies announce them."}</p>
             {f.scope === "watchlist" && <Link className="btn" to="/watchlist">Build a watchlist</Link>}{f.scope === "portfolio" && <Link className="btn" to="/holdings">Add holdings</Link>}</div>
         ) : (
           <HScroll label="results table" className="qr-scroll">

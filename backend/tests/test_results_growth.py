@@ -19,9 +19,16 @@ def co(sym, rev_q=None, rev_y=None, np_q=None, np_y=None, op_q=None, op_y=None, 
     return r
 
 
-def spec(qoq=None, yoy=None, join="and"):
-    c = lambda t: None if t is None else R.GrowthCond(*t)   # noqa: E731
-    return R.GrowthSpec(c(qoq), c(yoy), join)
+def spec(qoq=None, yoy=None, join="and", extra=()):
+    """qoq / yoy are (metric, op, value) as the old two-filter form; `extra` adds more (metric, period, op, value) conditions."""
+    conds = [R.GrowthCond(t[0], per, t[1], t[2]) for per, t in (("qoq", qoq), ("yoy", yoy)) if t is not None] + [R.GrowthCond(*t) for t in extra]
+    return R.GrowthSpec(tuple(conds), join)
+
+
+def gp(qs):
+    """growth_params for a query string such as 'revQoQValue=5&join=or'."""
+    from starlette.requests import Request
+    return R.growth_params(Request({"type": "http", "query_string": qs.encode(), "headers": []}))
 
 
 def syms(rows):
@@ -81,16 +88,31 @@ def test_lenders_never_match_an_operating_profit_filter():
     assert "BANK" in syms(R.growth_filter([bank], spec(qoq=("netProfit", ">=", 0)))[0])
 
 
-def test_four_way_counts_add_up_to_companies_with_figures():
+def test_counts_add_up_to_companies_with_figures():
     Q, Y = ("netProfit", ">=", 1.0), ("netProfit", ">=", 10.0)
     _, s = R.growth_filter(ROWS, spec(Q, Y))
-    assert (s["both"], s["onlyQoQ"], s["onlyYoY"], s["neither"]) == (1, 2, 2, 1) and s["withFigures"] == 6                 # G has no figures: not counted
-    assert s["both"] + s["onlyQoQ"] + s["onlyYoY"] + s["neither"] == s["withFigures"]
-    assert (s["qoqMissing"], s["yoyMissing"]) == (1, 1) and s["matching"] == 1
+    assert (s["metAll"], s["metSome"], s["metNone"]) == (1, 4, 1) and s["withFigures"] == 6 and s["k"] == 2     # G has no figures: not counted
+    assert [(c["period"], c["met"], c["missing"]) for c in s["conditions"]] == [("qoq", 3, 1), ("yoy", 3, 1)] and s["matching"] == 1
     _, o = R.growth_filter(ROWS, spec(Q, Y, "or"))
-    assert o["matching"] == o["both"] + o["onlyQoQ"] + o["onlyYoY"] == 5 and o["neither"] == 1
+    assert o["matching"] == o["metAll"] + o["metSome"] == 5 and o["metNone"] == 1
     _, one = R.growth_filter(ROWS, spec(qoq=Q))
-    assert one["both"] == 0 and one["onlyYoY"] == 0 and one["onlyQoQ"] == 3 and one["neither"] == 3 and one["yoy"] is False and one["matching"] == 3
+    assert one["k"] == 1 and one["metSome"] == 0 and one["metAll"] == 3 and one["metNone"] == 3 and one["matching"] == 3
+
+
+def test_six_cells_all_combinations_of_filled_cells():
+    r = co("A", rev_q=5, rev_y=5, np_q=5, np_y=-5, op_q=5, op_y=5)
+    cells = [("revenue", "qoq"), ("revenue", "yoy"), ("operatingProfit", "qoq"), ("operatingProfit", "yoy"), ("netProfit", "qoq"), ("netProfit", "yoy")]
+    for n in range(1, 7):
+        for pick in itertools.combinations(cells, n):
+            conds = tuple(R.GrowthCond(m, p, ">=", 0.0) for m, p in pick)
+            expect_and = all(not (m == "netProfit" and p == "yoy") for m, p in pick)
+            assert bool(R.growth_filter([r], R.GrowthSpec(conds, "and"))[0]) == expect_and, pick
+            assert bool(R.growth_filter([r], R.GrowthSpec(conds, "or"))[0]) == (len(pick) > 1 or expect_and), pick
+    # revenue AND profit, each on both horizons (the founder's example)
+    rows = [co("OK", rev_q=1, rev_y=2, np_q=3, np_y=4), co("NOQ", rev_q=-1, rev_y=2, np_q=3, np_y=4), co("NOPY", rev_q=1, rev_y=2, np_q=3, np_y=None)]
+    four = tuple(R.GrowthCond(m, p, ">=", 0.0) for m in ("revenue", "netProfit") for p in ("qoq", "yoy"))
+    out, s = R.growth_filter(rows, R.GrowthSpec(four, "and"))
+    assert syms(out) == ["OK"] and s["conditions"][3]["missing"] == 1 and s["conditions"][0]["met"] == 2
 
 
 @pytest.mark.parametrize("join", ["and", "or"])
@@ -100,8 +122,8 @@ def test_identity_holds_for_every_operator_combination(join):
     for oq, oy in itertools.product(R.GROWTH_OPS.values(), repeat=2):
         for t in (-0.1, 0.0, 2.5):
             out, s = R.growth_filter(rows, spec(("netProfit", oq, t), ("netProfit", oy, -t), join))
-            assert s["both"] + s["onlyQoQ"] + s["onlyYoY"] + s["neither"] == s["withFigures"] == len(vals) ** 2
-            assert len(out) == s["matching"] == (s["both"] if join == "and" else s["both"] + s["onlyQoQ"] + s["onlyYoY"])
+            assert s["metAll"] + s["metSome"] + s["metNone"] == s["withFigures"] == len(vals) ** 2
+            assert len(out) == s["matching"] == (s["metAll"] if join == "and" else s["metAll"] + s["metSome"])
 
 
 def test_distribution_counts_sectors_and_caps():
@@ -114,16 +136,25 @@ def test_distribution_counts_sectors_and_caps():
 
 
 def test_validation_is_strict_with_plain_messages():
-    ok = R.growth_params("netProfit", ">=", "1", "revenue", "<", "-2.5", "or")
-    assert ok.qoq == R.GrowthCond("netProfit", ">=", 1.0) and ok.yoy == R.GrowthCond("revenue", "<", -2.5) and ok.join == "or"
-    assert R.growth_params("", "", "", "", "", "", "").active is False and R.growth_params("netProfit", ">=", "", "", "", "", "").active is False   # empty value = off
-    assert R.growth_params("", "", "", "revenue", "gt", ".5", "").yoy == R.GrowthCond("revenue", ">", 0.5) and R.growth_params("revenue", ">=", "+3", "", "", "", "").qoq.value == 3.0
-    for args in (("sales", ">=", "1", "", "", "", ""), ("netProfit", "=>", "1", "", "", "", ""), ("netProfit", ">=", "abc", "", "", "", ""), ("netProfit", ">=", "nan", "", "", "", ""),
-                 ("netProfit", ">=", "inf", "", "", "", ""), ("netProfit", ">=", "1e999", "", "", "", ""), ("netProfit", ">=", "1e3", "", "", "", ""), ("netProfit", ">=", "9999999", "", "", "", ""),
-                 ("netProfit", ">=", "1,5", "", "", "", ""), ("netProfit", ">=", "--1", "", "", "", ""), ("", ">=", "1", "", "", "", ""), ("netProfit", "", "1", "", "", "", ""),
-                 ("", "", "", "bogus", "", "", ""), ("", "", "", "", "!", "", ""), ("netProfit", ">=", "1", "", "", "", "xor")):
-        e = _raises(lambda a=args: R.growth_params(*a))
-        assert e.status_code == 400 and e.detail["detail"], args
+    ok = gp("qoqMetric=netProfit&qoqOp=>=&qoqValue=1&yoyMetric=revenue&yoyOp=<&yoyValue=-2.5&join=or")
+    assert ok.conds == (R.GrowthCond("revenue", "yoy", "<", -2.5), R.GrowthCond("netProfit", "qoq", ">=", 1.0)) and ok.join == "or"
+    assert gp("").active is False and gp("qoqMetric=netProfit&qoqOp=>=&qoqValue=").active is False and gp("revQoQOp=>=&revQoQValue=").active is False   # empty value = off
+    assert gp("yoyMetric=revenue&yoyOp=gt&yoyValue=.5").conds == (R.GrowthCond("revenue", "yoy", ">", 0.5),) and gp("qoqMetric=revenue&qoqOp=>=&qoqValue=%2B3").conds[0].value == 3.0
+    for qs in ("qoqMetric=sales&qoqOp=>=&qoqValue=1", "qoqMetric=netProfit&qoqOp==>&qoqValue=1", "qoqMetric=netProfit&qoqOp=>=&qoqValue=abc", "qoqMetric=netProfit&qoqOp=>=&qoqValue=nan",
+               "qoqMetric=netProfit&qoqOp=>=&qoqValue=inf", "qoqMetric=netProfit&qoqOp=>=&qoqValue=1e999", "qoqMetric=netProfit&qoqOp=>=&qoqValue=1e3", "qoqMetric=netProfit&qoqOp=>=&qoqValue=9999999",
+               "qoqMetric=netProfit&qoqOp=>=&qoqValue=1,5", "qoqMetric=netProfit&qoqOp=>=&qoqValue=--1", "qoqOp=>=&qoqValue=1", "qoqMetric=netProfit&qoqValue=1", "yoyMetric=bogus", "yoyOp=!",
+               "qoqMetric=netProfit&qoqOp=>=&qoqValue=1&join=xor", "npYoYOp=!&npYoYValue=1", "revQoQValue=abc", "opYoYOp=>=&opYoYValue=1e3"):
+        e = _raises(lambda q=qs: gp(q))
+        assert e.status_code == 400 and e.detail["detail"], qs
+
+
+def test_grid_cells_and_old_links_agree():
+    new = gp("revQoQOp=>=&revQoQValue=5&npYoYOp=<&npYoYValue=-1&opQoQValue=2&join=or")
+    assert new.conds == (R.GrowthCond("revenue", "qoq", ">=", 5.0), R.GrowthCond("operatingProfit", "qoq", ">=", 2.0), R.GrowthCond("netProfit", "yoy", "<", -1.0)) and new.join == "or"
+    old = gp("qoqMetric=revenue&qoqOp=>=&qoqValue=5&yoyMetric=netProfit&yoyOp=<&yoyValue=-1")
+    assert old.conds == (R.GrowthCond("revenue", "qoq", ">=", 5.0), R.GrowthCond("netProfit", "yoy", "<", -1.0))
+    both = gp("qoqMetric=revenue&qoqOp=>=&qoqValue=5&revQoQOp=>&revQoQValue=7")   # same cell twice: the grid cell wins, never counted twice
+    assert both.conds == (R.GrowthCond("revenue", "qoq", ">", 7.0),)
 
 
 # ---------------------------------------------------------------- the endpoint, against Postgres
@@ -140,15 +171,17 @@ async def test_endpoint_filters_on_the_server_and_counts_everything(app, seeded)
     url = f"/api/results/quarter?quarter={q}&qoqMetric=netProfit&qoqOp=%3E%3D&qoqValue=-100000&yoyMetric=revenue&yoyOp=%3C%3D&yoyValue=100000&join=and&limit=1"
     body = (await silver.get(url)).json()                                                          # paging does not change counts
     g = body["growth"]
-    assert g["withFigures"] == len(with_fig) and g["both"] + g["onlyQoQ"] + g["onlyYoY"] + g["neither"] == g["withFigures"]
+    assert g["withFigures"] == len(with_fig) and g["metAll"] + g["metSome"] + g["metNone"] == g["withFigures"]
     exp_match = [x for x in with_fig if x["profitQoQ"] is not None and x["revenueYoY"] is not None]
-    assert body["total"] == g["matching"] == g["both"] == len(exp_match) and len(body["rows"]) == min(1, len(exp_match))
+    assert body["total"] == g["matching"] == g["metAll"] == len(exp_match) and len(body["rows"]) == min(1, len(exp_match))
     if rel["profitQoQ"] is not None:
         thr = rel["profitQoQ"]                                                                     # exactly the figure the table shows: >= matches, > does not
         ge = (await silver.get(f"/api/results/quarter?quarter={q}&qoqMetric=netProfit&qoqOp=%3E%3D&qoqValue={thr}&limit=100")).json()
         gt = (await silver.get(f"/api/results/quarter?quarter={q}&qoqMetric=netProfit&qoqOp=%3E&qoqValue={thr}&limit=100")).json()
         assert "RELIANCE" in {x["symbol"] for x in ge["rows"]} and "RELIANCE" not in {x["symbol"] for x in gt["rows"]}
         assert all(x["profitQoQ"] is not None and x["profitQoQ"] >= thr for x in ge["rows"])
+    cells = (await silver.get(f"/api/results/quarter?quarter={q}&revQoQValue=-100000&npYoYOp=%3C&npYoYValue=100000&join=or&limit=100")).json()["growth"]   # the grid form
+    assert cells["k"] == 2 and [c["period"] for c in cells["conditions"]] == ["qoq", "yoy"]
     exp = (await silver.get(url.replace("&limit=1", "") .replace("/quarter?", "/quarter/export?"))).json()   # the CSV follows the same filter
     assert len(exp["rows"]) == body["total"]
     # applied on top of the other filters
