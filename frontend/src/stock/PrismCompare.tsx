@@ -8,13 +8,14 @@ import { useContext, useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "../lib/icons";
+import { inputsLine, notRatedLede } from "../lib/prism";
 import { dateIN } from "../lib/format";
 import { useGold } from "../lib/premium";
 import { Gate, OpenAccess } from "../components/Gate";
 import { bandInk, partHint, scoreBand } from "../lib/scoreBands";
 import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { PrismGlyph } from "../components/prism/shared/PrismGlyph";
-import { LABEL, STATUS, fmtScore, generateFailure, generatePrism, pct, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
+import { LABEL, STATUS, fmtScore, generateFailure, generatePrism, prismSummary, usePrismLatest, type PrismCardState, type PrismLatest } from "./PrismCard";
 import { PRISM_NOTE, PRISM_PARTS, PRISM_POINTS } from "./prismWords";
 import { PrismTechRow } from "./PrismTechRow";
 import "../styles/prism-compare.css";
@@ -22,7 +23,7 @@ import "../styles/prism-compare.css";
 const STATUS_NOTE: Record<PrismLatest["rating"]["status"], string> = {
   RATED: "Enough of the data was available for a full rating.",
   PROVISIONAL: "Some data is missing or the record is short, so this is a first view and is shown at most as Healthy.",
-  "NOT RATED": "Too little verified data to rate this company, so there is no score.",
+  "NOT RATED": "The overall rating is withheld.",
 };
 /** Words for a part's score, on the same scale as the overall label. Colour is decoration; the word carries the meaning. */
 const partWord = (v: number | null | undefined): [string, string] => v == null ? ["No data", "na"] : v >= 80 ? ["Strong", "strong"] : v >= 65 ? ["Healthy", "healthy"] : v >= 50 ? ["Average", "mixed"] : v >= 35 ? ["Weak", "weak"] : ["Poor", "weak"];
@@ -94,7 +95,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       </div>
     </div>
   );
-  const rep = state.report, r = rep.rating, rated = r.status !== "NOT RATED" && r.final != null, [word, tone] = LABEL[r.label];
+  const rep = state.report, r = rep.rating, inp = inputsLine(r), rated = r.status !== "NOT RATED" && r.final != null, [word, tone] = LABEL[r.label];
   const { parts } = partsOf(r);
   return (
     <>
@@ -102,8 +103,8 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
         <PrismGlyph parts={parts.map((p) => ({ key: p.key, name: p.name, weight: p.weight, value: p.value, color: p.color }))} score={rated ? (r.final as number) : null} size={150} />
         <div className="dk-words">
           <div className="dk-chips"><span className={"dk-st big " + tone} style={rated ? ({ "--tc": bandInk(scoreBand(r.final)) } as React.CSSProperties) : undefined}>{word}</span><span className={"pz-status " + r.status.toLowerCase().replace(" ", "-")}>{STATUS[r.status]}</span>{rated && <span className="dk-sc">{fmtScore(r.final as number)} out of 100</span>}</div>
-          <p className={"dk-note" + (r.status === "RATED" ? " ok" : "")}>{STATUS_NOTE[r.status]}</p>
-          <p className="dk-cov"><Icon name="check" />{pct(r.confidence)} of inputs available · <Link to="/glossary#coverage-prism">what this means</Link></p>
+          <p className={"dk-note" + (r.status === "RATED" ? " ok" : r.status === "NOT RATED" ? " why" : "")}>{r.status === "NOT RATED" ? notRatedLede(r) : STATUS_NOTE[r.status]}</p>
+          <p className={"dk-cov" + (inp.ok ? "" : " held")}><Icon name={inp.ok ? "check" : "info"} />{inp.text}{inp.note ? <span className="dk-cov-n"> · {inp.note}</span> : null} · <Link to="/glossary#coverage-prism">what this means</Link>{r.status === "NOT RATED" && <> · <Link to={`/prism/${encodeURIComponent(symbol)}`}>Why is this not rated?</Link></>}</p>
         </div>
       </div>
       <Tiles r={r} />

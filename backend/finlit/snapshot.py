@@ -424,7 +424,8 @@ def _explain_gaps(score: dict, lender: bool, annual: int, quarterly: int, days: 
         elif p["key"] == "growth" and annual < 2 and quarterly < 5:
             why = "Growth needs two years of results (or five quarters); this company has filed " + ("one year so far." if annual == 1 else "less than that so far.")
         else:
-            why = "The data provider has not reported the figures this needs."
+            names = ", ".join(i["label"] for i in p["inputs"])
+            why = f"The data provider has not reported any of the figures this pillar needs ({names})."
         p["reason"] = why
     if score["overall"] is None:
         score["band"] = {"key": "insufficient", "label": "Not scored yet"}

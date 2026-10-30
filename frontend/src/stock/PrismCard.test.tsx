@@ -91,6 +91,18 @@ describe("FinLit Prism card", () => {
     expect(t).toContain("40% of inputs available");
   });
 
+  it("a classification block shows its specific reason, does not tick the full inputs figure and links to why", async () => {
+    const reason = 'Prism has no model group for this industry yet ("Coal / Energy"). The inputs were available; the rating needs the industry rules extended.';
+    answer(200, { ...REPORT, rating: { ...REPORT.rating, final: null, label: "NOT RATED", status: "NOT RATED", confidence: 1, notRatedReasons: [{ code: "classification", text: reason }] } });
+    const html = await render();
+    const t = text(html);
+    expect(t).toContain("no model group for this industry yet");
+    expect(t).not.toContain("Too little verified data");
+    expect(t).toContain("100% of inputs available");
+    expect(t).toContain("Inputs are not the cause");
+    expect(t).toContain("Why is this not rated?");
+  });
+
   it("shows no category score for a company that is not rated (the parts exist in the data but are withheld)", async () => {
     answer(200, { ...REPORT, rating: { ...REPORT.rating, final: null, label: "NOT RATED", status: "NOT RATED", confidence: 0.4 } });
     const html = await render();

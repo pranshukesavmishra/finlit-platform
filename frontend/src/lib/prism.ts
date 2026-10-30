@@ -147,6 +147,17 @@ export function completenessNote(rating: Pick<PrismRating, "status" | "confidenc
   return rating.status === "NOT RATED" && rating.confidence >= 0.5 && rating.notRatedReasons?.length
     ? "This is the share of inputs found. The rating is withheld by a separate check, described above." : null;
 }
+/** What the card says under the ring for a NOT RATED report: the specific stored reason, or (an older report that stored none) an honest pointer to recalculate. Never "too little data" unless that is the stored reason. */
+export function notRatedLede(rating: Pick<PrismRating, "status" | "notRatedReasons">): string {
+  return notRatedReason(rating) ?? "The overall rating is withheld. This report was stored before the specific reason was recorded; recalculate it to see why.";
+}
+/** The completeness line. A high figure beside a withheld rating must never read as a contradiction: when a check other than the data coverage
+ * withheld the rating, say so next to the figure and do not tick it. */
+export function inputsLine(rating: Pick<PrismRating, "status" | "confidence" | "notRatedReasons">): { text: string; ok: boolean; note: string | null } {
+  const text = `${pctWhole(rating.confidence)} of inputs available`;
+  const withheldElsewhere = completenessNote(rating) != null;
+  return { text, ok: !withheldElsewhere, note: withheldElsewhere ? "Inputs are not the cause: a separate check withheld the rating." : null };
+}
 export const STATE_WORD: Record<FactorState, string> = {
   A: "Reported or calculated", Z: "Loss rule applied", S: "Industry benchmark in place of own history",
   F: "Estimated (group estimate)", N: "Not applicable", L: "Not reported, left out of the score",

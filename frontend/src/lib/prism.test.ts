@@ -227,11 +227,25 @@ describe("not-rated reasons", () => {
   const base = { status: "NOT RATED" as const, confidence: 1 };
   it("shows the report's specific reason and explains the full inputs figure", async () => {
     const { notRatedReason, ringWhy, completenessNote } = await import("./prism");
-    const r = { ...base, notRatedReasons: [{ code: "classification" as const, text: 'The company\'s industry label "X" is not yet mapped to a model group.' }] };
-    expect(notRatedReason(r)).toContain('"X" is not yet mapped');
+    const r = { ...base, notRatedReasons: [{ code: "classification" as const, text: 'Prism has no model group for this industry yet ("X"). The inputs were available; the rating needs the industry rules extended.' }] };
+    expect(notRatedReason(r)).toContain('no model group for this industry yet ("X")');
     expect(ringWhy(r)).toBe("industry not mapped");
     expect(completenessNote(r)).toContain("share of inputs found");
     expect(ringWhy(base)).toBe("not enough evidence");
     expect(notRatedReason({ status: "RATED", notRatedReasons: r.notRatedReasons })).toBeNull();
+  });
+  it("the card text is the stored reason, never a generic 'too little data', and the inputs line never contradicts a classification block", async () => {
+    const { notRatedLede, inputsLine } = await import("./prism");
+    const r = { ...base, notRatedReasons: [{ code: "classification" as const, text: "Prism has no model group for this industry yet (\"Coal\")." }] };
+    expect(notRatedLede(r)).toContain("Coal");
+    expect(notRatedLede(r).toLowerCase()).not.toContain("too little");
+    const line = inputsLine(r);
+    expect(line.text).toBe("100% of inputs available");
+    expect(line.ok).toBe(false);
+    expect(line.note).toContain("Inputs are not the cause");
+    expect(notRatedLede(base)).toContain("recalculate");
+    expect(notRatedLede(base).toLowerCase()).not.toContain("too little");
+    const thin = { status: "NOT RATED" as const, confidence: 0.3, notRatedReasons: [{ code: "low_confidence" as const, text: "Only 30% of the inputs" }] };
+    expect(inputsLine(thin)).toMatchObject({ ok: true, note: null });
   });
 });

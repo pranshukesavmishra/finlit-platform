@@ -3,7 +3,7 @@ import re
 
 # Bump when the rules below change what a stored report would show. Reports stamped with an older
 # version that were NOT RATED because of the classification blocker are recalculated by the nightly job.
-CLASSIFICATION_VERSION = 2
+CLASSIFICATION_VERSION = 3
 
 # Precedence (first match wins). Financial labels are resolved before UTILITY/HEAVY because FinEdge puts
 # "Financial Services" in macro_sector for every financial company, and words such as "infrastructure" or
@@ -33,9 +33,53 @@ FALLBACK_RULES = [
     ("MFG", r"agricultur|\bagro|farm|paper|printing|publication|plastic|packag|shipping|\bships?\b|airline|aviation|\bsugar|\btea\b|\bcoffee|fertili[sz]er|jewel|\bgems?\b|food|beverage|tobacco|leather|footwear|apparel|garment|ceramic|glass|rubber|furniture|paint|cable|wire|electronic|appliance|semiconductor|fibre|fiber|yarn|pesticide|agrochemical|fisher|aqua|edible|dairy|\bcotton\b|\bsilk\b|\bwood\b|timber|\bsalt\b|\bpipes?\b|\btyres?\b|battery|batteries|bearing"),
 ]
 
+# Added in classification version 3 (Coal India and its kind were NOT RATED because their labels matched nothing). Applied only after every rule
+# above, so no label that already had a group changes group. Economics: asset-heavy resource and process businesses are HEAVY, networks and
+# regulated infrastructure UTILITY, plant-and-inventory product businesses MFG, asset-light trade and services LIGHT.
+NEW_FALLBACK_RULES = [
+    ("UTILITY", r"renewable|\bsolar\b|\bwind\b|electricity|hydro|\bports?\b|airports?|\bhighways?\b|\btoll\b|railway|communications? sector|\bwater\b"),
+    ("HEAVY", r"\bcoal\b|lignite|minerals?|\benergy\b|uranium|petrochem|alumin|\bcopper\b|\bzinc\b|\biron\b|ferro|\balloys?\b|forging|foundr|smelt|forest products"),
+    ("MFG", r"health|medical|nursing|clinic|wellness|aerospace|process industries|producer|specialty|\bdyes?\b|pigment|polymer|building products|home furnishings|diversified|conglomerate|multi.?industry|alcohol|liquor|brew|distill|spirits|\bwine|cigarette"),
+    ("LIGHT", r"investment managers?|fund (?:manag|advis|house)|mutual fund (?:manag|compan|house)|consumer|household|personal care|cosmetic|travel|tourism|hospitality|gaming|broadcast|cinema|multiplex|television|\bfilms?\b|couriers?|air freight|specialty stores|office equipment"),
+]
+
+# Labels the model deliberately does not rate: trusts and funds have no operating business to score. resolve_group still returns
+# defaulted=True for them (no model group); unmapped_reason() gives the honest, specific text instead of the generic one.
+UNRATED_KINDS = [
+    ("trust", r"\breits?\b|\binvits?\b|real estate investment trust|infrastructure investment trust|investment trusts?|business trust"),
+    ("fund", r"\betfs?\b|exchange.traded|mutual funds?|\bspacs?\b|special purpose acquisition|closed.?end|\bfunds?\b"),
+]
+UNRATED_TEXT = {
+    "trust": "Trusts (REITs, InvITs) are not rated by this model, which scores operating companies.",
+    "fund": "Funds, ETFs and SPACs are not rated by this model, which scores operating companies.",
+}
+
+
+def _profile_text(profile):
+    return " ".join(str(profile.get(key) or "") for key in ("industry", "sector", "sub_industry", "macro_sector")).lower()
+
+
+def unrated_kind(profile):
+    """'trust' or 'fund' for an instrument the model intentionally does not rate, else None. Checked before the group rules."""
+    text = _profile_text(profile)
+    if re.search(r"asset management|investment managers?|fund (?:manag|advis|house)|mutual fund (?:manag|compan|house)", text): return None
+    for kind, pattern in UNRATED_KINDS:
+        if re.search(pattern, text): return kind
+    return None
+
+
+def unmapped_reason(profile):
+    """The plain-language reason for a company that has no model group: the inputs were fine, the industry rules are the gap."""
+    kind = unrated_kind(profile)
+    label = label_text(profile) or str(profile.get("macro_sector") or "").strip() or "none given"
+    if kind: return f'Prism has no model group for this instrument ("{label}"): {UNRATED_TEXT[kind]}'
+    return (f'Prism has no model group for this industry yet ("{label}"). The inputs were available; '
+            "the rating needs the industry rules extended, so the overall rating is withheld until then.")
+
 
 def resolve_group(profile):
-    text = " ".join(str(profile.get(key) or "") for key in ("industry", "sector", "sub_industry", "macro_sector")).lower()
+    text = _profile_text(profile)
+    if unrated_kind(profile): return "MFG", True
     for group, pattern in RULES:
         # Vehicle manufacturing is not construction/infrastructure activity.
         # Preserve the precedence of financial groups and real estate.
@@ -44,7 +88,7 @@ def resolve_group(profile):
         if re.search(pattern, text): return group, False
     if re.search(r"auto|capital goods|engineering|chemical|textile|defen|hospital|diagnostic|logistic|transport|consumer durable|manufactur|machiner|electrical|industrial", text):
         return "MFG", False
-    for group, pattern in FALLBACK_RULES:
+    for group, pattern in FALLBACK_RULES + NEW_FALLBACK_RULES:
         if re.search(pattern, text): return group, False
     return "MFG", True
 

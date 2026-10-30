@@ -3,7 +3,9 @@
 Reads prism_reports (migration 063; the reader view of the newest report per company and statement basis) with jsonb paths, so only the few
 fields needed leave the database, and sorts every NOT RATED / PROVISIONAL report into a reason bucket:
 
-  classification        the company's industry label is not mapped to a model group (the report says: 'industry label "X" is not yet mapped').
+  classification        the company's industry label is not mapped to a model group (the report says: 'Prism has no model group for this industry yet ("X")';
+                        trusts and funds say 'for this instrument' and stay unrated on purpose). Reports of an older CLASSIFICATION_VERSION are
+                        counted separately ("staleClassification"): the nightly job or `precompute-prism --stale-not-rated` recalculates them.
                         Reports stored before the classification fix carry the older wording ('model group could not be verified'): the same bucket.
   low_confidence        less than 50% of the model's inputs were found (NOT RATED)
   insufficient_history  fewer than 4 quarters (or 2 annual results) of sales: usually a recently listed company (NOT RATED)
@@ -29,7 +31,7 @@ META_LAST = "prism-audit:last"
 BUCKETS = ("classification", "low_confidence", "insufficient_history", "provisional_coverage", "provisional_history", "other")
 SYMBOLS_SHOWN = 10
 MISSING_SHOWN = 10
-LABEL_RE = re.compile(r'industry label "(.*?)" is not yet mapped')
+LABEL_RE = re.compile(r'industry label "(.*?)" is not yet mapped|no model group for this (?:industry yet|instrument) \("(.*?)"\)')
 
 QUERY = """
 SELECT symbol, status,
@@ -38,6 +40,7 @@ SELECT symbol, status,
        report #> '{rating,alerts}'                                    AS alerts,
        report #> '{rating,notRatedReasons}'                           AS reasons,
        report #>> '{inputMeta,groupLabel}'                            AS group_label,
+       report #>> '{inputMeta,classificationVersion}'                 AS classification_version,
        report #>> '{company,industry}'                                AS industry,
        report #>> '{company,sector}'                                  AS sector,
        jsonb_path_query_array(report, '$.rating.metrics[*] ? (@.status == "L" || @.status == "F").label') AS missing
@@ -76,11 +79,19 @@ def label_of(row: Dict[str, Any]) -> str:
     for alert in _loads(row.get("alerts")) or []:
         found = LABEL_RE.search(str(alert))
         if found:
-            return found.group(1)
+            return found.group(1) or found.group(2)
     if row.get("group_label"):
         return row["group_label"]
     parts = [p for p in (row.get("industry"), row.get("sector")) if p]
     return " / ".join(dict.fromkeys(parts)) or "(no label)"
+
+
+def _older_version(value: Any) -> bool:
+    from .prism import CLASSIFICATION_VERSION
+    try:
+        return int(value) < CLASSIFICATION_VERSION
+    except (TypeError, ValueError):
+        return True    # reports stored before the version was stamped
 
 
 def summarise(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -89,6 +100,7 @@ def summarise(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     labels: Dict[str, List[str]] = defaultdict(list)
     missing: Dict[str, Counter] = {"low_confidence": Counter(), "insufficient_history": Counter()}
     symbols: Dict[str, List[str]] = defaultdict(list)
+    stale: List[str] = []
     for row in rows:
         b = bucket(row)
         counts[b] += 1
@@ -97,10 +109,12 @@ def summarise(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             symbols[b].append(row["symbol"])
         if b == "classification":
             labels[label_of(row)].append(row["symbol"])
+            if _older_version(row.get("classification_version")): stale.append(row["symbol"])
         if b in missing:
             missing[b].update(_loads(row.get("missing")) or [])
     return {
         "total": len(rows), "byStatus": dict(status_counts), "buckets": {b: counts.get(b, 0) for b in BUCKETS},
+        "staleClassification": {"count": len(stale), "symbols": stale[:SYMBOLS_SHOWN]},
         "symbols": {b: symbols[b] for b in BUCKETS if symbols[b]},
         "classificationLabels": [{"label": k, "count": len(v), "symbols": v[:SYMBOLS_SHOWN]} for k, v in sorted(labels.items(), key=lambda kv: (-len(kv[1]), kv[0]))],
         "topMissing": {b: [{"input": k, "count": n} for k, n in c.most_common(MISSING_SHOWN)] for b, c in missing.items() if c},
@@ -132,6 +146,9 @@ def render(result: Dict[str, Any]) -> str:
         n = result["buckets"].get(b, 0)
         if n:
             lines.append(f"{b:22} {n:5}  e.g. {', '.join(result['symbols'].get(b, []))}")
+    stale = result.get("staleClassification") or {}
+    if stale.get("count"):
+        lines += ["", f"{stale['count']} classification-blocked reports were calculated under older rules: run `precompute-prism --stale-not-rated` (e.g. {', '.join(stale.get('symbols', []))})"]
     if result["classificationLabels"]:
         lines += ["", "Industry labels not mapped to a model group (add them to premium_classification.py):"]
         lines += [f"  {x['count']:4}  {x['label']}   [{', '.join(x['symbols'])}]" for x in result["classificationLabels"]]

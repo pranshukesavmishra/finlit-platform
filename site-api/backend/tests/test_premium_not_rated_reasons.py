@@ -28,7 +28,8 @@ def test_bajaj_finserv_style_labels_are_not_blocked():
 
 def test_unmapped_label_blocker_names_the_label():
     d, group, _, meta, _, _ = adapt({"industry": "Zzyzx Widgets", "sector": "Zzyzx Widgets"})
-    assert d["rating_blockers"] == ['The company\'s industry label "Zzyzx Widgets" is not yet mapped to a model group.']
+    assert len(d["rating_blockers"]) == 1 and 'no model group for this industry yet ("Zzyzx Widgets")' in d["rating_blockers"][0]
+    assert "inputs were available" in d["rating_blockers"][0]
     assert meta["groupLabel"] == "Zzyzx Widgets"
     data = example()
     data["rating_blockers"] = d["rating_blockers"]
@@ -39,7 +40,7 @@ def test_unmapped_label_blocker_names_the_label():
     report = sample_report(data)
     report["inputs"] = {"rating_blockers": d["rating_blockers"], "rating_cautions": []}
     notes = build_report_review(report)["notes"]
-    assert any('"Zzyzx Widgets" is not yet mapped' in n for n in notes)
+    assert any('no model group for this industry yet ("Zzyzx Widgets")' in n for n in notes)
     # 100% of inputs found, yet withheld: the page explains the two figures
     assert any("share of model inputs that were found" in n for n in notes)
     assert not any("insufficient verified information" in n for n in notes)

@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from "react";
 import { Icon } from "../../../lib/icons";
 import { dateIN, nf } from "../../../lib/format";
-import { isRated, notRatedReason, pctWhole, statementWord, type BenchmarkDetail, type Completeness, type PrismReport } from "../../../lib/prism";
+import { completenessNote, isRated, notRatedReason, pctWhole, statementWord, type BenchmarkDetail, type Completeness, type PrismReport } from "../../../lib/prism";
 import { ageWords, daysBefore, howRules, peerRows, type PeerRow } from "../../../lib/prismReport";
 import { ChartTable, ShowTable } from "../PrismCharts";
 
@@ -90,7 +90,7 @@ function Freshness({ report }: { report: PrismReport }) {
 function Checklist({ report, completeness, onRecalculate }: { report: PrismReport; completeness?: Completeness; onRecalculate?: () => void }) {
   const { rating } = report;
   const items: { ok: boolean; text: ReactNode }[] = [
-    { ok: rating.confidence >= 0.8, text: <><b>{pctWhole(rating.confidence)} of inputs available.</b> Completeness of the data, not a probability.</> },
+    { ok: rating.confidence >= 0.8, text: <><b>{pctWhole(rating.confidence)} of inputs available.</b> Completeness of the data, not a probability.{completenessNote(rating) ? " The data coverage is not what withheld the rating." : ""}</> },
     { ok: rating.judgedQuarters >= 6, text: <><b>{rating.judgedQuarters} of 10 comparable quarters</b> for the growth streaks.</> },
     { ok: rating.dataIntegrityStatus === "PASS", text: rating.dataIntegrityStatus === "PASS" ? <><b>Data checks passed.</b></> : <><b>Data check: review required.</b> {notRatedReason(rating) ?? "Some inputs could not be fully verified."} The caution does not change the score.</> },
   ];
