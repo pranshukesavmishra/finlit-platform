@@ -11,13 +11,43 @@
 }
 
 /* Sidebar groups as drop-downs: a quiet header with the page count and a chevron; the chevron turns when the group is open. */
-.side-gb { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; cursor: pointer; text-align: left; border-radius: 8px; }
-.side-gb:hover { background: var(--s2); }
-.side-gb:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
-.side-gb > span:first-child { flex: 1; }
-.side-gn { font-size: 10.5px; color: var(--faint); font-weight: 500; letter-spacing: 0; }
-.side-gc { width: 14px; height: 14px; transition: transform .15s; flex: none; }
-.side-gb[aria-expanded="true"] .side-gc { transform: rotate(180deg); }
 .side-gi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .side-gi[hidden] { display: none; }
-.is-collapsed .side-gn, .is-collapsed .side-gc { display: none; }
+
+/* Left rail, larger type and a scannable identity per group (founder item 14). Each group sets --gt (a palette token); --gtx is that colour made safe for icons on the pale light theme. */
+.shell .side-g { --gtx: var(--gt); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.shell nav > .side-g:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+:root[data-theme="light"] .shell .side-g { --gtx: color-mix(in srgb, var(--gt) 68%, var(--text)); }
+.shell .side-t { display: inline-flex; align-items: center; gap: 10px; font: 600 19px/1.1 var(--serif); letter-spacing: -.005em; text-transform: none; color: var(--text); }
+.shell .side-tb { width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); } .shell .side-tb svg { width: 17px; height: 17px; }
+.shell .side-toggle { width: 36px; height: 36px; }
+.shell .side-gb { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; background: none; border: 0; cursor: pointer; text-align: left; border-radius: 12px; color: var(--text); letter-spacing: 0; text-transform: none; }
+.shell .side-gb:hover { background: color-mix(in srgb, var(--gt) 9%, var(--s2)); }
+.shell .side-gb:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.shell .side-gbd { width: 34px; height: 34px; flex: none; border-radius: 11px; display: grid; place-items: center; color: var(--gtx); background: color-mix(in srgb, var(--gt) 15%, var(--s1)); border: 1px solid color-mix(in srgb, var(--gt) 38%, transparent); } .shell .side-gbd svg { width: 18px; height: 18px; }
+.shell .side-gname { flex: 1; min-width: 0; font: 600 17px/1.2 var(--serif); letter-spacing: -.005em; }
+.shell .side-gn { font: 700 12.5px/1 var(--mono); min-width: 24px; padding: 4px 7px; text-align: center; border-radius: 99px; color: var(--gtx); background: color-mix(in srgb, var(--gt) 13%, transparent); border: 1px solid color-mix(in srgb, var(--gt) 30%, transparent); }
+.shell .side-gc { width: 16px; height: 16px; color: var(--muted); transition: transform .15s; flex: none; }
+.shell .side-gb[aria-expanded="true"] .side-gc { transform: rotate(180deg); }
+.shell .side-g.is-open > .side-gi { margin-left: 16px; padding-left: 6px; border-left: 2px solid var(--gt); }
+.shell .side-i { min-height: 44px; font-size: 16px; line-height: 1.25; gap: 12px; padding: 4px 10px; }
+.shell .side-l { white-space: normal; }
+.shell .side-lt { overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.shell .side-ic { width: 36px; height: 36px; } .shell .side-ic svg { width: 18px; height: 18px; }
+.shell .side-b { font-size: 12.5px; padding: 3px 9px; }
+.shell .side-l .gtag { margin-left: 8px; flex: none; }
+.shell .side-i.sub { font-size: 15px; } .shell .side-i.sub .side-ic { width: 30px; height: 30px; }
+.shell .side-plan p { font-size: 13.5px; } .shell .side-plan .tier { font-size: 13px; }
+:root:root .shell .side-i.on { background: linear-gradient(90deg, color-mix(in srgb, var(--gt, var(--gold)) 16%, transparent), transparent); color: var(--text); }
+.shell .side-i.on::before { background: var(--gt, var(--gold)); left: -8px; }
+.shell .side-i:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* collapsed rail: the item tiles stay (their names are tooltips); group headings and the title text give way */
+.is-collapsed .side-gb, .is-collapsed .side-t { display: none; }
+.is-collapsed .side-t { display: none; } .is-collapsed .side-g { margin-top: 4px; padding-top: 4px; } .is-collapsed .side-g.is-open > .side-gi, .is-collapsed .side-gi { margin-left: 0; padding-left: 0; border-left: 0; }
+.is-collapsed .side-i { padding: 4px; } .is-collapsed .side-i.on::before { left: -10px; }
+@media (max-width: 960px) {
+  .is-collapsed .side-gb { display: flex; } .is-collapsed .side-t { display: inline-flex; }
+  .is-collapsed .side-g.is-open > .side-gi { margin-left: 16px; padding-left: 6px; border-left: 2px solid var(--gt); }
+  .is-collapsed .side-i { padding: 4px 10px; } .is-collapsed .side-i.on::before { left: -8px; }
+  .side { width: min(320px, 90vw); }
+}

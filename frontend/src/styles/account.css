@@ -133,7 +133,7 @@
 :root[data-theme="light"] .report .card, :root[data-theme="light"] .band .card, :root[data-theme="light"] .band .qt { border-color: var(--border-strong); }
 
 /* ---- product shell: left navigation ---- */
-.shell { display: grid; grid-template-columns: 252px minmax(0, 1fr); align-items: start; max-width: 1640px; margin: 0 auto; transition: grid-template-columns .2s; }
+.shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); align-items: start; max-width: 1640px; margin: 0 auto; transition: grid-template-columns .2s; }
 .shell.is-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
 .shell-main { min-width: 0; }
 .side { position: sticky; top: 74px; align-self: start; max-height: calc(100dvh - 86px); overflow: auto; margin: 22px 0 22px 20px; padding: 14px 12px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); display: flex; flex-direction: column; gap: 6px; scrollbar-width: thin; }
