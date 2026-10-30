@@ -1113,7 +1113,7 @@ def _facets(rows: Sequence[dict]) -> Tuple[List[dict], List[dict]]:
 
 def _meta(rows: Sequence[dict]) -> dict:
     dates = [r["price_date"] for r in rows if r.get("price_date")]
-    return {"asOf": max(dates).isoformat() if dates else None, "updatedAt": max((r["updated_at"] for r in rows), default=None)}
+    return {"asOf": max(dates).isoformat() if dates else None, "updatedAt": max((r["updated_at"] for r in rows if r["updated_at"] is not None), default=None)}
 
 
 def _hot_blob(rows: Sequence[dict], items: List[dict]) -> dict:
