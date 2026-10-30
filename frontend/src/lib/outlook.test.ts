@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WEIGHTS, isDefault, outlookBand, outlookWord, rangePos, rebalance, signedPct, totalOf } from "./outlook";
+import { DEFAULT_WEIGHTS, HORIZONS, PARAM_LABELS, isDefault, rebalance, signedPct, totalOf, type Horizon, type Kind } from "./outlook";
 
 describe("rebalance", () => {
   it("keeps the total at exactly 100 for every slider move", () => {
     for (const kind of ["profit", "revenue"] as const) {
-      let w = { ...DEFAULT_WEIGHTS[kind] };
+      let w = { ...DEFAULT_WEIGHTS[kind].mid };
       const letters = Object.keys(w);
       for (let n = 0; n < 200; n++) {
         const l = letters[(n * 7) % letters.length];
@@ -27,21 +27,26 @@ describe("rebalance", () => {
     expect(rebalance({ A: 50, B: 50 }, "A", NaN)).toEqual({ A: 0, B: 100 });
     expect(rebalance({ A: 50, B: 50 }, "Z", 10)).toEqual({ A: 50, B: 50 });
   });
-  it("defaults add to 100", () => {
-    expect(totalOf(DEFAULT_WEIGHTS.profit)).toBe(100);
-    expect(totalOf(DEFAULT_WEIGHTS.revenue)).toBe(100);
-    expect(isDefault("profit", DEFAULT_WEIGHTS.profit)).toBe(true);
-    expect(isDefault("profit", rebalance(DEFAULT_WEIGHTS.profit, "A", 30))).toBe(false);
+  it("every default column adds to 100 and names every input, per horizon", () => {
+    for (const kind of ["profit", "revenue"] as Kind[]) for (const h of HORIZONS) {
+      const w = DEFAULT_WEIGHTS[kind][h.key];
+      expect(totalOf(w)).toBe(100);
+      expect(Object.keys(w)).toEqual(Object.keys(PARAM_LABELS[kind]));
+      expect(isDefault(kind, h.key, w)).toBe(true);
+    }
+    expect(isDefault("profit", "mid", rebalance(DEFAULT_WEIGHTS.profit.mid, "co_1y", 30))).toBe(false);
+    expect(isDefault("profit", "short", DEFAULT_WEIGHTS.profit.mid)).toBe(false);
+  });
+  it("matches the team's table", () => {
+    expect(DEFAULT_WEIGHTS.revenue.short).toEqual({ co_1y: 50, co_3y: 10, co_5y: 5, sec_1y: 25, sec_3y: 5, sec_5y: 5 });
+    expect(DEFAULT_WEIGHTS.profit.long.margin).toBe(10);
+    expect(HORIZONS.map((h) => h.years)).toEqual([1, 3, 5]);
+    expect(Object.keys(DEFAULT_WEIGHTS.profit) as Horizon[]).toEqual(["short", "mid", "long"]);
   });
 });
 
-describe("bands and range helpers", () => {
-  it("follows the site rule: green from 70, orange 50-69, red under 50", () => {
-    expect(outlookBand(70)).toBe("hi"); expect(outlookBand(69.9)).toBe("mid"); expect(outlookBand(50)).toBe("mid"); expect(outlookBand(49.9)).toBe("lo"); expect(outlookBand(null)).toBe("na");
-    expect(outlookWord(80)).toBe("Supportive"); expect(outlookWord(55)).toBe("Mixed"); expect(outlookWord(10)).toBe("Subdued"); expect(outlookWord(null)).toBe("Not available");
-  });
-  it("places and formats", () => {
-    expect(rangePos(0, -10, 10)).toBe(50); expect(rangePos(99, -10, 10)).toBe(100); expect(rangePos(1, 1, 1)).toBe(50);
-    expect(signedPct(4.24)).toBe("+4.2%"); expect(signedPct(-6.4)).toBe("−6.4%");
+describe("formats", () => {
+  it("signs percentages with a true minus", () => {
+    expect(signedPct(4.24)).toBe("+4.2%"); expect(signedPct(-6.4)).toBe("−6.4%"); expect(signedPct(0)).toBe("0.0%"); expect(signedPct(12.345, 2)).toBe("+12.35%");
   });
 });

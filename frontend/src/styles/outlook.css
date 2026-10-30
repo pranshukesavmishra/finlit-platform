@@ -25,37 +25,10 @@
 .ol-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding-top: 10px; flex-wrap: wrap; }
 .ol-out { display: grid; gap: 18px; transition: opacity .15s; }
 .ol-out.is-busy { opacity: .6; }
-.ol-res { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
-.ol-ring { width: 132px; height: 132px; flex: none; }
-.ol-ring-n { font: 700 34px var(--sans); }
-.ol-word { font: 700 22px/1.3 var(--sans); margin: 0 0 4px; }
-.ol-cov { margin: 4px 0; font-weight: 600; }
-.ol-res p { margin: 4px 0; }
 .ol-note { display: flex; gap: 8px; align-items: flex-start; margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--gold-soft); font-size: 13.5px; }
-.ol-groups { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.ol-g-top { display: flex; gap: 10px; align-items: baseline; }
-.ol-g-name { font-weight: 600; flex: 1; min-width: 0; }
-.ol-g-w { font-size: 12.5px; }
-.ol-g-score { font-weight: 700; min-width: 2.2em; text-align: right; }
-.ol-bar { height: 10px; background: var(--s3); border-radius: 999px; overflow: hidden; margin: 6px 0 4px; }
-.ol-bar span { display: block; height: 100%; border-radius: 999px; }
-.ol-g-sub { font-size: 12.5px; }
-.ol-g.is-na .ol-g-name { color: var(--muted); }
-.ol-range { margin: 18px 0 8px; }
-.ol-track { position: relative; height: 14px; background: var(--s3); border-radius: 999px; margin: 22px 8px 14px; }
-.ol-zero { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 1px dashed var(--faint); }
-.ol-zero i { position: absolute; top: -16px; left: -10px; font: 11px var(--mono); color: var(--faint); font-style: normal; }
-.ol-span { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--gold) 45%, transparent); border-radius: 999px; }
-.ol-pin { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--s1); border: 3px solid var(--gold-deep); }
-.ol-pin.middle { background: var(--gold); width: 20px; height: 20px; margin: -10px 0 0 -10px; }
-.ol-vals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; text-align: center; }
-.ol-vals dt { font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.ol-vals dd { margin: 2px 0 0; font: 700 20px var(--mono); }
-.ol-vals dd.faint { font: 13px var(--mono); font-weight: 400; }
 .ol-empty { padding: 12px 14px; border-radius: 10px; background: var(--s2); margin: 0; }
 .ol-disc { font-size: 13px; color: var(--muted); margin: 0; }
 .ol-skel { display: flex; gap: 22px; align-items: center; padding: 20px; border: 1px solid var(--border); border-radius: 14px; }
-.ol-skel .sk-ring { width: 120px; height: 120px; border-radius: 50%; background: var(--s3); flex: none; animation: ol-pulse 1.2s ease-in-out infinite; }
 .ol-skel .sk-lines { flex: 1; display: grid; gap: 12px; }
 .ol-skel .sk-lines i { display: block; height: 14px; border-radius: 7px; background: var(--s3); animation: ol-pulse 1.2s ease-in-out infinite; }
 @keyframes ol-pulse { 50% { opacity: .5; } }
@@ -65,10 +38,54 @@
   .ol-sl { grid-template-columns: minmax(0, 1fr) 56px; }
   .ol-sl input[type=range] { grid-column: 1 / -1; grid-row: 2; }
   .ol-sl label { grid-column: 1; } .ol-sl output { grid-column: 2; grid-row: 1; }
-  .ol-vals dd { font-size: 16px; } .ol-res { flex-direction: column; align-items: flex-start; }
   .ol-tabs button { padding: 11px 10px; flex: 1; }
 }
 
 /* the site's three score colours (same values as dash-shared.css, which this page does not load) */
 .ol, .ol-skel { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
 :root[data-theme="light"] .ol { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }
+
+/* ---- estimates: controls, charts, tables */
+.ol-ctl { display: grid; gap: 14px; }
+.ol-ctl-row { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; }
+.ol-ctl-l { font: 600 13px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; min-width: 92px; }
+.ol-mode button small { display: block; font: 400 11.5px var(--sans); opacity: .8; }
+.ol-mode:has(small) button { padding: 7px 16px; border-radius: 14px; }
+.ol-how summary { cursor: pointer; font-weight: 600; color: var(--gold); }
+.ol-how summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.ol-how p { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.ol-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.ol-chartcard { min-width: 0; transition: opacity .15s; } .ol-chartcard.is-busy { opacity: .65; }
+.ol-chart { position: relative; min-width: 0; }
+.ol-chart-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.ol-chart-top h3 { font: 700 15px var(--sans); margin: 0; }
+.ol-chart-acts { display: flex; gap: 14px; }
+.ol-link { all: unset; cursor: pointer; font-size: 13px; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+.ol-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.ol-plot { position: relative; outline: none; border-radius: 10px; touch-action: pan-y; }
+.ol-plot:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ol-plot svg { display: block; max-width: 100%; }
+.ol-ax { font-size: 11px; font-family: var(--sans); } .ol-ax.mono { font-family: var(--mono); }
+.ol-tip { position: absolute; transform: translateX(-50%); min-width: 190px; max-width: 240px; display: grid; gap: 3px; padding: 10px 12px; border-radius: 10px; background: var(--s1); border: 1px solid var(--border-strong); box-shadow: 0 8px 24px rgba(0,0,0,.28); pointer-events: none; font-size: 12.5px; z-index: 2; }
+.ol-tip b { font-size: 13.5px; } .ol-tip em { font: 700 16px var(--mono); font-style: normal; } .ol-tip small { color: var(--muted); font-size: 12px; }
+.ol-tip-kind { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
+.ol-tip-kind i { width: 14px; height: 0; border-top: 3px solid currentColor; } .ol-tip-kind.estimate i { border-top-style: dashed; }
+.ol-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.ol-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.ol-chart-note { margin: 8px 0 0; font-size: 12.5px; }
+.ol-ctable { overflow-x: auto; margin-top: 10px; -webkit-overflow-scrolling: touch; }
+.ol-ctable table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ol-ctable caption { text-align: left; color: var(--muted); padding-bottom: 6px; }
+.ol-ctable th, .ol-ctable td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; font-weight: 500; font-variant-numeric: tabular-nums; vertical-align: top; }
+.ol-ctable thead th { color: var(--faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.ol-ctable .num { text-align: right; white-space: nowrap; }
+.ol-ctable tbody th { font-weight: 600; } .ol-ctable th small, .ol-ctable td small { display: block; font-weight: 400; font-size: 12px; white-space: normal; max-width: 36ch; }
+.ol-ctable td small { margin-left: auto; text-align: right; }
+.ol-ctable tr.is-na th, .ol-ctable tr.is-na td { color: var(--muted); }
+.ol-ctable tfoot th, .ol-ctable tfoot td { border-top: 2px solid var(--border-strong); border-bottom: 0; font-weight: 700; }
+.ol-build { margin-top: 6px; }
+@media (max-width: 960px) { .ol-charts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .ol-ctl-l { min-width: 0; width: 100%; } .ol-mode button { padding: 7px 10px; font-size: 13.5px; } .ol-ctable th, .ol-ctable td { padding: 7px 6px; font-size: 13px; } .ol-tip { min-width: 170px; } }
+@media (prefers-reduced-motion: reduce) { .ol-chartcard { transition: none; } }
+.ol-ctable th { background: none; }
+@media (max-width: 640px) { .ol-build th[scope=row] { min-width: 0; width: 42%; } .ol-ctable tbody th small { max-width: 20ch; } .ol-ctable .num { padding-left: 4px; padding-right: 4px; } .ol-ctable thead th { font-size: 10.5px; letter-spacing: .02em; white-space: normal; } }
