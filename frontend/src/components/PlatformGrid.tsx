@@ -1,8 +1,10 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { Reveal } from "./Reveal";
-import { PLATFORM_CARDS, type PlatformPreview } from "../lib/platformCards";
+import { TIER } from "../lib/ui";
+import { PLATFORM_CARDS, PLAN_LINK, PLAN_TIER, TIER_FILTERS, filterByTier, type PlatformPreview, type TierFilter } from "../lib/platformCards";
+import { TierEmblem } from "./TierEmblem";
 import "../styles/platform-grid.css";
 
 /** Miniature, decorative sketches of each tool. Sample numbers only: they stand for no real company, price or result. */
@@ -26,24 +28,54 @@ const PREVIEWS: Record<PlatformPreview, () => ReactNode> = {
   forum: () => <>{[["Q", "How do investors read a rising debt-to-equity ratio?", "3 replies"], ["A", "It depends on the sector. Compare it with peers first.", "2 likes"]].map((r, i) => <div key={i} className={"pg-post" + (i ? " alt" : "")}><span className="pg-av">{r[0]}</span><div><p>{r[1]}</p><small>{r[2]}</small></div></div>)}</>,
   etf: () => <><Row head cells={["ETF", "1Y", "Risk", "Type"]} />{[["Index ETF A", "+9.4%", "Mid", "Broad"], ["Sector ETF B", "+12.1%", "High", "Sector"], ["Theme ETF C", "+6.8%", "Mid", "Theme"]].map((r) => <Row key={r[0]} cells={r} />)}</>,
   funds: () => <><Tabs items={["Equity", "Debt", "Hybrid"]} /><Row head cells={["Fund", "3Y", "TER", "Size"]} />{[["Fund A", "14.2%", "0.8%", "₹12k cr"], ["Fund B", "11.6%", "1.1%", "₹4k cr"], ["Fund C", "12.9%", "0.9%", "₹7k cr"]].map((r) => <Row key={r[0]} cells={r} />)}</>,
+  fundnav: () => <><div className="pg-hd"><b>NAV, rebased to 100</b><span>5 years</span></div><svg className="pg-svg" viewBox="0 0 200 70"><line x1="0" x2="200" y1="18" y2="18" className="gl" /><line x1="0" x2="200" y1="36" y2="36" className="gl" /><line x1="0" x2="200" y1="54" y2="54" className="gl" />
+    <polyline className="l2" points="0,58 25,54 50,56 75,46 100,48 125,38 150,34 175,26 200,22" fill="none" strokeWidth="1.8" /><polyline className="l1" points="0,58 25,56 50,52 75,50 100,42 125,40 150,30 175,28 200,14" fill="none" strokeWidth="1.8" /></svg>
+    <div className="pg-leg"><span><i className="k1" />Fund A</span><span><i className="k2" />Category average</span></div></>,
+  forecast: () => <><div className="pg-hd"><b>Profit, yearly</b><span>Sample</span></div><svg className="pg-svg" viewBox="0 0 200 76"><line x1="0" x2="200" y1="20" y2="20" className="gl" /><line x1="0" x2="200" y1="40" y2="40" className="gl" /><line x1="0" x2="200" y1="60" y2="60" className="gl" />
+    <polygon className="band" points="120,34 160,26 200,14 200,44 160,40 120,34" /><polyline className="ln" points="0,60 20,56 40,58 60,48 80,50 100,40 120,34" fill="none" strokeWidth="1.8" /><polyline className="ln fc" points="120,34 160,33 200,29" fill="none" strokeWidth="1.8" />
+    <line x1="120" x2="120" y1="6" y2="70" className="gl dash" /></svg><div className="pg-leg"><span><i className="k5" />Reported</span><span><i className="k5 dot" />Indicative range</span></div></>,
   calc: () => <div className="pg-two"><div className="pg-form tight"><label>Growth<span className="pg-in">12%</span></label><label>Discount<span className="pg-in">10%</span></label><label>Years<span className="pg-in">10</span></label></div><div className="pg-result"><small>Sample result</small><b>₹ 1,180</b><small>per share</small></div></div>,
 };
 
+const BANNERS = [
+  { k: "silver", name: "Silver", tag: "Score and full screener", points: ["FinLit score and five pillars on every stock", "Full screener: 160+ filters and CSV download", "Watchlists with notes: 3 lists, 30 stocks", "Portfolio scorecard and downloads"] },
+  { k: "gold", name: "Gold", tag: "Most depth", points: ["FinLit Prism, an advanced financial-health rating", "FinLit model filters in the screener", "Profit and revenue outlook", "Compare up to 4 companies, up to 50 watchlists"] },
+] as const;
+
 export function PlatformGrid() {
+  const [tier, setTier] = useState<TierFilter>("all");
+  const cards = filterByTier(PLATFORM_CARDS, tier);
   return (
     <section className="sec hh-sec" id="platform" aria-labelledby="pg-title"><div className="wrap">
-      <Reveal className="hh-head"><div className="hh-kicker">Explore our platform</div><h2 id="pg-title">Everything you need to invest smarter</h2><p>From finding the right stocks to analysing, tracking and discussing ideas, all in one place.</p></Reveal>
+      <Reveal className="hh-head"><div className="hh-kicker">Explore our platform</div><h2 id="pg-title">Everything you need to invest smarter</h2><p>Free, Silver and Gold plans. From finding the right stocks to analysing, tracking and discussing ideas, all in one place.</p></Reveal>
+      <div className="pg-plans">
+        {BANNERS.map((b) => (
+          <div key={b.k} className={"pg-plan " + b.k} style={{ "--tc": `var(${TIER[b.k].tc})` } as CSSProperties}>
+            <TierEmblem tier={b.k} />
+            <div className="pg-plan-b">
+              <div className="pg-plan-t"><h3><Link to={PLAN_LINK[b.k]} className="pg-plan-link">{b.name} plan</Link></h3><span className="pg-plan-tag">{b.tag}</span></div>
+              <ul>{b.points.map((p) => <li key={p}><Icon name="check" />{p}</li>)}</ul>
+              <span className="pg-plan-cta">See the {b.name} plan <Icon name="arrow" /></span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="pg-filter" role="group" aria-label="Show features by plan">
+        {TIER_FILTERS.map((f) => <button key={f.k} type="button" className={"pg-chip" + (tier === f.k ? " on" : "")} aria-pressed={tier === f.k} onClick={() => setTier(f.k)}>{f.label}</button>)}
+        <span className="pg-count" role="status">{cards.length} of {PLATFORM_CARDS.length} features</span>
+      </div>
       <ul className="pg" aria-label="Platform features">
-        {PLATFORM_CARDS.map((c) => (
+        {cards.map((c) => { const t = PLAN_TIER[c.plan]; return (
           <li key={c.n} className="pg-card" style={{ "--ac": c.accent } as CSSProperties}>
-            <div className="pg-top"><span className="pg-n">{c.n}</span><span className={"pg-badge " + (c.plan === "SILVER" ? "silver" : "free")}>{c.plan}</span></div>
+            <div className="pg-top"><span className="pg-n">{c.n}</span>
+              {t === "basic" ? <span className="pg-badge free"><Icon name={TIER.basic.ic} />{c.plan}</span>
+                : <Link to={PLAN_LINK[t]} className={"pg-badge " + t} aria-label={`${TIER[t].n} plan: see it on the Plans page`}><Icon name={TIER[t].ic} />{c.plan}</Link>}</div>
             <h3><Link to={c.to} className="pg-link">{c.title} <Icon name="arrow" /></Link></h3>
             <p className="pg-d">{c.desc}</p>
             <div className="pg-prev" aria-hidden="true">{PREVIEWS[c.preview]()}</div>
             <ul className="pg-ticks">{c.bullets.map((b) => <li key={b}><Icon name="check" />{b}</li>)}</ul>
             <Link to={c.to} className="pg-cta">{c.cta} <Icon name="arrow" /></Link>
-          </li>
-        ))}
+          </li>); })}
       </ul>
       <p className="hh-fine">Sample figures in the previews are for illustration only. Information only, not investment advice.</p>
     </div></section>

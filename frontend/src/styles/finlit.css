@@ -735,3 +735,7 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
 .secnav .wrap { max-width: 1760px; }
 .secnav .mini { display: none; }
 @media (min-width: 2040px) { .secnav .mini { display: flex; } }
+
+/* A plan opened from a link (/plans#gold): ringed so it is easy to find. */
+.plan.target, .plan.target:focus { outline: 2px solid var(--tc); outline-offset: 4px; outline-color: var(--tc); box-shadow: 0 0 0 8px color-mix(in srgb, var(--tc) 18%, transparent); }
+.plan { scroll-margin-top: 84px; }
