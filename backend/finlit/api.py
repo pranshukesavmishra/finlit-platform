@@ -191,6 +191,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             stored = prism_screen.cards(await app.state.store.prism_cards(None if level == "gold" else sorted(showcase)))
             cover = prism_screen.coverage(await app.state.store.prism_coverage(), len(rows))
             cover["as_of"] = max((v["prism_at"] for v in stored.values() if v.get("prism_at")), default=None) if level == "gold" else None
+            cover["tech_as_of"] = max((v["prism_tech_at"] for v in stored.values() if v.get("prism_tech_at")), default=None) if level == "gold" else None   # newest bar date the technical columns hold
             cover["per_night"] = prism.widen_per_night()
         except Exception:
             logging.getLogger("finlit.api").exception("screener universe: Prism ratings not read")
@@ -597,6 +598,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(results_api.router)
     app.include_router(mcp_server.router)   # POST /mcp (MCP for AI assistants) and /.well-known/mcp.json: before the site-backend catch-all and the website
     app.include_router(mcp_server.admin)   # /api/admin/mcp-stats
+    app.include_router(__import__("finlit.prism_technical", fromlist=["router"]).router)   # GET /api/technicals/status: public, read-only (when the technical views were last refreshed, and the bar dates held)
     app.include_router(prism.router)   # /api/prism/*: the members' door to the site backend's administrator-only /api/premium-reports
     app.include_router(__import__("finlit.outlook.router", fromlist=["router"]).router)   # /api/outlook/{symbol}: Gold profit and revenue outlook
     app.include_router(__import__("finlit.portfolio_overview", fromlist=["router"]).router)   # POST /api/portfolio/overview: My portfolio page, before the site-backend catch-all

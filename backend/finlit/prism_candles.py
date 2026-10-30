@@ -43,6 +43,7 @@ INDEX_CODES = ("NIF50", "NIFMID100", "NIFSMA100", "NIF500")     # the site's ben
 HISTORY_DAYS = 365 * 6 + 20          # six years, as the model's FinEdge history; the long relative-strength rule needs 505 aligned sessions
 STOCK_MIN, INDEX_MIN, MAX_AGE_DAYS, MAX_ROWS = 252, 505, 10, 2000
 CALL_GAP = 0.34                      # about 3 data calls a second, paced in THIS process only; Dhan's limit is per account and the quote jobs share it (DhanClient.daily does not pace)
+RANGE_TOLERANCE = 0.0005             # mirrors technical_series.RANGE_TOLERANCE in the site backend: an open/close this fraction outside [low, high] is rounding, not a bad candle
 MAX_DAILY_MOVE = 0.40                # a close more than 40% from the previous close is an unadjusted split or bad data: the series is not sent
 MAX_QUOTE_GAP = 0.15                 # the stock's last close more than 15% from the stored quote price: not sent
 DOWN_KEY = "prism:candles:down"      # set for DOWN_SECONDS after Dhan failed outright, so an outage does not add CANDLE_SECONDS to every report
@@ -124,8 +125,14 @@ def clean_reason(rows: List[dict], expected: date, minimum: int, quote_price: Op
         if type(day) is not date or not all(_num(v) for v in vals):       # type(): a datetime is not a calendar date
             return None, "a row has no date or a missing/non-finite value"
         o, h, l, c, v = vals
-        if min(o, h, l, c) <= 0 or v < 0 or not l <= min(o, c) <= max(o, c) <= h:
+        if min(o, h, l, c) <= 0 or v < 0:
             return None, "a row is inconsistent"
+        top, bottom = max(o, c), min(o, c)
+        if not l <= bottom <= top <= h:
+            slack = RANGE_TOLERANCE * max(h, top)
+            if top - h > slack or bottom < l - slack:
+                return None, "a row is inconsistent"
+            h, l = max(h, top), min(l, bottom)       # rounding noise: the site backend fits it the same way (premium_supplied_candles.check_series)
         if previous is not None and day <= previous:
             return None, "dates are not strictly increasing"
         previous = day
@@ -222,8 +229,34 @@ def dhan_client(state: Any, settings: Any, redis: Any) -> Optional[DhanClient]:
     return client if client.configured else None
 
 
-async def supplied_candles(state: Any, symbol: str, now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
-    """The `suppliedCandles` body field for one calculation, or None when there is nothing trustworthy to send."""
+STORED_QUOTE = object()      # "look the quote price up in the stored summary snapshot" (the default); pass a number, or None for no check, to override
+
+
+async def reference_session(state: Any, now: Optional[datetime] = None) -> Optional[date]:
+    """The date of the newest completed session Dhan holds for the Nifty 50 (the market's own calendar, which no weekday rule knows: a holiday
+    or a day Dhan has not posted yet gives an earlier date than `expected_session`), or None when Dhan or the index id is unavailable.
+    Uses the same cached index series as the reports, and asks Dhan again (at most every RECHECK_SECONDS) when the cache lacks the expected session."""
+    client = dhan_client(state, state.settings, getattr(state.store, "redis", None))
+    if client is None:
+        return None
+    redis = getattr(state.store, "redis", None)
+    now = now or datetime.now(IST)
+    expected = expected_session(now)
+    try:
+        async with state.store.pool.acquire() as conn:
+            ids, _off = confirm(await conn.fetch("SELECT exch, security_id, symbol FROM dhan_indices"))
+        if "NIF50" not in ids:
+            return None
+        rows, _failed = await _index(client, redis, "NIF50", ids["NIF50"], now, expected, expected.isoformat())
+    except Exception as exc:
+        log.warning("prism candles: the reference session could not be read: %s", type(exc).__name__)
+        return None
+    return date.fromisoformat(rows[-1][0]) if rows else None
+
+
+async def supplied_candles(state: Any, symbol: str, now: Optional[datetime] = None, quote_price: Any = STORED_QUOTE) -> Optional[Dict[str, Any]]:
+    """The `suppliedCandles` body field for one calculation, or None when there is nothing trustworthy to send.
+    `quote_price`: the price the stock's last close is checked against (within MAX_QUOTE_GAP); the default is the stored summary snapshot's."""
     store, settings = state.store, state.settings
     client = dhan_client(state, settings, getattr(store, "redis", None))
     if client is None:
@@ -246,7 +279,8 @@ async def supplied_candles(state: Any, symbol: str, now: Optional[datetime] = No
             sec = None
         if sec:
             calls += 1
-            rows, failed = await _fetch(client, sec[0], sec[1], "EQUITY", now, expected, STOCK_MIN, await _quote_price(store, symbol))
+            quote = await _quote_price(store, symbol) if quote_price is STORED_QUOTE else quote_price
+            rows, failed = await _fetch(client, sec[0], sec[1], "EQUITY", now, expected, STOCK_MIN, quote)
             failures += failed
             if rows:
                 out["stock"] = {"provider": PROVIDER, "candles": rows}

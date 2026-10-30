@@ -105,6 +105,22 @@ def test_one_bad_row_rejects_the_whole_series(name, mutate):
     assert pc.clean(r, LAST, 252) is None, name
 
 
+def test_a_close_a_rounding_step_outside_the_range_is_fitted_and_a_real_error_still_rejects_the_series():
+    """The tolerance is the site backend's (technical_series.RANGE_TOLERANCE, 0.05%): the two must stay equal, and both sides fit the candle the same way."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "site-api" / "backend"))
+    import technical_series
+    assert pc.RANGE_TOLERANCE == technical_series.RANGE_TOLERANCE
+    r = rows()
+    r[7]["close"] = 12.0 * 1.0003                              # 0.03% above the high
+    got = pc.clean(r, LAST, 252)
+    assert got is not None and got[7][2] == pytest.approx(12.0036) and got[7][4] == pytest.approx(12.0036)
+    r = rows()
+    r[7]["close"] = 12.0 * 1.012                               # 1.2% above the high (the recorded TCS candle of 1 Feb 2026): not rounding
+    assert pc.clean(r, LAST, 252) is None
+
+
 def test_a_day_sent_twice_is_one_session_when_the_prices_agree():
     """Dhan now and then repeats a day (seen on live data: an exact copy, and a copy with a much smaller volume). One session, not two:
     the larger volume is kept. Two records of one day with different prices are still refused."""

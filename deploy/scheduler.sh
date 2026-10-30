@@ -6,7 +6,7 @@
 #
 # DB WINDOWS. The database (Neon free plan) suspends 5 minutes after its last query and the plan allows a fixed number of compute hours a month, so
 # anything that touches Postgres on a short timer keeps it awake around the clock and uses the month's hours in about 17 days. Therefore:
-#   * the data jobs run in a few "DB windows" a day (night 01:00, morning 06:45, after the close 15:50 on weekdays, evening 19:10 and 21:10, late 23:30 IST):
+#   * the data jobs run in a few "DB windows" a day (night 01:00, morning 06:45, after the close 15:50 on weekdays, technical views 18:30 on weekdays, evening 19:10 and 21:10, late 23:30 IST):
 #     each window is one chain of jobs, one after the other, so the database wakes a handful of times a day and sleeps in between;
 #   * the few jobs outside a window run only while a visitor is on the site (Redis key last-visit, set by the web app: see backend/finlit/wake.py), or, for
 #     member price alerts, every 15 minutes in market hours and only if an alert or watchlist target exists (Redis flag, refreshed in every window);
@@ -47,7 +47,7 @@ MIN_FREE_MB="${SCHED_MIN_FREE_MB:-120}"         # other jobs (quotes, alerts, em
 FUNDS_MIN_FREE_MB="${SCHED_FUNDS_MIN_FREE_MB:-180}"   # fund jobs: the largest measured one peaks at 174 MB (ETF refresh)
 
 # A skipped results job leaves a one-line reason in Redis (no database), shown at /api/results/status as lastSkipped; the same line goes to the log.
-skipped() { log "skip $1 (${2#skipped: })"; case "$1" in calendars*|results*) $PY -m finlit.wake note "$1" "$2" >/dev/null 2>&1 ;; esac; return 0; }
+skipped() { log "skip $1 (${2#skipped: })"; case "$1" in calendars*|results*|technicals*) $PY -m finlit.wake note "$1" "$2" >/dev/null 2>&1 ;; esac; return 0; }
 
 run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the same lock is still going, or if memory is short
   local kind="$1" name="$2"; shift 2
@@ -253,12 +253,16 @@ chain_morning() {   # 06:45: before the open
   (( D <= 5 )) && run light screens check-screens
   run light results refresh-results
   run light results-light refresh-results-light
+  run light technicals refresh-technicals                          # catches up whatever the evening runs missed (a night when Dhan was late); a no-op when every view is at the newest session
 }
 chain_close() {   # 15:50 on weekdays: just after the close
   run light listing refresh-listing --force                        # the day's final prices and moves from the exchange feed
   run light results refresh-results
   run light results-light refresh-results-light
   run light calendars-day refresh-calendars
+}
+chain_technicals() {   # 18:30 on weekdays: the day's candles are final (the exchange closes 15:30; the reports' own rule is 16:00)
+  run light technicals refresh-technicals                          # ONLY the short/long-term technical view of every stored Prism report, from fresh Dhan candles (finlit/prism_technical.py): one call per company, resumable, yields to members
 }
 chain_evening1() {   # 19:10: the evening data (NSE, NSDL, MoSPI, RBI have posted by now)
   local D; D="$(dow)"
@@ -281,6 +285,7 @@ chain_evening2() {   # 21:10: after AMFI publishes the day's NAVs
   if (( D <= 5 )); then run_funds etf refresh-etf; run_funds etf-retry refresh-etf --resume; fi
   run light results refresh-results                                # most companies declare between 15:00 and 23:59 IST: pick them up in the late windows too
   run light results-light refresh-results-light
+  (( D <= 5 )) && run light technicals refresh-technicals          # the late retry: companies the 18:30 run could not reach (Dhan late, a busy evening) are picked up; stops at once when none is behind
 }
 chain_late() {   # 23:30: after AMFI's 11 pm deadline
   local D; D="$(dow)"
@@ -303,6 +308,7 @@ while true; do
   (( H == 1 && M == 0 )) && window night chain_night
   (( H == 6 && M == 45 )) && window morning chain_morning
   (( weekday && H == 15 && M == 50 )) && window close chain_close
+  (( weekday && H == 18 && M == 30 )) && window technicals chain_technicals
   (( H == 19 && M == 10 )) && window evening1 chain_evening1
   (( H == 21 && M == 10 )) && window evening2 chain_evening2
   (( H == 23 && M == 30 )) && window late chain_late

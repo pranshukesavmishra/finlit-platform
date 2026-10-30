@@ -85,7 +85,7 @@ HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace th
 # What readers may see of snapshot["technicalAssessment"] (docs/prism/premium-st-lt-model.md, "Report contract"). Left out on purpose: inputHash and
 # sourceCodeSha256. Each factor's weight IS passed on now (the indicator publishes them; the breakdown table shows weight and points, see
 # docs/technicals/README.md); the older model note said weights are not shown, and removing "weight" here removes the column again.
-TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh")
+TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh", "sharesCr")   # sharesCr: the shares (crore) that chose the benchmark, kept so the daily refresh (prism_technical.py) chooses the same one
 TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore")
 TECH_FACTOR = ("key", "label", "signal", "status", "detail", "weight")
 TECH_SOURCE = ("provider", "asOf", "bars")
@@ -224,18 +224,27 @@ async def _access(request: Request, symbol: str) -> Tuple[Ctx, Optional[JSONResp
 
 # ------------------------------------------------------------------ storage
 async def _stored(store, symbol: str, statement: str):
-    return await store.pool.fetchrow("SELECT id, report, generated_at, pdf_until FROM prism_reports WHERE symbol = $1 AND statement = $2",
+    return await store.pool.fetchrow("SELECT id, report, generated_at, pdf_until, card FROM prism_reports WHERE symbol = $1 AND statement = $2",
                                      symbol, statement)
 
 
-def _shape(row, cached: bool) -> Dict[str, Any]:
+def _shape(row, cached: bool, refreshing: bool = False) -> Dict[str, Any]:
     """The PrismReport of a stored row: the reader view, whether it came from storage, and until when its PDF can be downloaded."""
     until = row["pdf_until"]
     live = until is not None and until > datetime.now(timezone.utc)
     report = json.loads(row["report"])
     if isinstance(report.get("technicalAssessment"), dict):       # reports stored before the mapping existed carry the model's raw words
         report["technicalAssessment"] = relabel_technical(report["technicalAssessment"])
-    return {**report, "cached": cached, "pdfAvailableUntil": until.isoformat() if live else None}
+    return {**report, "cached": cached, "pdfAvailableUntil": until.isoformat() if live else None, "technical": _tech_state(row, refreshing)}
+
+
+def _tech_state(row, refreshing: bool = False) -> Dict[str, Any]:
+    """When the stored technical view is as of, and when it was calculated. Its own date: the rest of the report is as of `generatedAt`."""
+    from .prism_technical import technical_state
+    try:
+        return {**technical_state(row), "refreshing": refreshing}
+    except Exception:       # a row that cannot be read for this must never stop the report from opening
+        return {"asOf": None, "calculatedAt": None, "stale": False, "refreshing": False}
 
 
 def _lines(view: Dict[str, Any], bucket: str, count: int = 2) -> list:
@@ -246,7 +255,7 @@ def _lines(view: Dict[str, Any], bucket: str, count: int = 2) -> list:
     return out[:count]
 
 
-def _summary(row) -> Dict[str, Any]:
+def _summary(row, refreshing: bool = False) -> Dict[str, Any]:
     """The compact card for the stock page, next to the basic score: no review body, no metrics. `parts` and `partWeights` are passed
     on exactly as the model gave them, so a part added later (Technical) appears without a change here."""
     view = json.loads(row["report"])
@@ -254,7 +263,7 @@ def _summary(row) -> Dict[str, Any]:
     parts = None if rating.get("status") == "NOT RATED" else rating.get("parts")   # a company the model did not rate shows no category scores
     return {"id": row["id"], "final": rating.get("final"), "label": rating.get("label"), "status": rating.get("status"),
             "confidence": rating.get("confidence"), "parts": parts, "partWeights": rating.get("partWeights"),
-            "generatedAt": row["generated_at"].isoformat(), "modelVersion": rating.get("modelVersion"),
+            "generatedAt": row["generated_at"].isoformat(), "modelVersion": rating.get("modelVersion"), "technical": _tech_state(row, refreshing),
             "topPros": _lines(view, "pros"), "topCons": _lines(view, "cons")}
 
 
@@ -294,7 +303,7 @@ def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
         part = technical.get(key) if isinstance(technical.get(key), dict) else {}
         return {"score": part.get("score"), "rating": part.get("rating")}
     return {"parts": None if rating.get("status") == "NOT RATED" else rating.get("parts"), "st": horizon("shortTerm"), "lt": horizon("longTerm"),
-            "confidence": rating.get("confidence")}
+            "confidence": rating.get("confidence"), "technicalBarDate": technical.get("asOf"), "technicalAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
 async def _save(store, symbol: str, statement: str, view: Dict[str, Any], pdf_until: Optional[datetime]):
@@ -306,7 +315,7 @@ async def _save(store, symbol: str, statement: str, view: Dict[str, Any], pdf_un
            ON CONFLICT (symbol, statement) DO UPDATE SET id = EXCLUDED.id, report = EXCLUDED.report, model_version = EXCLUDED.model_version,
                final = EXCLUDED.final, label = EXCLUDED.label, status = EXCLUDED.status, generated_at = EXCLUDED.generated_at, pdf_until = EXCLUDED.pdf_until,
                card = EXCLUDED.card
-           RETURNING id, report, generated_at, pdf_until""",
+           RETURNING id, report, generated_at, pdf_until, card""",
         symbol, statement, view["id"], json.dumps(view, allow_nan=False), rating.get("modelVersion"),
         float(final) if isinstance(final, (int, float)) else None, rating.get("label"), rating.get("status"), pdf_until,
         json.dumps(card_of(view), allow_nan=False))
@@ -431,6 +440,18 @@ async def _reachable(app) -> bool:
     return ok
 
 
+async def _refresh_stale_technical(app, symbol: str, row) -> bool:
+    """A stored report is being opened: when its technical view is behind the newest completed session, start a refresh of that view alone in the
+    background (rate limited, see prism_technical.refresh_on_open). The stored view is shown now, with its own date; the page asks again shortly."""
+    try:
+        from . import prism_technical
+        state = prism_technical.technical_state(row, target=await prism_technical.current_target(app.state.store.redis))
+        return await prism_technical.refresh_on_open(app, symbol, state)
+    except Exception as exc:
+        log.warning("prism technical refresh on open not started for %s: %s", symbol, type(exc).__name__)
+        return False
+
+
 @router.get("/reports/latest")
 async def latest(request: Request, symbol: str = Query("", max_length=40), statement: str = Query("consolidated", max_length=20),
                  view: str = Query("full", pattern="^(full|summary)$")) -> JSONResponse:
@@ -443,7 +464,8 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     row = await _stored(request.app.state.store, *wanted)
     if row is None:
         return _reply({"status": "none", "detail": f"No {PRISM_NAME} report has been calculated for this company yet."}, 404)
-    return _reply({"summary": _summary(row)} if view == "summary" else _shape(row, cached=True))
+    refreshing = await _refresh_stale_technical(request.app, wanted[0], row)
+    return _reply({"summary": _summary(row, refreshing)} if view == "summary" else _shape(row, cached=True, refreshing=refreshing))
 
 
 SCORES_MAX = 40
@@ -460,6 +482,7 @@ _SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, sta
                + ", ".join(f"{_num('rating,parts,' + k)} AS p_{k}" for k in _PARTS) + ", "
                + ", ".join(f"{_num('technicalAssessment,' + h + ',score')} AS {h.lower()}_score, report #>> '{{technicalAssessment,{h},rating}}' AS {h.lower()}_rating"
                            for h in ("shortTerm", "longTerm"))
+               + ", COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}') AS tech_bar, COALESCE(card->>'technicalAt', report->>'technicalCalculatedAt') AS tech_at"
                + " FROM prism_reports WHERE symbol = ANY($1::text[]) ORDER BY symbol, (statement = 'consolidated') DESC")
 
 
@@ -488,7 +511,7 @@ async def scores(request: Request, symbols: str = Query("", max_length=1200)) ->
             "rated": rated, "final": r["final"] if rated else None, "label": r["label"], "status": r["status"], "statement": r["statement"],
             "parts": {k: r[f"p_{k}"] for k in _PARTS} if rated else None,       # a company the model did not rate shows no category scores
             "shortTerm": _tech_score(r, "shortTerm"), "longTerm": _tech_score(r, "longTerm"),
-            "generatedAt": r["generated_at"].isoformat(),
+            "generatedAt": r["generated_at"].isoformat(), "technicalAsOf": r["tech_bar"], "technicalAt": r["tech_at"],
         }
     return JSONResponse({"scores": out}, headers={"Cache-Control": f"private, max-age={SCORES_MAX_AGE}", "Vary": "Cookie"})
 

@@ -4,6 +4,23 @@ import statistics
 from datetime import date, timedelta
 
 
+RANGE_TOLERANCE = 0.0005     # an open or close this fraction (0.05%) outside [low, high] is rounding noise, not a bad candle (mirrors backend/finlit/prism_candles.py)
+
+
+def fit_range(open_, high, low, close, tolerance=RANGE_TOLERANCE):
+    """(high, low) of a candle whose open and close lie inside [low, high], or None when it does not.
+    An open or close that is outside the range by no more than `tolerance` of the price (a provider's rounding: a close of 3178.2 against a high of
+    3178.0) is taken as the high or low it touches, which changes no signal; anything larger is a bad candle and stays bad (nothing is invented).
+    Returns the original high and low when the candle is already consistent."""
+    top, bottom = max(open_, close), min(open_, close)
+    if low <= bottom and top <= high:
+        return high, low
+    slack = tolerance * max(high, top)
+    if top - high > slack or bottom < low - slack:
+        return None
+    return max(high, top), min(low, bottom)
+
+
 def rolling(values, length, operation, full=True):
     result = []
     for i in range(len(values)):

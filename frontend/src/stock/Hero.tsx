@@ -44,7 +44,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
   const prismIn: PrismInput = !prism ? { kind: "loading" } : prism.kind === "report"
     ? { kind: "report", final: prism.report.rating.final, word: LABEL[prism.report.rating.label][0], status: prism.report.rating.status, parts: prism.report.rating.parts,
         short: tech && { score: tech.shortTerm.score, rating: tech.shortTerm.rating }, long: tech && { score: tech.longTerm.score, rating: tech.longTerm.rating },
-        reason: notRatedReason(prism.report.rating) }
+        reason: notRatedReason(prism.report.rating), techAsOf: prism.report.technical?.asOf ?? tech?.asOf ?? null }
     : { kind: prism.kind };
   const wlState = useWatchlist(); void wlState;
   const watch = wl.has(s.profile.symbol);

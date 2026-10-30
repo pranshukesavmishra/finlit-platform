@@ -45,7 +45,7 @@ export function industryText(p: { industry?: string | null; subIndustry?: string
 /** The technical scores of a stored Prism report, as the dots need them: the model's rating word (never shown) and the -100..+100 score of each horizon. */
 export type TechIn = { score: number | null; rating: string | null };
 export type PrismInput = { kind: "loading" | "none" | "hidden" | "locked" }
-  | { kind: "report"; final: number | null; word: string; status: string; parts?: Partial<Record<string, number | null>>; short?: TechIn | null; long?: TechIn | null; reason?: string | null };
+  | { kind: "report"; final: number | null; word: string; status: string; parts?: Partial<Record<string, number | null>>; short?: TechIn | null; long?: TechIn | null; reason?: string | null; techAsOf?: string | null };
 export type BadgeView =
   | { kind: "none" }
   | { kind: "basic"; score: number | null; word: string | null; band: ScoreBand }
@@ -82,6 +82,8 @@ export const GOLD_DOTS: { key: string; name: string; letter: string; group: "fun
 ];
 /** Trend tone to the shared dot colour: positive green, neutral orange, negative red, grey when absent (the colours the Prism card's technical bars use). */
 export const trendBand = (t: TrendTone): ScoreBand => (t === "strongpos" || t === "pos" ? "hi" : t === "neutral" ? "mid" : t === "strongneg" || t === "neg" ? "lo" : "na");
+/** "23 Oct 2026" from an ISO date (no time zone shift: the date is read as written). */
+export const asOfText = (iso: string): string => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m ? `${Number(m[3])} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m[2]) - 1]} ${m[1]}` : iso; };
 /** The six dots for Gold, or null while the report loads or when the server hides it (nothing is drawn: no flicker). A company with no stored or no usable rating
  *  gets six grey dots whose tooltip says why. */
 export function goldDots(prism: PrismInput): GoldDot[] | null {
@@ -100,6 +102,6 @@ export function goldDots(prism: PrismInput): GoldDot[] | null {
     const t = d.key === "shortTerm" ? prism.short : prism.long, v = t?.score ?? null;
     if (v == null || !Number.isFinite(v)) return { ...base, value: null, band: "na" as ScoreBand, label: `${d.name}: grey, not available` };
     const w = ratingWord(t?.rating, v), band = trendBand(w.tone);
-    return { ...base, value: v, band, label: `${d.name} ${fmtScore(v)}: ${BAND_NAME[band]}, ${w.word.toLowerCase()}` };
+    return { ...base, value: v, band, label: `${d.name} ${fmtScore(v)}: ${BAND_NAME[band]}, ${w.word.toLowerCase()}${prism.techAsOf ? `, as of ${asOfText(prism.techAsOf)}` : ""}` };
   });
 }

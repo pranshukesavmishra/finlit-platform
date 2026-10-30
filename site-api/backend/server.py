@@ -751,8 +751,11 @@ def _premium_dashboard_inputs(symbol, statement_type, now, supplied_candles=None
 
 def _technical_candle_date(now):
     """The last completed daily session for the technical indicators: an unfinished session (before 16:00 IST) is excluded."""
-    ist = now.astimezone(ZoneInfo("Asia/Kolkata"))
-    return ist.date() if (ist.hour, ist.minute) >= (16, 0) else ist.date() - timedelta(days=1)
+    try:
+        from backend.premium_technical import last_completed_session
+    except ImportError:
+        from premium_technical import last_completed_session
+    return last_completed_session(now)
 
 
 def _premium_kept_with_current_technical(kept, now, supplied_candles):
@@ -978,6 +981,45 @@ async def _current_premium_report(report_id):
         report = {**report, "state": "failed", "error": "Generation was interrupted or timed out. Please generate a new report."}
         job["report"] = report
     return report
+
+
+class TechnicalOnlyRequest(BaseModel):
+    """The technical view of one stock without the financial-health report (backend/finlit/prism_technical.py, `refresh-technicals`)."""
+    suppliedCandles: Dict[str, Any]
+    sharesCr: Optional[float] = Field(default=None, gt=0, le=1_000_000)       # shares outstanding in crore: it picks the benchmark (Nifty 50 / Midcap 100 / Smallcap 100 / 500)
+    quotePrice: Optional[float] = Field(default=None, gt=0)
+    priority: Literal["interactive", "background"] = "background"
+
+
+_technical_slot = asyncio.Semaphore(1)       # the scoring is CPU-bound pure Python (about half a second): one at a time keeps the box responsive
+
+
+@api_router.post("/premium-reports/technical")
+async def create_technical_only(payload: TechnicalOnlyRequest, _admin=Depends(require_admin)):
+    """ONLY the ST/LT technicalAssessment, from supplied Dhan candles, by the very functions the full report runs (technical_refresh.technical_only).
+    422 when the supplied stock series is unusable (nothing is fetched from another source for the stock); 429 while a member waits for a report."""
+    try:
+        from backend.technical_refresh import technical_only, NoUsableCandles
+        from backend.premium_technical_sources import load_benchmark_history
+    except ImportError:
+        from technical_refresh import technical_only, NoUsableCandles
+        from premium_technical_sources import load_benchmark_history
+    if payload.priority == "background" and _premium_interactive > 0:
+        raise HTTPException(status_code=429, detail="A member is waiting for a report; the technical refresh pauses.", headers={"Retry-After": "3"})
+    size = len(json.dumps(payload.suppliedCandles, separators=(",", ":"), default=str))
+    if size > SUPPLIED_CANDLES_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="The supplied candles are too large.")
+    now = datetime.now(timezone.utc)
+    benchmarks = lambda day, dates: load_benchmark_history(_finedge_get, day, _fetch_upstox_price_history, dates)
+    try:
+        async with _technical_slot:
+            assessment = await asyncio.to_thread(technical_only, payload.suppliedCandles, now, payload.sharesCr, payload.quotePrice, benchmarks)
+    except NoUsableCandles as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except Exception as exc:
+        logger.warning("Technical-only calculation failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="The technical view could not be calculated.") from None
+    return JSONResponse({"technicalAssessment": assessment, "calculatedAt": now.isoformat()}, headers={"Cache-Control": "no-store"})
 
 
 @api_router.get("/premium-reports/{report_id}")

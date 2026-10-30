@@ -9,7 +9,7 @@ try:
     from .premium_engine import score_company
     from .premium_trace import build_calculation_trace
     from .premium_presentation import build_report_review
-    from .premium_technical import build_technical_assessment, resolve_technical_prices
+    from .premium_technical import build_technical_assessment, resolve_technical_prices, last_completed_session
     from .premium_technical_sources import load_benchmark_history
 except ImportError:
     from premium_data import adapt_inputs
@@ -18,7 +18,7 @@ except ImportError:
     from premium_engine import score_company
     from premium_trace import build_calculation_trace
     from premium_presentation import build_report_review
-    from premium_technical import build_technical_assessment, resolve_technical_prices
+    from premium_technical import build_technical_assessment, resolve_technical_prices, last_completed_session
     from premium_technical_sources import load_benchmark_history
 
 
@@ -62,5 +62,5 @@ def generate_report(get, symbol, name, statement_type, report_id, created_at, da
     technical_benchmarks = raw.get("technicalBenchmarks")
     if technical_benchmarks is None:
         technical_benchmarks = load_benchmark_history(get, now.date(), required_dates=[row['date'] for row in technical_prices.get('bars',[])[-505:]])
-    report["technicalAssessment"] = build_technical_assessment(technical_prices, now.date(), technical_benchmarks, inputs.get("shares"))
+    report["technicalAssessment"] = build_technical_assessment(technical_prices, last_completed_session(now), technical_benchmarks, inputs.get("shares"))
     return report

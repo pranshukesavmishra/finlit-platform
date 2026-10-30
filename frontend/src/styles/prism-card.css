@@ -113,6 +113,7 @@
 .pcx-sl span:nth-child(2) { text-align: center; } .pcx-sl span:last-child { text-align: right; }
 .pcx-sg { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); } .pcx-sg.warn { color: var(--band-mid-ink); }
 
+.pcx-sec .pzt-asof { margin: -10px 24px 18px; padding: 0; }
 .pcx-al { --pc: var(--faint); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 14px 24px 22px; padding: 14px 20px; border-radius: 16px; border: 1px solid var(--border); background: rgba(var(--dk-w), .03); min-width: 0; }
 .pcx-ai { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; flex: none; color: var(--muted); background: rgba(var(--dk-w), .07); } .pcx-ai svg { width: 20px; height: 20px; }
 .pcx-ak { display: inline-flex; align-items: center; font: 600 15px/1.3 var(--sans); color: var(--text); white-space: nowrap; }
@@ -166,6 +167,7 @@
   .pcx-card:nth-child(even) > .pcx-tip { left: auto; right: 0; } .pcx-card:nth-child(odd) > .pcx-tip { left: 0; right: auto; }
   .pcx-i { position: static; } .pcx-i > .pcx-tip, .pcx-i.end > .pcx-tip { left: 16px; right: 16px; bottom: auto; width: auto; max-width: none; margin-top: 8px; }
   .pcx-tp { grid-template-columns: minmax(0, 1fr); margin: 14px 14px 0; }
+  .pcx-sec .pzt-asof { margin: -6px 14px 16px; }
   .pcx-hz { padding: 16px 16px 14px; } .pcx-hz + .pcx-hz { border-left: 0; border-top: 1px solid var(--border); }
   .pcx-al { margin: 12px 14px 16px; padding: 12px 14px; gap: 8px 10px; }
   .pcx-ai { width: 34px; height: 34px; } .pcx-asp { display: none; } .pcx-ak { flex: 1; }

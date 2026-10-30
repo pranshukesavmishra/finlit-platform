@@ -581,7 +581,7 @@ async def test_summary_view_is_small_and_has_what_the_stock_page_needs(env):
     r = await gold.get("/api/prism/reports/latest?symbol=TCS&view=summary")
     s = r.json()["summary"]
     assert list(r.json()) == ["summary"] and r.headers["cache-control"] == "no-store"
-    assert set(s) == {"id", "final", "label", "status", "confidence", "parts", "partWeights", "generatedAt", "modelVersion", "topPros", "topCons"}
+    assert set(s) == {"id", "final", "label", "status", "confidence", "parts", "partWeights", "generatedAt", "modelVersion", "technical", "topPros", "topCons"}
     assert s["id"] == full["id"] and s["final"] == full["rating"]["final"] and s["label"] == "AVERAGE" and s["status"] == "RATED"
     assert s["parts"] == SNAPSHOT["rating"]["parts"] and s["partWeights"] == SNAPSHOT["rating"]["partWeights"]
     assert len(s["topPros"]) == 2 and len(s["topCons"]) == 2 and all(isinstance(x, str) and x for x in s["topPros"] + s["topCons"])

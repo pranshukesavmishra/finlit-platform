@@ -39,6 +39,10 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 40 3 * * *       root flock -w 10800 /tmp/finlit-funds.lock $W backfill-mf >> /var/log/finlit-funds.log 2>&1
 # Leader / In line / Laggard labels: weekly, Saturday, after Friday's close; the reliability backtest: quarterly (first Sunday of Jan, Apr, Jul, Oct).
 20 4 * * *      root $W backfill-history >> /var/log/finlit-ingest.log 2>&1
+# The short/long-term technical view of every stored Prism report, from the day's final candles: 18:30 on weekdays, a late retry at 21:15, and a catch-up each morning.
+30 18 * * 1-5    root $W refresh-technicals >> /var/log/finlit-ingest.log 2>&1
+15 21 * * 1-5    root $W refresh-technicals >> /var/log/finlit-ingest.log 2>&1
+50 6 * * *       root $W refresh-technicals >> /var/log/finlit-ingest.log 2>&1
 10 5 * * *      root $W precompute-prism >> /var/log/finlit-ingest.log 2>&1
 50 3 * * 6       root $W refresh-leadership >> /var/log/finlit-ingest.log 2>&1
 10 4 * 1,4,7,10 0 root [ $(date +\%d) -le 7 ] && $W backtest-leadership >> /var/log/finlit-ingest.log 2>&1

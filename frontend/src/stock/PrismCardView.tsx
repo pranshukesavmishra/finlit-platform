@@ -9,7 +9,7 @@ import { bandInk, bandVar, partHint, scoreBand, trendBand as toneBand, type Scor
 import { TECH_NOTE, bandWidths, fmtScore, ratingWord, scalePos, trendAlignment, type TechAssessment, type TechHorizon, type TrendTone, type VerdictTone } from "../lib/prismTechnical";
 import { TICKS, zoneBg } from "../components/prism/shared/PartTile";
 import { LABEL, type PrismLatest } from "./PrismCard";
-import { PrismTechRow } from "./PrismTechRow";
+import { PrismTechRow, TechAsOf } from "./PrismTechRow";
 import { PART_LINE, SCORE_NOTE_WITH_TECH, FUND_NOTE, TECH_SEPARATE_NOTE, TECH_SUBTITLE, alignSentence, arcPath, basedOn, fmtNum, fundSubtitle, horizonCaption, horizonLabel, partTip, partWord, polar, ringArcs, signalsLine, techEdgePos, type CardPart } from "./prismCardLogic";
 
 const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "◆", neg: "▼", strongneg: "▼▼", na: "–" };
@@ -169,6 +169,7 @@ export function TechnicalSection({ a, report, onRecalculate, busy }: { a: TechAs
               <span className="pcx-at"><b>{al.label}</b><small>{alignSentence(al)}</small></span>
             </div>
           )}
+          <TechAsOf asOf={report.technical?.asOf ?? a.asOf} stale={report.technical?.stale} refreshing={report.technical?.refreshing} />
         </>
       ) : <div className="pcx-tq"><PrismTechRow report={report} onRecalculate={onRecalculate} busy={busy} /></div>}
     </section>

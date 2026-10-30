@@ -2,6 +2,7 @@
 // the Prism card under the four parts. It is an independent view (report.technicalAssessment), not a fifth part of the score. A stored report
 // from before the technical view gets one quiet line; nothing is invented. Words and shapes carry the meaning, colour only decorates.
 import { Icon } from "../lib/icons";
+import { dateIN } from "../lib/format";
 import type { PrismLatest } from "./PrismCard";
 import { fmtScore, parseTechnical, ratingWord, scalePos, trendAlignment, type TechHorizon, type TrendTone, type VerdictTone } from "../lib/prismTechnical";
 import "../styles/prism-technical.css";
@@ -18,6 +19,12 @@ function Mini({ label, h }: { label: string; h: TechHorizon }) {
       <span className="pzt-rs" aria-hidden="true"><u />{has && <i style={{ left: `${scalePos(h.score)}%` }} />}</span>
     </div>
   );
+}
+
+/** "Technical view as of 23 Oct 2026": the last completed trading day the scores were calculated on (not the day the report was calculated). */
+export function TechAsOf({ asOf, stale, refreshing }: { asOf: string | null | undefined; stale?: boolean; refreshing?: boolean }) {
+  if (!asOf) return null;
+  return <p className="pzt-asof" data-testid="tech-asof">Technical view as of <b>{dateIN(asOf)}</b>, the last completed trading day it was calculated on.{refreshing ? " A newer day is being added now." : stale ? " A newer day is added each evening after the market closes." : ""}</p>;
 }
 
 /** What a screen reader hears for the row. */
