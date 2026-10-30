@@ -6,6 +6,8 @@ import {
   type PrismRating, type PrismReport,
 } from "../../../lib/prism";
 import { THRESHOLDS, arcSegments, partVar } from "../../../lib/prismReport";
+import { fmtScore, parseTechnical, ratingWord, scalePos, type TechHorizon, type TrendTone } from "../../../lib/prismTechnical";
+import { TECH_SEPARATE_NOTE, horizonCaption } from "../../../stock/prismCardLogic";
 
 export const istTime = (iso: string | null | undefined, withDate = true) => {
   if (!iso) return "—";
@@ -91,6 +93,59 @@ export function ScoreScale({ rating }: { rating: Pick<PrismRating, "status" | "f
   );
 }
 
+/* ---- mini scores: the overall score and the two technical scores, small, beside the Recalculate button. Same words, shapes and numbers as the stock-page card. */
+const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "◆", neg: "▼", strongneg: "▼▼", na: "–" };
+const TONE_VAR: Record<TrendTone, string> = { strongpos: "--pz-strong", pos: "--pz-healthy", neutral: "--pz-average", neg: "--pz-weak", strongneg: "--pz-poor", na: "--pz-none" };
+
+/** What a screen reader (and the tooltip) hears for a technical tile: "Technical short term +35: Positive, 5–20 sessions". */
+export function miniTechLabel(title: string, h: TechHorizon): string {
+  const cap = horizonCaption(h);
+  if (h.score == null) return `${title}: not available${cap ? `, ${cap}` : ""}`;
+  return `${title} ${fmtScore(h.score)}: ${ratingWord(h.rating, h.score).word}${cap ? `, ${cap}` : ""}`;
+}
+export function miniFundLabel(rating: Pick<PrismRating, "status" | "final" | "label">): string {
+  return isRated(rating) && rating.final != null ? `Fundamental score ${score1(rating.final)} out of 100: ${labelTone(rating.label).word}` : "Fundamental score: not rated";
+}
+
+function TechMini({ title, h }: { title: string; h: TechHorizon }) {
+  const { word, tone } = ratingWord(h.rating, h.score), has = h.score != null, label = miniTechLabel(title, h), cap = horizonCaption(h);
+  return (
+    <li className="pzr-mini" style={{ "--m": `var(${TONE_VAR[tone]})` } as React.CSSProperties} title={label} aria-label={label}>
+      <span className="pzr-mini-k">{title}</span>
+      <b className="pzr-mini-n">{fmtScore(h.score)}</b>
+      <span className="pzr-mini-w"><i aria-hidden="true">{SHAPE[tone]}</i>{has ? word : "Not available"}</span>
+      <span className="pzr-mini-bar pzr-mini-bar-t" aria-hidden="true">{has && <em style={{ left: `${scalePos(h.score)}%` }} />}</span>
+      {cap && <small>{cap}</small>}
+    </li>
+  );
+}
+
+export function MiniScores({ report }: { report: PrismReport }) {
+  const { rating } = report, rated = isRated(rating) && rating.final != null, tech = parseTechnical(report.technicalAssessment);
+  const label = miniFundLabel(rating), t = labelTone(rating.label);
+  return (
+    <div className="pzr-minis" role="group" aria-label="Mini scores">
+      <ul className="pzr-minis-l">
+        <li className="pzr-mini pzr-mini-f" style={{ "--m": `var(${rated ? t.token : "--pz-none"})` } as React.CSSProperties} title={label} aria-label={label}>
+          <span className="pzr-mini-k">Fundamental</span>
+          {rated ? <b className="pzr-mini-n">{score1(rating.final)}</b> : <b className="pzr-mini-n pzr-mini-nr">Not rated</b>}
+          <span className="pzr-mini-w">{rated ? t.word : "No score"}</span>
+          <span className="pzr-mini-bar" aria-hidden="true">{rated && <u style={{ width: `${Math.max(0, Math.min(100, rating.final!))}%` }} />}</span>
+          <small>out of 100</small>
+        </li>
+        <li className="pzr-mini-div" aria-hidden="true" />
+        {tech ? <>
+          <TechMini title="Technical short term" h={tech.shortTerm} />
+          <TechMini title="Technical long term" h={tech.longTerm} />
+        </> : (
+          <li className="pzr-mini pzr-mini-q" style={{ "--m": "var(--pz-none)" } as React.CSSProperties}><span className="pzr-mini-k">Technical view</span><span className="pzr-mini-w">Recalculate to add</span></li>
+        )}
+      </ul>
+      <p className="pzr-minis-n" title={TECH_SEPARATE_NOTE}>Technical is separate from the score</p>
+    </div>
+  );
+}
+
 export function Hero({ report, actions }: { report: PrismReport; actions: ReportActions }) {
   const { rating, company } = report;
   return (
@@ -110,8 +165,9 @@ export function Hero({ report, actions }: { report: PrismReport; actions: Report
           <p className="pzr-lede">{notRatedReason(rating) ?? STATUS_TEXT[rating.status]}</p>
           <p className="pzr-cov"><Icon name="quality" /><span><b>{pctWhole(rating.confidence)} of inputs available</b>, and {rating.judgedQuarters} of 10 comparable quarters.</span></p>
           <p className="pzr-cov-n">This is completeness of the data behind the score. It is not a probability and does not predict returns.{completenessNote(rating) ? " " + completenessNote(rating) : ""}</p>
-          <div className="pzr-acts pzr-noprint">
-            <button type="button" className="btn" onClick={actions.onRecalculate} disabled={actions.recalculating}><Icon name="refresh" />{actions.recalculating ? "Recalculating…" : "Recalculate"}</button>
+          <div className="pzr-acts">
+            <MiniScores report={report} />
+            <div className="pzr-noprint pzr-acts-r"><button type="button" className="btn" onClick={actions.onRecalculate} disabled={actions.recalculating}><Icon name="refresh" />{actions.recalculating ? "Recalculating…" : "Recalculate"}</button></div>
           </div>
         </div>
         <div className="pzr-hero-r">
