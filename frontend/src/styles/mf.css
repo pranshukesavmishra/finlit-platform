@@ -371,5 +371,33 @@
   .mfs-pillars li { grid-template-columns: 1fr 56px; gap: 4px 10px; } .mfs-pillars .mfs-bar { grid-column: 1 / -1; grid-row: 2; }
   .mfs-cols { grid-template-columns: 1fr; }
 }
-.mfs-card, .mfs-cmpcard, .mf-table, .mfs-method { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
-:root[data-theme="light"] .mfs-card, :root[data-theme="light"] .mfs-cmpcard, :root[data-theme="light"] .mf-table, :root[data-theme="light"] .mfs-method { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }
+/* ETF page: the two ETF-only measures under "Why this score" */
+.mfs-etftag { display: inline-block; margin-left: 8px; padding: 1px 7px; border: 1px solid var(--border-strong); border-radius: 999px; font: 600 10.5px var(--sans); font-style: normal; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); vertical-align: 1px; white-space: nowrap; }
+.mfs-etf { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.mfs-etf h4 { margin: 0 0 8px; font: 700 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.mfs-etf ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.mfs-etfm { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 4px 16px; padding: 10px 12px; border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.mfs-etfm.lift { border-left-color: var(--band-hi); } .mfs-etfm.watch { border-left-color: var(--band-mid); } .mfs-etfm.gap { border-style: dashed; border-left-color: var(--border-strong); }
+.mfs-etfn { display: grid; gap: 1px; } .mfs-etfn b { color: var(--text); } .mfs-etfn small { font-size: 12px; color: var(--faint); }
+/* Funds category cards: the Health score strip under each card */
+.mf-qwrap { display: grid; grid-template-rows: 1fr auto; height: 100%; }
+.mf-qwrap > .mf-qcard { height: auto; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+.mf-qscore { display: grid; gap: 7px; padding: 10px 14px 12px; border: 1px solid var(--border); border-top: 1px dashed var(--border); border-radius: 0 0 14px 14px; background: var(--s1); font-size: 12.5px; line-height: 1.35; color: var(--muted); min-height: 82px; align-content: start; }
+.mf-qscore .mf-qs-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.mf-qscore .mf-qs-n { font: 700 20px var(--mono, monospace); font-variant-numeric: tabular-nums; }
+.mf-qscore .mf-qs-t { color: var(--muted); }
+.mf-qscore .mf-qs-lock { display: flex; gap: 7px; align-items: center; } .mf-qscore .mf-qs-lock svg { width: 14px; height: 14px; flex: none; }
+.mf-qdist { display: flex; height: 8px; border-radius: 6px; overflow: hidden; background: var(--s3); }
+.mf-qdist i { display: block; height: 100%; min-width: 3px; } .mf-qdist i + i { border-left: 1px solid var(--s1); }
+.mf-qdist .g { background: var(--band-hi); } .mf-qdist .o { background: var(--band-mid); } .mf-qdist .r { background: var(--band-lo); }
+.mf-qdist-l { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mf-qdist-l span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.mf-qdist-l .g::before { background: var(--band-hi); } .mf-qdist-l .o::before { background: var(--band-mid); } .mf-qdist-l .r::before { background: var(--band-lo); }
+.mf-qscore a { font-weight: 600; font-size: 12.5px; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; width: fit-content; }
+@media (max-width: 640px) {
+  .mfs-etfm { grid-template-columns: 1fr; }
+  /* two funds fit side by side on a phone; more scroll sideways with the measure names kept in view */
+  .mfs-cmpcard .mf-cmp { min-width: 0; } .mfs-cmpcard .mf-cmp thead th { min-width: 104px; } .mfs-cmpcard .mf-cmp tbody th { min-width: 88px; font-size: 13px; }
+}
+.mfs-card, .mfs-cmpcard, .mf-table, .mfs-method, .mf-cards { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
+:root[data-theme="light"] .mfs-card, :root[data-theme="light"] .mfs-cmpcard, :root[data-theme="light"] .mf-table, :root[data-theme="light"] .mfs-method, :root[data-theme="light"] .mf-cards { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }

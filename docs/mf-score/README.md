@@ -17,12 +17,12 @@ It also runs once a day in the night chain right after `refresh-portfolios` (`de
 fund jobs) and once at the end of the boot load (`--max-age-hours 20`). Options: `--symbols 120465 NIFTYBEES` scores the whole universe (peer medians need it) and writes only those
 funds; `--limit N` is for testing only (partial peer sets, removes nothing). One transaction, idempotent. Verify: `/api/mf/status` shows `run:score-mf` with counts, status counts,
 metric-state counts and the Appendix Z.3 zero-rule counters (`zeroRules`: rule name -> hits, `fund:<rule>` -> funds hit). API: `GET /api/mf/{code}/score`, `GET /api/mf/etf/{symbol}/score`,
-`GET /api/mf/scores?codes=&group=&category=&plan=&status=&sort=&limit=`, `GET /api/mf?sort=score` (Silver).
+`GET /api/mf/scores?codes=&symbols=&group=&category=&plan=&status=&sort=&limit=` (`symbols` = NSE ETF symbols, up to 100, redacted like `codes`), `GET /api/mf/scores/categories` (the /funds cards: median, count and green/orange/red counts per sub-category over scored Direct-plan funds; Gold only, `locked` and no numbers below, `runDate` null until the job has run), `GET /api/mf?sort=score` and `GET /api/etf?sort=score` (Gold; 403 below, `private, no-store`). The ETF page shows the same card as the fund page (ETF_LIQUIDITY and ETF_PREMIUM tagged "ETF measure"), the ETF list has a Health score column that asks `/api/mf/scores?symbols=`.
 Measured on synthetic data: 5,120 funds (16 groups, both plans) score in 2.3 s of CPU, peak 219 MB including the synthetic inputs; one process, no threads fighting the web server.
 
 ## Plan gating
 
-Silver and Gold (and admin) see the score. Basic and visitors get a locked answer: no value, no pillar, no breakdown, no rank, no list order (`/api/mf/scores` lists return nothing,
+Gold (and admin) see the score (founder decision: a Gold feature). Basic, Silver and visitors get a locked answer: no value, no pillar, no breakdown, no rank, no list order (`/api/mf/scores` lists return nothing,
 `?codes=` returns null fields, `/api/mf?sort=score` answers 403). Responses are `private, no-store`. Optional open schemes: env `MF_SCORE_SHOWCASE=120465,...` (the site has no fund showcase list, default none).
 
 ## Decisions where the draft is silent (all "designer decision pending confirmation")
