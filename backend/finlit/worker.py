@@ -805,7 +805,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
                     return 0
             try:
-                result = await score_job.run(store, settings, symbols=args.symbols, limit=args.limit)
+                from .auth.mailer import ConsoleMailer, ResendMailer
+                mailer = ResendMailer(settings.resend_api_key, settings.mail_from) if settings.mail_mode == "resend" and settings.resend_api_key else ConsoleMailer(store.pool)
+                result = await score_job.run(store, settings, symbols=args.symbols, limit=args.limit, mailer=mailer)
             except Exception as exc:
                 await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
                 raise

@@ -8,6 +8,8 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { apiGet, prefetchStock, useSearchIndex, useSearchQuotes, useSummary, type SearchRow } from "../../lib/api";
 import { etfGet, type EtfItem, type EtfList } from "../../lib/etf";
 import { mfGet, type FundList, type FundRow, type HotList } from "../../lib/mf";
+import { useScores } from "../../lib/mfScore";
+import { ScoreChip } from "../../mf/ScoreCell";
 import { useMyCompanies } from "../../lib/mycompanies";
 import { visits, type Visit } from "../../lib/recentVisits";
 import { MINUS, dateIN, nf } from "../../lib/format";
@@ -194,6 +196,9 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const cur = items[Math.min(sel, Math.max(0, items.length - 1))];
   // Gold: the stored Prism scores of the rows on screen (and the highlighted one), asked in batches after a short pause.
   const gold = useGold();
+  const mfCodes = useMemo(() => items.filter((it) => it.kind === "mf").map((it) => Number(it.key.split(":")[1])).filter((n) => n > 0).slice(0, 40), [items]);
+  const fundScores = useScores(mfCodes, gold && mfCodes.length > 0);    // Gold only: one batch request for the funds on screen
+  const scoreOf = useMemo(() => new Map((fundScores.data?.items || []).map((x) => [x.code, x])), [fundScores.data]);
   const seen = useVisibleSymbols(list, items, open && gold);
   const wanted = useMemo(() => (cur?.kind === "stock" ? [...seen, cur.sub] : seen), [seen, cur]);
   const prism = usePrismScores(wanted, open && gold && tab !== "global");
@@ -273,7 +278,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                   {sec.id === "recent" && <button type="button" onClick={() => visits.clear()}>Clear</button>}
                   {sec.more && tab === "all" && <button type="button" onClick={() => setTab(sec.more!.tab)}>{sec.more.label} →</button>}
                 </div>
-                {sec.items.map((it) => { i += 1; const me = i; return <Row key={sec.id + it.key} it={it} gold={gold} prism={prism} q={q.trim()} today={today} id={`gs-o-${me}`} active={me === sel} index={me} best={sec.id === "best"} onHover={() => setSel(me)} onPick={pick} />; })}
+                {sec.items.map((it) => { i += 1; const me = i; return <Row key={sec.id + it.key} fs={gold && it.kind === "mf" ? scoreOf.get(Number(it.key.split(":")[1])) : undefined} it={it} gold={gold} prism={prism} q={q.trim()} today={today} id={`gs-o-${me}`} active={me === sel} index={me} best={sec.id === "best"} onHover={() => setSel(me)} onPick={pick} />; })}
               </div>
             ))}
           </div>
@@ -288,13 +293,13 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   );
 }
 
-function Row({ it, gold, prism, q, today, id, active, index, best, onHover, onPick }: { it: Item; gold: boolean; prism: PrismScoreMap; q: string; today: string; id: string; active: boolean; index: number; best: boolean; onHover: () => void; onPick: (it: Item, newTab?: boolean) => void }) {
+function Row({ fs, it, gold, prism, q, today, id, active, index, best, onHover, onPick }: { it: Item; gold: boolean; prism: PrismScoreMap; q: string; today: string; id: string; active: boolean; index: number; best: boolean; onHover: () => void; onPick: (it: Item, newTab?: boolean) => void; fs?: import("../../lib/mfScore").ScoreItem }) {
   return (
     <div id={id} data-i={index} data-sym={gold && it.kind === "stock" ? it.sub : undefined} role="option" aria-selected={active} className={`gs-row k-${it.kind}${gold && it.kind === "stock" ? " pz" : ""}${active ? " on" : ""}${best ? " best" : ""}`} onMouseMove={active ? undefined : onHover}
       onClick={(e) => onPick(it, e.ctrlKey || e.metaKey)} onAuxClick={(e) => { if (e.button === 1) onPick(it, true); }}>
       <Logo src={it.logo} name={it.title} kind={it.kind} size={best ? 46 : 40} />
       <span className="gs-main">
-        <span className="gs-t"><Hl text={it.title} q={q} /></span>
+        <span className="gs-t"><Hl text={it.title} q={q} />{fs && <ScoreChip item={fs} />}</span>
         <span className="gs-s">
           {it.kind !== "news" && <FlagIN />}
           {it.kind === "stock" ? <span className="gs-tk"><Hl text={it.sub} q={q} /></span> : <span className="gs-sub">{it.sub}</span>}

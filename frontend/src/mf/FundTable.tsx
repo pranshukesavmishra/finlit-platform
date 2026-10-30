@@ -11,7 +11,7 @@ import { Fig, PlanChip } from "./Bits";
 import { tintOf } from "../lib/mfSummary";
 import { useUI } from "../lib/ui";
 import { useScores, type ScoreItem } from "../lib/mfScore";
-import { ScoreCell } from "./ScoreCell";
+import { ScoreCell, ScoreChip } from "./ScoreCell";
 
 const shortAmc = (a: string) => a.replace(/\s*mutual fund\s*$/i, "");
 const MARK = { pass: "✓", fail: "✗", unknown: "–" } as const;
@@ -106,7 +106,7 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
   const defs = COLUMNS.filter((c) => cols.includes(c.id));
   const { has } = useUI();
   const showScore = defs.some((c) => c.id === "score");
-  const sq = useScores(rows.map((r) => r.code), showScore && has("gold"));
+  const sq = useScores(rows.map((r) => r.code), has("gold"));   // one batch request, also for the chip beside each name
   const scores: Scores = { map: new Map((sq.data?.items || []).map((i) => [i.code, i])), locked: showScore && (!has("gold") || !!sq.data?.locked), loading: sq.isLoading };
   // the heading row above: neighbouring columns of one group share a heading ("Returns", "SIP returns")
   const runs: { group?: ColDef["group"]; n: number }[] = [];
@@ -143,7 +143,7 @@ export function FundTable({ rows, cols, q, onSort, picked, onPick, peers }: {
                   <input type="checkbox" checked={picked.includes(r.code)} onChange={() => onPick(r.code)} aria-label={`Compare ${r.name}`} />
                 </label>
                 <span className="mf-nm">
-                  <Link to={`/funds/${r.code}`}>{r.name}</Link>
+                  <Link to={`/funds/${r.code}`}>{r.name}</Link>{has("gold") && <ScoreChip item={scores.map.get(r.code)} />}
                   <small><span className="mf-house">{shortAmc(r.amc)}</span><PlanChip plan={r.plan} option={r.option} />{!r.active && <span className="chip ghost">Stopped publishing</span>}</small>
                   {r.nav != null && <small className="mf-navm">NAV <span className="mono" title={navFull(r.nav)}>{navText(r.nav)}</span></small>}
                 </span>

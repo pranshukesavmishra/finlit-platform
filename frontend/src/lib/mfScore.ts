@@ -17,7 +17,7 @@ export const PILLAR_HELP: Record<string, string> = {
 
 export type ScoreState = "A" | "Z" | "S" | "F" | "N";
 export type ScoreLine = { id: string; label: string; text: string; points: number; groupValue: number; effect: number; state: string };
-export type ScoreMetric = { id: string; label: string; pillar: string; state: ScoreState; value: number | null; own: number | null; peer: number | null; peerN: number | null; points: number | null; weight: number | null; groupValue: number | null; why: string | null };
+export type ScoreMetric = { id: string; label: string; pillar: string; state: ScoreState; value: number | null; own: number | null; peer: number | null; peerN: number | null; points: number | null; weight: number | null; groupValue: number | null; why: string | null; whyText?: string | null };
 export type ScorePillar = { key: "performance" | "risk" | "cost" | "quality"; name: string; weight: number; score: number | null; allNotApplicable?: boolean };
 export type FundScore = {
   locked: boolean; plan?: string; detail?: string; key?: string; kind?: string; group: string | null; groupName: string | null; fundPlan?: string | null;

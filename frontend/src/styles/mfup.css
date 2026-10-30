@@ -1,0 +1,39 @@
+/* Mutual Fund Health Score upgrades: history chart, breakdown, radar, screener, leaderboard, compare, alerts, admin. Tokens only. */
+.mfu, .mfu-page, .mfu-admin, .mfs-bdwrap, .mfu-bd, .mfs-chip { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
+:root[data-theme="light"] .mfu, :root[data-theme="light"] .mfu-page, :root[data-theme="light"] .mfu-admin, :root[data-theme="light"] .mfu-bd, :root[data-theme="light"] .mfs-chip { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }
+.mfs-chip { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; font: 700 11px/17px var(--mono, monospace); vertical-align: 1px; }
+.mfu-hist { position: relative; } .mfu-hist svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.mfu-ax { font: 10px var(--mono, monospace); fill: var(--faint); } .mfu-zl { font: 600 10px var(--sans); fill: var(--muted); } .mfu-rl { font: 600 10px var(--sans); fill: var(--muted); }
+.mfu-tog { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; font-size: 13px; color: var(--muted); }
+.mfu-tog label, .mfu-key { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; } .mfu-tog i, .mfu-leg i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; border: 1px solid transparent; }
+.mfu-tog label.on { color: var(--text); }
+.mfu-tip { margin-top: 6px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s2); font-size: 13px; } .mfu-tip small { display: block; color: var(--muted); }
+.mfu-change { margin: 4px 0 12px; padding: 10px 12px; border-left: 3px solid var(--gold); background: var(--gold-soft); border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.5; }
+.mfu-empty { padding: 18px 12px; border: 1px dashed var(--border-strong); border-radius: 10px; color: var(--muted); }
+.mfu-bd { margin-top: 18px; } .mfu-bdtop { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 18px; align-items: start; margin-bottom: 10px; }
+.mfu-radar { margin: 0; } .mfu-radar svg { width: 100%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+.mfu-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; font-size: 12.5px; color: var(--muted); } .mfu-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.mfu-facts dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 12px; font-size: 13.5px; } .mfu-facts dt { color: var(--muted); } .mfu-facts dd { margin: 0; }
+.mfu-gaps { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--s1); font-size: 13.5px; } .mfu-gaps.has { border-color: var(--warn); background: var(--warn-soft); }
+.mfu-gaps h4 { margin: 0 0 4px; display: flex; gap: 6px; align-items: center; font-size: 14px; } .mfu-gaps ul { margin: 6px 0 0; padding-left: 18px; } .mfu-gaps em { font-style: normal; color: var(--muted); }
+.mfu-tbl th[scope=row] { font-weight: 500; } .mfu-ph th { background: var(--s2); text-align: left; } .mfu-tbl td small { display: block; color: var(--muted); font-size: 11.5px; max-width: 34ch; }
+.mfu-pbar { display: inline-block; width: 54px; height: 6px; background: var(--s3); border-radius: 3px; margin-right: 8px; vertical-align: middle; overflow: hidden; } .mfu-pbar i { display: block; height: 100%; }
+.mfu-st { font-weight: 600; font-size: 12.5px; } .mfu-st.st-F { color: var(--warn); } .mfu-st.st-S { color: var(--info); } .mfu-st.st-N { color: var(--faint); }
+.mfu-alert { position: relative; margin-top: 12px; } .mfu-pop { margin-top: 8px; padding: 12px; display: grid; gap: 8px; max-width: 460px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); font-size: 13.5px; }
+.mfu-n { width: 60px; } .mfu-mine { list-style: none; margin: 0; padding: 0; } .mfu-mine li { display: flex; justify-content: space-between; align-items: center; }
+.mfu-layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; margin-top: 14px; } .mfu-filters { display: grid; gap: 10px; position: sticky; top: 72px; }
+.mfu-f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); } .mfu-f select, .mfu-f input, .mfu-rg input { width: 100%; min-width: 0; }
+.mfu-rg { display: grid; grid-template-columns: 1fr 74px 74px; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); } .mfu-check { font-size: 13px; display: flex; gap: 6px; }
+.mfu-views, .mfu-chips, .mfu-active { display: flex; flex-wrap: wrap; gap: 6px; } .mfu-bar2, .mfu-main .mfu-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 10px; } .mfu-main .mf-count { flex: 1 1 auto; margin: 0; }
+.mfu-table td, .mfu-table th { white-space: nowrap; } .mfu-lb { display: block; color: var(--muted); font-size: 11px; } .mfu-pages { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 12px 0; }
+.mfu-board .mfu-bar { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; } .mfu-stats { margin: 6px 0 10px; line-height: 1.5; }
+.mfu-lb-list { list-style: none; margin: 0; padding: 0; } .mfu-lb-list li { display: grid; grid-template-columns: 32px 1fr 44px 54px 70px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); }
+.mfu-pos { font: 600 13px var(--mono, monospace); color: var(--muted); } .mfu-ln { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mfu-mini { display: flex; align-items: flex-end; gap: 2px; height: 24px; } .mfu-mini i { display: block; width: 8px; border-radius: 2px 2px 0 0; }
+.mfu-cmptop { display: grid; grid-template-columns: 1fr minmax(220px, 300px); gap: 16px; align-items: center; margin-bottom: 12px; } .mfu-rings { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; } .mfu-rings div { text-align: center; max-width: 110px; } .mfu-rings small { display: block; font-size: 11.5px; }
+.mfu-ahead { display: block; font-style: normal; font-size: 11.5px; font-weight: 600; } .mfu-ahead.ahead { color: var(--gain); } .mfu-ahead.behind { color: var(--loss); } .mfu-ahead.level { color: var(--muted); }
+.mfu-lines svg { width: 100%; height: auto; } .mfu-faq { padding: 8px 0; border-top: 1px solid var(--border); } .mfu-faq summary { cursor: pointer; font-weight: 600; }
+.mfu-dist { display: flex; flex-wrap: wrap; gap: 12px; } .mfu-spark { display: flex; align-items: flex-end; gap: 1px; height: 36px; width: 80px; } .mfu-spark i { flex: 1; background: var(--gold); border-radius: 1px 1px 0 0; } .mfu-dist small { display: block; font-size: 11px; color: var(--muted); }
+.mfu-list { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; }
+@media (max-width: 860px) { .mfu-layout, .mfu-bdtop, .mfu-cmptop { grid-template-columns: 1fr; } .mfu-filters { position: static; } .mfu-lb-list li { grid-template-columns: 26px 1fr 40px 50px; } .mfu-lb-list li small { display: none; } }
+.mfu-alert svg { width: 16px; height: 16px; } .mfu-alert .btn { display: inline-flex; gap: 6px; align-items: center; }

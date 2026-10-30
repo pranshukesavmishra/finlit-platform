@@ -26,3 +26,12 @@ Not available (never faked): tracking error, index total return, portfolio P/E a
 
 Zero-value ingest (Appendix Z, Kind C): TER and AUM arrive as 0 where AMFI shows 0; the portfolio summary gives 0 for an empty split. Ingest is unchanged; the model treats these as missing at read time,
 counts every hit (`zeroRules`, `fund:<rule>`) and names the cause in the page ("expense ratio reported as 0, treated as missing").
+
+## Upgrade tables (migration 073)
+
+| Table | Written by | Read by | Notes |
+|---|---|---|---|
+| `mf_score_history` (key, week) | `score-mf` (same transaction as `mf_scores`) | history, compare, calibration, alerts | one row per scheme per ISO week; final, four parts, label, status, rank, percentile; pruned after 3 years |
+| `mf_score_alerts` | API (Gold members) | `score-mf` | `band` or `move`; `last_week` keeps it to one message per weekly row |
+
+Screener columns beyond `mf_scores`: AUM (`mf_schemes.aum_lakh` / 100), expense ratio (`mf_schemes.ter`), 1Y/3Y/5Y returns (`mf_schemes.r1y/r3y/r5y`, ETFs: `etf_funds.ret_1y/cagr_3y/cagr_5y`), age (`mf_facts.launch_date`, else months of NAV history).

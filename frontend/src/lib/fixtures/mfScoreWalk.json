@@ -1,0 +1,260 @@
+{
+ "group": "EQ-LARGE",
+ "plan": "Direct",
+ "final": 68.7,
+ "label": "Healthy",
+ "months": 61,
+ "peerN": 9,
+ "pillars": {
+  "performance": 79.4,
+  "risk": 65.1,
+  "cost": 35.7,
+  "quality": 80.0
+ },
+ "metrics": [
+  {
+   "label": "5-year return against similar funds",
+   "pillar": "performance",
+   "state": "A",
+   "own": 10.5317,
+   "peer": 4.3446,
+   "limits": [
+    -3,
+    3
+   ],
+   "points": 100.0,
+   "weight": 8.75
+  },
+  {
+   "label": "3-year return against similar funds",
+   "pillar": "performance",
+   "state": "A",
+   "own": 15.5326,
+   "peer": 4.4683,
+   "limits": [
+    -3,
+    3
+   ],
+   "points": 100.0,
+   "weight": 7.0
+  },
+  {
+   "label": "1-year return against similar funds",
+   "pillar": "performance",
+   "state": "A",
+   "own": -2.9387,
+   "peer": 4.909,
+   "limits": [
+    -6,
+    6
+   ],
+   "points": 0.0,
+   "weight": 3.5
+  },
+  {
+   "label": "Return on its own",
+   "pillar": "performance",
+   "state": "A",
+   "own": 10.5317,
+   "peer": null,
+   "limits": [
+    6,
+    15
+   ],
+   "points": 50.35,
+   "weight": 5.25
+  },
+  {
+   "label": "Monthly-SIP return against similar funds",
+   "pillar": "performance",
+   "state": "A",
+   "own": 9.4785,
+   "peer": 3.9102,
+   "limits": [
+    -3,
+    3
+   ],
+   "points": 100.0,
+   "weight": 3.5
+  },
+  {
+   "label": "Months it matched similar funds",
+   "pillar": "performance",
+   "state": "A",
+   "own": 61.1111,
+   "peer": null,
+   "limits": [
+    40,
+    65
+   ],
+   "points": 84.44,
+   "weight": 7.0
+  },
+  {
+   "label": "Size of price swings",
+   "pillar": "risk",
+   "state": "A",
+   "own": 16.0325,
+   "peer": 13.9974,
+   "limits": [
+    1.35,
+    0.75
+   ],
+   "points": 34.1,
+   "weight": 6.0
+  },
+  {
+   "label": "Biggest fall against similar funds",
+   "pillar": "risk",
+   "state": "A",
+   "own": 16.4956,
+   "peer": 13.4464,
+   "limits": [
+    1.4,
+    0.7
+   ],
+   "points": 24.75,
+   "weight": 7.5
+  },
+  {
+   "label": "How it behaved when similar funds fell",
+   "pillar": "risk",
+   "state": "A",
+   "own": 2.2022,
+   "peer": -0.8003,
+   "limits": [
+    115,
+    85
+   ],
+   "points": 100.0,
+   "weight": 6.0
+  },
+  {
+   "label": "Return for each unit of price swing",
+   "pillar": "risk",
+   "state": "A",
+   "own": 0.5946,
+   "peer": -0.1164,
+   "limits": [
+    -0.5,
+    0.5
+   ],
+   "points": 100.0,
+   "weight": 6.0
+  },
+  {
+   "label": "Worst year against similar funds",
+   "pillar": "risk",
+   "state": "A",
+   "own": -13.0665,
+   "peer": -16.7476,
+   "limits": [
+    -6,
+    6
+   ],
+   "points": 80.68,
+   "weight": 4.5
+  },
+  {
+   "label": "Expense ratio against similar funds",
+   "pillar": "cost",
+   "state": "A",
+   "own": 1.0134,
+   "peer": 0.7203,
+   "limits": [
+    1.5,
+    0.6
+   ],
+   "points": 10.35,
+   "weight": 7.5
+  },
+  {
+   "label": "Expense ratio on its own",
+   "pillar": "cost",
+   "state": "A",
+   "own": 1.0134,
+   "peer": null,
+   "limits": [
+    1.4,
+    0.3
+   ],
+   "points": 35.14,
+   "weight": 4.5
+  },
+  {
+   "label": "Exit load",
+   "pillar": "cost",
+   "state": "A",
+   "own": 0.0,
+   "peer": null,
+   "limits": null,
+   "points": 100.0,
+   "weight": 3.0
+  },
+  {
+   "label": "Track record",
+   "pillar": "quality",
+   "state": "A",
+   "own": 8.8241,
+   "peer": null,
+   "limits": [
+    3,
+    10
+   ],
+   "points": 83.2,
+   "weight": 5.0
+  },
+  {
+   "label": "Fund size",
+   "pillar": "quality",
+   "state": "A",
+   "own": 5000.0,
+   "peer": null,
+   "limits": [
+    100,
+    1000
+   ],
+   "points": 100.0,
+   "weight": 5.0
+  },
+  {
+   "label": "Share invested in shares",
+   "pillar": "quality",
+   "state": "A",
+   "own": 95.0,
+   "peer": null,
+   "limits": [
+    80,
+    97
+   ],
+   "points": 88.24,
+   "weight": 2.0
+  },
+  {
+   "label": "Ten largest holdings",
+   "pillar": "quality",
+   "state": "A",
+   "own": 40.0,
+   "peer": 40.0,
+   "limits": [
+    12,
+    -8
+   ],
+   "points": 60.0,
+   "weight": 4.0
+  },
+  {
+   "label": "Largest sector",
+   "pillar": "quality",
+   "state": "A",
+   "own": 25.0,
+   "peer": 25.0,
+   "limits": [
+    12,
+    -6
+   ],
+   "points": 66.67,
+   "weight": 4.0
+  }
+ ]
+}

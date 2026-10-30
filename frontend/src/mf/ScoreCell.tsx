@@ -10,3 +10,10 @@ export function ScoreCell({ item, locked, why, loading = false }: { item?: Score
   const band = bandOf(item.final);
   return <span className="mfs-cell" title={`${item.label}${item.status === "PROVISIONAL" ? ", provisional" : ""}. Describes the past; not a recommendation.`}><b className={"mfs-pv b-" + band}>{scoreText(item.final)}</b><small>{item.label}{item.status === "PROVISIONAL" ? " · provisional" : ""}</small></span>;
 }
+
+/** A small band-coloured chip with the score next to a fund's name (Gold only: with no score, or below Gold, nothing is drawn and no value is in the page). */
+export function ScoreChip({ item }: { item?: Pick<ScoreItem, "final" | "label" | "status"> }) {
+  if (!item || item.final == null) return null;
+  const band = bandOf(item.final);
+  return <span className={"mfs-chip b-" + band} title={`FinLit Health Score ${scoreText(item.final)}: ${item.label}${item.status === "PROVISIONAL" ? ", provisional" : ""}. Describes the past; not a recommendation.`}>{Math.round(item.final)}<span className="sr-only"> {item.label}</span></span>;
+}
