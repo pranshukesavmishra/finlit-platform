@@ -1,6 +1,6 @@
 # MF portfolio (My mutual funds)
 
-Page `/mf-portfolio` (nav: Workspace > MF portfolio), code `backend/finlit/mfportfolio/` (parse, match, calc, api), migration `078_mf_portfolio.sql`, frontend `pages/MfPortfolio.tsx`, `lib/mfPortfolio.ts`, `lib/mfStatement.ts`.
+Page `/mf-portfolio` (nav: Workspace > MF portfolio), code `backend/finlit/mfportfolio/` (parse, match, calc, api), migration `079_mf_portfolio.sql`, frontend `pages/MfPortfolio.tsx`, `lib/mfPortfolio.ts`, `lib/mfStatement.ts`.
 Descriptive only: no buy / sell / hold / switch / redeem wording. "Information only, not investment advice." and "Describes the fund's health from its past NAVs, costs and holdings; not a recommendation." are shown.
 
 ## Data model
@@ -23,4 +23,4 @@ The browser reads the file with the stock portfolio's reader (xlsx, xls, csv, ts
 Current = units x latest NAV (NAV date shown; a stopped scheme or an older NAV is flagged). Gain = current - invested, % of invested; only when cost is known and > 0. XIRR uses `finlit.mf.xirr` (spreadsheet XIRR): purchases out on their dates, current value in on the NAV date; needs every purchase dated and costed, no date after the NAV date, first purchase >= 365 days old; a single purchase is CAGR. Summary totals: gain covers only funds with both cost and value (stated on the page); portfolio XIRR covers funds that qualify; weighted Health Score (by current value, Gold) only if every fund is scored. Weight = share of valued funds' current value. Concentration text is descriptive (largest fund, top three, one fund house).
 
 ## Limits / unverified
-Rows per import 2,000, file 5 MB, 200 purchases per holding. Real CAMS / KFintech files were not available: header synonyms and the sample layouts are modelled on typical exports and need checking against real files. Line numbers in the review count non-blank lines. Migration number 078 (077 is the highest; 075 is unused); migrations run automatically at app start (`Store.migrate`).
+Rows per import 2,000, file 5 MB, 200 purchases per holding. Real CAMS / KFintech files were not available: header synonyms and the sample layouts are modelled on typical exports and need checking against real files. Line numbers in the review count non-blank lines. Migration number 079 (078 is the presets migration); migrations run automatically at app start (`Store.migrate`).

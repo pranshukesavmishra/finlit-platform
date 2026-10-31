@@ -14,7 +14,7 @@ from test_integration import ingested, make_settings, store  # noqa: F401
 pytestmark = pytest.mark.integration
 URL = "/api/me/mf-portfolio"
 BASE = 910000
-MIGRATION = Path(mfp.__file__).parent.parent / "migrations" / "078_mf_portfolio.sql"
+MIGRATION = Path(mfp.__file__).parent.parent / "migrations" / "079_mf_portfolio.sql"
 LARGE = "Equity Scheme - Large Cap Fund"
 TODAY = date.today()
 NAV_DATE = TODAY - timedelta(days=1)
