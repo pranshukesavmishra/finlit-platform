@@ -139,3 +139,8 @@ button.fl-chip { cursor: pointer; color: var(--text); } button.fl-chip:hover { b
 
 .fl-sum-b { flex-basis: 100%; } .fl-sum-b em { font-style: normal; color: var(--muted); margin-right: 4px; }
 .fl-cal-sub { flex-basis: 100%; font: 500 12px var(--sans); color: var(--muted); } .fl-since { display: block; font: 500 11px var(--mono); color: var(--muted); }
+
+.fl-avail { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font: 500 12px var(--sans); color: var(--muted); }
+.fl-avail i { display: inline-block; width: 14px; height: 4px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.fl-avail b { flex-basis: 100%; font-weight: 600; color: var(--text); }
+.fl-tog .fl-since { margin-left: 2px; }

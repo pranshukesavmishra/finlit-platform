@@ -10,7 +10,7 @@ import { useUI } from "../lib/ui";
 import { MINUS, dateIN, nf } from "../lib/format";
 import { useFlows, type Flows, type FlowDay, type Period, type Side, type Streak } from "../lib/flows";
 import {
-  RANGES, absorption, ageLabel, combined, commonSpan, corrWords, cumulative, diiGap, diiState, filterDays, grp, indexCorrelation, inr, isRange, level, monthGrid,
+  RANGES, absorption, ageLabel, availability, combined, diiFeedText, windowText, commonSpan, corrWords, cumulative, diiGap, diiState, filterDays, grp, indexCorrelation, inr, isRange, level, monthGrid,
   movingAverage, netOf, percentileOf, perDay, rangeRows, sinceMonths, sortDays, splitOf, summarize, toCsv, topRuns, totalSince, type RangeKey, type SideKey, type SortKey,
 } from "../lib/flowsMath";
 import { BarChart, CAL_LEGEND, CalendarHeat, LineChart } from "../components/FlowsCharts";
@@ -73,10 +73,12 @@ function StreakCard({ title, s, avail }: { title: string; s: Streak | null; avai
 function Activities({ f, st, range, setRange, view, setView }: Ctx) {
   const [show, setShow] = useState<Record<string, boolean>>({ fii: true, dii: true, all: true }), [bside, setBside] = useState<SideKey>("fii");
   const rows = useMemo(() => rangeRows(f.days, range), [f.days, range]);
+  const av = useMemo(() => availability(rows), [rows]), feedFrom = f.coverage.diiFrom ?? av.dii?.from ?? null;
+  const noDii = `no DII: feed starts ${feedFrom ? dateIN(feedFrom, { day: "numeric", month: "short", year: "numeric" }) : "later"}`;
   const lines = useMemo(() => [
     { key: "fii", label: "FII", color: "var(--k1)", pts: cumulative(rows, "fii") },
-    ...(st !== "none" ? [{ key: "dii", label: "DII", color: "var(--k3)", pts: cumulative(rows, "dii") }, { key: "all", label: "Overall", color: "var(--gold)", pts: cumulative(rows, "all") }] : []),
-  ], [rows, st]);
+    ...(st !== "none" ? [{ key: "dii", label: "DII", color: "var(--k3)", pts: cumulative(rows, "dii"), none: noDii }, { key: "all", label: "Overall", color: "var(--gold)", pts: cumulative(rows, "all"), none: "no DII, so no Overall" }] : []),
+  ], [rows, st, noDii]);
   const side: SideKey = st === "none" ? "fii" : bside;
   const maAll = useMemo(() => movingAverage(f.days.map((d) => netOf(d, side)), 20), [f.days, side]);
   const maRows = useMemo(() => { const off = f.days.length - rows.length; return maAll.slice(off); }, [maAll, f.days.length, rows.length]);
@@ -91,13 +93,18 @@ function Activities({ f, st, range, setRange, view, setView }: Ctx) {
       <div className="fl-ctrl">
         <div className="fl-seg" role="radiogroup" aria-label="Chart type"><button type="button" role="radio" aria-checked={view === "cum"} className={view === "cum" ? "on" : ""} onClick={() => setView("cum")}>Cumulative lines</button><button type="button" role="radio" aria-checked={view === "bars"} className={view === "bars" ? "on" : ""} onClick={() => setView("bars")}>Daily net bars</button></div>
         {view === "cum"
-          ? lines.map((l) => <button key={l.key} type="button" className="fl-tog" aria-pressed={show[l.key]} onClick={() => setShow({ ...show, [l.key]: !show[l.key] })}><i style={{ background: l.color }} />{l.label}</button>)
+          ? lines.map((l) => <button key={l.key} type="button" className="fl-tog" aria-pressed={show[l.key]} onClick={() => setShow({ ...show, [l.key]: !show[l.key] })}><i style={{ background: l.color }} />{l.label}{l.key !== "fii" && av.dii ? <small className="fl-since">{l.key === "all" ? "both sides, " : ""}from {dateIN((l.key === "all" ? av.both : av.dii)!.from, { day: "numeric", month: "short", year: "2-digit" })}</small> : null}</button>)
           : <div className="fl-seg" role="radiogroup" aria-label="Whose flow"><button type="button" role="radio" aria-checked={side === "fii"} className={side === "fii" ? "on" : ""} onClick={() => setBside("fii")}>FII</button><button type="button" role="radio" aria-checked={side === "dii"} disabled={st === "none"} className={side === "dii" ? "on" : ""} onClick={() => setBside("dii")}>DII</button></div>}
       </div>
       {st === "none" && <p className="fl-na" style={{ marginBottom: 12 }}>{NO_DII}</p>}
       {view === "cum"
         ? <LineChart series={lines.filter((l) => show[l.key])} label={`Cumulative net flow in rupees crore from the start of the range, ${lines.filter((l) => show[l.key]).map((l) => l.label).join(", ")}`} />
-        : <BarChart rows={rows.map((d) => ({ d: d.d, v: netOf(d, side) }))} ma={maRows} maLabel="20-session average" name={side === "fii" ? "FII" : "DII"} />}
+        : <BarChart rows={rows.map((d) => ({ d: d.d, v: netOf(d, side) }))} ma={maRows} maLabel="20-session average" name={side === "fii" ? "FII" : "DII"} none={side === "dii" ? noDii : undefined} />}
+      {st !== "none" && <p className="fl-avail" aria-label="Data available for each series in this range">{view === "cum" ? <>
+        <span><i style={{ background: "var(--k1)" }} />FII: {windowText(av.fii)}</span>
+        <span><i style={{ background: "var(--k3)" }} />DII: {windowText(av.dii)}</span>
+        <span><i style={{ background: "var(--gold)" }} />Overall (FII + DII, only sessions with both): {windowText(av.both)}</span></> : <span>{side === "fii" ? "FII" : "DII"}: {windowText(side === "fii" ? av.fii : av.dii)}</span>}
+        {st === "partial" && av.dii && av.dii.n < rows.length && <b>{diiFeedText(feedFrom)}</b>}</p>}
       <p className="fl-sum" aria-label="Totals for the range">
         <span>{rows.length} sessions · {rows.length ? `${dateIN(rows[0].d, { day: "numeric", month: "short", year: "2-digit" })} to ${dateIN(rows[rows.length - 1].d, { day: "numeric", month: "short", year: "2-digit" })}` : ""}</span>
         <span>FII{st !== "none" && gapDays > 0 ? " (whole range)" : ""} <b className={tone(tot("fii"))}>{inr(tot("fii"), { sign: true })}</b></span>
@@ -167,12 +174,13 @@ function Calendars({ f, st, day, setDay }: Ctx) {
   return (
     <section className="fl-panel" aria-labelledby="flCal" id="calendar">
       <div className="fl-ph"><h2 id="flCal">Daily flow calendar · last year</h2></div>
+      {st === "partial" && <p className="fl-note" id="flCalFeed"><b>{diiFeedText(f.coverage.diiFrom ?? availability(yr).dii?.from)}</b></p>}
       <p className="fl-note">One square per trading day. Deeper green is bigger net buying, deeper red bigger net selling; the scale is set by that side's own 92nd-percentile day, so a few extreme days do not wash out the rest. Select any day to read its figures.</p>
       <div className="fl-cals">
         <div><div className="fl-cal-h"><h3>FII / FPI daily net</h3><b className={tone(t1f)}>1Y FII: {inr(t1f)}</b>{st !== "none" && t1d && yrGap.length > 0 && <small className="fl-cal-sub">same {t1d.n} sessions as DII: {inr(t1d.fii, { sign: true })}</small>}</div>
           <CalendarHeat days={f.days} side="fii" selected={sel} onSelect={setDay} name="FII" /></div>
         <div><div className="fl-cal-h"><h3>DII daily net</h3>{st !== "none" && t1d && <b className={tone(t1d.dii)}>{yrGap.length > 0 ? `DII since ${short(t1d.from)}` : "1Y DII"}: {inr(t1d.dii, { sign: yrGap.length > 0 })}</b>}</div>
-          {st === "none" ? <p className="fl-na">{NO_DII}</p> : <CalendarHeat days={f.days} side="dii" selected={sel} onSelect={setDay} name="DII" publishedFrom={from} />}</div>
+          {st === "none" ? <p className="fl-na">{NO_DII}</p> : <CalendarHeat days={f.days} side="dii" selected={sel} onSelect={setDay} name="DII" publishedFrom={f.coverage.diiFrom ?? from} />}</div>
       </div>
       <div className="fl-legend" aria-label="Colour key"><span style={{ margin: "0 6px 0 0" }}>▼ Selling</span>{CAL_LEGEND.map((l) => <i key={l} className="fl-cell" data-l={l} style={{ aspectRatio: "auto" }} />)}<span>Buying ▲</span><i className="fl-cell" data-n="1" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>missing session</span>{un > 0 && <><i className="fl-cell" data-n="2" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>not published</span></>}</div>
       {st === "partial" && un > 0 && <p className="fl-foot">DII squares with an empty outline are days before the official DII report begins{from ? ` (${short(from)})` : ""}: not published, not zero. {f.coverage.diiReason ?? ""} The DII total above covers only the {t1d ? `${t1d.n.toLocaleString("en-IN")} sessions from ${short(t1d.from)}` : "sessions that have it"}; the FII figure beside it is shown over the same sessions for a fair comparison.</p>}

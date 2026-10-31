@@ -213,6 +213,8 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             sla=Sla("hours", 26), prerequisites=("portfolios",), gate=FUNDS_GATE, boot=True, owns=("fund_scores",), what="Mutual Fund Health Score (after the portfolios)"),
         Job("backfill-mf", ("backfill-mf",), cls="bulk", priority=60, max_runtime_min=120, weight_mb=200, group="funds", windows=night_morning,
             sla=Sla("hours", 192), resumable=True, gate=FUNDS_GATE, boot=True, what="five years of NAV history, one fund house at a time (resumable)"),
+        Job("backfill-dii", ("backfill-dii",), cls="bulk", priority=66, max_runtime_min=20, weight_mb=100, windows=(W("NIGHT", 144),), day_rule=_saturday,
+            sla=Sla("hours", 24 * 14), resumable=True, catchup=False, what="earlier days of DII flows from NSDL's own date form, weekly until the floor of NSDL's history is found (insert-only)"),
         Job("backfill-history", ("backfill-history",), cls="bulk", priority=65, max_runtime_min=120, weight_mb=250, windows=night_morning,
             sla=Sla("hours", 192), resumable=True, boot=True, what="weekly closes back to 2004 for the leadership backtest (resumable)"),
         Job("backtest-leadership", ("backtest-leadership",), cls="bulk", priority=70, max_runtime_min=60, weight_mb=250, windows=(W("NIGHT", 24 * 80),),

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // FII/DII page when DII exists only for the last 150 of 400 sessions (the live shape: NSDL's DII report begins on 1 Jun 2026): the Overall line and every
 // total are over the sessions where both exist and say so, unpublished days are not drawn as "missing", and nothing is a part-sum under a whole-range label.
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlowDay, Flows } from "../lib/flows";
@@ -64,6 +64,21 @@ describe("page with 150 DII sessions of 400", () => {
     expect(cal.textContent).toContain("not published"); expect(cal.textContent).toContain("missing session");
     const dii = within(cal).getByRole("group", { name: /DII flow by day/ });
     const un = [...dii.querySelectorAll('[data-n="2"]')]; expect(un.length).toBeGreaterThan(100); expect(un.every((c) => c.getAttribute("data-d")! < first)).toBe(true); expect(dii.querySelectorAll('[data-n="1"]').length).toBe(0);
-    expect(dii.querySelector(`[data-d="${days[150].d}"]`)!.getAttribute("title")).toMatch(/not published/);
+    expect(dii.querySelector(`[data-d="${days[150].d}"]`)!.getAttribute("title")).toMatch(/No DII figure for this day: our daily DII feed starts on/);
+    expect(cal.textContent).toContain("DII daily figures start on"); expect(cal.textContent).toContain("before that no daily DII series is available from our sources");
+  });
+  it("chart: every line states its own availability window, Overall is only where both exist", () => {
+    open();
+    const av = screen.getByLabelText("Data available for each series in this range");
+    expect(av.textContent).toMatch(/FII: .*\d+ sessions/); expect(av.textContent).toMatch(/DII: .*150 sessions/); expect(av.textContent).toMatch(/only sessions with both\): .*150 sessions/);
+    expect(av.textContent).toContain("DII daily figures start on");
+    const chart = screen.getByRole("region", { name: /FII\/DII activities/ });
+    expect(within(chart).getAllByText(/^(both sides, )?from /).length).toBe(2);
+  });
+  it("daily bars view for DII states the window too", () => {
+    open();
+    const chart = screen.getByRole("region", { name: /FII\/DII activities/ });
+    fireEvent.click(within(chart).getByRole("radio", { name: "Daily net bars" })); fireEvent.click(within(chart).getByRole("radio", { name: "DII" }));
+    expect(screen.getByLabelText("Data available for each series in this range").textContent).toMatch(/DII: .*150 sessions/);
   });
 });

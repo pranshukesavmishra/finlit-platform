@@ -34,6 +34,18 @@ export function commonSpan(days: FlowDay[]): { from: string; to: string; n: numb
   return { from: w[0].d, to: w[w.length - 1].d, n: w.length, fii, dii, overall: fii + dii };
 }
 
+/** Which sessions each series has, as first/last date and count, for the rows given. `diiFeed` is the sentence every DII view uses for the start of the feed. */
+export type Window = { from: string; to: string; n: number };
+export function availability(days: FlowDay[]): { fii: Window | null; dii: Window | null; both: Window | null } {
+  const win = (f: (d: FlowDay) => boolean): Window | null => { const w = days.filter(f); return w.length ? { from: w[0].d, to: w[w.length - 1].d, n: w.length } : null; };
+  return { fii: win((d) => d.fii.net != null), dii: win((d) => d.dii?.net != null), both: win((d) => d.fii.net != null && d.dii?.net != null) };
+}
+const dshort = (d: string) => dateIN(d, { day: "numeric", month: "short", year: "2-digit" });
+export const windowText = (w: Window | null) => (w ? `${dshort(w.from)} to ${dshort(w.to)}, ${w.n.toLocaleString("en-IN")} sessions` : "no sessions");
+/** The one sentence that says where the daily DII series begins (derived from the data, never typed in). */
+export const diiFeedText = (from: string | null | undefined) =>
+  from ? `DII daily figures start on ${dateIN(from, { day: "numeric", month: "short", year: "numeric" })}; before that no daily DII series is available from our sources.` : "No daily DII series is available from our sources.";
+
 /** Sessions inside the last `months` calendar months of the data (0 = all). */
 export function sinceMonths<T extends { d: string }>(rows: T[], months: number): T[] {
   if (!rows.length || !months) return rows;
@@ -255,5 +267,6 @@ export function summarize(f: Flows): string[] {
   const c = f.correlation;
   if (c && c.fiiVsIndex != null) out.push(`Across ${c.days.toLocaleString("en-IN")} sessions, daily FII flow and the ${c.label} have had ${corrWords(c.fiiVsIndex)} (${c.fiiVsIndex.toFixed(2).replace("-", MINUS)}). Moving together does not mean one causes the other.`);
   if (st === "none") out.push("DII figures are not available from the sources we can use, so this reading covers FII/FPI flows only.");
+  else if (st === "partial") out.push(diiFeedText(f.coverage.diiFrom ?? availability(f.days).dii?.from));
   return out;
 }

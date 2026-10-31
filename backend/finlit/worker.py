@@ -823,6 +823,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_fl.add_argument("--full", action="store_true", help="reload the full FPI history, month by month (the first run does this by itself)")
     p_fl.add_argument("--only", nargs="*", default=None, help="steps: fii dii nse oi nifty")
     p_fl.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_bd = sub.add_parser("backfill-dii", help="resumable: fill earlier days of DII flows from NSDL's own DII date form (insert-only, strictly validated); stops where NSDL has nothing older")
+    p_bd.add_argument("--from", dest="start", default="2025-04-01", help="oldest day to try (YYYY-MM-DD)")
+    p_bd.add_argument("--to", dest="end", default=None, help="newest day to try (default: the day before NSDL's first known DII report)")
+    p_bd.add_argument("--max-requests", type=int, default=150)
     p_sw = sub.add_parser("switch-get", help="print 1 or 0 for an admin switch (loads: unreadable database = 0, paused); no migration, no other output")
     p_sw.add_argument("name", choices=["loads", "loads-explicit", "web"])   # loads-explicit: paused only when an admin switched it off (an unreadable database does not pause the light results jobs)
     p_sv = sub.add_parser("supervise", help="the job supervisor (finlit/jobs, docs/JOBS.md): decides what is due, runs it within the machine's limits, retries failures; runs for ever, or --once for one pass")
@@ -944,6 +948,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                "failed": [k for k, v in result["steps"].items() if v["status"] == "failed"]})
             print(result)
             return 0 if result["status"] in ("ok", "partial") else 1
+        if args.cmd == "backfill-dii":
+            from datetime import date as _date
+            from . import flows
+            from .mf import record_run
+            result = await flows.backfill_dii(store, _date.fromisoformat(args.start), _date.fromisoformat(args.end) if args.end else None, max_requests=args.max_requests, settings=settings)
+            await record_run(store, args.cmd, {"status": "ok", **{k: result[k] for k in ("asked", "saved", "floorFound")}})
+            print(result)
+            return 0
         if args.cmd == "refresh-industry":
             from . import mf_insights
             from .mf import last_run_age_hours, record_run
