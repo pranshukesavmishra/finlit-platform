@@ -1,0 +1,90 @@
+/* ==========================================================================
+   OVERLAY SURFACES - the single place that decides what a floating thing looks like.
+   Loaded LAST (main.tsx). Rules:
+   1. Every overlay (modal, drawer, menu, popover, tooltip, toast, tray) paints --ov-surface: always an OPAQUE colour.
+      Glass or blur is allowed only on top of that colour, never instead of it.
+   2. The --ov-* tokens are resolved on :root, so a hero/band/report that remaps --s1/--s2/--s3 to translucent white
+      (finlit.css `.band`, `.report`, luxe.css `.hh-hero`...) cannot leak into an overlay that sits inside it.
+      That leak was the "see-through Create new alert dialog" bug: `.alx-modal{background:var(--s2)}` rendered inside
+      `.band.hero` inherited --s2: rgba(255,255,255,.075) (finlit.css `.band`).
+   3. Stacking uses the --z-* scale below, never ad-hoc numbers.
+   Guard: e2e/overlay_guard.mjs (browser) and src/styles/overlay.test.ts (CSS scan).
+   ========================================================================== */
+:root {
+  --ov-surface: var(--s2);          /* panels, menus, dialogs */
+  --ov-surface-2: var(--s3);        /* hover rows, inset fields */
+  --ov-text: var(--text);
+  --ov-muted: var(--muted);
+  --ov-faint: var(--faint);
+  --ov-border: var(--border-strong);
+  --ov-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 24px 60px -16px rgba(0,0,0,.7);
+  --ov-backdrop: rgba(3, 4, 7, .78);
+  /* z-index scale: header 40 < tray < dropdown < tooltip < backdrop < modal < drawer < popover < toast */
+  --z-header: 40; --z-tray: 50; --z-dropdown: 200; --z-tip: 260; --z-backdrop: 300; --z-modal: 310; --z-drawer: 320; --z-popover: 400; --z-toast: 500;
+}
+:root[data-theme="light"] {
+  --ov-surface: var(--s1);
+  --ov-surface-2: var(--s2);
+  --ov-shadow: 0 0 0 1px rgba(51,46,34,.10), 0 24px 56px -18px rgba(51,46,34,.38);
+  --ov-backdrop: rgba(24, 20, 12, .58);
+}
+
+/* ---- surfaces: opaque background, readable text, and the normal tokens restored for everything inside ---- */
+:root:root :is(.alx-modal, .modal, .palette, .pop, .dl-menu, .nt-p, .ddm, .alx-dd, .alx-toast, .toast, .ai, .adv-combo ul, .gx-search ul,
+  .etf-pop, .evi-pop, .mf-pick-pop, .mf-cols-pop, .sf-fp, .sf-panel, .pm-sug, .cb-menu, .pk-m, .scr-colmenu, .qb-colmenu, .qb-drawer,
+  .mk-dd-m, .oc-hits, .plf-note,
+  .ld-tip, .chh-p, .tip, .adv-tip, .gx-tip, .ld-hov, .mk-htip, .h2h-tip, .ol-tip, .lc-tip, .ob-tip, .mb-tip, .pzr-tip, .etf-tip, .fl-tip, .mc-tip, .mk-tip,
+  .etf-tray, .mf-tray, .wl-dock, .planseg, .prep-toast, .evi-sticky, .pzr-tools, .mtabs) {
+  --s1: var(--ov-surface); --s2: var(--ov-surface-2); --s3: var(--ov-surface-2);
+  --text: var(--ov-text); --muted: var(--ov-muted); --faint: var(--ov-faint); --border-strong: var(--ov-border);
+  background: var(--ov-surface); background-image: none; color: var(--ov-text); border-color: var(--ov-border);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+/* hint bubbles that are deliberately dark in both themes keep their ink, through the same opaque token */
+:root:root :is(.pop, .dl-menu, .toast, .etf-tip, .fl-tip, .mc-tip, .mk-tip) {
+  --ov-surface: var(--pop-bg, #1C1F25); --ov-text: #F6F5F2; --ov-muted: #D2CEC4; --ov-faint: #B2ADA0; --ov-border: rgba(255,255,255,.18);
+}
+/* .pcx-tip is the inverse bubble (ink background, page-coloured text): already opaque, so it only joins the z-index and wrap rules below */
+
+:root:root :is(.alx-modal, .modal, .palette, .dl-menu, .nt-p, .ddm, .ai, .qb-drawer, .plf-note, .pop, .ld-tip, .chh-p, .sf-panel, .etf-pop, .mf-cols-pop) { box-shadow: var(--ov-shadow); }
+
+/* ---- backdrops: dim enough that the page behind is clearly secondary ---- */
+:root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
+:root:root .gs-scrim { background: var(--ov-backdrop); z-index: calc(var(--z-backdrop) + 20); }
+
+/* ---- stacking ---- */
+:root:root :is(.alx-dd, .adv-combo ul, .gx-search ul, .oc-hits, .pm-sug, .cb-menu, .pk-m, .scr-colmenu, .qb-colmenu, .mk-dd-m, .etf-pop, .evi-pop, .mf-pick-pop, .mf-cols-pop, .sf-fp, .sf-panel, .dl-menu, .ddm, .nt-p) { z-index: var(--z-dropdown); }
+:root:root :is(.tip, .adv-tip, .gx-tip, .ld-hov, .mk-htip, .h2h-tip, .ol-tip, .lc-tip, .ob-tip, .mb-tip, .pzr-tip, .etf-tip, .fl-tip, .mc-tip, .mk-tip, .pcx-tip, .ld-tip) { z-index: var(--z-tip); }
+:root:root :is(.alx-modal, .modal, .plf-note) { z-index: var(--z-modal); }
+:root:root .palette { z-index: calc(var(--z-backdrop) + 30); }
+:root:root :is(.ai, .qb-drawer) { z-index: var(--z-drawer); }
+:root:root :is(.pop, .chh-p) { z-index: var(--z-popover); }
+:root:root :is(.toast, .alx-toasts, .prep-toast) { z-index: var(--z-toast); }
+:root:root :is(.etf-tray, .mf-tray, .wl-dock, .planseg, .ai-fab, .shell-fab, .mtabs) { z-index: var(--z-tray); }
+:root:root .gs { z-index: calc(var(--z-backdrop) + 40); }
+@media (max-width: 1000px) { :root:root .sx.sx-open .sx-side { z-index: var(--z-drawer); background: var(--ov-surface); } }
+@media (max-width: 960px) { :root:root .side { z-index: var(--z-drawer); background: var(--ov-surface); } }
+
+/* phones: the Download menu is a bottom sheet inside the viewport (it used to run off the left edge), and the bottom tab bar steps aside while a menu is open */
+@media (max-width: 700px) {
+  :root:root .dl-menu { position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 70vh; overflow-y: auto; z-index: var(--z-popover); }
+  :root:root body:has(.dl-menu) .mtabs { visibility: hidden; }
+}
+
+/* Download menu rows have no icon cell any more: the 38px icon column squeezed the title and made it collide with the description */
+:root:root .dl-menu button:not(:has(.di)) { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+
+/* long text in a tooltip wraps instead of running off screen */
+:root:root :is(.ld-tip, .pcx-tip, .tip) { max-width: min(340px, calc(100vw - 16px)); overflow-wrap: anywhere; }
+:root:root .ld-tip { white-space: normal; }
+
+/* ---- no-GPU / reduced-transparency fallbacks: surfaces are already solid, so these only drop decorative blur ---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root:root :is(.top, .secnav, .evi-sticky, .pzr-tools, .scrim, .gs-scrim) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  :root:root .top { background: var(--bg); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root:root * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  :root:root .top { background: var(--bg); }
+  :root:root :is(.scrim, .gs-scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back) { background: var(--ov-backdrop); }
+}

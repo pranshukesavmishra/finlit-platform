@@ -1,6 +1,7 @@
 import { useFocusTrap } from "../lib/focusTrap";
 import { DEMO } from "../lib/demo";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { useAuth } from "../lib/auth";
@@ -205,14 +206,16 @@ export function AlertModal({ open, onClose, preset }: { open: boolean; onClose: 
     return () => { removeEventListener("keydown", k); clearTimeout(t); document.body.style.overflow = prev; };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // Portalled to <body>: a dialog must not live inside the hero/band that re-themes --s1/--s2 (that made it see-through).
+  return createPortal(
     <>
       <div className="scrim" onClick={onClose} />
       <div className="alx-modal" role="dialog" aria-modal="true" aria-label="Create a new alert" ref={ref}>
         <div className="alx-mh"><h2><Icon name="bell" />Create new alert</h2><button className="alx-x" onClick={onClose} aria-label="Close">✕</button></div>
         <AlertComposer preset={preset} compact onDone={() => setTimeout(onClose, 1600)} />
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 

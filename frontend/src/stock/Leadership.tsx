@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { placeFloating, type Placement } from "../lib/floating";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
 import { HScroll } from "../components/HScroll";
@@ -40,18 +42,34 @@ export function LeadChip({ label, onClick, title }: { label: LeadLabel; onClick?
 
 function LeadTip({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<Placement | null>(null);
   const box = useRef<HTMLSpanElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const tip = useRef<HTMLSpanElement>(null);
+  const leave = useRef(0);
+  // Portalled and fixed: it can never be clipped or re-themed by the hero it sits in, and it is placed beside/above/below
+  // the (i) so that it does not cover the Set alert / Watchlist / Download buttons.
+  useLayoutEffect(() => { if (open && btn.current && tip.current) setPos(placeFloating(btn.current, tip.current)); else setPos(null); }, [open, text]);
   useEffect(() => {
     if (!open) return;
-    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const away = (e: MouseEvent) => { const t = e.target as Node; if (!box.current?.contains(t) && !tip.current?.contains(t)) setOpen(false); };
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const shut = () => setOpen(false);
     document.addEventListener("mousedown", away); document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+    addEventListener("scroll", shut, true); addEventListener("resize", shut);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); removeEventListener("scroll", shut, true); removeEventListener("resize", shut); };
   }, [open]);
+  useEffect(() => () => clearTimeout(leave.current), []);
+  const hold = () => { clearTimeout(leave.current); setOpen(true); };
+  const release = () => { clearTimeout(leave.current); leave.current = window.setTimeout(() => setOpen(false), 140); };
   return (
-    <span className="ld-tipw" ref={box} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button type="button" className="info" aria-label="What does this label mean?" aria-expanded={open} onClick={() => setOpen((o) => !o)} onFocus={() => setOpen(true)}>i</button>
-      {open && <span className="ld-tip" role="tooltip">{text} <Link to={EXPLAINER} onClick={() => setOpen(false)}>How this works</Link></span>}
+    <span className="ld-tipw" ref={box} onMouseEnter={hold} onMouseLeave={release}>
+      <button ref={btn} type="button" className="info" aria-label="What does this label mean?" aria-expanded={open} onClick={() => setOpen((o) => !o)} onFocus={hold}>i</button>
+      {open && createPortal(
+        <span ref={tip} className="ld-tip" role="tooltip" onMouseEnter={hold} onMouseLeave={release}
+          style={{ position: "fixed", left: pos?.left ?? 0, top: pos?.top ?? 0, maxHeight: pos?.maxH, overflowY: "auto", visibility: pos ? "visible" : "hidden" }}>
+          {text} <Link to={EXPLAINER} onClick={() => setOpen(false)}>How this works</Link>
+        </span>, document.body)}
     </span>
   );
 }

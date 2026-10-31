@@ -1,5 +1,6 @@
 // Glossary popovers: an (i) button next to any metric explains what it is, how to read it and the formula.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { placeFloating } from "../lib/floating";
 import type { Glossary } from "../lib/api";
 
 type PopState = { g: Glossary; anchor: HTMLElement } | null;
@@ -12,11 +13,8 @@ export function InfoProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!state || !ref.current) return;
-    const r = state.anchor.getBoundingClientRect(), pw = ref.current.offsetWidth, ph = ref.current.offsetHeight;
-    ref.current.style.left = Math.min(Math.max(16, r.left + r.width / 2 - pw / 2), innerWidth - pw - 16) + "px";
-    let top = r.top - ph - 10;
-    if (top < 80) top = r.bottom + 10;
-    ref.current.style.top = top + "px";
+    const pl = placeFloating(state.anchor, ref.current);
+    ref.current.style.left = pl.left + "px"; ref.current.style.top = pl.top + "px"; ref.current.style.maxHeight = pl.maxH + "px"; ref.current.style.overflowY = "auto";
   }, [state]);
   useEffect(() => {
     const close = () => setState(null);
