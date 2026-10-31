@@ -4,10 +4,10 @@ import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Plain } from "../components/Plain";
 import { Icon } from "../lib/icons";
-import { nf, MINUS } from "../lib/format";
+import { nf } from "../lib/format";
 import { API_BASE, apiUrl } from "../lib/api";
 import { limitsFor } from "../lib/auth";
-import { READY, UNIT_SUFFIX, activeCount, decodeState, encodeState, fmtMetric, norm, toBody, useCatalog, useScreen, type Catalog, type MetricInfo, type PState, type Range } from "../lib/proscreen";
+import { READY, UNIT_SUFFIX, activeCount, chipColumn, decodeState, defaultColumns, emptyReason, encodeState, firstPeriod, fmtMetric, loadCols, norm, storeCols, tableColumns, toBody, useCatalog, useScreen, type Catalog, type MetricInfo, type PState, type Range } from "../lib/proscreen";
 import { screens, useSavedScreens } from "../lib/screens";
 import { saveFile } from "../stock/derive";
 import { useDocTitle } from "../lib/title";
@@ -63,11 +63,9 @@ function RangeBox({ m, r, set }: { m: MetricInfo; r: Range; set: (r: Range) => v
 }
 
 /** The card that opens under a chip: name, what it means, Now / 3Y / 5Y / 7Y tabs where they exist, the range, and Remove. */
-function FilterCard({ m, byKey, ranges, setRange, ask }: { m: MetricInfo; byKey: Map<string, MetricInfo>; ranges: Record<string, Range>; setRange: (k: string, r: Range) => void; ask: (tier: Plan, why: string) => void }) {
+function FilterCard({ m, byKey, ranges, setRange, ask, tab, setTab }: { m: MetricInfo; byKey: Map<string, MetricInfo>; ranges: Record<string, Range>; setRange: (k: string, r: Range) => void; ask: (tier: Plan, why: string) => void; tab: string; setTab: (t: string) => void }) {
   const [info, setInfo] = useState(false);
   const tabs = m.variants ? Object.entries(m.variants) : null;
-  const firstActive = tabs?.find(([, k]) => ranges[k])?.[0] ?? "now";
-  const [tab, setTab] = useState(firstActive);
   const key = tabs ? m.variants![tab] : m.key, cur = byKey.get(key) || m;
   const r = ranges[key] || {};
   const locked = cur.locked;
@@ -111,11 +109,12 @@ export function ScreenerPro() {
   const init = useRef(decodeState(params.get("s")));
   const [f, setF] = useState<PState>(init.current.state);
   const [sort, setSort] = useState({ key: init.current.sort || "market_cap", dir: (init.current.dir || "desc") as "asc" | "desc" });
-  const [cols, setCols] = useState<string[] | null>(null);
+  const [cols, setCols] = useState<string[] | null>(loadCols);
+  const [period, setPeriod] = useState<Record<string, string>>({});
   const [q, setQ] = useState(""), [pg, setPg] = useState({ k: "", p: 0 });
   const [tab, setTab] = useState<"filters" | "quick">("filters");
-  const [pick, setPick] = useState<Record<string, string>>({ valuation: "pe" });
-  const [find, setFind] = useState(""), [open, setOpen] = useState<Record<string, boolean>>({ valuation: true });
+  const [pick, setPick] = useState<Record<string, string>>({});
+  const [find, setFind] = useState(""), [open, setOpen] = useState<Record<string, boolean>>({});
   const [moreGroups, setMoreGroups] = useState(false), [colMenu, setColMenu] = useState(false), [colFind, setColFind] = useState(""), [saveName, setSaveName] = useState("");
   const saved = useSavedScreens();
   const [collapsed, setCollapsed] = useState(narrow), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
@@ -123,8 +122,12 @@ export function ScreenerPro() {
   const data = cat.data;
   const plan: Plan = data?.plan ?? "basic";
   const byKey = useMemo(() => new Map((data?.groups || []).flatMap((g) => g.metrics.map((m) => [m.key, m] as const))), [data]);
-  // Opens with the default columns; every filter adds its own column and takes it away again when the filter goes.
-  const columns = useMemo(() => { const base = cols ?? data?.defaultColumns ?? []; const extra = Object.keys(f.ranges).filter((k) => !base.includes(k) && (!data || byKey.has(k))); return [...base, ...extra].slice(0, 40); }, [cols, data, f.ranges, byKey]);
+  // Opens with useful columns (market cap, price, P/E, 3Y avg P/E, P/B) without any clicking. A saved choice wins over them. Every filter range and every
+  // chip the visitor picks adds its own column (for the period tab it is on) and takes it away again when the filter or the pick goes.
+  const base = useMemo(() => cols ?? defaultColumns(data, typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 640px)").matches), [cols, data]);
+  const periodOf = (m: MetricInfo) => period[m.key] ?? firstPeriod(m, f.ranges);
+  const chipCols = Object.values(pick).map((k) => (k ? chipColumn(byKey.get(k), periodOf(byKey.get(k)!), byKey) : null));
+  const columns = useMemo(() => tableColumns(base, f.ranges, chipCols, (k) => !data || byKey.has(k)), [base, f.ranges, chipCols.join(","), data, byKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const ask = (tier: Plan, why: string) => upgrade(tier, why);
 
   const dq = useDebounced(f, 250), dsort = useDebounced(sort, 0), dqq = useDebounced(q, 250);
@@ -151,7 +154,8 @@ export function ScreenerPro() {
   const clearMetric = (m: MetricInfo, gid: string) => { (m.variants ? Object.values(m.variants) : [m.key]).forEach((k) => setRange(k, {})); setPick((x) => ({ ...x, [gid]: "" })); };
 
   const sortBy = (key: string) => setSort((s) => (s.key === key ? { key, dir: s.dir === "desc" ? "asc" : "desc" } : { key, dir: key === "name" || byKey.get(key)?.better === "lower" ? "asc" : "desc" }));
-  const toggleCol = (k: string) => { if (f.ranges[k] && !(cols ?? data?.defaultColumns ?? []).includes(k)) { toast("Remove the filter to hide its column."); return; } const cur = cols ?? data?.defaultColumns ?? []; if (cur.includes(k)) setCols(cur.filter((x) => x !== k)); else if (cur.length >= MAX_COLS) toast(`Up to ${MAX_COLS} columns at a time.`); else setCols([...cur, k]); };
+  const pickCols = (c: string[] | null) => { setCols(c); storeCols(c); };
+  const toggleCol = (k: string) => { if (!base.includes(k) && columns.includes(k)) { toast("This column belongs to a filter you chose. Unselect or remove that filter to hide it."); return; } if (base.includes(k)) pickCols(base.filter((x) => x !== k)); else if (base.length >= MAX_COLS) toast(`Up to ${MAX_COLS} columns at a time.`); else pickCols([...base, k]); };
 
   const chips: { label: string; clear: () => void }[] = [
     ...Object.entries(f.ranges).map(([k, r]) => { const m = byKey.get(k); return { label: m?.unit === "flag" ? `${m.label}: ${r.min === 1 ? "Yes" : "No"}` : `${m?.label || k} ${r.min != null ? "≥ " + r.min : ""}${r.min != null && r.max != null ? " and " : ""}${r.max != null ? "≤ " + r.max : ""}`, clear: () => setRange(k, {}) }; }),
@@ -269,7 +273,8 @@ export function ScreenerPro() {
                                   const active = m.variants ? Object.values(m.variants).some((k) => f.ranges[k]) : !!f.ranges[m.key];
                                   return <button key={m.key} className={"pl-chip" + (active ? " on" : "") + (pick[g.id] === m.key ? " open" : "") + (m.locked ? " is-locked" : "")} aria-pressed={pick[g.id] === m.key} onClick={() => { if (active && tap(m.key)) { clearMetric(m, g.id); return; } setPick((x) => ({ ...x, [g.id]: x[g.id] === m.key ? "" : m.key })); }} onKeyDown={(e) => { if (active && (e.key === "Delete" || e.key === "Backspace")) { e.preventDefault(); clearMetric(m, g.id); } }} title={active ? "Double-click (or press Delete) to remove this filter" : undefined}>{m.label}{m.locked && <Icon name="lock" />}</button>;
                                 };
-                                const card = pick[g.id] && byKey.get(pick[g.id]) && <FilterCard key={pick[g.id]} m={byKey.get(pick[g.id])!} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} />;
+                                const pm = pick[g.id] ? byKey.get(pick[g.id]) : undefined;
+                                const card = pm && <FilterCard key={pm.key} m={pm} byKey={byKey} ranges={f.ranges} setRange={setRange} ask={ask} tab={periodOf(pm)} setTab={(t) => setPeriod((x) => ({ ...x, [pm.key]: t }))} />;
                                 return <>
                                   <div className="pl-chips" role="group" aria-label={`${g.label} filters`}>{visible.slice(0, MAIN).map(chip)}</div>
                                   {card}
@@ -308,7 +313,7 @@ export function ScreenerPro() {
                   {colMenu && data && <div className="scr-colmenu pl-colmenu" role="menu">
                     <label className="scr-find sm" style={{ margin: "0 0 8px" }}><Icon name="search" /><input value={colFind} onChange={(e) => setColFind(e.target.value)} placeholder="Find a column" aria-label="Find a column" /></label>
                     {data.groups.map((g) => { const ms = colFind.trim() ? rankMetrics(g.metrics, colFind) : g.metrics; return ms.length ? <div key={g.id}><div className="label">{g.label}</div>{ms.map((m) => <label key={m.key} className={m.locked ? "is-locked" : ""}><input type="checkbox" checked={columns.includes(m.key)} disabled={m.locked} onChange={() => toggleCol(m.key)} />{m.label}{m.locked && <Icon name="lock" />}</label>)}</div> : null; })}
-                    <button className="alx-link" onClick={() => setCols(null)}>Reset columns</button></div>}</div>
+                    <button className="alx-link" onClick={() => pickCols(null)}>Reset columns</button></div>}</div>
                 <button className="btn" onClick={exportCsv}><Icon name="table" />Download</button>
               </div>
             </div>
@@ -325,7 +330,7 @@ export function ScreenerPro() {
                     <tbody>{rows.map((r) => (
                       <tr key={r.symbol} tabIndex={0} onClick={() => nav(`/stocks/${r.symbol}`)} onKeyDown={(e) => e.key === "Enter" && nav(`/stocks/${r.symbol}`)}>
                         <td className="stick"><span className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}{r.cap ? ` · ${r.cap}` : ""}</small></span></span></td>
-                        {res.data!.columns.map((k) => { const m = byKey.get(k), v = r.v[k]; return <td key={k} className={tone(k, v)}>{m ? fmtMetric(m, v) : MINUS}</td>; })}
+                        {res.data!.columns.map((k) => { const m = byKey.get(k), v = r.v[k]; return <td key={k} className={tone(k, v)} title={v == null ? emptyReason(k, r.full) : undefined}>{v == null || !m ? "–" : fmtMetric(m, v)}</td>; })}
                       </tr>))}
                       {!rows.length && <tr><td colSpan={res.data.columns.length + 1} className="empty">No companies match all of these filters. Try loosening one, or <button className="alx-link" onClick={() => setF(norm({}))}>clear them all</button>.</td></tr>}
                     </tbody></table></HScroll>

@@ -19,7 +19,7 @@ export type PState = {
   sort?: string; dir?: "asc" | "desc"; cols?: string[];
 };
 export const EMPTY: PState = { ranges: {}, sectors: [], industries: [], indices: [], caps: [], bands: [] };
-export type ResultRow = { symbol: string; name: string; sector: string | null; cap: string | null; band: string | null; v: Record<string, number | null> };
+export type ResultRow = { symbol: string; name: string; sector: string | null; cap: string | null; band: string | null; full?: boolean; v: Record<string, number | null> };
 export type Result = { total: number; offset: number; limit: number; capped: boolean; columns: string[]; rows: ResultRow[]; took: number };
 
 export const norm = (s: Partial<PState> | undefined): PState => ({ ...EMPTY, ...(s || {}), ranges: { ...(s?.ranges || {}) } });
@@ -55,6 +55,41 @@ export const useScreen = (body: ReturnType<typeof toBody>, enabled: boolean) => 
   queryKey: ["screener-query", body], queryFn: () => apiSend<Result>("POST", "/api/screener/query", body), enabled, placeholderData: keepPreviousData, staleTime: 60_000,
   retry: (n, e) => e.status >= 500 && n < 1,
 });
+
+/** Core columns every visitor sees without clicking: P/E now, P/E 3-year average and P/B (each only where the plan allows it). */
+export const CORE_COLUMNS = ["pe", "pe_avg_3y", "pb"];
+/** Default columns: the server's own (market cap, price) plus the core valuation ones the plan can see. A phone gets one fewer (no P/B). */
+export function defaultColumns(cat: Pick<Catalog, "defaultColumns" | "groups"> | undefined, compact = false): string[] {
+  if (!cat) return [];
+  const open = new Set(cat.groups.flatMap((g) => g.metrics.filter((m) => !m.locked).map((m) => m.key)));
+  const core = CORE_COLUMNS.filter((k) => open.has(k) && !(compact && k === "pb"));
+  return [...cat.defaultColumns, ...core].filter((k, i, a) => a.indexOf(k) === i);
+}
+/** The column a chosen filter chip shows: its own, or the one for the period tab (Now / 3Y / 5Y / 7Y) it sits on. Locked metrics show nothing. */
+export function chipColumn(m: MetricInfo | undefined, period: string | undefined, byKey: Map<string, MetricInfo>): string | null {
+  if (!m) return null;
+  const key = m.variants ? m.variants[period && m.variants[period] ? period : "now"] : m.key, c = byKey.get(key) ?? m;
+  return c.locked ? null : key;
+}
+/** The first period tab that already has a range, else Now. */
+export const firstPeriod = (m: MetricInfo, ranges: Record<string, Range>): string => (m.variants ? Object.entries(m.variants).find(([, k]) => ranges[k])?.[0] : undefined) ?? "now";
+/** Columns the table shows: the visitor's own (or the defaults), then one for every filter range and every chosen chip. */
+export function tableColumns(base: string[], ranges: Record<string, Range>, chips: (string | null)[], known: (k: string) => boolean): string[] {
+  const extra = [...Object.keys(ranges), ...chips.filter((k): k is string => !!k)].filter((k) => !base.includes(k) && known(k));
+  return [...base, ...extra].filter((k, i, a) => a.indexOf(k) === i).slice(0, 40);
+}
+const COLS_KEY = "finlit.screener.cols";
+export const loadCols = (): string[] | null => { try { const v = JSON.parse(localStorage.getItem(COLS_KEY) || "null"); return Array.isArray(v) && v.length && v.every((x) => typeof x === "string") ? v.slice(0, 40) : null; } catch { return null; } };
+export const storeCols = (c: string[] | null) => { try { if (c) localStorage.setItem(COLS_KEY, JSON.stringify(c)); else localStorage.removeItem(COLS_KEY); } catch { /* private mode */ } };
+/** Why a cell is empty, for its tooltip. */
+export function emptyReason(k: string, full: boolean | undefined): string {
+  if (full === false) return "No financial report loaded yet for this company.";
+  const avg = /^(pe|pb|ps)_avg_(\d)y$/.exec(k);
+  if (avg) return `No ${avg[2]}-year history: needs ${avg[2]} years of ${avg[1] === "pe" ? "positive earnings" : avg[1] === "pb" ? "book value" : "sales"}.`;
+  if (k === "pe") return "Loss-making: P/E not meaningful.";
+  if (k === "pb") return "Negative or missing book value: P/B not meaningful.";
+  return "Not reported for this company.";
+}
 
 export const UNIT_SUFFIX: Record<string, string> = { "%": "%", x: "×", d: " d", pts: "", n: "", flag: "", Cr: "", Rs: "" };
 export function fmtMetric(m: Pick<MetricInfo, "unit" | "digits" | "key">, v: number | null | undefined): string {
