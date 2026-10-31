@@ -21,6 +21,11 @@ export function Assistant() {
   const loc = useLocation();
 
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs, node, open, busy]);
+  useEffect(() => {   // Esc closes the panel (a dialog must)
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k);
+  }, [open]);
   if (loc.pathname.startsWith("/admin")) return null;
 
   const cur = ASSISTANT[node];

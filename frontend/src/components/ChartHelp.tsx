@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { placeFloating } from "../lib/floating";
 import { CHART_HELP, type ChartHelpEntry } from "../lib/chartHelp";
 
-const GAP = 8;      // space between the "?" and the popover
-const EDGE = 8;     // minimum distance from the viewport edge
 
 /**
  * A small "?" that explains the chart it sits next to: what it shows, both axes, how to read it and why it matters.
@@ -27,14 +26,9 @@ export function ChartHelp({ id, entry: given, label }: { id: string; entry?: Cha
   const place = useCallback(() => {
     const b = btn.current, p = pop.current;
     if (!b || !p) return;
-    const r = b.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
-    const w = Math.min(p.offsetWidth, vw - EDGE * 2);
-    const below = vh - r.bottom - GAP - EDGE, above = r.top - GAP - EDGE;
-    const flip = p.offsetHeight > below && above > below;
-    const h = Math.min(p.offsetHeight, Math.max(flip ? above : below, 120));   // too tall for either side: scroll inside it rather than cover the "?"
-    const left = Math.max(EDGE, Math.min(r.left + r.width / 2 - w / 2, vw - w - EDGE));
-    const top = flip ? Math.max(EDGE, r.top - GAP - h) : Math.min(r.bottom + GAP, Math.max(EDGE, vh - h - EDGE));
-    setPos({ left, top, above: flip, arrow: Math.max(12, Math.min(w - 12, r.left + r.width / 2 - left)), maxH: h });
+    const pl = placeFloating(b, p);       // below / above / beside, whichever fits without covering buttons
+    const r = b.getBoundingClientRect();
+    setPos({ left: pl.left, top: pl.top, above: pl.side === "above", arrow: Math.max(12, Math.min(p.offsetWidth - 12, r.left + r.width / 2 - pl.left)), maxH: pl.maxH });
   }, []);
 
   useLayoutEffect(() => { if (open) place(); else setPos(null); }, [open, place]);

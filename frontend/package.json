@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "overlay-guard": "node e2e/overlay_guard.mjs"
   },
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",
