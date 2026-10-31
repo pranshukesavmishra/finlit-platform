@@ -36,6 +36,7 @@ export function useScreener(mode: Mode) {
   const unscored = useMemo(() => items.filter((r) => r.scored === false).length, [items]);
   const asOf = data?.asOf ?? null;
   const cover = useMemo(() => (data?.prism ?? (gold ? { ...coverageFrom(data?.rows || []), as_of: null } : null)), [data, gold]);
+  const techAsOf = (cover as { tech_as_of?: string | null } | null | undefined)?.tech_as_of ?? null;   // the newest bar date the technical columns hold: shown so an old technical view is never read as today's
   const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
   const facets = useMemo(() => facetCounts(items, draft), [items, draft]);
   const rows = useMemo(() => { const k = q.trim().toLowerCase(); return sortRows(applyFilters(items, applied).filter((r) => !k || `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)), sort); }, [items, appliedKey, sort, q]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,7 +95,7 @@ export function useScreener(mode: Mode) {
 
   return {
     mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
-    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, sel, filterCount: chips.length,
+    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, sel, filterCount: chips.length,
     go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
   };
 }

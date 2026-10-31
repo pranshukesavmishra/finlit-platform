@@ -61,4 +61,6 @@ The API refuses to start in production if any setting is unsafe, and the error n
 
 ## 6. Cron
 
+> The AWS/Render container does NOT use this crontab: its jobs are run by the job supervisor (`docs/JOBS.md`). The crontab below remains only for a host that runs the worker commands from cron by hand; it has none of the supervisor's memory gate, retries, status or alerts.
+
 Install `deploy/crontab` as `/etc/cron.d/finlit`.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../lib/icons";
 import { systemLoads, systemRestart, systemStatus, type SystemStatus } from "../lib/account";
-import { loadsText, memoryText, uptimeText } from "../lib/systemStatus";
+import { loadsText, memoryText, PAUSE_CHOICES, uptimeText } from "../lib/systemStatus";
 
 /** Admin-only header control: pause or resume the heavy data loads, restart the site, and a plain status. Fetches only while open. */
 export function SystemControl() {
@@ -10,12 +10,13 @@ export function SystemControl() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [minutes, setMinutes] = useState(30);
   const load = () => systemStatus().then((s) => { setSt(s); setMsg(""); }).catch(() => setMsg("Could not read the status. Sign in with your authenticator code and try again."));
   useEffect(() => { if (open) { setConfirm(false); load(); } }, [open]);
   const toggle = async () => {
     if (!st || busy) return;
     setBusy(true);
-    try { setSt(await systemLoads(!st.loadsEnabled)); setMsg(""); } catch { setMsg("The switch was not changed. Try again."); } finally { setBusy(false); }
+    try { setSt(await systemLoads(!st.loadsEnabled, st.loadsEnabled ? minutes : undefined)); setMsg(""); } catch { setMsg("The switch was not changed. Try again."); } finally { setBusy(false); }
   };
   const restart = async () => {
     setBusy(true);
@@ -29,7 +30,10 @@ export function SystemControl() {
         {st && <>
           <label className="sys-row"><span>Heavy data loads</span>
             <input type="checkbox" role="switch" checked={st.loadsEnabled} disabled={busy} onChange={toggle} aria-label="Heavy data loads" /></label>
-          <p>{loadsText(st)}</p>
+          {st.loadsEnabled && <label className="sys-row sys-for"><span>If paused, for</span>
+            <select value={minutes} onChange={(e) => setMinutes(+e.target.value)} aria-label="Pause length">{PAUSE_CHOICES.map((c) => <option key={c.minutes} value={c.minutes}>{c.label}</option>)}</select></label>}
+          <p data-testid="loads-text" role="status">{loadsText(st)}</p>
+          {!st.loadsEnabled && <p className="sys-note">Switch it back on to resume now. Results, quotes, alerts and report builds are never paused.</p>}
           <p>{memoryText(st.memory)}</p>
           <p>Up for {uptimeText(st.uptimeSeconds)}. Last restart {new Date(st.startedAt).toLocaleString()}.</p>
         </>}

@@ -36,6 +36,8 @@ services:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
     mem_limit: 1200m
+    # The API and website keep the default OOM score; every job process the supervisor starts raises its own to +500 (finlit/jobs/runner.py), so when
+    # memory runs out the kernel kills a job first (it is retried within 30 minutes) and the site keeps answering. db, redis and caddy are protected below.
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     init: true
@@ -80,6 +82,7 @@ services:
       - min_wal_size=128MB
     volumes: [pgdata:/var/lib/postgresql/data]
     mem_limit: 640m
+    oom_score_adj: -300              # never the first victim: a killed database means every page fails
     security_opt: ["no-new-privileges:true"]
     shm_size: 128mb
     restart: unless-stopped
@@ -99,6 +102,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env.aws}
       REDISCLI_AUTH: ${REDIS_PASSWORD}
     mem_limit: 320m
+    oom_score_adj: -300
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
     logging: *logging
@@ -122,6 +126,7 @@ services:
       - caddy_config:/config
     depends_on: [app]
     mem_limit: 128m
+    oom_score_adj: -300
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE]
     security_opt: ["no-new-privileges:true"]

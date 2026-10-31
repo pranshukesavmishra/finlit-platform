@@ -23,7 +23,7 @@ export function AdvancedScoreScreener() {
 
 function Advanced() {
   const s = useScreener("advanced");
-  const { draft, setDraft, applied, isLoading, sum, cover, prismAsOf } = s;
+  const { draft, setDraft, applied, isLoading, sum, cover, prismAsOf, techAsOf } = s;
   const prismPreset = activePrismPreset(applied);
   const pickPreset = (id: string) => s.apply(prismPreset === id ? withoutPrismPreset(draft) : withPrismPreset(draft, PRISM_PRESETS.find((p) => p.id === id)!));
 
@@ -90,7 +90,7 @@ function Advanced() {
       how={<HowDialog onClose={() => s.setHow(false)}>
         <p>Every Prism figure runs from 0 to 100 (the technical views from {MINUS}100 to +100) and is worked out from a company's filed statements and its prices.</p>
         <dl>
-          <dt>FinLit Prism</dt><dd>{EXPLAIN.prism} {prismAsOf ? <>Newest ratings were calculated on {dateIN(prismAsOf)}.</> : null}</dd>
+          <dt>FinLit Prism</dt><dd>{EXPLAIN.prism} {prismAsOf ? <>Newest ratings were calculated on {dateIN(prismAsOf)}.</> : null}{techAsOf ? <> Technical columns use prices up to {dateIN(techAsOf)}.</> : null}</dd>
           <dt>Prism parts</dt><dd>{PRISM_PARTS.map((x) => `${x.label}: ${x.say}`).join(" ")} Each part is 0 to 100 and higher is better; a high Risk score means lower risk.</dd>
           <dt>Technical views</dt><dd>{EXPLAIN.technical} The filter bands are the ones on the Prism card: Positive {TECH_BANDS.pos.label.replace("Positive ", "")}, Neutral {TECH_BANDS.neutral.label.replace("Neutral ", "")}, Negative {TECH_BANDS.neg.label.replace("Negative ", "")}. Strongly positive counts as Positive and strongly negative as Negative.</dd>
           <dt>Not rated yet</dt><dd>Prism ratings are calculated about 30 seconds each from the provider's data, so they are added in steps: first for companies with a full report, then a few hundred more companies every night, largest first. A company without one shows "Not rated yet" and a Rate now link to its Prism page, which starts the calculation when opened. "Not rated" means Prism looked and the filed data was not enough.</dd>

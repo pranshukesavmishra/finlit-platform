@@ -173,10 +173,10 @@ describe("the table columns", () => {
     expect(screen.getByRole("button", { name: /Below 52-week high/ })).toBeTruthy(); expect(screen.getByRole("button", { name: /Below all-time high/ })).toBeTruthy();
     const rows = Array.from(document.querySelectorAll("tr.qr-r"));
     const cells = (i: number) => Array.from(rows[i].querySelectorAll("td.qr-pp")).map((td) => td.querySelector(".qr-ppv b, abbr")?.textContent);
-    expect(cells(0)).toEqual(["12.4%", "27.0%"]); expect(rows[0].querySelector("td.qr-pp small")!.textContent).toBe("10–15%");
+    expect(cells(0)).toEqual(["12.4%", "27.0%"]); expect(rows[0].querySelector("td.qr-pp .qr-band")!.textContent).toBe("10–15%");
     expect(cells(1)).toEqual(["At 52-week high", "At all-time high"]);
     expect(cells(2)[0]).toBe("At 52-week high*"); expect(rows[2].querySelector("td.qr-pp .qr-ppv")!.getAttribute("title")).toMatch(/above the stored 52-week high/);
-    expect(cells(3)).toEqual(["—", "—"]); expect(rows[3].querySelector("abbr")!.getAttribute("title")).toMatch(/No 52-week high is held/);
+    expect(cells(3)).toEqual(["—Not held", "—Loading history"]); expect(rows[3].querySelector("abbr")!.getAttribute("title")).toMatch(/No 52-week high is held/);
     expect(rows[0].querySelectorAll("td.qr-pp .qr-ppv")[1].getAttribute("title")).toMatch(/highest close, week of 12 Jan 2026/);
   });
   it("highlights the cells that met the price filter, for sighted and screen reader users", () => {
