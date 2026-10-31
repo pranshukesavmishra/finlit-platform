@@ -1,0 +1,51 @@
+/* Content tools (admin): post list, editor, preview. Colours come from the site tokens, so light and dark both work. */
+.cms { max-width: 1180px; }
+.cms-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.cms-top h1 { font: 300 clamp(28px, 4vw, 40px) var(--serif); margin: 0; }
+.cms-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cms-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.cms-main > .seg { margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
+.cms-side { position: sticky; top: 84px; }
+.cms .lbl { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.cms .formerr ul { margin: 0; padding-left: 18px; }
+.cms-ok { color: var(--gain); font-size: 13.5px; margin: 8px 0 0; overflow-wrap: anywhere; }
+.cms-file input[type="file"] { padding: 10px; }
+.cms-cover { border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin: 0 0 14px; min-width: 0; }
+.cms-cover legend { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0 6px; }
+.cms-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; background: var(--s2); margin-bottom: 10px; }
+.cms-thumb.empty { display: grid; place-items: center; color: var(--faint); font-size: 13px; border: 1px dashed var(--border-strong); }
+.cms-filters { padding: 0 16px; margin-bottom: 12px; align-items: flex-end; }
+.cms-filters .sbox { max-width: none; flex: 2 1 220px; }
+.cms-sel { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.cms-sel select { height: 40px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); padding: 0 10px; font: 14px var(--sans); }
+.cms-list .card-h { align-items: center; gap: 10px; }
+.cms-list .card-h .btn { margin-left: auto; }
+.cms-rowacts { white-space: nowrap; }
+.cms-rowacts .btn { height: 34px; padding: 0 12px; font-size: 13px; }
+.cms-banner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px max(16px, 4vw); background: var(--gold-soft); border-bottom: 1px solid var(--border-strong); font-size: 14px; }
+.cms-cover-big { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 16px; margin-top: 20px; }
+.post-pdf { width: 100%; height: 78vh; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+.post-img { max-width: 100%; height: auto; border-radius: 16px; display: block; margin: 0 auto; }
+.post-file { display: grid; gap: 6px; max-width: 520px; margin: 0 auto; overflow-wrap: anywhere; }
+.post-file .btn { justify-self: start; margin-top: 6px; }
+.post-dl { text-align: center; margin-top: 20px; }
+
+/* rich text editor */
+.rte { border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); overflow: hidden; }
+.rte:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+.rte-bar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border-bottom: 1px solid var(--border); background: var(--s2); }
+.rte-b { min-width: 36px; height: 34px; padding: 0 9px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text); font: 600 13px var(--sans); cursor: pointer; }
+.rte-b:hover { background: var(--s3); border-color: var(--border); }
+.rte-b.i { font-style: italic; } .rte-b.u { text-decoration: underline; }
+.rte-area { min-height: 280px; max-width: none; padding: 14px 16px; outline: none; font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+
+@media (max-width: 900px) { .cms-grid { grid-template-columns: minmax(0, 1fr); } .cms-side { position: static; } }
+.cms-side .cms-acts { margin-bottom: 16px; }
+@media (max-width: 640px) {
+  .cms-list .admin-t, .cms-list .admin-t tbody, .cms-list .admin-t tr, .cms-list .admin-t td { display: block !important; width: 100% !important; }
+  .cms-list .admin-t thead { display: none !important; }
+  .cms-list .admin-t tr { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .cms-list .admin-t td { border: 0; padding: 4px 12px; overflow-wrap: anywhere; }
+  .cms-list .cms-rowacts { display: flex !important; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+}
+@media (max-width: 560px) { .cms-rowacts { white-space: normal; } .cms-list .tw { overflow-x: auto; } .post-pdf { height: 60vh; } }

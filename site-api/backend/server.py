@@ -185,6 +185,8 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ---------- Models ----------
+# The Contact form's optional "investment size" choices (keep in step with frontend/src/lib/investmentSizes.ts).
+INVESTMENT_SIZES = ("Under ₹25L", "₹25L – ₹1 Cr", "₹1 Cr – ₹5 Cr", "₹5 Cr+")
 class ContactMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -205,6 +207,15 @@ class ContactCreate(BaseModel):
     investment_size: Optional[str] = Field(default=None, max_length=100)
     subject: Optional[str] = Field(default=None, max_length=200)
     message: str = Field(default="", max_length=5000)
+
+    @field_validator("investment_size")
+    @classmethod
+    def validate_investment_size(cls, value):
+        if value is None or not value.strip():
+            return None
+        if value.strip() not in INVESTMENT_SIZES:
+            raise ValueError("Choose one of the investment sizes listed.")
+        return value.strip()
 
     @field_validator("phone")
     @classmethod
@@ -285,6 +296,19 @@ class ContentInput(BaseModel):
     fileKey: Optional[str] = Field(default=None, max_length=255)
     author: str = Field(default="Nishant Jain", max_length=120)
     status: Literal["DRAFT", "PUBLISHED"] = "DRAFT"
+    category: str = Field(default="", max_length=60)
+    tags: List[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator("tags")
+    @classmethod
+    def clean_tags(cls, value):
+        seen, out = set(), []
+        for tag in value:
+            tag = re.sub(r"\s+", " ", str(tag)).strip()[:30]
+            if tag and tag.lower() not in seen:
+                seen.add(tag.lower())
+                out.append(tag)
+        return out
 
 
 def slugify(value: str) -> str:
@@ -296,8 +320,10 @@ def content_public_view(doc):
     result = {key: doc.get(key) for key in (
         "id", "title", "slug", "excerpt", "contentType", "articleBody", "coverImageUrl",
         "fileUrl", "originalFileName", "mimeType", "fileSize", "author", "status",
-        "publishedAt", "createdAt", "updatedAt",
+        "publishedAt", "createdAt", "updatedAt", "category", "tags",
     )}
+    result["category"] = result.get("category") or ""
+    result["tags"] = result.get("tags") or []
     if doc.get("coverImageKey"):
         result["coverImageUrl"] = f"/api/content/assets/{doc['coverImageKey']}"
     return result

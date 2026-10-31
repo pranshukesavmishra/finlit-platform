@@ -39,6 +39,15 @@ def test_all_email_templates_escape_submitted_markup_and_preserve_readable_text(
     assert "Stocks &amp; ETFs" in templates[2]
 
 
+def test_alert_email_shows_investment_size_escaped_and_omits_it_when_blank():
+    base = {"name": "A", "email": "a@example.com", "message": "hello there", "created_at": "2026-10-07T10:20:30+00:00"}
+    shown = email_service._alert_html({**base, "investment_size": "₹1 Cr – ₹5 Cr"})
+    assert "Investment Size" in shown and "₹1 Cr – ₹5 Cr" in shown
+    hostile = email_service._alert_html({**base, "investment_size": "<script>alert(1)</script>"})
+    assert "<script>alert(1)</script>" not in hostile and "&lt;script&gt;" in hostile
+    assert "Investment Size" not in email_service._alert_html({**base, "investment_size": None})
+
+
 def test_email_rendering_does_not_mutate_submitted_values():
     message = "Keep <b>this</b> exactly in storage\nwith a second line"
     lead = {"name": "Asha", "email": "asha@example.com", "message": message}

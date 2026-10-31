@@ -18,6 +18,7 @@ import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows
 // Heavier pages load on demand so the first visit stays small and fast.
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
+const FinancialProduct = lazy(() => import("./pages/FinancialProduct").then((m) => ({ default: m.FinancialProduct })));
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
 const Screener = lazy(() => import("./pages/Screener").then((m) => ({ default: m.Screener })));
@@ -61,6 +62,8 @@ const FundDetailPage = lazy(() => import("./pages/Funds").then((m) => ({ default
 const FundComparePage = lazy(() => import("./pages/Funds").then((m) => ({ default: m.FundComparePage })));
 const FundInsightsPage = lazy(() => import("./pages/FundInsights").then((m) => ({ default: m.FundInsightsPage })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
+const AdminPost = lazy(() => import("./pages/AdminPost").then((m) => ({ default: m.AdminPost })));
+const AdminPreview = lazy(() => import("./pages/AdminPost").then((m) => ({ default: m.AdminPreview })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
 const Fallback = () => <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "0 auto" }} /></div>;
@@ -128,6 +131,7 @@ export default function App() {
           <Route path="leadership-label" element={<LeadershipLabelPage />} />
           <Route path="contact" element={<Contact />} />
           <Route path="portfolio" element={<Portfolio />} />
+          <Route path="financial-product" element={<FinancialProduct />} />
           <Route path="blog" element={<Blog />} />
           <Route path="blog/:slug" element={<BlogPost />} />
           <Route path="legal/:doc" element={<Legal />} />
@@ -136,6 +140,9 @@ export default function App() {
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="admin/posts/new" element={<AdminPost />} />
+          <Route path="admin/posts/:id" element={<AdminPost />} />
+          <Route path="admin/posts/:id/preview" element={<AdminPreview />} />
           <Route path="admin/login" element={<AdminLogin />} />
           <Route path="*" element={<NotFound />} />
         </Route>

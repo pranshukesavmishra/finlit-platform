@@ -10,6 +10,7 @@ import { useSummary, useSearchIndex, type Summary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
+import { Performance, Process, Philosophy } from "../components/HomeSections";
 import { useAuth } from "../lib/auth";
 import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
@@ -188,6 +189,9 @@ export function Home() {
 
       <Platform total={counts?.all ?? null} />
       <Method s={s} failed={sErr} />
+      <Performance />
+      <Process />
+      <Philosophy />
 
       <section className="sec hh-sec"><div className="wrap">
         <Reveal className="hh-head"><div className="hh-kicker">Beyond the website</div><h2>Five things we do with people</h2><p>The software does the digging. The conversation is for your own money and your own goals.</p></Reveal>

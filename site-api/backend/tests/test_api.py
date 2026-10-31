@@ -49,6 +49,21 @@ def test_public_contact_submission_still_works_without_admin_token(isolated_app)
     assert database.contact_messages.insert_calls == 1
 
 
+def test_contact_investment_size_is_optional_stored_and_validated(isolated_app):
+    app, database = isolated_app
+    status, body = asgi_request(app, "POST", "/api/contact", contact_payload())
+    assert status == 200 and body["investment_size"] == "₹1 Cr – ₹5 Cr"
+    assert database.contact_messages.documents[-1]["investment_size"] == "₹1 Cr – ₹5 Cr"
+    without = {k: v for k, v in contact_payload().items() if k != "investment_size"}
+    status, body = asgi_request(app, "POST", "/api/contact", without)
+    assert status == 200 and body["investment_size"] is None
+    status, body = asgi_request(app, "POST", "/api/contact", {**contact_payload(), "investment_size": "  "})
+    assert status == 200 and body["investment_size"] is None
+    for bad in ("<script>alert(1)</script>", "lots", "x" * 101):
+        status, _ = asgi_request(app, "POST", "/api/contact", {**contact_payload(), "investment_size": bad})
+        assert status == 422
+
+
 def test_contact_validation_regressions_remain(isolated_app):
     app, _database = isolated_app
     status, _body = asgi_request(app, "POST", "/api/contact", {"email": "not-an-email"})
