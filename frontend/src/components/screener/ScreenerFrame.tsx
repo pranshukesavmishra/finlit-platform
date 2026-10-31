@@ -1,16 +1,19 @@
 // The page frame both score screeners share: header, filter sidebar (quick views, size, sector, then the page's own filters), summary tiles, active-filter
 // chips, sector mix, the results table with selection, compare, watchlist and CSV, and the pager. The page supplies the model-specific parts.
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { HScroll } from "../HScroll";
 import { SplitDivider, useSideWidth } from "../SplitDivider";
-import { PageArt } from "../PageArt";
 import { Plain } from "../Plain";
 import { ChartHelp } from "../ChartHelp";
 import { Icon } from "../../lib/icons";
 import { cr, nf } from "../../lib/format";
 import { watch } from "../../lib/watchlist";
 import { CAPS, PAGE_SIZES, pageList, type SortKey } from "../../lib/scoreScreen";
+import type { Plan } from "../../lib/ui";
+import { CheckRow, FgxFocus, FilterGroup, SearchBox } from "./FilterGroup";
+import { KpiStrip, SectorBars, TitleCard, Toolbar, type Kpi } from "./PageParts";
+import "../../styles/fgx.css";
 import { Dash } from "./cells";
 import type { Screener } from "./useScreener";
 
@@ -31,35 +34,63 @@ type Props = {
   tiles: Tile[]; lead?: ReactNode; beforeTable?: ReactNode; errorTitle: string;
   groupHead: ReactNode; columnHeads: ReactNode; cells: (r: Screener["pg"]["view"][number]) => ReactNode; colSpan: number;
   plain: string; how: ReactNode;
+  /** The plan badge in the title card. */ tier: Plan;
+  /** Columns offered in the "Sort by" list (beside Stock name and Market cap). */ sortChoices: { key: SortKey; label: string }[];
+  /** A card drawn beside the sector bars (the donut), only when its numbers are real. */ donut?: ReactNode;
 };
-export function ScreenerFrame({ s, splitKey, eyebrow, title, intro, sideLabel, presets, filters, tiles, lead, beforeTable, errorTitle, groupHead, columnHeads, cells, colSpan, plain, how }: Props) {
+const KPI_ICONS: Kpi["icon"][] = ["building", "layers", "gauge", "tech"];
+const narrow = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 1000px)").matches;
+export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, filters, tiles, lead, beforeTable, errorTitle, groupHead, columnHeads, cells, colSpan, plain, how, tier, sortChoices, donut }: Props) {
   const [sideW, setSide] = useSideWidth(splitKey);
   const { draft, setDraft, facets, secQ, setSecQ, drawer, setDrawer, sort, size, pg, rows, sel, bad, dirty, isLoading, isError, chips, mix, filterCount, maxCompare } = s;
+  const [collapsed, setCollapsed] = useState(false), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
+  const showPanel = (id: string | null) => { if (narrow()) setDrawer(true); else setCollapsed(false); if (id) setWant((w) => ({ id, n: w.n + 1 })); };
+  const kpis: Kpi[] = tiles.slice(0, -1).map(([label, value, why], i) => ({ icon: KPI_ICONS[i] ?? "layers", label, value, why }));
+  const sortVal = `${sort.key}:${sort.dir}`;
+  const choices: { key: SortKey; label: string; asc: string; desc: string }[] = [
+    { key: "name", label: "Stock name", asc: "A to Z", desc: "Z to A" }, { key: "market_cap", label: "Market cap", asc: "low to high", desc: "high to low" },
+    ...sortChoices.map((c) => ({ ...c, asc: "low to high", desc: "high to low" })),
+  ];
+  const sortOpts = choices.flatMap((c) => (c.key === "name" ? [[c.key, 1, `${c.label} (${c.asc})`], [c.key, -1, `${c.label} (${c.desc})`]] : [[c.key, -1, `${c.label} (${c.desc})`], [c.key, 1, `${c.label} (${c.asc})`]]) as [SortKey, 1 | -1, string][]);
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">{eyebrow}</div><h1>{title}</h1>
-        <p>{intro}</p></div></section>
-      <div className="wrap scr-wrap">
-        <div className={"scr sx" + (drawer ? " sx-open" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+      <div className="wrap scr-wrap" style={{ paddingTop: 22 }}>
+        <TitleCard tier={tier} title={title} sub={intro} onLearn={() => s.setHow(true)} />
+        <KpiStrip items={kpis} active={filterCount} filtersOpen={drawer || !collapsed} onFilters={() => (narrow() ? setDrawer(true) : setCollapsed((c) => !c))} />
+        {beforeTable}
+        <div className="fgx-two" style={donut ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
+          {donut}
+          <SectorBars title="Results by sector (Top 5)" rows={mix} action={<button type="button" className="fgx-link" onClick={() => showPanel("sector")}>View all sectors &rsaquo;</button>} />
+        </div>
+        <Toolbar q={s.q} setQ={s.setQ} searchLabel="Search company name, sector or keyword" buttons={[
+          { id: "cap", label: "Market cap", active: draft.caps.length, onClick: () => showPanel("cap") },
+          { id: "sector", label: "Sector", active: draft.sectors.length, onClick: () => showPanel("sector") },
+          { id: "score", label: "Score filters", active: Math.max(0, filterCount - draft.caps.length - draft.sectors.length), onClick: () => showPanel("score") }]}
+          sort={<label className="fgx-sort"><span className="sr">Sort by</span><select aria-label="Sort by" value={sortVal} onChange={(e) => { const [k, d] = e.target.value.split(":"); s.go({ sort: { key: k as SortKey, dir: Number(d) as 1 | -1 }, page: 0 }); }}>
+            {!sortOpts.some(([k, d]) => `${k}:${d}` === sortVal) && <option value={sortVal}>Sorted by column</option>}
+            {sortOpts.map(([k, d, l]) => <option key={k + d} value={`${k}:${d}`}>Sort by {l}</option>)}</select></label>} />
+        <div className={"scr sx" + (drawer ? " sx-open" : "") + (collapsed ? " fgx-collapsed" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
           {drawer && <div className="sx-back" onClick={() => setDrawer(false)} aria-hidden="true" />}
-          <aside className="scr-side card sx-side" aria-label={sideLabel} hidden={sideW === 0}>
+          <aside className="scr-side card sx-side" aria-label={sideLabel} hidden={sideW === 0 || (collapsed && !drawer)}>
             <button type="button" className="sx-close btn" onClick={() => setDrawer(false)}>Close filters</button>
             <form onSubmit={(e) => { e.preventDefault(); s.apply(); }} noValidate>
-              {presets}
-              <div className="label" style={{ marginTop: 18 }}>Market cap</div>
-              <div className="sx-opts" role="group" aria-label="Market cap size">
-                {CAPS.map((c) => <label key={c} className={"sx-opt" + (draft.caps.includes(c) ? " on" : "")}><input type="checkbox" checked={draft.caps.includes(c)} onChange={() => setDraft((d) => ({ ...d, caps: s.toggle(d.caps, c) }))} /><span>{c} cap</span><small>{facets.caps[c]}</small></label>)}
-              </div>
-              <div className="label" style={{ marginTop: 18, display: "flex", justifyContent: "space-between" }}>Industry / sector{draft.sectors.length > 0 && <button type="button" className="alx-link" onClick={() => setDraft((d) => ({ ...d, sectors: [] }))}>Clear {draft.sectors.length}</button>}</div>
-              <label className="scr-find sm"><Icon name="table" /><input value={secQ} onChange={(e) => setSecQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} placeholder="Search sectors" aria-label="Search sectors" type="search" /></label>
-              <ul className="scr-sec" aria-label="Sectors">
-                {facets.sectors.filter(([x]) => x.toLowerCase().includes(secQ.trim().toLowerCase())).map(([x, n]) => (
-                  <li key={x}><label><input type="checkbox" checked={draft.sectors.includes(x)} onChange={() => setDraft((d) => ({ ...d, sectors: s.toggle(d.sectors, x) }))} /><span>{x}</span><small className="faint" style={{ marginLeft: "auto" }}>{n}</small></label></li>))}
-                {!facets.sectors.length && !isLoading && <li className="faint">No sectors loaded yet.</li>}
-                {!!facets.sectors.length && !facets.sectors.some(([x]) => x.toLowerCase().includes(secQ.trim().toLowerCase())) && <li className="faint">No sector matches “{secQ}”.</li>}
-              </ul>
+              <FgxFocus.Provider value={want}>
+              <div className="fgx-top"><span>Filters{filterCount > 0 ? ` · ${filterCount} active` : ""}</span><span className="fgx-tl"><button type="button" className="fgx-link" onClick={() => s.setHow(true)}><Icon name="info" /> How scores work</button></span></div>
+              <FilterGroup id="quick" title="Quick views" defaultOpen hint={<>Ready-made score combinations. <ChartHelp id="score-filter" /></>}>{presets}</FilterGroup>
+              <FilterGroup id="cap" title="Market cap" defaultOpen active={draft.caps.length}>
+                <div role="group" aria-label="Market cap size">{CAPS.map((c) => <CheckRow key={c} label={`${c} cap`} count={facets.caps[c]} checked={draft.caps.includes(c)} onChange={() => setDraft((d) => ({ ...d, caps: s.toggle(d.caps, c) }))} />)}</div>
+              </FilterGroup>
+              <FilterGroup id="sector" title="Industry / Sector" defaultOpen active={draft.sectors.length}>
+                <SearchBox value={secQ} onChange={setSecQ} placeholder="Search sector" label="Search sectors" />
+                <ul className="fgx-list" aria-label="Sectors">
+                  {facets.sectors.filter(([x]) => x.toLowerCase().includes(secQ.trim().toLowerCase())).map(([x, n]) => (
+                    <li key={x}><CheckRow label={x} count={n} checked={draft.sectors.includes(x)} onChange={() => setDraft((d) => ({ ...d, sectors: s.toggle(d.sectors, x) }))} /></li>))}
+                  {!facets.sectors.length && !isLoading && <li className="fgx-none">No sectors loaded yet.</li>}
+                  {!!facets.sectors.length && !facets.sectors.some(([x]) => x.toLowerCase().includes(secQ.trim().toLowerCase())) && <li className="fgx-none">No sector matches “{secQ}”.</li>}
+                </ul>
+              </FilterGroup>
               {filters}
+              </FgxFocus.Provider>
               <div className="sx-hint" role="status" aria-live="polite">{bad ? "Fix the highlighted ranges to apply." : dirty ? "Unsaved changes. Press Apply filters (or Enter) to update the table." : ""}</div>
               <div className="ss-actions"><button type="submit" className="btn primary" disabled={bad}>Apply filters</button><button type="button" className="btn" onClick={s.clear}>Clear all</button></div>
             </form>
@@ -69,28 +100,18 @@ export function ScreenerFrame({ s, splitKey, eyebrow, title, intro, sideLabel, p
           <section className="scr-main card" aria-label="Results">
             <div className="sx-top">
               <button type="button" className="btn sx-fbtn" onClick={() => setDrawer(true)} aria-haspopup="dialog">Filters{filterCount > 0 && <span className="dotn">{filterCount}</span>}{dirty && <span className="sr"> (unsaved changes)</span>}</button>
-              <button type="button" className="btn" onClick={() => s.setHow(true)}><Icon name="info" /> How scores work</button>
             </div>
             {lead}
-            <div className="ss-stats sx-stats" aria-label="Summary">
-              {tiles.map(([l, v, why]) => <div key={l} className="ss-stat" title={why}><b>{v}</b><small>{l}</small></div>)}
-            </div>
-            {beforeTable}
             {chips.length > 0 && <div className="scr-chips" aria-label="Active filters">{chips.map((c) => <button type="button" key={c.id} className="fchip" onClick={() => s.drop(c.id)} aria-label={`Remove filter ${c.label}`}>{c.label}<span aria-hidden="true">×</span></button>)}<button type="button" className="alx-link" onClick={s.clear}>Clear all</button></div>}
-            {mix.length > 0 && (
-              <div className="sx-mix" aria-label="Sector mix of the result">
-                <div className="sx-bar" aria-hidden="true">{mix.map((m, i) => <i key={m.label} className={"sx-c" + i} style={{ width: m.pct + "%" }} />)}</div>
-                <ul>{mix.map((m, i) => <li key={m.label}><i className={"sx-c" + i} aria-hidden="true" />{m.label} <b>{nf(m.n, 0)}</b> <small>{nf(m.pct, 0)}%</small></li>)}</ul>
-              </div>)}
             {isError ? <div className="state"><h2>{errorTitle}</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
               <>
                 <div className="sx-bulk" role="toolbar" aria-label="Actions for the table">
                   <span aria-live="polite">{sel.length ? `${nf(sel.length, 0)} selected` : `${nf(rows.length, 0)} ${rows.length === 1 ? "company" : "companies"} in this result`}</span>
                   <span className="sx-bulkb">
                     <button type="button" className="btn primary" disabled={sel.length < 2 || sel.length > maxCompare} onClick={() => s.nav(`/compare?c=${sel.join(",")}`)}
-                      title={sel.length > maxCompare ? `Your plan compares up to ${maxCompare} companies` : "Select 2 to " + maxCompare + " companies"}>{sel.length >= 2 && sel.length <= maxCompare ? `Compare ${sel.length}` : "Compare"}</button>
-                    <button type="button" className="btn" disabled={!sel.length} onClick={s.addSelected}>Add to watchlist</button>
-                    <button type="button" className="btn" disabled={!sel.length} onClick={() => s.exportCsv("selected")}>Export selected</button>
+                      title={sel.length > maxCompare ? `Your plan compares up to ${maxCompare} companies` : "Select 2 to " + maxCompare + " companies"}><span aria-hidden="true">Compare ({sel.length})</span><span className="sr">{sel.length >= 2 && sel.length <= maxCompare ? `Compare ${sel.length}` : "Compare"}</span></button>
+                    <button type="button" className="btn" disabled={!sel.length} onClick={s.addSelected}><span aria-hidden="true">Add to watchlist ({sel.length})</span><span className="sr">Add to watchlist</span></button>
+                    <button type="button" className="btn" disabled={!sel.length} onClick={() => s.exportCsv("selected")}><span aria-hidden="true">Export selected ({sel.length})</span><span className="sr">Export selected</span></button>
                     <button type="button" className="btn" disabled={!rows.length} onClick={() => s.exportCsv("filtered")}>Export all {nf(rows.length, 0)}</button>
                     {sel.length > 0 && <button type="button" className="alx-link" onClick={() => s.setPicked([])}>Clear selection</button>}
                   </span>

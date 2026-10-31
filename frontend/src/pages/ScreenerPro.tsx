@@ -2,7 +2,6 @@ import { HScroll } from "../components/HScroll";
 import { SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { Icon } from "../lib/icons";
 import { nf, MINUS } from "../lib/format";
@@ -17,6 +16,9 @@ import { Safe3D } from "../three/Safe3D";
 import { supports3d, whenIdle } from "../three/support";
 import { ChartHelp } from "../components/ChartHelp";
 import { matchesMetric, rankMetrics } from "../lib/metricSearch";
+import { CheckRow, FgxFocus, FilterGroup, SearchBox } from "../components/screener/FilterGroup";
+import { KpiStrip, SectorBars, TitleCard, Toolbar, Donut, type Kpi } from "../components/screener/PageParts";
+import "../styles/fgx.css";
 
 const Cloud3D = lazy(() => import("../three/Cloud3D"));
 
@@ -24,6 +26,7 @@ const TIER_ORDER: Plan[] = ["basic", "silver", "gold"];
 const PAGE = 50;
 const MAX_COLS = 12;
 const VISIBLE_GROUPS = 9;
+const narrow = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 1000px)").matches;
 
 const useDebounced = <T,>(v: T, ms: number) => { const [d, setD] = useState(v); useEffect(() => { const t = setTimeout(() => setD(v), ms); return () => clearTimeout(t); }, [v, ms]); return d; };
 
@@ -90,10 +93,10 @@ function Checks({ items, picked, toggle, search }: { items: { key: string; label
   const list = all || q ? shown : shown.slice(0, 12);
   return (
     <>
-      {search && items.length > 8 && <label className="scr-find sm" style={{ margin: "0 0 6px" }}><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search this list" /></label>}
-      <ul className="scr-sec">{list.map((i) => <li key={i.key}><label><input type="checkbox" checked={picked.includes(i.key)} onChange={() => toggle(i.key)} /><span>{i.label}</span><em>{i.n}</em></label></li>)}
-        {!list.length && <li className="faint">Nothing matches.</li>}</ul>
-      {!q && shown.length > 12 && <button className="alx-link" onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${shown.length}`}</button>}
+      {search && items.length > 8 && <SearchBox value={q} onChange={setQ} placeholder="Search" label="Search this list" />}
+      <ul className="fgx-list">{list.map((i) => <li key={i.key}><CheckRow label={i.label} count={i.n} checked={picked.includes(i.key)} onChange={() => toggle(i.key)} /></li>)}
+        {!list.length && <li className="fgx-none">Nothing matches.</li>}</ul>
+      {!q && shown.length > 12 && <button type="button" className="fgx-link" onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${shown.length}`}</button>}
     </>
   );
 }
@@ -115,6 +118,8 @@ export function ScreenerPro() {
   const [find, setFind] = useState(""), [open, setOpen] = useState<Record<string, boolean>>({ valuation: true });
   const [moreGroups, setMoreGroups] = useState(false), [colMenu, setColMenu] = useState(false), [colFind, setColFind] = useState(""), [saveName, setSaveName] = useState("");
   const saved = useSavedScreens();
+  const [collapsed, setCollapsed] = useState(narrow), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
+  const showPanel = (id: string) => { setCollapsed(false); setTab("filters"); setWant((w) => ({ id, n: w.n + 1 })); };
   const data = cat.data;
   const plan: Plan = data?.plan ?? "basic";
   const byKey = useMemo(() => new Map((data?.groups || []).flatMap((g) => g.metrics.map((m) => [m.key, m] as const))), [data]);
@@ -195,30 +200,47 @@ export function ScreenerPro() {
   const total = res.data?.total ?? 0;
 
   // Sector, Industry and Index sit straight after the FinLit model group (or at the top while a search hides it)
+  const grp = (id: string, title: string, active: number, meta: number, body: React.ReactNode, defaultOpen = false) => (
+    <FilterGroup id={id} title={title} active={active} meta={meta} open={fl ? true : open[id] ?? (active > 0 || defaultOpen)} onOpenChange={(o) => setOpen((x) => ({ ...x, [id]: o }))}>{body}</FilterGroup>);
   const facetBlocks = <>
-                  {data && facetMatch("Sector") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("sector")} onClick={() => setOpen((o) => ({ ...o, sector: !o.sector }))}><span>Sector{f.sectors.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.sectors.length}</i>}</span><span className="scr-n">{data.sectors.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("sector") && <div className="scr-gb"><Checks search items={data.sectors.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.sectors} toggle={(k) => toggle("sectors", k)} /></div>}</div>)}
-                  {data && facetMatch("Industry") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("industry")} onClick={() => setOpen((o) => ({ ...o, industry: !o.industry }))}><span>Industry{f.industries.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.industries.length}</i>}</span><span className="scr-n">{data.industries.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("industry") && <div className="scr-gb"><Checks search items={data.industries.map((s) => ({ key: s.name, label: s.name, n: s.n }))} picked={f.industries} toggle={(k) => toggle("industries", k)} /></div>}</div>)}
-                  {data && data.indices.length > 0 && facetMatch("Index") && (
-                    <div className="scr-g"><button className="scr-gh" aria-expanded={facetOpen("index")} onClick={() => setOpen((o) => ({ ...o, index: !o.index }))}><span>Index{f.indices.length > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{f.indices.length}</i>}</span><span className="scr-n">{data.indices.length}</span><Icon name="arrow" /></button>
-                      {facetOpen("index") && <div className="scr-gb"><Checks items={data.indices.map((s) => ({ key: s.code, label: s.label, n: s.n }))} picked={f.indices} toggle={(k) => toggle("indices", k)} /></div>}</div>)}
+    {data && facetMatch("Sector") && grp("sector", "Sector", f.sectors.length, data.sectors.length, <Checks search items={data.sectors.map((x) => ({ key: x.name, label: x.name, n: x.n }))} picked={f.sectors} toggle={(k) => toggle("sectors", k)} />)}
+    {data && facetMatch("Industry") && grp("industry", "Industry", f.industries.length, data.industries.length, <Checks search items={data.industries.map((x) => ({ key: x.name, label: x.name, n: x.n }))} picked={f.industries} toggle={(k) => toggle("industries", k)} />)}
+    {data && data.indices.length > 0 && facetMatch("Index") && grp("index", "Index", f.indices.length, data.indices.length, <Checks items={data.indices.map((x) => ({ key: x.code, label: x.label, n: x.n }))} picked={f.indices} toggle={(k) => toggle("indices", k)} />)}
   </>;
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Stock screener</div><h1>Find the companies that fit your rules.</h1>
-        <p>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Basic score screener</Link> (Silver) or the <Link to="/advanced-score-screener">Advanced score screener</Link> (Gold). Prefer typing? Use the <Link to="/query-builder">Query builder</Link>.</p></div></section>
-      <div className="wrap scr-wrap">
-        <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
-          <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0}>
+      <div className="wrap scr-wrap" style={{ paddingTop: 22 }}>
+        <TitleCard tier={plan === "basic" ? "basic" : plan} title="Stock screener" onLearn={() => document.getElementById("scr-about")?.scrollIntoView?.({ block: "center" })} learnLabel="Learn more"
+          sub={<>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Basic score screener</Link> (Silver) or the <Link to="/advanced-score-screener">Advanced score screener</Link> (Gold). Prefer typing? Use the <Link to="/query-builder">Query builder</Link>.</>} />
+        <KpiStrip active={nActive} filtersOpen={!collapsed} onFilters={() => setCollapsed((c) => !c)} items={[
+          { icon: "building", label: "Companies found", value: res.data ? nf(total, 0) : "…" },
+          { icon: "layers", label: "Listed companies", value: data ? nf(data.total, 0) : "…" },
+          { icon: "map", label: "Sectors", value: data ? nf(data.sectors.length, 0) : "…" },
+          { icon: "table", label: "Filters available", value: data ? nf(data.groups.reduce((a, g) => a + g.metrics.length, 0), 0) : "…" } as Kpi]} />
+        {data && data.total > 0 && (
+          <div className="fgx-two">
+            <Donut part={data.withReport} total={data.total} partLabel="Report loaded" restLabel="Price and market cap only" title={`${nf(data.total - data.withReport, 0)} of ${nf(data.total, 0)} companies have no full report loaded yet.`}
+              note="Ratios, growth and statements show a dash until a company's report is loaded." />
+            <SectorBars title="Listed companies by sector (Top 5)" rows={[...data.sectors].sort((a, b) => b.n - a.n).slice(0, 5).map((x) => ({ label: x.name, n: x.n, pct: (x.n / data.total) * 100 }))}
+              action={<button type="button" className="fgx-link" onClick={() => showPanel("sector")}>View all sectors &rsaquo;</button>} />
+          </div>)}
+        <Toolbar q={q} setQ={setQ} searchLabel="Search company name, sector or keyword" buttons={[
+          { id: "size", label: "Market cap", active: f.caps.length, onClick: () => showPanel("size") },
+          { id: "sector", label: "Sector", active: f.sectors.length, onClick: () => showPanel("sector") },
+          { id: "more", label: "More filters", active: Math.max(0, nActive - (f.caps.length ? 1 : 0) - (f.sectors.length ? 1 : 0)), onClick: () => showPanel("valuation") }]}
+          sort={<label className="fgx-sort"><span className="sr">Sort by</span><select aria-label="Sort by" value={`${sort.key}:${sort.dir}`} onChange={(e) => { const [k, d] = e.target.value.split(":"); setSort({ key: k, dir: d as "asc" | "desc" }); }}>
+            {[["name", "Company"], ["market_cap", "Market cap"], ...(res.data?.columns || []).map((k) => [k, byKey.get(k)?.label || k])].flatMap(([k, l]) => (k === "name" ? ["asc", "desc"] : byKey.get(k)?.better === "lower" ? ["asc", "desc"] : ["desc", "asc"]).map((d) => ({ k, d, l })))
+              .concat(res.data?.columns.includes(sort.key) || sort.key === "name" ? [] : [{ k: sort.key, d: sort.dir, l: byKey.get(sort.key)?.label || sort.key }]).filter((o, i, a) => a.findIndex((x) => x.k === o.k && x.d === o.d) === i)
+              .map(({ k, d, l }) => <option key={k + d} value={`${k}:${d}`}>Sort by {l} ({d === "asc" ? (k === "name" ? "A to Z" : "low to high") : (k === "name" ? "Z to A" : "high to low")})</option>)}</select></label>} />
+        <div className={"scr" + (collapsed ? " fgx-collapsed" : "")} style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>
+          <aside className="scr-side card" aria-label="Filters" hidden={sideW === 0 || collapsed}>
+            <FgxFocus.Provider value={want}>
             <div className="seg scr-tabs" role="tablist"><button role="tab" aria-selected={tab === "filters"} onClick={() => setTab("filters")}>Filters{nActive ? <i className="dotn">{nActive}</i> : null}</button><button role="tab" aria-selected={tab === "quick"} onClick={() => setTab("quick")}>Quick screens</button></div>
             {tab === "filters" ? (
               <>
-                <label className="scr-find"><Icon name="search" /><input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search for a filter, e.g. ROE or promoter" aria-label="Search for a filter" /></label>
+                <div className="fgx-top" style={{ paddingTop: 12 }}><span>{nActive ? `${nActive} active` : "No filters set"}</span>{nActive > 0 && <button type="button" className="fgx-link" onClick={() => setF(norm({}))}>Clear all</button>}</div>
+                <SearchBox value={find} onChange={setFind} placeholder="Search for a filter, e.g. ROE or promoter" label="Search for a filter" />
                 {cat.isLoading && <div className="skeleton" style={{ height: 320, marginTop: 12 }} />}
                 {cat.isError && <div className="state"><p>The filters are not available right now. Please try again in a moment.</p><button className="btn" onClick={() => cat.refetch()}>Try again</button></div>}
                 <div className="scr-groups">
@@ -228,17 +250,15 @@ export function ScreenerPro() {
                     const shownMetrics = fl ? (g.label.toLowerCase().includes(fl) ? g.metrics : rankMetrics(g.metrics, find)) : g.metrics;
                     const n = Object.keys(f.ranges).filter((k) => g.metrics.some((m) => m.key === k)).length;
                     return (
-                      <Fragment key={g.id}><div className={"scr-g" + (model ? " is-model" : "")}>
-                        <button className="scr-gh" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [g.id]: !o[g.id] }))}>
-                          <span>{g.label}{model && <span className="tier gold" style={{ marginLeft: 8 }}><Icon name="crown" />Gold</span>}{n > 0 && <i className="dotn" style={{ marginLeft: 8 }}>{n}</i>}</span><span className="scr-n">{g.metrics.length}</span><Icon name="arrow" />
-                        </button>
-                        {isOpen && (
-                          <div className="scr-gb">
-                            {g.id === "size" && data && <div className="scr-bands" role="group" aria-label="Company size">{data.caps.map((c) => <button key={c.name} className={"bandc" + (f.caps.includes(c.name) ? " on" : "")} aria-pressed={f.caps.includes(c.name)} onClick={() => toggle("caps", c.name)}>{c.name} cap <small>{c.n}</small></button>)}</div>}
+                      <Fragment key={g.id}><FilterGroup id={g.id} title={g.label} active={n} className={model ? "is-model" : ""} open={isOpen || n > 0 && open[g.id] === undefined} onOpenChange={(o) => setOpen((x) => ({ ...x, [g.id]: o }))}
+                        meta={<>{model && <span className="tier gold" style={{ marginRight: 8 }}><Icon name="crown" />Gold</span>}{g.metrics.length}</>}>
+                        {true && (
+                          <>
+                            {g.id === "size" && data && <div role="group" aria-label="Company size">{data.caps.map((c) => <CheckRow key={c.name} label={`${c.name} cap`} count={c.n} checked={f.caps.includes(c.name)} onChange={() => toggle("caps", c.name)} />)}</div>}
                             {model && (
                               allLocked ? <div className="scr-lock"><span className="lk"><Icon name="lock" /></span><b>Filter by the FinLit model</b><p>The FinLit score, its band and each of the five pillars (Quality, Growth, Profitability, Balance sheet, Technical), plus how the score has moved.</p>
                                 <button className="btn primary" onClick={() => ask("gold", "FinLit model filters come with the Gold plan.")}>Unlock with Gold</button></div>
-                              : <div className="scr-bands" role="group" aria-label="FinLit band">{(data?.bands || []).map((b) => <button key={b.key} className={"bandc " + b.key} aria-pressed={f.bands.includes(b.key)} onClick={() => toggle("bands", b.key)}>{b.label}</button>)}</div>
+                              : <div className="fgx-chips" role="group" aria-label="FinLit band">{(data?.bands || []).map((b) => <button key={b.key} type="button" className={"fgx-chip" + (f.bands.includes(b.key) ? " is-on" : "")} aria-pressed={f.bands.includes(b.key)} onClick={() => toggle("bands", b.key)}>{f.bands.includes(b.key) && <i aria-hidden="true">&#10003;</i>}{b.label}</button>)}</div>
                             )}
                             {!(model && allLocked) && <>
                               {(() => {
@@ -257,8 +277,8 @@ export function ScreenerPro() {
                                 </>;
                               })()}
                             </>}
-                          </div>)}
-                      </div>{model && facetBlocks}</Fragment>);
+                          </>)}
+                      </FilterGroup>{model && facetBlocks}</Fragment>);
                   })}
                   {!fl && groups.length > VISIBLE_GROUPS && <button className="alx-link" style={{ margin: "10px 0 4px" }} onClick={() => setMoreGroups(!moreGroups)}>{moreGroups ? "Show fewer categories" : `Show ${groups.length - VISIBLE_GROUPS} more categories`}</button>}
                 </div>
@@ -276,6 +296,7 @@ export function ScreenerPro() {
                   </div>) : null; })}
               </div>
             )}
+            </FgxFocus.Provider>
           </aside>
           <SplitDivider width={sideW} set={setSide} />
 
@@ -283,7 +304,6 @@ export function ScreenerPro() {
             <div className="scr-top">
               <div aria-live="polite"><b className="scr-count">{res.isLoading || !res.data ? "…" : nf(total, 0)}</b> <span className="muted">of {data ? nf(data.total, 0) : "…"} listed stocks{res.data ? ` · ${res.data.took} ms` : ""}</span></div>
               <div className="scr-tools">
-                <label className="scr-find sm"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search stocks" aria-label="Search stocks in results" /></label>
                 <div className="scr-cm"><button className="btn" aria-expanded={colMenu} onClick={() => setColMenu(!colMenu)}>Columns · {columns.length}</button>
                   {colMenu && data && <div className="scr-colmenu pl-colmenu" role="menu">
                     <label className="scr-find sm" style={{ margin: "0 0 8px" }}><Icon name="search" /><input value={colFind} onChange={(e) => setColFind(e.target.value)} placeholder="Find a column" aria-label="Find a column" /></label>
@@ -317,7 +337,7 @@ export function ScreenerPro() {
                 </>)}
             <Plain>Green cells are in the best quarter of the results shown for that column, red cells the weakest quarter. “Best” means lower for P/E, P/B and debt, higher for returns and profitability. Hover a column name for what it means.</Plain>
             {data && data.withReport < data.total && <p className="faint scr-foot">All {nf(data.total, 0)} listed companies are here with their price and market cap. Ratios, growth and statements show a dash until a company's report is loaded ({nf(data.withReport, 0)} are today); filtering on one of those leaves out the companies that lack it.</p>}
-            <p className="faint scr-foot">A screen narrows a long list; it does not say what to buy. Open a company's report to see why a number looks the way it does. Index lists come from NSE Indices. General information, not investment advice.</p>
+            <p id="scr-about" className="faint scr-foot">A screen narrows a long list; it does not say what to buy. Open a company's report to see why a number looks the way it does. Index lists come from NSE Indices. General information, not investment advice.</p>
           </section>
         </div>
       </div>
