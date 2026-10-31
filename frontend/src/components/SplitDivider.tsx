@@ -1,13 +1,14 @@
 import { useState } from "react";
+import { readUi, writeUi, isNum } from "../lib/persist";
 
 /** A draggable divider between a side panel and the main area: drag, arrow keys, or double-click to hide. The width is remembered per page. */
 export const SIDE = { def: 330, min: 240, max: 620 };
 
 export function useSideWidth(key: string) {
-  const [w, setW] = useState<number>(() => { try { const v = Number(localStorage.getItem("finlit.side." + key)); return Number.isFinite(v) && v >= 0 && v <= SIDE.max && localStorage.getItem("finlit.side." + key) != null ? v : SIDE.def; } catch { return SIDE.def; } });
+  const [w, setW] = useState<number>(() => { const v = readUi("finlit.side." + key, isNum, SIDE.def); return v >= 0 && v <= SIDE.max ? v : SIDE.def; });
   const set = (next: number, snap = false) => {   // a drag below half the minimum folds the panel away
     const v = next < (snap ? SIDE.min / 2 : 1) ? 0 : Math.max(SIDE.min, Math.min(SIDE.max, Math.round(next)));
-    setW(v); try { localStorage.setItem("finlit.side." + key, String(v)); } catch { /* private mode: not remembered */ }
+    setW(v); writeUi("finlit.side." + key, v);
   };
   return [w, set] as const;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readUi, writeUi, isBool, isFlags } from "../lib/persist";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { Icon } from "../lib/icons";
 import { useAuth } from "../lib/auth";
@@ -26,16 +27,16 @@ export function AppShell() {
   const held = usePortfolio().holdings.length;
   const { unread } = useNotices();
   const live = useAlerts().alerts.filter((a) => a.status === "active").length;
-  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem("finlit-side") === "1"; } catch { return false; } });
+  const [collapsed, setCollapsed] = useState(() => readUi("finlit-side", isBool, false));
   const [open, setOpen] = useState(false); // mobile drawer
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => { const o = () => setOpen((v) => !v); addEventListener("finlit:open-side", o); return () => removeEventListener("finlit:open-side", o); }, []);
-  useEffect(() => { try { localStorage.setItem("finlit-side", collapsed ? "1" : "0"); } catch { /* private mode */ } }, [collapsed]);
+  useEffect(() => { writeUi("finlit-side", collapsed); }, [collapsed]);
   useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", k); return () => removeEventListener("keydown", k); }, [open]);
   // Each group is a drop-down: a header you click to show or hide its pages. The group holding the current page is always open;
   // what you opened or closed by hand is remembered.
-  const [folded, setFolded] = useState<Record<string, boolean>>(() => { try { return JSON.parse(localStorage.getItem("finlit-side-groups") || "{}"); } catch { return {}; } });
-  const toggleGroup = (t: string, isOpen: boolean) => setFolded((f) => { const n = { ...f, [t]: isOpen }; try { localStorage.setItem("finlit-side-groups", JSON.stringify(n)); } catch { /* private mode */ } return n; });
+  const [folded, setFolded] = useState<Record<string, boolean>>(() => readUi("finlit-side-groups", isFlags, {}));
+  const toggleGroup = (t: string, isOpen: boolean) => setFolded((f) => { const n = { ...f, [t]: isOpen }; writeUi("finlit-side-groups", n); return n; });
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
   // The rail follows the site map (lib/nav.ts): the same five headings and groups as the header, plus the extras and the account.
