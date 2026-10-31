@@ -149,7 +149,7 @@ describe("DuPont placement", () => {
   });
   it("shows the equation strip, a highlighted latest column, a share of the ROE move and the plain-words summary", () => {
     st.fin = { yearly: { pl: RIL.pl, bs: RIL.bs } };
-    const { container } = render(<DuPont symbol="RELIANCE" periods={[]} rows={{}} lender={false} />);
+    const { container } = render(<DuPont symbol="RELIANCE" lender={false} />);
     expect(container.querySelectorAll(".dp-sc")).toHaveLength(4);
     expect(container.querySelector(".dp-main-t th.cur")?.textContent).toBe("Mar 2026");
     expect(container.querySelector(".dp-sum1")?.textContent).toMatch(/^From FY\d\d to FY26, ROE /);
@@ -158,7 +158,7 @@ describe("DuPont placement", () => {
   it("lenders see total income wording; a missing year shows a dash with a reason", () => {
     const pl = t(["FY25", "FY26"], { total_income: [1000, null], net_profit: [100, 110] }), bs = t(["FY25", "FY26"], { total_assets: [5000, 5500], total_equity: [500, 550] });
     st.fin = { yearly: { pl, bs } };
-    const { container } = render(<DuPont symbol="BANK" periods={[]} rows={{}} lender />);
+    const { container } = render(<DuPont symbol="BANK" lender />);
     expect(container.textContent).toContain("Net profit / Total income");
     const dash = container.querySelector(".dp-main-t .dp-dash")!; expect(dash.textContent).toBe("–"); expect(dash.getAttribute("title")).toMatch(/^Needs/);
   });
