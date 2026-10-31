@@ -4,7 +4,8 @@ WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY frontend ./
-RUN VITE_BASE=/ npm run build
+ARG GIT_COMMIT=unknown
+RUN VITE_BASE=/ APP_VERSION=$GIT_COMMIT npm run build
 
 FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
@@ -22,6 +23,7 @@ COPY --from=web /web/dist ./web
 COPY deploy/render-start.sh deploy/scheduler.sh ./
 RUN mv render-start.sh start.sh && chmod +x start.sh scheduler.sh && useradd --create-home finlit && chown -R finlit /app
 USER finlit
-ENV FRONTEND_DIST=/app/web
+ARG GIT_COMMIT=unknown
+ENV FRONTEND_DIST=/app/web APP_VERSION=$GIT_COMMIT
 EXPOSE 8000
 CMD ["./start.sh"]

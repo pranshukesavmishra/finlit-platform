@@ -43,7 +43,7 @@ describe("AppShell rail", () => {
     const b = screen.getByRole("button", { name: /Charts/ });
     fireEvent.click(b);
     expect(b.getAttribute("aria-expanded")).toBe("true");
-    expect(JSON.parse(localStorage.getItem("finlit-side-groups")!)["Charts"]).toBe(true);
+    expect(JSON.parse(localStorage.getItem("finlit:ui:side-groups")!).data["Charts"]).toBe(true);
   });
   it("keeps the Gold tag on gold tools and the collapse button", () => {
     show("/screener");

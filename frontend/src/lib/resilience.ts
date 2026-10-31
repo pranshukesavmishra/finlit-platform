@@ -17,7 +17,7 @@ export function isChunkError(e: unknown): boolean {
 export function reloadOnce(now = Date.now()): boolean {
   try {
     const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
-    if (now - last < 30_000) return false;
+    if (now - last < 30_000) { window.dispatchEvent(new Event("finlit:stale-assets")); return false; }   // already reloaded a moment ago: let the banner ask the member instead
     sessionStorage.setItem(RELOAD_KEY, String(now));
   } catch { /* storage blocked: reloading once without a guard could loop, so do not */ return false; }
   location.reload();

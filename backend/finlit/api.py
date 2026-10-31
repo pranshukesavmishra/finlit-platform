@@ -446,6 +446,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         status = await health_status()
         ok = all(status.values())
         body = {"ok": ok, **status} if settings.environment == "development" else {"ok": ok}  # no internals on any deployed site
+        body["version"] = os.getenv("APP_VERSION") or "unknown"  # commit the image was built from (Dockerfile ARG GIT_COMMIT)
         return JSONResponse(body, status_code=200 if ok else 503, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/stocks/search-index")

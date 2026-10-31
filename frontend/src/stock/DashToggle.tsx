@@ -2,14 +2,15 @@
 // Collapsed is the default. The choice is remembered in this browser only; storage can be missing or blocked, so every access is guarded.
 import { useCallback, useState } from "react";
 import { Icon } from "../lib/icons";
+import { isBool, loadUi, saveUi } from "../lib/persist";
 
-export const DASH_KEY = "finlit-dash-open";
+export const DASH_KEY = "dash-open";
 
 export function readDashOpen(): boolean {
-  try { return localStorage.getItem(DASH_KEY) === "1"; } catch { return false; }
+  return loadUi(DASH_KEY, 1, isBool, false);
 }
 export function writeDashOpen(open: boolean): void {
-  try { localStorage.setItem(DASH_KEY, open ? "1" : "0"); } catch { /* private window or blocked storage: the page still works, it just forgets */ }
+  saveUi(DASH_KEY, 1, open);   // false when storage is blocked: the page still works, it just forgets
 }
 
 /** [open, set]: starts from the remembered choice, saves every change. */

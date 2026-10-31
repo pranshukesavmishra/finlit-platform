@@ -160,7 +160,7 @@ check("visitor: documents page renders", (await vp.locator("h1", { hasText: "Doc
 await vp.goto(base + "/screener", { waitUntil: "networkidle" });
 check("left menu is on every product page", (await vp.locator("aside.side").count()) === 1 && (await vp.locator(".side-i", { hasText: "IPO calendar" }).count()) === 1);
 await vp.locator(".side-toggle").first().click();
-check("left menu can be collapsed and stays collapsed", (await vp.locator(".shell.is-collapsed").count()) === 1 && (await vp.evaluate(() => localStorage.getItem("finlit-side"))) === "1");
+check("left menu can be collapsed and stays collapsed", (await vp.locator(".shell.is-collapsed").count()) === 1 && JSON.parse(await vp.evaluate(() => localStorage.getItem("finlit:ui:side-collapsed")) || "null")?.data === true);
 await ap.getByRole("tab", { name: "Plan requests" }).click();
 const row = ap.locator("tr", { hasText: email });
 check("admin: sees the member's plan request", (await row.count()) === 1);
