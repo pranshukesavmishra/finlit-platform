@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "layout-guard": "node e2e/layout_guard.mjs",
+    "layout-guard:api": "GUARD_MODE=api node e2e/layout_guard.mjs"
   },
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",

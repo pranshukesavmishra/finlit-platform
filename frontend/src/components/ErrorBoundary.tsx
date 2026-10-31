@@ -16,11 +16,17 @@ export class ErrorBoundary extends Component<{ children: ReactNode; section?: st
     if (this.props.section) return (
       <section className="block"><p className="faint" role="status">{this.props.section} is not available for this company right now.</p></section>
     );
+    const home = import.meta.env.BASE_URL.replace(/\/$/, "");   // plain links on purpose: this card must work even when the router itself failed
     return (
-      <div style={{ padding: "96px 24px", textAlign: "center" }}>
-        <h1>{this.state.stale ? "A new version of FinLit is ready" : "Something went wrong on this page"}</h1>
-        <p>{this.state.stale ? "The site was just updated. Reloading brings you the new version." : <>Please reload, or go back to the <a href="/">home page</a>. If it keeps happening, tell us on the contact page.</>}</p>
-        <p><button className="btn" onClick={() => location.reload()}>Reload</button></p>
+      <div style={{ padding: "72px 16px", display: "grid", placeItems: "center" }}>
+        <article className="card" role="alert" style={{ maxWidth: 520, width: "100%", padding: 28, textAlign: "center" }}>
+          <h1 style={{ fontSize: 24, margin: "0 0 10px" }}>{this.state.stale ? "A new version of FinLit is ready" : "Something went wrong on this page"}</h1>
+          <p className="muted" style={{ margin: "0 0 18px" }}>{this.state.stale ? "The site was just updated. Reloading brings you the new version." : "Your data is safe. Reload the page, or go back to your dashboard. If it keeps happening, tell us on the contact page."}</p>
+          <p style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", margin: 0 }}>
+            <button className="btn primary" onClick={() => location.reload()}>Reload</button>
+            <a className="btn" href={`${home}/dashboard`}>Go to dashboard</a>
+          </p>
+        </article>
       </div>
     );
   }
