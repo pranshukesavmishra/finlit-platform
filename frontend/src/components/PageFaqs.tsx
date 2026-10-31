@@ -1,21 +1,50 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { PageFaq } from "../content/pageFaqs";
 import { faqForPath } from "../lib/pageFaqs";
 
-/** The questions of one page as an accordion: real buttons with aria-expanded and aria-controls, several can be open, Tab/Enter/Space work. */
-export function FaqAccordion({ faq, openFirst = false, level = 3 }: { faq: PageFaq; openFirst?: boolean; level?: 3 | 4 }) {
+/** Stable deep-link id of one question: #faq-<set id>-<number>. */
+export const faqAnchor = (setId: string, i: number) => `faq-${setId}-${i + 1}`;
+
+/** The questions of one page as an accordion: real buttons with aria-expanded and aria-controls, several can be open; Tab/Enter/Space toggle, Up/Down/Home/End move between questions.
+ *  A #faq-<id>-<n> address opens and scrolls to that question. `only` limits the list to some questions (hub search), `force` opens every shown answer. */
+export function FaqAccordion({ faq, openFirst = false, level = 3, only, force = false, bulk = true }: { faq: PageFaq; openFirst?: boolean; level?: 3 | 4; only?: Set<string>; force?: boolean; bulk?: boolean }) {
   const H = ("h" + level) as "h3" | "h4";
   const uid = useId();
-  const [open, setOpen] = useState<Set<number>>(() => new Set(openFirst ? [0] : []));
-  const flip = (i: number) => setOpen((s) => { const n = new Set(s); if (n.has(i)) n.delete(i); else n.add(i); return n; });
+  const { hash } = useLocation();
+  const root = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(openFirst ? [faq.items[0].q] : []));
+  const shown = faq.items.map((it, i) => ({ it, i })).filter(({ it }) => !only || only.has(it.q));
+  const flip = (q: string) => setOpen((s) => { const n = new Set(s); if (n.has(q)) n.delete(q); else n.add(q); return n; });
+  const allOn = shown.length > 0 && shown.every(({ it }) => force || open.has(it.q));
+  const setAll = (on: boolean) => setOpen((s) => { const n = new Set(s); for (const { it } of shown) { if (on) n.add(it.q); else n.delete(it.q); } return n; });
+  useEffect(() => {
+    const m = /^#faq-(.+)-(\d+)$/.exec(hash);
+    if (!m || m[1] !== faq.id) return;
+    const it = faq.items[Number(m[2]) - 1];
+    if (!it) return;
+    setOpen((s) => (s.has(it.q) ? s : new Set(s).add(it.q)));
+    const t = setTimeout(() => document.getElementById(faqAnchor(faq.id, Number(m[2]) - 1))?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+    return () => clearTimeout(t);
+  }, [hash, faq]);
+  const onKey = (e: React.KeyboardEvent) => {
+    const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+    if (!keys.includes(e.key)) return;
+    const qs = [...(root.current?.querySelectorAll<HTMLButtonElement>("button.pfq-q") ?? [])];
+    const at = qs.indexOf(e.target as HTMLButtonElement);
+    if (at < 0) return;
+    e.preventDefault();
+    const to = e.key === "Home" ? 0 : e.key === "End" ? qs.length - 1 : (at + (e.key === "ArrowDown" ? 1 : -1) + qs.length) % qs.length;
+    qs[to]?.focus();
+  };
   return (
-    <div className="pfq-list">
-      {faq.items.map((it, i) => {
-        const on = open.has(i), bid = `${uid}-q${i}`, pid = `${uid}-a${i}`;
+    <div className="pfq-list" ref={root} onKeyDown={onKey}>
+      {bulk && shown.length > 1 && !force && <div className="pfq-bulk"><button type="button" className="pfq-all" onClick={() => setAll(!allOn)}>{allOn ? "Collapse all" : "Expand all"}</button></div>}
+      {shown.map(({ it, i }) => {
+        const on = force || open.has(it.q), bid = `${uid}-q${i}`, pid = `${uid}-a${i}`;
         return (
-          <div key={it.q} className={"pfq-i" + (on ? " on" : "")}>
-            <H><button type="button" id={bid} className="pfq-q" aria-expanded={on} aria-controls={pid} onClick={() => flip(i)}>
+          <div key={it.q} id={faqAnchor(faq.id, i)} className={"pfq-i" + (on ? " on" : "")}>
+            <H><button type="button" id={bid} className="pfq-q" aria-expanded={on} aria-controls={pid} onClick={() => flip(it.q)}>
               <span>{it.q}</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
             </button></H>

@@ -1,6 +1,6 @@
 import { HScroll } from "../components/HScroll";
 import { ChartHelp } from "../components/ChartHelp";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "../lib/icons";
 import { MiniBars, type BarSeries } from "../charts/MiniBars";
 import { Plain } from "../components/Plain";
@@ -90,10 +90,29 @@ export function QuarterSection({ f }: { f?: Financials }) {
 /* ============== Trends grid ============== */
 type Card = { id: string; title: string; hint?: string; annualOnly?: boolean; build: (m: "q" | "a") => { labels: string[]; series: BarSeries[]; mode?: "single" | "group" | "stack"; fmt: (v: number) => string } | null };
 
+const MODE_KEY = "finlit.trends.mode";
+const readMode = (): "q" | "a" => { try { return sessionStorage.getItem(MODE_KEY) === "a" ? "a" : "q"; } catch { return "q"; } };
+/** Left/Right/Home/End move focus (and, via click, the choice) between the buttons of a segmented control. */
+const segKeys = (e: React.KeyboardEvent<HTMLElement>) => {
+  if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+  const bs = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+  const at = bs.indexOf(document.activeElement as HTMLButtonElement);
+  if (at < 0) return;
+  e.preventDefault();
+  const to = e.key === "Home" ? 0 : e.key === "End" ? bs.length - 1 : (at + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1) + bs.length) % bs.length;
+  bs[to].focus(); bs[to].click();
+};
+
 export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments; e?: Events; r?: Ratios }) {
   const [tab, setTab] = useState<"key" | "margin" | "div">("key");
-  const [mode, setMode] = useState<"q" | "a">("q");
+  const [mode, setModeRaw] = useState<"q" | "a">(readMode);
+  const setMode = (m: "q" | "a") => { setModeRaw(m); try { sessionStorage.setItem(MODE_KEY, m); } catch { /* private window */ } };
   const [big, setBig] = useState<string | null>(null);
+  useEffect(() => {
+    if (!big) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setBig(null); };
+    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
+  }, [big]);
   if (!f) return null;
   const A = f.yearly, Q = f.quarterly.pl;
   const tbl = (m: "q" | "a") => (m === "q" ? Q : A.pl);
@@ -126,24 +145,31 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
     ],
   };
   const list = cards[tab];
+  const built = list.map((c) => { const d = c.build(mode); return { c, d: d && d.series.some((x) => x.values.some((v) => v != null)) ? d : null }; });
+  const shownCount = built.filter((b) => b.d).length;
+  const tabName = tab === "key" ? "Key metrics" : tab === "margin" ? "Margins and investment" : "Dividends";
+  const missing = built.filter((b) => !b.d).map((b) => b.c.title);
   return (
     <section className="block" style={{ "--sc": "var(--gold)" } as React.CSSProperties}>
       <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold"
-        aside={<div className="seg" role="group" aria-label="Period"><button aria-pressed={mode === "q"} onClick={() => setMode("q")}>Quarterly</button><button aria-pressed={mode === "a"} onClick={() => setMode("a")}>Annual</button></div>} />
+        aside={<div className="seg" role="group" aria-label="Period" onKeyDown={segKeys}><button type="button" aria-pressed={mode === "q"} tabIndex={mode === "q" ? 0 : -1} onClick={() => setMode("q")}>Quarterly</button><button type="button" aria-pressed={mode === "a"} tabIndex={mode === "a" ? 0 : -1} onClick={() => setMode("a")}>Annual</button></div>} />
       <div className="tr-bar">
-        <div className="seg" role="tablist" aria-label="Trend groups">{([["key", "Key metrics"], ["margin", "Margins and investment"], ["div", "Dividends"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
+        <div className="seg" role="tablist" aria-label="Trend groups" onKeyDown={segKeys}>{([["key", "Key metrics"], ["margin", "Margins and investment"], ["div", "Dividends"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" id={"trtab-" + k} aria-controls="trpanel" tabIndex={tab === k ? 0 : -1} aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
       </div>
-      <div className="tr-grid">{list.map((c) => {
-        const d = c.build(mode); if (!d || !d.series.some((s) => s.values.some((v) => v != null))) return null;
+      <p className="sr-only" role="status" aria-live="polite">{`Showing ${mode === "q" ? "quarterly" : "annual"} figures, ${shownCount} of ${list.length} charts in ${tabName}.`}</p>
+      <div className="tr-grid" role="tabpanel" id="trpanel" aria-labelledby={"trtab-" + tab}>{built.map(({ c, d }) => {
+        if (!d) return null;
         const open = big === c.id;
         return (
           <div className={"card tr-c" + (open ? " big" : "")} key={c.id}>
             <div className="tr-h"><h3>{c.title} <ChartHelp id={"trend-" + c.id} /></h3>{c.annualOnly && mode === "q" && <span className="chip ghost">Annual</span>}
-              <button className="tr-x" aria-label={open ? `Shrink ${c.title}` : `Expand ${c.title}`} aria-pressed={open} onClick={() => setBig(open ? null : c.id)}><Icon name="arrow" /></button></div>
+              <button className="tr-x" aria-label={open ? `Shrink ${c.title}` : `Expand ${c.title}`} aria-expanded={open} title={open ? "Shrink chart (Esc)" : "Expand chart"} onClick={() => setBig(open ? null : c.id)}><Icon name="arrow" /></button></div>
             <MiniBars labels={d.labels} series={d.series} mode={d.mode} fmt={d.fmt} height={open ? 240 : 150} w={open ? 900 : 300} highlight={d.labels.length - 1} />
             {d.series.length > 1 && <div className="tr-key">{d.series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>}
           </div>);
       })}</div>
+      {shownCount === 0 && <p className="faint" style={{ fontSize: 13, margin: "10px 2px" }}>– No {tabName.toLowerCase()} figures are available for this company in the {mode === "q" ? "quarterly" : "annual"} view.</p>}
+      {shownCount > 0 && missing.length > 0 && <p className="faint" style={{ fontSize: 12, margin: "10px 2px 0" }}>– Not shown, no reported figures: {missing.join(", ")}.</p>}
       <p className="faint" style={{ fontSize: 12, margin: "10px 2px 0" }}>₹ Crore unless stated. Cash flow and balance sheet items are reported once a year, so they stay annual.</p>
     </section>
   );
