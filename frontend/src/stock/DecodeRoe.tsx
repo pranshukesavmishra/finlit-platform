@@ -213,7 +213,7 @@ export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: str
             </HScroll>
             <ul className="dp-notes faint">
               <li>Year-end balances use the closing balance sheet, which is what the DuPont card above uses. When equity or assets change sharply in a year, year-end figures can overstate or understate the return; the average option uses the mean of the opening and closing balance.</li>
-              <li>Each factor's share of an ROE move uses logs: ln(ROE last ÷ ROE first) = ln(margin ratio) + ln(turnover ratio) + ln(multiplier ratio), so the shares add up to 100%. A log is undefined for zero or negative values, so those years show no share.</li>
+              <li>Each factor's share of an ROE move uses logs: ln(ROE last ÷ ROE first) = ln(margin ratio) + ln(turnover ratio) + ln(multiplier ratio), so the shares add up to 100%. A log is undefined for zero or negative values, so those years show no share. Shares are also hidden when ROE moved by less than 1 point (or under 10% of its own size), because dividing by a tiny move gives huge, misleading percentages. A single share can exceed 100% when another factor pushes the other way.</li>
               {thresholdNotes().map((t) => <li key={t}>{t}</li>)}
               <li>Observation sentences come from a rule list with thresholds that can be tuned; each card shows the numbers behind its sentence.</li>
             </ul>

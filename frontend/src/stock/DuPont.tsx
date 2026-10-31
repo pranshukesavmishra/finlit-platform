@@ -3,7 +3,7 @@ import { HScroll } from "../components/HScroll";
 import { ChartHelp } from "../components/ChartHelp";
 import { Icon } from "../lib/icons";
 import { useSection, type Financials } from "../lib/api";
-import { dupont, dupontSummary, shareText } from "../lib/dupont";
+import { dupont, dupontSummary, shareText, shareTitle, roeMoveText } from "../lib/dupont";
 import { MINUS, nf } from "../lib/format";
 import { DecodeRoe } from "./DecodeRoe";
 import "../styles/dupont.css";
@@ -17,6 +17,12 @@ const WHY: Record<string, string> = { m: "Needs net profit and revenue", t: "Nee
 function Dash({ why }: { why: string }) { return <span className="dp-dash" tabIndex={0} role="note" title={why} aria-label={`Not available: ${why}`}>–</span>; }
 
 /** DuPont analysis (what drives return on equity) and the margin story with changes in basis points, from the company's own statements. */
+const TIP: Record<string, string> = {
+  roe: "Return on equity: the profit left for shareholders each year, as a percentage of their equity in the business.",
+  m: "Net profit margin: how many rupees of profit are kept from every ₹100 of sales.",
+  t: "Asset turnover: how many rupees of sales the company makes from each ₹1 of assets. Higher means the assets work harder.",
+  e: "Equity multiplier: total assets divided by shareholders' equity. Higher means more of the assets are funded by liabilities rather than equity.",
+};
 export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) {
   const f = useSection<Financials>(symbol, "financials", !!symbol);
   const [five, setFive] = useState(false);
@@ -41,13 +47,13 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
           {now && (
             <div className="dp-strip" role="group" aria-label={`ROE equals ${lender ? "net profit over total income" : "net profit over revenue"} times asset turnover times equity multiplier, ${fy(now.period)}`}>
               {[
-                { k: "roe", icon: "gauge", t: "ROE", s: "Return on equity", v: now.roe, f: (v: number) => nf(v, 1) + "%" },
+                { k: "roe", icon: "gauge", t: "ROE", s: "Return on equity", v: now.roe, f: (v: number) => nf(v, 2) + "%" },
                 { k: "m", icon: "percent", t: "Net profit margin", s: lender ? "Net profit / Total income" : "Net profit / Revenue", v: now.netMargin, f: (v: number) => nf(v, 2) + "%" },
                 { k: "t", icon: "refresh", t: "Asset turnover", s: lender ? "Total income / Total assets" : "Revenue / Total assets", v: now.turnover, f: (v: number) => nf(v, 2) + "×" },
                 { k: "e", icon: "balance", t: "Equity multiplier", s: "Total assets / Total equity", v: now.multiplier, f: (v: number) => nf(v, 2) + "×" },
               ].flatMap((c, i) => [
                 i > 0 && <span className="dp-op" aria-hidden="true" key={"o" + i}>{i === 1 ? "=" : "×"}</span>,
-                <div className={"dp-sc" + (c.k === "roe" ? " roe" : "")} key={c.k}>
+                <div className={"dp-sc" + (c.k === "roe" ? " roe" : "")} key={c.k} title={TIP[c.k]}>
                   <span className="dp-sci"><Icon name={c.icon as never} /></span>
                   <span className="t">{c.t}</span><small>{c.s}</small>
                   <b>{c.v == null ? <Dash why={WHY[c.k]} /> : c.f(c.v)}</b><small>({fy(now.period)})</small>
@@ -67,7 +73,7 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
                   <tr className="sub"><th scope="row">… EBIT margin</th>{years.map((y, i) => <td key={y.period} className={cur(i)}>{y.ebitMargin == null ? MINUS : nf(y.ebitMargin, 2) + "%"}</td>)}</tr></>}
                 <tr><th scope="row">Asset turnover<small>{lender ? "Total income / Total assets" : "Revenue / Total assets"}</small></th>{years.map((y, i) => <td key={y.period} className={cur(i)}>{y.turnover == null ? <Dash why={WHY.t} /> : nf(y.turnover, 2) + "×"}</td>)}</tr>
                 <tr><th scope="row">Equity multiplier<small>Total assets / Total equity</small></th>{years.map((y, i) => <td key={y.period} className={cur(i)}>{y.multiplier == null ? <Dash why={WHY.e} /> : nf(y.multiplier, 2) + "×"}</td>)}</tr>
-                <tr className="tot"><th scope="row">Calculated ROE</th>{years.map((y, i) => <td key={y.period} className={cur(i)}>{y.roe == null ? <Dash why={WHY.roe} /> : nf(y.roe, 1) + "%"}</td>)}</tr>
+                <tr className="tot"><th scope="row">Calculated ROE</th>{years.map((y, i) => <td key={y.period} className={cur(i)}>{y.roe == null ? <Dash why={WHY.roe} /> : nf(y.roe, 2) + "%"}</td>)}</tr>
               </tbody></table>
           </HScroll>
           {canFive && <button type="button" className="alx-link dp-more" aria-pressed={five} onClick={() => setFive(!five)}>{five ? "Show the simple three-factor view" : "Split net margin further (tax, interest, operating)"}</button>}
@@ -79,7 +85,7 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
                 <div className={"dp-tile " + x.verdict} role="listitem" key={x.key}>
                   <span className="k">{NAME[x.key]}</span><small>{lender && x.key !== "multiplier" ? x.label.replace("revenue", "total income").replace("Revenue", "Total income") : x.label}</small>
                   <b>{nf(x.first ?? 0, dig)}{unit} → {nf(x.last ?? 0, dig)}{unit}</b>
-                  <span className={"dp-pill " + x.verdict}>{arrow(x.verdict)} {x.changePct == null ? "" : nf(Math.abs(x.changePct), 1) + "%"}{sh ? ` · ${sh}` : ""}</span>
+                  <span className={"dp-pill " + x.verdict} tabIndex={0} title={shareTitle(x, d.roeFirst, d.roeLast)} aria-label={`${NAME[x.key]} ${x.verdict === "flat" ? "about the same" : x.verdict === "up" ? "rose" : "fell"}${x.changePct == null ? "" : " " + nf(Math.abs(x.changePct), 1) + " per cent"}. ${sh || roeMoveText(d.roeFirst, d.roeLast)}. ${shareTitle(x, d.roeFirst, d.roeLast)}`}>{arrow(x.verdict)} {x.changePct == null ? "" : nf(Math.abs(x.changePct), 1) + "%"}{(sh || roeMoveText(d.roeFirst, d.roeLast)) ? ` · ${sh || roeMoveText(d.roeFirst, d.roeLast)}` : ""}</span>
                   <div className="dp-bars" aria-label={`${NAME[x.key]} by year: ${spark.map((y) => `${fy(y.period)} ${nf(y[x.key] as number, 2)}${unit}`).join(", ")}`} role="img">
                     {spark.map((y, i) => { const v = y[x.key] as number; return (
                       <span className={"dp-bar1" + (i === spark.length - 1 ? " last" : "")} key={y.period}><i style={{ height: top ? `${Math.max(4, (Math.abs(v) / top) * 100)}%` : "4%" }} /><em>{nf(v, dig)}</em><u>{y.period}</u></span>); })}

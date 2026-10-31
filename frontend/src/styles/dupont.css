@@ -85,3 +85,10 @@
   .dp-main { padding: 16px 14px; }
 }
 .dp-tile b { color: var(--text); font-weight: 600; }
+
+/* upgrade pass: focusable share pill, strip hover, small screens, reduced motion */
+.dp-pill { max-width: 100%; white-space: normal; line-height: 1.35; cursor: help; } .dp-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dp-sc { transition: border-color .15s ease; } .dp-sc:hover, .dp-sc:focus-within { border-color: var(--muted); }
+.dp-main-t tr:hover > td, .dp-main-t tr:hover > th { background: var(--s2); }
+@media (max-width: 420px) { .dp-sc b { font-size: 22px; } .dp-pill { font-size: 11.5px; } .dp-head p, .dp-title p { overflow-wrap: anywhere; } }
+@media (prefers-reduced-motion: reduce) { .dp *, .dp-deep * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }

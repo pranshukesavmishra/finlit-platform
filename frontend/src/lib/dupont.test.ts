@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dupont, dupontSummary, shareText } from "./dupont";
+import { dupont, dupontSummary, shareText, shareTitle, roeMoveText } from "./dupont";
 
 const t = (periods: string[], rows: Record<string, (number | null)[]>) => ({ unit: "Cr", period: "yearly", periods, periodEnds: periods, rows });
 
@@ -46,6 +46,18 @@ describe("share and summary wording", () => {
     const s = dupontSummary(dupont(pl, bs, false));
     expect(s).toBe("From FY22 to FY26, ROE fell from 20.00% to 18.75%. Net profit margin fell, asset turnover rose and the equity multiplier rose.");
     expect(s).not.toMatch(/\b(buy|sell|hold|target|recommend)/i);
+  });
+  const mk = (np: number[], eq: number[]) => ({ pl: t(["FY22", "FY26"], { revenue: [1000, 1100], net_profit: np }), bs: t(["FY22", "FY26"], { total_assets: [1000, 1200], total_equity: eq }) });
+  it("hides shares and explains in the tooltip when ROE moved under 1 point", () => {
+    const x = mk([100, 100.5], [500, 500]), d = dupont(x.pl, x.bs, false);
+    expect(d.factors.every((f) => f.shareOfMove == null)).toBe(true);
+    expect(shareTitle(d.factors[0], d.roeFirst, d.roeLast)).toMatch(/ROE \+0\.10 pts: too small/);
+    expect(roeMoveText(d.roeFirst, d.roeLast)).toBe("ROE +0.10 pts");
+  });
+  it("keeps shares when ROE moved clearly, and the tooltip warns they can exceed 100%", () => {
+    const x = mk([100, 150], [500, 500]), d = dupont(x.pl, x.bs, false);
+    expect(d.factors.some((f) => f.shareOfMove != null)).toBe(true);
+    expect(shareTitle(d.factors[0], d.roeFirst, d.roeLast)).toMatch(/exceed 100%/);
   });
   it("summary is empty with a single year", () => { expect(dupontSummary(dupont({ ...pl, periods: ["FY26"], rows: { revenue: [1500], net_profit: [90] } }, { ...bs, periods: ["FY26"], rows: { total_assets: [1200], total_equity: [480] } }, false))).toBe(""); });
 });

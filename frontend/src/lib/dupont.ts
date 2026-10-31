@@ -15,6 +15,11 @@ const at = (t: Table | undefined, key: string, p: string): number | null => {
   const i = t?.periods.indexOf(p) ?? -1, v = i >= 0 ? t?.rows[key]?.[i] : null;
   return v == null || !Number.isFinite(v) ? null : v;
 };
+/** A factor's share of the ROE move is only meaningful when ROE moved clearly: at least this many percentage points AND at least this relative size (log).
+ *  Below that the shares divide by a near-zero number and read as 210% or 357%. Shared with lib/dupontDeep.ts. */
+export const SHARE_MIN_PTS = 1, SHARE_MIN_LOG = 0.1;
+export const shareDefined = (roeFirst: number, roeLast: number, total: number | null): total is number =>
+  total != null && Math.abs(roeLast - roeFirst) >= SHARE_MIN_PTS && Math.abs(total) >= SHARE_MIN_LOG;
 const div = (a: number | null, b: number | null) => (a == null || b == null || b === 0 ? null : a / b);
 const r2 = (v: number | null, d = 2) => (v == null ? null : Math.round(v * 10 ** d) / 10 ** d);
 
@@ -47,7 +52,7 @@ export function dupont(pl: Table | undefined, bs: Table | undefined, lender: boo
     for (const [k, label] of keys) {
       const f = a[k] as number, l = b[k] as number, rel = f ? (l / f - 1) * 100 : null;
       factors.push({ key: k, label, first: f, last: l, changePct: r2(rel, 1), verdict: rel == null || Math.abs(rel) < 3 ? "flat" : rel > 0 ? "up" : "down",
-        shareOfMove: total != null && Math.abs(total) > 0.02 && f > 0 && l > 0 ? r2((Math.log(l / f) / total) * 100, 0) : null });
+        shareOfMove: shareDefined(a.roe as number, b.roe as number, total) && f > 0 && l > 0 ? r2((Math.log(l / f) / total) * 100, 0) : null });
     }
     const v = (k: Factor["key"]) => factors.find((f) => f.key === k)!.verdict;
     const w = (k: Factor["key"], name: string) => (v(k) === "flat" ? `${name} was about the same` : `${name} ${v(k) === "up" ? "rose" : "fell"}`);
@@ -64,6 +69,18 @@ export function dupont(pl: Table | undefined, bs: Table | undefined, lender: boo
 export function shareText(f: Pick<Factor, "shareOfMove">): string {
   if (f.shareOfMove == null) return "";
   return f.shareOfMove < 0 ? `offsets ${Math.abs(f.shareOfMove)}% of the ROE move` : `${f.shareOfMove}% of the ROE move`;
+}
+/** Tooltip for the share, or the reason there is none (ROE moved by less than SHARE_MIN_PTS, so the pts change is shown instead). */
+export function shareTitle(f: Pick<Factor, "shareOfMove">, roeFirst: number | null, roeLast: number | null): string {
+  if (f.shareOfMove != null) return "Share of the ROE change explained by this factor (log method). The three shares add up to 100%, so one can exceed 100% when another factor offsets it.";
+  if (roeFirst != null && roeLast != null && Math.abs(roeLast - roeFirst) < SHARE_MIN_PTS) return `${roeMoveText(roeFirst, roeLast)}: too small to split into shares.`;
+  return "Shares need two comparable years with positive margin and ROE, and a clear ROE move.";
+}
+/** The ROE change in points, shown instead of a share when ROE barely moved. */
+export function roeMoveText(roeFirst: number | null, roeLast: number | null): string {
+  if (roeFirst == null || roeLast == null) return "";
+  const d = roeLast - roeFirst;
+  return `ROE ${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(2)} pts`;
 }
 
 /** The plain-words summary under the DuPont block. Describes what moved; never says what to do. Empty when there are not two comparable years. */
