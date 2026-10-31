@@ -4,7 +4,7 @@
 `Yusra-Khan532/financial-portfolio` (engine 3.6.10 plus the additive ST/LT technical assessment; see `premium-model-implementation.md`), renamed for the website.
 The name is in one place on each side: `PRISM_NAME` in `backend/finlit/prism.py` and in `frontend/src/lib/prism.ts`.
 
-A prism splits light into its bands: the rating splits a company into its four parts (Fundamentals, Valuation, Quality, Risk).
+A prism splits light into its bands: the rating splits a company into its four parts (Growth & Profitability, Valuation, Quality, Risk).
 It describes a company's financial health from its filings and prices. It is never advice to buy, sell or hold anything,
 and every screen and the PDF say so.
 

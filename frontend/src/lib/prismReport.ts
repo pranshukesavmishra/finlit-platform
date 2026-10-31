@@ -4,6 +4,7 @@ import {
   isRated, partInfo, partShare, partsOf, score1, standing,
   type BenchmarkDetail, type PartKey, type PrismLabel, type PrismMetric, type PrismRating, type PrismReport,
 } from "./prism";
+import { FUND_PART_NAME } from "./prismNames";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -53,9 +54,9 @@ export function capNotes(rating: Pick<PrismRating, "lossCapped" | "valuationCapp
   const out: string[] = [];
   if (rating.lossCapped) {
     const cap = rating.loss?.cap, raw = rating.loss?.rawFundamental;
-    out.push(`Loss rule: the Fundamentals score is limited to ${cap == null ? "a ceiling" : score1(cap)}${raw != null ? ` (it was ${score1(raw)} before the limit)` : ""} because of recent losses.`);
+    out.push(`Loss rule: the ${FUND_PART_NAME} score is limited to ${cap == null ? "a ceiling" : score1(cap)}${raw != null ? ` (it was ${score1(raw)} before the limit)` : ""} because of recent losses.`);
   }
-  if (rating.valuationCapped) out.push("Valuation rule: the Valuation score is limited to 60 because Fundamentals or Quality is below 35.");
+  if (rating.valuationCapped) out.push(`Valuation rule: the Valuation score is limited to 60 because ${FUND_PART_NAME} or Quality is below 35.`);
   const lost = rating.capPointsLost ?? 0;
   if (lost > 0) out.push(`Together the limits took ${score1(lost)} points off the overall score; the part scores shown already include this.`);
   return out;
@@ -165,6 +166,6 @@ export function howRules(rating: Pick<PrismRating, "partWeights" | "parts">): st
     "Not rated: less than half of the inputs are available, or there is too little income history. No score and no category scores are shown.",
     "Provisional: under 80% of inputs, or fewer than six comparable quarters. The label is then capped at Healthy.",
     "A factor with no value is estimated from a group figure or left out, and is always marked. Estimates are never shown as strengths or concerns.",
-    "A recent loss limits the Fundamentals score, and weak Fundamentals or Quality limit Valuation to 60. Any limit that applied is listed under the score.",
+    `A recent loss limits the ${FUND_PART_NAME} score, and weak ${FUND_PART_NAME} or Quality limit Valuation to 60. Any limit that applied is listed under the score.`,
   ];
 }

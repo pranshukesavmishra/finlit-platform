@@ -1,6 +1,7 @@
 // FinLit Prism on the Advanced score screener: labels, columns, plain-words explanations and the reasons a Prism cell can be empty.
 // Pure data and small functions (no React). Wording: the rating describes financial health from filings and prices; never advice.
 import type { Row } from "./screener";
+import { FUND_PART_NAME } from "./prismNames";
 
 export type PrismLabel = "STRONG" | "HEALTHY" | "AVERAGE" | "WEAK" | "POOR" | "NOT RATED";
 export const PRISM_LABELS: PrismLabel[] = ["STRONG", "HEALTHY", "AVERAGE", "WEAK", "POOR", "NOT RATED"];
@@ -19,12 +20,12 @@ export type PrismRangeKey = "z" | "zf" | "zv" | "zq" | "zr";
 export type PrismCol = "prism_final" | "prism_fundamental" | "prism_valuation" | "prism_quality" | "prism_risk" | "prism_st_score" | "prism_lt_score";
 /** The category scores of the Prism rating, in the model's order, with the range key that filters each. */
 export const PRISM_PARTS: { range: PrismRangeKey; col: PrismCol; label: string; say: string }[] = [
-  { range: "zf", col: "prism_fundamental", label: "Fundamentals", say: "How steadily sales and profit grow." },
+  { range: "zf", col: "prism_fundamental", label: FUND_PART_NAME, say: "How steadily sales and profit grow." },
   { range: "zv", col: "prism_valuation", label: "Valuation", say: "The share price against earnings, book value and the company's own history. Higher means a more modest price for what the company earns." },
   { range: "zq", col: "prism_quality", label: "Quality", say: "Financial strength: borrowing, interest cover, returns and cash backing for profit." },
   { range: "zr", col: "prism_risk", label: "Risk", say: "Market risk: price swings, largest fall, trading activity and pledged shares. Higher means lower risk." },
 ];
-export const PRISM_NAMES: Record<PrismRangeKey, string> = { z: "Prism score", zf: "Prism Fundamentals", zv: "Prism Valuation", zq: "Prism Quality", zr: "Prism Risk" };
+export const PRISM_NAMES: Record<PrismRangeKey, string> = { z: "Prism score", zf: `Prism ${FUND_PART_NAME}`, zv: "Prism Valuation", zq: "Prism Quality", zr: "Prism Risk" };
 export const PRISM_RANGE_KEYS: PrismRangeKey[] = ["z", "zf", "zv", "zq", "zr"];
 export const prismRangeValue = (r: Row, k: PrismRangeKey): number | null | undefined =>
   k === "z" ? r.prism_final : k === "zf" ? r.prism_fundamental : k === "zv" ? r.prism_valuation : k === "zq" ? r.prism_quality : r.prism_risk;
@@ -63,7 +64,7 @@ export function coverageLine(c: { rated: number; provisional: number; total: num
 
 export const EXPLAIN = {
   finlit: "The FinLit score (0 to 100) is the average of five pillars worked out from a company's filed statements and prices: Quality, Growth, Profitability, Balance sheet and Technical. Free on every plan to see the company's own page; the full table is Silver.",
-  prism: "FinLit Prism (0 to 100) is the advanced rating, Gold only. It splits a company into four parts (Fundamentals, Valuation, Quality, Risk) and weighs them into one number with a label: Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor under 35. Status says how complete the data was: Rated, Provisional (a rating with limited history) or Not rated (not enough data).",
+  prism: "FinLit Prism (0 to 100) is the advanced rating, Gold only. It splits a company into four parts (Growth & Profitability, Valuation, Quality, Risk) and weighs them into one number with a label: Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor under 35. Status says how complete the data was: Rated, Provisional (a rating with limited history) or Not rated (not enough data).",
   differ: "The two scores are built differently on purpose. FinLit averages five pillars, including the price trend; Prism weighs four parts and adds valuation and risk. They can disagree, and the reason is on the company's report.",
   technical: "Short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate reading of the price trend, from -100 to +100. They describe the trend only and are not part of the Prism score.",
 } as const;

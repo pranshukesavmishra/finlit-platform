@@ -53,7 +53,7 @@ describe("Gold header dots (FinLit Prism)", () => {
   });
   it("0-100 dots use the shared band rule and the Prism words", () => {
     const d = goldDots(rep())!;
-    expect(d[0]).toMatchObject({ band: "mid", label: "Fundamentals 69: orange, healthy" });
+    expect(d[0]).toMatchObject({ band: "mid", label: "Growth & Profitability 69: orange, healthy" });
     expect(d[1]).toMatchObject({ band: "lo", label: "Valuation 42: red, weak" });
     expect(d[2]).toMatchObject({ band: "hi", label: "Quality 73: green, healthy" });
     expect(d[3].band).toBe("lo");
@@ -74,7 +74,7 @@ describe("Gold header dots (FinLit Prism)", () => {
     expect(goldDots({ kind: "none" })!.every((x) => x.band === "na" && x.label.endsWith("not rated yet"))).toBe(true);
     const n = goldDots(rep({ status: "NOT RATED", final: null, reason: "Industry not yet mapped to a model group." }))!;
     expect(n).toHaveLength(6); expect(n.every((x) => x.band === "na")).toBe(true);
-    expect(n[0].label).toBe("Fundamentals: grey, not rated: Industry not yet mapped to a model group");
+    expect(n[0].label).toBe("Growth & Profitability: grey, not rated: Industry not yet mapped to a model group");
     expect(goldDots(rep({ status: "NOT RATED", reason: null }))![2].label).toBe("Quality: grey, not rated");
     for (const k of ["loading", "hidden", "locked"] as const) expect(goldDots({ kind: k })).toBeNull();
   });

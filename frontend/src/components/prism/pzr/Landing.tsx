@@ -17,7 +17,7 @@ import { partVar } from "../../../lib/prismReport";
 export function PrismMark({ size = 220 }: { size?: number }) {
   const parts = ["fundamental", "valuation", "quality", "risk"];
   return (
-    <svg className="pzr-mark" width={size} height={size * 0.72} viewBox="0 0 220 158" role="img" aria-label="A beam of light enters a prism and splits into four bands: Fundamentals, Valuation, Quality and Risk.">
+    <svg className="pzr-mark" width={size} height={size * 0.72} viewBox="0 0 220 158" role="img" aria-label="A beam of light enters a prism and splits into four bands: Growth & Profitability, Valuation, Quality and Risk.">
       <defs><linearGradient id="pzr-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F4E3B0" stopOpacity=".55" /><stop offset="1" stopColor="#B88A2E" stopOpacity=".2" /></linearGradient></defs>
       <line x1="6" y1="86" x2="92" y2="76" className="pzr-mk-in" />
       <polygon points="86,22 138,128 34,128" className="pzr-mk-glass" /><polygon points="86,22 138,128 34,128" fill="url(#pzr-glass)" />
@@ -99,7 +99,7 @@ function Browse({ statement }: { statement: Statement }) {
   );
 }
 
-const WHAT = ["A score out of 100 and a label from Strong to Poor, or Not rated when the evidence is thin", "Four parts: Fundamentals, Valuation, Quality and Risk, each with what supports it and what weighs on it", "Every factor with its value, points and status, and which inputs are missing", "A PDF of exactly the calculation you see"];
+const WHAT = ["A score out of 100 and a label from Strong to Poor, or Not rated when the evidence is thin", "Four parts: Growth & Profitability, Valuation, Quality and Risk, each with what supports it and what weighs on it", "Every factor with its value, points and status, and which inputs are missing", "A PDF of exactly the calculation you see"];
 export const PRISM_WHAT = WHAT;
 
 export function LandingBody({ statement, setStatement }: { statement: Statement; setStatement: (s: Statement) => void }) {

@@ -41,7 +41,7 @@ describe("header", () => {
     expect(h).toContain('title="Valuation 42: red, weak"'); expect(h).toContain('aria-label="Short-term technical +1: orange, neutral"');
     expect(h).toContain("Long-term technical −60: red, strongly negative");
     expect(h).toContain("hs-gap"); expect(h.match(/class="hs-dot /g)).toHaveLength(6 + 6);   // six real dots + six in the legend
-    expect(h).not.toContain("Growth"); expect(h).not.toContain("Profitability");
+    expect(h).not.toMatch(/Growth(?! &amp; Profitability)/); expect(h).not.toMatch(/(?<!Growth &amp; )Profitability/);
     expect(h).toContain("a high Risk score means lower risk"); expect(h).toContain("What do the dots mean?");
   });
   it("Gold with no rating: six grey dots; while loading nothing; Silver keeps the five pillar dots; admin gets Prism", () => {

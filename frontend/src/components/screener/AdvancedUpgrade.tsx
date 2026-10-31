@@ -7,10 +7,11 @@ import { Icon } from "../../lib/icons";
 import { useUI } from "../../lib/ui";
 import { MINUS } from "../../lib/format";
 import "../../styles/scorescreen.css";
+import { FUND_PART_NAME } from "../../lib/prismNames";
 
 const POINTS = [
   "The FinLit Prism score with its rating word for every listed company",
-  "Four fundamental parts, each 0 to 100: Fundamentals, Valuation, Quality, Risk",
+  "Four fundamental parts, each 0 to 100: Growth & Profitability, Valuation, Quality, Risk",
   "Short-term and long-term technical views, from " + MINUS + "100 to +100",
   "Filters, quick views, compare, watchlist and CSV export",
 ];
@@ -39,7 +40,7 @@ export function AdvancedUpgrade() {
             <section className="card sx-ex" aria-label="Example of the advanced score screener">
               <div className="scr-tw"><table className="scr-t ss-t sx-t">
                 <caption className="sr">Example of the advanced score screener with invented companies</caption>
-                <thead><tr><th scope="col">Company</th><th scope="col">Prism</th><th scope="col">Fundamentals</th><th scope="col">Valuation</th><th scope="col">Quality</th><th scope="col">Risk</th><th scope="col">Short-term technical</th><th scope="col">Long-term technical</th></tr></thead>
+                <thead><tr><th scope="col">Company</th><th scope="col">Prism</th><th scope="col">{FUND_PART_NAME}</th><th scope="col">Valuation</th><th scope="col">Quality</th><th scope="col">Risk</th><th scope="col">Short-term technical</th><th scope="col">Long-term technical</th></tr></thead>
                 <tbody>{SAMPLE.map((r) => (
                   <tr key={r.n}>
                     <td className="stick"><span className="co"><span><b>{r.n}</b><small>{r.sector}</small></span></span></td>

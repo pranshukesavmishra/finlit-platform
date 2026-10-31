@@ -22,10 +22,10 @@ export function goToPart(key: PartKey) {
 function MiniRing({ score, color }: { score: number | null; color: string }) {
   const r = 26, c = 2 * Math.PI * r, f = score == null ? 0 : Math.max(0, Math.min(100, score)) / 100;
   return (
-    <svg className="pzr-mini" width="68" height="68" viewBox="0 0 68 68" aria-hidden="true" style={{ "--c": color } as React.CSSProperties}>
-      <circle cx="34" cy="34" r={r} className="pzr-mini-t" />
-      {f > 0 && <circle cx="34" cy="34" r={r} className="pzr-mini-f" strokeDasharray={`${(c * f).toFixed(1)} ${c.toFixed(1)}`} transform="rotate(-90 34 34)" />}
-      <text x="34" y="39" textAnchor="middle" className="pzr-mini-n">{score == null ? "—" : nf(score, 0)}</text>
+    <svg className="pzr-pring" width="68" height="68" viewBox="0 0 68 68" aria-hidden="true" style={{ "--c": color } as React.CSSProperties}>
+      <circle cx="34" cy="34" r={r} className="pzr-pring-t" />
+      {f > 0 && <circle cx="34" cy="34" r={r} className="pzr-pring-f" strokeDasharray={`${(c * f).toFixed(1)} ${c.toFixed(1)}`} transform="rotate(-90 34 34)" />}
+      <text x="34" y="39" textAnchor="middle" className="pzr-pring-n">{score == null ? "—" : nf(score, 0)}</text>
     </svg>
   );
 }

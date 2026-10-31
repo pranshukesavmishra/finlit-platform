@@ -168,7 +168,7 @@ export function PortfolioTable({ lines, model, tab, period, limit, state, errorT
         </table></HScroll>
         <p className="faint pf-fine">
           {tab === "overview" && (model === "prism"
-            ? "Fundamentals, Valuation, Quality and Risk run 0 to 100 (green from 70, orange 50 to 69, red under 50; a high Risk score means lower risk). Short and long term are the price-trend readings from −100 to +100. They describe the trend only and are not part of the Prism score."
+            ? "Growth & Profitability, Valuation, Quality and Risk run 0 to 100 (green from 70, orange 50 to 69, red under 50; a high Risk score means lower risk). Short and long term are the price-trend readings from −100 to +100. They describe the trend only and are not part of the Prism score."
             : "Each pillar runs 0 to 100 (green from 70, orange 50 to 69, red under 50).")}
           {tab === "ratios" && "These are the figures on each company's own page (the data provider's, with the period on hover). A dash says why on hover. Industry P/E is not stored, so it is not shown."}
           {tab === "financials" && `The latest ${period === "year" ? "full year" : "quarter"} in each company's stored statements, in ₹ crore except EPS. Tax ratio is tax divided by profit before tax from the same statement.`}

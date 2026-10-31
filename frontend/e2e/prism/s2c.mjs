@@ -11,7 +11,7 @@ await p.waitForTimeout(2500);
 const txt = await p.locator("main").innerText();
 fs.writeFileSync(OUT + "/2-prism-page.txt", txt);
 await p.screenshot({ path: OUT + "/2-prism-page-1400.png", fullPage: true });
-for (const [name, re] of [["score ring/score", /62\.\d|OUT OF 100/i], ["four parts", /Fundamental[s]?[\s\S]*Valuation[\s\S]*Quality[\s\S]*Risk/], ["per-factor table", /factor|Weight|Points/i], ["financial history", /financial history|Quarterly|Annual/i], ["completeness", /complete|inputs available|missing/i], ["freshness", /fresh|calculated|as of/i], ["benchmark", /benchmark|peer|median/i], ["warnings", /warning|limitation|note/i], ["Download PDF", /PDF/]]) check(`2 full report: ${name}`, re.test(txt), "");
+for (const [name, re] of [["score ring/score", /62\.\d|OUT OF 100/i], ["four parts", /(?:Fundamental|Growth & Profitability)[s]?[\s\S]*Valuation[\s\S]*Quality[\s\S]*Risk/], ["per-factor table", /factor|Weight|Points/i], ["financial history", /financial history|Quarterly|Annual/i], ["completeness", /complete|inputs available|missing/i], ["freshness", /fresh|calculated|as of/i], ["benchmark", /benchmark|peer|median/i], ["warnings", /warning|limitation|note/i], ["Download PDF", /PDF/]]) check(`2 full report: ${name}`, re.test(txt), "");
 check("2 full report: no errors", p.errs.length === 0, p.errs.join(" | "));
 // statement toggle
 await p.getByRole("group", { name: "Statement basis" }).getByRole("button", { name: /Standalone/ }).first().click();
