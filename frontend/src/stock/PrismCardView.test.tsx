@@ -55,6 +55,13 @@ describe("Technical section", () => {
   });
 });
 
+describe("band rule and reading direction", () => {
+  it("explains the cut-offs and shows the Risk direction", () => {
+    const h = renderToStaticMarkup(fund(rating())), t = text(h);
+    expect(h).toContain("Strong 80 and above, Healthy 65 to 79"); expect(t).toContain("Higher = lower risk"); expect(t).toContain("Higher is better");
+  });
+});
+
 describe("loading and wording", () => {
   it("has a skeleton in the same two-section shape", () => { const h = renderToStaticMarkup(<CardSkeleton />); expect(h.match(/pcx-skel-sec/g)).toHaveLength(2); expect(h.match(/s-card/g)).toHaveLength(4); });
   it("never uses advice words in any state", () => {

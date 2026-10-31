@@ -69,6 +69,9 @@ export function partHint(key: string): { short: string; long: string } | null {
   return ["fundamental", "valuation", "quality"].includes(key) ? { short: "Higher is better", long: "Higher is better: a higher score is a stronger result." } : null;
 }
 
+/** The five word bands of a Prism score, written once so every tooltip quotes the same cut-offs as `partWord` / `scoreTone`. */
+export const BAND_RULE = "Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor below 35.";
+
 /* ---- Gold header dots: the six FinLit Prism parameters (4 fundamental, 2 technical) ---- */
 export type GoldDot = { key: string; name: string; letter: string; group: "fund" | "tech"; value: number | null; band: ScoreBand; label: string };
 /** Fundamental parts in the Prism order, then the two technical horizons. Letter F V Q R S L. */

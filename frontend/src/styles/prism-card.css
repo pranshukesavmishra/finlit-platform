@@ -181,3 +181,6 @@
   .pcx-card, .pcx-tip, .pcx-arc, .pcx-fill { transition: none !important; }
   .pcx-card:hover, .pcx-card.hot { transform: none; }
 }
+
+/* hint under a component's status word: the reading direction (Risk: a higher score means lower risk) */
+.pcx-hint { font-size: 11.5px; line-height: 1.3; color: var(--muted); }
