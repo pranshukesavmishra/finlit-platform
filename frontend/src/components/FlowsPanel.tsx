@@ -3,7 +3,7 @@
 import { Link } from "react-router";
 import { dateIN } from "../lib/format";
 import { useFlows, type Streak } from "../lib/flows";
-import { ageLabel, diiState, inr } from "../lib/flowsMath";
+import { ageLabel, availability, diiFeedText, diiState, inr } from "../lib/flowsMath";
 import { MiniBars } from "./FlowsCharts";
 import "../styles/flows.css";
 
@@ -28,6 +28,7 @@ export function FlowsPanel({ sessions = 30, className = "" }: { sessions?: numbe
       </div>
       <MiniBars rows={rows.map((d) => ({ d: d.d, v: d.fii.net }))} name="FII" />
       {st !== "none" && <MiniBars rows={rows.map((d) => ({ d: d.d, v: d.dii?.net ?? null }))} name="DII" />}
+      {st === "partial" && availability(rows).dii && availability(rows).dii!.n < rows.length && <p className="fl-foot">{diiFeedText(f.coverage.diiFrom ?? availability(f.days).dii?.from)}</p>}
       <Link to="/fii-dii" className="flp-a">Full FII/DII data: charts, calendar and history →</Link>
     </section>
   );

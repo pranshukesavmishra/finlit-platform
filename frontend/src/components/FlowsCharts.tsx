@@ -32,7 +32,7 @@ function xTicks(t0: number, t1: number, W: number): { x: number; label: string }
 }
 
 // ------------------------------------------------------------------------------------------------------------- lines
-export type LineSeries = { key: string; label: string; color: string; pts: Pt[]; axis?: "l" | "r"; dashed?: boolean; fmt?: (v: number) => string };
+export type LineSeries = { key: string; label: string; color: string; pts: Pt[]; axis?: "l" | "r"; dashed?: boolean; fmt?: (v: number) => string; /** what the tooltip says on a day this line has no figure */ none?: string };
 export function LineChart({ series, height = 320, label, zero = true }: { series: LineSeries[]; height?: number; label: string; zero?: boolean }) {
   const [box, W] = useWidth(), svg = useRef<SVGSVGElement>(null), [hover, setHover] = useState<number | null>(null);
   const dual = series.some((s) => s.axis === "r");
@@ -73,7 +73,7 @@ export function LineChart({ series, height = 320, label, zero = true }: { series
       {anchor && (
         <div className="fl-tip" style={{ left: `${Math.min(86, Math.max(14, (X(anchor) / W) * 100))}%` }} role="status">
           <b>{dlabel(anchor)}</b>
-          {live.map((s, i) => { const v = m.maps[i].get(anchor); return <span key={s.key}><i style={{ background: s.color }} />{s.label}<em>{v == null ? "—" : s.fmt ? s.fmt(v) : inr(v)}</em></span>; })}
+          {live.map((s, i) => { const v = m.maps[i].get(anchor); return <span key={s.key}><i style={{ background: s.color }} />{s.label}<em>{v == null ? (s.none ?? "—") : s.fmt ? s.fmt(v) : inr(v)}</em></span>; })}
         </div>
       )}
     </div>
@@ -81,7 +81,7 @@ export function LineChart({ series, height = 320, label, zero = true }: { series
 }
 
 // ------------------------------------------------------------------------------------------------------------- daily bars
-export function BarChart({ rows, ma, maLabel, name, height = 300 }: { rows: { d: string; v: number | null }[]; ma?: (number | null)[]; maLabel?: string; name: string; height?: number }) {
+export function BarChart({ rows, ma, maLabel, name, height = 300, none }: { rows: { d: string; v: number | null }[]; ma?: (number | null)[]; maLabel?: string; name: string; height?: number; none?: string }) {
   const [box, W] = useWidth(), svg = useRef<SVGSVGElement>(null), [hover, setHover] = useState<number | null>(null);
   const H = W < 560 ? Math.round(height * 0.8) : height, L = W < 560 ? 46 : 62, R = 14, T = 14, B = 26;
   const vals = rows.map((r) => r.v).filter((v): v is number => v != null).concat((ma ?? []).filter((v): v is number => v != null));
@@ -111,7 +111,7 @@ export function BarChart({ rows, ma, maLabel, name, height = 300 }: { rows: { d:
       {r && hover != null && (
         <div className="fl-tip" style={{ left: `${Math.min(86, Math.max(14, (X(hover) / W) * 100))}%` }} role="status">
           <b>{dlabel(r.d)}</b>
-          <span><i className={r.v != null && r.v >= 0 ? "up" : "dn"} />{name} net<em>{r.v == null ? "—" : (r.v >= 0 ? "▲ " : "▼ ") + inr(r.v)}</em></span>
+          <span><i className={r.v != null && r.v >= 0 ? "up" : "dn"} />{name} net<em>{r.v == null ? (none ?? "—") : (r.v >= 0 ? "▲ " : "▼ ") + inr(r.v)}</em></span>
           {ma && <span><i style={{ background: "var(--gold)" }} />{maLabel}<em>{ma[hover] == null ? "—" : inr(ma[hover])}</em></span>}
         </div>
       )}
@@ -144,7 +144,7 @@ export function CalendarHeat({ days, side, selected, onSelect, name, publishedFr
   const cal: Cal = useMemo(() => calendar(days, side), [days, side]);
   const labels = useMemo(() => new Map(cal.cells.map((c) => {
     const un = c.v == null && side === "dii" && diiGap(c.d, publishedFrom) === "unpublished";
-    if (un) return [c.d, { title: `${dlabel(c.d)}: not published (the official DII report begins ${dlabel(publishedFrom!)})`, aria: `${dlabel(c.d)}: ${name} not published, the official report begins ${dlabel(publishedFrom!)}` }] as const;
+    if (un) return [c.d, { title: `${dlabel(c.d)}: No DII figure for this day: our daily DII feed starts on ${dlabel(publishedFrom!)}`, aria: `${dlabel(c.d)}: No ${name} figure for this day, our daily DII feed starts on ${dlabel(publishedFrom!)}` }] as const;
     const w = `${dlabel(c.d)}: ${c.v == null ? "no figure" : (c.v > 0 ? "▲ " : c.v < 0 ? "▼ " : "") + inr(c.v)}`;
     return [c.d, { title: w, aria: `${dlabel(c.d)}: ${name} ${c.v == null ? "no figure published" : (c.v > 0 ? "net buying " : c.v < 0 ? "net selling " : "flat ") + inr(c.v)}` }] as const;
   })), [cal, name, side, publishedFrom]);

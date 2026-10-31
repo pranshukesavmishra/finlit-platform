@@ -404,3 +404,31 @@ async def test_admin_route_needs_an_administrator_with_mfa(app, monkeypatch):   
     assert (await boss.delete("/api/admin/flows/2026-10-20")).json()["removed"] == 2
     for c in (user, boss):
         await c.aclose()
+
+
+# ---- item 26: one bad side no longer hides the other; backfill-dii is insert-only, strict and resumable
+def test_a_bad_dii_cell_blanks_only_the_dii_side_of_the_day():
+    r = row(D(2026, 10, 1), -10.0, 500.0, fb=100.0, fs=110.0, db=10.0, ds=20.0)
+    rows, issues = flows.checked([r], D(2026, 10, 7))
+    assert len(rows) == 1 and rows[0].fn == -10.0 and rows[0].dn is None and rows[0].db is None and "DII net is not purchases minus sales" in issues[0]
+
+
+def test_nse_rows_keep_buy_sell_and_net_together_when_nsdl_is_read_again():
+    assert "IN ('manual', 'nse') THEN flows_daily.dii_net" in flows.DII_SQL and "IN ('manual', 'nse') THEN flows_daily.fii_net" in flows.FII_SQL
+
+
+@pytest.mark.integration
+async def test_backfill_dii_fills_only_empty_days_and_is_resumable(fstore):
+    transport, seen = fake_sites()
+    async with fstore.pool.acquire() as conn:
+        await flows.save_manual(conn, flows.ManualIn(d=D(2026, 10, 14), fii={"net": -5.0}, dii={"net": 7.0}), D(2026, 10, 30))
+        await flows.save_manual(conn, flows.ManualIn(d=D(2026, 10, 15), fii={"net": -5.0}), D(2026, 10, 30))
+    kw = dict(transport=transport, today=D(2026, 10, 30), stop_after_empty=3)
+    res = await flows.backfill_dii(fstore, D(2026, 10, 1), D(2026, 10, 15), **kw)
+    assert res["saved"] == 1 and res["oldest"] == "2026-10-15" and res["floorFound"] is True and res["rejected"] == []
+    async with fstore.pool.acquire() as conn:
+        r = await conn.fetchrow("SELECT dii_net, dii_source, fii_net FROM flows_daily WHERE d = '2026-10-15'")
+        assert r["dii_source"] == "nsdl" and r["dii_net"] is not None and r["fii_net"] == -5.0
+        assert (await conn.fetchval("SELECT dii_net FROM flows_daily WHERE d = '2026-10-14'")) == 7.0           # an existing figure is never replaced
+    again = await flows.backfill_dii(fstore, D(2026, 10, 1), D(2026, 10, 15), **kw)
+    assert again["saved"] == 0 and again["asked"] == 0                                                          # resumable: nothing is asked twice

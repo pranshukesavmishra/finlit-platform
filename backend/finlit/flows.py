@@ -46,6 +46,15 @@ IST = timezone(timedelta(hours=5, minutes=30))
 FIRST = date(2010, 1, 1)                      # the stock-exchange route is split out in NSDL's tables from at least 2010; before that the layout differs
 DII_START = date(2026, 6, 1)                  # NSDL's first DII report; nothing earlier is published
 DII_REASON = "NSDL publishes the DII report from 1 June 2026; earlier DII days are not available from any official free source, so they are left empty, never estimated."
+
+
+def dii_reason(first: date) -> str:
+    if first == DII_START:
+        return DII_REASON
+    return (f"NSDL's DII report is available from {first:%-d %B %Y} (earlier days were read from NSDL's own date form); before that no daily DII series exists from any free "
+            "official source, so those days are left empty, never estimated.")
+
+
 INDEX, INDEX_LABEL = "NIF50", "Nifty 50"
 DAYS_SHOWN_YEARS = 5
 MIN_CORR = 30
@@ -70,17 +79,23 @@ VALUES ($1, $2, $3, $4, 'nsdl', $5, $6, $7, $8, $9, $10, now())
 ON CONFLICT (d) DO UPDATE SET
   fii_buy    = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_buy  ELSE EXCLUDED.fii_buy  END,
   fii_sell   = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_sell ELSE EXCLUDED.fii_sell END,
-  fii_net    = CASE WHEN flows_daily.fii_source = 'manual' THEN flows_daily.fii_net  ELSE EXCLUDED.fii_net  END,
+  fii_net    = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_net  ELSE EXCLUDED.fii_net  END,
   fii_source = CASE WHEN flows_daily.fii_source IN ('manual', 'nse') THEN flows_daily.fii_source ELSE 'nsdl' END,
   fpi_equity_net = EXCLUDED.fpi_equity_net, fpi_debt_net = EXCLUDED.fpi_debt_net, fpi_hybrid_net = EXCLUDED.fpi_hybrid_net,
   fpi_total_net = EXCLUDED.fpi_total_net, fpi_usd_mn = EXCLUDED.fpi_usd_mn, fpi_inr = EXCLUDED.fpi_inr, updated_at = now()"""
 DII_SQL = """
 INSERT INTO flows_daily (d, dii_buy, dii_sell, dii_net, dii_source, updated_at) VALUES ($1, $2, $3, $4, 'nsdl', now())
 ON CONFLICT (d) DO UPDATE SET
-  dii_buy    = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_buy  ELSE EXCLUDED.dii_buy  END,
+  dii_buy    = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_buy  ELSE EXCLUDED.dii_buy  END,
   dii_sell   = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_sell ELSE EXCLUDED.dii_sell END,
-  dii_net    = CASE WHEN flows_daily.dii_source = 'manual' THEN flows_daily.dii_net  ELSE EXCLUDED.dii_net  END,
+  dii_net    = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_net  ELSE EXCLUDED.dii_net  END,
   dii_source = CASE WHEN flows_daily.dii_source IN ('manual', 'nse') THEN flows_daily.dii_source ELSE 'nsdl' END, updated_at = now()"""
+# One row's buy, sell and net always come from the same source (a mix would not add up and the day would be left out at publish time).
+# The backfill never replaces a figure that exists: it fills only a day whose DII net is empty.
+DII_FILL_SQL = """
+INSERT INTO flows_daily (d, dii_buy, dii_sell, dii_net, dii_source, updated_at) VALUES ($1, $2, $3, $4, 'nsdl', now())
+ON CONFLICT (d) DO UPDATE SET dii_buy = EXCLUDED.dii_buy, dii_sell = EXCLUDED.dii_sell, dii_net = EXCLUDED.dii_net, dii_source = 'nsdl', updated_at = now()
+WHERE flows_daily.dii_net IS NULL"""
 
 
 async def save_fpi(conn, days: List[S.FpiDay]) -> int:
@@ -363,6 +378,60 @@ async def step_dii(src: Sources, conn, today: date, full: bool) -> dict:
     return {"rows": saved, "latest": latest.d.isoformat() if latest else None, "problems": notes[:10]}
 
 
+async def backfill_dii(store, start: date, end: Optional[date] = None, transport: Optional[httpx.AsyncBaseTransport] = None, today: Optional[date] = None,
+                       max_requests: int = 150, stop_after_empty: int = 25, settings=None) -> dict:
+    """Walk weekdays from `end` (default: the day before NSDL's first known DII report) back to `start` through NSDL's own 'Enter Date' DII form and fill
+    days whose DII is empty. Resumable (days already filled or known empty are not asked again; the walk stops after `stop_after_empty` weekdays in a
+    row with no report, which is how it finds the floor of what NSDL publishes), insert-only (a stored figure is never replaced), strict (the report must
+    be dated the day asked, a weekday, buy - sell = net, the investor types must add up to the total, nothing out of range). Source 'nsdl'; updated_at is the fetch time."""
+    today = today or datetime.now(IST).date()
+    end = end or (DII_START - timedelta(days=1))
+    src = Sources(transport, None, settings)
+    saved, asked, skipped, rejected = [], 0, 0, []
+    floor_hit = False
+    try:
+        async with store.pool.acquire() as conn:
+            meta = await get_meta(conn, "dii_backfill") or {}
+            if meta.get("floor") and date.fromisoformat(meta["floor"]) >= start:
+                start = date.fromisoformat(meta["floor"]) + timedelta(days=1)    # an earlier run already found where NSDL's history ends
+            have = {r["d"] for r in await conn.fetch("SELECT d FROM flows_daily WHERE dii_net IS NOT NULL")}
+            empty = set((await get_meta(conn, "dii_empty") or {"dates": []})["dates"])
+            run_empty = 0
+            for d in reversed(weekdays(start, min(end, today))):
+                if d in have or d.isoformat() in empty:
+                    skipped += 1
+                    continue
+                if asked >= max_requests:
+                    break
+                asked += 1
+                try:
+                    day = S.parse_dii(await src.form(f"{NSDL}/Users/DIIGenerateReport.aspx?Rep=A", d))
+                except Exception as exc:
+                    log.warning("flows: NSDL DII report for %s failed: %s", d, exc)
+                    continue
+                if day is None:
+                    empty.add(d.isoformat())
+                    run_empty += 1
+                    if run_empty >= stop_after_empty:
+                        floor_hit = True
+                        meta["floor"] = d.isoformat()
+                        break
+                    continue
+                run_empty = 0
+                if day.d != d or day.d.weekday() > 4 or day.problems:
+                    rejected.append(f"{d}: " + ("; ".join(day.problems) or f"report is dated {day.d}"))
+                    continue
+                await conn.execute(DII_FILL_SQL, day.d, day.equity.buy, day.equity.sell, day.equity.net)
+                saved.append(d.isoformat())
+            await set_meta(conn, "dii_empty", {"dates": sorted(empty)[-800:]})
+            await set_meta(conn, "dii_backfill", {**meta, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "saved": len(saved)})
+    finally:
+        await src.aclose()
+    payload = await publish(store, today) if saved else None
+    return {"asked": asked, "saved": len(saved), "oldest": min(saved) if saved else None, "newest": max(saved) if saved else None, "skipped": skipped,
+            "rejected": rejected[:10], "floorFound": floor_hit, "diiSessions": payload["coverage"]["diiSessions"] if payload else None}
+
+
 async def step_nse(src: Sources, conn, today: date, full: bool) -> dict:
     """The exchange's own FII/DII cash-market report (provisional figures for the latest session): what news and other sites quote for the day.
     It replaces NSDL's settlement-date figure for that day, which differs. Only the latest session is published, so older days stay as NSDL has them."""
@@ -460,23 +529,28 @@ def r2(v: Optional[float]) -> Optional[float]:
 
 
 def checked(rows: List[Row], today: date) -> Tuple[List[Row], List[str]]:
-    """Publish-time sanity: a day dated in the future, an amount no investor class trades in a day, or a net that is not purchases minus
-    sales is left out of the page (and logged); the stored row is kept for the next look."""
+    """Publish-time sanity: a day dated in the future is left out; an amount no investor class trades in a day, or a net that is not purchases
+    minus sales, blanks THAT SIDE of the day only (the other side's good figure is kept, so one bad DII cell cannot hide the FII day). Logged;
+    the stored row is kept for the next look."""
     keep, issues = [], []
     for r in rows:
-        why = None
         if r.d > today:
-            why = "dated in the future"
-        for name, b, s, n in (("FII", r.fb, r.fs, r.fn), ("DII", r.db, r.ds, r.dn)):
-            if why or n is None:
+            issues.append(f"{r.d}: dated in the future")
+            continue
+        for name, pre in (("FII", "f"), ("DII", "d")):
+            b, s_, n = (getattr(r, pre + k) for k in ("b", "s", "n"))
+            if n is None:
                 continue
-            if abs(n) > S.MAX_CRORE or (b is not None and not 0 <= b <= S.MAX_CRORE) or (s is not None and not 0 <= s <= S.MAX_CRORE):
+            why = None
+            if abs(n) > S.MAX_CRORE or (b is not None and not 0 <= b <= S.MAX_CRORE) or (s_ is not None and not 0 <= s_ <= S.MAX_CRORE):
                 why = f"{name} amount out of range"
-            elif b is not None and s is not None and abs((b - s) - n) > S.TOLERANCE + 0.05:
+            elif b is not None and s_ is not None and abs((b - s_) - n) > S.TOLERANCE + 0.05:
                 why = f"{name} net is not purchases minus sales"
-        if why:
-            issues.append(f"{r.d}: {why}")
-        else:
+            if why:
+                issues.append(f"{r.d}: {why}")
+                for k in ("b", "s", "n"):
+                    setattr(r, pre + k, None)
+        if r.fn is not None or r.dn is not None:
             keep.append(r)
     return keep, issues
 
@@ -701,6 +775,7 @@ async def build(store, today: date) -> dict:
         sells = last.fs is not None and last.ds is not None and (last.fs + last.ds) > 0
         latest = {"d": last.d.isoformat(), "fii": days[-1]["fii"], "dii": days[-1]["dii"], "combinedNet": r2(last.fn + last.dn) if both else None,
                   "fiiShareOfSelling": round(last.fs / (last.fs + last.ds), 4) if sells else None, "mood": mood_of(last.fn)}
+    pub_from = min([DII_START] + [r.d for r in rows if r.dn is not None and r.dsrc == "nsdl" and r.d < DII_START])   # NSDL's own earlier days (backfill-dii) move it back
     fser = [(r.d, r.fn) for r in rows if r.fn is not None]
     dser = [(r.d, r.dn) for r in rows if r.dn is not None]
     positions = positioning(oi)
@@ -718,7 +793,7 @@ async def build(store, today: date) -> dict:
         "correlation": correlation(shown, closes),
         "index": [{"d": r.d.isoformat(), "close": closes[r.d]} for r in shown if r.d in closes] or None,
         "coverage": {"from": days[0]["d"] if days else None, "to": days[-1]["d"] if days else None, "sessions": sum(r.fn is not None for r in shown), "diiSessions": sum(r.dn is not None for r in shown),
-                     "diiFrom": next((r.d.isoformat() for r in shown if r.dn is not None), None), "diiPublishedFrom": DII_START.isoformat(), "diiReason": DII_REASON},
+                     "diiFrom": next((r.d.isoformat() for r in shown if r.dn is not None), None), "diiPublishedFrom": pub_from.isoformat(), "diiReason": dii_reason(pub_from)},
         "sources": notes_for(rows, issues, runs, positions, closes, today),
         "disclaimer": "Figures are reproduced from the official publishers (NSDL, NSE archives) in Rs crore, or worked out from them as described. NSDL's daily figures are provisional and are revised as custodians confirm trades. "
                       "A figure no permitted source publishes is left empty, never estimated. Information only, not investment advice.",
