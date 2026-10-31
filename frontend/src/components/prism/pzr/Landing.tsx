@@ -34,7 +34,7 @@ export function StatementSwitch({ value, set, disabled }: { value: Statement; se
   );
 }
 
-export function Picker({ statement, setStatement, big = false }: { statement: Statement; setStatement: (s: Statement) => void; big?: boolean }) {
+export function Picker({ statement, big = false }: { statement: Statement; setStatement?: (s: Statement) => void; big?: boolean }) {
   const nav = useNavigate();
   const sf = useIndexFilter();
   const [text, setText] = useState(""), [open, setOpen] = useState(false), [cur, setCur] = useState(0);
@@ -55,7 +55,6 @@ export function Picker({ statement, setStatement, big = false }: { statement: St
         {open && sf.on && !hits.length && text.trim() && <div className="pm-sug"><FilterNote filter={sf.filter} q={text.trim()} onChange={sf.setFilter} /></div>}
         {open && hits.length > 0 && <div className="pm-sug" id="pz-sug" role="listbox">{hits.map((h, i) => <button key={h.symbol} type="button" role="option" aria-selected={i === cur} className={i === cur ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => go(h.symbol)}><b>{h.symbol}</b><small>{h.name}</small></button>)}</div>}
       </div>
-      <label className="pzr-lbl">Statement basis<StatementSwitch value={statement} set={setStatement} /></label>
     </div>
   );
 }
