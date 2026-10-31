@@ -7,6 +7,7 @@ repeat views without reaching the origin at all.
 
 from __future__ import annotations
 
+import os
 import hashlib
 import logging
 import re
@@ -253,8 +254,14 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 logging.getLogger("finlit.api").info("list warm-up skipped: no visitor in the last 15 minutes")
 
         lists = asyncio.create_task(start_warm_ups())
+        jobs_watch = None
+        if store is None and os.environ.get("JOBS_WATCH", "1") == "1":   # the supervisor cannot report its own death: the web process watches its heartbeat (docs/JOBS.md)
+            from .jobs.alerts import watch_supervisor
+            jobs_watch = asyncio.create_task(watch_supervisor(app))
         yield
         lists.cancel()
+        if jobs_watch:
+            jobs_watch.cancel()
         if getattr(app.state, "index_client", None):
             await app.state.index_client.aclose()
         if getattr(app.state, "index_dhan", None):
@@ -657,6 +664,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(flows_api.admin)
     app.include_router(fundjobs.router)
     app.include_router(sysctl.router)   # /api/admin/system: loads switch, restart, status
+    app.include_router(__import__("finlit.jobs.status", fromlist=["router"]).router)   # GET /api/jobs/status: public, read-only (every job, every dataset's freshness, the pause)
     app.include_router(__import__("finlit.dbusage", fromlist=["admin"]).admin)   # /api/admin/db-usage: top statements by rows returned
     app.include_router(__import__("finlit.mf_compare", fromlist=["router"]).router)   # head-to-head Fund Compare, /api/mf-compare
     app.include_router(__import__("finlit.etf_vs_index", fromlist=["router"]).router)   # ETF vs index fund on one index, /api/etf-vs-index

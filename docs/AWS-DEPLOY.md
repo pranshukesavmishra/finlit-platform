@@ -60,7 +60,7 @@ sudo install -d -o ubuntu -g ubuntu /opt/finlit
 git clone https://github.com/Yusra-Khan532/Financial-Portfolio.git /opt/finlit/src
 bash /opt/finlit/src/finlit-platform/deploy/aws/bootstrap.sh
 ```
-The script updates Ubuntu, installs Docker (from Docker's own repository, signing key checked), makes a 2 GB swapfile (swappiness 10), turns on the firewall (22, 80, 443 only), fail2ban and automatic security updates, and prints what it did. It is safe to run again.
+The script updates Ubuntu, installs Docker (from Docker's own repository, signing key checked), makes a 2 GB swapfile only if the server has none (swappiness 10), turns on the firewall (22, 80, 443 only), fail2ban and automatic security updates, and prints what it did. It is safe to run again.
 
 Optional, safer: let only your own address use SSH. Find your public address (search "what is my ip"), then run
 `ADMIN_IP=203.0.113.7 bash /opt/finlit/src/finlit-platform/deploy/aws/bootstrap.sh`
@@ -192,3 +192,7 @@ The $100 credit therefore lasts roughly 4 months of continuous running; the free
 - Atlas errors in `finlit logs app`: add the Elastic IP in Atlas Network Access, check `MONGO_URL`.
 - https does not start: the DNS A record must point at the server; look at `finlit logs caddy`.
 - Memory trouble in the background loads: set `BOOT_LOAD_ENABLED=0` or lower `INGEST_LIMIT`, then `finlit`.
+
+
+## Background jobs
+All scheduled work is run by the job supervisor; how to read `/api/jobs/status`, the retry rules, the pause, the failure table and the first-deploy checks are in `docs/JOBS.md` and `deploy/aws/README.md`.

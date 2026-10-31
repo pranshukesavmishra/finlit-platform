@@ -1,0 +1,44 @@
+# Every `python -m finlit.worker <command>` that deploy/scheduler.sh ran before the job supervisor (git show c09a516:deploy/scheduler.sh). One per line.
+# The parity test asserts each one is in the registry (finlit/jobs/registry.py) with an equal or better schedule.
+refresh-results
+refresh-results-light
+refresh-calendars
+refresh-listing
+refresh-listing --force
+refresh-technicals
+refresh-quotes
+check-alerts --kind live
+check-alerts --kind daily
+check-screens
+send-digest
+refresh-flows
+refresh-flows --only nse
+refresh-macro
+refresh-indices
+refresh-universe
+refresh-short-history
+refresh-leadership
+backtest-leadership
+refresh-logos
+refresh-instruments
+refresh-mf
+refresh-etf
+refresh-etf --resume
+refresh-facts
+refresh-industry
+refresh-portfolios
+score-mf
+backfill-mf
+backfill-history
+precompute-prism
+ingest-all
+score-all
+ingest
+prune
+audit-coverage
+audit-integrity
+history-probe
+rebuild-metrics --only-missing
+dhan-check
+drain-queue --loop
+refresh-commodities --loop

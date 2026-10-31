@@ -325,15 +325,20 @@ async def test_the_public_status_page_shows_the_dates_held_and_the_last_run(worl
 
 
 # ----------------------------------------------------------------------------------------------- scheduling (static)
-def test_the_scheduler_and_cron_run_the_refresh_after_the_close_with_a_late_retry():
-    sched = (ROOT / "deploy/scheduler.sh").read_text()
-    chain = re.search(r"chain_technicals\(\) \{.*?\n\}", sched, re.S).group(0)
-    assert "refresh-technicals" in chain
-    assert re.search(r"\(\( weekday \)\) && due technicals 18 30 && window technicals chain_technicals", sched)       # 18:30 IST, weekdays: after the final candles
-    evening = re.search(r"chain_evening2\(\) \{.*?\n\}", sched, re.S).group(0)
-    assert re.search(r"D <= 5 \)\) && run light technicals refresh-technicals", evening)                              # the late retry, 21:10
-    assert "refresh-technicals" in re.search(r"chain_morning\(\) \{.*?\n\}", sched, re.S).group(0)                      # the catch-up
-    assert "technicals*" in re.search(r"skipped\(\) \{[^\n]*", sched).group(0)                                         # a skipped run leaves a reason for the status page
+def test_the_supervisor_and_cron_run_the_refresh_after_the_close_with_a_late_retry():
+    from finlit.jobs.due import Ctx, JobState, evaluate
+    from finlit.jobs.registry import by_name
+    from jobs_fakes import ist
+    job = by_name({})["technicals"]
+    assert job.cls == "bulk" and job.args == ("refresh-technicals",) and job.sla.kind == "session" and job.probe == "technicals"
+    assert {w.window for w in job.windows} == {"AFTER_CLOSE", "MORNING"}               # 18:30 after the close, and the 05:00 to 06:45 catch-up
+    friday_close = ist(2026, 10, 30, 18, 45)
+    stale = JobState(job="technicals", first_seen_at=friday_close - timedelta(days=9), last_success_at=friday_close - timedelta(hours=24))
+    assert evaluate(job, stale, Ctx(now=friday_close)).due                              # the evening run
+    late = JobState(job="technicals", first_seen_at=friday_close - timedelta(days=9), last_success_at=ist(2026, 10, 30, 19, 0), last_attempt_at=ist(2026, 10, 30, 19, 0))
+    assert not evaluate(job, late, Ctx(now=ist(2026, 10, 30, 21, 10), probes={"technicals": False})).due
+    assert evaluate(job, late, Ctx(now=ist(2026, 10, 30, 21, 10), probes={"technicals": True})).due   # the late retry: companies the first run could not reach
+    assert evaluate(job, JobState(job="technicals", first_seen_at=friday_close - timedelta(days=9), last_success_at=ist(2026, 10, 29, 19, 0)), Ctx(now=ist(2026, 10, 31, 5, 30))).due   # the morning catch-up
     cron = (ROOT / "deploy/crontab").read_text()
     assert re.search(r"^30 18 \* \* 1-5\s+root \$W refresh-technicals", cron, re.M) and re.search(r"^15 21 \* \* 1-5\s+root \$W refresh-technicals", cron, re.M)
     worker = (ROOT / "backend/finlit/worker.py").read_text()

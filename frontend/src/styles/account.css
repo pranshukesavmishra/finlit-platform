@@ -369,6 +369,13 @@
 .sys-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; cursor: pointer; }
 .sys-row input { width: 40px; height: 22px; accent-color: var(--gold); cursor: pointer; }
 .sys-pop .btn { margin-top: 6px; }
+.sys-for select { font: inherit; padding: 4px 6px; border: 1px solid var(--line, #ccc); border-radius: 6px; background: var(--card, #fff); color: inherit; }
+.sys-note { font-size: 12px; }
+.jobs-banner { margin: 0 0 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--loss, #b3261e); background: color-mix(in srgb, var(--loss, #b3261e) 8%, transparent); }
+.jobs-banner.ok { border-color: var(--gain, #1b7f4b); background: color-mix(in srgb, var(--gain, #1b7f4b) 8%, transparent); }
+.jobs-banner.warn { border-color: var(--warn, #b7791f); background: color-mix(in srgb, var(--warn, #b7791f) 10%, transparent); }
+.jobs-banner b { display: block; margin-bottom: 4px; }
+.jobs-banner ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
 @media (max-width: 480px) { .sys-dd { position: static; } .ddm.sys-pop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
 
 /* ---- My portfolio: model banner, tab strip (Overview, Ratios, Financials) and the cells of the three tables ---- */

@@ -688,6 +688,26 @@ async def probe(client: FinEdgeClient, symbol: str = "RELIANCE", statement: str 
     return out
 
 
+def _start_job_heartbeat():
+    """Under the job supervisor (FINLIT_JOB_HEARTBEAT is set) touch a file every 20 seconds while the event loop is alive: a hung or blocked job stops
+    touching it and the supervisor's watchdog kills and retries it. Does nothing when run by hand."""
+    path = os.environ.get("FINLIT_JOB_HEARTBEAT")
+    if not path:
+        return None
+
+    async def beat():
+        while True:
+            try:
+                os.utime(path, None)
+            except OSError:
+                try:
+                    open(path, "a").close()
+                except OSError:
+                    pass
+            await asyncio.sleep(20)
+    return asyncio.get_running_loop().create_task(beat())
+
+
 async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
     parser = argparse.ArgumentParser(prog="finlit.worker")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -804,6 +824,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_fl.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_sw = sub.add_parser("switch-get", help="print 1 or 0 for an admin switch (loads: unreadable database = 0, paused); no migration, no other output")
     p_sw.add_argument("name", choices=["loads", "loads-explicit", "web"])   # loads-explicit: paused only when an admin switched it off (an unreadable database does not pause the light results jobs)
+    p_sv = sub.add_parser("supervise", help="the job supervisor (finlit/jobs, docs/JOBS.md): decides what is due, runs it within the machine's limits, retries failures; runs for ever, or --once for one pass")
+    p_sv.add_argument("--once", action="store_true", help="start what is due now, wait for it to finish, print the table and exit")
+    p_sv.add_argument("--dry-run", action="store_true", help="only print what is due and why; start nothing, write nothing")
+    p_sv.add_argument("--no-wait", action="store_true", help="with --once: do not wait for the started jobs")
+    sub.add_parser("jobs-status", help="print the same JSON as GET /api/jobs/status")
+    sub.add_parser("canary", help="re-fetch a few reference companies from the provider and compare them with what we hold (recorded at /api/jobs/status)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -812,6 +838,17 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     if args.cmd == "switch-get":   # before Store.connect: must stay quick and quiet, and must work when the database is down
         from .sysctl import switch_get
         print(await switch_get(settings, args.name))
+        return 0
+    if args.cmd == "supervise":
+        from .jobs.cli import supervise
+        return await supervise(settings, once=args.once, dry_run=args.dry_run, wait=not args.no_wait)
+    if args.cmd == "jobs-status":
+        store = await Store.connect(settings, migrate=False)
+        try:
+            from .jobs import status as jobs_status
+            print(json.dumps(await jobs_status.build(store, store.redis), indent=2, default=str))
+        finally:
+            await store.close()
         return 0
     if args.cmd == "audit-coverage":   # needs the provider only, no database
         import random
@@ -838,10 +875,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     store = await Store.connect(settings, migrate=not looping)
     if not looping:
         await wake.mark_start(store.redis, args.cmd)
+    beat = _start_job_heartbeat()
     try:
         if args.cmd == "migrate":
             print("migrated; timescale =", store.timescale)
             return 0
+        if args.cmd == "canary":
+            from .jobs.cli import run_canary
+            return await run_canary(settings, store)
         if args.cmd in ("check-screens", "send-digest"):
             from .auth.mailer import ConsoleMailer, ResendMailer
             mailer = ResendMailer(settings.resend_api_key, settings.mail_from) if settings.mail_mode == "resend" and settings.resend_api_key else ConsoleMailer(store.pool)
@@ -1103,9 +1144,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             if args.cmd == "refresh-universe":
                 print(await refresh_universe(client, store), "companies")
             elif args.cmd == "history-probe":
-                from .history_probe import probe
+                from .history_probe import probe as history_probe     # not named `probe`: that would shadow the FinEdge key check below
                 from .mf import record_run
-                res = await probe(client, store, settings, args.symbols or None)
+                res = await history_probe(client, store, settings, args.symbols or None)
                 await record_run(store, args.cmd, {"status": "ok", "companies": res})
                 print(res)
             elif args.cmd == "refresh-short-history":
@@ -1144,6 +1185,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 limit = args.limit or int(os.getenv("SCORE_ALL_PER_RUN") or 0) or 1500
                 print(await score_all(client, store, limit, args.days, args.parallel, max_minutes=args.max_minutes))
             elif args.cmd == "refresh-listing":
+                from .dhan import DhanClient     # imported here: without it Python treats DhanClient as a local of main() and this command crashed with UnboundLocalError
                 from .screener.listing import refresh_listing
                 async with DhanClient(settings, store.redis) as dc:
                     print(await refresh_listing(client, store, force=args.force, dhan_client=dc))
@@ -1204,6 +1246,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:
+        if beat:
+            beat.cancel()
         if not looping:
             await wake.mark_end(store.redis, args.cmd)
         await store.close()

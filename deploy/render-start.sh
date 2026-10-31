@@ -75,7 +75,8 @@ if [ -n "${RESET_MFA_EMAIL:-}" ]; then
   $PY -m finlit.auth.cli reset-mfa --email "$RESET_MFA_EMAIL" || true
 fi
 
-# Company data and the recurring jobs (quotes, nightly refresh, alerts, emails): see deploy/scheduler.sh
+# Company data and the recurring jobs (quotes, nightly refresh, alerts, emails): scheduler.sh keeps the job supervisor (finlit/jobs, docs/JOBS.md) alive, which
+# decides and runs every job; it is started here, before the web server takes over this shell.
 export APP_DIR="$PWD" PYTHON="$PY"
 # The scheduler's lines go to the file and, prefixed, to the service log, so a job that fails is visible in the Render dashboard.
 nohup bash -c "\"$HERE/scheduler.sh\" 2>&1 | tee -a /tmp/scheduler.log | sed -u 's/^/[scheduler] /'" &

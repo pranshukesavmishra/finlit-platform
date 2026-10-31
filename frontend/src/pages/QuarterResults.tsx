@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
+import { useResultsDelayedNote } from "../lib/jobsStatus";
 import { MINUS, nf } from "../lib/format";
 import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, cellHit, DEFAULT_GROWTH, DEFAULT_PRICE, PRICE_KEYS, PRICE_WORD, bandOf, bandShort, priceFromParams, priceHit, priceOn, priceQuery, priceToParams, priceWhy, type PriceKey, type PriceState, type CellKey, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingNote, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
@@ -303,6 +304,7 @@ export function QuarterResultsPage() {
     return out;
   }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked, growth, price]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const delayed = useResultsDelayedNote();
   return (
     <div className="wrap ipo qr">
       <header className="dash-h">
@@ -318,6 +320,7 @@ export function QuarterResultsPage() {
           </select></label>
       </header>
 
+      {delayed && <div className="rc-stale" role="status" data-testid="results-delayed">{delayed}</div>}
       {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}
       {growthLocked && <div className="formerr" role="alert">Filtering by {growthOn(growth) ? "growth" : "price position"} is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth and price position is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)}>Remove the {growthOn(growth) && priceOn(price) ? "filters" : growthOn(growth) ? "growth filter" : "price-position filter"}</button></div>}
       {res.isError && !dateErr && !growthLocked && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
