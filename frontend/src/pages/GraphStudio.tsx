@@ -1,4 +1,6 @@
 import { DrawLayer } from "../components/DrawLayer";
+import { ChartInference } from "../components/ChartInference";
+import { chartInference, pFromR } from "../lib/chartInference";
 import { viewId } from "../lib/drawings";
 import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -111,6 +113,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
       const pr = pearson(tfCols[xi], tfCols[yi]);
       body = xi === yi ? <div className="gx-note"><b>Pick two different series for X and Y.</b></div> : xs.length < 2 ? <div className="gx-note"><b>Not enough overlapping periods.</b><span>{pr.why}</span></div> : <>
         <Scatter xs={xs} ys={ys} labels={lb} xl={ok[xi].label} yl={ok[yi].label} xu={units(xi)} yu={units(yi)} r={pr.r} c={c} w={w} />
+        <ChartInference inference={chartInference({ kind: "series", n: pr.n, r: pr.r, p: pFromR(pr.r, pr.n), xName: ok[xi].label, yName: ok[yi].label, who: view.basis === "annual" ? "years" : "periods" })} id="gx-inf" />
         <p className="gx-r">{pr.r != null ? <><b>Pearson r = {pr.r.toFixed(2).replace("-", "−")}</b> ({strength(pr.r)}) over {pr.n} {view.basis === "annual" ? "years" : "periods"}. </> : <>{pr.why} </>}{pr.r != null && pr.n < 6 && "Few points: treat it as a hint. "}{tf === "values" && pr.r != null && Math.abs(pr.r) > 0.8 && "Two rising series correlate even when unrelated; try “Period change”. "}Correlation shows that two measures moved together, not that one causes the other.{align.maxGap > 31 && ` Period ends differ by up to ${align.maxGap} days.`}</p></>;
     } else if (k === "heatmap" && align) {
       const mode = cell.mode ?? (ok.length > 1 ? "corr" : "grid");
