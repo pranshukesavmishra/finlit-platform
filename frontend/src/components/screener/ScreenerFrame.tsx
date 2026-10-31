@@ -79,7 +79,7 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
           {drawer && <div className="sx-back" onClick={() => setDrawer(false)} aria-hidden="true" />}
           <aside className="scr-side card sx-side" aria-label={sideLabel} hidden={sideW === 0 || (collapsed && !drawer)}>
             <button type="button" className="sx-close btn" onClick={() => setDrawer(false)}>Close filters</button>
-            <form onSubmit={(e) => { e.preventDefault(); s.apply(); }} noValidate>
+            <form onSubmit={(e) => { e.preventDefault(); s.apply(s.draft, true); }} onBlurCapture={(e) => { if ((e.target as HTMLElement).matches?.('input[type="number"]') && dirty && !bad) s.apply(); }} noValidate>
               <FgxFocus.Provider value={want}>
               <div className="fgx-top"><span>Filters{filterCount > 0 ? ` · ${filterCount} active` : ""}</span><span className="fgx-tl"><button type="button" className="fgx-link" onClick={() => s.setHow(true)}><Icon name="info" /> How scores work</button></span></div>
               <FilterGroup id="quick" title="Quick views" defaultOpen hint={<>Ready-made score combinations. <ChartHelp id="score-filter" /></>}>{presets}</FilterGroup>
@@ -97,8 +97,8 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
               </FilterGroup>
               {filters}
               </FgxFocus.Provider>
-              <div className="sx-hint" role="status" aria-live="polite">{bad ? "Fix the highlighted ranges to apply." : dirty ? "Unsaved changes. Press Apply filters (or Enter) to update the table." : ""}</div>
-              <div className="ss-actions"><button type="submit" className="btn primary" disabled={bad}>Apply filters</button><button type="button" className="btn" onClick={s.clear}>Clear all</button></div>
+              <div className="sx-hint" role="status" aria-live="polite">{bad ? "Fix the highlighted ranges to apply them." : dirty ? "Updating results…" : filterCount ? "Results are up to date with these filters." : ""}</div>
+              <div className="ss-actions"><button type="submit" className="btn primary" disabled={bad}>{dirty ? "Apply filters" : isLoading ? "Done" : `Show ${nf(rows.length, 0)} ${rows.length === 1 ? "company" : "companies"}`}</button><button type="button" className="btn" onClick={s.clear}>Clear all</button></div>
             </form>
           </aside>
           <SplitDivider width={sideW} set={setSide} />

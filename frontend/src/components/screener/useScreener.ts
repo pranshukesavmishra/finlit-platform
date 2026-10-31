@@ -1,6 +1,6 @@
 // The state and actions both score screeners share: URL state, draft vs applied filters, selection, watchlist, CSV, sorting.
 // Each page decides which columns, filters and views it shows; this hook knows nothing about the models.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useUniverse } from "../../lib/screener";
 import { useUI } from "../../lib/ui";
@@ -21,6 +21,7 @@ export function useScreener(mode: Mode) {
   const nav = useNavigate();
   useWatchlist();
   const [params, setParams] = useSearchParams();
+  const live = useRef(params); live.current = params;
   const scope: Scope = mode;
   const state = useMemo(() => parseState(params, scope), [params.toString(), scope]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { filters: applied, sort, size } = state;
@@ -30,7 +31,8 @@ export function useScreener(mode: Mode) {
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
   const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
   const appliedKey = filtersKey(applied);
-  useEffect(() => { setDraft(cloneFilters(applied)); }, [appliedKey]);   // eslint-disable-line react-hooks/exhaustive-deps -- back/forward or a pasted link refreshes the sidebar
+  const mine = useRef<string | null>(null), wait = useRef(0);   // mine: the filters this page itself just applied; wait: how long to hold before applying the next draft change (0 for ticks, 400 ms for typed numbers)
+  useEffect(() => {  if (mine.current === appliedKey) { mine.current = null; return; } setDraft(cloneFilters(applied)); }, [appliedKey]);   // eslint-disable-line react-hooks/exhaustive-deps -- back/forward or a pasted link refreshes the sidebar (our own applies already match the draft)
 
   const items = useMemo(() => withScores(data?.rows || []), [data]);
   const unscored = useMemo(() => items.filter((r) => r.scored === false).length, [items]);
@@ -38,8 +40,9 @@ export function useScreener(mode: Mode) {
   const cover = useMemo(() => (data?.prism ?? (gold ? { ...coverageFrom(data?.rows || []), as_of: null } : null)), [data, gold]);
   const techAsOf = (cover as { tech_as_of?: string | null } | null | undefined)?.tech_as_of ?? null;   // the newest bar date the technical columns hold: shown so an old technical view is never read as today's
   const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
-  const facets = useMemo(() => facetCounts(items, draft), [items, draft]);
-  const rows = useMemo(() => { const k = q.trim().toLowerCase(); return sortRows(applyFilters(items, applied).filter((r) => !k || `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)), sort); }, [items, appliedKey, sort, q]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const found = useMemo(() => { const k = q.trim().toLowerCase(); return k ? items.filter((r) => `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)) : items; }, [items, q]);   // the toolbar search narrows everything, the counts beside the options included
+  const facets = useMemo(() => facetCounts(found, draft), [found, draft]);   // each option's count respects every OTHER active filter (faceted search); the option's own group is left out so you can see what ticking another one would add
+  const rows = useMemo(() => sortRows(applyFilters(found, applied), sort), [found, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
   const sum = useMemo(() => summarize(rows), [rows]);
   const mix = useMemo(() => concentration(rows), [rows]);
   const pg = pageOf(rows, state.page, size);
@@ -53,20 +56,28 @@ export function useScreener(mode: Mode) {
   const withQ = (p: URLSearchParams) => { if (q.trim()) p.set("q", q.trim()); return p; };
   const go = (next: Partial<State>) => { setParams(withQ(serializeState({ ...state, ...next })), { replace: true }); };
   useEffect(() => {   // keep ?q= in step with the search box (a new search starts again from page 1)
-    const t = setTimeout(() => setParams((prev) => {
-      const cur = prev.get("q") ?? "", want = q.trim();
+    const t = setTimeout(() => setParams(() => {
+      const prev = live.current, cur = prev.get("q") ?? "", want = q.trim();   // the latest address, not the one this render closed over (that would undo a filter applied a moment ago)
       if (cur === want) return prev;
       const n = new URLSearchParams(prev); if (want) n.set("q", want); else n.delete("q"); n.delete("page"); return n;
     }, { replace: true }), 300);
     return () => clearTimeout(t);
   }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const apply = (f: Filters = draft) => { if (Object.keys(validate(f)).length) return; setDraft(cloneFilters(f)); go({ filters: f, page: 0 }); setDrawer(false); };
-  const clear = () => { const e = emptyFilters(); setDraft(e); go({ filters: e, page: 0 }); };
-  const drop = (id: string) => { const n = removeChip(applied, id); setDraft(cloneFilters(n)); go({ filters: n, page: 0 }); };
-  const setBand = (k: BandKey, b: Band) => setDraft((d) => ({ ...d, bands: { ...d.bands, [k]: toggle(d.bands[k], b) } }));
-  const setRange = (k: RangeKey, end: "min" | "max", v: string) => setDraft((d) => ({ ...d, ranges: { ...d.ranges, [k]: { ...d.ranges[k], [end]: v.trim() === "" ? null : Number(v) } } }));
-  const setLabel = (l: PrismLabel) => setDraft((d) => ({ ...d, labels: toggle(d.labels, l) }));
-  const setTech = (k: TechKey, b: TechBand) => setDraft((d) => ({ ...d, tech: { ...d.tech, [k]: toggle(d.tech[k], b) } }));
+  const apply = (f: Filters = draft, close = false) => { if (Object.keys(validate(f)).length) return; if (filtersKey(f) !== appliedKey) mine.current = filtersKey(f); setDraft(cloneFilters(f)); go({ filters: f, page: 0 }); if (close) setDrawer(false); };
+  const clear = () => { wait.current = 0; apply(emptyFilters()); };
+  const drop = (id: string) => apply(removeChip(applied, id));
+  // Filters apply live: a tick, chip or quick view applies at once; typed numbers apply 400 ms after the last key (or on Enter / leaving the box).
+  const edit = (fn: (d: Filters) => Filters, typed = false) => { wait.current = typed ? 400 : 0; setDraft(fn); };
+  const setDraftLive: Dispatch<SetStateAction<Filters>> = (fn) => edit((d) => (typeof fn === "function" ? fn(d) : fn));
+  useEffect(() => {
+    if (filtersKey(draft) === appliedKey || Object.keys(validate(draft)).length) return;   // nothing pending, or an invalid range that is shown in red and waits
+    const t = setTimeout(() => apply(draft), wait.current);
+    return () => clearTimeout(t);
+  }, [draft]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const setBand = (k: BandKey, b: Band) => edit((d) => ({ ...d, bands: { ...d.bands, [k]: toggle(d.bands[k], b) } }));
+  const setRange = (k: RangeKey, end: "min" | "max", v: string) => edit((d) => ({ ...d, ranges: { ...d.ranges, [k]: { ...d.ranges[k], [end]: v.trim() === "" ? null : Number(v) } } }), true);
+  const setLabel = (l: PrismLabel) => edit((d) => ({ ...d, labels: toggle(d.labels, l) }));
+  const setTech = (k: TechKey, b: TechBand) => edit((d) => ({ ...d, tech: { ...d.tech, [k]: toggle(d.tech[k], b) } }));
 
   const togglePick = (s: string) => setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
   const pageSyms = pg.view.map((r) => r.symbol), allOnPage = pageSyms.length > 0 && pageSyms.every((s) => sel.includes(s)), someOnPage = pageSyms.some((s) => sel.includes(s));
@@ -94,8 +105,8 @@ export function useScreener(mode: Mode) {
   const sortBy = (key: SortKey) => go({ sort: nextSort(sort, key), page: 0 });
 
   return {
-    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
-    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, sel, filterCount: chips.length,
+    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft: setDraftLive, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
+    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, flush: () => apply(draft), sel, filterCount: chips.length,
     go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
   };
 }

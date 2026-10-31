@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The Basic score screener (FinLit score only, Silver) in a DOM: draft vs applied filters, chips, selection, bulk actions, address (URL) state, CSV and plan gating.
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within, configure } from "@testing-library/react";
+configure({ asyncUtilTimeout: 8000 });
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Row } from "../lib/screener";
@@ -46,18 +47,70 @@ describe("Basic score screener page", () => {
     expect(screen.getByText("1–10 of 22")).toBeTruthy();
   });
 
-  it("sidebar edits wait for Apply; Apply updates the table, chips and address", () => {
+  it("filters apply live: ticking changes rows, every number above the table, chips and address with no button pressed", async () => {
     open();
+    const kpi = (l: string) => within(screen.getByLabelText("Summary")).getByText(l).previousSibling?.textContent;
     fireEvent.click(sector("IT")); fireEvent.click(sector("Auto"));
-    expect(symbols()).toHaveLength(10);                                       // draft only: table unchanged
-    expect(hint().textContent).toMatch(/Unsaved changes/);
-    expect(loc()).toBe("/score-screener");
-    fireEvent.submit(screen.getByRole("button", { name: "Apply filters" }).closest("form")!);   // Enter in a field submits the form
+    expect(hint().textContent).toMatch(/Updating/);                            // never a silent gap between what is ticked and what is shown
+    await waitFor(() => expect(loc()).toBe("/score-screener?sector=IT&sector=Auto"));
     expect(symbols()).toEqual(["CCC", "DDD", "EEE", "GGG"]);
-    expect(loc()).toBe("/score-screener?sector=IT&sector=Auto");
-    expect(hint().textContent).toBe("");
+    expect(kpi("Companies found")).toBe("4"); expect(kpi("Sectors")).toBe("2"); expect(kpi("Active filters")).toBe("2");
+    expect(screen.getByText("4 companies in this result")).toBeTruthy();
+    expect(screen.getByText("1–4 of 4")).toBeTruthy();
+    expect(screen.getByText("1 of 4 companies in this result are not scored yet.")).toBeTruthy();   // the donut follows the result too
     expect(screen.getByRole("button", { name: "Remove filter IT" })).toBeTruthy();
-    expect(within(screen.getByLabelText("Summary")).getByText("Active filters").previousSibling?.textContent).toBe("2");
+    expect(hint().textContent).not.toMatch(/Updating/);
+  });
+
+  it("a typed number applies after a short pause, or on Enter, and an invalid range waits", async () => {
+    vi.useFakeTimers();
+    try {
+      open();
+      const tech = () => within(screen.getByRole("group", { name: "Technical score, exact range" }));
+      fireEvent.click(tech().getByRole("checkbox", { name: "Technical score" }));
+      fireEvent.change(tech().getByLabelText("Min"), { target: { value: "7" } });
+      fireEvent.change(tech().getByLabelText("Min"), { target: { value: "78" } });
+      act(() => { vi.advanceTimersByTime(300); });
+      expect(loc()).toBe("/score-screener");                                   // still typing: nothing applied yet
+      act(() => { vi.advanceTimersByTime(150); });
+      expect(loc()).toBe("/score-screener?tmin=78");
+      expect(symbols()).toEqual(["AAA", "CCC", "EEE"]);
+      fireEvent.change(tech().getByLabelText("Max"), { target: { value: "50" } });   // below the minimum
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(loc()).toBe("/score-screener?tmin=78");
+      expect(screen.getByRole("alert").textContent).toMatch(/minimum is above the maximum/);
+      fireEvent.change(tech().getByLabelText("Max"), { target: { value: "85" } });
+      fireEvent.submit(screen.getByRole("button", { name: /Apply filters|Show/ }).closest("form")!);   // Enter applies at once
+      expect(loc()).toBe("/score-screener?tmin=78&tmax=85");
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("the counts beside each option follow the other filters, and Clear all restores every total", async () => {
+    open();
+    const count = (name: string) => (sector(name).closest("label")!.querySelector(".fgx-n")?.textContent);
+    expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("14");
+    fireEvent.click(screen.getByRole("checkbox", { name: /^Large cap/ }));      // Large caps: the 100 largest, here all 22 are Large
+    await waitFor(() => expect(loc()).toContain("cap=Large"));
+    fireEvent.click(within(screen.getByRole("group", { name: "Fundamental score" })).getByRole("button", { name: "78 and above (Strong)" }));
+    await waitFor(() => expect(loc()).toContain("f=high"));
+    expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
+    expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("0"); expect(count("IT")).toBe("0"); expect(count("Pharma")).toBe("1");
+    fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
+    await waitFor(() => expect(loc()).toBe("/score-screener"));
+    expect(count("Metals")).toBe("14");
+    expect(within(screen.getByLabelText("Summary")).getByText("Companies found").previousSibling?.textContent).toBe("22");
+    expect(within(screen.getByLabelText("Summary")).getByText("Active filters").previousSibling?.textContent).toBe("0");
+  });
+
+  it("filters that match nothing show zeros above, and an empty state with removable chips", async () => {
+    open("?sector=Banks&f=low");
+    expect(symbols()).toEqual([]);
+    const kpi = (l: string) => within(screen.getByLabelText("Summary")).getByText(l).previousSibling?.textContent;
+    expect(kpi("Companies found")).toBe("0"); expect(kpi("Sectors")).toBe("0");
+    expect(screen.getByText("0 companies in this result")).toBeTruthy();
+    expect(document.querySelector(".fgx-empty")!.textContent).toMatch(/No companies match all of these filters/);
+    fireEvent.click(within(document.querySelector(".fgx-empty") as HTMLElement).getByRole("button", { name: /^Banks/ }));
+    await waitFor(() => expect(symbols().length).toBeGreaterThan(0));
   });
 
   it("score bands and min-max are exact, and missing scores never pass", () => {
@@ -325,7 +378,7 @@ describe("Basic score screener: no Prism", () => {
 
   it("the not-scored donut is computed from the loaded companies", () => {
     open();
-    expect(screen.getByText("1 of 22 companies are not scored yet.")).toBeTruthy();
+    expect(screen.getByText("1 of 22 companies in this result are not scored yet.")).toBeTruthy();
     expect(screen.getByText(/Scored 21 \(95%\)/)).toBeTruthy();
   });
 });

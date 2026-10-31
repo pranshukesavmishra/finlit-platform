@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The Advanced score screener (FinLit Prism only, Gold) in a DOM: columns, filters, quick views, sorting, CSV, and the upgrade page for every other plan.
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within, configure } from "@testing-library/react";
+configure({ asyncUtilTimeout: 8000 });
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Row } from "../lib/screener";
@@ -46,6 +47,22 @@ beforeEach(() => { st.plan = "gold"; st.rows = DATA; st.cover = { rated: 3, prov
 afterEach(cleanup);
 
 describe("Advanced score screener (Gold)", () => {
+  it("ticking a filter updates the rows and every number above the table by itself, and Clear all restores them", async () => {
+    open();
+    const kpi = (l: string) => within(screen.getByLabelText("Summary")).getByText(l).previousSibling?.textContent;
+    expect(kpi("Companies found")).toBe("6"); expect(kpi("Rated by Prism")).toBe("4");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Banks 2" }));
+    await waitFor(() => expect(symbols()).toEqual(["AAA", "BBB"]));
+    expect(kpi("Companies found")).toBe("2"); expect(kpi("Sectors")).toBe("1"); expect(kpi("Rated by Prism")).toBe("2"); expect(kpi("Active filters")).toBe("1");
+    expect(kpi("Median Prism")).toBe("75.5");
+    expect(screen.getByText("2 companies in this result")).toBeTruthy();
+    expect(screen.getByText("0 of 2 companies in this result are not rated yet.")).toBeTruthy();
+    expect(screen.getByLabelText("Sector mix of the result").textContent).toMatch(/Banks/);
+    fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
+    await waitFor(() => expect(kpi("Companies found")).toBe("6"));
+    expect(kpi("Active filters")).toBe("0");
+  });
+
   it("shows the Prism score with its word, the four parts and the two technical views in the site's words, and nothing of the FinLit score", () => {
     open();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/FinLit Prism/);

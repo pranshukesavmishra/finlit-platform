@@ -26,8 +26,9 @@ const RANGES: [RangeKey, string][] = [["f", "Fundamental score"], ["t", "Technic
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit score, the basic model: filter, sort, compare and export by size, sector and score.");
   const s = useScreener("basic");
-  const { draft, setDraft, applied, locked, upgrade, isLoading, sum, items, unscored, asOf } = s;
+  const { draft, setDraft, applied, locked, upgrade, isLoading, sum, asOf } = s;
   const preset = activePreset(applied);
+  const notScored = s.rows.filter((r) => r.scored === false).length;
   const allStrong = PILLARS.every((x) => draft.bands[x.k].length === 1 && draft.bands[x.k][0] === "high");
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
   const usePreset = (id: string) => {
@@ -47,7 +48,7 @@ function Basic() {
     <ScreenerFrame s={s} splitKey="score" eyebrow="Score screener" title="Basic score screener" sideLabel="Score screener filters" errorTitle="The score screener is unavailable right now"
       intro={<>Every listed company with its FinLit score, the basic model: Fundamental, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
       tier="silver" sortChoices={[{ key: "overall", label: "FinLit score" }, { key: "f", label: "Fundamental" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
-      donut={!isLoading && items.length > 0 ? <Donut part={items.length - unscored} total={items.length} partLabel="Scored" restLabel="Not scored" title={unscored > 0 ? `${nf(unscored, 0)} of ${nf(items.length, 0)} companies are not scored yet.` : `All ${nf(items.length, 0)} companies are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
+      donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
       presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">
         {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
       </div>}
