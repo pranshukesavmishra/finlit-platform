@@ -26,7 +26,7 @@ function Blank({ why, onHint }: { why: Why | null; onHint: (t: string | null) =>
   );
 }
 
-/** What sits under the existing DuPont card: normalized ROE, ROA, data gaps, anomaly checks, rule-based insight cards, the five-factor waterfall and a what-if calculator.
+/** The Decoding ROE sub-section inside the DuPont block: normalized ROE, ROA, data gaps, anomaly checks, rule-based insight cards, the five-factor waterfall and a what-if calculator.
  *  All numbers come from lib/dupontDeep.ts; this component only lays them out. */
 export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: string; pl: Table | undefined; bs: Table | undefined; lender: boolean; said?: string[] }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -81,8 +81,8 @@ export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: str
   const driverWhy = !mv ? "Needs two years with margin, turnover and multiplier." : "Return on equity barely moved, or a loss year makes the log shares undefined.";
 
   return (
-    <section className="dp-deep" aria-labelledby={uid + "-h"}>
-      <div className="dp-head"><h3 id={uid + "-h"}><span className="ci"><Icon name="layers" /></span>Decoding ROE</h3><p className="faint">Return on equity can look high or low for reasons that have little to do with how well the business runs. Here it is cleaned of one-off items, split into its causes and checked for gaps and odd jumps.</p></div>
+    <section className="dp-deep" id="decoding-roe" aria-labelledby={uid + "-h"}>
+      <div className="dp-head"><h4 id={uid + "-h"}><span className="ci"><Icon name="layers" /></span>Decoding ROE</h4><p className="faint">Return on equity can look high or low for reasons that have little to do with how well the business runs. Here it is cleaned of one-off items, split into its causes and checked for gaps and odd jumps.</p></div>
 
       <div className="dp-bar">
         <div className="seg" role="group" aria-label="Show reported or normalized figures">{(["reported", "normalized"] as View[]).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "reported" ? "Reported" : "Normalized"}</button>)}</div>
