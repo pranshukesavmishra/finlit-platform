@@ -1,4 +1,8 @@
 import { PAGE_FAQS, type PageFaq } from "../content/pageFaqs";
+import { MF_PORTFOLIO_FAQ } from "../content/mfPortfolioFaqs";
+
+/** Sets written by hand after the PDF (the PDF-built list in content/pageFaqs.ts is generated and not edited). */
+const EXTRA_FAQS: PageFaq[] = [MF_PORTFOLIO_FAQ];
 
 /** Route patterns use react-router's ":param" segments. Query string, hash, a trailing slash and letter case are ignored. */
 const clean = (p: string) => p.split(/[?#]/)[0].replace(/\/+$/, "").toLowerCase() || "/";
@@ -18,7 +22,7 @@ export function matchScore(pattern: string, path: string): number {
 }
 
 /** The FAQ set that belongs to this address, or null when the page has none (Learn, Account, Home, legal, sign-in ...). */
-export function faqForPath(path: string, all: PageFaq[] = PAGE_FAQS): PageFaq | null {
+export function faqForPath(path: string, all: PageFaq[] = [...PAGE_FAQS, ...EXTRA_FAQS]): PageFaq | null {
   let best: PageFaq | null = null, bestScore = -1;
   for (const f of all) for (const r of f.routes) { const s = matchScore(r, path); if (s > bestScore) { best = f; bestScore = s; } }
   return best;
