@@ -12,9 +12,9 @@ for (const w of [1366, 390]) {
   await p.goto(B + "/score-screener", { waitUntil: "networkidle" }); await p.waitForSelector(".ss-t tbody tr");
   const rows = await p.locator(".ss-prow .ss-pn").allInnerTexts(); check(`${w}: four pillar rows`, rows.join() === "Quality,Growth,Profitability,Balance sheet", rows.join());
   const heads = await p.locator(".ss-t thead th").allInnerTexts(); check(`${w}: pillar columns in the table`, ["Quality", "Growth", "Profit.", "Balance"].every((h) => heads.some((x) => x.startsWith(h))), heads.join("|"));
-  const before = Number((await p.locator(".ss-stat b").first().innerText()).replace(/\D/g, ""));
+  const before = Number((await p.locator(".fgx-kpi b").first().innerText()).replace(/\D/g, ""));
   await p.getByRole("button", { name: "Quality 78 and above" }).click(); await p.getByRole("button", { name: "Apply filters" }).click(); await p.waitForTimeout(300);
-  const after = Number((await p.locator(".ss-stat b").first().innerText()).replace(/\D/g, ""));
+  const after = Number((await p.locator(".fgx-kpi b").first().innerText()).replace(/\D/g, ""));
   const qcol = heads.findIndex((x) => x.startsWith("Quality"));
   const qs = (await p.locator(`.ss-t tbody tr td:nth-child(${qcol + 1})`).allInnerTexts()).map(Number).filter((n) => !Number.isNaN(n));
   check(`${w}: Quality 78+ narrows the list and every row has Quality >= 78`, after > 0 && after < before && qs.every((n) => n >= 78), `${before} -> ${after}; ${qs.slice(0, 5).join(",")}`);

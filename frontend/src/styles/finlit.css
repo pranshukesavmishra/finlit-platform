@@ -322,6 +322,7 @@ section.block { padding-block: 64px 0; }
 .sh-l:has(.sh-n) h2 { font-size: 38px; }
 .sh .no { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: var(--sc); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
 h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.015em; }
+.sh-r { display: flex; flex-direction: column; align-items: flex-end; align-self: flex-start; gap: 10px; text-align: right; } .sh-r p { margin: 0; }
 .sh p { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
 .card { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--ac, var(--gold)) 5%, var(--s1)), var(--s1) 160px); border: 1px solid var(--border); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow); min-width: 0; }
 .card.acc::before { content: ""; position: absolute; left: 22px; right: 22px; top: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--ac, var(--gold)), transparent); }

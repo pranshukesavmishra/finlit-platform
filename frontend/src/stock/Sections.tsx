@@ -23,7 +23,7 @@ import { Plain } from "../components/Plain";
 const css = (v: string) => `var(${v})`;
 /** Section header. A numbered section ("01 · Company overview") shows its number large, a thin rule, then the small label and the title; a section
  *  without a number (Chart lab, Leadership) keeps its icon tile. */
-export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: string; no: string; icon: string; tier?: "basic" | "silver" | "gold"; title: string; sub?: string; color: string }) {
+export function SectionHead({ id, no, icon, tier, title, sub, color, aside }: { id: string; no: string; icon: string; tier?: "basic" | "silver" | "gold"; title: string; sub?: string; color: string; aside?: React.ReactNode }) {
   const m = /^(\d{1,2})\s*·\s*(.+)$/.exec(no);
   return (
     <div className="sh" id={id} style={{ "--sc": `var(${color})` } as React.CSSProperties}>
@@ -31,7 +31,7 @@ export function SectionHead({ id, no, icon, tier, title, sub, color }: { id: str
         {m ? <><span className="sh-n" aria-hidden="true">{m[1]}</span><span className="sh-rule" aria-hidden="true" /></> : <div className="sh-ic"><Icon name={icon} /></div>}
         <div><div className="no">{m ? m[2] : no} {tier && <TierChip tier={tier} />}</div><h2>{title}</h2></div>
       </div>
-      {sub && <p className="hide-sm">{sub}</p>}
+      {aside ? <div className="sh-r">{aside}{sub && <p className="hide-sm">{sub}</p>}</div> : sub && <p className="hide-sm">{sub}</p>}
     </div>
   );
 }

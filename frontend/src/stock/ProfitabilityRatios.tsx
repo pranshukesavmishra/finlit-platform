@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { HScroll } from "../components/HScroll";
 import { LineChart } from "../charts/LineChart";
 import { MINUS, nf } from "../lib/format";
+import { ptsChange } from "../lib/profitChange";
+import { downloadCsv } from "../lib/premium";
 
 /** Profitability over the years, three ways to read the same eight years: a table coloured against each row's own median (with the unusual
  *  years marked), lines you can switch on and off, and a then-versus-now comparison of any two years. Ends with a reading in plain words. */
@@ -80,14 +82,20 @@ function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string,
   const have = vals.map((v, i) => [v, i] as const).filter((p): p is [number, number] => p[0] != null);
   const best = have.length ? have.reduce((a, b) => (b[0] > a[0] ? b : a)) : null, worst = have.length ? have.reduce((a, b) => (b[0] < a[0] ? b : a)) : null;
   const groups = ["Margins", "Tax", "Returns"] as const;
+  const [sort, setSort] = useState<"none" | "desc" | "asc">("none");
+  const lab0 = monthLabel(periods[0]), lab1 = monthLabel(periods[last]);
+  const chg = useMemo(() => Object.fromEntries(defs.map((d) => [d.key, ptsChange(rows[d.key][0], rows[d.key][last], lab0, lab1)])), [defs, rows, last, lab0, lab1]);
+  const ordered = (ds: Def[]) => sort === "none" ? ds : [...ds].sort((x, y) => { const a = chg[x.key].pts, b = chg[y.key].pts; if (a == null || b == null) return a == null ? (b == null ? 0 : 1) : -1; return sort === "desc" ? b - a : a - b; });   // gaps always last
+  const exportCsv = () => downloadCsv("finlit-profitability-ratios.csv", ["Metric", ...periods.map(monthLabel), `Change ${lab0} to ${lab1} (percentage points)`], defs.map((d) => [d.label, ...rows[d.key].map((x) => (x == null ? "" : Math.round(x * 100) / 100)), chg[d.key].pts == null ? "" : Math.round((chg[d.key].pts as number) * 10) / 10]));
+  const cur2 = (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel((e.currentTarget as HTMLElement).dataset.k!); } };
   return (
     <>
-      <p className="pr-key"><span>Below median</span><i className="lo" /><i className="lo2" /><i className="mid" /><i className="hi2" /><i className="hi" /><span>Above median</span><span className="pr-odd-k"><b className="pr-odd" />Unusual year (far from the other years)</span></p>
+      <p className="pr-key"><span>Below median (dashed edge)</span><i className="lo" /><i className="lo2" /><i className="mid" /><i className="hi2" /><i className="hi" /><span>Above median (solid edge)</span><span className="pr-odd-k" title="A year that sits far from the other years in the same row, by a robust spread measure (median absolute deviation), and by more than 15% of the median."><b className="pr-odd" />Unusual year (far from the other years)</span><button type="button" className="btn sm pr-csv" onClick={exportCsv}>Download CSV</button></p>
       <HScroll className="" label="profitability table">
-        <table className="pr-t"><thead><tr><th>Metric</th>{periods.map((p) => <th key={p}>{monthLabel(p)}</th>)}</tr></thead>
-          <tbody>{groups.flatMap((g) => { const ds = defs.filter((d) => d.group === g); return ds.length ? [<tr key={g} className="pr-g"><td colSpan={periods.length + 1}>{g}</td></tr>, ...ds.map((d) => { const a = analyse(rows[d.key]); return (
-            <tr key={d.key} className={d.key === sel ? "on" : ""} onClick={() => setSel(d.key)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSel(d.key)} aria-selected={d.key === sel}>
-              <td title={d.say}>{d.label}</td>{rows[d.key].map((x, i) => <td key={i} style={heat(x, a.med, a.spread)}>{x == null ? MINUS : <>{a.odd.has(i) && <b className="pr-odd" title="Unusual year" />}{nf(x, 2)}%</>}</td>)}</tr>); })] : []; })}</tbody></table>
+        <table className="pr-t"><thead><tr><th scope="col">Metric</th>{periods.map((p) => <th scope="col" key={p}>{monthLabel(p)}</th>)}<th scope="col" className="pr-chg-h" aria-sort={sort === "none" ? "none" : sort === "desc" ? "descending" : "ascending"}><button type="button" className={"pr-sort " + sort} onClick={() => setSort((s0) => (s0 === "none" ? "desc" : s0 === "desc" ? "asc" : "none"))} title="Last year minus first year shown, in percentage points. Click to sort within each group: biggest rise first, biggest fall first, then original order.">CHANGE<small>{monthLabel(periods[0])} to {monthLabel(periods[last])}</small></button></th></tr></thead>
+          <tbody>{groups.flatMap((g) => { const ds = ordered(defs.filter((d) => d.group === g)); return ds.length ? [<tr key={g} className="pr-g"><td colSpan={periods.length + 2}>{g}</td></tr>, ...ds.map((d) => { const a = analyse(rows[d.key]); return (
+            <tr key={d.key} className={d.key === sel ? "on" : ""} onClick={() => setSel(d.key)} tabIndex={0} data-k={d.key} onKeyDown={cur2} aria-current={d.key === sel ? "true" : undefined}>
+              <td title={d.say}>{d.label}</td>{rows[d.key].map((x, i) => <td key={i} className={x == null || a.med == null ? undefined : x >= a.med ? "pr-ab" : "pr-be"} style={heat(x, a.med, a.spread)} title={x != null && a.med != null ? `${nf(Math.abs(x - a.med), 2)} pts ${x >= a.med ? "above" : "below"} the row median ${nf(a.med, 2)}%` : x == null ? "No figure reported" : undefined}>{x == null ? MINUS : <>{a.odd.has(i) && <b className="pr-odd" title="Unusual year: far from this row's other years" />}{nf(x, 2)}%</>}</td>)}{(() => { const c = chg[d.key], tone = d.key === "effective_tax_rate" || c.dir === "flat" || c.dir === "none" ? "" : c.dir; return <td className={"pr-chg " + tone} title={c.reason ?? undefined} aria-label={c.reason ?? `${d.label}, ${monthLabel(periods[0])} to ${monthLabel(periods[last])}: ${c.text.replace("pts", "percentage points")}`}>{c.dir === "up" ? "▲ " : c.dir === "down" ? "▼ " : ""}{c.text}</td>; })()}</tr>); })] : []; })}</tbody></table>
       </HScroll>
       <div className="pr-sel">
         <div className="card pr-chart"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>
@@ -135,7 +143,7 @@ function ThenNow({ periods, rows, defs }: { periods: string[]; rows: Record<stri
           {ds.map((d) => { const v = rows[d.key], have = v.filter((x): x is number => x != null), lo = Math.min(...have), hi = Math.max(...have), pos = (x: number) => (hi === lo ? 50 : ((x - lo) / (hi - lo)) * 100), x0 = v[a], x1 = v[b], ch = x0 != null && x1 != null ? x1 - x0 : null;
             return <div key={d.key} className="pr-tn-r"><span className="n">{d.label}</span>
               <div className="trk"><u style={{ left: 0, right: 0 }} />{x0 != null && <i className="from" style={{ left: `${pos(x0)}%` }} />}{x1 != null && <i className="to" style={{ left: `${pos(x1)}%` }} />}{x0 != null && x1 != null && <em style={{ left: `${Math.min(pos(x0), pos(x1))}%`, width: `${Math.abs(pos(x1) - pos(x0))}%` }} />}</div>
-              <span className={"ch " + (ch == null || Math.abs(ch) < 0.005 ? "" : ch > 0 ? "up" : "down")}>{ch == null ? MINUS : <>{ch > 0 ? "▲ " : ch < 0 ? "▼ " : ""}{pp(ch)} pp<small>{x0 != null ? nf(x0, 2) : MINUS} → {x1 != null ? nf(x1, 2) : MINUS}</small></>}</span></div>; })}</div>) : null; })}
+              <span className={"ch " + (ch == null || Math.abs(ch) < 0.005 ? "" : ch > 0 ? "up" : "down")}>{ch == null ? MINUS : <>{ch > 0 ? "▲ " : ch < 0 ? "▼ " : ""}{pp(ch)} pts<small>{x0 != null ? nf(x0, 2) : MINUS} → {x1 != null ? nf(x1, 2) : MINUS}</small></>}</span></div>; })}</div>) : null; })}
     </>
   );
 }

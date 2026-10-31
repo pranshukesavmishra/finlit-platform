@@ -9,6 +9,7 @@ import {
 import { THRESHOLDS, arcSegments, partVar } from "../../../lib/prismReport";
 import { fmtScore, parseTechnical, ratingWord, scalePos, type TechHorizon, type TrendTone } from "../../../lib/prismTechnical";
 import { TECH_SEPARATE_NOTE, horizonCaption } from "../../../stock/prismCardLogic";
+import { BAND_RULE } from "../../../lib/scoreBands";
 
 export const istTime = (iso: string | null | undefined, withDate = true) => {
   if (!iso) return "—";
@@ -127,8 +128,8 @@ export function MiniScores({ report }: { report: PrismReport }) {
   return (
     <div className="pzr-minis" role="group" aria-label="Mini scores">
       <ul className="pzr-minis-l">
-        <li className="pzr-mini pzr-mini-f" style={{ "--m": `var(${rated ? t.token : "--pz-none"})` } as React.CSSProperties} title={label} aria-label={label}>
-          <span className="pzr-mini-k">Fundamental</span>
+        <li className="pzr-mini pzr-mini-f" style={{ "--m": `var(${rated ? t.token : "--pz-none"})` } as React.CSSProperties} title={`${label}. Higher is better. ${BAND_RULE}`} aria-label={label}>
+          <span className="pzr-mini-k">Fundamental score</span>
           {rated ? <b className="pzr-mini-n">{score1(rating.final)}</b> : <b className="pzr-mini-n pzr-mini-nr">Not rated</b>}
           <span className="pzr-mini-w">{rated ? t.word : "No score"}</span>
           <span className="pzr-mini-bar" aria-hidden="true">{rated && <u style={{ width: `${Math.max(0, Math.min(100, rating.final!))}%` }} />}</span>

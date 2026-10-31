@@ -1,14 +1,15 @@
 import { Link, Navigate, useSearchParams } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
-import { BandBoxes, HowDialog, RangeBox } from "../components/screener/controls";
+import { HowDialog } from "../components/screener/controls";
+import { ChipRow, FilterGroup, QuickRow, RangeRow } from "../components/screener/FilterGroup";
+import { Donut } from "../components/screener/PageParts";
 import { Score, med } from "../components/screener/cells";
 import { useScreener } from "../components/screener/useScreener";
-import { ChartHelp } from "../components/ChartHelp";
 import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, PRESETS, activePreset, cloneFilters, hasPrismParams, withPreset } from "../lib/scoreScreen";
+import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, cloneFilters, hasPrismParams, withPreset } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -19,6 +20,8 @@ export function ScoreScreener() {
   if (hasPrismParams(params)) return <Navigate to={"/advanced-score-screener" + (params.toString() ? "?" + params.toString() : "")} replace />;
   return <Basic />;
 }
+
+const RANGES: [RangeKey, string][] = [["f", "Fundamental score"], ["t", "Technical score"], ["o", "Overall score"]];
 
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit score, the basic model: filter, sort, compare and export by size, sector and score.");
@@ -43,32 +46,30 @@ function Basic() {
   return (
     <ScreenerFrame s={s} splitKey="score" eyebrow="Score screener" title="Basic score screener" sideLabel="Score screener filters" errorTitle="The score screener is unavailable right now"
       intro={<>Every listed company with its FinLit score, the basic model: Fundamental, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
-      presets={<>
-        <div className="label">Quick views <ChartHelp id="score-filter" /></div>
-        <div className="sx-presets" role="group" aria-label="Quick views by score band">
-          {PRESETS.map((p) => <button key={p.id} type="button" className={"bandc" + (preset === p.id ? " on" : "")} aria-pressed={preset === p.id} title={p.say} onClick={() => usePreset(p.id)}>{locked && <Icon name="lock" />} {p.label}</button>)}
-        </div>
-      </>}
-      filters={<>
-        <div className="label" style={{ marginTop: 18, display: "flex", justifyContent: "space-between" }}>Score filters<button type="button" className="alx-link" onClick={() => s.setHow(true)}><Icon name="info" /> How scores work</button></div>
-        {locked ? (
+      tier="silver" sortChoices={[{ key: "overall", label: "FinLit score" }, { key: "f", label: "Fundamental" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
+      donut={!isLoading && items.length > 0 ? <Donut part={items.length - unscored} total={items.length} partLabel="Scored" restLabel="Not scored" title={unscored > 0 ? `${nf(unscored, 0)} of ${nf(items.length, 0)} companies are not scored yet.` : `All ${nf(items.length, 0)} companies are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
+      presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">
+        {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
+      </div>}
+      filters={locked ? (
+        <FilterGroup id="score" title="Score filters" defaultOpen>
           <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by Fundamental, Technical and Overall scores.</span>
             <button type="button" className="btn primary" onClick={() => upgrade("silver", "Score filters come with the Silver plan.")}>Unlock with Silver</button></div>
-        ) : (<>
-          <BandBoxes s={s} k="f" label="Fundamental" />
-          <fieldset className="ss-fs ss-pil"><legend>Fundamental, by pillar</legend>
-            <button type="button" className={"bandc ss-all" + (allStrong ? " on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>Strong on all four (78 and above)</button>
-            {PILLARS.map((x) => (
-              <div key={x.k} className="ss-prow" role="group" aria-label={`${x.label} score`}>
-                <span className="ss-pn" title={x.say}>{x.label}</span>
-                <span className="ss-seg">{BAND_ORDER.map((b) => (
-                  <button key={b} type="button" className={"ss-sb " + b + (draft.bands[x.k].includes(b) ? " on" : "")} aria-pressed={draft.bands[x.k].includes(b)} aria-label={`${x.label} ${BANDS[b].label}`} onClick={() => s.setBand(x.k, b)}>{BANDS[b].short}</button>))}</span>
-              </div>))}
-          </fieldset>
-          <BandBoxes s={s} k="t" label="Technical" />
-          <fieldset className="ss-fs"><legend>Overall score</legend><RangeBox s={s} k="o" label="Overall" /></fieldset>
-        </>)}
-      </>}
+        </FilterGroup>
+      ) : (<>
+        <FilterGroup id="score" title="Score filters" defaultOpen active={RANGES.filter(([k]) => draft.ranges[k].min != null || draft.ranges[k].max != null).length} hint="Tick a score, then set the lowest and highest value (0 to 100).">
+          {RANGES.map(([k, label]) => <RangeRow key={k} label={label} group={`${label.replace(" score", "")} score, exact range`} min={draft.ranges[k].min} max={draft.ranges[k].max} error={s.problems[k]} onChange={(end, v) => s.setRange(k, end, v)} />)}
+        </FilterGroup>
+        <FilterGroup id="bands" title="Score bands" defaultOpen active={draft.bands.f.length + draft.bands.t.length}>
+          {(["f", "t"] as const).map((k) => <ChipRow key={k} label={k === "f" ? "Fundamental" : "Technical"} group={`${k === "f" ? "Fundamental" : "Technical"} score`} onToggle={(b) => s.setBand(k, b as Band)}
+            chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[k].includes(b), aria: BANDS[b].label }))} />)}
+        </FilterGroup>
+        <FilterGroup id="pillars" title="Fundamental by pillar" defaultOpen active={PILLARS.reduce((n, x) => n + draft.bands[x.k].length, 0)} hint="Select a range for each pillar">
+          <button type="button" className={"fgx-chip fgx-all" + (allStrong ? " is-on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>{allStrong && <i aria-hidden="true">&#10003;</i>}Strong on all four (78 and above)</button>
+          {PILLARS.map((x) => <ChipRow key={x.k} label={x.label} title={x.say} onToggle={(b) => s.setBand(x.k, b as Band)}
+            chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[x.k].includes(b), aria: `${x.label} ${BANDS[b].label}` }))} />)}
+        </FilterGroup>
+      </>)}
       tiles={tiles}
       lead={<Link to="/advanced-score-screener" className="sx-adv">
         <span className="sx-adv-t"><TierChip tier="gold" /><b>Advanced score screener</b></span>
@@ -79,7 +80,6 @@ function Basic() {
           <summary>What the FinLit score means</summary>
           <div className="pzs-two"><div><b>FinLit score</b><p>{EXPLAIN.finlit}</p></div></div>
         </details>
-        {!isLoading && unscored > 0 && <p className="muted" role="note">{nf(unscored, 0)} of {nf(items.length, 0)} listed companies are not scored yet. Scoring fills in every night, or open a company's report to score it now.</p>}
       </>}
       groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit score</th><th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>

@@ -25,7 +25,7 @@ export function useScreener(mode: Mode) {
   const state = useMemo(() => parseState(params, scope), [params.toString(), scope]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { filters: applied, sort, size } = state;
   const [draft, setDraft] = useState<Filters>(() => cloneFilters(applied));
-  const [secQ, setSecQ] = useState("");
+  const [secQ, setSecQ] = useState(""), [q, setQ] = useState(() => params.get("q") ?? "");   // q: the toolbar search; it narrows the table and is kept in the address as ?q=
   const [picked, setPicked] = useState<string[]>([]);
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
   const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
@@ -39,7 +39,7 @@ export function useScreener(mode: Mode) {
   const techAsOf = (cover as { tech_as_of?: string | null } | null | undefined)?.tech_as_of ?? null;   // the newest bar date the technical columns hold: shown so an old technical view is never read as today's
   const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
   const facets = useMemo(() => facetCounts(items, draft), [items, draft]);
-  const rows = useMemo(() => sortRows(applyFilters(items, applied), sort), [items, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => { const k = q.trim().toLowerCase(); return sortRows(applyFilters(items, applied).filter((r) => !k || `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)), sort); }, [items, appliedKey, sort, q]);   // eslint-disable-line react-hooks/exhaustive-deps
   const sum = useMemo(() => summarize(rows), [rows]);
   const mix = useMemo(() => concentration(rows), [rows]);
   const pg = pageOf(rows, state.page, size);
@@ -50,7 +50,16 @@ export function useScreener(mode: Mode) {
   const sel = picked.filter((s) => rowSet.has(s));
   const selRows = rows.filter((r) => sel.includes(r.symbol));
 
-  const go = (next: Partial<State>) => { setParams(serializeState({ ...state, ...next }), { replace: true }); };
+  const withQ = (p: URLSearchParams) => { if (q.trim()) p.set("q", q.trim()); return p; };
+  const go = (next: Partial<State>) => { setParams(withQ(serializeState({ ...state, ...next })), { replace: true }); };
+  useEffect(() => {   // keep ?q= in step with the search box (a new search starts again from page 1)
+    const t = setTimeout(() => setParams((prev) => {
+      const cur = prev.get("q") ?? "", want = q.trim();
+      if (cur === want) return prev;
+      const n = new URLSearchParams(prev); if (want) n.set("q", want); else n.delete("q"); n.delete("page"); return n;
+    }, { replace: true }), 300);
+    return () => clearTimeout(t);
+  }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
   const apply = (f: Filters = draft) => { if (Object.keys(validate(f)).length) return; setDraft(cloneFilters(f)); go({ filters: f, page: 0 }); setDrawer(false); };
   const clear = () => { const e = emptyFilters(); setDraft(e); go({ filters: e, page: 0 }); };
   const drop = (id: string) => { const n = removeChip(applied, id); setDraft(cloneFilters(n)); go({ filters: n, page: 0 }); };
@@ -85,7 +94,7 @@ export function useScreener(mode: Mode) {
   const sortBy = (key: SortKey) => go({ sort: nextSort(sort, key), page: 0 });
 
   return {
-    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, picked, setPicked, how, setHow, drawer, setDrawer,
+    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
     silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, sel, filterCount: chips.length,
     go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
   };

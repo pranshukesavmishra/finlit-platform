@@ -5,7 +5,7 @@
 // readers because every component and horizon carries its numbers and words in its own accessible name. Styles: styles/prism-card.css (classes pcx-*).
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { Icon } from "../lib/icons";
-import { bandInk, bandVar, partHint, scoreBand, trendBand as toneBand, type ScoreBand } from "../lib/scoreBands";
+import { BAND_RULE, bandInk, bandVar, partHint, scoreBand, trendBand as toneBand, type ScoreBand } from "../lib/scoreBands";
 import { TECH_NOTE, bandWidths, fmtScore, ratingWord, scalePos, trendAlignment, type TechAssessment, type TechHorizon, type TrendTone, type VerdictTone } from "../lib/prismTechnical";
 import { TICKS, zoneBg } from "../components/prism/shared/PartTile";
 import { LABEL, type PrismLatest } from "./PrismCard";
@@ -83,10 +83,11 @@ function PartCard({ p, index, hot, onHot, last, example }: { p: CardPart; index:
   return (
     <div className={"pcx-card band-" + band + (hot === p.key ? " hot" : "")} role="group" tabIndex={0} aria-label={tip + (hint ? " " + hint.long : "") + (example ? " Example numbers." : "")}
       style={{ "--pc": bandVar(band), "--i": index } as CSSProperties} onMouseEnter={() => onHot(p.key)} onMouseLeave={() => onHot(null)} onFocus={() => onHot(p.key)} onBlur={() => onHot(null)}>
-      <span className="pcx-ct"><CardRing value={p.value} band={band} /><span className="pcx-w">{p.weight}%</span></span>
+      <span className="pcx-ct"><CardRing value={p.value} band={band} /></span>
       <h5>{p.name}</h5>
       <p className="pcx-d">{PART_LINE[p.key] ?? ""}</p>
-      <span className={"dk-st pcx-chip " + tone} style={band === "na" ? undefined : ({ "--tc": bandInk(band) } as CSSProperties)}>{word}</span>
+      <span className={"dk-st pcx-chip " + tone} title={`${word}. ${BAND_RULE}`} style={band === "na" ? undefined : ({ "--tc": bandInk(band) } as CSSProperties)}>{word}</span>
+      {hint && <span className="pcx-hint">{p.key === "risk" ? "Higher = lower risk" : hint.short}</span>}
       <ScaleBar value={p.value} />
       <span className={"pcx-tip" + (last ? " end" : "")} aria-hidden="true">{tip}</span>
     </div>
@@ -109,7 +110,7 @@ export function FundamentalSection({ r, parts, example = false, children }: { r:
       <div className="pcx-fb">
         <div className="pcx-rc">
           <SegRing parts={parts} score={rated ? (r.final as number) : null} word={word} tone={rated ? scoreBand(r.final) : "na"} hot={hot} onHot={setHot} example={example} />
-          <p className="pcx-cap">{techIn ? "Overall Prism score" : "Cumulative fundamental score"}<InfoTip text={`The total of the component scores, each counted by its weight. Arc length shows a component's weight; the coloured part shows its score.`} /></p>
+          <p className="pcx-cap">{techIn ? "Overall Prism score" : "Cumulative fundamental score"}<InfoTip text={`The total of the component scores, each counted by its weight. Arc length shows a component's weight; the coloured part shows its score. ${BAND_RULE}`} /></p>
           <p className="pcx-bo">{basedOn(n, hasRisk)}</p>
         </div>
         <div className="pcx-cs">
