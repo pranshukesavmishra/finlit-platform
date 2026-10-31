@@ -142,3 +142,12 @@ Open **`https://<site>/api/technicals/status`** (public, read-only, no symbols o
 * The site backend's route needs the same environment as the full report (FinEdge for a missing index series). The first run after deploy will show it in `reasons`.
 * Whether Dhan's call allowance (shared with the quote jobs) copes with 1,300 candle calls in the evening: the job paces itself (3 a second) and stops after five failures.
 * The 7-day / 30-day precompute cadence is unchanged on purpose: the fundamental model does not need to be recalculated daily.
+
+
+## 10. The permanent fix (job supervisor), added after the 31 Oct 2026 report
+
+The manual `docker compose exec` workers were a stop-gap. The permanent fix is `docs/JOBS.md`: one Python supervisor replaces the bash time slots. In short: the "Heavy data loads"
+switch is a pause that **ends by itself after 30 minutes** (2 h / 12 h on request); every job has a freshness promise (technicals: a success after each session's data is final,
+overdue 12 h later) and the **data's own date is checked** every 10 minutes whatever the job says; a stale dataset forces its job to run and, if it stays stale, emails the founder;
+morning (05:00 to 06:45) and after-close/night windows run the catch-up chain; bulk jobs run **one at a time**; a failed, killed or hung job is retried after 30 / 60 / 120 minutes.
+`GET /api/jobs/status` shows all of it without SSH. The technical views now also carry "as of" dates on the screener (`Technical columns use prices up to ...`) as well as on the report.

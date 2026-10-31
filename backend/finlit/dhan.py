@@ -304,6 +304,8 @@ class DhanClient:
                 await self.token(force=True)
                 continue
             if r.status_code in (401, 403):
+                from .jobs.signals import report_refused
+                await report_refused(self.settings, "dhan", r.status_code)
                 raise DhanError(f"{path}: token refused (HTTP {r.status_code}); a pasted token lasts 24 hours")
             if r.status_code in RETRY_STATUS and attempt < 3:
                 await asyncio.sleep(2 ** attempt)

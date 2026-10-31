@@ -203,6 +203,9 @@ class FinEdgeClient:
                         return response.json()
                     except ValueError as exc:
                         raise FinEdgeError(path, response.status_code, "non-JSON response") from exc
+                if response.status_code in (401, 403):   # the key is not accepted: remembered for the admin alert (jobs/alerts), the error still goes to the caller
+                    from .jobs.signals import report_refused
+                    await report_refused(self.settings, "finedge", response.status_code)
                 if response.status_code not in RETRY_STATUS or attempt == retries:
                     raise FinEdgeError(path, response.status_code, response.text[:200])
                 retry_after = response.headers.get("retry-after")

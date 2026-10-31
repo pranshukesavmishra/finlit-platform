@@ -135,12 +135,22 @@ async def test_status_shows_the_last_runs_and_the_newest_result(store):  # noqa:
     assert "paused" in st["lastSkipped"]["results"]["why"]
 
 
-def test_the_scheduler_runs_the_results_jobs_without_a_visitor_and_in_the_late_windows():
-    sh = (DEPLOY / "scheduler.sh").read_text()
-    hourly = [l for l in sh.splitlines() if l.strip().startswith("due ") and ("refresh-results" in l or "calendars-hourly" in l)]
-    assert len(hourly) == 4 and all("results_gate" in l and "visitor_active" not in l for l in hourly)   # :05 calendars, :20 and :50 results, :35 results-light
-    assert 'RESULTS_NEED_VISITOR:-0' in sh
-    for chain in ("chain_evening2", "chain_late"):
-        body = sh.split(f"{chain}() {{")[1].split("\n}\n")[0]
-        assert "refresh-results" in body and "refresh-results-light" in body, chain
-    assert "calendars" in sh.split("chain_late() {")[1].split("\n}\n")[0]
+def test_the_supervisor_runs_the_results_jobs_without_a_visitor_every_evening_hour_and_in_the_morning():
+    from finlit.jobs.due import Ctx, JobState, evaluate
+    from finlit.jobs.registry import by_name
+    from jobs_fakes import ist
+    jobs = by_name({})
+    for name in ("results", "results-light", "calendars"):
+        j = jobs[name]
+        assert j.honours_pause is False and j.visitor_gate == "env:RESULTS_NEED_VISITOR" and j.cls == "light"
+        for hm in ((8, 20), (15, 50), (19, 10), (21, 10), (23, 30)):          # every old evening slot: due without a visitor
+            now = ist(2026, 10, 30, *hm)
+            st = JobState(job=name, first_seen_at=now - timedelta(days=9), last_success_at=now - timedelta(hours=1.5), last_attempt_at=now - timedelta(hours=1.5))
+            assert evaluate(j, st, Ctx(now=now, visitor_active=False)).due, (name, hm)
+        morning = ist(2026, 10, 31, 5, 30)
+        st = JobState(job=name, first_seen_at=morning - timedelta(days=9), last_success_at=morning - timedelta(hours=6))
+        assert evaluate(j, st, Ctx(now=morning)).due, name                                  # the early window: before the 08:00 active hours
+        now = ist(2026, 10, 31, 10, 0)
+        st = JobState(job=name, first_seen_at=now - timedelta(days=9), last_success_at=now - timedelta(hours=0.9))
+        assert not evaluate(j, st, Ctx(now=now, visitor_active=False, env={"RESULTS_NEED_VISITOR": "1"})).due   # the old metered-database rule is still available
+

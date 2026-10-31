@@ -1,3 +1,4 @@
+import { JobsBanner } from "../components/JobsBanner";
 import { useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -143,6 +144,8 @@ function Health() {
   if (!h) return <div className="skeleton" style={{ height: 160 }} />;
   const pct = h.universe ? Math.round((h.loaded / h.universe) * 100) : 0;
   return (
+    <>
+    <JobsBanner />
     <section className="card acct-c">
       <h2>Company data</h2>
       <p className="muted">How much of the market is loaded from FinEdge. Companies load in the background; any company a visitor opens is queued first.</p>
@@ -194,6 +197,7 @@ function Health() {
       </div>
       {h.recentProblems.length > 0 && <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Result</th><th>When</th><th>Detail</th></tr></thead><tbody>{h.recentProblems.map((p, i) => <tr key={i}><td><b>{p.symbol}</b></td><td>{p.status}</td><td>{stamp(p.at)}</td><td className="mono">{p.detail}</td></tr>)}</tbody></table></div>}
     </section>
+    </>
   );
 }
 

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
+import { resultsDelayedNote, useJobsStatus } from "../lib/jobsStatus";
 import { dayLabel, staleResultsNote, useFeed, useResultsStatus, type FeedItem, who } from "../lib/feed";
 import { addDays, todayIST } from "../lib/qresults";
 import { useWatchlist } from "../lib/watchlist";
@@ -19,7 +20,7 @@ export function ResultsPage() {
   // the month on screen (plus the days of the neighbouring months shown in its grid), and separately the next dates coming up
   const winFrom = ymd(new Date(month.getFullYear(), month.getMonth(), 1)), winTo = ymd(new Date(month.getFullYear(), month.getMonth() + 1, 0));
   const monthQ = useFeed("result", { limit: 3000, from: winFrom, to: winTo }), soonQ = useFeed("result", { upcoming: true, limit: 60 }), doneQ = useFeed("result", { before: addDays(todayIST(), 1), limit: 30 });   // before tomorrow = up to and including today (IST): what was declared today belongs here
-  const st = useResultsStatus(), staleNote = staleResultsNote(st.data);
+  const st = useResultsStatus(), staleNote = staleResultsNote(st.data), delayedNote = resultsDelayedNote(useJobsStatus().data);
   const runAt = [st.data?.lastRun.calendars?.at, st.data?.lastRun.results?.at].filter(Boolean).sort().pop();
   const { isLoading, isError } = monthQ;
   const keep = (list?: FeedItem[]) => (list || []).filter((i) => !onlyMine || (i.symbol && mine.includes(i.symbol)));
@@ -40,6 +41,7 @@ export function ResultsPage() {
         <Link className="btn primary" to="/results/quarter"><Icon name="notes" /> See all quarter results</Link>
         <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
       {staleNote && <div className="rc-stale" role="status">{staleNote}</div>}
+      {delayedNote && !staleNote && <div className="rc-stale" role="status" data-testid="results-delayed">{delayedNote}</div>}
       <p className="muted rc-upd">{runAt ? `Updated ${new Date(runAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })} IST` : st.data ? "Update time not recorded yet" : ""}{st.data?.newestResultInDb ? ` · newest result held: ${dayLabel(st.data.newestResultInDb)}` : ""}</p>
       {isError && <div className="formerr">The calendar could not be loaded. Please try again shortly.</div>}
       <div className="rc-grid">

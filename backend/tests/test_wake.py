@@ -302,25 +302,28 @@ def test_render_health_check_is_database_free():
     assert cfg["services"][0]["healthCheckPath"] == "/api/ping"
 
 
-def test_scheduler_main_loop_runs_only_gated_jobs():
-    """Outside a DB window, a job may start only while a visitor is on the site or (price alerts) when an alert exists."""
-    loop = SCHEDULER[SCHEDULER.index('last=""\nwhile true'):]
-    body = loop.split("# Outside a window: member price alerts")[1]
-    for line in body.splitlines():
-        if re.search(r"\brun(_funds)? ", line) and not line.strip().startswith("#"):
-            assert "visitor_active" in line or "SYNC=1" in line or "results_gate" in line, line   # results_gate = no visitor needed unless RESULTS_NEED_VISITOR=1 (a metered database)
-    assert "alerts_active" in body and "M % 15 == 0" in body
-    assert "visitor_active" in re.search(r"results_gate\(\) \{[^\n]*", SCHEDULER).group(0) and "RESULTS_NEED_VISITOR" in SCHEDULER
+def test_the_supervisor_gates_quotes_and_alerts_on_visitors_and_alerts_and_results_on_nothing():
+    """The old bash main loop is gone (docs/JOBS.md): the same gating now lives in the registry. Quotes follow visitors (or, slower, member alerts), the live alert job
+    needs an alert to exist, and the results jobs need no visitor unless RESULTS_NEED_VISITOR=1."""
+    from finlit.jobs.registry import by_name
+    jobs = by_name({})
+    assert jobs["quotes"].visitor_gate == "visitor_or_alerts" and jobs["quotes"].interval_idle_min == 15 and jobs["quotes"].interval_market
+    assert jobs["alerts-live"].visitor_gate == "alerts" and jobs["alerts-live"].interval_min == 15 and jobs["alerts-live"].interval_market
+    for n in ("results", "results-light", "calendars"):
+        assert jobs[n].visitor_gate == "env:RESULTS_NEED_VISITOR"
+    assert "scheduler.sh" in " ".join(jobs["drain-queue"].what.split()) or jobs["drain-queue"].external
+    assert "run light" not in SCHEDULER and "due(" not in SCHEDULER
 
 
-def test_scheduler_windows_cover_the_nightly_jobs_and_the_loops_are_quiet():
-    for chain in ("chain_night", "chain_morning", "chain_close", "chain_evening1", "chain_evening2", "chain_late"):
-        assert f"window {chain[6:]} {chain}" in SCHEDULER, chain
+def test_the_scheduler_keeps_the_loops_quiet_and_the_windows_live_in_the_registry():
+    from finlit.jobs.schedule import WINDOWS
+    assert set(WINDOWS) == {"MORNING", "AFTER_CLOSE", "NIGHT"}
     assert "sleep 120; done" in SCHEDULER and "sleep 30; done" not in SCHEDULER      # a loop that exits waits two minutes, not 30 s
-    assert "/api/health" not in SCHEDULER                                               # the start-up wait uses the database-free /api/ping
-    assert "finlit.wake flag-get bootload" in SCHEDULER
-    for job in ("refresh-quotes", "check-alerts --kind live", "refresh-results", "refresh-results-light"):
-        assert job in SCHEDULER
+    assert "/api/health" not in SCHEDULER                                               # nothing here queries the database while idle
+    from finlit.jobs.registry import by_name
+    jobs = by_name({"FUND_LOADS_ENABLED": "1"})
+    for job in ("quotes", "alerts-live", "results", "results-light", "calendars"):
+        assert job in jobs
 
 
 def test_deploy_scripts_parse(tmp_path):

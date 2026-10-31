@@ -15,7 +15,10 @@ from test_integration import ingested, make_settings, store  # noqa: F401
 def test_scheduler_syntax_and_checks():
     sh = Path(__file__).resolve().parents[2] / "deploy" / "scheduler.sh"
     assert subprocess.run(["bash", "-n", str(sh)]).returncode == 0
-    assert sh.read_text().count("loads_paused") >= 6
+    from finlit.jobs.registry import build_jobs
+    jobs = {j.name: j for j in build_jobs({"FUND_LOADS_ENABLED": "1"})}
+    assert all(j.honours_pause for n, j in jobs.items() if j.cls == "bulk")                      # the pause holds every bulk load ...
+    assert not any(jobs[n].honours_pause for n in ("results", "results-light", "calendars", "quotes", "drain-queue"))   # ... and nothing else
 
 
 def test_memory_shape():

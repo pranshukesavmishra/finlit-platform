@@ -54,7 +54,8 @@ export type FundStatus = { running: boolean; scheduledPaused: boolean; jobs: Rec
 export const fundStatus = () => apiGet<FundStatus>("/api/admin/funds/status");
 export const fundRun = (job: FundJob) => apiSend("POST", "/api/admin/funds/run", { job });
 
-export type SystemStatus = { loadsEnabled: boolean; bootEnvOff: boolean; fundEnvOff: boolean; memory: { totalMb: number | null; usedMb: number | null; availableMb: number | null }; uptimeSeconds: number; startedAt: string };
+export type SystemStatus = { loadsEnabled: boolean; pausedUntil?: string | null; pausedUntilIST?: string | null; pausedBy?: string | null; pauseWasLegacy?: boolean; resumesAutomatically?: boolean; pauseChoicesMinutes?: number[]; bootEnvOff: boolean; fundEnvOff: boolean; memory: { totalMb: number | null; usedMb: number | null; availableMb: number | null }; uptimeSeconds: number; startedAt: string };
 export const systemStatus = () => apiGet<SystemStatus>("/api/admin/system/status");
-export const systemLoads = (enabled: boolean) => apiSend<SystemStatus>("POST", "/api/admin/system/loads", { enabled });
+/** Pause (enabled=false, for `minutes`: 30 by default; over 720 needs confirmLong) or resume the heavy loads. A pause always ends by itself. */
+export const systemLoads = (enabled: boolean, minutes?: number, confirmLong?: boolean) => apiSend<SystemStatus>("POST", "/api/admin/system/loads", { enabled, ...(minutes ? { minutes } : {}), ...(confirmLong ? { confirmLong } : {}) });
 export const systemRestart = () => apiSend("POST", "/api/admin/system/restart");
