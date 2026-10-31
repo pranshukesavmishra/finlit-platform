@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { HScroll } from "../components/HScroll";
 import { LineChart } from "../charts/LineChart";
 import { MINUS, nf } from "../lib/format";
+import { ptsChange } from "../lib/profitChange";
 
 /** Profitability over the years, three ways to read the same eight years: a table coloured against each row's own median (with the unusual
  *  years marked), lines you can switch on and off, and a then-versus-now comparison of any two years. Ends with a reading in plain words. */
@@ -84,10 +85,10 @@ function Heat({ periods, rows, defs }: { periods: string[]; rows: Record<string,
     <>
       <p className="pr-key"><span>Below median</span><i className="lo" /><i className="lo2" /><i className="mid" /><i className="hi2" /><i className="hi" /><span>Above median</span><span className="pr-odd-k"><b className="pr-odd" />Unusual year (far from the other years)</span></p>
       <HScroll className="" label="profitability table">
-        <table className="pr-t"><thead><tr><th>Metric</th>{periods.map((p) => <th key={p}>{monthLabel(p)}</th>)}</tr></thead>
-          <tbody>{groups.flatMap((g) => { const ds = defs.filter((d) => d.group === g); return ds.length ? [<tr key={g} className="pr-g"><td colSpan={periods.length + 1}>{g}</td></tr>, ...ds.map((d) => { const a = analyse(rows[d.key]); return (
+        <table className="pr-t"><thead><tr><th scope="col">Metric</th>{periods.map((p) => <th scope="col" key={p}>{monthLabel(p)}</th>)}<th scope="col" className="pr-chg-h">CHANGE<small>{monthLabel(periods[0])} to {monthLabel(periods[last])}</small></th></tr></thead>
+          <tbody>{groups.flatMap((g) => { const ds = defs.filter((d) => d.group === g); return ds.length ? [<tr key={g} className="pr-g"><td colSpan={periods.length + 2}>{g}</td></tr>, ...ds.map((d) => { const a = analyse(rows[d.key]); return (
             <tr key={d.key} className={d.key === sel ? "on" : ""} onClick={() => setSel(d.key)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setSel(d.key)} aria-selected={d.key === sel}>
-              <td title={d.say}>{d.label}</td>{rows[d.key].map((x, i) => <td key={i} style={heat(x, a.med, a.spread)}>{x == null ? MINUS : <>{a.odd.has(i) && <b className="pr-odd" title="Unusual year" />}{nf(x, 2)}%</>}</td>)}</tr>); })] : []; })}</tbody></table>
+              <td title={d.say}>{d.label}</td>{rows[d.key].map((x, i) => <td key={i} style={heat(x, a.med, a.spread)}>{x == null ? MINUS : <>{a.odd.has(i) && <b className="pr-odd" title="Unusual year" />}{nf(x, 2)}%</>}</td>)}{(() => { const c = ptsChange(rows[d.key][0], rows[d.key][last], monthLabel(periods[0]), monthLabel(periods[last])), tone = d.key === "effective_tax_rate" || c.dir === "flat" || c.dir === "none" ? "" : c.dir; return <td className={"pr-chg " + tone} title={c.reason ?? undefined} aria-label={c.reason ?? `${d.label}, ${monthLabel(periods[0])} to ${monthLabel(periods[last])}: ${c.text.replace("pts", "percentage points")}`}>{c.dir === "up" ? "▲ " : c.dir === "down" ? "▼ " : ""}{c.text}</td>; })()}</tr>); })] : []; })}</tbody></table>
       </HScroll>
       <div className="pr-sel">
         <div className="card pr-chart"><div className="pr-ch"><b>{cur.label}</b>{an.med != null && <span><i className="pr-med" />{periods.length}-year median {nf(an.med, 2)}%</span>}</div><p className="muted" style={{ margin: "2px 0 10px", fontSize: 13 }}>{cur.say}</p>

@@ -138,7 +138,7 @@ describe("edge cases", () => {
 describe("DuPont placement", () => {
   it("the existing card stays where it was, with 'Decoding ROE' now above the new block and not above the card", () => {
     st.fin = { yearly: { pl: RIL.pl, bs: RIL.bs } };
-    const { container } = render(<DuPont symbol="RELIANCE" periods={[]} rows={{}} lender={false} />);
+    const { container } = render(<DuPont symbol="RELIANCE" lender={false} />);
     const kids = [...container.querySelector(".dp")!.children];
     expect(kids[0].className).toContain("dp-card"); expect(kids[0].querySelector("h3")?.textContent).toContain("DuPont analysis");
     expect(kids[1].className).toBe("dp-deep"); expect(kids[1].querySelector(".dp-head h3")?.textContent).toBe("Decoding ROE");

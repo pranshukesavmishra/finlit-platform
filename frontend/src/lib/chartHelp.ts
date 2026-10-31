@@ -314,14 +314,6 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     read: "The three parts multiply to the return on equity. Compare the first and last year: the tiles show which part moved and how much of the change it explains. A flag marks a year whose profit includes one-off or discontinued-operations profit.",
     why: "The same return on equity can come from strong margins, from efficient use of assets, or from leverage. Knowing which one tells you how durable it is.",
   },
-  "margin-trend": {
-    title: "Margin trend",
-    what: "The company's margins for the latest few years, with the change from the first to the last year in basis points (100 basis points = 1 percentage point).",
-    x: "Financial year (April to March).",
-    y: "Each margin in per cent of sales (of total income for banks and lenders).",
-    read: "Look for margins that move in different directions: if gross margin rises while operating margin falls, costs below gross profit are growing faster than sales. A year that stands far above the others is flagged.",
-    why: "Margins show whether growth is turning into profit, and where in the cost structure the pressure is coming from.",
-  },
   "ratio-trend": {
     title: "Historical trend of margins and returns",
     what: "One small line chart each for gross margin, operating margin, net margin, return on equity and return on capital over the years.",

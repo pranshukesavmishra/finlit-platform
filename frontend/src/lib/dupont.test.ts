@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dupont, marginTrend } from "./dupont";
+import { dupont } from "./dupont";
 
 const t = (periods: string[], rows: Record<string, (number | null)[]>) => ({ unit: "Cr", period: "yearly", periods, periodEnds: periods, rows });
 
@@ -33,15 +33,5 @@ describe("dupont", () => {
     expect(dupont(undefined, undefined, false).years).toEqual([]);
     const y = dupont(pl, t(["FY23", "FY26"], { total_assets: [1, 1], total_equity: [0, -5] }), false).years[1];
     expect(y.roe).toBeNull(); expect(y.multiplier).toBeNull();
-  });
-});
-
-describe("marginTrend", () => {
-  it("gives basis-point change and the gross-up-operating-down finding", () => {
-    const m = marginTrend(["FY23", "FY24", "FY25", "FY26"], { gross_margin: [64, 66, 62, 65], operating_margin: [33, 35, 32, 31], net_margin: [25, 26, 42, 23] });
-    expect(m.rows.find((r) => r.key === "gross_margin")?.bps).toBe(100);
-    expect(m.rows.find((r) => r.key === "operating_margin")?.bps).toBe(-200);
-    expect(m.findings.some((f) => /Gross margin improved/.test(f))).toBe(true);
-    expect(m.findings.some((f) => /FY25/.test(f))).toBe(true);                  // the 42% net margin year
   });
 });

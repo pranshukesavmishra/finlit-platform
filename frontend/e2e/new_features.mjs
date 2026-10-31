@@ -1,5 +1,5 @@
 // This week's features, end to end against the full local stack: quarter results page, the new stock-page sections (DuPont, Profit Reality
-// Check, margin trend, Pros and cons, profitability ratios), the chart "?" help, the TATAMOTORS redirect, the profit-gap alert, the Console
+// Check, Pros and cons, profitability ratios), the chart "?" help, the TATAMOTORS redirect, the profit-gap alert, the Console
 // "Make admin" button and the portfolio page (insights + lab, no swaps). Every new page is also checked at 390 px for sideways scrolling.
 //   LIVE_DATA=1 ADMIN_REQUIRE_MFA=0 dev/run_stack.sh   (companies loaded: RELIANCE TCS INFY HDFCBANK TMPV TMCV WIPRO ITC;
 //                                                        members pm-silver@ and pm-gold@example.com, plan Silver / Gold)
@@ -122,7 +122,6 @@ for (const sym of ["RELIANCE", "TMPV"]) {
   const t = await text(p);
   check(`${sym}: DuPont analysis section`, (await p.getByRole("heading", { name: /DuPont analysis/ }).count()) === 1);
   check(`${sym}: Profit Reality Check section`, (await p.getByRole("heading", { name: /Profit Reality Check/ }).count()) === 1);
-  check(`${sym}: Margin trend section`, (await p.getByRole("heading", { name: /Margin trend/ }).count()) === 1);
   check(`${sym}: Pros and cons section (and no 'How the score works')`, (await p.getByRole("heading", { name: "Pros and cons" }).count()) >= 1 && !/How the score works/.test(t));
   check(`${sym}: profitability ratios table`, (await p.getByRole("heading", { name: /Profitability ratios/ }).count()) === 1 && (await p.locator("table.pr-t").count()) >= 1 && (await p.locator("table.pr-t").first().locator("tbody tr").count()) > 3);
   check(`${sym}: profitability ratios bar chart`, (await p.locator(".pr-bars").count()) >= 1 && (await p.locator(".pr-bars").first().locator("> *").count()) > 2);
