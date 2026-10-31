@@ -1,11 +1,11 @@
 import { Link } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
-import { HowDialog, RangeBox, Slider } from "../components/screener/controls";
+import { HowDialog, Slider } from "../components/screener/controls";
+import { CheckRow, FilterGroup, QuickRow, RangeRow } from "../components/screener/FilterGroup";
+import { Donut } from "../components/screener/PageParts";
 import { PrismPart, PrismScore, PrismTrend, med } from "../components/screener/cells";
 import { AdvancedUpgrade } from "../components/screener/AdvancedUpgrade";
 import { useScreener } from "../components/screener/useScreener";
-import { ChartHelp } from "../components/ChartHelp";
-import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
 import { nf, dateIN, MINUS } from "../lib/format";
@@ -40,30 +40,29 @@ function Advanced() {
   return (
     <ScreenerFrame s={s} splitKey="score-adv" eyebrow="Advanced score screener" title="Every listed company, rated by FinLit Prism." sideLabel="Advanced score screener filters" errorTitle="The advanced score screener is unavailable right now"
       intro={<>The advanced model for the whole market: the Prism score, its four fundamental parts (Fundamentals, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export. Want the FinLit score instead? Use the <Link to="/score-screener">Basic score screener</Link>. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
-      presets={<>
-        <div className="label">Quick views <ChartHelp id="score-filter" /></div>
-        <div className="sx-presets" role="group" aria-label="Quick views built from the Prism parts">
-          {PRISM_PRESETS.map((p) => <button key={p.id} type="button" className={"bandc" + (prismPreset === p.id ? " on" : "")} aria-pressed={prismPreset === p.id} title={p.say} onClick={() => pickPreset(p.id)}>{p.label}</button>)}
-        </div>
-      </>}
+      tier="gold" sortChoices={[{ key: "prism_final", label: "Prism" }, ...PRISM_PARTS.map((x) => ({ key: x.col, label: x.label })), { key: "prism_st_score", label: "Short-term technical" }, { key: "prism_lt_score", label: "Long-term technical" }]}
+      donut={!isLoading && cover && cover.total > 0 ? <Donut part={n} total={cover.total} partLabel="Rated" restLabel="Not rated yet" title={`${nf(Math.max(0, cover.total - n), 0)} of ${nf(cover.total, 0)} companies are not rated yet.`} note="More are added every night, largest first." /> : undefined}
+      presets={<div className="sx-presets" role="group" aria-label="Quick views built from the Prism parts">
+        {PRISM_PRESETS.map((p) => <QuickRow key={p.id} label={p.label} on={prismPreset === p.id} title={p.say} onClick={() => pickPreset(p.id)} />)}
+      </div>}
       filters={<>
-        <div className="label" style={{ marginTop: 18, display: "flex", justifyContent: "space-between" }}>Prism filters<button type="button" className="alx-link" onClick={() => s.setHow(true)}><Icon name="info" /> How scores work</button></div>
-        <fieldset className="ss-fs"><legend>Prism rating</legend>
-          <label className={"sx-opt" + (draft.rated ? " on" : "")}><input type="checkbox" checked={draft.rated} onChange={() => setDraft((d) => ({ ...d, rated: !d.rated }))} /><span>Only companies rated by Prism</span></label>
-          <div className="pzs-chips" role="group" aria-label="Prism rating label">
-            {PRISM_LABELS.map((l) => <button key={l} type="button" className={"bandc pzs-chip" + (draft.labels.includes(l) ? " on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{LABEL_WORD[l]}</button>)}
+        <FilterGroup id="score" title="Prism rating" defaultOpen active={(draft.rated ? 1 : 0) + draft.labels.length + (draft.ranges.z.min != null || draft.ranges.z.max != null ? 1 : 0)}>
+          <CheckRow label="Only companies rated by Prism" checked={draft.rated} onChange={() => setDraft((d) => ({ ...d, rated: !d.rated }))} />
+          <div className="fgx-chips" role="group" aria-label="Prism rating label">
+            {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{LABEL_WORD[l]}</button>)}
           </div>
-          <RangeBox s={s} k="z" label="Prism" />
+          <RangeRow label="Prism score" group="Prism score, exact range" min={draft.ranges.z.min} max={draft.ranges.z.max} error={s.problems.z} onChange={(end, v) => s.setRange("z", end, v)} />
           <div className="pzs-sls"><Slider s={s} k="z" end="min" label="Prism" /><Slider s={s} k="z" end="max" label="Prism" /></div>
-        </fieldset>
-        <div className="label" style={{ marginTop: 18 }}>Fundamental parts <span className="faint">0 to 100, higher is better</span></div>
-        {PRISM_PARTS.map((x) => <fieldset key={x.range} className="ss-fs"><legend title={x.say}>Prism {x.label}</legend><RangeBox s={s} k={x.range} label={"Prism " + x.label} /></fieldset>)}
-        <p className="sx-note">A high Risk score means lower risk.</p>
-        <div className="label" style={{ marginTop: 18 }}>Technical views</div>
-        {TECH_KEYS.map((k) => (
-          <fieldset key={k} className="ss-fs"><legend>{TECH_NAMES[k]} view</legend>
-            {TECH_BAND_ORDER.map((b) => <label key={b}><input type="checkbox" checked={draft.tech[k].includes(b)} onChange={() => s.setTech(k, b)} /><span>{TECH_BANDS[b].label}</span></label>)}
-          </fieldset>))}
+        </FilterGroup>
+        <FilterGroup id="parts" title="Fundamental parts" defaultOpen active={PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="0 to 100, higher is better. A high Risk score means lower risk.">
+          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={"Prism " + x.label} group={`Prism ${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
+        </FilterGroup>
+        <FilterGroup id="tech" title="Technical views" defaultOpen active={draft.tech.st.length + draft.tech.lt.length}>
+          {TECH_KEYS.map((k) => (
+            <div key={k} role="group" aria-label={`${TECH_NAMES[k]} view`}><div className="fgx-note">{TECH_NAMES[k]} view</div>
+              {TECH_BAND_ORDER.map((b) => <CheckRow key={b} label={TECH_BANDS[b].label} checked={draft.tech[k].includes(b)} onChange={() => s.setTech(k, b)} />)}
+            </div>))}
+        </FilterGroup>
       </>}
       tiles={tiles}
       beforeTable={<>

@@ -23,11 +23,11 @@ const scoreCol = async (p, col) => (await p.locator(`.ss-t tbody tr td:nth-child
 let p = await ctxFor("demo-gold@finlit-demo.com");
 await p.goto(base + "/score-screener", { waitUntil: "networkidle" }); await p.waitForTimeout(1200);
 check("gold: page loads with a table of real companies", (await rowsOf(p).count()) >= 5, `${await rowsOf(p).count()} rows`);
-const found = Number((await p.locator(".ss-stat b").first().innerText()).replace(/,/g, ""));
+const found = Number((await p.locator(".fgx-kpi b").first().innerText()).replace(/,/g, ""));
 check("gold: 'Stocks found' counts the whole universe at first", found >= 20, String(found));
 if (shots) await p.screenshot({ path: `${shots}/score-screener.png` });
 await p.getByRole("button", { name: /^Large cap/ }).click(); await p.getByRole("button", { name: "Apply filters" }).click(); await p.waitForTimeout(600);
-const large = Number((await p.locator(".ss-stat b").first().innerText()).replace(/,/g, ""));
+const large = Number((await p.locator(".fgx-kpi b").first().innerText()).replace(/,/g, ""));
 check("gold: Large cap filter applies and shows a chip", large > 0 && large <= 100 && large <= found && (await p.locator(".fchip", { hasText: "Large cap" }).count()) === 1, `${large} of ${found}`);
 check("gold: filters are kept in the address (shareable)", /cap=Large/.test(p.url()), p.url());
 await p.getByRole("group", { name: "Fundamental score" }).getByText(/78 and above/).click(); await p.getByRole("button", { name: "Apply filters" }).click(); await p.waitForTimeout(600);
@@ -36,7 +36,7 @@ check("gold: Fundamental 78+ shows only scores of 78 or more", f.length > 0 ? f.
 await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(900);
 check("gold: filters survive a reload", (await p.locator(".fchip").count()) === 2, String(await p.locator(".fchip").count()));
 await p.getByRole("button", { name: "Clear all" }).first().click(); await p.waitForTimeout(500);
-check("gold: Clear all removes every filter", (await p.locator(".fchip").count()) === 0 && Number((await p.locator(".ss-stat b").first().innerText()).replace(/,/g, "")) === found);
+check("gold: Clear all removes every filter", (await p.locator(".fchip").count()) === 0 && Number((await p.locator(".fgx-kpi b").first().innerText()).replace(/,/g, "")) === found);
 await p.getByRole("button", { name: "Sort by Overall" }).click(); await p.getByRole("button", { name: "Sort by Overall" }).click(); await p.waitForTimeout(300);
 const o = await scoreCol(p, 8);
 check("gold: sorting by Overall (second click = ascending) orders the table", o.length > 2 && o.every((n, i) => i === 0 || o[i - 1] <= n), JSON.stringify(o.slice(0, 5)));

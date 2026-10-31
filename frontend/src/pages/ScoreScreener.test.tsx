@@ -63,12 +63,13 @@ describe("Basic score screener page", () => {
   it("score bands and min-max are exact, and missing scores never pass", () => {
     open();
     const fund = screen.getByRole("group", { name: "Fundamental score" }), tech = screen.getByRole("group", { name: "Technical score" });
-    fireEvent.click(within(fund).getByRole("checkbox", { name: "78 and above (Strong)" }));
+    fireEvent.click(within(fund).getByRole("button", { name: "78 and above (Strong)" }));
     fireEvent.submit(fund.closest("form")!);
     expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);                        // 78 is in, 77 (EEE) is out, GGG has no Fundamental
-    fireEvent.click(within(tech).getByRole("checkbox", { name: "45 to 77 (Mixed, Healthy)" }));
+    fireEvent.click(within(tech).getByRole("button", { name: "45 to 77 (Mixed, Healthy)" }));
     fireEvent.submit(fund.closest("form")!);
     expect(symbols()).toEqual(["HHH"]);                                      // Technical 77 is in, 78 is out
+    fireEvent.click(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByRole("checkbox", { name: "Technical score" }));   // ticking enables Min and Max
     fireEvent.change(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByLabelText("Min"), { target: { value: "78" } });
     expect(screen.getByRole("button", { name: "Apply filters" }).hasAttribute("disabled")).toBe(false);
     fireEvent.change(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByLabelText("Max"), { target: { value: "50" } });
@@ -267,5 +268,64 @@ describe("Basic score screener: no Prism", () => {
   it("the page text uses no advice wording", () => {
     open();
     expect(document.body.textContent?.toLowerCase()).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate)\b/);
+  });
+
+  it("filter groups are buttons that collapse and expand, with aria-expanded and aria-controls", () => {
+    open();
+    const head = within(screen.getByLabelText("Score screener filters")).getByRole("button", { name: /^Market cap/ });
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    const body = document.getElementById(head.getAttribute("aria-controls")!)!;
+    expect(body.hidden).toBe(false);
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(body.hidden).toBe(true);
+    fireEvent.click(head);
+    expect(body.hidden).toBe(false);
+  });
+
+  it("a group header shows 'n active' for its filters and counts beside options are real", () => {
+    open("?sector=IT&sector=Auto&cap=Large");
+    expect(screen.getByRole("button", { name: /^Industry \/ Sector.*2 active/ })).toBeTruthy();
+    expect(within(screen.getByLabelText("Score screener filters")).getByRole("button", { name: /^Market cap.*1 active/ })).toBeTruthy();
+    // 22 companies: the draft counts follow the other filters (Large cap + sector are skipped for their own group)
+    const large = screen.getByRole("checkbox", { name: /^Large cap/ }).closest("label")!;
+    expect(large.querySelector("small")!.textContent).toMatch(/^\d+$/);
+    const banks = sector("Banks").closest("label")!;
+    expect(banks.querySelector("small")!.textContent).toBe("2");
+  });
+
+  it("a Min - Max row is disabled until its box is ticked, unticking clears it, and the value reaches the address", () => {
+    open();
+    const g = screen.getByRole("group", { name: "Overall score, exact range" });
+    const min = within(g).getByLabelText("Min") as HTMLInputElement;
+    expect(min.disabled).toBe(true);
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Overall score" }));
+    expect(min.disabled).toBe(false);
+    fireEvent.change(min, { target: { value: "70" } });
+    fireEvent.submit(g.closest("form")!);
+    expect(loc()).toBe("/score-screener?omin=70");
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Overall score" }));
+    expect(min.value).toBe("");
+    expect(min.disabled).toBe(true);
+  });
+
+  it("the toolbar search narrows the table by name or sector without touching the address", () => {
+    open("?size=50");
+    fireEvent.change(screen.getByLabelText("Search company name, sector or keyword"), { target: { value: "pharma" } });
+    expect(symbols()).toEqual(["HHH"]);
+    expect(loc()).toBe("/score-screener?size=50");
+  });
+
+  it("the sort select writes the same address as a column heading", () => {
+    open();
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "f:-1" } });
+    expect(loc()).toContain("sort=f&dir=desc");
+    expect(symbols().slice(0, 3)).toEqual(["AAA", "BBB", "HHH"]);
+  });
+
+  it("the not-scored donut is computed from the loaded companies", () => {
+    open();
+    expect(screen.getByText("1 of 22 companies are not scored yet.")).toBeTruthy();
+    expect(screen.getByText(/Scored 21 \(95%\)/)).toBeTruthy();
   });
 });

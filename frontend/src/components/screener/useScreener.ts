@@ -25,7 +25,7 @@ export function useScreener(mode: Mode) {
   const state = useMemo(() => parseState(params, scope), [params.toString(), scope]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { filters: applied, sort, size } = state;
   const [draft, setDraft] = useState<Filters>(() => cloneFilters(applied));
-  const [secQ, setSecQ] = useState("");
+  const [secQ, setSecQ] = useState(""), [q, setQ] = useState("");   // q: the toolbar search, a view-only narrowing (not part of the address)
   const [picked, setPicked] = useState<string[]>([]);
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
   const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
@@ -38,7 +38,7 @@ export function useScreener(mode: Mode) {
   const cover = useMemo(() => (data?.prism ?? (gold ? { ...coverageFrom(data?.rows || []), as_of: null } : null)), [data, gold]);
   const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
   const facets = useMemo(() => facetCounts(items, draft), [items, draft]);
-  const rows = useMemo(() => sortRows(applyFilters(items, applied), sort), [items, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => { const k = q.trim().toLowerCase(); return sortRows(applyFilters(items, applied).filter((r) => !k || `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)), sort); }, [items, appliedKey, sort, q]);   // eslint-disable-line react-hooks/exhaustive-deps
   const sum = useMemo(() => summarize(rows), [rows]);
   const mix = useMemo(() => concentration(rows), [rows]);
   const pg = pageOf(rows, state.page, size);
@@ -84,7 +84,7 @@ export function useScreener(mode: Mode) {
   const sortBy = (key: SortKey) => go({ sort: nextSort(sort, key), page: 0 });
 
   return {
-    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, picked, setPicked, how, setHow, drawer, setDrawer,
+    mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
     silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, sel, filterCount: chips.length,
     go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
   };
