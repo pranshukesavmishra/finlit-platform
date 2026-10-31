@@ -277,7 +277,7 @@ main#main { min-height: 90vh; }
 .cov-note { margin-top: 6px; font-size: 13px; color: var(--muted); max-width: 46ch; }
 
 /* Trends section: larger tab and period controls and chart titles (founder request) */
-.tr-bar .seg { padding: 4px; border-radius: 12px; } .tr-bar .seg button { font-size: 16px; padding: 11px 20px; min-height: 46px; border-radius: 9px; }
+.tr-bar .seg, .sh-r .seg { padding: 4px; border-radius: 12px; } .tr-bar .seg button, .sh-r .seg button { font-size: 16px; padding: 11px 20px; min-height: 46px; border-radius: 9px; }
 .tr-h h3 { font-size: 17px; } .tr-h .chip { font-size: 12px; }
 .tr-key { font-size: 13px; }
 @media (max-width: 700px) { .tr-bar .seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; } .tr-bar .seg::-webkit-scrollbar { display: none; } .tr-bar .seg button { font-size: 15px; padding: 10px 14px; } }

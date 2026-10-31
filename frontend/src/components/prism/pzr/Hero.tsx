@@ -128,7 +128,7 @@ export function MiniScores({ report }: { report: PrismReport }) {
     <div className="pzr-minis" role="group" aria-label="Mini scores">
       <ul className="pzr-minis-l">
         <li className="pzr-mini pzr-mini-f" style={{ "--m": `var(${rated ? t.token : "--pz-none"})` } as React.CSSProperties} title={label} aria-label={label}>
-          <span className="pzr-mini-k">Fundamental</span>
+          <span className="pzr-mini-k">Fundamental score</span>
           {rated ? <b className="pzr-mini-n">{score1(rating.final)}</b> : <b className="pzr-mini-n pzr-mini-nr">Not rated</b>}
           <span className="pzr-mini-w">{rated ? t.word : "No score"}</span>
           <span className="pzr-mini-bar" aria-hidden="true">{rated && <u style={{ width: `${Math.max(0, Math.min(100, rating.final!))}%` }} />}</span>

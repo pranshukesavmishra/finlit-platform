@@ -83,7 +83,7 @@ function PartCard({ p, index, hot, onHot, last, example }: { p: CardPart; index:
   return (
     <div className={"pcx-card band-" + band + (hot === p.key ? " hot" : "")} role="group" tabIndex={0} aria-label={tip + (hint ? " " + hint.long : "") + (example ? " Example numbers." : "")}
       style={{ "--pc": bandVar(band), "--i": index } as CSSProperties} onMouseEnter={() => onHot(p.key)} onMouseLeave={() => onHot(null)} onFocus={() => onHot(p.key)} onBlur={() => onHot(null)}>
-      <span className="pcx-ct"><CardRing value={p.value} band={band} /><span className="pcx-w">{p.weight}%</span></span>
+      <span className="pcx-ct"><CardRing value={p.value} band={band} /></span>
       <h5>{p.name}</h5>
       <p className="pcx-d">{PART_LINE[p.key] ?? ""}</p>
       <span className={"dk-st pcx-chip " + tone} style={band === "na" ? undefined : ({ "--tc": bandInk(band) } as CSSProperties)}>{word}</span>

@@ -73,7 +73,6 @@
 .pcx-card:hover, .pcx-card.hot { border-color: var(--pc); box-shadow: 0 0 0 1px var(--pc), 0 14px 28px -20px var(--pc); transform: translateY(-1px); }
 .pcx-card.band-na:hover, .pcx-card.band-na.hot { border-color: var(--faint); box-shadow: none; }
 .pcx-ct { display: flex; align-items: flex-start; justify-content: space-between; align-self: stretch; gap: 8px; }
-.pcx-w { padding: 2px 7px; border-radius: 999px; font: 600 12px/1.3 var(--sans); font-variant-numeric: tabular-nums; color: var(--muted); background: rgba(var(--dk-w), .07); }
 .pcx-cr { position: relative; width: 50px; height: 50px; flex: none; }
 .pcx-cr svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
 .pcx-cr-bg { fill: none; stroke: rgba(var(--dk-w), .12); stroke-width: 3.6; }

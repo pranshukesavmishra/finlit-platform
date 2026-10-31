@@ -18,7 +18,7 @@ describe("Fundamental section", () => {
     expect(h.match(/class="pcx-arc/g)).toHaveLength(4);
     expect(h.match(/class="pcx-card band-/g)).toHaveLength(4);
     for (const b of ["band-mid", "band-lo", "band-hi"]) expect(h).toContain(b);
-    for (const w of ["40%", "30%", "20%", "10%", "AVERAGE", "Weak", "Healthy", "Strong", "59.1", "/ 100"]) expect(t.toLowerCase()).toContain(w.toLowerCase());
+    for (const w of ["AVERAGE", "Weak", "Healthy", "Strong", "59.1", "/ 100"]) expect(t.toLowerCase()).toContain(w.toLowerCase());
     expect(h).toContain('aria-label="Valuation 42 of 100: Weak. Counts for 30% of the overall score. Higher is better: a higher score is a stronger result."');
     expect(h).toContain("a higher Risk score means lower risk");
     expect(t).toContain("Fundamental analysis");

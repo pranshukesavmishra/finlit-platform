@@ -128,10 +128,10 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
   const list = cards[tab];
   return (
     <section className="block" style={{ "--sc": "var(--gold)" } as React.CSSProperties}>
-      <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold" />
+      <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold"
+        aside={<div className="seg" role="group" aria-label="Period"><button aria-pressed={mode === "q"} onClick={() => setMode("q")}>Quarterly</button><button aria-pressed={mode === "a"} onClick={() => setMode("a")}>Annual</button></div>} />
       <div className="tr-bar">
         <div className="seg" role="tablist" aria-label="Trend groups">{([["key", "Key metrics"], ["margin", "Margins and investment"], ["div", "Dividends"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
-        <div className="seg" role="group" aria-label="Period"><button aria-pressed={mode === "q"} onClick={() => setMode("q")}>Quarterly</button><button aria-pressed={mode === "a"} onClick={() => setMode("a")}>Annual</button></div>
       </div>
       <div className="tr-grid">{list.map((c) => {
         const d = c.build(mode); if (!d || !d.series.some((s) => s.values.some((v) => v != null))) return null;
