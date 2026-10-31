@@ -6,6 +6,9 @@ import { Donut } from "../components/screener/PageParts";
 import { PrismPart, PrismScore, PrismTrend, med } from "../components/screener/cells";
 import { AdvancedUpgrade } from "../components/screener/AdvancedUpgrade";
 import { useScreener } from "../components/screener/useScreener";
+import { PresetPanel } from "../components/screener/presets/PresetPanel";
+import { PresetPage } from "../components/screener/presets/PresetPage";
+import { usePresetRoute } from "../components/screener/presets/usePresetRoute";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
 import { nf, dateIN, MINUS } from "../lib/format";
@@ -25,6 +28,7 @@ function Advanced() {
   const s = useScreener("advanced");
   const { draft, setDraft, applied, isLoading, sum, cover, prismAsOf, techAsOf } = s;
   const prismPreset = activePrismPreset(applied);
+  const route = usePresetRoute();   // the prebuilt screen in the address (?preset=...)
   const pickPreset = (id: string) => s.apply(prismPreset === id ? withoutPrismPreset(draft) : withPrismPreset(draft, PRISM_PRESETS.find((p) => p.id === id)!));
 
   const tiles: [string, string, string?][] = [
@@ -37,14 +41,17 @@ function Advanced() {
   const line = !isLoading ? coverageLine(cover) : null;
   const n = cover ? cover.rated + cover.provisional : 0;
 
+  const basics = <div className="sx-presets" role="group" aria-label="Quick views built from the Prism parts">
+    {PRISM_PRESETS.map((p) => <QuickRow key={p.id} label={p.label} on={prismPreset === p.id} title={p.say} onClick={() => pickPreset(p.id)} />)}
+  </div>;
+  if (route.id) return <PresetPage route={route} basics={basics} />;
+
   return (
     <ScreenerFrame s={s} splitKey="score-adv" eyebrow="Advanced score screener" title="Every listed company, rated by FinLit Prism." sideLabel="Advanced score screener filters" errorTitle="The advanced score screener is unavailable right now"
       intro={<>The advanced model for the whole market: the Prism score, its four fundamental parts (Fundamentals, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export. Want the FinLit score instead? Use the <Link to="/score-screener">Basic score screener</Link>. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
       tier="gold" sortChoices={[{ key: "prism_final", label: "Prism" }, ...PRISM_PARTS.map((x) => ({ key: x.col, label: x.label })), { key: "prism_st_score", label: "Short-term technical" }, { key: "prism_lt_score", label: "Long-term technical" }]}
       donut={!isLoading && cover && cover.total > 0 ? <Donut part={n} total={cover.total} partLabel="Rated" restLabel="Not rated yet" title={`${nf(Math.max(0, cover.total - n), 0)} of ${nf(cover.total, 0)} companies are not rated yet.`} note="More are added every night, largest first." /> : undefined}
-      presets={<div className="sx-presets" role="group" aria-label="Quick views built from the Prism parts">
-        {PRISM_PRESETS.map((p) => <QuickRow key={p.id} label={p.label} on={prismPreset === p.id} title={p.say} onClick={() => pickPreset(p.id)} />)}
-      </div>}
+      presets={<PresetPanel route={route} basics={basics} basicsActive={!!prismPreset} />}
       filters={<>
         <FilterGroup id="score" title="Prism rating" defaultOpen active={(draft.rated ? 1 : 0) + draft.labels.length + (draft.ranges.z.min != null || draft.ranges.z.max != null ? 1 : 0)}>
           <CheckRow label="Only companies rated by Prism" checked={draft.rated} onChange={() => setDraft((d) => ({ ...d, rated: !d.rated }))} />
