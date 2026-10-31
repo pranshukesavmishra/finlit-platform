@@ -2,7 +2,7 @@
 .pfq { margin: 40px 0 0; padding: 0 20px; }
 main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 300px; }
 main:has(.shell.is-collapsed) > .pfq { padding-left: 96px; }
-.pfq-in { max-width: 900px; margin: 0 auto 0 0; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
+.pfq-in { max-width: 900px; margin: 0 auto; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
 main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
 .pfq-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
 .pfq-k { display: block; font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
