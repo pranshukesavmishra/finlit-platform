@@ -34,7 +34,7 @@ export function StatementSwitch({ value, set, disabled }: { value: Statement; se
   );
 }
 
-export function Picker({ statement, setStatement, big = false }: { statement: Statement; setStatement: (s: Statement) => void; big?: boolean }) {
+export function Picker({ statement, big = false }: { statement: Statement; setStatement?: (s: Statement) => void; big?: boolean }) {
   const nav = useNavigate();
   const sf = useIndexFilter();
   const [text, setText] = useState(""), [open, setOpen] = useState(false), [cur, setCur] = useState(0);
@@ -64,7 +64,6 @@ export function Picker({ statement, setStatement, big = false }: { statement: St
         </div>}
       </div>
       <ActiveFilters filter={sf.filter} onChange={sf.setFilter} className="pzr-af" />
-      <label className="pzr-lbl">Statement basis<StatementSwitch value={statement} set={setStatement} /></label>
     </div>
   );
 }

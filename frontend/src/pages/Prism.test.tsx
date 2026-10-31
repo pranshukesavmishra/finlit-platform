@@ -158,7 +158,7 @@ describe("Prism page", () => {
     const t = text(page("/prism/EXAMPLE"));
     expect(t).toContain("Download report (PDF)");
     expect(t).toContain("Recalculate");
-    expect(t).toContain("Statement basis");
+    expect(t).not.toContain("Statement basis"); expect(t).not.toContain("Standalone");
     state.admin = false;
     expect(text(page("/prism/EXAMPLE"))).not.toContain("Download report (PDF)");      // administrators only, for now
     state.admin = true;
