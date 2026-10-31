@@ -19,6 +19,24 @@ def _list(value: str) -> List[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
+def site_api_url_default(env=None) -> str:
+    """SITE_API_URL, or the address of the site backend that deploy/render-start.sh starts inside this container: the SAME rule as its site_api_wanted(),
+    so a process started by `docker compose exec` (not a child of start.sh, which only exports the variable to its own children) behaves like the scheduler's."""
+    env = os.environ if env is None else env
+    explicit = (env.get("SITE_API_URL") or "").rstrip("/")
+    if explicit:
+        return explicit
+    mode = env.get("SITE_API_START", "auto")
+    if mode in ("never", "off", "0"):
+        return ""
+    if not os.path.isdir(env.get("SITE_API_DIR") or "/app/site-api/backend"):
+        return ""
+    secret = env.get("CMS_JWT_SECRET", "")
+    wanted = (mode in ("always", "on", "1") or bool(env.get("MONGO_URL"))
+              or (bool(env.get("FINEDGE_API_KEY")) and env.get("FINEDGE_MODE", "live") != "fixtures" and len(secret) >= 32))
+    return "http://127.0.0.1:8001" if wanted else ""
+
+
 @dataclass(frozen=True)
 class Settings:
     finedge_base_url: str = field(default_factory=lambda: os.getenv("FINEDGE_BASE_URL", "https://data.finedgeapi.com/api/v1"))
@@ -67,6 +85,7 @@ class Settings:
     rate_limit_per_minute: int = field(default_factory=lambda: int(os.getenv("RATE_LIMIT_PER_MINUTE", "300")))
     # Opening a stock that has no snapshot yet costs ~21 FinEdge calls; cap how many one client can trigger.
     queue_limit_per_hour: int = field(default_factory=lambda: int(os.getenv("QUEUE_LIMIT_PER_HOUR", "30")))
+    ondemand_wait_seconds: float = field(default_factory=lambda: float(os.getenv("ONDEMAND_WAIT_SECONDS", "9")))   # how long a request for an unstored company waits for its key numbers before the page polls
     queue_max_pending: int = field(default_factory=lambda: int(os.getenv("QUEUE_MAX_PENDING", "500")))
 
     # ---- accounts
@@ -82,7 +101,7 @@ class Settings:
     mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
     # Free sample reports shown in full to everyone (the home page example).
     # The separate site backend (blog/CMS, portfolio report, contact forms, chat, ticker). Empty = those /api routes answer 404.
-    site_api_url: str = field(default_factory=lambda: os.getenv("SITE_API_URL", "").rstrip("/"))
+    site_api_url: str = field(default_factory=lambda: site_api_url_default())
     # Same secret the site backend verifies CMS tokens with: signed-in administrators get a CMS session without a second password.
     cms_jwt_secret: str = field(default_factory=lambda: os.getenv("CMS_JWT_SECRET", ""))
     # Folder holding the built website (frontend/dist). Empty = API only (the website is then hosted elsewhere).

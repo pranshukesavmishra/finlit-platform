@@ -77,7 +77,10 @@ async def switch_get(dsn_settings, name: str) -> int:
     switch the site's features off), but the heavy loads read as PAUSED (a failing database is no moment to start 512 MB of loading)."""
     import asyncpg
     from .store import prepare_dsn
-    default = 0 if name == "loads" else 1
+    explicit = name == "loads-explicit"   # the light results jobs: only an admin's "off" pauses them, not a database that was slow to answer
+    if explicit:
+        name = "loads"
+    default = 0 if name == "loads" and not explicit else 1
     try:
         dsn, extra = prepare_dsn(dsn_settings.database_url)
         conn = await asyncpg.connect(dsn, timeout=10, command_timeout=10, **extra)

@@ -4,7 +4,7 @@ import { canon } from "../lib/aliases";
 import { visits } from "../lib/recentVisits";
 import { recents } from "../lib/mycompanies";
 import { useQueryClient } from "@tanstack/react-query";
-import { ApiError, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
+import { ApiError, useSearchIndex, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { signed, nf } from "../lib/format";
 import { OpenAccess } from "../components/Gate";
@@ -24,6 +24,7 @@ import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 import { navFor } from "../lib/sectionNav";
 import { SectionsMenu } from "./SectionsMenu";
+import { PreparingReport, type PreparingMode } from "./PreparingReport";
 
 
 export function StockPage() {
@@ -36,6 +37,15 @@ export function StockPage() {
   const sum = useSummary(symbol);
   const s = sum.data;
   const ready = !!s;
+  const names = useSearchIndex(!s);   // the company's name for the waiting page, before its report exists (the list is cached for the search box anyway)
+  // A report stored with its key numbers while ownership, peers, segments and announcements are still being fetched: ask again every 2.5 s (for up to 2 minutes) until it is complete.
+  const partial = !!s?.meta.partial;
+  useEffect(() => {
+    if (!partial) return;
+    const t0 = Date.now();
+    const id = setInterval(() => { if (Date.now() - t0 > 120_000) clearInterval(id); else queryClient.invalidateQueries({ queryKey: ["stock", symbol] }); }, 2500);
+    return () => clearInterval(id);
+  }, [partial, symbol]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (s?.meta.symbol) { recents.add(s.meta.symbol); visits.add({ k: "stock", id: s.meta.symbol, name: s.profile.name }); queryClient.invalidateQueries({ queryKey: ["my-companies"] }); } }, [s?.meta.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
   const ratios = useSection<Ratios>(symbol, "ratios", ready).data;
   const fin = useSection<Financials>(symbol, "financials", ready).data;
@@ -86,14 +96,16 @@ export function StockPage() {
   const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 124, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else if (id === "prism") nav(`/prism/${encodeURIComponent(symbol)}`); };
   const q = useMemo(() => s?.quote, [s]);
 
-  const waiting = sum.isError && [202, 429].includes((sum.error as ApiError).status);
-  if (sum.isLoading || waiting) {
-    const queued = sum.isError || sum.failureCount > 0;
-    const busy = (sum.error as ApiError | null)?.status === 429 || (sum.failureReason as ApiError | null)?.status === 429;
-    const gaveUp = waiting && !sum.isFetching;   // stopped asking after several minutes: offer a manual retry instead of a dead end
-    return <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 220, margin: "0 auto 18px" }} /><h2>{queued ? "Preparing this report" : "Loading the report"}</h2>
-      <p>{!queued ? "One moment." : busy ? "Many reports are being prepared right now. Yours is in the queue and will open by itself." : gaveUp ? "This is taking longer than usual. The report is still being built." : "This company is not in our always-ready set, so we are building its report from the latest filings. This takes a few seconds, once. After that it stays stored and refreshed for you, and opens instantly every time."}</p>
-      {gaveUp && <button className="btn primary" onClick={() => sum.refetch()}>Check again</button>}</div>;
+  const err = (sum.error ?? sum.failureReason) as ApiError | null;   // while it retries, the last answer is the failure reason (it carries the progress)
+  const st = err?.status;
+  const mode: PreparingMode | null = sum.isLoading
+    ? (st === 202 ? "building" : st === 429 ? "busy" : "loading")
+    : sum.isError && (st === 202 || st === 429) ? "gaveUp"        // stopped asking after about 45 s: a visible end with "Try again", not a dead page
+    : sum.isError && (st ?? 0) >= 500 ? "failed"
+    : null;
+  if (mode) {
+    const known = names.data?.rows.find((r) => r[0] === symbol);
+    return <PreparingReport symbol={symbol} name={err?.body.company?.name ?? known?.[1] ?? null} sector={err?.body.company?.sector} mode={mode} done={err?.body.done} total={err?.body.total} onRetry={() => sum.refetch()} />;
   }
   if (sum.isError || !s) {
     const st = (sum.error as ApiError | null)?.status;
@@ -137,6 +149,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><LeadershipSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
       </div>
       <PlansBand id="plans" />
+      {partial && <div className="prep-toast" role="status"><i aria-hidden="true" />Ownership, peers, segments and announcements are still loading. Everything above is final.</div>}
     </>
     </OpenAccess.Provider>
   );

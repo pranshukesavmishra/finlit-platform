@@ -9,7 +9,7 @@ the few jobs that run outside a window first ask this module, using Redis only (
   * the wake budget   an estimate of how often Postgres was woken today and how many compute hours this month used, from the start and end
                       of every database job and of visitor activity. It is an ESTIMATE of Neon's own meter (Neon's Usage page is the authority).
 
-Command line (all but `refresh-alerts` need Redis only): `python -m finlit.wake visit-active|alerts-active|flag-get|flag-set|start|end|stats|refresh-alerts`.
+Command line (all but `refresh-alerts` need Redis only): `python -m finlit.wake visit-active|alerts-active|flag-get|flag-set|heartbeat|ran|start|end|stats|refresh-alerts`.
 """
 from __future__ import annotations
 
@@ -36,6 +36,10 @@ ACCOUNT_EVERY = 60.0              # seconds between wake-budget updates for visi
 CU = 0.25
 BUDGET_CU_HOURS = 100.0
 WARN_AT = 0.8
+
+K_ALIVE = "scheduler:alive"       # written by deploy/scheduler.sh every minute: the last time its main loop went round
+K_RAN = "scheduler:ran"           # sorted set of "<job>|<unix time>" for every job the scheduler started (kept 2 hours)
+ALIVE_WITHIN = 180.0              # seconds: the scheduler counts as alive when its heartbeat is newer than this
 
 DB_DOWN_MESSAGE = "The member database is temporarily unavailable. Please try again later."
 
@@ -203,6 +207,37 @@ async def stats(redis, now: Optional[float] = None) -> Dict[str, Any]:
     return out
 
 
+# ------------------------------------------------------------------------------------------------------------------ scheduler heartbeat
+
+async def heartbeat(redis, now: Optional[float] = None) -> None:
+    await redis.set(K_ALIVE, str(now if now is not None else time.time()), ex=7 * 86400)
+
+
+async def job_started(redis, name: str, now: Optional[float] = None) -> None:
+    t = now if now is not None else time.time()
+    await redis.zadd(K_RAN, {f"{name}|{t:.0f}": t})
+    await redis.zremrangebyscore(K_RAN, "-inf", t - 7200)
+
+
+async def scheduler_status(redis, now: Optional[float] = None) -> Dict[str, Any]:
+    """From Redis only: when scheduler.sh last went round its loop and which jobs it started in the last hour (for /api/results/status)."""
+    t = now if now is not None else time.time()
+    out: Dict[str, Any] = {"schedulerAliveAt": None, "schedulerAgeSeconds": None, "schedulerAlive": False, "jobsLastHour": []}
+    try:
+        raw = await redis.get(K_ALIVE)
+        if raw:
+            at = float(raw)
+            out.update(schedulerAliveAt=datetime.fromtimestamp(at, IST).isoformat(timespec="seconds"), schedulerAgeSeconds=int(max(0, t - at)), schedulerAlive=(t - at) <= ALIVE_WITHIN)
+        jobs = []
+        for member, score in await redis.zrangebyscore(K_RAN, t - 3600, "+inf", withscores=True):
+            name = (member.decode() if isinstance(member, bytes) else member).rsplit("|", 1)[0]
+            jobs.append({"name": name, "at": datetime.fromtimestamp(score, IST).isoformat(timespec="seconds")})
+        out["jobsLastHour"] = jobs
+    except Exception:   # nosec B110 - Redis down: the fields stay empty
+        pass
+    return out
+
+
 # ------------------------------------------------------------------------------------------------------------------ command line
 
 async def _cli(argv: list) -> int:
@@ -225,6 +260,12 @@ async def _cli(argv: list) -> int:
         if cmd == "note":          # note NAME TEXT...: why a scheduled job did not run (shown at /api/results/status); Redis only, kept 3 days
             await redis.set(NOTE_PREFIX + argv[1], json.dumps({"at": datetime.now(IST).isoformat(timespec="seconds"), "why": " ".join(argv[2:])[:200]}), ex=3 * 86400)
             return 0
+        if cmd == "heartbeat":     # heartbeat: the scheduler's main loop went round (shown at /api/results/status as schedulerAliveAt)
+            await heartbeat(redis)
+            return 0
+        if cmd == "ran":           # ran NAME: the scheduler started this job
+            await job_started(redis, argv[1])
+            return 0
         if cmd == "start":
             await mark_start(redis, argv[1] if len(argv) > 1 else "")
             return 0
@@ -241,7 +282,7 @@ async def _cli(argv: list) -> int:
             finally:
                 await mark_end(redis, "refresh-alerts")
             return 0
-        print("usage: python -m finlit.wake visit-active [minutes] | alerts-active | flag-get NAME | flag-set NAME SECONDS | note NAME TEXT | start NAME | end NAME | stats | refresh-alerts", file=sys.stderr)
+        print("usage: python -m finlit.wake visit-active [minutes] | alerts-active | flag-get NAME | flag-set NAME SECONDS | heartbeat | ran NAME | note NAME TEXT | start NAME | end NAME | stats | refresh-alerts", file=sys.stderr)
         return 2
     except Exception as exc:   # a gate that cannot read Redis must not crash the scheduler: callers read the exit status
         print(f"wake {cmd}: {type(exc).__name__}", file=sys.stderr)

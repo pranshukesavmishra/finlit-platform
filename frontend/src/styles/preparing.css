@@ -1,0 +1,36 @@
+/* The page of a company whose report is being built (stock/PreparingReport.tsx). Fixed heights: nothing jumps when the real page arrives. */
+.prep { padding-top: 28px; padding-bottom: 60px; }
+.prep-head { display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center; min-height: 72px; }
+.prep-badge { width: 56px; height: 56px; border-radius: 16px; }
+.prep-id { min-width: 0; }
+.prep-name { font: 300 clamp(24px, 3.4vw, 36px)/1.15 var(--serif); margin: 0; overflow-wrap: anywhere; }
+.prep-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.prep-sub b { color: var(--text); font-weight: 600; letter-spacing: .02em; }
+.prep-price { width: 140px; height: 44px; border-radius: 12px; }
+.prep-card { border: 1px solid var(--border); background: var(--s1); border-radius: 18px; padding: 20px 22px; margin: 22px 0; min-height: 168px; }
+.prep-card h2 { font: 300 24px var(--serif); margin: 0 0 8px; }
+.prep-card p { color: var(--muted); margin: 0 0 14px; max-width: 64ch; line-height: 1.55; }
+.prep-card .btn { margin-right: 10px; }
+.prep-bar { height: 6px; border-radius: 6px; background: var(--s3); overflow: hidden; max-width: 520px; }
+.prep-bar span { display: block; height: 100%; background: var(--gold); border-radius: 6px; transition: width .6s ease; }
+.prep-card p.prep-hint { margin: 10px 0 0; font-size: 13.5px; color: var(--text); }
+.prep-sec { color: var(--faint); }
+.prep-skel { display: grid; gap: 14px; opacity: .85; }
+.prep-chart { height: 260px; border-radius: 16px; }
+.prep-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.prep-grid .skeleton { height: 96px; border-radius: 14px; }
+.prep-table { height: 180px; border-radius: 16px; }
+@media (max-width: 720px) {
+  .prep-head { grid-template-columns: 44px 1fr; }
+  .prep-badge { width: 44px; height: 44px; border-radius: 12px; }
+  .prep-price { grid-column: 1 / -1; width: 120px; height: 36px; }
+  .prep-card { padding: 16px; min-height: 220px; }
+  .prep-grid { grid-template-columns: 1fr; }
+  .prep-grid .skeleton { height: 64px; }
+  .prep-chart { height: 200px; }
+}
+/* The note shown over the finished report while its ownership, peers, segments and announcements blocks are still being fetched. */
+.prep-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 40; max-width: min(560px, calc(100vw - 32px)); background: var(--s2); color: var(--text); border: 1px solid var(--border-strong); border-radius: 999px; padding: 9px 16px; font-size: 13px; box-shadow: var(--lift); display: flex; gap: 10px; align-items: center; }
+.prep-toast i { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex: none; }
+@media (prefers-reduced-motion: no-preference) { .prep-toast i { animation: prep-pulse 1.4s ease-in-out infinite; } }
+@keyframes prep-pulse { 50% { opacity: .35; } }

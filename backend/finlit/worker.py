@@ -29,11 +29,14 @@ import orjson
 from . import snapshot, wake
 from .calendars import why as fail_reason
 from .config import Settings, get_settings
-from .finedge import FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
+from .finedge import ESSENTIAL_KEYS, FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
 from .normalize import market
 from .store import Store
 
 log = logging.getLogger("finlit.worker")
+
+ONDEMAND_LANES = int(os.getenv("ONDEMAND_LANES") or 2)      # reports visitors wait for are built this many at a time (its own cap, apart from the bulk jobs)
+ONDEMAND_EXTRAS = int(os.getenv("ONDEMAND_EXTRAS") or 2)    # and the rest of those reports (parts not needed for the first paint) this many at a time
 
 
 class DataRejected(Exception):
@@ -54,47 +57,84 @@ async def _mf_dashboard_empty(store) -> bool:
         n = await conn.fetchval("SELECT count(*) FROM mf_schemes WHERE aum_lakh IS NOT NULL OR sip3y IS NOT NULL OR chk_mask IS NOT NULL")
     return not n
 
-async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False) -> dict:
+async def _build_sections(client: FinEdgeClient, store: Store, symbol: str, bundle: dict, company, slim: bool = False, supplement: bool = True) -> dict:
+    """The checks and the build shared by every kind of load: second source, basis guard, core parts, quality gate. Raises FinEdgeError / DataRejected."""
+    if supplement and bundle.get("errors", {}).get("pl_annual") in (None, "404"):   # secondary source fills only what the main provider left empty
+        try:
+            from . import upstox
+            up = upstox.UpstoxClient(settings=client.settings, redis=store.redis)
+            try:
+                await upstox.supplement(bundle, up, dict(company) if company else None)
+            finally:
+                await up.aclose()
+        except Exception:
+            log.exception("secondary source skipped for %s", symbol)
+    if company:
+        bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
+                                "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
+    if bundle.get("statement") == "consolidated" and bundle.get("pl_annual") and not bundle.get("pl_annual_standalone"):   # for the consolidated-vs-standalone revenue guard; best effort
+        try:
+            path, params, _t = bundle_requests(symbol, "standalone")["pl_annual"]
+            bundle["pl_annual_standalone"] = await client.get(path, params, timeout=12, retries=1)
+        except Exception:   # nosec B110 - best effort
+            pass
+    if not bundle.get("pl_annual") and not bundle.get("daily_quotes"):
+        raise FinEdgeError("bundle", 404, "no statements or prices for symbol")
+    failed_core = sorted(k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404")
+    if failed_core:   # never store a half-loaded report (price 0, empty sections): keep the last good one and try again later
+        raise FinEdgeError("bundle", None, "provider did not answer for " + ", ".join(failed_core))
+    sections = snapshot.build(bundle)
+    checks = sections["summary"]["dataQuality"]["checks"]
+    if checks["status"] == "rejected":
+        # Keep serving the last good snapshot; a human reviews the logged issues.
+        raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
+    if not slim:
+        sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
+    if sections["summary"].get("quote", {}).get("price"):
+        sections["summary"]["quote"]["refPrice"] = sections["summary"]["quote"]["price"]
+    return sections
+
+
+async def _after_load(store: Store, symbol: str, statement: str) -> None:
+    try:
+        await store.redis.delete(f"pending:{symbol}:{statement}")   # whoever was waiting on this report asks again now
+    except Exception:   # nosec B110 - Redis is a convenience here
+        pass
+
+
+async def _will_retry(store: Store, symbol: str, status: str, errors: dict, attempts: int = 2) -> bool:
+    """A load that failed only because the provider did not answer is tried again (twice at most per quarter hour)."""
+    if status != "failed" or "did not answer" not in str((errors or {}).get("error", "")):
+        return False
+    try:
+        key = f"ingest:retry:{symbol}"
+        n = int(await store.redis.incr(key)); await store.redis.expire(key, 900)
+    except Exception:
+        return False
+    return n <= attempts
+
+
+async def _record_failure(store: Store, symbol: str, statement: str, status: str, errors: dict) -> None:
+    """A load that ended without a report leaves a short note the page reads (so it can say so at once instead of asking for minutes)."""
+    try:
+        if status in ("failed", "rejected"):
+            await store.redis.set(f"ingest:fail:{symbol}:{statement}", status, ex=90)
+        else:
+            await store.redis.delete(f"ingest:fail:{symbol}:{statement}")
+    except Exception:   # nosec B110
+        pass
+
+
+async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated", slim: bool = False, low: bool = False) -> dict:
     """Load one company. `slim` keeps only its score and screener figures (about 5 KB) and not its report or prices (about 100 KB): how the bulk
     scoring covers every listed company inside a small database. The report is built in full when somebody opens the company."""
     started, calls_before = time.perf_counter(), client.calls
     symbol = symbol.strip().upper()
     company = await store.company(symbol)
     try:
-        bundle = await client.fetch_bundle(symbol, statement)
-        if bundle.get("errors", {}).get("pl_annual") in (None, "404"):   # secondary source fills only what the main provider left empty
-            try:
-                from . import upstox
-                up = upstox.UpstoxClient(settings=client.settings, redis=store.redis)
-                try:
-                    await upstox.supplement(bundle, up, dict(company) if company else None)
-                finally:
-                    await up.aclose()
-            except Exception:
-                log.exception("secondary source skipped for %s", symbol)
-        if company:
-            bundle["symbol_row"] = {"symbol": company["symbol"], "name": company["name"], "nse_code": company["nse_code"],
-                                    "bse_code": company["bse_code"], "consolidated_ind": company["has_consolidated"]}
-        if bundle.get("statement") == "consolidated" and bundle.get("pl_annual") and not bundle.get("pl_annual_standalone"):   # for the consolidated-vs-standalone revenue guard; best effort
-            try:
-                path, params, _t = bundle_requests(symbol, "standalone")["pl_annual"]
-                bundle["pl_annual_standalone"] = await client.get(path, params, timeout=12, retries=1)
-            except Exception:
-                pass
-        if not bundle.get("pl_annual") and not bundle.get("daily_quotes"):
-            raise FinEdgeError("bundle", 404, "no statements or prices for symbol")
-        failed_core = sorted(k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404")
-        if failed_core:   # never store a half-loaded report (price 0, empty sections): keep the last good one and try again later
-            raise FinEdgeError("bundle", None, "provider did not answer for " + ", ".join(failed_core))
-        sections = snapshot.build(bundle)
+        bundle = await client.fetch_bundle(symbol, statement, low=low)
+        sections = await _build_sections(client, store, symbol, bundle, company, slim=slim)
         checks = sections["summary"]["dataQuality"]["checks"]
-        if checks["status"] == "rejected":
-            # Keep serving the last good snapshot; a human reviews the logged issues.
-            raise DataRejected([i for i in checks["issues"] if i["severity"] == "critical"])
-        if not slim:
-            sections["peers"]["items"] = await store.peer_rows(sections["peers"]["symbols"])
-        if sections["summary"].get("quote", {}).get("price"):
-            sections["summary"]["quote"]["refPrice"] = sections["summary"]["quote"]["price"]
         row = snapshot.score_row(sections)
         if slim:
             await store.save_score_only(symbol, statement, row)
@@ -119,14 +159,110 @@ async def ingest_one(client: FinEdgeClient, store: Store, symbol: str, statement
     except Exception as exc:  # one bad stock must never stop a batch
         log.exception("ingest %s failed", symbol)
         status, errors = "failed", {"error": str(exc)[:500]}
-    try:
-        await store.redis.delete(f"pending:{symbol}:{statement}")   # whoever was waiting on this report asks again now
-    except Exception:
-        pass
+    await _after_load(store, symbol, statement)
+    await _record_failure(store, symbol, statement, status, errors)
     duration = int((time.perf_counter() - started) * 1000)
     await store.log_run(symbol, statement, status, client.calls - calls_before, duration, errors)
     log.info("ingest %s %s %s in %d ms (%d calls)", symbol, statement, status, duration, client.calls - calls_before)
     return {"symbol": symbol, "status": status, "ms": duration, "errors": errors}
+
+
+# ---------------------------------------------------------------- a report somebody is waiting for: key numbers first, the rest after
+LATER_PARTS = tuple(sorted(k for k in bundle_requests("X", "consolidated") if k not in ESSENTIAL_KEYS))
+LATER_SECTIONS = ("ownership", "peers", "segments", "events")   # the blocks built from LATER_PARTS (shareholding, peers, segments, announcements)
+
+
+async def ingest_essential(client: FinEdgeClient, store: Store, symbol: str, statement: str = "consolidated") -> Tuple[dict, Optional[dict]]:
+    """First paint: only ESSENTIAL_KEYS are fetched (about a third of the calls, with the provider's slots all to itself), the report is built from
+    them, stored with meta.partial=true (and no score row: the scores need the parts still to come) and the waiting page is released at once.
+    Returns (result, bundle); the bundle is handed to ingest_rest(), which stores the complete report."""
+    started, calls_before = time.perf_counter(), client.calls
+    symbol = symbol.strip().upper()
+    company = await store.company(symbol)
+    bundle = None
+    prog_key = f"ingest:progress:{symbol}:{statement}"
+
+    async def on_part(_key):
+        try:
+            await store.redis.incr(prog_key); await store.redis.expire(prog_key, 600)
+        except Exception:   # nosec B110
+            pass
+    try:
+        try:
+            await store.redis.delete(prog_key)
+        except Exception:   # nosec B110
+            pass
+        bundle = await client.fetch_bundle(symbol, statement, only=ESSENTIAL_KEYS, on_part=on_part)
+        sections = await _build_sections(client, store, symbol, bundle, company)
+        checks = sections["summary"]["dataQuality"]["checks"]
+        meta = sections["summary"]["meta"]
+        meta["partial"], meta["pendingParts"] = True, list(LATER_PARTS)
+        quality = sections["summary"]["dataQuality"]
+        quality["missing"] = [k for k in quality.get("missing") or [] if k not in LATER_PARTS]   # not asked for yet is not missing
+        for name in LATER_SECTIONS:   # no row at all: the API answers "still loading" for them (not an empty ownership table or "no peers")
+            sections.pop(name, None)
+        await store.save_snapshot(symbol, statement, sections, None, sections["price"]["daily"])
+        prof = sections["summary"]["profile"]
+        await store.set_company_meta(symbol, prof.get("sector"), prof.get("industry"), prof.get("website"))
+        status = "ok" if checks["status"] == "ok" else "warnings"
+        errors = {**(bundle.get("errors") or {}), **({"quality": checks["issues"]} if checks["issues"] else {})}
+    except DataRejected as exc:
+        log.warning("ingest %s rejected by quality gate: %s", symbol, exc.issues)
+        status, errors, bundle = "rejected", {"quality": exc.issues}, None
+    except Exception as exc:  # one bad stock must never stop the others
+        log.exception("ingest %s failed", symbol)
+        status, errors, bundle = "failed", {"error": str(exc)[:500]}, None
+    retry = await _will_retry(store, symbol, status, errors)
+    if not retry:   # when it will be tried again the page keeps waiting (the pending note stays, no failure note) instead of being told "failed" in between
+        await _after_load(store, symbol, statement)
+        await _record_failure(store, symbol, statement, status, errors)
+    duration = int((time.perf_counter() - started) * 1000)
+    await store.log_run(symbol, statement, "partial" if bundle else status, client.calls - calls_before, duration, errors)
+    log.info("ingest %s %s first paint %s in %d ms (%d calls)", symbol, statement, status, duration, client.calls - calls_before)
+    return {"symbol": symbol, "status": status, "ms": duration, "errors": errors, "retry": retry}, bundle
+
+
+async def ingest_rest(client: FinEdgeClient, store: Store, symbol: str, statement: str, bundle: dict, warm_peers: int = 5) -> dict:
+    """The other parts of a report whose key numbers are already shown: fetched at low priority, then the complete report (with its score) replaces
+    the partial one. A part the provider does not send never fails this; if the whole step fails the partial report stays and is completed by the
+    next refresh (api.broken() queues it again after a few minutes)."""
+    started, calls_before = time.perf_counter(), client.calls
+    symbol = symbol.strip().upper()
+    company = await store.company(symbol)
+    try:
+        await client.fetch_rest(bundle)
+        sections = await _build_sections(client, store, symbol, bundle, company, supplement=False)
+        checks = sections["summary"]["dataQuality"]["checks"]
+        await store.save_snapshot(symbol, statement, sections, snapshot.score_row(sections), sections["price"]["daily"])
+        try:
+            await store.save_coverage(symbol, statement, sections["summary"]["dataQuality"]["coverage"])
+        except Exception:
+            log.exception("coverage not recorded for %s", symbol)
+        status = "ok" if checks["status"] == "ok" else "warnings"
+        errors = {**(bundle.get("errors") or {}), **({"quality": checks["issues"]} if checks["issues"] else {})}
+        if warm_peers:
+            await warm_peers_of(store, sections, warm_peers)
+    except DataRejected as exc:
+        log.warning("ingest %s (rest) rejected by quality gate: %s", symbol, exc.issues)
+        status, errors = "rejected", {"quality": exc.issues}
+    except Exception as exc:
+        log.exception("ingest %s (rest) failed", symbol)
+        status, errors = "failed", {"error": str(exc)[:500]}
+    duration = int((time.perf_counter() - started) * 1000)
+    await store.log_run(symbol, statement, status, client.calls - calls_before, duration, errors)
+    log.info("ingest %s %s rest %s in %d ms (%d calls)", symbol, statement, status, duration, client.calls - calls_before)
+    return {"symbol": symbol, "status": status, "ms": duration, "errors": errors}
+
+
+async def warm_peers_of(store: Store, sections: dict, n: int = 5) -> int:
+    """Pre-warm: the first `n` peers of a freshly built company that are not stored yet are queued at low priority (they only run when no visitor
+    waits), so the next click from this page is instant too."""
+    syms = [s for s in (sections.get("peers") or {}).get("symbols") or [] if isinstance(s, str)]
+    own = str(sections["summary"]["meta"]["symbol"]).upper()
+    todo = await store.unstored([s for s in syms if s.upper() != own])
+    for sym in todo[:n]:
+        await store.enqueue_low(sym, "consolidated")
+    return len(todo[:n])
 
 
 async def _step_aside(store: Store, patience: float = 240.0) -> None:
@@ -239,6 +375,10 @@ async def _retry_dropped(store: Store, results: List[dict], attempts: int = 2) -
     visitor's wait ends in a report instead of an error. Rejections and companies the provider does not have are not retried."""
     again = []
     for r in results:
+        if "retry" in r:   # decided where the failure happened (ingest_essential), so the waiting page was never told "failed" in between
+            if r["retry"]:
+                again.append(r["symbol"])
+            continue
         if r.get("status") != "failed" or "did not answer" not in str((r.get("errors") or {}).get("error", "")):
             continue
         key = f"ingest:retry:{r['symbol']}"
@@ -249,46 +389,135 @@ async def _retry_dropped(store: Store, results: List[dict], attempts: int = 2) -
         if n <= attempts:
             again.append(r["symbol"])
     if again:
-        await asyncio.sleep(3.0)
+        await asyncio.sleep(1.5)
         for sym in again:
+            try:   # the page that waits keeps waiting for this second try instead of being told it failed
+                await store.redis.set(f"pending:{sym}:consolidated", 1, ex=300)
+                await store.redis.delete(f"ingest:fail:{sym}:consolidated")
+            except Exception:   # nosec B110
+                pass
             await store.enqueue(sym, "consolidated")
 
 
-async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 2.0, recheck_seconds: float = 24 * 3600.0) -> int:
+async def _usable_report(store: Store, symbol: str, statement: str) -> bool:
+    """True when a complete, current report is stored (a refresh then keeps showing it while it is rebuilt; nothing is replaced by a partial one)."""
+    try:
+        hit = await store.get_section(symbol, statement, "summary")
+        if hit is None:
+            return False
+        meta = orjson.loads(hit[0])
+        return bool((meta.get("quote") or {}).get("price")) and int((meta.get("meta") or {}).get("version") or 0) >= snapshot.SNAPSHOT_VERSION and not (meta.get("meta") or {}).get("partial")
+    except Exception:
+        return False
+
+
+async def serve_one(client: FinEdgeClient, store: Store, symbol: str, statement: str, extras: "asyncio.Semaphore", background: set) -> dict:
+    """One report somebody is waiting for. A company with no usable report is built key numbers first (the waiting page is released as soon as they
+    are stored) and the rest follows in the background; a refresh of a good report is a plain full load."""
+    if await _usable_report(store, symbol, statement):
+        return await ingest_one(client, store, symbol, statement)
+    result, bundle = await ingest_essential(client, store, symbol, statement)
+    if bundle is not None:
+        async def rest():
+            async with extras:
+                await ingest_rest(client, store, symbol, statement, bundle)
+        task = asyncio.create_task(rest())
+        background.add(task)
+        task.add_done_callback(background.discard)
+    return result
+
+
+async def drain_queue(client: FinEdgeClient, store: Store, loop: bool = False, idle_seconds: float = 0.5, recheck_seconds: float = 24 * 3600.0,
+                      lanes: int = ONDEMAND_LANES) -> int:
     """With loop=True the idle wait watches a Redis flag set by enqueue, and looks at Postgres only when the flag is up (or every
     `recheck_seconds` as a safety net). Polling Postgres every couple of seconds would keep a serverless database awake all day.
     The loop does not look at start-up either (a restart would wake the database for nothing): items left over from before are taken by the one-shot
-    `drain-queue` that every DB window runs, and by the flag, which enqueue raises for an hour."""
+    `drain-queue` that every DB window runs, and by the flag, which enqueue raises for an hour.
+
+    THE PRIORITY LANE. Reports visitors wait for are served by `lanes` (2) independent lanes, each taking the next waiting company the moment it is
+    free, so nobody queues behind a slow company. This loop is its own process: it does not take the heavy-load lock, the memory gate or the admin
+    "heavy loads" switch of the bulk jobs, which in turn step aside while a visitor waits (the VISITOR_WAITING flag). Companies pre-warmed from a
+    report's peers (the low queue) are taken only when no visitor is waiting."""
     total, last_db = 0, (time.monotonic() if loop else float("-inf"))
-    while True:
-        if loop and time.monotonic() - last_db < recheck_seconds:
-            try:
-                flagged = await store.redis.exists(store.QUEUE_FLAG)
-            except Exception:
-                flagged = True  # Redis trouble: fall back to asking Postgres
-            if not flagged:
-                await asyncio.sleep(idle_seconds)
-                continue
-        last_db = time.monotonic()
-        if loop:
-            try:
-                await store.redis.delete(store.QUEUE_FLAG)  # before claiming: an enqueue that arrives meanwhile raises it again
-            except Exception:
-                pass
-        items = await store.claim(3)   # small batches, all at once: a report someone is waiting for never queues behind ten others
-        if items:
-            try:
-                await store.redis.set(store.READER_FLAG, 1, ex=120)   # tells the bulk loader to wait while these are prepared
-            except Exception:
-                pass
-            results = await ingest_many(client, store, items, parallel=3)
-            await _retry_dropped(store, results)
+    active: set = set()
+    background: set = set()
+    extras = asyncio.Semaphore(ONDEMAND_EXTRAS)
+
+    async def lane(sym: str, st: str):
+        try:
+            res = await serve_one(client, store, sym, st, extras, background)
+            await _retry_dropped(store, [res])
             await store.invalidate_search()
-            total += len(items)
-            continue
-        if not loop:
-            return total
-        await asyncio.sleep(idle_seconds)
+        except Exception:
+            log.exception("on-demand load of %s failed", sym)
+
+    def start(items, low: bool = False):
+        for sym, st in items:
+            task = asyncio.create_task(lane_low(sym, st) if low else lane(sym, st))
+            active.add(task)
+            task.add_done_callback(active.discard)
+
+    async def lane_low(sym: str, st: str):
+        try:
+            if not await _usable_report(store, sym, st):
+                res = await ingest_one(client, store, sym, st, low=True)   # nobody is waiting: a plain full load, at low priority
+                await _retry_dropped(store, [res], attempts=0)
+        except Exception:
+            log.exception("pre-warm of %s failed", sym)
+
+    try:
+        while True:
+            free = lanes - len(active)
+            if free > 0:
+                if loop and time.monotonic() - last_db < recheck_seconds:
+                    try:
+                        flagged = await store.redis.exists(store.QUEUE_FLAG)
+                    except Exception:
+                        flagged = True  # Redis trouble: fall back to asking Postgres
+                else:
+                    flagged = True
+                if flagged:
+                    last_db = time.monotonic()
+                    if loop:
+                        try:
+                            await store.redis.delete(store.QUEUE_FLAG)  # before claiming: an enqueue that arrives meanwhile raises it again
+                        except Exception:   # nosec B110
+                            pass
+                    items = await store.claim(free)
+                    if items:
+                        try:
+                            await store.redis.set(store.READER_FLAG, 1, ex=120)   # tells the bulk jobs to wait while these are prepared
+                        except Exception:   # nosec B110
+                            pass
+                        total += len(items)
+                        start(items)
+                        continue   # more may be waiting and a lane may still be free
+                    if not active:
+                        try:
+                            await store.redis.delete(store.READER_FLAG)   # nobody waits any more: the bulk jobs go on at once
+                        except Exception:   # nosec B110
+                            pass
+                if not active and hasattr(store, "claim_low"):   # idle: the pre-warm queue (one at a time, only when no visitor waits)
+                    try:
+                        low = await store.claim_low(1) if (not loop or await store.redis.exists(store.LOW_FLAG)) else []
+                        if not low and loop:
+                            await store.redis.delete(store.LOW_FLAG)
+                    except Exception:
+                        low = []
+                    if low:
+                        start(low, low=True)
+                        continue
+            if active:
+                await asyncio.wait(set(active), timeout=idle_seconds if loop else None, return_when=asyncio.FIRST_COMPLETED)
+                continue
+            if not loop:
+                if background:
+                    await asyncio.gather(*list(background), return_exceptions=True)
+                return total
+            await asyncio.sleep(idle_seconds)
+    finally:
+        for t in list(active):
+            t.cancel()
 
 
 async def ingest_all(client: FinEdgeClient, store: Store, statement: str = "consolidated", hours: int = 24, limit: Optional[int] = None,
@@ -387,7 +616,7 @@ async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120,
     done = {"candidates": len(todo), "ok": 0, "failed": 0}
     reasons: Dict[str, int] = {}
     for i in range(0, len(todo), 30):
-        for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3):
+        for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3, yield_to_readers=True):
             done["ok" if r["status"] in ("ok", "warnings") else "failed"] += 1
             if r["status"] not in ("ok", "warnings"):   # why a rebuild did not store: rejected by the quality gate, or the provider did not answer
                 reason = f"{r['status']}: {str((r.get('errors') or {}).get('error') or 'quality gate')[:80]}"
@@ -574,7 +803,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_fl.add_argument("--only", nargs="*", default=None, help="steps: fii dii nse oi nifty")
     p_fl.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_sw = sub.add_parser("switch-get", help="print 1 or 0 for an admin switch (loads: unreadable database = 0, paused); no migration, no other output")
-    p_sw.add_argument("name", choices=["loads", "web"])
+    p_sw.add_argument("name", choices=["loads", "loads-explicit", "web"])   # loads-explicit: paused only when an admin switched it off (an unreadable database does not pause the light results jobs)
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
     args = parser.parse_args(argv)
@@ -803,6 +1032,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
         if args.cmd == "score-mf":
+            await _step_aside(store)   # a visitor waiting for a report comes first (this job is one long CPU-bound pass)
             from .mf import last_run_age_hours, record_run
             from .mfscore import job as score_job
             if args.max_age_hours and not (args.symbols or args.limit):
@@ -963,19 +1193,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] else "ok", {k: v for k, v in res.items() if k != "why"}, {"why": res.get("why")} if res.get("why") else {})
             elif args.cmd == "refresh-results-light":
                 from . import results_light
-                from .sysctl import loads_enabled
-                if not await loads_enabled(store.pool):
-                    print("skipped: heavy data loads are paused by the admin switch")
-                    await _record_results_run(store, args.cmd, "skipped", {}, {"why": "heavy data loads are paused by the admin switch"})
-                else:
-                    try:
-                        res = await results_light.refresh_light(client, store, limit=args.limit)
-                    except Exception as exc:
-                        await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
-                        raise
-                    print(res)
-                    await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] else "partial" if res["failed"] else "ok",
-                                              {k: v for k, v in res.items() if isinstance(v, int)}, {"errors": res["errors"]} if res.get("errors") else {})
+                try:   # a light job (one provider call per company): the admin "heavy loads" switch does not pause it
+                    res = await results_light.refresh_light(client, store, limit=args.limit)
+                except Exception as exc:
+                    await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
+                    raise
+                print(res)
+                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] else "partial" if res["failed"] else "ok",
+                                          {k: v for k, v in res.items() if isinstance(v, int)}, {"errors": res["errors"]} if res.get("errors") else {})
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:

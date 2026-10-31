@@ -137,8 +137,8 @@ async def test_status_shows_the_last_runs_and_the_newest_result(store):  # noqa:
 
 def test_the_scheduler_runs_the_results_jobs_without_a_visitor_and_in_the_late_windows():
     sh = (DEPLOY / "scheduler.sh").read_text()
-    hourly = [l for l in sh.splitlines() if "refresh-results" in l and "H >= 8" in l or "calendars-hourly" in l and "H >= 8" in l]
-    assert len(hourly) == 3 and all("results_gate" in l and "visitor_active" not in l for l in hourly)
+    hourly = [l for l in sh.splitlines() if l.strip().startswith("due ") and ("refresh-results" in l or "calendars-hourly" in l)]
+    assert len(hourly) == 4 and all("results_gate" in l and "visitor_active" not in l for l in hourly)   # :05 calendars, :20 and :50 results, :35 results-light
     assert 'RESULTS_NEED_VISITOR:-0' in sh
     for chain in ("chain_evening2", "chain_late"):
         body = sh.split(f"{chain}() {{")[1].split("\n}\n")[0]

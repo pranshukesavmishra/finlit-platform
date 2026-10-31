@@ -11,6 +11,13 @@
 - Also in the 06:45, 15:50 (weekdays), 19:10, 21:10 and 23:30 windows.
 - A job that is skipped (admin switch "Heavy data loads" paused, previous run still going, low memory) leaves a one-line reason, shown below as `lastSkipped`. Logs: `/tmp/scheduler.log` and `/tmp/job-<name>.log` inside the app container.
 
+## Is the scheduler itself alive? (added after the 31 Oct report)
+- `/api/results/status` now has `schedulerAlive`, `schedulerAliveAt` (IST), `schedulerAgeSeconds` and `jobsLastHour` (every job `scheduler.sh` started in the last hour). `scheduler.sh` writes its heartbeat once a minute. `schedulerAlive: false` means the scheduler is not running (or Redis cannot be read): restart the app container.
+- `loadsPaused` shows the admin switch "Heavy data loads". The results jobs (calendars, results, results-light) and the on-demand report builder IGNORE it; it pauses only the bulk loads (technicals, Prism, funds, nightly ingest). On 31 Oct it was found OFF, which had stopped every results job before they were exempted. `/api/technicals/status` shows `loadsPaused` too.
+- A time slot now fires once a day at its minute or up to 10 minutes late (the old test was "the minute is exactly :20", so a loop round delayed by a busy box lost the whole slot).
+- A worker command that skips Prism work names what is missing: `site_api_url_not_set` or `cms_jwt_secret_too_short`. `SITE_API_URL` now defaults to the local site backend exactly as `render-start.sh` decides, so `docker compose exec ... worker refresh-technicals` behaves like the scheduler.
+- Fund jobs (ETF, mutual funds, score-mf, portfolios) run only when `FUND_LOADS_ENABLED=1` in `/opt/finlit/.env.aws` (the example file ships `0`). After editing: `cd /opt/finlit && docker compose --env-file .env.aws -f src/finlit-platform/deploy/aws/docker-compose.aws.yml up -d app`.
+
 ## Check it from a browser (no SSH)
 - `https://<your site>/api/results/status` shows `todayIST`, `newestResultInDb`, `newestFilingInDb`, `upcomingCount`, `lastRun.calendars|results|resultsLight` (`at` is UTC, `status`, `counts`, `newestResultDate`, `error`/`errors`/`why` when something went wrong) and `lastSkipped`.
 - `/api/mf/status` lists the same runs as `run:refresh-calendars`, `run:refresh-results`, `run:refresh-results-light`.

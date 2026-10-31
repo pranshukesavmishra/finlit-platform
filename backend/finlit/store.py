@@ -454,6 +454,53 @@ class Store:
         except Exception:
             pass
 
+    # The pre-warm queue (low priority): peers of a company that was just built. Redis only (the API role cannot change the Postgres queue), capped, and
+    # taken by the drain loop only when no visitor is waiting.
+    LOW_QUEUE = "ingest:lowq"
+    LOW_FLAG = "ingest:lowq:pending"
+    LOW_MAX = 300
+    VISITOR_WAITING = READER_FLAG
+
+    async def enqueue_low(self, symbol: str, statement: str) -> bool:
+        try:
+            if await self.redis.zcard(self.LOW_QUEUE) >= self.LOW_MAX:
+                return False
+            added = await self.redis.zadd(self.LOW_QUEUE, {f"{symbol.upper()}|{statement}": time.time()}, nx=True)
+            await self.redis.set(self.LOW_FLAG, 1, ex=3600)
+            return bool(added)
+        except Exception:
+            return False
+
+    async def claim_low(self, limit: int = 1) -> List[Tuple[str, str]]:
+        try:
+            popped = await self.redis.zpopmin(self.LOW_QUEUE, limit)
+        except Exception:
+            return []
+        out = []
+        for member, _score in popped:
+            sym, _, st = (member.decode() if isinstance(member, bytes) else member).partition("|")
+            out.append((sym, st or "consolidated"))
+        return out
+
+    async def unstored(self, symbols: List[str]) -> List[str]:
+        """Of these companies (in the given order), those we know but hold no report for yet and have not already queued."""
+        syms = [s.upper() for s in symbols if isinstance(s, str)]
+        if not syms:
+            return []
+        async with self.pool.acquire() as conn:
+            known = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM companies WHERE symbol = ANY($1::text[])", syms)}
+            held = {r["symbol"] for r in await conn.fetch("SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary' AND symbol = ANY($1::text[])", syms)}
+        out = []
+        for s_ in syms:
+            if s_ in known and s_ not in held and s_ not in out:
+                try:
+                    if await self.redis.zscore(self.LOW_QUEUE, f"{s_}|consolidated") is not None:
+                        continue
+                except Exception:   # nosec B110
+                    pass
+                out.append(s_)
+        return out
+
     async def queue_length(self) -> int:
         async with self.pool.acquire() as conn:
             return await conn.fetchval("SELECT count(*) FROM ingest_queue")
@@ -485,7 +532,7 @@ class Store:
         """The companies to load or refresh, most important first: members of the NIFTY index lists (NIFTY 50 ... NIFTY 500, midcap and
         smallcap lists), then by market cap. `limit` is the size of that whole set (INGEST_LIMIT): only its companies are ever loaded by
         the bulk jobs, missing ones before stale ones. Companies outside it are loaded only when someone opens their report."""
-        pinned = await self.pinned_symbols() if limit is not None else []   # what members use outside the top set is refreshed too
+        pinned = [*await self.pinned_symbols(), *await self.viewed_symbols()] if limit is not None else []   # what members use, and what anyone opened lately, outside the top set is refreshed too
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 f"WITH ranked AS ({self.RANKED}) "  # nosec B608 - fixed SQL
@@ -575,6 +622,18 @@ class Store:
             ready = {r["symbol"] for r in await conn.fetch("SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary' AND symbol = ANY($1::text[])", order)}
         when = {r["symbol"]: r["last_opened"].isoformat() for r in opened}
         return [{"symbol": s, "name": names.get(s), "ready": s in ready, "followed": s in followed, "lastOpened": when.get(s)} for s in order if s in names]
+
+    async def viewed_symbols(self, limit: Optional[int] = None, days: int = 21) -> List[str]:
+        """Companies anybody (signed in or not) opened in the last `days`, most recent first, capped (VIEWED_REFRESH_LIMIT, default 200): kept stored and
+        refreshed by the nightly load, so the second visit to a mid or small cap someone looked at is instant and current."""
+        cap = limit if limit is not None else int(os.getenv("VIEWED_REFRESH_LIMIT") or 200)
+        if cap <= 0:
+            return []
+        try:
+            raw = await self.redis.zrevrangebyscore(VIEWED_KEY, "+inf", time.time() - days * 86400, start=0, num=cap)
+        except Exception:
+            return []
+        return [m.decode() if isinstance(m, bytes) else m for m in raw]
 
     async def note_view(self, symbol: str) -> None:
         try:

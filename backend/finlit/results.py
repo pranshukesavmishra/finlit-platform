@@ -1062,7 +1062,15 @@ async def pipeline_status(store, today: Optional[date] = None) -> Dict[str, Any]
     ipo_fields = cal.pop("ipoFields", None)   # shown once, at the top level: the field names the provider's /ipo-calendar rows really carry, and one sample row
     if last.get("calendars") is not None:
         last["calendars"] = cal
-    return {"todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
+    from . import wake
+    sched = await wake.scheduler_status(store.redis)   # is scheduler.sh itself alive, and which jobs did it start in the last hour
+    paused = None
+    try:   # the admin switch "Heavy data loads": it pauses the bulk loads; the results jobs ignore it, but it is shown here so nobody wonders
+        from .sysctl import loads_enabled
+        paused = not await loads_enabled(store.pool)
+    except Exception:   # nosec B110
+        pass
+    return {**sched, "loadsPaused": paused, "todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
             "upcomingCount": int(upcoming or 0), "companiesWithResultsDateTodayOrYesterday": int(declared_recent or 0),
             "lastRun": last, "lastSkipped": skipped}
 

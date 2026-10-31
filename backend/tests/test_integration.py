@@ -24,7 +24,7 @@ TEST_REDIS = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/15")
 
 def make_settings(**overrides):
     return Settings(**{"finedge_api_key": "test", "finedge_mode": "fixtures", "database_url": TEST_DB,
-                       "redis_url": TEST_REDIS, "rate_limit_per_minute": 100_000, **overrides})
+                       "redis_url": TEST_REDIS, "rate_limit_per_minute": 100_000, "ondemand_wait_seconds": 0.0, **overrides})
 
 
 @pytest.fixture

@@ -59,6 +59,7 @@ from .config import Settings, get_settings
 from .siteproxy import register_catch_all, register_stock_admin
 from .web import mount_frontend
 from .security import RateLimiter, SecurityHeadersMiddleware, client_ip
+from .finedge import ESSENTIAL_KEYS
 from .snapshot import PRICE_RANGES, SECTIONS, SNAPSHOT_VERSION
 from .store import Store
 from .background import etag_matches, spawn
@@ -317,8 +318,58 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             return Response(status_code=304, headers=headers)
         return Response(content=body, media_type="application/json", headers=headers)
 
-    async def missing(request: Request, symbol: str, statement: str) -> JSONResponse:
+    async def wait_for_build(symbol: str, statement: str, budget: float) -> str:
+        """Waits (up to `budget` seconds) for the worker to finish the report this visitor is waiting on: "ready", "failed" (the provider did not answer or the
+        data was refused: the worker leaves a note) or "waiting" (still being built). Redis only: no database call per look."""
+        redis, pending = app.state.store.redis, f"pending:{symbol}:{statement}"
+        deadline = time.monotonic() + max(0.0, budget)
+        while True:
+            try:
+                busy = await redis.exists(pending)
+            except Exception:
+                return "waiting"
+            if not busy:
+                try:
+                    return "failed" if await redis.get(f"ingest:fail:{symbol}:{statement}") else "ready"
+                except Exception:
+                    return "ready"
+            if time.monotonic() >= deadline:
+                return "waiting"
+            await asyncio.sleep(0.25)
+
+    async def progress_of(symbol: str, statement: str) -> dict:
+        """What the page shows while it waits: the company's name and how many of the key parts have arrived (the worker counts them in Redis)."""
         store: Store = app.state.store
+        out: dict = {"total": len(ESSENTIAL_KEYS), "done": 0}
+        try:
+            row = await store.company(symbol)
+            if row:
+                out["company"] = {"name": row["name"], "sector": row["sector"] if "sector" in row.keys() else None}
+            out["done"] = min(len(ESSENTIAL_KEYS), int(await store.redis.get(f"ingest:progress:{symbol}:{statement}") or 0))
+        except Exception:   # nosec B110 - the hint is optional
+            pass
+        return out
+
+    async def queued_reply(symbol: str, statement: str, detail: str = "Preparing this stock's report.") -> JSONResponse:
+        return JSONResponse({"status": "queued", "symbol": symbol, "detail": detail, **await progress_of(symbol, statement)},
+                            status_code=202, headers={"Retry-After": "1", "Cache-Control": "no-store"})
+
+    async def after_wait(request: Request, symbol: str, statement: str, name: str, state: str) -> Response:
+        """The wait is over: the stored report (the same request answers with the page, no second round trip), or what happened instead."""
+        if state == "ready":
+            hit = await app.state.store.get_section(symbol, statement, name)
+            if hit is not None:
+                return await serve_hit(request, symbol, statement, name, hit, time.perf_counter())
+        elif state == "failed":
+            return JSONResponse({"status": "build_failed", "symbol": symbol, "detail": "We could not build this report right now: the data provider did not answer. Please try again in a minute."},
+                                status_code=503, headers={"Retry-After": "30", "Cache-Control": "no-store"})
+        return await queued_reply(symbol, statement)
+
+    async def missing(request: Request, symbol: str, statement: str, name: str = "summary") -> Response:
+        store: Store = app.state.store
+        if name != "summary" and await store.get_section(symbol, statement, "summary") is not None:
+            # The report is stored (key numbers first) and this block is still being fetched: nothing is queued again, the page asks again in a moment.
+            return await queued_reply(symbol, statement, "This part of the report is still loading.")
         if await store.company(symbol):
             # Each new stock costs ~21 upstream calls: cap per client and in total, failing closed.
             # Already being prepared: the page asks every few seconds while it waits, and those asks must not use up the visitor's allowance.
@@ -328,20 +379,24 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             except Exception:
                 first = True
             if not first:
-                return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
-                                    status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
+                return await after_wait(request, symbol, statement, name, await wait_for_build(symbol, statement, settings.ondemand_wait_seconds))
             ip = request.scope.get("state", {}).get("client_ip") or client_ip(request.scope, settings.client_ip_header)
             allowed, retry = await app.state.limiter.hit("queue", ip, settings.queue_limit_per_hour, 3600, fail_open=False)
             if not allowed or await store.queue_length() >= settings.queue_max_pending:
                 try:
                     await store.redis.delete(pending)
-                except Exception:
+                except Exception:   # nosec B110
                     pass
                 return JSONResponse({"status": "busy", "symbol": symbol, "detail": "Please try this stock again shortly."},
                                     status_code=429, headers={"Retry-After": str(min(retry or 30, 60)), "Cache-Control": "no-store"})
+            try:
+                await store.redis.delete(f"ingest:fail:{symbol.upper()}:{statement}")
+            except Exception:   # nosec B110
+                pass
             await store.enqueue(symbol, statement)
-            return JSONResponse({"status": "queued", "symbol": symbol, "detail": "Preparing this stock's report."},
-                                status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
+            # The worker builds the key numbers first; this request waits for them (a short budget) and answers with the real page, so a report that
+            # takes a few seconds opens without the "preparing" page at all. Past the budget the page polls (1 s, then 2 s).
+            return await after_wait(request, symbol, statement, name, await wait_for_build(symbol, statement, settings.ondemand_wait_seconds))
         return JSONResponse({"status": "not_found", "symbol": symbol}, status_code=404, headers={"Cache-Control": "public, max-age=300"})
 
     if settings.site_api_url:
@@ -415,9 +470,13 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             # (at most once an hour), so the next visit has the newest quarter.
             try:
                 made = datetime.fromisoformat(str((meta.get("meta") or {}).get("generatedAt")).replace("Z", "+00:00"))
-                if (datetime.now(made.tzinfo) - made).total_seconds() > 24 * 3600 and await app.state.store.redis.set(f"refresh:{symbol}:{statement}", 1, nx=True, ex=3600):
+                age = (datetime.now(made.tzinfo) - made).total_seconds()
+                # A first-paint report whose remaining parts never arrived (the worker restarted, the provider failed) is completed: queued again after 2 minutes, at most every 10.
+                if (meta.get("meta") or {}).get("partial") and age > 120 and await app.state.store.redis.set(f"complete:{symbol}:{statement}", 1, nx=True, ex=600):
                     await app.state.store.enqueue(symbol, statement)
-            except Exception:
+                elif age > 24 * 3600 and await app.state.store.redis.set(f"refresh:{symbol}:{statement}", 1, nx=True, ex=3600):
+                    await app.state.store.enqueue(symbol, statement)
+            except Exception:   # nosec B110
                 pass
             return False
         store, key = app.state.store, f"repair:{symbol}:{statement}"
@@ -443,8 +502,11 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             hit = await app.state.store.get_section(sym, statement, "summary")
             if hit is not None and await broken(sym, statement, hit[0]):
                 # A report saved while the provider was overloaded (no price or profile) is never shown: it is rebuilt, and the page waits for it.
-                return JSONResponse({"status": "queued", "symbol": sym, "detail": "Refreshing this stock's report."},
-                                    status_code=202, headers={"Retry-After": "3", "Cache-Control": "no-store"})
+                state = await wait_for_build(sym, statement, settings.ondemand_wait_seconds)
+                again = await app.state.store.get_section(sym, statement, "summary") if state == "ready" else None
+                if again is not None and not await broken(sym, statement, again[0]):
+                    return await serve_hit(request, sym, statement, "summary", again, time.perf_counter())
+                return await queued_reply(sym, statement, "Refreshing this stock's report.")
         return await section(request, symbol, "summary", statement)
 
     @app.get("/api/me/companies")
@@ -504,7 +566,10 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             return JSONResponse({"status": "unknown_section", "sections": sorted(allowed)}, status_code=404)
         hit = await app.state.store.get_section(symbol, statement, name)
         if hit is None:
-            return await missing(request, symbol, statement)
+            return await missing(request, symbol, statement, name)
+        return await serve_hit(request, symbol, statement, name, hit, started)
+
+    async def serve_hit(request: Request, symbol: str, statement: str, name: str, hit, started: float) -> Response:
         if not varies_by_plan(name):
             return cached(request, hit[0], hit[1], CACHE_STOCK, started)
         # Plan-dependent: the showcase company is fully open; everything else is trimmed to the caller's plan on the server.

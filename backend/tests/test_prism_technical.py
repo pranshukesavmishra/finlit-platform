@@ -240,7 +240,7 @@ async def test_without_dhan_or_the_secret_nothing_runs(world, monkeypatch):
     seen["reference"] = None
     out = await pt.refresh(store, settings, client=http, now=NOW)
     assert out["status"] == "skipped" and out["reason"] == "dhan_unavailable"
-    assert (await pt.refresh(store, make_settings(), client=http, now=NOW))["reason"] == "not_configured"
+    assert (await pt.refresh(store, make_settings(), client=http, now=NOW))["reason"] == "site_api_url_not_set"
 
 
 async def test_the_full_report_path_marks_the_card_with_its_bar_date(world):
@@ -329,7 +329,7 @@ def test_the_scheduler_and_cron_run_the_refresh_after_the_close_with_a_late_retr
     sched = (ROOT / "deploy/scheduler.sh").read_text()
     chain = re.search(r"chain_technicals\(\) \{.*?\n\}", sched, re.S).group(0)
     assert "refresh-technicals" in chain
-    assert re.search(r"\(\( weekday && H == 18 && M == 30 \)\) && window technicals chain_technicals", sched)       # 18:30 IST, weekdays: after the final candles
+    assert re.search(r"\(\( weekday \)\) && due technicals 18 30 && window technicals chain_technicals", sched)       # 18:30 IST, weekdays: after the final candles
     evening = re.search(r"chain_evening2\(\) \{.*?\n\}", sched, re.S).group(0)
     assert re.search(r"D <= 5 \)\) && run light technicals refresh-technicals", evening)                              # the late retry, 21:10
     assert "refresh-technicals" in re.search(r"chain_morning\(\) \{.*?\n\}", sched, re.S).group(0)                      # the catch-up

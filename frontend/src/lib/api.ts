@@ -3,7 +3,7 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 export type Band = { key: "strong" | "healthy" | "mixed" | "watch" | "insufficient"; label: string };
-export type Meta = { symbol: string; statement: "consolidated" | "standalone"; generatedAt: string; version: number; scoreModel: string };
+export type Meta = { symbol: string; statement: "consolidated" | "standalone"; generatedAt: string; version: number; scoreModel: string; /** key numbers stored, the ownership / peers / segments / announcements blocks still being fetched */ partial?: boolean; pendingParts?: string[] };
 export type Series = (number | null)[];
 export type Table = { unit: string; period: string; periods: string[]; periodEnds: string[]; rows: Record<string, Series> };
 
@@ -102,7 +102,7 @@ export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undef
 export const apiUrl = (path: string) => (path.startsWith("/") ? API_BASE + path : path);
 
 export class ApiError extends Error {
-  constructor(public status: number, public body: { status?: string; detail?: string; retryAfter?: number; plan?: string }) {
+  constructor(public status: number, public body: { status?: string; detail?: string; retryAfter?: number; plan?: string; done?: number; total?: number; company?: { name?: string | null; sector?: string | null } }) {
     super(body.detail || body.status || `HTTP ${status}`);
   }
 }
@@ -151,15 +151,23 @@ import { useBasis, withBasis, type Basis } from "./basis";
 
 const SECTION_STALE = 60_000;
 
+/** A report that is being built is asked for again after 1 s (the first 5 times), then every 2 s, up to POLL_MAX_TRIES asks (about 45 s); then the page stops and offers "Try again". */
+export const POLL_FAST_TRIES = 5;
+export const POLL_MAX_TRIES = 25;
+export const pollDelayMs = (attempt: number): number => (attempt < POLL_FAST_TRIES ? 1000 : 2000);
+export const shouldRetry = (count: number, err: ApiError): boolean => (err.status === 202 ? count < POLL_MAX_TRIES : err.status === 429 ? count < 8 : err.status === 503 && err.body.status === "build_failed" ? false : err.status >= 500 && count < 2);
+export const retryDelayMs = (count: number, err: ApiError): number => (err.status === 202 ? pollDelayMs(count) : err.status === 429 ? Math.min(30, err.body.retryAfter || 10) * 1000 : 1500);
+
 function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryOptions<T, ApiError>>, basis: Basis = "consolidated") {
   return {
     queryKey: ["stock", symbol, path, basis],
     queryFn: () => apiGet<T>(`/api/stocks/${encodeURIComponent(symbol)}${withBasis(path, basis)}`),
     staleTime: SECTION_STALE,
-    // A stock that has never been opened is prepared on demand (202): keep asking (for up to about five minutes; the server counts
-    // only the first request). 429 means many reports are being prepared at once: wait as told and ask again.
-    retry: (count: number, err: ApiError) => (err.status === 202 ? count < 100 : err.status === 429 ? count < 8 : err.status >= 500 && count < 2),
-    retryDelay: (_: number, err: ApiError) => (err.status === 202 ? (err.body.retryAfter || 3) * 1000 : err.status === 429 ? Math.min(30, err.body.retryAfter || 10) * 1000 : 1500),
+    // A stock that has never been opened is prepared on demand: the first request itself waits (server side) for its key numbers, so most open at once.
+    // Past that wait the answer is 202 and the page keeps asking, 1 s then 2 s, for about 45 s (the server counts only the first request).
+    // 429 means many reports are being prepared at once: wait as told and ask again. 503 build_failed (the provider did not answer) is final.
+    retry: shouldRetry,
+    retryDelay: retryDelayMs,
     ...extra,
   };
 }

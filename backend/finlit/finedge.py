@@ -14,7 +14,7 @@ import logging
 import random
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 from urllib.parse import quote as urlquote
 
 import httpx
@@ -67,6 +67,13 @@ def bundle_requests(symbol: str, statement: str) -> Dict[str, Tuple[str, Dict[st
         "announcements": ("/corp-announcements", {"symbol": symbol.upper(), "from_date": f"{year - 1}-01-01", "to_date": f"{year}-12-31"}, 8),
     }
 
+
+# What the first paint of a report needs: every part its score, key metrics, returns, statements and ratios are worked out from, so what is shown at
+# first is final and correct (a score from half the inputs would be a wrong number). A company opened before it is stored is built from these first;
+# the parts that feed only the ownership, peers, segments and announcements/events blocks (LATER below) are fetched afterwards, at low priority, and
+# those blocks fill in by themselves. Every CORE_PART of the worker is in this set.
+ESSENTIAL_KEYS = ("profile", "quote", "pl_annual", "bs_annual", "cf_annual", "pl_quarterly", "ratios_pr", "ratios_le", "ratios_li", "ratios_ef",
+                  "growth", "basic", "daily_quotes", "daily_price_ratios", "dividends", "corporate_actions")
 
 # Endpoints whose payload depends on consolidated vs standalone.
 STATEMENT_KEYS = {"pl_annual", "bs_annual", "cf_annual", "pl_quarterly", "segments", "ratios_pr", "ratios_le",
@@ -141,6 +148,15 @@ def fixture_transport(fixture_dir: Path = FIXTURE_DIR) -> httpx.MockTransport:
 
 # ---------------------------------------------------------------- client
 
+class _NoLock:
+    """An async context manager that does nothing (the normal-priority path of FinEdgeClient.get)."""
+    async def __aenter__(self):
+        return None
+
+    async def __aexit__(self, *exc):
+        return False
+
+
 class FinEdgeClient:
     def __init__(self, settings: Optional[Settings] = None, transport: Optional[httpx.AsyncBaseTransport] = None):
         self.settings = settings or get_settings()
@@ -156,6 +172,9 @@ class FinEdgeClient:
             limits=httpx.Limits(max_connections=self.settings.finedge_concurrency * 2, max_keepalive_connections=16),
         )
         self._sem = asyncio.Semaphore(self.settings.finedge_concurrency)
+        # Background parts (the rest of a report whose key numbers are already shown) may use at most half of the slots, so a report somebody
+        # is waiting on never queues behind them.
+        self._low = asyncio.Semaphore(max(1, self.settings.finedge_concurrency // 2))
         self.calls = 0
 
     async def __aenter__(self):
@@ -167,10 +186,10 @@ class FinEdgeClient:
     async def aclose(self):
         await self._client.aclose()
 
-    async def get(self, path: str, params: Optional[Dict[str, Any]] = None, timeout: float = 10, retries: int = 3) -> Any:
+    async def get(self, path: str, params: Optional[Dict[str, Any]] = None, timeout: float = 10, retries: int = 3, low: bool = False) -> Any:
         query = {**(params or {}), "token": self.settings.finedge_api_key}
         for attempt in range(retries + 1):
-            async with self._sem:
+            async with (self._low if low else _NoLock()), self._sem:
                 self.calls += 1
                 try:
                     response = await self._client.get(path, params=query, timeout=timeout)
@@ -193,35 +212,46 @@ class FinEdgeClient:
             await asyncio.sleep(delay + random.uniform(0, 0.25))
         raise FinEdgeError(path, None, "exhausted retries")  # pragma: no cover
 
-    async def _fetch_many(self, requests: Dict[str, Tuple[str, Dict[str, Any], float]]) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    async def _fetch_many(self, requests: Dict[str, Tuple[str, Dict[str, Any], float]], low: bool = False, on_part=None) -> Tuple[Dict[str, Any], Dict[str, str]]:
         async def one(key, spec):
             path, params, timeout = spec
+            got, err = None, None
             try:
-                return key, await self.get(path, params, timeout), None
+                got = await (self.get(path, params, timeout, low=True) if low else self.get(path, params, timeout))
             except FinEdgeError as exc:
                 log.info("finedge %s failed: %s", key, exc)
-                return key, None, str(exc.status or "error")
+                err = str(exc.status or "error")
+            if on_part is not None:   # a part the provider does not have (404) also counts as done: the progress shown is "parts answered"
+                try:
+                    await on_part(key)
+                except Exception:   # nosec B110 - a progress report must never fail a load
+                    pass
+            return key, got, err
 
         results = await asyncio.gather(*(one(k, spec) for k, spec in requests.items()))
         return {k: v for k, v, _ in results if v is not None}, {k: e for k, _, e in results if e}
 
-    async def fetch_bundle(self, symbol: str, statement: str = "consolidated") -> Dict[str, Any]:
+    async def fetch_bundle(self, symbol: str, statement: str = "consolidated", only: Optional[Iterable[str]] = None, on_part=None, low: bool = False) -> Dict[str, Any]:
         """All raw payloads for one stock, fetched in parallel. Falls back to standalone when a
-        company publishes no consolidated statements (common for single-entity companies)."""
+        company publishes no consolidated statements (common for single-entity companies).
+        `only` limits the load to those parts (ESSENTIAL_KEYS for a first paint); fetch_rest() gets the others. `on_part(key)` is awaited as each part arrives."""
         symbol = symbol.strip().upper()
         requests = bundle_requests(symbol, statement)
-        bundle, errors = await self._fetch_many(requests)
+        wanted = set(only) if only is not None else None
+        if wanted is not None:
+            requests = {k: v for k, v in requests.items() if k in wanted}
+        bundle, errors = await self._fetch_many(requests, low=low, on_part=on_part)
         dropped = [k for k, why in errors.items() if why != "404"]   # 404 = the provider has no such data for this company: not a failure
         if dropped:   # a busy provider drops a few calls: ask once more for just those, a little later
             await asyncio.sleep(1.5)
-            again, still = await self._fetch_many({k: requests[k] for k in dropped})
+            again, still = await self._fetch_many({k: requests[k] for k in dropped}, low=low)
             bundle.update({k: v for k, v in again.items() if v is not None})
             errors = {**{k: v for k, v in errors.items() if k not in dropped}, **still}
         effective = statement
         # Standalone only when the provider answered and has no consolidated accounts, never because the request failed.
         if statement == "consolidated" and "pl_annual" not in errors and not _has_rows(bundle.get("pl_annual")):
-            standalone = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS}
-            fallback, fallback_errors = await self._fetch_many(standalone)
+            standalone = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS and (wanted is None or k in wanted)}
+            fallback, fallback_errors = await self._fetch_many(standalone, low=low)
             if _has_rows(fallback.get("pl_annual")):
                 for key in STATEMENT_KEYS:
                     bundle.pop(key, None)
@@ -230,13 +260,34 @@ class FinEdgeClient:
                 errors.update(fallback_errors)
                 effective = "standalone"
         if effective == "consolidated" and statement == "consolidated" and _has_rows(bundle.get("pl_annual")):
-            await self._prefer_current_basis(symbol, bundle, errors)
+            await self._prefer_current_basis(symbol, bundle, errors, wanted)
             if bundle.get("basisChoice", {}).get("chosen") == "standalone":
                 effective = "standalone"
         bundle.update(symbol=symbol, statement=effective, requestedStatement=statement, errors=errors)
         return bundle
 
-    async def _prefer_current_basis(self, symbol: str, bundle: Dict[str, Any], errors: Dict[str, str]) -> None:
+    async def fetch_rest(self, bundle: Dict[str, Any], on_part=None) -> Dict[str, Any]:
+        """The parts a first-paint load (fetch_bundle(only=ESSENTIAL_KEYS)) left out, on the basis that load settled on, at low priority. Merged into
+        `bundle` (and its `errors`); a part that fails is recorded there and never raises."""
+        symbol, basis = bundle["symbol"], bundle.get("statement") or "consolidated"
+        wanted = {k: v for k, v in bundle_requests(symbol, basis).items() if k not in ESSENTIAL_KEYS and bundle.get(k) is None}
+        errors = dict(bundle.get("errors") or {})
+        if wanted:
+            got, errs = await self._fetch_many(wanted, low=True, on_part=on_part)
+            dropped = [k for k, why in errs.items() if why != "404"]
+            if dropped:   # a busy provider drops a few calls: once more for just those
+                await asyncio.sleep(1.0)
+                again, still = await self._fetch_many({k: wanted[k] for k in dropped}, low=True, on_part=on_part)
+                got.update({k: v for k, v in again.items() if v is not None})
+                errs = {**{k: v for k, v in errs.items() if k not in dropped}, **still}
+            bundle.update(got)
+            for k in wanted:
+                errors.pop(k, None)
+            errors.update(errs)
+        bundle["errors"] = errors
+        return bundle
+
+    async def _prefer_current_basis(self, symbol: str, bundle: Dict[str, Any], errors: Dict[str, str], wanted: Optional[set] = None) -> None:
         """Some companies' consolidated statements stop years before their standalone ones (SBFC: consolidated quarters end Mar 2025, standalone
         Sep 2026). Two small extra calls (standalone annual and quarterly P&L; the annual one also serves the revenue guard) find out. When the
         consolidated set is stale, the whole statement set is replaced by the standalone one, so no page mixes the two bases."""
@@ -247,7 +298,7 @@ class FinEdgeClient:
         stale = stale_reason(bundle, got.get("pl_annual"), got.get("pl_quarterly"))
         if not stale:
             return
-        rest = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS and k not in small}
+        rest = {k: v for k, v in bundle_requests(symbol, "standalone").items() if k in STATEMENT_KEYS and k not in small and (wanted is None or k in wanted)}
         fallback, fallback_errors = await self._fetch_many(rest)
         for key in STATEMENT_KEYS:
             bundle.pop(key, None)

@@ -43,7 +43,16 @@ loads_paused() {
   [ "$($PY -m finlit.worker switch-get loads 2>/dev/null | tail -n 1)" = 1 ] && return 1
   return 0
 }
+# The light results jobs (calendars, results, results-light) are paused only by an admin's explicit "off", never by a database that was slow or refusing
+# for a moment (a failing read counts as "paused" for the bulk loads above, which skipped the results jobs for no reason when the box was busy).
+loads_paused_explicit() {
+  [ "$($PY -m finlit.worker switch-get loads-explicit 2>/dev/null | tail -n 1)" = 0 ] && return 0
+  return 1
+}
 MIN_FREE_MB="${SCHED_MIN_FREE_MB:-120}"         # other jobs (quotes, alerts, emails, loads) start only with this much free
+RESULTS_MIN_FREE_MB="${SCHED_RESULTS_MIN_FREE_MB:-60}"  # the light results jobs need far less than a load and must not be skipped for want of memory the bulk jobs are using
+BULK_LOCK=/tmp/finlit-bulk.lock                         # the CPU-heavy bulk jobs (technicals, Prism pre-compute, score-mf) take turns on this one lock; results, quotes and visitors never wait for it
+BULK_WAIT_S="${SCHED_BULK_WAIT_S:-1800}"
 FUNDS_MIN_FREE_MB="${SCHED_FUNDS_MIN_FREE_MB:-180}"   # fund jobs: the largest measured one peaks at 174 MB (ETF refresh)
 
 # A skipped results job leaves a one-line reason in Redis (no database), shown at /api/results/status as lastSkipped; the same line goes to the log.
@@ -52,14 +61,27 @@ skipped() { log "skip $1 (${2#skipped: })"; case "$1" in calendars*|results*|tec
 run() {  # run <heavy|light> <name> <args...>: skip if the previous run of the same lock is still going, or if memory is short
   local kind="$1" name="$2"; shift 2
   [ "$kind" = "light" ] && kind="$name"
-  case "$name" in quotes|alerts-live|alerts-daily|screens|digest|drain) ;; *) loads_paused && { skipped "$name" "skipped: heavy data loads are paused by the admin switch"; return 0; } ;; esac
+  local results=0 bulk=0
+  case "$name" in calendars*|results*) results=1 ;; technicals|prism) bulk=1 ;; esac
+  # Everything that can wait (the admin-switch read starts Python and opens a database connection) happens inside the background job, so the
+  # scheduler's main loop never stalls on it: a stalled loop was a lost time slot.
   ( flock -n 9 || { skipped "$name" "skipped: the previous run was still going"; exit 0; }
-    renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them
-    free="$(free_mb)"; [ "$free" -lt "$MIN_FREE_MB" ] && { skipped "$name" "skipped: only ${free} MB of memory free"; exit 0; }
+    case "$name" in quotes|alerts-live|alerts-daily|screens|digest|drain) ;;
+      *) # The light results jobs (calendars, results, results-light) ignore the admin "Heavy data loads" switch: a results date must reach the page
+         # whatever that switch says (it was found OFF on 31 Oct, which silently stopped every results job). /api/results/status shows loadsPaused.
+         if [ "$results" != 1 ]; then
+           loads_paused && { skipped "$name" "skipped: heavy data loads are paused by the admin switch"; exit 0; }
+         fi ;;
+    esac
+    [ "$results" = 1 ] || renice -n 15 -p $BASHPID >/dev/null 2>&1   # bulk work yields CPU to visitors and to reports being prepared for them; the results jobs keep normal priority
+    free="$(free_mb)"; need="$MIN_FREE_MB"; [ "$results" = 1 ] && need="$RESULTS_MIN_FREE_MB"
+    [ "$free" -lt "$need" ] && { skipped "$name" "skipped: only ${free} MB of memory free"; exit 0; }
+    if [ "$bulk" = 1 ]; then flock -w "$BULK_WAIT_S" 6 || { skipped "$name" "skipped: another bulk job held the bulk lock for $((BULK_WAIT_S / 60)) minutes"; exit 0; }; fi
     log "start $name"
+    $PY -m finlit.wake ran "$name" >/dev/null 2>&1 &   # the job list at /api/results/status
     # JOB_TIMEOUT_MIN (set by a window for the one job that can run for hours) stops the job politely; every load is resumable
     local cap=(); [ -n "${JOB_TIMEOUT_MIN:-}" ] && cap=(timeout "${JOB_TIMEOUT_MIN}m")
-    ${cap[@]+"${cap[@]}"} $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" &
+    ${cap[@]+"${cap[@]}"} $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"/tmp/finlit-$kind.lock" 6>"$BULK_LOCK" &
   [ "${SYNC:-0}" = 1 ] && wait $!   # inside a DB window the jobs take turns instead of running side by side
   return 0
 }
@@ -81,7 +103,9 @@ run_funds() {  # run_funds <name> <args...>
   [ "${FUND_LOADS_ENABLED:-0}" = 1 ] || { log "skip $name (ETF and fund loads are paused: set FUND_LOADS_ENABLED=1 to turn them on)"; return 0; }
   ( flock -w 10800 9 || { log "skip $name (fund jobs busy for 3 hours)"; exit 0; }
     wait_memory "$name" || exit 0
-    log "start $name"; MALLOC_ARENA_MAX=2 $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"$FUNDS_LOCK" &
+    if [ "$name" = score-mf ]; then flock -w "$BULK_WAIT_S" 6 || { skipped "$name" "skipped: another bulk job held the bulk lock for $((BULK_WAIT_S / 60)) minutes"; exit 0; }; fi
+    log "start $name"; $PY -m finlit.wake ran "$name" >/dev/null 2>&1 &
+    MALLOC_ARENA_MAX=2 nice -n 15 $PY -m finlit.worker "$@" >> "/tmp/job-$name.log" 2>&1; log "done $name rc=$?" ) 9>"$FUNDS_LOCK" 6>"$BULK_LOCK" &
   [ "${SYNC:-0}" = 1 ] && wait $!
   return 0
 }
@@ -103,7 +127,7 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
   local out rc
   exec 8>"$FUNDS_LOCK"; flock -w 10800 8 || { log "$label skipped: fund jobs busy for 3 hours"; exec 8>&-; return 1; }
   if ! wait_memory "$label"; then exec 8>&-; return 1; fi
-  out="$(MALLOC_ARENA_MAX=2 $PY -m finlit.worker "$@" 2>&1)"; rc=$?
+  out="$(MALLOC_ARENA_MAX=2 nice -n 15 $PY -m finlit.worker "$@" 2>&1)"; rc=$?
   exec 8>&-
   log "$label rc=$rc $(printf '%s' "$out" | tail -n 1 | cut -c1-300)"
   return $rc
@@ -169,8 +193,9 @@ fund_step() {  # fund_step <label> <worker args...>: takes its turn on the fund 
 ) 9>/tmp/finlit-heavy.lock >> /tmp/job-boot-load.log 2>&1 &
 
 # Stocks opened before they were loaded are prepared in the background. The loop waits on a Redis flag (raised when a visitor opens such a stock), not on
-# Postgres, and does not query anything at start; if it ever exits (database refusing connections), it waits 2 minutes before trying again.
-( while true; do $PY -m finlit.worker drain-queue --loop >> /tmp/job-drain.log 2>&1; sleep 120; done ) &
+# Postgres, and does not query anything at start; if it ever exits (database refusing connections), it waits 10 seconds before trying again
+# (a visitor may be waiting: it used to be 2 minutes).
+( while true; do $PY -m finlit.worker drain-queue --loop >> /tmp/job-drain.log 2>&1; sleep 10; done ) &   # always on, at normal priority, outside every lock, memory gate and admin switch: a report a visitor waits for is built at once
 
 # Commodity prices: MCX futures (Dhan) every 10 seconds while MCX trades, international prices (metals.dev / MetalpriceAPI) every minute, into Redis.
 # Started only when at least one source is set up; the page says plainly which parts are not connected.
@@ -199,18 +224,24 @@ fi
       if [ "$free" -lt "${PRISM_MIN_FREE_MB:-350}" ]; then
         log "prism-precompute: waiting (only ${free} MB free)"
       else
-        n="${PRISM_WORKERS:-2}"   # side by side, each on its own share of the companies; the site backend runs up to PRISM_SLOTS (2) calculations at once
-        log "start prism-precompute ($n workers)"
-        for k in $(seq 0 $((n - 1))); do
-          timeout "${PRISM_ROUND_MAX_MIN:-60}m" nice -n 10 $PY -m finlit.worker precompute-prism --shard "$k/$n" --max-minutes "${PRISM_ROUND_MAX_MIN:-55}" --limit "${PRISM_ROUND_LIMIT:-800}" >> /tmp/job-prism-loop.log 2>&1 &
-        done
-        wait
-        log "done prism-precompute"
+        if flock -n 6; then   # the bulk lock: technicals, score-mf and the nightly Prism run take turns with this loop, never beside it
+          n="${PRISM_WORKERS:-2}"   # side by side, each on its own share of the companies; the site backend runs up to PRISM_SLOTS (2) calculations at once
+          log "start prism-precompute ($n workers)"
+          $PY -m finlit.wake ran prism-loop >/dev/null 2>&1 &
+          for k in $(seq 0 $((n - 1))); do
+            timeout "${PRISM_ROUND_MAX_MIN:-60}m" nice -n 15 $PY -m finlit.worker precompute-prism --shard "$k/$n" --max-minutes "${PRISM_ROUND_MAX_MIN:-55}" --limit "${PRISM_ROUND_LIMIT:-800}" >> /tmp/job-prism-loop.log 2>&1 &
+          done
+          wait
+          flock -u 6
+          log "done prism-precompute"
+        else
+          log "prism-precompute: waiting (another bulk job holds the bulk lock)"
+        fi
       fi
     fi
     sleep "${PRISM_LOOP_SLEEP_S:-300}"
   done
-) 8>/tmp/finlit-prism-loop.lock >> /tmp/job-prism-loop.log 2>&1 &
+) 8>/tmp/finlit-prism-loop.lock 6>"$BULK_LOCK" >> /tmp/job-prism-loop.log 2>&1 &
 
 # ---------------------------------------------------------------------------------------------------------------- the DB windows
 visitor_active() { $PY -m finlit.wake visit-active 15 >/dev/null 2>&1; }   # a visitor was on the site in the last 15 minutes (Redis only)
@@ -297,21 +328,36 @@ chain_late() {   # 23:30: after AMFI's 11 pm deadline
 }
 
 results_gate() { [ "${RESULTS_NEED_VISITOR:-0}" != 1 ] || visitor_active; }   # see the results jobs below
+
+# A time slot fires once a day, at its minute or up to 10 minutes later: a loop round that was late (the box is busy with bulk jobs) used to lose the
+# whole slot, because the old test was "the minute is exactly :20". A slot already behind when the scheduler started is not made up (the boot load does that).
+declare -A DONE
+printf -v START_DAY '%(%F)T' -1; START_MIN=$(( 10#$(date +%H) * 60 + 10#$(date +%M) )); LAST_DAY="$START_DAY"
+due() {  # due <name> <hour> <minute> [grace minutes]; uses H and M of the current round
+  local today at=$(( $2 * 60 + $3 )) late=$(( H * 60 + M - $2 * 60 - $3 ))
+  printf -v today '%(%F)T' -1
+  if [ "$today" != "$LAST_DAY" ]; then DONE=(); LAST_DAY="$today"; fi
+  [ -n "${DONE[$1]:-}" ] && return 1
+  (( late >= 0 && late <= ${4:-10} )) || return 1
+  [[ "$today" > "$START_DAY" ]] || (( at >= START_MIN )) || return 1
+  DONE[$1]=1; return 0
+}
 last=""
 while true; do
   now="$(date '+%M %H %u')"; [ "$now" = "$last" ] && { sleep 5; continue; }; last="$now"
+  $PY -m finlit.wake heartbeat >/dev/null 2>&1 &   # once a minute: shown at /api/results/status as schedulerAliveAt, so the scheduler's own life can be checked from a browser
   read -r M H D <<< "$now"; H=$((10#$H)); M=$((10#$M)); D=$((10#$D))   # D: 1=Mon .. 7=Sun
   weekday=$(( D >= 1 && D <= 5 )); market=$(( weekday && H >= 9 && H <= 15 ))
   QE="${QUOTES_EVERY_MINUTES:-1}"   # minutes between live-price updates while a visitor is on the site
 
   # The DB windows (see the top of this file)
-  (( H == 1 && M == 0 )) && window night chain_night
-  (( H == 6 && M == 45 )) && window morning chain_morning
-  (( weekday && H == 15 && M == 50 )) && window close chain_close
-  (( weekday && H == 18 && M == 30 )) && window technicals chain_technicals
-  (( H == 19 && M == 10 )) && window evening1 chain_evening1
-  (( H == 21 && M == 10 )) && window evening2 chain_evening2
-  (( H == 23 && M == 30 )) && window late chain_late
+  due night 1 0 && window night chain_night
+  due morning 6 45 && window morning chain_morning
+  (( weekday )) && due close 15 50 && window close chain_close
+  (( weekday )) && due technicals 18 30 && window technicals chain_technicals
+  due evening1 19 10 && window evening1 chain_evening1
+  due evening2 21 10 && window evening2 chain_evening2
+  due late 23 30 && window late chain_late
 
   # Outside a window: member price alerts, every 15 minutes in market hours, only when an alert or watchlist target exists (prices are refreshed just before)
   if (( market && M % 15 == 0 )) && alerts_active; then
@@ -322,8 +368,11 @@ while true; do
   # Results jobs: every hour from 08:20 to 23:59 IST, every day including weekends (companies declare on Saturdays too), NO visitor needed: a declaration
   # must not wait for someone to open the site. Each run asks the database for a short list first and does nothing when it is empty. RESULTS_NEED_VISITOR=1
   # restores the old rule (only while a visitor was on the site in the last 15 minutes) for a metered database.
-  (( H >= 8 && H <= 23 && M == 5 )) && results_gate && run light calendars-hourly refresh-calendars                  # new board-meeting dates (two provider calls)
-  (( H >= 8 && H <= 23 && (M == 20 || M == 50) )) && results_gate && run light results refresh-results              # companies that have just reported are rebuilt within the hour
-  (( H >= 8 && H <= 23 && M == 35 )) && results_gate && run light results-light refresh-results-light              # their quarter figures, one provider call each
+  if (( H >= 8 && H <= 23 )); then
+    due "cal-$H" "$H" 5 && results_gate && run light calendars-hourly refresh-calendars                  # new board-meeting dates (two provider calls)
+    due "res-$H-a" "$H" 20 && results_gate && run light results refresh-results                          # companies that have just reported are rebuilt within the hour
+    due "res-$H-b" "$H" 50 && results_gate && run light results refresh-results
+    due "light-$H" "$H" 35 && results_gate && run light results-light refresh-results-light              # their quarter figures, one provider call each
+  fi
   sleep 20
 done

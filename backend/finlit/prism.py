@@ -129,6 +129,15 @@ def _slots(app) -> asyncio.Semaphore:
     return slots
 
 
+def not_configured_reason(settings) -> Optional[str]:
+    """Why Prism cannot be reached, by name (None when it can): the worker commands report this instead of a generic 'not_configured'."""
+    if not settings.site_api_url:
+        return "site_api_url_not_set"
+    if len(settings.cms_jwt_secret.encode()) < 32:
+        return "cms_jwt_secret_too_short"
+    return None
+
+
 def connected(settings) -> bool:
     """The site backend is configured and the shared secret is long enough for it to accept our tokens (it refuses shorter ones)."""
     return bool(settings.site_api_url) and len(settings.cms_jwt_secret.encode()) >= 32
@@ -989,9 +998,12 @@ async def _widen_take(redis, per_night: int) -> bool:
         return False
 
 
+VISITOR_WAITING_KEY = "ingest:reader:waiting"   # raised while a visitor waits for a report to be built (finlit.store.Store.READER_FLAG): every bulk job steps aside
+
+
 async def _members_busy(redis) -> bool:
     try:
-        return bool(await redis.exists(MEMBER_ACTIVE_KEY))
+        return bool(await redis.exists(MEMBER_ACTIVE_KEY)) or bool(await redis.exists(VISITOR_WAITING_KEY))
     except Exception:
         return True                    # cannot tell: stay out of the members' way
 PRE_RETRY_SECONDS = 45 * 60         # a company whose calculation failed upstream (502) is tried again after this
@@ -1042,7 +1054,7 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
     from types import SimpleNamespace
     app = SimpleNamespace(state=SimpleNamespace(store=store, settings=settings, prism_client=client))
     if not connected(settings):
-        return {"status": "skipped", "reason": "not_configured"}
+        return {"status": "skipped", "reason": not_configured_reason(settings) or "not_configured"}
     redis = store.redis
     skip: list = []
     try:

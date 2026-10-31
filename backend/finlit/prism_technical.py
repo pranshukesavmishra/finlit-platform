@@ -211,13 +211,22 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
         return Outcome.FAILED, f"error_{type(exc).__name__}"
 
 
+async def _loads_paused(store) -> Optional[bool]:
+    """True when an administrator switched "Heavy data loads" off (this job then skips every run); None when the switch cannot be read."""
+    try:
+        from .sysctl import loads_enabled
+        return not await loads_enabled(store.pool)
+    except Exception:
+        return None
+
+
 # ------------------------------------------------------------------------------------------------ the run
 async def refresh(store, settings, *, limit: int = 2500, max_minutes: float = 45.0, shard: Optional[Tuple[int, int]] = None,
                   symbols: Optional[List[str]] = None, force: bool = False, client=None, now: Optional[datetime] = None) -> Dict[str, Any]:
     """Refresh the technical view of every stored report that is behind. Returns the counts (also stored for /api/technicals/status)."""
     app = SimpleNamespace(state=SimpleNamespace(store=store, settings=settings, prism_client=client))
     if not prism.connected(settings):
-        return {"status": "skipped", "reason": "not_configured"}
+        return {"status": "skipped", "reason": prism.not_configured_reason(settings) or "not_configured"}
     redis = store.redis
     started, now = time.monotonic(), now or datetime.now(IST)
     expected = expected_session(now)
@@ -359,7 +368,7 @@ async def status_report(store, now: Optional[datetime] = None) -> Dict[str, Any]
         "behindNewestSession": behind, "upToDate": len(bars) - behind,
         "barDates": dict(sorted(by_date.items(), reverse=True)[:8]),
         "newestCalculatedAt": calculated[-1] if calculated else None, "oldestCalculatedAt": calculated[0] if calculated else None,
-        "lastRun": last, "lastSkipped": skipped,
+        "lastRun": last, "lastSkipped": skipped, "loadsPaused": await _loads_paused(store),
         "howToRead": "newestBarDate should equal newestSessionFound by about 19:30 IST on a trading day, and behindNewestSession should be small "
                      "(companies Dhan has no candles for). lastRun shows the job's counts: updated, skipped, failed, withheld, with reasons.",
     }
