@@ -25,7 +25,7 @@ export function useScreener(mode: Mode) {
   const state = useMemo(() => parseState(params, scope), [params.toString(), scope]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { filters: applied, sort, size } = state;
   const [draft, setDraft] = useState<Filters>(() => cloneFilters(applied));
-  const [secQ, setSecQ] = useState(""), [q, setQ] = useState("");   // q: the toolbar search, a view-only narrowing (not part of the address)
+  const [secQ, setSecQ] = useState(""), [q, setQ] = useState(() => params.get("q") ?? "");   // q: the toolbar search; it narrows the table and is kept in the address as ?q=
   const [picked, setPicked] = useState<string[]>([]);
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
   const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
@@ -49,7 +49,16 @@ export function useScreener(mode: Mode) {
   const sel = picked.filter((s) => rowSet.has(s));
   const selRows = rows.filter((r) => sel.includes(r.symbol));
 
-  const go = (next: Partial<State>) => { setParams(serializeState({ ...state, ...next }), { replace: true }); };
+  const withQ = (p: URLSearchParams) => { if (q.trim()) p.set("q", q.trim()); return p; };
+  const go = (next: Partial<State>) => { setParams(withQ(serializeState({ ...state, ...next })), { replace: true }); };
+  useEffect(() => {   // keep ?q= in step with the search box (a new search starts again from page 1)
+    const t = setTimeout(() => setParams((prev) => {
+      const cur = prev.get("q") ?? "", want = q.trim();
+      if (cur === want) return prev;
+      const n = new URLSearchParams(prev); if (want) n.set("q", want); else n.delete("q"); n.delete("page"); return n;
+    }, { replace: true }), 300);
+    return () => clearTimeout(t);
+  }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
   const apply = (f: Filters = draft) => { if (Object.keys(validate(f)).length) return; setDraft(cloneFilters(f)); go({ filters: f, page: 0 }); setDrawer(false); };
   const clear = () => { const e = emptyFilters(); setDraft(e); go({ filters: e, page: 0 }); };
   const drop = (id: string) => { const n = removeChip(applied, id); setDraft(cloneFilters(n)); go({ filters: n, page: 0 }); };

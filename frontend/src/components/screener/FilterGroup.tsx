@@ -19,7 +19,12 @@ export function FilterGroup({ id, title, active = 0, hint, meta, defaultOpen = f
   }, [want.n]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section ref={root} className={"fgx-g" + (open ? " is-open" : "") + (className ? " " + className : "")} data-fgx={id}>
-      <h3 className="fgx-h"><button ref={btn} type="button" className="fgx-hb" aria-expanded={open} aria-controls={body} onClick={() => set(!open)}>
+      <h3 className="fgx-h"><button ref={btn} type="button" className="fgx-hb" aria-expanded={open} aria-controls={body} onClick={() => set(!open)} onKeyDown={(e) => {
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+          const all = Array.from(btn.current?.closest("aside, form")?.querySelectorAll<HTMLButtonElement>("button.fgx-hb") ?? []), i = all.indexOf(btn.current!);
+          if (i < 0 || !all.length) return;
+          e.preventDefault(); all[e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : (i + (e.key === "ArrowDown" ? 1 : -1) + all.length) % all.length].focus();
+        }}>
         <span className="fgx-t">{title}</span>
         {meta != null && <span className="fgx-meta">{meta}</span>}
         {active > 0 && <span className="fgx-badge">{active} active</span>}
