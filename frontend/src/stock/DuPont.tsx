@@ -3,37 +3,24 @@ import { HScroll } from "../components/HScroll";
 import { ChartHelp } from "../components/ChartHelp";
 import { Icon } from "../lib/icons";
 import { useSection, type Financials } from "../lib/api";
-import { dupont, marginTrend } from "../lib/dupont";
+import { dupont } from "../lib/dupont";
 import { MINUS, nf } from "../lib/format";
 import { DecodeRoe } from "./DecodeRoe";
 import "../styles/dupont.css";
 
 const fy = (p: string) => (/^FY\d{2}$/.test(p) ? `Mar 20${p.slice(2)}` : p);
-const bps = (v: number | null) => (v == null ? MINUS : `${v > 0 ? "+" : v < 0 ? MINUS : ""}${nf(Math.abs(v), 0)} bps`);
 const arrow = (v: "up" | "down" | "flat") => (v === "up" ? "▲" : v === "down" ? "▼" : "▬");
 
-/** DuPont analysis (what drives return on equity) and the margin story with changes in basis points, from the company's own statements. */
-export function DuPont({ symbol, periods, rows, lender }: { symbol: string; periods: string[]; rows: Record<string, (number | null)[]>; lender: boolean }) {
+/** DuPont analysis (what drives return on equity), from the company's own statements. */
+export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) {
   const f = useSection<Financials>(symbol, "financials", !!symbol);
   const [five, setFive] = useState(false);
   const d = useMemo(() => dupont(f.data?.yearly.pl, f.data?.yearly.bs, lender), [f.data, lender]);
-  const m = useMemo(() => marginTrend(periods, rows, 4), [periods, rows]);
   const years = d.years, flagged = years.filter((y) => y.flag);
   const hasUnderlying = years.some((y) => y.underlyingMargin != null);
   const canFive = !lender && years.some((y) => y.taxBurden != null && y.interestBurden != null && y.ebitMargin != null);
   return (
     <div className="dp">
-      {m.rows.length > 0 && (
-        <div className="card dp-card">
-          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Margin trend<ChartHelp id="margin-trend" /></h3><span className="s">{fy(m.periods[0])} to {fy(m.periods[m.periods.length - 1])} · change in basis points</span></div>
-          <HScroll className="" label="margin trend">
-            <table className="dp-t"><thead><tr><th>Metric</th>{m.periods.map((p) => <th key={p}>{p}</th>)}<th>Change</th></tr></thead>
-              <tbody>{m.rows.map((r) => <tr key={r.key}><td>{r.label}</td>{r.values.map((v, i) => <td key={i}>{v == null ? MINUS : nf(v, 1) + "%"}</td>)}<td className={"ch " + (r.bps == null || r.bps === 0 ? "" : r.bps > 0 ? "up" : "down")}>{bps(r.bps)}</td></tr>)}</tbody></table>
-          </HScroll>
-          <p className="faint dp-note">One percentage point is 100 basis points (bps). The change runs from the first to the last year shown.</p>
-          {m.findings.map((t, i) => <p className="dp-find" key={i}><Icon name="alert" />{t}</p>)}
-        </div>
-      )}
       {years.length >= 1 && years.some((y) => y.roe != null) && (<>
         <div className="card dp-card">
           <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>DuPont analysis<ChartHelp id="dupont" /></h3><span className="s">What drives the return on equity</span></div>

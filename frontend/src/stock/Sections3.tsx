@@ -135,7 +135,7 @@ export function RatiosSection({ r, lender = false }: { r?: Ratios; lender?: bool
         <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Profitability ratios<ChartHelp id="profit-ratios" /></h3><span className="chip ghost">Annual · 8 years</span></div>
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
-      <DuPont symbol={r.meta.symbol} periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} lender={lender} />
+      <DuPont symbol={r.meta.symbol} lender={lender} />
       <ProfitReality symbol={r.meta.symbol} lender={lender} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ margin: "24px 0 16px" }}>
