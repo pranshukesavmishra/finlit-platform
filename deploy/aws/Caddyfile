@@ -19,9 +19,12 @@
 		-Server
 	}
 
-	# Vite names these files after their content (index-3fa9c1.js), so they can be cached for a year.
-	@hashed path /assets/*
-	header @hashed >Cache-Control "public, max-age=31536000, immutable"
+	# Cache-Control is decided by the app (backend/finlit/web.py), per file, and Caddy passes it through untouched:
+	#   /assets/*  hashed names -> immutable for a year, but a MISSING asset is a 404 with no-store
+	#   index.html, version.json, sw.js, theme-init.js -> no-cache (always revalidated)
+	# Do NOT add a blanket header for /assets/* here: it would also stamp "immutable, 1 year" on the 404 of a file from an older release.
+	@fresh path / /index.html /version.json /sw.js /theme-init.js
+	header @fresh Cache-Control "no-cache"
 
 	# Caddy puts the address it actually saw into X-Forwarded-For and discards whatever the visitor sent,
 	# which is exactly what the app expects (CLIENT_IP_HEADER=x-forwarded-for).

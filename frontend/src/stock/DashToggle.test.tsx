@@ -27,7 +27,7 @@ describe("Show full breakdown toggle", () => {
     store({ getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => void mem.set(k, v) });
     expect(readDashOpen()).toBe(false);
     writeDashOpen(true);
-    expect(mem.get(DASH_KEY)).toBe("1");
+    expect(JSON.parse(mem.get("finlit:ui:" + DASH_KEY)!)).toEqual({ v: 1, data: true });
     expect(readDashOpen()).toBe(true);
     writeDashOpen(false);
     expect(readDashOpen()).toBe(false);

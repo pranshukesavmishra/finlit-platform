@@ -34,9 +34,12 @@ import "./styles/headerlinks.css";
 import "./styles/overlay.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";
+import { purgeLegacy } from "./lib/persist";
 
 installDemo();
 installResilience();
+// Layout/behaviour flags written by releases before lib/persist.ts (raw, unversioned): drop them so stale values cannot reshape this release.
+purgeLegacy(["finlit-side", "finlit-side-groups", "finlit-dash-open", "finlit-etf-cols-v2", "finlit-mf-cols-v4"], ["finlit.side."]);
 
 const client = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } });
 

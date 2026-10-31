@@ -28,7 +28,7 @@ SITE_HEADERS = {
 def _cache_control(rel: str) -> str:
     if rel.startswith("assets/"):
         return "public, max-age=31536000, immutable"  # hashed file names
-    if rel in ("index.html", "sw.js", "theme-init.js"):
+    if rel in ("index.html", "sw.js", "theme-init.js", "version.json"):
         return "no-cache"
     return "public, max-age=3600"
 

@@ -17,6 +17,7 @@ import { InfoProvider } from "./Info";
 import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
+import { versionLine } from "../lib/version";
 
 /** One header dropdown, built from lib/nav.ts. */
 function Menu({ m, open, setOpen, path }: { m: NavSection; open: boolean; setOpen: (v: string | null) => void; path: string }) {
@@ -134,7 +135,7 @@ function Footer() {
         </div>
         <div className="ffine">
           <span>{COMPANY.disclaimer} Market data may be delayed. Past performance does not indicate future results.</span>
-          <span>© {new Date().getFullYear()} {COMPANY.name}<br /><Link to="/legal/terms">Terms</Link> · <Link to="/legal/privacy">Privacy</Link> · <Link to="/legal/disclosures">Disclosures</Link></span>
+          <span>© {new Date().getFullYear()} {COMPANY.name}<br /><span className="ver" title="Quote this when you contact support">{versionLine()}</span><br /><Link to="/legal/terms">Terms</Link> · <Link to="/legal/privacy">Privacy</Link> · <Link to="/legal/disclosures">Disclosures</Link></span>
         </div>
       </div>
     </footer>

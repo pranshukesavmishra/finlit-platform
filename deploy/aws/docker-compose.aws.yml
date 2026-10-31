@@ -18,6 +18,8 @@ services:
     build:
       context: ../..                 # the finlit-platform folder, where the Dockerfile lives
       dockerfile: Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}   # shown in the site footer, /version.json and /api/health
       labels:
         finlit.commit: ${GIT_COMMIT:-unknown}
     image: finlit-app:current        # deploy.sh keeps the one before it as finlit-app:previous (for "deploy.sh rollback")

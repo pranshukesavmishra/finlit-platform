@@ -2,6 +2,7 @@ import { Suspense, useState } from "react";
 import { lazyPage as lazy } from "./lib/resilience";
 import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { AppShell } from "./components/AppShell";
 import { SearchPalette } from "./components/SearchPalette";
 import { Home } from "./pages/Home";
@@ -76,6 +77,8 @@ const Fallback = () => <div className="wrap state" role="status"><div className=
 export default function App() {
   const [search, setSearch] = useState(false);
   return (
+    <>
+    <UpdateBanner />
     <Suspense fallback={<Fallback />}>
       <Routes>
         <Route element={<Layout />}>
@@ -156,5 +159,6 @@ export default function App() {
         </Route>
       </Routes>
     </Suspense>
+    </>
   );
 }

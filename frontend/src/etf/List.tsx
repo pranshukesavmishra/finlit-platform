@@ -9,19 +9,15 @@ import {
 } from "../lib/etf";
 import { Blank, DataNote, ErrorState, GlossInfo, Skeleton, Tone } from "./common";
 import { useUI } from "../lib/ui";
+import { isIdList, loadUi, saveUi } from "../lib/persist";
 import { MF_METHOD_URL, MF_SCORE_COMPLIANCE, useEtfScores, type ScoreItem } from "../lib/mfScore";
 import { ScoreCell } from "../mf/ScoreCell";
 import "../styles/etfvs.css";
 
-const COLS_KEY = "finlit-etf-cols-v2";   // v2: the Health score column is on by default; earlier saved choices are not carried over
-const readCols = (): ColKey[] => {
-  try {
-    const v = JSON.parse(localStorage.getItem(COLS_KEY) || "null");
-    const ok = Array.isArray(v) ? v.filter((k): k is ColKey => typeof k === "string" && k in COL_BY) : [];
-    return ok.length ? ok : DEFAULT_COLS;
-  } catch { return DEFAULT_COLS; }
-};
-const saveCols = (c: ColKey[]) => { try { localStorage.setItem(COLS_KEY, JSON.stringify(c)); } catch { /* private mode: the choice lasts for this visit */ } };
+const COLS_KEY = "etf-cols";   // versioned by lib/persist: a different version or unknown column ids fall back to the default
+const COL_IDS: ReadonlySet<string> = new Set(Object.keys(COL_BY));
+const readCols = (): ColKey[] => loadUi<ColKey[]>(COLS_KEY, 3, isIdList<ColKey>(COL_IDS), DEFAULT_COLS);
+const saveCols = (c: ColKey[]) => { saveUi(COLS_KEY, 3, c); };
 
 function Cell({ c, i, score, locked, loading }: { c: Col; i: EtfItem; score?: ScoreItem; locked: boolean; loading: boolean }) {
   if (c.key === "score") return <td className={"num etf-c-score"}><ScoreCell item={score} locked={locked} loading={loading} why="Not scored yet." /></td>;

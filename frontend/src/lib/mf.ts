@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { apiGet, type ApiError } from "./api";
 import { DEMO } from "./demo";
 import { MINUS, dateIN, nf } from "./format";
+import { isIdList, loadUi, saveUi } from "./persist";
 import { score, tokens } from "./metricSearch";
 import { TAB_KEYS, classify, type TabKey } from "./mfCategories";
 import type { PortfolioResult } from "../holdings/types";
@@ -159,18 +160,15 @@ export const COLUMNS: ColDef[] = [
   { id: "checklist", label: "Checklist", hint: "How many of five plain checks the scheme passes against its category (see the legend below the table)", sort: "checklist", num: true },
 ];
 export const DEFAULT_COLS: ColId[] = ["category", "score", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "checklist"];
-const COLS_KEY = "finlit-mf-cols-v4";   // v4: the Health score column moved up next to the scheme; older saved choices are not carried over, so everyone sees it where the eye lands
+const COLS_KEY = "mf-cols";   // v4: the Health score column moved up next to the scheme; older saved choices are not carried over, so everyone sees it where the eye lands
 const ALL_IDS = new Set<string>(COLUMNS.map((c) => c.id));
 
 /** Saved column choice, cleaned of anything unknown; the default when nothing valid is saved (storage can be blocked). */
 export function readCols(): ColId[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(COLS_KEY) || "null");
-    if (Array.isArray(raw)) { const ok = raw.filter((x): x is ColId => typeof x === "string" && ALL_IDS.has(x)); if (ok.length) return COLUMNS.map((c) => c.id).filter((id) => ok.includes(id)); }
-  } catch { /* blocked or corrupt: use the default */ }
-  return DEFAULT_COLS;
+  const ok = loadUi<ColId[] | null>(COLS_KEY, 5, isIdList<ColId>(ALL_IDS), null);
+  return ok ? COLUMNS.map((c) => c.id).filter((id) => ok.includes(id)) : DEFAULT_COLS;
 }
-export function writeCols(cols: ColId[]) { try { localStorage.setItem(COLS_KEY, JSON.stringify(cols)); } catch { /* private mode */ } }
+export function writeCols(cols: ColId[]) { saveUi(COLS_KEY, 5, cols); }
 
 // ------------------------------------------------------------------------------------------------ list URL state
 

@@ -1,0 +1,18 @@
+/* "A new version is available" bar. Opaque on purpose (never see-through), above page content and modals, calm rather than alarming. */
+.upd {
+  position: fixed; z-index: 90; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  width: min(640px, calc(100% - 32px));
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4;
+  background-color: #FCFAF5; color: #1E1B14; border: 1px solid #C9BD9F;
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, .45);
+}
+:root[data-theme="dark"] .upd { background-color: #1B1D23; color: #F2EEE3; border-color: #4A4636; }
+.upd-t { flex: 1 1 220px; min-width: 0; }
+.upd-a { display: inline-flex; gap: 8px; margin-left: auto; }
+.upd-b { font: inherit; font-weight: 600; min-height: 36px; padding: 0 14px; border-radius: 8px; cursor: pointer; background-color: transparent; color: inherit; border: 1px solid currentColor; }
+.upd-b.upd-go { background-color: #8A6A1F; color: #FFFFFF; border-color: #8A6A1F; }
+:root[data-theme="dark"] .upd-b.upd-go { background-color: #D4B26A; color: #17140C; border-color: #D4B26A; }
+.upd-b:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+@media (max-width: 480px) { .upd { width: calc(100% - 32px); } .upd-a { width: 100%; } .upd-b { flex: 1; } }
