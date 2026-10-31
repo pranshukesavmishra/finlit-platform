@@ -1013,7 +1013,8 @@ PRE_PROGRESS_KEY = "prism:pre:last"
 
 
 STALE_SQL = ("(p.status = 'NOT RATED' AND COALESCE(NULLIF(regexp_replace(COALESCE(p.report->'inputMeta'->>'classificationVersion', ''), '[^0-9]', '', 'g'), '')::int, 0) < $5 "
-             "AND (p.report->'rating'->'alerts')::text LIKE '%model group%')")
+             "AND ((p.report->'rating'->'alerts')::text ILIKE '%model group%' OR (p.report->'rating'->'notRatedReasons')::text ILIKE '%model group%' "
+             "OR (p.report->'rating'->'notRatedReasons')::text ILIKE '%classification%' OR (p.report->'rating'->'alerts')::text ILIKE '%classification%'))")
 STALE_MAX = 300                    # --stale-not-rated recalculates at most this many companies per run (run it again for more)
 STALE_PAUSE = 1.0                  # seconds between two companies of that run, so the data provider is never hammered
 
