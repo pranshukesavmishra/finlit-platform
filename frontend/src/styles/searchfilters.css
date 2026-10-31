@@ -59,3 +59,18 @@
 .sf-corner .sf-panel { right: 0; left: auto; }
 .sf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sf-flex { margin-left: auto; flex: none; }
+
+.sf-active { margin: 8px 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font: 500 13px var(--sans); color: var(--text); }
+.sf-active span { padding: 4px 10px; border-radius: 999px; background: var(--gold-soft); border: 1px solid var(--gold); }
+.sf-active button, .sf-relax button, .sf-hid button { border: 1px solid var(--border-strong); background: transparent; color: var(--text); border-radius: 999px; padding: 4px 11px; font: 600 12.5px var(--sans); cursor: pointer; }
+.sf-active button:focus-visible, .sf-relax button:focus-visible, .sf-hid button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.sf-empty p { margin: 0 0 6px; }
+.sf-relax { display: flex; flex-wrap: wrap; gap: 6px; }
+.sf-hidden { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 4px; }
+.sf-hid { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px dashed var(--border-strong); border-radius: 10px; opacity: .92; }
+.sf-hid-t { display: grid; gap: 1px; min-width: 0; color: var(--muted); }
+.sf-hid-t b { color: var(--muted); } .sf-hid-t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-hid-t em { font-style: normal; font: 600 12px var(--sans); color: var(--text); }
+.pm-sug .sf-hid button, .pm-sug .sf-relax button, .pm-sug .sf-empty button { display: inline-flex; width: auto; flex: none; border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 11px; background: transparent; font: 600 12.5px var(--sans); }
+.pm-sug .sf-empty { padding: 8px 12px; }
+.pm-sug .sf-hid-t b, .pm-sug .sf-hid-t small { display: block; }

@@ -25,15 +25,27 @@ export function companyRank(query: string, symbol: string, name: string): number
   return n > 0 ? 200 : 0;
 }
 
+/** Rank by the other names a company is found under: its BSE code (row[2]), a differing NSE code (row[4]) and its ISIN. */
+export function aliasRank(query: string, row: CompanyRow, isin?: string): number {
+  const qs = query.trim().toUpperCase().replace(/\s+/g, "");
+  if (!qs) return 0;
+  const bse = row[2], nse = row[4];
+  if (typeof bse === "string" && bse && bse === qs) return 950;
+  if (typeof nse === "string" && nse && nse.toUpperCase().startsWith(qs)) return 880;
+  if (isin && qs.length >= 6 && /^[A-Z0-9]+$/.test(qs) && isin.startsWith(qs)) return isin === qs ? 960 : 870;
+  return 0;
+}
+
 /** Best matches first; ties keep shorter names first (the parent company before its subsidiaries), then the index order. */
-export function rankCompanies(rows: readonly CompanyRow[] | undefined, query: string, limit = 8, exclude: readonly string[] = []): CompanyHit[] {
+export function rankCompanies(rows: readonly CompanyRow[] | undefined, query: string, limit = 8, exclude: readonly string[] = [], isin?: ReadonlyMap<string, string>): CompanyHit[] {
   if (!rows?.length || !query.trim()) return [];
   const skip = new Set(exclude.map((s) => s.toUpperCase()));
   const out: (CompanyHit & { i: number })[] = [];
   rows.forEach((r, i) => {
     const symbol = String(r[0] ?? ""), name = String(r[1] ?? symbol);
     if (!isCompany(symbol) || skip.has(symbol.toUpperCase())) return;
-    const rank = companyRank(query, symbol, name);
+    let rank = companyRank(query, symbol, name);
+    rank = Math.max(rank, aliasRank(query, r, isin?.get(symbol)));
     if (rank > 0) out.push({ symbol, name, rank, i });
   });
   out.sort((a, b) => b.rank - a.rank || a.name.length - b.name.length || a.i - b.i);

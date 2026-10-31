@@ -13,6 +13,7 @@ import { cr, csvText, nf } from "../lib/format";
 import { saveFile } from "../stock/derive";
 import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { FilterNote, SearchFilters, useRowFilter } from "../components/SearchFilters";
+import { hiddenRowMatches } from "../lib/searchFilters";
 import { BAND_LABEL, METRICS, fmt, useUniverse, type NumKey, type Row } from "../lib/screener";
 import { ChartHelp } from "../components/ChartHelp";
 
@@ -42,7 +43,7 @@ function Add({ rows: all, taken, onAdd }: { rows: Row[]; taken: string[]; onAdd:
   return (
     <div className="wl-add" ref={box}>
       <label><Icon name="table" /><input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="Add a stock to this list…" aria-label="Add a stock" /><SearchFilters variant="panel" className="sf-flex" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} /></label>
-      {open && sf.on && !list.length && <div className="pk-m"><FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /></div>}
+      {open && sf.on && !list.length && <div className="pk-m"><FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} hidden={hiddenRowMatches(all.filter((r) => !taken.includes(r.symbol)), (r) => ({ sector: r.sector, cap: r.market_cap }), q, sf.filter)} /></div>}
       {open && list.length > 0 && <div className="pk-m" role="listbox">{list.map((r) => <button key={r.symbol} role="option" aria-selected="false" onClick={() => { onAdd(r); setQ(""); setOpen(false); }}><b>{r.name}</b><small>{r.symbol} · {r.sector}</small></button>)}</div>}
     </div>
   );

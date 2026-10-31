@@ -722,7 +722,7 @@ class Store:
         """Compact list for client-side search, pre-gzipped once (it is ~600 KB raw for ~5,700 stocks).
         Rows are [symbol, name, bse, ready], biggest company first; the NSE code is sent only when it differs from the symbol.
         Beside the rows, three parallel lists keep the payload small: `sectors` (distinct sector names, most companies first), `sec` (per row: index into
-        `sectors`, -1 when unknown) and `mc` (per row: market value in rupees crore rounded up, 0 when unknown)."""
+        `sectors`, -1 when unknown) and `mc` (per row: market value in rupees crore rounded up, 0 when unknown) and `isin` (per row: ISIN, empty when not known)."""
         try:
             cached = await self.redis.hmget(SEARCH_KEY, ["body", "gzip", "etag"])
         except aioredis.RedisError as exc:
@@ -735,7 +735,8 @@ class Store:
                 """SELECT c.symbol, c.name, c.nse_code, c.bse_code,
                           EXISTS(SELECT 1 FROM snapshots s WHERE s.symbol = c.symbol AND s.section = 'summary') AS ready,
                           COALESCE(NULLIF(m.macro_sector, ''), NULLIF(m.sector, ''), NULLIF(c.sector, '')) AS sector,
-                          COALESCE(NULLIF(l.market_cap, 0), x.market_cap)::float8 AS mcap
+                          COALESCE(NULLIF(l.market_cap, 0), x.market_cap)::float8 AS mcap,
+                          (SELECT min(d.isin) FROM disclosure_isin d WHERE d.symbol = c.symbol) AS isin
                    FROM companies c
                    LEFT JOIN listing_quotes l ON l.symbol = c.symbol
                    LEFT JOIN LATERAL (SELECT market_cap FROM scores WHERE symbol = c.symbol AND market_cap IS NOT NULL ORDER BY updated_at DESC LIMIT 1) x ON true
@@ -748,15 +749,16 @@ class Store:
                 counts[r["sector"]] = counts.get(r["sector"], 0) + 1
         sectors = sorted(counts, key=lambda k: (-counts[k], k))      # code 0 = the sector with most companies
         code = {name: i for i, name in enumerate(sectors)}
-        out, sec, mc = [], [], []
+        out, sec, mc, isin = [], [], [], []
         for r in rows:
+            isin.append(r["isin"] or "")                                     # ISIN where the disclosure feed knows it ("" otherwise): search by ISIN
             row = [r["symbol"], r["name"], r["bse_code"], int(r["ready"])]
             if r["nse_code"] and r["nse_code"] != r["symbol"]:
                 row.append(r["nse_code"])
             out.append(row)
             sec.append(code.get(r["sector"], -1))                       # -1: sector not known
             mc.append(int(math.ceil(r["mcap"])) if r["mcap"] and r["mcap"] > 0 else 0)   # market value in rupees crore, rounded up (every band edge is a whole number, so the band is unchanged); 0: not known
-        body = dumps({"fields": ["symbol", "name", "bse", "ready", "nse"], "rows": out, "sectors": sectors, "sec": sec, "mc": mc})
+        body = dumps({"fields": ["symbol", "name", "bse", "ready", "nse"], "rows": out, "sectors": sectors, "sec": sec, "mc": mc, "isin": isin})
         packed = gzip.compress(body, compresslevel=9, mtime=0)
         etag = etag_for(body)
         try:

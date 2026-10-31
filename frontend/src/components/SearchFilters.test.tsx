@@ -52,9 +52,9 @@ describe("SearchFilters", () => {
   });
   it("panel: one Filters button with the active count in its name", () => {
     const off = renderToStaticMarkup(<SearchFilters variant="panel" facets={facets} value={NO_FILTER} onChange={() => undefined} />);
-    expect(off).toContain('aria-label="Filters"'); expect(off).toContain('aria-expanded="false"');
+    expect(off).toContain('aria-label="Filters: none active"'); expect(off).toContain('aria-expanded="false"');
     const on = renderToStaticMarkup(<SearchFilters variant="panel" facets={facets} value={{ sector: "Financial Services", cap: null }} onChange={() => undefined} />);
-    expect(on).toContain('aria-label="Filters, 1 active"');
+    expect(on).toContain('aria-label="Filters: 1 active. Sector: Financial Services"');
   });
   it("empty note says what is empty and offers Clear", () => {
     const t = text(renderToStaticMarkup(<FilterNote filter={{ sector: "Information Technology", cap: "mega" }} q="zzz" onChange={() => undefined} />));
@@ -66,7 +66,7 @@ describe("SearchFilters", () => {
 describe("pickers that use it", () => {
   it("alert company picker: the search box and the Filters button", () => {
     const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><StockPicker value="" onChange={() => undefined} /></QueryClientProvider>);
-    expect(html).toContain('role="combobox"'); expect(html).toContain('aria-label="Filters"'); expect(html).toContain("sf-host");
+    expect(html).toContain('role="combobox"'); expect(html).toContain('aria-label="Filters: none active"'); expect(html).toContain("sf-host");
   });
   it("palette: Sector and Market cap controls under the tabs, with the unfiltered footer count", () => {
     const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><StaticRouter location="/"><SearchOverlay open onClose={() => undefined} /></StaticRouter></QueryClientProvider>);

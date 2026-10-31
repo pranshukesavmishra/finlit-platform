@@ -26,12 +26,8 @@ export function OutlookIndexPage() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const sf = useIndexFilter(true);
-  const hits = useMemo(() => {
-    const t = q.trim().toUpperCase();
-    if (!t || !sf.idx.data) return [];
-    const starts = sf.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
-    return [...starts, ...sf.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t))].slice(0, 8);
-  }, [q, sf.idx.data, sf.rows]);
+  const hits = useMemo(() => (q.trim() ? sf.search(q, 8) : []), [sf.search, q]);   // name, symbol, BSE/NSE code or ISIN that pass the filter
+
   return (
     <>
       <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Profit and revenue outlook</h1>

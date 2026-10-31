@@ -94,8 +94,8 @@ export type Intraday = {
 };
 export type SearchRow = [symbol: string, name: string, bse: string | null, ready: number, nse?: string];
 /** /api/stocks/search-index. `sectors` is a lookup table; `sec[i]` is the row's index into it (-1: sector not known) and `mc[i]` its market value in
- *  rupees crore, rounded up (0: not known). Both lists run parallel to `rows`; an older server sends neither. */
-export type SearchIndex = { fields: string[]; rows: SearchRow[]; sectors?: string[]; sec?: number[]; mc?: number[] };
+ *  rupees crore, rounded up (0: not known); `isin[i]` is the row's ISIN ("": not known). The lists run parallel to `rows`; an older server sends neither. */
+export type SearchIndex = { fields: string[]; rows: SearchRow[]; sectors?: string[]; sec?: number[]; mc?: number[]; isin?: string[] };
 
 /** API origin. Empty in development (Vite proxies /api); in production set VITE_API_BASE=https://api.finlitventures.com. */
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") || "";

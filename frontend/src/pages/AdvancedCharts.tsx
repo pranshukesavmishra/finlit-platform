@@ -14,6 +14,7 @@ import { useDocTitle } from "../lib/title";
 import { graphLimits } from "../lib/graphLimits";
 import { rankMetrics } from "../lib/metricSearch";
 import { rankCompanies } from "../lib/companySearch";
+import { isinMap } from "../lib/searchFilters";
 import { plFlags } from "../lib/plFlags";
 import { ChartHelp } from "../components/ChartHelp";
 import { useWidth } from "../components/GraphCharts";
@@ -412,7 +413,7 @@ function Companies({ st, set, lim, plan, upgrade, status, mode, single }: { st: 
   const rows = useMemo(() => [...(DEMO ? ((facets.data as { samples?: [string, string][] } | undefined)?.samples ?? []) : []), ...(idx.data?.rows ?? [])], [idx.data, facets.data]);
   const [q, setQ] = useState(""), [act, setAct] = useState(0), [open, setOpen] = useState(false);
   const searchRows = useMemo(() => (sf.on ? sf.rows : rows), [sf.on, sf.rows, rows]);
-  const hits = useMemo(() => (q.trim() ? rankCompanies(searchRows, q, 8, st.companies) : sf.on ? searchRows.filter((r) => !st.companies.includes(r[0])).slice(0, 8).map((r) => ({ symbol: r[0], name: r[1], rank: 0 })) : []), [searchRows, q, st.companies, sf.on]);
+  const hits = useMemo(() => (q.trim() ? rankCompanies(searchRows, q, 8, st.companies, isinMap(idx.data)) : sf.on ? searchRows.filter((r) => !st.companies.includes(r[0])).slice(0, 8).map((r) => ({ symbol: r[0], name: r[1], rank: 0 })) : []), [searchRows, q, st.companies, sf.on]);
   const max = single ? 1 : lim;
   const nameOf = (s: string) => status.find((x) => x.s === s)?.name || rows.find((r) => r[0] === s)?.[1] || s;
   const add = (s: string) => {
@@ -435,7 +436,7 @@ function Companies({ st, set, lim, plan, upgrade, status, mode, single }: { st: 
         onChange={(e) => { setQ(e.target.value); setOpen(true); setAct(0); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setAct((a) => Math.min(hits.length - 1, a + 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setAct((a) => Math.max(0, a - 1)); } else if (e.key === "Enter" && hits[act]) { e.preventDefault(); add(hits[act].symbol); } else if (e.key === "Escape") { setQ(""); setOpen(false); } }} />
       {open && (q.trim() || sf.on) && <ul id={`${id}-l`} role="listbox" aria-label="Companies">{hits.map((h, i) => <li key={h.symbol} id={`${id}-o${i}`} role="option" aria-selected={i === act} onMouseDown={(e) => { e.preventDefault(); add(h.symbol); }}>{h.name} <small>{h.symbol}</small></li>)}
-        {!hits.length && <li className="faint" role="option" aria-selected={false} aria-disabled="true">{idx.isPending ? "Loading the company list…" : sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : "No company matches."}</li>}</ul>}
+        {!hits.length && <li className="faint" role="option" aria-selected={false} aria-disabled="true">{idx.isPending ? "Loading the company list…" : sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} hidden={sf.hidden(q)} /> : "No company matches."}</li>}</ul>}
       <SearchFilters variant="panel" className="sf-corner" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
       {!single && st.companies.length >= lim && <p className="faint adv-limit">Your plan shows {lim} companies per chart. <button className="adv-link" onClick={() => upgrade(nextPlan(plan), `Comparing more than ${lim} companies`)}>More with {plan === "basic" ? "Silver" : "Gold"}</button></p>}
     </div>

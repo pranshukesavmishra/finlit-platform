@@ -53,7 +53,7 @@ export function stockItem(r: SearchRow, q: Map<string, Quote>, mine?: Set<string
 }
 
 /** Stocks for a query, best first: the shared typo-tolerant rank, then companies the visitor follows, then size (the index order). `keep` limits it to the rows (by index position) that pass a filter. */
-export function searchStocks(rows: readonly SearchRow[] | undefined, query: string, limit: number, mine: Set<string> = new Set(), keep?: (i: number) => boolean): { row: SearchRow; rank: number }[] {
+export function searchStocks(rows: readonly SearchRow[] | undefined, query: string, limit: number, mine: Set<string> = new Set(), keep?: (i: number) => boolean, isin?: readonly string[]): { row: SearchRow; rank: number }[] {
   if (!rows?.length || !query.trim()) return [];
   const qs = query.trim().toUpperCase();
   const out: { row: SearchRow; rank: number; i: number }[] = [];
@@ -63,6 +63,8 @@ export function searchStocks(rows: readonly SearchRow[] | undefined, query: stri
     if (rank > 800 && rank < 900) rank = 899;                                // any symbol prefix: the larger company (index order) goes first
     if (r[2] && r[2] === qs) rank = Math.max(rank, 950);                    // BSE code
     if (r[4] && r[4].toUpperCase().startsWith(qs)) rank = Math.max(rank, 880);   // NSE code when it differs
+    const isn = isin?.[i];
+    if (isn && qs.length >= 6 && /^[A-Z0-9]+$/.test(qs) && isn.startsWith(qs)) rank = Math.max(rank, isn === qs ? 960 : 870);   // ISIN (INE…): whole or its first characters
     if (rank > 0) out.push({ row: r, rank: rank + (mine.has(r[0]) ? 5 : 0), i });
   });
   out.sort((a, b) => b.rank - a.rank || a.i - b.i);
