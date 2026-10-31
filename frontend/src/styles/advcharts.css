@@ -189,3 +189,23 @@ line.adv-gl { stroke: var(--border); stroke-width: 1; }
   .adv-controls { gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .adv * { transition: none !important; } }
+
+/* Inference block under a scatter chart (components/ChartInference.tsx) */
+.cinf { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--accent, var(--border)); border-radius: 8px; max-width: 80ch; }
+.cinf-h { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cinf-sub { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.cinf-tip { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; line-height: 1; cursor: help; padding: 0; }
+.cinf-head { margin: 0 0 6px; font-size: 15px; line-height: 1.5; font-weight: 600; color: var(--text); }
+.cinf-none { font-weight: 400; color: var(--muted); }
+.cinf-list { margin: 0 0 6px; padding-left: 18px; font-size: 14px; line-height: 1.55; color: var(--text); }
+.cinf-list li { margin: 3px 0; overflow-wrap: anywhere; }
+.cinf-w { color: var(--text); }
+.cinf-how { font-size: 13.5px; margin: 6px 0; }
+.cinf-how summary { cursor: pointer; color: var(--muted); }
+.cinf-how ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
+.cinf-close { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.cinf-skel { display: grid; gap: 8px; }
+.cinf-bar { display: block; height: 12px; border-radius: 6px; background: var(--border); opacity: .6; animation: cinf-pulse 1.2s ease-in-out infinite; }
+.cinf-bar.w1 { width: 80%; } .cinf-bar.w2 { width: 60%; } .cinf-bar.w3 { width: 70%; }
+@keyframes cinf-pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .cinf-bar { animation: none; } }
