@@ -65,14 +65,8 @@ function CompanyLoader({ initial, loaded, onLoad }: { initial: string | null; lo
   const [q, setQ] = useState("");
   const [sym, setSym] = useState<string | null>(initial);
   const sf = useIndexFilter(true), index = sf.idx;   // the same index query the palette makes: no extra request
-  const hits = useMemo(() => {
-    const t = q.trim().toUpperCase();
-    if (!index.data) return [];
-    if (!t) return sf.on ? sf.rows.slice(0, 8) : [];                 // a filter with no text: the largest companies that pass
-    const starts = sf.rows.filter((r) => r[0].startsWith(t) || r[1].toUpperCase().startsWith(t));
-    const has = sf.rows.filter((r) => !starts.includes(r) && r[1].toUpperCase().includes(t));
-    return [...starts, ...has].slice(0, 8);
-  }, [q, index.data, sf.rows, sf.on]);
+  const hits = useMemo(() => sf.search(q, 8), [sf.search, q]);   // name, symbol, BSE/NSE code or ISIN that pass the filter
+
   const summary = useSummary(sym ?? "", !!sym), fin = useSection<Financials>(sym ?? "", "financials", !!sym);
   const busy = !!sym && (summary.isFetching || fin.isFetching) && !(summary.data && fin.data);
   const failed = !!sym && (summary.isError || fin.isError);
@@ -106,7 +100,7 @@ function CompanyLoader({ initial, loaded, onLoad }: { initial: string | null; lo
         <SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
       </div>
       {(q.trim() || sf.on) && hits.length > 0 && <ul className="dcf-hits" aria-label="Matching companies">{hits.map((h) => <li key={h[0]}><button type="button" onClick={() => { doneFor.current = null; setSym(h[0]); setQ(""); }}><b>{h[1]}</b><span className="mono faint">{h[0]}</span></button></li>)}</ul>}
-      {index.data && hits.length === 0 && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : q.trim() && <p className="faint">No listed company matches “{q.trim()}”.</p>)}
+      {index.data && hits.length === 0 && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} hidden={sf.hidden(q)} /> : q.trim() && <p className="faint">No listed company matches “{q.trim()}”.</p>)}
       {busy && <p className="muted" aria-live="polite">Loading {sym}…</p>}
       {failed && !busy && <p className="formerr" role="alert">Could not load this company's figures. Enter them by hand.</p>}
       {loaded && !busy && (

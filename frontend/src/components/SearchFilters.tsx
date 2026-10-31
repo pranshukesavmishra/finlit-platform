@@ -2,9 +2,10 @@
 //  - variant "bar": two compact dropdowns, "Sector" and "Market cap", each showing the active choice and a Clear option (the palette, wide pickers);
 //  - variant "panel": one "Filters" button that opens a small panel with the same two choices (narrow pickers, inline autocompletes).
 // Keyboard: Enter, Space or the arrow keys open a dropdown; arrows, Home and End move; Enter picks; Esc closes only the open list or panel.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchIndex, type SearchIndex, type SearchRow } from "../lib/api";
-import { NO_FILTER, facetsOf, filterNoun, filterOn, filteredRows, hasFilterData, indexFacets, passesValues, type Facets, type Sized, type StockFilter } from "../lib/searchFilters";
+import { searchStocks } from "../lib/globalSearch";
+import { NO_FILTER, facetsOf, filterNoun, filterOn, filterParts, filteredRows, hasFilterData, hiddenMatches, indexFacets, passes, passesValues, relaxed, type Facets, type HiddenHit, type Sized, type StockFilter } from "../lib/searchFilters";
 import "../styles/searchfilters.css";
 
 /** State for a picker that searches the search index: the filter, the facets of the real data, and the rows that pass (the index rows untouched while no filter is on). */
@@ -14,7 +15,16 @@ export function useIndexFilter(enabled = true) {
   const data: SearchIndex | undefined = idx.data;
   const facets = useMemo(() => indexFacets(data), [data]);
   const rows = useMemo<SearchRow[]>(() => filteredRows(data, filter), [data, filter]);
-  return { idx, data, filter, setFilter, facets, rows, on: filterOn(filter), available: hasFilterData(data), count: rows.length };
+  /** Companies for the typed text, best first, by name, symbol, BSE or NSE code or ISIN, only those that pass the filter. No text: the largest that pass while a filter is on, nothing otherwise. */
+  const search = useCallback((q: string, limit = 8, exclude: readonly string[] = []): SearchRow[] => {
+    if (!data) return [];
+    const skip = new Set(exclude.map((x) => x.toUpperCase()));
+    if (!q.trim()) return filterOn(filter) ? filteredRows(data, filter).filter((r) => !skip.has(r[0].toUpperCase())).slice(0, limit) : [];
+    return searchStocks(data.rows, q, 1e9, new Set(), (i) => passes(data, i, filter), data.isin).map((h) => h.row).filter((r) => !skip.has(r[0].toUpperCase())).slice(0, limit);
+  }, [data, filter]);
+  /** Companies that match the typed text but are left out by the filter, each with the reason. */
+  const hidden = useCallback((q: string, limit = 3) => hiddenMatches(data, q, filter, limit), [data, filter]);
+  return { idx, data, filter, setFilter, facets, rows, search, hidden, on: filterOn(filter), available: hasFilterData(data), count: rows.length };
 }
 
 export type FilterOption = { id: string; label: string; hint?: string; n: number };
@@ -125,7 +135,7 @@ export function SearchFilters({ facets, value, onChange, variant = "bar", count,
   if (variant === "panel") {
     return (
       <div className={`sf-panelwrap ${className || ""}`} ref={wrap} onKeyDown={(e) => { if (e.key === "Escape" && panel) { e.preventDefault(); e.stopPropagation(); setPanel(false); btn.current?.focus(); } }}>
-        <button ref={btn} type="button" className={`sf-btn${on ? " on" : ""}`} aria-haspopup="dialog" aria-expanded={panel} aria-label={on ? `Filters, ${active} active` : "Filters"} onClick={() => setPanel((p) => !p)}>
+        <button ref={btn} type="button" className={`sf-btn${on ? " on" : ""}`} aria-haspopup="dialog" aria-expanded={panel} aria-label={on ? `Filters: ${active} active. ${filterParts(value).join(", ")}` : "Filters: none active"} title={on ? `${filterParts(value).join(" · ")}. Click to change.` : "Filter companies by sector or market cap"} onClick={() => setPanel((p) => !p)}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg><span>Filters</span>{on && <em>{active}</em>}
         </button>
         {panel && (
@@ -140,6 +150,7 @@ export function SearchFilters({ facets, value, onChange, variant = "bar", count,
                 <option value="">Any size</option>
                 {facets.caps.map((o) => <option key={o.id} value={o.id}>{o.label} · {o.range} ({nIN(o.n)})</option>)}
               </select></label>
+            {on && <p className="sf-count" data-testid="sf-active-list">On now: {filterParts(value).join(" · ")}</p>}
             {on && count != null && <p className="sf-count" role="status">{nIN(count)} {filterNoun(value, count)}</p>}
             <p className="sf-fn">{[unknownNote(value.sector ? facets.unknown.sector : 0, "sector", "a sector"), unknownNote(value.cap ? facets.unknown.cap : 0, "market value", "a band")].filter(Boolean).join(" ") || "Companies with no sector or market value on file are left out only while that filter is chosen."}</p>
             <div className="sf-acts">{on && <button type="button" onClick={clear}>Clear filters</button>}<button type="button" className="sf-done" onClick={() => { setPanel(false); btn.current?.focus(); }}>Done</button></div>
@@ -161,12 +172,46 @@ export function SearchFilters({ facets, value, onChange, variant = "bar", count,
   );
 }
 
-/** Shown by a picker in place of its "no match" line while a filter is on: says plainly what is empty and offers the way out. */
-export function FilterNote({ filter, q, onChange }: { filter: StockFilter; q?: string; onChange: (f: StockFilter) => void }) {
-  const noun = filterNoun(filter);
+/** Always visible while a filter is on: says exactly what is active, with a one-click way to clear it (the funnel button only shows a number). */
+export function ActiveFilters({ filter, onChange, className }: { filter: StockFilter; onChange: (f: StockFilter) => void; className?: string }) {
+  if (!filterOn(filter)) return null;
+  const parts = filterParts(filter);
   return (
-    <p className="sf-empty" role="status">
-      {q ? `No ${noun} match “${q}”.` : `No ${noun} in the list.`} <button type="button" onClick={() => onChange(NO_FILTER)}>Clear filters</button>
+    <p className={`sf-active ${className || ""}`} role="status" data-testid="active-filters">
+      <span>{parts.length === 1 ? "1 filter on" : `${parts.length} filters on`}: {parts.join(" · ")}. Companies outside it are hidden.</span>
+      <button type="button" onClick={() => onChange(NO_FILTER)}>Clear filters</button>
     </p>
+  );
+}
+
+/** Companies that match what was typed but are left out by the filter: greyed, with the reason and a one-click way to show them. */
+export function HiddenRows({ hidden, filter, onChange }: { hidden: readonly HiddenHit[]; filter: StockFilter; onChange: (f: StockFilter) => void }) {
+  if (!hidden.length) return null;
+  return (
+    <ul className="sf-hidden" aria-label="Matches hidden by your filter">
+      {hidden.map((h) => (
+        <li key={h.symbol} className="sf-hid">
+          <span className="sf-hid-t"><b>{h.symbol}</b><small>{h.name}</small><em>{h.why}</em></span>
+          <button type="button" onClick={() => onChange(relaxed(filter, h.keys))} aria-label={`Show ${h.name}: remove ${h.keys.map((k) => (k === "sector" ? "sector" : "market cap")).join(" and ")} filter`}>Show it</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Shown by a picker in place of its "no match" line while a filter is on: says plainly what is empty, shows the matches the filter hides, and offers the way out. */
+export function FilterNote({ filter, q, onChange, hidden }: { filter: StockFilter; q?: string; onChange: (f: StockFilter) => void; hidden?: readonly HiddenHit[] }) {
+  const noun = filterNoun(filter);
+  const both = !!filter.sector && !!filter.cap;
+  return (
+    <div className="sf-empty" role="status">
+      <p>{q ? `No ${noun} match “${q}”.` : `No ${noun} in the list.`}{hidden?.length ? "" : q ? " Try fewer filters, or check the spelling." : ""}</p>
+      <HiddenRows hidden={hidden || []} filter={filter} onChange={onChange} />
+      <p className="sf-relax">
+        {both && <button type="button" onClick={() => onChange({ ...filter, sector: null })}>Any sector</button>}
+        {both && <button type="button" onClick={() => onChange({ ...filter, cap: null })}>Any size</button>}
+        <button type="button" onClick={() => onChange(NO_FILTER)}>Clear filters</button>
+      </p>
+    </div>
   );
 }

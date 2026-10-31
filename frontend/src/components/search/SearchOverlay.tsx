@@ -150,7 +150,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     const rows = idx.data?.rows;
     const s = q.trim();
     if (tab === "global") return [];
-    const stockHits = (n: number) => searchStocks(rows, s, n, mineSet, keep);
+    const stockHits = (n: number) => searchStocks(rows, s, n, mineSet, keep, idx.data?.isin);
     if (!s && fOn) {          // a filter replaces recent visits and movers: the list is the filtered companies, largest market value first
       const got = filterStocks(idx.data, "", filter, cap, mineSet);
       return got.rows.length ? [{ id: "filtered", title: `${filterNoun(filter)} · largest first`, items: got.rows.map((r) => stockItem(r, qmap, mineSet)) }] : [];
@@ -188,7 +188,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   useEffect(() => { setCap(PAGE); }, [q, tab, open, filter]);
   const total = useMemo(() => {
     if (fOn && (tab === "stocks" || !q.trim())) return filterStocks(idx.data, q.trim(), filter, 0, mineSet).total;
-    return tab === "stocks" && q.trim() ? searchStocks(idx.data?.rows, q.trim(), 1e6, mineSet).length : (idx.data?.rows.length ?? 0);
+    return tab === "stocks" && q.trim() ? searchStocks(idx.data?.rows, q.trim(), 1e6, mineSet, undefined, idx.data?.isin).length : (idx.data?.rows.length ?? 0);
   }, [tab, q, idx.data, mineSet, fOn, filter]);
   const more = (tab === "stocks" || (tab === "all" && !q.trim())) && cap < total;
   const grow = () => { const el = list.current; if (more && el && el.scrollTop + el.clientHeight > el.scrollHeight - 500) setCap((c) => c + 60); };

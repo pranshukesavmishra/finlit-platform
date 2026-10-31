@@ -261,7 +261,7 @@ export function GraphStudio() {
             <div className="gx-chips">{companies.map((s) => <span key={s} className="gx-chip">{name(rows, s)}{isIndexSym(s) && <small> Index</small>}<button aria-label={`Remove ${name(rows, s)}`} onClick={() => removeCompany(s)}>×</button></span>)}</div>
             <div className="gx-search sf-host"><label className="sr" htmlFor="gx-co">Add a company or index</label><input id="gx-co" value={cq} onChange={(e) => setCq(e.target.value)} placeholder={`Add a company or index (${nCo(companies)}/${lim.companies} companies)`} autoComplete="off" />
               <SearchFilters variant="panel" className="sf-inline" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
-              {sf.on && !hits.length && idx.data && <FilterNote filter={sf.filter} q={cq.trim()} onChange={sf.setFilter} />}
+              {sf.on && !hits.length && idx.data && <FilterNote filter={sf.filter} q={cq.trim()} onChange={sf.setFilter} hidden={sf.hidden(cq)} />}
               {hits.length > 0 && <ul role="listbox" aria-label="Companies and indices">{hits.map((r) => <li key={r[0]} role="option" aria-selected={false}><button onClick={() => addCompany(r[0])}>{r[1]} <small>{isIndexSym(r[0]) ? "Index" : r[0]}</small></button></li>)}</ul>}</div>
             <h2>2. Measures</h2>
             <div className="gx-seg" role="tablist" aria-label="How to pick">{([["list", "Choose from list"], ["drag", "Drag & drop"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>

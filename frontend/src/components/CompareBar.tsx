@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cr, nf } from "../lib/format";
 import type { Row } from "../lib/screener";
 import { FilterNote, SearchFilters, useRowFilter } from "./SearchFilters";
+import { hiddenRowMatches } from "../lib/searchFilters";
 
 const ITEM = 56, VIEW = 336;
 const POPULAR: string[][] = [["TCS", "INFY"], ["INFY", "WIPRO"], ["TCS", "HCLTECH"], ["WIPRO", "TECHM"], ["HDFCBANK", "ICICIBANK"], ["ICICIBANK", "SBIN"], ["HDFCBANK", "KOTAKBANK"], ["SBIN", "PNB"], ["AXISBANK", "KOTAKBANK"], ["RELIANCE", "ONGC"], ["MARUTI", "TATAMOTORS"], ["HINDUNILVR", "ITC"], ["SUNPHARMA", "CIPLA"], ["BAJFINANCE", "BAJAJFINSV"]];
@@ -67,13 +68,13 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
           <div className="cb-tools"><SearchFilters variant="panel" facets={sf.facets} value={sf.filter} onChange={sf.setFilter} count={sf.count} />
             {first?.sector && <button className={"cb-t" + (sector === first.sector ? " on" : "")} onClick={() => sf.setFilter({ ...sf.filter, sector: sector === first.sector ? null : first.sector })}>Only {first.sector}</button>}
             <span className="cb-n">{nf(list.length, 0)} {list.length === 1 ? "company" : "companies"}</span></div>
-          <div className="cb-scroll" id="cb-list" role="listbox" aria-multiselectable="true" ref={scroller} style={{ height: Math.min(VIEW, Math.max(ITEM, list.length * ITEM)) }} onScroll={(e) => setTop((e.target as HTMLElement).scrollTop)}>
-            <div style={{ height: list.length * ITEM, position: "relative" }}>
+          <div className="cb-scroll" id="cb-list" role="listbox" aria-multiselectable="true" ref={scroller} style={{ height: list.length ? Math.min(VIEW, list.length * ITEM) : undefined }} onScroll={(e) => setTop((e.target as HTMLElement).scrollTop)}>
+            <div style={{ height: list.length ? list.length * ITEM : undefined, position: "relative" }}>
               {list.slice(from, to).map((r, k) => { const i = from + k, on = ids.includes(r.symbol); return (
                 <button key={r.symbol} id={`cb-o-${r.symbol}`} role="option" aria-selected={on} className={"cb-o" + (i === active ? " act" : "") + (on ? " on" : "")} style={{ position: "absolute", top: i * ITEM, height: ITEM }} onMouseMove={() => setActive(i)} onClick={() => toggle(r.symbol)}>
                   <span className="av mini" aria-hidden="true">{ini(r)}</span><span className="cb-nm"><b>{r.symbol}</b><small>{r.name}{r.sector ? ` · ${r.sector}` : ""}</small></span>
                   <span className="cb-mc">{r.market_cap != null ? "₹" + cr(r.market_cap) + " Cr" : ""}</span><span className="cb-st" aria-hidden="true">{on ? "✓" : "+"}</span></button>); })}
-              {!list.length && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} /> : <p className="muted" style={{ padding: 16 }}>No company matches “{q}”. Try the ticker, or part of the name.</p>)}
+              {!list.length && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} hidden={hiddenRowMatches(all, (r) => ({ sector: r.sector, cap: r.market_cap }), q, sf.filter)} /> : <p className="muted" style={{ padding: 16 }}>No company matches “{q}”. Try the ticker, or part of the name.</p>)}
             </div>
           </div>
           <p className="cb-hint">Scroll to browse every company, or type to search. Click to add, click again to remove. Arrow keys and Enter work too.</p>
