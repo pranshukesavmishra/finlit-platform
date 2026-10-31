@@ -7,6 +7,7 @@
  *  so the shares are left blank there and the waterfall falls back to step-by-step substitution. */
 import type { Table } from "./api";
 import { csvRow } from "./graphData";
+import { shareDefined } from "./dupont";
 import { MINUS, nf } from "./format";
 import { DRIVER_NAME, DUPONT_LIMITS as L, INSIGHT_RULES, MEASURE_FORMAT, QUALITY_SCORE, type InsightRule, type Measure } from "./dupontRules";
 
@@ -159,7 +160,7 @@ export function move(years: DeepYear[]): Move | null {
   const a = u[0], b = u[u.length - 1];
   if (!a || !b || a === b) return null;
   const positive = (a.netMargin as number) > 0 && (b.netMargin as number) > 0 && (a.roe as number) > 0 && (b.roe as number) > 0, total = positive ? Math.log((b.roe as number) / (a.roe as number)) : null;
-  const sh = (k: "netMargin" | "turnover" | "multiplier") => { const f = a[k] as number, l = b[k] as number; return total != null && Math.abs(total) > 0.02 && f > 0 && l > 0 ? r((Math.log(l / f) / total) * 100, 0) : null; };
+  const sh = (k: "netMargin" | "turnover" | "multiplier") => { const f = a[k] as number, l = b[k] as number; return shareDefined(a.roe as number, b.roe as number, total) && f > 0 && l > 0 ? r((Math.log(l / f) / total) * 100, 0) : null; };
   const ch = (k: "netMargin" | "turnover" | "multiplier") => ((a[k] as number) ? r(((b[k] as number) / (a[k] as number) - 1) * 100, 1) : null);
   return { first: a, last: b, roeChange: (b.roe as number) - (a.roe as number), shares: { netMargin: sh("netMargin"), turnover: sh("turnover"), multiplier: sh("multiplier") },
     change: { netMargin: ch("netMargin"), turnover: ch("turnover"), multiplier: ch("multiplier") } };
