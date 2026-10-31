@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dupont } from "./dupont";
+import { dupont, dupontSummary, shareText } from "./dupont";
 
 const t = (periods: string[], rows: Record<string, (number | null)[]>) => ({ unit: "Cr", period: "yearly", periods, periodEnds: periods, rows });
 
@@ -34,4 +34,18 @@ describe("dupont", () => {
     const y = dupont(pl, t(["FY23", "FY26"], { total_assets: [1, 1], total_equity: [0, -5] }), false).years[1];
     expect(y.roe).toBeNull(); expect(y.multiplier).toBeNull();
   });
+});
+
+describe("share and summary wording", () => {
+  const pl = { unit: "Cr", period: "yearly", periods: ["FY22", "FY26"], periodEnds: ["FY22", "FY26"], rows: { revenue: [1000, 1500], net_profit: [100, 90] } };
+  const bs = { unit: "Cr", period: "yearly", periods: ["FY22", "FY26"], periodEnds: ["FY22", "FY26"], rows: { total_assets: [1000, 1200], total_equity: [500, 480] } };
+  it("share text is empty when no share exists and flags offsets", () => {
+    expect(shareText({ shareOfMove: null })).toBe(""); expect(shareText({ shareOfMove: 53 })).toBe("53% of the ROE move"); expect(shareText({ shareOfMove: -20 })).toBe("offsets 20% of the ROE move");
+  });
+  it("summary describes the move in plain words, with no advice", () => {
+    const s = dupontSummary(dupont(pl, bs, false));
+    expect(s).toBe("From FY22 to FY26, ROE fell from 20.00% to 18.75%. Net profit margin fell, asset turnover rose and the equity multiplier rose.");
+    expect(s).not.toMatch(/\b(buy|sell|hold|target|recommend)/i);
+  });
+  it("summary is empty with a single year", () => { expect(dupontSummary(dupont({ ...pl, periods: ["FY26"], rows: { revenue: [1500], net_profit: [90] } }, { ...bs, periods: ["FY26"], rows: { total_assets: [1200], total_equity: [480] } }, false))).toBe(""); });
 });

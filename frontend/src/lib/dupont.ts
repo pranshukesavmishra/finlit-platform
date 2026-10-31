@@ -9,7 +9,7 @@ export type DupontYear = {
   underlyingMargin: number | null; flag: string | null;                                  // net margin without discontinued operations; why a year is unusual
 };
 export type Factor = { key: "netMargin" | "turnover" | "multiplier"; label: string; first: number | null; last: number | null; changePct: number | null; verdict: "up" | "down" | "flat"; shareOfMove: number | null };
-export type Dupont = { years: DupontYear[]; lender: boolean; factors: Factor[]; roeFirst: number | null; roeLast: number | null; words: string[] };
+export type Dupont = { years: DupontYear[]; lender: boolean; factors: Factor[]; roeFirst: number | null; roeLast: number | null; from: string | null; to: string | null; words: string[] };
 
 const at = (t: Table | undefined, key: string, p: string): number | null => {
   const i = t?.periods.indexOf(p) ?? -1, v = i >= 0 ? t?.rows[key]?.[i] : null;
@@ -57,5 +57,21 @@ export function dupont(pl: Table | undefined, bs: Table | undefined, lender: boo
     if (v("multiplier") === "up" && roeMove > 0 && v("netMargin") !== "up") words.push("Part of the higher return comes from using more borrowed or other people's money, not from earning more on each ₹100 of sales.");
     words.push("The equity multiplier is total assets over equity: it reflects all liabilities and the balance-sheet structure, not only borrowing.");
   }
-  return { years, lender, factors, roeFirst: a?.roe ?? null, roeLast: b?.roe ?? null, words };
+  return { years, lender, factors, roeFirst: a?.roe ?? null, roeLast: b?.roe ?? null, from: a && b && a !== b ? a.period : null, to: a && b && a !== b ? b.period : null, words };
+}
+
+/** "53% of ROE move" under a component card. Nothing when the share cannot be worked out (loss year, ROE barely moved). A negative share means the factor pushed against the move. */
+export function shareText(f: Pick<Factor, "shareOfMove">): string {
+  if (f.shareOfMove == null) return "";
+  return f.shareOfMove < 0 ? `offsets ${Math.abs(f.shareOfMove)}% of the ROE move` : `${f.shareOfMove}% of the ROE move`;
+}
+
+/** The plain-words summary under the DuPont block. Describes what moved; never says what to do. Empty when there are not two comparable years. */
+export function dupontSummary(d: Dupont): string {
+  if (!d.from || !d.to || d.roeFirst == null || d.roeLast == null || d.factors.length < 3) return "";
+  const v = (k: Factor["key"]) => d.factors.find((f) => f.key === k)?.verdict ?? "flat";
+  const w = (k: Factor["key"], name: string) => (v(k) === "flat" ? `${name} was about the same` : `${name} ${v(k) === "up" ? "rose" : "fell"}`);
+  const move = d.roeLast - d.roeFirst;
+  const roe = Math.abs(move) < 1 ? `ROE was broadly stable, from ${d.roeFirst.toFixed(2)}% to ${d.roeLast.toFixed(2)}%` : `ROE ${move > 0 ? "rose" : "fell"} from ${d.roeFirst.toFixed(2)}% to ${d.roeLast.toFixed(2)}%`;
+  return `From ${d.from} to ${d.to}, ${roe}. ${w("netMargin", "Net profit margin")}, ${w("turnover", "asset turnover")} and ${w("multiplier", "the equity multiplier")}.`;
 }

@@ -136,15 +136,31 @@ describe("edge cases", () => {
 });
 
 describe("DuPont placement", () => {
-  it("the existing card stays where it was, with 'Decoding ROE' now above the new block and not above the card", () => {
+  it("Decoding ROE is a sub-section inside the DuPont block, below the component cards, not a separate section", () => {
     st.fin = { yearly: { pl: RIL.pl, bs: RIL.bs } };
     const { container } = render(<DuPont symbol="RELIANCE" lender={false} />);
     const kids = [...container.querySelector(".dp")!.children];
-    expect(kids[0].className).toContain("dp-card"); expect(kids[0].querySelector("h3")?.textContent).toContain("DuPont analysis");
-    expect(kids[1].className).toBe("dp-deep"); expect(kids[1].querySelector(".dp-head h3")?.textContent).toBe("Decoding ROE");
+    expect(kids).toHaveLength(1); expect(kids[0].id).toBe("dupont"); expect(kids[0].querySelector("h3")?.textContent).toContain("DuPont analysis");
+    const sub = kids[0].querySelector("#decoding-roe")!;
+    expect(sub.querySelector(".dp-head h4")?.textContent).toBe("Decoding ROE");
     expect(container.querySelectorAll(".dp-head")).toHaveLength(1);
-    expect(kids[0].querySelector(".dp-head")).toBeNull();
+    const tiles = kids[0].querySelector(".dp-tiles")!; expect(tiles.compareDocumentPosition(sub) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(kids[0].textContent).toContain("7.7%");
+  });
+  it("shows the equation strip, a highlighted latest column, a share of the ROE move and the plain-words summary", () => {
+    st.fin = { yearly: { pl: RIL.pl, bs: RIL.bs } };
+    const { container } = render(<DuPont symbol="RELIANCE" periods={[]} rows={{}} lender={false} />);
+    expect(container.querySelectorAll(".dp-sc")).toHaveLength(4);
+    expect(container.querySelector(".dp-main-t th.cur")?.textContent).toBe("Mar 2026");
+    expect(container.querySelector(".dp-sum1")?.textContent).toMatch(/^From FY\d\d to FY26, ROE /);
+    expect(container.querySelector(".dp-pill")?.textContent).toMatch(/[▲▼▬]/);
+  });
+  it("lenders see total income wording; a missing year shows a dash with a reason", () => {
+    const pl = t(["FY25", "FY26"], { total_income: [1000, null], net_profit: [100, 110] }), bs = t(["FY25", "FY26"], { total_assets: [5000, 5500], total_equity: [500, 550] });
+    st.fin = { yearly: { pl, bs } };
+    const { container } = render(<DuPont symbol="BANK" periods={[]} rows={{}} lender />);
+    expect(container.textContent).toContain("Net profit / Total income");
+    const dash = container.querySelector(".dp-main-t .dp-dash")!; expect(dash.textContent).toBe("–"); expect(dash.getAttribute("title")).toMatch(/^Needs/);
   });
 });
 
