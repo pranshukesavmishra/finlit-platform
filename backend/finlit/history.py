@@ -44,9 +44,18 @@ def splice(recent_dates: Sequence[date], recent_closes: Sequence[float], old_dat
     return [d for d, _ in pre] + list(recent_dates), [c for _, c in pre] + list(recent_closes)
 
 
-async def candidates(store, limit: int) -> List[str]:
-    """Companies with a stored report that have not been tried in the last 90 days, biggest first."""
+async def candidates(store, limit: int, results_first: bool = False) -> List[str]:
+    """Companies with a stored report that have not been tried in the last 90 days, biggest first.
+    `results_first` puts the companies that declared results in the last 120 days in front (the results calendar shows their all-time high)."""
     async with store.pool.acquire() as conn:
+        if results_first:
+            rows = await conn.fetch(
+                "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
+                "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN price_history_long h ON h.symbol = s.symbol "
+                "WHERE h.symbol IS NULL OR h.tried_at < now() - make_interval(days => $1) "
+                "ORDER BY (EXISTS (SELECT 1 FROM feed_items c WHERE c.kind = 'result' AND c.symbol = s.symbol AND c.item_date > current_date - 120)) DESC, "
+                "q.market_cap DESC NULLS LAST, s.symbol LIMIT $2", RETRY_DAYS, limit)
+            return [r["symbol"] for r in rows]
         rows = await conn.fetch(
             "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
             "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN price_history_long h ON h.symbol = s.symbol "
@@ -55,12 +64,12 @@ async def candidates(store, limit: int) -> List[str]:
     return [r["symbol"] for r in rows]
 
 
-async def backfill(client, store, *, limit: int = 300, max_minutes: float = 60.0, from_year: int = FROM_YEAR) -> Dict[str, Any]:
+async def backfill(client, store, *, limit: int = 300, max_minutes: float = 60.0, from_year: int = FROM_YEAR, results_first: bool = False) -> Dict[str, Any]:
     started = time.monotonic()
     year = date.today().year
     done = empty = failed = 0
     oldest: Optional[date] = None
-    for sym in await candidates(store, limit):
+    for sym in await candidates(store, limit, results_first):
         if time.monotonic() - started > max_minutes * 60:
             break
         try:

@@ -238,7 +238,7 @@ export const activePricePreset = (g: GrowthState, p: PriceState): string | null 
 export const atHigh = (v: number, k: PriceKey) => v === 0 ? `At ${PRICE_WORD[k]}` : "";
 export const priceWhy = (r: QRow, k: PriceKey): string => {
   if (r.price == null) return "No current price is held for this company.";
-  return k === "w52" ? "No 52-week high is held for this company." : "No long price history is held for this company yet, so there is no all-time high.";
+  return k === "w52" ? "No 52-week high is held for this company." : "The long price history of this company is still being loaded (it is filled in daily, companies that declared results first), so the all-time high is not shown yet.";
 };
 /** Share in per cent for a legend, one decimal; 0 when there is nothing to divide. */
 export const pctOf = (n: number, total: number) => (total > 0 ? (n / total) * 100 : 0);

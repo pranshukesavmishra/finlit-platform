@@ -21,4 +21,9 @@ def build(store: Any) -> Dict[str, Callable[[], Awaitable[Optional[bool]]]]:
         from .. import prism as prism_mod
         return bool(await prism_mod._pending(store, "consolidated", 7, 1, []))
 
-    return {"technicals": technicals, "prism": prism}
+    async def ath() -> Optional[bool]:
+        async with store.pool.acquire() as conn:   # a company with a stored report but no stored all-time high
+            return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
+                                            "LEFT JOIN price_history_long h ON h.symbol = s.symbol WHERE h.symbol IS NULL OR h.ath IS NULL)"))
+
+    return {"technicals": technicals, "prism": prism, "ath": ath}

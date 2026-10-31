@@ -130,7 +130,7 @@ const dayOf = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("e
 function PriceCell({ r, k, hit }: { r: QRow; k: PriceKey; hit: boolean }) {
   const v = k === "w52" ? r.below52 : r.belowAth, stale = k === "w52" ? r.stale52 : r.staleAth, high = k === "w52" ? r.high52 : r.ath;
   const cls = "qg4 qgs qr-pp" + (hit ? " qr-hit" : "");
-  if (v == null) { const why = priceWhy(r, k); return <td className={cls}><abbr className="qr-na" title={why} tabIndex={0} aria-label={`Not available. ${why}`}>—</abbr></td>; }
+  if (v == null) { const why = priceWhy(r, k); return <td className={cls}><abbr className="qr-na" title={why} tabIndex={0} aria-label={`Not available. ${why}`}>—<small>{r.price == null ? "No price held" : k === "ath" ? "Loading history" : "Not held"}</small></abbr></td>; }
   const tip = [`Price ${rsv(r.price)}; ${PRICE_WORD[k]} ${rsv(high)}${k === "ath" && r.athDate ? ` (highest close, week of ${dayOf(r.athDate)})` : ""}.`,
     k === "w52" && r.low52 != null ? `52-week low ${rsv(r.low52)}${r.above52Low != null ? `; the price is ${nf(r.above52Low, 1)}% above it` : ""}.` : "",
     stale ? `The price is above the stored ${PRICE_WORD[k]} (it is updated once a day), so the distance is shown as 0%.` : ""].filter(Boolean).join(" ");
@@ -139,8 +139,9 @@ function PriceCell({ r, k, hit }: { r: QRow; k: PriceKey; hit: boolean }) {
     <td className={cls}>
       <span className="qr-ppv" title={tip} tabIndex={0} aria-label={`${v === 0 ? "At the " + PRICE_WORD[k] : nf(v, 1) + "% below the " + PRICE_WORD[k]}. ${tip}`}>
         <b>{label}</b>
-        <small>{v === 0 ? "0%" : bandShort(bandOf(v))}</small>
+        <small className="qr-band">{v === 0 ? "At the high" : bandShort(bandOf(v))}</small>
         <i className="qr-bar" aria-hidden="true"><em style={{ left: `${Math.min(100, v)}%` }} /></i>
+        <small className="qr-hi">High {rsv(high)}</small>
       </span>
       {hit && <span className="sr-only"> (meets your price-position filter)</span>}
     </td>

@@ -178,11 +178,49 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 @media (max-width: 760px) { .qg-psets { grid-template-columns: 1fr; } .qg-bhd { flex-wrap: wrap; } }
 .qr-t .qg4 { --qg4: var(--info); } .qr-t td.qg4, .qr-t th.qg4 { background: color-mix(in srgb, var(--qg4) 7%, transparent); }
 .qr-t thead tr.qr-grp th.qg4 { color: var(--qg4); border-bottom: 2px solid var(--qg4); }
-.qr-t td.qr-pp { min-width: 132px; text-align: left; }
-.qr-ppv { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 3px; align-items: baseline; cursor: help; } .qr-ppv b { font-weight: 600; } .qr-ppv small { color: var(--muted); font-size: 11.5px; }
-.qr-bar { grid-column: 1 / -1; position: relative; height: 4px; border-radius: 2px; background: var(--border-strong); } .qr-bar em { position: absolute; top: -2px; width: 3px; height: 8px; margin-left: -1px; border-radius: 1px; background: var(--text); }
+.qr-t td.qr-pp { min-width: 150px; text-align: left; vertical-align: middle; }
+.qr-ppv { display: flex; flex-direction: column; gap: 3px; cursor: help; padding: 2px 0; }
+.qr-ppv b { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.qr-ppv small { color: var(--muted); font-size: 11.5px; line-height: 1.2; } .qr-ppv .qr-band { font-weight: 500; }
+.qr-ppv .qr-hi { font-size: 11px; font-variant-numeric: tabular-nums; opacity: .85; }
+.qr-bar { display: block; position: relative; height: 5px; margin: 2px 0 1px; border-radius: 3px; background: linear-gradient(90deg, var(--up, #2e9d6a) 0%, var(--gold, #c9a227) 50%, var(--down, #d45353) 100%); opacity: .55; } .qr-bar em { position: absolute; top: -3px; width: 3px; height: 11px; margin-left: -1px; border-radius: 1px; background: var(--text); box-shadow: 0 0 0 1px var(--bg, #fff); }
+.qr-na { display: inline-flex; flex-direction: column; gap: 2px; text-decoration: none; cursor: help; font-weight: 600; } .qr-na small { color: var(--muted); font-size: 11px; font-weight: 400; }
 .qr-ppv:focus-visible, .qr-sorth:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .qr-sorth { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; text-align: left; }
 .qr-strip { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); } .qr-strip b { color: var(--text); }
 .qr-t { min-width: 1480px; }
 .qr-t td.qr-hit { position: relative; }   /* the screen-reader text inside a highlighted cell stays inside the scroll box */
+
+/* ---- table redesign: one solid pinned company column, no see-through strip, clear groups, readable chips, row hover ---- */
+.qr-scroll.tw { margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--s1); scrollbar-gutter: stable; }
+.qr-t { border-collapse: separate; border-spacing: 0; }
+.qr-t thead th { color: var(--muted); font-weight: 700; padding-top: 10px; padding-bottom: 10px; background: var(--s2); border-bottom: 1px solid var(--border-strong); }
+.qr-t td:first-child, .qr-t th:first-child { z-index: 3; background: var(--s1); padding-left: 18px; box-shadow: 10px 0 14px -10px rgba(0,0,0,.28); }
+.qr-t thead th:first-child { z-index: 4; background: var(--s2); }
+.qr-t tr.qr-day td:first-child, .qr-t tr.qr-up td:first-child { box-shadow: none; }
+.qr-r.flag td:first-child { box-shadow: inset 4px 0 0 var(--loss), 10px 0 14px -10px rgba(0,0,0,.28); }
+.qr-t tr.qr-r td { padding-top: 16px; padding-bottom: 16px; background-clip: padding-box; }
+.qr-t tr.qr-r td:first-child { background: var(--s1); }
+.qr-t tr.qr-r:hover td { background-image: linear-gradient(color-mix(in srgb, var(--gold) 9%, transparent), color-mix(in srgb, var(--gold) 9%, transparent)); }
+.qr-t tr.qr-r:hover td:first-child { background-color: color-mix(in srgb, var(--gold) 7%, var(--s1)); }
+.qr-t td.qg1, .qr-t th.qg1 { background-color: color-mix(in srgb, var(--qg1) 11%, var(--s1)); }
+.qr-t td.qg2, .qr-t th.qg2 { background-color: color-mix(in srgb, var(--qg2) 11%, var(--s1)); }
+.qr-t td.qg3, .qr-t th.qg3 { background-color: color-mix(in srgb, var(--qg3) 11%, var(--s1)); }
+.qr-t td.qg4, .qr-t th.qg4 { background-color: color-mix(in srgb, var(--qg4) 11%, var(--s1)); }
+.qr-t thead tr.qr-grp th { font-size: 12.5px; background-color: color-mix(in srgb, currentColor 14%, var(--s1)); border-bottom-width: 3px; }
+.qr-t thead tr.qr-grp th:first-child { background: var(--s2); }
+.qr-t thead tr:not(.qr-grp) th { color: var(--text); opacity: .8; }
+.qr-t td { font-size: 14px; }
+.qr-co b { font-size: 15.5px; letter-spacing: .01em; } .qr-co small { font-size: 12.5px; }
+.qr-chg { display: inline-block; min-width: 64px; padding: 4px 8px; border-radius: 999px; font-size: 13px; text-align: center; background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.qr-chg.pos { background: color-mix(in srgb, var(--gain) 16%, transparent); } .qr-chg.neg { background: color-mix(in srgb, var(--loss) 16%, transparent); }
+.qr-t tr.qr-r td.qr-hit, .qr-t tr.qr-r td.qr-hit:nth-child(even) { box-shadow: inset 0 0 0 2px var(--gold); background-color: var(--gold-soft); }
+.qr-t tr.qr-sub td { background: var(--s1); }
+.qr-detail { border: 0; background: transparent; }
+.qr-detail > summary { display: inline-flex; width: auto; gap: 8px; padding: 6px 14px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--s2); color: var(--text); font-size: 12.5px; transition: background .15s, border-color .15s; }
+.qr-detail > summary:hover { background: var(--gold-soft); border-color: var(--gold); }
+.qr-detail[open] > summary { background: var(--gold-soft); border-color: var(--gold); }
+@media (max-width: 640px) { .qr-t td:first-child, .qr-t th:first-child { padding-left: 12px; } }
+/* the second header row starts with the Revenue "Rs cr" cell, which is NOT the pinned company cell */
+.qr-t thead tr:not(.qr-grp) th:first-child { position: static; z-index: auto; min-width: 0; max-width: none; padding-left: 12px; box-shadow: none; background: color-mix(in srgb, var(--qg1) 11%, var(--s1)); }
+.qr-t thead tr.qr-grp th:first-child { position: sticky; left: 0; z-index: 4; }

@@ -778,6 +778,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
     p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
     p_bh.add_argument("--max-minutes", type=float, default=60.0)
+    p_bh.add_argument("--results-first", action="store_true", help="companies that declared results lately first (fills the results calendar's all-time high)")
     sub.add_parser("backtest-leadership", help="quarterly: has leadership held in each peer group? Stores the hit rates behind the reliability card")
     p_ls = sub.add_parser("refresh-listing", help="nightly: price, market cap and 52-week range of EVERY listed company from the provider's market-wide quote list (two calls, one short write)")
     p_ls.add_argument("--force", action="store_true", help="run even if it ran in the last few hours")
@@ -1191,7 +1192,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     print(await refresh_listing(client, store, force=args.force, dhan_client=dc))
             elif args.cmd == "backfill-history":
                 from .history import backfill as backfill_history
-                print(await backfill_history(client, store, limit=args.limit, max_minutes=args.max_minutes))
+                print(await backfill_history(client, store, limit=args.limit, max_minutes=args.max_minutes, results_first=args.results_first))
             elif args.cmd == "refresh-logos":
                 from .logos import refresh as refresh_logos
                 print(await refresh_logos(store, client, limit=args.limit, profile_limit=args.profiles))
