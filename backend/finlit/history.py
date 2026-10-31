@@ -71,10 +71,13 @@ async def backfill(client, store, *, limit: int = 300, max_minutes: float = 60.0
             log.warning("long history for %s not stored: %s", sym, type(exc).__name__)
             continue
         first = dates[0] if dates else None
+        top = max(range(len(closes)), key=closes.__getitem__) if closes else None   # the highest close: the company's all-time high on our data
+        ath, ath_date = (closes[top], dates[top]) if top is not None and closes[top] > 0 else (None, None)
         async with store.pool.acquire() as conn:
             await conn.execute(
-                "INSERT INTO price_history_long (symbol, dates, closes, first_date, tried_at) VALUES ($1, $2, $3, $4, now()) "
-                "ON CONFLICT (symbol) DO UPDATE SET dates = EXCLUDED.dates, closes = EXCLUDED.closes, first_date = EXCLUDED.first_date, tried_at = now()", sym, dates, closes, first)
+                "INSERT INTO price_history_long (symbol, dates, closes, first_date, ath, ath_date, tried_at) VALUES ($1, $2, $3, $4, $5, $6, now()) "
+                "ON CONFLICT (symbol) DO UPDATE SET dates = EXCLUDED.dates, closes = EXCLUDED.closes, first_date = EXCLUDED.first_date, "
+                "ath = EXCLUDED.ath, ath_date = EXCLUDED.ath_date, tried_at = now()", sym, dates, closes, first, ath, ath_date)
         done += 1
         empty += 0 if dates else 1
         if first and (oldest is None or first < oldest):

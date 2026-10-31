@@ -103,7 +103,7 @@ describe("the panel", () => {
       for (const p of ["QoQ", "YoY"]) { const c = cellIn(`${m} ${p}`); expect(c.op.value).toBe(">="); expect(c.val.value).toBe(""); }
     }
     expect(document.querySelector(".qg-state")!.getAttribute("aria-live")).toBe("polite");
-    expect(screen.getByText("No growth filter is on, so every company in the table is shown.")).toBeTruthy();
+    expect(screen.getByText("No growth or price-position filter is on, so every company in the table is shown.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Match all" }).getAttribute("aria-pressed")).toBe("true");
   });
   it("asks the server with every filled cell, keeps them in the address, and switches all/any", () => {

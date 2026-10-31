@@ -7,7 +7,7 @@ import { useUI } from "../lib/ui";
 import { ApiError, apiGet } from "../lib/api";
 import { dayLabel } from "../lib/feed";
 import { MINUS, nf } from "../lib/format";
-import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, cellHit, DEFAULT_GROWTH, type CellKey, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingNote, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
+import { DATE_MEANING, GAP_LABEL, PAGE, activeChip, cellHit, DEFAULT_GROWTH, DEFAULT_PRICE, PRICE_KEYS, PRICE_WORD, bandOf, bandShort, priceFromParams, priceHit, priceOn, priceQuery, priceToParams, priceWhy, type PriceKey, type PriceState, type CellKey, growthFromParams, growthOn, growthQuery, growthToParams, type GrowthState, awaitingNote, csvOf, dateChips, dateFromParams, dateProblem, describeSel, gapAlertLink, headline, isWeekend, longDay, queryString, signedPct, todayIST, useQuarterResults, weekdayName, type DateSel, type QDates, type QParams, type QResp, type QRow, type QSummary } from "../lib/qresults";
 import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
@@ -17,11 +17,12 @@ import "../styles/qresults.css";
 const SORTS: [string, string, boolean][] = [   // value, label, needs Silver
   ["date", "Date declared", false], ["marketCap", "Market cap", false], ["revenueYoY", "Revenue growth (YoY)", true], ["profitYoY", "Profit growth (YoY)", true],
   ["marginChange", "Net margin change", true], ["gap", "Sales vs profit gap", true], ["revenue", "Revenue", true], ["netProfit", "Net profit", true],
+  ["below52", "Below 52-week high", true], ["belowAth", "Below all-time high", true],
 ];
 const INDICES: [string, string][] = [["NIFTY50", "NIFTY 50"], ["NIFTY100", "NIFTY 100"], ["NIFTY500", "NIFTY 500"]];
 const STATUSES: [string, string][] = [["", "Any status"], ["declared", "Figures in"], ["awaiting", "Report being updated"], ["due", "Due"]];
 const CAPS = [["", "Any size"], ["Large", "Large cap"], ["Mid", "Mid cap"], ["Small", "Small cap"]];
-const COLS = 13;
+const COLS = 15;
 
 const money = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, Math.abs(v) >= 1000 ? 0 : 2));
 const pc1 = (v: number | null) => (v == null ? "—" : (v < 0 ? MINUS : "") + nf(v, 1) + "%");
@@ -113,7 +114,39 @@ function Detail({ r, fiscal, line }: { r: QRow; fiscal?: string; line: string })
   );
 }
 
-function Row({ r, fiscal, locked, onUnlock, hit }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void; hit: (k: CellKey) => boolean }) {
+function SortTh({ k, first, sort, dir, onSort }: { k: PriceKey; first: boolean; sort?: string; dir?: "asc" | "desc"; onSort: (v: string) => void }) {
+  const v = k === "w52" ? "below52" : "belowAth", on = sort === v, label = k === "w52" ? "Below 52-week high" : "Below all-time high";
+  return (
+    <th scope="col" className={"qg4" + (first ? " qgs" : "")} aria-sort={on ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button type="button" className="qr-sorth" onClick={() => onSort(v)} title={`Sort by distance below the ${PRICE_WORD[k]}; click again to reverse`}>{label}<span aria-hidden="true">{on ? (dir === "asc" ? " ↑" : " ↓") : ""}</span></button>
+    </th>
+  );
+}
+
+const rsv = (v: number | null | undefined) => (v == null ? "" : "Rs" + nf(v, 2));
+const dayOf = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+/** One "Below ... high" cell: the distance, its band, a thin 0-100% bar, and the reason in a tooltip. A dash says why the figure is not held. */
+function PriceCell({ r, k, hit }: { r: QRow; k: PriceKey; hit: boolean }) {
+  const v = k === "w52" ? r.below52 : r.belowAth, stale = k === "w52" ? r.stale52 : r.staleAth, high = k === "w52" ? r.high52 : r.ath;
+  const cls = "qg4 qgs qr-pp" + (hit ? " qr-hit" : "");
+  if (v == null) { const why = priceWhy(r, k); return <td className={cls}><abbr className="qr-na" title={why} tabIndex={0} aria-label={`Not available. ${why}`}>—</abbr></td>; }
+  const tip = [`Price ${rsv(r.price)}; ${PRICE_WORD[k]} ${rsv(high)}${k === "ath" && r.athDate ? ` (highest close, week of ${dayOf(r.athDate)})` : ""}.`,
+    k === "w52" && r.low52 != null ? `52-week low ${rsv(r.low52)}${r.above52Low != null ? `; the price is ${nf(r.above52Low, 1)}% above it` : ""}.` : "",
+    stale ? `The price is above the stored ${PRICE_WORD[k]} (it is updated once a day), so the distance is shown as 0%.` : ""].filter(Boolean).join(" ");
+  const label = v === 0 ? `At ${PRICE_WORD[k]}${stale ? "*" : ""}` : `${nf(v, 1)}%`;
+  return (
+    <td className={cls}>
+      <span className="qr-ppv" title={tip} tabIndex={0} aria-label={`${v === 0 ? "At the " + PRICE_WORD[k] : nf(v, 1) + "% below the " + PRICE_WORD[k]}. ${tip}`}>
+        <b>{label}</b>
+        <small>{v === 0 ? "0%" : bandShort(bandOf(v))}</small>
+        <i className="qr-bar" aria-hidden="true"><em style={{ left: `${Math.min(100, v)}%` }} /></i>
+      </span>
+      {hit && <span className="sr-only"> (meets your price-position filter)</span>}
+    </td>
+  );
+}
+
+function Row({ r, fiscal, locked, onUnlock, hit, phit }: { r: QRow; fiscal?: string; locked: boolean; onUnlock: () => void; hit: (k: CellKey) => boolean; phit: (k: PriceKey) => boolean }) {
   const h = (k: CellKey) => (hit(k) ? " qr-hit" : "");
   const tag = (k: CellKey) => (hit(k) ? <span className="sr-only"> (meets your growth filter)</span> : null);
   const line = !locked && r.hasNumbers ? headline(r, fiscal) : null;
@@ -127,14 +160,16 @@ function Row({ r, fiscal, locked, onUnlock, hit }: { r: QRow; fiscal?: string; l
     <>
       <tr className={"qr-r" + (r.flagged ? " flag" : "")}>
         <td><Company r={r} /></td>
-        {note ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky">{note}</span></td>
-          : locked ? <td colSpan={COLS - 1} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
+        {note ? <td colSpan={COLS - 3} className="qr-note"><span className="qr-sticky">{note}</span></td>
+          : locked ? <td colSpan={COLS - 3} className="qr-note"><span className="qr-sticky"><button type="button" className="qr-unlock" onClick={onUnlock}><Icon name="lock" /> Figures are part of the Silver plan</button></span></td>
           : <>
             <td className="qg1 qgs">{money(r.revenue)}</td><td className={"qg1" + h("revYoY")}><Chg v={r.revenueYoY} />{tag("revYoY")}</td><td className={"qg1" + h("revQoQ")}><Chg v={r.revenueQoQ} />{tag("revQoQ")}</td>
             <td className="qg2 qgs"><Plain text={money(r.operatingProfit)} why={r.opYoYWhy} /></td><td className={"qg2" + h("opYoY")}><Chg v={r.opYoY} why={r.opYoYWhy} />{tag("opYoY")}</td><td className={"qg2" + h("opQoQ")}><Chg v={r.opQoQ} why={r.opQoQWhy} />{tag("opQoQ")}</td><td className="qg2"><Plain text={pc1(r.opm)} why={r.opYoYWhy} /></td>
             <td className="qg3 qgs"><b>{money(r.netProfit)}</b></td><td className={"qg3" + h("npYoY")}><Chg v={r.profitYoY} />{tag("npYoY")}</td><td className={"qg3" + h("npQoQ")}><Chg v={r.profitQoQ} />{tag("npQoQ")}</td><td className="qg3">{pc1(r.npm)}</td>
             <td className="qgs">{r.eps == null ? "—" : (r.eps < 0 ? MINUS : "") + nf(r.eps, 2)}</td>
           </>}
+        {locked ? <td colSpan={2} className="qg4 qgs qr-pp"><abbr className="qr-na" title="Price position is part of the Silver plan." tabIndex={0}>—</abbr></td>
+          : <><PriceCell r={r} k="w52" hit={phit("w52")} /><PriceCell r={r} k="ath" hit={phit("ath")} /></>}
       </tr>
       {(line || r.flagged) && (
         <tr className={"qr-sub" + (r.flagged ? " flag" : "")}>
@@ -188,7 +223,8 @@ export function QuarterResultsPage() {
   const sel = useMemo(() => dateFromParams(sp), [sp]);
   const hasDate = !!(sel.date || sel.from || sel.to);
   const growth = useMemo(() => growthFromParams(sp), [sp]);   // the growth filters live in the address, like the quarter and the dates
-  const p: QParams = { ...f, quarter, q: f.q, offset, ...sel, ...growthQuery(growth) };
+  const price = useMemo(() => priceFromParams(sp), [sp]);
+  const p: QParams = { ...f, quarter, q: f.q, offset, ...sel, ...growthQuery(growth), ...priceQuery(price) };
   const res = useQuarterResults(p);
   const d = res.data;
   const dateErr = res.error instanceof ApiError && res.error.status === 400 ? res.error.message : null;   // a bad or future date in the address: say so, never show a blank
@@ -209,6 +245,15 @@ export function QuarterResultsPage() {
     if (growthOn(next) && !silver) return need("Filtering by growth is part of the Silver plan.");   // Basic sees the panel; the figures behind it are Silver
     setSp(growthToParams(sp, next), { replace: true }); setOffset(0);
   };
+  const setPrice = (next: PriceState) => {
+    if (priceOn(next) && !silver) return need("Filtering by price position is part of the Silver plan.");
+    setSp(priceToParams(sp, next), { replace: true }); setOffset(0);
+  };
+  /** Both blocks in ONE address write (a preset or the reset): two writes in a row would each start from the same old address. */
+  const setBoth = (g: GrowthState, pr: PriceState) => {
+    if ((growthOn(g) || priceOn(pr)) && !silver) return need("Filtering by growth and price position is part of the Silver plan.");
+    setSp(priceToParams(growthToParams(sp, g), pr), { replace: true }); setOffset(0);
+  };
   const growthLocked = res.error instanceof ApiError && res.error.status === 403;
   const apply = (next: DateSel) => { const bad = dateProblem(next, today); if (bad) setMsg(bad); else setDates(next); };
   const chips = dateChips(today), chipOn = activeChip(sel, today);
@@ -219,6 +264,7 @@ export function QuarterResultsPage() {
     if (SORTS.find((s) => s[0] === v)?.[2] && !silver) return need("Sorting by growth and margin is part of the Silver plan.");
     set({ sort: v, dir: v === "date" || v === "marketCap" || v.endsWith("YoY") || v === "gap" || v === "revenue" || v === "netProfit" || v === "marginChange" ? "desc" : "asc" });
   };
+  const sortBy = (v: string) => (f.sort === v ? set({ dir: f.dir === "asc" ? "desc" : "asc" }) : setSort(v));
   const setScope = (scope: "all" | "watchlist" | "portfolio") => {
     if (scope !== "all" && !user) return need("Sign in to see only your watchlist or portfolio.");
     set({ scope });
@@ -252,10 +298,10 @@ export function QuarterResultsPage() {
         last = r.date;
         out.push(<tr key={"d" + r.date} className="qr-day"><td colSpan={COLS}><div className="qr-sticky"><b>{dayLabel(r.date)}</b><span>{days.get(r.date) || ""} {days.get(r.date) === 1 ? "company" : "companies"}</span></div></td></tr>);
       }
-      out.push(<Row key={r.symbol} r={r} fiscal={q?.fiscal} locked={locked} hit={(k) => cellHit(r, k, growth.cells[k])} onUnlock={() => need("Results figures, growth and margin are part of the Silver plan.")} />);
+      out.push(<Row key={r.symbol} r={r} fiscal={q?.fiscal} locked={locked} hit={(k) => cellHit(r, k, growth.cells[k])} phit={(k) => priceHit(r, k, price[k])} onUnlock={() => need("Results figures, growth and margin are part of the Silver plan.")} />);
     }
     return out;
-  }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked, growth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.rows, d?.today, days, grouped, q?.fiscal, locked, growth, price]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="wrap ipo qr">
@@ -273,7 +319,7 @@ export function QuarterResultsPage() {
       </header>
 
       {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}
-      {growthLocked && <div className="formerr" role="alert">Filtering by growth is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setSp(growthToParams(sp, DEFAULT_GROWTH), { replace: true })}>Remove the growth filter</button></div>}
+      {growthLocked && <div className="formerr" role="alert">Filtering by {growthOn(growth) ? "growth" : "price position"} is part of the Silver plan. <button type="button" className="alx-link" onClick={() => need("Filtering by growth and price position is part of the Silver plan.")}>See Silver</button> <button type="button" className="alx-link" onClick={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)}>Remove the {growthOn(growth) && priceOn(price) ? "filters" : growthOn(growth) ? "growth filter" : "price-position filter"}</button></div>}
       {res.isError && !dateErr && !growthLocked && <div className="formerr">The results could not be loaded. Please try again shortly. <Link to="/results">Open the results calendar</Link></div>}
       {d && !dateErr && <Scoreboard s={d.summary} all={d.totals} locked={locked} q={d} />}
 
@@ -327,12 +373,16 @@ export function QuarterResultsPage() {
         </div>
       </section>
 
-      <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} />
+      <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} price={price} onPrice={setPrice} priceSummary={d?.price} onBoth={setBoth} onReset={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)} />
       <GrowthCharts summary={d?.growth} dist={d?.distribution} locked={!silver} />
 
       <section className="card qr-card">
         <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>{q ? `${q.label}` : "Results"}<span className="muted qr-count"> · {nf(total, 0)} {total === 1 ? "company" : "companies"}</span></h3>
           <span className="muted qr-unit">Rs crore, except EPS (Rs) and per cent</span></div>
+        {d?.priceStrip && d.priceStrip.have52 + d.priceStrip.haveAth > 0 && !dateErr && (
+          <p className="qr-strip" role="status"><b>{nf(d.priceStrip.near52, 0)}</b> of {nf(d.priceStrip.have52, 0)} companies are within 5% of their 52-week high; <b>{nf(d.priceStrip.nearAth, 0)}</b> of {nf(d.priceStrip.haveAth, 0)} are within 5% of their all-time high.
+            {d.priceStrip.companies - d.priceStrip.have52 > 0 && <> {nf(d.priceStrip.companies - d.priceStrip.have52, 0)} have no 52-week high figure and {nf(d.priceStrip.companies - d.priceStrip.haveAth, 0)} no all-time high figure.</>}</p>
+        )}
         {hasDate && d && !dateErr && (
           <p className="qr-active" role="status">
             Showing companies {describeSel(sel, today)}{q ? ` for ${q.label}` : ""}: <b>{nf(total, 0)}</b>{filtersOn ? " after your filters" : ""}.
@@ -343,14 +393,14 @@ export function QuarterResultsPage() {
           <DateEmpty dates={d.dates} sel={sel} today={today} quarterLabel={q?.label || "quarter"} filtersOn={filtersOn} onPick={(day) => setDates({ date: day }, true)}
             onQuarter={(key) => { const n = new URLSearchParams(sp); n.set("quarter", key); setSp(n); setOffset(0); }} onClearFilters={clearFilters} />
         ) : !d?.rows.length ? (
-          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? (growthOn(growth) ? "No company with figures meets the growth conditions you set. Try a lower threshold, or switch from Match all to Match any." : "Try removing a filter.") : "Results dates appear here as companies announce them."}</p>
+          <div className="dw-empty"><span className="dw-ei"><Icon name="calendar" /></span><b>{d?.quarter ? "No companies match" : "No results dates yet"}</b><p>{d?.quarter ? (growthOn(growth) || priceOn(price) ? "No company meets the growth and price-position conditions you set. Try a wider band or lower threshold, or switch from Match all to Match any." : "Try removing a filter.") : "Results dates appear here as companies announce them."}</p>
             {f.scope === "watchlist" && <Link className="btn" to="/watchlist">Build a watchlist</Link>}{f.scope === "portfolio" && <Link className="btn" to="/holdings">Add holdings</Link>}</div>
         ) : (
           <HScroll label="results table" className="qr-scroll">
             <table className="qtt qr-t">
               <thead>
-                <tr className="qr-grp"><th rowSpan={2} scope="col">Company</th><th colSpan={3} scope="colgroup" className="qg1 qgs">Revenue</th><th colSpan={4} scope="colgroup" className="qg2 qgs">Operating profit</th><th colSpan={4} scope="colgroup" className="qg3 qgs">Net profit</th><th rowSpan={2} scope="col" className="qgs">EPS</th></tr>
-                <tr><th scope="col" className="qg1 qgs">Rs Cr</th><th scope="col" className="qg1">YoY</th><th scope="col" className="qg1">QoQ</th><th scope="col" className="qg2 qgs">Rs Cr</th><th scope="col" className="qg2">YoY</th><th scope="col" className="qg2">QoQ</th><th scope="col" className="qg2">OPM</th><th scope="col" className="qg3 qgs">Rs Cr</th><th scope="col" className="qg3">YoY</th><th scope="col" className="qg3">QoQ</th><th scope="col" className="qg3">NPM</th></tr>
+                <tr className="qr-grp"><th rowSpan={2} scope="col">Company</th><th colSpan={3} scope="colgroup" className="qg1 qgs">Revenue</th><th colSpan={4} scope="colgroup" className="qg2 qgs">Operating profit</th><th colSpan={4} scope="colgroup" className="qg3 qgs">Net profit</th><th rowSpan={2} scope="col" className="qgs">EPS</th><th colSpan={2} scope="colgroup" className="qg4 qgs">Price position</th></tr>
+                <tr><th scope="col" className="qg1 qgs">Rs Cr</th><th scope="col" className="qg1">YoY</th><th scope="col" className="qg1">QoQ</th><th scope="col" className="qg2 qgs">Rs Cr</th><th scope="col" className="qg2">YoY</th><th scope="col" className="qg2">QoQ</th><th scope="col" className="qg2">OPM</th><th scope="col" className="qg3 qgs">Rs Cr</th><th scope="col" className="qg3">YoY</th><th scope="col" className="qg3">QoQ</th><th scope="col" className="qg3">NPM</th>{PRICE_KEYS.map((k, i) => <SortTh key={k} k={k} first={i === 0} sort={f.sort} dir={f.dir} onSort={sortBy} />)}</tr>
               </thead>
               <tbody>{body}</tbody>
             </table>
@@ -363,7 +413,7 @@ export function QuarterResultsPage() {
             <button type="button" className="btn" disabled={offset + PAGE >= total} onClick={() => { setOffset(offset + PAGE); window.scrollTo({ top: 0 }); }}>Next →</button>
           </nav>
         )}
-        <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it shows a dash, with the reason on hover or focus, when the earlier quarter was zero or a loss or is not in our statements. Operating profit is revenue less operating expenses before interest and depreciation (for banks, before provisions), the same figure as on the stock page and in the screener; OPM is operating profit over revenue. Dates come from exchange filings and announced board meetings. Not investment advice. <Link to="/results">Results calendar</Link></p>
+        <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it shows a dash, with the reason on hover or focus, when the earlier quarter was zero or a loss or is not in our statements. Operating profit is revenue less operating expenses before interest and depreciation (for banks, before provisions), the same figure as on the stock page and in the screener; OPM is operating profit over revenue. Dates come from exchange filings and announced board meetings. The two Price position columns show how far the latest price is below the 52-week high (the exchange's intraday high) and below the all-time high (the highest close in our price history); a dash means that high is not held. Distance below a high is a fact about the price, not a view on it. Not investment advice. <Link to="/results">Results calendar</Link></p>
       </section>
     </div>
   );

@@ -5,7 +5,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { nf } from "../lib/format";
 import {
   CELL_OF, GROWTH_METRICS, GROWTH_OPS, GROWTH_PERIODS, GROWTH_PRESETS, activePreset, applyPreset, cellKeyOf, cleanValue, growthIsDefault, metricLabel, onCells, opWords, pctOf, periodLabel, valueProblem,
-  DEFAULT_GROWTH, type CellKey, type GrowthCond, type GrowthCondSummary, type GrowthOp, type GrowthState, type GrowthSummary, type QDistribution,
+  BAND_EDGES, DEFAULT_PRICE, PRICE_KEYS, PRICE_PRESETS, PRICE_WORD, activePricePreset, bandLabel, priceIsDefault, rangeProblem, sideOn,
+  DEFAULT_GROWTH, type PriceKey, type PriceState, type PriceSide, type PriceSummary, type PriceCondSummary, type CellKey, type GrowthCond, type GrowthCondSummary, type GrowthOp, type GrowthState, type GrowthSummary, type QDistribution,
 } from "../lib/qresults";
 
 export const LENDER_NOTE = "Banks and lenders do not report operating profit growth, so they never match an operating-profit filter.";
@@ -57,43 +58,121 @@ function Missing({ conds }: { conds: GrowthCondSummary[] }) {
   );
 }
 
-export function GrowthPanel({ state, onChange, summary, loading }: { state: GrowthState; onChange: (g: GrowthState) => void; summary?: GrowthSummary | null; loading?: boolean }) {
+const PRICE_SECTION: Record<PriceKey, [string, string]> = {
+  w52: ["1. Distance from 52-week high", "Current price compared with the highest price in the last 52 weeks."],
+  ath: ["2. Distance from all-time high", "Current price compared with the highest price in the company's available historical price data."],
+};
+export const PRICE_FOOT = "52-week high is the exchange's intraday high; all-time high is the highest close in our price history (weekly closes, raised by any newer price). The two are on different bases, so a company at its all-time closing high can show a small distance below its 52-week high. A company with no such high figure cannot match it. Distance below a high is a fact about the price, not a view on it. Information only, not advice.";
+
+/** "<n> companies have no 52-week high figure and cannot match it." for one price condition. */
+export const priceMissingLine = (c: PriceCondSummary) => `${nf(c.missing, 0)} ${c.missing === 1 ? "company has" : "companies have"} no ${c.key === "w52" ? "52-week high" : "all-time high"} figure and cannot match it.`;
+
+function PriceSection({ k, side, onSide }: { k: PriceKey; side: PriceSide; onSide: (s: PriceSide) => void }) {
+  const id = useId();
+  const [title, sub] = PRICE_SECTION[k];
+  const [dMin, setDMin] = useState(side.min), [dMax, setDMax] = useState(side.max);   // what is typed; sent only once it is valid
+  useEffect(() => { setDMin(side.min); setDMax(side.max); }, [side.min, side.max]);
+  const lo = rangeProblem(dMin), hi = rangeProblem(dMax);
+  const order = dMin.trim() !== "" && dMax.trim() !== "" && !lo && !hi && Number(dMin) > Number(dMax) ? "The minimum is above the maximum." : null;
+  const bad = lo || hi || order;
+  const typed = side.band === "" && (dMin.trim() !== "" || dMax.trim() !== "");
+  const edit = (min: string, max: string) => { setDMin(min); setDMax(max); if (!rangeProblem(min) && !rangeProblem(max) && !(min.trim() !== "" && max.trim() !== "" && Number(min) > Number(max))) onSide({ band: "", min: min.trim(), max: max.trim() }); };
+  return (
+    <fieldset className="qg-pset">
+      <legend><b>{title}</b><span>{sub}</span></legend>
+      <div className="qg-radios">
+        <label className={"qg-radio" + (side.band === "" && !typed ? " on" : "")}><input type="radio" name={`${id}-band`} checked={side.band === "" && !typed} onChange={() => onSide({ band: "", min: "", max: "" })} /><span>Any</span></label>
+        {BAND_EDGES.map((_, i) => (
+          <label key={i} className={"qg-radio" + (side.band === String(i) ? " on" : "")}><input type="radio" name={`${id}-band`} checked={side.band === String(i)} onChange={() => onSide({ band: String(i), min: "", max: "" })} /><span>{bandLabel(i, k)}</span></label>
+        ))}
+      </div>
+      <div className="qg-range" role="group" aria-label={`Or type a range below the ${PRICE_WORD[k]}`}>
+        <span>Or type a range</span>
+        <span className="qg-vw"><input type="text" inputMode="decimal" autoComplete="off" placeholder="from" aria-label={`${title.slice(3)} minimum in per cent`} value={dMin} aria-invalid={lo ? true : undefined}
+          onChange={(e) => edit(e.target.value, dMax)} /><i aria-hidden="true">%</i></span>
+        <span aria-hidden="true">to</span>
+        <span className="qg-vw"><input type="text" inputMode="decimal" autoComplete="off" placeholder="to" aria-label={`${title.slice(3)} maximum in per cent`} value={dMax} aria-invalid={hi ? true : undefined}
+          onChange={(e) => edit(dMin, e.target.value)} /><i aria-hidden="true">%</i></span>
+      </div>
+      {bad && <p className="qg-err" role="alert">{bad}</p>}
+    </fieldset>
+  );
+}
+
+export function GrowthPanel({ state, onChange, summary, loading, price = DEFAULT_PRICE, onPrice, priceSummary, onBoth, onReset }: {
+  state: GrowthState; onChange: (g: GrowthState) => void; summary?: GrowthSummary | null; loading?: boolean;
+  price?: PriceState; onPrice?: (p: PriceState) => void; priceSummary?: PriceSummary | null; onBoth?: (g: GrowthState, p: PriceState) => void; onReset?: () => void;
+}) {
   const on = onCells(state), k = on.length;
   const opUsed = on.some((c) => CELL_OF[c][0] === "operatingProfit");
   const preset = activePreset(state);
+  const pOn = PRICE_KEYS.filter((x) => sideOn(price[x])), pk = pOn.length;
+  const pPreset = activePricePreset(state, price);
   const setCell = (key: CellKey, c: GrowthCond) => onChange({ ...state, cells: { ...state.cells, [key]: c } });
+  const setSide = (key: PriceKey, s: PriceSide) => onPrice?.({ ...price, [key]: s });
   const modes = [["and", "Match all", "Every filled condition must hold"], ["or", "Match any", "At least one filled condition must hold"]] as const;
+  const pModes = [["and", "Match all", "Match all price-position conditions"], ["or", "Match any", "Match any price-position condition"]] as const;
+  const reset = () => (onReset ? onReset() : onChange(DEFAULT_GROWTH));
+  const both = summary && priceSummary;
   return (
     <section className="card qg" aria-labelledby="qg-h">
-      <div className="card-h"><h3 id="qg-h">Filter companies by growth</h3>
-        <button type="button" className="btn qg-reset" disabled={growthIsDefault(state)} onClick={() => onChange(DEFAULT_GROWTH)}>Reset filters</button></div>
-      <p className="muted qg-lead">Type a percentage threshold for the growth of revenue, operating profit or net profit, on the quarter before (QoQ) and on the same quarter a year earlier (YoY). Leave a cell empty to switch it off; any one cell works alone.</p>
+      <div className="card-h"><h3 id="qg-h">Filter companies by growth and price position</h3>
+        <button type="button" className="btn qg-reset" disabled={growthIsDefault(state) && priceIsDefault(price)} onClick={reset}>Reset filters</button></div>
+      <p className="muted qg-lead">Growth filters and price-position filters apply together.</p>
       <div className="qg-presets" role="group" aria-label="Quick fills">
         <span className="qg-pl">Quick fills</span>
-        {GROWTH_PRESETS.map((p) => <button key={p.id} type="button" className={preset === p.id ? "on" : ""} aria-pressed={preset === p.id} title={p.hint} onClick={() => onChange(applyPreset(p))}>{p.label}</button>)}
+        {GROWTH_PRESETS.map((p) => <button key={p.id} type="button" className={preset === p.id && priceIsDefault(price) ? "on" : ""} aria-pressed={preset === p.id && priceIsDefault(price)} title={p.hint} onClick={() => (onBoth ? onBoth(applyPreset(p), DEFAULT_PRICE) : onChange(applyPreset(p)))}>{p.label}</button>)}
+        {onPrice && PRICE_PRESETS.map((p) => <button key={p.id} type="button" className={pPreset === p.id ? "on" : ""} aria-pressed={pPreset === p.id} title={p.hint} onClick={() => onBoth?.(p.growth ? applyPreset(p.growth) : DEFAULT_GROWTH, p.price)}>{p.label}</button>)}
       </div>
-      <fieldset className="qg-set">
-        <legend className="sr-only">Growth thresholds, by metric and period</legend>
-        <div className="qg-gh" aria-hidden="true"><span /><span><b>Quarter-on-quarter (QoQ)</b><small>against the quarter before</small></span><span><b>Year-on-year (YoY)</b><small>against the same quarter a year earlier</small></span></div>
-        {GROWTH_METRICS.map(([m, label]) => (
-          <div key={m} className="qg-row" role="group" aria-label={`${label} growth`}>
-            <span className="qg-rl">{label}</span>
-            {GROWTH_PERIODS.map(([per]) => { const key = cellKeyOf(m, per); return <Cell key={key} k={key} cond={state.cells[key]} onCommit={(c) => setCell(key, c)} />; })}
+      <div className="qg-blk">
+        <h4 className="qg-bh">Growth</h4>
+        <p className="muted qg-lead">Type a percentage threshold for the growth of revenue, operating profit or net profit, on the quarter before (QoQ) and on the same quarter a year earlier (YoY). Leave a cell empty to switch it off; any one cell works alone.</p>
+        <fieldset className="qg-set">
+          <legend className="sr-only">Growth thresholds, by metric and period</legend>
+          <div className="qg-gh" aria-hidden="true"><span /><span><b>Quarter-on-quarter (QoQ)</b><small>against the quarter before</small></span><span><b>Year-on-year (YoY)</b><small>against the same quarter a year earlier</small></span></div>
+          {GROWTH_METRICS.map(([m, label]) => (
+            <div key={m} className="qg-row" role="group" aria-label={`${label} growth`}>
+              <span className="qg-rl">{label}</span>
+              {GROWTH_PERIODS.map(([per]) => { const key = cellKeyOf(m, per); return <Cell key={key} k={key} cond={state.cells[key]} onCommit={(c) => setCell(key, c)} />; })}
+            </div>
+          ))}
+        </fieldset>
+        <div className="qg-modewrap">
+          <div className="qg-join" role="group" aria-label="How the filled conditions combine">
+            {modes.map(([j, l, t]) => <button key={j} type="button" className={state.join === j ? "on" : ""} aria-pressed={state.join === j} title={t} onClick={() => onChange({ ...state, join: j })}>{l}</button>)}
           </div>
-        ))}
-      </fieldset>
-      <div className="qg-modewrap">
-        <div className="qg-join" role="group" aria-label="How the filled conditions combine">
-          {modes.map(([j, l, t]) => <button key={j} type="button" className={state.join === j ? "on" : ""} aria-pressed={state.join === j} title={t} onClick={() => onChange({ ...state, join: j })}>{l}</button>)}
+          <span className="qg-modehint">{state.join === "and" ? "Every filled condition must be met." : "At least one filled condition must be met."}{k < 2 ? " It makes no difference while fewer than two cells are filled." : ""}</span>
         </div>
-        <span className="qg-modehint">{state.join === "and" ? "Every filled condition must be met." : "At least one filled condition must be met."}{k < 2 ? " It makes no difference while fewer than two cells are filled." : ""}</span>
+        {opUsed && <p className="qg-note" id="qg-lender">{LENDER_NOTE}</p>}
       </div>
-      {opUsed && <p className="qg-note" id="qg-lender">{LENDER_NOTE}</p>}
+      {onPrice && (
+        <div className="qg-blk qg-price" role="group" aria-labelledby="qg-ph">
+          <hr className="qg-div" />
+          <div className="qg-bhd"><h4 className="qg-bh" id="qg-ph">Price position</h4><span className="qg-new">New filter</span></div>
+          <p className="muted qg-lead">Identify companies based on how far their current market price is below their highest recorded price.</p>
+          <div className="qg-psets">{PRICE_KEYS.map((x) => <PriceSection key={x} k={x} side={price[x]} onSide={(s) => setSide(x, s)} />)}</div>
+          <div className="qg-modewrap">
+            <span className="qg-fl">Filter logic</span>
+            <div className="qg-join" role="group" aria-label="How the price-position conditions combine">
+              {pModes.map(([j, l, t]) => <button key={j} type="button" className={price.join === j ? "on" : ""} aria-pressed={price.join === j} aria-label={t} title={t} onClick={() => onPrice({ ...price, join: j })}>{l}</button>)}
+            </div>
+            <span className="qg-modehint">{price.join === "and" ? (pk === 1 ? "Companies must satisfy the selected price-position condition." : "Companies must satisfy both selected price-position conditions.") : "Companies that satisfy either selected condition are shown."}</span>
+          </div>
+          <p className="qg-note">{PRICE_FOOT}</p>
+        </div>
+      )}
       <div className="qg-state" role="status" aria-live="polite">
-        {summary ? <>
-          <p><b>{nf(summary.matching, 0)}</b> of {nf(summary.withFigures, 0)} companies with figures match {summary.k === 1 ? "the condition" : summary.join === "and" ? `all ${summary.k} conditions` : `any of the ${summary.k} conditions`}.</p>
-          <Missing conds={summary.conditions} />
-        </> : <p>{loading && k > 0 ? "Applying the filter…" : "No growth filter is on, so every company in the table is shown."}</p>}
+        {summary || priceSummary ? <>
+          {summary && <>
+            <p><b>{nf(summary.matching, 0)}</b> of {nf(summary.withFigures, 0)} companies with figures match {summary.k === 1 ? "the condition" : summary.join === "and" ? `all ${summary.k} conditions` : `any of the ${summary.k} conditions`}.</p>
+            <Missing conds={summary.conditions} />
+          </>}
+          {priceSummary && <>
+            <p><b>{nf(priceSummary.matching, 0)}</b> of {nf(priceSummary.withFigures, 0)} companies with price-position figures match {priceSummary.k === 1 ? "the price-position condition" : priceSummary.join === "and" ? "both price-position conditions" : "either price-position condition"}.</p>
+            <ul className="qg-miss">{priceSummary.conditions.filter((c) => c.missing > 0).map((c) => <li key={c.key}>{priceMissingLine(c)}</li>)}</ul>
+          </>}
+          {both && <p className="qg-both"><b>{nf(summary.combined ?? priceSummary.combined ?? 0, 0)}</b> companies meet both the growth and the price-position filters.</p>}
+        </> : <p>{loading && (k > 0 || pOn.length > 0) ? "Applying the filter…" : "No growth or price-position filter is on, so every company in the table is shown."}</p>}
       </div>
       <p className="qg-note">Growth is not defined when the earlier quarter was zero or a loss, or is not in our statements; such a company shows a dash, has no figure for that cell and cannot match it. Information only, not advice.</p>
     </section>
