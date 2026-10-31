@@ -19,6 +19,10 @@ export type QRow = {
   awaitingStage?: "recent" | "late" | null;
   /** When we last asked the provider about this company (ISO, UTC), and the newest quarter the provider holds for it (ISO date). Null when not asked yet. */
   lastCheckedAt?: string | null; providerLatest?: string | null;
+  /** Price position: the latest price, the 52-week range (the exchange's intraday high and low), the all-time high (highest close in our history) and how far below each
+   *  high the price is, in per cent. stale* = the price is above the stored high, so the distance is shown as 0. Null when not held (or on Basic). */
+  price?: number | null; high52?: number | null; low52?: number | null; ath?: number | null; athDate?: string | null;
+  below52?: number | null; belowAth?: number | null; above52Low?: number | null; stale52?: boolean; staleAth?: boolean;
 };
 export type QSummary = {
   companies: number; declared: number; due: number; awaiting: number; awaitingProvider?: number; awaitingOurs?: number; withNumbers: number; flagged: number | null;
@@ -32,11 +36,17 @@ export type QResp = {
   dates?: QDates | null; dateMeaning?: string;
   /** Null when no growth filter is on. Counts are over every company with figures (before paging). */
   growth?: GrowthSummary | null; distribution?: QDistribution;
+  /** Null when no price-position filter is on. */
+  price?: PriceSummary | null;
+  /** Counts over the companies in the table (Silver): how many sit within 5% of each high and how many have no such high. */
+  priceStrip?: { companies: number; have52: number; near52: number; haveAth: number; nearAth: number } | null;
 };
+export type PriceCondSummary = { key: PriceKey; band: number | null; min: number; max: number | null; met: number; missing: number };
+export type PriceSummary = { join: "and" | "or"; k: number; companies: number; withFigures: number; matching: number; combined?: number; conditions: PriceCondSummary[] };
 /** One filled condition as the server counted it: how many companies with figures meet it, and how many have no such figure (and so cannot). */
 export type GrowthCondSummary = { metric: GrowthMetric; period: "qoq" | "yoy"; op: GrowthOp; value: number; met: number; missing: number };
 /** metAll + metSome + metNone = withFigures. "Matching" is metAll with AND and metAll + metSome with OR. */
-export type GrowthSummary = { join: "and" | "or"; k: number; withFigures: number; matching: number; metAll: number; metSome: number; metNone: number; conditions: GrowthCondSummary[] };
+export type GrowthSummary = { join: "and" | "or"; k: number; withFigures: number; matching: number; metAll: number; metSome: number; metNone: number; conditions: GrowthCondSummary[]; combined?: number };
 export type QDistribution = { total: number; sectors: { name: string; n: number }[]; caps: { name: string; n: number }[] };
 /** What the server found for a date filter, before the other filters: the quarters announced in range, the nearest days with results, what we hold. */
 export type QDates = {
@@ -47,7 +57,7 @@ export type QParams = {
   quarter?: string; q?: string; sector?: string; cap?: string; index?: string; scope?: "all" | "watchlist" | "portfolio"; flagged?: boolean; status?: string;
   sort?: string; dir?: "asc" | "desc"; offset?: number; limit?: number;
   date?: string; from?: string; to?: string;   // the announcement date (one day) or a from-to range, India dates as YYYY-MM-DD
-} & Partial<Record<`${CellKey}Op` | `${CellKey}Value` | "join", string>>;
+} & Partial<Record<`${CellKey}Op` | `${CellKey}Value` | "join" | PriceQueryKey, string>>;
 
 // ------------------------------------------------------------ growth filters
 // A grid of up to six thresholds: Revenue, Operating profit and Net profit, each against the quarter before (QoQ) and the same quarter a year earlier (YoY).
@@ -145,6 +155,91 @@ export const GROWTH_PRESETS: GrowthPreset[] = [
 export const applyPreset = (p: GrowthPreset): GrowthState => ({ cells: { ...emptyCells(), ...p.cells }, join: p.join });
 /** The preset the grid exactly equals, if any (so its button can show as pressed). */
 export const activePreset = (g: GrowthState): string | null => GROWTH_PRESETS.find((p) => JSON.stringify(applyPreset(p)) === JSON.stringify({ ...g, cells: Object.fromEntries(GROWTH_CELLS.map((k) => [k, { op: g.cells[k].op, value: cleanValue(g.cells[k].value) }])) }))?.id ?? null;
+
+// ------------------------------------------------------------ price position filters
+// How far the latest price is below the 52-week high and below the all-time high, in eight bands (half-open: 0-5 holds 0 up to but not 5, ... the last holds 50 and more)
+// or a typed minimum / maximum. Each measure is off ("Any") by default. The two combine with AND ("Match all") or OR ("Match any"), and with the growth filters by AND.
+// 52-week high = the exchange's intraday high; all-time high = the highest close in our price history: different bases, said on the page.
+export type PriceKey = "w52" | "ath";
+export type PriceQueryKey = "p52" | "p52min" | "p52max" | "pAth" | "pAthMin" | "pAthMax" | "pJoin";
+export const PRICE_KEYS: PriceKey[] = ["w52", "ath"];
+export const PRICE_WORD: Record<PriceKey, string> = { w52: "52-week high", ath: "all-time high" };
+export const PRICE_FIELD: Record<PriceKey, "below52" | "belowAth"> = { w52: "below52", ath: "belowAth" };
+const PRICE_Q: Record<PriceKey, [PriceQueryKey, PriceQueryKey, PriceQueryKey]> = { w52: ["p52", "p52min", "p52max"], ath: ["pAth", "pAthMin", "pAthMax"] };
+export const PRICE_PARAM_KEYS: string[] = [...PRICE_KEYS.flatMap((k) => PRICE_Q[k]), "pJoin"];
+export const BAND_EDGES: [number, number | null][] = [[0, 5], [5, 10], [10, 15], [15, 20], [20, 30], [30, 40], [40, 50], [50, null]];
+export const bandLabel = (i: number, k: PriceKey) => (i < BAND_EDGES.length - 1 ? `${BAND_EDGES[i][0]}\u2013${BAND_EDGES[i][1]}% below ${PRICE_WORD[k]}` : `Above 50% below ${PRICE_WORD[k]}`);
+export const bandShort = (i: number) => (i < BAND_EDGES.length - 1 ? `${BAND_EDGES[i][0]}\u2013${BAND_EDGES[i][1]}%` : "50% or more");
+/** The band a distance falls in: half-open [lo, hi), the last one open-ended. */
+export const bandOf = (v: number): number => BAND_EDGES.findIndex(([lo, hi]) => v >= lo && (hi == null || v < hi));
+export type PriceSide = { band: string; min: string; max: string };   // band "" = Any; a typed range is used when band is ""
+export type PriceState = { w52: PriceSide; ath: PriceSide; join: GrowthJoin };
+export const NO_SIDE: PriceSide = { band: "", min: "", max: "" };
+export const DEFAULT_PRICE: PriceState = { w52: NO_SIDE, ath: NO_SIDE, join: "and" };
+export const rangeProblem = (v: string): string | null => {
+  const t = v.trim();
+  if (t === "") return null;
+  if (!/^(\d+(\.\d*)?|\.\d+)$/.test(t) || Number(t) > 100) return "Type a number from 0 to 100 (per cent).";
+  return null;
+};
+export const sideOn = (s: PriceSide) => (s.band !== "" && Number(s.band) >= 0 && Number(s.band) < BAND_EDGES.length) || ((s.min.trim() !== "" || s.max.trim() !== "") && !rangeProblem(s.min) && !rangeProblem(s.max) && !(s.min.trim() !== "" && s.max.trim() !== "" && Number(s.min) > Number(s.max)));
+export const priceOn = (p: PriceState) => PRICE_KEYS.some((k) => sideOn(p[k]));
+export const priceIsDefault = (p: PriceState) => JSON.stringify(p) === JSON.stringify(DEFAULT_PRICE);
+export const priceFromParams = (sp: URLSearchParams): PriceState => {
+  const side = (k: PriceKey): PriceSide => {
+    const [b, lo, hi] = PRICE_Q[k], band = sp.get(b) || "";
+    if (/^[0-7]$/.test(band)) return { band, min: "", max: "" };
+    return { band: "", min: rangeProblem(sp.get(lo) || "") ? "" : (sp.get(lo) || "").trim(), max: rangeProblem(sp.get(hi) || "") ? "" : (sp.get(hi) || "").trim() };
+  };
+  return { w52: side("w52"), ath: side("ath"), join: sp.get("pJoin") === "or" ? "or" : "and" };
+};
+/** Writes only what differs from the defaults; the growth and other parameters in `sp` are untouched. */
+export function priceToParams(sp: URLSearchParams, p: PriceState): URLSearchParams {
+  const n = new URLSearchParams(sp);
+  for (const k of PRICE_PARAM_KEYS) n.delete(k);
+  for (const k of PRICE_KEYS) {
+    const [b, lo, hi] = PRICE_Q[k], s = p[k];
+    if (s.band !== "") n.set(b, s.band);
+    else { if (s.min.trim() !== "") n.set(lo, s.min.trim()); if (s.max.trim() !== "") n.set(hi, s.max.trim()); }
+  }
+  if (p.join === "or") n.set("pJoin", "or");
+  return n;
+}
+/** The query the server reads: only valid, filled measures (an invalid typed value is never sent). */
+export const priceQuery = (p: PriceState): Partial<QParams> => {
+  const out: Record<string, string> = {};
+  for (const k of PRICE_KEYS) {
+    const [b, lo, hi] = PRICE_Q[k], s = p[k];
+    if (!sideOn(s)) continue;
+    if (s.band !== "") out[b] = s.band; else { if (s.min.trim() !== "") out[lo] = s.min.trim(); if (s.max.trim() !== "") out[hi] = s.max.trim(); }
+  }
+  if (priceOn(p)) out.pJoin = p.join;
+  return out;
+};
+/** Does this row meet the measure? Same rule as the server: no figure never does; a band is half-open, a typed range includes both ends. */
+export function priceHit(r: QRow, k: PriceKey, s: PriceSide): boolean {
+  const v = r[PRICE_FIELD[k]];
+  if (v == null || !sideOn(s)) return false;
+  if (s.band !== "") { const [lo, hi] = BAND_EDGES[Number(s.band)]; return v >= lo && (hi == null || v < hi); }
+  return (s.min.trim() === "" || v >= Number(s.min)) && (s.max.trim() === "" || v <= Number(s.max));
+}
+export const sideText = (s: PriceSide, k: PriceKey) => (s.band !== "" ? bandLabel(Number(s.band), k) : `${s.min.trim() !== "" ? s.min.trim() + "%" : "0%"} to ${s.max.trim() !== "" ? s.max.trim() + "%" : "100%"} below ${PRICE_WORD[k]}`);
+export type PricePreset = { id: string; label: string; hint: string; price: PriceState; growth?: GrowthPreset };
+const side = (band: string, min = "", max = ""): PriceSide => ({ band, min, max });
+export const PRICE_PRESETS: PricePreset[] = [
+  { id: "near52", label: "Near the 52-week high", hint: "Less than 5% below the 52-week high", price: { ...DEFAULT_PRICE, w52: side("0") } },
+  { id: "deepAth", label: "Deep below the all-time high", hint: "40% or more below the all-time high", price: { ...DEFAULT_PRICE, ath: side("", "40") } },
+  { id: "growthNear", label: "Growth and near 52-week high", hint: "Revenue and net profit growth above 0%, and less than 5% below the 52-week high: both blocks apply together", price: { ...DEFAULT_PRICE, w52: side("0") }, growth: GROWTH_PRESETS[0] },
+];
+/** The preset the card's two states exactly equal, if any. */
+export const activePricePreset = (g: GrowthState, p: PriceState): string | null =>
+  PRICE_PRESETS.find((x) => JSON.stringify(x.price) === JSON.stringify(p) && (x.growth ? activePreset(g) === x.growth.id : !growthOn(g)))?.id ?? null;
+/** Below-high wording for a table cell: "At 52-week high", "12.4%", or null when not held. */
+export const atHigh = (v: number, k: PriceKey) => v === 0 ? `At ${PRICE_WORD[k]}` : "";
+export const priceWhy = (r: QRow, k: PriceKey): string => {
+  if (r.price == null) return "No current price is held for this company.";
+  return k === "w52" ? "No 52-week high is held for this company." : "No long price history is held for this company yet, so there is no all-time high.";
+};
 /** Share in per cent for a legend, one decimal; 0 when there is nothing to divide. */
 export const pctOf = (n: number, total: number) => (total > 0 ? (n / total) * 100 : 0);
 
@@ -259,7 +354,8 @@ const cell = (v: string | number | boolean | null | undefined) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 export const CSV_HEAD = ["Declared on", "Symbol", "Company", "Sector", "Market cap (Rs Cr)", "Status", "Revenue (Rs Cr)", "Revenue YoY %", "Revenue QoQ %", "Operating profit (Rs Cr)", "Operating profit YoY %", "Operating profit QoQ %", "OPM %",
-  "Net profit (Rs Cr)", "Profit YoY %", "Profit QoQ %", "NPM %", "Net margin change YoY (pts)", "EPS (Rs)", "Revenue vs profit gap (pts)", "Profit and sales moved apart"];
+  "Net profit (Rs Cr)", "Profit YoY %", "Profit QoQ %", "NPM %", "Net margin change YoY (pts)", "EPS (Rs)", "Revenue vs profit gap (pts)", "Profit and sales moved apart",
+  "Price (Rs)", "52-week high (Rs)", "52-week low (Rs)", "Below 52-week high %", "Above 52-week low %", "All-time high (Rs)", "All-time high date", "Below all-time high %", "Price above a stored high"];
 const dayShort = (iso: string) => { const d = new Date(iso + "T00:00:00"); return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }); };
 /** The honest reason a declared company has no figures yet: the data provider is behind, or our own report is still being updated. */
 export const awaitingText = (date: string, why?: "provider" | "ours" | null): string =>
@@ -282,7 +378,8 @@ export function csvOf(rows: QRow[], quarterLabel: string): string {
   const lines = [[`Quarter: ${quarterLabel}`], CSV_HEAD].map((l) => l.map(cell).join(","));
   for (const r of rows) {
     lines.push([r.date, r.symbol, r.name, r.sector, r.marketCap, statusText(r), r.revenue, r.revenueYoY, r.revenueQoQ, r.operatingProfit, r.opYoY, r.opQoQ, r.opm, r.netProfit, r.profitYoY, r.profitQoQ, r.npm, r.npmChange, r.eps, r.gap,
-      r.hasNumbers ? (r.flagged ? "Yes" : "No") : ""].map(cell).join(","));
+      r.hasNumbers ? (r.flagged ? "Yes" : "No") : "", r.price, r.high52, r.low52, r.below52, r.above52Low, r.ath, r.athDate, r.belowAth,
+      [r.stale52 ? "52-week high" : "", r.staleAth ? "all-time high" : ""].filter(Boolean).join(" and ")].map(cell).join(","));
   }
   return "﻿" + lines.join("\r\n") + "\r\n";
 }

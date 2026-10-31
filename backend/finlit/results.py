@@ -28,6 +28,7 @@ from statistics import median
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
+import asyncpg
 import orjson
 from fastapi import APIRouter, Depends, Query, Request, Response
 
@@ -51,7 +52,8 @@ PROBE_SQL = ("SELECT (SELECT count(*) FROM feed_items WHERE kind = 'result') AS 
              "(SELECT count(*) FROM scores WHERE model = 'v1') AS sn, (SELECT max(changed_at)::text FROM scores WHERE model = 'v1') AS sa, "
              "(SELECT count(*) FROM companies) AS cn, (SELECT max(updated_at)::text FROM companies) AS ca, (SELECT count(*) FROM index_members) AS mn, "
              "(SELECT count(*) FROM snapshots WHERE section = 'financials') AS gn, (SELECT max(generated_at)::text FROM snapshots WHERE section = 'financials') AS ga, "
-             "(SELECT count(*) FROM quarter_light) AS ln, (SELECT max(checked_at)::text FROM quarter_light) AS la")
+             "(SELECT count(*) FROM quarter_light) AS ln, (SELECT max(checked_at)::text FROM quarter_light) AS la, "
+             "(SELECT max(updated_at)::text FROM listing_quotes) AS qa, (SELECT count(ath) FROM price_history_long) AS hn")   # prices, 52-week range, all-time high
 EXPORT_ROWS = 4000
 DATE_MEANING = ("The date is the day the company announced (declared) its results: the date on the exchange filing, or the board-meeting date from the results calendar until the filing appears. "
                 "It is an Indian calendar date (IST).")
@@ -60,10 +62,13 @@ INDEX_FLAGS = ("NIFTY50", "NIFTY100", "NIFTY500")
 FILING_SOURCE = "Exchange filing"
 FILING_CATEGORIES = ("outcome of board meeting", "result", "results", "financial results", "financial result")
 QUARTER_RE = re.compile(r"^\d{4}-(03|06|09|12)$")
-NUMERIC_SORTS = {"revenueYoY": "revenueYoY", "profitYoY": "profitYoY", "marginChange": "npmChange", "gap": "gap", "revenue": "revenue", "netProfit": "netProfit"}
+NUMERIC_SORTS = {"revenueYoY": "revenueYoY", "profitYoY": "profitYoY", "marginChange": "npmChange", "gap": "gap", "revenue": "revenue", "netProfit": "netProfit",
+                 "below52": "below52", "belowAth": "belowAth"}
 SORTS = {"date", "marketCap", *NUMERIC_SORTS}
 # every figure a row carries that Basic must not see
 FIGURES = ("revenue", "revenueYoY", "revenueQoQ", "operatingProfit", "opYoY", "opQoQ", "opYoYWhy", "opQoQWhy", "opm", "netProfit", "profitYoY", "profitQoQ", "npm", "npmChange", "eps", "gap")
+# the price-position figures every row carries (Silver and Gold see them; Basic gets empty cells)
+PRICE_FIELDS = ("price", "high52", "low52", "ath", "athDate", "below52", "belowAth", "above52Low", "stale52", "staleAth")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # quarter_light column -> the q_* metric it holds (the same meaning as the stored full-report metric of that name)
 LIGHT_COLS = {"revenue": "q_revenue", "operating_profit": "q_operating_profit", "net_profit": "q_net_profit", "eps": "q_eps", "sales_yoy": "q_sales_yoy", "profit_yoy": "q_profit_yoy",
@@ -427,6 +432,7 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
         elif not r["filled"] and (r["provider_latest"] is None or r["provider_latest"] <= hi):
             asked[sym] = {"checkedAt": r["checked_at"].astimezone(timezone.utc).isoformat(timespec="seconds") if r["checked_at"] else None,
                           "providerLatest": r["provider_latest"].isoformat() if r["provider_latest"] else None}   # we asked the provider and it has no figures for this quarter yet
+    table = None
     try:
         table = await get_table(store)
         cap_of = lambda s: table.cap[table.pos[s]] if s in table.pos else None   # noqa: E731
@@ -434,6 +440,18 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
         log.warning("size bands unavailable for the results page")
         cap_of = lambda s: None   # noqa: E731
     stmt_of = {r["symbol"]: r["statement"] for r in scored}
+    ath_of: Dict[str, Tuple[float, Any]] = {}
+    try:
+        async with store.pool.acquire() as conn:   # one indexed read: the stored all-time highs (never a scan of the price arrays)
+            ath_of = {r["symbol"]: (float(r["ath"]), r["ath_date"]) for r in await conn.fetch(
+                "SELECT symbol, ath, ath_date FROM price_history_long WHERE ath > 0 AND symbol = ANY($1::text[])", symbols)}
+    except asyncpg.PostgresError:   # the migration that adds the column has not run: no all-time highs, everything else works
+        log.warning("all-time highs unavailable for the results page")
+
+    def quote_of(s: str) -> dict:
+        i = table.pos.get(s) if table is not None else None
+        col = (lambda k: _f(table.cols[k][i])) if i is not None else (lambda k: None)   # noqa: E731
+        return price_position(col("price"), col("high_52w"), col("low_52w"), *(ath_of.get(s) or (None, None)))
 
     def growth(s: str) -> Optional[Dict[str, Any]]:
         if s in used_light:
@@ -442,8 +460,8 @@ async def _build(store, e: date, decls: Dict[str, Decl], today: date) -> Entry:
         if not h or (m.get("q_revenue") is None and m.get("q_net_profit") is None):
             return None
         return op_growth(h["ends"], h["op"], e, m.get("q_operating_profit"))
-    rows = [build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, [])), growth(s),
-                      {"used": s in used_light, "basis": (used_light.get(s) or {}).get("basis"), "asked": s in asked, **asked.get(s, {})}) for s, d in decls.items()]
+    rows = [{**build_row(s, d, base.get(s, {"symbol": s}), metrics.get(s, {}), e, today, cap_of(s), sorted(members.get(s, [])), growth(s),
+                         {"used": s in used_light, "basis": (used_light.get(s) or {}).get("basis"), "asked": s in asked, **asked.get(s, {})}), **quote_of(s)} for s, d in decls.items()]
     counts: Dict[str, int] = {}
     for r in rows:
         if r["sector"]:
@@ -569,7 +587,7 @@ def summarize(rows: List[dict], today: date) -> Dict[str, Any]:
 
 def strip_figures(r: dict) -> dict:
     out = dict(r)
-    for k in FIGURES:
+    for k in FIGURES + PRICE_FIELDS:
         out[k] = None
     out["flagged"] = out["loss"] = False
     out["locked"] = r["hasNumbers"]
@@ -713,6 +731,113 @@ def growth_filter(rows: List[dict], spec: GrowthSpec) -> Tuple[List[dict], Optio
     return out, summary
 
 
+# ------------------------------------------------------------------ price position (distance below the 52-week high / the all-time high)
+# Distance below a high = (high - price) / high x 100, with price = the latest price the screener holds for the company. A price above the stored high (the
+# high is a day old) counts as 0 and is marked stale. The 52-week high is the exchange's intraday high; the all-time high is the highest weekly close in
+# our price history, raised by any newer price (nightly, refresh-listing). They are different bases and the page says so. A missing high or price never matches.
+BANDS = ((0.0, 5.0), (5.0, 10.0), (10.0, 15.0), (15.0, 20.0), (20.0, 30.0), (30.0, 40.0), (40.0, 50.0), (50.0, None))   # half-open [lo, hi): every distance is in exactly one
+PRICE_KEYS = {"w52": ("below52", "52-week high"), "ath": ("belowAth", "all-time high")}
+PRICE_PARAMS = {"w52": ("p52", "p52min", "p52max"), "ath": ("pAth", "pAthMin", "pAthMax")}
+
+
+def price_strip(rows: List[dict]) -> Dict[str, Any]:
+    """Counts over the companies in the table for the line above it: how many are within 5% of each high, and how many have no such high at all."""
+    near = lambda f: sum(1 for r in rows if r.get(f) is not None and r[f] < BANDS[0][1])   # noqa: E731
+    have = lambda f: sum(1 for r in rows if r.get(f) is not None)   # noqa: E731
+    return {"companies": len(rows), "have52": have("below52"), "near52": near("below52"), "haveAth": have("belowAth"), "nearAth": near("belowAth")}
+
+
+def price_position(price: Optional[float], hi: Optional[float], lo: Optional[float], ath: Optional[float], ath_date: Any) -> dict:
+    """The price-position fields of a row (PRICE_FIELDS). Distances are rounded to 1 decimal like the table shows them and are what the filter reads."""
+    p = price if price is not None and price > 0 else None
+    h = hi if hi is not None and hi > 0 else None
+    l = lo if lo is not None and lo > 0 else None   # noqa: E741
+    a = ath if ath is not None and ath > 0 else None
+
+    def below(high: Optional[float]) -> Tuple[Optional[float], bool]:
+        if p is None or high is None:
+            return None, False
+        return (0.0, True) if p > high else (round((high - p) / high * 100, 1), False)
+    b52, s52 = below(h)
+    ba, sa = below(a)
+    return {"price": p, "high52": h, "low52": l, "ath": a, "athDate": ath_date.isoformat() if a is not None and ath_date else None, "below52": b52, "belowAth": ba,
+            "above52Low": round((p - l) / l * 100, 1) if p is not None and l is not None else None, "stale52": s52, "staleAth": sa}
+
+
+@dataclass(frozen=True)
+class PriceCond:
+    key: str                  # "w52" or "ath"
+    lo: float                 # distance >= lo ...
+    hi: Optional[float]       # ... and < hi for a band (half-open); <= hi for a typed range (closed). None: no upper limit
+    band: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class PriceSpec:
+    conds: Tuple[PriceCond, ...] = ()
+    join: str = "and"
+
+    @property
+    def active(self) -> bool:
+        return bool(self.conds)
+
+
+def _num(label: str, v: str) -> Optional[float]:
+    v = (v or "").strip()
+    if v == "":
+        return None
+    if not _NUM_RE.match(v) or not 0 <= float(v) <= 100:
+        raise fail(400, "bad_request", f"The {label} must be a plain number from 0 to 100.")
+    return float(v)
+
+
+def price_params(request: Request) -> PriceSpec:
+    """p52 / pAth = a band number 0-7 (0-5%, 5-10%, 10-15%, 15-20%, 20-30%, 30-40%, 40-50%, 50% and more); p52min+p52max / pAthMin+pAthMax = a typed range
+    instead (both ends included, either may be left out); pJoin = and (default) or or. Unknown parameters are ignored."""
+    get = lambda k: request.query_params.get(k, "")[:12]   # noqa: E731
+    j = (get("pJoin") or "and").strip().lower()
+    if j not in ("and", "or"):
+        raise fail(400, "bad_request", "The price-position join must be and or or.")
+    conds: List[PriceCond] = []
+    for key, (pb, pmin, pmax) in PRICE_PARAMS.items():
+        word = PRICE_KEYS[key][1]
+        band, lo, hi = get(pb).strip(), _num(f"{word} minimum", get(pmin)), _num(f"{word} maximum", get(pmax))
+        if band and (lo is not None or hi is not None):
+            raise fail(400, "bad_request", f"For the {word}, choose a band or a typed range, not both.")
+        if band:
+            if not band.isdigit() or int(band) >= len(BANDS):
+                raise fail(400, "bad_request", f"The {word} band must be a number from 0 to {len(BANDS) - 1}.")
+            conds.append(PriceCond(key, BANDS[int(band)][0], BANDS[int(band)][1], int(band)))
+        elif lo is not None or hi is not None:
+            if lo is not None and hi is not None and lo > hi:
+                raise fail(400, "bad_request", f"The {word} minimum is above its maximum.")
+            conds.append(PriceCond(key, lo or 0.0, hi))
+    return PriceSpec(tuple(conds), j)
+
+
+def _in_band(v: Optional[float], c: PriceCond) -> bool:
+    if v is None:
+        return False
+    if c.band is None:   # typed range: both ends included
+        return v >= c.lo and (c.hi is None or v <= c.hi)
+    return v >= c.lo and (c.hi is None or v < c.hi)
+
+
+def price_filter(rows: List[dict], spec: PriceSpec) -> Tuple[List[dict], Optional[Dict[str, Any]]]:
+    """Rows that pass the price-position conditions (all with join 'and', at least one with 'or') and the summary over EVERY company in `rows`.
+    A company without the figure for a condition never passes it; `missing` counts them per condition."""
+    if not spec.active:
+        return rows, None
+    field = [PRICE_KEYS[c.key][0] for c in spec.conds]
+    hits = [[_in_band(r.get(f), c) for f, c in zip(field, spec.conds)] for r in rows]
+    ok = (lambda h: all(h)) if spec.join == "and" else (lambda h: any(h))
+    out = [r for r, h in zip(rows, hits) if ok(h)]
+    conds = [{"key": c.key, "band": c.band, "min": c.lo, "max": c.hi, "met": sum(1 for h in hits if h[i]),
+              "missing": sum(1 for r in rows if r.get(field[i]) is None)} for i, c in enumerate(spec.conds)]
+    with_fig = sum(1 for r in rows if any(r.get(f) is not None for f in field))
+    return out, {"join": spec.join, "k": len(spec.conds), "companies": len(rows), "withFigures": with_fig, "matching": len(out), "conditions": conds}
+
+
 TOP_SECTORS = 7
 CAP_ORDER = ("Large", "Mid", "Small")
 
@@ -799,7 +924,7 @@ def date_facts(decls: Dict[str, Dict[str, Decl]], rng: Tuple[date, date], qkey: 
 
 
 async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str, index: str, scope: str, flagged: bool, status: str, sort: str, dir_: str,
-                  on: str = "", frm: str = "", to: str = "", growth: Optional[GrowthSpec] = None):
+                  on: str = "", frm: str = "", to: str = "", growth: Optional[GrowthSpec] = None, price: Optional[PriceSpec] = None):
     ctx = await current(request)
     plan = ctx.plan if ctx.authed else "basic"
     silver = has(plan, "silver")
@@ -807,6 +932,8 @@ async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str,
         raise fail(403, "plan_required", "Sorting and filtering by results figures is part of the Silver plan.", plan="silver")
     if growth is not None and growth.active and not silver:
         raise fail(403, "plan_required", "Filtering by growth is part of the Silver plan.", plan="silver")
+    if price is not None and price.active and not silver:
+        raise fail(403, "plan_required", "Filtering by price position is part of the Silver plan.", plan="silver")
     store = request.app.state.store
     today = today_ist()
     rng = parse_range(on, frm, to, today)
@@ -832,8 +959,16 @@ async def _answer(request: Request, quarter: str, q: str, sector: str, cap: str,
     syms = await _symbols_of(request, ctx, scope)
     rows = select(entry.rows, q=q, sector=sector, cap=cap, index=index, symbols=syms, flagged=flagged, status=status, sort=sort, desc=dir_ == "desc", today=today.isoformat(),
                   date_from=rng[0].isoformat() if rng else "", date_to=rng[1].isoformat() if rng else "")
-    rows, gsum = growth_filter(rows, growth or GrowthSpec())
-    return ctx, plan, quarters, entry, rows, entry.rows, today, (date_facts(decls, rng, qkey) if rng else None), gsum
+    # The two cards combine with AND. Each summary describes its own card over the same companies; `combined` is how many pass both.
+    g_rows, gsum = growth_filter(rows, growth or GrowthSpec())
+    p_rows, psum = price_filter(rows, price or PriceSpec())
+    if gsum is not None and psum is not None:
+        keep = {r["symbol"] for r in p_rows}
+        rows = [r for r in g_rows if r["symbol"] in keep]
+        gsum["combined"] = psum["combined"] = len(rows)
+    else:
+        rows = g_rows if gsum is not None else p_rows
+    return ctx, plan, quarters, entry, rows, entry.rows, today, (date_facts(decls, rng, qkey) if rng else None), (gsum, psum)
 
 
 def _dump(body: dict) -> Response:
@@ -847,17 +982,18 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
                           status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
                           offset: int = Query(0, ge=0, le=20000), limit: int = Query(PAGE, ge=1, le=100),
                           on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10),
-                          growth: GrowthSpec = Depends(growth_params)):
+                          growth: GrowthSpec = Depends(growth_params), price: PriceSpec = Depends(price_params)):
     """One quarter's results, newest declaration first. Without `quarter` the latest quarter with declarations is used."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     started = time.perf_counter()
-    ctx, plan, quarters, entry, rows, all_rows, today, dates, gsum = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth)
+    ctx, plan, quarters, entry, rows, all_rows, today, dates, sums = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth, price)
+    gsum, psum = sums or (None, None)
     silver = has(plan, "silver")
     if entry is None:
         return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": None, "quarters": quarters, "rows": [], "total": 0, "offset": 0, "limit": limit,
                       "summary": summarize([], today), "totals": summarize([], today), "days": [], "facets": {"sectors": [], "indices": []}, "dates": dates,
-                      "growth": None, "distribution": distribution([])})
+                      "growth": None, "price": None, "priceStrip": None, "distribution": distribution([])})
     page = rows[offset: offset + limit]
     out_rows = page if silver else [strip_figures(r) for r in page]
     summary = summarize(rows, today)
@@ -872,7 +1008,7 @@ async def quarter_results(request: Request, quarter: str = Query("", max_length=
     return _dump({"plan": plan, "locked": not silver, "today": today.isoformat(), "quarter": entry.quarter, "quarters": quarters, "total": len(rows), "offset": offset, "limit": limit,
                   "summary": summary, "totals": totals, "rows": out_rows, "days": [{"date": d, "n": n} for d, n in sorted(per_day.items(), reverse=True)], "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(entry.loaded)),
                   "facets": {"sectors": [{"name": n, "n": c} for n, c in entry.sectors], "indices": [{"code": c, "n": n} for c, n in idx_counts.items()]},
-                  "dates": dates, "dateMeaning": DATE_MEANING, "gapFlag": GAP_FLAG, "growth": gsum, "distribution": distribution(rows), "took": round((time.perf_counter() - started) * 1000, 1)})
+                  "dates": dates, "dateMeaning": DATE_MEANING, "gapFlag": GAP_FLAG, "growth": gsum, "price": psum, "priceStrip": price_strip(rows) if silver else None, "distribution": distribution(rows), "took": round((time.perf_counter() - started) * 1000, 1)})
 
 
 @router.get("/quarter/export")
@@ -881,14 +1017,14 @@ async def quarter_export(request: Request, quarter: str = Query("", max_length=7
                          scope: str = Query("all", pattern="^(all|watchlist|portfolio)$"), flagged: bool = False,
                          status: str = Query("", pattern="^(declared|awaiting|due|missing)?$"), sort: str = Query("date", max_length=20), dir: str = Query("desc", pattern="^(asc|desc)$"),
                          on: str = Query("", alias="date", max_length=10), from_: str = Query("", alias="from", max_length=10), to: str = Query("", max_length=10),
-                         growth: GrowthSpec = Depends(growth_params)):
+                         growth: GrowthSpec = Depends(growth_params), price: PriceSpec = Depends(price_params)):
     """The same rows without paging, as JSON the website turns into a CSV (Silver and Gold)."""
     if sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort.")
     ctx = await current(request)
     if not has(ctx.plan if ctx.authed else "basic", "silver"):
         raise fail(403, "plan_required", "Downloading the quarter's results is part of the Silver plan.", plan="silver")
-    _, _, _, entry, rows, _, today, _, _ = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth)
+    _, _, _, entry, rows, _, today, _, _ = await _answer(request, quarter, q, sector, cap, index, scope, flagged, status, sort, dir, on, from_, to, growth, price)
     return _dump({"quarter": entry.quarter if entry else None, "today": today.isoformat(), "rows": rows[:EXPORT_ROWS]})
 
 

@@ -144,6 +144,9 @@ async def refresh_listing(client, store, force: bool = False, dhan_client=None) 
                 "ON CONFLICT (symbol) DO UPDATE SET price = EXCLUDED.price, change_pct = EXCLUDED.change_pct, market_cap = EXCLUDED.market_cap, "
                 "high52 = EXCLUDED.high52, low52 = EXCLUDED.low52, volume = EXCLUDED.volume, traded_at = EXCLUDED.traded_at, updated_at = now()")
             await conn.execute("DELETE FROM listing_quotes WHERE updated_at < now()")   # not in tonight's list: no price rather than an old one
+            # a newer price than the stored all-time high raises it (the long history is only re-read every 90 days); one short UPDATE, no history scan
+            await conn.execute("UPDATE price_history_long h SET ath = l.price, ath_date = (now() AT TIME ZONE 'Asia/Kolkata')::date FROM listing_quotes l "
+                               "WHERE l.symbol = h.symbol AND h.ath IS NOT NULL AND l.price > h.ath")
     with_price = sum(1 for r in records if r["price"] is not None)
     log.info("listing refreshed: %d listed, %d quoted, %d with a price", len(universe), len(records), with_price)
     return {"listed": len(universe), "quoted": len(records), "withPrice": with_price, "fromDhan": from_dhan}
