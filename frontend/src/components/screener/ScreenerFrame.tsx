@@ -1,6 +1,6 @@
 // The page frame both score screeners share: header, filter sidebar (quick views, size, sector, then the page's own filters), summary tiles, active-filter
 // chips, sector mix, the results table with selection, compare, watchlist and CSV, and the pager. The page supplies the model-specific parts.
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { HScroll } from "../HScroll";
 import { SplitDivider, useSideWidth } from "../SplitDivider";
@@ -46,6 +46,12 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
   const [collapsed, setCollapsed] = useState(false), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
   const showPanel = (id: string | null) => { if (narrow()) setDrawer(true); else setCollapsed(false); if (id) setWant((w) => ({ id, n: w.n + 1 })); };
   const kpis: Kpi[] = tiles.slice(0, -1).map(([label, value, why], i) => ({ icon: KPI_ICONS[i] ?? "layers", label, value, why }));
+  useEffect(() => {   // Escape closes the filter drawer on narrow screens
+    if (!drawer) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
+    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
+  }, [drawer, setDrawer]);
+  const qTrim = s.q.trim();
   const sortVal = `${sort.key}:${sort.dir}`;
   const choices: { key: SortKey; label: string; asc: string; desc: string }[] = [
     { key: "name", label: "Stock name", asc: "A to Z", desc: "Z to A" }, { key: "market_cap", label: "Market cap", asc: "low to high", desc: "high to low" },
@@ -102,7 +108,8 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
               <button type="button" className="btn sx-fbtn" onClick={() => setDrawer(true)} aria-haspopup="dialog">Filters{filterCount > 0 && <span className="dotn">{filterCount}</span>}{dirty && <span className="sr"> (unsaved changes)</span>}</button>
             </div>
             {lead}
-            {chips.length > 0 && <div className="scr-chips" aria-label="Active filters">{chips.map((c) => <button type="button" key={c.id} className="fchip" onClick={() => s.drop(c.id)} aria-label={`Remove filter ${c.label}`}>{c.label}<span aria-hidden="true">×</span></button>)}<button type="button" className="alx-link" onClick={s.clear}>Clear all</button></div>}
+            {(chips.length > 0 || !!qTrim) && <div className="scr-chips" aria-label="Active filters">{qTrim && <button type="button" className="fchip" onClick={() => s.setQ("")} aria-label={`Remove search ${qTrim}`}>Search: {qTrim}<span aria-hidden="true">×</span></button>}{chips.map((c) => <button type="button" key={c.id} className="fchip" onClick={() => s.drop(c.id)} aria-label={`Remove filter ${c.label}`}>{c.label}<span aria-hidden="true">×</span></button>)}<button type="button" className="alx-link" onClick={() => { s.setQ(""); s.clear(); }}>Clear all</button></div>}
+            <p className="sr" role="status" aria-live="polite" aria-atomic="true">{isLoading || isError ? "" : `${nf(rows.length, 0)} ${rows.length === 1 ? "company matches" : "companies match"}${filterCount || qTrim ? " the current filters" : ""}.`}</p>
             {isError ? <div className="state"><h2>{errorTitle}</h2><p>Please try again in a moment.</p></div> : isLoading ? <div className="skeleton" style={{ height: 380 }} /> : (
               <>
                 <div className="sx-bulk" role="toolbar" aria-label="Actions for the table">
@@ -141,7 +148,8 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
                         <button type="button" className={"btn" + (watch.has(r.symbol) ? " on" : "")} aria-pressed={watch.has(r.symbol)} aria-label={`${watch.has(r.symbol) ? "Remove" : "Add"} ${r.symbol} ${watch.has(r.symbol) ? "from" : "to"} watchlist`} onClick={() => s.addWatch(r.symbol)}><Icon name="wallet" /></button></td>
                     </tr>);
                   })}
-                    {!rows.length && <tr><td colSpan={colSpan} className="empty">No companies match all of these filters. Try loosening one, or clear them all.</td></tr>}
+                    {!rows.length && <tr><td colSpan={colSpan} className="empty"><div className="fgx-empty">No companies match all of these filters.{" "}{chips.length || qTrim ? <>Try removing one:{" "}
+                      {qTrim && <button type="button" className="fchip" onClick={() => s.setQ("")}>Search: {qTrim} ×</button>}{" "}{chips.map((c) => <button type="button" key={c.id} className="fchip" onClick={() => s.drop(c.id)}>{c.label} ×</button>)}</> : "Try clearing the search."}</div></td></tr>}
                   </tbody>
                 </table></HScroll>
                 <div className="ss-foot">

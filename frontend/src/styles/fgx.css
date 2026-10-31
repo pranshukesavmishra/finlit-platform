@@ -66,3 +66,7 @@ button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--g
 .sx-bulkb .btn { white-space: nowrap; }
 .scr-tw { position: relative; }
 @media (max-width: 1000px) { .sx.sx-open .sx-side { height: calc(100dvh - 78px) !important; bottom: auto !important; } }
+.scr-t tbody tr:hover td { background: var(--s2); }
+.scr-chips .fchip:focus-visible, .empty .fchip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.empty .fchip { margin: 2px 4px 2px 0; cursor: pointer; }
+.fgx-empty { position: sticky; left: 0; width: min(520px, calc(100vw - 96px)); margin: 0 auto; padding: 0 12px; white-space: normal; text-align: center; line-height: 1.9; box-sizing: border-box; }
