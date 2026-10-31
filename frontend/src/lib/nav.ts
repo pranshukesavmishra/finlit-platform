@@ -14,6 +14,7 @@ export const SECTIONS: NavSection[] = [
     i("/dashboard", "Dashboard", "Your stocks, alerts and scores in one place", "table"),
     i("/watchlist", "Watchlists", "Follow stocks in named lists", "wallet"),
     i("/holdings", "My portfolio", "Score and mix of the shares you hold", "pie"),
+    i("/mf-portfolio", "MF portfolio", "Score, value and returns of the mutual funds you hold", "pie"),
     i("/alerts", "Alerts", "Price, signals, scores and filings", "bell"),
   ] }] },
   { id: "research", label: "Research", wide: true, groups: [

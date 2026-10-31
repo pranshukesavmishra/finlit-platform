@@ -59,6 +59,7 @@ const QuarterResultsPage = lazy(() => import("./pages/QuarterResults").then((m) 
 const NewsPage = lazy(() => import("./pages/News").then((m) => ({ default: m.NewsPage })));
 const DocumentsPage = lazy(() => import("./pages/Documents").then((m) => ({ default: m.DocumentsPage })));
 const AlertsPage = lazy(() => import("./pages/Alerts").then((m) => ({ default: m.AlertsPage })));
+const MfPortfolioPage = lazy(() => import("./pages/MfPortfolio").then((m) => ({ default: m.MfPortfolioPage })));
 const HoldingsPage = lazy(() => import("./pages/Holdings").then((m) => ({ default: m.HoldingsPage })));
 const ForumPage = lazy(() => import("./pages/Forum").then((m) => ({ default: m.ForumPage })));
 const EtfListPage = lazy(() => import("./pages/Etfs").then((m) => ({ default: m.EtfListPage })));
@@ -120,6 +121,7 @@ export default function App() {
             <Route path="outlook/:symbol" element={<OutlookPage />} />
             <Route path="eps-calculator" element={<EpsCalculatorPage />} />
             <Route path="holdings" element={<HoldingsPage />} />
+            <Route path="mf-portfolio" element={<MfPortfolioPage />} />
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="forum/*" element={<ForumPage />} />
             <Route path="ipo" element={<IpoPage />} />
