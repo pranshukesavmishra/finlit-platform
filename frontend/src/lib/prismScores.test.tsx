@@ -44,7 +44,7 @@ describe("palette Prism scores", () => {
   });
   it("the preview shows six labelled scores", () => {
     const h = html(<PrismPreviewScores state={stateOf({ TCS: S }, "TCS")} />);
-    for (const l of ["Fundamentals", "Valuation", "Quality", "Risk", "Short-term technical", "Long-term technical"]) expect(h).toContain(l);
+    for (const l of ["Growth &amp; Profitability", "Valuation", "Quality", "Risk", "Short-term technical", "Long-term technical"]) expect(h).toContain(l);
     expect(h).toContain("Positive"); expect(h).toContain("Negative");
     for (const bad of [/\bbuy\b/i, /\bsell\b/i, /\bhold\b/i, /\breduce\b/i, /target/i]) expect(h).not.toMatch(bad);
   });

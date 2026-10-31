@@ -46,11 +46,11 @@ describe("Prism report", () => {
     expect(t).toContain("100% of inputs available");
     expect(t).toContain("not a probability");
     expect(t).toContain("Model 3.6.10");
-    for (const name of ["Fundamentals", "Valuation", "Quality", "Risk"]) expect(t).toContain(name);
+    for (const name of ["Growth & Profitability", "Valuation", "Quality", "Risk"]) expect(t).toContain(name);
     expect(t).toContain("40% of the overall score");
     expect(t).toContain("Technical view: separate from this score");
     expect(t).toContain("All applicable factors have usable inputs");
-    for (const k of ["Fundamentals", "Valuation", "Quality", "Risk"]) expect(html).toContain(`aria-label="${k} factors"`);
+    for (const k of ["Growth & Profitability", "Valuation", "Quality", "Risk"]) expect(html).toContain(`aria-label="${k.replace("&", "&amp;")} factors"`);
     for (const w of ["Strengths", "Concerns", "Estimated or missing", "What moved the score"]) expect(t).toContain(w);
     expect(t).toContain("Period used: 2021 to 2026.");
     expect(t).toContain("Company P/E: 48.01x. Industry peer median: 38.00x. Source: FinEdge. Uses 41 positive multiples; 46 of 52 peer records available.");
@@ -63,8 +63,8 @@ describe("Prism report", () => {
   });
   it("gives every chart a conclusion as its aria-label", () => {
     expect(html).toContain('aria-label="Sales rose from ₹2,400 Cr in 2021 to ₹4,295 Cr in 2026."');
-    expect(html).toMatch(/aria-label="Overall 54\.5 is the sum of Fundamentals 27\.5 of 40/);
-    expect(html).toContain("Fundamentals: 68.8 out of 100");
+    expect(html).toMatch(/aria-label="Overall 54\.5 is the sum of Growth &amp; Profitability 27\.5 of 40/);
+    expect(html).toContain("Growth &amp; Profitability: 68.8 out of 100");
     expect(html).toMatch(/aria-label="FinLit Prism score 54\.5 out of 100: Average\. Status: Rated\./);
   });
   it("does not leak internals", () => {

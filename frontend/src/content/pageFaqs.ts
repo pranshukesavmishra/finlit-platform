@@ -145,11 +145,11 @@ export const PAGE_FAQS: PageFaq[] = [
   "items": [
    {
     "q": "What is FinLit Prism?",
-    "a": "FinLit's advanced rating (Gold). It splits a company into four parts, Fundamentals, Valuation, Quality and Risk, and weighs them into one score from 0 to 100 with a label: Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor under 35."
+    "a": "FinLit's advanced rating (Gold). It splits a company into four parts, Growth & Profitability, Valuation, Quality and Risk, and weighs them into one score from 0 to 100 with a label: Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor under 35."
    },
    {
     "q": "What does each Prism part measure?",
-    "a": "Fundamentals: how steadily sales and profit grow. Valuation: the share price against earnings, book value and the company's own history (higher means a more modest price). Quality: borrowing, interest cover, returns and cash backing for profit. Risk: price swings, the largest fall, trading activity and pledged shares. All run 0 to 100 and higher is better; a high Risk score means lower risk."
+    "a": "Growth & Profitability: how steadily sales and profit grow. Valuation: the share price against earnings, book value and the company's own history (higher means a more modest price). Quality: borrowing, interest cover, returns and cash backing for profit. Risk: price swings, the largest fall, trading activity and pledged shares. All run 0 to 100 and higher is better; a high Risk score means lower risk."
    },
    {
     "q": "What are the short-term and long-term technical views?",
@@ -169,7 +169,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What do the Quick views do?",
-    "a": "They set common filters in one click: Prism strong and lower risk, Strong fundamentals at a fair valuation, Positive on both technical views, and Fundamentals strong but valuation weak."
+    "a": "They set common filters in one click: Prism strong and lower risk, Strong Growth & Profitability at a fair valuation, Positive on both technical views, and Growth & Profitability strong but valuation weak."
    }
   ]
  },
@@ -234,7 +234,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What do the six dots next to the company's name mean?",
-    "a": "They come from FinLit Prism: four fundamental dots (Fundamentals, Valuation, Quality, Risk), then two technical ones (short-term and long-term trend). Fundamental dots are green at 70 or more, orange from 50 to 69, red under 50 and grey when there is not enough data. Technical dots are green for a positive trend, orange neutral, red negative."
+    "a": "They come from FinLit Prism: four fundamental dots (Growth & Profitability, Valuation, Quality, Risk), then two technical ones (short-term and long-term trend). Fundamental dots are green at 70 or more, orange from 50 to 69, red under 50 and grey when there is not enough data. Technical dots are green for a positive trend, orange neutral, red negative."
    },
    {
     "q": "What is the difference between Consolidated and Standalone?",
@@ -308,11 +308,11 @@ export const PAGE_FAQS: PageFaq[] = [
   "items": [
    {
     "q": "What do I get from Prism?",
-    "a": "A score out of 100 with a label from Strong to Poor (or Not rated when the evidence is thin), the four parts (Fundamentals, Valuation, Quality, Risk) each with what supports and weighs on it, every factor with its value, points and status, the inputs that are missing, and a PDF of exactly the calculation you see."
+    "a": "A score out of 100 with a label from Strong to Poor (or Not rated when the evidence is thin), the four parts (Growth & Profitability, Valuation, Quality, Risk) each with what supports and weighs on it, every factor with its value, points and status, the inputs that are missing, and a PDF of exactly the calculation you see."
    },
    {
     "q": "How are the four parts weighted?",
-    "a": "Each part has a fixed share of the overall score: Fundamentals 40%, Valuation 30%, Quality 20% and Risk 10%. Each part is read against the company's own industry group. Higher is better for all four; a high Risk score means lower risk."
+    "a": "Each part has a fixed share of the overall score: Growth & Profitability 40%, Valuation 30%, Quality 20% and Risk 10%. Each part is read against the company's own industry group. Higher is better for all four; a high Risk score means lower risk."
    },
    {
     "q": "How long does a rating take?",
@@ -1049,7 +1049,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "Which scores does this page use?",
-    "a": "FinLit Prism: the overall score, its four parts (Fundamentals, Valuation, Quality, Risk) and the short-term and long-term technical views."
+    "a": "FinLit Prism: the overall score, its four parts (Growth & Profitability, Valuation, Quality, Risk) and the short-term and long-term technical views."
    },
    {
     "q": "What do the colours mean?",

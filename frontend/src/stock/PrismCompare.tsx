@@ -70,7 +70,7 @@ function Body({ state, symbol, statement, name }: { state: Exclude<PrismCardStat
       <PrismGlyph parts={PRISM_PARTS.map(([k, n, w, c]) => ({ key: k, name: n, weight: w, value: null, color: c }))} score={null} size={120} />
       <div className="dk-empty-t">
         <h3>No Prism rating for {name} yet</h3>
-        <p>Prism rates a company's financial health in four parts: Fundamentals, Valuation, Quality and Risk. It reads the latest filings and prices, which usually takes under half a minute the first time. It is being calculated now and the result then stays stored here.</p>
+        <p>Prism rates a company's financial health in four parts: Growth & Profitability, Valuation, Quality and Risk. It reads the latest filings and prices, which usually takes under half a minute the first time. It is being calculated now and the result then stays stored here.</p>
         <div className="dk-empty-a">
           <button className="btn primary dk-b" disabled={busy} onClick={() => run.mutate(false)}>{busy ? "Calculating…" : run.isError ? "Try again" : "Generate the Prism rating"} <Icon name="arrow" /></button>
           <Link className="pzs-link" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page for {symbol}</Link>

@@ -39,7 +39,7 @@ function Advanced() {
 
   return (
     <ScreenerFrame s={s} splitKey="score-adv" eyebrow="Advanced score screener" title="Every listed company, rated by FinLit Prism." sideLabel="Advanced score screener filters" errorTitle="The advanced score screener is unavailable right now"
-      intro={<>The advanced model for the whole market: the Prism score, its four fundamental parts (Fundamentals, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export. Want the FinLit score instead? Use the <Link to="/score-screener">Basic score screener</Link>. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
+      intro={<>The advanced model for the whole market: the Prism score, its four fundamental parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export. Want the FinLit score instead? Use the <Link to="/score-screener">Basic score screener</Link>. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
       tier="gold" sortChoices={[{ key: "prism_final", label: "Prism" }, ...PRISM_PARTS.map((x) => ({ key: x.col, label: x.label })), { key: "prism_st_score", label: "Short-term technical" }, { key: "prism_lt_score", label: "Long-term technical" }]}
       donut={!isLoading && cover && cover.total > 0 ? <Donut part={n} total={cover.total} partLabel="Rated" restLabel="Not rated yet" title={`${nf(Math.max(0, cover.total - n), 0)} of ${nf(cover.total, 0)} companies are not rated yet.`} note="More are added every night, largest first." /> : undefined}
       presets={<div className="sx-presets" role="group" aria-label="Quick views built from the Prism parts">

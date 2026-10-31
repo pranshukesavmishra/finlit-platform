@@ -14,7 +14,7 @@ describe("plan and model", () => {
     expect(modelFor("silver")).toBe("finlit"); expect(modelFor("gold")).toBe("prism"); expect(modelFor("basic")).toBeNull(); expect(modelFor("basic", true)).toBe("prism");
   });
   it("the banners are the founder's words", () => {
-    expect(MODEL_BANNER.prism).toBe("Scores on this page use FinLit Prism, our advanced model: four fundamental parts (Fundamentals, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.");
+    expect(MODEL_BANNER.prism).toBe("Scores on this page use FinLit Prism, our advanced model: four fundamental parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.");
     expect(MODEL_BANNER.finlit).toBe("Scores on this page use the FinLit score (our basic model). Gold shows FinLit Prism, the advanced model.");
   });
 });
@@ -38,7 +38,7 @@ describe("tab state in the address", () => {
 describe("columns per tab and plan", () => {
   it("Overview Silver: score and the five FinLit pillars; Gold: Prism score, four parts and two technical views, no pillars", () => {
     expect(columnsFor("overview", "finlit").map((c) => c.label)).toEqual(["Share", "Latest price", "Today (%)", "Market cap", "FinLit score", "Quality", "Growth", "Profit.", "Balance", "Technical"]);
-    expect(columnsFor("overview", "prism").map((c) => c.label)).toEqual(["Share", "Latest price", "Today (%)", "Market cap", "Prism score", "Fundamentals", "Valuation", "Quality", "Risk", "Short term", "Long term"]);
+    expect(columnsFor("overview", "prism").map((c) => c.label)).toEqual(["Share", "Latest price", "Today (%)", "Market cap", "Prism score", "Growth & Profitability", "Valuation", "Quality", "Risk", "Short term", "Long term"]);
     expect(columnsFor("overview", "prism").map((c) => c.label)).not.toContain("Growth");
   });
   it("Ratios and Financials columns follow the reference", () => {
@@ -112,7 +112,7 @@ describe("filter, sort, summary", () => {
     expect(s.bands).toEqual({ hi: 2, mid: 2, lo: 1, na: 2 }); expect(bandCounts(S, "finlit")).toEqual(s.bands);
     expect(s.sectors.length).toBe(5); expect(s.parts.map((p) => p.label)).toEqual(["Quality", "Growth", "Profit.", "Balance", "Technical"]);
     const g = summarize(G, "prism");
-    expect(g.scored).toBe(3); expect(g.average).toBeCloseTo((71.4 + 64.2 + 83.9) / 3, 5); expect(g.parts.map((p) => p.label)).toEqual(["Fundamentals", "Valuation", "Quality", "Risk"]);
+    expect(g.scored).toBe(3); expect(g.average).toBeCloseTo((71.4 + 64.2 + 83.9) / 3, 5); expect(g.parts.map((p) => p.label)).toEqual(["Growth & Profitability", "Valuation", "Quality", "Risk"]);
   });
 });
 
@@ -124,7 +124,7 @@ describe("CSV per tab", () => {
   it("Overview CSV for Silver has pillars, for Gold the Prism parts and technical scores and no pillars", () => {
     const a = rows(toCsv(S, "overview", "finlit", "year")), b = rows(toCsv(G, "overview", "prism", "year"));
     expect(a[0]).toBe('"Symbol","Company","Sector","Latest price","Today (%)","Market cap","FinLit score","Quality","Growth","Profit.","Balance","Technical","Note"');
-    expect(b[0]).toContain('"Prism score","Fundamentals","Valuation","Quality","Risk","Short term","Long term"'); expect(b[0]).not.toContain("Growth");
+    expect(b[0]).toContain('"Prism score","Growth & Profitability","Valuation","Quality","Risk","Short term","Long term"'); expect(b[0]).not.toMatch(/Growth(?! & Profitability)/);
     expect(a).toHaveLength(8); expect(a[1].startsWith('"RELIANCE","Reliance Industries Ltd","Refineries & Marketing",1184,-1.21,1602252.58,51,')).toBe(true);
     expect(b[1]).toContain(",71.4,68.8,41.2,77.3,73.7,34.2,-22.4,");
   });

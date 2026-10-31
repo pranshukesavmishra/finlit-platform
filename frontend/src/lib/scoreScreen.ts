@@ -6,6 +6,7 @@ import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
 import { BANDS as TREND_EDGES, ratingWord, scoreBand as trendTone } from "./prismTechnical";
 import { LABEL_WORD, LABEL_SLUG, PRISM_LABELS, PRISM_NAMES, PRISM_RANGE_KEYS, isLabel, labelFromSlug, prismRangeValue, hasPrism, type PrismCol, type PrismLabel, type PrismRangeKey } from "./scorePrism";
+import { FUND_PART_NAME } from "./prismNames";
 
 export type Cap = "Large" | "Mid" | "Small";
 export type Band = "low" | "mid" | "high";
@@ -160,9 +161,9 @@ export type PrismPreset = { id: string; label: string; say: string; ranges: Part
 const min = (n: number): Range => ({ min: n, max: null });
 export const PRISM_PRESETS: PrismPreset[] = [
   { id: "strongsafe", label: "Prism strong and lower risk", say: "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { z: min(80), zr: min(65) }, labels: [], rated: true },
-  { id: "fairvalue", label: "Strong fundamentals at a fair valuation", say: "Prism Fundamentals 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
+  { id: "fairvalue", label: "Strong Growth & Profitability at a fair valuation", say: "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
   { id: "bothtech", label: "Positive on both technical views", say: "Prism's short-term and long-term technical views are both Positive (above the Neutral band).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
-  { id: "weakvalue", label: "Fundamentals strong but valuation weak", say: "Prism Fundamentals 65 or more but Prism Valuation 50 or less: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50 } }, labels: [], rated: true },
+  { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation 50 or less: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50 } }, labels: [], rated: true },
 ];
 const OWNED: RangeKey[] = [...PRISM_RANGE_KEYS];
 const none = (): Range => ({ min: null, max: null });
@@ -337,13 +338,13 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
     ...describeFilters(o.filters).map((x, i) => `# ${i === 0 ? "Filters: " : "         "}${x}`),
     `# Sorted by: ${o.sort.key} ${o.sort.dir === 1 ? "ascending" : "descending"}`,
     `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
-    ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Fundamentals, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
+    ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Growth & Profitability, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
       "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
       : ["# Fundamental = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];
   const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
-  const cols = adv ? [...base, "Prism", "Prism label", "Prism status", "Prism Fundamentals", "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
+  const cols = adv ? [...base, "Prism", "Prism label", "Prism status", `Prism ${FUND_PART_NAME}`, "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
     : [...base, "Fundamental", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
   const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
     ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),

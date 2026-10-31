@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import { fmtScore, scoreBand, type TrendTone } from "./prismTechnical";
 import { bandVar, scoreBand as band100 } from "./scoreBands";
+import { FUND_PART_NAME } from "./prismNames";
 
 export const PRISM_PARTS = ["fundamental", "valuation", "quality", "risk"] as const;
 export type PrismPartKey = (typeof PRISM_PARTS)[number];
@@ -17,7 +18,7 @@ export type PrismScore = {
 export type PrismScoreMap = Record<string, PrismScore | null | "error">;
 
 export const BATCH = 40;
-export const PART_LABEL: Record<PrismPartKey, string> = { fundamental: "Fundamentals", valuation: "Valuation", quality: "Quality", risk: "Risk" };
+export const PART_LABEL: Record<PrismPartKey, string> = { fundamental: FUND_PART_NAME, valuation: "Valuation", quality: "Quality", risk: "Risk" };
 export const TECH_LABEL = { shortTerm: "Short-term technical", longTerm: "Long-term technical" } as const;
 export const TECH_TIP = "Signed score from −100 to +100 for the price trend: +50 or more strongly positive, +20 to +50 positive, −20 to +20 neutral, −20 to −50 negative, −50 or less strongly negative. It describes past prices and is not a recommendation.";
 export const NOT_RATED_TIP = "FinLit Prism has not been calculated for this company yet. Open Prism to start the calculation.";

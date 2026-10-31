@@ -47,7 +47,7 @@ function DotsLegend({ gold = false }: { gold?: boolean }) {
         <p><b>One dot for each part of the FinLit score.</b> Colour follows the score of that part, out of 100.</p>
         <ul className="hs-leg-d">{DOT_ORDER.map((d) => <li key={d.key}><span className="hs-dot band-na" aria-hidden="true">{d.letter}</span>{d.name}</li>)}</ul>
         <ul className="hs-leg-c">{LEGEND.map((l) => <li key={l.band}><span className={"hs-sw band-" + l.band} aria-hidden="true" /><b>{BAND_NAME[l.band][0].toUpperCase() + BAND_NAME[l.band].slice(1)}</b>{": "}{l.rule}</li>)}</ul>
-        <p>In FinLit Prism, Fundamentals, Valuation, Quality and Risk are all higher-is-better (a high Risk score means lower risk); its Technical view is separate, from −100 to +100.</p>
+        <p>In FinLit Prism, Growth & Profitability, Valuation, Quality and Risk are all higher-is-better (a high Risk score means lower risk); its Technical view is separate, from −100 to +100.</p>
         <p className="hs-leg-n">Research summary, not a recommendation. The word beside each score (Strong, Healthy, Mixed, Weak) is the model's own.</p>
         </>}
       </div>

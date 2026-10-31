@@ -52,7 +52,7 @@ describe("FinLit Prism card", () => {
     expect(t).toContain("Healthy");
     expect(t).toContain("71.3");
     expect(t).toContain("Provisional rating");
-    for (const part of ["Fundamentals", "Valuation", "Quality", "Risk"]) expect(t).toContain(part);
+    for (const part of ["Growth & Profitability", "Valuation", "Quality", "Risk"]) expect(t).toContain(part);
     expect(t).toContain("78");
     expect(t).toContain("No data");   // the missing Risk part says so instead of showing zero
     expect(t).toContain("76% of inputs available");
@@ -107,7 +107,7 @@ describe("FinLit Prism card", () => {
     answer(200, { ...REPORT, rating: { ...REPORT.rating, final: null, label: "NOT RATED", status: "NOT RATED", confidence: 0.4 } });
     const html = await render();
     expect(html).not.toMatch(/aria-label="[^"]*\d+ (out )?of 100/);
-    expect(html).toContain("Fundamentals: no data.");
+    expect(html).toContain("Growth &amp; Profitability: no data.");
   });
 
   it("offers a Gold member the Prism page when no report is stored yet", async () => {

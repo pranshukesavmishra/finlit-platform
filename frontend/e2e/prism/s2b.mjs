@@ -25,7 +25,7 @@ for (const [w, h, tag] of [[1400, 900, "1400"], [390, 844, "390"], [360, 800, "3
   const parent = p.locator(".pz-right >> xpath=..");
   await parent.screenshot({ path: `${OUT}/2-compare-${tag}.png` });
   const txt = await p.locator(".pz-right").innerText();
-  check(`2 ${tag}: label, status, four parts, technical view row or note`, /AVERAGE|HEALTHY|STRONG|WEAK|POOR/i.test(txt) && /Provisional|Rated/i.test(txt) && ["Fundamentals", "Valuation", "Quality", "Risk"].every((x) => txt.includes(x)) && /Technical/i.test(txt), txt.replace(/\n+/g, " ").slice(0, 200));
+  check(`2 ${tag}: label, status, four parts, technical view row or note`, /AVERAGE|HEALTHY|STRONG|WEAK|POOR/i.test(txt) && /Provisional|Rated/i.test(txt) && ["Growth & Profitability", "Valuation", "Quality", "Risk"].every((x) => txt.includes(x)) && /Technical/i.test(txt), txt.replace(/\n+/g, " ").slice(0, 200));
   check(`2 ${tag}: four part tiles present`, (await p.locator(".pz-right .pzs-parts .dk-tile").count()) === 4);
   check(`2 ${tag}: compliance wording on the card or the page`, /not a recommendation/i.test(txt) || /not a recommendation/i.test(await p.locator("main").innerText()));
   check(`2 ${tag}: no advice words in the card`, !/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i.test(txt), txt.match(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/i)?.[0] || "");

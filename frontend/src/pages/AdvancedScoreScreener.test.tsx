@@ -50,8 +50,8 @@ describe("Advanced score screener (Gold)", () => {
     open();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/FinLit Prism/);
     const h = heads();
-    expect(h).toEqual(expect.arrayContaining(["Prism", "Fundamentals", "Valuation", "Quality", "Risk", "Short-term technical", "Long-term technical"]));
-    expect(h.join("|")).not.toMatch(/Overall|Growth|Profit|Balance|Fundamental\b(?!s)|^Technical$/);
+    expect(h).toEqual(expect.arrayContaining(["Prism", "Growth & Profitability", "Valuation", "Quality", "Risk", "Short-term technical", "Long-term technical"]));
+    expect(h.join("|").replace("Growth & Profitability", "")).not.toMatch(/Overall|Growth|Profit|Balance|Fundamental\b(?!s)|^Technical$/);
     const r = rowOf("AAA").textContent!;
     expect(r).toMatch(/85\s*Strong/); expect(r).toMatch(/Strongly positive\+55/); expect(r).toMatch(/Positive\+30/);
     expect(rowOf("BBB").textContent).toMatch(/Neutral\+5/); expect(rowOf("BBB").textContent).toMatch(/Negative−35/);
@@ -97,7 +97,7 @@ describe("Advanced score screener (Gold)", () => {
     expect(symbols()).toEqual(["AAA"]);
     expect(loc()).toBe("/advanced-score-screener?zvmin=50&zrmin=65");
     expect(screen.getByRole("button", { name: "Remove filter Prism Valuation: 50 or more" })).toBeTruthy();
-    for (const p of ["Fundamentals", "Quality"]) expect(screen.getByRole("group", { name: `Prism ${p} score, exact range` })).toBeTruthy();
+    for (const p of ["Growth & Profitability", "Quality"]) expect(screen.getByRole("group", { name: `Prism ${p} score, exact range` })).toBeTruthy();
   });
 
   it("filters each technical view by Positive, Neutral or Negative, using the Prism card's bands", () => {
@@ -118,7 +118,7 @@ describe("Advanced score screener (Gold)", () => {
 
   it("offers four quick views built from the Prism parts only, each applying at once and switching off again", () => {
     open();
-    const views = screen.getAllByRole("button", { name: /^(Prism strong and lower risk|Strong fundamentals at a fair valuation|Positive on both technical views|Fundamentals strong but valuation weak)$/ });
+    const views = screen.getAllByRole("button", { name: /^(Prism strong and lower risk|Strong Growth & Profitability at a fair valuation|Positive on both technical views|Growth & Profitability strong but valuation weak)$/ });
     expect(views).toHaveLength(4);
     fireEvent.click(screen.getByRole("button", { name: "Prism strong and lower risk" }));
     expect(symbols()).toEqual(["AAA"]); expect(loc()).toBe("/advanced-score-screener?zmin=80&zrmin=65&rated=1");
@@ -126,8 +126,8 @@ describe("Advanced score screener (Gold)", () => {
     expect(symbols()).toHaveLength(6); expect(loc()).toBe("/advanced-score-screener");
     fireEvent.click(screen.getByRole("button", { name: "Positive on both technical views" }));
     expect(symbols()).toEqual(["AAA"]); expect(loc()).toBe("/advanced-score-screener?st=pos&lt=pos");
-    fireEvent.click(screen.getByRole("button", { name: "Fundamentals strong but valuation weak" }));
-    expect(symbols()).toEqual(["BBB"]);                                        // Fundamentals 66 or more and Valuation 40 (50 or less)
+    fireEvent.click(screen.getByRole("button", { name: "Growth & Profitability strong but valuation weak" }));
+    expect(symbols()).toEqual(["BBB"]);                                        // Growth & Profitability 66 or more and Valuation 40 (50 or less)
     expect(document.body.textContent?.toLowerCase()).not.toMatch(forbidden);
   });
 
@@ -171,7 +171,7 @@ describe("Advanced score screener (Gold)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
     const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
     expect(text).toMatch(/Prism ratings as of: 2026-10-27/);
-    expect(text).toContain("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Fundamentals,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
+    expect(text).toContain("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
     expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,85,Strong,RATED,85,55,70,70,Strongly positive,55,Positive,30,2026-10-27");
     expect(text).toContain("EEE,EEE Limited,Auto,Large cap,100,5000,,,,,,,,,,,,");
     expect(text).not.toMatch(/Overall|Balance sheet|\bBuy\b|\bHold\b/);

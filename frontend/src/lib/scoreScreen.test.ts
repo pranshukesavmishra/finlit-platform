@@ -301,13 +301,13 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
     pr("D", null, null, {})];
   const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
   it("has the four views, none of them using the FinLit score", () => {
-    expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong fundamentals at a fair valuation", "Positive on both technical views", "Fundamentals strong but valuation weak"]);
+    expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong Growth & Profitability at a fair valuation", "Positive on both technical views", "Growth & Profitability strong but valuation weak"]);
     PRISM_PRESETS.forEach((p) => expect(Object.keys(p.ranges).every((k) => ["z", "zf", "zv", "zq", "zr"].includes(k))).toBe(true));
   });
   it("Prism strong and lower risk: Prism 80+ and Risk 65+", () => expect(run("strongsafe")).toEqual(["A"]));
-  it("Strong fundamentals at a fair valuation: Fundamentals 65+ and Valuation 50+", () => expect(run("fairvalue")).toEqual(["A", "C"]));
+  it("Strong Growth & Profitability at a fair valuation: Growth & Profitability 65+ and Valuation 50+", () => expect(run("fairvalue")).toEqual(["A", "C"]));
   it("Positive on both technical views: both scores at +20 or more", () => expect(run("bothtech")).toEqual(["A"]));   // B long term +10 is Neutral; C short term +5 is Neutral
-  it("Fundamentals strong but valuation weak: Fundamentals 65+ and Valuation 50 or less", () => expect(run("weakvalue")).toEqual(["B"]));
+  it("Growth & Profitability strong but valuation weak: Growth & Profitability 65+ and Valuation 50 or less", () => expect(run("weakvalue")).toEqual(["B"]));
   it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
     const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"]; f.tech.st = ["neg"]; f.ranges.o = { min: 50, max: null };
     const n = withPrismPreset(f, PRISM_PRESETS[1]);
@@ -398,7 +398,7 @@ describe("Prism CSV", () => {
   it("advanced: only the Prism columns, words from the scores (never the model's), blanks (never 0) and the ratings date", () => {
     const lines = toCsv(rows, { ...o, mode: "advanced", prismAsOf: "2026-10-27" }).split("\r\n");
     const head = lines.findIndex((l) => l.startsWith("Symbol,"));
-    expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Fundamentals,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
+    expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
     expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
     expect(lines[head + 2]).toMatch(/,,,,,,,,,,,,$/);
     const all = lines.join("\n");

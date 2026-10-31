@@ -13,7 +13,7 @@ export type PlanName = "basic" | "silver" | "gold";
 export const modelFor = (plan: PlanName, admin = false): Model | null => (plan === "gold" || admin ? "prism" : plan === "silver" ? "finlit" : null);
 
 export const MODEL_BANNER: Record<Model, string> = {
-  prism: "Scores on this page use FinLit Prism, our advanced model: four fundamental parts (Fundamentals, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.",
+  prism: "Scores on this page use FinLit Prism, our advanced model: four fundamental parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.",
   finlit: "Scores on this page use the FinLit score (our basic model). Gold shows FinLit Prism, the advanced model.",
 };
 

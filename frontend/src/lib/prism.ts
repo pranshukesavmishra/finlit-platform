@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, ApiError, apiGet, apiSend, apiUrl, errorBody } from "./api";
 import { MINUS, nf } from "./format";
+import { FUND_PART_NAME } from "./prismNames";
 
 export const PRISM_NAME = "FinLit Prism";
 /** On every Prism screen. Never "buy", "sell", "avoid" or "target" anywhere near the rating. */
@@ -104,7 +105,7 @@ export type PrismServiceStatus = { name: string; available: boolean; reason: str
 /* ------------------------------------------------------------------ words and tones (status in words, never by colour alone) */
 export const KNOWN_PARTS: PartKey[] = ["fundamental", "valuation", "quality", "risk"];
 const PART_TEXT: Record<string, { name: string; what: string }> = {
-  fundamental: { name: "Fundamentals", what: "Business performance: how steadily sales and profit grow." },
+  fundamental: { name: FUND_PART_NAME, what: "Business performance: how steadily sales and profit grow." },
   valuation: { name: "Valuation", what: "The share price against earnings, book value and the company's own history." },
   quality: { name: "Quality", what: "Financial strength: borrowing, interest cover, returns and cash backing for profit." },
   risk: { name: "Risk", what: "Market risk: price swings, the largest fall, trading activity and pledged shares. A higher score means lower risk." },
