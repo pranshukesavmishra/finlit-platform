@@ -38,13 +38,22 @@ describe("Explore our platform grid", () => {
     PLATFORM_CARDS.forEach((c) => expect(by(PLAN_TIER[c.plan])).toContain(c.title));
   });
   it("shows the Silver and Gold banners and sends them, and the paid badges, to the plan", () => {
-    expect(PLAN_LINK).toEqual({ silver: "/plans#silver", gold: "/plans#gold" });
+    expect(PLAN_LINK).toEqual({ basic: "/plans#basic", silver: "/plans#silver", gold: "/plans#gold" });
     expect(html).toContain('href="/plans#gold"'); expect(html).toContain('href="/plans#silver"');
     expect(html).toContain("See the Gold plan"); expect(html).toContain("See the Silver plan");
     const goldBadges = html.match(/<a[^>]*class="pg-badge gold"[^>]*href="\/plans#gold"|<a[^>]*href="\/plans#gold"[^>]*class="pg-badge gold"/g) ?? [];
     expect(goldBadges).toHaveLength(1);
     expect((html.match(/class="pg-badge silver"/g) ?? []).length).toBe(2);
     expect(html).toContain("Free, Silver and Gold");
+  });
+  it("shows the Free plan card before Silver, with only what the free plan includes", () => {
+    expect(html.indexOf("pg-plan basic")).toBeGreaterThan(-1);
+    expect(html.indexOf("pg-plan basic")).toBeLessThan(html.indexOf("pg-plan silver"));
+    expect(html).toContain("See the Free plan"); expect(html).toContain('href="/plans#basic"'); expect(html).toContain("Free forever");
+    const free = html.slice(html.indexOf("pg-plan basic"), html.indexOf("pg-plan silver"));
+    ["14 filters", "first 25 matches", "3 saved screens", "Compare two companies", "3 alerts"].forEach((t) => expect(free).toContain(t));
+    expect((free.match(/<li>/g) ?? []).length).toBe(4);
+    expect(free).not.toMatch(/Prism|score|CSV|watchlist|160|Silver|Gold|₹|\bbuy\b|\bsell\b/i);
   });
   it("the fund research card names the Health Score and says it is Silver and Gold, with no advice words", () => {
     const c = PLATFORM_CARDS.find((x) => x.n === "11")!;

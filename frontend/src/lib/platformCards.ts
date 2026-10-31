@@ -6,7 +6,7 @@ export interface PlatformCard { n: string; title: string; plan: PlatformPlan; de
 /** The account tier a badge stands for (the keys of TIER in lib/ui). */
 export const PLAN_TIER: Record<PlatformPlan, "basic" | "silver" | "gold"> = { "FREE ACCOUNT": "basic", SILVER: "silver", GOLD: "gold" };
 /** Where a plan badge or banner leads: the matching plan on the Plans page (it scrolls to and highlights it). */
-export const PLAN_LINK: Record<"silver" | "gold", string> = { silver: "/plans#silver", gold: "/plans#gold" };
+export const PLAN_LINK: Record<"basic" | "silver" | "gold", string> = { basic: "/plans#basic", silver: "/plans#silver", gold: "/plans#gold" };
 export type TierFilter = "all" | "basic" | "silver" | "gold";
 export const TIER_FILTERS: { k: TierFilter; label: string }[] = [{ k: "all", label: "All" }, { k: "basic", label: "Free" }, { k: "silver", label: "Silver" }, { k: "gold", label: "Gold" }];
 /** Cards whose lowest plan is the chosen tier ("all" keeps every card). */

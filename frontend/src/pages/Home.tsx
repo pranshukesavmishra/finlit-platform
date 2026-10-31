@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { COMPANY, SERVICES } from "../content/site";
+import { COMPANY } from "../content/site";
 import { NotifyForm } from "../components/NotifyForm";
 import { Icon } from "../lib/icons";
 import { Reveal } from "../components/Reveal";
@@ -60,7 +60,7 @@ const STEPS: [string, string][] = [
   ["Keep an eye on it", "Add it to a watchlist or set an alert on price, RSI, score, a ratio or a new filing."],
 ];
 
-/** The platform grid sits first; below it, the two lenses (fundamental and technical) are explained in a short note. */
+/** The platform grid sits directly under the hero; below it, the two lenses (fundamental and technical) are explained in a short note. */
 function Lenses() {
   return (
     <section className="sec hh-sec" aria-label="Fundamental and technical analysis" style={{ paddingTop: 0 }}><div className="wrap">
@@ -131,6 +131,9 @@ export function Home() {
         </div>
       </section>
 
+      <PlatformGrid />
+      <Lenses />
+
       <section className="wrap" id="coming-soon" aria-labelledby="soonTitle"><Reveal><div className="soon">
         <div><div className="hh-kicker">Coming soon</div><h2 id="soonTitle">Be the first to know</h2>
           <p>Leave your email and we will write to you the day each of these goes live. We will not send anything else, and you can ask us to stop at any time.</p>
@@ -147,17 +150,7 @@ export function Home() {
         </dl>
       </div></section>
 
-      <PlatformGrid />
-      <Lenses />
       <Method s={s} failed={sErr} />
-
-      <section className="sec hh-sec"><div className="wrap">
-        <Reveal className="hh-head"><div className="hh-kicker">Beyond the website</div><h2>Five things we do with people</h2><p>The software does the digging. The conversation is for your own money and your own goals.</p></Reveal>
-        <ol className="hh-svc">
-          {SERVICES.map((x) => <li key={x.name}><span className="hh-n">{x.n}</span><div><h3>{x.name}</h3><p className="hh-prop">{x.proposition}</p><p>{x.desc}</p></div></li>)}
-          <li className="hh-first"><span className="hh-n">₹</span><div><h3>Plans</h3><p>Basic is free. Silver and Gold open the deeper tools, from watchlists to the DCF calculator. Gold also brings FinLit Prism, a four-part rating of a company's financial health.</p><Link className="btn primary" to="/plans">Explore plans</Link></div></li>
-        </ol>
-      </div></section>
 
       <PlansBand id="pricing" compact />
 

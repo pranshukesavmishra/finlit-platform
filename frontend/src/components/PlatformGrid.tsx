@@ -38,6 +38,7 @@ const PREVIEWS: Record<PlatformPreview, () => ReactNode> = {
 };
 
 const BANNERS = [
+  { k: "basic", name: "Free", tag: "Free forever", points: ["Starter screener: 14 filters, the first 25 matches, 3 saved screens", "Statements, key ratios, shareholding and peers for every listed company", "Compare two companies side by side", "3 alerts on price, volume and technical triggers"] },
   { k: "silver", name: "Silver", tag: "Score and full screener", points: ["FinLit score and five pillars on every stock", "Full screener: 160+ filters and CSV download", "Watchlists with notes: 3 lists, 30 stocks", "Portfolio scorecard and downloads"] },
   { k: "gold", name: "Gold", tag: "Most depth", points: ["FinLit Prism, an advanced financial-health rating", "FinLit model filters in the screener", "Profit and revenue outlook", "Compare up to 4 companies, up to 50 watchlists"] },
 ] as const;
@@ -46,7 +47,7 @@ export function PlatformGrid() {
   const [tier, setTier] = useState<TierFilter>("all");
   const cards = filterByTier(PLATFORM_CARDS, tier);
   return (
-    <section className="sec hh-sec" id="platform" aria-labelledby="pg-title"><div className="wrap">
+    <section className="sec hh-sec pg-sec" id="platform" aria-labelledby="pg-title"><div className="wrap">
       <Reveal className="hh-head"><div className="hh-kicker">Explore our platform</div><h2 id="pg-title">Everything you need to invest smarter</h2><p>Free, Silver and Gold plans. From finding the right stocks to analysing, tracking and discussing ideas, all in one place.</p></Reveal>
       <div className="pg-plans">
         {BANNERS.map((b) => (
