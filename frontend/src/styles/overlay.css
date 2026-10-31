@@ -71,6 +71,9 @@
   :root:root body:has(.dl-menu) .mtabs { visibility: hidden; }
 }
 
+/* Download menu rows have no icon cell any more: the 38px icon column squeezed the title and made it collide with the description */
+:root:root .dl-menu button:not(:has(.di)) { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+
 /* long text in a tooltip wraps instead of running off screen */
 :root:root :is(.ld-tip, .pcx-tip, .tip) { max-width: min(340px, calc(100vw - 16px)); overflow-wrap: anywhere; }
 :root:root .ld-tip { white-space: normal; }
