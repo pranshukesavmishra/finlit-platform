@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
 
@@ -33,5 +33,26 @@ describe("ProfitabilityRatios CHANGE column", () => {
     expect(cell("Net margin").getAttribute("title")).toBe("No Mar 2022 figure");
     expect(cell("Effective tax rate").textContent).toBe("▲ +10.0 pts");
     expect(cell("Effective tax rate").className).not.toMatch(/up|down/);
+  });
+});
+
+describe("ProfitabilityRatios upgrades", () => {
+  it("sorts by CHANGE within groups, gaps last, and exposes aria-sort", () => {
+    const { container } = render(<ProfitabilityRatios periods={periods} rows={rows} />);
+    const btn = screen.getByRole("button", { name: /CHANGE/ });
+    const names = () => [...container.querySelectorAll("tbody tr:not(.pr-g)")].map((r) => r.firstElementChild?.textContent);
+    expect(names().slice(0, 2)).toEqual(["Operating margin", "Net margin"]);
+    fireEvent.click(btn);
+    expect(btn.closest("th")!.getAttribute("aria-sort")).toBe("descending");
+    expect(names().slice(0, 2)).toEqual(["Operating margin", "Net margin"]);
+    fireEvent.click(btn);
+    expect(btn.closest("th")!.getAttribute("aria-sort")).toBe("ascending");
+    expect(names().slice(0, 2)).toEqual(["Operating margin", "Net margin"]);
+  });
+  it("explains CHANGE and marks below/above median beyond colour", () => {
+    const { container } = render(<ProfitabilityRatios periods={periods} rows={rows} />);
+    expect(screen.getByRole("button", { name: /CHANGE/ }).getAttribute("title")).toMatch(/percentage points/);
+    expect(container.querySelector("td.pr-ab")).not.toBeNull();
+    expect(container.querySelector("td.pr-be")).not.toBeNull();
   });
 });
