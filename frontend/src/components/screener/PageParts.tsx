@@ -4,14 +4,15 @@ import { Icon } from "../../lib/icons";
 import { TierChip } from "../Gate";
 import type { Plan } from "../../lib/ui";
 import { nf } from "../../lib/format";
+import { Link } from "react-router";
 import { Chev } from "./FilterGroup";
 import { SearchBox } from "./FilterGroup";
 
-export function TitleCard({ tier, title, sub, onLearn, learnLabel = "Learn more" }: { tier: Plan; title: string; sub: ReactNode; onLearn: () => void; learnLabel?: string }) {
+export function TitleCard({ tier, title, sub, onLearn, learnTo, learnLabel = "Learn more" }: { tier: Plan; title: string; sub: ReactNode; onLearn?: () => void; learnTo?: string; learnLabel?: string }) {
   return (
     <div className="fgx-title card">
       <div className="fgx-tx"><div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}><TierChip tier={tier} /><h1>{title}</h1></div><p>{sub}</p></div>
-      <button type="button" className="btn" onClick={onLearn}><Icon name="info" /> {learnLabel}</button>
+      {learnTo ? <Link className="btn" to={learnTo}><Icon name="info" /> {learnLabel}</Link> : <button type="button" className="btn" onClick={onLearn}><Icon name="info" /> {learnLabel}</button>}
     </div>);
 }
 

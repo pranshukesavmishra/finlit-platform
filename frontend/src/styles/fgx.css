@@ -66,3 +66,25 @@ button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--g
 .sx-bulkb .btn { white-space: nowrap; }
 .scr-tw { position: relative; }
 @media (max-width: 1000px) { .sx.sx-open .sx-side { height: calc(100dvh - 78px) !important; bottom: auto !important; } }
+
+/* fund screener (pages/FundScoreScreener.tsx) */
+.fgx-fl .btn svg, .fgx-fl .btn .ico { width: 16px; height: 16px; flex: none; }
+.fgx-fl .sx-bulkb .btn { display: inline-flex; align-items: center; gap: 6px; }
+.mfu-page .fgx-kv b { font-size: 19px; white-space: nowrap; } .mfu-page .fgx-kv small { white-space: normal; }
+.fgx-top, .fgx-top span { flex-wrap: wrap; } .fgx-top .fgx-link { white-space: nowrap; }
+.mfu-table th.mf-name { min-width: 220px; white-space: normal; text-align: left; } .mfu-table th.mf-name a { color: var(--text); text-decoration: none; font-weight: 600; } .mfu-table th.mf-name a:hover { color: var(--gold); }
+.fgx-mx { grid-template-columns: minmax(0, 1fr); }
+.fgx-fl { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+.fgx-fl.fgx-collapsed { grid-template-columns: minmax(0, 1fr); }
+.fgx-side { position: sticky; top: 72px; display: block; padding: 16px; max-height: calc(100vh - 90px); overflow: auto; }
+.fgx-side[hidden] { display: none; }
+.fgx-side .ss-actions { display: none; }
+.fgx-fl .sx-bulk .mf-count { margin: 0; color: var(--text); }
+.fgx-go { width: 32px; } .fgx-go a { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); } .fgx-go a:hover { color: var(--gold); background: var(--s2); }
+.mfu-table .mf-name small { display: block; }
+.fgx-fl .scr-t th.num, .fgx-fl .scr-t td.num { text-align: right; } .fgx-fl .scr-t th:not(.num) { text-align: left; }
+.fgx-fl .scr-t th { cursor: default; } .fgx-fl .scr-t td { padding: 9px 12px; border-top: 1px solid var(--border); white-space: nowrap; }
+@media (max-width: 1000px) {
+  .fgx-fl { grid-template-columns: minmax(0, 1fr); }
+  .fgx-fl.sx-open .fgx-side .ss-actions { display: flex; gap: 10px; }
+}
