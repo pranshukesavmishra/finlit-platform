@@ -27,9 +27,9 @@ import "./styles/theme.css";
 import "./styles/depth3d.css";
 import "./styles/leadership.css";
 import "./styles/prism.css";
+import "./styles/pagefaqs.css";
 import "./styles/luxe.css";
 import "./styles/headerlinks.css";
-import "./styles/pagefaqs.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";
 
