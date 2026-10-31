@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
 from . import segment_trends
 from .common import crore, fiscal_year_label, iso, parse_date, rnd, to_number
+
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------- dividends & corporate actions
@@ -232,4 +235,9 @@ def segments(payload: Any, limit: int = 10) -> dict:
                       "growthPct": round((revenue / before - 1) * 100, 2) if revenue and before else None,
                       "includes": [s["name"] for s in minor if s["name"].lower() != "others"]})
     labels = [p for p, _ in periods]
-    return {"unit": "Cr", "periods": labels, "segments": table, "latest": major, "insights": segment_trends.build_insights(labels, table)}
+    try:
+        insights = segment_trends.build_insights(labels, table)
+    except Exception:   # the commentary is a bonus: it must never stop a company's report from being built (SBIN failed this way once)
+        log.exception("segment insights not built")
+        insights = {"status": "unavailable", "statusText": "Segment commentary is not available for this company right now.", "rows": [], "sentences": [], "cautions": []}
+    return {"unit": "Cr", "periods": labels, "segments": table, "latest": major, "insights": insights}

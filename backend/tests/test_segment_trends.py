@@ -269,3 +269,11 @@ def test_others_is_never_named_fastest_or_a_share_mover():
 def test_fastest_growth_sentence_mentions_a_big_single_year_jump():
     i = ins(Y, A=[100, 100, 100, 400, 410, 420, 430], B=[100] * 7)
     assert any(s.startswith("A had the fastest") and "FY23" in s and "more than three times" in s for s in i["sentences"])
+
+
+def test_a_segment_that_only_started_reporting_does_not_crash_the_cautions():
+    # SBIN: every flagged segment in a year had "started", so nobody was left for "years before ... may not be comparable"
+    from finlit.normalize import segment_trends as st
+    out = st.cautions(["FY23", "FY24", "FY25"], {}, [], {"New": {"year": "FY24", "kind": "started"}})
+    assert out == ["New first reported in FY24, so earlier years are not available for it."]
+    assert st._join([]) == ""

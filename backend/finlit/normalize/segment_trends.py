@@ -189,6 +189,8 @@ def _big_jumps(periods: List[str], table: Dict[str, dict]) -> List[Tuple[str, st
 
 def _join(names: List[str]) -> str:
     names = list(names)
+    if not names:
+        return ""
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
@@ -332,8 +334,11 @@ def cautions(periods: List[str], table: Dict[str, dict], rows: List[dict], flags
     for year in sorted(by_year, key=lambda y: fy_number(y) or 0):
         before = [n for n in by_year[year] if flags[n]["kind"] != "started"]
         began = [n for n in by_year[year] if flags[n]["kind"] == "started"]
-        tail = f" ({_join(began)} first reported in {year})" if began else ""
-        out.append(f"Segment definitions can change when a company reorganises; years before {year} may not be comparable for {_join(before)}{tail}.")
+        if before:
+            tail = f" ({_join(began)} first reported in {year})" if began else ""
+            out.append(f"Segment definitions can change when a company reorganises; years before {year} may not be comparable for {_join(before)}{tail}.")
+        elif began:
+            out.append(f"{_join(began)} first reported in {year}, so earlier years are not available for {'it' if len(began) == 1 else 'them'}.")
     jumps = [(n, y) for n, y in _big_jumps(periods, table) if flags.get(n, {}).get("year") != y]
     if jumps:
         out.append("Revenue changed by more than three times in a single year for " + _join([f"{n} ({y})" for n, y in jumps[:4]]) + "; read those growth rates with care.")
