@@ -1,0 +1,391 @@
+{
+ "golden": [
+  "A condition is a ratio, a comparison and a value, like ROE > 15.",
+  "Each new line is a separate condition, and a company must match every line (the lines are joined with AND).",
+  "AND and OR join conditions on one line (&& and || also work). AND is applied before OR; brackets ( ) group them. A line that starts with AND or OR continues the line above.",
+  "Capital letters, extra spaces and everyday names (ROE, P/E, mcap, market cap) are read the same way. Start typing a name and the box suggests the real ones.",
+  "A bare number is read in the ratio's own unit: Market cap in ₹ crore, ROE in %. A unit may be written after it: 500 Cr, 15%, 15x, 30 days, 1 lakh crore.",
+  "Yes/no ratios are compared with yes or no: Pays a dividend = yes.",
+  "A company with no figure for a ratio in a condition does not match that condition. Companies left out only for that reason are counted under the results.",
+  "A query can hold up to 2,000 characters and 30 conditions. A ratio above your plan is marked with the plan that opens it."
+ ],
+ "syntax": [
+  {
+   "op": ">  >=  <  <=",
+   "meaning": "Greater than, at least, less than, at most.",
+   "example": "Sales growth 5 years >= 10"
+  },
+  {
+   "op": "=  !=",
+   "meaning": "Equal to, not equal to. Equal means equal as shown: ROCE = 15 matches 15.04.",
+   "example": "Debt to equity != 0"
+  },
+  {
+   "op": "between … and …",
+   "meaning": "Inside a range, both ends included.",
+   "example": "ROE between 12 and 20"
+  },
+  {
+   "op": "AND  &&",
+   "meaning": "Both conditions must match.",
+   "example": "P/E < 15 AND ROE > 12"
+  },
+  {
+   "op": "OR  ||",
+   "meaning": "At least one condition must match.",
+   "example": "(P/E < 12 OR ROE > 25)\nDebt to equity < 1"
+  },
+  {
+   "op": "( )",
+   "meaning": "Groups conditions, so an OR is applied before the AND next to it.",
+   "example": "(P/E < 12 OR ROCE > 25) AND Debt to equity < 1"
+  },
+  {
+   "op": "New line",
+   "meaning": "Joins the line above and below with AND.",
+   "example": "Market cap > 500 Cr\nROCE > 22%"
+  },
+  {
+   "op": "+  -  *  /",
+   "meaning": "Arithmetic between ratios and numbers. Both sides must be in the same unit.",
+   "example": "Net profit * 10 > Market cap"
+  },
+  {
+   "op": "Ratio on both sides",
+   "meaning": "A ratio can be compared with another ratio.",
+   "example": "ROE > ROCE"
+  },
+  {
+   "op": "Cr  crore  lakh crore",
+   "meaning": "Amounts in ₹ crore. 1 lakh crore is 1,00,000 crore.",
+   "example": "Market cap > 1 lakh crore"
+  },
+  {
+   "op": "%  x  days  ₹",
+   "meaning": "Percentage, multiple (times), days, rupees.",
+   "example": "Debt to equity < 0.5x"
+  },
+  {
+   "op": "Numbers",
+   "meaning": "Digits with one decimal point, Indian grouping (1,00,000) and a minus sign are accepted.",
+   "example": "1-month return > -5"
+  },
+  {
+   "op": "Periods in the name",
+   "meaning": "Averages and growth periods are part of the ratio name.",
+   "example": "ROE 3 year average > 15"
+  },
+  {
+   "op": "yes  no",
+   "meaning": "For yes/no ratios, with = or !=.",
+   "example": "Pays a dividend = yes"
+  },
+  {
+   "op": "==  <>  ≥  ≤  ≠",
+   "meaning": "Other ways to write =, !=, >= and <=.",
+   "example": "P/E == 10"
+  }
+ ],
+ "notSupported": [
+  "NOT. Turn the comparison round instead: P/E >= 15 in place of NOT P/E < 15, or use !=.",
+  "Sector, industry and index lists. A query compares ratios and numbers only; the Screener has those filters.",
+  "Quotes, commas, semicolons and comments. Write the name as it is and join conditions with AND, OR or a new line."
+ ],
+ "dos": [
+  {
+   "do": "Market cap > 500 Cr",
+   "dont": "Market cap > 5000000000",
+   "why": "Market cap is in ₹ crore: the long number reads as a very large amount, and a warning appears.",
+   "code": "crore_units"
+  },
+  {
+   "do": "P/E < 15 AND ROE > 12",
+   "dont": "P/E < 15, ROE > 12",
+   "why": "Conditions are joined with AND, OR or a new line, not a comma.",
+   "code": "unexpected"
+  },
+  {
+   "do": "ROE between 10 and 20",
+   "dont": "10 < ROE < 20",
+   "why": "A condition compares two things. A range uses between, or two conditions with AND.",
+   "code": "chained_comparison"
+  },
+  {
+   "do": "Pays a dividend = yes",
+   "dont": "Pays a dividend > 0",
+   "why": "Yes/no ratios take = yes or = no.",
+   "code": "flag_operator"
+  },
+  {
+   "do": "ROE > 15%",
+   "dont": "ROE > 15 percent",
+   "why": "Units are written as %, Cr, x or days.",
+   "code": "bad_unit"
+  },
+  {
+   "do": "ROE > 15",
+   "dont": "ROE > 0.15",
+   "why": "ROE is already a percentage, so 0.15 means 0.15%. A warning appears.",
+   "code": "looks_like_fraction"
+  },
+  {
+   "do": "P/E < 15 AND ROE > 12",
+   "dont": "P/E < 15 ROE > 12",
+   "why": "Two conditions on one line need AND or OR between them.",
+   "code": "missing_connector"
+  },
+  {
+   "do": "Market cap > 500 Cr",
+   "dont": "Market cap > 500 %",
+   "why": "A unit has to fit the ratio: market cap is an amount, not a percentage.",
+   "code": "unit_mismatch"
+  }
+ ],
+ "examples": [
+  {
+   "id": "starter",
+   "title": "Size, value and return",
+   "query": "Market cap > 500 Cr\nP/E < 15\nROCE > 22%"
+  },
+  {
+   "id": "one-line",
+   "title": "Conditions on one line",
+   "query": "P/E < 15 AND Debt to equity < 1 AND ROE > 12"
+  },
+  {
+   "id": "brackets",
+   "title": "OR inside brackets",
+   "query": "(P/E < 12 OR Profit growth 5 years > 15)\nDebt to equity < 1"
+  },
+  {
+   "id": "between",
+   "title": "A range with between",
+   "query": "ROE between 12 and 20\nMarket cap between 1000 Cr and 5000 Cr"
+  },
+  {
+   "id": "yesno",
+   "title": "A yes/no ratio",
+   "query": "F&O = yes\nDividend yield > 2"
+  },
+  {
+   "id": "small-clean",
+   "title": "Small, low debt, high return",
+   "query": "Market cap < 5000 Cr AND Debt to equity < 0.5 AND ROCE > 18"
+  },
+  {
+   "id": "ratio-vs-ratio",
+   "title": "Two ratios compared",
+   "query": "ROE > ROCE\nROCE - ROE <= 10"
+  },
+  {
+   "id": "periods",
+   "title": "Growth over a period",
+   "query": "Sales growth 5 years > 12\nProfit growth 5 years > 10"
+  },
+  {
+   "id": "lakh-crore",
+   "title": "A very large company",
+   "query": "Market cap > 1 lakh crore"
+  },
+  {
+   "id": "symbols",
+   "title": "Symbols and a negative number",
+   "query": "ROE > 15 && Debt to equity != 0\n1-month return > -5"
+  }
+ ],
+ "errors": {
+  "empty": {
+   "rule": "A query needs at least one condition.",
+   "fix": "Type a condition such as ROE > 15, or insert one of the examples."
+  },
+  "bad_character": {
+   "rule": "Only letters, numbers, comparisons, brackets and the units are used. Semicolons, quotes and similar characters are not part of the language.",
+   "fix": "Join conditions with AND, OR or a new line, and write ratio names without quotes.",
+   "bad": "P/E < 15; ROE > 12",
+   "good": "P/E < 15 AND ROE > 12"
+  },
+  "bad_number": {
+   "rule": "A number has digits and at most one decimal point. Indian grouping such as 1,00,000 is accepted.",
+   "fix": "Write the number as 12.5 or 1,00,000, and put % after a number.",
+   "bad": "ROE > 1.2.3",
+   "good": "ROE > 12.3"
+  },
+  "extra_paren": {
+   "rule": "Every ) closes a ( that was opened before it.",
+   "fix": "Remove the extra ) or add the missing (.",
+   "bad": "ROE > 15)",
+   "good": "ROE > 15"
+  },
+  "missing_paren": {
+   "rule": "Every ( is closed by a ).",
+   "fix": "Add a ) where the group ends.",
+   "bad": "(ROE > 15",
+   "good": "(ROE > 15)"
+  },
+  "empty_paren": {
+   "rule": "Brackets hold at least one condition or value.",
+   "fix": "Put a condition between the brackets or remove them.",
+   "bad": "ROE > ()",
+   "good": "ROE > 15"
+  },
+  "missing_connector": {
+   "rule": "Two conditions on one line are joined with AND or OR. On separate lines, AND is implied.",
+   "fix": "Insert AND or OR between them, or start a new line.",
+   "bad": "P/E < 15 ROE > 12",
+   "good": "P/E < 15 AND ROE > 12"
+  },
+  "double_connector": {
+   "rule": "AND and OR each sit between two conditions.",
+   "fix": "Remove the extra word or put a condition between them.",
+   "bad": "ROE > 15 AND AND P/E < 20",
+   "good": "ROE > 15 AND P/E < 20"
+  },
+  "dangling_connector": {
+   "rule": "AND and OR need a condition after them.",
+   "fix": "Add the next condition or remove the AND / OR.",
+   "bad": "ROE > 15 AND",
+   "good": "ROE > 15"
+  },
+  "starts_with_connector": {
+   "rule": "AND and OR need a condition before them.",
+   "fix": "Put a condition before it, or remove it.",
+   "bad": "AND ROE > 15",
+   "good": "ROE > 15"
+  },
+  "chained_comparison": {
+   "rule": "A condition compares two things. Two comparisons in a row are not read as a range.",
+   "fix": "Use between, or two conditions joined by AND.",
+   "bad": "10 < ROE < 20",
+   "good": "ROE between 10 and 20"
+  },
+  "between_and": {
+   "rule": "between takes two values joined by AND.",
+   "fix": "Write between low and high.",
+   "bad": "ROE between 10",
+   "good": "ROE between 10 and 20"
+  },
+  "incomplete_condition": {
+   "rule": "A condition is a ratio, a comparison and a value.",
+   "fix": "Add the comparison and the value, or = yes / = no for a yes/no ratio.",
+   "bad": "ROE",
+   "good": "ROE > 15"
+  },
+  "missing_operator": {
+   "rule": "A ratio and a value are separated by a comparison: >, <, >=, <=, = or !=.",
+   "fix": "Put a comparison between them.",
+   "bad": "ROE 15",
+   "good": "ROE > 15"
+  },
+  "missing_value": {
+   "rule": "A comparison has a number or another ratio after it.",
+   "fix": "Type the value after the comparison.",
+   "bad": "ROE >",
+   "good": "ROE > 15"
+  },
+  "missing_metric": {
+   "rule": "A condition starts with a ratio name.",
+   "fix": "Put a ratio name before the comparison.",
+   "bad": "> 15",
+   "good": "ROE > 15"
+  },
+  "unknown_metric": {
+   "rule": "Only ratios from the list can be used; a name that is not on it is not guessed. Matching ignores capitals, spaces and punctuation.",
+   "fix": "Pick the closest ratio, or open the full list of ratios.",
+   "bad": "Return on equty > 15",
+   "good": "Return on equity > 15"
+  },
+  "bad_unit": {
+   "rule": "After a number the units are %, Cr (crore), lakh crore, x (times) and days.",
+   "fix": "Use one of those units or no unit.",
+   "bad": "ROE > 15 percent",
+   "good": "ROE > 15%"
+  },
+  "unit_mismatch": {
+   "rule": "The unit written on a number has to fit the ratio, and two sides of a comparison have to be in the same unit.",
+   "fix": "Write the number in the ratio's unit, or drop the unit.",
+   "bad": "Market cap > 500 %",
+   "good": "Market cap > 500 Cr"
+  },
+  "flag_operator": {
+   "rule": "Yes/no ratios are compared with = or !=.",
+   "fix": "Write = yes or = no.",
+   "bad": "Pays a dividend > 1",
+   "good": "Pays a dividend = yes"
+  },
+  "flag_value": {
+   "rule": "A yes/no ratio is compared with yes or no (or 1 or 0).",
+   "fix": "Write yes or no.",
+   "bad": "Pays a dividend = 5",
+   "good": "Pays a dividend = yes"
+  },
+  "yes_no_misuse": {
+   "rule": "yes and no work with yes/no ratios only.",
+   "fix": "Use a number with this ratio.",
+   "bad": "ROE > yes",
+   "good": "ROE > 15"
+  },
+  "no_metric": {
+   "rule": "A condition uses at least one ratio; two plain numbers give the same answer for every company.",
+   "fix": "Compare a ratio with a number.",
+   "bad": "5 > 3",
+   "good": "ROE > 5"
+  },
+  "divide_by_zero": {
+   "rule": "A division by the plain number 0 has no answer.",
+   "fix": "Divide by a non-zero number or by a ratio.",
+   "bad": "ROE / 0 > 1",
+   "good": "ROE / 2 > 1"
+  },
+  "too_many_conditions": {
+   "rule": "A query can hold up to 30 conditions.",
+   "fix": "Remove some, or split them into two baskets."
+  },
+  "too_long": {
+   "rule": "A query can hold up to 2,000 characters.",
+   "fix": "Shorten it, or split it into two baskets."
+  },
+  "plan_locked": {
+   "rule": "Each ratio belongs to a plan, and a query can use the ratios of the member's own plan.",
+   "fix": "Pick another ratio, or open the plan that includes it."
+  },
+  "unexpected": {
+   "rule": "After a condition comes a new line, AND, OR or the end of the query. A comma is not a joiner.",
+   "fix": "Replace the comma or stray word with AND, OR or a new line.",
+   "bad": "P/E < 15, ROE > 12",
+   "good": "P/E < 15 AND ROE > 12"
+  },
+  "crore_units": {
+   "rule": "Amounts such as market cap, sales and profit are counted in ₹ crore.",
+   "fix": "Type the amount in crore: 5,000 for ₹5,000 crore."
+  },
+  "looks_like_fraction": {
+   "rule": "Percentages are typed as percentages: 15 means 15%.",
+   "fix": "Type 15 in place of 0.15."
+  },
+  "contradiction": {
+   "rule": "Conditions joined by AND must all be true together.",
+   "fix": "Join them with OR, or swap the numbers."
+  }
+ },
+ "specials": {
+  "not": {
+   "rule": "NOT is not part of the language, so the word is read as a ratio name.",
+   "fix": "Turn the comparison round: P/E >= 15 in place of NOT P/E < 15, or use !=.",
+   "bad": "ROE > 15 AND NOT P/E < 10",
+   "match": "^not\\b"
+  },
+  "text": {
+   "rule": "Sector, industry and index lists are not part of the query language. A query compares ratios and numbers.",
+   "fix": "Remove the condition and use the sector or index filter in the Screener.",
+   "bad": "Sector = Banks",
+   "match": "^(sector|industry|index|exchange)\\b"
+  }
+ },
+ "results": [
+  "A company whose figure is missing is not listed for that condition, and the results say how many companies were left out only for that reason.",
+  "A loss-making company has no P/E, and a company with negative equity has no P/B, so conditions on those never match it. Growth from a negative base is also not a number.",
+  "Other negative values are compared as numbers: ROE > -5 includes a company at -2.",
+  "Show only recent results keeps the matches that have already reported the latest quarter; the others are counted and set aside.",
+  "Ratios above your plan are marked with the plan that opens them, and a query using one shows a message before it runs. The Basic plan lists the first 25 matches."
+ ]
+}
