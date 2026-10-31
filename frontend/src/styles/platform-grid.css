@@ -65,3 +65,42 @@ a.pg-badge:hover { filter: brightness(1.08); } a.pg-badge:focus-visible { outlin
 @media (max-width: 760px) { .pg-plans { grid-template-columns: minmax(0, 1fr); } .pg-plan { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 18px; } .pg-emblem { width: 64px; height: 64px; } .pg-count { margin-left: 0; width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .pg-plan, .pg-plan-cta svg { transition: none; } .pg-plan:hover, .pg-plan:focus-within { transform: none; } .pg-plan:hover .pg-plan-cta svg { transform: none; } }
 .pg-badge.free { border: 1px solid transparent; padding: 3px 8px; }
+
+/* Big, visible version of the section: Free, Silver and Gold plan cards in a row, larger type, stronger borders. */
+.pg-sec { padding-top: clamp(44px, 6vw, 84px); padding-bottom: clamp(48px, 7vw, 96px); background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 6%, transparent), transparent 380px); }
+.pg-sec .hh-head { max-width: none; margin-bottom: clamp(26px, 4vw, 44px); border-top-width: 3px; padding-top: 18px; }
+.pg-sec .hh-head .hh-kicker { font-size: 14px; letter-spacing: .14em; }
+.pg-sec .hh-head h2 { font-size: clamp(34px, 5.4vw, 60px); line-height: 1.06; max-width: 20ch; margin: 10px 0 14px; }
+.pg-sec .hh-head p { font-size: clamp(17px, 1.7vw, 21px); line-height: 1.5; max-width: 62ch; color: var(--text); opacity: .82; }
+.pg-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-bottom: 32px; }
+.pg-plan { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 28px 26px 26px; border-radius: 24px; border-width: 2px; align-content: start; }
+.pg-plan .pg-emblem { width: 84px; height: 84px; }
+.pg-plan:hover, .pg-plan:focus-within { transform: translateY(-6px); box-shadow: var(--lift), 0 0 0 1px var(--tc); }
+.pg-plan-link::after { border-radius: 24px; }
+.pg-plan-t h3 { font-size: 30px; }
+.pg-plan-tag { font-size: 11px; padding: 4px 11px; }
+.pg-plan ul { gap: 10px; font-size: 15.5px; line-height: 1.45; margin-bottom: 18px; } .pg-plan li { grid-template-columns: 18px 1fr; } .pg-plan li svg { width: 17px; height: 17px; }
+.pg-plan-cta { font-size: 15.5px; padding: 10px 18px; border-radius: 999px; border: 2px solid var(--tc); background: color-mix(in srgb, var(--tc) 14%, transparent); }
+.pg-plan:hover .pg-plan-cta { background: color-mix(in srgb, var(--tc) 28%, transparent); }
+.pg-plan-cta svg { width: 17px; height: 17px; }
+.pg-plan.basic { border-color: color-mix(in srgb, var(--tc) 60%, var(--border)); }
+.pg-chip { min-height: 44px; padding: 0 22px; font-size: 15px; border-width: 2px; }
+.pg-count { font-size: 14px; }
+.pg-filter { margin-bottom: 22px; gap: 10px; }
+.pg { gap: 22px; }
+.pg-card { padding: 24px 22px 22px; gap: 12px; border-width: 2px; border-radius: 22px; border-color: color-mix(in srgb, var(--ac) 45%, var(--border)); }
+.pg-card:hover, .pg-card:focus-within { transform: translateY(-6px); box-shadow: var(--lift), 0 0 0 1px var(--ac); }
+.pg-link::after { border-radius: 22px; }
+.pg-n { font-size: 16px; font-weight: 700; }
+.pg-card h3 { font-size: 26px; }
+.pg-d { font-size: 15.5px; }
+.pg-ticks { font-size: 14.5px; gap: 7px; }
+.pg-cta { min-height: 48px; font-size: 15px; border-radius: 12px; }
+.pg-badge { font-size: 11px; }
+@media (max-width: 1100px) { .pg-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pg-plan.gold { grid-column: 1 / -1; } }
+@media (max-width: 760px) {
+  .pg-plans { grid-template-columns: minmax(0, 1fr); gap: 16px; } .pg-plan.gold { grid-column: auto; }
+  .pg-plan { grid-template-columns: minmax(0, 1fr); padding: 22px 20px; } .pg-plan .pg-emblem { width: 64px; height: 64px; }
+  .pg-sec .hh-head h2 { font-size: clamp(30px, 9vw, 38px) !important; }
+  .pg-card h3 { font-size: 23px; } .pg-card { padding: 20px 18px; }
+}
