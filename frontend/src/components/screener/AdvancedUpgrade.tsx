@@ -5,6 +5,7 @@ import { Gate } from "../Gate";
 import { PageArt } from "../PageArt";
 import { Icon } from "../../lib/icons";
 import { useUI } from "../../lib/ui";
+import { LockedPresets } from "./presets/LockedPresets";
 import { MINUS } from "../../lib/format";
 import "../../styles/scorescreen.css";
 import { FUND_PART_NAME } from "../../lib/prismNames";
@@ -51,6 +52,7 @@ export function AdvancedUpgrade() {
               </table></div>
             </section>
           </Gate>
+          <LockedPresets />
           <section className="card sx-ben">
             <h2>What Gold adds</h2>
             <ul>{POINTS.map((p) => <li key={p}><Icon name="check" /><span>{p}</span></li>)}</ul>

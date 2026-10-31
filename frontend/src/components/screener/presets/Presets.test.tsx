@@ -1,0 +1,181 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const st = vi.hoisted(() => ({ plan: "gold", upgrade: vi.fn() }));
+vi.mock("../../../lib/ui", () => ({ useUI: () => ({ has: (t: string) => st.plan === "gold" || t !== "gold", upgrade: st.upgrade, toast: vi.fn() }), TIER: { basic: { n: "Basic", ic: "sprout", tc: "--t-basic" }, gold: { n: "Gold", ic: "crown", tc: "--t-gold" }, silver: { n: "Silver", ic: "medal", tc: "--t-silver" } } }));
+vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+import { PresetPanel } from "./PresetPanel";
+import { PresetPage } from "./PresetPage";
+import { usePresetRoute } from "./usePresetRoute";
+import { orderGroups, presetCsv, readPresetUrl, resolveChips, sortPresetRows, type PresetDetail } from "../../../lib/presets";
+
+const chip = (id: string, label: string, d = false) => ({ id, label, default: d, description: label + " description" });
+const P = (id: string, name: string, group: string, o = {}) => ({ id, name, group, cardText: name + " text", count: 5, asOf: "2026-10-31", status: "live", blockedReason: null, chips: [], howItWorks: ["Rule one", "Rule two"], locked: false, ...o });
+const LIST = { asOf: "2026-10-31", groups: [
+  { id: "own", name: "Ownership", presets: [P("inst", "Institutions buying", "Ownership")] },
+  { id: "safe", name: "Safety", presets: [P("debt", "Debt-free compounders", "Safety"), P("psu", "PSU stocks", "Safety", { status: "blocked", count: null, blockedReason: "Coming soon: needs a PSU flag" })] },
+  { id: "top", name: "Top rated", presets: [P("large", "Highest-rated large caps", "Top rated", { chips: [chip("trend", "Trend check")] })] },
+  { id: "thm", name: "Themes", presets: [P("themes", "Sector themes in play", "Themes"), P("emp", "Emerging tech", "Themes", { chips: [chip("sub-ems", "EMS and electronics"), chip("rated", "Rated only", true)] })] },
+] };
+const col = (key: string, label: string, format = "num1") => ({ key, label, format, align: "right" });
+const DETAIL = { id: "large", name: "Highest-rated large caps", asOf: "2026-10-31", count: 86, shown: 3, cardText: "Card text", disclaimer: "A screen narrows a list. It is not a recommendation.", howItWorks: ["Rule one"],
+  columns: [col("prism", "Prism score", "score"), col("ret1y", "1-year return", "pct"), col("mcap", "Market cap", "cr")],
+  rows: [{ symbol: "AAA", name: "Alpha Ltd", prism: 80, ret1y: 12.5, mcap: 90000, badges: ["Prism-confirmed"] }, { symbol: "BBB", name: "Beta Ltd", prism: 90, ret1y: null, mcap: 50000, badges: [] }, { symbol: "CCC", name: "Gamma", prism: 70, ret1y: -3, mcap: 70000, badges: ["Provisional"] }] };
+const THEMES = { ...DETAIL, id: "themes", name: "Sector themes in play", themes: [{ industry: "Pharma", state: "in_play", b50: 43, rs3: 7.5, members: 81, leaders: ["AAA"] }, { industry: "Telecom", state: "closest", b50: 50, rs3: 41.9, members: 6, leaders: ["CCC"] }] };
+const EMPTY = { ...DETAIL, id: "debt", name: "Debt-free compounders", count: 0, shown: 0, rows: [], closestMisses: [{ symbol: "ZZZ", name: "Zed", failed: ["Debt to equity above 0.1"] }] };
+
+let calls: string[] = [], listBody: unknown = LIST, listStatus = 200, detail: Record<string, [number, unknown]> = {};
+beforeEach(() => {
+  calls = []; listBody = LIST; listStatus = 200; st.plan = "gold"; st.upgrade.mockReset(); detail = { large: [200, DETAIL], themes: [200, THEMES], debt: [200, EMPTY], emp: [200, { ...DETAIL, id: "emp", name: "Emerging tech" }] };
+  vi.stubGlobal("fetch", vi.fn(async (u: string) => {
+    calls.push(u);
+    const m = /\/api\/screener\/presets\/([^?]+)/.exec(u);
+    const [status, body] = m ? detail[m[1]] ?? [404, { detail: { status: "not_found" } }] : [listStatus, listBody];
+    return { ok: status < 400, status, headers: new Headers(), json: async () => body } as unknown as Response;
+  }));
+});
+afterEach(cleanup);
+
+const Where = () => { const l = useLocation(); return <output data-testid="loc">{l.pathname + l.search}</output>; };
+const Panel = () => { const r = usePresetRoute(); return <PresetPanel route={r} basics={<button type="button">Prism quick view</button>} basicsActive={false} />; };
+const Page = () => { const r = usePresetRoute(); return r.id ? <PresetPage route={r} basics={<span>basics</span>} /> : <Panel />; };
+const mount = (qs = "") => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={["/advanced-score-screener" + qs]}><Page /><Where /></MemoryRouter></QueryClientProvider>);
+const loc = () => screen.getByTestId("loc").textContent || "";
+const rowSyms = () => within(screen.getByRole("table")).getAllByRole("row").slice(1).map((r) => r.querySelector("b")?.textContent);
+
+describe("grouped panel", () => {
+  it("orders the groups as the spec does, Prism basics last, and opens the first group", async () => {
+    mount();
+    await screen.findByRole("button", { name: /Top rated/ });
+    const names = screen.getAllByRole("button", { expanded: undefined }).filter((b) => b.hasAttribute("aria-expanded")).map((b) => b.querySelector(".psx-gt")?.textContent);
+    expect(names).toEqual(["Top rated", "Themes", "Safety", "Ownership", "Prism basics"]);
+    expect(screen.getByRole("button", { name: /Top rated/ }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("button", { name: /Safety/ }).getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: /Safety/ }));
+    expect(screen.getByRole("button", { name: /Safety/ }).getAttribute("aria-expanded")).toBe("true");
+  });
+  it("shows blocked screens as disabled cards with their reason", async () => {
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /Safety/ }));
+    const card = screen.getByRole("button", { name: /PSU stocks/ });
+    expect(card.getAttribute("aria-disabled")).toBe("true");
+    expect(card.textContent).toContain("Coming soon: needs a PSU flag");
+    fireEvent.click(card);
+    expect(loc()).not.toContain("preset");
+  });
+  it("keeps the Prism quick views working when the list is unavailable", async () => {
+    listStatus = 500;
+    mount();
+    expect(await screen.findByText(/unavailable right now/, {}, { timeout: 4000 })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Prism quick view" })).toBeTruthy();
+  });
+  it("locked cards ask for Gold and do not open", async () => {
+    listBody = { ...LIST, groups: [{ id: "top", name: "Top rated", presets: [P("large", "Highest-rated large caps", "Top rated", { locked: true, count: null })] }] };
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /Highest-rated large caps/ }));
+    expect(st.upgrade).toHaveBeenCalled();
+    expect(loc()).not.toContain("preset");
+  });
+});
+
+describe("screen view", () => {
+  it("choosing a screen sets the address and shows the response rows, card facts, how it works and the disclaimer", async () => {
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /Highest-rated large caps/ }));
+    expect(loc()).toBe("/advanced-score-screener?preset=large");
+    await screen.findByRole("table");
+    expect(rowSyms()).toEqual(["AAA", "BBB", "CCC"]);
+    expect(screen.getByText("86 match")).toBeTruthy();
+    expect(screen.getByText("showing 3")).toBeTruthy();
+    expect(screen.getByText(/as of 31 Oct 2026/)).toBeTruthy();
+    expect(screen.getByText("How this screen works")).toBeTruthy();
+    expect(screen.getByText("A screen narrows a list. It is not a recommendation.")).toBeTruthy();
+    expect(screen.getByText("Prism-confirmed")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /AAA/ }).getAttribute("href")).toBe("/stocks/AAA");
+    expect(within(rowOf("BBB")).getAllByLabelText("not available").length).toBe(1);   // a missing value is a dash, not 0
+  });
+  it("sorts the shown rows client-side, missing values last", async () => {
+    mount("?preset=large");
+    await screen.findByRole("table");
+    fireEvent.click(screen.getByRole("button", { name: "Sort by 1-year return" }));
+    expect(rowSyms()).toEqual(["AAA", "CCC", "BBB"]);
+    fireEvent.click(screen.getByRole("button", { name: "Sort by 1-year return" }));
+    expect(rowSyms()).toEqual(["CCC", "AAA", "BBB"]);
+  });
+  it("chips toggle, update the address and ask again with the chip; friendly params map to chip ids", async () => {
+    mount("?preset=emp");
+    await screen.findByRole("table");
+    expect(calls.at(-1)).toContain("chip=rated");
+    expect(screen.getByRole("button", { name: "Rated only" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "EMS and electronics" }));
+    await waitFor(() => expect(calls.at(-1)).toMatch(/chip=rated&chip=sub-ems|chip=sub-ems&chip=rated/));
+    expect(loc()).toContain("chip=sub-ems");
+    fireEvent.click(screen.getByRole("button", { name: "Rated only" }));
+    fireEvent.click(screen.getByRole("button", { name: "EMS and electronics" }));
+    expect(loc()).toContain("chip=none");   // every option off, where one is on by default
+  });
+  it("a screen with a Trend check chip is asked with it from ?trend=1", async () => {
+    mount("?preset=large&trend=1");
+    await screen.findByRole("table");
+    expect(calls.at(-1)).toBe("/api/screener/presets/large?chip=trend");
+  });
+  it("an empty result says so and lists the closest misses with the rule missed", async () => {
+    mount("?preset=debt");
+    expect(await screen.findByText("No company meets every rule today.")).toBeTruthy();
+    expect(screen.getByText(/Debt to equity above 0.1/)).toBeTruthy();
+    expect(screen.getByText("Closest to qualifying")).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+  it("theme cards filter the table to that theme's leaders", async () => {
+    mount("?preset=themes");
+    await screen.findByRole("table");
+    expect(rowSyms()).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: /Pharma/ }));
+    expect(rowSyms()).toEqual(["AAA"]);
+    expect(screen.getByRole("button", { name: /Pharma/ }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: /Pharma/ }));
+    expect(rowSyms()).toHaveLength(3);
+  });
+  it("an unknown screen id gets a calm message; Clear screen returns to the panel", async () => {
+    mount("?preset=nope");
+    expect(await screen.findByText("We could not find that screen")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear screen" }));
+    expect(loc()).toBe("/advanced-score-screener");
+    expect(await screen.findByRole("button", { name: /Top rated/ })).toBeTruthy();
+  });
+  it("a 403 from the detail shows the Gold teaser and never a table", async () => {
+    detail.large = [403, { detail: { status: "plan_required" } }];
+    mount("?preset=large");
+    expect(await screen.findByText(/part of Gold/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Unlock with Gold/ }));
+    expect(st.upgrade).toHaveBeenCalled();
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+});
+const rowOf = (s: string) => screen.getByRole("link", { name: new RegExp(s) }).closest("tr")!;
+
+describe("lib", () => {
+  it("orders groups and drops empty ones", () => {
+    expect(orderGroups([{ id: "x", name: "Zed", presets: [P("a", "A", "Zed") as never] }, { id: "e", name: "Safety", presets: [] }, { id: "t", name: "Trend", presets: [P("b", "B", "Trend") as never] }]).map((g) => g.name)).toEqual(["Trend", "Zed"]);
+  });
+  it("reads and resolves the address", () => {
+    const u = readPresetUrl(new URLSearchParams("preset=p&chip=a&sub=ems&trend=1"));
+    expect(u).toMatchObject({ preset: "p", chips: ["a"], trend: true, subs: ["ems"] });
+    expect(resolveChips(u, { chips: [chip("sub-ems", "E")] } as never)).toEqual(["a", "trend", "sub-ems"]);
+    expect(resolveChips(readPresetUrl(new URLSearchParams("preset=p")), { chips: [chip("r", "R", true), chip("q", "Q")] } as never)).toEqual(["r"]);
+  });
+  it("sorts text and numbers", () => {
+    expect(sortPresetRows([{ symbol: "B" }, { symbol: "A" }], { key: "symbol", dir: 1 }).map((r) => r.symbol)).toEqual(["A", "B"]);
+  });
+  it("builds the CSV with the screen's own columns, the disclaimer and blanks for missing values", () => {
+    const csv = presetCsv(DETAIL as unknown as PresetDetail, DETAIL.rows as never, { chips: ["trend"], chipLabels: { trend: "Trend check" }, sort: null, exportedOn: "2026-10-31" }).split("\r\n");
+    expect(csv).toContain("# A screen narrows a list. It is not a recommendation.");
+    expect(csv).toContain("# Options: Trend check");
+    expect(csv).toContain("Symbol,Name,Prism score,1-year return,Market cap,Flags");
+    expect(csv).toContain("AAA,Alpha Ltd,80,12.5,90000,Prism-confirmed");
+    expect(csv).toContain("BBB,Beta Ltd,90,,50000,");
+  });
+});

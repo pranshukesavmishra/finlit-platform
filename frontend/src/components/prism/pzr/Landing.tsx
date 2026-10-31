@@ -59,7 +59,7 @@ export function Picker({ statement, big = false }: { statement: Statement; setSt
           {typed && <div onMouseDown={(e) => e.preventDefault()}>
             {sf.on && !hits.length && <FilterNote filter={sf.filter} q={typed} onChange={sf.setFilter} hidden={hidden} />}
             {sf.on && hits.length > 0 && <HiddenRows hidden={hidden} filter={sf.filter} onChange={sf.setFilter} />}
-            {!sf.on && !hits.length && cleanSymbol(typed) && <p className="sf-empty" role="status">No listed company matches “{typed}” by name, symbol or ISIN. Check the spelling, or <button type="button" onClick={() => go(cleanSymbol(typed))}>try “{cleanSymbol(typed)}” as a symbol</button>.</p>}
+            {!sf.on && !hits.length && cleanSymbol(typed) && <p className="sf-empty" role="status">No listed company matches “{typed}” by name, symbol or ISIN. Check the spelling, or <button type="button" onClick={() => go(cleanSymbol(typed)!)}>try “{cleanSymbol(typed)}” as a symbol</button>.</p>}
           </div>}
         </div>}
       </div>
