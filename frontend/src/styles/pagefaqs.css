@@ -25,7 +25,13 @@ main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
 .pfq-a p { margin: 0; padding: 0 4px 18px; font: 400 15px/1.7 var(--sans); color: var(--muted); max-width: 72ch; }
 .pfq-f { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; font: 400 13px var(--sans); color: var(--faint); }
 .pfq-f a { color: var(--gold); font-weight: 600; text-decoration: none; } .pfq-f a:hover { text-decoration: underline; }
+.pfq-bulk { display: flex; justify-content: flex-end; padding: 6px 0 0; }
+.pfq-all { all: unset; cursor: pointer; font: 600 12.5px var(--sans); color: var(--gold); padding: 4px 6px; border-radius: 6px; } .pfq-all:hover { text-decoration: underline; } .pfq-all:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.pfq-i:target .pfq-q { color: var(--gold); }
+.pfq-i { scroll-margin-top: 90px; }
 /* hub */
+.pfq-search { margin: 14px 0 4px; } .pfq-search input { width: 100%; max-width: 420px; box-sizing: border-box; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-strong, var(--border)); background: var(--s1); color: var(--text); font: 400 15px var(--sans); } .pfq-search input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.pfq-count { margin: 6px 2px 0; min-height: 18px; font: 500 13px var(--sans); color: var(--muted); }
 .pfq-hub { padding-top: 32px; padding-bottom: 48px; max-width: 920px; }
 .pfq-hub-h p { color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 66ch; }
 .pfq-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; } .pfq-jump a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font: 600 13px var(--sans); text-decoration: none; } .pfq-jump a:hover { color: var(--gold); border-color: var(--gold); }
@@ -43,4 +49,7 @@ main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
   .pfq-q { padding: 14px 2px; min-height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) { .pfq-a, .pfq-a > div, .pfq-q svg { transition: none !important; } }
-@media print { .pfq { display: none !important; } }
+@media print {
+  .pfq { display: none !important; } .pfq-hub .pfq-search, .pfq-hub .pfq-jump, .pfq-bulk { display: none !important; }
+  .pfq-hub .pfq-a { grid-template-rows: 1fr !important; } .pfq-hub .pfq-a > div { visibility: visible !important; } .pfq-hub .pfq-q svg { display: none; } .pfq-hub .pfq-i { break-inside: avoid; }
+}

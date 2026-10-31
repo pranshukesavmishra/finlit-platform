@@ -83,7 +83,7 @@ describe("<PageFaqs />", () => {
   });
   it("accordion: collapsed by default, toggles, wires aria-expanded/aria-controls/labelledby, several can be open", () => {
     at("/dashboard");
-    const btns = screen.getAllByRole("button");
+    const btns = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"));
     expect(btns).toHaveLength(9);
     for (const b of btns) { expect(b.getAttribute("aria-expanded")).toBe("false"); expect(document.getElementById(b.getAttribute("aria-controls")!)).not.toBeNull(); }
     fireEvent.click(btns[0]); fireEvent.click(btns[1]);
@@ -97,8 +97,45 @@ describe("<PageFaqs />", () => {
   it("the All FAQs hub lists every set grouped by section", () => {
     render(<MemoryRouter><FaqsPage /></MemoryRouter>);
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(32);
-    expect(screen.getAllByRole("button")).toHaveLength(228);
+    expect(screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"))).toHaveLength(228);
     expect(screen.getByRole("heading", { level: 2, name: "Gold dashboards" })).toBeTruthy();
+    cleanup();
+  });
+});
+
+describe("FAQ upgrades", () => {
+  const at = (p: string) => render(<MemoryRouter initialEntries={[p]}><PageFaqs /></MemoryRouter>);
+  it("Expand all / Collapse all toggles every answer", () => {
+    at("/dashboard");
+    const qs = () => screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"));
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    expect(qs().every((b) => b.getAttribute("aria-expanded") === "true")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+    expect(qs().every((b) => b.getAttribute("aria-expanded") === "false")).toBe(true);
+    cleanup();
+  });
+  it("arrow keys, Home and End move focus between questions", () => {
+    at("/dashboard");
+    const qs = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"));
+    qs[0].focus(); fireEvent.keyDown(qs[0], { key: "ArrowDown" }); expect(document.activeElement).toBe(qs[1]);
+    fireEvent.keyDown(qs[1], { key: "End" }); expect(document.activeElement).toBe(qs[qs.length - 1]);
+    fireEvent.keyDown(qs[qs.length - 1], { key: "Home" }); expect(document.activeElement).toBe(qs[0]);
+    cleanup();
+  });
+  it("a #faq-<id>-<n> address opens that question", () => {
+    at("/dashboard#faq-dashboard-3");
+    expect(document.getElementById("faq-dashboard-3")!.querySelector("button")!.getAttribute("aria-expanded")).toBe("true");
+    cleanup();
+  });
+  it("hub search filters and reports the count, with a message when nothing matches", () => {
+    render(<MemoryRouter><FaqsPage /></MemoryRouter>);
+    const box = screen.getByRole("searchbox");
+    fireEvent.change(box, { target: { value: "sector" } });
+    const n = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls")).length;
+    expect(n).toBeGreaterThan(0); expect(n).toBeLessThan(228);
+    expect(screen.getByRole("status").textContent).toBe(`${n} of 228 questions match`);
+    fireEvent.change(box, { target: { value: "zzzqqq" } });
+    expect(screen.getByRole("status").textContent).toContain("No question matches");
     cleanup();
   });
 });
