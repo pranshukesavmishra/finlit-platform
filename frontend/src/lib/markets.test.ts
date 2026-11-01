@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Row } from "./screener";
-import { CATEGORIES, FLAT_TILE, gainers, indexFor, largest, losers, lastN, moveColour, sectorBoard, stocksFor, treemap, weightedMove } from "./markets";
+import { CATEGORIES, FLAT_TILE, gainers, indexFor, labelFont, largest, losers, lastN, moveColour, sectorBoard, stocksFor, tileMode, treemap, weightedMove } from "./markets";
 import type { IndexRow } from "./indices";
 
 const row = (symbol: string, sector: string, price: number | null, change_pct: number | null, market_cap: number | null): Row => ({ symbol, name: symbol, sector, price, change_pct, market_cap } as Row);
@@ -94,5 +94,24 @@ describe("broad sectors", () => {
     const r = (symbol: string, change_pct: number) => ({ symbol, name: symbol, sector: "Pharmaceuticals", price: 10, change_pct, market_cap: 500 }) as never;
     const b = sectorBoard([r("A", 1), r("B", 23800)]);
     expect(b).toHaveLength(1); expect(b[0].n).toBe(1); expect(b[0].move).toBe(1);
+  });
+});
+
+describe("heat map tile labels", () => {
+  it("every tile that can hold a readable word shows it; only a speck is left to the hover card", () => {
+    expect(tileMode(120, 90)).toBe("full");
+    expect(tileMode(50, 40)).toBe("medium");
+    expect(tileMode(40, 20)).toBe("mini");       // the small members of an index used to be blank
+    expect(tileMode(26, 15)).toBe("mini");
+    expect(tileMode(20, 40)).toBe("none");
+    expect(tileMode(80, 10)).toBe("none");
+    expect(tileMode(66, 44, 70)).toBe("medium"); // a sector tile asks for a wider box before it shows the logo layout
+  });
+  it("the font shrinks to fit the word, never below 8.5px and never above the limit", () => {
+    expect(labelFont("RIL", 200, 13.5)).toBe(13.5);
+    expect(labelFont("ULTRACEMCO", 70, 13.5)).toBeLessThan(13.5);
+    expect(labelFont("ULTRACEMCO", 70, 13.5)).toBeGreaterThanOrEqual(8.5);
+    expect(labelFont("MOTHERSON", 20, 10.5)).toBe(8.5);
+    expect(labelFont("", 40, 10.5)).toBeGreaterThan(8);
   });
 });
