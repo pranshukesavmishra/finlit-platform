@@ -49,7 +49,7 @@ async def test_research_routes_win_but_stocks_admin_goes_to_the_site_backend():
 
     c = client(make_app(upstream))
     assert (await c.get("/api/stocks/TCS/summary")).json() == {"research": True}
-    assert (await c.get("/api/health")).json() == {"ok": True, "version": "unknown"}
+    assert (await c.get("/api/health")).json() == {"ok": True}
     assert (await c.get("/api/stocks/admin/fundamentals")).json() == {"site": "/api/stocks/admin/fundamentals"}
     assert (await c.get("/api/portfolio/report")).json() == {"site": "/api/portfolio/report"}
 
