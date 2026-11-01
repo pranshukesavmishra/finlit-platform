@@ -6,7 +6,6 @@ import { TIER, useUI } from "../lib/ui";
 import { useSavedScreens } from "../lib/screens";
 import { useWatchlist } from "../lib/watchlist";
 import { usePortfolio } from "../lib/portfolio";
-import { PageFaqs } from "./PageFaqs";
 import { DEMO } from "../lib/demo";
 import { useAlerts, useNotices } from "../lib/alerts";
 import { MORE, SECTIONS, type NavItem } from "../lib/nav";
@@ -43,31 +42,6 @@ export function AppShell() {
   const q = query.trim().toLowerCase();
   const searchRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const body = bodyRef.current, active = body?.querySelector<HTMLElement>(".side-i.on");
-      if (!body || !active) return;
-      const item = active.getBoundingClientRect(), viewport = body.getBoundingClientRect();
-      if (item.top < viewport.top + 8 || item.bottom > viewport.bottom - 8) body.scrollTop += item.top - viewport.top - 16;
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [pathname, collapsed]);
-  useEffect(() => {
-    if (!open || typeof matchMedia !== "function" || !matchMedia("(max-width: 960px)").matches) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const frame = requestAnimationFrame(() => searchRef.current?.focus());
-    const trap = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
-      const visible = [...document.querySelectorAll<HTMLElement>(".side a, .side button, .side input")].filter(el => !el.closest("[inert]") && !el.hasAttribute("disabled") && el.getClientRects().length && getComputedStyle(el).visibility !== "hidden");
-      const first = visible[0], last = visible[visible.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-    };
-    document.addEventListener("keydown", trap);
-    return () => { cancelAnimationFrame(frame); document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", trap); previous?.focus(); };
-  }, [open]);
   const [scrolled, setScrolled] = useState(false);
   const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
   useEffect(() => {
@@ -96,11 +70,11 @@ export function AppShell() {
   const mine = (id: string, extra: Item[] = []) => [...SECTIONS.find((x) => x.id === id)!.groups.flatMap((g) => g.items).map(toItem), ...extra];
   const groups: Group[] = [
     { title: "Overview", items: [{ to: "/dashboard", label: "Dashboard", icon: "home" }] },
-    { title: "Your workspace", items: mine("myfinlit", [{ to: "/baskets", label: "My baskets", icon: "layers" }]).filter((x) => x.to !== "/dashboard") },
     ...RESEARCH.groups.map((g) => ({ title: g.title || RESEARCH.label, items: g.items.map(toItem) })),
     { title: "Markets", items: mine("markets") },
     { title: "News & events", items: mine("news") },
     { title: "Funds", items: mine("funds") },
+    { title: "Your workspace", items: mine("myfinlit", [{ to: "/baskets", label: "My baskets", icon: "layers" }]).filter((x) => x.to !== "/dashboard") },
     { title: MORE.groups[0].title!, items: MORE.groups[0].items.map(toItem) },
     { title: "Learn", items: [{ to: "/glossary", label: "Glossary", icon: "book" }, { to: "/blog", label: "Insights & blog", icon: "spark" }, { to: "/documents", label: "Documents", icon: "layers" }, { to: "/forum", label: "Forums", icon: "users" }] },
     ...(user ? [{ title: "Account", items: [
@@ -112,8 +86,8 @@ export function AppShell() {
   ];
 
   const here = (g: Group) => g.items.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(i.to + "/")));
-  // Open the active group and preserve saved preferences; personal work starts expanded on a first visit.
-  const groupOpen = (g: Group) => here(g) || folded[g.title] === true || (folded[g.title] === undefined && (g.items.length === 1 || g.title === "Your workspace"));
+  // open when the page you are on is inside it, otherwise what you chose; the one-page Overview group and the first visit start open for Find stocks
+  const groupOpen = (g: Group) => here(g) || folded[g.title] === true || (folded[g.title] === undefined && (g.items.length === 1 || g.title === "Find stocks"));
   const shown = useMemo(() => groups.map((g) => ({ g, items: !q ? g.items : g.title.toLowerCase().includes(q) ? g.items : g.items.filter((i) => i.label.toLowerCase().includes(q)) })), [groups, q]);
   const hits = shown.reduce((n, x) => n + x.items.length, 0);
   // Arrow keys walk the visible group headers and links; Home/End jump to the ends; ArrowUp from the first row returns to the search box.
@@ -154,9 +128,9 @@ export function AppShell() {
             if (q && !items.length) return null;
             const gid = "sg-" + g.title.replace(/\W+/g, "-"), isOpen = !!q || groupOpen(g), b = badgeFor(g.title), holds = here(g);
             return (
-            <div data-section={g.title} className={"side-g" + (isOpen ? " is-open" : "") + (holds ? " has-here" : "")} key={g.title}>
+            <div className={"side-g" + (isOpen ? " is-open" : "") + (holds ? " has-here" : "")} key={g.title}>
               <button type="button" className="side-gt side-gb" aria-expanded={isOpen} aria-controls={gid} onClick={() => toggleGroup(g.title, !isOpen)}>
-                <span className="side-gbd" aria-hidden="true"><Icon name={b.icon} /></span><span className="side-gname">{g.title}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+                <span className="side-gbd" aria-hidden="true"><Icon name={b.icon} /></span><span className="side-gname">{g.title}</span><span className="side-gn" aria-label={g.items.length + (g.items.length === 1 ? " page" : " pages")}>{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
               </button>
               <div id={gid} className="side-gi" role="region" aria-label={g.title} inert={!isOpen && !collapsed}>
               <div className="side-gin">
@@ -172,16 +146,16 @@ export function AppShell() {
             );
           })}
         </nav>
-        {plan !== "gold" && <div className="side-foot">
+        <div className="side-foot">
           <div className="side-plan" style={{ "--tc": `var(${TIER[plan].tc})` } as React.CSSProperties}>
             <span className={"tier " + plan}><Icon name={TIER[plan].ic} />{TIER[plan].n}</span>
-            <><p>{plan === "basic" ? "Unlock the FinLit score, watchlists and more." : "Gold adds FinLit Prism and deeper analysis."}</p><Link className="btn primary" to={user ? "/account/plan?want=" + (plan === "basic" ? "silver" : "gold") : "/plans"}>{plan === "basic" ? "See Silver" : "See Gold"}</Link></>
+            {plan !== "gold" ? <><p>{plan === "basic" ? "Unlock the FinLit score, watchlists and more." : "Gold adds FinLit Prism and deeper analysis."}</p><Link className="btn primary" to={user ? "/account/plan?want=" + (plan === "basic" ? "silver" : "gold") : "/plans"}>{plan === "basic" ? "See Silver" : "See Gold"}</Link></> : <p>Everything is unlocked.</p>}
           </div>
-        </div>}
+        </div>
         </div>
       </aside>
       {tip && <div className="side-tip" role="presentation" style={{ top: tip.top, left: tip.left }}>{tip.label}</div>}
-      <div className="shell-main"><Outlet /><PageFaqs /></div>
+      <div className="shell-main"><Outlet /></div>
     </div>
   );
 }

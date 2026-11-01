@@ -55,11 +55,6 @@ describe("metrics", () => {
   });
 });
 describe("view state", () => {
-  it("starts with one empty chart unless a company was explicitly selected", () => {
-    expect(defaultView().layout).toBe("1x1");
-    expect(defaultView().cells).toEqual([{ chart: "line", series: [] }]);
-    expect(defaultView("TCS").cells[0].series).toEqual([{ s: "TCS", m: "price" }]);
-  });
   it("round-trips through the URL and clamps to the plan", () => {
     const v = defaultView(); expect(decodeView(encodeView(v), "gold")).toEqual(sanitize(v, "gold"));
     const big = { layout: "3x3", cells: [{ chart: "heatmap", series: ["A", "B", "C"].map((s) => ({ s, m: "price" })) }] };

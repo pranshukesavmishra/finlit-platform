@@ -73,15 +73,3 @@
 .dk-tile.band-hi  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-hi) 30%, transparent), color-mix(in srgb, var(--band-hi) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-hi) 70%, transparent); }
 .dk-tile.band-mid { background: linear-gradient(160deg, color-mix(in srgb, var(--band-mid) 30%, transparent), color-mix(in srgb, var(--band-mid) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-mid) 70%, transparent); }
 .dk-tile.band-lo  { background: linear-gradient(160deg, color-mix(in srgb, var(--band-lo) 30%, transparent), color-mix(in srgb, var(--band-lo) 9%, transparent) 70%), rgba(var(--dk-w, 255,255,255),.012); border-color: color-mix(in srgb, var(--band-lo) 70%, transparent); }
-
-/* Review: plain values replace ornamental rings; status words carry their meaning. */
-:root:root .dk-tile { background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; box-shadow:none; transform:none; padding:16px; }
-:root:root .dk-tile::before,:root:root .dk-tile::after { content:none; }
-:root:root .dk-tile.is-btn:hover,:root:root .dk-tile.hot { background:var(--bg-selected); border-color:var(--border-control); box-shadow:none; transform:none; }
-.dk-t-value { color:var(--text-primary); font:var(--type-stat-value-md); font-variant-numeric:tabular-nums; }
-.dk-t-value small { color:var(--text-secondary); font:var(--type-caption); }
-:root .dk-t-name { font:var(--type-nav-label); color:var(--text-primary); }
-:root .dk-t-ic { background:transparent; border:0; box-shadow:none; }
-:root .dk-st { letter-spacing:0; text-transform:none; font:var(--type-body-compact); }
-:root .dk-bar { display:none; }
-@media(max-width:767px) { :root:root .dk-tile { padding:12px; }.dk-t-value { font:var(--type-stat-value-md); } }

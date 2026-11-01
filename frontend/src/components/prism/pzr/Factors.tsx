@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { nf } from "../../../lib/format";
 import {
-  STANDING_WORD, factorDetail, factorValue, isRated, partInfo, partsOf, reviewItem, score1, standing,
+  STANDING_WORD, factorDetail, factorValue, isRated, partInfo, partShare, partsOf, reviewItem, score1, standing,
   type PartKey, type PrismMetric, type PrismReport, type PrismReview, type ReviewPart,
 } from "../../../lib/prism";
 import { BADGE_WORD, FILTER_WORD, POINT_TICKS, filterFactors, partVar, sortFactors, valueBar, type FactorFilter, type FactorSort } from "../../../lib/prismReport";
@@ -53,7 +53,7 @@ function PartSection({ part, index, report, review, filter, sort }: { part: Revi
     <section id={`pzr-part-${part.key}`} tabIndex={-1} className="pzr-fp" aria-labelledby={`pzr-fh-${part.key}`} style={{ "--c": partVar(part.key, index) } as React.CSSProperties}>
       <header className="pzr-fp-h">
         <span className="pzr-fp-sw" aria-hidden="true" />
-        <div><h4 id={`pzr-fh-${part.key}`}>{partInfo(part.key).name}</h4><p>{partInfo(part.key).what}</p></div>
+        <div><h4 id={`pzr-fh-${part.key}`}>{partInfo(part.key).name}</h4><p>{partInfo(part.key).what} Counts for {partShare(rating.partWeights, part.key)}% of the overall score.</p></div>
         <p className="pzr-fp-s">{score == null ? <small>Not rated</small> : <>{score1(score)}<small> / 100</small></>}</p>
       </header>
       {rated && part.notes?.map((n, i) => <p key={i} className="pzr-fnote">{n}</p>)}

@@ -109,6 +109,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             </div>
           </div>
         </div>
+        <TradingFacts s={s} />
 
         <div className="pz-pair dk-pair" data-open={dashOpen}>
         <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
@@ -124,7 +125,6 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
           </>}
         </div>
 
-        <TradingFacts s={s} />
         <div className="kpis">
           {KPI_SPEC.map(([key, label, icon, color]) => {
             const m = metric(s, key), e = ratios?.latest[key], val = m?.value ?? e?.value, unit = m?.unit ?? e?.unit, period = m?.period ?? e?.period;
@@ -146,7 +146,7 @@ function HeroSpark({ values }: { values: number[] }) {
   if (values.length < 2) return null;
   const mn = Math.min(...values), mx = Math.max(...values), n = values.length, X = (i: number) => 2 + (i / (n - 1)) * 140, Y = (p: number) => 48 - ((p - mn) / (mx - mn || 1)) * 42;
   const d = values.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p).toFixed(1)}`).join("");
-  return (<><defs><linearGradient id="hsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-1)" stopOpacity=".35" /><stop offset="1" stopColor="var(--chart-1)" stopOpacity="0" /></linearGradient></defs>
-    <path d={`${d}L${X(n - 1)},52L2,52Z`} fill="url(#hsg)" /><path d={d} fill="none" stroke="var(--chart-1)" strokeWidth="1.8" strokeLinejoin="round" /><circle cx={X(n - 1)} cy={Y(values[n - 1])} r="3.5" fill="var(--chart-1)" /></>);
+  return (<><defs><linearGradient id="hsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--gold)" stopOpacity=".35" /><stop offset="1" stopColor="var(--gold)" stopOpacity="0" /></linearGradient></defs>
+    <path d={`${d}L${X(n - 1)},52L2,52Z`} fill="url(#hsg)" /><path d={d} fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinejoin="round" /><circle cx={X(n - 1)} cy={Y(values[n - 1])} r="3.5" fill="var(--gold-2)" /></>);
 }
 void MINUS; void Spark;

@@ -1,5 +1,5 @@
-// The heading of every feature page: plan badge, product title (the page's one h1), short description, quiet related-page links,
-// and up to three real key figures. Decorative artwork is suppressed by the current component treatment. Styles: styles/page-header.css (class prefix ph-).
+// The heading of every feature page: plan badge, serif title (the page's one h1), a short description, quick links to the related pages,
+// up to three key-figure tiles and a line illustration. Styles: styles/page-header.css (class prefix ph-).
 //   plan         "free" | "silver" | "gold" (or "basic", the same as "free"): the plan that gates the page. Leave out when the page is open to everyone and not a plan feature.
 //   stats        tiles { icon, value, label }. A tile is drawn only when its value is real data (not null / empty / NaN / a dash): never a placeholder number.
 //   links        up to four related pages, as addresses ("/score-screener") or { to, label?, primary? }. Each must exist in lib/nav.ts (or the short extras list in
@@ -53,7 +53,7 @@ export function PageHeader({ plan, title, description, eyebrow, stats, links, le
       ? <button type="button" className="ph-learn ph-link-btn" onClick={lo.onClick}><Icon name="info" />{label}</button>
       : <a className="ph-learn" href="#faq" onClick={(e) => { const el = document.getElementById("faq"); if (el) { e.preventDefault(); el.scrollIntoView?.({ behavior: typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); } }}><Icon name="info" />{label}</a>;
   const card = (
-    <section className={"ph" + (tiles.length ? " ph-has-stats" : "") + (sided ? "" : " ph-solo") + (className ? " " + className : "")} aria-labelledby={tid} data-plan={plan ?? undefined}>
+    <section className={"ph" + (sided ? "" : " ph-solo") + (className ? " " + className : "")} aria-labelledby={tid} data-plan={plan ?? undefined}>
       <div className="ph-main">
         {back ? <div className="ph-back">{back}</div> : null}
         {(p || eyebrow) ? <div className="ph-top">{p ? <span className={"ph-plan " + p.cls}><Icon name={p.ic} />{p.n}</span> : null}{eyebrow ? <span className="ph-eyebrow">{eyebrow}</span> : null}</div> : null}

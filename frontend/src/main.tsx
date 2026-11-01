@@ -30,19 +30,13 @@ import "./styles/leadership.css";
 import "./styles/prism.css";
 import "./styles/pagefaqs.css";
 import "./styles/luxe.css";
+import "./styles/headerlinks.css";
+import "./styles/design-system.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";
 // Loaded last so these (sidebar, earnings dialog, opaque overlays) win over the page styles above. Kept apart from the style list so a team change there never collides with it.
 import "./styles/sidebar.css";
 import "./styles/earnings.css";
-// The approved semantic system follows legacy page styles; overlay opacity remains the final guard.
-import "./styles/design-system.css";
-import "./styles/minimal.css";
-import "./styles/tiers.css";
-import "./styles/landing-showcase.css";
-import "./styles/workspace.css";
-import "./styles/market-tape.css";
-import "./styles/headerlinks.css";
 import "./styles/overlay.css";
 import { purgeLegacy } from "./lib/persist";
 

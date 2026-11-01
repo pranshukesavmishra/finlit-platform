@@ -1,4 +1,4 @@
-// One FinLit Prism report: summary, strengths and concerns, optional calculation details, every factor, financial history, valuation against
+// One FinLit Prism report: hero with the prism ring, the parts, what moved the score, every factor, financial history, valuation against
 // the benchmark, and completeness and freshness. NOT RATED never shows category scores. Layout lives in styles/prism-report.css (pzr-*).
 import { Icon } from "../../lib/icons";
 import { PRISM_NAME, PRISM_NOTE, incomeNote, incomeWord, notRatedReason, prismReview } from "../../lib/prism";
@@ -7,7 +7,7 @@ import { FactorExplorer } from "./pzr/Factors";
 import { Health, Peers } from "./pzr/Health";
 import { HistoryCharts, HistoryTables } from "./pzr/History";
 import { PartCards, Waterfall } from "./pzr/Parts";
-import { Technical } from "./pzr/Technical";
+import { Technical, TechPointer } from "./pzr/Technical";
 import "../../styles/prism-technical.css";
 import type { PrismReport } from "../../lib/prism";
 
@@ -31,14 +31,14 @@ export function PrismReportView({ report, actions = {}, example = false }: { rep
       {example && <p className="pzr-example-b" role="note"><b>Example</b> A fictional company, to show the layout. Not a real rating.</p>}
       <Hero report={report} actions={actions} />
       {report.rating.dataIntegrityStatus === "REVIEW REQUIRED" && (
-        <div className="pzr-caution" role="note"><Icon name="alert" /><span><b>Validation needs review.</b> {notRatedReason(report.rating) ?? "Input completeness does not mean every input has passed validation."} <a href="#pzr-h-health">Read the checks and source notes</a>. The caution does not change the score.</span></div>
+        <div className="pzr-caution" role="note"><Icon name="alert" /><span><b>Data check: review required.</b> {notRatedReason(report.rating) ?? "Some inputs could not be fully verified"} (see the review notes below). The caution does not change the score; read the result with it in mind.</span></div>
       )}
       {legacy && (
         <div className="pzr-caution" role="note"><Icon name="info" /><span>This stored report predates the reader commentary. <button type="button" className="pzr-link pzr-noprint" onClick={actions.onRecalculate}>Recalculate</button> for the full review.</span></div>
       )}
-      <nav className="report-sections" aria-label="Prism report sections"><a href="#pzr-h-parts">Summary</a><a href="#pzr-h-fx">Factors</a><a href="#pzr-technical">Technical view</a><a href="#pzr-h-hist">Financials</a><a href="#pzr-h-health">Data checks</a></nav>
+      <TechPointer report={report} />
       <PartCards report={report} review={review} />
-      <details className="report-details"><summary>How this score was calculated</summary><Waterfall report={report} /></details>
+      <Waterfall report={report} />
       <FactorExplorer report={report} review={review} />
       <Technical report={report} onRecalculate={actions.onRecalculate} />
       <section className="pzr-sec" aria-labelledby="pzr-h-hist">

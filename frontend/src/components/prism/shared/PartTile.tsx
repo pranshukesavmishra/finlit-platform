@@ -38,6 +38,8 @@ export type PartTileProps = {
   hint?: { short: string; long: string } | null;
 };
 
+const R = 15;
+
 /** The colour band of a score, as the founder set it: green from 70, orange from 50 to under 70, red under 50. Colour decorates the tile; the status word keeps
  *  the model's own labels, and the number says the rest. */
 export type Band = ScoreBand;
@@ -64,7 +66,10 @@ export function PartTile({ name, value, word, tone, color, weight, note, icon, i
   const inner = (
     <>
       <span className="dk-t-top">
-        <span className="dk-t-value" aria-hidden="true">{value == null ? "—" : Math.round(value)}<small> / 100</small></span>
+        <span className="dk-ring" aria-hidden="true">
+          <svg viewBox="0 0 38 38"><circle className="dk-ring-bg" cx="19" cy="19" r={R} /><circle className="dk-ring-fg" cx="19" cy="19" r={R} pathLength={100} strokeDasharray={`${v} 100`} /></svg>
+          <b>{value == null ? "—" : Math.round(value)}</b>
+        </span>
         {icon ? <span className="dk-t-ic" aria-hidden="true">{icon}</span> : weight != null ? <span className="dk-t-w" title={`${weight}% of the score`}>{weight}%</span> : null}
       </span>
       <span className="dk-t-name">{name}</span>

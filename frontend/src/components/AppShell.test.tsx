@@ -16,12 +16,6 @@ afterEach(() => { cleanup(); localStorage.clear(); });
 const show = (path: string) => render(<MemoryRouter initialEntries={[path]}><Routes><Route element={<AppShell />}><Route path="*" element={<p>page</p>} /></Route></Routes></MemoryRouter>);
 
 describe("AppShell rail", () => {
-  it("keeps page questions inside the content column and leaves the global footer outside the rail", () => {
-    const { container } = show("/premium/fundamentals");
-    expect(container.querySelectorAll("#faq")).toHaveLength(1);
-    expect(container.querySelector(".shell-main > #faq")).toBeTruthy();
-    expect(container.querySelector(".shell .site-footer")).toBeNull();
-  });
   it("renders every group as a button with aria-expanded, controlling a labelled region", () => {
     const { container } = show("/screener");
     const heads = [...container.querySelectorAll<HTMLButtonElement>("button.side-gb")];

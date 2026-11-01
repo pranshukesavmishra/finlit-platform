@@ -64,14 +64,14 @@ function Statement({ rows, limit, unit, file, growth = true, chart = true }: { r
           <MiniBars labels={asc} series={[{ key: "v", label: name(row), values: vals, color: "var(--gold)" }]} fmt={short} height={190} w={720} highlight={asc.length - 1} />
         </div>)}
       <div className="pm-tools"><button className="alx-link" onClick={csv}><Icon name="table" /> Export CSV</button></div>
-      <HScroll className="pm-table-scroll" label="financial table"><table className={"pm-t pm-statement" + (chart ? " pm-selectable" : "")}><thead><tr><th scope="col">Item</th>{periods.map((p) => <th scope="col" key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th scope="col" className="n">Change</th>}</tr></thead>
+      <HScroll className="" label="table"><table className="pm-t pm-pick"><thead><tr><th>Item</th>{periods.map((p) => <th key={p} className="n">{p}</th>)}{growth && periods.length > 1 && <th className="n">Change</th>}</tr></thead>
         <tbody>{rows.map((r, i) => {
           const s = series(r, periods), a = s[0], b = s[1];
           const ch = typeof a === "number" && typeof b === "number" && b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null;
           return (
             <tr key={(r.category || r.label || "") + i} className={chart && i === pick ? "on" : ""} onClick={chart ? () => setPick(i) : undefined} tabIndex={chart ? 0 : undefined}
               onKeyDown={chart ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPick(i); } } : undefined} aria-selected={chart ? i === pick : undefined}>
-              <th scope="row">{name(r)}</th>{s.map((v, j) => <td key={j} className="n">{val(v)}</td>)}
+              <td>{name(r)}</td>{s.map((v, j) => <td key={j} className="n">{val(v)}</td>)}
               {growth && periods.length > 1 && <td className="n" style={{ color: ch == null ? undefined : ch >= 0 ? "var(--gain)" : "var(--loss)", whiteSpace: "nowrap" }}>{ch == null || !Number.isFinite(ch) ? MINUS : signed(ch, 1)}</td>}
             </tr>);
         })}</tbody></table></HScroll>
@@ -168,7 +168,7 @@ function Ratios({ d, limit }: { d: Fund; limit: number }) {
       {rows.length ? (
         <>
           <div className="pm-tools"><button className="alx-link" onClick={() => downloadCsv(`${d.instrument?.symbol}-ratios`, ["Ratio", "Company", "Sector"], rows.map((r) => [r.name, r.company_value, r.sector_value]))}><Icon name="table" /> Export CSV</button></div>
-          <HScroll className="pm-table-scroll" label="financial table"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th><th>Company against sector</th></tr></thead>
+          <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Ratio</th><th className="n">Company</th><th className="n">Sector</th><th>Company against sector</th></tr></thead>
             <tbody>{rows.map((r) => {
               const c = r.company_value, s = r.sector_value, max = Math.max(Math.abs(c ?? 0), Math.abs(s ?? 0), 1e-9);
               return <tr key={r.name}><td>{r.name}</td><td className="n">{val(c)}</td><td className="n">{val(s)}</td>
@@ -273,7 +273,7 @@ export function FundamentalsPage() {
               <h2 className="pm-h2">Peers</h2>
               {(data.competitors || []).length ? <div className="pm-peers">{data.competitors!.map((c, i) => <button key={i} className="pm-peer" onClick={() => c.symbol && choose(c.symbol)} disabled={!c.symbol}><span className="av mini" aria-hidden="true">{(c.name || c.symbol || "?").slice(0, 2).toUpperCase()}</span><span><b>{c.symbol || MINUS}</b><small>{c.name}</small><small className="faint">{c.sector}</small></span><Icon name="arrow" /></button>)}</div> : <div className="pm-empty">No peers were reported.</div>}
               <div className="pm-sec"><h2>Dividends and corporate actions</h2>
-                {(data.corporateActions || []).length ? <HScroll className="pm-table-scroll" label="financial table"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></HScroll> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
+                {(data.corporateActions || []).length ? <HScroll className="" label="table"><table className="pm-t"><thead><tr><th>Type</th><th>Detail</th><th>Ex-date</th><th className="n">Amount / ratio</th></tr></thead><tbody>{data.corporateActions!.slice(0, 40).map((a, i) => <tr key={i}><td><span className={"chip " + (/divid/i.test(a.type || "") ? "up" : "info")}>{a.type || MINUS}</span></td><td className="wrapc">{a.name || a.purpose || MINUS}</td><td>{a.ex_date ? dateIN(String(a.ex_date).slice(0, 10)) : MINUS}</td><td className="n">{a.amount != null && a.amount !== "" ? "₹" + val(Number(a.amount)) : a.ratio || MINUS}</td></tr>)}</tbody></table></HScroll> : <div className="pm-empty">No corporate actions were reported.</div>}</div></>)}
             <p className="pm-meta" style={{ marginTop: 22 }}>Figures come from company filings through FinEdge. Missing values show a dash. General information, not investment advice.</p>
           </>)}
       </div>

@@ -12,10 +12,10 @@ export const cellCount = (layout: string) => (LAYOUTS[layout] ? LAYOUTS[layout].
 export const CHART_LABEL: Record<ChartKind, string> = { line: "Line", area: "Area", column: "Column", bar: "Bar (latest values)", combo: "Combo (bars + line)", pie: "Pie", candlestick: "Candlestick", scatter: "Scatter (X vs Y)", heatmap: "Heatmap" };
 const SYM = /^(IDX:[A-Z0-9]{2,24}|[A-Z0-9&_.-]{1,24})$/;   // a company symbol, or an index as IDX:code
 
-/** Start with one chart. A company link seeds price; the standalone builder waits for a selection. */
-export const defaultView = (symbol?: string): View => ({
-  v: 1, layout: "1x1", basis: "annual", range: "5Y",
-  cells: [{ chart: "line", series: symbol ? [{ s: symbol, m: "price" }] : [] }],
+export const defaultView = (symbol = "RELIANCE"): View => ({
+  v: 1, layout: "2x2", basis: "annual", range: "5Y",
+  cells: [{ chart: "line", series: [{ s: symbol, m: "price" }] }, { chart: "column", series: [{ s: symbol, m: "revenue" }] },
+    { chart: "column", series: [{ s: symbol, m: "net_profit" }] }, { chart: "line", series: [{ s: symbol, m: "pe" }] }],
 });
 
 /** Make any object (from a URL, local storage or the server) into a valid view within the plan's limits. Never throws. */

@@ -55,7 +55,8 @@ export function BasketsPage() {
   return (
     <>
       <PageHeader wrap plan="free" title="My baskets" art="search" links={["/query-builder", "/screener", "/watchlist"]}
-        description="Save your own screening rules and revisit the companies that match as their figures change." />
+        description="A basket is a query you wrote and named. It is your own screen, not a model portfolio: the list changes as company figures change, and each basket shows how many companies match today."
+        stats={[{ icon: "layers", value: q.data ? list.length : null, label: "Baskets saved" }, { icon: "table", value: q.data && max > 0 ? max : null, label: "Basket limit" }]} />
       <div className="wrap qb">
         {DEMO ? <div className="state"><p>Baskets are part of the live site.</p></div>
           : !user ? <div className="card state"><h2>Sign in to keep baskets</h2><p>Baskets are saved to your account so they are there on any device.</p><Link className="btn primary" to="/login">Sign in</Link></div>
@@ -64,7 +65,7 @@ export function BasketsPage() {
           : <>
             <div className="qb-bkbar"><span aria-live="polite"><b>{list.length}</b> of {max} baskets used{list.length >= max ? <> · <Link className="alx-link" to="/account/plan">More with {TIER[q.data!.plan === "basic" ? "silver" : "gold"].n}</Link></> : null}</span>
               <Link className="btn primary" to="/query-builder">New basket</Link></div>
-            {list.length === 0 ? <div className="card state"><h2>No baskets yet</h2><p>Write a query in the Query builder, then choose “Save as basket”. Try an example like “Quality compounders” to see how it works.</p></div>
+            {list.length === 0 ? <div className="card state"><h2>No baskets yet</h2><p>Write a query in the Query builder, then choose “Save as basket”. Try an example like “Quality compounders” to see how it works.</p><Link className="btn primary" to="/query-builder">Open the Query builder</Link></div>
               : <ul className="qb-bklist">{list.map((b) => <Card key={b.id} b={b} names={list.map((x) => x.name)} />)}</ul>}
             <p className="faint qb-foot"><Icon name="info" /> Counts use today's data and your current plan. A basket is a list that matches your rules, not advice on what to buy or sell.</p>
           </>}

@@ -18,7 +18,6 @@ import { Login } from "./pages/Login";
 import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows";
 
 // Heavier pages load on demand so the first visit stays small and fast.
-const PlatformPage = lazy(() => import("./pages/Platform").then((m) => ({ default: m.PlatformPage })));
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
 const FundScoreScreener = lazy(() => import("./pages/FundScoreScreener").then((m) => ({ default: m.FundScoreScreenerPage })));
@@ -84,7 +83,8 @@ export default function App() {
     <UpdateBanner />
     <Suspense fallback={<Fallback />}>
       <Routes>
-        <Route element={<Layout workspace />}>
+        <Route element={<Layout />}>
+          <Route index element={<Home />} />
           <Route element={<AppShell />}>
             <Route path="research" element={<><Research onSearch={() => setSearch(true)} /><SearchPalette open={search} onClose={() => setSearch(false)} /></>} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -138,10 +138,6 @@ export default function App() {
             <Route path="account/:tab" element={<Account />} />
             <Route path="console" element={<Console />} />
           </Route>
-        </Route>
-        <Route element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="platform" element={<PlatformPage />} />
           <Route path="stocks/:symbol" element={<StockPage />} />
           <Route path="sip-calculator" element={<SipCalculator />} />
           <Route path="plans" element={<PlansPage />} />

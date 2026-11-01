@@ -341,29 +341,3 @@
 .report.dk-card [class~="pzt-rs"] i { background: var(--dk-ink); box-shadow: 0 0 0 1.5px var(--dk-b); } .report.dk-card [class~="pzt-rs"] u { background: var(--dk-ink); }
 @media (max-width: 760px) { :root:root .dk-gh { padding: 0 20px; } .dk-grp.tech [class~="pzt-row"][class~="pzt-row"] { margin-top: 0; } }
 .dk-grp.tech [class~="pzt-row"][class~="pzt-row"] { margin-top: 12px; }
-
-/* Review: report data uses the product surface and type system in both themes. */
-:root:root .report.dk-card {
- --bg:var(--bg-page); --s1:var(--bg-surface); --s2:var(--bg-subtle); --s3:var(--bg-elevated);
- --text:var(--text-primary); --muted:var(--text-secondary); --faint:var(--text-muted); --border:var(--border-subtle); --border-strong:var(--border-control);
- --gold:var(--gold-text); --dk-border:var(--border-subtle);
- background:var(--bg-surface); border-radius:8px; border-color:var(--border-subtle); box-shadow:none;
-}
-:root:root .report.dk-card::before { content:none; }
-:root .dk-head { padding:16px 24px; background:transparent; }
-:root .dk-row { height:auto; min-height:0; padding:24px; gap:28px; }
-:root .dk-thesis { font:var(--type-heading-04); max-width:64ch; }
-:root .dk-read { gap:12px; }
-.dk-score-number { flex:none; min-width:100px; display:flex; flex-direction:column; gap:8px; font:var(--type-caption); color:var(--text-secondary); }
-.dk-score-number strong { font:var(--type-heading-01); color:var(--text-primary); font-variant-numeric:tabular-nums; }
-:root .dk-tiles { padding:0 24px 24px; gap:12px; }
-:root .dk-head .eyebrow { font:var(--type-nav-label); letter-spacing:0; color:var(--text-secondary); }
-:root .dk-know1 { padding:0 24px 24px; }
-:root .dk-pc-h { font:var(--type-nav-label); letter-spacing:0; }
-@media(max-width:767px) {
- :root .dk-head { padding:16px; }:root .dk-row { align-items:flex-start; flex-direction:row; text-align:left; padding:20px 16px; gap:20px; }
- :root .dk-read { align-items:flex-start; }:root .dk-rk { justify-content:flex-start; }
- :root .dk-thesis { font:var(--type-body-01); text-align:left; }
- :root .dk-tiles { padding:0 16px 16px; }:root .dk-know1 { padding:0 16px 16px; }
- .dk-score-number { min-width:72px; }
-}

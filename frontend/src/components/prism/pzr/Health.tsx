@@ -100,7 +100,7 @@ function Checklist({ report, completeness, onRecalculate }: { report: PrismRepor
   }
   return (
     <div className="pzr-check">
-      <h4>Input completeness and validation</h4>
+      <h4>Completeness</h4>
       <ul className="pzr-cl">{items.map((it, i) => <li key={i} className={it.ok ? "ok" : "warn"}><Icon name={it.ok ? "check" : "alert"} /><span>{it.text}</span><strong>{it.ok ? "Complete" : "Check"}</strong></li>)}</ul>
       {!completeness && <p className="pzr-small">Recalculate this report to see the latest missing-input and history checks.{onRecalculate && <> <button type="button" className="pzr-link pzr-noprint" onClick={onRecalculate}>Recalculate</button></>}</p>}
       {completeness && completeness.items.length > 0 && (
@@ -120,8 +120,8 @@ export function Health({ report, completeness, onRecalculate, notes }: { report:
       <header className="pzr-sh"><h3 id="pzr-h-health">Data completeness and freshness</h3><p>What the score is built from, how recent each input is, and what is missing.</p></header>
       <div className="pzr-two"><Checklist report={report} completeness={completeness} onRecalculate={onRecalculate} /><Freshness report={report} /></div>
       <div className="pzr-cols">
-        {notes.length > 0 && <Collapse id="pzr-notes" title="Review notes" count={notes.length} defaultOpen={report.rating.dataIntegrityStatus === "REVIEW REQUIRED"}><ul className="pzr-notes">{notes.map((n, i) => <li key={i}>{n}</li>)}</ul></Collapse>}
-        {report.warnings.length > 0 && <Collapse id="pzr-warn" title="Data checks recorded while loading" count={report.warnings.length} defaultOpen={report.rating.dataIntegrityStatus === "REVIEW REQUIRED"}><p className="pzr-small">What the data loader recorded while preparing this calculation, as recorded.</p><ul className="pzr-notes">{report.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></Collapse>}
+        {notes.length > 0 && <Collapse id="pzr-notes" title="Review notes" count={notes.length}><ul className="pzr-notes">{notes.map((n, i) => <li key={i}>{n}</li>)}</ul></Collapse>}
+        {report.warnings.length > 0 && <Collapse id="pzr-warn" title="Data checks recorded while loading" count={report.warnings.length}><p className="pzr-small">What the data loader recorded while preparing this calculation, as recorded.</p><ul className="pzr-notes">{report.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></Collapse>}
         <Collapse id="pzr-how" title="How this is calculated"><ul className="pzr-notes">{howRules(report.rating).map((r) => <li key={r}>{r}</li>)}</ul>
           {!isRated(report.rating) && <p className="pzr-small">This company is not rated, so the part scores that exist inside the model are not shown.</p>}</Collapse>
       </div>

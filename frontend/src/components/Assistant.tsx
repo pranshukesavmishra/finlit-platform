@@ -26,18 +26,6 @@ export function Assistant() {
     const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k);
   }, [open]);
-  useEffect(() => {
-    const show = () => setOpen(true);
-    addEventListener("finlit:help", show);
-    return () => removeEventListener("finlit:help", show);
-  }, []);
-  useEffect(() => { setOpen(false); }, [loc.pathname]);
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
-    document.querySelector<HTMLInputElement>(".ai input")?.focus();
-    return () => { if (previous?.isConnected) previous.focus(); };
-  }, [open]);
   if (loc.pathname.startsWith("/admin")) return null;
 
   const cur = ASSISTANT[node];
@@ -61,6 +49,7 @@ export function Assistant() {
 
   return (
     <>
+      <button className={"ai-fab" + (open ? " hide" : "")} onClick={() => setOpen(true)} aria-label="Open FinLit AI assistant"><Icon name="spark" /><span>Ask FinLit AI</span></button>
       {open && (
         <section className="ai" role="dialog" aria-label="FinLit AI assistant">
           <header><div><b>FinLit AI</b><span>Guided help and market concepts</span></div><button onClick={() => setOpen(false)} aria-label="Close">×</button></header>

@@ -206,7 +206,7 @@ function IndexValuation({ code, setCode }: { code: string; setCode: (c: string) 
       <div className="pm-bar">
         <label>Index<select value={code} onChange={(e) => setCode(e.target.value)}>{(list.length ? list : [{ code, name: data?.name || code } as IndexRow]).map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}</select></label>
         <label>Find<input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Type to narrow, e.g. Bank" /></label>
-        {find.trim() && <div className="pm-index-picker">{pick.map((r) => <button key={r.code} type="button" className="bandc" onClick={() => { setCode(r.code); setFind(""); }}>{r.name}</button>)}{!pick.length && <span className="faint">No index with that name.</span>}</div>}
+        {find.trim() && <div className="pm-pick">{pick.map((r) => <button key={r.code} type="button" className="bandc" onClick={() => { setCode(r.code); setFind(""); }}>{r.name}</button>)}{!pick.length && <span className="faint">No index with that name.</span>}</div>}
         <div className="pm-seg" role="group" aria-label="Period">{[1, 3, 5].map((y) => <button key={y} type="button" aria-pressed={years === y} onClick={() => setYears(y)}>{y}Y</button>)}</div>
         <div className="pm-seg" role="group" aria-label="Measure">{(Object.keys(MEASURES) as Measure[]).map((k) => <button key={k} type="button" aria-pressed={m === k} onClick={() => setM(k)}>{MEASURES[k].label}</button>)}</div>
       </div>

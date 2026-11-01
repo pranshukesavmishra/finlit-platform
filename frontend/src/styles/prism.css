@@ -272,6 +272,3 @@
 .pzr-hint { color: var(--muted) !important; font-weight: 600; }
 .pzr-pagebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
 .pzr-pagebar .pzr-dl { margin-left: auto; min-height: 44px; font-size: 15px; }
-
-/* Categorical chart series follow the design reference; financial status colours remain separate. */
-:root,:root[data-theme="light"],:root[data-theme="dark"] { --pzr-c1:var(--chart-1); --pzr-c2:var(--chart-2); --pzr-c3:var(--chart-3); --pzr-c4:var(--chart-4); --pzr-c5:var(--chart-5); --pzr-c6:var(--chart-6); }

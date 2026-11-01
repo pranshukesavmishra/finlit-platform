@@ -51,7 +51,7 @@ export function paletteVars(id: PaletteId, theme: Mode): Record<string, string> 
   const [la, lb, lc] = p.accent.light;
   const v: Record<string, string> = {
     "--gold": a, "--gold-2": b, "--gold-deep": c, "--gold-soft": soft(a, theme === "dark" ? 0.14 : 0.13),
-    // Membership and chart colours retain their identities across accent preferences.
+    "--t-gold": a, // chart colours are a separate fixed categorical set (--k1..--k8) and do not follow the palette
     // the always-dark bands and the always-light hero read these
     "--dk-gold": da, "--dk-gold-2": db, "--dk-gold-deep": dc, "--dk-gold-soft": soft(da, 0.14),
     "--lt-gold": la, "--lt-gold-2": lb, "--lt-gold-deep": lc, "--lt-gold-soft": soft(la, 0.13),
@@ -63,8 +63,6 @@ export function paletteVars(id: PaletteId, theme: Mode): Record<string, string> 
 }
 
 const ALL_VARS = new Set<string>();
-// Clear the tier override persisted by older accent-palette releases.
-ALL_VARS.add("--t-gold");
 for (const id of PALETTE_IDS) for (const t of ["dark", "light"] as const) for (const k of Object.keys(paletteVars(id, t))) ALL_VARS.add(k);
 
 /** Paint a palette onto the page. Inline custom properties on <html> beat the stylesheet, so this needs no extra CSS. */

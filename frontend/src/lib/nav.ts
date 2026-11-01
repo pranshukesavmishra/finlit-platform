@@ -29,7 +29,7 @@ export const SECTIONS: NavSection[] = [
       i("/compare", "Compare companies", "Two to four companies side by side, in charts", "compare"),
       i("/prism", "FinLit Prism", "A company's financial health rated in four parts, with a PDF", "layers", { gold: true }),
       i("/outlook", "Profit and revenue outlook", "Revenue and profit estimates from a company's own history and its sector", "activity", { gold: true }),
-      i("/premium/report", "Premium reports", "A printable financial report with the model assessment", "notes", { gold: true }),
+      i("/premium/report", "Premium reports", "The full written report on a company", "notes", { gold: true }),
     ] },
     { title: "Investment calculators", items: [
       i("/eps-calculator", "EPS & P/E calculator", "Estimate earnings per share and explore valuation multiples.", "gauge"),
@@ -83,20 +83,8 @@ export const MORE: NavSection = { id: "more", label: "More", groups: [
 MORE.wide = true;
 
 /** Pricing sits in the header on its own. */
-export const PRICING: NavItem = i("/plans", "Plans", "Free, Silver and Gold", "crown");
+export const PRICING: NavItem = i("/plans", "Pricing", "Free, Silver and Gold", "crown");
 
 /** Does this address belong to the item (itself or a page under it)? `end` items match only themselves; `not` names a sibling page that has its own item. */
 export const isHere = (path: string, it: NavItem) => path === it.to || (!it.end && path.startsWith(it.to + "/") && !(it.not && (path === it.not || path.startsWith(it.not + "/"))));
 export const sectionHere = (path: string, s: NavSection) => s.groups.some((g) => g.items.some((it) => isHere(path, it)));
-
-/** The public header offers starting points; the full catalogue stays in workspace navigation. */
-export const HEADER_SECTIONS: NavSection[] = [
-  { id: "products", label: "Products", groups: [{ items: SECTIONS.find((s) => s.id === "research")!.groups.flatMap((g) => g.items).filter((x) => ["/research", "/screener", "/prism", "/compare", "/graphs", "/dcf"].includes(x.to)) }, { items: [i("/platform", "All products and tools", "Research, screeners, charts and calculators", "layers")] }] },
-];
-export const HEADER_MORE: NavSection = { id: "more", label: "More", wide: true, groups: [
-  { ...MORE.groups.find((g) => g.title === "Company")!, items: MORE.groups.find((g) => g.title === "Company")!.items.filter((x) => x.to !== "/services") },
-  { title: "Markets and events", items: [...SECTIONS.find((s) => s.id === "markets")!.groups.flatMap((g) => g.items), ...SECTIONS.find((s) => s.id === "news")!.groups.flatMap((g) => g.items)] },
-  { title: "Funds", items: SECTIONS.find((s) => s.id === "funds")!.groups.flatMap((g) => g.items) },
-  { title: "Your workspace", items: SECTIONS.find((s) => s.id === "myfinlit")!.groups.flatMap((g) => g.items) },
-  { title: "Learn", items: MORE.groups.find((g) => g.title === "Learn and community")!.items.filter((x) => ["/glossary", "/blog", "/forum"].includes(x.to)) },
-] };

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { CURRENT_PAGE_FAQS as PAGE_FAQS, faqHref } from "../lib/pageFaqs";
+import { PAGE_FAQS } from "../content/pageFaqs";
+import { faqHref } from "../lib/pageFaqs";
 import { FaqAccordion, FaqPlan } from "../components/PageFaqs";
 import { useDocTitle } from "../lib/title";
 

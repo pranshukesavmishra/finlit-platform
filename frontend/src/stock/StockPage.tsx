@@ -150,7 +150,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><MethodSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><LeadershipSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
       </div>
-      <PlansBand id="plans" compact />
+      <PlansBand id="plans" />
       {partial && <div className="prep-toast" role="status"><i aria-hidden="true" />Ownership, peers, segments and announcements are still loading. Everything above is final.</div>}
     </>
     </OpenAccess.Provider>

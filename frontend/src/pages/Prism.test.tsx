@@ -27,7 +27,6 @@ vi.mock("../lib/ui", () => ({ useUI: () => ({ has: () => state.gold, upgrade: ()
 
 import { PrismPage } from "./Prism";
 import { PrismReportView } from "../components/prism/ReportView";
-import { Hero } from "../components/prism/pzr/Hero";
 
 const page = (path: string) => renderToStaticMarkup(<StaticRouter location={path}><Routes><Route path="/prism" element={<PrismPage />} /><Route path="/prism/:symbol" element={<PrismPage />} /></Routes></StaticRouter>);
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ");
@@ -48,10 +47,8 @@ describe("Prism report", () => {
     expect(t).toContain("not a probability");
     expect(t).toContain("Model 3.6.10");
     for (const name of ["Growth & Profitability", "Valuation", "Quality", "Risk"]) expect(t).toContain(name);
-    expect(t).toContain("How this score was calculated");
-    expect(html).toContain('<details class="report-details"><summary>How this score was calculated</summary>');
-    expect(t).not.toContain("Counts for 40%");
-    expect(t).toContain("Technical view");
+    expect(t).toContain("40% of the overall score");
+    expect(t).toContain("Technical view: separate from this score");
     expect(t).toContain("All applicable factors have usable inputs");
     for (const k of ["Growth & Profitability", "Valuation", "Quality", "Risk"]) expect(html).toContain(`aria-label="${k.replace("&", "&amp;")} factors"`);
     for (const w of ["Strengths", "Concerns", "Estimated or missing", "What moved the score"]) expect(t).toContain(w);
@@ -68,7 +65,7 @@ describe("Prism report", () => {
     expect(html).toContain('aria-label="Sales rose from ₹2,400 Cr in 2021 to ₹4,295 Cr in 2026."');
     expect(html).toMatch(/aria-label="Overall 54\.5 is the sum of Growth &amp; Profitability 27\.5 of 40/);
     expect(html).toContain("Growth &amp; Profitability: 68.8 out of 100");
-    expect(html).toContain('aria-label="Fundamental score 54.5 out of 100: Average"');
+    expect(html).toMatch(/aria-label="FinLit Prism score 54\.5 out of 100: Average\. Status: Rated\./);
   });
   it("does not leak internals", () => {
     for (const w of ["calculationTrace", "inputHash", "snapshotReceipt", R.id]) expect(html).not.toContain(w);
@@ -125,13 +122,12 @@ describe("Prism page", () => {
     expect(t).toContain("Generate the Prism rating");
     expect(t).toContain("under half a minute");
   });
-  it("while a calculation runs it shows elapsed seconds without inventing percentage progress", () => {
+  it("while a calculation runs it shows a plain progress bar with the real elapsed seconds, not a spinner", () => {
     state.latest = null; state.gold = true;
     state.calc = { phase: "working", startedAt: Date.now() - 7000, expectedSeconds: 14 };
     const html = page("/prism/TCS"), t = text(html);
     state.calc = { phase: "idle" };
-    expect(html).not.toContain('role="progressbar"');
-    expect(html).toContain('role="status"');
+    expect(html).toContain('role="progressbar"');
     expect(html).not.toContain("pzr-spin");
     expect(t).toContain("Calculating the rating");
     expect(t).toMatch(/\b[6-8] seconds so far/);
@@ -196,36 +192,37 @@ describe("the income line is called Sales for every company, with a sector note"
   });
 });
 
-describe("Prism summary", () => {
+describe("Prism hero mini scores", () => {
   const tech = technical as unknown as Record<string, unknown>;
   const withTech = { ...R, technicalAssessment: tech.ready } as PrismReport;
+  const mini = (r: PrismReport) => { const h = renderToStaticMarkup(<PrismReportView report={r} actions={{}} />); const m = h.match(/<div class="pzr-minis"[\s\S]*?<\/p><\/div>/); return { html: m ? m[0] : "", t: text(m ? m[0] : "") }; };
   const th = parseTechnical(tech.ready)!;
-  const hero = (r: PrismReport) => renderToStaticMarkup(<Hero report={r} actions={{}} />);
-  it("shows one financial score and separate technical values with horizons", () => {
-    const html = hero(withTech), t = text(html);
-    expect(html.match(/Fundamental score 54\.5 out of 100/g)).toHaveLength(1);
-    expect(html).not.toMatch(/pzr-ring|pzr-minis|pzr-scale/);
+
+  it("rated with technical: the report's own numbers, words, horizons and aria labels", () => {
+    const { html, t } = mini(withTech);
+    expect(t).toContain("Fundamental"); expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Average");
     expect(t).toContain(fmtScore(th.shortTerm.score)); expect(t).toContain(fmtScore(th.longTerm.score));
+    expect(t).toContain(ratingWord(th.shortTerm.rating, th.shortTerm.score).word);
     expect(t).toContain(th.shortTerm.horizon!); expect(t).toContain(th.longTerm.horizon!);
-    expect(t).toContain("Separate technical view");
+    expect(t).toContain("Technical is separate from the score");
     expect(html).toContain(`aria-label="Technical short term ${fmtScore(th.shortTerm.score)}: ${ratingWord(th.shortTerm.rating, th.shortTerm.score).word}, ${th.shortTerm.horizon}"`);
+    expect(html).toContain(`aria-label="Fundamental score ${score1(R.rating.final)} out of 100: Average"`);
   });
-  it("keeps a provisional score, but withholds an unrated score", () => {
-    expect(text(hero({ ...R, rating: { ...R.rating, status: "PROVISIONAL" } }))).toContain(score1(R.rating.final));
-    const html = hero({ ...V.notRated, technicalAssessment: tech.ready } as PrismReport);
-    expect(html).toContain('aria-label="Fundamental score: not rated"');
-    expect(text(html)).toContain(fmtScore(th.shortTerm.score));
-    expect(html).not.toContain(`>${score1(V.notRated.rating.final)}<`);
+  it("provisional keeps the number and the band word", () => {
+    const { t } = mini({ ...withTech, rating: { ...R.rating, status: "PROVISIONAL" } });
+    expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Fundamental");
   });
-  it("distinguishes complete inputs from validation warnings", () => {
-    const t = text(hero({ ...R, rating: { ...R.rating, confidence: 1, dataIntegrityStatus: "REVIEW REQUIRED" } }));
-    expect(t).toContain("Input completeness 100%"); expect(t).toContain("Validation Review required");
-    expect(t).toContain("Validation checks need a closer look");
-    expect(t).not.toContain("Enough verified history");
+  it("not rated: no fundamental number, technical tiles still shown", () => {
+    const { html, t } = mini({ ...V.notRated, technicalAssessment: tech.ready } as PrismReport);
+    expect(t).toContain("Not rated"); expect(html).toContain('aria-label="Fundamental score: not rated"'); expect(t).toContain("No score");
+    expect(t).toContain(fmtScore(th.shortTerm.score));
   });
-  it("does not invent a technical score or claim unknown checks passed", () => {
-    const html = hero({ ...R, rating: { ...R.rating, dataIntegrityStatus: null } } as unknown as PrismReport);
-    expect(html).not.toContain("Separate technical view");
-    expect(text(html)).toContain("Validation Not checked");
+  it("old report without technical: one small tile, no fake numbers", () => {
+    const { html, t } = mini(R);
+    expect(t).toContain("Technical view"); expect(t).toContain("Recalculate to add");
+    expect(html).not.toContain("5–20 sessions"); expect(html).not.toMatch(/[+−]\d/);
+  });
+  it("tile text carries no advice words", () => {
+    for (const r of [withTech, R, V.notRated]) expect(mini(r).t).not.toMatch(/\b(buy|sell|hold|accumulate|avoid|bullish|bearish)\b/i);
   });
 });

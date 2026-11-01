@@ -17,7 +17,7 @@ import { supports3d, whenIdle } from "../three/support";
 import { ChartHelp } from "../components/ChartHelp";
 import { matchesMetric, rankMetrics } from "../lib/metricSearch";
 import { CheckRow, FgxFocus, FilterGroup, SearchBox } from "../components/screener/FilterGroup";
-import { SectorBars, TitleCard, Toolbar, Donut } from "../components/screener/PageParts";
+import { KpiStrip, SectorBars, TitleCard, Toolbar, Donut, type Kpi } from "../components/screener/PageParts";
 import "../styles/fgx.css";
 
 const Cloud3D = lazy(() => import("../three/Cloud3D"));
@@ -184,7 +184,7 @@ export function ScreenerPro() {
   const listed = fl || moreGroups ? groups : groups.slice(0, VISIBLE_GROUPS);
   const facetOpen = (id: string) => !!(open[id] || fl);
   const facetMatch = (label: string) => !fl || label.toLowerCase().includes(fl);
-  const [webgl, setWebgl] = useState(false), [showCloud, setShowCloud] = useState(false);
+  const [webgl, setWebgl] = useState(false);
   useEffect(() => { if (supports3d()) return whenIdle(() => setWebgl(true)); }, []);
   /** The first three shown columns that hold numbers become the three axes of the 3D view. */
   const cloud = useMemo(() => {
@@ -217,16 +217,21 @@ export function ScreenerPro() {
     <>
       <div className="wrap scr-wrap" style={{ paddingTop: 22 }}>
         <TitleCard tier="free" title="Stock screener" onLearn={() => document.getElementById("scr-about")?.scrollIntoView?.({ block: "center" })} learnLabel="Learn more" art="screener"
-          sub={<>Find companies by sector, valuation, growth and financial health.{plan !== "gold" && " Gold adds filters built on the FinLit research model."}</>}
+          sub={<>Explore and screen {data ? <b>{nf(data.total, 0)}</b> : "every listed"} companies using {data ? <b>{nf(nFilters, 0)}</b> : "160+"} filters across valuation, quarterly results, ownership and financial red flags.{plan !== "gold" && " Gold adds filters built on the FinLit research model."}</>}
           stats={[{ icon: "building", value: data ? nf(data.total, 0) : null, label: "Companies" }, { icon: "table", value: data ? nf(nFilters, 0) : null, label: "Filters" }]}
           links={["/score-screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"]} />
+        <KpiStrip active={nActive} filtersOpen={!collapsed} onFilters={() => setCollapsed((c) => !c)} items={[
+          { icon: "building", label: "Companies found", value: res.data ? nf(total, 0) : "…" },
+          { icon: "layers", label: "Listed companies", value: data ? nf(data.total, 0) : "…" },
+          { icon: "map", label: "Sectors", value: data ? nf(data.sectors.length, 0) : "…" },
+          { icon: "table", label: "Filters available", value: data ? nf(data.groups.reduce((a, g) => a + g.metrics.length, 0), 0) : "…" } as Kpi]} />
         {data && data.total > 0 && (
-          <details className="report-details screen-coverage"><summary>Universe coverage and sector breakdown</summary><div className="fgx-two">
+          <div className="fgx-two">
             <Donut part={data.withReport} total={data.total} partLabel="Report loaded" restLabel="Price and market cap only" title={`${nf(data.total - data.withReport, 0)} of ${nf(data.total, 0)} companies have no full report loaded yet.`}
               note="Ratios, growth and statements show a dash until a company's report is loaded." />
             <SectorBars title="Listed companies by sector (Top 5)" rows={[...data.sectors].sort((a, b) => b.n - a.n).slice(0, 5).map((x) => ({ label: x.name, n: x.n, pct: (x.n / data.total) * 100 }))}
               action={<button type="button" className="fgx-link" onClick={() => showPanel("sector")}>View all sectors &rsaquo;</button>} />
-          </div></details>)}
+          </div>)}
         <Toolbar q={q} setQ={setQ} searchLabel="Search company name, sector or keyword" buttons={[
           { id: "size", label: "Market cap", active: f.caps.length, onClick: () => showPanel("size") },
           { id: "sector", label: "Sector", active: f.sectors.length, onClick: () => showPanel("sector") },
@@ -320,8 +325,8 @@ export function ScreenerPro() {
               : res.isError ? <div className="state"><h2>That filter is part of a higher plan</h2><p>{err?.body?.detail}</p><button className="btn primary" onClick={() => ask((err?.body?.plan as Plan) || "silver", err?.body?.detail || "")}>See the plan</button></div>
               : !res.data ? <div className="skeleton" style={{ height: 380 }} aria-busy="true" /> : (
                 <>
-                  {webgl && cloud && <details className="report-details" onToggle={(e) => setShowCloud(e.currentTarget.open)}><summary>Explore results as a 3D chart</summary>{showCloud && <Safe3D><Suspense fallback={null}><Cloud3D points={cloud.pts} axes={cloud.axes} onPick={(id) => nav(`/stocks/${id}`)}
-                    label={`The ${cloud.pts.length} companies on this page as points in 3D, spread by ${cloud.axes.join(", ")}. The table below lists the same numbers.`} /></Suspense></Safe3D>}</details>}
+                  {webgl && cloud && <Safe3D><Suspense fallback={null}><Cloud3D points={cloud.pts} axes={cloud.axes} onPick={(id) => nav(`/stocks/${id}`)}
+                    label={`The ${cloud.pts.length} companies on this page as points in 3D, spread by ${cloud.axes.join(", ")}. The table below lists the same numbers.`} /></Suspense></Safe3D>}
                   <HScroll className={"scr-tw" + (res.isFetching ? " is-busy" : "")} label="results table"><table className="scr-t">
                     <thead><tr><th className="stick"><button onClick={() => sortBy("name")}>Company {sort.key === "name" ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>
                       {res.data.columns.map((k) => { const m = byKey.get(k); return <th key={k}><button onClick={() => sortBy(k)} title={m?.say} aria-label={`Sort by ${m?.label}`}>{m?.label} {sort.key === k ? (sort.dir === "asc" ? "▲" : "▼") : "▾"}</button></th>; })}</tr></thead>

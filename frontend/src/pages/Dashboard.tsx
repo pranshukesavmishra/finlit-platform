@@ -6,6 +6,7 @@ import { STATUS_TEXT, run, type DcfInputs } from "../lib/dcf";
 import { direction, inr, istTime, signedPct, useCommodities } from "../lib/commodities";
 import { useAuth } from "../lib/auth";
 import { RANK, TIER, useUI, type Plan } from "../lib/ui";
+import { PALETTES, PALETTE_IDS } from "../lib/palettes";
 import { WIDGETS, prefs, usePrefs, type WidgetPref } from "../lib/prefs";
 import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
 import { useSavedScreens } from "../lib/screens";
@@ -158,26 +159,29 @@ function Locked({ tier, label }: { tier: Plan; label: string }) {
 
 
 /** First-visit checklist: shows what to try next and ticks itself off as the member does each thing. */
-function GettingStarted({ followed, plan }: { followed: number; plan: string }) {
+function GettingStarted({ followed, palette, plan }: { followed: number; palette: string; plan: string }) {
   const { alerts } = useAlerts();
   const [gone, setGone] = useState(() => { try { return localStorage.getItem("finlit-welcome-off") === "1"; } catch { return false; } });
   const [seen, setSeen] = useState(() => { try { return localStorage.getItem("finlit-welcome-report") === "1"; } catch { return false; } });
   const mark = () => { setSeen(true); try { localStorage.setItem("finlit-welcome-report", "1"); } catch { /* private mode */ } };
   const steps: { done: boolean; t: string; d: string; to: string; cta: string; onClick?: () => void }[] = [
+    { done: true, t: "Create your account", d: "You are in. Your plan, lists and colours now follow you across devices.", to: "/account", cta: "Review account" },
     { done: seen, t: "Open a company report", d: "Every listed stock has one: statements, ratios, peers, ownership and price.", to: "/research", cta: "Find a company", onClick: mark },
     { done: followed > 0, t: "Follow a stock", d: plan === "basic" ? "Watchlists are part of Silver. Unlock them any time." : "Add stocks to a watchlist to see them here every day.", to: plan === "basic" ? "/plans" : "/watchlist", cta: plan === "basic" ? "See Silver" : "Open watchlist" },
     { done: alerts.length > 0, t: "Set your first alert", d: "Be told when a price, RSI, score, result or filing crosses your line.", to: "/alerts", cta: "Create an alert" },
+    { done: palette !== "gold", t: "Make it yours", d: "Pick a colour palette and choose the dashboard widgets you want.", to: "/account/appearance", cta: "Open appearance" },
   ];
   const n = steps.filter((x) => x.done).length;
   if (gone || n === steps.length) return null;
   return (
-    <details className="card onb">
-      <summary className="onb-summary"><span><Icon name="spark" /><b>Getting started</b></span><span>{n} of {steps.length} complete <Icon name="arrow" /></span></summary>
+    <section className="card onb" aria-label="Getting started">
+      <div className="onb-h"><div><h2>Get started with FinLit</h2><p className="muted">{n} of {steps.length} done. A few minutes to get the most from your account.</p></div>
+        <button className="alx-link" onClick={() => { setGone(true); try { localStorage.setItem("finlit-welcome-off", "1"); } catch { /* private mode */ } }}>Hide</button></div>
+      <div className="onb-bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={n}><i style={{ width: `${(n / steps.length) * 100}%` }} /></div>
       <ol className="onb-l">{steps.map((x) => (
         <li key={x.t} className={x.done ? "is-done" : ""}><span className="onb-c" aria-hidden="true">{x.done ? <Icon name="check" /> : null}</span><div><b>{x.t}</b><span>{x.d}</span></div>{!x.done && <Link className="btn" to={x.to} onClick={x.onClick}>{x.cta}</Link>}</li>
       ))}</ol>
-      <button className="alx-link" onClick={() => { setGone(true); try { localStorage.setItem("finlit-welcome-off", "1"); } catch { /* private mode */ } }}>Dismiss checklist</button>
-    </details>
+    </section>
   );
 }
 
@@ -213,8 +217,6 @@ const dcfLink = (s: SavedDcf) => {
 };
 
 export function Dashboard() {
-  const savedScreens = useSavedScreens();
-  const { alerts: workspaceAlerts } = useAlerts();
   useDocTitle("Dashboard", "Your FinLit dashboard: watchlist moves, latest results, saved screens and signals, arranged your way.");
   const { user, ready } = useAuth();
   const { plan } = useUI();
@@ -223,7 +225,6 @@ export function Dashboard() {
   const { data } = useUniverse();
   const [params, setParams] = useSearchParams();
   const [edit, setEdit] = useState(params.get("edit") === "1");
-  const [showMarket, setShowMarket] = useState(false);
   const rows = data?.rows || [];
   const bySym = useMemo(() => new Map(rows.map((r) => [r.symbol, r])), [rows]);
   const names = useMemo(() => new Map(rows.map((r) => [r.symbol, r.name])), [rows]);
@@ -246,7 +247,7 @@ export function Dashboard() {
       case "dates": return <Dates symbols={dScope === "mine" ? followed : []} />;
       case "news": return <NewsW symbols={nScope === "mine" ? followed : []} />;
       case "ipos": return <IposW />;
-      case "results": return <Results symbols={followed} names={names} />;
+      case "results": return <Results symbols={followed.length ? followed : ["RELIANCE"]} names={names} />;
       case "second": return <SecondLook items={items} meta={wl.meta} />;
       case "screens": return <Screens />;
       case "buckets": return <Buckets items={items} />;
@@ -258,21 +259,15 @@ export function Dashboard() {
   return (
     <div className="wrap dash">
       <header className="dash-h">
-        <div><div className="eyebrow">Your workspace</div><h1>{greeting()}{user.name ? `, ${user.name.split(" ")[0]}` : ""}</h1>
+        <div><div className="eyebrow">Dashboard</div><h1>{greeting()}{user.name ? `, ${user.name.split(" ")[0]}` : ""}</h1>
           <p className="muted">{followed.length ? `Following ${followed.length} stock${followed.length === 1 ? "" : "s"}.` : "Start by adding stocks to a watchlist."} <span className={"tier " + plan}>{TIER[plan].n}</span></p></div>
         <div className="dash-a">
-          <Link className="btn primary" to="/research"><Icon name="search" />Research a company</Link>
-
+          <div className="pal-dots" role="radiogroup" aria-label="Colour palette">{PALETTE_IDS.map((id) => <button key={id} role="radio" aria-checked={p.palette === id} title={PALETTES[id].label} aria-label={PALETTES[id].label} className={p.palette === id ? "on" : ""} onClick={() => prefs.set({ palette: id })} style={{ background: `linear-gradient(135deg, ${PALETTES[id].swatch[0]} 50%, ${PALETTES[id].swatch[2]} 50%)` }} />)}</div>
           <button className={"btn" + (edit ? " on" : "")} aria-pressed={edit} onClick={() => { setEdit(!edit); if (params.has("edit")) setParams({}, { replace: true }); }}><Icon name="spark" />{edit ? "Done" : "Customise"}</button>
         </div>
       </header>
-      <section className="workspace-overview" aria-label="Workspace overview">
-        <Link to="/watchlist"><span className="workspace-overview-icon"><Icon name="wallet" /></span><span><small>Companies followed</small><b>{followed.length}</b></span><Icon name="arrow" /></Link>
-        <Link to="/alerts"><span className="workspace-overview-icon"><Icon name="bell" /></span><span><small>Active alerts</small><b>{workspaceAlerts.filter(a => a.status === "active").length}</b></span><Icon name="arrow" /></Link>
-        <Link to="/screener"><span className="workspace-overview-icon"><Icon name="table" /></span><span><small>Saved screens</small><b>{savedScreens.length}</b></span><Icon name="arrow" /></Link>
-      </section>
-      <GettingStarted followed={followed.length} plan={plan} />
-      <details className="report-details dashboard-market" onToggle={(e) => setShowMarket(e.currentTarget.open)}><summary>Market overview · indices, sectors and institutional flows</summary>{showMarket && <MarketsBlock rows={rows} />}</details>
+      <MarketsBlock rows={rows} />
+      <GettingStarted followed={followed.length} palette={p.palette} plan={plan} />
       {edit && (
         <section className="card dash-edit" aria-label="Customise your dashboard">
           <h2>Make it yours</h2>

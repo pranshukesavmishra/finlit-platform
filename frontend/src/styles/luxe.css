@@ -54,6 +54,8 @@ a.card:hover, .card.hoverable:hover, .ipo-t:hover, .pf-k .card:hover { box-shado
 .btn:hover { box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 8px 18px -10px rgba(60,45,15,.4); }
 .btn:active { transform: translateY(0); box-shadow: none; }
 .btn.primary { position: relative; overflow: hidden; }
+.btn.primary::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); transform: translateX(-120%); transition: transform .7s ease; }
+.btn.primary:hover::after { transform: translateX(120%); }
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { border-radius: var(--r-ctl); transition: border-color .15s, box-shadow .15s; }
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 28%, transparent); outline: none; }
 .chip { border: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
@@ -103,10 +105,16 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 .hh-hero .btn:not(.primary):hover, .pagehead .btn:not(.primary):hover { background: rgba(255,255,255,.13); border-color: var(--acc); }
 .pagehead .pa { opacity: .9; }
 
-/* Primary actions are defined by design-system.css. */
+/* ---- actions: gold on dark surfaces, deep forest on paper ---- */
+:root .btn.primary { border: 1px solid transparent; color: var(--on-gold); background: linear-gradient(135deg, var(--gold-2), var(--gold) 50%, var(--gold-deep)); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 12px 26px -14px rgba(217,185,108,.8); }
+:root .btn.primary:hover { filter: brightness(1.06); border-color: transparent; box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 16px 30px -14px color-mix(in srgb, var(--acc) 90%, transparent); }
+:root[data-theme="light"] .btn.primary { background: linear-gradient(160deg, var(--forest-2), var(--forest) 55%, var(--forest-ink)); color: var(--acc-2); box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 12px 24px -14px rgba(15, 32, 24, .8); }
+:root[data-theme="light"] .hh-hero .btn.primary, :root[data-theme="light"] .pagehead .btn.primary, :root[data-theme="light"] .band .btn.primary { background: linear-gradient(135deg, var(--acc-2), var(--acc) 50%, var(--acc-deep)); color: #1A1405; box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 12px 26px -14px rgba(217,185,108,.8); }
+:root .plan .btn.primary { box-shadow: none; }
 .hh .tagline { padding: 22px 0 22px; } .hh-hero { margin-top: 0; }
 .dash-h { padding: 22px 28px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent); box-shadow: 0 26px 50px -34px rgba(10,25,17,.85); margin-bottom: 18px; overflow: hidden; }
 .dash-h h1 { margin: 4px 0 6px; }
+:root[data-theme="light"] .plan, :root[data-theme="light"] .plan.feat { background: linear-gradient(165deg, color-mix(in srgb, var(--band-a), #fff 4%), var(--band-b)) !important; border-color: var(--rep-border); }
 .pagehead, .sip-hero, .fl-hero, .mc-hero { border-radius: 0 0 26px 26px; box-shadow: 0 28px 50px -38px rgba(10, 25, 17, .8); }
 .shell .pagehead, .shell .sip-hero, .shell .fl-hero, .shell .mc-hero { border-radius: 22px; margin: 0 20px 18px 0; border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent); }
 .pagehead, .sip-hero, .fl-hero, .mc-hero { margin-bottom: 8px; }
@@ -143,7 +151,7 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
   /* header: logo, theme, alerts, account. Search and menu move to the bottom bar */
   .top .wrap { min-height: 54px; gap: 8px; padding-block: 6px; }
   .top .lg-mark { height: 38px; }
-  .top .search, .top .planseg { display: none !important; }
+  .top .search, .top .burger, .top .planseg { display: none !important; }
   .icon-btn { width: 36px; height: 36px; border-radius: 10px; }
   .av-btn { height: 36px; padding: 0 6px; } .av-btn .tier { display: none; }
   .demo-bar { font-size: 11px; padding: 5px 10px; }

@@ -3,8 +3,6 @@
 **Website** (`frontend/`, React + TypeScript, navy and gold design) · **Research service** (`backend/`, fast stock reports)
 · **Site backend** (`site-api/backend/`, blog/CMS, forms, chat and Prism). All application source is inside this folder. Production runs on AWS: [deployment runbook](docs/AWS-DEPLOY.md), [team workflow](docs/TEAM-DEPLOY.md).
 
-**Design:** [design documentation](docs/design/README.md) contains the supplied colour and typography specification and the proposed landing-page review. The redesign remains under review; existing token generators and page styles are not all aligned with the specification yet.
-
 ```bash
 # develop the website against both backends
 cd frontend && npm ci && npm run dev            # http://localhost:5173, proxies /api (see vite.config.ts)
