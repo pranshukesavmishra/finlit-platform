@@ -1,6 +1,7 @@
 // India macro insights (free): the official numbers that move Indian markets (inflation, growth, jobs, interest rates, reserves, the rupee, credit)
 // from MoSPI and the RBI, with the history behind each, a read of where inflation stands against the RBI's mandate, a heat-map of what is getting
 // dearer, and a chart you build yourself. Everything is reproduced or derived as the notes on the page say; nothing is estimated or forecast.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useDocTitle } from "../lib/title";
@@ -268,12 +269,10 @@ export function MacroPage() {
   const m = q.data;
   return (
     <div className="mc-page">
-      <section className="mc-hero"><div className="wrap">
-        <div className="eyebrow">Free · official data · refreshed nightly</div>
-        <h1>India macro insights</h1>
-        <p>The policy and price indicators that move Indian markets: inflation, growth, jobs, the RBI's rates, the reserve buffer and the rupee. Every figure comes from MoSPI or the RBI, with the full history behind it.</p>
-        {m && <p className="mc-asof">Latest CPI: {m.cards.find((c) => c.key === "cpi")?.period} · Reserves: week ended {m.reserves ? dateIN(m.reserves.reservesAsOf) : "n/a"} · Repo rate as on {m.rates ? dateIN(m.rates.seenOn) : "n/a"}</p>}
-      </div></section>
+      <PageHeader wrap plan="free" title="India macro insights" art="macro" links={["/fii-dii", "/commodities", "/ipo"]}
+        description={<>The policy and price indicators that move Indian markets: <b>inflation, growth, jobs, the RBI's rates, the reserve buffer and the rupee</b>. Every figure comes from MoSPI or the RBI, with the full history behind it.</>}
+        stats={[{ icon: "activity", value: m ? m.cards.length : null, label: "Indicators" }]}
+        meta={m ? <span className="mc-asof">Latest CPI: {m.cards.find((c) => c.key === "cpi")?.period} · Reserves: week ended {m.reserves ? dateIN(m.reserves.reservesAsOf) : "n/a"} · Repo rate as on {m.rates ? dateIN(m.rates.seenOn) : "n/a"}</span> : undefined} />
       <div className="wrap mc-wrap">
         {q.isLoading && <div className="mc-skel" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>}
         {q.isError && <div className="mc-panel" role="alert"><h2>The macro data is not available yet</h2><p className="mc-note">It loads every night from MoSPI and the RBI. {(q.error as { status?: number })?.status === 503 ? "The first load has not finished; please check back soon." : "Please try again in a moment."}</p><button type="button" className="btn" onClick={() => q.refetch()}>Try again</button></div>}

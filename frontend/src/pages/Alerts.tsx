@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -98,14 +99,16 @@ export function AlertsPage() {
   if (!user && !DEMO) {
     return (
       <div className="wrap alx">
-        <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>Alerts</h1><p className="muted">Get told when a price, signal, score, ratio, result or filing crosses the line you set.</p></div></header>
+        <PageHeader plan="free" title="Alerts" art="calendar" links={["/watchlist", "/holdings", "/results"]} description={<>Get told when a <b>price, signal, score, ratio, result or filing</b> crosses the line you set.</>} />
         <section className="card dw-empty"><span className="dw-ei"><Icon name="bell" /></span><b>Sign in to set alerts</b><p>Alerts are free to create. Basic includes 3 at a time; Silver and Gold add every metric and many more alerts.</p><Link className="btn primary" to="/login?next=/alerts">Sign in or create an account</Link></section>
       </div>
     );
   }
   return (
     <div className="wrap alx">
-      <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>Alerts</h1><p className="muted">Pick a company and a condition. When it comes true you are told in the app, and by email or in your browser if you choose. For information only, not investment advice.</p></div></header>
+      <PageHeader plan="free" title="Alerts" art="calendar" links={["/watchlist", "/holdings", "/results"]}
+        description={<>Pick a company and a condition. When it comes true you are told in the app, and by email or in your browser if you choose. For information only, not investment advice.</>}
+        stats={[{ icon: "bell", value: counts.all > 0 ? counts.active : null, label: "Active alerts" }, { icon: "activity", value: counts.all > 0 ? week : null, label: "Fired in 7 days" }]} />
 
       <div className="alx-k">
         <div className="card"><b>{counts.active}</b><span>Active alerts</span></div>

@@ -1,4 +1,4 @@
-import { PageArt } from "../components/PageArt";
+import { PageHeader } from "../components/PageHeader";
 import { Link } from "react-router";
 import { useMemo, useState } from "react";
 import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
@@ -34,11 +34,11 @@ export function Research({ onSearch }: { onSearch: () => void }) {
   }, [traded, tab]);
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.7 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Company report</div><h1>Every listed stock, in one honest report.</h1>
-        <p>A research score, five-pillar scorecard, statements, ratios, ownership and peers, loaded in a blink.</p>
-        <div style={{ marginTop: 28 }}><button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button></div>
-      </div></section>
+      <PageHeader wrap plan="free" title="Company report" art="report" links={["/screener", "/compare", "/prism"]}
+        description={<>A research score, five-pillar scorecard, statements, ratios, ownership and peers for {rows.length > 0 ? <b>{nf(rows.length, 0)}</b> : "every"} listed Indian companies, loaded in a blink.</>}
+        stats={[{ icon: "building", value: rows.length > 0 ? nf(rows.length, 0) : null, label: "Companies" }, { icon: "quality", value: scored ? nf(rows.filter((r) => r.overall != null).length, 0) : null, label: "With a score" }]}>
+        <button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button>
+      </PageHeader>
       <MarketLink />
       <section className="sec" style={{ paddingTop: 28 }}><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">Start exploring</div><h2>{rows.length ? "Where to look today" : "Popular reports"}</h2></Reveal>

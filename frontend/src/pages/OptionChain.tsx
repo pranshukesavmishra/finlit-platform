@@ -1,6 +1,7 @@
 // Option chain (Gold): calls on the left, strike in the centre, puts on the right, for an index or an F&O stock and one expiry, from Dhan via
 // /api/options. All figures are worked out on the server (backend/finlit/options.py, definitions below); this page only lays them out.
 // Information and education only: no signals, no views on direction, no targets.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type ApiError } from "../lib/api";
@@ -261,8 +262,8 @@ export function OptionChainPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Option chain</h1>
-        <p>Every strike of an index or F&amp;O stock for one expiry: open interest, OI change, volume, implied volatility and price, with the put-call ratio and max pain worked out from them. For information and education, not trading advice.</p></div></section>
+      <PageHeader wrap plan="gold" title="Option chain" art="chart" links={["/premium/markets", "/premium/fundamentals", "/premium"]}
+        description={<>Every strike of an index or F&amp;O stock for one expiry: <b>open interest, OI change, volume, implied volatility and price</b>, with the put-call ratio and max pain worked out from them. For information and education, not trading advice.</>} />
       <div className="wrap oc">
         <Gate tier="gold" title="Option chain" points={["Nifty, Bank Nifty, Fin Nifty, Midcap Nifty, Sensex and every F&O stock", "Open interest, OI change, volume, IV and price at every strike", "Put-call ratio, max pain and OI build-up, with the working explained", "Open interest by strike chart"]}>
           <section className="card oc-controls" aria-label="Choose a chain">

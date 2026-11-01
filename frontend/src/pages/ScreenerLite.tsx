@@ -1,9 +1,9 @@
+import { PageHeader } from "../components/PageHeader";
 import { SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { HScroll } from "../components/HScroll";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
-import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { useUI, TIER } from "../lib/ui";
 import { limitsFor } from "../lib/auth";
@@ -93,9 +93,8 @@ export function ScreenerLite() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Stock screener</div><h1>Find the companies that fit your rules.</h1>
-        <p>Filter every listed company by size, valuation, profitability, growth and debt. Gold adds filters built on the FinLit research model. Prefer a simpler start? Try the <Link to="/score-screener">Basic score screener</Link> (Silver) or the <Link to="/advanced-score-screener">Advanced score screener</Link> (Gold).</p></div></section>
+      <PageHeader wrap plan="free" title="Stock screener" art="screener" links={["/score-screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"]}
+        description={<>Filter every listed company by <b>size, valuation, profitability, growth and debt</b>. Gold adds filters built on the FinLit research model.</>} />
       <div className="wrap scr-wrap">
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-) so you can try the filters. The live site screens every listed company.</span></div>}
         <div className="scr" style={{ "--side-w": `${sideW}px` } as React.CSSProperties}>

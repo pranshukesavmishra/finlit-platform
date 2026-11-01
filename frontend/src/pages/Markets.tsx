@@ -296,10 +296,10 @@ export function MarketsPage() {
   const openIndex = (c: string) => { setIdx(c); setTab("valuations"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   useEffect(() => { if (gold) prefetchMarkets(qc); }, [gold, qc]);
   useEffect(() => { history.replaceState(history.state, "", "#" + tab); }, [tab]);   // keep the router's own state
-  if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Market Events & Index Dashboard" /><GoldLock title="Market Events & Index Dashboard" /></>;
+  if (!gold) return <><PremiumHead title="Market events & index" art="macro" /><GoldLock title="Market Events & Index Dashboard" /></>;
   return (
     <>
-      <PremiumHead eyebrow="Gold dashboard" title="Market Events & Index Dashboard"><p>The week ahead in one place: new issues, results, company announcements, how the indices are valued, and where commodities are heading. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead>
+      <PremiumHead title="Market events & index" art="macro" links={["/ipo", "/results", "/commodities", "/premium"]}>The week ahead in one place: <b>new issues, results, company announcements</b>, how the indices are valued, and where commodities are heading.</PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         <Glance go={setTab} />
         <div className="pm-tabs" role="tablist" aria-label="Market dashboard sections">{TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}</div>

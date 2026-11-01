@@ -222,7 +222,7 @@ export function FundamentalsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period })}`, gold && company.length >= 2);
   useEffect(() => { const s = data?.instrument?.symbol; if (s) { pushRecent(s); setRecent(readRecent()); } }, [data?.instrument?.symbol]);
   const stored = useSection<Financials>((data?.instrument?.symbol || "").toUpperCase(), "financials", !!data?.instrument?.symbol).data;
-  if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
+  if (!gold) return <><PremiumHead title="Stock fundamentals" art="report" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
   const limit = period === "quarterly" ? 10 : 8;
   const status = (error as { status?: number } | null)?.status;
   const sym = data?.instrument?.symbol || company;
@@ -230,7 +230,7 @@ export function FundamentalsPage() {
   const gateIncome = data?.incomeStatement?.income_statement || [], gateBalance = data?.balanceSheet?.balance_sheet || [], gateCash = data?.cashFlow?.cash_flow || [];
   return (
     <>
-      <PremiumHead eyebrow="Gold dashboard" title="Stock Fundamental Data Dashboard"><p>Search any listed company for its full statements, ratios and named shareholders. Press <kbd>/</kbd> to search. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead>
+      <PremiumHead title="Stock fundamentals" art="report" links={["/research", "/compare", "/premium"]}>Search any listed company for its <b>full statements, ratios and named shareholders</b>. Press <kbd>/</kbd> to search.</PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         <div className="pm-bar" style={{ alignItems: "center" }}>
           <div className="pm-search" style={{ flex: 1, minWidth: 260 }}><Icon name="search" />

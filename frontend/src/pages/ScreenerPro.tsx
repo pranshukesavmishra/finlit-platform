@@ -1,7 +1,7 @@
 import { HScroll } from "../components/HScroll";
 import { SplitDivider, useSideWidth } from "../components/SplitDivider";
 import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Plain } from "../components/Plain";
 import { Icon } from "../lib/icons";
 import { nf } from "../lib/format";
@@ -212,11 +212,14 @@ export function ScreenerPro() {
     {data && data.indices.length > 0 && facetMatch("Index") && grp("index", "Index", f.indices.length, data.indices.length, <Checks items={data.indices.map((x) => ({ key: x.code, label: x.label, n: x.n }))} picked={f.indices} toggle={(k) => toggle("indices", k)} />)}
   </>;
 
+  const nFilters = data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : 0;
   return (
     <>
       <div className="wrap scr-wrap" style={{ paddingTop: 22 }}>
-        <TitleCard tier={plan === "basic" ? "basic" : plan} title="Stock screener" onLearn={() => document.getElementById("scr-about")?.scrollIntoView?.({ block: "center" })} learnLabel="Learn more"
-          sub={<>{data ? nf(data.total, 0) : "Every listed"} companies and {data ? data.groups.reduce((a, g) => a + g.metrics.length, 0) : "160+"} filters, from valuation and quarterly results to ownership and red flags. {plan !== "gold" && "Gold adds filters built on the FinLit research model. "}Prefer a simpler start? Try the <Link to="/score-screener">Basic score screener</Link> (Silver) or the <Link to="/advanced-score-screener">Advanced score screener</Link> (Gold). Prefer typing? Use the <Link to="/query-builder">Query builder</Link>.</>} />
+        <TitleCard tier="free" title="Stock screener" onLearn={() => document.getElementById("scr-about")?.scrollIntoView?.({ block: "center" })} learnLabel="Learn more" art="screener"
+          sub={<>Explore and screen {data ? <b>{nf(data.total, 0)}</b> : "every listed"} companies using {data ? <b>{nf(nFilters, 0)}</b> : "160+"} filters across valuation, quarterly results, ownership and financial red flags.{plan !== "gold" && " Gold adds filters built on the FinLit research model."}</>}
+          stats={[{ icon: "building", value: data ? nf(data.total, 0) : null, label: "Companies" }, { icon: "table", value: data ? nf(nFilters, 0) : null, label: "Filters" }]}
+          links={["/score-screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"]} />
         <KpiStrip active={nActive} filtersOpen={!collapsed} onFilters={() => setCollapsed((c) => !c)} items={[
           { icon: "building", label: "Companies found", value: res.data ? nf(total, 0) : "…" },
           { icon: "layers", label: "Listed companies", value: data ? nf(data.total, 0) : "…" },

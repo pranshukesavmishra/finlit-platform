@@ -1,7 +1,7 @@
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
-import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { Gate } from "../components/Gate";
 import { useUI } from "../lib/ui";
@@ -80,9 +80,9 @@ export function Compare() {
   if (isError) return <div className="wrap state"><h2>Comparison is unavailable right now</h2><p>Please try again in a moment.</p></div>;
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-        <div className="eyebrow">Company comparison</div><h1>Companies, side by side.</h1>
-        <p>Compare size, valuation, quality, growth and price behaviour across listed Indian companies, and choose exactly what to compare.</p></div></section>
+      <PageHeader wrap plan="free" title="Compare companies" art="compare" links={["/research", "/prism", "/screener"]}
+        description={<>Compare <b>size, valuation, quality, growth</b> and price behaviour across listed Indian companies, and choose exactly what to compare.</>}
+        stats={[{ icon: "compare", value: max > 0 ? max : null, label: "Companies at once" }]} />
       <div className="wrap cmpw">
         {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Reliance is a real report; the other companies in this demo are fictional (symbols start with SMP-). The live site compares any listed companies.</span></div>}
         <div className="card cmp-setup">

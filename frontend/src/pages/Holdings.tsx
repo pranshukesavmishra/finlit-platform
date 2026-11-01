@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,7 +86,9 @@ export function HoldingsPage() {
 
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>My portfolio</h1><p className="muted">Add the shares you hold and see how strong they are: each company's score, its ratios and its latest financials, and the portfolio as a whole. Only names are needed; nothing is sent to a broker.</p></div></header>
+      <PageHeader plan="silver" title="My portfolio" art="portfolio" links={["/mf-portfolio", "/watchlist", "/alerts"]}
+        description={<>Add the shares you hold and see how strong they are: <b>each company's score, ratios and latest financials</b>, and the portfolio as a whole. Only names are needed; nothing is sent to a broker.</>}
+        stats={[{ icon: "building", value: lines.length > 0 ? lines.length : null, label: "Shares held" }]} />
       <Gate tier="silver" title="Score your portfolio" points={["FinLit score and pillars for every share you hold (Gold: FinLit Prism)", "Ratios and latest financials in one table", "Average score, band mix and sector spread", "Import Excel, CSV or PDF statements"]}>
         {model && <aside className="pf-model" aria-label="Which score model this page uses"><span className="ci"><Icon name="quality" /></span>
           <p>{MODEL_BANNER[model]}{model === "finlit" && <> <Link to="/plans">See the Gold plan</Link>.</>}</p></aside>}

@@ -120,7 +120,7 @@ describe("screener", () => {
     for (const plan of ["basic", "silver"] as const) {
       st.plan = plan; st.calls = [];
       wrap(<FundScoreScreenerPage />);
-      expect(screen.getByText(/Screen every fund by its Health Score/)).toBeTruthy();
+      expect(screen.getByRole("heading", { level: 1, name: "Fund score screener" })).toBeTruthy();
       expect(st.calls).toEqual([]);
       cleanup();
     }

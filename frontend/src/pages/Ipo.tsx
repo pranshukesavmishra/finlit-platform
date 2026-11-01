@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useCallback, useMemo, useState } from "react";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
@@ -76,7 +77,9 @@ export function IpoPage() {
   const fromProvider = rows.some((r) => r.source === "FinEdge");
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>IPO calendar</h1><p className="muted">Issues that are open, coming up and recently listed, updated automatically from exchange data. For information only; the offer document is the authoritative source.</p></div></header>
+      <PageHeader plan="free" title="IPO calendar" art="calendar" links={["/results", "/news", "/premium/markets"]}
+        description={<>Issues that are <b>open, coming up and recently listed</b>, updated automatically from exchange data. For information only; the offer document is the authoritative source.</>}
+        stats={[{ icon: "activity", value: !isLoading && rows.length > 0 ? by("open").length : null, label: "Open now" }, { icon: "calendar", value: !isLoading && rows.length > 0 ? by("upcoming").length : null, label: "Upcoming" }]} />
       <div className="ipo-k">
         {([["open", "Open now", by("open").length], ["upcoming", "Upcoming", by("upcoming").length], ["listed", "Listed in the last 30 days", month.length]] as const).map(([k, l, n]) => <div key={k} className="card ipo-t" style={{ "--tc": STATUS[k].colour } as React.CSSProperties}><b>{n}</b><span>{l}</span></div>)}
         <div className="card ipo-t" style={{ "--tc": "var(--k3)" } as React.CSSProperties}><b className={avgGain == null ? "" : avgGain >= 0 ? "up" : "down"}>{avgGain == null ? "—" : (avgGain >= 0 ? "+" : MINUS) + nf(Math.abs(avgGain), 1) + "%"}</b><span>Average listing price against issue price (last 30 days)</span></div>

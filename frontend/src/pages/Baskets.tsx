@@ -1,7 +1,7 @@
 // My baskets: the queries a member has saved, with how many companies each matches today. Open one in the Query builder to change it.
+import { PageHeader } from "../components/PageHeader";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { Icon } from "../lib/icons";
 import { nf, dateIN } from "../lib/format";
 import { ApiError } from "../lib/api";
@@ -54,9 +54,9 @@ export function BasketsPage() {
   const list = q.data?.baskets ?? [], max = q.data?.max ?? 0;
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">My baskets</div><h1>Your saved queries.</h1>
-        <p>A basket is a query you wrote and named. It is your own screen, not a model portfolio: the list changes as company figures change, and each basket shows how many companies match today.</p></div></section>
+      <PageHeader wrap plan="free" title="My baskets" art="search" links={["/query-builder", "/screener", "/watchlist"]}
+        description="A basket is a query you wrote and named. It is your own screen, not a model portfolio: the list changes as company figures change, and each basket shows how many companies match today."
+        stats={[{ icon: "layers", value: q.data ? list.length : null, label: "Baskets saved" }, { icon: "table", value: q.data && max > 0 ? max : null, label: "Basket limit" }]} />
       <div className="wrap qb">
         {DEMO ? <div className="state"><p>Baskets are part of the live site.</p></div>
           : !user ? <div className="card state"><h2>Sign in to keep baskets</h2><p>Baskets are saved to your account so they are there on any device.</p><Link className="btn primary" to="/login">Sign in</Link></div>

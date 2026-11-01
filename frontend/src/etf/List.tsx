@@ -1,4 +1,5 @@
 // /etfs: every ETF listed on the NSE. Search that forgives spaces and typos, filters, sortable columns you can choose, and a compare tray.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -64,8 +65,9 @@ export function EtfListPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap">        <div className="eyebrow">Exchange-traded funds</div><h1>ETFs on the NSE, in one list.</h1>
-        <p>Price and 1-day, 1-year and 5-year returns for every ETF we find on the exchange. Search, filter, sort and compare up to four. Information only: nothing here is advice to buy or sell.</p></div></section>
+      <PageHeader wrap plan="free" title="ETFs on the NSE" art="funds" links={["/etfs/compare", "/etfs/compare-index-funds", "/funds"]}
+        description={<>Price and <b>1-day, 1-year and 5-year returns</b> for every ETF we find on the exchange. Search, filter, sort and compare up to four. Information only: nothing here is advice to buy or sell.</>}
+        stats={[{ icon: "layers", value: data ? data.universe : null, label: "ETFs listed" }]} />
 
       <div className="wrap etf-page">
         <Link className="evi-promo" to="/etfs/compare-index-funds">

@@ -12,7 +12,8 @@
     "overlay-guard": "node e2e/overlay_guard.mjs",
     "layout-guard": "node e2e/layout_guard.mjs",
     "layout-guard:api": "GUARD_MODE=api node e2e/layout_guard.mjs",
-    "reveal-guard": "node e2e/reveal_guard.mjs"
+    "reveal-guard": "node e2e/reveal_guard.mjs",
+    "page-headers": "node e2e/page_headers.mjs"
   },
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",

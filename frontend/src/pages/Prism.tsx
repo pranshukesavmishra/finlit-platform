@@ -19,7 +19,7 @@ import { PremiumHead } from "./Premium";
 import example from "../lib/__fixtures__/prismReport.json";
 
 function Head({ children }: { children?: React.ReactNode }) {
-  return <PremiumHead eyebrow="Gold · Financial health" title={PRISM_NAME}>{children ?? <p>A company's financial health, split into four parts the way a prism splits light. {PRISM_NOTE}</p>}</PremiumHead>;
+  return <PremiumHead title={PRISM_NAME} art="rating" links={["/advanced-score-screener", "/research", "/compare"]}>{children ?? <>A company's <b>financial health</b>, split into four parts the way a prism splits light. {PRISM_NOTE}</>}</PremiumHead>;
 }
 
 function Locked({ symbol }: { symbol?: string }) {
@@ -134,7 +134,7 @@ export function PrismPage() {
   if (!gold && !showcase.includes(symbol)) return <Locked symbol={symbol} />;
   return (
     <>
-      <Head><p>{symbol} · {statementWord(statement)} statements. <Link to="/prism">Another company</Link></p></Head>
+      <Head>{symbol} · {statementWord(statement)} statements. <Link to="/prism">Another company</Link></Head>
       <div className="wrap pzr-page" style={{ paddingBottom: 56 }}>
         <CompanyView key={symbol + statement} symbol={symbol} statement={statement}
           picker={<Picker statement={statement} />} />

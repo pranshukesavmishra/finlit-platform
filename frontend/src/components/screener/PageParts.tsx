@@ -1,19 +1,15 @@
 // Page parts both screeners share: title card, KPI strip (the last card opens the filters), donut + sector bars, and the search / filter-button / sort toolbar.
 import type { ReactNode } from "react";
 import { Icon } from "../../lib/icons";
-import { TierChip } from "../Gate";
-import type { Plan } from "../../lib/ui";
+import { PageHeader, type PageHeaderProps, type PhPlan } from "../PageHeader";
 import { nf } from "../../lib/format";
-import { Link } from "react-router";
 import { Chev } from "./FilterGroup";
 import { SearchBox } from "./FilterGroup";
 
-export function TitleCard({ tier, title, sub, onLearn, learnTo, learnLabel = "Learn more" }: { tier: Plan; title: string; sub: ReactNode; onLearn?: () => void; learnTo?: string; learnLabel?: string }) {
-  return (
-    <div className="fgx-title card">
-      <div className="fgx-tx"><div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}><TierChip tier={tier} /><h1>{title}</h1></div><p>{sub}</p></div>
-      {learnTo ? <Link className="btn" to={learnTo}><Icon name="info" /> {learnLabel}</Link> : <button type="button" className="btn" onClick={onLearn}><Icon name="info" /> {learnLabel}</button>}
-    </div>);
+/** The screeners' title card: now the shared page header (components/PageHeader.tsx). `tier` is the plan that gates the page; the optional stats / links / art are the header's own. */
+export function TitleCard({ tier, title, sub, onLearn, learnTo, learnLabel = "Learn more", stats, links, art, meta, back }: { tier?: PhPlan; title: string; sub: ReactNode; onLearn?: () => void; learnTo?: string; learnLabel?: string } & Pick<PageHeaderProps, "stats" | "links" | "art" | "meta" | "back">) {
+  return <PageHeader plan={tier} title={title} description={sub} stats={stats} links={links} art={art} meta={meta} back={back}
+    learn={learnTo ? { to: learnTo, label: learnLabel } : onLearn ? { onClick: onLearn, label: learnLabel } : undefined} />;
 }
 
 export type Kpi = { icon: Parameters<typeof Icon>[0]["name"]; label: string; value: string; why?: string };

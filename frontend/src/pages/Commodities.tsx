@@ -2,6 +2,7 @@
 // platinum, crude oil, natural gas, copper and aluminium. Every price arrives from the server as text already rounded to the digits shown;
 // this page formats and lays out, it never computes a price (the unit converter is the one exception and uses exact integer arithmetic).
 // Information only, never advice: no calls to act, no outlook.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -190,8 +191,9 @@ export function CommoditiesPage() {
   const items = useMemo(() => (q.data?.items ?? []).filter((i) => tab === "all" || i.group === tab), [q.data, tab]);
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Free tool · no sign-in</div><h1>Commodity Prices</h1>
-        <p className="cm-sub">MCX market price · International (USD) · Import parity</p></div></section>
+      <PageHeader wrap plan="free" title="Commodity prices" art="macro" links={["/macro", "/fii-dii", "/premium/markets"]}
+        description={<>MCX market price, <b>international (USD) price</b> and import parity for gold, silver, crude and metals.</>}
+        stats={[{ icon: "layers", value: q.data ? q.data.items.length : null, label: "Commodities" }]} />
       <div className="wrap cm">
         <p className="cm-disc" role="note"><Icon name="info" /><span>{DISCLAIMER}</span></p>
         {q.data && <Status d={q.data} />}

@@ -62,10 +62,10 @@ export function PremiumReportPage() {
   const universe = useUniverse(); const [text, setText] = useState(""), [open, setOpen] = useState(false);
   const box = useRef<HTMLInputElement>(null); useSlashFocus(box); const recent = readRecent();
   const sug = useMemo(() => { const t = text.trim().toLowerCase(); return t ? (universe.data?.rows || []).filter((r) => r.symbol.toLowerCase().startsWith(t) || (r.name || "").toLowerCase().includes(t)).slice(0, 8) : []; }, [text, universe.data]);
-  if (!gold) return <><PremiumHead eyebrow="Gold dashboard" title="Premium Report" /><GoldLock title="Premium Report" /></>;
+  if (!gold) return <><PremiumHead title="Premium reports" art="report" /><GoldLock title="Premium Report" /></>;
   return (
     <>
-      <div className="pm-noprint"><PremiumHead eyebrow="Gold dashboard" title="Premium Report"><p>A clean one-document research report for any company. Print it or save it as a PDF to share. <Link to="/premium">All Gold dashboards</Link></p></PremiumHead></div>
+      <div className="pm-noprint"><PremiumHead title="Premium reports" art="report" links={["/research", "/prism", "/premium"]}>A clean <b>one-document research report</b> for any company. Print it or save it as a PDF to share.</PremiumHead></div>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         <div className="pm-search pm-noprint" style={{ marginBottom: 24 }}><Icon name="search" />
           <input ref={box} value={text} onChange={(e) => { setText(e.target.value); setOpen(true); }} onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder="Choose a company, for example RELIANCE" aria-label="Choose a company" />

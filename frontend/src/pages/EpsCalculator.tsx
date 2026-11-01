@@ -1,6 +1,7 @@
 // EPS calculator (free): earnings per share and P/E from four inputs, then a future-EPS and price scenario with Bear/Base/Bull cases, a
 // sensitivity grid, year-by-year charts, PEG and the growth a target price needs. All arithmetic lives in lib/epsCalc.ts (pure, tested).
 // A company can be loaded from our stored annual figures (net profit attributable to owners, diluted weighted shares, price); every field stays editable.
+import { PageHeader } from "../components/PageHeader";
 import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -236,8 +237,8 @@ export function EpsCalculatorPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Free tool</div><h1>EPS calculator</h1>
-        <p>Work out earnings per share and the P/E ratio from four numbers, then see what a future EPS and a target P/E would imply for the share price. Everything updates as you type, and the working is shown.</p></div></section>
+      <PageHeader wrap plan="free" title="EPS & P/E calculator" art="calculator" links={["/dcf", "/sip-calculator", "/research"]}
+        description={<>Work out <b>earnings per share and the P/E ratio</b> from four numbers, then see what a future EPS and a target P/E would imply for the share price. Everything updates as you type, and the working is shown.</>} />
       <div className="wrap dcf eps">
         <CompanyLoader initial={sp.get("load") === "1" && form.sym ? form.sym : null} loaded={loaded} onLoad={onLoad} />
 

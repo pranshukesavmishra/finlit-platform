@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -37,9 +38,8 @@ export function ResultsPage() {
   const sel = pick ? byDay.get(pick) || [] : [];
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>Results calendar</h1><p className="muted">Board-meeting dates for quarterly results, and the filings once they are out. Dates are as announced to the exchanges.</p></div>
-        <Link className="btn primary" to="/results/quarter"><Icon name="notes" /> See all quarter results</Link>
-        <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
+      <PageHeader plan="free" title="Results calendar" art="calendar" links={[{ to: "/results/quarter", primary: true, label: "All quarter results" }, "/news", "/ipo"]} actions={<label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label>}
+        description={<>Board-meeting dates for <b>quarterly results</b>, and the filings once they are out. Dates are as announced to the exchanges.</>} />
       {staleNote && <div className="rc-stale" role="status">{staleNote}</div>}
       {delayedNote && !staleNote && <div className="rc-stale" role="status" data-testid="results-delayed">{delayedNote}</div>}
       <p className="muted rc-upd">{runAt ? `Updated ${new Date(runAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })} IST` : st.data ? "Update time not recorded yet" : ""}{st.data?.newestResultInDb ? ` · newest result held: ${dayLabel(st.data.newestResultInDb)}` : ""}</p>

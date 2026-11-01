@@ -1,4 +1,5 @@
 // /etfs/compare?symbols=A,B: two to four ETFs side by side, with their prices rebased to 100 on one chart. No ranking, no "winner": the figures speak.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -59,8 +60,8 @@ export function EtfComparePage() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap">        <div className="eyebrow">Compare ETFs</div><h1>ETFs, side by side.</h1>
-        <p>Choose two to four ETFs. The chart rebases each price to 100 on the same day, so you can see how they moved relative to each other. Information only.</p></div></section>
+      <PageHeader wrap plan="free" title="Compare ETFs" art="compare" links={["/etfs", "/etfs/compare-index-funds", "/funds"]}
+        description={<>Choose <b>two to four ETFs</b>. The chart rebases each price to 100 on the same day, so you can see how they moved relative to each other. Information only.</>} />
       <div className="wrap etf-page">
         <div className="card etf-sec">
           <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>Choose ETFs</h3><Link className="etf-link" to="/etfs">Browse the full list →</Link></div>

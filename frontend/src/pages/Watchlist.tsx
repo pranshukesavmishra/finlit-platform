@@ -1,8 +1,8 @@
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link, useNavigate } from "react-router";
 import { Icon } from "../lib/icons";
-import { PageArt } from "../components/PageArt";
 import { Gate } from "../components/Gate";
 import { Plain } from "../components/Plain";
 import { useUI } from "../lib/ui";
@@ -84,9 +84,9 @@ export function WatchlistPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-        <div className="eyebrow">Your watchlist</div><h1>Keep the companies you care about in one place.</h1>
-        <p>Group them into lists, bucket them by industry or size, add your own notes and targets, and see which ones need a second look.</p></div></section>
+      <PageHeader wrap plan="silver" title="Watchlists" art="portfolio" links={["/holdings", "/alerts", "/compare"]}
+        description={<>Group companies into <b>named lists</b>, bucket them by industry or size, add your own notes and targets, and see which ones need a second look.</>}
+        stats={[{ icon: "table", value: st.lists.length > 0 && st.lists.some((l) => l.symbols.length > 0) ? st.lists.length : null, label: "Lists" }, { icon: "building", value: list.symbols.length > 0 ? list.symbols.length : null, label: "Stocks in this list" }]} />
       <div className="wrap wl">
         <Gate tier="silver" title="Build your watchlist" points={["Named lists for your own themes", "Bucket stocks by industry and size", "Notes, target prices and one-click comparison"]}>
           {data?.sample && <div className="sample-note" role="note"><Icon name="info" /><span><b>Sample data.</b> Lists are saved in this browser. Reliance is real; the other companies are fictional (SMP-). On the live site your lists will follow your account to the app.</span></div>}
