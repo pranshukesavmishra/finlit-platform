@@ -28,7 +28,7 @@ export function Services() {
       </div></section>
       <section className="sec hp-dcf"><div className="wrap">
         <Reveal className="sec-h"><div className="eyebrow">Gold tool</div><h2>DCF calculator</h2>
-          <p>Work out what a company is worth from the cash it will generate, the way analysts and banks do it, without building an Excel model. Load any listed company's free cash flow, debt and shares, set growth and the discount rate, and see the intrinsic value per share, the buy price after your margin of safety, and whether today's price is above or below it.</p></Reveal>
+          <p>Work out what a company is worth from the cash it will generate, the way analysts and banks do it, without building an Excel model. Load any listed company's free cash flow, debt and shares, set growth and the discount rate, and see the intrinsic value per share, the margin-of-safety price, and whether today's price is above or below it.</p></Reveal>
         <ul className="hp-list">
           <li>Every step of the working shown: projected cash flows, present values, terminal value, enterprise and equity value.</li>
           <li>Checks that stop impossible assumptions, and warnings when the answer rests mostly on the terminal value.</li>

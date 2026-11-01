@@ -180,8 +180,8 @@ export function impliedReturn(i: DcfInputs): number | null {
 }
 
 export const STATUS_TEXT: Record<DcfStatus, { label: string; text: string }> = {
-  buy: { label: "Price below estimated value", text: "The current price is at or below the buy price (intrinsic value less the margin of safety) on these assumptions (undervalued)." },
-  fair: { label: "Price near estimated value", text: "The current price is between the buy price and the intrinsic value on these assumptions (fairly valued)." },
+  buy: { label: "Price below estimated value", text: "The current price is at or below the margin-of-safety price (intrinsic value less the margin of safety) on these assumptions (undervalued)." },
+  fair: { label: "Price near estimated value", text: "The current price is between the margin-of-safety price and the intrinsic value on these assumptions (fairly valued)." },
   overvalued: { label: "Price above estimated value", text: "The current price is above the intrinsic value on these assumptions (overvalued)." },
   "not-meaningful": { label: "Not meaningful", text: "Equity value is zero or negative in this model, so there is no intrinsic value per share to compare with the price." },
 };

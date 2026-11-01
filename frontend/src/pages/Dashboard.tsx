@@ -201,7 +201,7 @@ type SavedDcf = { name: string; symbol: string | null; updatedAt: string; inputs
 function DcfW() {
   const q = useQuery<{ scenarios: SavedDcf[] }, ApiError>({ queryKey: ["dcf-scenarios"], queryFn: () => apiGet("/api/dcf/scenarios"), retry: false, enabled: !DEMO });
   const list = (q.data?.scenarios ?? []).slice(0, 5);
-  if (DEMO || q.isError || (q.data && !list.length)) return <Empty icon="rupee" title="Value a company" text="Work out the intrinsic value per share, the buy price after your margin of safety and what today's price implies." to="/dcf" cta="Open the DCF calculator" />;
+  if (DEMO || q.isError || (q.data && !list.length)) return <Empty icon="rupee" title="Value a company" text="Work out the intrinsic value per share, the margin-of-safety price and what today's price implies." to="/dcf" cta="Open the DCF calculator" />;
   if (!q.data) return <div className="skeleton" style={{ height: 120 }} />;
   return <><ul className="sl">{list.map((s) => { const o = run(s.inputs), r = o.result;
     return <li key={s.name}><Link to={dcfLink(s)}><b>{s.name}</b>{r && r.equity > 0 ? <span className={"chip " + (r.status === "buy" ? "up" : r.status === "overvalued" ? "down" : "gold")}>{STATUS_TEXT[r.status].label}</span> : null}</Link>
