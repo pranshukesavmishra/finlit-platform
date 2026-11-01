@@ -176,7 +176,7 @@ async def pending_for(conn, call_id: int, have_previous: bool) -> List[Question]
 # A validated answer is never overwritten, except by a validated one under a new prompt version. Every attempt is counted (per prompt version) either way.
 _REPLACE = "(NOT a.validated OR (EXCLUDED.validated AND a.prompt_version <> EXCLUDED.prompt_version))"
 UPSERT_ANSWER = (
-    "INSERT INTO earnings_call_answers AS a (call_id, question_id, answer, model, prompt_version, last_version, validated, attempts, reject_reason) "
+    "INSERT INTO earnings_call_answers AS a (call_id, question_id, answer, model, prompt_version, last_version, validated, attempts, reject_reason) "  # nosec B608 - the only text put into the statement is the constant _REPLACE; every value is a bound parameter
     "VALUES ($1,$2,$3::jsonb,$4,$5,$5,$6,1,$7) ON CONFLICT (call_id, question_id) DO UPDATE SET "
     f"answer = CASE WHEN {_REPLACE} THEN EXCLUDED.answer ELSE a.answer END, "
     f"model = CASE WHEN {_REPLACE} THEN EXCLUDED.model ELSE a.model END, "

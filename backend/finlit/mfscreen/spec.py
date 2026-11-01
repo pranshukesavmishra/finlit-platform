@@ -189,7 +189,7 @@ def source(preds: Sequence[Pred], family: bool, exclude: Sequence[str] = ()) -> 
     base = f"mf_schemes LEFT JOIN mf_screen ON x_code = code{w or ' WHERE true'}"   # always a WHERE, so callers can append AND ...
     if not family:
         return base, args
-    return (f"(SELECT mf_schemes.*, mf_screen.*, row_number() OVER (PARTITION BY family ORDER BY (plan = 'Direct') DESC, (option_class = 'Growth') DESC, code) AS fam_rn "
+    return (f"(SELECT mf_schemes.*, mf_screen.*, row_number() OVER (PARTITION BY family ORDER BY (plan = 'Direct') DESC, (option_class = 'Growth') DESC, code) AS fam_rn "  # nosec B608 - table text and WHERE come from fixed fragments; every value is a bound parameter
             f"FROM {base}) mf_schemes WHERE fam_rn = 1"), args
 
 
@@ -345,7 +345,7 @@ def parse(params: Any, ctx: Ctx) -> Screen:
         if fresh not in ("today", "week"):
             raise ScreenError("fresh is today or week.")
         days = 0 if fresh == "today" else 7
-        add("fresh", lambda a: f"nav_date >= (SELECT max(nav_date) FROM mf_schemes WHERE active) - {days}")
+        add("fresh", lambda a: f"nav_date >= (SELECT max(nav_date) FROM mf_schemes WHERE active) - {days}")  # nosec B608 - days is the integer 0 or 7 chosen from a two-value whitelist
     key.append(["fresh", fresh])
     family = one("family").lower() in ("1", "true", "yes", "on")
     key.append(["family", family])
@@ -469,9 +469,9 @@ def parse(params: Any, ctx: Ctx) -> Screen:
     holds = one("holds").strip().upper()
     if holds:
         if ISIN_RE.match(holds):
-            add("holds", lambda a: f"family IN (SELECT fkey FROM mf_screen_hold WHERE isin = {a(holds)})")
+            add("holds", lambda a: f"family IN (SELECT fkey FROM mf_screen_hold WHERE isin = {a(holds)})")  # nosec B608 - a() returns a bound-parameter placeholder; the sector value is never put in the text
         elif SYMBOL_RE.match(holds):
-            add("holds", lambda a: f"family IN (SELECT h.fkey FROM mf_screen_hold h JOIN disclosure_isin i ON i.isin = h.isin WHERE i.symbol = {a(holds)})")
+            add("holds", lambda a: f"family IN (SELECT h.fkey FROM mf_screen_hold h JOIN disclosure_isin i ON i.isin = h.isin WHERE i.symbol = {a(holds)})")  # nosec B608 - a() returns a bound-parameter placeholder; the symbol is never put in the text
         else:
             raise ScreenError("holds is an NSE symbol or an ISIN.")
     key.append(["holds", holds])
