@@ -58,11 +58,11 @@ function DailyChart({ idx }: { idx: IndexRow[] }) {
   );
   if (q.isError) return <div className="mk-chart">{controls}<p className="mk-note">Daily closes for this index are not available right now.{(q.error as { status?: number })?.status === 404 ? " The preview build holds the Nifty 50 only." : ""}</p></div>;
   if (!rows.length) return <div className="mk-chart">{controls}<div className="skeleton" style={{ height: H }} aria-busy="true" /></div>;
-  const v = rows.map((r) => r.c), up = v[v.length - 1] >= v[0];
+  const v = rows.map((r) => r.c);
   const ticks = niceTicks(Math.min(...v), Math.max(...v), 5), lo = ticks[0], hi = ticks[ticks.length - 1];
   const X = (i: number) => L + (i / Math.max(1, rows.length - 1)) * (W - L - R), Y = (c: number) => T + (1 - (c - lo) / (hi - lo || 1)) * (H - T - B);
   const path = rows.map((r, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(r.c).toFixed(1)}`).join("");
-  const color = up ? "var(--gain)" : "var(--loss)", cur = hv == null ? null : rows[hv], prev = hv != null && hv > 0 ? rows[hv - 1] : null;
+  const color = "var(--chart-1)", cur = hv == null ? null : rows[hv], prev = hv != null && hv > 0 ? rows[hv - 1] : null;
   const first = new Date(rows[0].d), last = new Date(rows[rows.length - 1].d), span = (+last - +first) / 864e5;
   const label = (d: string) => dateIN(d, span > 400 ? { month: "short", year: "2-digit" } : { day: "numeric", month: "short" });
   const xs = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (rows.length - 1)));
@@ -149,7 +149,7 @@ function Snapshot({ rows }: { rows: Row[] }) {
     return { n: live.length, adv, dec, flat: live.length - adv - dec, up: gainers(big, 5), down: losers(big, 5), sectors: sectorBoard(rows), all: weightedMove(big) };
   }, [rows]);
   const cells = useMemo<Cell[]>(() => m.sectors.map((s) => ({ key: s.sector, label: s.sector, sub: `${s.n} companies`, move: s.move, weight: s.cap, name: s.sector })), [m.sectors]);
-  if (!m.n) return <section className="mk-card"><div className="mk-h"><h2>Market snapshot</h2></div><p className="mk-note">Market data is on its way.</p></section>;
+  if (!m.n) return <section className="mk-card"><div className="mk-h"><h2>Market snapshot</h2></div><p className="mk-note">Market breadth data is not available right now.</p></section>;
   return (
     <section className="mk-card" aria-labelledby="mkSnap">
       <div className="mk-h"><div><h2 id="mkSnap">Market snapshot</h2><p>{m.n.toLocaleString("en-IN")} companies{m.all != null ? <> · cap-weighted move <b className={tone(m.all)}>{sgn(m.all)}</b></> : null}</p></div></div>

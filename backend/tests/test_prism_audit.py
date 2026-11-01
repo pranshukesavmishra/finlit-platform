@@ -18,7 +18,7 @@ NEW = 'Prism has no model group for this industry yet ("Zzyzx Widgets"). The inp
 
 def report(symbol, status, confidence=1.0, alerts=(), reasons=None, version=None, industry="Finance", sector="Holding Companies", judged=10, missing=()):
     rating = {"status": status, "confidence": confidence, "alerts": list(alerts), "judgedQuarters": judged, "final": None if status == "NOT RATED" else 60.0,
-              "label": "NOT RATED" if status == "NOT RATED" else "AVERAGE", "modelVersion": "3.6.10",
+              "label": "NOT RATED" if status == "NOT RATED" else "AVERAGE", "modelVersion": prism.REQUIRED_MODEL_VERSION,
               "metrics": [{"label": m, "status": "L"} for m in missing] + [{"label": "Sales streak", "status": "A"}]}
     if reasons is not None:
         rating["notRatedReasons"] = reasons
@@ -45,7 +45,7 @@ async def put(store, rows):  # noqa: F811
         await conn.execute("DELETE FROM prism_reports")
         for rep in rows:
             r = rep["rating"]
-            await conn.execute("INSERT INTO prism_reports (symbol, statement, id, report, model_version, final, label, status) VALUES ($1,'consolidated',$2,$3::jsonb,'3.6.10',$4,$5,$6)",
+            await conn.execute("INSERT INTO prism_reports (symbol, statement, id, report, model_version, final, label, status) VALUES ($1,'consolidated',$2,$3::jsonb,'3.6.11',$4,$5,$6)",
                                rep["company"]["symbol"], rep["id"], json.dumps(rep), r["final"], r["label"], r["status"])
 
 

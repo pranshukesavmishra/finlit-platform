@@ -16,7 +16,7 @@ export const NAV: NavItem[] = [
   ["peers", "Peers", "layers", "Similar companies side by side"],
   ["insights", "Insights", "crown", "Gold insights worked out from the numbers"],
   ["dividends", "Dividends", "coins", "Dividends, splits, bonuses and events"],
-  ["method", "Pros & cons", "info", "Strengths, weaknesses and data notes"],
+  ["method", "Data & model", "info", "Strengths, weaknesses and data notes"],
   ["leadership", "Leadership", "medal", "Directors and key management"],
   ["plans", "Plans", "medal", "Compare Basic, Silver and Gold"],
 ];

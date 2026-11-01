@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Post-deploy smoke test: scripts/smoke.sh <base-url>   e.g. scripts/smoke.sh https://finlit-arug.onrender.com
-# Prints PASS/FAIL per check; exits 1 if any failed. Read-only GETs, a few dozen small requests (free-tier friendly).
+# Post-deploy smoke test: scripts/smoke.sh <base-url>   e.g. scripts/smoke.sh https://www.finlitventures.com
+# Prints PASS/FAIL per check; exits 1 if any failed. Read-only GETs against the AWS deployment.
 # Env: MAX_UPDATING_PCT (default 50) share of "report being updated" allowed on the latest declared day that is at least 1 day old;
 #      SMALLCAP (default SBFC) a small company that must show a price and a score; MIN_TOTAL (5000) companies in the screener catalog.
 set -uo pipefail
@@ -13,7 +13,7 @@ FAILS=0
 pass() { echo "PASS  $*"; }
 fail() { echo "FAIL  $*"; FAILS=$((FAILS + 1)); }
 
-# get <path> -> body in $TMP/body, status in $CODE. Waits for a sleeping free instance (up to ~2 min for the first request).
+# get <path> -> body in $TMP/body, status in $CODE. Retries transient startup or deployment errors.
 get() {
   CODE=000
   for i in 1 2 3 4; do

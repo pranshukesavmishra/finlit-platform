@@ -339,8 +339,6 @@ def test_the_supervisor_and_cron_run_the_refresh_after_the_close_with_a_late_ret
     assert not evaluate(job, late, Ctx(now=ist(2026, 10, 30, 21, 10), probes={"technicals": False})).due
     assert evaluate(job, late, Ctx(now=ist(2026, 10, 30, 21, 10), probes={"technicals": True})).due   # the late retry: companies the first run could not reach
     assert evaluate(job, JobState(job="technicals", first_seen_at=friday_close - timedelta(days=9), last_success_at=ist(2026, 10, 29, 19, 0)), Ctx(now=ist(2026, 10, 31, 5, 30))).due   # the morning catch-up
-    cron = (ROOT / "deploy/crontab").read_text()
-    assert re.search(r"^30 18 \* \* 1-5\s+root \$W refresh-technicals", cron, re.M) and re.search(r"^15 21 \* \* 1-5\s+root \$W refresh-technicals", cron, re.M)
     worker = (ROOT / "backend/finlit/worker.py").read_text()
     assert '"refresh-technicals"' in worker and "prism_technical.refresh(" in worker
 

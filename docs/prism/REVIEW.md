@@ -1,3 +1,5 @@
+> Historical model-integration record. References to retired hosting files below describe the earlier migration; current deployment is documented in [DEPLOY.md](DEPLOY.md) and [AWS-DEPLOY.md](../AWS-DEPLOY.md).
+
 # FinLit Prism: adversarial review
 
 Reviewed at integrated branch head 5430221 (`claude/prism-model`); fixes are commits b8bd6a1 (research API) and 85d089b (website).

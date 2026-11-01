@@ -41,7 +41,7 @@
 :root:not([data-theme="light"]) .hstat > div { border-width: 1px; border-color: var(--frame); background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 120px); box-shadow: var(--shadow); }
 :root:not([data-theme="light"]) .card.acc::before { opacity: .9; }
 :root:not([data-theme="light"]) .report, :root:not([data-theme="light"]) .plan, :root:not([data-theme="light"]) .cmp { box-shadow: var(--shadow); }
-:root:not([data-theme="light"]) .plan, :root:not([data-theme="light"]) .plan.feat { background: linear-gradient(180deg, color-mix(in srgb, var(--s2) 60%, var(--s1)), var(--s1) 180px) !important; }
+:root:not([data-theme="light"]) .plan, :root:not([data-theme="light"]) .plan.feat { background:var(--bg-surface); }
 :root:not([data-theme="light"]) .band, :root:not([data-theme="light"]) footer.band { background: linear-gradient(180deg, var(--band-a), var(--band-b)); }
 :root:not([data-theme="light"]) footer.band { border-top: 1px solid var(--border); background: linear-gradient(180deg, var(--foot-a), var(--foot-b)); }
 :root:not([data-theme="light"]) .band .lock-card, :root:not([data-theme="light"]) .report .lock-card, :root:not([data-theme="light"]) .lock-card { background: var(--s2); }
@@ -98,5 +98,5 @@
 :root[data-theme="light"] .skeleton { background: var(--s2); }
 
 /* ---------- No looping or wobbling motion, in any theme ---------- */
-.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip, .term, .skyline .win, .bt-art *, .art * { animation-iteration-count: 1 !important; }
-.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip { animation: none !important; }
+.marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip, .term, .skyline .win, .bt-art *, .art * { animation-iteration-count: 1 !important; }
+.marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip { animation: none !important; }

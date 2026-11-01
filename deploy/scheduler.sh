@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# In-container background processes, started by start.sh (deploy/render-start.sh) with nohup. Output: /tmp/scheduler.log
+# In-container background processes, started by deploy/start.sh with nohup. Output: /tmp/scheduler.log
 #
 # ALL scheduling of data jobs now lives in ONE Python process, the job supervisor (backend/finlit/jobs, `python -m finlit.worker supervise`, docs/JOBS.md):
 # what is due (SLA, quiet windows, intervals), the order (priority; bulk jobs strictly one at a time), memory/CPU gating, the watchdog, retries after

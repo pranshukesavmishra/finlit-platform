@@ -297,9 +297,9 @@ async def test_refresh_alerts_flag_reads_the_database(store):  # noqa: F811
 SCHEDULER = (ROOT / "deploy" / "scheduler.sh").read_text()
 
 
-def test_render_health_check_is_database_free():
-    cfg = yaml.safe_load((ROOT / "render.yaml").read_text())
-    assert cfg["services"][0]["healthCheckPath"] == "/api/ping"
+def test_aws_health_check_is_database_free():
+    cfg = yaml.safe_load((ROOT / "deploy/aws/docker-compose.aws.yml").read_text())
+    assert "/api/ping" in " ".join(cfg["services"]["app"]["healthcheck"]["test"])
 
 
 def test_the_supervisor_gates_quotes_and_alerts_on_visitors_and_alerts_and_results_on_nothing():
@@ -328,5 +328,5 @@ def test_the_scheduler_keeps_the_loops_quiet_and_the_windows_live_in_the_registr
 
 def test_deploy_scripts_parse(tmp_path):
     import subprocess
-    for f in ("scheduler.sh", "render-start.sh"):
+    for f in ("scheduler.sh", "start.sh"):
         assert subprocess.run(["bash", "-n", str(ROOT / "deploy" / f)]).returncode == 0

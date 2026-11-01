@@ -1,0 +1,20 @@
+/* Brand moment only: no percentage, artificial data progress or looping motion. */
+[data-finlit-intro] { display:none; }
+html[data-introduction="on"] [data-finlit-intro] { display:grid; position:fixed; inset:0; z-index:1000; isolation:isolate; place-items:center; color:#F8F6F1; overflow:hidden; }
+html[data-introduction="on"] { overflow:hidden; }
+[data-finlit-intro]::before,[data-finlit-intro]::after { content:""; position:absolute; left:0; right:0; height:50.1%; z-index:-1; background:#0B192C; transition:transform 380ms cubic-bezier(.76,0,.24,1); }
+[data-finlit-intro]::before { top:0; } [data-finlit-intro]::after { bottom:0; }
+[data-finlit-intro][data-phase="out"]::before { transform:translateY(-101%); }
+[data-finlit-intro][data-phase="out"]::after { transform:translateY(101%); }
+.opening-lockup { display:flex; flex-direction:column; align-items:center; gap:28px; padding:24px; transition:opacity 180ms ease,transform 380ms ease; animation:opening-appear 650ms cubic-bezier(.16,1,.3,1) both; }
+.opening-logo { width:clamp(190px,24vw,290px); height:auto; object-fit:contain; }
+.opening-lockup p { margin:0; color:#B5BFCC; text-align:center; font:400 13px/1.6 Inter,system-ui,sans-serif; letter-spacing:.04em; }
+.opening-line { width:144px; height:1px; background:#526780; overflow:hidden; }
+.opening-line::after { content:""; display:block; width:100%; height:100%; background:#C6A76A; transform-origin:left; animation:opening-line 1000ms cubic-bezier(.65,0,.35,1) both; }
+.opening-skip { position:absolute; right:max(24px,env(safe-area-inset-right)); top:max(24px,env(safe-area-inset-top)); min-height:44px; padding:10px 16px; border:1px solid #526780; border-radius:4px; background:transparent; color:#F8F6F1; font:500 13px/1.4 Inter,system-ui,sans-serif; cursor:pointer; }
+.opening-skip:focus-visible { outline:2px solid #A78BFA; outline-offset:4px; }
+[data-finlit-intro][data-phase="out"] .opening-lockup { opacity:0; transform:translateY(-8px); }
+[data-finlit-intro][data-phase="out"] .opening-skip { opacity:0; }
+@keyframes opening-appear { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes opening-line { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@media(prefers-reduced-motion:reduce),print { html[data-introduction="on"] [data-finlit-intro] { display:none; } html[data-introduction="on"] { overflow:visible; } }

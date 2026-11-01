@@ -1,4 +1,4 @@
-"""The site backend starts and serves FinLit Prism without MongoDB (MONGO_URL unset), as deploy/render-start.sh runs it when
+"""The site backend starts and serves FinLit Prism without MongoDB (MONGO_URL unset), as deploy/start.sh runs it when
 only the Prism prerequisites are configured. Database routes must answer 503 at once, never hang on a server-selection timeout.
 
 Runs in a fresh interpreter: conftest.py sets MONGO_URL for every other test, and the database client is created at import."""

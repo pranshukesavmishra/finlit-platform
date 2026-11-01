@@ -1,6 +1,6 @@
 """Which statements read the most rows from Postgres: the next hog, found from real data (GET /api/admin/db-usage, administrators only).
 
-Neon's free plan allows 5 GB of data sent from the database a month (docs/NEON-EGRESS.md). Postgres does not count bytes per statement, but rows returned
+Measures data returned by PostgreSQL so query and refresh costs remain visible. Postgres does not count bytes per statement, but rows returned
 is the closest thing it keeps, and the statements that return the most rows are the ones to look at first. Needs the pg_stat_statements extension
 (migration 056 tries to create it); without it the answer says so instead of failing."""
 

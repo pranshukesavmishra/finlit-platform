@@ -108,7 +108,7 @@ export function AlertsPage() {
     <div className="wrap alx">
       <PageHeader plan="free" title="Alerts" art="calendar" links={["/watchlist", "/holdings", "/results"]}
         description={<>Pick a company and a condition. When it comes true you are told in the app, and by email or in your browser if you choose. For information only, not investment advice.</>}
-        stats={[{ icon: "bell", value: counts.all > 0 ? counts.active : null, label: "Active alerts" }, { icon: "activity", value: counts.all > 0 ? week : null, label: "Fired in 7 days" }]} />
+        />
 
       <div className="alx-k">
         <div className="card"><b>{counts.active}</b><span>Active alerts</span></div>

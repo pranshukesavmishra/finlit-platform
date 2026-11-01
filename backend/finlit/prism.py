@@ -279,6 +279,9 @@ def _summary(row, refreshing: bool = False) -> Dict[str, Any]:
 # Mirrors CLASSIFICATION_VERSION in site-api/backend/premium_classification.py (a test keeps them equal). Bump both when the group rules change
 # what a stored NOT RATED report would show: reports of an older version that were withheld by the classification check are then stale.
 CLASSIFICATION_VERSION = 3
+# Mirrors site-api/backend/premium_model_config.py; a regression test keeps them aligned.
+# The prior all-group PEG change kept 3.6.10, leaving older PEG-excluded reports reusable.
+REQUIRED_MODEL_VERSION = "3.6.11"
 CLASSIFICATION_MARK = "model group"      # in the rating's alerts of a report withheld by the classification check, before and after the fix
 
 
@@ -297,9 +300,26 @@ def stale_classification(report: Any) -> bool:
     return any(CLASSIFICATION_MARK in str(a) for a in (report.get("rating") or {}).get("alerts") or [])
 
 
+def stale_model(report: Any) -> bool:
+    """A stored calculation is reusable only under the currently deployed scoring version.
+
+    Keep the historical snapshot intact: latest/generation hide or replace the stored
+    reader view, while already issued PDF snapshots retain their original calculation.
+    """
+    if isinstance(report, (str, bytes)):
+        try:
+            report = json.loads(report)
+        except (ValueError, UnicodeDecodeError):
+            return True
+    if not isinstance(report, dict):
+        return True
+    rating = report.get("rating")
+    return not isinstance(rating, dict) or rating.get("modelVersion") != REQUIRED_MODEL_VERSION
+
+
 def _fresh(row) -> bool:
     return (row is not None and (datetime.now(timezone.utc) - row["generated_at"]).total_seconds() < REUSE_SECONDS
-            and not stale_classification(row["report"]))
+            and not stale_model(row["report"]) and not stale_classification(row["report"]))
 
 
 def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
@@ -471,8 +491,8 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     if refusal:
         return refusal
     row = await _stored(request.app.state.store, *wanted)
-    if row is None:
-        return _reply({"status": "none", "detail": f"No {PRISM_NAME} report has been calculated for this company yet."}, 404)
+    if row is None or stale_model(row["report"]):
+        return _reply({"status": "none", "detail": f"No current-model {PRISM_NAME} report is available. A fresh calculation is needed."}, 404)
     refreshing = await _refresh_stale_technical(request.app, wanted[0], row)
     return _reply({"summary": _summary(row, refreshing)} if view == "summary" else _shape(row, cached=True, refreshing=refreshing))
 
@@ -1015,6 +1035,7 @@ PRE_PROGRESS_KEY = "prism:pre:last"
 STALE_SQL = ("(p.status = 'NOT RATED' AND COALESCE(NULLIF(regexp_replace(COALESCE(p.report->'inputMeta'->>'classificationVersion', ''), '[^0-9]', '', 'g'), '')::int, 0) < $5 "
              "AND ((p.report->'rating'->'alerts')::text ILIKE '%model group%' OR (p.report->'rating'->'notRatedReasons')::text ILIKE '%model group%' "
              "OR (p.report->'rating'->'notRatedReasons')::text ILIKE '%classification%' OR (p.report->'rating'->'alerts')::text ILIKE '%classification%'))")
+STALE_MODEL_SQL = "p.model_version IS DISTINCT FROM $6::text"
 STALE_MAX = 300                    # --stale-not-rated recalculates at most this many companies per run (run it again for more)
 STALE_PAUSE = 1.0                  # seconds between two companies of that run, so the data provider is never hammered
 
@@ -1026,9 +1047,9 @@ async def _pending(store, statement: str, days: int, limit: int, skip: list, sta
         rows = await conn.fetch(
             "SELECT s.symbol FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'summary') s "  # nosec B608 (only module constants are interpolated; values are bound)
             "LEFT JOIN listing_quotes q ON q.symbol = s.symbol LEFT JOIN prism_reports p ON p.symbol = s.symbol AND p.statement = $1 "
-            f"WHERE {STALE_SQL + ' AND $2::int IS NOT NULL' if stale_only else '(p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) OR ' + STALE_SQL + ')'} AND NOT (s.symbol = ANY($4::text[])) "
-            f"ORDER BY ({STALE_SQL}) DESC, (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3",
-            statement, days, limit, skip, CLASSIFICATION_VERSION)
+            f"WHERE {STALE_SQL + ' AND $2::int IS NOT NULL' if stale_only else '(p.symbol IS NULL OR p.generated_at < now() - make_interval(days => $2) OR ' + STALE_MODEL_SQL + ' OR ' + STALE_SQL + ')'} AND NOT (s.symbol = ANY($4::text[])) "
+            f"ORDER BY ({STALE_SQL}) DESC, ({STALE_MODEL_SQL}) DESC, (p.symbol IS NULL) DESC, q.market_cap DESC NULLS LAST, s.symbol LIMIT $3",
+            statement, days, limit, skip, CLASSIFICATION_VERSION, REQUIRED_MODEL_VERSION)
     return [r["symbol"] for r in rows]
 
 

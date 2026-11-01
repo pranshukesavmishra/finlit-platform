@@ -9,14 +9,14 @@ SH = (ROOT / "deploy/scheduler.sh").read_text()
 
 def test_the_aws_container_starts_the_scheduler():
     dockerfile = (ROOT / "Dockerfile").read_text()
-    assert "COPY deploy/render-start.sh deploy/scheduler.sh ./" in dockerfile and "mv render-start.sh start.sh" in dockerfile and 'CMD ["./start.sh"]' in dockerfile
+    assert "COPY deploy/start.sh deploy/scheduler.sh ./" in dockerfile and 'CMD ["./start.sh"]' in dockerfile
     compose = (ROOT / "deploy/aws/docker-compose.aws.yml").read_text()
     app = compose.split("\n  app:\n")[1].split("\n  db:\n")[0]
     assert "command:" not in app and "entrypoint:" not in app                  # nothing replaces the image's start.sh
-    start = (ROOT / "deploy/render-start.sh").read_text()
+    start = (ROOT / "deploy/start.sh").read_text()
     assert 'nohup bash -c "\\"$HERE/scheduler.sh\\"' in start and "/tmp/scheduler.log" in start
     assert start.index("scheduler.sh") < start.index("exec $PY -m uvicorn")       # launched before the web server takes over the shell
-    for f in ("deploy/scheduler.sh", "deploy/render-start.sh"):
+    for f in ("deploy/scheduler.sh", "deploy/start.sh"):
         assert subprocess.run(["bash", "-n", str(ROOT / f)]).returncode == 0
 
 

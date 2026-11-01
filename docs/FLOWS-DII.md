@@ -57,6 +57,6 @@ Conclusion: there is no free, legitimately redistributable daily DII history for
 ## Owner checklist (one at a time, on the server)
 
 1. Run the SQL above and confirm the zero months.
-2. `$W backfill-dii --from 2025-04-01` (where `$W` is the worker wrapper used in `deploy/crontab`). Read the printed `saved`, `oldest`, `floorFound`.
+2. `python -m finlit.worker backfill-dii --from 2025-04-01` (from `finlit-platform/backend/` with its environment configured). Read the printed `saved`, `oldest`, `floorFound`.
 3. If `saved` is 0 and `floorFound` is true, NSDL has nothing earlier; nothing more can be done from free sources.
 4. `$W refresh-flows --only dii` then reload `/fii-dii`.

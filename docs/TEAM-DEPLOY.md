@@ -1,21 +1,20 @@
 # How the team changes and deploys the FinLit site
 
-## 0. Which website is the main one
-**The main FinLit website is the one on AWS** (the server described in `docs/AWS-DEPLOY.md`; it runs the code in `finlit-platform/`). The older sites are legacy and will be retired once the AWS site has its domain: the Vercel sites built from the root folders of this repository (`frontend/`, `backend/`), and the Render copy. Do new work in `finlit-platform/` only; a change in the root folders reaches only the legacy Vercel site.
+## 0. Source of truth
 
-## 1. Where to make changes (important)
-The company repository `Yusra-Khan532/Financial-Portfolio` holds TWO things:
-- the **old app** in its root folders (`frontend/`, `backend/`, ...): the server does NOT run this;
-- the **new FinLit site** in the folder **`finlit-platform/`**: this is what runs on the AWS server (and on Render).
-Make every change for the live site INSIDE `finlit-platform/` (its own `frontend/` (React + TypeScript + Vite), `backend/` (research API), `site-api/` (Prism model and chat)). A change in the old root `frontend/` (for example the "light theme foundation" commit `413f7b5`) never reaches the live site: port it into `finlit-platform/frontend/` instead. Do not put secrets in the repository.
+The AWS server runs `finlit-platform/` from `Yusra-Khan532/Financial-Portfolio`, branch `main`. The retired root app and alternate hosting configurations have been removed.
+
+## 1. Where to make changes
+
+Make application changes inside `finlit-platform/`: `frontend/` for the React website, `backend/` for the research API and `site-api/backend/` for CMS, forms, chat and the premium model. Repository-level CI and Dependabot settings live in the root `.github/` and target this folder. Secrets remain outside the clone.
 
 ## 2. How a change becomes live
 1. Branch from `main`, change files inside `finlit-platform/`, run the checks in `finlit-platform/scripts/preflight.sh` (or at least `npx vitest run` and `npx tsc --noEmit` in `finlit-platform/frontend`, and the backend pytest).
 2. Open a pull request to `main`; a second person reviews; merge.
 3. **Deploy** (needs access to the server; see section 3). On the server, in `/opt/finlit`:
-   `bash src/deploy/aws/deploy.sh`
+   `bash src/finlit-platform/deploy/aws/deploy.sh`
    This fetches `main` of the company repository, rebuilds, restarts (the site may answer 503 for up to a minute), waits until `/api/health` is ok and prints the commit it runs. The kit's defaults are the company repository, branch `main`, folder `finlit-platform`.
-4. Check: `bash src/scripts/smoke.sh http://54.253.190.17` and open the site. If something is wrong: `bash src/deploy/aws/deploy.sh rollback` (goes back to the previous build; run again to go forward).
+4. Check: `bash src/finlit-platform/scripts/smoke.sh http://54.253.190.17` and open the site. If something is wrong: `bash src/finlit-platform/deploy/aws/deploy.sh rollback` (goes back to the previous build; run again to go forward).
 Other commands: `status`, `logs [service]`, `restart`, `backup`, `backups`.
 
 ## 3. Giving a team member deploy access
@@ -26,8 +25,9 @@ The server accepts SSH only with a key and only from allowed addresses.
 4. The member logs in with `ssh -i <their key> ubuntu@54.253.190.17` and runs the deploy command above. Remove their line from `authorized_keys` when they leave.
 Secrets (FinEdge key, Mongo URL, passwords) live only in `/opt/finlit/.env.aws` on the server; a deployer never needs to see or copy them.
 
-## 4. Bringing work from `pranshukesavmishra/finlit-platform` into the company repository
-`scripts/sync-to-company.sh` (dry run) and `scripts/sync-to-company.sh --push` put everything done since the last delivery onto a new branch `pranshu-sync-<sha>` of the company repository, inside `finlit-platform/`, as a three-way patch: changes the team made inside that folder are kept, a conflict stops the script and nothing is pushed. Then open a pull request from that branch and merge it. (`scripts/export-to-company.sh` is only for the very first delivery.)
+## 4. Contributing changes
+
+Open pull requests directly in the company repository. Run `bash finlit-platform/scripts/preflight.sh` from the repository root. The GitHub CI checks use the same platform paths; separate export/sync workflows from the former standalone repository have been removed.
 
 ## 5. Automatic deploys (merge to `main` and the site updates by itself)
 A timer on the server (`deploy/aws/auto-deploy.sh`, installed by `deploy/aws/install-auto-deploy.sh`) looks at the company repository every 5 minutes. When `main` has a new commit it:

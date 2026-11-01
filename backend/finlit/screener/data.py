@@ -33,7 +33,7 @@ NAN = float("nan")
 AX_COLS = sorted({m.col for m in AX_METRICS if m.col.startswith("ax_")} | {f"ax_c_{c}" for c in COMPONENTS}
                  | {f"ax_{p}_{g}" for g in AGG_GROWTH for p in ("gc", "gp")})
 log = logging.getLogger("finlit.screener")
-# How the table stays current without re-reading the database (Neon bills every byte it sends: the full table is tens of megabytes, docs/NEON-EGRESS.md).
+# How the table stays current without re-reading the database (the full table can be tens of megabytes).
 # The raw rows are kept compressed in Redis and in memory; a check is one tiny probe query, and only the rows that changed are fetched.
 MARKET_GAP = 1800        # seconds between checks while the market is open: the live-quote job rewrites about 500 rows a minute, so prices here can be this old
 OFF_GAP = 600            # outside market hours a check is a probe of a few bytes; rows are fetched only if it says something changed (the nightly jobs)

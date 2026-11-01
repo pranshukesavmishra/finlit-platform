@@ -109,12 +109,12 @@ export const ASSISTANT: Record<string, AssistantNode> = {
     greeting: "Hi, this is the FinLit assistant.\nI can point you to the right page. I cannot give investment advice.",
     prompt: "What are you looking for?",
     options: [
-      { label: "Explore Services", action: menu("services") }, { label: "Portfolio Review", action: menu("portfolio-review") },
-      { label: "Financial Planning", action: menu("financial-planning") }, { label: "Global Investing", action: menu("global-investing") },
-    ],
-    additionalOptions: [
-      { label: "Performance", action: menu("performance") }, { label: "About FinLit", action: menu("about") },
-      { label: "Pricing & Consultation", action: menu("pricing") }, { label: "Contact the Team", action: menu("contact") },
+      { label: "Research a company", action: nav("/research") },
+      { label: "Screen stocks", action: nav("/screener") },
+      { label: "Understand FinLit Prism", action: nav("/glossary#finlit-prism") },
+      { label: "Plans and access", action: nav("/plans") },
+      { label: "Explore services", action: menu("services") },
+      { label: "Contact the team", action: menu("contact") },
     ],
   },
   "financial-planning": { answer: "We offer two planning services: Wealth Planning (your own money and goals) and Family Financial Planning (the whole household). Pick one to read more.", backLabel: "Back to Main Menu",

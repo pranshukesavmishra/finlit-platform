@@ -90,7 +90,8 @@ describe("<PageFaqs />", () => {
     expect(btns[0].getAttribute("aria-expanded")).toBe("true"); expect(btns[1].getAttribute("aria-expanded")).toBe("true");
     const panel = document.getElementById(btns[0].getAttribute("aria-controls")!)!;
     expect(panel.getAttribute("role")).toBe("region"); expect(panel.getAttribute("aria-labelledby")).toBe(btns[0].id);
-    expect(panel.textContent).toBe(PAGE_FAQS[0].items[0].a);
+    expect(panel.textContent).toBe(faqForPath("/dashboard")!.items[0].a);
+    expect(panel.textContent).toContain("companies you follow, active alerts and saved screens");
     fireEvent.click(btns[0]); expect(btns[0].getAttribute("aria-expanded")).toBe("false");
     cleanup();
   });

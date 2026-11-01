@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Container entrypoint for the free single-service deployment (render.yaml).
+# Container entrypoint for the AWS Docker Compose deployment.
 # Migrates, creates the demo and administrator accounts, starts the site backend and the background jobs, then runs the research API + website.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "${APP_DIR:-/app}"
 PY="${PYTHON:-python}"
-export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-${RENDER_EXTERNAL_URL:-http://localhost:8000}}"
+export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-http://localhost:8000}"
 export CORS_ORIGINS="${CORS_ORIGINS:-$PUBLIC_SITE_URL}"
 # The site backend (blog/CMS, portfolio, forms, chat, FinLit Prism reports, Gold market data) runs inside this container, on
 # 127.0.0.1:8001, and the research API forwards to it. An explicit SITE_API_URL (a separately hosted site backend) wins.
@@ -69,7 +69,7 @@ if [ -n "${ADMIN_EMAIL:-}" ] && [ -n "${ADMIN_PASSWORD:-}" ]; then
   FINLIT_ADMIN_PASSWORD="$ADMIN_PASSWORD" $PY -m finlit.auth.cli create-admin --email "$ADMIN_EMAIL" || true
 fi
 
-# Lost or handed-over authenticator (the free plan has no shell): set RESET_MFA_EMAIL to that account's email, save, and after the restart
+# Lost or handed-over authenticator: set RESET_MFA_EMAIL to that account's email, save, and after the restart
 # its two-step sign-in is cleared (the next sign-in sets up a new authenticator). Then DELETE the variable.
 if [ -n "${RESET_MFA_EMAIL:-}" ]; then
   $PY -m finlit.auth.cli reset-mfa --email "$RESET_MFA_EMAIL" || true
@@ -78,9 +78,9 @@ fi
 # Company data and the recurring jobs (quotes, nightly refresh, alerts, emails): scheduler.sh keeps the job supervisor (finlit/jobs, docs/JOBS.md) alive, which
 # decides and runs every job; it is started here, before the web server takes over this shell.
 export APP_DIR="$PWD" PYTHON="$PY"
-# The scheduler's lines go to the file and, prefixed, to the service log, so a job that fails is visible in the Render dashboard.
+# The scheduler's lines go to the file and, prefixed, to the service log, so a job that fails is visible in the container logs.
 nohup bash -c "\"$HERE/scheduler.sh\" 2>&1 | tee -a /tmp/scheduler.log | sed -u 's/^/[scheduler] /'" &
 
-# glibc keeps one memory arena per thread by default: two arenas cut the web server's and every job's memory noticeably on the 512 MB free plan
+# Bound glibc arenas to reduce memory retained by the web server and background jobs.
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
 exec $PY -m uvicorn --factory finlit.api:create_app --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --no-access-log --no-server-header

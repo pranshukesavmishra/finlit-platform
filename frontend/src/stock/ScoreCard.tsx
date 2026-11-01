@@ -6,7 +6,6 @@ import { Icon } from "../lib/icons";
 import { dateIN, num } from "../lib/format";
 import { useUI } from "../lib/ui";
 import { bandInk, scoreBand } from "../lib/scoreBands";
-import { Dial } from "../charts/Dial";
 import { ChartHelp } from "../components/ChartHelp";
 import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { scoreChange, useScoreHistory, type Ratios, type Summary } from "../lib/api";
@@ -39,7 +38,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
         <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} /></div>
       </header>
       <div className="dk-row">
-        <Dial compact overall={s.score.overall} pillars={s.score.pillars} onPillar={toggle} active={open} bandLabel={s.score.band.label} />
+        <div className="dk-score-number" role="img" aria-label={s.score.overall == null ? "FinLit score: not available" : `FinLit score ${Math.round(s.score.overall)} out of 100: ${s.score.band.label}`}><strong>{s.score.overall == null ? "—" : Math.round(s.score.overall)}</strong><span>out of 100</span></div>
         <div className="dk-read">
           <div className="dk-rk">
             <span className="label">The read</span>
@@ -68,7 +67,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
         )}
       </div></div>
       <div className="dk-notes dk-know1">
-        <div className="dk-pc-h"><Icon name="spark" /><span>What stands out</span><a href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }} aria-label="See all pros and cons">See all</a></div>
+        <div className="dk-pc-h"><Icon name="spark" /><span>What stands out</span><a href="#notes" onClick={(e) => { e.preventDefault(); jump("notes"); }} aria-label="See all pros and cons">See all</a></div>
         {know.length ? <ul>{know.map((n) => <li key={n.key} className={n.tone} title={`${n.title}. ${n.text}`}><Icon name={n.tone === "good" ? "check" : "alert"} /><b>{n.title}</b><span>{n.text}</span></li>)}</ul> : <p className="dk-none">Nothing stands out yet.</p>}
       </div>
       <details className="dk-more">
@@ -76,7 +75,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
         <div className="dk-foot">
           <span className="dk-chip dk-live dk-fchip" title={chipTitle}><span className="dk-m">Model </span>{s.score.model} · {s.dataQuality.fundamentalsAsOf} · {updated}</span>
           <span className="dk-cap"><span className="dk-cap-t">Average of five pillars · select a ring segment or a pillar</span> <ChartHelp id="score-dial" /><ChartHelp id="score-pillars" /></span>
-          <a className="dk-link" href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros &amp; cons →</a>
+          <a className="dk-link" href="#notes" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros &amp; cons →</a>
           {plan === "gold" && <a className="dk-link" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism →</a>}
         </div>
       </details>

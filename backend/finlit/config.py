@@ -20,7 +20,7 @@ def _list(value: str) -> List[str]:
 
 
 def site_api_url_default(env=None) -> str:
-    """SITE_API_URL, or the address of the site backend that deploy/render-start.sh starts inside this container: the SAME rule as its site_api_wanted(),
+    """SITE_API_URL, or the address of the site backend that deploy/start.sh starts inside this container: the SAME rule as its site_api_wanted(),
     so a process started by `docker compose exec` (not a child of start.sh, which only exports the variable to its own children) behaves like the scheduler's."""
     env = os.environ if env is None else env
     explicit = (env.get("SITE_API_URL") or "").rstrip("/")

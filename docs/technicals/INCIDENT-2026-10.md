@@ -38,7 +38,7 @@ Where the technical view lives and how it was refreshed (line numbers are in `ba
 2. **Same numbers as the full report**: the route runs `prices_with_supplied` -> `benchmarks_with_supplied` -> `build_technical_assessment`, exactly the
    functions the report runs (`site-api/backend/technical_refresh.py`). `test_technical_only_equals_the_full_report_path_bar_for_bar` proves equality of the
    whole assessment dictionary for four share-count cases (all four benchmarks); the endpoint test proves the route returns that same dictionary.
-3. **When it runs** (`deploy/scheduler.sh`, `deploy/crontab`): weekdays **18:30 IST** (the exchange closes 15:30; both the report path and Prism's candle rule treat
+3. **When it runs** (`deploy/scheduler.sh`, `backend/finlit/jobs/registry.py`): weekdays **18:30 IST** (the exchange closes 15:30; both the report path and Prism's candle rule treat
    a day as complete from 16:00), a late retry at **21:10** (evening window) / 21:15 (cron), and a catch-up in the **06:45** morning window. Each run is
    resumable (what is at the newest session is done), so a retry only does what is left; it stops at 45 minutes (`--max-minutes`) and after five failures in a row.
 4. **Which session is "the newest"**: the Nifty 50's last candle Dhan holds (`prism_candles.reference_session`), not a weekday guess. On a market holiday, or
@@ -107,7 +107,7 @@ CROSSCHECK.md; in short: the live bar (up to about 5 points on the short-term sc
 `site-api/backend/`: `technical_series.py` (`fit_range`), `premium_technical.py` (tolerance, `last_completed_session`, `sharesCr` in the view),
 `premium_supplied_candles.py` (tolerance), `technical_refresh.py` (new), `server.py` (route), `premium_service.py`. `backend/finlit/`: `prism_technical.py` (new),
 `prism_candles.py` (tolerance, `reference_session`), `prism.py` (card markers, `technical` stamp in the answers, scores, on-open refresh), `prism_screen.py`,
-`auth/entitlements.py`, `worker.py`, `api.py`. `deploy/scheduler.sh`, `deploy/crontab`. Frontend: card, report footer, dots, screener, types. Tests:
+`auth/entitlements.py`, `worker.py`, `api.py`. `deploy/scheduler.sh`, `backend/finlit/jobs/registry.py`. Frontend: card, report footer, dots, screener, types. Tests:
 `site-api/backend/tests/test_technical_refresh.py` (24), `backend/tests/test_prism_technical.py` (17), `frontend/src/stock/techAsOf.test.tsx`.
 
 ## 7. Server commands, once, after deploy

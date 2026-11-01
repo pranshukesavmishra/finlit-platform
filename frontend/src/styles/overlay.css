@@ -30,7 +30,7 @@
 }
 
 /* ---- surfaces: opaque background, readable text, and the normal tokens restored for everything inside ---- */
-:root:root :is(.alx-modal, .modal, .ec-dlg, .palette, .pop, .dl-menu, .nt-p, .ddm, .alx-dd, .alx-toast, .toast, .ai, .adv-combo ul, .gx-search ul,
+:root:root :is(.alx-modal, .modal, .ec-dlg, .palette, .pop, .dl-menu, .nt-p, .ddm, .site-nav-panel, .alx-dd, .alx-toast, .toast, .ai, .adv-combo ul, .gx-search ul,
   .etf-pop, .evi-pop, .mf-pick-pop, .mf-cols-pop, .sf-fp, .sf-panel, .pm-sug, .cb-menu, .pk-m, .scr-colmenu, .qb-colmenu, .qb-drawer,
   .mk-dd-m, .oc-hits, .plf-note,
   .ld-tip, .chh-p, .tip, .adv-tip, .gx-tip, .ld-hov, .mk-htip, .h2h-tip, .ol-tip, .lc-tip, .ob-tip, .mb-tip, .pzr-tip, .etf-tip, .fl-tip, .mc-tip, .mk-tip,
@@ -46,14 +46,14 @@
 }
 /* .pcx-tip is the inverse bubble (ink background, page-coloured text): already opaque, so it only joins the z-index and wrap rules below */
 
-:root:root :is(.alx-modal, .modal, .ec-dlg, .palette, .dl-menu, .nt-p, .ddm, .ai, .qb-drawer, .plf-note, .pop, .ld-tip, .chh-p, .sf-panel, .etf-pop, .mf-cols-pop) { box-shadow: var(--ov-shadow); }
+:root:root :is(.alx-modal, .modal, .ec-dlg, .palette, .dl-menu, .nt-p, .ddm, .site-nav-panel, .ai, .qb-drawer, .plf-note, .pop, .ld-tip, .chh-p, .sf-panel, .etf-pop, .mf-cols-pop) { box-shadow: var(--ov-shadow); }
 
 /* ---- backdrops: dim enough that the page behind is clearly secondary ---- */
 :root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
 :root:root .gs-scrim { background: var(--ov-backdrop); z-index: calc(var(--z-backdrop) + 20); }
 
 /* ---- stacking ---- */
-:root:root :is(.alx-dd, .adv-combo ul, .gx-search ul, .oc-hits, .pm-sug, .cb-menu, .pk-m, .scr-colmenu, .qb-colmenu, .mk-dd-m, .etf-pop, .evi-pop, .mf-pick-pop, .mf-cols-pop, .sf-fp, .sf-panel, .dl-menu, .ddm, .nt-p) { z-index: var(--z-dropdown); }
+:root:root :is(.alx-dd, .adv-combo ul, .gx-search ul, .oc-hits, .pm-sug, .cb-menu, .pk-m, .scr-colmenu, .qb-colmenu, .mk-dd-m, .etf-pop, .evi-pop, .mf-pick-pop, .mf-cols-pop, .sf-fp, .sf-panel, .dl-menu, .ddm, .site-nav-panel, .nt-p) { z-index: var(--z-dropdown); }
 :root:root :is(.tip, .adv-tip, .gx-tip, .ld-hov, .mk-htip, .h2h-tip, .ol-tip, .lc-tip, .ob-tip, .mb-tip, .pzr-tip, .etf-tip, .fl-tip, .mc-tip, .mk-tip, .pcx-tip, .ld-tip) { z-index: var(--z-tip); }
 :root:root :is(.alx-modal, .modal, .ec-dlg, .plf-note) { z-index: var(--z-modal); }
 :root:root .palette { z-index: calc(var(--z-backdrop) + 30); }

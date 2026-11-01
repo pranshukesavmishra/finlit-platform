@@ -1,4 +1,4 @@
-# One image = website + research API + the company's site backend, for a single free service (render.yaml). Build from the repository root.
+# AWS image: website + research API + site backend + job supervisor. Build from finlit-platform/.
 FROM node:22-slim AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
@@ -20,8 +20,8 @@ COPY backend/scripts ./scripts
 COPY backend/tests/fixtures ./tests/fixtures
 COPY site-api/backend ./site-api/backend
 COPY --from=web /web/dist ./web
-COPY deploy/render-start.sh deploy/scheduler.sh ./
-RUN mv render-start.sh start.sh && chmod +x start.sh scheduler.sh && useradd --create-home finlit && chown -R finlit /app
+COPY deploy/start.sh deploy/scheduler.sh ./
+RUN chmod +x start.sh scheduler.sh && useradd --create-home finlit && chown -R finlit /app
 USER finlit
 ARG GIT_COMMIT=unknown
 ENV FRONTEND_DIST=/app/web APP_VERSION=$GIT_COMMIT

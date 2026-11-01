@@ -18,7 +18,7 @@ No system can promise zero failures (see "What cannot be guaranteed" at the end)
 ## 2. Architecture
 
 ```
-start.sh (deploy/render-start.sh) -> nohup deploy/scheduler.sh
+start.sh (deploy/start.sh) -> nohup deploy/scheduler.sh
    scheduler.sh keeps alive (restart with a growing delay, max 5 min):
      1. python -m finlit.worker supervise      <- ALL scheduling
      2. drain-queue --loop                      <- on-demand lane (a visitor opened an unloaded stock), outside every gate

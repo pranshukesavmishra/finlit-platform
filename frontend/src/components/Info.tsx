@@ -19,9 +19,9 @@ export function InfoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const close = () => setState(null);
     const key = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
-    addEventListener("scroll", close, { passive: true });
+    addEventListener("scroll", close, { passive: true, capture: true });
     addEventListener("keydown", key);
-    return () => { removeEventListener("scroll", close); removeEventListener("keydown", key); };
+    return () => { removeEventListener("scroll", close, true); removeEventListener("keydown", key); };
   }, []);
 
   return (

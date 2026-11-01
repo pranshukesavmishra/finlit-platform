@@ -4187,10 +4187,9 @@ CHAT_TOTAL_SECONDS = 60     # the whole answer
 async def chat(payload: ChatRequest, request: Request):
     api_key = os.environ.get("GEMINI_API_KEY")
     logger.info(
-        "FinLit AI chat handler reached (gemini_api_key_configured=%s, vercel_env=%s, vercel_commit=%s)",
+        "FinLit AI chat handler reached (gemini_api_key_configured=%s, app_version=%s)",
         bool(api_key),
-        os.environ.get("VERCEL_ENV", "unset"),
-        os.environ.get("VERCEL_GIT_COMMIT_SHA", "unset"),
+        os.environ.get("APP_VERSION", "unknown"),
     )
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Please enter a message.")
@@ -4443,14 +4442,12 @@ app.include_router(api_router)
 DEFAULT_ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "financial-portfolio-m4eb.vercel.app",
     "finlitventures.com",
     "www.finlitventures.com",
 ]
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://financial-portfolio-m4eb.vercel.app",
     "https://finlitventures.com",
     "https://www.finlitventures.com",
 ]

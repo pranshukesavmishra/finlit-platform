@@ -15,17 +15,17 @@ rather than edited (a signed snapshot is never upgraded in place).
 ## What runs where (production = one Render free container, 512 MB)
 
 ```
-Render web service "finlit"  (deploy/render-start.sh)
+Render web service "finlit"  (deploy/start.sh)
  |- research API + website        :8000   python 3.13, /usr/local            ~ memory of its own
  |- site backend (uvicorn)        :8001   python 3.13, /opt/site-venv        ~ 90 MB idle, ~100 MB while generating
  |- scheduler / background jobs
 ```
 
-The research API calls the site backend at `SITE_API_URL` (`http://127.0.0.1:8001`, set by `render-start.sh`) with a 5-minute
+The research API calls the site backend at `SITE_API_URL` (`http://127.0.0.1:8001`, set by `deploy/start.sh`) with a 5-minute
 token signed by `CMS_JWT_SECRET`. The site backend loads company data from FinEdge (and Upstox for gaps), calculates the rating, and signs
 a 30-minute snapshot that the PDF needs.
 
-`render-start.sh` starts the site backend when **any** of these holds (and `SITE_API_URL` is not already set to an outside host):
+`deploy/start.sh` starts the site backend when **any** of these holds (and `SITE_API_URL` is not already set to an outside host):
 
 | Condition | Result |
 | --- | --- |
@@ -36,21 +36,21 @@ a 30-minute snapshot that the PDF needs.
 
 ## Environment variables
 
-Set in the Render dashboard (Environment tab) unless marked `render.yaml`. `sync: false` means typed by hand; nothing secret is in the repository.
+Set these in `/opt/finlit/.env.aws`, outside the clone. The AWS Compose file provides PostgreSQL and Redis connection strings. No secrets belong in the repository.
 
 | Variable | Used by | Needed for Prism? | When missing or wrong |
 | --- | --- | --- | --- |
 | `FINEDGE_API_KEY` | site backend (and research API) | **Yes** | Every report fails with 503 "FinEdge API is not configured". With no `MONGO_URL` either, the site backend is not started at all. |
-| `CMS_JWT_SECRET` | research API **and** site backend (same value; `render.yaml` generates it) | **Yes**, 32+ bytes | Shorter than 32 bytes or empty: the site backend refuses every Prism call (503 "CMS authentication is not securely configured") and `GET /api/prism/status` reports Prism as not connected. It also signs the PDF snapshot, so changing it invalidates snapshots made before the change (users just recalculate). |
+| `CMS_JWT_SECRET` | research API **and** site backend (same value; set it in `.env.aws`) | **Yes**, 32+ bytes | Shorter than 32 bytes or empty: the site backend refuses every Prism call (503 "CMS authentication is not securely configured") and `GET /api/prism/status` reports Prism as not connected. It also signs the PDF snapshot, so changing it invalidates snapshots made before the change (users just recalculate). |
 | `DATABASE_URL` (Neon Postgres) | research API | **Yes** | Stored reports (`prism_reports`, migration `063_prism_reports.sql`) need it; it is already required by the whole site. |
-| `REDIS_URL` | research API | **Yes** | Snapshots for the PDF (30 min) and limits live there (`render.yaml` links the free Redis). |
+| `REDIS_URL` | research API | **Yes** | Snapshots for the PDF (30 min) and limits live there (AWS Compose supplies Redis). |
 | `SITE_API_URL` | research API | Set automatically | Leave blank on Render. Set only for a site backend hosted elsewhere (then also set the variables above on that host). |
 | `DHAN_CLIENT_ID`, `DHAN_PIN`, `DHAN_TOTP_SECRET` (`sync: false`, already set for Dhan prices; see `docs/DHAN-SETUP.md`) | research API | **Preferred source of the ST/LT technical candles** | With the Dhan **Data API subscription** active, the research API fetches split/bonus-adjusted daily open/high/low/close/volume for the stock and the four benchmark indices from Dhan (token renewed by itself every day) and sends them to the site backend with each calculation; the assessment then names Dhan as its provider. Not set, no subscription, or any series incomplete: nothing is sent for that series and the site backend uses FinEdge/Upstox exactly as before. Nothing is needed on the site backend for this. (`DHAN_CLIENT_ID` + `DHAN_ACCESS_TOKEN`, pasted daily, also works.) |
 | `UPSTOX_ACCESS_TOKEN` (`sync: false`) | site backend | Optional (fallback for the technical candles) | Used only when Dhan candles are not supplied or are unusable for a series. Without Dhan **and** without this token the technical assessment is `incomplete` (scores null, the missing inputs listed), never invented. Also gives second-source recovery of missing statement years. The token expires daily; Upstox needs it renewed and has rate limits, which is why Dhan comes first. FinEdge daily quotes give adjusted closes and volume only (no OHLC), so on their own they cannot supply the candles. |
 | `MONGO_URL`, `DB_NAME` | site backend | No | Blog/CMS/forms off, see above. `DB_NAME` defaults to `finlit`. |
-| `PREMIUM_GENERATION_SLOTS` (`render.yaml`: 1) | site backend | Tuning | Reports calculated at once in the site backend, 1 to 4, default 2 when unset. `render.yaml` sets 1 for the 512 MB plan. |
-| `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (`render.yaml`: 32) | site backend | Tuning | How many resolved provider answers (each report uses 2 to 4; ~40 KB each, plus about 0.7 MB for the six-year daily candles kept for the technical assessment; 15 minutes) are kept; oldest dropped first. Default 32, range 4 to 2000. |
-| `SITE_API_START` (`render.yaml`: auto) | `deploy/render-start.sh` | Tuning | `auto`, `never`, `always` as in the table above. |
+| `PREMIUM_GENERATION_SLOTS` (AWS example: 2) | site backend | Tuning | Reports calculated at once in the site backend, 1 to 4, default 2 when unset. The AWS example sets 2; keep `PRISM_SLOTS` at or below this value. |
+| `STOCK_FUNDAMENTALS_CACHE_ENTRIES` (default: 32) | site backend | Tuning | How many resolved provider answers (each report uses 2 to 4; ~40 KB each, plus about 0.7 MB for the six-year daily candles kept for the technical assessment; 15 minutes) are kept; oldest dropped first. Default 32, range 4 to 2000. |
+| `SITE_API_START` (default: auto) | `deploy/start.sh` | Tuning | `auto`, `never`, `always` as in the table above. |
 | `CMS_ADMIN_EMAIL`, `CMS_ADMIN_PASSWORD_HASH` or `CMS_PASSWORD_LOGIN` | site backend | No | Only the site's own CMS password login; administrators use `POST /api/me/cms-token`. |
 | `ALLOWED_HOSTS`, `CORS_ORIGINS` | site backend | No | Defaults accept `localhost` and `127.0.0.1`, which is all the research API needs inside the container. |
 
@@ -149,12 +149,12 @@ themselves run unchanged. For real data set `FINEDGE_API_KEY` and use `--no-pris
 cd site-api && PYTHONPATH=.:backend python -m pytest -q -c backend/pytest.ini backend/tests
 ```
 
-CI (`.github/workflows/ci.yml`, job `site-api`) runs exactly this on Python 3.13. The tests need no provider key and no network; they include
+CI (`.github/workflows/platform-ci.yml`, job `site-api`) runs exactly this on Python 3.13. The tests need no provider key and no network; they include
 `test_start_without_mongo.py` (starts the server without `MONGO_URL`, generates a report and its PDF, checks database routes answer 503 at once).
 
 ## Daily technical refresh (`refresh-technicals`)
 
 The short- and long-term technical views are stored inside each Prism report and are NOT refreshed by the 7-day report cadence. `refresh-technicals`
-(weekdays 18:30 IST, retries 21:10 and 06:45; `deploy/scheduler.sh`, `deploy/crontab`) recalculates only that view from the day's final Dhan candles through the site
+(weekdays 18:30 IST, retries 21:10 and 06:45; `deploy/scheduler.sh`, `backend/finlit/jobs/registry.py`) recalculates only that view from the day's final Dhan candles through the site
 backend's `POST /api/premium-reports/technical` (deploy the site backend and the research API together). No migration. After a deploy run it once by hand
 (command in `docs/technicals/INCIDENT-2026-10.md`, section 7) and check `GET /api/technicals/status`.

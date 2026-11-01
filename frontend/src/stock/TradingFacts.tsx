@@ -23,11 +23,11 @@ export function TradingFacts({ s }: { s: Summary }) {
         </div>
       )}
       {(band || fno || mtf) && (
-        <ul className="tf-list" aria-label="Trading facts">
+        <details className="report-details trading-details"><summary>Trading information and broker eligibility</summary><ul className="tf-list" aria-label="Trading facts">
           {band && <li title="The lowest and highest prices the exchange allows in the trading session, from the same live quote as the price above."><span className="k">Day's price band</span><span className="v">₹{nf(band.lower)} – ₹{nf(band.upper)}</span>{band.at && <em>At the {band.at} circuit</em>}</li>}
           {fno && <li><span className="k">Futures &amp; options (F&amp;O)</span><span className="v">Yes{fno.lotSize ? `, NSE lot of ${nf(fno.lotSize, 0)} shares` : ""}</span></li>}
           {mtf && <li><span className="k">Margin trading (MTF)</span><span className="v">Eligible, up to {leverageText(mtf.leverage)} leverage</span><small>as listed by the broker Dhan; each broker sets its own list and terms</small></li>}
-        </ul>
+        </ul></details>
       )}
     </div>
   );

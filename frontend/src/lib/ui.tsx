@@ -5,6 +5,7 @@ import { useAuth, type Plan } from "./auth";
 import { DEMO } from "./demo";
 import { applyPalette } from "./palettes";
 import { usePrefs } from "./prefs";
+import { getInitialTheme, getSystemTheme, readStoredTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
 
 export type { Plan };
 export const RANK: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
@@ -30,7 +31,7 @@ const write = (k: string, v: string) => { try { localStorage.setItem(k, v); } ca
 
 export function UIProvider({ children }: { children: ReactNode }) {
   const root = document.documentElement;
-  const [theme, setTheme] = useState<"dark" | "light">((root.dataset.theme as "dark" | "light") || "dark");
+  const [theme, setTheme] = useState<Theme>(() => getInitialTheme(root));
   const auth = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
@@ -41,7 +42,15 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const timer = useRef<number>(0);
 
   const prefs = usePrefs();
-  useEffect(() => { root.dataset.theme = theme; write("finlit-theme", theme); applyPalette(prefs.palette, theme, root); }, [theme, prefs.palette, root]);
+  useEffect(() => { root.dataset.theme = theme; applyPalette(prefs.palette, theme, root); }, [theme, prefs.palette, root]);
+  useEffect(() => {
+    if (readStoredTheme()) return;
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!media) return;
+    const onChange = () => setTheme(getSystemTheme());
+    media.addEventListener?.("change", onChange);
+    return () => media.removeEventListener?.("change", onChange);
+  }, []);
   useEffect(() => { if (prefs.density === "compact") root.dataset.density = "compact"; else delete root.dataset.density; write("finlit-density", prefs.density); }, [prefs.density, root]);
   useEffect(() => { root.dataset.plan = plan; if (DEMO) write("finlit-plan", plan); }, [plan, root]);
 
@@ -55,7 +64,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
     nav(`/account/plan?want=${tier}&from=${next}`);
   }, [auth.user, loc.pathname, loc.search, nav, toast]);
   const value = useMemo<UI>(() => ({
-    theme, toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
+    theme, toggleTheme: () => setTheme((t) => { const next = t === "dark" ? "light" : "dark"; write(THEME_STORAGE_KEY, next); return next; }),
     plan, has: (tier) => RANK[plan] >= RANK[tier], setPlan: DEMO ? setPreview : () => undefined, upgrade, toast,
   }), [theme, plan, toast, upgrade]);
 

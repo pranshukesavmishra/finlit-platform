@@ -16,7 +16,7 @@ Rules run through the Query builder's own parser/evaluator (`screener/ql.py`, `q
 Groups: Top rated, Trend, Growth, Themes, Value and income, Safety, Ownership, Prism basics (the page's 4 quick views, listed, `handledBy: frontend`, no server detail).
 Missing-value rules: screens 1-3 count a missing red-flag count as 0; screens 5, 6, 13 do so for banks/lenders only; screen 5 exempts banks from ROCE and D/E.
 
-## Nightly job `refresh-presets` (worker command; supervisor job `presets`: bulk, priority 42, after `prism`, NIGHT 20 h / MORNING 14 h windows, SLA 30 h; deploy/crontab 06:40)
+## Nightly job `refresh-presets` (worker command; supervisor job `presets`: bulk, priority 42, after `prism`, NIGHT 20 h / MORNING 14 h windows, SLA 30 h; backend/finlit/jobs/registry.py 06:40)
 Tops up `theme_tags` from `seed.py`, rebuilds `industry_clean`, stores `preset_scores` (momentum, growth), `industry_breadth_daily` (60 sessions; `*` = market), outlier caps (`preset_meta`), then every live screen for its default chip set and each single chip into `preset_results` (Postgres) and Redis (36 h). API only reads; an empty cache is computed on demand behind a Redis lock (45 s bound).
 Percentile = average rank among stocks of Rs 1,000 Cr or more, scaled 0..1. Growth score needs 2 of 4 numbers (quarter numbers drop out under Rs 50 Cr sales).
 Sector themes: universe Rs 500 Cr+, cleaned industry, generic industries excluded, groups of 8+ are themes, 5-7 are "small groups" (chip), states In play / Emerging / Fading / None as spec p10; Emerging/Fading appear only once 20 sessions are stored (no backfill is invented). Never-empty rule shows up to 3 "closest".

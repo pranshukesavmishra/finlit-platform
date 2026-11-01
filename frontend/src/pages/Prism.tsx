@@ -11,7 +11,7 @@ import { LandingBody, PRISM_WHAT, Picker } from "../components/prism/pzr/Landing
 import { useAuth } from "../lib/auth";
 import { useGold } from "../lib/premium";
 import {
-  PRISM_NAME, PRISM_NOTE, cleanSymbol, downloadPrismPdf, prismProblem, progressFraction, pushPrismRecent, statementWord,
+  PRISM_NAME, PRISM_NOTE, cleanSymbol, downloadPrismPdf, prismProblem, pushPrismRecent, statementWord,
   useLatestPrism, usePrismCalculation, usePrismStatus, type PrismReport, type Problem, type Statement,
 } from "../lib/prism";
 import { useDocTitle } from "../lib/title";
@@ -52,13 +52,12 @@ function Working({ since, expected }: { since: number; expected: number }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   const s = Math.max(0, Math.round((now - since) / 1000));
-  const pct = Math.round(progressFraction(s, expected) * 100);
   return (
     <div className="card pzr-card pzr-work">
       <div className="pzr-workbody">
         <b role="status">Calculating the rating…</b>
         <p>Reading the financial statements, prices and the industry's valuations, and checking the inputs. This usually takes about {Math.max(5, Math.round(expected))} seconds. You can keep this page open: the rating appears here by itself.</p>
-        <div className="pzr-prog" role="progressbar" aria-label="Calculation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: `${pct}%` }} /></div>
+        <p className="pzr-small">The report will appear here when the calculation finishes.</p>
         <p className="pzr-small">{s} second{s === 1 ? "" : "s"} so far</p>
       </div>
     </div>

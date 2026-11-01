@@ -222,11 +222,8 @@ export function MethodSection({ s }: { s: Summary }) {
   const passPct = ck.total ? (ck.passed / ck.total) * 100 : 100;
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall." color="--info" />
-      <div className="pc-g pc-all">
-        <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
-        <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
-      </div>
+      <SectionHead id="method" no="12 · Data and model" icon="info" title="Data checks and Prism findings" sub="Inspect the sources, checks and model factors." color="--info" />
+      <p className="muted"><a href="#notes">Read the FinLit score strengths and concerns</a>, or inspect the separate Prism findings below.</p>
       <div className="mth">
         <div className="card acc mth-dq" style={{ "--ac": ck.status === "ok" ? "var(--gain)" : "var(--warn)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name={ck.status === "ok" ? "check" : "alert"} /></span>Data checks before publishing</h3><span className="s">{ck.passed} of {ck.total} passed</span></div>

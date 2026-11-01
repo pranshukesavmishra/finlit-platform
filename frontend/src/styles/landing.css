@@ -1,0 +1,73 @@
+/* Public landing page. Product detail stays on the research and plans pages. */
+.landing { color: var(--text-primary); background: var(--bg-page); }
+.landing-hero { display:grid; grid-template-columns:1.1fr 1fr; gap:64px; align-items:center; padding-block:72px; }
+.landing-eyebrow { font:var(--type-nav-label); color:var(--text-secondary); margin:0 0 16px; }
+.landing h1 { font:var(--type-display-01); letter-spacing:0; margin:0 0 24px; max-width:620px; }
+.landing-lede { font:var(--type-editorial-body); color:var(--text-body); max-width:520px; margin:0 0 28px; }
+.landing-caption { font:var(--type-caption); color:var(--text-secondary); line-height:1.6; margin:16px 0 0; }
+.landing-caption a { color:var(--text-link); text-decoration:underline; }
+.landing-entry { display:flex; gap:24px; flex-wrap:wrap; margin-top:18px; font:var(--type-body-compact); }
+.landing-entry a,.landing-text-link { color:var(--text-link); display:inline-flex; align-items:center; gap:8px; text-underline-offset:4px; text-decoration:underline; font-weight:500; }
+.landing svg,.plans-intro svg { width:18px; height:18px; flex-shrink:0; }
+.company-search { position:relative; max-width:600px; z-index:2; }
+.company-search label { display:block; font:var(--type-field-label); margin-bottom:8px; }
+.company-search-field { display:flex; align-items:center; gap:10px; padding:6px 6px 6px 16px; border:1px solid var(--border-control); border-radius:8px; background:var(--bg-surface); }
+.company-search-field:focus-within { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.company-search-field input { min-width:0; width:100%; flex:1; border:0; border-radius:0; background:transparent; color:var(--text-primary); font:var(--type-body-01); padding:10px 0; box-shadow:none; }
+.company-search-field input:focus-visible { outline:0; }
+.company-search-field .btn { flex-shrink:0; min-height:44px; }
+.company-search-results { position:absolute; top:100%; left:0; right:0; margin-top:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border-control); border-radius:8px; padding:6px; box-shadow:0 8px 24px #0b192c20; max-height:340px; overflow:auto; }
+.company-search-results button { display:flex; text-align:left; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:12px; min-height:44px; color:inherit; border:0; border-radius:4px; background:transparent; font:var(--type-body-compact); cursor:pointer; }
+.company-search-results button[aria-selected="true"],.company-search-results button:hover { background:var(--bg-selected); }
+.company-search-results small { color:var(--text-secondary); }
+.company-search-results p { padding:10px; font:var(--type-body-compact); }
+.landing-preview { background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:12px; padding:28px; }
+.landing-preview-top { display:flex; justify-content:space-between; gap:12px; font:var(--type-caption); color:var(--text-secondary); border-bottom:1px solid var(--border-subtle); padding-bottom:16px; margin-bottom:20px; }
+.landing-preview h2 { font:var(--type-heading-04); margin:0 0 14px; }
+.landing-quote { display:flex; gap:14px; align-items:center; font:var(--type-body-compact); font-variant-numeric:tabular-nums; }
+.landing-quote b { font:var(--type-stat-value-md); }
+.landing-score { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:24px 0; padding:20px 0; border-block:1px solid var(--border-subtle); }
+.landing-score span { display:block; font:var(--type-body-compact); color:var(--text-secondary); }
+.landing-score strong { display:block; font:var(--type-stat-value-lg); font-variant-numeric:tabular-nums; margin-top:4px; }
+.landing-score small { font:var(--type-body-01); color:var(--text-secondary); }
+.landing-read { font:var(--type-body-01); color:var(--text-body); margin:0 0 20px; }
+.landing-findings { list-style:none; padding:0; margin:0; display:grid; gap:16px; }
+.landing-findings li { display:flex; align-items:flex-start; gap:10px; font:var(--type-body-compact); }
+.landing-findings svg { margin-top:2px; color:var(--text-secondary); }
+.landing-findings p { margin:4px 0 0; color:var(--text-secondary); }
+.landing-preview>.landing-text-link { margin-top:18px; font:var(--type-body-compact); }
+.landing-skeleton { color:var(--text-secondary); min-height:220px; font:var(--type-body-compact); }
+.landing-skeleton .skeleton { height:160px; margin-top:16px; }
+.landing-section { padding-block:64px; }
+.landing-section-head { max-width:720px; margin-bottom:28px; }
+.landing-section-head h2,.landing-team h2,.plans-intro h2 { font:var(--type-editorial-h2); letter-spacing:0; margin:0 0 16px; }
+.landing-section-head>p:not(.landing-eyebrow) { font:var(--type-body-01); color:var(--text-body); }
+.landing-paths { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-bottom:24px; }
+.landing-path { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:24px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-surface); text-decoration:none; color:var(--text-primary); }
+.landing-path>svg { width:24px; height:24px; color:var(--text-secondary); }
+.landing-path h3 { font:var(--type-heading-04); margin:4px 0 0; }
+.landing-path p { font:var(--type-body-01); color:var(--text-body); margin:0 0 8px; }
+.landing-path>span { display:flex; align-items:center; gap:8px; color:var(--text-link); font:var(--type-button-label); margin-top:auto; }
+.landing-path:hover { border-color:var(--border-control); }
+.landing-method { background:var(--bg-surface); border-block:1px solid var(--border-subtle); }
+.landing-method ol { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:32px; list-style:none; padding:0; margin:32px 0; }
+.landing-method li { display:flex; align-items:flex-start; gap:16px; }
+.landing-method li>span { color:var(--text-secondary); font:var(--type-body-compact); padding-top:3px; }
+.landing-method h3 { font:var(--type-heading-04); margin:0 0 8px; }
+.landing-method li p { font:var(--type-body-01); color:var(--text-body); margin:0; }
+.landing-team { display:grid; grid-template-columns:180px minmax(0,700px); gap:48px; align-items:center; }
+.landing-team img { width:180px; height:212px; object-fit:cover; border-radius:8px; }
+.landing-team p:not(.landing-eyebrow):not(.landing-caption) { font:var(--type-body-01); color:var(--text-body); }
+.plans-intro { padding-block:56px; border-top:1px solid var(--border-subtle); }
+.plans-intro-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-bottom:24px; }
+.plans-intro-grid section { padding:24px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-surface); }
+.plans-intro-grid h3 { font:var(--type-heading-04); margin:16px 0 12px; }
+.plans-intro-grid p { color:var(--text-body); font:var(--type-body-01); }
+.plans-intro-grid a { color:var(--text-link); display:inline-flex; align-items:center; gap:6px; font:var(--type-button-label); }
+.platform-overview { padding-top:48px; }
+@media(max-width:960px) { .landing-hero { gap:32px; padding-block:48px; }.landing-paths,.landing-method ol { gap:16px; }.landing-path { padding:20px; } }
+@media(max-width:767px) {
+ .landing-hero { grid-template-columns:1fr; padding-block:32px; gap:32px; }.landing h1 { margin-bottom:16px; }.landing-lede { margin-bottom:20px; }.landing-eyebrow { margin-bottom:12px; }
+ .landing-preview { padding:20px; }.landing-section { padding-block:40px; }.landing-paths,.landing-method ol,.plans-intro-grid { grid-template-columns:1fr; }.landing-team { grid-template-columns:80px 1fr; gap:20px; align-items:start; }.landing-team img { width:80px; height:104px; }.landing-team>div { min-width:0; }.landing-team h2 { font:var(--type-editorial-h2); }.plans-intro { padding-block:40px; }
+ .company-search-field { gap:6px; padding-left:10px; }.company-search-field>.ico { display:none; }.company-search-field .btn { padding-inline:12px; }.company-search-field .btn svg { display:none; }
+}

@@ -25,3 +25,13 @@ node_modules
 
 frontend/dist-guard-*/
 frontend/.layout-guard/
+
+# Preserved CMS fallback assets referenced by legacy article records.
+!site-api/backend/content_uploads/05aba463-c278-429c-9d35-74b5c402d0ff.png
+!site-api/backend/content_uploads/0ea1ecb5-2c2a-4a57-823e-cc18c7693381.pdf
+!site-api/backend/content_uploads/36403c97-4374-40ed-8f29-f50aa74c6f65.pdf
+!site-api/backend/content_uploads/8aa9754b-be3c-4aa5-894c-2f1ac9138157.pdf
+!site-api/backend/content_uploads/bce3ac2f-d9d2-4442-af10-977bb972d6fd.png
+!site-api/backend/content_uploads/ca7a96fc-6d8c-473f-8f50-c0d238305fbb.png
+!site-api/backend/content_uploads/dcfbc8a8-935b-4d2a-b164-84766a8e5745.xlsx
+!site-api/backend/content_uploads/f4d11a2a-07bd-40e4-b265-7862cf7e102c.png

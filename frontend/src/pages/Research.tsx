@@ -35,7 +35,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
   return (
     <>
       <PageHeader wrap plan="free" title="Company report" art="report" links={["/screener", "/compare", "/prism"]}
-        description={<>A research score, five-pillar scorecard, statements, ratios, ownership and peers for {rows.length > 0 ? <b>{nf(rows.length, 0)}</b> : "every"} listed Indian companies, loaded in a blink.</>}
+        description={<>A research score, five-pillar scorecard, statements, ratios, ownership and peers for {rows.length > 0 ? <b>{nf(rows.length, 0)}</b> : "every"} listed Indian companies, with the data available for each company.</>}
         stats={[{ icon: "building", value: rows.length > 0 ? nf(rows.length, 0) : null, label: "Companies" }, { icon: "quality", value: scored ? nf(rows.filter((r) => r.overall != null).length, 0) : null, label: "With a score" }]}>
         <button className="bigsearch" onClick={onSearch}><Icon name="table" /><span>Search any company or ticker</span><span className="kbd">Ctrl K</span></button>
       </PageHeader>

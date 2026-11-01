@@ -7,6 +7,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 LOG="$(mktemp -d)"; trap 'rm -rf "$LOG"' EXIT
 RESULTS=(); FAILED=0
 PY="$ROOT/backend/.venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+SITE_PY="${SITE_PYTHON:-$ROOT/site-api/.venv/bin/python}"; [ -x "$SITE_PY" ] || SITE_PY="$PY"
 export TEST_DATABASE_URL="${TEST_DATABASE_URL:-postgresql://finlit:finlit@localhost:5432/finlit_test}" TEST_REDIS_URL="${TEST_REDIS_URL:-redis://localhost:6379/15}"
 
 step() {  # step <name> <command...>: output kept in $LOG/<name>, shown only when the step fails
@@ -17,8 +18,8 @@ skip() { RESULTS+=("SKIP  $1 ($2)"); }
 
 if [ -z "${SKIP_BACKEND:-}" ]; then
   step backend-pytest bash -c "cd backend && PYTHONPATH=. '$PY' -m pytest -q"
-  if "$PY" -c "import motor, mongomock_motor" >/dev/null 2>&1; then
-    step site-api-pytest bash -c "PYTHONPATH=.:backend '$PY' -m pytest -q -c site-api/backend/pytest.ini site-api/backend/tests"
+  if "$SITE_PY" -c "import motor, mongomock_motor" >/dev/null 2>&1; then
+    step site-api-pytest bash -c "cd site-api && PYTHONPATH=.:backend '$SITE_PY' -m pytest -q -c backend/pytest.ini backend/tests"
   else skip site-api-pytest "site-api dependencies not installed; CI runs it"; fi
   if command -v bandit >/dev/null 2>&1; then step bandit bandit -q -r backend/finlit -ll
   else step bandit "$PY" -m bandit -q -r backend/finlit -ll; fi
@@ -32,22 +33,41 @@ if [ -z "${SKIP_FRONTEND:-}" ]; then
   if [ -d frontend/node_modules/three ]; then step build bash -c "cd frontend && npm run build"; else skip build "package three not installed (sandbox): CI builds it"; fi
 fi
 
-step shell-syntax bash -c 'for f in deploy/*.sh scripts/*.sh dev/*.sh; do [ -f "$f" ] || continue; bash -n "$f" || exit 1; done'
+step shell-syntax bash -c 'for f in deploy/*.sh deploy/aws/*.sh scripts/*.sh dev/*.sh; do [ -f "$f" ] || continue; bash -n "$f" || exit 1; done'
 
 GL="${GITLEAKS:-$(command -v gitleaks || true)}"
 if [ -n "$GL" ] && [ -x "$GL" ]; then step gitleaks "$GL" git --redact --no-banner .; else skip gitleaks "not installed: set GITLEAKS=/path/to/gitleaks"; fi
 
-secret_scan() {  # patterns of real secrets in tracked and new files (never prints the secret itself)
-  local files
-  files="$(git ls-files -co --exclude-standard | grep -vE '\.(png|jpg|jpeg|gif|ico|pdf|woff2?|gz|lock)$|^scripts/preflight\.sh$|^frontend/package-lock\.json$')"
-  : > "$LOG/scan"
-  for p in 'AKIA[0-9A-Z]{16}' '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----' 'gh[pousr]_[A-Za-z0-9]{36,}' 'sk-[A-Za-z0-9_-]{32,}' 'xox[baprs]-[A-Za-z0-9-]{20,}' 'AIza[0-9A-Za-z_-]{35}'; do
-    echo "$files" | xargs -d '\n' grep -lEI -e "$p" 2>/dev/null | head -3 | sed "s|^|secret-like text (pattern $p) in: |" >> "$LOG/scan"
-  done
-  for k in FINEDGE_API_KEY RESEND_API_KEY DHAN_ACCESS_TOKEN; do   # the real values from this environment, if set
-    v="${!k:-}"; [ "${#v}" -ge 12 ] && echo "$files" | xargs -d '\n' grep -lF -e "$v" 2>/dev/null | sed "s|^|value of $k found in: |" >> "$LOG/scan"
-  done
-  [ ! -s "$LOG/scan" ] || { cat "$LOG/scan"; return 1; }
+secret_scan() {  # Portable on macOS and Linux; prints file names only, never matched values.
+  "$PY" - <<'PY'
+import os
+import re
+import subprocess
+from pathlib import Path
+
+paths = subprocess.check_output(['git', 'ls-files', '-co', '--exclude-standard', '-z']).decode().split('\0')
+patterns = [re.compile(p) for p in (
+    rb'AKIA[0-9A-Z]{16}', rb'-----BEGIN ([A-Z]+ )?PRIVATE KEY-----', rb'gh[pousr]_[A-Za-z0-9]{36,}',
+    rb'sk-[A-Za-z0-9_-]{32,}', rb'xox[baprs]-[A-Za-z0-9-]{20,}', rb'AIza[0-9A-Za-z_-]{35}',
+)]
+values = [(k, os.environ.get(k, '').encode()) for k in ('FINEDGE_API_KEY', 'RESEND_API_KEY', 'DHAN_ACCESS_TOKEN')]
+failed = False
+for name in sorted(set(paths)):
+    path = Path(name)
+    if not path.is_file() or name in ('scripts/preflight.sh', 'frontend/package-lock.json'):
+        continue
+    if path.suffix.lower() in ('.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.woff', '.woff2', '.gz', '.lock'):
+        continue
+    data = path.read_bytes()
+    if any(pattern.search(data) for pattern in patterns):
+        print(f'secret-like text in: {name}')
+        failed = True
+    for key, value in values:
+        if len(value) >= 12 and value in data:
+            print(f'value of {key} found in: {name}')
+            failed = True
+raise SystemExit(1 if failed else 0)
+PY
 }
 step secret-scan secret_scan
 

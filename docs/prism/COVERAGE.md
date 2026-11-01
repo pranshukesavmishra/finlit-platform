@@ -1,3 +1,5 @@
+> Historical model-integration record. References to retired hosting files below describe the earlier migration; current deployment is documented in [DEPLOY.md](DEPLOY.md) and [AWS-DEPLOY.md](../AWS-DEPLOY.md).
+
 # Upstream coverage ledger: Yusra-Khan532/financial-portfolio -> FinLit
 
 Every file tracked in the upstream repository (`git ls-files` at upstream HEAD **6ed9d2a**, 276 files) and where it is in FinLit. Upstream `backend/` = FinLit `site-api/backend/`; merge base for the first three-way merge = upstream **67aab4f** (commit 1346489 here); the second (26 Oct) merged b112ba1..6ed9d2a with base b112ba1. Generated and checked on 2026-10-26 (first merge 2026-10-25).
@@ -126,7 +128,7 @@ For the user to decide. None of these is needed by FinLit Prism.
 
 | Upstream path | Status | FinLit location | Note |
 | --- | --- | --- | --- |
-| `.github/workflows/webpack.yml` | `equivalent-exists` | .github/workflows/frontend.yml, ci.yml | Upstream builds the CRA app on Node 18/20/22. FinLit CI builds/tests the Vite site (`frontend.yml`) and runs the site backend tests (`ci.yml` job `site-api`). Nothing upstream-only. |
+| `.github/workflows/webpack.yml` | `equivalent-exists` | .github/workflows/platform-frontend.yml, ci.yml | Upstream builds the CRA app on Node 18/20/22. FinLit CI builds/tests the Vite site (`frontend.yml`) and runs the site backend tests (`ci.yml` job `site-api`). Nothing upstream-only. |
 
 ### `assets/team`
 
@@ -771,9 +773,9 @@ Every production path installs that file, so reportlab reaches production with n
 
 * `Dockerfile` (Render single image, render.yaml): `/opt/site-venv/bin/pip install -r site-api/backend/requirements.txt` (Python 3.13), copies all of `site-api/backend`.
 * `deploy/site-api/Dockerfile` (docker-compose.prod/staging): `pip install -r requirements.txt` from `site-api/backend` (Python 3.12), `COPY . .`.
-* `.github/workflows/ci.yml` job `site-api`: `pip install -r site-api/backend/requirements.txt mongomock-motor` and runs the whole suite (Python 3.12), so the new model tests run in CI.
-* `.github/workflows/security.yml`: `pip-audit --strict -r site-api/backend/requirements.txt` now also audits reportlab (and Pillow). pip-audit is not installed here, so this was not run locally.
+* `.github/workflows/platform-ci.yml` job `site-api`: `pip install -r site-api/backend/requirements.txt mongomock-motor` and runs the whole suite (Python 3.12), so the new model tests run in CI.
+* `.github/workflows/platform-security.yml`: `pip-audit --strict -r site-api/backend/requirements.txt` now also audits reportlab (and Pillow). pip-audit is not installed here, so this was not run locally.
 
 The research API (`backend/requirements.txt`) needs nothing new for the Prism hop: it already signs the HS256 CMS token without PyJWT (`backend/finlit/auth/routes.py`, `backend/finlit/premium.py`). The new model modules read no new environment variable (the snapshot is signed with the existing `CMS_JWT_SECRET`; data uses the existing `FINEDGE_API_KEY` / `UPSTOX_ACCESS_TOKEN`). The 26 October merge adds no dependency and no variable either (`requirements.txt` unchanged upstream); in practice the ST/LT technical assessment needs `UPSTOX_ACCESS_TOKEN` for complete candles, see `DEPLOY.md`.
 
-Gaps: **none blocking.** Notes for the deploy owner: (a) `deploy/render-start.sh` can start the site backend through `dev/site_api_dev.py`, which imports `mongomock_motor`, but that package is not in `site-api/backend/requirements.txt` (only CI installs it), so that fallback path would fail in the image; this predates the merge. (b) `site-api/backend/vercel.json` is inert outside Vercel. (c) The premium PDF uses ReportLab's built-in fonts only, so no system font package is needed in the slim images.
+Gaps: **none blocking.** Notes for the deploy owner: (a) `deploy/start.sh` can start the site backend through `dev/site_api_dev.py`, which imports `mongomock_motor`, but that package is not in `site-api/backend/requirements.txt` (only CI installs it), so that fallback path would fail in the image; this predates the merge. (b) `site-api/backend/vercel.json` is inert outside Vercel. (c) The premium PDF uses ReportLab's built-in fonts only, so no system font package is needed in the slim images.

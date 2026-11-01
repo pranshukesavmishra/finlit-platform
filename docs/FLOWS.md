@@ -38,7 +38,7 @@ AMFI (no daily equity flow), `archives.nseindia.com` other paths (no cash-market
 ## Running
 * `python -m finlit.worker refresh-flows [--full] [--only fii dii oi nifty] [--max-age-hours N]`. The first run loads the missing months of FPI
   history (one request per month, paced 1 s; about 30 minutes) and every DII day since June. Boot step and 19:10 IST nightly + 21:30 retry in
-  `deploy/scheduler.sh` and `deploy/crontab`.
+  `deploy/scheduler.sh` and `backend/finlit/jobs/registry.py`.
 * Storage: `flows_daily` (per side `*_source` = `nsdl` | `manual`), `flows_oi`, `flows_index`, `flows_meta` (published payload, step runs). Redis hash `flows:v1`, ETag/304.
 
 ## Manual entry (optional)

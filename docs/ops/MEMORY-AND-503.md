@@ -1,17 +1,12 @@
-# Memory rules and the 503 after a deploy (KNOWN-ISSUES h)
+# AWS memory and deployment health
 
-The free Render plan gives ONE container 512 MB for everything: the web server, the site backend (Prism, about 90 MB), the scheduler and every job.
-Going over the limit kills the container; Render shows 503 until the new instance answers (about a minute, longer while it migrates).
+Production runs the services in `deploy/aws/docker-compose.aws.yml` on the AWS host. The application container has a 1200 MB limit; PostgreSQL 640 MB, Redis 320 MB and Caddy/backup 128 MB each. These are ceilings, not reservations. The host also has swap configured by `deploy/aws/bootstrap.sh`.
 
-Rules every change must keep:
+- `deploy/start.sh` runs migrations, starts the site backend and job launcher, then serves the research API and website. The image health check uses `/api/ping`, which does not need a database query.
+- `deploy/scheduler.sh` keeps the Python job supervisor and supporting loops alive. Scheduling, concurrency and memory gates belong to `backend/finlit/jobs/`; see [JOBS.md](../JOBS.md). Do not install a second host cron schedule for those jobs.
+- Keep caches bounded and avoid reading whole report tables into memory. The image uses one research API worker, one site API worker and `MALLOC_ARENA_MAX=2`.
+- PostgreSQL, Redis and Caddy have protected OOM priorities. Background jobs raise their own OOM score so a job is stopped before the website when possible.
 
-1. One heavy job at a time. Data loads share `/tmp/finlit-heavy.lock`; every light job has its own lock; a job still running when its next slot arrives is skipped, not stacked (`deploy/scheduler.sh`, `run`).
-2. A job starts only with enough free memory: `SCHED_MIN_FREE_MB` (default 120), fund jobs `SCHED_FUNDS_MIN_FREE_MB` (180; the largest measured job peaks at 174 MB).
-3. No job reads a whole table or all report bodies into memory. Page, stream, or sample (the integrity audit takes 40 companies a night, one at a time).
-4. `MALLOC_ARENA_MAX=2` for every Python process; one uvicorn worker; caches are bounded (`STOCK_FUNDAMENTALS_CACHE_ENTRIES`).
-5. The admin switch "Heavy data loads" (Console > System) pauses all loads, which also pause the integrity audit. Use it before a risky deploy or when memory is short.
-6. Boot-time loads wait until the web server answers (`wait_web`), so a deploy never starts loading while it is still starting.
-7. Never deploy during market hours (09:00-15:45 IST) unless it is a fix; check `scripts/smoke.sh` afterwards.
+If the site answers 503 after a deployment, inspect `deploy/aws/deploy.sh status` and `deploy/aws/deploy.sh logs app`. Check container health and host memory. Use the Console's data-load controls when investigating heavy jobs. If the new application build fails its health check, use `deploy/aws/deploy.sh rollback`; the auto-deploy timer also rolls back an unhealthy new build. Database migrations are not reversed by an image rollback. See [AWS-DEPLOY.md](../AWS-DEPLOY.md) for database backup and restore.
 
-If the site shows 503: wait 2 minutes; check the Render log for "Out of memory" or "SIGKILL"; pause the loads switch from the admin Console (or set `BOOT_LOAD_ENABLED=0`); restart once; run `scripts/smoke.sh https://finlit-arug.onrender.com`.
-The keep-alive workflow (`.github/workflows/keepalive.yml`) stops the free instance from sleeping; `smoke.yml` catches a broken deploy within 6 hours.
+After a release run `scripts/smoke.sh <AWS-site-url>`. The repository-root `.github/workflows/platform-smoke.yml` provides the same checks on demand; scheduled checks require `FINLIT_SITE_URL`. No hosting keep-alive workflow is needed.

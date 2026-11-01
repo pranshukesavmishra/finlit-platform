@@ -1,13 +1,9 @@
-# FinLit colour system
+# FinLit colour and typography reference
 
-Follows the brand direction in the FinLit Technical Improvement & Modernization Plan (Phase 4.4): **ivory, black and muted gold**, with clear contrast. One palette, defined once as CSS variables in `frontend/src/styles/finlit.css`; every chart, card and gradient uses these tokens. Ivory is the default theme; a warm-black dark theme is available from the toggle.
+The earlier ivory, warm-black and muted-gold palette documented here is **superseded** by the supplied **Design System v1.3**, dated 27 October 2026.
 
-| Role | Ivory (default) | Warm black (dark) | Used for |
-|---|---|---|---|
-| Page / surfaces | `#F6F1E7` / `#FFFDF8` | `#0F0E0B` / `#17150F` | Backgrounds |
-| Text | `#16140E` | `#F4EFE3` | Body and headings |
-| Muted gold | `#8A6A25` (light `#C9A24E`) | `#D4B26A` (deep `#A8843A`) | Brand accents, buttons, key numbers, score arc |
-| Charcoal / stone | `#2E2A20` / `#8A8472` | `#EDE6D3` / `#A39B88` | Secondary chart series, info |
-| Gain / loss | `#2F7A58` / `#A8392F` | `#5FB88E` / `#E0707A` | Only for up/down and good/bad meaning |
+Use the [repository specification](design/design-system-v1.3.md) and its [original Google document](https://docs.google.com/document/d/1Rz1CdPwluvpsZkYp_60xEtR4PgymB0ukOj_zI6MQwkw/edit?tab=t.ltp1jxuuxcp6). The [design index](design/README.md) explains implementation status and proposed website changes.
 
-Categorical data (five score pillars, ownership holders, revenue segments) uses gold, charcoal and stone in different lightness, never extra hues. No blue, violet, pink or cyan anywhere. The Silver plan tier is a cool grey accent beside gold.
+The specification covers navy, ivory, restrained champagne gold, light and dark themes, separate financial/status/chart colours, Inter and Source Serif 4, number formatting, components and accessibility. Preserve its status labels: some values are final and others require validation.
+
+The former instruction to avoid blue, violet, pink and cyan everywhere no longer applies. Use each colour in its specified semantic role. Existing generated tokens and page styles have not all been migrated; documentation alignment does not establish that the rendered website follows the system.

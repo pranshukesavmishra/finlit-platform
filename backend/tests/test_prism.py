@@ -215,7 +215,7 @@ async def test_internal_fields_are_stripped_and_the_full_snapshot_is_kept_for_th
     assert timedelta(minutes=29) < until - datetime.now(timezone.utc) <= timedelta(minutes=30)
     row = await app.state.store.pool.fetchrow("SELECT * FROM prism_reports WHERE symbol = 'TCS' AND statement = 'consolidated'")
     stored = json.loads(row["report"])
-    assert row["id"] == body["id"] and row["model_version"] == "3.6.10" and row["label"] == "AVERAGE" and row["status"] == "RATED"
+    assert row["id"] == body["id"] and row["model_version"] == prism.REQUIRED_MODEL_VERSION and row["label"] == "AVERAGE" and row["status"] == "RATED"
     assert row["final"] == pytest.approx(SNAPSHOT["rating"]["final"])
     assert not set(prism.INTERNAL) & set(stored) and "cached" not in stored
     assert body["financialHistory"] == stored["financialHistory"] == prism.reader_view(SNAPSHOT)["financialHistory"]
@@ -533,7 +533,7 @@ async def test_status_reports_connection_and_model_version(env):
     assert body == {"name": "FinLit Prism", "available": True, "reason": None, "modelVersion": None}
     await generate(await member(app, "gold"))
     body = (await visitor.get("/api/prism/status")).json()
-    assert body["modelVersion"] == "3.6.10" and fake.pings == 1            # the reachability check is remembered for a minute
+    assert body["modelVersion"] == prism.REQUIRED_MODEL_VERSION and fake.pings == 1            # the reachability check is remembered for a minute
 
 
 async def test_status_when_unconfigured_or_unreachable(store):  # noqa: F811

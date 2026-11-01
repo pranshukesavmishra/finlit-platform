@@ -26,7 +26,7 @@ Member limit: Gold 5 distinct calls a month (`LIMITS["gold"]["earnings_calls_per
 
 ## How to enable
 1. Set `GEMINI_API_KEY` (and optionally `EARNINGS_LLM_MODEL` / `GEMINI_MODEL`). Without it the job prints `not_configured` and the site shows "Earnings-call summaries are not available yet".
-2. Worker command `refresh-earnings-calls`; supervisor job `earnings-calls` (bulk, priority 44, NIGHT/MORNING windows, SLA 48 h, resumable, gated on the key); cron line in `deploy/crontab`.
+2. Worker command `refresh-earnings-calls`; supervisor job `earnings-calls` (bulk, priority 44, NIGHT/MORNING windows, SLA 48 h, resumable, gated on the key); cron line in `backend/finlit/jobs/registry.py`.
 3. New dependency `pypdf==6.21.4` (pure Python). Caddy and Vite route `/api/earnings-calls/*` to the research service.
 4. Run migration 080 (automatic at start).
 

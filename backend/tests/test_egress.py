@@ -1,5 +1,5 @@
 """Database egress: the screener table is cached and kept current by a probe and small deltas; the Dhan instrument map is cached by a version stamp;
-the quote job reads what it can from Redis; the admin query-statistics endpoint. Neon bills every byte the database sends (docs/NEON-EGRESS.md)."""
+the quote job reads what it can from Redis; the admin query-statistics endpoint. Database reads are measured to keep refresh work bounded."""
 
 import json
 import time

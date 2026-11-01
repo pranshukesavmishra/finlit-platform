@@ -1,7 +1,7 @@
 # FinLit Prism: integration contract
 
 **FinLit Prism** is the Gold plan's advanced financial-health rating. It is the model merged from
-`Yusra-Khan532/financial-portfolio` (engine 3.6.10 plus the additive ST/LT technical assessment; see `premium-model-implementation.md`), renamed for the website.
+`Yusra-Khan532/financial-portfolio` (engine 3.6.11 plus the additive ST/LT technical assessment; see `premium-model-implementation.md`), renamed for the website.
 The name is in one place on each side: `PRISM_NAME` in `backend/finlit/prism.py` and in `frontend/src/lib/prism.ts`.
 
 A prism splits light into its bands: the rating splits a company into its four parts (Growth & Profitability, Valuation, Quality, Risk).
@@ -43,6 +43,19 @@ All answers carry `Cache-Control: no-store`. Plan check: Gold or administrator (
 Limits: each member may generate 20 reports a day (refreshes count; reuse of a stored report does not); at most 2 generations
 run at once across the service. `symbol` matches `^[A-Z0-9&_.\-]{1,24}$` after upper-casing; `statement` is `consolidated`
 or `standalone`.
+
+### Scoring-version freshness
+
+Stored reports must match the current financial model version, 3.6.11. An older
+calculation is not returned as the latest report or reused by generation just
+because it was created recently. The page starts a fresh calculation when the
+latest endpoint returns no current-model report. The nightly precompute queue
+also includes outdated model versions, independently of its usual age cutoff.
+Previously issued signed PDF snapshots remain unchanged.
+
+Version 3.6.11 records the existing all-group PEG eligibility override; it does
+not change that formula. The earlier override kept version 3.6.10, which allowed
+pre-override reports (including PEG-excluded Reliance reports) to remain visible.
 
 ### Storage
 
@@ -118,7 +131,7 @@ type TechnicalAssessment = {
 };
 ```
 
-Trimmed example (engine 3.6.10, synthetic prices, from `backend/tests/fixtures/prism/snapshot_example.json`):
+Trimmed example (engine 3.6.11, synthetic prices, from `backend/tests/fixtures/prism/snapshot_example.json`):
 
 ```json
 "technicalAssessment": {

@@ -10,7 +10,7 @@
     python -m finlit.worker refresh-quotes              # live price patch, every minute in market hours
     python -m finlit.worker drain-queue --loop          # stocks users opened before they were ingested
 
-Run by cron on the VPS (see deploy/crontab). The API process never calls FinEdge.
+Run by the AWS job supervisor (see docs/JOBS.md). The API process never calls FinEdge.
 """
 
 from __future__ import annotations

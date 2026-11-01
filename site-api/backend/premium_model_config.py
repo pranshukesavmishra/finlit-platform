@@ -1,7 +1,7 @@
 """FinLit v3.6.1 configuration supplied by the project owner.
 Group fill values are the supplied 13–14 October 2026 snapshot, not live medians.
 """
-MODEL_VERSION = "3.6.10"
+MODEL_VERSION = "3.6.11"
 BASELINE_VERSION = "3.6.1-simple"
 FILL_VERSION = "2026-10-14"
 QUARTERS_JUDGED = 10
