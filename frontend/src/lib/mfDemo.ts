@@ -17,6 +17,8 @@ export async function demoMf<T>(path: string): Promise<T> {
   const data = await load();
   const url = new URL(path, "http://demo");
   const p = url.searchParams;
+  if (url.pathname === "/api/mf/filters" && p.get("screen")) { const s = await import("./mfScreenDemo"); return s.demoScreenFacets(s.demoRows(data.rows), data.filters, p) as T; }   // the screener: sample figures, see mfScreenDemo.ts
+  if (url.pathname === "/api/mf/screen/stocks") return { items: [{ symbol: "RELIANCE", isin: "INE002A01018", families: 3 }, { symbol: "HDFCBANK", isin: "INE040A01034", families: 4 }].filter((i) => i.symbol.startsWith((p.get("q") || "").toUpperCase())) } as unknown as T;
   if (url.pathname === "/api/mf/filters") return { ...data.filters } as T;
   if (url.pathname === "/api/mf/compare") {
     const range = (p.get("range") || "1Y") as RangeKey;
@@ -38,6 +40,7 @@ export async function demoMf<T>(path: string): Promise<T> {
   if (url.pathname === "/api/mf/hot") return { ...data.facts, basis: null, items: data.rows.filter((r) => r.optionClass === "Growth").slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })) } as unknown as T;
   const one = url.pathname.match(/^\/api\/mf\/(\d+)$/);
   if (one) { const d = data.details[one[1]]; if (!d) throw notFound("This preview holds 67 schemes; the live site has every scheme."); return d as T; }
+  if (url.pathname === "/api/mf" && p.get("extra") === "true") { const s = await import("./mfScreenDemo"); return s.demoScreenList(s.demoRows(data.rows), data.facts, p) as T; }
   // list
   const q = (p.get("q") || "").trim();
   const cats = p.getAll("categories"), group = p.get("group"), option = p.get("option") || "Growth";

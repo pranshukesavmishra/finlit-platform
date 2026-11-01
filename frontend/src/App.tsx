@@ -21,6 +21,7 @@ import { ForgotPassword, ResetPassword, VerifyEmail } from "./pages/AccountFlows
 const StockPage = lazy(() => import("./stock/StockPage").then((m) => ({ default: m.StockPage })));
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
 const FundScoreScreener = lazy(() => import("./pages/FundScoreScreener").then((m) => ({ default: m.FundScoreScreenerPage })));
+const MfScreener = lazy(() => import("./pages/MfScreener").then((m) => ({ default: m.MfScreenerPage })));
 const MfScoreMethod = lazy(() => import("./pages/MfScoreMethod").then((m) => ({ default: m.MfScoreMethodPage })));
 const Blog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.Blog })));
 const BlogPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.BlogPost })));
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="fund-score-screener" element={<FundScoreScreener />} />
             <Route path="methodology/mf-score" element={<MfScoreMethod />} />
             <Route path="funds" element={<FundListPage />} />
+            <Route path="funds/screener" element={<MfScreener />} />
             <Route path="funds/compare" element={<FundComparePage />} />
             <Route path="funds/insights" element={<FundInsightsPage />} />
             <Route path="funds/:id" element={<FundDetailPage />} />

@@ -31,6 +31,7 @@ const PAGES = [
   ["score-screener", "/score-screener", { table: true, split: "score", sel: ".scr-main" }],
   ["advanced-score-screener", "/advanced-score-screener", { table: true, split: "score-adv", sel: ".scr-main" }],
   ["fund-score-screener", "/fund-score-screener", { table: true, sel: ".fgx-fl > :not(aside)" }],
+  ["mf-screener", "/funds/screener", { table: true, sel: ".mfs-main" }],
   ["query-builder", "/query-builder", {}],
   ["stock", "/stocks/RELIANCE", {}],
   ["prism", "/prism", {}],
@@ -136,7 +137,7 @@ function measure({ minMain, vw, sel, wantTable }) {
 // ---- run ----
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const only = process.env.GUARD_ONLY, full = !!process.env.GUARD_FULL;
-const pages = PAGES.filter(([n]) => (!only || n.includes(only)) && (MODE === "demo" || ["screener", "score-screener", "advanced-score-screener", "fund-score-screener", "query-builder"].includes(n)));
+const pages = PAGES.filter(([n]) => (!only || n.includes(only)) && (MODE === "demo" || ["screener", "score-screener", "advanced-score-screener", "fund-score-screener", "mf-screener", "query-builder"].includes(n)));
 const cases = [];
 const splitKey = (name, opt) => (MODE === "api" && name === "screener" ? "screener" : opt.split);   // ScreenerPro (api build) and ScreenerLite (demo build) remember the width under different keys
 const withStore = (store, split) => Object.fromEntries(Object.entries(store).map(([k, v]) => [k === "SPLIT" ? "finlit.side." + split : k, v]));

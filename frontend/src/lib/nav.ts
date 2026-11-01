@@ -54,6 +54,7 @@ export const SECTIONS: NavSection[] = [
   ] }] },
   { id: "funds", label: "Funds", groups: [{ items: [
     i("/funds", "Mutual funds", "NAV, returns, fund size and risk for every scheme", "pie"),
+    i("/funds/screener", "Mutual fund screener", "Filter every fund by type, cost, returns, risk and portfolio", "layers"),
     i("/etfs", "ETFs", "Exchange-traded funds: price, returns and risk", "bars"),
   ] }] },
 ];

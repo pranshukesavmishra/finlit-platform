@@ -47,6 +47,7 @@ from .auth.routes import fail
 from .config import MF_EXCLUDED_AMCS, MF_FEATURED_AMCS
 from .store import dumps, etag_for
 from .background import etag_matches
+from .mfscreen import spec as screen_spec
 
 log = logging.getLogger("finlit.mf")
 router = APIRouter(prefix="/api/mf")
@@ -1730,6 +1731,7 @@ SORTS = {"name": "name", "amc": "amc", "category": "category", "nav": "nav", "na
          "change": "(CASE WHEN prev_nav > 0 THEN nav / prev_nav - 1 END)", "sip3y": "sip3y", "sip5y": "sip5y", "aum": "aum_lakh", "ter": "ter",
          "checklist": "(chk_pass * 8 + chk_known)",
          "score": "(SELECT sc.final FROM mf_scores sc WHERE sc.key = 'mf:' || mf_schemes.code::text)"}   # the Mutual Fund Health Score (finlit/mfscore): Gold only, see list_funds
+SORTS.update(screen_spec.SORT_EXTRA)   # the screener's sorts (fall, age, rank in category ...): they read mf_screen, which the list always joins
 MAX_CATEGORIES = 80
 PLANS = ("Direct", "Regular", "Unspecified")
 OPTIONS = ("Growth", "IDCW", "Other", "All")   # no choice means Growth; "All" turns the default off
@@ -1779,6 +1781,29 @@ def list_item(r) -> dict:
             "sip3y": rnd(r["sip3y"]), "sip5y": rnd(r["sip5y"]), "fall3y": rnd(r["mdd3y_m"]),
             "aum": None if aum is None else round(aum / 100, 2), "aumAsOf": iso(r["aum_asof"]), "aumKind": r["aum_kind"],
             "ter": rnd(r["ter"], 2), "terDate": iso(r["ter_date"]), "checklist": checklist_item(r)}
+
+
+def extra_item(r) -> dict:
+    """The screener's figures of one row (`extra=true`): worked out nightly into mf_screen, so a missing one is None, never a guess."""
+    f = lambda k, n=2: rnd(r[k], n)   # noqa: E731
+    rk = lambda a, b: None if r[a] is None or r[b] is None else {"rank": r[a], "of": r[b]}   # noqa: E731
+    return {"age": f("x_age"), "launch": iso(r["x_launch"]), "ckey": r["x_ckey"], "tags": list(r["x_tags"] or []), "isEtf": bool(r["x_is_etf"]), "r1m": f("r1m"), "r6m": f("r6m"),
+            "ex": {"1y": f("x_ex1y"), "3y": f("x_ex3y"), "5y": f("x_ex5y")}, "rank": {"1y": rk("x_rk1", "x_rn1"), "3y": rk("x_rk3", "x_rn3"), "5y": rk("x_rk5", "x_rn5")},
+            "aumRank": rk("x_aum_rk", "x_aum_rn"), "aumShare": f("x_aum_share"), "naChg": f("x_na_chg", 1), "houseAum": f("x_house_aum_cr", 0), "terRel": f("x_ter_rel"), "terGap": f("x_ter_gap"), "feeShare": f("x_fee_share", 1),
+            "exit": {"state": r["x_exit_state"], "pct": f("x_exit_pct"), "days": r["x_exit_days"]},
+            "risk": {"vol1": f("x_vol1", 1), "vol3": f("x_vol3", 1), "worstMonth": f("x_worst_loss"), "worstYear": f("x_worst12_loss"), "negShare": f("x_neg_share", 0),
+                     "belowHigh": f("x_below_high", 0), "downCapture": f("x_down_cap", 0), "sharpe": f("x_sharpe"), "consistency": f("x_consist", 0)},
+            "portfolio": None if r["x_port_asof"] is None else {"asOf": iso(r["x_port_asof"]), "equity": f("x_eq_pct", 1), "debt": f("x_debt_pct", 1), "cash": f("x_cash_pct", 1),
+                                                                "other": f("x_other_pct", 1), "holdings": r["x_n_hold"], "top10": f("x_top10", 1), "largest": f("x_max_hold", 1),
+                                                                "sector": r["x_top_sector"], "sectorPct": f("x_top_sector_pct", 1)},
+            "category": {"month": iso(r["x_cf_month"]), "flow": f("x_cf_flow", 0), "streak": r["x_cf_streak"], "aumMom": f("x_cf_aum_mom", 1), "aumYoy": f("x_cf_aum_yoy", 1),
+                         "share": f("x_cf_share", 1), "folioMom": f("x_cf_folio_mom", 1)}}
+
+
+EXTRA_COLS = ("x_age, x_launch, x_ckey, x_tags, x_is_etf, x_ex1y, x_ex3y, x_ex5y, x_rk1, x_rn1, x_rk3, x_rn3, x_rk5, x_rn5, x_aum_rk, x_aum_rn, x_house_aum_cr, x_ter_rel, "
+              "x_ter_gap, x_fee_share, x_exit_state, x_exit_pct, x_exit_days, x_vol1, x_vol3, x_worst_loss, x_worst12_loss, x_neg_share, x_below_high, x_down_cap, x_sharpe, x_consist, "
+              "x_port_asof, x_eq_pct, x_debt_pct, x_cash_pct, x_other_pct, x_n_hold, x_top10, x_max_hold, x_top_sector, x_top_sector_pct, x_cf_month, x_cf_flow, x_cf_streak, "
+              "x_cf_aum_mom, x_cf_aum_yoy, x_cf_folio_mom, x_cf_share, x_aum_share, x_na_chg")
 
 
 async def _version(redis) -> str:
@@ -1832,20 +1857,41 @@ async def _search_index(store) -> SearchIndex:
     return _index_cache["index"]   # type: ignore[return-value]
 
 
+async def _opened_codes(store, n: int = 200) -> List[int]:
+    """The schemes opened most often on this site (the counter behind the fallback hot ranking), most opened first."""
+    try:
+        raw = await store.redis.hgetall(OPENS_KEY)
+    except Exception:
+        return []
+    pairs = sorted(((int(v), int(k)) for k, v in raw.items() if str(k.decode() if isinstance(k, bytes) else k).isdigit()), reverse=True)
+    return [c for _, c in pairs[:n]]
+
+
+async def _screen_ctx(request: Request, q: str) -> screen_spec.Ctx:
+    """What the query-string parser needs from the database: the category names behind every sub-category key, the text search hits and, when asked, the most opened schemes."""
+    store = request.app.state.store
+    by_key, by_tab = await _cat_maps(store)
+    search = (await _search_index(store)).search(q) if q.strip() else None
+    wanted = {t.strip() for v in request.query_params.getlist("tick") for t in v.split(",")}
+    opened = await _opened_codes(store) if "opened" in wanted else ()
+    return screen_spec.Ctx(by_key=by_key, by_tab=by_tab, search=search, opened=opened)
+
+
 @router.get("")
 async def list_funds(request: Request, q: str = Query("", max_length=80), category: str = Query("", max_length=160), amc: str = Query("", max_length=120),
                      categories: List[str] = Query([]), group: str = Query("", max_length=12),
                      plan: str = Query("", max_length=20), option: str = Query("", max_length=20), stopped: bool = False,
                      min1y: Optional[float] = Query(None, ge=-100, le=100000), max1y: Optional[float] = Query(None, ge=-100, le=100000),
                      min5y: Optional[float] = Query(None, ge=-100, le=100000), max5y: Optional[float] = Query(None, ge=-100, le=100000),
-                     sort: str = Query("", max_length=12), dir: str = Query("asc", pattern="^(asc|desc)$"),
+                     sort: str = Query("", max_length=12), dir: str = Query("asc", pattern="^(asc|desc)$"), extra: bool = False,
                      page: int = Query(1, ge=1, le=2000), size: int = Query(50, ge=1, le=PAGE_MAX)) -> Response:
     """Schemes, filtered and sorted on the server (about 14,000 exist). The count is exact for the filters given. Without a chosen sort the order is by relevance
     when searching, otherwise A to Z. Schemes that stopped publishing NAVs are left out unless `stopped=true`.
     Categories: `category` (one exact AMFI name), `categories` (exact AMFI names, the parameter repeated: categories=A&categories=B) and `group` (a whole tab:
-    equity, hybrid, debt, solution, other; see `classify`). Given together, a scheme must match each one given."""
-    if plan and plan not in PLANS or option and option not in OPTIONS:
-        raise fail(400, "bad_request", "Unknown plan or option.")
+    equity, hybrid, debt, solution, other; see `classify`). Given together, a scheme must match each one given.
+    The Mutual Fund Screener adds more filters, all validated against fixed lists (finlit/mfscreen/spec.py, docs/MF-FILTERS.md): subs, cap, style, struct, mat, amcs,
+    house, plans, options, inst, status, family, fresh, aumbasis, aumrank, launch_from, launch_to, rng=field:min:max (with nd=field to keep funds with no figure),
+    rk, chk, chk_each, exit, tick, tags, sector, sector_min, holds, pfdate, cflow, cstreak, csize. `extra=true` adds the screener's figures to each row."""
     if sort and sort not in SORTS:
         raise fail(400, "bad_request", "Unknown sort column.")
     if sort == "score":   # the order of the score says what the score says: Gold only, and never kept by a shared cache
@@ -1856,50 +1902,37 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
     cats = sorted({c.strip() for c in categories if c.strip()})
     if len(cats) > MAX_CATEGORIES or any(len(c) > 160 for c in cats):
         raise fail(400, "bad_request", f"At most {MAX_CATEGORIES} categories of up to 160 characters each.")
-    key = json.dumps([q.strip().lower(), category, amc, plan, option, stopped, min1y, max1y, min5y, max5y, sort, dir, page, size, cats, group])
+    if plan and plan not in PLANS or option and option not in OPTIONS:
+        raise fail(400, "bad_request", "Unknown plan or option.")
+    ctx = await _screen_ctx(request, q)
+    try:
+        scr = screen_spec.parse(request.query_params, ctx)
+    except screen_spec.ScreenError as exc:
+        raise fail(400, "bad_request", str(exc))
+    key = json.dumps([q.strip().lower(), scr.key, scr.family, sort, dir, page, size, extra], default=str)
 
     async def build():
         store = request.app.state.store
-        where, args = [], []
+        src, args = screen_spec.source(scr.preds, scr.family)
+        n_where = len(args)
 
         def arg(v):
             args.append(v)
             return f"${len(args)}"
-        order_codes, codes_ph = None, ""
-        if q.strip():
-            order_codes = (await _search_index(store)).search(q)
-            if order_codes is not None:
-                codes_ph = arg(order_codes)
-                where.append(f"code = ANY({codes_ph}::int[])")
-        if not stopped:
-            where.append("active")
-        for col, v in (("category", category), ("amc", amc), ("plan", plan), ("option_class", "" if option == "All" else (option or "Growth"))):
-            if v:
-                where.append(f"{col} = {arg(v)}")
-        if cats:
-            where.append(f"category = ANY({arg(cats)}::text[])")
-        if group:
-            where.append(f"category = ANY({arg(await _tab_categories(store, group))}::text[])")
-        for col, lo, hi in (("r1y", min1y, max1y), ("r5y", min5y, max5y)):
-            if lo is not None:
-                where.append(f"{col} >= {arg(lo)}")
-            if hi is not None:
-                where.append(f"{col} <= {arg(hi)}")
-        w = ("WHERE " + " AND ".join(where)) if where else ""
-        n_where = len(args)
         if sort:
             order = f"{SORTS[sort]} {'DESC' if dir == 'desc' else 'ASC'} NULLS LAST, name, code"
-        elif order_codes is not None:
-            order = f"array_position({codes_ph}::int[], code)"
+        elif ctx.search is not None:
+            order = f"array_position({arg(list(ctx.search))}::int[], code)"
         else:   # best-known fund houses first (the list in config), then A to Z
             feat = arg(list(MF_FEATURED_AMCS))
             order = f"COALESCE((SELECT min(u.i) FROM unnest({feat}::text[]) WITH ORDINALITY AS u(p, i) WHERE lower(amc) LIKE u.p || '%'), 999), name, code"  # nosec B608 - only a bound-parameter placeholder and fixed text; the house list is a bound array
+        cols = LIST_COLS + (", " + EXTRA_COLS if extra else "")
         async with store.pool.acquire() as conn:
-            total = await conn.fetchval(f"SELECT count(*) FROM mf_schemes {w}", *args[:n_where])  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
-            rows = await conn.fetch(f"SELECT {LIST_COLS} FROM mf_schemes {w} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
+            total = await conn.fetchval(f"SELECT count(*) FROM {src}", *args[:n_where])  # nosec B608 - WHERE text is built from fixed column names; every value is a bound parameter
+            rows = await conn.fetch(f"SELECT {cols} FROM {src} ORDER BY {order} LIMIT {size} OFFSET {(page - 1) * size}", *args)  # nosec B608 - column list and sort come from fixed maps; size and page are range-checked integers
             facts = await _facts(conn)
             dash = await _meta(conn, "dashboard") or {}
-        items = [list_item(r) for r in rows]
+        items = [{**list_item(r), **({"x": extra_item(r)} if extra else {})} for r in rows]
         want = {i["checklist"]["peer"] for i in items if i["checklist"]}
         peers = {k: v for k, v in (dash.get("peers") or {}).items() if k in want}
         return {"total": total, "page": page, "size": size, "pages": max(1, math.ceil(total / size)), "items": items, "peers": peers,
@@ -1910,26 +1943,46 @@ async def list_funds(request: Request, q: str = Query("", max_length=80), catego
     return res
 
 
-_tab_cache: Dict[str, object] = {"ver": None, "tabs": None, "at": 0.0}
+_tab_cache: Dict[str, object] = {"ver": None, "tabs": None, "keys": None, "at": 0.0}
 TAB_CACHE_SECONDS = 600
 
 
-async def _tab_categories(store, tab: str) -> List[str]:
-    """Every stored category name that `classify` puts in this tab (about 100 names in all; worked out once per data version)."""
+async def _cat_maps(store) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    """(sub-category key -> category names, tab -> category names) over every stored category name (about 100; worked out once per data version)."""
     ver = await _version(store.redis)
     if _tab_cache["ver"] != ver or _tab_cache["tabs"] is None or time.monotonic() - float(_tab_cache["at"]) > TAB_CACHE_SECONDS:  # type: ignore[arg-type]
         async with store.pool.acquire() as conn:
             names = [r["category"] for r in await conn.fetch("SELECT DISTINCT category FROM mf_schemes")]
-        tabs: Dict[str, List[str]] = {k: [] for k in TAB_KEYS}
-        for n in names:
-            tabs[classify(n)[0]].append(n)
-        _tab_cache["tabs"], _tab_cache["ver"], _tab_cache["at"] = tabs, ver, time.monotonic()
-    return list(_tab_cache["tabs"][tab])   # type: ignore[index]
+        by_key, by_tab = screen_spec.categories_by_key(names, classify)
+        tabs: Dict[str, List[str]] = {k: by_tab.get(k, []) for k in TAB_KEYS}
+        _tab_cache["tabs"], _tab_cache["keys"], _tab_cache["ver"], _tab_cache["at"] = tabs, by_key, ver, time.monotonic()
+    return dict(_tab_cache["keys"]), {k: list(v) for k, v in _tab_cache["tabs"].items()}   # type: ignore[union-attr]
+
+
+async def _tab_categories(store, tab: str) -> List[str]:
+    """Every stored category name that `classify` puts in this tab."""
+    return list((await _cat_maps(store))[1][tab])
 
 
 @router.get("/filters")
-async def filters(request: Request) -> Response:
-    """Categories and fund houses with how many schemes each has (active ones, and all), plus plan and option counts, for the filter menus."""
+async def filters(request: Request, screen: bool = False, fields: str = Query("", max_length=800), q: str = Query("", max_length=80)) -> Response:
+    """Categories and fund houses with how many schemes each has (active ones, and all), plus plan and option counts, for the filter menus.
+    With `screen=true` and the same filter parameters as the list it also answers, in this one call, everything the Mutual Fund Screener's panel shows: the count
+    beside every option, a histogram and "N of M funds have this figure" for every numeric field (each counted with all the OTHER filters applied), the return-vs-risk
+    points of the result and the category flow bars. `fields=r3y,ter` limits the numeric fields worked out."""
+    scr, ctx, want = None, None, None
+    if screen:
+        ctx = await _screen_ctx(request, q)
+        try:
+            scr = screen_spec.parse(request.query_params, ctx)
+        except screen_spec.ScreenError as exc:
+            raise fail(400, "bad_request", str(exc))
+        if fields.strip():
+            want = {f.strip() for f in fields.split(",") if f.strip()}
+            bad = sorted(want - set(screen_spec.NUM_BY_KEY))
+            if bad:
+                raise fail(400, "bad_request", f"Unknown field: {bad[0][:40]}.")
+
     async def build():
         async with request.app.state.store.pool.acquire() as conn:
             cats = await conn.fetch("""SELECT category, scheme_type, count(*) FILTER (WHERE active) AS active, count(*) AS total,
@@ -1942,6 +1995,10 @@ async def filters(request: Request) -> Response:
             opts = await conn.fetch("SELECT option_class, count(*) FILTER (WHERE active) AS active FROM mf_schemes GROUP BY 1")
             tot = await conn.fetchrow("SELECT count(*) AS total, count(*) FILTER (WHERE active) AS active, count(*) FILTER (WHERE has_hist) AS hist FROM mf_schemes")
             facts = await _facts(conn)
+            block = None
+            if scr is not None:
+                from .mfscreen import facets as screen_facets
+                block = await screen_facets.build(conn, scr, ctx, classify, want)
         merged: Dict[str, dict] = {}
         for c in cats:   # one category can appear under two scheme types (rare); the filter is by category text, so counts add up
             tab, sub, label = classify(c["category"])
@@ -1949,11 +2006,14 @@ async def filters(request: Request) -> Response:
                                                   "label": label, "active": 0, "total": 0, "growth": 0, "direct": 0, "regular": 0})
             for k in ("active", "total", "growth", "direct", "regular"):
                 m[k] += c[k]
-        return {"categories": list(merged.values()), "tabs": [{"key": k, "label": t} for k, t in TABS],
-                "amcs": [{"name": a["amc"], "active": a["active"], "total": a["total"]} for a in amcs],
-                "plans": [{"name": p["plan"], "active": p["active"]} for p in plans], "options": [{"name": o["option_class"], "active": o["active"]} for o in opts],
-                "totals": {"schemes": tot["total"], "active": tot["active"], "withHistory": tot["hist"]}, **facts}
-    return await cached_json(request, "filters", "all", build)
+        out = {"categories": list(merged.values()), "tabs": [{"key": k, "label": t} for k, t in TABS],
+               "amcs": [{"name": a["amc"], "active": a["active"], "total": a["total"]} for a in amcs],
+               "plans": [{"name": p["plan"], "active": p["active"]} for p in plans], "options": [{"name": o["option_class"], "active": o["active"]} for o in opts],
+               "totals": {"schemes": tot["total"], "active": tot["active"], "withHistory": tot["hist"]}, **facts}
+        if block is not None:
+            out["screen"] = block
+        return out
+    return await cached_json(request, "filters", "all" if scr is None else json.dumps(["screen", q.strip().lower(), scr.key, scr.family, sorted(want or [])], default=str), build)
 
 
 RANGES = (("1M", 1), ("6M", 6), ("1Y", 12), ("3Y", 36), ("5Y", 60))
