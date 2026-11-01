@@ -35,6 +35,15 @@ const PREVIEWS: Record<PlatformPreview, () => ReactNode> = {
     <polygon className="band" points="120,34 160,26 200,14 200,44 160,40 120,34" /><polyline className="ln" points="0,60 20,56 40,58 60,48 80,50 100,40 120,34" fill="none" strokeWidth="1.8" /><polyline className="ln fc" points="120,34 160,33 200,29" fill="none" strokeWidth="1.8" />
     <line x1="120" x2="120" y1="6" y2="70" className="gl dash" /></svg><div className="pg-leg"><span><i className="k5" />Reported</span><span><i className="k5 dot" />Indicative range</span></div></>,
   calc: () => <div className="pg-two"><div className="pg-form tight"><label>Growth<span className="pg-in">12%</span></label><label>Discount<span className="pg-in">10%</span></label><label>Years<span className="pg-in">10</span></label></div><div className="pg-result"><small>Sample result</small><b>₹ 1,180</b><small>per share</small></div></div>,
+  prism: () => <div className="pg-two"><svg className="pg-donut" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d0" /><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d1" strokeDasharray="104 138" transform="rotate(-90 32 32)" /></svg>
+    <div className="pg-bars">{[["Growth", 78], ["Value", 60], ["Quality", 70], ["Risk", 48]].map(([l, w]) => <div key={l as string}><span>{l}</span><i><b style={{ width: `${w}%` }} /></i></div>)}</div></div>,
+  advscreen: () => <><Tabs items={["Prism", "Parts", "Technical"]} /><Row head cells={["Company", "Prism", "Short", "Long"]} />{[["Company A", "82", "Up", "Up"], ["Company B", "76", "Flat", "Up"], ["Company C", "71", "Up", "Flat"]].map((r) => <Row key={r[0]} cells={r} />)}</>,
+  markets: () => <><Tabs items={["Calendar", "Indices", "Commodities"]} />{[["Company A results", "Today"], ["Company B IPO opens", "Tue"], ["Index valuation update", "Wed"]].map((r) => <div key={r[0]} className="pg-news"><b>{r[0]}</b><small>{r[1]}</small></div>)}</>,
+  fundamentals: () => <><Tabs items={["Income", "Balance", "Cash flow"]} /><Row head cells={["Year", "Revenue", "Profit"]} />{[["Year 1", "1,120", "142"], ["Year 2", "1,260", "168"], ["Year 3", "1,410", "190"]].map((r) => <Row key={r[0]} cells={r} />)}</>,
+  report: () => <div className="pg-doc"><div className="pg-hd"><b>Company A</b><span>Report</span></div><div className="pg-two"><svg className="pg-donut" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d0" /><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d1" strokeDasharray="90 138" transform="rotate(-90 32 32)" /></svg><div className="pg-lines"><i /><i /><i /><i /></div></div></div>,
+  options: () => <><Row head cells={["Calls OI", "Strike", "Puts OI"]} />{[["12.4k", "1,480", "3.1k"], ["8.9k", "1,500", "9.6k"], ["3.2k", "1,520", "14.2k"]].map((r) => <Row key={r[1]} cells={r} />)}<div className="pg-hd"><b>Put-call ratio</b><span>1.04</span></div></>,
+  dcf: () => <div className="pg-two"><div className="pg-grid3">{[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => <span key={i} className={i === 4 ? "on" : ""}>{[1090, 1130, 1170, 1120, 1180, 1240, 1160, 1230, 1310][i]}</span>)}</div><div className="pg-result"><small>Sample result</small><b>₹ 1,180</b><small>per share</small></div></div>,
+  fundscore: () => <><div className="pg-hd"><b>Fund A</b><span>Health score</span></div><div className="pg-two"><svg className="pg-donut" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d0" /><circle cx="32" cy="32" r="22" fill="none" strokeWidth="10" className="d1" strokeDasharray="100 138" transform="rotate(-90 32 32)" /></svg><div className="pg-bars">{[["Perf.", 76], ["Risk", 64], ["Cost", 82], ["Quality", 70]].map(([l, w]) => <div key={l as string}><span>{l}</span><i><b style={{ width: `${w}%` }} /></i></div>)}</div></div></>,
 };
 
 const BANNERS = [
@@ -67,7 +76,7 @@ export function PlatformGrid() {
       </div>
       <ul className="pg" aria-label="Platform features">
         {cards.map((c) => { const t = PLAN_TIER[c.plan]; return (
-          <li key={c.n} className="pg-card" style={{ "--ac": c.accent } as CSSProperties}>
+          <li key={c.n} className="pg-card">
             <div className="pg-top"><span className="pg-n">{c.n}</span>
               {t === "basic" ? <span className="pg-badge free"><Icon name={TIER.basic.ic} />{c.plan}</span>
                 : <Link to={PLAN_LINK[t]} className={"pg-badge " + t} aria-label={`${TIER[t].n} plan: see it on the Plans page`}><Icon name={TIER[t].ic} />{c.plan}</Link>}</div>
