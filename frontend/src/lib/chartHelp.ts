@@ -644,6 +644,14 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     read: "Paired bars compare reported and normalized profit: a big gap means part of the profit may not repeat. Cash conversion is operating cash flow divided by net profit; below 80% marks a gap year. A flag marks one-offs at 15% or more of profit, and receivables or inventory growing 10 or more points faster than revenue.",
     why: "Profit is an accounting opinion; cash is what arrives. When profit jumps from a one-off gain, or keeps running ahead of cash, the headline number may overstate what the business earns year after year.",
   },
+  "revenue-cash": {
+    title: "Revenue-to-Cash Intelligence",
+    what: "Shows how much of a company's sales arrived as operating cash. The headline is operating cash flow divided by revenue (the OCF margin) for the latest financial year, and the chart sets it beside revenue growth for the last five years.",
+    x: "Financial year (April to March), the last five. A missing year is left as a gap, never drawn as zero.",
+    y: "Per cent. The line at 0% is the zero line: an OCF margin below it means operating cash flow was negative.",
+    read: "The solid gold line is the OCF margin and the dashed line is revenue growth. Revenue climbing while the OCF margin sits near or under zero means sales are not turning into cash yet. Warnings below the chart come from fixed rules on the company's own statements, and each shows the numbers behind it.",
+    why: "Sales are only a promise of cash until customers pay. This view shows whether growth is arriving as cash or sitting in receivables and inventory, which is a question to look into, not a verdict.",
+  },
   "qr-table": {
     title: "Quarter results table",
     what: "Every company's results for one quarter, grouped by the day it declared, the most recent day first. Each row gives revenue, operating profit, net profit, margins and EPS, with growth against the same quarter last year (YoY) and the quarter before (QoQ).",

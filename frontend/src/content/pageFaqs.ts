@@ -255,6 +255,10 @@ export const PAGE_FAQS: PageFaq[] = [
    {
     "q": "What are buckets, triggers and segments?",
     "a": "A Gold section. Buckets say what kind of company this is (size, style, income, momentum), triggers are the specific things most worth watching next, and segments show where the revenue comes from."
+   },
+   {
+    "q": "What is Revenue-to-Cash Intelligence?",
+    "a": "A Gold section under Ratios that shows how much of a company's sales arrived as operating cash. It gives operating cash flow divided by revenue for the latest year, a five-year chart against revenue growth, receivables and inventory growth, and plain-language warnings built from the company's own filings. It is not shown for banks, NBFCs and insurers, and it describes the numbers; it is not a recommendation."
    }
   ]
  },
