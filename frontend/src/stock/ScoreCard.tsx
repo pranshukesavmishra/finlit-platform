@@ -10,7 +10,6 @@ import { Dial } from "../charts/Dial";
 import { ChartHelp } from "../components/ChartHelp";
 import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { scoreChange, useScoreHistory, type Ratios, type Summary } from "../lib/api";
-import { BasisToggle } from "./Sections";
 import { PILLAR_COLOR, PILLAR_ICON } from "./derive";
 
 /** Where the FinLit score changes its word (45 / 62 / 78, see backend analytics/scoring.py); drawn as the ticks on every pillar bar. */
@@ -36,7 +35,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
   return (
     <article className="report dk-card dk-left" aria-labelledby="reportTitle">
       <header className="dk-head">
-        <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span><BasisToggle symbol={s.meta.symbol} shown={s.meta.statement} /></div>
+        <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span></div>
       </header>
       <div className="dk-row">
         <Dial compact overall={s.score.overall} pillars={s.score.pillars} onPillar={toggle} active={open} bandLabel={s.score.band.label} />
