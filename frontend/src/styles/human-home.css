@@ -1,6 +1,6 @@
 /* Home page, plain and printed-paper in feel. Palette only from the brand CSS variables. No looping animation. */
 .hh { --hh-rule: color-mix(in srgb, var(--text) 22%, transparent); }
-.hh .rv { transform: none; transition: opacity .4s ease var(--d, 0ms); }
+.hh .rv, .hh .rv.rv-pre { transform: none; transition: opacity .4s ease var(--d, 0ms); }
 .hh .tagline { padding: 28px 0 0; }
 .hh .tagline p { font: 400 clamp(19px, 2.6vw, 28px)/1.3 var(--serif); letter-spacing: 0; }
 .hh .tagline .x { color: var(--gold); }

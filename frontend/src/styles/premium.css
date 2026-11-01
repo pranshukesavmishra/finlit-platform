@@ -297,10 +297,11 @@ footer.band { border-top: 1px solid #3A362D; --band-a: #1B1915; }
 .marq div { animation: none !important; width: auto; flex-wrap: wrap; justify-content: center; gap: 8px 32px; font-size: clamp(20px, 2.4vw, 28px); }
 
 /* ---- motion: one-time reveals only ---- */
-.rv { transform: translateY(8px); transition: opacity .4s ease-out var(--d, 0ms), transform .4s ease-out var(--d, 0ms); }
+.rv.rv-pre { transform: translateY(8px); }
+.rv { transition: opacity .4s ease-out var(--d, 0ms), transform .4s ease-out var(--d, 0ms); }
 .live::before, .pm-live.on, .plan.feat, .dial-spin, .float-chip, .typing i { animation: none !important; }
 .skeleton { animation: none !important; background: var(--s2); }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .rv { transform: none; transition: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .rv, .rv.rv-pre { transform: none; transition: none; opacity: 1; } }
 
 /* ---- small screens ---- */
 @media (max-width: 640px) { .card, .feat { padding: 16px; } section.block { padding-block: 48px 0; } h2 { font-size: 28px; } }
