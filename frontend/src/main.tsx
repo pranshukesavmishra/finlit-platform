@@ -32,6 +32,7 @@ import "./styles/pagefaqs.css";
 import "./styles/luxe.css";
 import "./styles/headerlinks.css";
 import "./styles/sidebar.css";
+import "./styles/earnings.css";
 import "./styles/overlay.css";
 import { installDemo } from "./lib/demo";
 import { installResilience } from "./lib/resilience";

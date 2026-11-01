@@ -101,6 +101,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
 | presets (`refresh-presets`) | bulk | 42 | 30 h | NIGHT, MORNING; after prism (docs/PRESETS.md) |
+| earnings-calls (`refresh-earnings-calls`, needs `GEMINI_API_KEY`) | bulk | 44 | 48 h | NIGHT, MORNING; bounded per run, resumable (docs/EARNINGS-CALLS.md) |
 | leadership | bulk | 45 | 8 d | Saturday NIGHT |
 | portfolios, score-mf, backfill-mf (funds, `FUND_LOADS_ENABLED=1`) | bulk | 50, 55, 60 | 26 h, 26 h, 8 d | NIGHT, MORNING; score-mf after portfolios |
 | backfill-history | bulk | 65 | 8 d | NIGHT, MORNING |
