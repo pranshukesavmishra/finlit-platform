@@ -250,7 +250,7 @@ async def test_the_pacer_hands_out_one_turn_per_gap_across_callers(redis):
 from test_auth import app, anon, signed_in  # noqa: E402,F401  (fixtures and helpers)
 from test_integration import ingested, store  # noqa: E402,F401
 
-EXPIRIES = {"data": ["2020-01-02", "2026-10-27", "2026-11-03", "2099-12-31"], "status": "success"}
+EXPIRIES = {"data": ["2020-01-02", "2098-10-27", "2098-11-03", "2099-12-31"], "status": "success"}
 
 
 def chain_answer(spot=25642.8):
@@ -310,7 +310,7 @@ async def dhan(app, monkeypatch):  # noqa: F811
 async def test_the_option_chain_is_gold_only(app, anon, dhan):  # noqa: F811
     assert (await anon.get("/api/options/underlyings")).status_code == 401
     silver = await signed_in(app, "s@example.com", plan="silver")
-    for path in ("/api/options/underlyings", "/api/options/expiries?u=NIFTY", "/api/options/chain?u=NIFTY&expiry=2026-10-27"):
+    for path in ("/api/options/underlyings", "/api/options/expiries?u=NIFTY", "/api/options/chain?u=NIFTY&expiry=2098-10-27"):
         r = await silver.get(path)
         assert r.status_code == 403 and r.json()["detail"]["plan"] == "gold", path
     assert dhan.calls == []                                                   # nothing reached Dhan for them
@@ -321,7 +321,7 @@ async def test_the_option_chain_is_gold_only(app, anon, dhan):  # noqa: F811
     assert body["stocks"][1] == {"key": "RELIANCE", "name": "Reliance Industries", "securityId": 2885, "lotSize": 500} and body["connected"]
     # once option series are loaded, only stocks that have options are listed
     async with app.state.store.pool.acquire() as conn:
-        await conn.execute("INSERT INTO dhan_option_lots VALUES ('NSE','OPTSTK','RELIANCE','2885','2026-10-27',500,false)")
+        await conn.execute("INSERT INTO dhan_option_lots VALUES ('NSE','OPTSTK','RELIANCE','2885','2098-10-27',500,false)")
     assert [s["key"] for s in (await gold.get("/api/options/underlyings")).json()["stocks"]] == ["RELIANCE"]
     for c in (silver, gold):
         await c.aclose()
@@ -329,18 +329,18 @@ async def test_the_option_chain_is_gold_only(app, anon, dhan):  # noqa: F811
 
 async def test_chain_end_to_end_with_shared_calls_and_cache(app, dhan):  # noqa: F811
     async with app.state.store.pool.acquire() as conn:
-        await conn.execute("INSERT INTO dhan_option_lots VALUES ('NSE','OPTIDX','NIFTY','26000','2026-10-27',65,false)")
+        await conn.execute("INSERT INTO dhan_option_lots VALUES ('NSE','OPTIDX','NIFTY','26000','2098-10-27',65,false)")
     gold = await signed_in(app, "g@example.com", plan="gold")
     r = await gold.get("/api/options/expiries?u=nifty")
     assert r.status_code == 200 and r.headers["cache-control"] == "private, no-store"
     body = r.json()
-    assert body["expiries"] == ["2026-10-27", "2026-11-03", "2099-12-31"]     # a past date in Dhan's list is dropped
+    assert body["expiries"] == ["2098-10-27", "2098-11-03", "2099-12-31"]     # a past date in Dhan's list is dropped
     assert dhan.calls == [("/v2/optionchain/expirylist", {"UnderlyingScrip": 13, "UnderlyingSeg": "IDX_I"})]
 
     # five visitors at once: one chain call
-    rs = await asyncio.gather(*(gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27") for _ in range(5)))
+    rs = await asyncio.gather(*(gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27") for _ in range(5)))
     assert all(x.status_code == 200 for x in rs), [x.text for x in rs]
-    assert dhan.paths("/optionchain") == [("/v2/optionchain", {"UnderlyingScrip": 13, "UnderlyingSeg": "IDX_I", "Expiry": "2026-10-27"})]
+    assert dhan.paths("/optionchain") == [("/v2/optionchain", {"UnderlyingScrip": 13, "UnderlyingSeg": "IDX_I", "Expiry": "2098-10-27"})]
     assert len(dhan.paths("/expirylist")) == 1
     c = rs[0].json()
     assert c["spot"] == 25642.8 and c["atm"] == 25650 and c["lotSize"] == 65 and c["lotSource"] == "instrument file, this expiry"
@@ -362,43 +362,43 @@ async def test_chain_end_to_end_with_shared_calls_and_cache(app, dhan):  # noqa:
     #   S=25700: calls 100×1000 + 50×3786445 = 189,422,250
     assert c["summary"]["maxPain"] == {"strike": 25650, "payout": 50000}
     # asked again straight away: from the cache, no new call
-    again = (await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27")).json()
+    again = (await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27")).json()
     assert again["state"] == "fresh" and len(dhan.paths("/optionchain")) == 1 and again["asOf"] == c["asOf"]
 
     # an unlisted or bad expiry never reaches Dhan
-    assert (await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-28")).status_code == 404
+    assert (await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-28")).status_code == 404
     assert (await gold.get("/api/options/chain?u=NIFTY&expiry=27-10-2026")).status_code == 400
-    assert (await gold.get("/api/options/chain?u=NOPE&expiry=2026-10-27")).status_code == 404
-    assert (await gold.get("/api/options/chain?u=TCS&expiry=2026-10-27")).status_code == 404       # no F&O
+    assert (await gold.get("/api/options/chain?u=NOPE&expiry=2098-10-27")).status_code == 404
+    assert (await gold.get("/api/options/chain?u=TCS&expiry=2098-10-27")).status_code == 404       # no F&O
     assert len(dhan.calls) == 2
     await gold.aclose()
 
 
 async def test_a_stale_chain_is_served_with_its_time_when_dhan_fails(app, dhan):  # noqa: F811
     gold = await signed_in(app, "g@example.com", plan="gold")
-    first = (await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27")).json()
-    key = "oc:chain:NIFTY:2026-10-27"
+    first = (await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27")).json()
+    key = "oc:chain:NIFTY:2098-10-27"
     redis = app.state.store.redis
     entry = json.loads(await redis.get(key))
     entry["t"] = time.time() - 10 * 24 * 3600                                 # ten days old: stale in or out of market hours
     await redis.set(key, json.dumps(entry))
     dhan.fail = True
-    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27")
+    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27")
     assert r.status_code == 200 and r.json()["state"] == "refreshing" and r.json()["ageSeconds"] >= 10 * 24 * 3600 - 5
     for _ in range(40):                                                       # the background refresh fails…
         if not await redis.exists(key + ":lock"):
             break
         await asyncio.sleep(0.05)
-    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27")
+    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27")
     assert r.status_code == 200 and r.json()["state"] == "stale" and r.json()["spot"] == first["spot"]   # …the old answer stays, with its time
     n = len(dhan.paths("/optionchain"))
-    await gold.get("/api/options/chain?u=NIFTY&expiry=2026-10-27")
+    await gold.get("/api/options/chain?u=NIFTY&expiry=2098-10-27")
     assert len(dhan.paths("/optionchain")) == n                               # and Dhan is left alone for a while after failing
     # with nothing stored, a failure is an error, not an empty chain
     dhan.fail = False
     await redis.delete("oc:exp:NIFTY")
     dhan.fail = True
-    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2026-11-03")
+    r = await gold.get("/api/options/chain?u=NIFTY&expiry=2098-11-03")
     assert r.status_code == 502 and r.json()["detail"]["status"] == "provider_unavailable"
     await gold.aclose()
 
@@ -410,8 +410,8 @@ async def test_stock_chains_use_the_stock_segment_and_fall_back_once(app, dhan):
     assert r.status_code == 200 and r.json()["underlying"]["segment"] == "NSE_FNO"
     assert [c[1] for c in dhan.calls] == [{"UnderlyingScrip": 2885, "UnderlyingSeg": "NSE_EQ"}, {"UnderlyingScrip": 2885, "UnderlyingSeg": "NSE_FNO"}]
     assert await app.state.store.redis.get(oc.STOCK_SEG_KEY) == b"NSE_FNO"   # …it is remembered, and the next stock asks that first
-    c = (await gold.get("/api/options/chain?u=RELIANCE&expiry=2026-10-27")).json()
-    assert dhan.calls[-1][1] == {"UnderlyingScrip": 2885, "UnderlyingSeg": "NSE_FNO", "Expiry": "2026-10-27"}
+    c = (await gold.get("/api/options/chain?u=RELIANCE&expiry=2098-10-27")).json()
+    assert dhan.calls[-1][1] == {"UnderlyingScrip": 2885, "UnderlyingSeg": "NSE_FNO", "Expiry": "2098-10-27"}
     assert c["lotSize"] == 500 and c["lotSource"] == "instrument file, the stock's futures" and c["underlying"]["kind"] == "stock"
     await gold.get("/api/options/expiries?u=HDFCBANK")
     assert dhan.calls[-1][1] == {"UnderlyingScrip": 1333, "UnderlyingSeg": "NSE_FNO"}
