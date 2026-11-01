@@ -185,3 +185,59 @@ def test_amc_names_map_to_sites():
     got = amc_logo_keys(["Nippon India Mutual Fund", "SBI Mutual Fund", "ICICI Prudential Mutual Fund", "Tata Mutual Fund", "Unknown House", ""])
     assert got == {"Nippon India Mutual Fund": "nipponindia", "SBI Mutual Fund": "sbi", "ICICI Prudential Mutual Fund": "iciciprudential", "Tata Mutual Fund": "tata"}
     assert all(d == site_domain(d) for d in logos.AMC_SITES.values())
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ admin: coverage and manual logos
+import base64  # noqa: E402
+import time  # noqa: E402
+
+from test_auth import app, make_admin, new_client, signed_in  # noqa: E402,F401
+from test_integration import ingested, make_settings, store  # noqa: E402,F401
+
+pytestmark_admin = pytest.mark.integration
+
+
+def test_why_missing_always_gives_a_reason():
+    assert "blocks automated" in logos.why_missing("blocked", None, "x.com")
+    assert logos.why_missing("none", None, "x.com").startswith("Its website publishes no usable icon")
+    assert logos.why_missing("rejected", "size 8x8 outside 16-1024 px", "x.com") == "size 8x8 outside 16-1024 px"
+    assert "No website is stored" in logos.why_missing(None, None, None)
+    assert "Not tried yet" in logos.why_missing(None, None, "x.com")
+
+
+async def _admin(app):
+    from finlit.auth import crypto
+    admin = await make_admin(app)
+    secret = (await admin.post("/api/me/mfa/setup")).json()["secret"]
+    assert (await admin.post("/api/me/mfa/enable", json={"code": crypto.totp_code(secret, int(time.time()) // 30)})).status_code == 200
+    return admin
+
+
+@pytest.mark.integration
+async def test_coverage_and_manual_logo_are_admin_only_and_checked(app):
+    async with app.state.store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM logos WHERE owner_kind = 'stock' AND owner_key IN ('ZZLOGO1', 'ZZLOGO2')")
+        await conn.execute("DELETE FROM companies WHERE symbol IN ('ZZLOGO1', 'ZZLOGO2')")
+        await conn.execute("INSERT INTO companies (symbol, name) VALUES ('ZZLOGO1', 'Logo Test One Ltd'), ('ZZLOGO2', 'Logo Test Two Ltd')")
+        await conn.execute("INSERT INTO logos (owner_kind, owner_key, status, note) VALUES ('stock', 'ZZLOGO2', 'blocked', 'robots')")
+        await conn.execute("INSERT INTO listing_quotes (symbol, market_cap) VALUES ('ZZLOGO1', 9e11), ('ZZLOGO2', 8e11) ON CONFLICT (symbol) DO UPDATE SET market_cap = EXCLUDED.market_cap")   # the largest: first in the list
+    user = await signed_in(app, "plain@example.com")
+    good = base64.b64encode(png(64, 64)).decode()
+    for call in (lambda c: c.get("/api/logos/admin/missing"), lambda c: c.post("/api/logos/admin/manual", json={"symbol": "ZZLOGO1", "image": good})):
+        assert (await call(new_client(app))).status_code in (401, 403)
+        assert (await call(user)).status_code == 403                                  # a member, even Gold, is not an administrator
+    admin = await _admin(app)
+    r = (await admin.get("/api/logos/admin/missing?limit=20")).json()
+    by = {i["symbol"]: i for i in r["items"]}
+    assert by["ZZLOGO1"]["status"] == "untried" and "No website is stored" in by["ZZLOGO1"]["reason"]
+    assert by["ZZLOGO2"]["status"] == "blocked" and "blocks automated" in by["ZZLOGO2"]["reason"]
+    bad = [("not base64 !!!", 422), (base64.b64encode(b"<svg xmlns='http://www.w3.org/2000/svg'></svg>").decode(), 422), (base64.b64encode(png(8, 8)).decode(), 422)]
+    for image, code in bad:
+        assert (await admin.post("/api/logos/admin/manual", json={"symbol": "ZZLOGO1", "image": image})).status_code == code
+    assert (await admin.post("/api/logos/admin/manual", json={"symbol": "NOSUCHCO", "image": good})).status_code == 404
+    ok = await admin.post("/api/logos/admin/manual", json={"symbol": "zzlogo1", "image": good})
+    assert ok.status_code == 201 and ok.json()["status"] == "manual" and ok.json()["path"].startswith("/api/logos/")
+    served = await new_client(app).get(ok.json()["path"])
+    assert served.status_code == 200 and served.headers["content-type"] == "image/png"          # anyone can see it, like any logo
+    again = (await admin.get("/api/logos/admin/missing?limit=20")).json()
+    assert "ZZLOGO1" not in {i["symbol"] for i in again["items"]} and again["withLogo"] >= 1   # it left the missing list

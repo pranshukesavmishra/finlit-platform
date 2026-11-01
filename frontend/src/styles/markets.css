@@ -67,6 +67,8 @@ a.mk-tile2:hover { filter: brightness(1.12); z-index: 1; } a.mk-tile2:focus-visi
 .mk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
 .mk-sc { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 0 10px; align-items: center; padding: 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--s1); color: var(--text); text-decoration: none; transition: border-color .15s, transform .15s; }
 .mk-sc:hover { border-color: var(--gold); transform: translateY(-2px); } .mk-sc:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+/* the logo tile is also a span: it keeps its own white bold initials instead of taking the price line's grey mono (the initials were unreadable on a dark tile) */
+.mk-sc span.gs-logo-txt { color: #fff; font-family: var(--sans); font-weight: 700; margin-top: 0; }
 .mk-sc b { font: 700 14px var(--sans); } .mk-sc span { grid-column: 1 / -1; font: 500 12.5px var(--mono); color: var(--muted); margin-top: 8px; } .mk-sc em { grid-column: 1 / -1; font: 700 16px var(--mono); font-style: normal; }
 
 @media (max-width: 820px) {
