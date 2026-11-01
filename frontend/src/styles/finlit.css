@@ -628,7 +628,7 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1320px) { .topnav a.opt { display: none; } }
-@media (max-width: 1320px) { .planseg .lbl, .planseg button i { display: none; } .planseg button { padding: 6px 8px; font-size: 12px; } }   /* the header (nav + plan switch + account) is wider than 1181..1320px otherwise and scrolled the page sideways */
+@media (max-width: 1400px) { .planseg .lbl, .planseg button i { display: none; } .planseg button { padding: 6px 8px; font-size: 12px; } }   /* the header (nav + plan switch + account) is wider than 1181..1320px otherwise and scrolled the page sideways */
 @media (max-width: 1180px) {
   .topnav { display: none; }
   .rmain { grid-template-columns: 340px minmax(0, 1fr); }
