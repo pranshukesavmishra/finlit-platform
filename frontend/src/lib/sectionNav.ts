@@ -10,6 +10,7 @@ export const NAV: NavItem[] = [
   ["financials", "Financials", "bars", "Profit and loss, balance sheet and cash flow"],
   ["trends", "Trends", "line", "How sales, profit and margins have moved"],
   ["ratios", "Ratios", "gauge", "Valuation, returns and balance sheet ratios"],
+  ["revenue-cash", "Cash conversion", "coins", "How efficiently sales turn into operating cash"],
   ["ownership", "Ownership", "pie", "Promoters, institutions and the public"],
   ["peers", "Peers", "layers", "Similar companies side by side"],
   ["insights", "Insights", "crown", "Gold insights worked out from the numbers"],

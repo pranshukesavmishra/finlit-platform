@@ -13,9 +13,9 @@ const src = (p: string) => resolve(__dirname, "..", p);
 const json = JSON.parse(readFileSync(resolve(__dirname, "../../../scripts/data/page-faqs.json"), "utf8")) as (typeof PAGE_FAQS[number] & { declared: number })[];
 
 describe("page FAQ data (built from the PDF by scripts/build-page-faqs.py)", () => {
-  it("has 32 pages and 228 questions, as the PDF header says", () => {
+  it("has 32 pages and 229 questions, as the PDF header says", () => {
     expect(PAGE_FAQS).toHaveLength(32);
-    expect(PAGE_FAQS.reduce((n, f) => n + f.items.length, 0)).toBe(228);
+    expect(PAGE_FAQS.reduce((n, f) => n + f.items.length, 0)).toBe(229);
   });
   it("every page has the number of questions its 'N questions' line declares", () => {
     expect(json).toHaveLength(32);
@@ -97,7 +97,7 @@ describe("<PageFaqs />", () => {
   it("the All FAQs hub lists every set grouped by section", () => {
     render(<MemoryRouter><FaqsPage /></MemoryRouter>);
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(32);
-    expect(screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"))).toHaveLength(228);
+    expect(screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls"))).toHaveLength(229);
     expect(screen.getByRole("heading", { level: 2, name: "Gold dashboards" })).toBeTruthy();
     cleanup();
   });
@@ -132,8 +132,8 @@ describe("FAQ upgrades", () => {
     const box = screen.getByRole("searchbox");
     fireEvent.change(box, { target: { value: "sector" } });
     const n = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-controls")).length;
-    expect(n).toBeGreaterThan(0); expect(n).toBeLessThan(228);
-    expect(screen.getByRole("status").textContent).toBe(`${n} of 228 questions match`);
+    expect(n).toBeGreaterThan(0); expect(n).toBeLessThan(229);
+    expect(screen.getByRole("status").textContent).toBe(`${n} of 229 questions match`);
     fireEvent.change(box, { target: { value: "zzzqqq" } });
     expect(screen.getByRole("status").textContent).toContain("No question matches");
     cleanup();

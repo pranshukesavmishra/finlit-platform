@@ -17,6 +17,7 @@ import { SectionHead } from "./Sections";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
 import { DuPont } from "./DuPont";
 import { ProfitReality } from "./ProfitReality";
+import { RevenueCash } from "./RevenueCash";
 import { SegmentCard } from "./Sections2";
 import { PeerRanking } from "./Leadership";
 import { useLeadership } from "../lib/leadership";
@@ -119,7 +120,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
   );
 }
 
-export function RatiosSection({ r, lender = false, sector, industry }: { r?: Ratios; lender?: boolean; sector?: string | null; industry?: string | null }) {
+export function RatiosSection({ r, lender = false, sector, industry, labels }: { r?: Ratios; lender?: boolean; sector?: string | null; industry?: string | null; labels?: (string | null | undefined)[] }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
   if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
@@ -137,6 +138,7 @@ export function RatiosSection({ r, lender = false, sector, industry }: { r?: Rat
       </div>
       <DuPont symbol={r.meta.symbol} lender={lender} />
       <ProfitReality symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} />
+      <RevenueCash symbol={r.meta.symbol} lender={lender} labels={labels} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
         <div style={{ margin: "24px 0 16px" }}>
           <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /><ChartHelp id="ratio-trend" /></div>
