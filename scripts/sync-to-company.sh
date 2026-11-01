@@ -35,9 +35,15 @@ git -C "$SRC" cat-file -e "$OLD^{commit}" 2>/dev/null || { echo "The last delive
 [ "$(git -C "$SRC" rev-parse "$OLD")" != "$(git -C "$SRC" rev-parse HEAD)" ] || { echo "Nothing new: the company repository already has $HEAD_SHA."; exit 0; }
 echo "    last delivery: $OLD   now: $HEAD_SHA   ($(git -C "$SRC" rev-list --count "$OLD"..HEAD) commits)"
 
+# A ".sync-base" file names a later commit of this repository that is already in the company repository (used after the team's own changes were copied in here),
+# so the patch below does not send those changes back. It is ignored once the company's last delivery is newer than it.
+if [ -f "$SRC/.sync-base" ]; then
+  SB="$(tr -d ' \n\r' < "$SRC/.sync-base")"
+  if git -C "$SRC" cat-file -e "$SB^{commit}" 2>/dev/null && git -C "$SRC" merge-base --is-ancestor "$OLD" "$SB" 2>/dev/null; then OLD="$SB"; echo "    using .sync-base $SB as the starting point"; fi
+fi
 git checkout -q -b "$BRANCH" "origin/$BASE"
 echo "3/6 applying the new work to $FOLDER/ (three-way, keeps the team's changes)"
-git -C "$SRC" diff --binary --no-color "$OLD" HEAD > "$WORK/new.patch"
+git -C "$SRC" diff --binary --no-color "$OLD" HEAD -- . ':(exclude).sync-base' > "$WORK/new.patch"
 # A three-way merge needs the file versions the patch was made from; the company clone does not have them, so bring them over from this repository.
 git fetch -q "$SRC" "+refs/heads/*:refs/remotes/src/*" "+HEAD:refs/remotes/src/HEAD" 2>/dev/null || git fetch -q "$SRC" HEAD 2>/dev/null || true
 if ! git apply --3way --index --directory="$FOLDER" "$WORK/new.patch" 2> "$WORK/apply.log"; then
