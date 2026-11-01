@@ -93,15 +93,17 @@ export function LeadLine({ symbol, jump }: { symbol: string; jump: (id: string) 
             <button type="button" className="ld-fig" onClick={() => jump("leadership")}><b className={"pt " + tone(parts.sector.v)}>{parts.sector.pts} pts</b> vs {parts.sector.name}</button>
             {parts.market && <button type="button" className="ld-fig" onClick={() => jump("leadership")}><b className={"pt " + tone(parts.market.v)}>{parts.market.pts} pts</b> vs {parts.market.name}</button>}
             <span className="ld-win">(12 months)</span>
-            {parts.direction && <span className={"ld-dir " + parts.direction}>{parts.direction === "gaining" ? "▲" : "▼"} {dirWord(parts.direction)}</span>}
           </span>
         )}
+        {parts?.direction && <span className={"ld-dir ld-c " + parts.direction}>{parts.direction === "gaining" ? "▲" : "▼"} {dirWord(parts.direction)}</span>}
         <LeadTip text={d.display.tooltip || ""} />
       </div>
-      {d.display.note && <div className="ld-caution" role="note"><Icon name="alert" /><span>{d.display.note}</span></div>}
-      {d.display.pending && <div className="ld-stale" role="note">{d.display.pending}</div>}
-      {d.stale && <div className="ld-stale" role="note">Last updated {monthYear(d.asOf)}; this week's refresh has not come through yet.</div>}
-      {d.display.benchmarkNote && <div className="ld-stale" role="note">{d.display.benchmarkNote}</div>}
+      <div className="ld-notes">
+        {d.display.note && <div className="ld-caution" role="note"><Icon name="alert" /><span>{d.display.note}</span></div>}
+        {d.display.pending && <div className="ld-stale" role="note">{d.display.pending}</div>}
+        {d.stale && <div className="ld-stale" role="note">Last updated {monthYear(d.asOf)}; this week's refresh has not come through yet.</div>}
+        {d.display.benchmarkNote && <div className="ld-stale" role="note">{d.display.benchmarkNote}</div>}
+      </div>
     </div>
   );
 }

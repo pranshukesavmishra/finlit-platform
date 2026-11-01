@@ -22,6 +22,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (path === "/api/stocks/search-index") return file("search-index.json");
   if (path === "/api/screener/universe") return file("screener.json");
   if (path === "/api/search/quotes") return file("search-quotes.json");
+  if (/^\/api\/stocks\/[^/]+\/leadership$/.test(path)) return json(sampleLeadership());
   if (path === "/api/prism/history") return json(sampleHistory(url.searchParams.get("symbol") || "RELIANCE", url.searchParams.get("statement") || "consolidated"));
   if (path === "/api/macro") return file("macro.json");
   if (path === "/api/flows") return file("flows.json");
@@ -97,4 +98,14 @@ function sampleHistory(symbol: string, statement: string) {
       parts: { fundamental: w(55, 1), valuation: w(42, 2), quality: w(79, 3), risk: w(88, 4) }, shortTerm: Math.round(Math.sin(i / 1.7) * 38), longTerm: Math.round(-20 + i * 3) };
   });
   return { symbol, statement, points, firstDay: days[0], note: "Sample data for the demo." };
+}
+
+/** Sample peer-leadership answer for the demo build only (the text of a Laggard company), so the header strip can be seen. Not real figures. */
+function sampleLeadership() {
+  return { available: true, asOf: "2026-10-30", stale: false, held: false, rank: 9, label: "laggard", rawLabel: "laggard", direction: "weakening", fundamentalNote: "stronger_than_price", fundamentalRank: 3, fundamentalOf: 10, labelSince: null,
+    peerGroup: { id: "demo", name: "Trucks/Construction/Farm Machinery", short: "peers", kind: "industry", ranked: 10 }, benchmarks: { sector: { code: null, name: "peer average", kind: "peer_average", ret52: null }, market: { code: "MID150", name: "Nifty Midcap 150", ret52: null } },
+    rel: { w13: null, w26: null, w52: -0.232, w52Market: -0.33 }, sectorReliability: { tier: "insufficient", hitRate6m: null, checks: 0, from: null, to: null, periods: [] }, peers: [],
+    display: { chip: "Laggard", line: "9th of 10 Trucks/Construction/Farm Machinery peers", tooltip: "Sample data for the demo.",
+      parts: { rank: "9th of 10 Trucks/Construction/Farm Machinery peers", sector: { pts: "\u221223.2", name: "peer average", v: -0.232 }, market: { pts: "\u221233.0", name: "Nifty Midcap 150", v: -0.33 }, direction: "weakening" },
+      note: "Fundamentals rank 3rd of 10, stronger than the price", benchmarkNote: "There is no matching sector index, so the average return of the peers stands in for it." } };
 }
