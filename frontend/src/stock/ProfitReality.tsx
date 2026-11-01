@@ -5,6 +5,7 @@ import { Icon } from "../lib/icons";
 import { useSection, type Financials } from "../lib/api";
 import { MINUS, nf } from "../lib/format";
 import { fyLabel, profitReality, type Status } from "../lib/profitReality";
+import { EarningsIntel } from "./EarningsIntel";
 import "../styles/profitreality.css";
 
 const sn = (v: number | null, d = 0, suffix = "") => (v == null ? MINUS : (v < 0 ? MINUS : "") + nf(v, d) + suffix);
@@ -14,7 +15,7 @@ const word: Record<Status, string> = { ok: "Passed", warn: "Watch", flag: "Flagg
 const tone = { Strong: "good", Mixed: "mid", "Needs a closer look": "bad" } as const;
 
 /** Profit Reality Check: reported profit against normalized profit, cash conversion, one-off items and working capital, from the company's own statements. */
-export function ProfitReality({ symbol, lender }: { symbol: string; lender: boolean }) {
+export function ProfitReality({ symbol, lender, sector, industry }: { symbol: string; lender: boolean; sector?: string | null; industry?: string | null }) {
   const f = useSection<Financials>(symbol, "financials", !!symbol);
   const r = useMemo(() => profitReality(f.data?.yearly.pl, f.data?.yearly.bs, f.data?.yearly.cf, lender), [f.data, lender]);
   const ys = r.years;
@@ -32,6 +33,8 @@ export function ProfitReality({ symbol, lender }: { symbol: string; lender: bool
   return (
     <div className="card pr-card" aria-label="Profit Reality Check">
       <div className="card-h"><h3><span className="ci"><Icon name="shield" /></span>Profit Reality Check<ChartHelp id="profit-reality" /></h3><span className="s">Is the profit real, repeatable and backed by cash? · ₹ crore</span></div>
+
+      <EarningsIntel pr={r} sector={sector} industry={industry} />
 
       <div className={"pr-verdict " + (r.verdict ? tone[r.verdict] : "none")} role="status">
         <span className="k">Earnings quality</span>
@@ -75,12 +78,12 @@ export function ProfitReality({ symbol, lender }: { symbol: string; lender: bool
             <tbody>
               <tr><td>Net profit</td>{ys.map((y) => <td key={y.period}>{sn(y.netProfit)}</td>)}</tr>
               <tr><td>Operating cash flow</td>{ys.map((y) => <td key={y.period}>{sn(y.cfo)}</td>)}</tr>
-              <tr className="tot"><td>Operating cash flow / profit</td>{ys.map((y) => <td key={y.period} className={y.cashGap ? "warn" : ""}>{y.cfoToProfit == null ? MINUS : nf(y.cfoToProfit * 100, 0) + "%"}{y.cashGap && <sup className="pr-flag" title="Below 80% of profit">⚑</sup>}</td>)}</tr>
+              <tr className="tot"><td>Operating cash flow / profit</td>{ys.map((y) => <td key={y.period} className={y.cashGap ? "warn" : ""}>{y.cfoToProfit == null ? MINUS : sn(y.cfoToProfit * 100, 0, "%")}{y.cashGap && <sup className="pr-flag" title="Below 80% of profit">⚑</sup>}</td>)}</tr>
               <tr className="sub"><td>Free cash flow / profit</td>{ys.map((y) => <td key={y.period}>{y.fcfToProfit == null ? MINUS : sn(y.fcfToProfit * 100, 0, "%")}</td>)}</tr>
             </tbody></table>
         </HScroll>
         <div className="pr-tiles" role="list">
-          {r.cumulative && <div className={"pr-tile " + (r.cumulative.ratio != null && r.cumulative.ratio < 0.8 ? "warn" : "")} role="listitem"><span className="k">{r.cumulative.years}-year total</span><b>{sn(r.cumulative.cfo)} cash vs {sn(r.cumulative.profit)} profit</b><small>{r.cumulative.ratio == null ? "Profit total is not positive" : `Cash is ${nf(r.cumulative.ratio * 100, 0)}% of profit`}</small></div>}
+          {r.cumulative && <div className={"pr-tile " + (r.cumulative.ratio != null && r.cumulative.ratio < 0.8 ? "warn" : "")} role="listitem"><span className="k">{r.cumulative.years}-year total</span><b>{sn(r.cumulative.cfo)} cash vs {sn(r.cumulative.profit)} profit</b><small>{r.cumulative.ratio == null ? "Profit total is not positive" : r.cumulative.ratio < 0 ? `Operating cash flow was negative over the ${r.cumulative.years} years (${sn(r.cumulative.ratio * 100, 0, "%")} of profit)` : `Cash is ${nf(r.cumulative.ratio * 100, 0)}% of profit`}</small></div>}
           <div className={"pr-tile " + (r.gapYears >= 2 ? "warn" : "")} role="listitem"><span className="k">Years below 80% cash conversion</span><b>{r.gapYears} of {r.gapEvaluated}</b><small>{r.gapYears >= 2 ? "The gap repeats" : "Not a repeated pattern"}</small></div>
         </div>
       </>) : <p className="faint pr-note">Operating cash flow was not reported for these years, so cash conversion cannot be shown.</p>}

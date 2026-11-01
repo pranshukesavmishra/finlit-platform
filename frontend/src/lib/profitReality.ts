@@ -39,8 +39,9 @@ const at = (t: Table | undefined, key: string, p: string): number | null => {
 };
 const r1 = (v: number | null, d = 1) => (v == null ? null : Math.round(v * 10 ** d) / 10 ** d);
 const growth = (cur: number | null, prev: number | null) => (cur == null || prev == null || !(prev > 0) ? null : cur / prev - 1);
-const cr = (v: number) => "₹" + Math.round(Math.abs(v)).toLocaleString("en-IN") + " crore";
-const pct = (v: number) => Math.round(v * 100) + "%";
+const MINUS = "−";   // U+2212: a negative amount or ratio is always shown with its sign
+const cr = (v: number) => (Math.round(v) < 0 ? MINUS : "") + "₹" + Math.abs(Math.round(v)).toLocaleString("en-IN") + " crore";
+const pct = (v: number) => (Math.round(Math.abs(v) * 100) > 0 && v < 0 ? MINUS : "") + Math.round(Math.abs(v) * 100) + "%";
 export const fyLabel = (p: string) => (/^FY\d{2}$/.test(p) ? `Mar 20${p.slice(2)}` : p);
 
 export function profitReality(pl: Table | undefined, bs: Table | undefined, cf: Table | undefined, lender: boolean, maxYears = 8): ProfitReality {
@@ -75,7 +76,7 @@ export function profitReality(pl: Table | undefined, bs: Table | undefined, cf: 
       exceptional: exc, discontinued: disc, otherIncome: oi, pretax: pbt, exceptionalAfterTax: excAT == null ? null : r1(excAT, 0),
       otherIncomeShare: r1(oiShare == null ? null : oiShare * 100), otherIncomeAdjustment: oiAdj == null ? null : r1(oiAdj, 0),
       normalized: r1(normalized, 0),
-      cfoToProfit: r1(cfoToProfit, 2), fcfToProfit: r1(fcfToProfit, 2), cashGap: cfoToProfit != null && cfoToProfit < T.cashConversionMin,
+      cfoToProfit: r1(cfoToProfit, 4), fcfToProfit: r1(fcfToProfit, 4), cashGap: cfoToProfit != null && cfoToProfit < T.cashConversionMin,
       exceptionalPctPretax: r1(excPbt == null ? null : excPbt * 100, 0), exceptionalPctNet: r1(excNet == null ? null : excNet * 100, 0),
       discontinuedPctNet: r1(discNet == null ? null : discNet * 100, 0),
       oneOffFlag: (excPbt != null && excPbt >= T.oneOffShare) || (excNet != null && excNet >= T.oneOffShare) || (discNet != null && discNet >= T.oneOffShare),
@@ -105,11 +106,11 @@ export function profitReality(pl: Table | undefined, bs: Table | undefined, cf: 
   } else {
     if (five.length >= 3) {
       const cfo = five.reduce((a, y) => a + (y.cfo as number), 0), profit = five.reduce((a, y) => a + (y.netProfit as number), 0);
-      out.cumulative = { years: five.length, cfo: Math.round(cfo), profit: Math.round(profit), ratio: profit > 0 ? r1(cfo / profit, 2) : null };
+      out.cumulative = { years: five.length, cfo: Math.round(cfo), profit: Math.round(profit), ratio: profit > 0 ? r1(cfo / profit, 4) : null };
       if (profit > 0) {
         const ratio = cfo / profit, st: Status = ratio >= T.cashConversionMin ? "ok" : ratio >= 0.5 ? "warn" : "flag";
         rules.push({ key: "cash5", text: cashTxt, status: st, detail: `${five.length}-year operating cash flow ${cr(cfo)} against profit ${cr(profit)} (${pct(ratio)}).` });
-        if (st !== "ok") findings.push({ sev: st === "flag" ? 3 : 2, t: `Over ${five.length} years the company turned ${pct(ratio)} of its profit into operating cash (${cr(cfo)} of ${cr(profit)}).` });
+        if (st !== "ok") findings.push({ sev: st === "flag" ? 3 : 2, t: ratio < 0 ? `Operating cash flow was negative over the ${five.length} years: ${cr(cfo)} against ${cr(profit)} of profit (${pct(ratio)} of profit).` : `Over ${five.length} years the company turned ${pct(ratio)} of its profit into operating cash (${cr(cfo)} of ${cr(profit)}).` });
       } else rules.push(na("cash5", cashTxt, "Total profit over the period is not positive, so the ratio has no meaning"));
     } else rules.push(na("cash5", cashTxt, "Fewer than three years with both profit and cash flow"));
 
@@ -147,8 +148,8 @@ export function profitReality(pl: Table | undefined, bs: Table | undefined, cf: 
   const gapTxt = "Normalized profit is within 15% of reported profit in the latest year (30% or more is flagged)";
   if (last.netProfit != null && last.normalized != null && last.netProfit > 0) {
     const d = (last.netProfit - last.normalized) / last.netProfit, st: Status = Math.abs(d) < 0.15 ? "ok" : Math.abs(d) < 0.3 ? "warn" : "flag";
-    rules.push({ key: "norm", text: gapTxt, status: st, detail: `Reported ${cr(last.netProfit)}, normalized ${last.normalized < 0 ? "−" : ""}${cr(last.normalized)} (${d >= 0 ? "" : "+"}${pct(d)} ${d >= 0 ? "lower" : "higher"}).` });
-    if (st !== "ok") findings.push({ sev: st === "flag" ? 3 : 2, t: `Stripping out one-offs${last.otherIncomeAdjustment ? " and unusually high other income" : ""}, ${fyLabel(last.period)} profit would be about ${last.normalized < 0 ? "a loss of " : ""}${cr(last.normalized)} instead of the reported ${cr(last.netProfit)}.` });
+    rules.push({ key: "norm", text: gapTxt, status: st, detail: `Reported ${cr(last.netProfit)}, normalized ${cr(last.normalized)} (${pct(Math.abs(d))} ${d >= 0 ? "lower" : "higher"}).` });
+    if (st !== "ok") findings.push({ sev: st === "flag" ? 3 : 2, t: `Stripping out one-offs${last.otherIncomeAdjustment ? " and unusually high other income" : ""}, ${fyLabel(last.period)} profit would be about ${last.normalized < 0 ? "a loss of " + cr(Math.abs(last.normalized)) : cr(last.normalized)} instead of the reported ${cr(last.netProfit)}.` });
   } else rules.push(na("norm", gapTxt, "Latest-year profit is missing or not positive"));
 
   const recent = shown.slice(-5), oneOffs = recent.filter((y) => y.oneOffFlag);
