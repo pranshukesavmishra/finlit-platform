@@ -1,4 +1,5 @@
 import { PageHeader } from "../components/PageHeader";
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link, useNavigate } from "react-router";
@@ -132,7 +133,7 @@ export function WatchlistPage() {
               )}
               {gold && attention.length > 0 && (
                 <div className="card acc wl-att" style={{ "--ac": "var(--gold)" } as React.CSSProperties}><div className="card-h"><h3><span className="ci"><Icon name="alert" /></span>Worth a second look<ChartHelp id="wl-second" /></h3><span className="s">Based on the FinLit model and your targets</span></div>
-                  <ul>{attention.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b>{r.symbol}</b></Link><span>{s.join(" · ")}</span></li>)}</ul></div>
+                  <ul>{attention.map(({ r, s }) => <li key={r.symbol}><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b title={codeNote(r)}>{titleOf(r)}</b></Link><span>{s.join(" · ")}</span></li>)}</ul></div>
               )}
               {buckets.map(([k, rs]) => {
                 const a = rs.filter((r) => r.change_pct != null).reduce((x, r) => x + (r.change_pct as number), 0) / Math.max(1, rs.filter((r) => r.change_pct != null).length), sc = rs.filter((r) => r.overall != null);
@@ -145,7 +146,7 @@ export function WatchlistPage() {
                         <article className={"wc" + (sel.includes(r.symbol) ? " sel" : "")} key={r.symbol}>
                           <header>
                             <label className="wc-ck"><input type="checkbox" checked={sel.includes(r.symbol)} onChange={() => toggleSel(r.symbol)} aria-label={`Select ${r.symbol} to compare`} /></label>
-                            <div className="wc-n"><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b>{r.symbol}</b></Link><small>{r.name}</small></div>
+                            <div className="wc-n"><Link to={`/stocks/${r.symbol}`} onClick={(e) => { if (r.sample) { e.preventDefault(); toast("Sample company: the live site opens its report here."); } }}><b title={codeNote(r)}>{titleOf(r)}</b></Link>{subOf(r) && <small>{subOf(r)}</small>}</div>
                             <div className="wc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{(r.change_pct ?? 0) >= 0 ? "▲" : "▼"} {fmt(METRICS.change_pct, r.change_pct).replace("+", "")}</span></div>
                           </header>
                           <div className="wc-m"><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Mkt cap</span><b>{cr(r.market_cap)}</b></div>

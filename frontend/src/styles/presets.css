@@ -41,8 +41,9 @@
 .psx-how { margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--s2); }
 .psx-how summary { cursor: pointer; font-weight: 600; font-size: 14.5px; border-radius: 8px; }
 .psx-how ul { margin: 8px 0 2px; padding-left: 20px; display: grid; gap: 5px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
-.psx-chips { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 0 0 14px; }
-.psx-chipw { display: grid; gap: 4px; max-width: 320px; justify-items: start; } .psx-chipw small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+/* equal columns, so every option starts at the same left edge and its note sits under its own button (a flex row sized each cell by its own text and left the rows uneven) */
+.psx-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 12px 18px; align-items: start; margin: 0 0 14px; }
+.psx-chipw { display: grid; gap: 4px; justify-items: start; min-width: 0; } .psx-chipw small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
 .psx-chip { min-height: 36px; padding: 0 14px; font-size: 13px; font-family: var(--sans); }
 .psx-disc { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
 

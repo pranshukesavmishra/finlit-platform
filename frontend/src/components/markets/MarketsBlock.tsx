@@ -1,6 +1,7 @@
 // The dashboard's markets block, top to bottom: Market today (index levels and the daily Nifty 50 / Sensex chart), Market snapshot (breadth, movers,
 // every sector as a heat-map), FII/DII flows, the index heat-map (stocks of an index, sized by market cap and coloured by today's move) and sectoral
 // activity (pick a sector group, see its index and its gainers and losers). Information only.
+import { titleOf } from "../../lib/companyLabel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../search/parts";
@@ -16,7 +17,7 @@ import { CATEGORIES, FLAT_TILE, MAX_MOVE, RANGES, gainers, indexFor, largest, la
 import "../../styles/markets.css";
 
 /** A listed company's ticker, or its name when the ticker is only a numeric exchange code. */
-const shortName = (r: { symbol: string; name?: string | null }) => (/^\d+$/.test(r.symbol) && r.name ? r.name : r.symbol);
+const shortName = titleOf;
 const sgn = (v: number | null | undefined, d = 2) => (v == null ? MINUS : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
 const tone = (v: number | null | undefined) => (v == null || Math.abs(v) < 0.005 ? "" : v > 0 ? "up" : "down");
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

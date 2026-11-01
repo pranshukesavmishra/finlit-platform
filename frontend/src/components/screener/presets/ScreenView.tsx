@@ -1,5 +1,6 @@
 // The screen view: one prebuilt screen as a card (name, card text, match count, as-of date, how it works, its options) with a results table built from the response.
 // Values come from the response only: a missing one is a dash, never zero, and nothing is ranked or recommended here.
+import { titleOf, subOf, codeNote } from "../../../lib/companyLabel";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ApiError } from "../../../lib/api";
@@ -62,7 +63,7 @@ function Results({ d, cols, rows, sort, setSort }: { d: PresetDetail; cols: Pres
       <tbody>{rows.map((r, i) => (
         <tr key={r.symbol}>
           <td className="psx-n">{i + 1}</td>
-          <td className="stick psx-stock"><Link to={`/stocks/${encodeURIComponent(r.symbol)}`} className="psx-co"><b>{r.symbol}</b>{r.name && <small>{r.name}</small>}</Link>
+          <td className="stick psx-stock"><Link to={`/stocks/${encodeURIComponent(r.symbol)}`} className="psx-co"><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</Link>
             {!!r.badges?.length && <span className="psx-bs">{r.badges.map((b) => <Badge key={b} text={b} />)}</span>}</td>
           {cols.map((c) => <td key={c.key} className={"psx-a-" + alignOf(c)}><CellValue v={r[c.key]} f={c.format} /></td>)}
         </tr>))}
@@ -79,7 +80,7 @@ function Misses({ d }: { d: PresetDetail }) {
       {list.length > 0 && <>
         <h3>The {list.length === 1 ? "company" : `${list.length} companies`} closest to qualifying</h3>
         <ol className="psx-miss">{list.map((m) => (
-          <li key={m.symbol}><span className="psx-mh"><Link to={`/stocks/${encodeURIComponent(m.symbol)}`}><b>{m.symbol}</b></Link>{m.name && <small>{m.name}</small>}<Badge text="Closest to qualifying" /></span>
+          <li key={m.symbol}><span className="psx-mh"><Link to={`/stocks/${encodeURIComponent(m.symbol)}`}><b title={codeNote(m)}>{titleOf(m)}</b></Link>{subOf(m) && <small>{subOf(m)}</small>}<Badge text="Closest to qualifying" /></span>
             <span className="psx-mr">{m.failed.length > 1 ? "Rules missed" : "Rule missed"}: {m.failed.join("; ")}</span></li>))}
         </ol></>}
     </div>);

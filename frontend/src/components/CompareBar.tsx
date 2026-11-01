@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { cr, nf } from "../lib/format";
 import type { Row } from "../lib/screener";
 import { FilterNote, SearchFilters, useRowFilter } from "./SearchFilters";
@@ -56,7 +57,7 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
     <div className="cb" ref={box}>
       <div className={"cb-field" + (open ? " open" : "")} onClick={() => { setOpen(true); input.current?.focus(); }}>
         {picked.map((r) => (
-          <span key={r.symbol} className="cb-chip"><b>{r.symbol}</b>
+          <span key={r.symbol} className="cb-chip"><b title={codeNote(r)}>{titleOf(r)}</b>
             <button aria-label={`Remove ${r.name || r.symbol}`} onClick={(e) => { e.stopPropagation(); onChange(ids.filter((s) => s !== r.symbol)); }}>×</button></span>))}
         <input ref={input} value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey} role="combobox" aria-expanded={open} aria-controls="cb-list" aria-autocomplete="list"
           aria-activedescendant={open && list[active] ? `cb-o-${list[active].symbol}` : undefined} aria-label="Search a company to compare" placeholder={ids.length ? (ids.length >= max ? `You are comparing ${max}` : "Add another company: name or ticker") : "Search a stock: name or ticker"} />
@@ -72,7 +73,7 @@ export function CompareBar({ rows, ids, max, onChange, onLimit }: { rows: Row[];
             <div style={{ height: list.length ? list.length * ITEM : undefined, position: "relative" }}>
               {list.slice(from, to).map((r, k) => { const i = from + k, on = ids.includes(r.symbol); return (
                 <button key={r.symbol} id={`cb-o-${r.symbol}`} role="option" aria-selected={on} className={"cb-o" + (i === active ? " act" : "") + (on ? " on" : "")} style={{ position: "absolute", top: i * ITEM, height: ITEM }} onMouseMove={() => setActive(i)} onClick={() => toggle(r.symbol)}>
-                  <span className="av mini" aria-hidden="true">{ini(r)}</span><span className="cb-nm"><b>{r.symbol}</b><small>{r.name}{r.sector ? ` · ${r.sector}` : ""}</small></span>
+                  <span className="av mini" aria-hidden="true">{ini(r)}</span><span className="cb-nm"><b title={codeNote(r)}>{titleOf(r)}</b><small>{[subOf(r), r.sector].filter(Boolean).join(" · ")}</small></span>
                   <span className="cb-mc">{r.market_cap != null ? "₹" + cr(r.market_cap) + " Cr" : ""}</span><span className="cb-st" aria-hidden="true">{on ? "✓" : "+"}</span></button>); })}
               {!list.length && (sf.on ? <FilterNote filter={sf.filter} q={q.trim()} onChange={sf.setFilter} hidden={hiddenRowMatches(all, (r) => ({ sector: r.sector, cap: r.market_cap }), q, sf.filter)} /> : <p className="muted" style={{ padding: 16 }}>No company matches “{q}”. Try the ticker, or part of the name.</p>)}
             </div>

@@ -1,6 +1,7 @@
 // Query builder: type a rule in plain words, get the listed companies that match it, and keep it as a basket. The language, every error and the
 // matching happen on the server (backend/finlit/screener/ql.py, qeval.py); this page helps a person write the query without mistakes:
 // autocomplete, live checking with one-click fixes, an "Add a condition" helper, examples and a list of every ratio.
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { PageHeader } from "../components/PageHeader";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -385,7 +386,7 @@ export function QueryBuilder() {
                 {colsToShow.map((k) => { const m = byKey.get(k); return <th key={k}><button onClick={() => sortBy(k)} title={m?.definition} aria-label={`Sort by ${m?.label ?? k}`}>{m?.label ?? k} {sortMark(k)}</button></th>; })}</tr></thead>
               <tbody>{res.rows.map((r) => (
                 <tr key={r.symbol} tabIndex={0} onClick={() => nav(`/stocks/${r.symbol}`)} onKeyDown={(e) => e.key === "Enter" && nav(`/stocks/${r.symbol}`)}>
-                  <td className="stick"><span className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}{r.cap ? ` · ${r.cap}` : ""}</small></span></span></td>
+                  <td className="stick"><span className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b title={codeNote(r)}>{titleOf(r)}</b><small>{[subOf(r), r.cap].filter(Boolean).join(" · ")}</small></span></span></td>
                   {colsToShow.map((k) => { const m = byKey.get(k); return <td key={k}>{m ? fmtMetric(m, r.v[k]) : "—"}</td>; })}
                 </tr>))}
                 {!res.rows.length && <tr><td colSpan={colsToShow.length + 1} className="empty">No company matches every part of this query. Loosen one of the numbers, or switch an AND to an OR.</td></tr>}

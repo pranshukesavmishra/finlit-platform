@@ -1,4 +1,5 @@
 import { PageHeader } from "../components/PageHeader";
+import { titleOf, subOf, codeNote, isBseCode } from "../lib/companyLabel";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -107,7 +108,7 @@ export function Compare() {
           <>
             <div className={"cmp-cards n" + picked.length}>{picked.map((r, i) => (
               <div className="cc" key={r.symbol}>
-                <div className="cc-h"><span className="av" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><div><span className="tk">Company {LETTER[i]} · {r.symbol}</span><b>{r.name}</b><small>{r.sector}</small></div></div>
+                <div className="cc-h"><span className="av" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><div><span className="tk">Company {LETTER[i]}{isBseCode(r.symbol) ? "" : ` · ${r.symbol}`}</span><b>{r.name || r.symbol}</b><small>{r.sector}</small></div></div>
                 <div className="cc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{fmt(METRICS.change_pct, r.change_pct)}</span></div>
                 <div className="cc-g"><div><span>Market cap</span><b>{fmt(METRICS.market_cap, r.market_cap)}</b></div><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Debt/Equity</span><b>{fmt(METRICS.debt_to_equity, r.debt_to_equity)}</b></div></div>
                 <Gate tier="silver" title="See the FinLit score" points={["Overall research score", "Five-pillar scorecard"]}>
@@ -132,7 +133,7 @@ export function Compare() {
           <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight fundamentals, against every company<ChartHelp id="cmp-fundamentals" /></h3><span className="s">Each axis: % of all companies beaten</span></div>
             <div className="pil-grid">
               <Radar axes={SPIDER.map((x) => x.label)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: SPIDER.map((x) => pc(r, x.key)) }))} />
-              <div className="sp-t" style={{ "--n": picked.length } as React.CSSProperties}><div className="sp-h" role="row"><span />{picked.map((r, i) => <span key={r.symbol} title={r.name || r.symbol}><i className={"mk k" + i} /><b>{r.symbol}</b><small>{r.name}</small></span>)}</div>{SPIDER.map((x) => (
+              <div className="sp-t" style={{ "--n": picked.length } as React.CSSProperties}><div className="sp-h" role="row"><span />{picked.map((r, i) => <span key={r.symbol} title={r.name || r.symbol}><i className={"mk k" + i} /><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</span>)}</div>{SPIDER.map((x) => (
                 <div className="sp-r" key={x.key}><span className="pil-l">{x.label}</span>{picked.map((r, i) => { const p = pc(r, x.key); return <span key={r.symbol} className={"sp-v k" + i}><i className={"dt " + dot(p)} />{fmt(METRICS[x.key], r[x.key])}<small>{p == null ? "" : `beats ${p}%`}</small></span>; })}</div>))}</div>
             </div>
             <div className="pil-key">{picked.map((r, i) => <span key={r.symbol}><i className={"mk k" + i} />{r.name}</span>)}</div>
