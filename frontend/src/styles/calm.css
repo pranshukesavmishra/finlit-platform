@@ -1,0 +1,95 @@
+/* CALM PREMIUM: the one place that sets the site's type roles, the single accent tone and the light-minimal rules.
+   Loaded after every page stylesheet (see main.tsx) so a new component inherits the rule instead of inventing its own.
+
+   TYPE ROLES (one rule, applied everywhere)
+     display  : serif   page titles (h1), section titles (h2), the big score numeral, hero figures
+     ui       : sans    labels, buttons, nav, body copy, table headers, chips, field text
+     numbers  : sans, tabular figures (tables, KPI values, counts, prices); never a monospace face
+     code     : mono    only the query-builder editor and inline code / keyboard hints
+   COLOUR: surfaces are neutral; one calm accent tone (--tone) for decoration. Colour carries meaning only:
+           gain / loss / warning / status, from the design-system tokens. */
+
+:root, :root[data-theme], :root:not([data-theme="light"]) {
+  --tone: color-mix(in srgb, var(--brand-accent) 58%, var(--text-primary));
+  --tone-soft: color-mix(in srgb, var(--brand-accent) 14%, transparent);
+  --sans: var(--font-sans); --serif: var(--font-serif); --mono: var(--font-sans);
+  --code: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --u-text: var(--text); --u-muted: var(--muted); --u-faint: var(--faint); --u-border: var(--border); --u-border-strong: var(--border-strong);
+  --u-s1: var(--s1); --u-s2: var(--s2); --u-s3: var(--s3); --u-gold: var(--gold); --u-gold-2: var(--gold-2); --u-gold-deep: var(--gold-deep); --u-on-gold: var(--on-gold);
+  --u-gain: var(--gain); --u-loss: var(--loss); --u-focus: var(--focus);
+  --r-card: 16px; --r-ctl: 12px;
+}
+
+/* ---- numbers: the sans face with tabular figures, never monospace ---- */
+td, th, output, .num, b, em, strong, input, select, [class*="kpi"], [class*="stat"] { font-variant-numeric: tabular-nums; }
+code, pre, kbd, samp, .qb-box textarea, .qb-mirror { font-family: var(--code); }
+
+/* ---- display type: titles are serif everywhere, with one weight ---- */
+:root main h1, :root main h2 { font-family: var(--font-serif); }
+:root main h1 { font-weight: 500; }
+:root .mfs-gl-t { font-family: var(--font-sans); }
+
+/* ---- focus: only interactive things show a ring; a heading or region that was focused by script never does ---- */
+:is(h1, h2, h3, h4, h5, h6, main, section, article, p, [role="region"], [role="main"]):focus,
+:is(h1, h2, h3, h4, h5, h6, main, section, article, p, [role="region"], [role="main"]):focus-visible,
+[tabindex="-1"]:not(button, a, input, select, textarea, [role="option"], [role="menuitem"], [role="tab"]):focus,
+[tabindex="-1"]:not(button, a, input, select, textarea, [role="option"], [role="menuitem"], [role="tab"]):focus-visible { outline: 0; box-shadow: none; }
+:is(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [role="option"], [role="menuitem"]):focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ---- one control per field: a search / filter bar is a row of separate controls, not a bordered box around a bordered input ---- */
+.side-find, .scr-find, .mf-search, .scr-search, .etf-search, .ol-search, .cb-field {
+  height: 44px; min-height: 44px; border-radius: var(--r-ctl); border: 1px solid var(--border-strong); background: var(--s1); box-shadow: none;
+}
+.side-find:focus-within, .scr-find:focus-within, .mf-search:focus-within, .scr-search:focus-within, .etf-search:focus-within, .ol-search:focus-within, .cb-field:focus-within {
+  border-color: var(--gold); outline: 2px solid var(--focus-ring); outline-offset: 2px; box-shadow: none;
+}
+.side-find input, .scr-find input, .mf-search input, .scr-search input, .etf-search input, .ol-search input, .cb-field input { border: 0 !important; background: none !important; box-shadow: none !important; outline: 0 !important; }
+
+/* ---- the pillar / part cards: neutral surface, one icon tone; colour stays only in the ring, the status word and the score bar ---- */
+:root .dk-tile, :root .dk-tile.band-hi, :root .dk-tile.band-mid, :root .dk-tile.band-lo {
+  background: var(--s1); border: 1px solid var(--border); border-width: 1px; box-shadow: none;
+}
+:root .dk-tile::after { background: none; }
+:root .dk-tile.is-btn:hover { border-color: var(--border-strong); box-shadow: none; transform: none; }
+:root .dk-tile.is-btn.hot, :root .dk-tile.is-btn[aria-expanded="true"] { border-color: var(--gold); box-shadow: none; }
+:root .dk-tile.is-btn:focus-visible { outline: 2px solid var(--focus-ring); }
+:root .dk-t-ic { color: var(--tone); background: var(--tone-soft); }
+:root .kpi .kl svg, :root .kpi .kl i { color: var(--tone); }
+:root .pt-ic, :root .pin-i { color: var(--tone); background: var(--tone-soft); }
+
+/* other tinted cards: neutral surfaces, the accent only as a hairline on hover */
+:root .pin { background: var(--s1); border-color: var(--border); }
+:root .pin::before { display: none; }
+:root .pin-s, :root .eq-p b { color: var(--text); }
+:root .pin-bar b { background: var(--tone); }
+:root .eq-p { background: var(--s1); border-color: var(--border); }
+:root .pcard, :root .pr-row { background: var(--s1); border-color: var(--border); }
+:root .pcard:hover, :root a.pr-row:hover, :root .pr-row.hot { transform: none; border-color: var(--border-strong); box-shadow: none; }
+:root .pc-go, :root .pr-go { color: var(--tone); }
+:root .mp-tabs button.on { background: var(--s2); border-color: var(--gold); box-shadow: none; }
+:root .ptile, :root .ptile:hover, :root .ptile.hot { background: var(--s1); }
+:root .pl-art { background: var(--s2); border-color: var(--border); }
+
+/* home hero card: five bars, one tone */
+:root .hh-bars b { background: var(--gold); }
+:root button.info, :root .rcx-i { font-family: var(--font-sans); font-style: normal; }
+:where(:root) svg text { font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+
+/* ---- the dashboard banner: the same light surface as every page header, not a separate dark block ---- */
+:root .dash-h {
+  --text: var(--u-text); --muted: var(--u-muted); --faint: var(--u-faint);
+  --border: var(--u-border); --border-strong: var(--u-border-strong);
+  --s1: var(--u-s1); --s2: var(--u-s2); --s3: var(--u-s3);
+  --gold: var(--u-gold); --gold-2: var(--u-gold-2); --gold-deep: var(--u-gold-deep); --gold-soft: var(--tone-soft); --on-gold: var(--u-on-gold);
+  --gain: var(--u-gain); --loss: var(--u-loss); --focus: var(--u-focus);
+  background: var(--s1); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: none; padding: 22px 28px;
+}
+:root .dash-h::before { display: none; }
+:root .dash-h .eyebrow { color: var(--tone); }
+:root .dash-h h1 { font: 500 clamp(26px, 3.1vw, 36px)/1.12 var(--font-serif); letter-spacing: -.01em; color: var(--text); }
+:root .dash-h .btn:not(.primary) { background: var(--s1); color: var(--text); border-color: var(--border-strong); }
+:root .dash-h .btn:not(.primary):hover { background: var(--s2); border-color: var(--gold); }
+
+/* ---- light minimalism: fewer stacked effects, calmer hover ---- */
+:root .card:hover, :root .feat:hover, :root .kpi:hover { transform: none; }
+:root .hover-lift:hover { transform: none; }
