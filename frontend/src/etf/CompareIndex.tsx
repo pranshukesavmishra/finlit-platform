@@ -1,6 +1,7 @@
 // /etfs/compare-index-funds: ETFs and direct-plan index funds that follow the same index, side by side. Pick an index, then the ETFs and the index funds
 // that follow it (up to four products), and press Compare. The choice lives in the address (?index=&etf=&fund=), so a comparison is a link.
 // Information only: the page describes what happened, it never says what to buy, sell or hold, and it never names a winner.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -138,10 +139,8 @@ export function EtfVsIndexPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap">
-        <div className="eyebrow">ETF vs index fund</div><h1>One index, two kinds of fund.</h1>
-        <p>Pick an index, then the ETFs and the direct-plan index funds that follow it. See how they compared on returns, costs, tracking and risk, using the prices and NAVs we store. Information only.</p>
-        <nav className="evi-crumb" aria-label="Breadcrumb"><Link to="/etfs">← All ETFs</Link></nav></div></section>
+      <PageHeader wrap plan="free" title="ETF vs index fund" art="compare" back={<nav className="evi-crumb" aria-label="Breadcrumb"><Link to="/etfs">{"\u2190"} All ETFs</Link></nav>} links={["/etfs", "/etfs/compare", "/funds"]}
+        description={<>Pick an index, then the <b>ETFs and the direct-plan index funds</b> that follow it. See how they compared on returns, costs, tracking and risk, using the prices and NAVs we store. Information only.</>} />
 
       <div className="wrap etf-page evi-page">
         <div className="card evi-select" ref={top}>

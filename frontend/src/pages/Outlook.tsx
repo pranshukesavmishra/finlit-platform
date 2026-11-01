@@ -1,6 +1,7 @@
 // Profit and revenue outlook (Gold): estimates of revenue and net profit for the next 1, 3 or 5 financial years from the company's own history and its
 // sector's, by a weighted growth rate (the team's methodology, docs/outlook/METHOD.md). "Use our model" or "Set your own" weights. All arithmetic is on the
 // server; what stays here is the weight balancing (lib/outlook.ts) and the chart series (lib/outlookChart.ts), both tested. Information only, not advice.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAuth } from "../lib/auth";
@@ -30,8 +31,8 @@ export function OutlookIndexPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Profit and revenue outlook</h1>
-        <p>Pick a listed company to see its reported revenue and net profit by year, and an estimate for the next 1, 3 or 5 years worked out from its own growth and its sector's. Estimates from past results, not a prediction or advice.</p></div></section>
+      <PageHeader wrap plan="gold" title="Profit and revenue outlook" art="chart" links={["/research", "/compare", "/dcf"]}
+        description={<>Pick a listed company to see its <b>reported revenue and net profit by year</b>, and an estimate for the next 1, 3 or 5 years worked out from its own growth and its sector's. Estimates from past results, not a prediction or advice.</>} />
       <div className="wrap ol">
         <section className="card ol-find" aria-labelledby="ol-find-h">
           <h2 id="ol-find-h">Choose a company</h2>
@@ -172,8 +173,8 @@ export function OutlookPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Profit and revenue outlook</h1>
-        <p>{d?.name ? <><b>{d.name}</b> <span className="mono faint">{sym}</span> · </> : <><span className="mono">{sym}</span> · </>}Estimates from the company's own history and its sector. <Link to={`/stocks/${encodeURIComponent(sym)}`}>Open its report</Link> · <Link to="/outlook">Another company</Link></p></div></section>
+      <PageHeader wrap plan="gold" title="Profit and revenue outlook" art="chart" links={[{ to: `/stocks/${encodeURIComponent(sym)}`, label: "Company report" }, "/outlook", "/dcf"]}
+        description={<>{d?.name ? <><b>{d.name}</b> <span className="mono faint">{sym}</span> · </> : <><span className="mono">{sym}</span> · </>}Estimates from the company's own history and its sector.</>} />
       <div className="wrap ol">
         <Gate tier="gold" title="Profit and revenue outlook" points={GATE_POINTS}>
           <div className="ol-ctl card">

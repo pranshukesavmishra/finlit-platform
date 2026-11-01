@@ -36,8 +36,6 @@
 .fgx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* page parts */
-.fgx-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px 22px; margin-bottom: 14px; }
-.fgx-title h1 { margin: 0; font: 600 26px/1.15 var(--serif, Georgia, serif); } .fgx-title p { margin: 4px 0 0; color: var(--muted); font-size: 14.5px; } .fgx-title .fgx-tx { flex: 1 1 320px; min-width: 0; }
 .fgx-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
 .fgx-kpi { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); color: var(--text); text-align: left; font: inherit; min-width: 0; }
 button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--gold); }
@@ -58,7 +56,7 @@ button.fgx-kpi { cursor: pointer; } button.fgx-kpi:hover { border-color: var(--g
 .fgx-sort { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; } .fgx-sort select { min-height: 40px; max-width: 100%; padding: 0 10px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 14px var(--sans); }
 @media (max-width: 1100px) { .fgx-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .fgx-two { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) { .fgx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .fgx-kpi { padding: 12px; gap: 10px; } .fgx-ki { display: none; } .fgx-kv b { font-size: 19px; } .fgx-title { padding: 14px 16px; } .fgx-title h1 { font-size: 22px; }
+@media (max-width: 640px) { .fgx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .fgx-kpi { padding: 12px; gap: 10px; } .fgx-ki { display: none; } .fgx-kv b { font-size: 19px; }
   .fgx-sort { margin-left: 0; width: 100%; } .fgx-sort select { width: 100%; } .fgx-tool .fgx-pb { flex: 1 1 auto; justify-content: center; } .fgx-sb li { grid-template-columns: minmax(70px, 1fr) minmax(0, 1.4fr) 70px; } }
 @media (prefers-reduced-motion: reduce) { .fgx-chev { transition: none; } }
 .scr.fgx-collapsed { grid-template-columns: minmax(0, 1fr); } .scr.fgx-collapsed > .scr-side, .scr.fgx-collapsed > .scr-split, .scr.fgx-collapsed > .scr-main { grid-column: 1; grid-row: auto; } .scr.fgx-collapsed .scr-split { display: none; }

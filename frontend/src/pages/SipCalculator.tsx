@@ -2,6 +2,7 @@
 // step-up, a one-time amount, start- or end-of-month instalments, inflation, a goal planner, what waiting costs, a range of outcomes,
 // an equity capital-gains estimate, a fund's real past return as the assumption, and a link that reopens the same plan.
 // All arithmetic lives in lib/sip.ts (pure and tested); this page only collects inputs and draws. Information only, not advice.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -232,13 +233,8 @@ export function SipCalculator() {
 
   return (
     <div className="sip-page">
-      <section className="sip-hero">
-        <div className="wrap">
-          <div className="eyebrow">Free tool · no sign-in</div>
-          <h1>SIP calculator</h1>
-          <p>Estimate what a monthly investment could grow to, see every year of it, plan for a goal, and check what waiting or tax does to it. Every figure is worked out the same way as the formula shown below.</p>
-        </div>
-      </section>
+      <PageHeader wrap plan="free" title="SIP calculator" art="calculator" links={["/mf-portfolio", "/funds", "/eps-calculator"]}
+        description={<>Estimate what a <b>monthly investment</b> could grow to, see every year of it, plan for a goal, and check what waiting or tax does to it. Every figure is worked out the same way as the formula shown below.</>} />
 
       <div className="wrap sip-wrap">
         <section className="sip-card sip-main" aria-label="Calculator">

@@ -2,7 +2,6 @@
 // Information only: no ranking, no "best", no advice. Every page shows the source, the data date and the disclaimer.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { Icon } from "../lib/icons";
 import { useUI } from "../lib/ui";
 import { visits } from "../lib/recentVisits";
@@ -23,6 +22,7 @@ import { summarise } from "../lib/mfSummary";
 import { Fig, Foot, GTerm, PlanChip } from "../mf/Bits";
 import { FactsCard } from "../mf/Facts";
 import { ReturnsBlock } from "../mf/Returns";
+import { PageHeader, type PageHeaderProps } from "../components/PageHeader";
 import { HoldingsSection } from "../holdings";
 import { FundScoreCard } from "../mf/ScoreCard";
 import { MF_METHOD_URL, MF_SCORE_COMPLIANCE } from "../lib/mfScore";
@@ -31,9 +31,8 @@ import { FundHeadToHead } from "./FundHeadToHead";
 import "../styles/mf.css";
 import "../styles/etfvs.css";
 
-const HEAD = (title: string, lead: string) => (
-  <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-    <div className="eyebrow">Mutual funds</div><h1>{title}</h1><p>{lead}</p></div></section>
+const HEAD = (title: string, lead: string, stats?: PageHeaderProps["stats"]) => (
+  <PageHeader wrap plan="free" title={title} description={lead} stats={stats} art="funds" links={[{ to: "/fund-score-screener", primary: true }, "/funds/compare", "/etfs"]} />
 );
 const Problem = ({ title, text, retry }: { title: string; text: string; retry?: () => void }) => (
   <div className="wrap state" role="alert"><h2>{title}</h2><p>{text}</p>{retry && <button className="btn" onClick={retry}>Try again</button>} <Link className="btn" to="/funds">Back to all schemes</Link></div>
@@ -116,7 +115,7 @@ export function FundListPage() {
 
   return (
     <>
-      {HEAD(title, "Compare all mutual funds in the chosen categories based on latest returns, historic returns, SIP returns, latest NAV, checklist and more.")}
+      {HEAD(title, "Compare all mutual funds in the chosen categories based on latest returns, historic returns, SIP returns, latest NAV, checklist and more.", [{ icon: "layers", value: t ? t.active.toLocaleString("en-IN") : null, label: "Active schemes" }, { icon: "line", value: t ? t.withHistory.toLocaleString("en-IN") : null, label: "With return history" }])}
       <div className="wrap mf">
         <CategoryCards q={q} onPick={(c) => set({ tab: c.tab, cats: [c.key], view: "" })} />
         <CategoryPicker q={q} subs={subs} loading={filt.isLoading} onTab={(tab) => set({ tab, cats: null })} onCats={(cats) => set({ cats })} />

@@ -1,9 +1,9 @@
 // Mutual Fund Insights (/funds/insights): where India's fund money sits and where it moved last month, from AMFI's monthly category report
 // (backend/finlit/mf_insights.py). Industry totals only: no scheme is ranked or recommended. Information only, never advice.
 // Charts are plain SVG built on the fund pages' geometry (lib/mf buildLines / nearestIndex): no chart library.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Link } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { HScroll } from "../components/HScroll";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
@@ -19,8 +19,7 @@ import "../styles/mfinsights.css";
 const LEAD = "Where India's fund money actually sits and where it moved last month — total assets, net flows by scheme category, the equity/debt/hybrid split, and folio growth. Straight from AMFI's monthly category report.";
 
 const Head = () => (
-  <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-    <div className="eyebrow">Mutual funds</div><h1>Fund industry trends</h1><p>{LEAD}</p></div></section>
+  <PageHeader wrap plan="free" title="Fund industry trends" art="chart" links={["/funds", "/fund-score-screener", "/etfs"]} description={LEAD} />
 );
 
 export function FundInsightsPage() {

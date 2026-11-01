@@ -1,5 +1,6 @@
 // Graph Studio > Advanced charts: the founder's ten sections of correlation charts (docs/ADVANCED-CHARTS-SPEC.md), each with a tested
 // regression line (docs/ADVANCED-CHARTS-PLAN.md). Every statistic comes from /api/advanced; this page only draws and words it.
+import { PageHeader } from "../components/PageHeader";
 import { DrawLayer } from "../components/DrawLayer";
 import { viewId } from "../lib/drawings";
 import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
@@ -76,11 +77,8 @@ function Page({ slug, n }: { slug: string; n: number }) {
 
   return (
     <>
-      <section className="pagehead adv-head"><div className="wrap">
-        <div className="eyebrow"><Link to="/graphs">Chart builder</Link> · Correlation charts</div>
-        <h1>Correlation charts</h1>
-        <p>How two measures move together across listed companies, with a regression line drawn only when it passes statistical tests. Add companies to see where they sit. Information only, not advice.</p>
-      </div></section>
+      <PageHeader wrap plan="free" title="Correlation charts" art="chart" back={<Link to="/graphs">{"\u2190"} Chart builder</Link>} links={["/graphs", "/compare", "/research"]}
+        description={<>How <b>two measures move together</b> across listed companies, with a regression line drawn only when it passes statistical tests. Add companies to see where they sit. Information only, not advice.</>} />
       <div className="wrap adv">
         <SectionTabs current={slug} />
         <div role="tabpanel" id="adv-panel" aria-labelledby={`adv-tab-${slug}`} className="adv-panel">

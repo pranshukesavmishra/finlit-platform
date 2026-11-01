@@ -3,9 +3,9 @@
 // Data: /api/mf-compare (backend/finlit/mf_compare.py). Every figure states its period and source; a missing one says why. Information only.
 // Colours are fixed per fund everywhere: A blue, B orange, category average green (dotted in charts). A shaded table cell only marks the higher (or,
 // for swing and fall, the smaller) figure of the two funds in the past; it is never a recommendation.
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { dateIN, nf } from "../lib/format";
@@ -327,8 +327,8 @@ export function FundHeadToHead() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="portfolio" />
-        <div className="eyebrow">Mutual funds</div><h1>Fund Compare</h1><p>Two funds of the same category, head to head: returns, risk, consistency and costs over 1, 3, 5 or 10 years, each also against the category average. Information only, never advice.</p></div></section>
+      <PageHeader wrap plan="free" title="Fund compare" art="compare" links={["/funds", "/fund-score-screener", "/etfs"]}
+        description={<>Two funds of the same category, head to head: <b>returns, risk, consistency and costs</b> over 1, 3, 5 or 10 years, each also against the category average. Information only, never advice.</>} />
       <div className="wrap mf h2h">
         <section className="card mf-card h2h-setup" aria-labelledby="h2h-h">
           <div className="h2h-setup-h">

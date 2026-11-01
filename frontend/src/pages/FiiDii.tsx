@@ -3,6 +3,7 @@
 // all-asset flows, a searchable day-by-day table with a CSV of the whole history, and an honest account of sources. Everything is computed in the
 // browser from the /api/flows payload (lib/flowsMath.ts, tested). Where a figure is not published it shows a dash and says why; nothing is
 // estimated. Information only, not investment advice.
+import { PageHeader } from "../components/PageHeader";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useDocTitle } from "../lib/title";
@@ -411,17 +412,15 @@ export function FiiDiiPage() {
   const summary = useMemo(() => (f ? summarize(f) : []), [f]);
   return (
     <div className="fl-page">
-      <section className="fl-hero"><div className="wrap">
-        <div className="eyebrow">Free · institutional flows · cash market in ₹ crore</div>
-        <h1>FII DII Data Today</h1>
-        <p>How much foreign institutions (FII/FPI) and domestic institutions (DII) bought and sold in the Indian stock market on the latest trading day, how long each has been buying or selling, and the history behind it. Net flow is simply what they bought minus what they sold.</p>
+      <PageHeader wrap plan="free" title="FII & DII flows today" art="chart" links={["/macro", "/commodities", "/premium/markets"]}
+        description={<>How much foreign institutions (FII/FPI) and domestic institutions (DII) <b>bought and sold</b> in the Indian stock market on the latest trading day, how long each has been buying or selling, and the history behind it. Net flow is simply what they bought minus what they sold.</>}>
         <div className="fl-chips">
           {mood && <span className={"fl-chip " + (out ? "out" : inn ? "in" : "")}>{out ? "▼" : inn ? "▲" : "●"} {mood}</span>}
           {f?.latest && <span className="fl-chip">Last updated {ageLabel(f.latest.d, f.today)} · {dateIN(f.latest.d)}</span>}
           {f && st === "none" && <span className="fl-chip">FII only: DII not available</span>}
           <button type="button" className="fl-chip" onClick={share} aria-label="Share or copy the link to this page, with the current range and chart type">Share ↗</button>
         </div>
-      </div></section>
+      </PageHeader>
       <div className="wrap fl-wrap">
         {q.isLoading && <div className="fl-skel" aria-busy="true"><i /><i /></div>}
         {q.isError && <div className="fl-panel" role="alert"><h2>The flows data is not available yet</h2><p className="fl-note">It loads each trading evening from the exchanges' published files. {(q.error as { status?: number })?.status === 503 ? "The first load has not finished; please check back soon." : "Please try again in a moment."}</p><button type="button" className="btn" onClick={() => q.refetch()}>Try again</button></div>}

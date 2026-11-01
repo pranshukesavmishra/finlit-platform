@@ -1,9 +1,9 @@
 // Query builder: type a rule in plain words, get the listed companies that match it, and keep it as a basket. The language, every error and the
 // matching happen on the server (backend/finlit/screener/ql.py, qeval.py); this page helps a person write the query without mistakes:
 // autocomplete, live checking with one-click fixes, an "Add a condition" helper, examples and a list of every ratio.
+import { PageHeader } from "../components/PageHeader";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { PageArt } from "../components/PageArt";
 import { Plain } from "../components/Plain";
 import { HScroll } from "../components/HScroll";
 import { Icon } from "../lib/icons";
@@ -259,7 +259,7 @@ export function QueryBuilder() {
   const saveBlock = !valid ? (text.trim() ? "Fix the problems above before saving." : "Write a query first.") : nameBad;
 
   if (DEMO) return (
-    <section className="pagehead"><div className="wrap"><div className="eyebrow">Query builder</div><h1>The query builder runs on the live site.</h1><p>It needs the server's data, so it is not part of this offline preview. The Screener works here.</p><Link className="btn primary" to="/screener">Open the screener</Link></div></section>
+    <PageHeader wrap plan="free" title="Query builder" art="search" links={[{ to: "/screener", primary: true, label: "Open the screener" }]} description="The query builder runs on the live site. It needs the server's data, so it is not part of this offline preview. The Screener works here." />
   );
 
   const underline = segments(text, problems);
@@ -274,10 +274,8 @@ export function QueryBuilder() {
 
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Query builder</div><h1>Type the rule. Get the companies.</h1>
-        <p>Write what you are looking for, like <code className="qb-inl">Market cap &gt; 500 AND P/E &lt; 15</code>. We check every word as you type, show you how we read it, and list the listed companies that match all of it. Prefer clicking? <a className="alx-link" href="/screener" onClick={(e) => { e.preventDefault(); nav("/screener"); }}>Use the Screener</a>.</p></div></section>
-
+      <PageHeader wrap plan="free" title="Query builder" art="search" links={["/screener", "/baskets", "/score-screener"]}
+        description={<>Type a rule, get the companies: <code className="qb-inl">Market cap &gt; 500 AND P/E &lt; 15</code>. We check every word as you type, show how we read it, and list the listed companies that match all of it.</>} />
       <div className="wrap qb">
         <section className="card qb-ed" aria-label="Your query">
           <div className="qb-bar">

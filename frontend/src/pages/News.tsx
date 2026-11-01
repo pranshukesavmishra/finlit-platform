@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -18,8 +19,8 @@ export function NewsPage() {
   const groups = useMemo(() => { const m = new Map<string, FeedItem[]>(); shown.forEach((i) => m.set(i.date, [...(m.get(i.date) || []), i])); return [...m.entries()]; }, [shown]);
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Market</div><h1>News and filings</h1><p className="muted">Exchange announcements for every company we cover, plus market news chosen by the FinLit team.</p></div>
-        <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
+      <PageHeader plan="free" title="News & filings" art="news" links={["/results", "/documents", "/ipo"]} actions={<label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label>}
+        description={<>Exchange announcements for <b>every company we cover</b>, plus market news chosen by the FinLit team.</>} />
       <div className="ipo-bar2"><input className="cs-in" aria-label="Search news" placeholder="Search company or headline" value={q} onChange={(e) => setQ(e.target.value)} style={{ minWidth: 260 }} />
         <div className="fchips" role="group" aria-label="Category">{cats.slice(0, 12).map((c) => <button key={c} className={"chip-b" + (cat === c ? " on" : "")} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div></div>
       {isError && <div className="formerr">News could not be loaded. Please try again shortly.</div>}

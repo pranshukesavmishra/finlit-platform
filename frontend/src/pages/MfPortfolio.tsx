@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Gate } from "../components/Gate";
@@ -190,7 +191,9 @@ export function MfPortfolioPage() {
 
   return (
     <div className="wrap ipo mp">
-      <header className="dash-h"><div><div className="eyebrow">My lists</div><h1>MF portfolio</h1><p className="muted">The mutual funds you hold: what they are worth at the latest NAV, how they have returned and, on Gold, how healthy each fund is. Mutual funds only; company shares are left out.</p></div></header>
+      <PageHeader plan="silver" title="MF portfolio" art="funds" links={["/holdings", "/funds", "/fund-score-screener"]}
+        description={<>The mutual funds you hold: <b>what they are worth at the latest NAV</b>, how they have returned and, on Gold, how healthy each fund is. Mutual funds only; company shares are left out.</>}
+        stats={[{ icon: "layers", value: s && s.funds > 0 ? s.funds : null, label: "Funds held" }, { icon: "calendar", value: d?.dataDate, label: "NAV as of" }]} />
       <Gate tier="silver" title="Track your mutual funds" points={["Value at the latest NAV, gain and XIRR", "Import Excel or CSV statements (CAMS, KFintech, broker apps)", "Allocation by category and fund house", "Health Score and its four parts on Gold"]}>
         <aside className="pf-model" aria-label="About the score"><span className="ci"><Icon name="quality" /></span><p>{MF_SCORE_LINE} {MF_INFO_ONLY}{locked && <> The Health Score is part of the Gold plan; you still see values and returns. <Link to="/plans">See the Gold plan</Link>.</>}</p></aside>
         <section className="card acct-c pf-in">

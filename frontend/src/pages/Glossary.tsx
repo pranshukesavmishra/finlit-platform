@@ -1,5 +1,5 @@
+import { PageHeader } from "../components/PageHeader";
 import { useEffect, useMemo, useState } from "react";
-import { PageArt } from "../components/PageArt";
 import { Icon } from "../lib/icons";
 import { LETTERS, TERMS, TOPICS, search } from "../lib/glossary";
 import { useDocTitle } from "../lib/title";
@@ -17,9 +17,8 @@ export function GlossaryPage() {
   }, []);
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="blog" />
-        <div className="eyebrow">Learn</div><h1>The language of investing, in plain words.</h1>
-        <p>{TERMS.length} terms from A to Z. Each says what it means, why it matters and how to use it, with the formula where there is a standard one, and how FinLit measures it. For education only; not investment, tax or legal advice.</p></div></section>
+      <PageHeader wrap title="Glossary" art="report" links={["/blog", "/faq", "/research"]} stats={[{ icon: "book", value: TERMS.length, label: "Terms" }]}
+        description={<>The language of investing in plain words: <b>{TERMS.length} terms from A to Z</b>. Each says what it means, why it matters and how to use it, with the formula where there is a standard one, and how FinLit measures it. For education only; not investment, tax or legal advice.</>} />
       <div className="wrap gx">
         <label className="gx-s"><Icon name="table" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search terms, e.g. P/E, ROE, EV/CFO…" aria-label="Search the glossary" /></label>
         <div className="gx-bar">

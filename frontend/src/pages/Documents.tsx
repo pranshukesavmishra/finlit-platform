@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -22,8 +23,8 @@ export function DocumentsPage() {
   const loading = docs.isLoading || res.isLoading;
   return (
     <div className="wrap ipo">
-      <header className="dash-h"><div><div className="eyebrow">Library</div><h1>Documents</h1><p className="muted">Annual reports, presentations, transcripts and results filings, linked straight to the exchange. Open any file in a new tab.</p></div>
-        <label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label></header>
+      <PageHeader plan="free" title="Documents" art="report" links={["/news", "/results", "/research"]} actions={<label className="sw"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /><span aria-hidden="true" /><b>Only my watchlist{mine.length ? ` (${mine.length})` : ""}</b></label>}
+        description={<>Annual reports, presentations, transcripts and results filings, <b>linked straight to the exchange</b>. Open any file in a new tab.</>} />
       <div className="ipo-bar2"><input className="cs-in" aria-label="Search documents" placeholder="Search company or title" value={q} onChange={(e) => setQ(e.target.value)} style={{ minWidth: 260 }} />
         <div className="fchips" role="group" aria-label="Type">{TYPES.map((t) => <button key={t} className={"chip-b" + (type === t ? " on" : "")} aria-pressed={type === t} onClick={() => setType(t)}>{t}</button>)}</div></div>
       {loading && <div className="skeleton" style={{ height: 220 }} />}

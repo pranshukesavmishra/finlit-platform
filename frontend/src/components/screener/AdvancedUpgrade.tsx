@@ -2,12 +2,12 @@
 // Nothing here reads the universe, so no Prism value reaches the browser of a plan that does not include it.
 import { Link } from "react-router";
 import { Gate } from "../Gate";
-import { PageArt } from "../PageArt";
 import { Icon } from "../../lib/icons";
 import { useUI } from "../../lib/ui";
 import { LockedPresets } from "./presets/LockedPresets";
 import { MINUS } from "../../lib/format";
 import "../../styles/scorescreen.css";
+import { PageHeader } from "../PageHeader";
 import { FUND_PART_NAME } from "../../lib/prismNames";
 
 const POINTS = [
@@ -30,10 +30,9 @@ export function AdvancedUpgrade() {
   const silver = has("silver");
   return (
     <>
-      <section className="pagehead"><div className="aurora" style={{ opacity: 0.6 }} /><div className="wrap"><PageArt kind="research" />
-        <div className="eyebrow">Advanced score screener</div><h1>Screen every company with FinLit Prism.</h1>
-        <p>The advanced model for the whole market: the Prism score, its four fundamental parts and two technical views, side by side, with filters, quick views, compare and export. It is part of the Gold plan.{" "}
-          {silver ? <>Your plan includes the <Link to="/score-screener">Basic score screener</Link>, which uses the FinLit score.</> : <>The <Link to="/score-screener">Basic score screener</Link> uses the FinLit score and comes with Silver.</>}</p></div></section>
+      <PageHeader wrap plan="gold" title="Screen every company with FinLit Prism." art="rating" links={["/score-screener", "/screener", { to: "/plans", primary: true, label: "See the Gold plan" }]}
+        description={<>The advanced model for the whole market: the <b>Prism score</b>, its four fundamental parts and two technical views, side by side, with filters, quick views, compare and export. It is part of the Gold plan.{" "}
+          {silver ? <>Your plan includes the <Link to="/score-screener">Basic score screener</Link>, which uses the FinLit score.</> : <>The <Link to="/score-screener">Basic score screener</Link> uses the FinLit score and comes with Silver.</>}</>} />
       <div className="wrap scr-wrap">
         <div className="sx-up">
           <div className="sx-ex-h"><span className="tier gold">Example</span><span className="muted">Sample companies and figures, only to show the layout. Not real data.</span></div>

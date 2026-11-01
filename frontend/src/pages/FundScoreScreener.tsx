@@ -17,6 +17,7 @@ import {
 import { HScroll } from "../components/HScroll";
 import { CheckRow, FgxFocus, FilterGroup, QuickRow, RangeRow, SearchBox } from "../components/screener/FilterGroup";
 import { KpiStrip, TitleCard, Toolbar } from "../components/screener/PageParts";
+import { PageHeader } from "../components/PageHeader";
 import "../styles/fgx.css";
 import "../styles/scorescreen.css";
 import "../styles/mf.css";
@@ -35,8 +36,8 @@ function Upgrade() {
   return (
     <div className="wrap mf mfu-page">
       <p className="mf-back"><Link to="/funds">← All mutual fund schemes</Link></p>
-      <header><span className="eyebrow">Fund score screener</span><h1>Screen every fund by its Health Score.</h1>
-        <p className="muted">The {MF_SCORE_NAME} of every scored fund, its four parts (Performance, Risk, Cost, Quality), category leaderboards, filters and a CSV download. It is part of the Gold plan.</p></header>
+      <PageHeader plan="gold" title="Fund score screener" art="funds" learn={{ to: MF_METHOD_URL, label: "How the score works" }} links={["/funds", "/funds/compare", "/etfs"]}
+        description={<>The <b>{MF_SCORE_NAME}</b> of every scored fund, its four parts (Performance, Risk, Cost, Quality), category leaderboards, filters and a CSV download. It is part of the Gold plan.</>} />
       <Gate tier="gold" title="Fund score screener" points={POINTS}>
         <section className="card mf-card" aria-label="Example of the fund score screener">
           <p className="faint">Layout only. Example rows with no real fund or figure.</p>
@@ -97,8 +98,9 @@ function Screener() {
   return (
     <div className="wrap mf mfu-page scr-wrap">
       <p className="mf-back"><Link to="/funds">← All mutual fund schemes</Link></p>
-      <TitleCard tier="gold" title="Fund score screener" learnTo={MF_METHOD_URL}
-        sub={<>The {MF_SCORE_NAME} of every scored fund, with its four parts. {MF_SCORE_COMPLIANCE}</>} />
+      <TitleCard tier="gold" title="Fund score screener" learnTo={MF_METHOD_URL} learnLabel="How the score works" art="funds" links={["/funds", "/funds/compare", "/etfs"]}
+        stats={[{ icon: "layers", value: facets.data ? cats.length : null, label: "Categories" }, { icon: "calendar", value: list.data?.runDate, label: "Scores worked out" }]}
+        sub={<>The <b>{MF_SCORE_NAME}</b> of every scored fund, with its four parts. {MF_SCORE_COMPLIANCE}</>} />
       <div className="seg" role="tablist" aria-label="View">
         <button role="tab" aria-selected={q.tab === "table"} aria-pressed={q.tab === "table"} onClick={() => set({ tab: "table" })}>All funds</button>
         <button role="tab" aria-selected={q.tab === "board"} aria-pressed={q.tab === "board"} onClick={() => set({ tab: "board", subs: q.subs.slice(0, 1) })}>Category leaderboard</button>

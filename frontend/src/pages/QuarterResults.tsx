@@ -1,3 +1,4 @@
+import { PageHeader } from "../components/PageHeader";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -308,18 +309,15 @@ export function QuarterResultsPage() {
   const delayed = useResultsDelayedNote();
   return (
     <div className="wrap ipo qr">
-      <header className="dash-h">
-        <div>
-          <div className="eyebrow">Market</div>
-          <h1>Latest results{q ? <> <span className="qr-q">{q.fiscal}</span></> : null}</h1>
-          <p className="muted">{q ? `Quarter ended ${new Date(q.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. ` : ""}Every company's results, the most recently declared first, back to the first of the quarter.<ChartHelp id="qr-table" /></p>
-        </div>
-        <label className="wl-sel"><span>Quarter</span>
+      <PageHeader plan="free" art="calendar" links={["/results", "/news", "/documents"]}
+        title={<>Latest results{q ? <> <span className="qr-q">{q.fiscal}</span></> : null}</>}
+        description={<>{q ? `Quarter ended ${new Date(q.periodEnd + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. ` : ""}Every company's results, the <b>most recently declared first</b>, back to the first of the quarter.<ChartHelp id="qr-table" /></>}
+        stats={[{ icon: "notes", value: (d?.quarters || []).find((x) => x.key === q?.key)?.declared ?? null, label: "Results declared" }]}
+        actions={<label className="wl-sel"><span>Quarter</span>
           <select aria-label="Quarter" value={q?.key || ""} onChange={(e) => { const n = new URLSearchParams(sp); if (e.target.value) n.set("quarter", e.target.value); else n.delete("quarter"); setSp(n); setOffset(0); }}>
             {(d?.quarters || []).map((x) => <option key={x.key} value={x.key}>{x.label} · {x.fiscal} ({x.declared} out)</option>)}
             {!d?.quarters?.length && <option value="">Loading…</option>}
-          </select></label>
-      </header>
+          </select></label>} />
 
       {delayed && <div className="rc-stale" role="status" data-testid="results-delayed">{delayed}</div>}
       {dateErr && <div className="formerr qr-derr" role="alert">{dateErr} <button type="button" className="alx-link" onClick={() => setDates(null)}>Show the latest quarter</button></div>}

@@ -46,7 +46,8 @@ function Basic() {
 
   return (
     <ScreenerFrame s={s} splitKey="score" eyebrow="Score screener" title="Basic score screener" sideLabel="Score screener filters" errorTitle="The score screener is unavailable right now"
-      intro={<>Every listed company with its FinLit score, the basic model: Fundamental, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score. Need more rules? Use the <Link to="/screener">full screener</Link>.</>}
+      intro={<>Every listed company with its <b>FinLit score</b>, the basic model: Fundamental, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score.</>}
+      head={{ art: "rating", links: ["/screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"], stats: [{ icon: "building", value: !isLoading && s.items.length > 0 ? nf(s.items.length, 0) : null, label: "Companies" }, { icon: "quality", value: !isLoading && s.items.length > 0 ? nf(s.items.length - s.unscored, 0) : null, label: "Scored" }] }}
       tier="silver" sortChoices={[{ key: "overall", label: "FinLit score" }, { key: "f", label: "Fundamental" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
       presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">

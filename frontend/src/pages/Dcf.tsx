@@ -1,6 +1,7 @@
 // DCF calculator (Gold): intrinsic value from a two-stage, ten-year free cash flow model, in the order of the FinLit formula sheet, with the
 // checks and analysis an analyst expects around it. All arithmetic lives in lib/dcf.ts (pure and tested); this page collects inputs, can
 // load a listed company's figures from its stored report (Gold, enforced by the server), and shows every step of the working.
+import { PageHeader } from "../components/PageHeader";
 import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -380,8 +381,8 @@ export function DcfPage() {
 
   return (
     <>
-      <section className="pagehead"><div className="wrap"><div className="eyebrow">Gold tool</div><h1>Fair value calculator</h1>
-        <p>Wish to calculate the intrinsic value of companies with ease? Here's our Discounted Cash Flow (DCF) calculator, so you don't have to break your head over complicated Excel sheets. Every step of the working is shown, with checks that stop impossible assumptions.</p></div></section>
+      <PageHeader wrap plan="gold" title="DCF valuation calculator" art="calculator" links={["/eps-calculator", "/sip-calculator", "/outlook"]}
+        description={<>Estimate a company's <b>intrinsic value</b> from its projected cash flows with a Discounted Cash Flow (DCF) calculator. Every step of the working is shown, with checks that stop impossible assumptions.</>} />
       <div className="wrap dcf">
         <Gate tier="gold" title="DCF calculator" points={["Intrinsic value per share, margin of safety and buy price", "Load any listed company's cash flow, debt and shares", "Sensitivity grids, reverse DCF and bear/base/bull cases", "Save scenarios, share links and export to Excel (CSV)"]}>
           <CompanyLoader enabled={gold && !!user && !DEMO} onLoad={onCompany} loaded={loaded} initial={sp.get("load") === "1" && form.symbol ? form.symbol.toUpperCase() : null} />
