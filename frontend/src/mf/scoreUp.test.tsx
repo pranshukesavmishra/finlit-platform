@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Mutual Fund Health Score upgrades in a DOM: history chart, breakdown + radar, screener (filters, URL state, CSV columns, locked page, no request below Gold),
 // leaderboard, compare, chip, admin panel and the wording scan.
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,10 +22,11 @@ import { HistoryChart, ScoreHistoryCard } from "./ScoreHistory";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { ScoreCompare } from "./ScoreCompare";
 import { ScoreChip } from "./ScoreCell";
+import { FundScoreCard } from "./ScoreCard";
 import { ScoreAdminPanel } from "./ScoreAdminPanel";
 import { FundScoreScreenerPage } from "../pages/FundScoreScreener";
 import { LEVEL_TOLERANCE, VIEWS, chips, clearChip, compareTo, csvUrl, emptyQuery, paramsToQuery, queryToParams, serverParams, CSV_HEADS } from "../lib/mfScoreUp";
-import { MF_SCORE_COMPLIANCE } from "../lib/mfScore";
+import { MF_SCORE_COMPLIANCE, MF_SCORE_NAME } from "../lib/mfScore";
 
 const BANNED = /\b(buy|sell|hold|recommended|best[- ]to[- ]buy|top pick|winner|avoid)\b/i;
 const pill = (p: number, r: number, c: number, q: number) => ({ performance: p, risk: r, cost: c, quality: q });
@@ -247,5 +248,20 @@ describe("wording", () => {
       for (const x of strings) expect(x.replace(/not a recommendation|not investment advice/gi, ""), f).not.toMatch(BANNED);
     }
     expect(MF_SCORE_COMPLIANCE).toContain("not a recommendation");
+  });
+});
+
+
+describe("exchange-traded funds get no Health Score", () => {
+  it("the card disappears when the server says the score is not offered (an ETF-category scheme opened as a fund)", async () => {
+    st.routes = { "/api/mf/45678/score": { locked: false, notOffered: true, final: null, status: "NOT SCORED", reason: "The Health Score is not given for exchange-traded funds.", pillars: [], reasons: {}, metrics: [] } };
+    wrap(<FundScoreCard code={45678} />, "/funds/45678");
+    await waitFor(() => expect(screen.queryByLabelText(MF_SCORE_NAME)).toBeNull());
+    expect(st.calls.some((c) => c.startsWith("/api/mf/45678/score"))).toBe(true);
+  });
+  it("the Fund Score Screener no longer offers an ETF plan", () => {
+    st.routes = { "/api/mf/score-screener": { locked: false, total: 0, items: [], runDate: null } };
+    wrap(<FundScoreScreenerPage />);
+    expect(screen.queryByRole("button", { name: /^ETF$/ })).toBeNull();
   });
 });

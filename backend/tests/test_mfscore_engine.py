@@ -340,25 +340,26 @@ async def test_category_dashboard_is_gold_only_and_direct_plan_only(store, monke
             assert r.json()["locked"] is True and r.json()["items"] == {} and "median" not in r.text and "large-cap" not in r.text
 
 
-async def test_scores_by_etf_symbol_are_redacted_for_basic(store, monkeypatch):
+async def test_scores_by_etf_symbol_give_no_score_to_anyone(store, monkeypatch):
+    """The Health Score is not given for exchange-traded funds: the rows exist (the score run reads ETFs as peers of index funds) but nothing leaves the server."""
     etfs = [fund(f"etf:ZZ{i}", "OT-PASSIVE", "etf", plan="ETF", seed=40 + i, kind="etf", symbol=f"ZZ{i}", family_key="nifty50") for i in range(4)]
     await _write(store, etfs)
     async with await _client(store, monkeypatch, "gold") as c:
         r = (await c.get("/api/mf/scores?symbols=zz0,ZZ1,ZZNONE")).json()
-        by = {i["symbol"]: i for i in r["items"]}
-        assert set(by) == {"ZZ0", "ZZ1"} and by["ZZ0"]["final"] is not None and by["ZZ0"]["plan"] == "ETF" and by["ZZ0"]["code"] is None
+        assert all(i["final"] is None and i["pillars"] is None and i["label"] is None and i["rank"] is None for i in r["items"])
         assert (await c.get("/api/mf/scores?symbols=bad%20one")).status_code == 400
+        assert (await c.get("/api/mf/scores?plan=ETF")).json()["items"] == []
+        assert (await c.get("/api/mf/scores")).json()["items"] == []                                    # an ETF is never in the plain list either
     async with await _client(store, monkeypatch, "basic") as c:
         r = await c.get("/api/mf/scores?symbols=ZZ0,ZZ1")
         assert r.json()["locked"] is True and all(i["final"] is None and i["pillars"] is None and i["label"] is None for i in r.json()["items"])
         assert (await c.get("/api/mf/scores?plan=ETF")).json()["items"] == []
 
 
-async def test_the_etf_list_sorts_by_score_for_gold_only(store, monkeypatch):
+async def test_the_etf_list_has_no_score_order(store, monkeypatch):
     from finlit import etf
     etfs = [fund(f"etf:ZY{i}", "OT-PASSIVE", "etf", plan="ETF", seed=60 + i, drift=0.2 + i * 0.3, kind="etf", symbol=f"ZY{i}", family_key="nifty50") for i in range(4)]
-    sc = await _write(store, etfs)
-    finals = {s.key.split(":")[1]: s.final for s in sc}
+    await _write(store, etfs)
     rows = [{"symbol": f"ZY{i}", "display_name": f"Test ETF {i}", "isin": f"INF00000000{i}", "category": None, "price_date": date(2026, 10, 29), "updated_at": None, "hot": False} for i in range(4)]
     app, _ = _app(store)
     app.include_router(etf.router)
@@ -370,12 +371,10 @@ async def test_the_etf_list_sorts_by_score_for_gold_only(store, monkeypatch):
         return ctx["v"]
     monkeypatch.setattr(score_api, "current", cur)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
-        ctx["v"] = Ctx(user_id="u", plan="basic")
-        assert (await c.get("/api/etf?sort=score&order=desc")).status_code == 403
-        assert (await c.get("/api/etf?sort=turnover")).headers["cache-control"].startswith("public")      # the plain list is unchanged
-        ctx["v"] = Ctx(user_id="u", plan="gold")
-        r = await c.get("/api/etf?sort=score&order=desc")
-        assert r.status_code == 200 and r.headers["cache-control"] == "private, no-store"
-        got = [i["symbol"] for i in r.json()["items"]]
-        assert got == sorted(got, key=lambda s: -finals[s])
-        assert "final" not in r.text                                                                       # the list itself carries no score; the page asks /api/mf/scores
+        for plan in ("basic", "gold"):
+            ctx["v"] = Ctx(user_id="u", plan=plan)
+            plain = await c.get("/api/etf?sort=turnover&order=desc")
+            r = await c.get("/api/etf?sort=score&order=desc")
+            assert r.status_code == 200 and r.headers["cache-control"].startswith("public"), plan         # no score order and no plan check: it is the plain list
+            assert [i["symbol"] for i in r.json()["items"]] == [i["symbol"] for i in plain.json()["items"]], plan
+            assert "final" not in r.text                                                                   # the list carries no score at all

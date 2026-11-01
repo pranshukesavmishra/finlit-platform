@@ -119,6 +119,7 @@ const LOCK_POINTS = ["A 0 to 100 health score with four parts: Performance, Risk
 export function FundScoreCard({ code = 0, kind = "mf", symbol = "" }: { code?: number; kind?: "mf" | "etf"; symbol?: string }) {
   const q = useFundScore(code, kind, symbol);
   const s = q.data;
+  if (s?.notOffered) return null;   // an exchange-traded fund (also an ETF-category scheme opened as a fund): the score is not given, so no card
   return (
     <>
     <section className="card mf-card mfs-card" aria-label={MF_SCORE_NAME}>

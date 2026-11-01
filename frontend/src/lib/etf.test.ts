@@ -77,10 +77,10 @@ describe("columns match the server", () => {
   const block = (name: string) => py.match(new RegExp(`${name} = \\{([^}]*)\\}`, "s"))![1];
   it("every sortable column is a sort key the API accepts", () => {
     const keys = [...block("LIST_FIELDS").matchAll(/"(\w+)":/g)].map((m) => m[1]);
-    for (const c of COLUMNS) if (c.sort && c.sort !== "score") expect(keys, c.key).toContain(c.sort);
+    for (const c of COLUMNS) if (c.sort) expect(keys, c.key).toContain(c.sort);
     expect(keys).toContain("name");
-    // the Health score order is its own path on the server: Silver and above only, never kept by a shared cache
-    expect(py).toContain('by_score = sort == "score"'); expect(py).toContain("require_score_plan(request)"); expect(keys).not.toContain("score");
+    // no Health score order for an exchange-traded fund: the score is not given for ETFs, so the server has no score sort path at all
+    expect(py).not.toContain("by_score"); expect(py).not.toContain("require_score_plan"); expect(keys).not.toContain("score");
   });
   it("every filter is one the API accepts", () => {
     const m = py.match(/FILTER_KEYS = \{k: v for k, v in LIST_FIELDS.items\(\) if k not in \(([^)]*)\)\}/)![1];
@@ -88,7 +88,8 @@ describe("columns match the server", () => {
     for (const f of FILTERS) expect(banned).not.toContain(f.key);
   });
   it("the default columns are the ones meant to show", () => {
-    expect(DEFAULT_COLS).toEqual(["category", "score", "price", "change", "ret1y", "ret5y"]);
+    expect(DEFAULT_COLS).toEqual(["category", "price", "change", "ret1y", "ret5y"]);
+    expect(COLUMNS.map((c) => c.key)).not.toContain("score" as never);                                                          // no Health score column for an ETF
     expect(COLUMNS.filter((c) => /^(change|ret)/.test(c.key)).map((c) => c.key)).toEqual(["change", "ret1y", "ret5y"]);       // exactly three return columns
     expect(COL_BY.ret5y.label).toMatch(/total/);                                                                              // 5Y is the total change, and says so
     expect(new Set(COLUMNS.map((c) => c.key)).size).toBe(COLUMNS.length);

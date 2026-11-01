@@ -28,7 +28,7 @@ const MAX_COMPARE = 4;
 
 export function FundScoreScreenerPage() {
   const { has } = useUI();
-  useDocTitle("Fund score screener", "Every scored mutual fund and ETF with the FinLit Mutual Fund Health Score, its four parts, cost, size and returns. Gold plan.");
+  useDocTitle("Fund score screener", "Every scored mutual fund with the FinLit Mutual Fund Health Score, its four parts, cost, size and returns. Gold plan.");
   return has("gold") ? <Screener /> : <Upgrade />;
 }
 
@@ -51,7 +51,7 @@ function Upgrade() {
 }
 
 const narrow = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 1000px)").matches;
-const PLANS: [string, string][] = [["Direct", "Direct"], ["Regular", "Regular"], ["ETF", "ETF"], ["all", "All plans"]];
+const PLANS: [string, string][] = [["Direct", "Direct"], ["Regular", "Regular"], ["all", "All plans"]];
 const STATUSES: [string, string][] = [["", "Rated and provisional"], ["RATED", "Rated"], ["PROVISIONAL", "Provisional"]];
 const SORTS: [string, "asc" | "desc", string][] = [["final", "desc", "Score (high to low)"], ["final", "asc", "Score (low to high)"], ["name", "asc", "Fund name (A to Z)"], ["name", "desc", "Fund name (Z to A)"],
   ["perf", "desc", "Performance (high to low)"], ["risk", "desc", "Risk (high to low)"], ["cost", "desc", "Cost (high to low)"], ["quality", "desc", "Quality (high to low)"],
