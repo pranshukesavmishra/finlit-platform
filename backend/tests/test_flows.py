@@ -265,16 +265,17 @@ async def test_nightly_refresh_builds_and_serves_the_page(fstore):
     lt = body["latest"]
     assert lt["d"] == "2026-10-23" and lt["fii"] == {"buy": 14445.54, "sell": 13557.89, "net": 887.65} and lt["dii"] == {"buy": 19232.31, "sell": 15996.95, "net": 3235.36}      # the exchange's figures win over NSDL's for the day
     assert lt["combinedNet"] == 4123.01 and lt["fiiShareOfSelling"] == round(13557.89 / (13557.89 + 15996.95), 4) and lt["mood"] == "Mild inflow"
-    assert body["days"][-1]["d"] == "2026-10-23" and body["days"][0]["d"] == "2025-09-01" and body["days"][0]["dii"] is None       # no DII before NSDL's first report
+    assert body["days"][-1]["d"] == "2026-10-23" and body["days"][0]["d"] == "2026-10-14"       # FII and DII start on the same day, NSDL's first DII report: earlier FII days are stored but not shown
     assert body["streaks"]["fii"]["side"] in ("selling", "buying") and body["streaks"]["dii"]["days"] >= 1
-    assert body["last30"]["dii"] is None and body["last30"]["fii"] is not None and body["last30"]["days"] == 30
+    assert body["last30"]["dii"] is None and body["last30"]["fii"] is None and body["last30"]["days"] < 30      # fewer than 30 shared sessions so far: no 30-session total, for either
     assert {p["key"] for p in body["periods"]} == {"week", "month", "fy", "cy", "r30", "r90", "r365"}
     month = next(p for p in body["periods"] if p["key"] == "month")
-    assert month["days"] == 15 and month["diiNet"] is None        # DII exists only from 14 Oct in this test: a part-sum is not given
-    assert [m["m"] for m in body["monthly"]] == ["2025-09", "2026-10"] and body["yearly"][0]["y"] == "2025" and body["yearly"][0]["dii"] is None
+    assert month["days"] >= 5 and month["fii"] is not None      # the month now holds only sessions from the shared first day
+    assert [m["m"] for m in body["monthly"]] == ["2026-10"] and [y["y"] for y in body["yearly"]] == ["2026"]      # nothing before the shared first day, in the monthly and yearly tables too
+    assert all(m["fii"] is not None for m in body["monthly"] + body["yearly"])
     assert body["derivatives"]["asOf"] == "2026-10-22" and {"participant": "FII", "instrument": "Index Futures", "long": 34703, "short": 315003, "net": -280300} in body["derivatives"]["rows"]
     assert body["fpi"] == {"asOf": "2026-10-23", "equityNet": 154.97, "debtNet": -3020.73, "hybridNet": -21.46, "totalNet": -2846.26, "usdMillion": -300.55, "inr": 94.6986}
-    assert body["correlation"]["index"] == "NIF50" and body["correlation"]["days"] >= 30 and -1 <= body["correlation"]["fiiVsIndex"] <= 1
+    assert body["correlation"] is None      # fewer than 30 sessions since the shared first day: no correlation is shown (the page says why), not a thin one
     assert body["index"] and body["coverage"]["to"] == "2026-10-23" and body["coverage"]["diiSessions"] >= 2
     src = {s["id"]: s for s in body["sources"]}
     assert src["fii"]["status"] == "ok" and src["fii"]["lastDate"] == "2026-10-23" and src["dii"]["status"] == "ok" and src["participant-oi"]["status"] == "ok"
@@ -371,10 +372,11 @@ async def test_the_payload_states_where_the_dii_report_starts_and_why(fstore):
             d += timedelta(days=1)
     p = await flows.publish(fstore, D(2027, 6, 30))
     c = p["coverage"]
-    assert c["diiSessions"] == 150 and c["diiFrom"] == p["days"][250]["d"] and c["diiPublishedFrom"] == "2026-10-14" and "not available from any official free source" in c["diiReason"]
-    assert p["days"][249]["dii"] is None and p["days"][250]["dii"]["net"] == 4.0
-    r365 = {x["key"]: x for x in p["periods"]}["r365"]
-    assert r365["diiNet"] is None and r365["common"]["days"] == 150 and r365["common"]["overall"] == -900.0
+    assert c["from"] == "2026-10-14" and c["diiFrom"] == c["from"] and c["diiPublishedFrom"] == "2026-10-14"        # one shared first day: the DII report's
+    assert c["diiSessions"] == c["sessions"] and all(x["dii"] is not None for x in p["days"]) and all(x["d"] >= "2026-10-14" for x in p["days"])   # so every shown day has both
+    assert "not available from any official free source" in c["diiReason"]
+    r90 = {x["key"]: x for x in p["periods"]}["r90"]
+    assert r90["days"] == 90 and r90["fii"] == -900.0 and r90["diiNet"] == 360.0                                      # the same 90 sessions for both, so the totals are given and comparable
 
 
 # ---- the admin route
