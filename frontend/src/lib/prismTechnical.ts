@@ -35,6 +35,8 @@ export type TechHorizon = {
   horizon: string | null;
   availableCount: number; requiredCount: number;
   stageCapped: boolean;
+  /** A recent listing: the relative-strength rating needs about two years of prices, so the score uses the other signals only. Shown on the page, never by the screeners. */
+  provisional: boolean; provisionalNote: string | null;
   /** The score before the long-term stage limit (+19), present only when that limit lowered the score. */
   uncappedScore: number | null;
   /** The weights in use (96 short term, 92 long term with the sector row off); null when the report has no weights. */
@@ -85,6 +87,7 @@ function parseHorizon(v: unknown): TechHorizon {
   return {
     score, rating: str(h.rating), status: score != null && h.status !== "incomplete" ? "ready" : "incomplete", horizon: str(h.horizon),
     availableCount: count(h.availableCount), requiredCount: count(h.requiredCount), stageCapped: h.stageCapped === true && score != null,
+    provisional: h.provisional === true && score != null, provisionalNote: h.provisional === true && score != null ? str(h.provisionalNote) : null,
     uncappedScore: score != null && h.stageCapped === true ? num(h.uncappedScore) : null, divisor: (num(h.divisor) ?? 0) > 0 ? num(h.divisor) : null, factors,
   };
 }

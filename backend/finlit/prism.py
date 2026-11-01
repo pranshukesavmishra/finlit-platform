@@ -86,7 +86,7 @@ HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace th
 # sourceCodeSha256. Each factor's weight IS passed on now (the indicator publishes them; the breakdown table shows weight and points, see
 # docs/technicals/README.md); the older model note said weights are not shown, and removing "weight" here removes the column again.
 TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh", "sharesCr")   # sharesCr: the shares (crore) that chose the benchmark, kept so the daily refresh (prism_technical.py) chooses the same one
-TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore")
+TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore", "provisional", "provisionalNote")
 TECH_FACTOR = ("key", "label", "signal", "status", "detail", "weight")
 TECH_SOURCE = ("provider", "asOf", "bars")
 
@@ -330,6 +330,8 @@ def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
 
     def horizon(key: str) -> Dict[str, Any]:
         part = technical.get(key) if isinstance(technical.get(key), dict) else {}
+        if part.get("provisional") is True:      # a provisional score (a recent listing) is shown on the company page only; the screeners treat it as not available
+            return {"score": None, "rating": None}
         return {"score": part.get("score"), "rating": part.get("rating")}
     return {"parts": None if rating.get("status") == "NOT RATED" else rating.get("parts"), "st": horizon("shortTerm"), "lt": horizon("longTerm"),
             "confidence": rating.get("confidence"), "technicalBarDate": technical.get("asOf"), "technicalAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}
@@ -509,7 +511,8 @@ def _num(path: str) -> str:
 
 _SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, status, generated_at, "  # nosec B608: built only from constant names, never from a request value
                + ", ".join(f"{_num('rating,parts,' + k)} AS p_{k}" for k in _PARTS) + ", "
-               + ", ".join(f"{_num('technicalAssessment,' + h + ',score')} AS {h.lower()}_score, report #>> '{{technicalAssessment,{h},rating}}' AS {h.lower()}_rating"
+               + ", ".join(f"CASE WHEN report #>> '{{technicalAssessment,{h},provisional}}' = 'true' THEN NULL ELSE {_num('technicalAssessment,' + h + ',score')} END AS {h.lower()}_score, "
+                           f"CASE WHEN report #>> '{{technicalAssessment,{h},provisional}}' = 'true' THEN NULL ELSE report #>> '{{technicalAssessment,{h},rating}}' END AS {h.lower()}_rating"
                            for h in ("shortTerm", "longTerm"))
                + ", COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}') AS tech_bar, COALESCE(card->>'technicalAt', report->>'technicalCalculatedAt') AS tech_at"
                + " FROM prism_reports WHERE symbol = ANY($1::text[]) ORDER BY symbol, (statement = 'consolidated') DESC")

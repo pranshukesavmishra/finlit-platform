@@ -17,7 +17,7 @@ const A = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, parseTechnic
 const withTech = (a: unknown) => ({ ...(report as unknown as PrismReport), technicalAssessment: a }) as PrismReport;
 const OLD = report as unknown as PrismReport;
 const strip = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
-const horizon = (score: number | null, rating: string | null) => ({ score, rating, status: "ready" as const, horizon: null, availableCount: 1, requiredCount: 1, stageCapped: false, uncappedScore: null, divisor: null, factors: [] });
+const horizon = (score: number | null, rating: string | null) => ({ score, rating, status: "ready" as const, horizon: null, availableCount: 1, requiredCount: 1, stageCapped: false, provisional: false, provisionalNote: null, uncappedScore: null, divisor: null, factors: [] });
 
 describe("rating words: the model's advice words never reach the screen", () => {
   it("maps every upstream rating", () => {
@@ -347,5 +347,25 @@ describe("the stock page row shows the alignment under both bars", () => {
     expect(h).toContain("Trend alignment: Long-term uptrend, short-term pause.");
     expect(h).not.toMatch(FORBIDDEN);
     expect(strip(renderToStaticMarkup(<PrismTechRow report={L(fx.incomplete)} />))).not.toContain("Trend alignment");
+  });
+});
+
+describe("a provisional long-term score (a recent listing)", () => {
+  const prov = () => {
+    const a = JSON.parse(JSON.stringify((fx as Record<string, unknown>).ready));
+    a.longTerm = { ...a.longTerm, provisional: true, provisionalNote: "Provisional: the relative-strength rating needs about two years of daily prices and this company has less, so this score uses the other 12 signals and counts their weights only." };
+    return a;
+  };
+  it("is shown with its score, marked provisional, and says why", () => {
+    const h = renderToStaticMarkup(<Technical report={withTech(prov())} onRecalculate={() => undefined} />), t = strip(h);
+    expect(t).toContain("provisional");
+    expect(t).toContain("needs about two years of daily prices");
+    expect(t).toContain("+65");                                                  // the score itself is still shown
+    expect(h).toContain("Provisional score: a recent listing.");                 // and read out for a screen reader
+    expect(h).not.toMatch(FORBIDDEN);
+  });
+  it("a complete score shows no provisional wording", () => {
+    const t = strip(renderToStaticMarkup(<Technical report={withTech((fx as Record<string, unknown>).ready)} onRecalculate={() => undefined} />));
+    expect(t).not.toMatch(/provisional/i);
   });
 });

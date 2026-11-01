@@ -25,7 +25,7 @@ export function horizonSummary(name: string, h: TechHorizon): string {
   const w = ratingWord(h.rating, h.score);
   const have = `${h.availableCount} of ${h.requiredCount} signals available`;
   if (h.score == null) return `${name}: no score, because ${have}.`;
-  return `${name}: ${fmtScore(h.score)} on a scale from minus 100 to plus 100, ${w.word.toLowerCase()}. ${have}.${h.stageCapped ? " Limited by the market stage." : ""}`;
+  return `${name}: ${fmtScore(h.score)} on a scale from minus 100 to plus 100, ${w.word.toLowerCase()}. ${have}.${h.stageCapped ? " Limited by the market stage." : ""}${h.provisional ? " Provisional score: a recent listing." : ""}`;
 }
 
 /** The -100..+100 scale: five bands (their edges are the rating boundaries), a centre line and a marker. Words below say the same. */
@@ -52,12 +52,13 @@ function HorizonCard({ name, h, id }: { name: string; h: TechHorizon; id: string
         <span className={"pzt-word " + w.tone}><i aria-hidden="true">{SHAPE[w.tone]}</i>{w.word}</span>
       </header>
       <p className="pzt-score">
-        {have ? <>{fmtScore(h.score)}<small> on −100 to +100</small></> : <>Not available<small> score withheld</small></>}
+        {have ? <>{fmtScore(h.score)}<small> on −100 to +100{h.provisional ? " · provisional" : ""}</small></> : <>Not available<small> score withheld</small></>}
       </p>
       <TechGauge score={h.score} label={horizonSummary(name, h)} />
       <p className="pzt-legend">{bandLegend()}</p>
       <ul className="pzt-facts">
         <li className={h.availableCount < h.requiredCount ? "warn" : ""}><Icon name={h.availableCount < h.requiredCount ? "alert" : "check"} /><span><b>{h.availableCount} of {h.requiredCount}</b> signals available. {STATE_WORD[h.status]}.</span></li>
+        {h.provisional && <li className="warn pzt-prov"><Icon name="info" /><span><b>Provisional.</b> {h.provisionalNote ?? "The relative-strength rating needs about two years of prices, so this score uses the other signals only."}</span></li>}
         {h.stageCapped && <li className="warn pzt-cap"><Icon name="info" /><span><b>Limited by the market stage.</b> When a stock is in Stage 3 (topping) or Stage 4 (declining), the model limits the long-term score to +19 at most, before the trend word is chosen.</span></li>}
       </ul>
     </article>

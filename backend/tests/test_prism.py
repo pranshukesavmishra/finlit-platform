@@ -28,7 +28,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from finlit import prism
+from finlit import prism, prism_technical as pt
 from finlit.api import create_app
 from finlit.auth.service import cookie_name, create_session
 from test_integration import make_settings, store  # noqa: F401  (fixtures)
@@ -987,3 +987,34 @@ async def test_scores_prefer_consolidated_and_withhold_parts_when_not_rated(env)
     assert body["AAA"]["final"] == 77.0 and body["AAA"]["statement"] == "consolidated"
     assert body["AAA"]["shortTerm"] == {"score": None, "word": "Not available"}      # an older report without the technical view
     assert body["BBB"]["rated"] is False and body["BBB"]["parts"] is None and body["BBB"]["final"] is None
+
+
+def _tech(provisional):
+    lt = {"score": 55.0, "rating": "Strong Buy", "status": "ready", "availableCount": 12, "requiredCount": 13, "factors": []}
+    if provisional:
+        lt.update(provisional=True, provisionalNote="Provisional: a recent listing.")
+    return {"status": "ready", "asOf": "2026-10-23", "shortTerm": {"score": 40.0, "rating": "Buy", "status": "ready", "availableCount": 14, "requiredCount": 14, "factors": []}, "longTerm": lt}
+
+
+def test_a_provisional_long_term_score_reaches_the_company_page_but_not_the_screener_card():
+    view = prism.technical_view(_tech(True))
+    assert view["longTerm"]["provisional"] is True and view["longTerm"]["score"] == 55.0 and view["longTerm"]["provisionalNote"].startswith("Provisional")
+    rating = {"status": "RATED", "parts": {"fundamental": 50, "valuation": 60, "quality": 70, "risk": 80}}
+    card = prism.card_of({"rating": rating, "technicalAssessment": _tech(True)})
+    assert card["lt"] == {"score": None, "rating": None} and card["st"]["score"] == 40.0         # the screeners see no long-term score
+    full = prism.card_of({"rating": rating, "technicalAssessment": _tech(False)})
+    assert full["lt"]["score"] == 55.0 and "provisional" not in prism.technical_view(_tech(False))["longTerm"]   # a complete score is exactly as before
+    _, applied = pt._apply({"rating": rating}, None, prism.technical_view(_tech(True)), "2026-10-23T18:30:00")
+    assert applied["lt"] == {"score": None, "rating": None} and applied["st"]["score"] == 40.0
+
+
+async def test_the_scores_list_blanks_a_provisional_long_term_score(env):
+    app, _ = env
+    gold = await member(app, "gold")
+    async with app.state.store.pool.acquire() as conn:
+        for sym, prov in (("PRV", True), ("CMP", False)):
+            report = {"rating": {"final": 70.0, "status": "RATED", "parts": {"fundamental": 50, "valuation": 60, "quality": 70, "risk": 80}}, "technicalAssessment": _tech(prov)}
+            await conn.execute("INSERT INTO prism_reports (symbol, statement, id, report, final, label, status) VALUES ($1,'consolidated',$2,$3::jsonb,70,'X','RATED')", sym, uuid.uuid4().hex, json.dumps(report))
+    got = (await gold.get("/api/prism/scores?symbols=PRV,CMP")).json()["scores"]
+    assert got["PRV"]["longTerm"] == {"score": None, "word": "Not available"} and got["PRV"]["shortTerm"]["score"] == 40.0
+    assert got["CMP"]["longTerm"]["score"] == 55.0

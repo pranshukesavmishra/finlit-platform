@@ -151,6 +151,8 @@ def _apply(report: Dict[str, Any], card: Optional[Dict[str, Any]], view: Dict[st
 
     def horizon(key: str) -> Dict[str, Any]:
         part = view.get(key) if isinstance(view.get(key), dict) else {}
+        if part.get("provisional") is True:      # shown on the company page only; the screeners treat a provisional score as not available
+            return {"score": None, "rating": None}
         return {"score": part.get("score"), "rating": part.get("rating")}
     card.update(st=horizon("shortTerm"), lt=horizon("longTerm"), technicalAt=at, technicalBarDate=view.get("asOf"))
     return report, card
