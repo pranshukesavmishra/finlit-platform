@@ -32,7 +32,7 @@ const PAGES = [
   ["advanced-score-screener", "/advanced-score-screener", { table: true, split: "score-adv", sel: ".scr-main" }],
   ["fund-score-screener", "/fund-score-screener", { table: true, sel: ".fgx-fl > :not(aside)" }],
   ["query-builder", "/query-builder", {}],
-  ["stock", "/stocks/RELIANCE", { knownSideScroll: 414 }],   // KNOWN, found by this guard: the stock page scrolls sideways below ~400px (not the screener bug); tolerated up to 414px so the guard stays green until it is fixed
+  ["stock", "/stocks/RELIANCE", {}],
   ["prism", "/prism", {}],
   ["compare", "/compare", {}],
   ["portfolio", "/portfolio", {}],
@@ -85,7 +85,7 @@ async function mockApi(ctx) {
 }
 
 // ---- measurements, run inside the page ----
-function measure({ minMain, vw, sel, wantTable, known }) {
+function measure({ minMain, vw, sel, wantTable }) {
   const problems = [];
   const vis = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none"; };
   const label = (e) => e.tagName.toLowerCase() + (e.className && typeof e.className === "string" ? "." + e.className.trim().split(/\s+/).slice(0, 2).join(".") : "");
@@ -96,7 +96,7 @@ function measure({ minMain, vw, sel, wantTable, known }) {
   if (/Something went wrong on this page|A new version of FinLit is ready/.test(document.body.innerText)) problems.push("ERROR CARD is showing (a render error was caught)");
   // 2. sideways page scroll
   const over = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-  if (over > 1 && !(known && vw <= 400 && over <= known)) {
+  if (over > 1) {
     const wide = [...document.querySelectorAll("body *")].filter((e) => vis(e) && e.getBoundingClientRect().right > vw + 2 && !e.closest("[hidden],.sx-side,.side,.shell-scrim")).slice(0, 3).map((e) => `${label(e)}:${Math.round(e.getBoundingClientRect().right)}`);
     problems.push(`HORIZONTAL PAGE SCROLL ${over}px (${wide.join(", ")})`);
   }
@@ -162,7 +162,7 @@ async function run(c) {
     // lazy pages: wait until the main area has content (and a table where one is expected) before measuring
     await p.waitForFunction((t) => { const m = document.querySelector("main"); return m && (m.innerText || "").trim().length > 40 && (!t || m.querySelector("table")); }, !!c.opt.table, { timeout: 9000 }).catch(() => {});
     await p.waitForTimeout(500);
-    problems = await p.evaluate(measure, { minMain: MIN_MAIN, vw: c.w, sel: c.opt.sel, wantTable: !!c.opt.table, known: c.opt.knownSideScroll || 0 });
+    problems = await p.evaluate(measure, { minMain: MIN_MAIN, vw: c.w, sel: c.opt.sel, wantTable: !!c.opt.table });
   } catch (e) { problems = ["LOAD FAILED " + String(e.message).slice(0, 120)]; }
   problems.push(...errs.slice(0, 3));
   const tag = `${c.name}-${c.state}-${c.w}${c.dpr !== 1 ? "@" + c.dpr : ""}-${c.theme}`;
