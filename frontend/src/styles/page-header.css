@@ -11,7 +11,7 @@
 .ph-plan svg { width: 13px; height: 13px; flex: none; }
 .ph-plan.gold { background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 55%, transparent); color: var(--gold); }
 .ph-eyebrow { font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.ph-title { margin: 0; font: 600 clamp(26px, 3.1vw, 36px)/1.12 var(--serif); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
+.ph-title { margin: 0; font: 500 clamp(26px, 3.1vw, 36px)/1.12 var(--serif); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
 .ph-desc { margin: 0; max-width: 64ch; color: var(--muted); font-size: 15.5px; line-height: 1.55; }
 .ph-desc b, .ph-desc strong { color: var(--text); font-weight: 650; }
 .ph-desc a { color: var(--gold); text-underline-offset: 3px; }
