@@ -31,11 +31,12 @@ import "./styles/prism.css";
 import "./styles/pagefaqs.css";
 import "./styles/luxe.css";
 import "./styles/headerlinks.css";
+import { installDemo } from "./lib/demo";
+import { installResilience } from "./lib/resilience";
+// Loaded last so these (sidebar, earnings dialog, opaque overlays) win over the page styles above. Kept apart from the style list so a team change there never collides with it.
 import "./styles/sidebar.css";
 import "./styles/earnings.css";
 import "./styles/overlay.css";
-import { installDemo } from "./lib/demo";
-import { installResilience } from "./lib/resilience";
 import { purgeLegacy } from "./lib/persist";
 
 installDemo();

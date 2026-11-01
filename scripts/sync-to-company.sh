@@ -39,7 +39,7 @@ git checkout -q -b "$BRANCH" "origin/$BASE"
 echo "3/6 applying the new work to $FOLDER/ (three-way, keeps the team's changes)"
 git -C "$SRC" diff --binary --no-color "$OLD" HEAD > "$WORK/new.patch"
 # A three-way merge needs the file versions the patch was made from; the company clone does not have them, so bring them over from this repository.
-git fetch -q "$SRC" "$OLD" HEAD 2>/dev/null || git fetch -q "$SRC" 2>/dev/null || true
+git fetch -q "$SRC" "+refs/heads/*:refs/remotes/src/*" "+HEAD:refs/remotes/src/HEAD" 2>/dev/null || git fetch -q "$SRC" HEAD 2>/dev/null || true
 if ! git apply --3way --index --directory="$FOLDER" "$WORK/new.patch" 2> "$WORK/apply.log"; then
   echo "STOP: the new work conflicts with changes made in $FOLDER/ on $BASE. Files:" >&2
   grep -E "^(error|Applied patch .* with .* conflict)" "$WORK/apply.log" | head -20 >&2
