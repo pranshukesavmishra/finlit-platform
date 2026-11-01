@@ -263,14 +263,7 @@ tr.tot td { border-top: 1px solid var(--text); font-weight: 600; }
 .pagehead { background: transparent; border-bottom: 1px solid var(--border); }
 
 /* ---- product shell (left navigation): quiet list, not a floating card ---- */
-:root:root .side { border: 1px solid var(--border); border-radius: var(--r-l); box-shadow: none; }
-:root:root .side-i, :root:root .side-toggle, :root:root .side-ic, :root:root .side-plan { border-radius: var(--r-m); }
-:root:root .side-i.on { background: var(--s3); }
-:root:root .side-i.on .side-ic { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
-:root[data-theme="light"]:root .side-i.on .side-ic { background: #1C1A15; color: #FBF8F1; border-color: #1C1A15; }
-:root:root .side-b { border-radius: var(--r-s); }
 :root:root .shell-fab { border-radius: var(--r-m); border-width: 1px; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
-@media (max-width: 960px) { :root:root .side { border-radius: 0; } }
 
 /* ---- footer: a real colophon ---- */
 footer.band { border-top: 1px solid #3A362D; --band-a: #1B1915; }

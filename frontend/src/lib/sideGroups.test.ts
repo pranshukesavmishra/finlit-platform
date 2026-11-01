@@ -11,10 +11,10 @@ describe("left rail group badges", () => {
     for (const t of navTitles) expect(SIDE_BADGES[t] ?? SIDE_BADGES[t === "Learn and community" ? "Learn" : t], t).toBeTruthy();
     for (const t of ["Overview", "Find stocks", "Analyse a company", "Investment calculators", "Charts", "Markets", "News & events", "Funds", "Your workspace", "Gold dashboards", "Learn", "Account"]) expect(SIDE_BADGES[t], t).toBeTruthy();
   });
-  it("gives every group an icon that exists and a palette token", () => {
+  it("gives every group an icon that exists and no colour of its own", () => {
     for (const [t, b] of Object.entries(SIDE_BADGES)) {
       expect(ICONS[b.icon], t + " icon").toBeTruthy();
-      expect(b.tone, t + " tone").toMatch(/^--k[1-8]$/);
+      expect(Object.keys(b), t).toEqual(["icon"]);
     }
   });
   it("falls back to a neutral badge for an unknown title", () => { expect(badgeFor("Nope").icon).toBe("grid"); });

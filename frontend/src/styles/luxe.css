@@ -67,10 +67,6 @@ table tbody tr:hover > td:first-child, table tbody tr:hover > th:first-child { b
 table td, table th { border-color: color-mix(in srgb, var(--border) 75%, transparent); }
 
 /* ---- the app sidebar ---- */
-.side { border-radius: 22px; box-shadow: var(--card-shadow); }
-.side-i { border-radius: 12px; }
-.side-i.on { background: linear-gradient(90deg, var(--gold-soft), transparent); }
-.side-t, .side-gt { letter-spacing: .16em; }
 
 /* ---- dark bands (hero, plans, footer): deep forest-ink with a gold hairline ---- */
 footer.band, .band.foot { background: linear-gradient(180deg, var(--foot-a), var(--foot-b)); border-top: 1px solid color-mix(in srgb, var(--gold) 35%, transparent); }
@@ -241,7 +237,6 @@ hr { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var
 .ddm a { min-width: 0; } .ddm a > span:last-child { min-width: 0; } .ddm a small { white-space: normal; overflow-wrap: anywhere; }
 :root .ddm.wide.right { left: auto; right: -300px; width: min(800px, calc(100vw - 48px)); }
 /* in the narrow left rail the Gold tag is a small gold dot (its name is the tooltip and the screen-reader label) */
-.side-l .gtag { font-size: 0; width: 8px; height: 8px; padding: 0; margin-left: 8px; border-radius: 50%; background: var(--gold); display: inline-block; vertical-align: middle; }
 
 /* Small-phone overflow fixes found by the audit crawl at 360 px (the page must never scroll sideways). */
 .dbars { grid-auto-columns: minmax(0, 1fr); }

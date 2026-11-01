@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as RKeyEvent } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { Icon } from "../lib/icons";
 import { useAuth } from "../lib/auth";
@@ -37,6 +37,28 @@ export function AppShell() {
   // what you opened or closed by hand is remembered.
   const [folded, setFolded] = useState<Record<string, boolean>>(() => loadUi("side-groups", 1, isBoolMap, {}));
   const toggleGroup = (t: string, isOpen: boolean) => setFolded((f) => { const n = { ...f, [t]: isOpen }; saveUi("side-groups", 1, n); return n; });
+  // "Find a page": filters the links by name and opens the groups that match (Ctrl+/ focuses it).
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "/") return;
+      e.preventDefault();
+      if (collapsed && matchMedia("(min-width: 961px)").matches) setCollapsed(false);
+      setOpen(true);
+      requestAnimationFrame(() => searchRef.current?.focus());
+    };
+    addEventListener("keydown", k); return () => removeEventListener("keydown", k);
+  }, [collapsed]);
+  const showTip = (el: HTMLElement, label: string) => {
+    if (!collapsed || !matchMedia("(min-width: 961px)").matches) return;
+    const r = el.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 10 });
+  };
   const followed = new Set(wl.lists.flatMap((l) => l.symbols)).size;
 
   // The rail follows the site map (lib/nav.ts): the same five headings and groups as the header, plus the extras and the account.
@@ -66,30 +88,59 @@ export function AppShell() {
   const here = (g: Group) => g.items.some((i) => (i.end ? pathname === i.to : pathname === i.to || pathname.startsWith(i.to + "/")));
   // open when the page you are on is inside it, otherwise what you chose; the one-page Overview group and the first visit start open for Find stocks
   const groupOpen = (g: Group) => here(g) || folded[g.title] === true || (folded[g.title] === undefined && (g.items.length === 1 || g.title === "Find stocks"));
+  const shown = useMemo(() => groups.map((g) => ({ g, items: !q ? g.items : g.title.toLowerCase().includes(q) ? g.items : g.items.filter((i) => i.label.toLowerCase().includes(q)) })), [groups, q]);
+  const hits = shown.reduce((n, x) => n + x.items.length, 0);
+  // Arrow keys walk the visible group headers and links; Home/End jump to the ends; ArrowUp from the first row returns to the search box.
+  const onNavKey = (e: RKeyEvent<HTMLElement>) => {
+    const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+    if (!keys.includes(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+    const rows = [...e.currentTarget.querySelectorAll<HTMLElement>(".side-gb, .side-i")].filter((el) => !el.closest("[inert]") && getComputedStyle(el).display !== "none");
+    const at = rows.indexOf(document.activeElement as HTMLElement);
+    if (at < 0) return;
+    e.preventDefault();
+    const to = e.key === "Home" ? 0 : e.key === "End" ? rows.length - 1 : e.key === "ArrowDown" ? Math.min(at + 1, rows.length - 1) : at - 1;
+    if (to < 0) searchRef.current?.focus(); else rows[to].focus();
+  };
   return (
     <div className={"shell" + (collapsed ? " is-collapsed" : "") + (open ? " is-open" : "")}>
       <button className="shell-fab" onClick={() => setOpen(true)} aria-label="Open the product menu" aria-expanded={open}><Icon name="panel" /><span>Menu</span></button>
       {open && <div className="shell-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
       <aside className="side" aria-label="Product navigation">
-        <div className="side-top">
-          <span className="side-t"><span className="side-tb" aria-hidden="true"><Icon name="grid" /></span>Workspace</span>
+        <div className={"side-top" + (scrolled ? " is-scrolled" : "")}>
+          <span className="side-t"><span className="side-tb" aria-hidden="true"><Icon name="grid" /></span><span className="side-tt">Workspace</span></span>
           <button className="side-toggle hide-sm" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand the side menu" : "Collapse the side menu"} aria-pressed={collapsed} title={collapsed ? "Expand" : "Collapse"}><Icon name="panel" /></button>
           <button className="side-toggle show-sm" onClick={() => setOpen(false)} aria-label="Close the product menu">✕</button>
+          <div className="side-find">
+            <Icon name="search" />
+            <input ref={searchRef} type="search" value={query} placeholder="Find a page" aria-label="Find a page" autoComplete="off" spellCheck={false}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && query) { e.stopPropagation(); setQuery(""); }
+                else if (e.key === "ArrowDown") { e.preventDefault(); bodyRef.current?.querySelector<HTMLElement>(".side-i, .side-gb")?.focus(); }
+              }} />
+            {query ? <button type="button" className="side-clear" aria-label="Clear the search" onClick={() => { setQuery(""); searchRef.current?.focus(); }}>✕</button> : <kbd aria-hidden="true">Ctrl /</kbd>}
+          </div>
         </div>
-        <nav>
-          {groups.map((g) => {
-            const gid = "sg-" + g.title.replace(/\W+/g, "-"), isOpen = groupOpen(g), b = badgeFor(g.title);
+        <div className="side-body" ref={bodyRef} onScroll={(e) => { const v = e.currentTarget.scrollTop > 2; if (v !== scrolled) setScrolled(v); setTip(null); }}>
+        <nav onKeyDown={onNavKey}>
+          {q && hits === 0 && <p className="side-none" role="status">No page matches “{query.trim()}”.</p>}
+          {shown.map(({ g, items }) => {
+            if (q && !items.length) return null;
+            const gid = "sg-" + g.title.replace(/\W+/g, "-"), isOpen = !!q || groupOpen(g), b = badgeFor(g.title), holds = here(g);
             return (
-            <div className={"side-g" + (isOpen ? " is-open" : "")} key={g.title} style={{ "--gt": `var(${b.tone})` } as React.CSSProperties}>
+            <div className={"side-g" + (isOpen ? " is-open" : "") + (holds ? " has-here" : "")} key={g.title}>
               <button type="button" className="side-gt side-gb" aria-expanded={isOpen} aria-controls={gid} onClick={() => toggleGroup(g.title, !isOpen)}>
-                <span className="side-gbd" aria-hidden="true"><Icon name={b.icon} /></span><span className="side-gname">{g.title}</span><span className="side-gn" aria-label={g.items.length + (g.items.length === 1 ? " page" : " pages")}>{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+                <span className="side-gbd" aria-hidden="true"><Icon name={b.icon} /></span><span className="side-gname">{g.title}</span><span className="side-gn" aria-label={g.items.length + (g.items.length === 1 ? " page" : " pages")}>{g.items.length}</span><svg className="side-gc" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
               </button>
-              <div id={gid} className="side-gi" role="region" aria-label={g.title} hidden={!isOpen && !collapsed}>
-              {g.items.map((i) => (
-                <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} title={collapsed ? i.label : undefined}>
+              <div id={gid} className="side-gi" role="region" aria-label={g.title} inert={!isOpen && !collapsed}>
+              <div className="side-gin">
+              {items.map((i) => (
+                <NavLink key={i.to} to={i.to} end={i.end ?? false} className={({ isActive }) => "side-i" + (i.sub ? " sub" : "") + (isActive ? " on" : "")} aria-label={collapsed ? i.label : undefined}
+                  onMouseEnter={(e) => showTip(e.currentTarget, i.label)} onFocus={(e) => showTip(e.currentTarget, i.label)} onMouseLeave={() => setTip(null)} onBlur={() => setTip(null)}>
                   <span className="side-ic"><Icon name={i.icon} /></span><span className="side-l"><span className="side-lt">{i.label}</span>{i.gold && <em className="gtag" title="Gold plan" aria-label="Gold plan">Gold</em>}</span>{i.badge && <span className="side-b">{i.badge}</span>}
                 </NavLink>
               ))}
+              </div>
               </div>
             </div>
             );
@@ -101,7 +152,9 @@ export function AppShell() {
             {plan !== "gold" ? <><p>{plan === "basic" ? "Unlock the FinLit score, watchlists and more." : "Gold adds FinLit Prism and deeper analysis."}</p><Link className="btn primary" to={user ? "/account/plan?want=" + (plan === "basic" ? "silver" : "gold") : "/plans"}>{plan === "basic" ? "See Silver" : "See Gold"}</Link></> : <p>Everything is unlocked.</p>}
           </div>
         </div>
+        </div>
       </aside>
+      {tip && <div className="side-tip" role="presentation" style={{ top: tip.top, left: tip.left }}>{tip.label}</div>}
       <div className="shell-main"><Outlet /></div>
     </div>
   );

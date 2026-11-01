@@ -1,0 +1,126 @@
+/* ==========================================================================
+   LEFT RAIL ("Workspace") - one neutral palette, one gold accent.
+   Owner item 27: less colourful, more professional, premium, uniform, interactive, in our theme.
+   Rules of this file:
+   - Only theme tokens (--s1/--s2, --border, --text/--muted/--faint, --gold). No per-group hue, in light or dark.
+   - Gold appears three times only: the marker of the ACTIVE page, the "Gold plan" dot, and the keyboard focus ring.
+   - 8px spacing grid, 12px radii, hairline borders, no shadows except a hairline under the sticky header while the list is scrolled.
+   - Sans for everything, 14px labels, weights 500 (rest) / 600 (current page and group headers).
+   - Opaque surfaces only. Loaded before overlay.css, which still sets the drawer's z-index and backdrop.
+   Markup: components/AppShell.tsx. Tests: AppShell.test.tsx.
+   ========================================================================== */
+.side {
+  --side-ease: cubic-bezier(.2, .7, .2, 1);
+  position: sticky; top: 74px; align-self: start; max-height: calc(100dvh - 86px); margin: 22px 0 22px 20px; padding: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 12px; box-shadow: none;
+}
+
+/* ---- sticky header: title, fold button, search ---- */
+.side-top { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 8px; padding: 16px 16px 12px; background: var(--s1); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; position: relative; z-index: 1; }
+.side-top.is-scrolled { border-bottom-color: var(--border); box-shadow: 0 6px 8px -8px rgba(0, 0, 0, .28); }
+.side-t { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font: 600 12px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.side-tb { display: grid; place-items: center; color: var(--muted); } .side-tb svg { width: 18px; height: 18px; }
+.side-toggle { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; transition: background .15s, color .15s, border-color .15s, transform .1s; }
+.side-toggle svg { width: 16px; height: 16px; }
+.side-toggle:hover { background: var(--s2); color: var(--text); border-color: var(--border-strong); }
+:root:root .side-toggle.show-sm { display: none; }
+.side-toggle:active { transform: scale(.94); }
+.side-find { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px 0 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--s1); color: var(--faint); transition: border-color .15s, box-shadow .15s, background .15s; }
+.side-find:hover { background: var(--s2); }
+.side-find:focus-within { background: var(--s1); border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); color: var(--muted); }
+.side-find > svg { width: 16px; height: 16px; flex: none; }
+:root:root .side-find input, :root:root .side-find input:focus, :root:root .side-find input:focus-visible { flex: 1; min-width: 0; width: auto; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none !important; outline: 0 !important; background: transparent !important; color: var(--text); font: 400 14px/1 var(--sans); }
+:root:root .side-find input::placeholder { color: var(--faint); opacity: 1; }
+.side-find input::-webkit-search-cancel-button { display: none; }
+.side-find kbd { flex: none; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; font: 500 11px/1.2 var(--sans); color: var(--faint); background: transparent; }
+.side-clear { flex: none; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--faint); font-size: 11px; cursor: pointer; }
+.side-clear:hover { background: var(--s3); color: var(--text); }
+
+/* ---- scrolling list with a thin neutral scrollbar ---- */
+.side-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 8px 16px; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.side-body::-webkit-scrollbar { width: 8px; } .side-body::-webkit-scrollbar-track { background: transparent; }
+.side-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--s1); }
+.side nav { display: grid; gap: 4px; }
+.side-none { margin: 8px; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+
+/* ---- group header: line icon, label, quiet count, chevron ---- */
+.side-g { display: block; }
+.side-gb { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0 8px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font: 600 14px/1.2 var(--sans); letter-spacing: 0; text-align: left; text-transform: none; cursor: pointer; transition: background .15s, color .15s, transform .1s; }
+.side-gb:hover { background: var(--s2); color: var(--text); }
+.side-gb:active { transform: scale(.985); }
+.side-g.has-here > .side-gb { color: var(--text); }
+.side-gbd { flex: none; width: 18px; height: 18px; display: grid; place-items: center; color: var(--muted); transition: color .15s; }
+.side-gbd svg { width: 18px; height: 18px; }
+.side-gb:hover .side-gbd, .side-g.has-here > .side-gb .side-gbd { color: var(--text); }
+.side-gbd { margin-right: 4px; }
+.side-gname { flex: 1; min-width: 0; }
+.side-gn { flex: none; font: 500 12px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--faint); }
+.side-gc { flex: none; width: 16px; height: 16px; color: var(--faint); transform: rotate(-90deg); transition: transform .22s var(--side-ease), color .15s; }
+.side-gb[aria-expanded="true"] .side-gc { transform: none; }
+.side-gb:hover .side-gc { color: var(--text); }
+
+/* ---- children: a thin neutral rail, a gold marker on the current page only ---- */
+.side-gi { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows .24s var(--side-ease), opacity .18s, visibility 0s .24s; }
+.side-g.is-open > .side-gi { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
+.side-gin { min-height: 0; overflow: hidden; display: grid; gap: 2px; align-content: start; margin-left: 16px; padding: 2px 0 4px 8px; border-left: 1px solid var(--border); }
+.side-i { position: relative; display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 4px 8px; border-radius: 12px; color: var(--muted); font: 500 14px/1.3 var(--sans); text-decoration: none; transition: background .15s, color .15s, transform .1s; }
+.side-i.sub { margin-left: 16px; }
+.side-ic { flex: none; width: 18px; height: 18px; display: grid; place-items: center; color: var(--muted); background: none; border: 0; border-radius: 0; transition: color .15s, transform .18s var(--side-ease); }
+.side-ic svg { width: 18px; height: 18px; }
+.side-l { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; white-space: normal; transition: transform .18s var(--side-ease); }
+.side-lt { min-width: 0; overflow-wrap: anywhere; }
+.side-i:hover { background: var(--s2); color: var(--text); }
+.side-i:hover .side-ic { color: var(--text); transform: translateX(2px); } .side-i:hover .side-l { transform: translateX(2px); }
+.side-i:active { transform: scale(.985); }
+.side-i.on { background: var(--s2); color: var(--text); font-weight: 600; }
+.side-i.on .side-ic { color: var(--text); }
+.side-i.on::before { content: ""; position: absolute; left: -9px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--gold); }
+.side-b { flex: none; padding: 1px 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted); font: 500 12px/1.5 var(--sans); font-variant-numeric: tabular-nums; }
+/* "Gold plan" is one small gold dot (its text stays for screen readers through aria-label) */
+.side-l .gtag { flex: none; width: 6px; height: 6px; margin: 0; padding: 0; border-radius: 50%; background: var(--gold); color: transparent; font-size: 0; line-height: 0; vertical-align: baseline; display: inline-block; }
+.side :is(.side-gb, .side-i, .side-toggle, .side-clear):focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+/* ---- plan card ---- */
+.side-foot { margin-top: 16px; }
+.side-plan { display: grid; gap: 8px; justify-items: start; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--s2); }
+.side-plan p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.side-plan .tier { font-size: 13px; }
+.side-plan .btn { height: 32px; padding: 0 16px; font-size: 13px; border-radius: 12px; }
+
+/* ---- tooltip for the folded rail (rendered by AppShell, fixed to the viewport so the scroll area cannot clip it) ---- */
+.side-tip { position: fixed; z-index: var(--z-tip, 260); transform: translateY(-50%); padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--s1); color: var(--text); font: 500 13px/1.2 var(--sans); white-space: nowrap; pointer-events: none; animation: side-tip-in .12s ease-out; }
+@keyframes side-tip-in { from { opacity: 0; transform: translate(-4px, -50%); } }
+
+/* ---- folded rail (desktop): icons only, groups separated by a hairline ---- */
+@media (min-width: 961px) {
+  .is-collapsed .side-top { grid-template-columns: 1fr; justify-items: center; padding: 16px 8px 8px; }
+  .is-collapsed .side-t, .is-collapsed .side-find, .is-collapsed .side-gb, .is-collapsed .side-l, .is-collapsed .side-b { display: none; }
+  .is-collapsed .side-body { padding: 8px; }
+  .is-collapsed .side nav { gap: 0; }
+  .is-collapsed .side-g + .side-g { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .is-collapsed .side-gi { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition: none; }
+  .is-collapsed .side-gin { margin: 0; padding: 0; border: 0; justify-items: center; }
+  .is-collapsed .side-i, .is-collapsed .side-i.sub { width: 40px; margin: 0; padding: 0; justify-content: center; }
+  .is-collapsed .side-i:hover .side-ic { transform: none; }
+  .is-collapsed .side-i.on::before { left: -8px; top: 10px; bottom: 10px; }
+  .is-collapsed .side-foot { margin-top: 8px; }
+  .is-collapsed .side-plan { padding: 8px; justify-items: center; background: transparent; }
+  .is-collapsed .side-plan p, .is-collapsed .side-plan .btn { display: none; }
+}
+
+/* ---- phone / tablet drawer ---- */
+@media (max-width: 960px) {
+  .side { position: fixed; top: 0; bottom: 0; left: 0; width: min(320px, 90vw); max-height: none; margin: 0; border-width: 0 1px 0 0; border-radius: 0 12px 12px 0; transform: translateX(-105%); visibility: hidden; transition: transform .24s var(--side-ease), visibility 0s .24s; }
+  .is-open .side { transform: none; visibility: visible; transition-delay: 0s; }
+  .side-find kbd { display: none; }
+  :root:root .side-toggle.hide-sm { display: none; } :root:root .side-toggle.show-sm { display: grid; }
+  .side-top { padding-top: max(16px, env(safe-area-inset-top, 0px)); }
+  .side-body { padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+  .side-i { min-height: 44px; }
+  .side-gb { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .side, .side *, .side-tip { transition-duration: .01ms !important; transition-delay: 0s !important; animation: none !important; }
+  .side-i:hover .side-ic, .side-i:hover .side-l { transform: none; }
+}
