@@ -397,3 +397,6 @@
 .pf-t { position: relative; }
 .rc-upd { font-size: 13px; margin: 0 0 10px; }
 .rc-stale { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--warn); border-radius: 6px; background: var(--warn-soft); color: var(--text); font-size: 14px; }
+
+/* a visually hidden TABLE is still laid out as a table (it ignores width and overflow), so it can widen the page: make it a clipped block */
+table.sr-only { display: block; max-width: 1px; max-height: 1px; contain: strict; }
