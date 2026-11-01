@@ -46,6 +46,8 @@ W="docker compose -f /opt/finlit/docker-compose.yml run --rm -T worker"
 10 5 * * *      root $W precompute-prism >> /var/log/finlit-ingest.log 2>&1
 # Prebuilt screens of the Advanced score screener: after the Prism batch (the supervisor runs it the same way, docs/PRESETS.md).
 40 6 * * *      root $W refresh-presets >> /var/log/finlit-ingest.log 2>&1
+# Earnings-call summaries (needs GEMINI_API_KEY; without it the command only reports "not_configured"). Bounded per run, resumes the next night (docs/EARNINGS-CALLS.md).
+45 4 * * *      root $W refresh-earnings-calls >> /var/log/finlit-ingest.log 2>&1
 50 3 * * 6       root $W refresh-leadership >> /var/log/finlit-ingest.log 2>&1
 10 4 * 1,4,7,10 0 root [ $(date +\%d) -le 7 ] && $W backtest-leadership >> /var/log/finlit-ingest.log 2>&1
 # Keep the database inside its storage budget.

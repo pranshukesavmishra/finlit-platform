@@ -12,3 +12,5 @@ cryptography==50.0.2
 # AMFI's expense ratio (TER) file is an Excel workbook (finlit/disclosure.py). openpyxl parses its XML with defusedxml when installed.
 openpyxl==3.1.5
 defusedxml==0.7.1
+# Earnings-call summaries (finlit/earnings): reads the text of a transcript PDF the exchanges publish. Pure Python, no system library.
+pypdf==6.21.4

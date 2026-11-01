@@ -7,6 +7,7 @@ export const NAV: NavItem[] = [
   ["notes", "Scorecard", "notes", "The FinLit score and what lifts or weighs on it"],
   ["price", "Price", "line", "Price chart, returns and technical levels"],
   ["quarter", "Quarter", "notes", "The latest quarter against a year ago"],
+  ["earnings-call", "Earnings call", "notes", "What management said on the latest earnings call, with the quotes"],
   ["financials", "Financials", "bars", "Profit and loss, balance sheet and cash flow"],
   ["trends", "Trends", "line", "How sales, profit and margins have moved"],
   ["ratios", "Ratios", "gauge", "Valuation, returns and balance sheet ratios"],

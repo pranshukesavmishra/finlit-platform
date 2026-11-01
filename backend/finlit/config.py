@@ -99,6 +99,9 @@ class Settings:
     mail_mode: str = field(default_factory=lambda: os.getenv("MAIL_MODE", "console"))
     resend_api_key: str = field(default_factory=lambda: os.getenv("RESEND_API_KEY", ""))
     mail_from: str = field(default_factory=lambda: os.getenv("MAIL_FROM", "FinLit <hello@finlitventures.com>"))
+    # Earnings-call summaries (finlit/earnings, docs/EARNINGS-CALLS.md). Empty key = the nightly job reports "not configured" and the site says the summaries are not available yet.
+    gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", "").strip())
+    gemini_model: str = field(default_factory=lambda: os.getenv("EARNINGS_LLM_MODEL", "").strip() or os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.8-flash")
     # Free sample reports shown in full to everyone (the home page example).
     # The separate site backend (blog/CMS, portfolio report, contact forms, chat, ticker). Empty = those /api routes answer 404.
     site_api_url: str = field(default_factory=lambda: site_api_url_default())

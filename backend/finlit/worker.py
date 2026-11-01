@@ -757,6 +757,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_rm = sub.add_parser("rebuild-metrics", help="recompute every screener filter value from stored snapshots (no provider calls)")
     p_rm.add_argument("--only-missing", action="store_true")
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
+    p_ec = sub.add_parser("refresh-earnings-calls", help="nightly: find the latest earnings-call transcripts of the largest companies, extract their text and answer the fixed questions with the language model (docs/EARNINGS-CALLS.md; needs GEMINI_API_KEY)")
+    p_ec.add_argument("--max-calls", type=int, default=None, help="summarise at most this many calls in this run")
     sub.add_parser("refresh-presets", help="nightly, after the Prism batch: momentum and growth scores, industry breadth and theme states, theme-tag top-up, and every prebuilt screen into the cache (database only)")
     p_ld = sub.add_parser("refresh-leadership", help="weekly: Leader / In line / Laggard labels from the stored weekly prices and the sector and market indices (database and cached index levels only)")
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
@@ -1146,6 +1148,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     print({"status": "skipped", "reason": f"already computed for {done}"})
                     return 0
             print(await leadership.run(store, settings, as_of=as_of, backfill_from=_date.fromisoformat(args.backfill_from) if args.backfill_from else None))
+            return 0
+        if args.cmd == "refresh-earnings-calls":
+            from .earnings import service as earnings_service
+            from .earnings.config import MAX_CALLS_PER_RUN
+            from .mf import record_run
+            res = await earnings_service.run(store, settings, max_calls=args.max_calls or MAX_CALLS_PER_RUN)
+            await record_run(store, args.cmd, res)
+            print(json.dumps(res, default=str)[:3000])
             return 0
         if args.cmd == "refresh-presets":
             from .presets import service as preset_service
