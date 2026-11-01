@@ -47,3 +47,9 @@
 .hs-dots li.hs-gap { margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--border-strong, var(--border)); }
 .hs-leg-g { grid-template-columns: 1fr; } .hs-leg-g li { display: flex; align-items: flex-start; gap: 8px; } .hs-leg-g .hs-dot { width: 18px; height: 18px; font-size: 9.5px; cursor: default; box-shadow: none; flex: none; }
 .hs-leg-p .hs-leg-g { gap: 6px; }
+
+/* the screens a company is in, under its tags */
+.hs-screens { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
+.hs-sc-k { font: 700 10.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.hs-sc { display: inline-flex; align-items: center; min-height: 26px; padding: 0 11px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--border)); background: var(--gold-soft); color: var(--text); font: 600 12.5px var(--sans); text-decoration: none; }
+.hs-sc:hover { border-color: var(--gold); } .hs-sc:focus-visible { outline: 2px solid var(--focus-ring, var(--gold)); outline-offset: 2px; }

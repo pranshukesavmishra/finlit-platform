@@ -94,3 +94,28 @@ def test_job_is_registered_after_prism():
     from finlit.jobs.registry import by_name
     j = by_name({})["presets"]
     assert j.args == ("refresh-presets",) and j.cls == "bulk" and "prism" in j.prerequisites and j.sla.hours == 30
+
+
+async def test_a_company_page_can_ask_which_top_rated_and_theme_screens_it_is_in(app, store):  # noqa: F811
+    await wipe(store)
+    gold = await signed_in(app, "badges@example.com", plan="gold")
+    silver = await signed_in(app, "badges-s@example.com", plan="silver")
+    from finlit.presets.registry import BY_ID
+    for pid, syms in (("emerging-tech", ["AAA", "BBB"]), ("highest-rated-large", ["AAA"]), ("consistent-growers", ["AAA", "CCC"])):
+        p = BY_ID[pid]
+        chips = [c.id for c in p.chips if c.default]
+        rows = [{"symbol": x} for x in syms]
+        await service.store_result(store, p, {"chips": chips, "asOf": "2026-10-31", "rows": rows[:1], "exportRows": rows, "count": len(rows)})   # the shown list is shorter than the full match
+    r = await gold.get("/api/screener/presets/for/bbb")
+    d = r.json()
+    assert r.status_code == 200 and d["symbol"] == "BBB" and d["ready"] is True and d["asOf"] == "2026-10-31"
+    assert [s["id"] for s in d["screens"]] == ["emerging-tech"]                                      # in the full match, though not in the shown rows; the large-cap list does not hold it
+    both = (await gold.get("/api/screener/presets/for/AAA")).json()
+    assert sorted(s["id"] for s in both["screens"]) == ["emerging-tech", "highest-rated-large"]    # a growth screen is never named on a company page
+    assert (await gold.get("/api/screener/presets/for/ZZZ")).json()["screens"] == []                # in none: nothing to say
+    assert (await gold.get("/api/screener/presets/for/bad%20one")).status_code == 422
+    assert (await silver.get("/api/screener/presets/for/AAA")).status_code == 403                    # the server enforces the plan
+    assert (await new_client(app).get("/api/screener/presets/for/AAA")).status_code in (401, 403)
+    await wipe(store)
+    await store.redis.flushdb()                                                                       # the results are also kept in Redis; this is the test database 15
+    assert (await gold.get("/api/screener/presets/for/AAA")).json() == {"symbol": "AAA", "screens": [], "ready": False, "asOf": None}   # before the first nightly run: says it is not ready
