@@ -104,6 +104,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | earnings-calls (`refresh-earnings-calls`, needs `GEMINI_API_KEY`) | bulk | 44 | 48 h | NIGHT, MORNING; bounded per run, resumable (docs/EARNINGS-CALLS.md) |
 | leadership | bulk | 45 | 8 d | Saturday NIGHT |
 | portfolios, score-mf, backfill-mf (funds, `FUND_LOADS_ENABLED=1`) | bulk | 50, 55, 60 | 26 h, 26 h, 8 d | NIGHT, MORNING; score-mf after portfolios |
+| mf-screen (funds, `FUND_LOADS_ENABLED=1`; `refresh-mf-screen`, docs/MF-FILTERS.md) | bulk | 57 | 30 h | NIGHT, MORNING; after facts, industry and portfolios; database only |
 | backfill-history | bulk | 65 | 8 d | NIGHT, MORNING |
 | backtest-leadership | bulk | 70 | 100 d | first Sunday of Jan/Apr/Jul/Oct, NIGHT |
 | rebuild-metrics, short-history, history-probe, dhan-check, universe (Sunday) | bulk/light | 71-85 | 8-17 d | weekly NIGHT |

@@ -812,6 +812,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_sc.add_argument("--symbols", nargs="*", default=None, help="AMFI scheme codes or ETF symbols: the whole universe is scored (peer medians need it) but only these are written")
     p_sc.add_argument("--limit", type=int, default=None, help="testing only: score just the first N schemes and N ETFs (their peer sets are then not the real ones); never removes other rows")
     p_sc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
+    p_ms = sub.add_parser("refresh-mf-screen", help="nightly, after refresh-facts / refresh-industry / refresh-portfolios: the Mutual Fund Screener's figures (volatility, worst month, downside capture, ranks in category, exit load, portfolio and category-flow summaries, theme tags) from tables already held; one transaction, idempotent, no network (finlit/mfscreen); recorded at /api/mf/status (run:refresh-mf-screen)")
+    p_ms.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")
     p_bf = sub.add_parser("backfill-mf", help="one-off, resumable: 5 years of NAV history from AMFI, one fund house at a time (run once after the first refresh-mf)")
     p_bf.add_argument("--amc", default="all", help="AMFI fund house id or name, or all")
     p_bf.add_argument("--force", action="store_true")
@@ -1088,6 +1090,23 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                                                **{k: [str(x)[:60] for x in v[:4]] + ([f"+{len(v) - 4} more"] if len(v) > 4 else []) for k, v in result.items() if isinstance(v, list) and v}})
             print(result)
             return 0 if result.get("status") in ("ok", "partial", "skipped") else 1   # partial = some instruments failed but good rows were kept; skipped = nothing to do (no ETF price source set up); a refused or empty answer stops the boot chain
+        if args.cmd == "refresh-mf-screen":
+            await _step_aside(store)
+            from .mf import last_run_age_hours, record_run
+            from .mfscreen import job as screen_job
+            if args.max_age_hours:
+                age, last = await last_run_age_hours(store, args.cmd)
+                if age is not None and last == "ok" and age < args.max_age_hours:
+                    print({"status": "skipped", "reason": f"ran {age:.1f} hours ago ({last})"})
+                    return 0
+            try:
+                result = await screen_job.run(store, settings)
+            except Exception as exc:
+                await record_run(store, args.cmd, {"status": "error", "error": f"{exc.__class__.__name__}: {exc}"[:300]})
+                raise
+            await record_run(store, args.cmd, result)
+            print(json.dumps(result, default=str)[:3000])
+            return 0 if result.get("status") in ("ok", "skipped") else 1
         if args.cmd == "score-mf":
             await _step_aside(store)   # a visitor waiting for a report comes first (this job is one long CPU-bound pass)
             from .mf import last_run_age_hours, record_run
