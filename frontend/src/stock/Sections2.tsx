@@ -14,6 +14,7 @@ import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
 import { PrismMethod } from "./PrismCompare";
+import { PrismHistoryCard } from "./PrismHistory";
 import { SegmentHistory } from "./SegmentMix";
 import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
 
@@ -241,6 +242,7 @@ export function MethodSection({ s }: { s: Summary }) {
         </div>
       </div>
       <PrismMethod symbol={s.meta.symbol} statement={s.meta.statement} />
+      <PrismHistoryCard symbol={s.meta.symbol} statement={s.meta.statement} />
     </section>
   );
 }

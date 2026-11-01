@@ -22,6 +22,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (path === "/api/stocks/search-index") return file("search-index.json");
   if (path === "/api/screener/universe") return file("screener.json");
   if (path === "/api/search/quotes") return file("search-quotes.json");
+  if (path === "/api/prism/history") return json(sampleHistory(url.searchParams.get("symbol") || "RELIANCE", url.searchParams.get("statement") || "consolidated"));
   if (path === "/api/macro") return file("macro.json");
   if (path === "/api/flows") return file("flows.json");
   if (path === "/api/indices") return file("indices.json");
@@ -84,4 +85,16 @@ export function installDemo() {
     const u = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     return /\/api\//.test(u) && !u.includes("/demo/") ? demoFetch(input, init) : real(input, init);
   };
+}
+
+
+/** Sample Prism history for the demo build only: 14 weekly points with one model-version change, so the chart can be seen. Not real figures. */
+function sampleHistory(symbol: string, statement: string) {
+  const days = Array.from({ length: 14 }, (_, i) => new Date(Date.UTC(2026, 6, 6 + i * 7)).toISOString().slice(0, 10));
+  const points = days.map((day, i) => {
+    const w = (a: number, b: number) => Math.round((a + Math.sin(i / 2 + b) * 4 + i * 0.3) * 10) / 10;
+    return { day, modelVersion: i < 9 ? "3.6.10" : "3.6.11", final: w(58, 0), label: "AVERAGE", status: "RATED",
+      parts: { fundamental: w(55, 1), valuation: w(42, 2), quality: w(79, 3), risk: w(88, 4) }, shortTerm: Math.round(Math.sin(i / 1.7) * 38), longTerm: Math.round(-20 + i * 3) };
+  });
+  return { symbol, statement, points, firstDay: days[0], note: "Sample data for the demo." };
 }

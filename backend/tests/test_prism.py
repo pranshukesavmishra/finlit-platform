@@ -1018,3 +1018,54 @@ async def test_the_scores_list_blanks_a_provisional_long_term_score(env):
     got = (await gold.get("/api/prism/scores?symbols=PRV,CMP")).json()["scores"]
     assert got["PRV"]["longTerm"] == {"score": None, "word": "Not available"} and got["PRV"]["shortTerm"]["score"] == 40.0
     assert got["CMP"]["longTerm"]["score"] == 55.0
+
+
+# ---- the score over time (prism_history)
+def _view(final=70.0, parts=(50, 60, 70, 80), model="3.6.11", st=40.0, lt=55.0, status="RATED"):
+    rating = {"final": final, "label": "HEALTHY", "status": status, "modelVersion": model,
+              "parts": dict(zip(("fundamental", "valuation", "quality", "risk"), parts)) if final is not None else None}
+    tech = {"status": "ready", "asOf": "2026-10-23", "shortTerm": {"score": st, "rating": "Buy", "status": "ready", "factors": []},
+            "longTerm": {"score": lt, "rating": "Buy", "status": "ready", "factors": []}}
+    return {"rating": rating, "technicalAssessment": tech}
+
+
+async def test_history_is_one_row_a_day_and_a_score_is_never_claimed_for_a_day_it_was_not_worked_out(env):
+    app, _ = env
+    pool = app.state.store.pool
+    await pool.execute("DELETE FROM prism_history WHERE symbol IN ('HISTCO', 'HISTNR', 'HISTTO')")
+    assert await prism.record_history(pool, "HISTCO", "consolidated", _view())
+    assert await prism.record_history(pool, "HISTCO", "consolidated", _view(final=72.5, parts=(55, 61, 71, 81)))      # the same day again: replaces, never a second row
+    rows = await pool.fetch("SELECT * FROM prism_history WHERE symbol = 'HISTCO'")
+    assert len(rows) == 1 and rows[0]["final"] == 72.5 and rows[0]["p_fundamental"] == 55 and rows[0]["p_risk"] == 81 and rows[0]["st_score"] == 40.0 and rows[0]["lt_score"] == 55.0
+    assert rows[0]["model_version"] == "3.6.11" and rows[0]["status"] == "RATED"
+    assert not await prism.record_history(pool, "HISTNR", "consolidated", _view(final=None))                          # a company the model did not rate gets no row
+    assert await pool.fetchval("SELECT count(*) FROM prism_history WHERE symbol = 'HISTNR'") == 0
+    assert await prism.record_technical(pool, "HISTTO", "consolidated", {"st": {"score": 12.0}, "lt": {"score": None}})   # the daily refresh alone: only its own two columns
+    t = await pool.fetchrow("SELECT * FROM prism_history WHERE symbol = 'HISTTO'")
+    assert t["st_score"] == 12.0 and t["lt_score"] is None and t["final"] is None and t["p_fundamental"] is None        # no score claimed for a day it was not calculated
+    assert await prism.record_technical(pool, "HISTCO", "consolidated", {"st": {"score": 15.0}, "lt": {"score": None}})
+    h = await pool.fetchrow("SELECT * FROM prism_history WHERE symbol = 'HISTCO'")
+    assert h["st_score"] == 15.0 and h["lt_score"] == 55.0 and h["final"] == 72.5                                       # a missing long-term view keeps what was there
+    assert not await prism.record_technical(pool, "HISTTO", "consolidated", {"st": {"score": None}, "lt": {"score": None}})
+
+
+async def test_history_route_is_gold_only_ordered_and_honest_about_its_start(env):
+    app, _ = env
+    pool = app.state.store.pool
+    await pool.execute("DELETE FROM prism_history WHERE symbol IN ('HISTRT', 'HISTNONE')")
+    for day, final, model in (("2026-10-20", 60.0, "3.6.10"), ("2026-10-22", 64.0, "3.6.11"), ("2026-10-21", 62.0, "3.6.10")):
+        await pool.execute("INSERT INTO prism_history (symbol, statement, day, model_version, final, label, status, p_fundamental, p_valuation, p_quality, p_risk, st_score, lt_score) "
+                           "VALUES ('HISTRT', 'consolidated', $1, $2, $3, 'HEALTHY', 'RATED', 50, 60, 70, 80, 10, 20)", __import__("datetime").date.fromisoformat(day), model, final)
+    gold, basic = await member(app, "gold"), await member(app, "basic")
+    r = await gold.get("/api/prism/history?symbol=histrt")
+    assert r.status_code == 200
+    d = r.json()
+    assert [p["day"] for p in d["points"]] == ["2026-10-20", "2026-10-21", "2026-10-22"] and d["firstDay"] == "2026-10-20"      # oldest first
+    assert d["points"][2]["final"] == 64.0 and d["points"][2]["parts"] == {"fundamental": 50, "valuation": 60, "quality": 70, "risk": 80}
+    assert [p["modelVersion"] for p in d["points"]] == ["3.6.10", "3.6.10", "3.6.11"]                                       # a formula change is visible on the line
+    none = (await gold.get("/api/prism/history?symbol=HISTNONE")).json()
+    assert none["points"] == [] and none["firstDay"] is None                                                               # no history yet: said, not invented
+    refused = await basic.get("/api/prism/history?symbol=HISTRT")
+    assert refused.status_code == 403 and refused.json()["status"] == "plan_required" and "points" not in refused.text     # the server enforces the plan
+    assert (await gold.get("/api/prism/history?symbol=bad%20symbol")).status_code == 422      # the module's own answer for a bad symbol
+    assert (await client(app).get("/api/prism/history?symbol=HISTRT")).status_code in (401, 403)
