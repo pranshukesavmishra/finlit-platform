@@ -18,10 +18,10 @@ const POINTS = [
 ];
 /** Invented companies and numbers, only to show the shape of the page. */
 const SAMPLE: { n: string; sector: string; z: number; w: string; p: [number, number, number, number]; st: [string, string]; lt: [string, string] }[] = [
-  { n: "Example Company A", sector: "Sector one", z: 82, w: "Strong", p: [78, 64, 85, 71], st: ["Positive", "+31"], lt: ["Positive", "+24"] },
-  { n: "Example Company B", sector: "Sector two", z: 68, w: "Healthy", p: [66, 52, 74, 80], st: ["Neutral", "+6"], lt: ["Positive", "+22"] },
-  { n: "Example Company C", sector: "Sector one", z: 54, w: "Average", p: [58, 45, 60, 49], st: ["Negative", MINUS + "28"], lt: ["Neutral", MINUS + "4"] },
-  { n: "Example Company D", sector: "Sector three", z: 41, w: "Weak", p: [40, 70, 38, 35], st: ["Neutral", MINUS + "9"], lt: ["Negative", MINUS + "33"] },
+  { n: "Example Company A", sector: "Sector one", z: 82, w: "Strong", p: [78, 64, 85, 71], st: ["Uptrend", "+31"], lt: ["Uptrend", "+24"] },
+  { n: "Example Company B", sector: "Sector two", z: 68, w: "Healthy", p: [66, 52, 74, 80], st: ["Sideways", "+6"], lt: ["Uptrend", "+22"] },
+  { n: "Example Company C", sector: "Sector one", z: 54, w: "Average", p: [58, 45, 60, 49], st: ["Downtrend", MINUS + "28"], lt: ["Sideways", MINUS + "4"] },
+  { n: "Example Company D", sector: "Sector three", z: 41, w: "Weak", p: [40, 70, 38, 35], st: ["Sideways", MINUS + "9"], lt: ["Downtrend", MINUS + "33"] },
 ];
 const tone = (v: number) => (v >= 70 ? "hi" : v >= 50 ? "mid" : "lo");
 

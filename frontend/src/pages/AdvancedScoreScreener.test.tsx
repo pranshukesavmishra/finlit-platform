@@ -71,8 +71,8 @@ describe("Advanced score screener (Gold)", () => {
     expect(h).toEqual(expect.arrayContaining(["Prism", "Growth & Profitability", "Valuation", "Quality", "Risk", "Short-term technical", "Long-term technical"]));
     expect(h.join("|").replace("Growth & Profitability", "")).not.toMatch(/Overall|Growth|Profit|Balance|Fundamental\b(?!s)|^Technical$/);
     const r = rowOf("AAA").textContent!;
-    expect(r).toMatch(/85\s*Strong/); expect(r).toMatch(/Strongly positive\+55/); expect(r).toMatch(/Positive\+30/);
-    expect(rowOf("BBB").textContent).toMatch(/Neutral\+5/); expect(rowOf("BBB").textContent).toMatch(/Negative−35/);
+    expect(r).toMatch(/85\s*Strong/); expect(r).toMatch(/Strong uptrend\+55/); expect(r).toMatch(/Uptrend\+30/);
+    expect(rowOf("BBB").textContent).toMatch(/Sideways\+5/); expect(rowOf("BBB").textContent).toMatch(/Downtrend−35/);
     expect(rowOf("FFF").textContent).toMatch(/30\s*PoorProvisional/);
     expect(document.body.textContent?.toLowerCase()).not.toMatch(forbidden);   // the model's own "Buy" / "Hold" never reach the screen
     expect(screen.queryByRole("group", { name: "Fundamental score" })).toBeNull();
@@ -121,16 +121,16 @@ describe("Advanced score screener (Gold)", () => {
   it("filters each technical view by Positive, Neutral or Negative, using the Prism card's bands", () => {
     open();
     const st = screen.getByRole("group", { name: "Short-term technical view" }), lt = screen.getByRole("group", { name: "Long-term technical view" });
-    expect(within(st).getByRole("checkbox", { name: /^Positive \(\+20 and above\)/ })).toBeTruthy();
-    fireEvent.click(within(st).getByRole("checkbox", { name: /^Positive/ }));
+    expect(within(st).getByRole("checkbox", { name: /^Uptrend \(\+20 and above\)/ })).toBeTruthy();
+    fireEvent.click(within(st).getByRole("checkbox", { name: /^Uptrend/ }));
     fireEvent.submit(st.closest("form")!);
     expect(symbols()).toEqual(["AAA", "CCC", "FFF"]);                         // +55, +22, +22 are Positive; BBB +5 is Neutral; unrated have no score
     expect(loc()).toBe("/advanced-score-screener?st=pos");
-    fireEvent.click(within(lt).getByRole("checkbox", { name: /^Negative/ }));
+    fireEvent.click(within(lt).getByRole("checkbox", { name: /^Downtrend/ }));
     fireEvent.submit(st.closest("form")!);
     expect(symbols()).toEqual([]);                                            // Positive short term and Negative long term: nobody here
-    expect(screen.getByRole("button", { name: "Remove filter Long-term technical: Negative" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Remove filter Short-term technical: Positive" }));
+    expect(screen.getByRole("button", { name: "Remove filter Long-term technical: Downtrend" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter Short-term technical: Uptrend" }));
     expect(symbols()).toEqual(["BBB"]);
   });
 
@@ -190,7 +190,7 @@ describe("Advanced score screener (Gold)", () => {
     const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
     expect(text).toMatch(/Prism ratings as of: 2026-10-27/);
     expect(text).toContain("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,85,Strong,RATED,85,55,70,70,Strongly positive,55,Positive,30,2026-10-27");
+    expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,85,Strong,RATED,85,55,70,70,Strong uptrend,55,Uptrend,30,2026-10-27");
     expect(text).toContain("EEE,EEE Limited,Auto,Large cap,100,5000,,,,,,,,,,,,");
     expect(text).not.toMatch(/Overall|Balance sheet|\bBuy\b|\bHold\b/);
   });
@@ -200,7 +200,7 @@ describe("Advanced score screener (Gold)", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /How scores work/ })[0]);
     const d = screen.getByRole("dialog", { name: "How scores work" });
     expect(d.textContent).toMatch(/Strong 80 and above, Healthy 65 to 79/);
-    expect(d.textContent).toMatch(/Positive \(\+20 and above\)/);
+    expect(d.textContent).toMatch(/Uptrend \(\+20 and above\)/);
     expect(d.textContent?.toLowerCase()).not.toMatch(forbidden);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();

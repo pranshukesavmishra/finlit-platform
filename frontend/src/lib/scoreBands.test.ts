@@ -60,9 +60,9 @@ describe("Gold header dots (FinLit Prism)", () => {
   });
   it("technical dots use the trend bands and descriptive words, never the model's own", () => {
     const d = goldDots(rep())!;
-    expect(d[4]).toMatchObject({ band: "mid", label: "Short-term technical +1: orange, neutral" });
-    expect(d[5]).toMatchObject({ band: "hi", label: "Long-term technical +63: green, strongly positive" });
-    expect(goldDots(rep({ short: { score: -30, rating: "Reduce" } }))![4]).toMatchObject({ band: "lo", label: "Short-term technical −30: red, negative" });
+    expect(d[4]).toMatchObject({ band: "mid", label: "Short-term technical +1: orange, sideways" });
+    expect(d[5]).toMatchObject({ band: "hi", label: "Long-term technical +63: green, strong uptrend" });
+    expect(goldDots(rep({ short: { score: -30, rating: "Reduce" } }))![4]).toMatchObject({ band: "lo", label: "Short-term technical −30: red, downtrend" });
     expect(d.map((x) => x.label).join(" ")).not.toMatch(/\b(buy|sell|hold|reduce)\b/i);
   });
   it("a missing part or technical score is grey", () => {

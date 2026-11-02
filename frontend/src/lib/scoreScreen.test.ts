@@ -326,7 +326,7 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
 });
 
 describe("technical view bands", () => {
-  it("use the Prism card's edges: +20 and above Positive (strongly positive included), above -20 Neutral, -20 and below Negative", () => {
+  it("use the Prism card's edges: +20 and above Positive (strong uptrend included), above -20 Neutral, -20 and below Negative", () => {
     expect([100, 50, 20, 19.9, 0, -19.9, -20, -50, -100].map(techBandOf)).toEqual(["pos", "pos", "pos", "neutral", "neutral", "neutral", "neg", "neg", "neg"]);
     expect(techBandOf(null)).toBeNull(); expect(techBandOf(undefined)).toBeNull();
   });
@@ -337,11 +337,11 @@ describe("technical view bands", () => {
     f.tech.lt = ["neg"]; expect(syms(applyFilters(x, f))).toEqual(["A"]);
   });
   it("words come from the score (the site's descriptive words), whatever the model said", () => {
-    expect(trendWord(22.5)).toBe("Positive"); expect(trendWord(-60)).toBe("Strongly negative"); expect(trendWord(null)).toBeNull();
+    expect(trendWord(22.5)).toBe("Uptrend"); expect(trendWord(-60)).toBe("Strong downtrend"); expect(trendWord(null)).toBeNull();
   });
   it("chips, address and removal", () => {
     const f = emptyFilters(); f.tech.st = ["neg", "pos"]; f.tech.lt = ["neutral"];
-    expect(chipsFor(f).map((c) => c.label)).toEqual(["Short-term technical: Positive, Negative", "Long-term technical: Neutral"]);
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Short-term technical: Uptrend, Downtrend", "Long-term technical: Sideways"]);
     const qs = serializeState({ filters: f, sort: DEFAULT_SORT, size: 10, page: 0 }).toString();
     expect(qs).toBe("st=pos%2Cneg&lt=neutral");
     expect(parseState(new URLSearchParams(qs)).filters.tech).toEqual({ st: ["pos", "neg"], lt: ["neutral"] });
@@ -399,7 +399,7 @@ describe("Prism CSV", () => {
     const lines = toCsv(rows, { ...o, mode: "advanced", prismAsOf: "2026-10-27" }).split("\r\n");
     const head = lines.findIndex((l) => l.startsWith("Symbol,"));
     expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
+    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Uptrend,22\.5,Sideways,-4,2026-10-27$/);
     expect(lines[head + 2]).toMatch(/,,,,,,,,,,,,$/);
     const all = lines.join("\n");
     expect(all).toMatch(/Prism ratings as of: 2026-10-27/); expect(all).not.toMatch(/Fundamental,Quality|Overall|\bBuy\b|\bHold\b/);

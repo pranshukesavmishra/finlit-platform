@@ -99,23 +99,32 @@ def test_points_add_up_and_the_trend_alignment_is_the_packages(name):
         total = sum(points.values())
         assert total == pytest.approx(pin["uncapped"] if prefix == "LT" else pin["st"], abs=1e-6)
     align = tw.trend_alignment(got["shortTerm"]["score"], got["longTerm"]["score"])
-    assert align["label"] == pin["alignment"]
+    assert align["label"] == SITE_LABEL[pin["alignment"]]            # the package's cell, in the site's own words (owner's wording table, Nov 2026)
     assert sum(1 for c in align["cells"] if c["current"]) == 1 and len(align["cells"]) == 9
-    assert tw.rating_word(got["shortTerm"]["rating"], got["shortTerm"]["score"]) == {"Very strong": "Strongly positive", "Strong": "Positive", "Neutral": "Neutral",
-                                                                                      "Weak": "Negative", "Very weak": "Strongly negative"}[pin["stRating"]]
+    assert tw.rating_word(got["shortTerm"]["rating"], got["shortTerm"]["score"]) == {"Very strong": "Strong uptrend", "Strong": "Uptrend", "Neutral": "Sideways",
+                                                                                      "Weak": "Downtrend", "Very weak": "Strong downtrend"}[pin["stRating"]]
+
+
+# The package's nine labels (finlit_technicals v1.1, stlt.ALIGNMENT) and the words the site shows for the same cell (the owner's wording table, Nov 2026).
+# The cells, bands, codes and tones are the package's; only the words differ.
+PACKAGE = {("positive", "positive"): "Strong on both timeframes", ("positive", "neutral"): "Short-term strength, no long-term trend",
+           ("positive", "negative"): "Short-term bounce within a long-term downtrend", ("neutral", "positive"): "Long-term uptrend, short-term pause",
+           ("neutral", "neutral"): "No clear trend", ("neutral", "negative"): "Long-term downtrend, short-term flat",
+           ("negative", "positive"): "Short-term pullback within a long-term uptrend", ("negative", "neutral"): "Short-term weakness, no long-term trend",
+           ("negative", "negative"): "Weak on both timeframes"}
+SITE = {("positive", "positive"): "Rising on both", ("positive", "neutral"): "Rising lately", ("positive", "negative"): "Bounce in a downtrend",
+        ("neutral", "positive"): "Uptrend, pausing", ("neutral", "neutral"): "No clear trend", ("neutral", "negative"): "Downtrend, pausing",
+        ("negative", "positive"): "Dip in an uptrend", ("negative", "neutral"): "Falling lately", ("negative", "negative"): "Falling on both"}
+SITE_LABEL = {PACKAGE[k]: SITE[k] for k in PACKAGE}
 
 
 def test_the_nine_alignment_labels_are_the_packages_and_follow_the_band_rule():
-    expect = {("positive", "positive"): "Strong on both timeframes", ("positive", "neutral"): "Short-term strength, no long-term trend",
-              ("positive", "negative"): "Short-term bounce within a long-term downtrend", ("neutral", "positive"): "Long-term uptrend, short-term pause",
-              ("neutral", "neutral"): "No clear trend", ("neutral", "negative"): "Long-term downtrend, short-term flat",
-              ("negative", "positive"): "Short-term pullback within a long-term uptrend", ("negative", "neutral"): "Short-term weakness, no long-term trend",
-              ("negative", "negative"): "Weak on both timeframes"}
     cells = {(c["st"], c["lt"]): c["label"] for c in tw.ALIGNMENT["cells"]}
-    assert cells == expect and len(set(expect.values())) == 9
+    assert cells == SITE and len(set(SITE.values())) == 9 and set(SITE) == set(PACKAGE)
+    assert all(c.get("text") for c in tw.ALIGNMENT["cells"])                       # every cell has its one-line explanation
     assert [tw.trend_band(x) for x in (20, 19.99, -19.99, -20, 0, None, float("nan"))] == ["positive", "neutral", "neutral", "negative", "neutral", None, None]
     assert tw.trend_alignment(None, 30) is None and tw.trend_alignment(30, None) is None
-    assert tw.trend_alignment(35.3, 39.3)["label"] == "Strong on both timeframes"
+    assert tw.trend_alignment(35.3, 39.3)["label"] == "Rising on both"
     assert tw.trend_alignment(-30, 25)["code"] == "st_negative_lt_positive"
 
 

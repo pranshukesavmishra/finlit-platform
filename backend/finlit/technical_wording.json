@@ -2,14 +2,15 @@
   "_comment": "ONE wording table for the technical view. Read by site-api/backend/technical_wording.py (PDF) and, as an identical copy, by frontend/src/lib/prismTechnical.ts (web). The two files must stay byte-identical (tests in both suites). Compliance: the model's advice words are never shown to readers.",
   "bands": {"strongPositive": 50, "positive": 20, "neutral": -20, "negative": -50},
   "ratings": {
-    "strong buy": {"word": "Strongly positive", "tone": "strongpos"},
-    "buy": {"word": "Positive", "tone": "pos"},
-    "hold": {"word": "Neutral", "tone": "neutral"},
-    "reduce": {"word": "Negative", "tone": "neg"},
-    "sell": {"word": "Strongly negative", "tone": "strongneg"},
+    "strong buy": {"word": "Strong uptrend", "tone": "strongpos"},
+    "buy": {"word": "Uptrend", "tone": "pos"},
+    "hold": {"word": "Sideways", "tone": "neutral"},
+    "reduce": {"word": "Downtrend", "tone": "neg"},
+    "sell": {"word": "Strong downtrend", "tone": "strongneg"},
     "unavailable": {"word": "Not available", "tone": "na"}
   },
-  "bandWords": {"strongpos": "Strongly positive", "pos": "Positive", "neutral": "Neutral", "neg": "Negative", "strongneg": "Strongly negative", "na": "Not available"},
+  "bandWords": {"strongpos": "Strong uptrend", "pos": "Uptrend", "neutral": "Sideways", "neg": "Downtrend", "strongneg": "Strong downtrend", "na": "Not available"},
+  "bandTips": {"strongpos": "Price has been rising clearly and steadily", "pos": "Price has mostly been rising", "neutral": "No clear direction: price is flat or the signals disagree", "neg": "Price has mostly been falling", "strongneg": "Price has been falling clearly and steadily", "na": "No score: a required signal is missing"},
   "verdicts": {
     "STRONG BUY": "pos", "BUY": "pos", "BOUNCE ONLY, DON'T INVEST": "mixed",
     "ACCUMULATE ON DIPS": "pos", "HOLD": "mixed", "REDUCE": "neg",
@@ -19,19 +20,19 @@
   "alignment": {
     "_comment": "Trend alignment = short-term band x long-term band (finlit_technicals v1.1, stlt.ALIGNMENT). Bands: +20 or more Positive, -20 or less Negative, otherwise Neutral. The labels only describe the two trends; the tone is decoration (a shape and a colour), never advice.",
     "bands": {"positive": 20, "negative": -20},
-    "bandWords": {"positive": "Positive", "neutral": "Neutral", "negative": "Negative"},
-    "rule": "Each score falls in a band: +20 or more is Positive, -20 or less is Negative, anything in between is Neutral. The two bands together describe how the short-term and the long-term trend line up.",
+    "bandWords": {"positive": "Up", "neutral": "Sideways", "negative": "Down"},
+    "rule": "Each score falls in a band: +20 or more counts as up, -20 or less as down, anything in between as sideways. The two bands together describe how the short-term and the long-term trend line up.",
     "notAvailable": "Trend alignment: not available",
     "cells": [
-      {"st": "positive", "lt": "positive", "code": "st_positive_lt_positive", "label": "Strong on both timeframes", "tone": "pos"},
-      {"st": "positive", "lt": "neutral", "code": "st_positive_lt_neutral", "label": "Short-term strength, no long-term trend", "tone": "pos"},
-      {"st": "positive", "lt": "negative", "code": "st_positive_lt_negative", "label": "Short-term bounce within a long-term downtrend", "tone": "mixed"},
-      {"st": "neutral", "lt": "positive", "code": "st_neutral_lt_positive", "label": "Long-term uptrend, short-term pause", "tone": "pos"},
-      {"st": "neutral", "lt": "neutral", "code": "st_neutral_lt_neutral", "label": "No clear trend", "tone": "mixed"},
-      {"st": "neutral", "lt": "negative", "code": "st_neutral_lt_negative", "label": "Long-term downtrend, short-term flat", "tone": "neg"},
-      {"st": "negative", "lt": "positive", "code": "st_negative_lt_positive", "label": "Short-term pullback within a long-term uptrend", "tone": "pos"},
-      {"st": "negative", "lt": "neutral", "code": "st_negative_lt_neutral", "label": "Short-term weakness, no long-term trend", "tone": "neg"},
-      {"st": "negative", "lt": "negative", "code": "st_negative_lt_negative", "label": "Weak on both timeframes", "tone": "neg"}
+      {"st": "positive", "lt": "positive", "code": "st_positive_lt_positive", "label": "Rising on both", "text": "Price has been rising in recent weeks and over the past year", "tone": "pos"},
+      {"st": "positive", "lt": "neutral", "code": "st_positive_lt_neutral", "label": "Rising lately", "text": "Price has picked up in recent weeks; the longer trend is flat", "tone": "pos"},
+      {"st": "positive", "lt": "negative", "code": "st_positive_lt_negative", "label": "Bounce in a downtrend", "text": "Price has risen in recent weeks, but the longer trend is still down", "tone": "mixed"},
+      {"st": "neutral", "lt": "positive", "code": "st_neutral_lt_positive", "label": "Uptrend, pausing", "text": "The longer trend is up; recent weeks have gone sideways", "tone": "pos"},
+      {"st": "neutral", "lt": "neutral", "code": "st_neutral_lt_neutral", "label": "No clear trend", "text": "Price has moved sideways in recent weeks and over the past year", "tone": "mixed"},
+      {"st": "neutral", "lt": "negative", "code": "st_neutral_lt_negative", "label": "Downtrend, pausing", "text": "The longer trend is down; recent weeks have gone sideways", "tone": "neg"},
+      {"st": "negative", "lt": "positive", "code": "st_negative_lt_positive", "label": "Dip in an uptrend", "text": "Price has fallen in recent weeks, but the longer trend is still up", "tone": "pos"},
+      {"st": "negative", "lt": "neutral", "code": "st_negative_lt_neutral", "label": "Falling lately", "text": "Price has weakened in recent weeks; the longer trend is flat", "tone": "neg"},
+      {"st": "negative", "lt": "negative", "code": "st_negative_lt_negative", "label": "Falling on both", "text": "Price has been falling in recent weeks and over the past year", "tone": "neg"}
     ]
   },
   "how": {

@@ -290,7 +290,7 @@
    ]
   },
   "verdict": {
-   "label": "Short-term strength, no long-term trend",
+   "label": "Rising lately",
    "tone": "pos"
   },
   "notes": [
@@ -338,7 +338,7 @@
    "valueMigration": true
   },
   "trendAlignment": {
-   "label": "Short-term strength, no long-term trend",
+   "label": "Rising lately",
    "code": "st_positive_lt_neutral",
    "tone": "pos",
    "stBand": "positive",
@@ -351,7 +351,7 @@
      "stBand": "positive",
      "ltBand": "positive",
      "code": "st_positive_lt_positive",
-     "label": "Strong on both timeframes",
+     "label": "Rising on both",
      "tone": "pos",
      "current": false
     },
@@ -359,7 +359,7 @@
      "stBand": "positive",
      "ltBand": "neutral",
      "code": "st_positive_lt_neutral",
-     "label": "Short-term strength, no long-term trend",
+     "label": "Rising lately",
      "tone": "pos",
      "current": true
     },
@@ -367,7 +367,7 @@
      "stBand": "positive",
      "ltBand": "negative",
      "code": "st_positive_lt_negative",
-     "label": "Short-term bounce within a long-term downtrend",
+     "label": "Bounce in a downtrend",
      "tone": "mixed",
      "current": false
     },
@@ -375,7 +375,7 @@
      "stBand": "neutral",
      "ltBand": "positive",
      "code": "st_neutral_lt_positive",
-     "label": "Long-term uptrend, short-term pause",
+     "label": "Uptrend, pausing",
      "tone": "pos",
      "current": false
     },
@@ -391,7 +391,7 @@
      "stBand": "neutral",
      "ltBand": "negative",
      "code": "st_neutral_lt_negative",
-     "label": "Long-term downtrend, short-term flat",
+     "label": "Downtrend, pausing",
      "tone": "neg",
      "current": false
     },
@@ -399,7 +399,7 @@
      "stBand": "negative",
      "ltBand": "positive",
      "code": "st_negative_lt_positive",
-     "label": "Short-term pullback within a long-term uptrend",
+     "label": "Dip in an uptrend",
      "tone": "pos",
      "current": false
     },
@@ -407,7 +407,7 @@
      "stBand": "negative",
      "ltBand": "neutral",
      "code": "st_negative_lt_neutral",
-     "label": "Short-term weakness, no long-term trend",
+     "label": "Falling lately",
      "tone": "neg",
      "current": false
     },
@@ -415,7 +415,7 @@
      "stBand": "negative",
      "ltBand": "negative",
      "code": "st_negative_lt_negative",
-     "label": "Weak on both timeframes",
+     "label": "Falling on both",
      "tone": "neg",
      "current": false
     }
@@ -712,7 +712,7 @@
    ]
   },
   "verdict": {
-   "label": "Long-term uptrend, short-term pause",
+   "label": "Uptrend, pausing",
    "tone": "pos"
   },
   "notes": [
@@ -759,7 +759,7 @@
    "valueMigration": true
   },
   "trendAlignment": {
-   "label": "Long-term uptrend, short-term pause",
+   "label": "Uptrend, pausing",
    "code": "st_neutral_lt_positive",
    "tone": "pos",
    "stBand": "neutral",
@@ -772,7 +772,7 @@
      "stBand": "positive",
      "ltBand": "positive",
      "code": "st_positive_lt_positive",
-     "label": "Strong on both timeframes",
+     "label": "Rising on both",
      "tone": "pos",
      "current": false
     },
@@ -780,7 +780,7 @@
      "stBand": "positive",
      "ltBand": "neutral",
      "code": "st_positive_lt_neutral",
-     "label": "Short-term strength, no long-term trend",
+     "label": "Rising lately",
      "tone": "pos",
      "current": false
     },
@@ -788,7 +788,7 @@
      "stBand": "positive",
      "ltBand": "negative",
      "code": "st_positive_lt_negative",
-     "label": "Short-term bounce within a long-term downtrend",
+     "label": "Bounce in a downtrend",
      "tone": "mixed",
      "current": false
     },
@@ -796,7 +796,7 @@
      "stBand": "neutral",
      "ltBand": "positive",
      "code": "st_neutral_lt_positive",
-     "label": "Long-term uptrend, short-term pause",
+     "label": "Uptrend, pausing",
      "tone": "pos",
      "current": true
     },
@@ -812,7 +812,7 @@
      "stBand": "neutral",
      "ltBand": "negative",
      "code": "st_neutral_lt_negative",
-     "label": "Long-term downtrend, short-term flat",
+     "label": "Downtrend, pausing",
      "tone": "neg",
      "current": false
     },
@@ -820,7 +820,7 @@
      "stBand": "negative",
      "ltBand": "positive",
      "code": "st_negative_lt_positive",
-     "label": "Short-term pullback within a long-term uptrend",
+     "label": "Dip in an uptrend",
      "tone": "pos",
      "current": false
     },
@@ -828,7 +828,7 @@
      "stBand": "negative",
      "ltBand": "neutral",
      "code": "st_negative_lt_neutral",
-     "label": "Short-term weakness, no long-term trend",
+     "label": "Falling lately",
      "tone": "neg",
      "current": false
     },
@@ -836,7 +836,7 @@
      "stBand": "negative",
      "ltBand": "negative",
      "code": "st_negative_lt_negative",
-     "label": "Weak on both timeframes",
+     "label": "Falling on both",
      "tone": "neg",
      "current": false
     }
@@ -1133,7 +1133,7 @@
    ]
   },
   "verdict": {
-   "label": "Short-term bounce within a long-term downtrend",
+   "label": "Bounce in a downtrend",
    "tone": "mixed"
   },
   "notes": [
@@ -1181,7 +1181,7 @@
    "valueMigration": true
   },
   "trendAlignment": {
-   "label": "Short-term bounce within a long-term downtrend",
+   "label": "Bounce in a downtrend",
    "code": "st_positive_lt_negative",
    "tone": "mixed",
    "stBand": "positive",
@@ -1194,7 +1194,7 @@
      "stBand": "positive",
      "ltBand": "positive",
      "code": "st_positive_lt_positive",
-     "label": "Strong on both timeframes",
+     "label": "Rising on both",
      "tone": "pos",
      "current": false
     },
@@ -1202,7 +1202,7 @@
      "stBand": "positive",
      "ltBand": "neutral",
      "code": "st_positive_lt_neutral",
-     "label": "Short-term strength, no long-term trend",
+     "label": "Rising lately",
      "tone": "pos",
      "current": false
     },
@@ -1210,7 +1210,7 @@
      "stBand": "positive",
      "ltBand": "negative",
      "code": "st_positive_lt_negative",
-     "label": "Short-term bounce within a long-term downtrend",
+     "label": "Bounce in a downtrend",
      "tone": "mixed",
      "current": true
     },
@@ -1218,7 +1218,7 @@
      "stBand": "neutral",
      "ltBand": "positive",
      "code": "st_neutral_lt_positive",
-     "label": "Long-term uptrend, short-term pause",
+     "label": "Uptrend, pausing",
      "tone": "pos",
      "current": false
     },
@@ -1234,7 +1234,7 @@
      "stBand": "neutral",
      "ltBand": "negative",
      "code": "st_neutral_lt_negative",
-     "label": "Long-term downtrend, short-term flat",
+     "label": "Downtrend, pausing",
      "tone": "neg",
      "current": false
     },
@@ -1242,7 +1242,7 @@
      "stBand": "negative",
      "ltBand": "positive",
      "code": "st_negative_lt_positive",
-     "label": "Short-term pullback within a long-term uptrend",
+     "label": "Dip in an uptrend",
      "tone": "pos",
      "current": false
     },
@@ -1250,7 +1250,7 @@
      "stBand": "negative",
      "ltBand": "neutral",
      "code": "st_negative_lt_neutral",
-     "label": "Short-term weakness, no long-term trend",
+     "label": "Falling lately",
      "tone": "neg",
      "current": false
     },
@@ -1258,7 +1258,7 @@
      "stBand": "negative",
      "ltBand": "negative",
      "code": "st_negative_lt_negative",
-     "label": "Weak on both timeframes",
+     "label": "Falling on both",
      "tone": "neg",
      "current": false
     }
@@ -1555,7 +1555,7 @@
    ]
   },
   "verdict": {
-   "label": "Long-term downtrend, short-term flat",
+   "label": "Downtrend, pausing",
    "tone": "neg"
   },
   "notes": [
@@ -1602,7 +1602,7 @@
    "valueMigration": true
   },
   "trendAlignment": {
-   "label": "Long-term downtrend, short-term flat",
+   "label": "Downtrend, pausing",
    "code": "st_neutral_lt_negative",
    "tone": "neg",
    "stBand": "neutral",
@@ -1615,7 +1615,7 @@
      "stBand": "positive",
      "ltBand": "positive",
      "code": "st_positive_lt_positive",
-     "label": "Strong on both timeframes",
+     "label": "Rising on both",
      "tone": "pos",
      "current": false
     },
@@ -1623,7 +1623,7 @@
      "stBand": "positive",
      "ltBand": "neutral",
      "code": "st_positive_lt_neutral",
-     "label": "Short-term strength, no long-term trend",
+     "label": "Rising lately",
      "tone": "pos",
      "current": false
     },
@@ -1631,7 +1631,7 @@
      "stBand": "positive",
      "ltBand": "negative",
      "code": "st_positive_lt_negative",
-     "label": "Short-term bounce within a long-term downtrend",
+     "label": "Bounce in a downtrend",
      "tone": "mixed",
      "current": false
     },
@@ -1639,7 +1639,7 @@
      "stBand": "neutral",
      "ltBand": "positive",
      "code": "st_neutral_lt_positive",
-     "label": "Long-term uptrend, short-term pause",
+     "label": "Uptrend, pausing",
      "tone": "pos",
      "current": false
     },
@@ -1655,7 +1655,7 @@
      "stBand": "neutral",
      "ltBand": "negative",
      "code": "st_neutral_lt_negative",
-     "label": "Long-term downtrend, short-term flat",
+     "label": "Downtrend, pausing",
      "tone": "neg",
      "current": true
     },
@@ -1663,7 +1663,7 @@
      "stBand": "negative",
      "ltBand": "positive",
      "code": "st_negative_lt_positive",
-     "label": "Short-term pullback within a long-term uptrend",
+     "label": "Dip in an uptrend",
      "tone": "pos",
      "current": false
     },
@@ -1671,7 +1671,7 @@
      "stBand": "negative",
      "ltBand": "neutral",
      "code": "st_negative_lt_neutral",
-     "label": "Short-term weakness, no long-term trend",
+     "label": "Falling lately",
      "tone": "neg",
      "current": false
     },
@@ -1679,7 +1679,7 @@
      "stBand": "negative",
      "ltBand": "negative",
      "code": "st_negative_lt_negative",
-     "label": "Weak on both timeframes",
+     "label": "Falling on both",
      "tone": "neg",
      "current": false
     }

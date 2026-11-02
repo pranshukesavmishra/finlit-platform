@@ -49,7 +49,7 @@ def test_the_card_keeps_only_the_listed_figures_and_hides_parts_of_an_unrated_co
 def test_the_shape_uses_descriptive_words_never_the_models_and_no_word_without_a_score():
     row = {"symbol": "X", "final": 71.2, "label": "HEALTHY", "status": "RATED", "generated_at": datetime(2026, 10, 20, tzinfo=timezone.utc), "card": json.dumps(prism.card_of(view()))}
     out = prism_screen.shape(row)
-    assert out["prism_st"] == "Positive" and out["prism_lt"] == "Strongly negative" and out["prism_st_score"] == 22.5
+    assert out["prism_st"] == "Uptrend" and out["prism_lt"] == "Strong downtrend" and out["prism_st_score"] == 22.5
     assert out["prism_at"] == "2026-10-20" and out["prism_quality"] == 80.3 and out["prism_state"] == "stored"
     assert not {"buy", "sell", "hold"} & {str(v).lower() for v in out.values()}
     bare = prism_screen.shape({**row, "card": {"parts": None, "st": {"score": None, "rating": "Unavailable"}, "lt": {}}})
@@ -96,7 +96,7 @@ async def test_the_universe_lists_the_newest_rating_prefers_consolidated_and_kee
     rows = {r["symbol"]: r for r in body["rows"]}
     rel = rows["RELIANCE"]
     assert rel["prism_final"] == 71.2 and rel["prism_label"] == "HEALTHY" and rel["prism_status"] == "RATED" and rel["prism_quality"] == 80.3
-    assert rel["prism_st"] == "Positive" and rel["prism_lt"] == "Strongly negative" and rel["prism_state"] == "stored" and rel["prism_at"]
+    assert rel["prism_st"] == "Uptrend" and rel["prism_lt"] == "Strong downtrend" and rel["prism_state"] == "stored" and rel["prism_at"]
     assert rows["TCS"]["prism_final"] == 55.0
     assert rows["INFY"]["prism_state"] == "stored" and rows["INFY"]["prism_label"] == "NOT RATED" and rows["INFY"]["prism_fundamental"] is None
     none = next(r for r in body["rows"] if r["symbol"] not in ("RELIANCE", "TCS", "INFY"))

@@ -45,12 +45,12 @@ describe("words and captions", () => {
   it("uses the horizons and signal counts of the report, never invented ones", () => {
     expect(horizonCaption(H({}))).toBe("5–20 sessions"); expect(horizonCaption(H({ horizon: null }))).toBeNull();
     expect(signalsLine(H({}))).toBe("14 of 14 signals available"); expect(signalsLine(H({ requiredCount: 0 }))).toBeNull();
-    expect(horizonLabel("Technical long term", H({ score: -57, rating: "Sell", horizon: "6–18 months" }))).toBe("Technical long term (6–18 months): −57 on a scale from minus 100 to plus 100, strongly negative. 14 of 14 signals available.");
+    expect(horizonLabel("Technical long term", H({ score: -57, rating: "Sell", horizon: "6–18 months" }))).toBe("Technical long term (6–18 months): −57 on a scale from minus 100 to plus 100, strong downtrend. 14 of 14 signals available.");
     expect(horizonLabel("Technical short term", H({ score: null }))).toContain("not available");
   });
   it("writes the alignment sentence from the two bands", () => {
-    expect(alignSentence(trendAlignment(1, -57)!)).toBe("The short-term trend is neutral, while the long-term trend is negative.");
-    expect(alignSentence(trendAlignment(40, 60)!)).toBe("Both the short-term and the long-term trend are positive.");
+    expect(alignSentence(trendAlignment(1, -57)!)).toBe("The short-term trend is sideways, while the long-term trend is down.");
+    expect(alignSentence(trendAlignment(40, 60)!)).toBe("Both the short-term and the long-term trend are up.");
   });
   it("places the band edges on the -100..+100 scale", () => { expect(techEdgePos()).toEqual([25, 40, 60, 75]); });
 });

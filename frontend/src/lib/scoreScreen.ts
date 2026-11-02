@@ -16,16 +16,16 @@ export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
 export type RangeKey = "f" | "t" | "o" | PrismRangeKey;
 export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol;
 export type Range = { min: number | null; max: number | null };
-/** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strongly positive" counted as Positive and "Strongly negative" as Negative. */
+/** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strong uptrend" counted as Uptrend and "Strong downtrend" as Downtrend. */
 export type TechBand = "pos" | "neutral" | "neg";
 export type TechKey = "st" | "lt";
 export const TECH_KEYS: TechKey[] = ["st", "lt"];
 export const TECH_BAND_ORDER: TechBand[] = ["pos", "neutral", "neg"];
 const sgn = (v: number) => (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v);
 export const TECH_BANDS: Record<TechBand, { label: string; short: string }> = {
-  pos: { label: `Positive (${sgn(TREND_EDGES.positive)} and above)`, short: "Positive" },
-  neutral: { label: `Neutral (above ${sgn(TREND_EDGES.neutral)} up to ${sgn(TREND_EDGES.positive)})`, short: "Neutral" },
-  neg: { label: `Negative (${sgn(TREND_EDGES.neutral)} and below)`, short: "Negative" },
+  pos: { label: `Uptrend (${sgn(TREND_EDGES.positive)} and above)`, short: "Uptrend" },
+  neutral: { label: `Sideways (above ${sgn(TREND_EDGES.neutral)} up to ${sgn(TREND_EDGES.positive)})`, short: "Sideways" },
+  neg: { label: `Downtrend (${sgn(TREND_EDGES.neutral)} and below)`, short: "Downtrend" },
 };
 export const TECH_NAMES: Record<TechKey, string> = { st: "Short-term technical", lt: "Long-term technical" };
 /** The band of a technical score, from the same edges as the Prism card; null when there is no score. */

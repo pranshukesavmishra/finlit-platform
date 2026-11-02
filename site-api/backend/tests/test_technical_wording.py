@@ -96,8 +96,8 @@ def test_relabel_does_not_change_the_stored_report(base_report):
     assert base_report["technicalAssessment"]["shortTerm"]["rating"] in ("Strong Buy", "Buy", "Hold", "Reduce", "Sell")
 
 
-@pytest.mark.parametrize("score,word", [(50, "Strongly positive"), (49.99, "Positive"), (20, "Positive"), (19.99, "Neutral"), (-19.99, "Neutral"),
-                                        (-20, "Negative"), (-49.99, "Negative"), (-50, "Strongly negative"), (None, "Not available")])
+@pytest.mark.parametrize("score,word", [(50, "Strong uptrend"), (49.99, "Uptrend"), (20, "Uptrend"), (19.99, "Sideways"), (-19.99, "Sideways"),
+                                        (-20, "Downtrend"), (-49.99, "Downtrend"), (-50, "Strong downtrend"), (None, "Not available")])
 def test_python_boundaries_match_the_model(score, word):
     assert tw.rating_word(score_rating(score), score) == word
     assert tw.rating_word("something unknown", score) == word
@@ -134,7 +134,7 @@ def test_only_technical_fields_are_relabelled():
     report = {"company": {"name": "Target Corp"}, "sector": "Holding", "technicalAssessment": {"notes": ["Target hit"], "shortTerm": {"score": 60, "rating": "Strong Buy", "factors": []}}}
     out = tw.relabel_report(report)
     assert out["company"] == {"name": "Target Corp"} and out["sector"] == "Holding"
-    assert out["technicalAssessment"]["shortTerm"]["rating"] == "Strongly positive" and out["technicalAssessment"]["notes"] == ["Level hit"]
+    assert out["technicalAssessment"]["shortTerm"]["rating"] == "Strong uptrend" and out["technicalAssessment"]["notes"] == ["Level hit"]
     assert report["technicalAssessment"]["shortTerm"]["rating"] == "Strong Buy"
 
 

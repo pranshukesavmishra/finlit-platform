@@ -53,7 +53,7 @@ async def test_gold_gets_prism_only(app):
     assert p["state"] == "rated" and p["final"] == 71.2 and p["label"] == "HEALTHY" and p["status"] == "RATED"
     assert p["parts"] == {"fundamental": 70.1, "valuation": 40.2, "quality": 80.3, "risk": 65.4}
     # the site's descriptive words, never the model's own
-    assert p["shortTerm"] == {"score": 22.5, "word": "Positive"} and p["longTerm"] == {"score": -30.0, "word": "Strongly negative"}
+    assert p["shortTerm"] == {"score": 22.5, "word": "Uptrend"} and p["longTerm"] == {"score": -30.0, "word": "Strong downtrend"}
     assert not {"buy", "sell", "hold"} & {str(v).lower() for v in (p["shortTerm"]["word"], p["longTerm"]["word"])}
 
 

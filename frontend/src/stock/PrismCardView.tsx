@@ -140,7 +140,7 @@ function HorizonPanel({ title, h, index }: { title: string; h: TechHorizon; inde
         {edges.map((e) => <u key={e} style={{ left: `${e}%` }} />)}
         {has && <em style={{ left: `${scalePos(h.score)}%` }} />}
       </span>
-      <span className="pcx-sl" aria-hidden="true"><span>Strongly negative</span><span>Neutral</span><span>Strongly positive</span></span>
+      <span className="pcx-sl" aria-hidden="true"><span>Strong downtrend</span><span>Sideways</span><span>Strong uptrend</span></span>
       {sig && <p className={"pcx-sg" + (h.availableCount < h.requiredCount ? " warn" : "")}>{sig}</p>}
     </div>
   );

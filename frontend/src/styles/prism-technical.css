@@ -37,6 +37,7 @@
 .pzt-verdict.pos { --t: var(--t-p); } .pzt-verdict.mixed { --t: var(--t-n); } .pzt-verdict.neg { --t: var(--t-ng); } .pzt-verdict.na { --t: var(--t-na); }
 .pzt-vk { font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .pzt-vchip { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--t) 60%, var(--border)); background: var(--s1); color: var(--text); font: 700 15px var(--sans); white-space: nowrap; }
+.pzt-vtext { flex: 1 1 100%; order: 2; font: 600 14.5px/1.45 var(--sans); color: var(--text); }
 .pzt-vd { flex: 1 1 260px; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
 
 /* missing inputs */

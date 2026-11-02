@@ -911,7 +911,7 @@ def test_serialised_technical_view_has_no_advice_word(score, rating, label):
     assert BANNED.findall(text) == [], text
     assert view["technicalAssessment"]["shortTerm"]["score"] == score
     assert view["technicalAssessment"]["verdict"]["label"] == view["technicalAssessment"]["trendAlignment"]["label"]
-    assert view["technicalAssessment"]["shortTerm"]["rating"] in ("Strongly positive", "Positive", "Neutral", "Negative", "Strongly negative")
+    assert view["technicalAssessment"]["shortTerm"]["rating"] in ("Strong uptrend", "Uptrend", "Sideways", "Downtrend", "Strong downtrend")
 
 
 async def test_a_report_stored_before_the_mapping_is_served_mapped(env):
@@ -971,7 +971,7 @@ async def test_scores_carry_only_the_needed_fields(env):
     assert t["parts"] == {k: pytest.approx(SNAPSHOT["rating"]["parts"][k]) for k in ("fundamental", "valuation", "quality", "risk")}
     ta = SNAPSHOT["technicalAssessment"]
     assert t["shortTerm"]["score"] == pytest.approx(ta["shortTerm"]["score"]) and t["longTerm"]["score"] == pytest.approx(ta["longTerm"]["score"])
-    assert t["shortTerm"]["word"] == "Neutral"                              # the model said Hold (-14.8): the site's word is shown, never the model's
+    assert t["shortTerm"]["word"] == "Sideways"                              # the model said Hold (-14.8): the site's word is shown, never the model's
     assert "report" not in t and "financialHistory" not in json.dumps(body)
 
 
