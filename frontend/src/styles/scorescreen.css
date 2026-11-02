@@ -80,3 +80,15 @@
 .sx-up .gate.is-locked > :not(.lock) { opacity: .6; }
 .sx-ex .sx-t th, .sx-ex .sx-t td { padding-left: 10px; padding-right: 10px; }
 .sx-up { grid-template-columns: minmax(0, 1fr); } .sx-up .gate, .sx-up .gate > div, .sx-up .sx-ex { min-width: 0; max-width: 100%; }
+
+/* Lines that separate what belongs together (Basic and Advanced screeners): a rule under every row, a stronger one under the headings, a vertical rule where each score group starts,
+   and the group labels (FinLit IQ / FinLit Prism / Technical views) as small capitals over a line. Columns 1-6 are the company columns; the first score group starts at column 7. */
+.sx-t tbody td { border-bottom: 1px solid var(--border); }
+.sx-t tbody tr:last-child td { border-bottom: 0; }
+.sx-t thead tr:not(.gh) th { border-bottom: 2px solid var(--border-strong, var(--border)); }
+.sx-t thead tr:not(.gh) th:nth-child(7), .sx-t tbody td:nth-child(7) { border-left: 1px solid var(--border-strong, var(--border)); }
+.sx-t thead tr:not(.gh) th:nth-child(14), .sx-t tbody td:nth-child(14) { border-left: 1px solid var(--border); }
+.sx-t:has(.gh th[colspan="5"]) thead tr:not(.gh) th:nth-child(12), .sx-t:has(.gh th[colspan="5"]) tbody td:nth-child(12) { border-left: 1px solid var(--border-strong, var(--border)); }   /* Advanced: Technical views start */
+.sx-t .gh th[scope="colgroup"] { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border-strong, var(--border)); padding: 8px 12px; font: 700 11px var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.sx-t tbody tr:hover td { background: color-mix(in srgb, var(--gold-soft) 55%, transparent); }
+.sx-t tbody tr.sx-sel td { background: var(--gold-soft); }
