@@ -195,6 +195,35 @@ async def test_a_company_dhan_holds_nothing_newer_for_is_not_asked_again_that_da
     assert second["queued"] == 0 and len(seen["candles"]) == n
 
 
+async def test_a_company_with_no_long_term_score_is_recalculated_even_on_its_newest_bar(world):
+    """After a fix to how a score is worked out (a provisional long-term score for a recent listing) the companies already at the newest bar must not keep their old
+    gap: one with no stored long-term score is recalculated; one that has a score is left alone (nothing newer, nothing asked)."""
+    store, settings, site, http, seen = world
+    await seed(store, "TQGAP", bar=FRIDAY.isoformat(), cap=500)
+    await seed(store, "TQFULL", bar=FRIDAY.isoformat(), cap=400)
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', 'null') WHERE symbol = 'TQGAP'")
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', '61') WHERE symbol = 'TQFULL'")
+    out = await pt.refresh(store, settings, client=http, now=NOW)
+    asked = [c[0] for c in seen["candles"]]
+    assert "TQGAP" in asked and out["updated"] == 1
+    assert (await row(store, "TQGAP"))[1]["technicalAssessment"]["longTerm"]["score"] is not None
+    assert "TQFULL" not in asked and out["queued"] == 1             # a complete company at the newest bar is not even picked: nothing is fetched for it
+
+
+async def test_a_company_still_without_a_long_term_score_is_asked_once_a_day_not_every_run(world):
+    store, settings, site, http, seen = world
+    await seed(store, "TQNOLT", bar=FRIDAY.isoformat())
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', 'null') WHERE symbol = 'TQNOLT'")
+    site.ready = False                                         # today's candles still give no complete view
+    first = await pt.refresh(store, settings, client=http, now=NOW)
+    assert first["withheld"] == 1
+    n = len(seen["candles"])
+    second = await pt.refresh(store, settings, client=http, now=NOW)
+    assert second["queued"] == 0 and len(seen["candles"]) == n
+
+
 async def test_no_candles_leaves_the_stored_view_and_says_why_and_five_failures_stop_the_run(world):
     store, settings, site, http, seen = world
     for i in range(8):
