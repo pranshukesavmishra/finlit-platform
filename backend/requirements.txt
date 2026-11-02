@@ -14,3 +14,7 @@ openpyxl==3.1.5
 defusedxml==0.7.1
 # Earnings-call summaries (finlit/earnings): reads the text of a transcript PDF the exchanges publish. Pure Python, no system library.
 pypdf==6.21.4
+# Sector pages (docs/SECTORS.md): the finlit_technicals package (backend/finlit_technicals) needs numpy and pandas. They are imported only by the nightly
+# `refresh-sectors` job process, never by the website process.
+numpy==2.5.4
+pandas==3.1.0

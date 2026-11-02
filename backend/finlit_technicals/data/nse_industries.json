@@ -1,0 +1,11358 @@
+{
+"_note":"NSE industry classification (Industry and Sector levels of NSE's Macro-economic Sector > Sector > Industry > Basic Industry), collected from NSE's quote pages on 29 Oct 2026 for every stock listed then and for stocks traded since 2016 that are no longer listed (pre-2023 labels mapped to the current names). symbol: [industry, sector].",
+"as_of":"2026-10-29",
+"stocks":{
+"20MICRONS":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"21STCENMGM":[
+"Capital Markets",
+"Financial Services"
+],
+"360ONE":[
+"Capital Markets",
+"Financial Services"
+],
+"3BBLACKBIO":[
+"Healthcare Services",
+"Healthcare"
+],
+"3IINFOLTD":[
+"IT - Software",
+"Information Technology"
+],
+"3MINDIA":[
+"Diversified",
+"Diversified"
+],
+"3PLAND":[
+"Finance",
+"Financial Services"
+],
+"5PAISA":[
+"Capital Markets",
+"Financial Services"
+],
+"63MOONS":[
+"IT - Software",
+"Information Technology"
+],
+"A2ZINFRA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"AAATECH":[
+"Commercial Services & Supplies",
+"Services"
+],
+"AADHARHFC":[
+"Finance",
+"Financial Services"
+],
+"AAKASH":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"AAREYDRUGS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AARNAV":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AARON":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"AARTECH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"AARTIDRUGS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AARTIIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AARTIPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AARTISURF":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AARVI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"AASTHA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AAVAS":[
+"Finance",
+"Financial Services"
+],
+"ABAN":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"ABANSENT":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"ABB":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ABBOTINDIA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ABCAPITAL":[
+"Finance",
+"Financial Services"
+],
+"ABCOTS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ABDL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"ABFRL":[
+"Retailing",
+"Consumer Services"
+],
+"ABGSHIP":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ABINFRA":[
+"Construction",
+"Construction"
+],
+"ABIRLANUVO":[
+"Diversified",
+"Diversified"
+],
+"ABLBL":[
+"Retailing",
+"Consumer Services"
+],
+"ABMKNO":[
+"IT - Software",
+"Information Technology"
+],
+"ABREL":[
+"Realty",
+"Realty"
+],
+"ABSLAMC":[
+"Capital Markets",
+"Financial Services"
+],
+"ACC":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ACCELYA":[
+"IT - Software",
+"Information Technology"
+],
+"ACCURACY":[
+"Transport Services",
+"Services"
+],
+"ACE":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"ACEINTEG":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ACEVECTOR":[
+"Retailing",
+"Consumer Services"
+],
+"ACGL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ACI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ACL":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ACLGATI":[
+"Transport Services",
+"Services"
+],
+"ACMESOLAR":[
+"Power",
+"Power"
+],
+"ACUTAAS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ADANIENSOL":[
+"Power",
+"Power"
+],
+"ADANIENT":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"ADANIGREEN":[
+"Power",
+"Power"
+],
+"ADANIPORTS":[
+"Transport Infrastructure",
+"Services"
+],
+"ADANIPOWER":[
+"Power",
+"Power"
+],
+"ADDIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ADFFOODS":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"ADL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ADOR":[
+"Industrial Products",
+"Capital Goods"
+],
+"ADROITIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ADROITINFO":[
+"IT - Services",
+"Information Technology"
+],
+"ADSL":[
+"IT - Services",
+"Information Technology"
+],
+"ADVAIT":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ADVANCE":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"ADVANIHOTR":[
+"Leisure Services",
+"Consumer Services"
+],
+"ADVANTA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"ADVENTHTL":[
+"Leisure Services",
+"Consumer Services"
+],
+"ADVENZYMES":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ADVIKCA":[
+"Finance",
+"Financial Services"
+],
+"AEGISLOG":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"AEGISVOPAK":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"AEPL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"AEQUS":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"AEROENTER":[
+"Industrial Products",
+"Capital Goods"
+],
+"AEROFLEX":[
+"Industrial Products",
+"Capital Goods"
+],
+"AERONEU":[
+"Industrial Products",
+"Capital Goods"
+],
+"AEROPLANE":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"AETHER":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AFCONS":[
+"Construction",
+"Construction"
+],
+"AFFLE":[
+"IT - Services",
+"Information Technology"
+],
+"AFFORDABLE":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"AFIL":[
+"Finance",
+"Financial Services"
+],
+"AFSL":[
+"Finance",
+"Financial Services"
+],
+"AGARIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AGARWALEYE":[
+"Healthcare Services",
+"Healthcare"
+],
+"AGASTYAEN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AGI":[
+"Industrial Products",
+"Capital Goods"
+],
+"AGIIL":[
+"Realty",
+"Realty"
+],
+"AGL":[
+"Transport Services",
+"Services"
+],
+"AGOL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AGRITECH":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"AGROPHOS":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"AGSTRA":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"AHCL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AHLADA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AHLEAST":[
+"Leisure Services",
+"Consumer Services"
+],
+"AHLUCONT":[
+"Construction",
+"Construction"
+],
+"AHLWEST":[
+"Leisure Services",
+"Consumer Services"
+],
+"AIAENG":[
+"Industrial Products",
+"Capital Goods"
+],
+"AIFL":[
+"Finance",
+"Financial Services"
+],
+"AIIL":[
+"Finance",
+"Financial Services"
+],
+"AIRAN":[
+"IT - Services",
+"Information Technology"
+],
+"AIROLAM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AJANTPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AJAXENGG":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"AJMERA":[
+"Realty",
+"Realty"
+],
+"AJOONI":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"AKASH":[
+"Construction",
+"Construction"
+],
+"AKCAPIT":[
+"Finance",
+"Financial Services"
+],
+"AKG":[
+"Commercial Services & Supplies",
+"Services"
+],
+"AKI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AKSHAR":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AKSHARCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AKSHOPTFBR":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"AKUMS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALANKIT":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ALBERTDAVD":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALBK":[
+"Banks",
+"Financial Services"
+],
+"ALCHEM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALEMBICLTD":[
+"Realty",
+"Realty"
+],
+"ALFREDHE":[
+"Finance",
+"Financial Services"
+],
+"ALGOQUANT":[
+"Capital Markets",
+"Financial Services"
+],
+"ALICON":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ALIVUS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALKALI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ALKEM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALKYLAMINE":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ALLCARGO":[
+"Transport Services",
+"Services"
+],
+"ALLDIGI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ALLTIME":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ALMONDZ":[
+"Capital Markets",
+"Financial Services"
+],
+"ALOKINDS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ALPA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ALPHAGEO":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"ALPINETEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ALUFLUOR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AMAGI":[
+"IT - Services",
+"Information Technology"
+],
+"AMAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AMANTA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AMARJOTHI":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AMBALALSA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AMBER":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AMBICAAGAR":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"AMBIKCO":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AMBUJACEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"AMDIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"AMJLAND":[
+"Realty",
+"Realty"
+],
+"AMNPLST":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AMRUTANJAN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AMTEKAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ANANDRATHI":[
+"Capital Markets",
+"Financial Services"
+],
+"ANANTRAJ":[
+"Realty",
+"Realty"
+],
+"ANDHRABANK":[
+"Banks",
+"Financial Services"
+],
+"ANDHRACEMT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ANDHRAPAP":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"ANDHRSUGAR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ANDREWYU":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"ANGELONE":[
+"Capital Markets",
+"Financial Services"
+],
+"ANGIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ANIKINDS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ANKITMETAL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"ANMOL":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"ANNAPURNA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"ANNU":[
+"Construction",
+"Construction"
+],
+"ANSALAPI":[
+"Realty",
+"Realty"
+],
+"ANSALBU":[
+"Realty",
+"Realty"
+],
+"ANSALHSG":[
+"Realty",
+"Realty"
+],
+"ANTELOPUS":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"ANTGRAPHIC":[
+"Industrial Products",
+"Capital Goods"
+],
+"ANTHEM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ANUHPHR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ANUP":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ANURAS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"AONESTEELS":[
+"Industrial Products",
+"Capital Goods"
+],
+"APARINDS":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"APCL":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"APCOTEXIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"APEX":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"APLAPOLLO":[
+"Industrial Products",
+"Capital Goods"
+],
+"APLLTD":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"APOLLO":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"APOLLOHOSP":[
+"Healthcare Services",
+"Healthcare"
+],
+"APOLLOPIPE":[
+"Industrial Products",
+"Capital Goods"
+],
+"APOLLOTYRE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"APOLSINHOT":[
+"Leisure Services",
+"Consumer Services"
+],
+"APOORVA":[
+"Finance",
+"Financial Services"
+],
+"APTECHT":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"APTUS":[
+"Finance",
+"Financial Services"
+],
+"AQYLON":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"ARCHIDPLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ARCHIES":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ARCIL":[
+"Finance",
+"Financial Services"
+],
+"ARCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ARCOTECH":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"ARDEE":[
+"Diversified Metals",
+"Metals & Mining"
+],
+"ARE&M":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ARENTERP":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"ARFIN":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"ARHAM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ARIES":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"ARIHANT":[
+"Realty",
+"Realty"
+],
+"ARIHANTCAP":[
+"Capital Markets",
+"Financial Services"
+],
+"ARIHANTSUP":[
+"Realty",
+"Realty"
+],
+"ARIS":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"ARKADE":[
+"Realty",
+"Realty"
+],
+"ARMANFIN":[
+"Finance",
+"Financial Services"
+],
+"ARMEE":[
+"IT - Services",
+"Information Technology"
+],
+"AROGRANITE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ARROWGREEN":[
+"Industrial Products",
+"Capital Goods"
+],
+"ARROWTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ARSHIYA":[
+"Transport Services",
+"Services"
+],
+"ARSSBL":[
+"Capital Markets",
+"Financial Services"
+],
+"ARSSINFRA":[
+"Construction",
+"Construction"
+],
+"ARTEMISMED":[
+"Healthcare Services",
+"Healthcare"
+],
+"ARTNIRMAN":[
+"Realty",
+"Realty"
+],
+"ARVEE":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ARVIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ARVINDFASN":[
+"Retailing",
+"Consumer Services"
+],
+"ARVSMART":[
+"Realty",
+"Realty"
+],
+"ARYAMAN":[
+"Finance",
+"Financial Services"
+],
+"ASAHIINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ASAHISONG":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ASAL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ASALCBR":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"ASHAPURMIN":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"ASHIANA":[
+"Realty",
+"Realty"
+],
+"ASHIKAG":[
+"Finance",
+"Financial Services"
+],
+"ASHIMASYN":[
+"Realty",
+"Realty"
+],
+"ASHOKA":[
+"Construction",
+"Construction"
+],
+"ASHOKAMET":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"ASHOKLEY":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"ASIANENE":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"ASIANHOTNR":[
+"Leisure Services",
+"Consumer Services"
+],
+"ASIANPAINT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ASIANTILES":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ASIANTNE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ASKAUTOLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ASMS":[
+"IT - Services",
+"Information Technology"
+],
+"ASPINWALL":[
+"Diversified",
+"Diversified"
+],
+"ASSAMENT":[
+"Finance",
+"Financial Services"
+],
+"ASTAR":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ASTEC":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"ASTERDM":[
+"Healthcare Services",
+"Healthcare"
+],
+"ASTRAL":[
+"Industrial Products",
+"Capital Goods"
+],
+"ASTRAMICRO":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"ASTRAZEN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ASTRON":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"ATALREAL":[
+"Realty",
+"Realty"
+],
+"ATAM":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ATGL":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"ATHERENERG":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"ATL":[
+"Transport Infrastructure",
+"Services"
+],
+"ATLANTAA":[
+"Transport Infrastructure",
+"Services"
+],
+"ATLANTAELE":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ATLASCYCLE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ATUL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ATULAUTO":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"AUBANK":[
+"Banks",
+"Financial Services"
+],
+"AUGMONT":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"AURIONPRO":[
+"IT - Software",
+"Information Technology"
+],
+"AUROPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"AURUM":[
+"IT - Services",
+"Information Technology"
+],
+"AURUS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AUSOMENT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AUSTENG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"AUTOAXLES":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"AUTOIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"AUTOLITIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"AVADHSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"AVALON":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"AVANCE":[
+"IT - Software",
+"Information Technology"
+],
+"AVANTEL":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"AVANTIFEED":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"AVG":[
+"Transport Services",
+"Services"
+],
+"AVL":[
+"Retailing",
+"Consumer Services"
+],
+"AVONMORE":[
+"Finance",
+"Financial Services"
+],
+"AVROIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"AVTNPL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"AWFIS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"AWHCL":[
+"Other Utilities",
+"Utilities"
+],
+"AWL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"AXISBANK":[
+"Banks",
+"Financial Services"
+],
+"AXISCADES":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"AXITA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AXTEL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"AYE":[
+"Finance",
+"Financial Services"
+],
+"AYMSYNTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"AZAD":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"AZADIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"BAFNAPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BAGFILMS":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"BAIDFIN":[
+"Finance",
+"Financial Services"
+],
+"BAJAJ-AUTO":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"BAJAJCON":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"BAJAJELEC":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BAJAJFINSV":[
+"Finance",
+"Financial Services"
+],
+"BAJAJHCARE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BAJAJHFL":[
+"Finance",
+"Financial Services"
+],
+"BAJAJHIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"BAJAJHLDNG":[
+"Finance",
+"Financial Services"
+],
+"BAJAJINDEF":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"BAJAJST":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"BAJEL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"BAJFINANCE":[
+"Finance",
+"Financial Services"
+],
+"BALAJEE":[
+"Industrial Products",
+"Capital Goods"
+],
+"BALAJITELE":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"BALAMINES":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BALAXI":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BALKRISHNA":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"BALKRISIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BALLARPUR":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"BALMLAWRIE":[
+"Diversified",
+"Diversified"
+],
+"BALPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BALRAMCHIN":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"BALUFORGE":[
+"Industrial Products",
+"Capital Goods"
+],
+"BANARBEADS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BANARISUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"BANCOINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BANDHANBNK":[
+"Banks",
+"Financial Services"
+],
+"BANG":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BANKA":[
+"Construction",
+"Construction"
+],
+"BANKBARODA":[
+"Banks",
+"Financial Services"
+],
+"BANKINDIA":[
+"Banks",
+"Financial Services"
+],
+"BANSALWIRE":[
+"Industrial Products",
+"Capital Goods"
+],
+"BANSWRAS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BARTRONICS":[
+"IT - Services",
+"Information Technology"
+],
+"BASF":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BASML":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BATAINDIA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BATLIBOI":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"BAYERCROP":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"BBL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"BBOX":[
+"IT - Services",
+"Information Technology"
+],
+"BBTC":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"BBTCL":[
+"Industrial Products",
+"Capital Goods"
+],
+"BCG":[
+"IT - Services",
+"Information Technology"
+],
+"BCLIND":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"BCONCEPTS":[
+"Retailing",
+"Consumer Services"
+],
+"BCPL":[
+"Construction",
+"Construction"
+],
+"BDL":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"BEARDSELL":[
+"Industrial Products",
+"Capital Goods"
+],
+"BECTORFOOD":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"BEDMUTHA":[
+"Industrial Products",
+"Capital Goods"
+],
+"BEEKAY":[
+"Industrial Products",
+"Capital Goods"
+],
+"BEL":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"BELDING":[
+"Finance",
+"Financial Services"
+],
+"BELLACASA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BELRISE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BEML":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"BENARAS":[
+"Leisure Services",
+"Consumer Services"
+],
+"BENGALASM":[
+"Finance",
+"Financial Services"
+],
+"BEPL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BERGEPAINT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BESTAGRO":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"BETA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BFINVEST":[
+"Finance",
+"Financial Services"
+],
+"BFUTILITIE":[
+"Transport Infrastructure",
+"Services"
+],
+"BGRENERGY":[
+"Construction",
+"Construction"
+],
+"BHAGCHEM":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"BHAGERIA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BHAGYANGR":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"BHANDARI":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BHARATCOAL":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"BHARATFIN":[
+"Finance",
+"Financial Services"
+],
+"BHARATFORG":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BHARATGEAR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BHARATRAS":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"BHARATSE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BHARATWIRE":[
+"Industrial Products",
+"Capital Goods"
+],
+"BHARTIARTL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"BHARTIHEXA":[
+"Telecom - Services",
+"Telecommunication"
+],
+"BHEL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"BI":[
+"Healthcare Services",
+"Healthcare"
+],
+"BIGBLOC":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"BIKAJI":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"BIL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BILVYAPAR":[
+"Finance",
+"Financial Services"
+],
+"BIMETAL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BIOCON":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BIOFILCHEM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BIRLACABLE":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"BIRLACORPN":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"BIRLAMONEY":[
+"Capital Markets",
+"Financial Services"
+],
+"BIRLANU":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"BIRLAPREC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"BIRLATYRE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BKMINDST":[
+"Industrial Products",
+"Capital Goods"
+],
+"BLACKBUCK":[
+"Transport Services",
+"Services"
+],
+"BLACKROSE":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BLAL":[
+"Finance",
+"Financial Services"
+],
+"BLBLIMITED":[
+"Finance",
+"Financial Services"
+],
+"BLEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"BLIL":[
+"Finance",
+"Financial Services"
+],
+"BLISSGVS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BLKASHYAP":[
+"Construction",
+"Construction"
+],
+"BLS":[
+"Leisure Services",
+"Consumer Services"
+],
+"BLSE":[
+"IT - Services",
+"Information Technology"
+],
+"BLUEBLENDS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BLUECHIP":[
+"Finance",
+"Financial Services"
+],
+"BLUECLOUDS":[
+"IT - Software",
+"Information Technology"
+],
+"BLUECOAST":[
+"Leisure Services",
+"Consumer Services"
+],
+"BLUEDART":[
+"Transport Services",
+"Services"
+],
+"BLUEJET":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BLUESTARCO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BLUESTINFO":[
+"IT - Software",
+"Information Technology"
+],
+"BLUESTONE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BLUSPRING":[
+"Commercial Services & Supplies",
+"Services"
+],
+"BMWVENTLTD":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"BNAGROCHEM":[
+"Commercial Services & Supplies",
+"Services"
+],
+"BNALTD":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"BODALCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"BOHRAIND":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"BOMDYEING":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BONDADA":[
+"Telecom - Services",
+"Telecommunication"
+],
+"BONFIG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"BONLON":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"BORANA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BOROLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BORORENEW":[
+"Industrial Products",
+"Capital Goods"
+],
+"BOROSCI":[
+"Industrial Products",
+"Capital Goods"
+],
+"BOSCH-HCIL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BOSCHLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"BPCL":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"BPL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BPLPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BRAHMINFRA":[
+"Construction",
+"Construction"
+],
+"BRFL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BRIGADE":[
+"Realty",
+"Realty"
+],
+"BRIGHOTEL":[
+"Leisure Services",
+"Consumer Services"
+],
+"BRIGHTBR":[
+"Industrial Products",
+"Capital Goods"
+],
+"BRITANNIA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"BRNL":[
+"Transport Infrastructure",
+"Services"
+],
+"BROOKS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"BSE":[
+"Capital Markets",
+"Financial Services"
+],
+"BSHSL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"BSL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BSOFT":[
+"IT - Software",
+"Information Technology"
+],
+"BTML":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"BTTL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"BUILDPRO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"BURNPUR":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"BUTTERFLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"BVCL":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"BYKE":[
+"Leisure Services",
+"Consumer Services"
+],
+"CAIRN":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"CALSOFT":[
+"IT - Software",
+"Information Technology"
+],
+"CAMLINFINE":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CAMPUS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CAMS":[
+"Capital Markets",
+"Financial Services"
+],
+"CANBK":[
+"Banks",
+"Financial Services"
+],
+"CANDC":[
+"Construction",
+"Construction"
+],
+"CANFINHOME":[
+"Finance",
+"Financial Services"
+],
+"CANHLIFE":[
+"Insurance",
+"Financial Services"
+],
+"CANTABIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"CAPACITE":[
+"Construction",
+"Construction"
+],
+"CAPF":[
+"Finance",
+"Financial Services"
+],
+"CAPILLARY":[
+"IT - Software",
+"Information Technology"
+],
+"CAPITALSFB":[
+"Banks",
+"Financial Services"
+],
+"CAPLIPOINT":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"CAPTRUST":[
+"Finance",
+"Financial Services"
+],
+"CARBORUNIV":[
+"Industrial Products",
+"Capital Goods"
+],
+"CARERATING":[
+"Capital Markets",
+"Financial Services"
+],
+"CARRARO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"CARTRADE":[
+"Retailing",
+"Consumer Services"
+],
+"CARYSIL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CASTEXTECH":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"CASTROLIND":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"CCAVENUE":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"CCCL":[
+"Realty",
+"Realty"
+],
+"CCHHL":[
+"Leisure Services",
+"Consumer Services"
+],
+"CCL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"CDSL":[
+"Capital Markets",
+"Financial Services"
+],
+"CEATLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"CEIGALL":[
+"Construction",
+"Construction"
+],
+"CEINSYS":[
+"IT - Services",
+"Information Technology"
+],
+"CELEBRITY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"CELESTIAL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"CELLO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CEMPRO":[
+"Construction",
+"Construction"
+],
+"CENTENKA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"CENTEXT":[
+"Industrial Products",
+"Capital Goods"
+],
+"CENTRALBK":[
+"Banks",
+"Financial Services"
+],
+"CENTRUM":[
+"Finance",
+"Financial Services"
+],
+"CENTUM":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"CENTURYPLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CERA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CEREBRAINT":[
+"IT - Hardware",
+"Information Technology"
+],
+"CESC":[
+"Power",
+"Power"
+],
+"CEWATER":[
+"Other Utilities",
+"Utilities"
+],
+"CFEL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"CGCL":[
+"Finance",
+"Financial Services"
+],
+"CGPOWER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"CGVAK":[
+"IT - Software",
+"Information Technology"
+],
+"CHALET":[
+"Leisure Services",
+"Consumer Services"
+],
+"CHAMBLFERT":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"CHEMBOND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMBONDCH":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMCON":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMCRUX":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMFAB":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMFALKAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHEMPLASTS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CHENNPETRO":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"CHEVIOT":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"CHOICEIN":[
+"Finance",
+"Financial Services"
+],
+"CHOLAFIN":[
+"Finance",
+"Financial Services"
+],
+"CHOLAHLDNG":[
+"Finance",
+"Financial Services"
+],
+"CIEINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"CIFL":[
+"Finance",
+"Financial Services"
+],
+"CIGNITITEC":[
+"IT - Services",
+"Information Technology"
+],
+"CIMMCO":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"CINELINE":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"CINEVISTA":[
+"Realty",
+"Realty"
+],
+"CIPLA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"CLEAN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"CLEANMAX":[
+"Power",
+"Power"
+],
+"CLEDUCATE":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"CLSEL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"CMICABLES":[
+"Industrial Products",
+"Capital Goods"
+],
+"CMLL":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"CMPDI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"CMRGREEN":[
+"Industrial Products",
+"Capital Goods"
+],
+"CMSINFO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"CNL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"COALINDIA":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"COASTCORP":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"COCHINSHIP":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"COCKERILL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"COFFEEDAY":[
+"Leisure Services",
+"Consumer Services"
+],
+"COFORGE":[
+"IT - Software",
+"Information Technology"
+],
+"COHANCE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"COLPAL":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"COMFINTE":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"COMPEAU":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"COMPINFO":[
+"IT - Hardware",
+"Information Technology"
+],
+"COMPUSOFT":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"COMSYN":[
+"Industrial Products",
+"Capital Goods"
+],
+"CONCOR":[
+"Transport Services",
+"Services"
+],
+"CONCORDBIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"CONFIPET":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"CONSOFINVT":[
+"Finance",
+"Financial Services"
+],
+"CONTROLPR":[
+"IT - Hardware",
+"Information Technology"
+],
+"CORALFINAC":[
+"Commercial Services & Supplies",
+"Services"
+],
+"CORDELIA":[
+"Leisure Services",
+"Consumer Services"
+],
+"CORDSCABLE":[
+"Industrial Products",
+"Capital Goods"
+],
+"COROMANDEL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"CORONA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"CORPBANK":[
+"Banks",
+"Financial Services"
+],
+"COSMOFIRST":[
+"Industrial Products",
+"Capital Goods"
+],
+"COUNCODOS":[
+"Realty",
+"Realty"
+],
+"COX&KINGS":[
+"Leisure Services",
+"Consumer Services"
+],
+"CPCAP":[
+"Finance",
+"Financial Services"
+],
+"CPEDU":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"CPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"CPPLUS":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"CRAFTSMAN":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"CRAMC":[
+"Capital Markets",
+"Financial Services"
+],
+"CRAVATEX":[
+"Commercial Services & Supplies",
+"Services"
+],
+"CREATIVEYE":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"CREDITACC":[
+"Finance",
+"Financial Services"
+],
+"CREST":[
+"Finance",
+"Financial Services"
+],
+"CRESTO":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"CRISIL":[
+"Finance",
+"Financial Services"
+],
+"CRIZAC":[
+"Retailing",
+"Consumer Services"
+],
+"CROMPTON":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"CROWN":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"CRSL":[
+"IT - Services",
+"Information Technology"
+],
+"CSBBANK":[
+"Banks",
+"Financial Services"
+],
+"CSLFINANCE":[
+"Finance",
+"Financial Services"
+],
+"CSM":[
+"IT - Software",
+"Information Technology"
+],
+"CTE":[
+"IT - Software",
+"Information Technology"
+],
+"CUB":[
+"Banks",
+"Financial Services"
+],
+"CUBEXTUB":[
+"Industrial Products",
+"Capital Goods"
+],
+"CUMMINSIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"CUPID":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"CURAA":[
+"IT - Software",
+"Information Technology"
+],
+"CYBERMEDIA":[
+"Media",
+"Media Entertainment & Publication"
+],
+"CYBERTECH":[
+"IT - Software",
+"Information Technology"
+],
+"CYIENT":[
+"IT - Services",
+"Information Technology"
+],
+"CYIENTDLM":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"DABUR":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"DAICHI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DALBHARAT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"DALMIABHA":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"DALMIASUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DAMCAPITAL":[
+"Capital Markets",
+"Financial Services"
+],
+"DAMODARIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DANGEE":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"DATAMATICS":[
+"IT - Services",
+"Information Technology"
+],
+"DATAPATTNS":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"DAVANGERE":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DBCORP":[
+"Media",
+"Media Entertainment & Publication"
+],
+"DBEIL":[
+"Construction",
+"Construction"
+],
+"DBL":[
+"Construction",
+"Construction"
+],
+"DBOL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DBREALTY":[
+"Realty",
+"Realty"
+],
+"DBSTOCKBRO":[
+"Capital Markets",
+"Financial Services"
+],
+"DCAL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"DCBBANK":[
+"Banks",
+"Financial Services"
+],
+"DCI":[
+"IT - Software",
+"Information Technology"
+],
+"DCM":[
+"IT - Services",
+"Information Technology"
+],
+"DCMNVL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DCMSHRIRAM":[
+"Diversified",
+"Diversified"
+],
+"DCMSIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DCMSRIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DCW":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DCXINDIA":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"DDEVPLSTIK":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DECCANCE":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"DECNGOLD":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"DEEDEV":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"DEEP":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DEEPA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"DEEPAKFERT":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DEEPAKNTR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DEEPENR":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"DEEPINDS":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"DELHIVERY":[
+"Transport Services",
+"Services"
+],
+"DELPHIFX":[
+"Finance",
+"Financial Services"
+],
+"DELTACORP":[
+"Leisure Services",
+"Consumer Services"
+],
+"DELTAMAGNT":[
+"Industrial Products",
+"Capital Goods"
+],
+"DEN":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"DENABANK":[
+"Banks",
+"Financial Services"
+],
+"DENORA":[
+"Industrial Products",
+"Capital Goods"
+],
+"DENTA":[
+"Other Utilities",
+"Utilities"
+],
+"DEVIT":[
+"IT - Services",
+"Information Technology"
+],
+"DEVX":[
+"Commercial Services & Supplies",
+"Services"
+],
+"DEVYANI":[
+"Leisure Services",
+"Consumer Services"
+],
+"DFMFOODS":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"DGCONTENT":[
+"Media",
+"Media Entertainment & Publication"
+],
+"DHABRIYA":[
+"Industrial Products",
+"Capital Goods"
+],
+"DHAMPURSUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DHANBANK":[
+"Banks",
+"Financial Services"
+],
+"DHANI":[
+"Finance",
+"Financial Services"
+],
+"DHANUKA":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"DHARAN":[
+"Realty",
+"Realty"
+],
+"DHARMAJ":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"DHARSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DHATRE":[
+"Industrial Products",
+"Capital Goods"
+],
+"DHFL":[
+"Finance",
+"Financial Services"
+],
+"DHOOTTRANS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"DHRUV":[
+"Commercial Services & Supplies",
+"Services"
+],
+"DHUNINV":[
+"Finance",
+"Financial Services"
+],
+"DIACABS":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"DIAMINESQ":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DIAMONDYD":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"DIAPOWER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"DICIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DIFFNKG":[
+"Industrial Products",
+"Capital Goods"
+],
+"DIGIDRIVE":[
+"Retailing",
+"Consumer Services"
+],
+"DIGISPICE":[
+"IT - Services",
+"Information Technology"
+],
+"DIGITIDE":[
+"IT - Services",
+"Information Technology"
+],
+"DIGJAMLMTD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DIGJAMLTD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DIL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DISAQ":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"DISHMAN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"DISHTV":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"DIVGIITTS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"DIVISLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"DIXON":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"DJML":[
+"Transport Services",
+"Services"
+],
+"DLF":[
+"Realty",
+"Realty"
+],
+"DLINKINDIA":[
+"IT - Hardware",
+"Information Technology"
+],
+"DMART":[
+"Retailing",
+"Consumer Services"
+],
+"DMCC":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DNAMEDIA":[
+"Media",
+"Media Entertainment & Publication"
+],
+"DODLA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"DOLATALGO":[
+"Capital Markets",
+"Financial Services"
+],
+"DOLLAR":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DOLLEX":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DOLPHIN":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"DOLPHINOFF":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"DOMS":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"DONEAR":[
+"Textiles & Apparels",
+"Textiles"
+],
+"DPABHUSHAN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"DPSCLTD":[
+"Power",
+"Power"
+],
+"DPWIRES":[
+"Industrial Products",
+"Capital Goods"
+],
+"DQE":[
+"Media",
+"Media Entertainment & Publication"
+],
+"DRAGARWQ":[
+"Healthcare Services",
+"Healthcare"
+],
+"DRCSYSTEMS":[
+"IT - Services",
+"Information Technology"
+],
+"DREAMFOLKS":[
+"Transport Infrastructure",
+"Services"
+],
+"DREDGECORP":[
+"Engineering Services",
+"Services"
+],
+"DRREDDY":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"DSFCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"DSKULKARNI":[
+"Realty",
+"Realty"
+],
+"DSSL":[
+"IT - Services",
+"Information Technology"
+],
+"DTIL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DUCON":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"DVL":[
+"Industrial Products",
+"Capital Goods"
+],
+"DWARKESH":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"DYCL":[
+"Industrial Products",
+"Capital Goods"
+],
+"DYNAMATECH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"DYNPRO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"E2E":[
+"IT - Services",
+"Information Technology"
+],
+"EASEMYTRIP":[
+"Leisure Services",
+"Consumer Services"
+],
+"EASTSILK":[
+"Textiles & Apparels",
+"Textiles"
+],
+"EASTWEST":[
+"Transport Services",
+"Services"
+],
+"EASUNREYRL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"EBGNG":[
+"IT - Hardware",
+"Information Technology"
+],
+"EBIX":[
+"Leisure Services",
+"Consumer Services"
+],
+"ECEIND":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ECLERX":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ECORECO":[
+"Other Utilities",
+"Utilities"
+],
+"ECOSMOBLTY":[
+"Transport Services",
+"Services"
+],
+"EDELWEISS":[
+"Finance",
+"Financial Services"
+],
+"EDL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"EDUCOMP":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"EFCIL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"EICHERMOT":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"EIDPARRY":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"EIEL":[
+"Other Utilities",
+"Utilities"
+],
+"EIFFL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"EIHAHOTELS":[
+"Leisure Services",
+"Consumer Services"
+],
+"EIHOTEL":[
+"Leisure Services",
+"Consumer Services"
+],
+"EIMCOELECO":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"EKC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"EKI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ELAND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ELANTAS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ELCIDIN":[
+"Finance",
+"Financial Services"
+],
+"ELDEHSG":[
+"Realty",
+"Realty"
+],
+"ELECON":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ELECTCAST":[
+"Industrial Products",
+"Capital Goods"
+],
+"ELECTHERM":[
+"Industrial Products",
+"Capital Goods"
+],
+"ELEVATE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ELGIEQUIP":[
+"Industrial Products",
+"Capital Goods"
+],
+"ELGIRUBCO":[
+"Industrial Products",
+"Capital Goods"
+],
+"ELIN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ELITECON":[
+"Cigarettes & Tobacco Products",
+"Fast Moving Consumer Goods"
+],
+"ELLEN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ELPROINTL":[
+"Realty",
+"Realty"
+],
+"EMAMILTD":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"EMAMIPAP":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"EMAMIREAL":[
+"Realty",
+"Realty"
+],
+"EMBDL":[
+"Realty",
+"Realty"
+],
+"EMCO":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"EMCURE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"EMIL":[
+"Retailing",
+"Consumer Services"
+],
+"EMKAY":[
+"Capital Markets",
+"Financial Services"
+],
+"EMMBI":[
+"Industrial Products",
+"Capital Goods"
+],
+"EMMVEE":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"EMPIND":[
+"Diversified",
+"Diversified"
+],
+"EMPOWER":[
+"IT - Software",
+"Information Technology"
+],
+"EMSLIMITED":[
+"Other Utilities",
+"Utilities"
+],
+"EMUDHRA":[
+"IT - Services",
+"Information Technology"
+],
+"ENDURANCE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ENERGYDEV":[
+"Power",
+"Power"
+],
+"ENGINERSIN":[
+"Construction",
+"Construction"
+],
+"ENIL":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"ENKEIWHEL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ENRIN":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"ENTERO":[
+"Retailing",
+"Consumer Services"
+],
+"EON":[
+"Industrial Products",
+"Capital Goods"
+],
+"EPACK":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"EPACKPEB":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"EPIGRAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"EPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"EQUIPPP":[
+"IT - Software",
+"Information Technology"
+],
+"EQUITAS":[
+"Finance",
+"Financial Services"
+],
+"EQUITASBNK":[
+"Banks",
+"Financial Services"
+],
+"ERIS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"EROSMEDIA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"ESABINDIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"ESAFSFB":[
+"Banks",
+"Financial Services"
+],
+"ESCORTS":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"ESDS":[
+"IT - Services",
+"Information Technology"
+],
+"ESSARSHPNG":[
+"Transport Services",
+"Services"
+],
+"ESSDEE":[
+"Industrial Products",
+"Capital Goods"
+],
+"ESSENTIA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ESTER":[
+"Industrial Products",
+"Capital Goods"
+],
+"ETERNAL":[
+"Retailing",
+"Consumer Services"
+],
+"ETHOSLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"EUREKAFORB":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"EUROBOND":[
+"Industrial Products",
+"Capital Goods"
+],
+"EUROPRATIK":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"EUROTEXIND":[
+"Realty",
+"Realty"
+],
+"EVEREADY":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"EVERESTIND":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"EVERONN":[
+"IT - Software",
+"Information Technology"
+],
+"EXCELCROP":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"EXCELINDUS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"EXCELSOFT":[
+"IT - Services",
+"Information Technology"
+],
+"EXICOM":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"EXIDEIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"EXPLEOSOL":[
+"IT - Services",
+"Information Technology"
+],
+"EXXARO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"FABTECH":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"FACT":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"FAIRCHEMOR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"FAZE3Q":[
+"Textiles & Apparels",
+"Textiles"
+],
+"FCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"FCONSUMER":[
+"Retailing",
+"Consumer Services"
+],
+"FCSSOFT":[
+"IT - Services",
+"Information Technology"
+],
+"FDC":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"FEDDERELEC":[
+"Construction",
+"Construction"
+],
+"FEDDERSHOL":[
+"Finance",
+"Financial Services"
+],
+"FEDERALBNK":[
+"Banks",
+"Financial Services"
+],
+"FEDFINA":[
+"Finance",
+"Financial Services"
+],
+"FEL":[
+"Retailing",
+"Consumer Services"
+],
+"FELDVR":[
+"Retailing",
+"Consumer Services"
+],
+"FERMENTA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"FIBERWEB":[
+"Textiles & Apparels",
+"Textiles"
+],
+"FIEMIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"FILATEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"FILATFASH":[
+"Textiles & Apparels",
+"Textiles"
+],
+"FINCABLES":[
+"Industrial Products",
+"Capital Goods"
+],
+"FINEORG":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"FINKURVE":[
+"Finance",
+"Financial Services"
+],
+"FINOPB":[
+"Banks",
+"Financial Services"
+],
+"FINPIPE":[
+"Industrial Products",
+"Capital Goods"
+],
+"FIRSTCRY":[
+"Retailing",
+"Consumer Services"
+],
+"FISCHER":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"FIVESTAR":[
+"Finance",
+"Financial Services"
+],
+"FLAIR":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"FLEXITUFF":[
+"Textiles & Apparels",
+"Textiles"
+],
+"FLFL":[
+"Retailing",
+"Consumer Services"
+],
+"FLUOROCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"FMGOETZE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"FMNL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"FOCUS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"FOODSIN":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"FORCEMOT":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"FORTIS":[
+"Healthcare Services",
+"Healthcare"
+],
+"FOSECOIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"FRACTAL":[
+"IT - Software",
+"Information Technology"
+],
+"FREDUN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"FRETAIL":[
+"Retailing",
+"Consumer Services"
+],
+"FRONTSP":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"FSC":[
+"Transport Services",
+"Services"
+],
+"FSL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"FUSION":[
+"Finance",
+"Financial Services"
+],
+"FUSIONCX":[
+"Commercial Services & Supplies",
+"Services"
+],
+"GABRIEL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"GAEL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GAIL":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"GAJA":[
+"Capital Markets",
+"Financial Services"
+],
+"GALAPREC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"GALAXYSURF":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GALLANTT":[
+"Industrial Products",
+"Capital Goods"
+],
+"GALLISPAT":[
+"Industrial Products",
+"Capital Goods"
+],
+"GAMMONIND":[
+"Construction",
+"Construction"
+],
+"GANDHAR":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"GANDHITUBE":[
+"Industrial Products",
+"Capital Goods"
+],
+"GANECOS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GANESHBE":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"GANESHCP":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"GANESHHOU":[
+"Realty",
+"Realty"
+],
+"GANGAFORGE":[
+"Industrial Products",
+"Capital Goods"
+],
+"GANGESSECU":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GARDENSILK":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GARFIBRES":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GARUDA":[
+"Realty",
+"Realty"
+],
+"GATECH":[
+"Finance",
+"Financial Services"
+],
+"GATECHDVR":[
+"Finance",
+"Financial Services"
+],
+"GATEWAY":[
+"Transport Services",
+"Services"
+],
+"GAUDIUMIVF":[
+"Healthcare Services",
+"Healthcare"
+],
+"GAYAHWS":[
+"Transport Infrastructure",
+"Services"
+],
+"GAYAPROJ":[
+"Construction",
+"Construction"
+],
+"GCSL":[
+"Capital Markets",
+"Financial Services"
+],
+"GDL":[
+"Transport Services",
+"Services"
+],
+"GEECEE":[
+"Realty",
+"Realty"
+],
+"GEEKAYWIRE":[
+"Industrial Products",
+"Capital Goods"
+],
+"GEMAROMA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GENCON":[
+"Realty",
+"Realty"
+],
+"GENESYS":[
+"IT - Services",
+"Information Technology"
+],
+"GENSOL":[
+"Construction",
+"Construction"
+],
+"GENUSPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"GENUSPOWER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"GEOJITFSL":[
+"Capital Markets",
+"Financial Services"
+],
+"GEOMETRIC":[
+"IT - Software",
+"Information Technology"
+],
+"GERMAN":[
+"Industrial Products",
+"Capital Goods"
+],
+"GESHIP":[
+"Transport Services",
+"Services"
+],
+"GFLLIMITED":[
+"Finance",
+"Financial Services"
+],
+"GHCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GHCLTEXTIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GICHSGFIN":[
+"Finance",
+"Financial Services"
+],
+"GICL":[
+"Transport Services",
+"Services"
+],
+"GICRE":[
+"Insurance",
+"Financial Services"
+],
+"GILLANDERS":[
+"Diversified",
+"Diversified"
+],
+"GILLETTE":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"GINNIFILA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GIPCL":[
+"Power",
+"Power"
+],
+"GITANJALI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GKB":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"GKENERGY":[
+"Construction",
+"Construction"
+],
+"GKSL":[
+"Healthcare Services",
+"Healthcare"
+],
+"GKWLIMITED":[
+"Finance",
+"Financial Services"
+],
+"GLAND":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GLASSWALL":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"GLAXO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GLENMARK":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GLFL":[
+"Finance",
+"Financial Services"
+],
+"GLOBAL":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"GLOBALE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GLOBALVECT":[
+"Transport Services",
+"Services"
+],
+"GLOBE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GLOBECIVIL":[
+"Construction",
+"Construction"
+],
+"GLOBOFFS":[
+"Transport Services",
+"Services"
+],
+"GLOBUSSPR":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"GLOSTERLTD":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"GLOTTIS":[
+"Transport Services",
+"Services"
+],
+"GMBREW":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"GMDCLTD":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"GMMPFAUDLR":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"GMRAIRPORT":[
+"Transport Infrastructure",
+"Services"
+],
+"GMRP&UI":[
+"Power",
+"Power"
+],
+"GNA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"GNFC":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GNRL":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"GOACARBON":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"GOCLCORP":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GOCOLORS":[
+"Retailing",
+"Consumer Services"
+],
+"GODAVARIB":[
+"Diversified FMCG",
+"Fast Moving Consumer Goods"
+],
+"GODFRYPHLP":[
+"Cigarettes & Tobacco Products",
+"Fast Moving Consumer Goods"
+],
+"GODIGIT":[
+"Insurance",
+"Financial Services"
+],
+"GODREJAGRO":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"GODREJCP":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"GODREJIND":[
+"Diversified",
+"Diversified"
+],
+"GODREJPROP":[
+"Realty",
+"Realty"
+],
+"GOKEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"GOKUL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GOKULAGRO":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GOLDENTOBC":[
+"Realty",
+"Realty"
+],
+"GOLDIAM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GOODLUCK":[
+"Industrial Products",
+"Capital Goods"
+],
+"GOODYEAR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"GOPAL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"GOYALALUM":[
+"Commercial Services & Supplies",
+"Services"
+],
+"GPIL":[
+"Industrial Products",
+"Capital Goods"
+],
+"GPPL":[
+"Transport Infrastructure",
+"Services"
+],
+"GPTHEALTH":[
+"Healthcare Services",
+"Healthcare"
+],
+"GPTINFRA":[
+"Construction",
+"Construction"
+],
+"GRADIENTE":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"GRANDOAK":[
+"Finance",
+"Financial Services"
+],
+"GRANULES":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GRAPHITE":[
+"Industrial Products",
+"Capital Goods"
+],
+"GRASIM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"GRAUWEIL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GRAVISSHO":[
+"Leisure Services",
+"Consumer Services"
+],
+"GRAVITA":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"GREAVESCOT":[
+"Industrial Products",
+"Capital Goods"
+],
+"GREENLAM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GREENPANEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GREENPLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GREENPOWER":[
+"Power",
+"Power"
+],
+"GRINDWELL":[
+"Industrial Products",
+"Capital Goods"
+],
+"GRINFRA":[
+"Construction",
+"Construction"
+],
+"GRMOVER":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GROBTEA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GROWW":[
+"Capital Markets",
+"Financial Services"
+],
+"GRPLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"GRSE":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"GRUH":[
+"Finance",
+"Financial Services"
+],
+"GRWRHITECH":[
+"Industrial Products",
+"Capital Goods"
+],
+"GSCLCEMENT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"GSFC":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"GSKCONS":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"GSLSU":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"GSPCROP":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"GSPL":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"GSPLTRANS":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"GSS":[
+"IT - Services",
+"Information Technology"
+],
+"GTECJAINX":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"GTL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"GTLINFRA":[
+"Telecom - Services",
+"Telecommunication"
+],
+"GTOFFSHORE":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"GTPL":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"GUFICBIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GUJALKALI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"GUJAPOLLO":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"GUJENERGY":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"GUJRAFFIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"GUJTHEM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"GULFOILLUB":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"GULFPETRO":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"GULPOLY":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"GVKPIL":[
+"Power",
+"Power"
+],
+"GVPIL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"GVPTECH":[
+"IT - Services",
+"Information Technology"
+],
+"GVT&D":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"GYFTR":[
+"Finance",
+"Financial Services"
+],
+"HAL":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"HALDER":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"HALDYNGL":[
+"Industrial Products",
+"Capital Goods"
+],
+"HALEOSLABS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"HAMPTON":[
+"Realty",
+"Realty"
+],
+"HAPPSTMNDS":[
+"IT - Software",
+"Information Technology"
+],
+"HAPPYFORGE":[
+"Industrial Products",
+"Capital Goods"
+],
+"HARDWYN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"HARIOMPIPE":[
+"Industrial Products",
+"Capital Goods"
+],
+"HARITASEAT":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"HARRMALAYA":[
+"Industrial Products",
+"Capital Goods"
+],
+"HARSHA":[
+"Industrial Products",
+"Capital Goods"
+],
+"HATHWAY":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"HATSUN":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"HAVELLS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"HAVISHA":[
+"Leisure Services",
+"Consumer Services"
+],
+"HAWKINCOOK":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"HAZOOR":[
+"Construction",
+"Construction"
+],
+"HBESD":[
+"Realty",
+"Realty"
+],
+"HBLENGINE":[
+"Industrial Products",
+"Capital Goods"
+],
+"HBPOR":[
+"Finance",
+"Financial Services"
+],
+"HBSL":[
+"Finance",
+"Financial Services"
+],
+"HBSTOCK":[
+"Capital Markets",
+"Financial Services"
+],
+"HCC":[
+"Construction",
+"Construction"
+],
+"HCG":[
+"Healthcare Services",
+"Healthcare"
+],
+"HCL-INSYS":[
+"IT - Hardware",
+"Information Technology"
+],
+"HCLTECH":[
+"IT - Software",
+"Information Technology"
+],
+"HDBFS":[
+"Finance",
+"Financial Services"
+],
+"HDFC":[
+"Finance",
+"Financial Services"
+],
+"HDFCAMC":[
+"Capital Markets",
+"Financial Services"
+],
+"HDFCBANK":[
+"Banks",
+"Financial Services"
+],
+"HDFCLIFE":[
+"Insurance",
+"Financial Services"
+],
+"HDFIRE":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HDIL":[
+"Realty",
+"Realty"
+],
+"HEADSUP":[
+"Textiles & Apparels",
+"Textiles"
+],
+"HEALTHX":[
+"Healthcare Services",
+"Healthcare"
+],
+"HECPROJECT":[
+"Construction",
+"Construction"
+],
+"HEGAM":[
+"Industrial Products",
+"Capital Goods"
+],
+"HEIDELBERG":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"HEMIPROP":[
+"Commercial Services & Supplies",
+"Services"
+],
+"HERANBA":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"HERCULES":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HERITGFOOD":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"HEROMOTOCO":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"HEROMOTORS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"HESTERBIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"HEXAGON":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"HEXATRADEX":[
+"Finance",
+"Financial Services"
+],
+"HEXAWARE":[
+"IT - Software",
+"Information Technology"
+],
+"HEXT":[
+"IT - Software",
+"Information Technology"
+],
+"HFCL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"HGINFRA":[
+"Construction",
+"Construction"
+],
+"HGM":[
+"IT - Services",
+"Information Technology"
+],
+"HGS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"HIGHGROUND":[
+"Construction",
+"Construction"
+],
+"HIKAL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"HILINFRA":[
+"Transport Infrastructure",
+"Services"
+],
+"HILTON":[
+"Industrial Products",
+"Capital Goods"
+],
+"HIMATSEIDE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"HINDADH":[
+"Industrial Products",
+"Capital Goods"
+],
+"HINDALCO":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"HINDALUMI":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"HINDCOMPOS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"HINDCON":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"HINDCOPPER":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"HINDDORROL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HINDMOTORS":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"HINDNATGLS":[
+"Industrial Products",
+"Capital Goods"
+],
+"HINDOILEXP":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"HINDPETRO":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"HINDUNILVR":[
+"Diversified FMCG",
+"Fast Moving Consumer Goods"
+],
+"HINDWAREAP":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"HINDZINC":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"HIRECT":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HISARMETAL":[
+"Industrial Products",
+"Capital Goods"
+],
+"HITECH":[
+"Industrial Products",
+"Capital Goods"
+],
+"HITECHCORP":[
+"Industrial Products",
+"Capital Goods"
+],
+"HITECHGEAR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"HLEGLAS":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HLVLTD":[
+"Leisure Services",
+"Consumer Services"
+],
+"HMAAGRO":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"HMT":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HMVL":[
+"Media",
+"Media Entertainment & Publication"
+],
+"HNDFDS":[
+"Diversified FMCG",
+"Fast Moving Consumer Goods"
+],
+"HOCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"HOMEFIRST":[
+"Finance",
+"Financial Services"
+],
+"HONASA":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"HONAUT":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HONDAPOWER":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HORIZONIND":[
+"Realty",
+"Realty"
+],
+"HPAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"HPIL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"HPL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HRYNSHP":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"HSCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"HTEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"HTMEDIA":[
+"Media",
+"Media Entertainment & Publication"
+],
+"HUBTOWN":[
+"Realty",
+"Realty"
+],
+"HUDCO":[
+"Finance",
+"Financial Services"
+],
+"HUHTAMAKI":[
+"Industrial Products",
+"Capital Goods"
+],
+"HYBRIDFIN":[
+"Capital Markets",
+"Financial Services"
+],
+"HYUNDAI":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"IBULLSLTD":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ICEMAKE":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ICICIAMC":[
+"Capital Markets",
+"Financial Services"
+],
+"ICICIBANK":[
+"Banks",
+"Financial Services"
+],
+"ICICIGI":[
+"Insurance",
+"Financial Services"
+],
+"ICICILIFE":[
+"Insurance",
+"Financial Services"
+],
+"ICIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ICRA":[
+"Capital Markets",
+"Financial Services"
+],
+"IDBI":[
+"Banks",
+"Financial Services"
+],
+"IDEA":[
+"Telecom - Services",
+"Telecommunication"
+],
+"IDEAFORGE":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"IDFC":[
+"Finance",
+"Financial Services"
+],
+"IDFCFIRSTB":[
+"Banks",
+"Financial Services"
+],
+"IEX":[
+"Capital Markets",
+"Financial Services"
+],
+"IFBAGRO":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"IFBIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"IFCI":[
+"Finance",
+"Financial Services"
+],
+"IFGLEXPOR":[
+"Industrial Products",
+"Capital Goods"
+],
+"IFGLREFRAC":[
+"Industrial Products",
+"Capital Goods"
+],
+"IGARASHI":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"IGCL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"IGIL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"IGL":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"IGPL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"IIFL":[
+"Finance",
+"Financial Services"
+],
+"IIFLCAPS":[
+"Capital Markets",
+"Financial Services"
+],
+"IIRM":[
+"Commercial Services & Supplies",
+"Services"
+],
+"IITL":[
+"Finance",
+"Financial Services"
+],
+"IKIO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"IKS":[
+"IT - Services",
+"Information Technology"
+],
+"IL&FSENGG":[
+"Construction",
+"Construction"
+],
+"IL&FSTRANS":[
+"Construction",
+"Construction"
+],
+"IMAGICAA":[
+"Leisure Services",
+"Consumer Services"
+],
+"IMFA":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"IMPAL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"INA":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"INCREDIBLE":[
+"Industrial Products",
+"Capital Goods"
+],
+"INDBANK":[
+"Capital Markets",
+"Financial Services"
+],
+"INDGN":[
+"Healthcare Services",
+"Healthcare"
+],
+"INDHOTEL":[
+"Leisure Services",
+"Consumer Services"
+],
+"INDIACEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"INDIAGLYCO":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"INDIAMART":[
+"Retailing",
+"Consumer Services"
+],
+"INDIANB":[
+"Banks",
+"Financial Services"
+],
+"INDIANCARD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"INDIANHUME":[
+"Construction",
+"Construction"
+],
+"INDIASHLTR":[
+"Finance",
+"Financial Services"
+],
+"INDIGO":[
+"Transport Services",
+"Services"
+],
+"INDIGOPNTS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"INDIQUBE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"INDNIPPON":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"INDOAMIN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"INDOBORAX":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"INDOCO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"INDOFARM":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"INDOKEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"INDOMIM":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"INDORAMA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"INDOSTAR":[
+"Finance",
+"Financial Services"
+],
+"INDOTECH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"INDOTHAI":[
+"Capital Markets",
+"Financial Services"
+],
+"INDOUS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"INDOWIND":[
+"Power",
+"Power"
+],
+"INDPRUD":[
+"Finance",
+"Financial Services"
+],
+"INDRAMEDCO":[
+"Healthcare Services",
+"Healthcare"
+],
+"INDSWFTLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"INDTERRAIN":[
+"Textiles & Apparels",
+"Textiles"
+],
+"INDUSINDBK":[
+"Banks",
+"Financial Services"
+],
+"INDUSTOWER":[
+"Telecom - Services",
+"Telecommunication"
+],
+"INFINITE":[
+"IT - Software",
+"Information Technology"
+],
+"INFOBEAN":[
+"IT - Software",
+"Information Technology"
+],
+"INFOMEDIA":[
+"Printing & Publication",
+"Media Entertainment & Publication"
+],
+"INFY":[
+"IT - Software",
+"Information Technology"
+],
+"INGERRAND":[
+"Industrial Products",
+"Capital Goods"
+],
+"INNOVACAP":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"INNOVANA":[
+"IT - Software",
+"Information Technology"
+],
+"INNOVISION":[
+"Transport Infrastructure",
+"Services"
+],
+"INOXGREEN":[
+"Commercial Services & Supplies",
+"Services"
+],
+"INOXINDIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"INOXLEISUR":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"INOXWIND":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"INSECTICID":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"INSPIRISYS":[
+"IT - Services",
+"Information Technology"
+],
+"INTELLECT":[
+"IT - Software",
+"Information Technology"
+],
+"INTENTECH":[
+"IT - Services",
+"Information Technology"
+],
+"INTERARCH":[
+"Construction",
+"Construction"
+],
+"INTLCONV":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"INVENTURE":[
+"Capital Markets",
+"Financial Services"
+],
+"INVPRECQ":[
+"Industrial Products",
+"Capital Goods"
+],
+"IOB":[
+"Banks",
+"Financial Services"
+],
+"IOC":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"IOLCP":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"IONEXCHANG":[
+"Other Utilities",
+"Utilities"
+],
+"IPCALAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"IPL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"IPRINGLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"IRB":[
+"Construction",
+"Construction"
+],
+"IRCON":[
+"Construction",
+"Construction"
+],
+"IRCTC":[
+"Leisure Services",
+"Consumer Services"
+],
+"IREDA":[
+"Finance",
+"Financial Services"
+],
+"IRFC":[
+"Finance",
+"Financial Services"
+],
+"IRIS":[
+"IT - Software",
+"Information Technology"
+],
+"IRISDOREME":[
+"Textiles & Apparels",
+"Textiles"
+],
+"IRMENERGY":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"ISEC":[
+"Capital Markets",
+"Financial Services"
+],
+"ISFT":[
+"Retailing",
+"Consumer Services"
+],
+"ISGEC":[
+"Construction",
+"Construction"
+],
+"ISHANCH":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ISMTLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"ISTLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ITC":[
+"Diversified FMCG",
+"Fast Moving Consumer Goods"
+],
+"ITCHOTELS":[
+"Leisure Services",
+"Consumer Services"
+],
+"ITDC":[
+"Leisure Services",
+"Consumer Services"
+],
+"ITI":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"ITL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"IVALUE":[
+"IT - Hardware",
+"Information Technology"
+],
+"IVC":[
+"Capital Markets",
+"Financial Services"
+],
+"IVP":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"IWEL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"IWP":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"IXIGO":[
+"Leisure Services",
+"Consumer Services"
+],
+"IZMO":[
+"IT - Services",
+"Information Technology"
+],
+"J&KBANK":[
+"Banks",
+"Financial Services"
+],
+"JAGRAN":[
+"Media",
+"Media Entertainment & Publication"
+],
+"JAGSNPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"JAIBALAJI":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"JAICORPLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"JAINREC":[
+"Diversified Metals",
+"Metals & Mining"
+],
+"JAIPURKURT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"JAMNAAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JARO":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"JASH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"JAYAGROGN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JAYBARMARU":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JAYKAY":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"JAYNECOIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"JAYSREETEA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"JBCHEPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"JBFIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JBMA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JENBURPH":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"JETAIRWAYS":[
+"Transport Services",
+"Services"
+],
+"JETFREIGHT":[
+"Transport Services",
+"Services"
+],
+"JGCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JHS":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"JINDALPHOT":[
+"Finance",
+"Financial Services"
+],
+"JINDALPOLY":[
+"Industrial Products",
+"Capital Goods"
+],
+"JINDALSAW":[
+"Industrial Products",
+"Capital Goods"
+],
+"JINDALSTEL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"JINDCOT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"JINDRILL":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"JINDWORLD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"JIOFIN":[
+"Finance",
+"Financial Services"
+],
+"JISLDVREQS":[
+"Industrial Products",
+"Capital Goods"
+],
+"JISLJALEQS":[
+"Industrial Products",
+"Capital Goods"
+],
+"JITFINFRA":[
+"Other Utilities",
+"Utilities"
+],
+"JIYAECO":[
+"Other Utilities",
+"Utilities"
+],
+"JKCEMENT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"JKIL":[
+"Construction",
+"Construction"
+],
+"JKIPL":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"JKLAKSHMI":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"JKPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"JKTYRE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JLHL":[
+"Healthcare Services",
+"Healthcare"
+],
+"JMA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JMCPROJECT":[
+"Construction",
+"Construction"
+],
+"JMFINANCIL":[
+"Finance",
+"Financial Services"
+],
+"JMTAUTOLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JNKINDIA":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"JNPR":[
+"Power",
+"Power"
+],
+"JOCIL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JPASSOCIAT":[
+"Construction",
+"Construction"
+],
+"JPINFRATEC":[
+"Construction",
+"Construction"
+],
+"JPL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"JPOLYINVST":[
+"Finance",
+"Financial Services"
+],
+"JPPOWER":[
+"Power",
+"Power"
+],
+"JSFB":[
+"Banks",
+"Financial Services"
+],
+"JSIPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"JSL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"JSLHISAR":[
+"Industrial Products",
+"Capital Goods"
+],
+"JSLL":[
+"Leisure Services",
+"Consumer Services"
+],
+"JSWCEMENT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"JSWDULUX":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"JSWENERGY":[
+"Power",
+"Power"
+],
+"JSWHL":[
+"Finance",
+"Financial Services"
+],
+"JSWINFRA":[
+"Transport Infrastructure",
+"Services"
+],
+"JSWISPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"JSWSTEEL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"JTEKTINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"JTLIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"JUBLCPL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JUBLFOOD":[
+"Leisure Services",
+"Consumer Services"
+],
+"JUBLINDS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JUBLINGREA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JUBLPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"JUNIPER":[
+"Leisure Services",
+"Consumer Services"
+],
+"JUSTDIAL":[
+"Retailing",
+"Consumer Services"
+],
+"JVLAGRO":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"JWL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"JYOTHYLAB":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"JYOTICNC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"JYOTIRES":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"JYOTISTRUC":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"KABRAEXTRU":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"KAJARIACER":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KAKATCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"KALAMANDIR":[
+"Retailing",
+"Consumer Services"
+],
+"KALINDEE":[
+"Construction",
+"Construction"
+],
+"KALPATARU":[
+"Realty",
+"Realty"
+],
+"KALYANI":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"KALYANIFRG":[
+"Industrial Products",
+"Capital Goods"
+],
+"KALYANKJIL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KAMAHOLD":[
+"Diversified",
+"Diversified"
+],
+"KAMANWALA":[
+"Realty",
+"Realty"
+],
+"KAMATHOTEL":[
+"Leisure Services",
+"Consumer Services"
+],
+"KAMDHENU":[
+"Industrial Products",
+"Capital Goods"
+],
+"KAMOPAINTS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KANANIIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KANCHI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"KANCOTEA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KANOHAR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"KANORICHEM":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"KANPRPLA":[
+"Industrial Products",
+"Capital Goods"
+],
+"KANSAINER":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KAPSTON":[
+"Commercial Services & Supplies",
+"Services"
+],
+"KARAMTARA":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"KARMAENG":[
+"Power",
+"Power"
+],
+"KARURVYSYA":[
+"Banks",
+"Financial Services"
+],
+"KAUSHALYA":[
+"Leisure Services",
+"Consumer Services"
+],
+"KAVDEFENCE":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"KAYA":[
+"Leisure Services",
+"Consumer Services"
+],
+"KAYNES":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"KCP":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"KCPSUGIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KDDL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KDGREEN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KEC":[
+"Construction",
+"Construction"
+],
+"KECL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"KEEPLEARN":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"KEI":[
+"Industrial Products",
+"Capital Goods"
+],
+"KELLTONTEC":[
+"IT - Services",
+"Information Technology"
+],
+"KENNAMET":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"KERNEX":[
+"Transport Services",
+"Services"
+],
+"KESARENT":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KESORAMIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"KEYFINSERV":[
+"Capital Markets",
+"Financial Services"
+],
+"KFINTECH":[
+"Capital Markets",
+"Financial Services"
+],
+"KHADIM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KHAICHEM":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"KHAITANLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KHANDSE":[
+"Capital Markets",
+"Financial Services"
+],
+"KHAZANCHI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KICL":[
+"Finance",
+"Financial Services"
+],
+"KILITCH":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"KIMS":[
+"Healthcare Services",
+"Healthcare"
+],
+"KINGFA":[
+"Industrial Products",
+"Capital Goods"
+],
+"KIOCL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"KIRANVYPAR":[
+"Finance",
+"Financial Services"
+],
+"KIRIINDUS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"KIRLFER":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"KIRLOSBROS":[
+"Industrial Products",
+"Capital Goods"
+],
+"KIRLOSENG":[
+"Industrial Products",
+"Capital Goods"
+],
+"KIRLOSIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"KIRLPNU":[
+"Industrial Products",
+"Capital Goods"
+],
+"KISSHT":[
+"Finance",
+"Financial Services"
+],
+"KITEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"KJMCFIN":[
+"Finance",
+"Financial Services"
+],
+"KKCL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"KLBRENG-B":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"KMCSHIL":[
+"Healthcare Services",
+"Healthcare"
+],
+"KMEW":[
+"Engineering Services",
+"Services"
+],
+"KMSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KNACK":[
+"Industrial Products",
+"Capital Goods"
+],
+"KNAGRI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KNRCON":[
+"Construction",
+"Construction"
+],
+"KOHINOOR":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"KOKUYOCMLN":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"KOLTEPATIL":[
+"Realty",
+"Realty"
+],
+"KOPRAN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"KOTAKBANK":[
+"Banks",
+"Financial Services"
+],
+"KOTARISUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KOTHARIPET":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"KOTHARIPRO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"KOTIC":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KOTYARK":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"KOVAI":[
+"Healthcare Services",
+"Healthcare"
+],
+"KPEL":[
+"Power",
+"Power"
+],
+"KPIGREEN":[
+"Power",
+"Power"
+],
+"KPIL":[
+"Construction",
+"Construction"
+],
+"KPITTECH":[
+"IT - Software",
+"Information Technology"
+],
+"KPL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"KPRMILL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"KRBL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KREBSBIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"KRIDHANINF":[
+"Construction",
+"Construction"
+],
+"KRISHANA":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"KRISHIVAL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"KRISHNADEF":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"KRITI":[
+"Industrial Products",
+"Capital Goods"
+],
+"KRITIKA":[
+"Industrial Products",
+"Capital Goods"
+],
+"KRITINUT":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KRN":[
+"Industrial Products",
+"Capital Goods"
+],
+"KRONOX":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"KROSS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"KRSNAA":[
+"Healthcare Services",
+"Healthcare"
+],
+"KRYSTAL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"KSB":[
+"Industrial Products",
+"Capital Goods"
+],
+"KSCL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"KSE":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"KSHINTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"KSHITIJPOL":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"KSK":[
+"Power",
+"Power"
+],
+"KSL":[
+"Industrial Products",
+"Capital Goods"
+],
+"KSOLVES":[
+"IT - Software",
+"Information Technology"
+],
+"KSR":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"KTIL":[
+"Transport Services",
+"Services"
+],
+"KTKBANK":[
+"Banks",
+"Financial Services"
+],
+"KUANTUM":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"KUSUMGAR":[
+"Textiles & Apparels",
+"Textiles"
+],
+"KWALITY":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"KWIL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"LADDERUP":[
+"Finance",
+"Financial Services"
+],
+"LAGNAM":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LAHOTIOV":[
+"Commercial Services & Supplies",
+"Services"
+],
+"LAKPRE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"LAKSHMIEFL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"LAKSHMIMIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LAKSHVILAS":[
+"Banks",
+"Financial Services"
+],
+"LAL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LALITHAA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LALPATHLAB":[
+"Healthcare Services",
+"Healthcare"
+],
+"LAMBODHARA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LANCER":[
+"Transport Services",
+"Services"
+],
+"LANCORHOL":[
+"Realty",
+"Realty"
+],
+"LANDMARK":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"LANDSMILL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"LAOPALA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LASA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"LASERPOWER":[
+"Industrial Products",
+"Capital Goods"
+],
+"LATENTVIEW":[
+"IT - Software",
+"Information Technology"
+],
+"LATTEYS":[
+"Industrial Products",
+"Capital Goods"
+],
+"LAURUSLABS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"LAXMICOT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LAXMIDENTL":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"LAXMIINDIA":[
+"Finance",
+"Financial Services"
+],
+"LCCINFOTEC":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"LCCPROJECT":[
+"Construction",
+"Construction"
+],
+"LCL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"LEAPIND":[
+"Commercial Services & Supplies",
+"Services"
+],
+"LEEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LEENEE":[
+"IT - Services",
+"Information Technology"
+],
+"LEMERITE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LEMONTREE":[
+"Leisure Services",
+"Consumer Services"
+],
+"LENSKART":[
+"Retailing",
+"Consumer Services"
+],
+"LEXUS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LFIC":[
+"Finance",
+"Financial Services"
+],
+"LGBBROSLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"LGBFORGE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"LGEINDIA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LGHL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LIBAS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LIBERTSHOE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"LICHSGFIN":[
+"Finance",
+"Financial Services"
+],
+"LICI":[
+"Insurance",
+"Financial Services"
+],
+"LIKHITHA":[
+"Construction",
+"Construction"
+],
+"LINC":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"LINCOLN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"LINDEINDIA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"LKPSEC":[
+"Capital Markets",
+"Financial Services"
+],
+"LLOYDSENGG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"LLOYDSENT":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"LLOYDSME":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"LML":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"LMW":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"LODHA":[
+"Realty",
+"Realty"
+],
+"LOKESHMACH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"LORDSCHLO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"LOTUSCHO":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"LOTUSDEV":[
+"Realty",
+"Realty"
+],
+"LOTUSEYE":[
+"Healthcare Services",
+"Healthcare"
+],
+"LOVABLE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LOYALTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LPDC":[
+"Realty",
+"Realty"
+],
+"LT":[
+"Construction",
+"Construction"
+],
+"LTF":[
+"Finance",
+"Financial Services"
+],
+"LTFOODS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"LTM":[
+"IT - Software",
+"Information Technology"
+],
+"LTTS":[
+"IT - Services",
+"Information Technology"
+],
+"LUMAXIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"LUMAXTECH":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"LUMINO":[
+"Industrial Products",
+"Capital Goods"
+],
+"LUPIN":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"LUXIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"LXCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"LYKALABS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"M&M":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"M&MFIN":[
+"Finance",
+"Financial Services"
+],
+"MAANALU":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"MACPOWER":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MADHAV":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MADHAVIPL":[
+"Construction",
+"Construction"
+],
+"MADHUCON":[
+"Construction",
+"Construction"
+],
+"MADRASFERT":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MAFATIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MAGADSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MAGNUM":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"MAHABANK":[
+"Banks",
+"Financial Services"
+],
+"MAHAPEXLTD":[
+"Finance",
+"Financial Services"
+],
+"MAHASTEEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"MAHEPC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MAHESHWARI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MAHLIFE":[
+"Realty",
+"Realty"
+],
+"MAHLOG":[
+"Transport Services",
+"Services"
+],
+"MAHSCOOTER":[
+"Finance",
+"Financial Services"
+],
+"MAHSEAMLES":[
+"Industrial Products",
+"Capital Goods"
+],
+"MAITHANALL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"MAJESAUT":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MAKERSL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MALLCOM":[
+"Industrial Products",
+"Capital Goods"
+],
+"MALUPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"MAMATA":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MANAKALUCO":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"MANAKCOAT":[
+"Industrial Products",
+"Capital Goods"
+],
+"MANAKSIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"MANAKSTEEL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"MANALIPETC":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"MANAPPURAM":[
+"Finance",
+"Financial Services"
+],
+"MANBA":[
+"Finance",
+"Financial Services"
+],
+"MANCREDIT":[
+"Finance",
+"Financial Services"
+],
+"MANDHANA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MANGALAM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MANGCHEFER":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MANGLMCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"MANGTIMBER":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MANIKA":[
+"Industrial Products",
+"Capital Goods"
+],
+"MANINDS":[
+"Industrial Products",
+"Capital Goods"
+],
+"MANINFRA":[
+"Realty",
+"Realty"
+],
+"MANIPALHOS":[
+"Healthcare Services",
+"Healthcare"
+],
+"MANKIND":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MANOMAY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MANORAMA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"MANORG":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"MANPASAND":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"MANUGRAPH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MANYAVAR":[
+"Retailing",
+"Consumer Services"
+],
+"MAPMYINDIA":[
+"IT - Software",
+"Information Technology"
+],
+"MARALOVER":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MARATHON":[
+"Realty",
+"Realty"
+],
+"MARICO":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MARINE":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MARKOLINES":[
+"Construction",
+"Construction"
+],
+"MARKSANS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MARSHALL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MARSONS":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"MARUTI":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"MASFIN":[
+"Finance",
+"Financial Services"
+],
+"MASKINVEST":[
+"Finance",
+"Financial Services"
+],
+"MASTEK":[
+"IT - Software",
+"Information Technology"
+],
+"MASTERTR":[
+"Capital Markets",
+"Financial Services"
+],
+"MATRIMONY":[
+"Retailing",
+"Consumer Services"
+],
+"MAWANASUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MAXESTATES":[
+"Realty",
+"Realty"
+],
+"MAXHEALTH":[
+"Healthcare Services",
+"Healthcare"
+],
+"MAXIND":[
+"Finance",
+"Financial Services"
+],
+"MAXINDIA":[
+"Healthcare Services",
+"Healthcare"
+],
+"MAXVIL":[
+"Finance",
+"Financial Services"
+],
+"MAYURUNIQ":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MAZDA":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MAZDOCK":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MBAPL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MBECL":[
+"Construction",
+"Construction"
+],
+"MBEL":[
+"Construction",
+"Construction"
+],
+"MBLINFRA":[
+"Construction",
+"Construction"
+],
+"MCCHRLS-B":[
+"Leisure Services",
+"Consumer Services"
+],
+"MCDHOLDING":[
+"Finance",
+"Financial Services"
+],
+"MCL":[
+"Industrial Products",
+"Capital Goods"
+],
+"MCLEODRUSS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MCLOUD":[
+"IT - Software",
+"Information Technology"
+],
+"MCX":[
+"Capital Markets",
+"Financial Services"
+],
+"MEDANTA":[
+"Healthcare Services",
+"Healthcare"
+],
+"MEDIASSIST":[
+"Insurance",
+"Financial Services"
+],
+"MEDICAMEQ":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MEDICAPQ":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MEDICO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MEDPLUS":[
+"Retailing",
+"Consumer Services"
+],
+"MEESHO":[
+"Retailing",
+"Consumer Services"
+],
+"MEGASTAR":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"MEGH":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MEIL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"MENNPIS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MENONBE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MEP":[
+"Transport Infrastructure",
+"Services"
+],
+"MERCANTILE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MERCATOR":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"MERCURYEV":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"METALFORGE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"METROBRAND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"METROGLOBL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"METROPOLIS":[
+"Healthcare Services",
+"Healthcare"
+],
+"MFML":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MFSL":[
+"Insurance",
+"Financial Services"
+],
+"MGEL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MGL":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"MHLXMIRU":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MHRIL":[
+"Leisure Services",
+"Consumer Services"
+],
+"MIC":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MICEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"MIDHANI":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"MIDWESTLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MIIL":[
+"Realty",
+"Realty"
+],
+"MILKYMIST":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"MINALIND":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MINDACORP":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MINDTECK":[
+"IT - Software",
+"Information Technology"
+],
+"MINDTREE":[
+"IT - Software",
+"Information Technology"
+],
+"MIRZAINT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MITCON":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MITTAL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MKEXIM":[
+"Retailing",
+"Consumer Services"
+],
+"MKPL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MLKFOOD":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"MMFL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MMP":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"MMTC":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MMWL":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"MOBIKWIK":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"MODINATUR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MODIRUBBER":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MODIS":[
+"Realty",
+"Realty"
+],
+"MODISONLTD":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"MODTHREAD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MOHITE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MOHITIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MOHOTAIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MOIL":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"MOKSH":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MOL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MOLBIO":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"MOLDTECH":[
+"Construction",
+"Construction"
+],
+"MOLDTKPAC":[
+"Industrial Products",
+"Capital Goods"
+],
+"MOMSBELIEF":[
+"Healthcare Services",
+"Healthcare"
+],
+"MONARCH":[
+"Capital Markets",
+"Financial Services"
+],
+"MONEYBOXX":[
+"Finance",
+"Financial Services"
+],
+"MONEYVIEW":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"MONSANTO":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"MONTECARLO":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MORARJEE":[
+"Textiles & Apparels",
+"Textiles"
+],
+"MOREPENLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"MOSCHIP":[
+"IT - Hardware",
+"Information Technology"
+],
+"MOTHERSON":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MOTILALOFS":[
+"Capital Markets",
+"Financial Services"
+],
+"MOTISONS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MOTOGENFIN":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MPDL":[
+"Realty",
+"Realty"
+],
+"MPHASIS":[
+"IT - Software",
+"Information Technology"
+],
+"MPIMANIPAL":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"MPSLTD":[
+"Printing & Publication",
+"Media Entertainment & Publication"
+],
+"MRF":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MRPL":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"MSL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"MSPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"MSTCLTD":[
+"Commercial Services & Supplies",
+"Services"
+],
+"MSUMI":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MTARTECH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"MTEDUCARE":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"MTNL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"MUFIN":[
+"Finance",
+"Financial Services"
+],
+"MUFTI":[
+"Retailing",
+"Consumer Services"
+],
+"MUKANDENGG":[
+"Construction",
+"Construction"
+],
+"MUKANDLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"MUKESHB":[
+"Finance",
+"Financial Services"
+],
+"MUKKA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"MUKTAARTS":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"MUNJALAU":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MUNJALSHOW":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"MURUDCERA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MUTHOOTCAP":[
+"Finance",
+"Financial Services"
+],
+"MUTHOOTFIN":[
+"Finance",
+"Financial Services"
+],
+"MUTHOOTMF":[
+"Finance",
+"Financial Services"
+],
+"MVELECTRO":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"MVGJL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"MWL":[
+"Industrial Products",
+"Capital Goods"
+],
+"MYSOREBANK":[
+"Banks",
+"Financial Services"
+],
+"MYSORPETRO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"NACLIND":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"NAGAFERT":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"NAGREEKCAP":[
+"Finance",
+"Financial Services"
+],
+"NAGREEKEXP":[
+"Textiles & Apparels",
+"Textiles"
+],
+"NAHARCAP":[
+"Finance",
+"Financial Services"
+],
+"NAHARINDUS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"NAHARPOLY":[
+"Industrial Products",
+"Capital Goods"
+],
+"NAHARSPING":[
+"Textiles & Apparels",
+"Textiles"
+],
+"NAM-INDIA":[
+"Capital Markets",
+"Financial Services"
+],
+"NARMADA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"NATCAPSUQ":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NATCOPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NATHBIOGEN":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"NATIONALUM":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"NATIONSTD":[
+"Realty",
+"Realty"
+],
+"NATNLSTEEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"NAUKRI":[
+"Retailing",
+"Consumer Services"
+],
+"NAVA":[
+"Power",
+"Power"
+],
+"NAVINFLUOR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"NAVKARCORP":[
+"Transport Services",
+"Services"
+],
+"NAVKARURB":[
+"Construction",
+"Construction"
+],
+"NAVNETEDUL":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"NAZARA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"NBCC":[
+"Construction",
+"Construction"
+],
+"NBIFIN":[
+"Finance",
+"Financial Services"
+],
+"NCC":[
+"Construction",
+"Construction"
+],
+"NCLIND":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"NDGL":[
+"Finance",
+"Financial Services"
+],
+"NDL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"NDLVENTURE":[
+"Finance",
+"Financial Services"
+],
+"NDRAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"NDTV":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"NEAGI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"NECCLTD":[
+"Transport Services",
+"Services"
+],
+"NECLIFE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NELCAST":[
+"Industrial Products",
+"Capital Goods"
+],
+"NELCO":[
+"IT - Hardware",
+"Information Technology"
+],
+"NEOGEN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"NEPHROPLUS":[
+"Healthcare Services",
+"Healthcare"
+],
+"NESCO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"NESTLEIND":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"NETWEB":[
+"IT - Services",
+"Information Technology"
+],
+"NETWORK18":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"NEUEON":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"NEULANDLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NEWGEN":[
+"IT - Software",
+"Information Technology"
+],
+"NEXTMEDIA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"NFL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"NGIL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"NGLFINE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NH":[
+"Healthcare Services",
+"Healthcare"
+],
+"NHPC":[
+"Power",
+"Power"
+],
+"NIACL":[
+"Insurance",
+"Financial Services"
+],
+"NIBE":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"NIBL":[
+"Industrial Products",
+"Capital Goods"
+],
+"NICCOPAR":[
+"Leisure Services",
+"Consumer Services"
+],
+"NIITLTD":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"NIITMTS":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"NILAINFRA":[
+"Realty",
+"Realty"
+],
+"NILASPACES":[
+"Realty",
+"Realty"
+],
+"NILE":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"NILKAMAL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"NIMBSPROJ":[
+"Realty",
+"Realty"
+],
+"NINSYS":[
+"IT - Software",
+"Information Technology"
+],
+"NIPPOBATRY":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"NIRAJ":[
+"Construction",
+"Construction"
+],
+"NIRAJISPAT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"NIRLON":[
+"Commercial Services & Supplies",
+"Services"
+],
+"NITCO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"NITESHEST":[
+"Realty",
+"Realty"
+],
+"NITINFIRE":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"NITINSPIN":[
+"Textiles & Apparels",
+"Textiles"
+],
+"NITIRAJ":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"NITTAGELA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"NITYAS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"NIVABUPA":[
+"Insurance",
+"Financial Services"
+],
+"NKIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"NLCINDIA":[
+"Power",
+"Power"
+],
+"NMDC":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"NOCIL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"NOIDATOLL":[
+"Transport Infrastructure",
+"Services"
+],
+"NORBTEAEXP":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"NORTHARC":[
+"Finance",
+"Financial Services"
+],
+"NOVAAGRI":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"NOVARTIND":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"NPST":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"NRAIL":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"NRBBEARING":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"NSIL":[
+"Finance",
+"Financial Services"
+],
+"NSLNISP":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"NTCIND":[
+"Cigarettes & Tobacco Products",
+"Fast Moving Consumer Goods"
+],
+"NTPC":[
+"Power",
+"Power"
+],
+"NTPCGREEN":[
+"Power",
+"Power"
+],
+"NUCLEUS":[
+"IT - Software",
+"Information Technology"
+],
+"NURECA":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"NUVAMA":[
+"Capital Markets",
+"Financial Services"
+],
+"NUVOCO":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"NYKAA":[
+"Retailing",
+"Consumer Services"
+],
+"OAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"OBCL":[
+"Transport Services",
+"Services"
+],
+"OBEROIRLTY":[
+"Realty",
+"Realty"
+],
+"OCCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"OCCLLTD":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"OCL":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ODIGMA":[
+"IT - Services",
+"Information Technology"
+],
+"ODYCORP":[
+"Finance",
+"Financial Services"
+],
+"OFSS":[
+"IT - Software",
+"Information Technology"
+],
+"OIL":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"OILCOUNTUB":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"OLAELEC":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"OLECTRA":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"OMAXAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"OMAXE":[
+"Realty",
+"Realty"
+],
+"OMFREIGHT":[
+"Transport Services",
+"Services"
+],
+"OMINFRAL":[
+"Construction",
+"Construction"
+],
+"OMKARCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"OMNI":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"OMPOWER":[
+"Construction",
+"Construction"
+],
+"ONEGLOBAL":[
+"Healthcare Services",
+"Healthcare"
+],
+"ONELIFECAP":[
+"Capital Markets",
+"Financial Services"
+],
+"ONEPOINT":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ONESOURCE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ONGC":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"ONIDA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ONIXSOLAR":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"ONMOBILE":[
+"Media",
+"Media Entertainment & Publication"
+],
+"ONWARDTEC":[
+"IT - Services",
+"Information Technology"
+],
+"OPTIEMUS":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"OPTIFIN":[
+"Finance",
+"Financial Services"
+],
+"OPTOCIRCUI":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"ORBTEXP":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ORCHASP":[
+"IT - Software",
+"Information Technology"
+],
+"ORCHIDPHAR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ORCHPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ORICONENT":[
+"Industrial Products",
+"Capital Goods"
+],
+"ORIENTALTL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ORIENTBANK":[
+"Banks",
+"Financial Services"
+],
+"ORIENTBELL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ORIENTCABL":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"ORIENTCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ORIENTCER":[
+"Industrial Products",
+"Capital Goods"
+],
+"ORIENTELEC":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ORIENTHOT":[
+"Leisure Services",
+"Consumer Services"
+],
+"ORIENTLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"ORIENTPPR":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"ORIENTTECH":[
+"IT - Services",
+"Information Technology"
+],
+"ORIRAIL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ORISSAMINE":[
+"Minerals & Mining",
+"Metals & Mining"
+],
+"ORKLAINDIA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"ORTINGLOBE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ORTINLABSS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"OSIAHYPER":[
+"Retailing",
+"Consumer Services"
+],
+"OSWALAGRO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"OSWALGREEN":[
+"Finance",
+"Financial Services"
+],
+"OSWALPUMPS":[
+"Industrial Products",
+"Capital Goods"
+],
+"OSWALSEEDS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"OUDHSUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"PACEDIGITK":[
+"Telecom - Services",
+"Telecommunication"
+],
+"PACIFICI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PAGEIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PAISALO":[
+"Finance",
+"Financial Services"
+],
+"PAKKA":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"PALASHSECU":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"PALREDTEC":[
+"Commercial Services & Supplies",
+"Services"
+],
+"PANACEABIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PANAMAPET":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"PANCHMAHQ":[
+"Industrial Products",
+"Capital Goods"
+],
+"PANORAMA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"PANSARI":[
+"Realty",
+"Realty"
+],
+"PAR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PARACABLES":[
+"Industrial Products",
+"Capital Goods"
+],
+"PARADEEP":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"PARAGMILK":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"PARAS":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"PARASHLTH":[
+"Healthcare Services",
+"Healthcare"
+],
+"PARASPETRO":[
+"Finance",
+"Financial Services"
+],
+"PARIN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PARKHOSPS":[
+"Healthcare Services",
+"Healthcare"
+],
+"PARKHOTELS":[
+"Leisure Services",
+"Consumer Services"
+],
+"PARNAXLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PARRYSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"PARSVNATH":[
+"Realty",
+"Realty"
+],
+"PASHUPATI":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PASUPTAC":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PATANJALI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"PATELENG":[
+"Construction",
+"Construction"
+],
+"PATELRMART":[
+"Retailing",
+"Consumer Services"
+],
+"PATINTLOG":[
+"Transport Services",
+"Services"
+],
+"PATSPINLTD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PAUSHAKLTD":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PAVNAIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PAYTM":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"PBMPOLY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PCBL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PCJEWELLER":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PDMJEPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"PDSL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PEARLPOLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PEL":[
+"Finance",
+"Financial Services"
+],
+"PENIND":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"PENINLAND":[
+"Realty",
+"Realty"
+],
+"PENPEBS":[
+"Construction",
+"Construction"
+],
+"PERMAGN":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"PERNIASPOP":[
+"Retailing",
+"Consumer Services"
+],
+"PERSISTENT":[
+"IT - Software",
+"Information Technology"
+],
+"PETRONENGG":[
+"Construction",
+"Construction"
+],
+"PETRONET":[
+"Gas",
+"Oil Gas & Consumable Fuels"
+],
+"PFC":[
+"Finance",
+"Financial Services"
+],
+"PFIZER":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PFOCUS":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"PFS":[
+"Finance",
+"Financial Services"
+],
+"PGEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PGHH":[
+"Personal Products",
+"Fast Moving Consumer Goods"
+],
+"PGHL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PGIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PHOENIXLL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PHOENIXLTD":[
+"Realty",
+"Realty"
+],
+"PHOENXINTL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"PICCADIL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"PIDILITIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PIGL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"PIIND":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"PILANIINVS":[
+"Finance",
+"Financial Services"
+],
+"PILITA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PINCON":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"PINELABS":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"PIONDIST":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"PIONEEREMB":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PIONRINV":[
+"Finance",
+"Financial Services"
+],
+"PIRAMALFIN":[
+"Finance",
+"Financial Services"
+],
+"PIRPHYTO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PITTIENG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"PIXTRANS":[
+"Industrial Products",
+"Capital Goods"
+],
+"PKTEA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"PLASTIBLEN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PLATIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PLAZACABLE":[
+"Industrial Products",
+"Capital Goods"
+],
+"PML":[
+"Finance",
+"Financial Services"
+],
+"PNB":[
+"Banks",
+"Financial Services"
+],
+"PNBGILTS":[
+"Finance",
+"Financial Services"
+],
+"PNBHOUSING":[
+"Finance",
+"Financial Services"
+],
+"PNC":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"PNCINFRA":[
+"Construction",
+"Construction"
+],
+"PNGJL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PNGSREVA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"POCL":[
+"Diversified Metals",
+"Metals & Mining"
+],
+"PODDARHOUS":[
+"Realty",
+"Realty"
+],
+"PODDARMENT":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"POEL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"POKARNA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"POLARIS":[
+"IT - Software",
+"Information Technology"
+],
+"POLICYBZR":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"POLYCAB":[
+"Industrial Products",
+"Capital Goods"
+],
+"POLYMED":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"POLYPLEX":[
+"Industrial Products",
+"Capital Goods"
+],
+"POLYSPIN":[
+"Industrial Products",
+"Capital Goods"
+],
+"PONNIERODE":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"POONAWALLA":[
+"Finance",
+"Financial Services"
+],
+"POWERGRID":[
+"Power",
+"Power"
+],
+"POWERICA":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"POWERINDIA":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"POWERMECH":[
+"Construction",
+"Construction"
+],
+"PPAP":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"PPLPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"PRABHA":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"PRABHAT":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"PRADPME":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PRAENG":[
+"Realty",
+"Realty"
+],
+"PRAJIND":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"PRAKASH":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"PRAKASHSTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"PRANAV":[
+"Realty",
+"Realty"
+],
+"PRASOLCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PRATIBHA":[
+"Construction",
+"Construction"
+],
+"PRAVEG":[
+"Leisure Services",
+"Consumer Services"
+],
+"PRAXIS":[
+"Retailing",
+"Consumer Services"
+],
+"PRECAM":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PRECOT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PRECWIRE":[
+"Industrial Products",
+"Capital Goods"
+],
+"PREMCO":[
+"Textiles & Apparels",
+"Textiles"
+],
+"PREMEXPLN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PREMIER":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"PREMIERENE":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"PREMIERPOL":[
+"Industrial Products",
+"Capital Goods"
+],
+"PRESSMN":[
+"Media",
+"Media Entertainment & Publication"
+],
+"PRESTIGE":[
+"Realty",
+"Realty"
+],
+"PRICOL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PRICOLLTD":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PRIMESECU":[
+"Finance",
+"Financial Services"
+],
+"PRIMO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PRINCEPIPE":[
+"Industrial Products",
+"Capital Goods"
+],
+"PRIORITY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PRISMX":[
+"Commercial Services & Supplies",
+"Services"
+],
+"PRITI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"PRITIKAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"PRIVISCL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"PROSTARM":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"PROTEAN":[
+"IT - Services",
+"Information Technology"
+],
+"PROZONER":[
+"Realty",
+"Realty"
+],
+"PRSMJOHNSN":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"PRUDENT":[
+"Capital Markets",
+"Financial Services"
+],
+"PRUDMOULI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"PSB":[
+"Banks",
+"Financial Services"
+],
+"PSPPROJECT":[
+"Construction",
+"Construction"
+],
+"PTC":[
+"Power",
+"Power"
+],
+"PTCIL":[
+"Industrial Products",
+"Capital Goods"
+],
+"PTL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"PUNJABCHEM":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"PUNJLLOYD":[
+"Construction",
+"Construction"
+],
+"PURVA":[
+"Realty",
+"Realty"
+],
+"PVP":[
+"Realty",
+"Realty"
+],
+"PVRINOX":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"PVSL":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"PWL":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"PYRAMID":[
+"Industrial Products",
+"Capital Goods"
+],
+"QMSMEDI":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"QPOWER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"QUADFUTURE":[
+"Industrial Products",
+"Capital Goods"
+],
+"QUESS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"QUICKHEAL":[
+"IT - Software",
+"Information Technology"
+],
+"QUINT":[
+"Media",
+"Media Entertainment & Publication"
+],
+"QUINTEGRA":[
+"IT - Software",
+"Information Technology"
+],
+"RACE":[
+"Other Utilities",
+"Utilities"
+],
+"RACLGEAR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RADAAN":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"RADHIKAJWE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RADIANTCMS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"RADICO":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"RADIOCITY":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"RAILTEL":[
+"Telecom - Services",
+"Telecommunication"
+],
+"RAIN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"RAINBOW":[
+"Healthcare Services",
+"Healthcare"
+],
+"RAJESHEXPO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RAJMET":[
+"Industrial Products",
+"Capital Goods"
+],
+"RAJOOENG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"RAJPALAYAM":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RAJRATAN":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RAJRILTD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RAJSREESUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"RAJTV":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"RALLIS":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"RAMANEWS":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"RAMAPHO":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"RAMASTEEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RAMBHAJO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RAMCOCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"RAMCOIND":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"RAMCOSYS":[
+"IT - Software",
+"Information Technology"
+],
+"RAMKY":[
+"Construction",
+"Construction"
+],
+"RAMRAT":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"RANASUG":[
+"Diversified FMCG",
+"Fast Moving Consumer Goods"
+],
+"RANEENGINE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RANEHOLDIN":[
+"Finance",
+"Financial Services"
+],
+"RATEGAIN":[
+"IT - Software",
+"Information Technology"
+],
+"RATNAMANI":[
+"Industrial Products",
+"Capital Goods"
+],
+"RATNAVEER":[
+"Industrial Products",
+"Capital Goods"
+],
+"RAYMOND":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"RAYMONDLSL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RAYMONDREL":[
+"Realty",
+"Realty"
+],
+"RBA":[
+"Leisure Services",
+"Consumer Services"
+],
+"RBL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RBLBANK":[
+"Banks",
+"Financial Services"
+],
+"RBZJEWEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RCF":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"RCOM":[
+"Telecom - Services",
+"Telecommunication"
+],
+"RECLTD":[
+"Finance",
+"Financial Services"
+],
+"REDINGTON":[
+"Commercial Services & Supplies",
+"Services"
+],
+"REDTAPE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"REFEX":[
+"Other Utilities",
+"Utilities"
+],
+"REGAAL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"REGENCERAM":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RELAXO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RELCAPITAL":[
+"Finance",
+"Financial Services"
+],
+"RELCHEMQ":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RELIABLE":[
+"Finance",
+"Financial Services"
+],
+"RELIANCE":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"RELIGARE":[
+"Finance",
+"Financial Services"
+],
+"RELINFRA":[
+"Power",
+"Power"
+],
+"RELTD":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"REMSONSIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RENTOMOJO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"RENUKA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"REPCOHOME":[
+"Finance",
+"Financial Services"
+],
+"REPL":[
+"Realty",
+"Realty"
+],
+"REPRO":[
+"Printing & Publication",
+"Media Entertainment & Publication"
+],
+"RESPONIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RETAIL":[
+"Retailing",
+"Consumer Services"
+],
+"RGL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RHETAN":[
+"Industrial Products",
+"Capital Goods"
+],
+"RHFL":[
+"Finance",
+"Financial Services"
+],
+"RHIM":[
+"Industrial Products",
+"Capital Goods"
+],
+"RHL":[
+"Leisure Services",
+"Consumer Services"
+],
+"RICOAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RIIL":[
+"Transport Services",
+"Services"
+],
+"RIR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"RISHABH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"RITCO":[
+"Transport Services",
+"Services"
+],
+"RITES":[
+"Construction",
+"Construction"
+],
+"RKDL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"RKEC":[
+"Construction",
+"Construction"
+],
+"RKFORGE":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RKSWAMY":[
+"Media",
+"Media Entertainment & Publication"
+],
+"RMC":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"RMCL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RMDRIP":[
+"Industrial Products",
+"Capital Goods"
+],
+"RML":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"RNAVAL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"RNBDENIMS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ROHLTD":[
+"Leisure Services",
+"Consumer Services"
+],
+"ROLEXRINGS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ROLLT":[
+"Industrial Products",
+"Capital Goods"
+],
+"ROLTA":[
+"IT - Services",
+"Information Technology"
+],
+"ROML":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"ROSSARI":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"ROSSELLIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"ROSSTECH":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"ROTO":[
+"Industrial Products",
+"Capital Goods"
+],
+"ROUTE":[
+"Telecom - Services",
+"Telecommunication"
+],
+"RPEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RPGLIFE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"RPOWER":[
+"Power",
+"Power"
+],
+"RPPINFRA":[
+"Construction",
+"Construction"
+],
+"RPPL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RPSGVENT":[
+"Commercial Services & Supplies",
+"Services"
+],
+"RPTECH":[
+"IT - Hardware",
+"Information Technology"
+],
+"RRECL":[
+"Realty",
+"Realty"
+],
+"RRIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RRKABEL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RSDFIN":[
+"Finance",
+"Financial Services"
+],
+"RSL":[
+"Industrial Products",
+"Capital Goods"
+],
+"RSSOFTWARE":[
+"IT - Software",
+"Information Technology"
+],
+"RSWM":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RSYSTEMS":[
+"IT - Services",
+"Information Technology"
+],
+"RTNINDIA":[
+"Retailing",
+"Consumer Services"
+],
+"RTNPOWER":[
+"Power",
+"Power"
+],
+"RTSPOWR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"RUBFILA":[
+"Industrial Products",
+"Capital Goods"
+],
+"RUBICON":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"RUBYMILLS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RUCHINFRA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"RUCHIRA":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"RUCHISOYA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"RUDRA":[
+"Industrial Products",
+"Capital Goods"
+],
+"RUNWALENTR":[
+"Realty",
+"Realty"
+],
+"RUPA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"RUSHIL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"RUSTOMJEE":[
+"Realty",
+"Realty"
+],
+"RVHL":[
+"Realty",
+"Realty"
+],
+"RVNL":[
+"Construction",
+"Construction"
+],
+"RVTH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"S&SPOWER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SAATVIKGL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SAB":[
+"Construction",
+"Construction"
+],
+"SABTN":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SADBHAV":[
+"Transport Infrastructure",
+"Services"
+],
+"SADBHIN":[
+"Transport Infrastructure",
+"Services"
+],
+"SADHNANIQ":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SAFARI":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SAGARDEEP":[
+"Industrial Products",
+"Capital Goods"
+],
+"SAGCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SAGILITY":[
+"IT - Services",
+"Information Technology"
+],
+"SAHLIBHFI":[
+"Finance",
+"Financial Services"
+],
+"SAHYADRI":[
+"Other Construction Materials",
+"Construction Materials"
+],
+"SAICAPI":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SAIL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SAILIFE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SAIPARENT":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SAKAR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SAKHTISUG":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SAKSOFT":[
+"IT - Software",
+"Information Technology"
+],
+"SAKUMA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SALASAR":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SALONA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SALSTEEL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SALZERELEC":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SAMBANDAM":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SAMBHAAV":[
+"Media",
+"Media Entertainment & Publication"
+],
+"SAMBHV":[
+"Industrial Products",
+"Capital Goods"
+],
+"SAMHI":[
+"Leisure Services",
+"Consumer Services"
+],
+"SAMMAANCAP":[
+"Finance",
+"Financial Services"
+],
+"SAMPANN":[
+"Industrial Products",
+"Capital Goods"
+],
+"SANATHAN":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SANCO":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SANDESH":[
+"Media",
+"Media Entertainment & Publication"
+],
+"SANDHAR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SANDUMA":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SANGAMIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SANGHIIND":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SANGHVIMOV":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SANOFI":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SANOFICONR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SANSERA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SANSTAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SANWARIA":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"SAPPHIRE":[
+"Leisure Services",
+"Consumer Services"
+],
+"SAPPL":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"SARDAEN":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SAREGAMA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SARLAPOLY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SARVESHWAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SASKEN":[
+"IT - Services",
+"Information Technology"
+],
+"SATHAISPAT":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SATIA":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"SATIN":[
+"Finance",
+"Financial Services"
+],
+"SAURASHCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SAYAJIHOTL":[
+"Leisure Services",
+"Consumer Services"
+],
+"SAYAJIIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SBBJ":[
+"Banks",
+"Financial Services"
+],
+"SBC":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SBCL":[
+"Industrial Products",
+"Capital Goods"
+],
+"SBFC":[
+"Finance",
+"Financial Services"
+],
+"SBGLP":[
+"Realty",
+"Realty"
+],
+"SBICARD":[
+"Finance",
+"Financial Services"
+],
+"SBIFUNDS":[
+"Capital Markets",
+"Financial Services"
+],
+"SBILIFE":[
+"Insurance",
+"Financial Services"
+],
+"SBIN":[
+"Banks",
+"Financial Services"
+],
+"SBT":[
+"Banks",
+"Financial Services"
+],
+"SCANSTL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SCHAEFFLER":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SCHAND":[
+"Printing & Publication",
+"Media Entertainment & Publication"
+],
+"SCHNEIDER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SCI":[
+"Transport Services",
+"Services"
+],
+"SCILAL":[
+"Finance",
+"Financial Services"
+],
+"SCODATUBES":[
+"Industrial Products",
+"Capital Goods"
+],
+"SCPL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"SDBL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"SEAMECLTD":[
+"Transport Services",
+"Services"
+],
+"SECMARK":[
+"IT - Software",
+"Information Technology"
+],
+"SECURCRED":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SECURKLOUD":[
+"IT - Services",
+"Information Technology"
+],
+"SEDEMAC":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SEIL":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"SEJALLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"SEKURITIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SEMAC":[
+"Construction",
+"Construction"
+],
+"SENCO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SENORES":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SEPC":[
+"Construction",
+"Construction"
+],
+"SERVOTECH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SESHAPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"SETCO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SETL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SETUINFRA":[
+"Construction",
+"Construction"
+],
+"SEYAIND":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SFCL":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SFL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SGFIN":[
+"Finance",
+"Financial Services"
+],
+"SGIL":[
+"Industrial Products",
+"Capital Goods"
+],
+"SGL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SGLRES":[
+"IT - Services",
+"Information Technology"
+],
+"SGMART":[
+"Metals & Minerals Trading",
+"Metals & Mining"
+],
+"SGRL":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SHADOWFAX":[
+"Transport Services",
+"Services"
+],
+"SHAH":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHAHALLOYS":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHAHINVEST":[
+"Capital Markets",
+"Financial Services"
+],
+"SHAILY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SHAKTIPUMP":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHALBY":[
+"Healthcare Services",
+"Healthcare"
+],
+"SHALPAINTS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SHANKARA":[
+"Retailing",
+"Consumer Services"
+],
+"SHANKESH":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SHANTI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SHANTIGEAR":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SHANTIGOLD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SHARDACROP":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SHARDAMOTR":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SHARDUL":[
+"Capital Markets",
+"Financial Services"
+],
+"SHAREINDIA":[
+"Capital Markets",
+"Financial Services"
+],
+"SHARONBIO":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SHBAJRG":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHEKHAWATI":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SHEMAROO":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SHERVANI":[
+"Realty",
+"Realty"
+],
+"SHILCTECH":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SHILGRAVQ":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHILPAMED":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SHILPI":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"SHINDL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"SHIPROCKET":[
+"Transport Services",
+"Services"
+],
+"SHIRPUR-G":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"SHIVAAGRO":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SHIVACEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SHIVALIK":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SHIVAM-RE1":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SHIVAMAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SHIVAMILLS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SHIVATEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SHIVAUM":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SHIVTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SHK":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SHOPERSTOP":[
+"Retailing",
+"Consumer Services"
+],
+"SHRADDHA":[
+"Realty",
+"Realty"
+],
+"SHRADHA":[
+"Realty",
+"Realty"
+],
+"SHREDIGCEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SHREECEM":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"SHREEJISPG":[
+"Transport Services",
+"Services"
+],
+"SHREEPUSHK":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SHREERAMA":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHRENIK":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"SHREYANIND":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"SHRIKRISH":[
+"Realty",
+"Realty"
+],
+"SHRINGARMS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SHRIPISTON":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SHRIRAMCIT":[
+"Finance",
+"Financial Services"
+],
+"SHRIRAMFIN":[
+"Finance",
+"Financial Services"
+],
+"SHRIRAMPPS":[
+"Realty",
+"Realty"
+],
+"SHRJAGP":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHUKRAPHAR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SHYAMCENT":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SHYAMMETL":[
+"Industrial Products",
+"Capital Goods"
+],
+"SHYAMTEL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SICAGEN":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SICAL":[
+"Transport Services",
+"Services"
+],
+"SICALLOG":[
+"Transport Services",
+"Services"
+],
+"SIEL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SIEMENS":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SIGACHI":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SIGIND":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SIGMA":[
+"IT - Services",
+"Information Technology"
+],
+"SIGMAADV":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"SIGNATURE":[
+"Realty",
+"Realty"
+],
+"SIGNPOST":[
+"Media",
+"Media Entertainment & Publication"
+],
+"SIKA":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"SIKKO":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SILGO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SILINV":[
+"Finance",
+"Financial Services"
+],
+"SILVERTUC":[
+"IT - Software",
+"Information Technology"
+],
+"SIMBHALS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SIMPLEX":[
+"Construction",
+"Construction"
+],
+"SIMPLEXINF":[
+"Construction",
+"Construction"
+],
+"SIMPLXREA":[
+"Realty",
+"Realty"
+],
+"SINCLAIR":[
+"Leisure Services",
+"Consumer Services"
+],
+"SINDHUTRAD":[
+"Consumable Fuels",
+"Oil Gas & Consumable Fuels"
+],
+"SINGERIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SINTERCOM":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SINTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SIRCA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SIS":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"SITINET":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SIYSIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SJS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SJVN":[
+"Power",
+"Power"
+],
+"SKFINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SKFINDUS":[
+"Industrial Products",
+"Capital Goods"
+],
+"SKIL":[
+"Construction",
+"Construction"
+],
+"SKIPPER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SKMEGGPROD":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"SKYGOLD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SKYWAYS":[
+"Transport Services",
+"Services"
+],
+"SMARTLINK":[
+"IT - Hardware",
+"Information Technology"
+],
+"SMARTWORKS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SMCGLOBAL":[
+"Capital Markets",
+"Financial Services"
+],
+"SMLMAH":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"SMLT":[
+"Industrial Products",
+"Capital Goods"
+],
+"SMSPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SMT":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"SNOWMAN":[
+"Transport Services",
+"Services"
+],
+"SOBHA":[
+"Realty",
+"Realty"
+],
+"SOFTTECH":[
+"IT - Software",
+"Information Technology"
+],
+"SOLARA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SOLARINDS":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SOLARWORLD":[
+"Construction",
+"Construction"
+],
+"SOLEX":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SOMANYCERA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SOMATEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SOMICONVEY":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SONA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SONACOMS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SONAL":[
+"Finance",
+"Financial Services"
+],
+"SONAMLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SONATSOFTW":[
+"IT - Software",
+"Information Technology"
+],
+"SORILINFRA":[
+"Diversified",
+"Diversified"
+],
+"SOTL":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"SOUTHBANK":[
+"Banks",
+"Financial Services"
+],
+"SOUTHWEST":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SPAL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SPANDANA":[
+"Finance",
+"Financial Services"
+],
+"SPARC":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SPCENET":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SPECIALITY":[
+"Leisure Services",
+"Consumer Services"
+],
+"SPECTRUM":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SPENCERS":[
+"Retailing",
+"Consumer Services"
+],
+"SPIC":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SPICEJET":[
+"Transport Services",
+"Services"
+],
+"SPLIL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SPLPETRO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SPMLINFRA":[
+"Construction",
+"Construction"
+],
+"SPORTKING":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SPTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"SRD":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SREEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SREINFRA":[
+"Finance",
+"Financial Services"
+],
+"SRF":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SRGHFL":[
+"Finance",
+"Financial Services"
+],
+"SRHHYPOLTD":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SRIKPRIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"SRIPIPES":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"SRIT":[
+"IT - Services",
+"Information Technology"
+],
+"SRM":[
+"Construction",
+"Construction"
+],
+"SRPL":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SRSLTD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SRTL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SSDL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SSRETAIL":[
+"Retailing",
+"Consumer Services"
+],
+"SSWL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"STALLION":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"STANLEY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"STAR":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"STARCEMENT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"STARHEALTH":[
+"Insurance",
+"Financial Services"
+],
+"STARPAPER":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"STARTECK":[
+"Finance",
+"Financial Services"
+],
+"STCINDIA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"STEAMHOUSE":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"STEELCAS":[
+"Industrial Products",
+"Capital Goods"
+],
+"STEELCITY":[
+"Capital Markets",
+"Financial Services"
+],
+"STEELXIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"STEL":[
+"Finance",
+"Financial Services"
+],
+"STERTOOLS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"STLNETWORK":[
+"Telecom - Services",
+"Telecommunication"
+],
+"STLSTRINF":[
+"Realty",
+"Realty"
+],
+"STLTECH":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"STOVEKRAFT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"STUDDS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"STYL":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"STYLAMIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"STYLEBAAZA":[
+"Retailing",
+"Consumer Services"
+],
+"STYRENIX":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUBEXLTD":[
+"IT - Software",
+"Information Technology"
+],
+"SUBROS":[
+"Industrial Products",
+"Capital Goods"
+],
+"SUDARCOLOR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUDARSCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUDARSHAN":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUDEEPPHRM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUKHJITS":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SULA":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"SUMEDHA":[
+"Finance",
+"Financial Services"
+],
+"SUMEETINDS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SUMICHEM":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"SUMIT":[
+"Realty",
+"Realty"
+],
+"SUMMITSEC":[
+"Finance",
+"Financial Services"
+],
+"SUNCLAY":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SUNDARAM":[
+"Household Products",
+"Fast Moving Consumer Goods"
+],
+"SUNDARMFIN":[
+"Finance",
+"Financial Services"
+],
+"SUNDRMBRAK":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SUNDRMFAST":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SUNDROP":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"SUNFLAG":[
+"Industrial Products",
+"Capital Goods"
+],
+"SUNILHITEC":[
+"Construction",
+"Construction"
+],
+"SUNLOC":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SUNPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SUNRAKSHAK":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SUNSHIEL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUNSHINE":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SUNTECK":[
+"Realty",
+"Realty"
+],
+"SUNTV":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"SUPERHOUSE":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SUPERSPIN":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SUPPETRO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SUPRAJIT":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"SUPREME":[
+"Realty",
+"Realty"
+],
+"SUPREMEIND":[
+"Industrial Products",
+"Capital Goods"
+],
+"SUPREMEINF":[
+"Construction",
+"Construction"
+],
+"SUPRIYA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SUPTANERY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SURAJEST":[
+"Realty",
+"Realty"
+],
+"SURAJLTD":[
+"Industrial Products",
+"Capital Goods"
+],
+"SURAKSHA":[
+"Healthcare Services",
+"Healthcare"
+],
+"SURANASOL":[
+"Commercial Services & Supplies",
+"Services"
+],
+"SURANAT&P":[
+"Power",
+"Power"
+],
+"SURYALA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SURYALAXMI":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SURYAROSNI":[
+"Industrial Products",
+"Capital Goods"
+],
+"SURYODAY":[
+"Banks",
+"Financial Services"
+],
+"SUTLEJTEX":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SUULD":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"SUVEN":[
+"Healthcare Services",
+"Healthcare"
+],
+"SUVIDHAA":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"SUYOG":[
+"Telecom - Services",
+"Telecommunication"
+],
+"SUZLON":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SVGLOBAL":[
+"Realty",
+"Realty"
+],
+"SVLL":[
+"Transport Services",
+"Services"
+],
+"SVPGLOB":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SWANCORP":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"SWANDEF":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SWARAJ":[
+"Textiles & Apparels",
+"Textiles"
+],
+"SWARAJENG":[
+"Industrial Products",
+"Capital Goods"
+],
+"SWARNSAR":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SWASTIKAIN":[
+"Construction",
+"Construction"
+],
+"SWELECTES":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"SWIGGY":[
+"Retailing",
+"Consumer Services"
+],
+"SWISSMLTRY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SWSOLAR":[
+"Construction",
+"Construction"
+],
+"SYMBIOTEC":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SYMPHONY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"SYNCOMF":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"SYNDIBANK":[
+"Banks",
+"Financial Services"
+],
+"SYNGENE":[
+"Healthcare Services",
+"Healthcare"
+],
+"SYRMA":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"SYSTMTXC":[
+"Capital Markets",
+"Financial Services"
+],
+"TAALTECH":[
+"IT - Services",
+"Information Technology"
+],
+"TAINWALCHM":[
+"Industrial Products",
+"Capital Goods"
+],
+"TAJGVK":[
+"Leisure Services",
+"Consumer Services"
+],
+"TAKE":[
+"Healthcare Services",
+"Healthcare"
+],
+"TALBROAUTO":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TALWALKARS":[
+"Leisure Services",
+"Consumer Services"
+],
+"TALWGYM":[
+"Leisure Services",
+"Consumer Services"
+],
+"TAMBOLIIN":[
+"Finance",
+"Financial Services"
+],
+"TANAA":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"TANLA":[
+"IT - Software",
+"Information Technology"
+],
+"TARACHAND":[
+"Commercial Services & Supplies",
+"Services"
+],
+"TARAJEWELS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TARAPUR":[
+"Finance",
+"Financial Services"
+],
+"TARC":[
+"Realty",
+"Realty"
+],
+"TARIL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"TARMAT":[
+"Construction",
+"Construction"
+],
+"TARSONS":[
+"Healthcare Equipment & Supplies",
+"Healthcare"
+],
+"TASTYBITE":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"TATACAP":[
+"Finance",
+"Financial Services"
+],
+"TATACHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TATACOFFEE":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"TATACOMM":[
+"Telecom - Services",
+"Telecommunication"
+],
+"TATACONSUM":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"TATAELXSI":[
+"IT - Software",
+"Information Technology"
+],
+"TATAINVEST":[
+"Finance",
+"Financial Services"
+],
+"TATAMETALI":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"TATAMTRDVR":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"TATAPOWER":[
+"Power",
+"Power"
+],
+"TATASTEEL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"TATASTLBSL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"TATASTLLP":[
+"Industrial Products",
+"Capital Goods"
+],
+"TATATECH":[
+"IT - Services",
+"Information Technology"
+],
+"TATVA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TBOTEK":[
+"Leisure Services",
+"Consumer Services"
+],
+"TBZ":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TCC":[
+"Retailing",
+"Consumer Services"
+],
+"TCI":[
+"Transport Services",
+"Services"
+],
+"TCIEXP":[
+"Transport Services",
+"Services"
+],
+"TCIFINANCE":[
+"Finance",
+"Financial Services"
+],
+"TCNSBRANDS":[
+"Textiles & Apparels",
+"Textiles"
+],
+"TCPLPACK":[
+"Industrial Products",
+"Capital Goods"
+],
+"TCS":[
+"IT - Software",
+"Information Technology"
+],
+"TDPOWERSYS":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"TEAMGTY":[
+"Finance",
+"Financial Services"
+],
+"TEAMLEASE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"TECHM":[
+"IT - Software",
+"Information Technology"
+],
+"TECHNO":[
+"Construction",
+"Construction"
+],
+"TECHNOCRAF":[
+"Other Utilities",
+"Utilities"
+],
+"TECHNOE":[
+"Construction",
+"Construction"
+],
+"TECHNOFAB":[
+"Construction",
+"Construction"
+],
+"TECHNVISN":[
+"IT - Software",
+"Information Technology"
+],
+"TECILCHEM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TEGA":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TEJASNET":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"TEMBO":[
+"Industrial Products",
+"Capital Goods"
+],
+"TEMPSENS":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TENNIND":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TERAI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"TERASOFT":[
+"IT - Services",
+"Information Technology"
+],
+"TEXINFRA":[
+"Commercial Services & Supplies",
+"Services"
+],
+"TEXMOPIPES":[
+"Industrial Products",
+"Capital Goods"
+],
+"TEXRAIL":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TFCILTD":[
+"Finance",
+"Financial Services"
+],
+"TFL":[
+"Finance",
+"Financial Services"
+],
+"TGBHOTELS":[
+"Leisure Services",
+"Consumer Services"
+],
+"TGVSL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"THACKER":[
+"Finance",
+"Financial Services"
+],
+"THAKDEV":[
+"Realty",
+"Realty"
+],
+"THANGAMAYL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"THEINVEST":[
+"Finance",
+"Financial Services"
+],
+"THEJO":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"THELEELA":[
+"Leisure Services",
+"Consumer Services"
+],
+"THEMISMED":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"THERMAX":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"THIRUSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"THOMASCOOK":[
+"Leisure Services",
+"Consumer Services"
+],
+"THOMASCOTT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"THYROCARE":[
+"Healthcare Services",
+"Healthcare"
+],
+"TI":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"TICL":[
+"Construction",
+"Construction"
+],
+"TIGERLOGS":[
+"Transport Services",
+"Services"
+],
+"TIIL":[
+"Industrial Products",
+"Capital Goods"
+],
+"TIINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TIJARIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"TIL":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"TIMETECHNO":[
+"Industrial Products",
+"Capital Goods"
+],
+"TIMEX":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TIMKEN":[
+"Industrial Products",
+"Capital Goods"
+],
+"TINNARUBR":[
+"Industrial Products",
+"Capital Goods"
+],
+"TINPLATE":[
+"Industrial Products",
+"Capital Goods"
+],
+"TIPSFILMS":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"TIPSMUSIC":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"TIRUMALCHM":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TIRUPATIFL":[
+"Industrial Products",
+"Capital Goods"
+],
+"TITAGARH":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TITAN":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TMB":[
+"Banks",
+"Financial Services"
+],
+"TMCV":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"TMPV":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"TNPETRO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TNPL":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"TNTELE":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"TOKYOPLAST":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TOLINS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TONBO":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"TORNTPHARM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"TORNTPOWER":[
+"Power",
+"Power"
+],
+"TOTAL":[
+"Transport Services",
+"Services"
+],
+"TOUCHWOOD":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"TOYAMSL":[
+"Finance",
+"Financial Services"
+],
+"TPHQ":[
+"Commercial Services & Supplies",
+"Services"
+],
+"TPLPLASTEH":[
+"Industrial Products",
+"Capital Goods"
+],
+"TRACXN":[
+"Commercial Services & Supplies",
+"Services"
+],
+"TRANSCOR":[
+"Finance",
+"Financial Services"
+],
+"TRANSPEK":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TRANSRAILL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"TRANSWORLD":[
+"Transport Services",
+"Services"
+],
+"TRAVELFOOD":[
+"Leisure Services",
+"Consumer Services"
+],
+"TREEHOUSE":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"TREJHARA":[
+"Transport Services",
+"Services"
+],
+"TREL":[
+"Transport Services",
+"Services"
+],
+"TRENT":[
+"Retailing",
+"Consumer Services"
+],
+"TRF":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TRIDENT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"TRIGYN":[
+"IT - Software",
+"Information Technology"
+],
+"TRITONV":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TRITURBINE":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"TRIVENI":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"TRIVENIPT":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"TRU":[
+"Finance",
+"Financial Services"
+],
+"TRUALT":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"TSFINV":[
+"Finance",
+"Financial Services"
+],
+"TTKHLTCARE":[
+"Diversified",
+"Diversified"
+],
+"TTKPRESTIG":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"TTL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"TTML":[
+"Telecom - Services",
+"Telecommunication"
+],
+"TUBEINVEST":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TURTLEMINT":[
+"Financial Technology (Fintech)",
+"Financial Services"
+],
+"TUTIALKA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"TV18BRDCST":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"TVSELECT":[
+"IT - Hardware",
+"Information Technology"
+],
+"TVSHLTD":[
+"Finance",
+"Financial Services"
+],
+"TVSMOTOR":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"TVSSCS":[
+"Transport Services",
+"Services"
+],
+"TVSSRICHAK":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"TVTODAY":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"TVVISION":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"UBHOLDINGS":[
+"Finance",
+"Financial Services"
+],
+"UBL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"UCAL":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"UCOBANK":[
+"Banks",
+"Financial Services"
+],
+"UDAICEMENT":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"UDAYJEW":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"UDS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"UEL":[
+"Power",
+"Power"
+],
+"UFBL":[
+"Leisure Services",
+"Consumer Services"
+],
+"UFLEX":[
+"Industrial Products",
+"Capital Goods"
+],
+"UFO":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"UGARSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"UGROCAP":[
+"Finance",
+"Financial Services"
+],
+"UJAAS":[
+"Power",
+"Power"
+],
+"UJJIVAN":[
+"Finance",
+"Financial Services"
+],
+"UJJIVANSFB":[
+"Banks",
+"Financial Services"
+],
+"ULTRACEMCO":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"ULTRAMAR":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"UMAEXPORTS":[
+"Commercial Services & Supplies",
+"Services"
+],
+"UMANGDAIRY":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"UMESLTD":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"UMIYA-MRO":[
+"Telecom - Equipment & Accessories",
+"Telecommunication"
+],
+"UNICHEMLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"UNIDT":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"UNIECOM":[
+"IT - Services",
+"Information Technology"
+],
+"UNIENTER":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"UNIINFO":[
+"Telecom - Services",
+"Telecommunication"
+],
+"UNIMECH":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"UNIONBANK":[
+"Banks",
+"Financial Services"
+],
+"UNIPARTS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"UNIPLY":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"UNITDSPR":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"UNITECH":[
+"Realty",
+"Realty"
+],
+"UNITEDBNK":[
+"Banks",
+"Financial Services"
+],
+"UNITEDPOLY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"UNITEDTEA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"UNITY":[
+"Construction",
+"Construction"
+],
+"UNIVASTU":[
+"Construction",
+"Construction"
+],
+"UNIVCABLES":[
+"Industrial Products",
+"Capital Goods"
+],
+"UNIVPHOTO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"UNOMINDA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"UPERGANGES":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"UPHOT":[
+"Leisure Services",
+"Consumer Services"
+],
+"UPL":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"URAVIDEF":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"URBANCO":[
+"Retailing",
+"Consumer Services"
+],
+"URJA":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"USHAMART":[
+"Industrial Products",
+"Capital Goods"
+],
+"USHERAGRO":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"USK":[
+"Construction",
+"Construction"
+],
+"UTIAMC":[
+"Capital Markets",
+"Financial Services"
+],
+"UTKARSHBNK":[
+"Banks",
+"Financial Services"
+],
+"UTLSOLAR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"UTTAMSTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"UTTAMSUGAR":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"UYFINCORP":[
+"Finance",
+"Financial Services"
+],
+"V2RETAIL":[
+"Retailing",
+"Consumer Services"
+],
+"VADILALIND":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"VADILENT":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"VAIBHAVGBL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VAISHALI":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VAKRANGEE":[
+"IT - Services",
+"Information Technology"
+],
+"VALIANTORG":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VAML":[
+"Non - Ferrous Metals",
+"Metals & Mining"
+],
+"VARDHACRLC":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VARDMNPOLY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VARMORA":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VARROC":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"VASCONEQ":[
+"Realty",
+"Realty"
+],
+"VASUPRADA":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"VASWANI":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"VBL":[
+"Beverages",
+"Fast Moving Consumer Goods"
+],
+"VCL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VEDAVAAG":[
+"IT - Services",
+"Information Technology"
+],
+"VEDL":[
+"Diversified Metals",
+"Metals & Mining"
+],
+"VEDPOWER":[
+"Power",
+"Power"
+],
+"VEEDOL":[
+"Petroleum Products",
+"Oil Gas & Consumable Fuels"
+],
+"VEEGALAND":[
+"Realty",
+"Realty"
+],
+"VENKEYS":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"VENTIVE":[
+"Leisure Services",
+"Consumer Services"
+],
+"VENUSPIPES":[
+"Industrial Products",
+"Capital Goods"
+],
+"VENUSREM":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VERANDA":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"VERTOZ":[
+"IT - Services",
+"Information Technology"
+],
+"VESUVIUS":[
+"Industrial Products",
+"Capital Goods"
+],
+"VETO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VGCL":[
+"Finance",
+"Financial Services"
+],
+"VGL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VGUARD":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VHL":[
+"Finance",
+"Financial Services"
+],
+"VHLTD":[
+"Leisure Services",
+"Consumer Services"
+],
+"VICEROY":[
+"Leisure Services",
+"Consumer Services"
+],
+"VIDEOIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VIDHIING":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VIDYAWIRES":[
+"Industrial Products",
+"Capital Goods"
+],
+"VIJAYA":[
+"Healthcare Services",
+"Healthcare"
+],
+"VIJAYABANK":[
+"Banks",
+"Financial Services"
+],
+"VIJSHAN":[
+"Construction",
+"Construction"
+],
+"VIJSOLX":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"VIKASECO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VIKASLIFE":[
+"Commercial Services & Supplies",
+"Services"
+],
+"VIKRAMSOLR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"VIKRAN":[
+"Construction",
+"Construction"
+],
+"VIMTALABS":[
+"Healthcare Services",
+"Healthcare"
+],
+"VINATIORGA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VINCOFE":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"VINDHYATEL":[
+"Construction",
+"Construction"
+],
+"VINEETLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VINNY":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VINYLINDIA":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VIPCLOTHNG":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VIPIND":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VIPULLTD":[
+"Realty",
+"Realty"
+],
+"VIRAT":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VIRINCHI":[
+"IT - Software",
+"Information Technology"
+],
+"VIRTUALG":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"VISACHROME":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"VISAKAIND":[
+"Cement & Cement Products",
+"Construction Materials"
+],
+"VISHAL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VISHNU":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VISHWARAJ":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"VISL":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"VITAL":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"VIVIANA":[
+"Construction",
+"Construction"
+],
+"VIVIDHA":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VIVIMEDLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VIVOBIOT":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VIYASH":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"VLEGOV":[
+"IT - Services",
+"Information Technology"
+],
+"VLSFINANCE":[
+"Finance",
+"Financial Services"
+],
+"VMART":[
+"Retailing",
+"Consumer Services"
+],
+"VMM":[
+"Retailing",
+"Consumer Services"
+],
+"VMSTMT":[
+"Industrial Products",
+"Capital Goods"
+],
+"VNL":[
+"Construction",
+"Construction"
+],
+"VOEPL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VOGL":[
+"Oil",
+"Oil Gas & Consumable Fuels"
+],
+"VOITHPAPR":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VOLTAMP":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"VOLTAS":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"VPRPL":[
+"Construction",
+"Construction"
+],
+"VRAJ":[
+"Ferrous Metals",
+"Metals & Mining"
+],
+"VRLLOG":[
+"Transport Services",
+"Services"
+],
+"VSSL":[
+"Industrial Products",
+"Capital Goods"
+],
+"VSTIND":[
+"Cigarettes & Tobacco Products",
+"Fast Moving Consumer Goods"
+],
+"VSTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"VSTTILLERS":[
+"Agricultural Commercial & Construction Vehicles",
+"Capital Goods"
+],
+"VTL":[
+"Textiles & Apparels",
+"Textiles"
+],
+"VTMLTD":[
+"Textiles & Apparels",
+"Textiles"
+],
+"WAAREEENER":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"WAAREEINDO":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"WAAREERTL":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"WABAG":[
+"Other Utilities",
+"Utilities"
+],
+"WAKEFIT":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"WALCHANNAG":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"WANBURY":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"WARDINMOBI":[
+"Automobiles",
+"Automobile and Auto Components"
+],
+"WATERBASE":[
+"Food Products",
+"Fast Moving Consumer Goods"
+],
+"WCIL":[
+"Transport Services",
+"Services"
+],
+"WEALTH":[
+"Finance",
+"Financial Services"
+],
+"WEBELSOLAR":[
+"Electrical Equipment",
+"Capital Goods"
+],
+"WEIZMANIND":[
+"Textiles & Apparels",
+"Textiles"
+],
+"WEL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"WELCORP":[
+"Industrial Products",
+"Capital Goods"
+],
+"WELENT":[
+"Construction",
+"Construction"
+],
+"WELINV":[
+"Finance",
+"Financial Services"
+],
+"WELSPLSOL":[
+"Industrial Products",
+"Capital Goods"
+],
+"WELSPUNLIV":[
+"Textiles & Apparels",
+"Textiles"
+],
+"WENDT":[
+"Industrial Products",
+"Capital Goods"
+],
+"WESTLIFE":[
+"Leisure Services",
+"Consumer Services"
+],
+"WEWIN":[
+"Commercial Services & Supplies",
+"Services"
+],
+"WEWORK":[
+"Commercial Services & Supplies",
+"Services"
+],
+"WHBRADY":[
+"Industrial Products",
+"Capital Goods"
+],
+"WHEELS":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"WHIRLPOOL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"WILLAMAGOR":[
+"Finance",
+"Financial Services"
+],
+"WINDLAS":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"WINDMACHIN":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"WINPRO":[
+"Media",
+"Media Entertainment & Publication"
+],
+"WIPL":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"WIPRO":[
+"IT - Software",
+"Information Technology"
+],
+"WOCKPHARMA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"WONDERLA":[
+"Leisure Services",
+"Consumer Services"
+],
+"WORTHPERI":[
+"Industrial Products",
+"Capital Goods"
+],
+"WPIL":[
+"Industrial Products",
+"Capital Goods"
+],
+"WSI":[
+"Construction",
+"Construction"
+],
+"WSTCSTPAPR":[
+"Paper Forest & Jute Products",
+"Forest Materials"
+],
+"XCHANGING":[
+"IT - Software",
+"Information Technology"
+],
+"XELPMOC":[
+"IT - Software",
+"Information Technology"
+],
+"XPROINDIA":[
+"Industrial Products",
+"Capital Goods"
+],
+"XTGLOBAL":[
+"IT - Software",
+"Information Technology"
+],
+"XTRANET":[
+"IT - Services",
+"Information Technology"
+],
+"YASHO":[
+"Chemicals & Petrochemicals",
+"Chemicals"
+],
+"YATHARTH":[
+"Healthcare Services",
+"Healthcare"
+],
+"YATRA":[
+"Leisure Services",
+"Consumer Services"
+],
+"YESBANK":[
+"Banks",
+"Financial Services"
+],
+"YOGI":[
+"Realty",
+"Realty"
+],
+"YUKEN":[
+"Industrial Products",
+"Capital Goods"
+],
+"ZAGGLE":[
+"IT - Services",
+"Information Technology"
+],
+"ZANDUREALT":[
+"Realty",
+"Realty"
+],
+"ZEEL":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"ZEELEARN":[
+"Other Consumer Services",
+"Consumer Services"
+],
+"ZEEMEDIA":[
+"Entertainment",
+"Media Entertainment & Publication"
+],
+"ZENITHEXPO":[
+"Consumer Durables",
+"Consumer Durables"
+],
+"ZENITHSTL":[
+"Industrial Products",
+"Capital Goods"
+],
+"ZENSARTECH":[
+"IT - Software",
+"Information Technology"
+],
+"ZENTEC":[
+"Aerospace & Defense",
+"Capital Goods"
+],
+"ZETWERK":[
+"Industrial Manufacturing",
+"Capital Goods"
+],
+"ZFCVINDIA":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ZFSTEERING":[
+"Auto Components",
+"Automobile and Auto Components"
+],
+"ZICOM":[
+"Commercial Services & Supplies",
+"Services"
+],
+"ZIMLAB":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ZODIAC":[
+"Construction",
+"Construction"
+],
+"ZODIACLOTH":[
+"Textiles & Apparels",
+"Textiles"
+],
+"ZOTA":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ZSARACOM":[
+"Finance",
+"Financial Services"
+],
+"ZUARI":[
+"Fertilizers & Agrochemicals",
+"Chemicals"
+],
+"ZUARIIND":[
+"Agricultural Food & other Products",
+"Fast Moving Consumer Goods"
+],
+"ZYDUSLIFE":[
+"Pharmaceuticals & Biotechnology",
+"Healthcare"
+],
+"ZYDUSWELL":[
+"Food Products",
+"Fast Moving Consumer Goods"
+]
+}
+}
