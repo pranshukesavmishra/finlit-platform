@@ -300,5 +300,5 @@ main#main { min-height: 90vh; }
 @media (max-width: 480px) { .pr-t { font-size: 14px; } .pr-t td { padding: 10px 8px; } }
 
 /* the filter panel scrolls with a thin scrollbar in the theme's colours, not the browser's wide default bar beside the divider */
-.scr-side, .sx-side, .fgx-side { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-.scr-side::-webkit-scrollbar, .sx-side::-webkit-scrollbar, .fgx-side::-webkit-scrollbar { width: 6px; } .scr-side::-webkit-scrollbar-thumb, .sx-side::-webkit-scrollbar-thumb, .fgx-side::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; } .scr-side::-webkit-scrollbar-button, .sx-side::-webkit-scrollbar-button, .fgx-side::-webkit-scrollbar-button { display: none; }
+.scr-side, .sx-side { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.scr-side::-webkit-scrollbar, .sx-side::-webkit-scrollbar { width: 6px; } .scr-side::-webkit-scrollbar-thumb, .sx-side::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; } .scr-side::-webkit-scrollbar-button, .sx-side::-webkit-scrollbar-button { display: none; }
