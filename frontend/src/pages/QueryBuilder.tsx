@@ -278,6 +278,8 @@ export function QueryBuilder() {
       <PageHeader wrap plan="free" title="Query builder" art="search" links={["/screener", "/baskets", "/score-screener"]}
         description={<>Type a rule, get the companies: <code className="qb-inl">Market cap &gt; 500 AND P/E &lt; 15</code>. We check every word as you type, show how we read it, and list the listed companies that match all of it.</>} />
       <div className="wrap qb">
+        {/* the rules sit above the box they explain, so they are read before writing (they used to open below it) */}
+        {rulesOpen && <QueryRules onInsert={(q) => { loadExample(q); requestAnimationFrame(() => taRef.current?.focus()); }} onClose={() => toggleRules(false)} />}
         <section className="card qb-ed" aria-label="Your query">
           <div className="qb-bar">
             <label htmlFor="qb-text" className="qb-lab">Your query</label>
@@ -340,8 +342,6 @@ export function QueryBuilder() {
           </div>
           {runErr && <p className="qb-err" role="alert">{runErr}</p>}
         </section>
-
-        {rulesOpen && <QueryRules onInsert={(q) => { loadExample(q); requestAnimationFrame(() => taRef.current?.focus()); }} onClose={() => toggleRules(false)} />}
 
         {helper && rat.data && <div id="qb-helper"><ConditionHelper ratios={ratios} hasText={!!text.trim()} onAdd={addLine} /></div>}
 
