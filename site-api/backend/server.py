@@ -290,6 +290,8 @@ class ContentInput(BaseModel):
     fileKey: Optional[str] = Field(default=None, max_length=255)
     author: str = Field(default="Nishant Jain", max_length=120)
     status: Literal["DRAFT", "PUBLISHED"] = "DRAFT"
+    category: Optional[Literal["Myth Busters", "Explainers", "Hot Topics", "Investing Basics", "Industry Insights"]] = None   # the blog's topic chips
+    featured: bool = False                                                                                                       # the one big story at the top of the blog
 
 
 def slugify(value: str) -> str:
@@ -301,7 +303,7 @@ def content_public_view(doc):
     result = {key: doc.get(key) for key in (
         "id", "title", "slug", "excerpt", "contentType", "articleBody", "coverImageUrl",
         "fileUrl", "originalFileName", "mimeType", "fileSize", "author", "status",
-        "publishedAt", "createdAt", "updatedAt",
+        "publishedAt", "createdAt", "updatedAt", "category", "featured",
     )}
     if doc.get("coverImageKey"):
         result["coverImageUrl"] = f"/api/content/assets/{doc['coverImageKey']}"

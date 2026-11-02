@@ -1,3 +1,4 @@
+import { CATEGORIES } from "../lib/blog";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,7 +55,7 @@ export function AdminLogin() {
 export function Admin() {
   useDocTitle("Admin");
   const nav = useNavigate(); const qc = useQueryClient(); const { toast } = useUI();
-  const [form, setForm] = useState({ title: "", excerpt: "", body: "" });
+  const [form, setForm] = useState({ title: "", excerpt: "", body: "", category: "", featured: false });
   const { ready, user } = useAuth();
   useEffect(() => { if (ready && !hasSession()) nav(user ? "/admin/login" : "/login?next=/admin", { replace: true }); }, [ready, user, nav]);
   const list = useQuery({ queryKey: ["admin-content"], queryFn: () => adminFetch<ContentItem[]>("/api/content/admin/items"), enabled: hasSession(), retry: false });
@@ -63,13 +64,13 @@ export function Admin() {
   useEffect(() => { if ((list.error as ApiError)?.status === 401) nav("/admin/login"); }, [list.error, nav]);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-content"] });
   const toggle = useMutation({
-    mutationFn: (c: ContentItem) => adminFetch(`/api/content/admin/items/${c.id}`, { method: "PUT", body: JSON.stringify({ title: c.title, slug: c.slug, excerpt: c.excerpt, contentType: c.contentType, articleBody: c.articleBody || "", articleFormat: (c as any).articleFormat || "HTML", author: c.author, status: c.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED", fileKey: c.fileKey || undefined, coverImageKey: c.coverImageKey || undefined, coverImageUrl: c.coverImageUrl || undefined }) }),
+    mutationFn: (c: ContentItem) => adminFetch(`/api/content/admin/items/${c.id}`, { method: "PUT", body: JSON.stringify({ title: c.title, slug: c.slug, excerpt: c.excerpt, contentType: c.contentType, articleBody: c.articleBody || "", articleFormat: (c as any).articleFormat || "HTML", author: c.author, category: c.category || undefined, featured: !!c.featured, status: c.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED", fileKey: c.fileKey || undefined, coverImageKey: c.coverImageKey || undefined, coverImageUrl: c.coverImageUrl || undefined }) }),
     onSuccess: () => { refresh(); toast("Updated."); }, onError: (e: Error) => toast(e.message),
   });
   const del = useMutation({ mutationFn: (id: string) => adminFetch(`/api/content/admin/items/${id}`, { method: "DELETE" }), onSuccess: () => { refresh(); toast("Deleted."); }, onError: (e: Error) => toast(e.message) });
   const create = useMutation({
-    mutationFn: () => adminFetch("/api/content/admin/items", { method: "POST", body: JSON.stringify({ title: form.title, excerpt: form.excerpt, contentType: "ARTICLE", articleFormat: "HTML", articleBody: form.body.split(/\n{2,}/).map((p) => `<p>${p.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string))}</p>`).join(""), status: "DRAFT" }) }),
-    onSuccess: () => { setForm({ title: "", excerpt: "", body: "" }); refresh(); toast("Draft created."); }, onError: (e: Error) => toast(e.message),
+    mutationFn: () => adminFetch("/api/content/admin/items", { method: "POST", body: JSON.stringify({ title: form.title, excerpt: form.excerpt, contentType: "ARTICLE", category: form.category || undefined, featured: form.featured, articleFormat: "HTML", articleBody: form.body.split(/\n{2,}/).map((p) => `<p>${p.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] as string))}</p>`).join(""), status: "DRAFT" }) }),
+    onSuccess: () => { setForm({ title: "", excerpt: "", body: "", category: "", featured: false }); refresh(); toast("Draft created."); }, onError: (e: Error) => toast(e.message),
   });
   return (
     <section className="sec"><div className="wrap">
@@ -83,6 +84,8 @@ export function Admin() {
         <div className="card"><form className="form" onSubmit={(e) => { e.preventDefault(); create.mutate(); }}><div className="card-h"><h3>New article</h3></div>
           <label>Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required minLength={3} /></label>
           <label>Excerpt<input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} maxLength={500} /></label>
+          <label>Topic<select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}><option value="">No topic</option>{CATEGORIES.map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
+          <label className="sw"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured story (the big card at the top of the blog)</label>
           <label>Body (blank line = new paragraph)<textarea rows={8} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} required /></label>
           <button className="btn primary" disabled={create.isPending}>Save draft</button></form></div>
       </div>
