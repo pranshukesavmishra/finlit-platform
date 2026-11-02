@@ -105,8 +105,8 @@ export const PAGE_FAQS: PageFaq[] = [
     "a": "A score from 0 to 100 worked out from a company's filed statements and prices. It is the average of five pillars: Quality, Growth, Profitability, Balance sheet and Technical. It is free on each company's own page; this full table is part of Silver."
    },
    {
-    "q": "What is the difference between Fundamental, Technical and Overall?",
-    "a": "Fundamental is the average of the four business pillars and needs at least three of them. Technical reads the price trend against the 50-day and 200-day averages, and its momentum. Overall is the average of all the pillar scores that are available, the same number shown on the company's page."
+    "q": "What is the difference between Business, Technical and Overall?",
+    "a": "Business is the average of the four business pillars and needs at least three of them. Technical reads the price trend against the 50-day and 200-day averages, and its momentum. Overall is the average of all the pillar scores that are available, the same number shown on the company's page."
    },
    {
     "q": "What do Strong, Healthy, Mixed and Watch mean?",
@@ -114,7 +114,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What do the Quick views do?",
-    "a": "They apply common combinations in one click: Strong on both (Fundamental and Technical both 78 or more), Strong fundamentals with a weak trend, and a strong trend with weaker fundamentals."
+    "a": "They apply common combinations in one click: Strong on both (Business and Technical both 78 or more), Strong business with a weak trend, and a strong trend with a weaker business score."
    },
    {
     "q": "How is Large, Mid or Small cap decided?",
@@ -234,7 +234,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What do the six dots next to the company's name mean?",
-    "a": "They come from FinLit Prism: four fundamental dots (Growth & Profitability, Valuation, Quality, Risk), then two technical ones (short-term and long-term trend). Fundamental dots are green at 70 or more, orange from 50 to 69, red under 50 and grey when there is not enough data. Technical dots are green for a positive trend, orange neutral, red negative."
+    "a": "They come from FinLit Prism: four financial-health dots (Growth & Profitability, Valuation, Quality, Risk), then two technical ones (short-term and long-term trend). Financial-health dots are green at 70 or more, orange from 50 to 69, red under 50 and grey when there is not enough data. Technical dots are green for a positive trend, orange neutral, red negative."
    },
    {
     "q": "What is the difference between Consolidated and Standalone?",
@@ -276,7 +276,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What does each tab show?",
-    "a": "Overview has the basics and the five FinLit pillars; Fundamentals, Valuation, Quality & Risk, Growth and Technical compare those measures; Spider puts eight fundamentals on one chart; Build your own lets you choose the measures."
+    "a": "Overview has the basics and the five FinLit pillars; Financials, Valuation, Quality & Risk, Growth and Technical compare those measures; Spider puts eight measures on one chart; Build your own lets you choose the measures."
    },
    {
     "q": "What does “beats 46%” mean?",
@@ -288,7 +288,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "How do I read the spider chart?",
-    "a": "Each axis is one fundamental (ROCE, margin, sales growth, profit growth, low debt, low P/E, dividend and more), scored as the share of all companies the company beats. Further from the centre is better."
+    "a": "Each axis is one measure (ROCE, margin, sales growth, profit growth, low debt, low P/E, dividend and more), scored as the share of all companies the company beats. Further from the centre is better."
    },
    {
     "q": "How do I build my own comparison?",
@@ -1147,7 +1147,7 @@ export const PAGE_FAQS: PageFaq[] = [
  },
  {
   "id": "stock-fundamentals",
-  "title": "Stock fundamentals",
+  "title": "Company financials",
   "section": "Gold dashboards",
   "routes": [
    "/premium/fundamentals"

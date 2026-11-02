@@ -1,5 +1,5 @@
 // Pure logic of the Score screener: scores per company, filters, sorting, paging, presets, summary numbers, URL state and CSV.
-// No score is computed differently here than on the stock page: Fundamental is the average of the four business pillars, Technical is the
+// No score is computed differently here than on the stock page: Business is the average of the four business pillars, Technical is the
 // technical pillar, Overall is the FinLit overall score as stored. A missing score is null and never passes a score filter or counts as zero.
 import { csvText } from "./format";
 import { scoreBand } from "./scoreBands";
@@ -53,7 +53,7 @@ export const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; sh
   { k: "p", col: "pillar_profitability", label: "Profitability", short: "Profit.", say: "Margins and returns on the money in the business." },
   { k: "b", col: "pillar_balance", label: "Balance sheet", short: "Balance", say: "Debt, interest cover and liquidity." },
 ];
-export const NAMES: Record<BandKey | RangeKey, string> = { f: "Fundamental", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
+export const NAMES: Record<BandKey | RangeKey, string> = { f: "Business", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
 export const PAGE_SIZES = [5, 10, 20, 50];
 
 /** Colour level of a score: the site's one colour rule (green 70+, orange 50 to 69, red under 50), see lib/scoreBands.ts. Colour only decorates; the model's word and the number carry the meaning. */
@@ -61,7 +61,7 @@ export const level = scoreBand;
 /** The model's four band names for a score. */
 export const bandName = (v: number | null) => (v == null ? null : v >= 78 ? "Strong" : v >= 62 ? "Healthy" : v >= 45 ? "Mixed" : "Watch");
 
-/** Fundamental score = the average of the four business pillars (needs at least three); Technical = the price-trend pillar.
+/** Business score = the average of the four business pillars (needs at least three); Technical = the price-trend pillar.
  *  Size buckets follow SEBI's rule: the 100 largest companies are Large, the next 150 Mid, the rest Small (ranked among the companies loaded here). */
 export function withScores(rows: Row[]): Item[] {
   const rank = new Map(rows.filter((r) => (r.market_cap ?? 0) > 0 && r.price != null).sort((a, b) => (b.market_cap as number) - (a.market_cap as number)).map((r, i) => [r.symbol, i + 1]));
@@ -141,11 +141,11 @@ export function validate(f: Filters): Problems {
 // ---------- presets (defined only by score bands and ranges) ----------
 export type Preset = { id: string; label: string; say: string; f: Band[]; t: Band[] };
 export const PRESETS: Preset[] = [
-  { id: "both", label: "Strong on both", say: "Fundamental 78 and above and Technical 78 and above.", f: ["high"], t: ["high"] },
-  { id: "fund", label: "Strong fundamentals, weak trend", say: "Fundamental 78 and above and Technical under 45.", f: ["high"], t: ["low"] },
-  { id: "trend", label: "Strong trend, weaker fundamentals", say: "Technical 78 and above and Fundamental under 78.", f: ["low", "mid"], t: ["high"] },
+  { id: "both", label: "Strong on both", say: "Business 78 and above and Technical 78 and above.", f: ["high"], t: ["high"] },
+  { id: "fund", label: "Strong business, weak trend", say: "Business 78 and above and Technical under 45.", f: ["high"], t: ["low"] },
+  { id: "trend", label: "Strong trend, weaker business", say: "Technical 78 and above and Business under 78.", f: ["low", "mid"], t: ["high"] },
 ];
-/** A preset sets the Fundamental and Technical bands and clears their min-max boxes; every other filter stays as it was. */
+/** A preset sets the Business and Technical bands and clears their min-max boxes; every other filter stays as it was. */
 export function withPreset(f: Filters, p: Preset): Filters {
   const n = cloneFilters(f);
   n.bands.f = [...p.f]; n.bands.t = [...p.t];
@@ -340,12 +340,12 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
     `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
     ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Growth & Profitability, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
       "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
-      : ["# Fundamental = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
+      : ["# Business = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];
   const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
   const cols = adv ? [...base, "Prism", "Prism label", "Prism status", `Prism ${FUND_PART_NAME}`, "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
-    : [...base, "Fundamental", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
+    : [...base, "Business", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
   const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
     ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
       csvText(trendWord(r.prism_st_score) ?? ""), n(r.prism_st_score), csvText(trendWord(r.prism_lt_score) ?? ""), n(r.prism_lt_score), r.prism_at ?? ""]

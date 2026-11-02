@@ -14,7 +14,7 @@ describe("plan and model", () => {
     expect(modelFor("silver")).toBe("finlit"); expect(modelFor("gold")).toBe("prism"); expect(modelFor("basic")).toBeNull(); expect(modelFor("basic", true)).toBe("prism");
   });
   it("the banners are the founder's words", () => {
-    expect(MODEL_BANNER.prism).toBe("Scores on this page use FinLit Prism, our advanced model: four fundamental parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.");
+    expect(MODEL_BANNER.prism).toBe("Scores on this page use FinLit Prism, our advanced model: four financial-health parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.");
     expect(MODEL_BANNER.finlit).toBe("Scores on this page use the FinLit score (our basic model). Gold shows FinLit Prism, the advanced model.");
   });
 });

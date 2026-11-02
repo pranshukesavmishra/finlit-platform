@@ -155,7 +155,7 @@ def test_display_strings():
                   rel52_market=-0.101, direction="weakening", fundamental="stronger_than_price", fund_rank=3, fund_n=13)
     assert d["chip"] == "Laggard"
     assert d["line"] == "11th of 13 IT peers · −7.2 pts vs Nifty IT · −10.1 pts vs Nifty 50 (12 months) · weakening over 3 months"
-    assert d["note"] == "Fundamentals rank 3rd of 13, stronger than the price"
+    assert d["note"] == "Business score ranks 3rd of 13, stronger than the price"
     blob = " ".join(str(v) for v in d.values()).lower()
     assert not any(w in blob for w in ("buy", "sell", "avoid"))
     e = L.display(label=None, rank=None, ranked=None, group_short="", sector_name="", market_name=None, rel52=None, rel52_market=None, direction=None,

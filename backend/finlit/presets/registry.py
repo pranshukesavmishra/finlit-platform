@@ -90,7 +90,7 @@ STOCK = Col("name", "Stock", "text", "left")
 PRISM = Col("prism_final", "Prism score", "score")
 PLABEL = Col("prism_label", "Prism rating", "label", "left")
 PSTATUS = Col("prism_status", "Rating status", "badge", "left")
-FUND = Col("prism_fundamental", "Fundamentals", "score")
+FUND = Col("prism_fundamental", "Growth & Profitability", "score")
 VAL = Col("prism_valuation", "Valuation", "score")
 QUAL = Col("prism_quality", "Quality", "score")
 RISK = Col("prism_risk", "Risk", "score")
@@ -182,7 +182,7 @@ PRESETS: List[Preset] = [
             "Sales higher than a year earlier in at least 3 of the last 4 quarters.", "ROCE 12% or more and debt to equity 1 or less (banks and lenders are exempt from both).",
             "At most 1 red flag; market cap Rs 1,000 Cr or more.",
             "Ranked by growth score: the average percentile of the four growth numbers, each capped at its 5th and 95th percentile first. Quarter growth is capped at 200% and counts only "
-            "when the latest quarter's sales were Rs 50 Cr or more. Ties go to the Prism Fundamentals part."),
+            "when the latest quarter's sales were Rs 50 Cr or more. Ties go to the Prism Growth & Profitability part."),
            False, None, ("provisional",), "p6-7 (screen 5)"),
 
     Preset("emerging-tech", "Emerging tech", "themes", "Companies in new-technology businesses (electronics, defence tech, data centres, software products, digital platforms, fintech, EVs, clean energy), still growing sales.",
@@ -213,7 +213,7 @@ PRESETS: List[Preset] = [
     Preset("quality-fair-price", "Quality at a fair price", "value-income", "Strong quality and fundamentals without a stretched valuation.", "rules",
            _m(zqmin=70, zfmin=60, zvmin=50), "PEG Ratio > 0\nPEG Ratio <= 1.5", (), (("prism_final", "desc"), ("prism_quality", "desc")), 25,
            with_status((STOCK, PRISM, QUAL, FUND, VAL, Col("peg", "PEG ratio", "num1"), Col("pe", "P/E", "num1"), MCAP)), (),
-           ("Prism Quality 70 or more, Fundamentals 60 or more, Valuation 50 or more.", "PEG ratio above 0 and at most 1.5.", "Ranked by Prism score."), False, None, ("provisional",), "p12 (screen 8)"),
+           ("Prism Quality 70 or more, Growth & Profitability 60 or more, Valuation 50 or more.", "PEG ratio above 0 and at most 1.5.", "Ranked by Prism score."), False, None, ("provisional",), "p12 (screen 8)"),
 
     Preset("results-standouts", "Results-season standouts", "growth", "Latest quarter: sales up 20%+, profit up 25%+.", "rules", _m(),
            "Sales growth vs same quarter last year >= 20\nProfit growth vs same quarter last year >= 25\nMarket cap >= 1000",
@@ -233,12 +233,12 @@ PRESETS: List[Preset] = [
     Preset("quality-off-highs", "Quality off its highs", "value-income", "High quality, 25%+ below the 52-week high.", "rules",
            _m(zqmin=75, zfmin=65, zrmin=50), "Below 52-week high >= 25", (), (("prism_final", "desc"), ("prism_quality", "desc")), 25,
            with_status((STOCK, PRISM, QUAL, FUND, RISK, Col("pct_from_high", "Below 52-week high", "pct"), MCAP)), (),
-           ("Prism Quality 75 or more, Fundamentals 65 or more, Risk 50 or more.", "At least 25% below the 52-week high.", "Ranked by Prism score."), False, None, ("provisional",), "p13 (screen 11)"),
+           ("Prism Quality 75 or more, Growth & Profitability 65 or more, Risk 50 or more.", "At least 25% below the 52-week high.", "Ranked by Prism score."), False, None, ("provisional",), "p13 (screen 11)"),
 
     Preset("cheaper-than-history", "Cheaper than its own history", "value-income", "Quality company, P/E 20%+ below its 5-year median.", "rules",
            _m(zqmin=65, zfmin=55), "P/E vs own 5Y median <= -20", (), (("pe_vs_median_5y", "asc"), ("prism_final", "desc")), 25,
            with_status((STOCK, Col("pe_vs_median_5y", "P/E against own 5-year median", "pct"), Col("pe", "P/E", "num1"), Col("pe_median_5y", "Median P/E (5 years)", "num1"), PRISM, QUAL, FUND, MCAP)), (),
-           ("P/E at least 20% below its own 5-year median.", "Prism Quality 65 or more and Fundamentals 55 or more.", "Ranked by P/E against its own median, lowest first."), False, None, ("provisional",), "p13 (screen 12)"),
+           ("P/E at least 20% below its own 5-year median.", "Prism Quality 65 or more and Growth & Profitability 55 or more.", "Ranked by P/E against its own median, lowest first."), False, None, ("provisional",), "p13 (screen 12)"),
 
     Preset("dividend-payers", "Steady dividend payers", "value-income", "Dividend paid 6 years running, yield 2.5%+.", "rules", _m(),
            "Dividend yield >= 2.5\nYears of dividends (last 6) >= 6\nDividend payout <= 75\nMarket cap >= 1000",
@@ -291,9 +291,9 @@ PRESETS: List[Preset] = [
 # the page's existing four quick views (frontend/src/lib/scoreScreen.ts, PRISM_PRESETS): listed under "Prism basics", handled by the page itself
 QUICK_VIEWS: List[Preset] = [
     Preset("strongsafe", "Prism strong and lower risk", "prism-basics", "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", "quickview", _m(zmin=80, zrmin=65, rated=1)),
-    Preset("fairvalue", "Strong fundamentals at a fair valuation", "prism-basics", "Prism Fundamentals 65 or more and Prism Valuation 50 or more.", "quickview", _m(zfmin=65, zvmin=50, rated=1)),
+    Preset("fairvalue", "Strong Growth & Profitability at a fair valuation", "prism-basics", "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more.", "quickview", _m(zfmin=65, zvmin=50, rated=1)),
     Preset("bothtech", "Positive on both technical views", "prism-basics", "Prism's short-term and long-term technical views are both Positive (above the Neutral band).", "quickview", _m()),
-    Preset("weakvalue", "Fundamentals strong but valuation weak", "prism-basics", "Prism Fundamentals 65 or more but Prism Valuation 50 or less.", "quickview", _m(zfmin=65, rated=1)),
+    Preset("weakvalue", "Growth & Profitability strong but valuation weak", "prism-basics", "Prism Growth & Profitability 65 or more but Prism Valuation 50 or less.", "quickview", _m(zfmin=65, rated=1)),
 ]
 
 ALL: List[Preset] = PRESETS + QUICK_VIEWS

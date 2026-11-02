@@ -108,5 +108,5 @@ function sampleLeadership() {
     rel: { w13: null, w26: null, w52: -0.232, w52Market: -0.33 }, sectorReliability: { tier: "insufficient", hitRate6m: null, checks: 0, from: null, to: null, periods: [] }, peers: [],
     display: { chip: "Laggard", line: "9th of 10 Trucks/Construction/Farm Machinery peers", tooltip: "Sample data for the demo.",
       parts: { rank: "9th of 10 Trucks/Construction/Farm Machinery peers", sector: { pts: "\u221223.2", name: "peer average", v: -0.232 }, market: { pts: "\u221233.0", name: "Nifty Midcap 150", v: -0.33 }, direction: "weakening" },
-      note: "Fundamentals rank 3rd of 10, stronger than the price", benchmarkNote: "There is no matching sector index, so the average return of the peers stands in for it." } };
+      note: "Business score ranks 3rd of 10, stronger than the price", benchmarkNote: "There is no matching sector index, so the average return of the peers stands in for it." } };
 }

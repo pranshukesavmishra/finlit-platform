@@ -21,7 +21,7 @@ export const SECTIONS: NavSection[] = [
     { title: "Find stocks", items: [
       i("/screener", "Stock screener", "Filter every listed company by size, valuation, growth and debt", "table"),
       i("/score-screener", "Basic score screener", "Every listed company with its FinLit score, filtered by size, sector and score", "quality"),
-      i("/advanced-score-screener", "Advanced score screener", "Every listed company with its FinLit Prism rating: four fundamental parts and two technical views", "layers", { gold: true }),
+      i("/advanced-score-screener", "Advanced score screener", "Every listed company with its FinLit Prism rating: four financial-health parts and two technical views", "layers", { gold: true }),
       i("/query-builder", "Query builder", "Type a rule like P/E < 15, get the companies; save baskets", "notes"),
     ] },
     { title: "Analyse a company", items: [
@@ -62,7 +62,7 @@ export const SECTIONS: NavSection[] = [
 /** Everything else, kept reachable under "More" in the header: the Gold dashboards, learning and community, and the company. */
 export const MORE: NavSection = { id: "more", label: "More", groups: [
   { title: "Gold dashboards", items: [
-    i("/premium/fundamentals", "Stock fundamentals", "Financials of any company, in tables and charts", "table", { gold: true }),
+    i("/premium/fundamentals", "Company financials", "Financials of any company, in tables and charts", "table", { gold: true }),
     i("/premium/markets", "Market events & index", "Index moves and the events behind them", "activity", { gold: true }),
     i("/premium/options", "Option chain", "Open interest, put-call ratio and max pain", "layers", { gold: true }),
   ] },

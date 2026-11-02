@@ -1,4 +1,4 @@
-// FinLit Prism card on the stock page, the drawing of its two sections: "Fundamental analysis" (a segmented score ring, one arc per component sized by its
+// FinLit Prism card on the stock page, the drawing of its two sections: "Financial health analysis" (a segmented score ring, one arc per component sized by its
 // weight and coloured by its band, and one card per component) and "Technical analysis" (the short-term and long-term panels and the trend alignment).
 // Everything shown is read from the stored report (rating, weights, technicalAssessment); the rules (words, bands, captions) are in prismCardLogic.ts and lib/.
 // Meaning is always in words and shapes (the status word, the number, the arrows); colour only decorates. The ring and the bars are hidden from screen
@@ -94,27 +94,27 @@ function PartCard({ p, index, hot, onHot, last, example }: { p: CardPart; index:
   );
 }
 
-/* ------------------------------------------------------------------ section 1: Fundamental analysis */
+/* ------------------------------------------------------------------ section 1: Financial health analysis */
 export function FundamentalSection({ r, parts, example = false, children }: { r: PrismLatest["rating"]; parts: CardPart[]; example?: boolean; /** the status words under the ring (rated or provisional, coverage, the reason when not rated) */ children?: ReactNode }) {
   const [hot, setHot] = useState<string | null>(null);
   const rated = r.status !== "NOT RATED" && r.final != null, [word] = LABEL[r.label];
   const techIn = parts.some((p) => p.key === "technical");
   const n = parts.length, hasRisk = parts.some((p) => p.key === "risk");
   return (
-    <section className="pcx-sec fund" aria-label={techIn ? "The Prism score and its components" : "Fundamental analysis"}>
+    <section className="pcx-sec fund" aria-label={techIn ? "The Prism score and its components" : "Financial health analysis"}>
       <header className="pcx-sh">
         <span className="pcx-ic" aria-hidden="true"><Icon name="coins" /></span>
-        <div className="pcx-ht"><h3>{techIn ? "Prism score" : "Fundamental analysis"}</h3><p>{fundSubtitle(n)}</p></div>
+        <div className="pcx-ht"><h3>{techIn ? "Prism score" : "Financial health analysis"}</h3><p>{fundSubtitle(n)}</p></div>
         <p className="pcx-note"><Icon name="info" /><span>{techIn ? SCORE_NOTE_WITH_TECH : FUND_NOTE}</span></p>
       </header>
       <div className="pcx-fb">
         <div className="pcx-rc">
           <SegRing parts={parts} score={rated ? (r.final as number) : null} word={word} tone={rated ? scoreBand(r.final) : "na"} hot={hot} onHot={setHot} example={example} />
-          <p className="pcx-cap">{techIn ? "Overall Prism score" : "Cumulative fundamental score"}<InfoTip text={`The total of the component scores, each counted by its weight. Arc length shows a component's weight; the coloured part shows its score. ${BAND_RULE}`} /></p>
+          <p className="pcx-cap">{techIn ? "Overall Prism score" : "Cumulative financial-health score"}<InfoTip text={`The total of the component scores, each counted by its weight. Arc length shows a component's weight; the coloured part shows its score. ${BAND_RULE}`} /></p>
           <p className="pcx-bo">{basedOn(n, hasRisk)}</p>
         </div>
         <div className="pcx-cs">
-          <h4>{techIn ? "Components (weighted)" : "Fundamental components (weighted)"}</h4>
+          <h4>{techIn ? "Components (weighted)" : "Financial-health components (weighted)"}</h4>
           <div className="pcx-grid" style={{ "--n": n } as CSSProperties} role="group" aria-label={example ? "The components of a Prism rating (example numbers)" : "The components of the Prism rating"}>
             {parts.map((p, i) => <PartCard key={p.key} p={p} index={i} hot={hot} onHot={setHot} last={i === parts.length - 1} example={example} />)}
           </div>

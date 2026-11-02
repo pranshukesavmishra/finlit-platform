@@ -406,9 +406,9 @@ def display(*, label: Optional[str], rank: Optional[int], ranked: Optional[int],
         line += f" · {direction} over 3 months"
     note = None
     if fundamental == "below_peers" and fund_rank and fund_n:
-        note = f"Price is leading, but fundamentals rank {ordinal(fund_rank)} of {fund_n}"
+        note = f"Price is leading, but the business score ranks {ordinal(fund_rank)} of {fund_n}"
     elif fundamental == "stronger_than_price" and fund_rank and fund_n:
-        note = f"Fundamentals rank {ordinal(fund_rank)} of {fund_n}, stronger than the price"
+        note = f"Business score ranks {ordinal(fund_rank)} of {fund_n}, stronger than the price"
     tip = (f"Based on price performance over the last 12 months compared with {ranked} {group_short} companies and {sector_name}. "
            "Describes the past; not a recommendation.")
     return {"chip": CHIP[label], "line": line, "parts": parts, "note": note, "tooltip": tip}

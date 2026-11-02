@@ -106,7 +106,7 @@ export function miniTechLabel(title: string, h: TechHorizon): string {
   return `${title} ${fmtScore(h.score)}: ${ratingWord(h.rating, h.score).word}${cap ? `, ${cap}` : ""}`;
 }
 export function miniFundLabel(rating: Pick<PrismRating, "status" | "final" | "label">): string {
-  return isRated(rating) && rating.final != null ? `Fundamental score ${score1(rating.final)} out of 100: ${labelTone(rating.label).word}` : "Fundamental score: not rated";
+  return isRated(rating) && rating.final != null ? `Financial-health score ${score1(rating.final)} out of 100: ${labelTone(rating.label).word}` : "Financial-health score: not rated";
 }
 
 function TechMini({ title, h }: { title: string; h: TechHorizon }) {
@@ -129,7 +129,7 @@ export function MiniScores({ report }: { report: PrismReport }) {
     <div className="pzr-minis" role="group" aria-label="Mini scores">
       <ul className="pzr-minis-l">
         <li className="pzr-mini pzr-mini-f" style={{ "--m": `var(${rated ? t.token : "--pz-none"})` } as React.CSSProperties} title={`${label}. Higher is better. ${BAND_RULE}`} aria-label={label}>
-          <span className="pzr-mini-k">Fundamental score</span>
+          <span className="pzr-mini-k">Financial-health score</span>
           {rated ? <b className="pzr-mini-n">{score1(rating.final)}</b> : <b className="pzr-mini-n pzr-mini-nr">Not rated</b>}
           <span className="pzr-mini-w">{rated ? t.word : "No score"}</span>
           <span className="pzr-mini-bar" aria-hidden="true">{rated && <u style={{ width: `${Math.max(0, Math.min(100, rating.final!))}%` }} />}</span>

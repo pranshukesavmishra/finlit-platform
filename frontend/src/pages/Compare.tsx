@@ -18,8 +18,8 @@ import { decodeKeys, encodeKeys } from "../lib/compareSets";
 type TabDef = { id: string; label: string; model?: boolean; blurb: string; groups: { title: string; keys: NumKey[] }[] };
 const TABS: TabDef[] = [
   { id: "overview", label: "Overview", blurb: "Who they are and how the FinLit model scores them.", groups: [] },
-  { id: "fundamentals", label: "Fundamentals", blurb: "Size, profit margin, returns on money and debt.", groups: [{ title: "Size and market", keys: ["market_cap", "price"] }, { title: "Profitability", keys: ["roe", "roce", "operating_margin"] }, { title: "Solvency and financial strength", keys: ["debt_to_equity"] }, { title: "Income for shareholders", keys: ["dividend_yield"] }] },
-  { id: "spider", label: "Spider", blurb: "Eight fundamentals on one chart. Further from the centre is better.", groups: [] },
+  { id: "fundamentals", label: "Financials", blurb: "Size, profit margin, returns on money and debt.", groups: [{ title: "Size and market", keys: ["market_cap", "price"] }, { title: "Profitability", keys: ["roe", "roce", "operating_margin"] }, { title: "Solvency and financial strength", keys: ["debt_to_equity"] }, { title: "Income for shareholders", keys: ["dividend_yield"] }] },
+  { id: "spider", label: "Spider", blurb: "Eight measures on one chart. Further from the centre is better.", groups: [] },
   { id: "valuation", label: "Valuation", blurb: "How much the market is paying for each company.", groups: [{ title: "Price against earnings and assets", keys: ["pe", "pb"] }, { title: "Cash return on the price", keys: ["dividend_yield"] }] },
   { id: "quality", label: "Quality & Risk", model: true, blurb: "How well the business earns, and how much debt it carries.", groups: [{ title: "Returns on money", keys: ["roe", "roce"] }, { title: "Safety", keys: ["debt_to_equity", "pillar_balance"] }, { title: "FinLit quality", keys: ["pillar_quality"] }] },
   { id: "growth", label: "Growth", model: true, blurb: "How fast sales and profit have grown.", groups: [{ title: "Business growth", keys: ["sales_cagr", "profit_cagr", "pillar_growth"] }, { title: "The market's verdict", keys: ["return_1y"] }] },
@@ -130,7 +130,7 @@ export function Compare() {
         )}
 
         {picked.length >= 2 && tab === "spider" && (
-          <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight fundamentals, against every company<ChartHelp id="cmp-fundamentals" /></h3><span className="s">Each axis: % of all companies beaten</span></div>
+          <div className="card cmp-pil"><div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Eight measures, against every company<ChartHelp id="cmp-fundamentals" /></h3><span className="s">Each axis: % of all companies beaten</span></div>
             <div className="pil-grid">
               <Radar axes={SPIDER.map((x) => x.label)} series={picked.map((r, i) => ({ key: r.symbol, label: r.name || r.symbol, cls: "k" + i, values: SPIDER.map((x) => pc(r, x.key)) }))} />
               <div className="sp-t" style={{ "--n": picked.length } as React.CSSProperties}><div className="sp-h" role="row"><span />{picked.map((r, i) => <span key={r.symbol} title={r.name || r.symbol}><i className={"mk k" + i} /><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</span>)}</div>{SPIDER.map((x) => (

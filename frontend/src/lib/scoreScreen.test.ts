@@ -110,8 +110,8 @@ describe("presets", () => {
   const items = [it1("A", 90, 90), it1("B", 90, 30), it1("C", 50, 90), it1("D", 70, 90), it1("E", 90, 44), it1("F", 90, null)];
   const run = (id: string) => syms(applyFilters(items, withPreset(emptyFilters(), PRESETS.find((p) => p.id === id)!)));
   it("Strong on both", () => expect(run("both")).toEqual(["A"]));
-  it("Strong fundamentals, weak trend (Technical under 45)", () => expect(run("fund")).toEqual(["B", "E"]));   // E is Technical 44, still under 45; F has no Technical and is left out
-  it("Strong trend, weaker fundamentals (Fundamental under 78)", () => expect(run("trend")).toEqual(["C", "D"]));
+  it("Strong business, weak trend (Technical under 45)", () => expect(run("fund")).toEqual(["B", "E"]));   // E is Technical 44, still under 45; F has no Technical and is left out
+  it("Strong trend, weaker business (Fundamental under 78)", () => expect(run("trend")).toEqual(["C", "D"]));
   it("keeps other filters and clears the Fundamental and Technical boxes; is recognised as active", () => {
     const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.f = { min: 10, max: 20 };
     const n = withPreset(f, PRESETS[0]);
@@ -135,7 +135,7 @@ describe("chips", () => {
   it("one chip per active filter, each removable", () => {
     const f = emptyFilters(); f.caps = ["Mid", "Large"]; f.sectors = ["IT", "Auto"]; f.bands.f = ["high", "mid"]; f.ranges.o = { min: 50, max: null };
     const ch = chipsFor(f);
-    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Fundamental: 45–77, 78+", "Overall: 50 or more"]);
+    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Business: 45–77, 78+", "Overall: 50 or more"]);
     expect(chipsFor(removeChip(f, "sector:IT")).map((c) => c.id)).toEqual(["caps", "sector:Auto", "band:f", "range:o"]);
     expect(chipsFor(removeChip(removeChip(removeChip(f, "caps"), "band:f"), "range:o")).map((c) => c.id)).toEqual(["sector:IT", "sector:Auto"]);
     expect(chipsFor(emptyFilters())).toEqual([]);
@@ -406,7 +406,7 @@ describe("Prism CSV", () => {
   });
   it("basic: only the FinLit score columns and no Prism column at all", () => {
     const csv = toCsv(rows, { ...o, mode: "basic" });
-    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Fundamental,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
+    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Business,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
     expect(csv).not.toMatch(/Prism/i);
   });
 });

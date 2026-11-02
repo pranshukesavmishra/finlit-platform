@@ -14,7 +14,7 @@ const routes = new Set([...app.matchAll(/path="([^"]+)"/g)].map((m) => "/" + m[1
 describe("Explore our platform grid", () => {
   it("renders 21 cards with the exact titles, in order", () => {
     expect((html.match(/class="pg-card"/g) ?? []).length).toBe(21);
-    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research and Health Score", "Revenue and Profit Forecasting", "Smart Finance Calculators", "FinLit Prism", "Advanced Score Screener", "Gold Markets Dashboard", "Gold Fundamentals Dashboard", "Premium Report", "Option Chain", "DCF Calculator", "Mutual Fund Health Score Screener"];
+    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research and Health Score", "Revenue and Profit Forecasting", "Smart Finance Calculators", "FinLit Prism", "Advanced Score Screener", "Gold Markets Dashboard", "Gold Financials Dashboard", "Premium Report", "Option Chain", "DCF Calculator", "Mutual Fund Health Score Screener"];
     expect(PLATFORM_CARDS.map((c) => c.title)).toEqual(titles);
     titles.forEach((t) => expect(html).toContain(t));
     expect(html).not.toContain("Value Smarter");

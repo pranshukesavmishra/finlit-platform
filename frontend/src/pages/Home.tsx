@@ -63,9 +63,9 @@ const STEPS: [string, string][] = [
 /** The platform grid sits directly under the hero; below it, the two lenses (fundamental and technical) are explained in a short note. */
 function Lenses() {
   return (
-    <section className="sec hh-sec" aria-label="Fundamental and technical analysis" style={{ paddingTop: 0 }}><div className="wrap">
+    <section className="sec hh-sec" aria-label="Financial and technical analysis" style={{ paddingTop: 0 }}><div className="wrap">
       <div className="split" role="note">
-        <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Fundamental</h3><p>The business itself: quality, growth, profitability and balance sheet, read from the company's statements.</p></div>
+        <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Business</h3><p>The business itself: quality, growth, profitability and balance sheet, read from the company's statements.</p></div>
         <div><h3><span className="mark" style={{ background: "var(--p-tech)" }} />Technical</h3><p>The share price only: trend, momentum and moving averages, read from the price chart.</p></div>
         <p className="split-note"><b>These are two different lenses and we do not blend them.</b> Each gets its own score so you can read it on its own.</p>
       </div>

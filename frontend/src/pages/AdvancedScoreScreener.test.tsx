@@ -75,7 +75,7 @@ describe("Advanced score screener (Gold)", () => {
     expect(rowOf("BBB").textContent).toMatch(/Sideways\+5/); expect(rowOf("BBB").textContent).toMatch(/Downtrend−35/);
     expect(rowOf("FFF").textContent).toMatch(/30\s*PoorProvisional/);
     expect(document.body.textContent?.toLowerCase()).not.toMatch(forbidden);   // the model's own "Buy" / "Hold" never reach the screen
-    expect(screen.queryByRole("group", { name: "Fundamental score" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Business score" })).toBeNull();
   });
 
   it("says Prism has rated X of Y with a progress bar, and a company without a rating says why, with a Rate now link", () => {
@@ -222,7 +222,7 @@ describe("Advanced score screener: every plan below Gold gets the upgrade page",
       expect(screen.getByText("Example")).toBeTruthy();
       expect(screen.getByText(/Sample companies and figures, only to show the layout/)).toBeTruthy();
       expect(screen.getByRole("table", { hidden: true, name: /Example of the advanced score screener/ }).textContent).toMatch(/Example Company A/);
-      expect(screen.getAllByText(/Four fundamental parts, each 0 to 100/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Four financial-health parts, each 0 to 100/).length).toBeGreaterThan(0);
       fireEvent.click(screen.getAllByRole("button", { name: /Unlock with Gold/ })[0]);
       expect(st.upgrade).toHaveBeenCalledWith("gold", expect.any(String));
       expect(document.body.textContent?.toLowerCase()).not.toMatch(forbidden);
