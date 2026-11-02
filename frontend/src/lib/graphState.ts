@@ -7,7 +7,11 @@ import { BY_ID, isIndexSym, indexSupports, type Basis } from "./graphMetrics";
 export type SeriesSpec = { s: string; m: string; as?: "bar" | "line" };
 export type CellSpec = { chart: ChartKind; series: SeriesSpec[]; mode?: "corr" | "grid"; tf?: "values" | "change" | "index"; x?: number; y?: number };
 export type View = { v: 1; layout: string; basis: Basis; range: RangeId; from?: number; cells: CellSpec[] };
-export const LAYOUTS: Record<string, { rows: number; cols: number }> = { "1x1": { rows: 1, cols: 1 }, "1x2": { rows: 1, cols: 2 }, "2x2": { rows: 2, cols: 2 }, "2x3": { rows: 2, cols: 3 }, "3x3": { rows: 3, cols: 3 } };
+export const LAYOUTS: Record<string, { rows: number; cols: number }> = { "1x1": { rows: 1, cols: 1 }, "1x2": { rows: 1, cols: 2 }, "1x3": { rows: 1, cols: 3 }, "2x2": { rows: 2, cols: 2 }, "2x3": { rows: 2, cols: 3 }, "3x3": { rows: 3, cols: 3 } };
+/** The layouts from the smallest chart count to the largest: "+ Add chart" steps up this list, and removing a chart steps down it when a layout with exactly one chart fewer exists. */
+export const LAYOUT_LADDER = ["1x1", "1x2", "1x3", "2x2", "2x3", "3x3"];
+export const layoutAbove = (layout: string): string | null => LAYOUT_LADDER.find((l) => LAYOUTS[l] && cellCount(l) > cellCount(layout)) ?? null;
+export const layoutBelow = (layout: string): string | null => LAYOUT_LADDER.find((l) => cellCount(l) === cellCount(layout) - 1) ?? null;
 export const cellCount = (layout: string) => (LAYOUTS[layout] ? LAYOUTS[layout].rows * LAYOUTS[layout].cols : 4);
 export const CHART_LABEL: Record<ChartKind, string> = { line: "Line", area: "Area", column: "Column", bar: "Bar (latest values)", combo: "Combo (bars + line)", pie: "Pie", candlestick: "Candlestick", scatter: "Scatter (X vs Y)", heatmap: "Heatmap" };
 const SYM = /^(IDX:[A-Z0-9]{2,24}|[A-Z0-9&_.-]{1,24})$/;   // a company symbol, or an index as IDX:code
@@ -22,7 +26,7 @@ export const defaultView = (symbol = "RELIANCE"): View => ({
 export function sanitize(raw: unknown, plan: Plan): View {
   const lim = GRAPH_LIMITS[plan] ?? GRAPH_LIMITS.basic, r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   let layout = typeof r.layout === "string" && LAYOUTS[r.layout] ? r.layout : "2x2";
-  while (cellCount(layout) > lim.cells) layout = layout === "3x3" ? "2x3" : layout === "2x3" ? "2x2" : "1x2";
+  while (cellCount(layout) > lim.cells) layout = layout === "3x3" ? "2x3" : layout === "2x3" ? "2x2" : layout === "2x2" || layout === "1x3" ? "1x2" : "1x2";
   const companies = new Set<string>();
   const cells: CellSpec[] = (Array.isArray(r.cells) ? r.cells : []).slice(0, cellCount(layout)).map((c: Record<string, unknown>) => {
     const chart = (["line", "area", "column", "bar", "combo", "pie", "candlestick", "scatter", "heatmap"] as ChartKind[]).includes(c?.chart as ChartKind) && lim.charts.includes(c.chart as ChartKind) ? (c.chart as ChartKind) : "line";
@@ -64,4 +68,13 @@ export function chartCheck(chart: ChartKind, f: CellFacts, plan: Plan): Check {
     case "column": return f.maxPts > 400 ? { ok: false, why: "Too many points for columns" } : kinds > 2 ? { ok: false, why: "More than two units" } : { ok: true };
     default: return kinds > 2 ? { ok: false, why: "More than two units" } : { ok: true };
   }
+}
+
+/** The view after "×" on chart `i`: later charts move up; the layout steps down when one with exactly one chart fewer exists, else it keeps its shape and ends with an empty chart.
+ *  The only chart left is cleared, never removed (a view always has a chart). */
+export function withoutCell(view: View, i: number): View {
+  const n = cellCount(view.layout);
+  if (n <= 1) return { ...view, cells: [{ chart: "line", series: [] }] };
+  const next = layoutBelow(view.layout) ?? view.layout;
+  return { ...view, layout: next, cells: view.cells.filter((_, k) => k !== i).slice(0, cellCount(next)) };
 }

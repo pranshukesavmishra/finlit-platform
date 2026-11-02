@@ -46,3 +46,10 @@
 
 .gx-list li.off { opacity: .55; cursor: default; } .gx-list li.off label { cursor: not-allowed; }
 .pagehead .gx-adv { margin-top: 10px; font-size: 15px; } .gx-adv a { color: var(--gold); font-weight: 600; }
+/* Chart builder: enlarge one chart over the page, "+ Add chart", and the plain-words reading under each chart */
+.gx-zoom { display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; }
+.gx-addchart { white-space: nowrap; } .gx-addchart span { font-weight: 700; font-size: 16px; line-height: 1; margin-right: 2px; }
+.gx-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 60; }
+.gx-cell.gx-zoomed { position: fixed; z-index: 61; inset: 4vh 3vw; overflow: auto; box-shadow: 0 24px 80px rgba(0, 0, 0, .45); padding: 18px; }
+.gx-cell .cinf { margin-top: 12px; }
+@media (max-width: 640px) { .gx-cell.gx-zoomed { inset: 2vh 2vw; padding: 12px; } }

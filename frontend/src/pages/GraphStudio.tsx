@@ -1,6 +1,8 @@
 import { PageHeader } from "../components/PageHeader";
 import { DrawLayer } from "../components/DrawLayer";
 import { ChartInference } from "../components/ChartInference";
+import { ChartReading } from "../components/ChartReading";
+import { readBars, readBreakdown, readCandles, readCorrelationMatrix, readTimeSeries } from "../lib/chartReading";
 import { chartInference, pFromR } from "../lib/chartInference";
 import { viewId } from "../lib/drawings";
 import { FilterNote, SearchFilters, useIndexFilter } from "../components/SearchFilters";
@@ -18,7 +20,7 @@ import { Candles, Heat, HBars, Pie, Scatter, TimeChart, useWidth, type Colors, t
 import { alignSeries, changes, corrMatrix, csvRow, pearson, rebase, RANGES, strength, windowPts } from "../lib/graphData";
 import { BY_ID, extract, GROUPS, IDX, indexCode, isIndexSym, metricFor, metricsIn, unsupportedWhy, UNITS, type Bundle, type Extracted, type Metric, type UnitId } from "../lib/graphMetrics";
 import { graphLimits, chartTier, type ChartKind } from "../lib/graphLimits";
-import { CHART_LABEL, LAYOUTS, cellCount, chartCheck, decodeView, defaultView, encodeView, sanitize, type CellFacts, type CellSpec, type SeriesSpec, type View } from "../lib/graphState";
+import { CHART_LABEL, LAYOUTS, cellCount, layoutAbove, withoutCell, chartCheck, decodeView, defaultView, encodeView, sanitize, type CellFacts, type CellSpec, type SeriesSpec, type View } from "../lib/graphState";
 import "../styles/graphs.css";
 
 const CHARTS = Object.keys(CHART_LABEL) as ChartKind[];
@@ -64,7 +66,7 @@ const RANK: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
 type RS = { sp: SeriesSpec; mt: Metric; ex: Extracted; label: string; color: string; sym: string; err?: string };
 const name = (rows: [string, string][] | undefined, s: string) => rows?.find((r) => r[0] === s)?.[1] ?? s;
 
-function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan, c, names, picked }: { i: number; cell: CellSpec; view: View; bundles: ReturnType<typeof useBundles>; active: boolean; onActive: () => void; onChange: (n: CellSpec) => void; onDrop: (m: string) => void; plan: Plan; c: Colors; names: [string, string][] | undefined; picked: string[] }) {
+function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, onRemove, onZoom, zoomed, plan, c }: { i: number; cell: CellSpec; view: View; bundles: ReturnType<typeof useBundles>; active: boolean; onActive: () => void; onChange: (n: CellSpec) => void; onDrop: (m: string) => void; onRemove: () => void; onZoom: () => void; zoomed: boolean; plan: Plan; c: Colors }) {
   const { ref, w } = useWidth();
   const { upgrade } = useUI();
   const lim = graphLimits(plan);
@@ -100,7 +102,7 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
   const units = (k: number): UnitId => (tf === "change" && ok[k]?.mt.kind === "amount" ? "pct" : ok[k]?.mt.unit);
 
   let body: React.ReactNode = null;
-  if (rs.length === 0) body = <div className="gx-empty"><Icon name="line" /><b>Drop a metric here</b><span>Or pick one from the list, or use “Add series” below.</span></div>;
+  if (rs.length === 0) body = <div className="gx-empty"><Icon name="line" /><b>Drop a metric here</b><span>Tick a measure in the list on the left; it is added to the chart you have selected.</span></div>;
   else if (bad && ok.length === 0) body = <div className="gx-note"><b>{bad.ex.status === "loading" ? "Loading…" : bad.ex.status === "locked" ? `${bad.mt.label} is part of the ${bad.mt.tier === "gold" ? "Gold" : "Silver"} plan.` : bad.ex.status === "unsupported" ? `${bad.mt.label} is not available for ${isIndexSym(bad.sym) ? "an index" : "a company"}. ${bad.ex.note ?? ""}` : bad.ex.status === "noperiod" ? `${bad.mt.label} is reported once a year. Switch to Annual to see it.` : bad.ex.status === "error" ? bad.err ?? "Could not load the data." : `No ${bad.mt.label} figures for ${isIndexSym(bad.sym) ? indexCode(bad.sym) : bad.sym}.`}</b>{bad.ex.status === "locked" && <button className="btn" onClick={() => upgrade(bad.mt.tier, `${bad.mt.label} history`)}>Unlock</button>}</div>;
   else if (!chk.ok) body = <div className="gx-note"><b>{CHART_LABEL[cell.chart]} does not fit this data</b><span>{chk.why}.</span><button className="btn ghost" onClick={() => asSet({ chart: comp ? "pie" : "line" })}>Show as {comp ? "pie" : "line"}</button></div>;
   else if (w > 0) {
@@ -129,13 +131,23 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
   const dualNote = ps.length > 1 && new Set(ps.map((p) => p.unit)).size === 2 && ["line", "area", "column", "combo"].includes(cell.chart);
   const csvOnly = ps.length > 0;
 
+  // the plain-words reading under every chart (the scatter writes its own, above)
+  const k0 = cell.chart;
+  const reading = !chk.ok || ok.length === 0 || k0 === "scatter" ? null
+    : k0 === "pie" || (comp && k0 === "bar") ? readBreakdown(ok[0].label, (ok[0].ex.cats ?? []).map((x) => ({ name: x.name, value: x.value })))
+    : k0 === "bar" ? readBars(ok.map((r) => { const l = [...r.ex.pts].reverse().find((p) => p.v != null); return l ? { label: r.label, v: l.v as number } : null; }).filter(Boolean) as { label: string; v: number }[], ok[0].mt.unit)
+    : k0 === "candlestick" ? readCandles(ok[0].ex.pts)
+    : k0 === "heatmap" ? ((cell.mode ?? (ok.length > 1 ? "corr" : "grid")) === "corr" && align && ok.length > 1 ? (() => { const m = corrMatrix(tfCols); return readCorrelationMatrix(ok.map((r) => r.label), m.r, m.n); })() : null)
+    : ps.length ? readTimeSeries(ps.map((p) => ({ label: p.label, unit: p.unit, pts: p.pts })), view.basis, { change: tf === "change" }) : null;
+
   return (
-    <section className={"gx-cell" + (active ? " on" : "")} onClick={onActive} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const m = e.dataTransfer.getData("text/plain"); if (BY_ID[m]) onDrop(m); }} aria-label={`Chart ${i + 1}: ${title}`}>
+    <section className={"gx-cell" + (active ? " on" : "") + (zoomed ? " gx-zoomed" : "")} onClick={onActive} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const m = e.dataTransfer.getData("text/plain"); if (BY_ID[m]) onDrop(m); }} aria-label={`Chart ${i + 1}: ${title}`}>
       <header><h3 title={title}>{title}</h3>
         <select aria-label={`Chart ${i + 1} type`} value={cell.chart} onChange={(e) => { const v = e.target.value as ChartKind; if (!lim.charts.includes(v)) upgrade(chartTier(v), `The ${CHART_LABEL[v]} chart`); else asSet({ chart: v }); }}>
           {CHARTS.map((k) => { const r = chartCheck(k, facts, plan); return <option key={k} value={k} disabled={!r.ok && k !== cell.chart && !!r.why && r.why !== "Not in your plan"}>{CHART_LABEL[k]}{!r.ok && r.why ? ` — ${r.why}` : ""}</option>; })}
         </select>
-        <button className="gx-x" aria-label={`Clear chart ${i + 1}`} title="Clear this chart" onClick={(e) => { e.stopPropagation(); onChange({ chart: cell.chart, series: [] }); }}>×</button></header>
+        <button className="gx-x gx-zoom" aria-label={zoomed ? `Restore chart ${i + 1}` : `Enlarge chart ${i + 1}`} aria-pressed={zoomed} title={zoomed ? "Back to the grid (Esc)" : "Enlarge this chart"} onClick={(e) => { e.stopPropagation(); onZoom(); }}><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{zoomed ? <path d="M6 2v4H2M10 14v-4h4M6 6 2 2M10 10l4 4" /> : <path d="M10 2h4v4M6 14H2v-4M14 2 9.5 6.5M2 14l4.5-4.5" />}</svg></button>
+        <button className="gx-x" aria-label={`Remove chart ${i + 1}`} title="Remove this chart" onClick={(e) => { e.stopPropagation(); onRemove(); }}>×</button></header>
       <div className="gx-legend">{rs.map((r, n) => <span key={r.sp.s + r.sp.m} className="gx-chip"><i style={{ background: r.color }} />{r.label} <small>{UNITS[r.mt.unit].label}</small>
         {cell.chart === "combo" && r.mt.grain !== "price" && <button className="gx-mini" title="Switch between bars and line" onClick={() => onChange({ ...cell, series: cell.series.map((s, m) => (m === n ? { ...s, as: (s.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "line" : "bar" } : s)) })}>{(r.sp.as ?? (n === 0 ? "bar" : "line")) === "bar" ? "bars" : "line"}</button>}
         {r.ex.status !== "ok" && <em title={r.ex.status}>{r.ex.status === "loading" ? "loading" : r.ex.status === "locked" ? "plan" : r.ex.status === "noperiod" ? "annual only" : r.ex.status === "unsupported" ? "n/a" : "no data"}</em>}
@@ -146,18 +158,9 @@ function Cell({ i, cell, view, bundles, active, onActive, onChange, onDrop, plan
       <div ref={ref} className="gx-body"><DrawLayer id={"gx:" + viewId(JSON.stringify([cell.chart, tf, cell.x, cell.y, cell.mode, view.range, view.from, view.basis, cell.series.map((x) => [x.s, x.m, x.as])]))} enabled={w > 0 && ok.length > 0 && chk.ok && (ps.length > 0 || !!align || comp || cell.chart === "candlestick" || cell.chart === "bar")}>{body}</DrawLayer></div>
       {dualNote && <p className="gx-r">Two units, so two axes: {[...new Set(ps.map((p) => p.unit))].map((u, n) => `${n ? "right" : "left"} ${UNITS[u].label}`).join(", ")}. Compare shapes, not heights.</p>}
       {csvOnly && ps.some((p) => p.pts.filter((x) => x.v != null).length < 3) && !["scatter", "heatmap"].includes(cell.chart) && <p className="gx-r faint">Few points in this window; widen the range or switch to Quarterly.</p>}
-      <AddSeries onAdd={(m, s) => onDrop(m + "@" + s)} picked={picked} names={names} cell={cell} />
+      <ChartReading id={"gx-rd-" + i} reading={reading} />
     </section>
   );
-}
-
-function AddSeries({ onAdd, picked, names, cell }: { onAdd: (m: string, s: string) => void; picked: string[]; names: [string, string][] | undefined; cell: CellSpec }) {
-  const [m, setM] = useState(""), [s, setS] = useState(picked[0] ?? "");
-  useEffect(() => { if (!picked.includes(s)) setS(picked[0] ?? ""); }, [picked, s]);
-  return <form className="gx-add" onSubmit={(e) => { e.preventDefault(); if (m && s) { onAdd(m, s); setM(""); } }} onClick={(e) => e.stopPropagation()}>
-    <select aria-label="Measure to add" value={m} onChange={(e) => setM(e.target.value)}><option value="">Add series…</option>{GROUPS.filter((g) => g.id !== "popular").map((g) => <optgroup key={g.id} label={g.label}>{metricsIn(g.id).map((x) => <option key={x.id} value={x.id}>{x.label} ({UNITS[x.unit].label})</option>)}</optgroup>)}</select>
-    {picked.length > 1 && <select aria-label="Company" value={s} onChange={(e) => setS(e.target.value)}>{picked.map((p) => <option key={p} value={p}>{name(names, p)}</option>)}</select>}
-    <button className="btn ghost" disabled={!m || !s || cell.series.length >= 9}>Add</button></form>;
 }
 
 export function GraphStudio() {
@@ -169,7 +172,7 @@ export function GraphStudio() {
   const [sp, setSp] = useSearchParams();
   const [view, setView] = useState<View>(() => decodeView(sp.get("g"), plan) ?? defaultView(sp.get("c")?.split(",")[0]?.toUpperCase().match(/^[A-Z0-9&_.-]{1,24}$/)?.[0] ?? "RELIANCE"));
   const [companies, setCompanies] = useState<string[]>(() => [...new Set(view.cells.flatMap((c) => c.series.map((s) => s.s)))].slice(0, 6));
-  const [active, setActive] = useState(0), [tab, setTab] = useState<"list" | "drag">("list"), [group, setGroup] = useState("popular"), [q, setQ] = useState(""), [cq, setCq] = useState("");
+  const [zoom, setZoom] = useState<number | null>(null), [active, setActive] = useState(0), [tab, setTab] = useState<"list" | "drag">("list"), [group, setGroup] = useState("popular"), [q, setQ] = useState(""), [cq, setCq] = useState("");
   const [panel, setPanel] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= 900));
   const sf = useIndexFilter(true), idx = sf.idx;
   const feed = useIndices(true);
@@ -209,6 +212,22 @@ export function GraphStudio() {
   const removeCompany = (s: string) => { const left = companies.filter((x) => x !== s); setCompanies(left); set({ ...view, cells: view.cells.map((c) => ({ ...c, series: c.series.filter((x) => x.s !== s) })) }); };
   const searchRows = useMemo(() => (sf.on ? (sf.rows as unknown as [string, string][]) : rows), [sf.on, sf.rows, rows]);   // with a filter on, indices (no sector or size) drop out
   const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1) return sf.on ? searchRows.slice(0, 8) : []; const f = searchRows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)), ixs = f.filter((r) => isIndexSym(r[0])).slice(0, 3); return [...f.filter((r) => !isIndexSym(r[0])).slice(0, 8 - ixs.length), ...ixs]; }, [cq, searchRows, sf.on]);
+  /** "×" on a chart removes it: the charts after it move up, and the layout steps down when one with exactly one chart fewer exists (otherwise the grid keeps its shape and ends with an empty chart). The only chart left is cleared, not removed. */
+  const removeCell = (i: number) => {
+    setZoom(null);
+    const v = withoutCell(view, i);
+    set(v);
+    setActive((a) => Math.max(0, Math.min(a > i ? a - 1 : a, cellCount(v.layout) - 1)));
+  };
+  /** "+ Add chart" steps to the next larger layout (plan limits and the upgrade prompt apply as for the layout buttons) and selects the new chart. */
+  const addChart = () => {
+    const n = cellCount(view.layout), next = layoutAbove(view.layout);
+    if (!next) { toast("Nine charts is the most a view can hold."); return; }
+    if (cellCount(next) > lim.cells) { upgrade(plan === "basic" ? "silver" : "gold", `Layouts with ${cellCount(next)} charts`); return; }
+    set({ ...view, layout: next });
+    setActive(n);
+  };
+  useEffect(() => { if (zoom === null) return; const k = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(null); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [zoom]);
   const setLayout = (l: string) => { if (cellCount(l) > lim.cells) { upgrade(plan === "basic" ? "silver" : "gold", `Layouts with ${cellCount(l)} charts`); return; } set({ ...view, layout: l }); };
 
   const save = async () => {
@@ -285,6 +304,7 @@ export function GraphStudio() {
             <label className="gx-yr">From year <select value={view.from ?? ""} onChange={(e) => set({ ...view, from: e.target.value ? Number(e.target.value) : undefined })}><option value="">Any</option>{Array.from({ length: new Date().getFullYear() - 2009 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}</select></label>
             <div className="gx-seg" role="group" aria-label="Annual or quarterly">{(["annual", "quarterly"] as const).map((b) => <button key={b} aria-pressed={view.basis === b} onClick={() => set({ ...view, basis: b })}>{b === "annual" ? "Annual" : "Quarterly"}</button>)}</div>
             <div className="gx-seg" role="group" aria-label="Layout">{Object.keys(LAYOUTS).map((l) => <button key={l} aria-pressed={view.layout === l} aria-label={`Layout ${l.replace("x", " by ")}`} onClick={() => setLayout(l)}>{l.replace("x", "×")}{cellCount(l) > lim.cells && <Icon name="lock" />}</button>)}</div>
+            <button className="btn ghost gx-addchart" aria-label="Add a chart" title="Add a chart" onClick={addChart}><span aria-hidden="true">+</span> Add chart</button>
             <button className="btn ghost" onClick={copy}><Icon name="spark" />Copy link</button>
             <button className="btn ghost" onClick={exportPng}>PNG</button><button className="btn ghost" onClick={exportCsv}>CSV</button>
           </div>
@@ -295,9 +315,10 @@ export function GraphStudio() {
             <span className="faint">{DEMO || !user ? "Views are kept in this browser. Sign in to keep them in your account." : `${Object.keys(views).length}/${lim.views} saved in your account`}</span>
           </div>
           {needsLoad && <p className="faint" role="status">Loading company data…</p>}
+          {zoom !== null && <div className="gx-backdrop" onClick={() => setZoom(null)} aria-hidden="true" />}
           <div className="gx-grid" ref={gridRef} style={{ "--cols": co.cols } as React.CSSProperties}>
-            {Array.from({ length: count }, (_, i) => <Cell key={i} i={i} cell={cellOf(i)} view={view} bundles={bundles} active={active === i} onActive={() => setActive(i)} plan={plan} c={colors} names={rows} picked={companies}
-              onChange={(n) => setCell(i, n)} onDrop={(m) => (m.includes("@") ? addTo(i, m.split("@")[0], m.split("@")[1]) : addTo(i, m))} />)}
+            {Array.from({ length: count }, (_, i) => <Cell key={i} i={i} cell={cellOf(i)} view={view} bundles={bundles} active={active === i} onActive={() => setActive(i)} plan={plan} c={colors}
+              onRemove={() => removeCell(i)} onZoom={() => setZoom(zoom === i ? null : i)} zoomed={zoom === i} onChange={(n) => setCell(i, n)} onDrop={(m) => (m.includes("@") ? addTo(i, m.split("@")[0], m.split("@")[1]) : addTo(i, m))} />)}
           </div>
           <p className="faint gx-foot">Figures are as reported by each company, in the units shown. Each series covers the chosen range back from its own latest reading. Information only; not advice to buy or sell.</p>
         </div>
