@@ -111,7 +111,7 @@ async def test_new_quarter_is_declared_with_figures_and_provider_gap_stays_await
     books = {"AAA": {"c": upto(20260630)}, "BBB": {"c": behind}, "CCC": {"c": STALE_C, "s": upto(20260630)}, "DDD": {"c": 400}, "EEE": {"c": upto(20260630)}}
     async with provider(books, calls) as client:
         out = await L.refresh_light(client, store, today=TODAY, pause=0)
-    assert out == {"candidates": 5, "tried": 5, "filled": 3, "providerPending": 1, "failed": 1, "throttled": 0, "errors": out["errors"]}
+    assert {k: out[k] for k in ("candidates", "tried", "filled", "providerPending", "failed", "throttled")} == {"candidates": 5, "tried": 5, "filled": 3, "providerPending": 1, "failed": 1, "throttled": 0} and out["errors"] and out["left"] == 1 and not out.get("stoppedEarly")
     assert next(iter(out["errors"])).startswith("FinEdgeError HTTP 400")             # the log and the status page say which HTTP status the provider sent
     assert ("FULL", "c") not in calls                                         # held in full: not asked
     assert [c[0] for c in calls if c[1] == "c"] == ["AAA", "BBB", "CCC", "DDD", "EEE"]   # biggest market cap first, one consolidated call each
@@ -151,7 +151,7 @@ async def test_second_run_skips_filled_and_fresh_and_asks_the_provider_again_lat
             await conn.execute("UPDATE quarter_light SET checked_at = now() - interval '2 hours' WHERE symbol = 'BBB'")
         books["BBB"]["c"] = upto(20260630)                                    # the provider publishes it at last
         later = await L.refresh_light(client, store, today=TODAY, pause=0)
-    assert later == {"candidates": 1, "tried": 1, "filled": 1, "providerPending": 0, "failed": 0, "throttled": 0} and calls == [("BBB", "c")]
+    assert {k: later[k] for k in ("candidates", "tried", "filled", "providerPending", "failed", "throttled")} == {"candidates": 1, "tried": 1, "filled": 1, "providerPending": 0, "failed": 0, "throttled": 0} and calls == [("BBB", "c")]
     assert (await rows_of(store))["BBB"]["status"] == "declared"
 
 

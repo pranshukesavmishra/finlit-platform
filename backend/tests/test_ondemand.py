@@ -373,7 +373,7 @@ async def test_the_admin_loads_switch_never_blocks_a_visitor_or_the_results_jobs
     from finlit import sysctl
     src = inspect.getsource(worker.drain_queue) + inspect.getsource(worker.serve_one) + inspect.getsource(worker.ingest_essential)
     assert "sysctl" not in src and "loads_enabled" not in src
-    cmds = inspect.getsource(worker).split('elif args.cmd == "refresh-results-light":')[1].split('elif args.cmd == "drain-queue"')[0]
+    cmds = inspect.getsource(worker).split('elif args.cmd in ("refresh-results", "refresh-results-light"):')[1].split('elif args.cmd == "drain-queue"')[0]
     assert "loads_enabled" not in cmds                                             # results-light ignores the switch
     sh = open(__import__("pathlib").Path(__file__).resolve().parents[2] / "deploy/scheduler.sh").read()
     drain = [l for l in sh.splitlines() if "drain-queue --loop" in l][0]

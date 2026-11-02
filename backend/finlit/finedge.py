@@ -32,7 +32,8 @@ OPTIONAL = object()  # marker: endpoint failure should not fail the bundle
 
 THROTTLE_STATUS = {429, 503}      # "too many requests" / "busy": the provider is asking us to slow down, which is not a failure of the data
 MAX_RETRY_AFTER = 120.0           # never wait longer than this on one provider instruction
-PACE_STEP, PACE_MAX, PACE_DECAY = 0.5, 8.0, 0.7   # adaptive pace: seconds between calls; doubles on a throttle, recovers on success
+PACE_STEP, PACE_MAX, PACE_DECAY = 0.5, 8.0, 0.7
+PACE_MAX_BOUNDED = 2.0            # the pace cap of a time-bounded job: a full rebuild fans out ~20 calls, and at 8 s each the queue alone is minutes   # adaptive pace: seconds between calls; doubles on a throttle, recovers on success
 
 
 class FinEdgeError(RuntimeError):
@@ -216,14 +217,18 @@ class FinEdgeClient:
         # Adaptive pacing, shared by every caller of this client: after a 429/503 calls are spaced `pace` seconds apart (and not before a Retry-After
         # has passed); every success shortens the spacing again until it is gone.
         self.pace = 0.0
+        self.pace_max = PACE_MAX        # a time-bounded job lowers this (results: PACE_MAX_BOUNDED) so a throttled provider cannot stretch one call past the run's budget
         self.throttled = 0              # how many 429/503 answers this client has seen
         self._next_at = 0.0             # loop time before which the next call must not start
         self._clock = time.monotonic
 
     def _slow_down(self, retry_after: Optional[float]) -> None:
         self.throttled += 1
-        self.pace = min(PACE_MAX, max(PACE_STEP, self.pace * 2))
-        self._next_at = max(self._next_at, self._clock() + (retry_after if retry_after is not None else self.pace))
+        self.pace = min(self.pace_max, max(PACE_STEP, self.pace * 2))
+        wait = retry_after if retry_after is not None else self.pace
+        if self.pace_max < PACE_MAX:      # a time-bounded job never holds the whole client back for longer than its cap
+            wait = min(wait, self.pace_max)
+        self._next_at = max(self._next_at, self._clock() + wait)
 
     def _recovered(self) -> None:
         if self.pace:
@@ -248,7 +253,9 @@ class FinEdgeClient:
     async def aclose(self):
         await self._client.aclose()
 
-    async def get(self, path: str, params: Optional[Dict[str, Any]] = None, timeout: float = 10, retries: int = 3, low: bool = False) -> Any:
+    async def get(self, path: str, params: Optional[Dict[str, Any]] = None, timeout: float = 10, retries: int = 3, low: bool = False, max_wait: Optional[float] = None) -> Any:
+        """`max_wait` (seconds) bounds every wait this call makes between tries: a Retry-After longer than it is not waited for, the throttled error is
+        raised at once instead (the caller skips the company and asks again on its next run); a backoff sleep is cut to it."""
         query = {**(params or {}), "token": self.settings.finedge_api_key}
         for attempt in range(retries + 1):
             await self._wait_turn()
@@ -275,9 +282,10 @@ class FinEdgeClient:
                 retry_after = parse_retry_after(response.headers.get("retry-after"))
                 if response.status_code in THROTTLE_STATUS:
                     self._slow_down(retry_after)
-                if response.status_code not in RETRY_STATUS or attempt == retries:
+                if response.status_code not in RETRY_STATUS or attempt == retries or (max_wait is not None and retry_after is not None and retry_after > max_wait):
                     raise FinEdgeError(path, response.status_code, response.text[:200], retry_after)
-            await asyncio.sleep(backoff_delay(attempt, retry_after))
+            delay = backoff_delay(attempt, retry_after)
+            await asyncio.sleep(delay if max_wait is None else min(delay, max_wait))
         raise FinEdgeError(path, None, "exhausted retries")  # pragma: no cover
 
     async def _fetch_many(self, requests: Dict[str, Tuple[str, Dict[str, Any], float]], low: bool = False, on_part=None) -> Tuple[Dict[str, Any], Dict[str, str]]:

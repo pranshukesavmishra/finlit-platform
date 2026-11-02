@@ -157,10 +157,10 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
     night_morning = (W("NIGHT", 18), W("MORNING", 14))
     jobs = [
         # ---------------------------------------------------------------- results and calendars: light, never paused by the admin switch, never starved
-        Job("results", ("refresh-results",), priority=1, max_runtime_min=20, weight_mb=60, honours_pause=False, stall_min=15,
+        Job("results", ("refresh-results",), priority=1, max_runtime_min=20, weight_mb=60, honours_pause=False, stall_min=15, resumable=True,
             interval_min=25, active_hours=(8, 23), windows=(W("MORNING", 4),), sla=Sla("active", 1.5), visitor_gate="env:RESULTS_NEED_VISITOR",
             owns=("results",), what="rebuild companies that have just declared quarterly results"),
-        Job("results-light", ("refresh-results-light",), priority=2, max_runtime_min=30, weight_mb=60, honours_pause=False, stall_min=15,
+        Job("results-light", ("refresh-results-light",), priority=2, max_runtime_min=30, weight_mb=60, honours_pause=False, stall_min=15, resumable=True,
             interval_min=55, active_hours=(8, 23), windows=(W("MORNING", 4),), sla=Sla("active", 2.0), visitor_gate="env:RESULTS_NEED_VISITOR",
             owns=("results",), what="quarter figures of smaller companies that declared (one provider call each)"),
         Job("ath", ("backfill-history", "--limit", "120", "--max-minutes", "8", "--results-first"), priority=4, max_runtime_min=12, weight_mb=120, stall_min=10,

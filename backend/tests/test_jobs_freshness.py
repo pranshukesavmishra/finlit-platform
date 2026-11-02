@@ -133,13 +133,13 @@ def test_the_canary_compares_values_with_stated_tolerances():
 
 def test_compare_company_checks_price_market_cap_close_and_quarter_figures():
     tol = canary.TOL_CLOSED
-    stored = {"price": 1000.0, "marketCap": 100000.0, "close": 1000.0, "closeIsLatest": True, "quarter": {"revenue": 500.0, "netProfit": 50.0}}
-    fresh = {"price": 1002.0, "marketCapCr": 101000.0, "quarter": {"revenue": 500.0, "netProfit": 50.1}}
+    stored = {"price": 1000.0, "marketCap": 100000.0, "close": 1000.0, "closeIsLatest": True, "closeDay": date(2026, 10, 30), "closeAt": None, "quarter": {"revenue": 500.0, "netProfit": 50.0}}
+    fresh = {"price": 1002.0, "marketCapCr": 101000.0, "asOf": "2026-10-30T15:59:00+05:30", "quarter": {"revenue": 500.0, "netProfit": 50.1}}
     assert canary.compare_company("X", stored, fresh, tol) == []
-    bad = {"price": 1100.0, "marketCapCr": 130000.0, "quarter": {"revenue": 450.0, "netProfit": 50.0}}
+    bad = {"price": 1100.0, "marketCapCr": 130000.0, "asOf": "2026-10-30T15:59:00+05:30", "quarter": {"revenue": 450.0, "netProfit": 50.0}}
     fields = {m["field"] for m in canary.compare_company("X", stored, bad, tol)}
     assert fields == {"price", "marketCap", "lastClose", "quarterRevenue"}
-    stored["closeIsLatest"] = False                                      # our newest bar is older than the latest session: that is freshness, not a wrong value
+    stored["closeDay"] = date(2026, 10, 29)                              # our newest bar is older than the latest session: not the same session, so not compared
     assert "lastClose" not in {m["field"] for m in canary.compare_company("X", stored, bad, tol)}
 
 
@@ -156,7 +156,7 @@ class FakeProvider:
     def __init__(self, prices):
         self.prices = prices
 
-    async def get(self, path, params=None, timeout=10, retries=3, low=False):
+    async def get(self, path, params=None, timeout=10, retries=3, low=False, max_wait=None):
         sym = params["symbol"]
         if sym not in self.prices:
             raise RuntimeError("down")
