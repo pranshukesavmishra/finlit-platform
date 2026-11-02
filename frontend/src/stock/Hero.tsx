@@ -20,7 +20,7 @@ import { LeadLine } from "./Leadership";
 import { type Financials, type Ratios, type Summary } from "../lib/api";
 import { csvOf, metric, offlineHtml, saveFile } from "./derive";
 import { TradingFacts } from "./TradingFacts";
-import { NameDots, SubLine } from "./HeaderScore";
+import { NameDots, Row, SubLine } from "./HeaderScore";
 import { LABEL } from "./PrismCard";
 import type { Plan, PrismInput } from "../lib/scoreBands";
 import { notRatedReason } from "../lib/prism";
@@ -76,10 +76,12 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
             <div className="badge" aria-hidden="true">{initials(p.name)}</div>
             <div style={{ minWidth: 0 }}>
               <div className="hs-name"><h1>{p.name}</h1><NameDots score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} /></div>
-              <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
-              <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
-              <ScreenBadges symbol={p.symbol} />
-              <MacroBackdrop symbol={p.symbol} />
+              <div className="hs-grid">
+                <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
+                <Row label="Listed as"><div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.bse && <span className="tag mono">BSE {p.bse}</span>}</div></Row>
+                <ScreenBadges symbol={p.symbol} />
+                <MacroBackdrop symbol={p.symbol} />
+              </div>
               <LeadLine symbol={p.symbol} jump={jump} />
             </div>
           </div>

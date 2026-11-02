@@ -96,9 +96,9 @@ function Basic() {
       </>}
       groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit IQ</th><th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
-        <SortTh s={s} k="f" label="Growth & Profitability" help="score-table" />
-        {PILLARS.map((x) => <SortTh key={x.k} s={s} k={x.col} label={x.short} cls="ss-ph" title={x.say} />)}
-        <SortTh s={s} k="t" label="Technical" /><SortTh s={s} k="overall" label="Overall" />
+        <SortTh s={s} k="f" label="Growth & Profitability" of="FinLit IQ" help="score-table" />
+        {PILLARS.map((x) => <SortTh key={x.k} s={s} k={x.col} label={x.short} of="FinLit IQ" cls="ss-ph" title={x.say} />)}
+        <SortTh s={s} k="t" label="Technical" of="FinLit IQ" /><SortTh s={s} k="overall" label="Overall" of="FinLit IQ" />
       </>}
       colSpan={14}
       cells={(r) => <>

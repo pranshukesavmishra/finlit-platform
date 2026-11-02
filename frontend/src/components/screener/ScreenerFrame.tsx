@@ -22,10 +22,10 @@ import type { Screener } from "./useScreener";
 
 export type Tile = [label: string, value: string, why?: string];
 
-export function SortTh({ s, k, label, cls = "", help, title }: { s: Screener; k: SortKey; label: string; cls?: string; help?: string; title?: string }) {
+export function SortTh({ s, k, label, cls = "", help, title, of }: { s: Screener; k: SortKey; label: string; cls?: string; help?: string; title?: string; of?: string }) {
   const { sort } = s;
   return (
-    <th scope="col" className={cls} title={title} aria-sort={sort.key === k ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+    <th scope="col" className={cls} data-of={of} title={title} aria-sort={sort.key === k ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
       <button type="button" onClick={() => s.sortBy(k)} aria-label={`Sort by ${label}`}>{label} <span aria-hidden="true">{sort.key === k ? (sort.dir > 0 ? "▲" : "▼") : "▾"}</span></button>{help && <ChartHelp id={help} />}
     </th>);
 }

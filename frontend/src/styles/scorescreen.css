@@ -92,3 +92,11 @@
 .sx-t .gh th[scope="colgroup"] { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border-strong, var(--border)); padding: 8px 12px; font: 700 11px var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .sx-t tbody tr:hover td { background: color-mix(in srgb, var(--gold-soft) 55%, transparent); }
 .sx-t tbody tr.sx-sel td { background: var(--gold-soft); }
+
+/* Every score column says whose score it is, so it still reads when the table is scrolled sideways and the group label is out of sight */
+.sx-t thead th[data-of]::before { content: attr(data-of); display: block; font: 700 9.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--gold-ink, var(--muted)); margin-bottom: 1px; }
+.sx-t .ssp.na { flex-direction: column; gap: 1px; height: auto; min-height: 24px; }
+.sx-t .ss-why { display: block; font: 500 10.5px var(--sans); color: var(--faint); white-space: nowrap; }
+.sx-t thead th[data-of] { text-align: left; vertical-align: bottom; }
+.sx-t thead th[data-of]::before { text-align: left; white-space: nowrap; }
+.sx-t thead th[data-of] > button { white-space: normal; text-align: left; line-height: 1.25; overflow: visible; text-overflow: clip; max-width: 112px; }

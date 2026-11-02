@@ -84,9 +84,9 @@ function Advanced() {
       groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={5}>FinLit Prism</th><th scope="colgroup" colSpan={2}>Technical views</th><th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
         <SortTh s={s} k="prism_final" label="Prism" cls="pzs-h" title={EXPLAIN.prism} />
-        {PRISM_PARTS.map((x) => <SortTh key={x.col} s={s} k={x.col} label={x.label} cls="ss-ph" title={"Prism " + x.label + ": " + x.say} />)}
-        <SortTh s={s} k="prism_st_score" label="Short-term technical" cls="ss-ph" title="Prism's short-term (5 to 20 sessions) price-trend reading" />
-        <SortTh s={s} k="prism_lt_score" label="Long-term technical" cls="ss-ph" title="Prism's long-term (6 to 18 months) price-trend reading" />
+        {PRISM_PARTS.map((x) => <SortTh key={x.col} s={s} k={x.col} label={x.label} of="Prism" cls="ss-ph" title={"Prism " + x.label + ": " + x.say} />)}
+        <SortTh s={s} k="prism_st_score" label="Short-term technical" of="Technical" cls="ss-ph" title="Prism's short-term (5 to 20 sessions) price-trend reading" />
+        <SortTh s={s} k="prism_lt_score" label="Long-term technical" of="Technical" cls="ss-ph" title="Prism's long-term (6 to 18 months) price-trend reading" />
       </>}
       colSpan={14}
       cells={(r) => <>

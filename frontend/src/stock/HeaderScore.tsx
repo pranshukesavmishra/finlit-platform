@@ -1,5 +1,6 @@
 // The top of a stock page, next to the company name: the fundamental dots (one per FinLit pillar, coloured by the shared band rule), a score badge that
 // depends on the plan, and the labelled industry / market cap line. Pure rules are in lib/scoreBands.ts. Research summary, not a recommendation.
+import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -94,11 +95,16 @@ export function CompanyFacts({ p }: { p: Profile }) {
   const ind = industryText(p), cap = marketCapLine(p.marketCapCr);
   if (!ind && !cap) return null;
   return (
-    <dl className="hs-facts">
-      {ind && <div><dt>Industry</dt><dd>{ind}</dd></div>}
-      {cap && <div><dt>Market cap</dt><dd>{cap.replace(/^Market cap /, "")}</dd></div>}
-    </dl>
+    <>
+      {ind && <Row label="Industry"><span className="hs-t">{ind}</span></Row>}
+      {cap && <Row label="Market cap"><span className="hs-t">{cap.replace(/^Market cap /, "")}</span></Row>}
+    </>
   );
+}
+
+/** One labelled row of the company's header block: a fixed label column, the content beside it. */
+export function Row({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
+  return <div className={"hs-r" + (className ? " " + className : "")}><span className="hs-l">{label}</span><div className="hs-c">{children}</div></div>;
 }
 
 type ScoreLike = { overall: number | null; band: { label: string }; pillars: PillarSummary[] };
@@ -115,9 +121,9 @@ export function NameDots({ score, plan, admin, prism }: { score: ScoreLike; plan
 export function SubLine({ profile, score, plan, admin, prism }: { profile: Profile; score: ScoreLike; plan: Plan; admin: boolean; prism: PrismInput }) {
   const view = badgeView(plan, admin, { overall: score.overall, word: score.band.label }, prism);
   return (
-    <div className="hs-sub">
-      <ScoreBadge view={view} symbol={profile.symbol} />
+    <>
+      <Row label="Rating"><ScoreBadge view={view} symbol={profile.symbol} /></Row>
       <CompanyFacts p={profile} />
-    </div>
+    </>
   );
 }
