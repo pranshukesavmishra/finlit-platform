@@ -899,6 +899,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_rt.add_argument("--shard", default=None, help="PART/OF, for example 0/2: only the companies whose symbol hashes to this part")
     p_rt.add_argument("--symbols", nargs="*", default=None, help="only these companies (default: every stored report that is behind the newest session)")
     p_rt.add_argument("--force", action="store_true", help="recalculate even companies already at the newest session")
+    p_sec = sub.add_parser("refresh-sectors", help="nightly, after the close: Sector Pulse. Brings NSE's daily files up to date (fetch-nse; reports honestly when NSE refuses this server), runs the finlit_technicals batch into a NEW folder and swaps it in atomically, so the last good set keeps serving on any failure (docs/SECTORS.md); recorded at /api/sectors/status and run:refresh-sectors")
+    p_sec.add_argument("--no-fetch", action="store_true", help="do not download from NSE; build from the files already in SECTOR_NSE_DIR")
+    p_sec.add_argument("--force", action="store_true", help="build even when the NSE files are the ones the live set was built from")
+    p_sec.add_argument("--symbols", nargs="*", default=None, help="only these stocks (testing; never replaces the live set unless the checks pass)")
+    p_sec.add_argument("--import", dest="import_dir", default=None, metavar="FOLDER", help="do not build: check and swap in a batch output folder built elsewhere (python -m finlit_technicals batch --out ...) and uploaded to the server")
     p_ap = sub.add_parser("audit-prism", help="why are companies NOT RATED or PROVISIONAL? Buckets by reason (classification label, low confidence, thin history), one database query, no provider calls; stores the summary in mf_meta ('prism-audit:last')")
     p_ap.add_argument("--statement", default="consolidated", choices=("consolidated", "standalone"))
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
@@ -1259,6 +1264,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             await record_run(store, args.cmd, {k: v for k, v in result.items() if k != "groups"})
             print(json.dumps(result, default=str)[:3000])
             return 0 if result.get("status") in ("ok", "skipped") else 1
+        if args.cmd == "refresh-sectors":
+            from . import sector_job
+            if args.import_dir:
+                return sector_job.exit_code(await sector_job.import_release(store, args.import_dir, force=args.force))
+            res = await sector_job.refresh(store, force=args.force, fetch=False if args.no_fetch else None, symbols=[x.upper() for x in args.symbols] if args.symbols else None)
+            return sector_job.exit_code(res)
         if args.cmd == "refresh-technicals":
             from . import prism_technical
             shard = None

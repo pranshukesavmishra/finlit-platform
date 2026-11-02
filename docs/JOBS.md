@@ -97,6 +97,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | alerts-flag / alerts-daily / screens / digest | light | 8-9 | none / 80 h / 80 h / 8 d | each window / weekdays 19:10 / MORNING weekdays / Sunday 19:10 |
 | prune | bulk | 5 | 30 h | NIGHT |
 | **technicals** (`refresh-technicals`) | bulk | 10 | session, 12 h | AFTER_CLOSE and MORNING until the session is processed; probe re-runs every 30 min |
+| **sectors** (`refresh-sectors`, `SECTORS_ENABLED=1`; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 1500 MB, max 90 min; off by default |
 | ingest-flagship / **ingest** (`ingest-all`) | bulk | 15 / 20 | 26 h | NIGHT (18 h), MORNING (14 h); 90 min per run, resumable |
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
@@ -125,6 +126,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | Daily price history | reference large caps have the expected session's bar | 1 h after 18:30 + grace / +14 h | technicals, ingest |
 | Index levels | fetched on demand; if market open and a visitor is looking: under 10 min | 30 min | (on demand) |
 | Technical views | at most 2% of reports behind the expected session | after 19:30 / >25% behind and 10 h | technicals |
+| Sector pulse (`sectors`) | the live board's date is the expected session (only when `SECTORS_ENABLED=1`) | 4 h after 18:30 / +14 h | sectors |
 | Prism ratings, FinLit scores | newest row under 30 h | 60 h | prism, score |
 | Quarterly results | no company whose declaration date passed still lacks figures: waiting yesterday = late, two or more days = stale (declaration is known by DATE only; target is 6 h, flagged at 24 h) | | results, results-light |
 | Results calendar | refreshed under 3 h ago and upcoming dates exist | 12 h | calendars |

@@ -122,3 +122,34 @@ def test_the_new_morning_window_runs_the_whole_catch_up_chain_when_the_night_fai
         st = JobState(job=n, first_seen_at=t - timedelta(days=30), last_success_at=t - timedelta(hours=24 if n == "instruments" else 16), last_attempt_at=t - timedelta(hours=16))
         v = evaluate(j, st, Ctx(now=t, env=ENV, probes={"technicals": True, "prism": True}))
         assert v.due, (n, v.reason)
+
+
+# ------------------------------------------------------------------------------------------------ the sector job (docs/SECTORS.md)
+SEC_ENV = {**ENV, "SECTORS_ENABLED": "1"}
+
+
+def _sec_due(t, last_success_hours_ago, env=SEC_ENV, technicals_ok=True):
+    j = by_name(env)["sectors"]
+    st = JobState(job="sectors", first_seen_at=t - timedelta(days=30), last_success_at=t - timedelta(hours=last_success_hours_ago), last_attempt_at=t - timedelta(hours=last_success_hours_ago))
+    return evaluate(j, st, Ctx(now=t, env=env, probes={}))
+
+
+def test_the_sector_job_is_a_bulk_job_after_technicals_off_until_switched_on():
+    j = JOBS["sectors"]
+    assert j.cls == "bulk" and j.command == "refresh-sectors" and j.prerequisites == ("technicals",) and j.owns == ("sectors",)
+    assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and j.weight_mb >= 1000 and j.honours_pause
+    assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("MORNING", None)]
+    off = by_name({})["sectors"]
+    assert disabled_reason(off, {}) and "SECTORS_ENABLED=1" in disabled_reason(off, {}) and "docs/SECTORS.md" in disabled_reason(off, {})
+    assert disabled_reason(j, SEC_ENV) is None
+    assert evaluate(off, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env={}, probes={})).state == "disabled"
+
+
+def test_the_sector_job_runs_on_weekday_evenings_from_seven_and_catches_up_in_the_morning_but_not_at_weekends():
+    assert not _sec_due(ist(*FRI, 18, 45), 24).due                           # the window is open from 18:30 but the job starts from 19:00
+    assert _sec_due(ist(*FRI, 19, 5), 24).due and "latest session" in _sec_due(ist(*FRI, 19, 5), 24).reason
+    assert not _sec_due(ist(*FRI, 19, 40), 0.3).due                          # done tonight: nothing more until tomorrow's session
+    assert _sec_due(ist(*SAT, 6, 0), 12).due                                 # Friday's run failed: the morning window catches up
+    assert not _sec_due(ist(*SAT, 19, 30), 23.8).due                         # Friday's run (19:40) is the latest session's: no evening run on a Saturday
+    assert not _sec_due(ist(*SUN, 19, 30), 47.8).due and not _sec_due(ist(2026, 11, 2, 6, 0), 58).due        # nor on Sunday, nor on Monday morning before Monday's session
+    assert _sec_due(ist(2026, 11, 2, 19, 5), 72).due                         # Monday evening: due again

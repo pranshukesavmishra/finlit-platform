@@ -1,0 +1,162 @@
+"""Nightly run for the website: every indicator for every stock, one JSON file per stock plus a summary.
+
+    out/<SYMBOL>.json            {"score": score(...) with its peer row, "peers": peer_label(...), "sector": the stock
+                                 inside its industry (SectorEngine.stock)}
+    out/_summary.json            one line per stock (scores, trend alignment, peer label, sector state) for screeners
+    out/sectors/_board.json      Sector Pulse: every NSE industry group with a reading (SectorEngine.board)
+    out/sectors/<slug>.json      one group page (SectorEngine.industry), peer labels joined in
+With an NseHistory source (NSE's own files) the default list is every classified stock that traded on the last
+day (about 2,400), and market caps come from AMFI's latest list. Prices are loaded once per symbol and the peers'
+weekly series are reused across stocks: about half a second per stock on one core.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import time
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Optional
+
+import pandas as pd
+
+from .api import canonical, jsonable, peer_db, peer_label, score
+from .peers import norm_symbol
+from .sectors import SectorEngine, slug
+from .sources import Cached
+
+log = logging.getLogger(__name__)
+
+
+def universe(groups_file: Optional[str] = None) -> List[str]:
+    """Every stock in the peer lists, in list order, once."""
+    seen: Dict[str, str] = {}
+    for _, _, lst in peer_db(groups_file).entries:
+        for s in lst:
+            seen.setdefault(norm_symbol(s), s.upper())
+    return list(seen.values())
+
+
+def nse_symbols(eng: SectorEngine) -> List[str]:
+    """Every classified stock that traded in the EQ series on the last day (the stock pages a site needs)."""
+    eng._build()
+    p = eng.panel
+    return [k for j, k in enumerate(p.keys) if p.series[-1, j] == 0 and k in eng.cls]
+
+
+def amfi_caps(eng: SectorEngine) -> Dict[str, Dict[str, Any]]:
+    """{SYMBOL: {"mcap_cr", "cap"}} from AMFI's latest list (the engine's market-cap data)."""
+    eng._build()
+    caps = eng.universe.inputs.get("caps")
+    out: Dict[str, Dict[str, Any]] = {}
+    if caps is None:
+        return out
+    cls = {"Large Cap": "large", "Mid Cap": "mid", "Small Cap": "small"}
+    for j, k in enumerate(eng.panel.keys):
+        d: Dict[str, Any] = {}
+        v = caps[-1, j]
+        if v == v:
+            d["mcap_cr"] = float(v)
+        c = cls.get(eng.category.get(k, ""))
+        if c:
+            d["cap"] = c
+        if d:
+            out[norm_symbol(k)] = d
+    return out
+
+
+def read_caps(path: str | Path) -> Dict[str, Dict[str, Any]]:
+    """CSV with symbol and mcap_cr (Rs crore) and/or cap (large / mid / small) -> {SYMBOL: {...}}."""
+    df = pd.read_csv(path)
+    cols = {c.lower().strip(): c for c in df.columns}
+    out: Dict[str, Dict[str, Any]] = {}
+    for _, r in df.iterrows():
+        d: Dict[str, Any] = {}
+        if "mcap_cr" in cols:
+            v = pd.to_numeric(r[cols["mcap_cr"]], errors="coerce")
+            if pd.notna(v) and v > 0:
+                d["mcap_cr"] = float(v)
+        if "cap" in cols and str(r[cols["cap"]]).strip().lower() in ("large", "mid", "small"):
+            d["cap"] = str(r[cols["cap"]]).strip().lower()
+        out[norm_symbol(r[cols["symbol"]])] = d
+    return out
+
+
+def run(symbols: Iterable[str], source, out_dir: str | Path, *, caps: Optional[Dict[str, Dict[str, Any]]] = None,
+        bench: str = "auto", table: str = "all", history_weeks: int = 52, groups_file: Optional[str] = None,
+        sectors: bool = True, history_sessions: int = 260,
+        progress: Optional[Callable[[int, int, str], None]] = None,
+        engine: Optional[SectorEngine] = None) -> List[Dict[str, Any]]:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    src = Cached(source)
+    # FinLit patch: `engine` lets the caller pass the SectorEngine it already built (to choose the stock list), so the market panel is held once (docs/SECTORS.md)
+    eng = (engine if engine is not None else SectorEngine(src)) if sectors else None
+    if not caps and eng is not None and getattr(eng, "nse", False):
+        caps = amfi_caps(eng)
+    caps = caps or {}
+    peer_caps = {k: v["mcap_cr"] for k, v in caps.items() if "mcap_cr" in v}
+    wcache: dict = {}
+    syms = list(symbols)
+    summary: List[Dict[str, Any]] = []
+    t0 = time.time()
+    db = peer_db(groups_file)
+    labels: Dict[str, str] = {}
+    homes: Dict[str, tuple] = {}
+    for n, raw in enumerate(syms, 1):
+        sym = canonical(raw, db)
+        c = caps.get(norm_symbol(sym), {})
+        kw = dict(market_cap_cr=c.get("mcap_cr"), cap=c.get("cap"), groups_file=groups_file, cache=wcache)
+        line: Dict[str, Any] = {"symbol": sym}
+        try:
+            sc = score(sym, src, bench=bench, peer_caps=peer_caps, **kw)
+            pl = peer_label(sym, src, peer_caps=peer_caps, table=table, history_weeks=history_weeks, **kw)
+            labels[sym] = pl["label"]
+            sec = None
+            if eng is not None:
+                try:
+                    sec = jsonable(eng.stock(sym))
+                    homes[sym] = (sec["group"]["name"], sec["group"]["kind"])
+                except LookupError:
+                    sec = None
+            (out / f"{sym}.json").write_text(json.dumps({"score": sc, "peers": pl, "sector": sec}, ensure_ascii=False),
+                                             encoding="utf-8")
+            line.update({"date": sc["date"], "close": sc["close"], "st": sc["short_term"]["score"],
+                         "st_rating": sc["short_term"]["rating"], "st_band": sc["short_term"]["band"],
+                         "lt": sc["long_term"]["score"], "lt_rating": sc["long_term"]["rating"],
+                         "lt_band": sc["long_term"]["band"], "trend_alignment": sc["trend_alignment"]["label"],
+                         "trend_alignment_code": sc["trend_alignment"]["code"],
+                         "stage": sc["long_term"]["stage"], "benchmark": sc["benchmark"],
+                         "peer_label": pl["label"], "peer_rank": pl["rank"], "peer_ranked": pl["ranked"],
+                         "peer_group": pl["group"]["name"], "vs_sector_12m": pl["relative_return_pts"]["vs_sector_12m"],
+                         "direction": pl["direction"]})
+            if sec is not None:
+                g = sec["group"]
+                line.update({"sector_group": g["name"], "sector_group_kind": g["kind"], "sector_state": g["state"],
+                             "sector_state_code": g["state_code"], "quarter_6m": sec.get("quarter"),
+                             "leader_flag": (sec.get("leader_flag") or {}).get("tier"),
+                             "bottomed_before": sec.get("bottom_code") in (1, 2)})
+        except Exception as e:  # one bad stock must not stop the run
+            line["error"] = f"{type(e).__name__}: {e}"[:300]
+            log.warning("%s: %s", sym, line["error"])
+        summary.append(line)
+        if progress:
+            progress(n, len(syms), sym)
+    if eng is not None:
+        sdir = out / "sectors"
+        sdir.mkdir(exist_ok=True)
+        board = eng.board()
+        (sdir / "_board.json").write_text(json.dumps(jsonable(board), ensure_ascii=False), encoding="utf-8")
+        pages = list(dict.fromkeys([r["name"] for r in board["rows"]] + sorted({h[0] for h in homes.values()})))
+        for name in pages:
+            try:
+                g = eng.group(name)
+                view = eng.industry(name, history_sessions=history_sessions,
+                                    peer_labels={m: labels[m] for m in g.members if m in labels})
+                (sdir / f"{slug(name)}.json").write_text(json.dumps(jsonable(view), ensure_ascii=False), encoding="utf-8")
+            except LookupError as e:
+                log.warning("%s: %s", name, e)
+    meta = {"generated": pd.Timestamp.now(tz="Asia/Kolkata").strftime("%Y-%m-%d %H:%M"), "stocks": len(summary),
+            "errors": sum(1 for x in summary if "error" in x), "seconds": round(time.time() - t0, 1)}
+    (out / "_summary.json").write_text(json.dumps(jsonable({"meta": meta, "stocks": summary}), ensure_ascii=False),
+                                       encoding="utf-8")
+    return summary

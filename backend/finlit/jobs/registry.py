@@ -143,6 +143,7 @@ class JobsConfig:
             quotes_every_min=max(1.0, num("QUOTES_EVERY_MINUTES", 1.0)), web_port=num("PORT", 8000, int))
 
 
+SECTORS_WEIGHT_MB = 1500        # measured on a synthetic folder of the real size (docs/SECTORS.md, "Memory"): above the app container's usual free memory, so on a 2 GB box the job waits visibly
 FUNDS_GATE = Gate("FUND_LOADS_ENABLED", "ETF and fund loads are switched off: set FUND_LOADS_ENABLED=1 in /opt/finlit/.env.aws and restart", wants="1", default="0")
 
 
@@ -192,6 +193,10 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
         Job("technicals", ("refresh-technicals",), cls="bulk", priority=10, max_runtime_min=75, weight_mb=350, resumable=True, probe="technicals",
             windows=(W("AFTER_CLOSE", 0), W("MORNING", 0)), sla=Sla("session", 12), owns=("technicals", "daily_prices"),
             what="technical view of every stored Prism report from fresh Dhan daily candles (resumable, yields to members)"),
+        Job("sectors", ("refresh-sectors",), cls="bulk", priority=12, max_runtime_min=90, weight_mb=SECTORS_WEIGHT_MB, stall_min=45, prerequisites=("technicals",),
+            windows=(W("AFTER_CLOSE", 0, (19, 0)), W("MORNING", 0)), sla=Sla("session", 14), owns=("sectors",), catchup=False,
+            gate=Gate("SECTORS_ENABLED", "Sector pages are off: upload the NSE data folder and set SECTORS_ENABLED=1 in /opt/finlit/.env.aws (docs/SECTORS.md)", wants="1", default="0"),
+            what="Sector Pulse: NSE's daily files, then every industry's breadth state, leader flags and ranked stocks, swapped in whole (docs/SECTORS.md)"),
         Job("ingest-flagship", ("ingest", "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "ITC", "LT", "BHARTIARTL", "HINDUNILVR"), cls="bulk",
             priority=15, max_runtime_min=30, weight_mb=300, windows=(W("NIGHT", 144),), sla=Sla("hours", 400), boot=True, resumable=True,
             what="the ten flagship companies first (first start: visitors see them before the long load)"),

@@ -55,3 +55,19 @@ ENV_FILE=/opt/finlit/.env.aws docker compose -p finlit -f deploy/aws/docker-comp
 4. After the restart, open `https://<site>/api/jobs/status`: `supervisor.alive` true within a minute; `healthy` turns true once the catch-up has run (technicals first, then the nightly chain, one bulk job at a time). Check `disabledByConfig`.
 5. In the admin Console > Data health the green/red "Background jobs" box is the same information. Alerts arrive by email to the admin account(s).
 6. `docker compose exec app python -m finlit.worker supervise --dry-run` prints what is due and why without starting anything.
+
+
+## Sector pages: the NSE data folder and the sector output (see `docs/SECTORS.md`)
+
+The app container mounts two host folders (read-write; one container runs both the website and the job):
+
+| Host folder | In the container | What it holds |
+|---|---|---|
+| `/opt/finlit/data/nse` | `/data/nse` (`SECTOR_NSE_DIR`) | NSE's daily files: `bhav_<year>.csv.gz`, `idx_<year>.csv.gz`, `ref/`, `amfi/` (about 240 MB, plus a 285 MB cache the job makes) |
+| `/opt/finlit/data/sectors` | `/data/sectors` (`SECTOR_OUT_DIR`) | what the nightly job writes and the website reads: `releases/`, `current`, `last_run.json` |
+
+One-time setup on the server (before the first deploy that has these mounts, otherwise Docker creates the folders owned by root and the app cannot write):
+```bash
+sudo install -d -o 1000 -g 1000 /opt/finlit/data/nse /opt/finlit/data/sectors
+```
+Then upload the NSE folder and switch the job on (`SECTORS_ENABLED=1` in `/opt/finlit/.env.aws`): the exact steps are in `docs/SECTORS.md`, section "What the founder does, one step at a time". The sector job is off by default; the status shows it as `disabledByConfig`, never as overdue. Back up `/opt/finlit/data/nse` like any other data: it is the founder's copy, not rebuilt by anything.
