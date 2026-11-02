@@ -334,3 +334,5 @@
 .sx-tablebox { width: 100%; contain: inline-size; }
 .sx-scroll, .sx-tablebox { position: relative; }
 .sx table.sx-t { display: table; } .sx .sx-t thead { display: table-header-group; } .sx .sx-t tbody { display: table-row-group; } .sx .sx-t tr { display: table-row; } .sx .sx-t th, .sx .sx-t td { display: table-cell; } .sx .sx-t caption { display: table-caption; }
+.sx-ustats.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 640px) { .sx-ustats.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

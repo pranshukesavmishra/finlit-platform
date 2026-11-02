@@ -44,7 +44,7 @@ services:
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
-    mem_limit: ${APP_MEM_LIMIT:-1200m}      # raise (and the server with it) only if the sector job is run on the server: docs/SECTORS.md, "Memory and time"
+    mem_limit: 1200m                          # unchanged. Only if the sector job is to run on the server: a 4 GB server and a higher limit here (docs/SECTORS.md, "Memory and time")
     # The API and website keep the default OOM score; every job process the supervisor starts raises its own to +500 (finlit/jobs/runner.py), so when
     # memory runs out the kernel kills a job first (it is retried within 30 minutes) and the site keeps answering. db, redis and caddy are protected below.
     cap_drop: [ALL]

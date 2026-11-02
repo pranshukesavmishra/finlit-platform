@@ -147,7 +147,7 @@ export function LearnSectorSignalsPage() {
       <h2>Industries are NSE's</h2>
       <section className="sx-card" style={{ marginTop: 10 }}>
         <p className="sx-sub">NSE classifies every listed company in four levels: macro-economic sector, sector, industry and basic industry. FinLit uses the industry level, the one shown on each NSE quote page. An industry with fewer than 10 counted stocks is read together with the other small industries of its NSE sector, as a <b>sector group</b>. A group needs at least 8 counted stocks for a reading.</p>
-        {b ? <div className="sx-ustats" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+        {b ? <div className="sx-ustats four">
           <div className="sx-num"><small>Groups</small><b>{count(b.groups + (b.too_few_stocks?.length ?? 0))}</b></div><div className="sx-num"><small>With a reading today</small><b>{count(b.groups)}</b></div>
           <div className="sx-num"><small>Of those, single industries</small><b>{count(b.industries)}</b></div><div className="sx-num"><small>Stocks counted in them</small><b>{count(b.stocks_counted)}</b></div></div>
           : <p className="sx-note" role="status">{q.isLoading ? "Loading the live counts…" : `The live group counts are not shown because ${failureText(q.error).replace(/^Sector data is not loaded yet: /, "the sector data is not loaded yet: ")}`}</p>}
