@@ -13,7 +13,6 @@ import { ownershipAt, ownershipYears } from "../lib/ownershipYears";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
-import { PrismMethod } from "./PrismCompare";
 import { PrismHistoryCard } from "./PrismHistory";
 import { SegmentHistory } from "./SegmentMix";
 import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
@@ -225,29 +224,13 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
 
 /* ---------------- How the score works ---------------- */
 export function MethodSection({ s }: { s: Summary }) {
-  const dq = s.dataQuality, ck = dq.checks;
-  const passPct = ck.total ? (ck.passed / ck.total) * 100 : 100;
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons" sub="What is strong and what needs care, overall." color="--info" />
+      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons, and how the Prism score has moved" sub="What is strong and what needs care, overall, then how the Prism score has changed over time." color="--info" />
       <div className="pc-g pc-all">
         <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
         <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
       </div>
-      <div className="mth">
-        <div className="card acc mth-dq" style={{ "--ac": ck.status === "ok" ? "var(--gain)" : "var(--warn)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name={ck.status === "ok" ? "check" : "alert"} /></span>Data checks before publishing</h3><span className="s">{ck.passed} of {ck.total} passed</span></div>
-          <div className="dq-bar"><b style={{ width: `${passPct}%` }} /></div>
-          <ul className="dq2">
-            {ck.issues.map((i) => <li className="warn" key={i.key}><span className="w"><Icon name="alert" /></span><span>{i.message}</span></li>)}
-            {dq.notes.map((n) => <li key={n}><span className="w"><Icon name="info" /></span><span>{n}</span></li>)}
-            {dq.provisionalLastBar && <li><span className="w"><Icon name="info" /></span><span>The newest price point is the live quote; the daily file for that day is not published yet.</span></li>}
-            <li><span className="w"><Icon name="check" /></span><span>Statements: {dq.statement}. Prices to {dq.priceAsOf ? dateIN(dq.priceAsOf) : "n/a"}. Latest results {dq.fundamentalsAsOf}. {dq.removedBadTicks.length ? `${dq.removedBadTicks.length} bad price point${dq.removedBadTicks.length > 1 ? "s" : ""} removed.` : ""}</span></li>
-          </ul>
-          <p className="faint" style={{ fontSize: 12, margin: "12px 0 0" }}>Reports that fail a critical check are held back.</p>
-        </div>
-      </div>
-      <PrismMethod symbol={s.meta.symbol} statement={s.meta.statement} />
       <PrismHistoryCard symbol={s.meta.symbol} statement={s.meta.statement} />
     </section>
   );

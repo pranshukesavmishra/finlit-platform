@@ -241,7 +241,7 @@ export function ChartLab({ s, symbol, f, r, o, e, p }: { s: Summary; symbol: str
   const [tab, setTab] = useState<Tab>("price");
   return (
     <section className="block" style={{ "--sc": "var(--c1)" } as CSSProperties}>
-      <SectionHead id="charts" no="Chart lab" icon="bars" tier="basic" title="See it in charts" sub="Price, profit, balance sheet, cash, ownership and valuation, each drawn to be read at a glance." color="--c1" />
+      <SectionHead id="charts" no="Chart lab" icon="bars" tier="basic" title="Price history, statements and ownership in charts" sub="Price, profit, balance sheet, cash, ownership and valuation, each drawn to be read at a glance." color="--c1" />
       <div className="seg cl-tabs" role="group" aria-label="Chart topics">{TABS.map(([k, label]) => <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{label}</button>)}</div>
       {tab === "price" && <PriceTab symbol={symbol} />}
       {tab === "pl" && <PlTab f={f} />}

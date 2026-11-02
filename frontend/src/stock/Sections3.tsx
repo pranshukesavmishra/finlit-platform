@@ -144,12 +144,12 @@ function ValuationHistory({ r }: { r: Ratios }) {
 export function RatiosSection({ r, lender = false, sector, industry, labels }: { r?: Ratios; lender?: boolean; sector?: string | null; industry?: string | null; labels?: (string | null | undefined)[] }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
-  if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
+  if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
   const hist = r.history, meters = METERS.filter((m) => r.latest[m.key]);
   const cur = meters.find((m) => m.key === sel) || meters[0];
   return (
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
-      <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
+      <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
       <Plain>Ratios turn big numbers into fair comparisons. The meters below show where each one sits against common rules of thumb. Zones are a starting point: always compare with companies in the same industry.</Plain>
       <div className="mtr-grid">{meters.map((m) => <Meter key={m.key} m={m} r={r} on={cur?.key === m.key} onSel={() => setSel(m.key)} />)}</div>
       {cur && <p className="mtr-say" aria-live="polite"><b>{r.latest[cur.key].label}</b> {cur.say(r.latest[cur.key].value)}</p>}
@@ -158,6 +158,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
       <DuPont symbol={r.meta.symbol} lender={lender} />
+      <SectionHead id="earnings" no="Earnings & cash" icon="shield" tier="gold" title="Earnings & cash quality: Is the profit real, and is it turning into cash?" sub="One section: profit against cash, collections and stock, one-off items, then the rule-based checks. Each check appears once." color="--p-profit" />
       <ProfitReality symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} />
       <RevenueCash symbol={r.meta.symbol} lender={lender} labels={labels} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
@@ -217,7 +218,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
   const N = peers.length, CX = 190, CY = 190, RR = 128;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title="Companies in the same space" sub="Select a company to open its report." color="--gold-deep" />
+      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
@@ -280,7 +281,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
-      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits | Where the revenue comes from`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
       <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>

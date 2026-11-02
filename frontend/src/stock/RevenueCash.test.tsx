@@ -34,7 +34,7 @@ describe("Revenue-to-Cash Intelligence card", () => {
   it("has the title, the line under it, the Gold tag and the section id the nav jumps to", () => {
     st.fin = FIN;
     const { container } = show();
-    expect(screen.getByRole("heading", { name: /Revenue-to-Cash Intelligence/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Revenue turning into cash/ })).toBeTruthy();
     expect(screen.getByText("Understand how efficiently sales convert into cash.")).toBeTruthy();
     expect(container.querySelector("#revenue-cash")).toBeTruthy();
     expect(container.querySelector(".tier.gold")?.textContent).toBe("Gold");
@@ -131,7 +131,7 @@ describe("plan and lenders", () => {
   it("non-Gold: header and lock only, nothing worked out is in the page and the data is not even requested", () => {
     st.gold = false; st.fin = FIN;
     const { container } = show();
-    expect(screen.getByRole("heading", { name: /Revenue-to-Cash Intelligence/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Revenue turning into cash/ })).toBeTruthy();
     expect(container.querySelector(".gate.is-locked")).toBeTruthy();
     expect(screen.getByText("Unlock with Gold")).toBeTruthy();
     expect(container.textContent).not.toMatch(/57\.9|6\.4|89\.0|102\.3|Customer collection risk|crore/);

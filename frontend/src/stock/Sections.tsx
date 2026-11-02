@@ -162,7 +162,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
   const alt = useSection<Financials>(sym, "financials", !!f && basis === "consolidated" && years > 0 && years < 5 && !wasChosen(sym), "standalone");
   const altYears = alt.data?.yearly.pl.periods.length ?? 0;
   useEffect(() => { if (basis === "consolidated" && years > 0 && altYears >= years + 2) setBasis(sym, "standalone", true); }, [basis, years, altYears, sym]);
-  if (!f) return <section className="block"><SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
+  if (!f) return <section className="block"><SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Profit and loss, balance sheet and cash flow by year" color="--p-growth" /><div className="skeleton" style={{ height: 380 }} /></section>;
   const tiles = finTiles(f), tbl: Table = kind === "q" ? f.quarterly.pl : f.yearly[kind];
   const ROWS: Record<string, [string, string, boolean?][]> = {
     pl: [["revenue", "Revenue"], ["other_income", "Other income"], ["expenses", "Expenses"], ["operating_profit", "Operating profit", true], ["finance_costs", "Interest"], ["depreciation", "Depreciation"], ["profit_before_tax", "Profit before tax", true], ["tax", "Tax"], ["net_profit", "Net profit", true], ["eps", "EPS (₹)"]],
@@ -173,7 +173,7 @@ export function FinancialsSection({ f }: { f?: Financials }) {
   const last = tbl.periods.length - 1;
   return (
     <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
-      <SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Results over the years" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
+      <SectionHead id="financials" no="05 · Financials" icon="bars" tier="basic" title="Profit and loss, balance sheet and cash flow by year" sub={`${f.meta.statement === "consolidated" ? "Consolidated" : "Standalone"}, ₹ crore. L Cr = lakh crore. FY = April–March.`} color="--p-growth" />
       {(() => { const [rv, np, , mg] = tiles; return rv.delta != null && np.delta != null ? <Plain tone={np.delta >= 0 ? "good" : "warn"}>Sales {rv.delta >= 0 ? "grew" : "fell"} {nf(Math.abs(rv.delta), 1)}% last year and profit {np.delta >= 0 ? "rose" : "fell"} {nf(Math.abs(np.delta), 1)}%.{typeof mg.value === "number" && <> Out of every ₹100 of sales, about ₹{nf(mg.value, 1)} is kept as profit.</>}</Plain> : null; })()}
       <div className="grid g4" style={{ marginBottom: 16 }}>
         {tiles.map((t) => (
