@@ -52,3 +52,7 @@
 .mp-tablewrap { overflow-x: auto !important; contain: inline-size; }
 @media (max-width: 700px) { .mp-tablewrap { contain: none; overflow: visible !important; } }
 .mp-tablewrap { position: relative; }
+/* CAS PDF password: one quiet row under the file button; the password stays in the browser */
+.mp-pw { align-items: flex-end; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.mp-pw label { display: grid; gap: 6px; font-size: 13px; flex: 1 1 280px; max-width: 520px; }
+.mp-pw input { min-height: 38px; }
