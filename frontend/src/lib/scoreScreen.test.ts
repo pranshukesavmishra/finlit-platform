@@ -126,7 +126,7 @@ describe("presets", () => {
     expect(r("growth")).toEqual(["G"]);                  // Growth 78+ and a Balance sheet of 45 or more
     expect(r("balance")).toEqual(["BS"]);                // Balance sheet 78+ and Quality 45 or more
   });
-  it("Top FinLit score sets the overall box to 78 or more, and every view clears what it does not name", () => {
+  it("Top FinLit IQ sets the overall box to 78 or more, and every view clears what it does not name", () => {
     const f = emptyFilters(); f.bands.q = ["low"]; f.ranges.o = { min: 10, max: 40 }; f.caps = ["Large"];
     const top = withPreset(f, PRESETS.find((p) => p.id === "top")!);
     expect(top.ranges.o).toEqual({ min: 78, max: null }); expect(top.bands.q).toEqual([]); expect(top.caps).toEqual(["Large"]);
@@ -154,7 +154,7 @@ describe("chips", () => {
   it("one chip per active filter, each removable", () => {
     const f = emptyFilters(); f.caps = ["Mid", "Large"]; f.sectors = ["IT", "Auto"]; f.bands.f = ["high", "mid"]; f.ranges.o = { min: 50, max: null };
     const ch = chipsFor(f);
-    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Business: 45–77, 78+", "Overall: 50 or more"]);
+    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Growth & Profitability: 45–77, 78+", "Overall: 50 or more"]);
     expect(chipsFor(removeChip(f, "sector:IT")).map((c) => c.id)).toEqual(["caps", "sector:Auto", "band:f", "range:o"]);
     expect(chipsFor(removeChip(removeChip(removeChip(f, "caps"), "band:f"), "range:o")).map((c) => c.id)).toEqual(["sector:IT", "sector:Auto"]);
     expect(chipsFor(emptyFilters())).toEqual([]);
@@ -319,7 +319,7 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
     pr("C", 60, "AVERAGE", { prism_fundamental: 66, prism_valuation: 60, prism_risk: 90, prism_st_score: 5, prism_lt_score: 45 }),
     pr("D", null, null, {})];
   const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
-  it("has the four views, none of them using the FinLit score", () => {
+  it("has the four views, none of them using the FinLit IQ", () => {
     expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong Growth & Profitability at a fair valuation", "Uptrend on both technical views", "Growth & Profitability strong but valuation weak"]);
     PRISM_PRESETS.forEach((p) => expect(Object.keys(p.ranges).every((k) => ["z", "zf", "zv", "zq", "zr"].includes(k))).toBe(true));
   });
@@ -371,7 +371,7 @@ describe("technical view bands", () => {
 
 describe("one address, two pages", () => {
   const qs = "cap=Large&f=high&t=mid&omin=70&zmin=60&zrmin=50&pl=strong&rated=1&st=pos&lt=neg&sort=prism_final";
-  it("the basic page reads only the FinLit score and ignores Prism parts and a Prism sort", () => {
+  it("the basic page reads only the FinLit IQ and ignores Prism parts and a Prism sort", () => {
     const b = parseState(new URLSearchParams(qs), "basic");
     expect(b.filters.bands.f).toEqual(["high"]); expect(b.filters.ranges.o.min).toBe(70); expect(b.filters.caps).toEqual(["Large"]);
     expect(b.filters.ranges.z).toEqual({ min: null, max: null }); expect(b.filters.labels).toEqual([]); expect(b.filters.rated).toBe(false); expect(b.filters.tech).toEqual({ st: [], lt: [] });
@@ -423,9 +423,9 @@ describe("Prism CSV", () => {
     const all = lines.join("\n");
     expect(all).toMatch(/Prism ratings as of: 2026-10-27/); expect(all).not.toMatch(/Fundamental,Quality|Overall|\bBuy\b|\bHold\b/);
   });
-  it("basic: only the FinLit score columns and no Prism column at all", () => {
+  it("basic: only the FinLit IQ columns and no Prism column at all", () => {
     const csv = toCsv(rows, { ...o, mode: "basic" });
-    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Business,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
+    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Growth & Profitability,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
     expect(csv).not.toMatch(/Prism/i);
   });
 });

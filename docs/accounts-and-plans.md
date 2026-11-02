@@ -18,7 +18,7 @@ The middle plan was called Silver until migration `009_plan_silver.sql`; existin
 Promised but not built yet, shown as "Soon" / "Later" on the plans page: IPO data and portfolio import (Silver), advanced model score (Gold), equity research report (Gold, later).
 | What | Basic / visitor | Silver | Gold |
 |---|---|---|---|
-| FinLit score, pillar scores, thesis, strengths, watch-outs | removed | yes | yes |
+| FinLit IQ, pillar scores, thesis, strengths, watch-outs | removed | yes | yes |
 | Ratio history | 5 key ratios | 5 key ratios | all, plus valuation history |
 | Detailed ratio groups, segments, EMA200/RSI, price statistics | removed | statistics yes | all |
 | Watchlist | none | 3 lists, 30 stocks | 50 lists, 1,000 stocks |
@@ -74,13 +74,13 @@ Mail in development goes to the `outbox` table. `scripts/seed_dev_universe.py` a
 - Dashboard widgets: results dates, news for my stocks, open and upcoming IPOs.
 
 ## Portfolio, saved-screen alerts and the weekly email
-- **My portfolio** (`/holdings`, Silver 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit score, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
+- **My portfolio** (`/holdings`, Silver 30 holdings / Gold 500): add, edit, import (paste or CSV) and export holdings; value, profit and loss, today's move, a value-weighted FinLit IQ, allocation by stock, sector and band, a health read (single-stock, sector and Watch-band concentration) and a per-stock table with signals. Saved to the account (`PUT /api/me/portfolio`, validated and plan-limited on the server).
 - **Saved-screen alerts:** `python -m finlit.worker check-screens` (daily on weekdays). Emails only companies that *newly* match a saved screen; the first check just remembers what matches. The filter rules mirror the website screener; model filters are never evaluated for Basic members.
 - **Weekly "week ahead" email:** `python -m finlit.worker send-digest` (Sunday evening), opt-in per member, at most one per ISO week.
 
 ## Alerts and notifications
 
-- **What a member can watch** (32 metrics, one list in `backend/finlit/alertengine.py`, mirrored in `frontend/src/lib/alertCatalog.ts`; a test keeps them identical): price, day change, move in a day, volume spike (× 20-day average), 52-week high/low distance, 1-month and 1-year return, RSI (14), price vs 50- and 200-day average, FinLit score and its five pillars, P/E, P/B, dividend yield, market cap, ROE, ROCE, operating margin, debt to equity, latest-quarter net profit and revenue, promoter and FII holding change, results due within N days, news/filing keyword, any new filing.
+- **What a member can watch** (32 metrics, one list in `backend/finlit/alertengine.py`, mirrored in `frontend/src/lib/alertCatalog.ts`; a test keeps them identical): price, day change, move in a day, volume spike (× 20-day average), 52-week high/low distance, 1-month and 1-year return, RSI (14), price vs 50- and 200-day average, FinLit IQ and its five pillars, P/E, P/B, dividend yield, market cap, ROE, ROCE, operating margin, debt to equity, latest-quarter net profit and revenue, promoter and FII holding change, results due within N days, news/filing keyword, any new filing.
 - **When it fires:** a threshold alert fires when its condition turns true (a crossing), not on every check while it stays true. "Tell me once" finishes the alert; "every time it crosses" keeps it live with a one-hour cooldown. Event alerts only count items published after the alert was created. Creating an alert whose condition is already true records that, and the member is told so.
 - **Where it goes:** always an in-app notification (bell, toast, Alerts page). Optionally email (respects Account → Appearance "alert emails") and a browser notification (shown while a FinLit tab is open; closed-tab push and the mobile app are future channels, shown as "Soon").
 - **Schedule:** `check-alerts --kind live` every 10 minutes in market hours (price, day change, move in a day); `check-alerts --kind daily` each weekday at 19:30 IST (everything else). Both are in `backend/finlit/jobs/registry.py`. The watchlist target-price check still runs with `live`/`all` and now also writes a notification.

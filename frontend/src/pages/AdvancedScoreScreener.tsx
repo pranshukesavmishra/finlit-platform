@@ -104,7 +104,7 @@ function Advanced() {
           <dt>Not rated yet</dt><dd>Prism ratings are calculated about 30 seconds each from the provider's data, so they are added in steps: first for companies with a full report, then a few hundred more companies every night, largest first. A company without one shows "Not rated yet" and a Rate now link to its Prism page, which starts the calculation when opened. "Not rated" means Prism looked and the filed data was not enough.</dd>
           <dt>Size</dt><dd>Follows SEBI's rule, ranked by market value among the companies loaded here: the 100 largest are Large cap, the next 150 Mid cap, the rest Small cap.</dd>
           <dt>Missing data</dt><dd>A dash means the figure is not available (not rated yet, or not enough data). It never counts as a pass and is never treated as zero.</dd>
-          <dt>FinLit score</dt><dd>The basic model has its own page, the <Link to="/score-screener">Basic score screener</Link> (Silver).</dd>
+          <dt>FinLit IQ</dt><dd>The basic model has its own page, the <Link to="/score-screener">Basic score screener</Link> (Silver).</dd>
         </dl>
       </HowDialog>} />
   );

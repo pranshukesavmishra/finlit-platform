@@ -45,7 +45,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
         <Reveal className="sec-h"><div className="eyebrow">Start exploring</div><h2>{rows.length ? "Where to look today" : "Popular reports"}</h2></Reveal>
         {rows.length > 0 && (
           <div className="seg" role="group" aria-label="List" style={{ marginBottom: 16, flexWrap: "wrap" }}>
-            {TABS.map(([k, l, tier]) => <button key={k} aria-pressed={tab === k} onClick={() => (k === "score" && !has("silver") ? upgrade("silver", "Ranking by FinLit score is part of Silver.") : setTab(k))}>{l}{tier && !has("silver") ? <Icon name="lock" /> : null}</button>)}
+            {TABS.map(([k, l, tier]) => <button key={k} aria-pressed={tab === k} onClick={() => (k === "score" && !has("silver") ? upgrade("silver", "Ranking by FinLit IQ is part of Silver.") : setTab(k))}>{l}{tier && !has("silver") ? <Icon name="lock" /> : null}</button>)}
           </div>)}
         {tab === "score" && !scored && rows.length > 0 && <p className="muted">Scores appear here once your plan includes them.</p>}
         {isLoading && <div className="skeleton" style={{ height: 160 }} />}

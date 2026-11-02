@@ -105,7 +105,7 @@ def redact_section(section: str, data: Dict[str, Any], plan: str) -> Dict[str, A
 
 
 def redact_universe(rows: list, plan: str, showcase: set) -> list:
-    """The screener list: the FinLit score figures are a Silver feature and the FinLit Prism figures a Gold feature (the showcase company stays
+    """The screener list: the FinLit IQ figures are a Silver feature and the FinLit Prism figures a Gold feature (the showcase company stays
     open as the free example). A locked field is present and null, so the browser cannot tell a locked value from a missing one."""
     if has(plan, "gold"):
         return rows

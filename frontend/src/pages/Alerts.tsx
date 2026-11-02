@@ -18,7 +18,7 @@ const QUICK: { t: string; d: string; icon: string; p: Preset }[] = [
   { t: "Oversold (RSI below 30)", d: "Often a sign of heavy selling", icon: "gauge", p: { metric: "rsi14", op: "below", value: 30 } },
   { t: "Overbought (RSI above 70)", d: "Often a sign of a stretched rally", icon: "gauge", p: { metric: "rsi14", op: "above", value: 70 } },
   { t: "Near the 52-week high", d: "Within 2% of the yearly peak", icon: "growth", p: { metric: "from_high52", op: "below", value: 2 } },
-  { t: "FinLit score upgrade", d: "Score reaches 70 or more", icon: "quality", p: { metric: "overall", op: "above", value: 70 } },
+  { t: "FinLit IQ upgrade", d: "Score reaches 70 or more", icon: "quality", p: { metric: "overall", op: "above", value: 70 } },
   { t: "Gets cheap", d: "P/E falls to 15 or lower", icon: "percent", p: { metric: "pe", op: "below", value: 15 } },
   { t: "Results announced", d: "A results date within 7 days", icon: "calendar", p: { metric: "result_soon", op: "event", value: 7 } },
   { t: "Dividend or buyback news", d: "A headline mentions “dividend”", icon: "notes", p: { metric: "news_keyword", op: "event", keyword: "dividend" } },

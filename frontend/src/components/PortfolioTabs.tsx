@@ -14,7 +14,7 @@ import {
 import "../styles/scorescreen.css";
 
 /** The imported holdings as three tabs over one table: Overview (share, price, size and the plan's score model), Ratios and Financials.
- *  Silver sees the basic FinLit score and its pillars; Gold only FinLit Prism (four parts and two technical views). Information only, not advice. */
+ *  Silver sees the basic FinLit IQ and its pillars; Gold only FinLit Prism (four parts and two technical views). Information only, not advice. */
 
 const heat = (v: number | null | undefined) => (v == null ? undefined : ({ "--hc": `hsl(${Math.round(Math.max(0, Math.min(100, v)) * 1.25)} 62% 46%)` } as CSSProperties));
 const tone: Record<ScoreBand, string> = { hi: "hi", mid: "mid", lo: "lo", na: "na" };

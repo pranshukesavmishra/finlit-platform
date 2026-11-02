@@ -63,7 +63,7 @@ export function coverageLine(c: { rated: number; provisional: number; total: num
 }
 
 export const EXPLAIN = {
-  finlit: "The FinLit score (0 to 100) is the average of five pillars worked out from a company's filed statements and prices: Quality, Growth, Profitability, Balance sheet and Technical. Free on every plan to see the company's own page; the full table is Silver.",
+  finlit: "The FinLit IQ (0 to 100) is the average of five pillars worked out from a company's filed statements and prices: Quality, Growth, Profitability, Balance sheet and Technical. Free on every plan to see the company's own page; the full table is Silver.",
   prism: "FinLit Prism (0 to 100) is the advanced rating, Gold only. It splits a company into four parts (Growth & Profitability, Valuation, Quality, Risk) and weighs them into one number with a label: Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor under 35. Status says how complete the data was: Rated, Provisional (a rating with limited history) or Not rated (not enough data).",
   differ: "The two scores are built differently on purpose. FinLit averages five pillars, including the price trend; Prism weighs four parts and adds valuation and risk. They can disagree, and the reason is on the company's report.",
   technical: "Short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate reading of the price trend, from -100 to +100. They describe the trend only and are not part of the Prism score.",

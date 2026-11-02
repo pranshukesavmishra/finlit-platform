@@ -26,7 +26,7 @@ const DOCS: Record<string, { title: string; body: [string, string][] }> = {
   disclosures: { title: "Research disclosures", body: [
     ["Not a registered adviser", COMPANY.disclaimer],
     ["How scores are made", "Research scores, pros and cons, and notes are generated automatically by fixed rules in our software from company filings and market data. They are not individually reviewed by an analyst and can be wrong or out of date. The FinLit AI chat is separate: it uses a generative AI model (Google Gemini) and can also make mistakes."],
-    ["Model", "The FinLit score averages five pillars (quality, growth, profitability, balance sheet, technical). Each input is mapped to a score using fixed thresholds. The score has not been back-tested against future returns and does not predict them. The method is explained on every stock page."],
+    ["Model", "The FinLit IQ averages five pillars (quality, growth, profitability, balance sheet, technical). Each input is mapped to a score using fixed thresholds. The score has not been back-tested against future returns and does not predict them. The method is explained on every stock page."],
     ["Conflicts", "Team members may hold, or may trade, securities discussed on this site, and may do so before or after anything is published. The Portfolio page shows realised results from one broker statement. It is a record of past trades, not a recommendation, not audited, and not a promise or indication of future returns."],
     ["Risk", "Investments in securities markets are subject to market risks, including the loss of your capital. Read all related documents carefully before investing."],
   ] },

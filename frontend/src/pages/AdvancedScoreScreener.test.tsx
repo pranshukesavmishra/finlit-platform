@@ -9,6 +9,8 @@ import type { Row } from "../lib/screener";
 
 const st = vi.hoisted(() => ({ plan: "gold" as "basic" | "silver" | "gold", rows: [] as unknown[], cover: null as unknown, upgrade: vi.fn(), toast: vi.fn(), loads: 0 }));
 vi.mock("../lib/screener", async (orig) => ({ ...(await orig<typeof import("../lib/screener")>()), useUniverse: () => { st.loads++; return { data: { rows: st.rows, sample: true, asOf: "2026-10-26", prism: st.cover }, isLoading: false, isError: false }; } }));
+const admin = vi.hoisted(() => ({ on: true }));
+vi.mock("../lib/auth", async (orig) => ({ ...(await orig<typeof import("../lib/auth")>()), useAuth: () => ({ isAdmin: admin.on }) }));
 vi.mock("../lib/ui", () => ({
   useUI: () => ({ has: (t: string) => ({ basic: 0, silver: 1, gold: 2 })[st.plan] >= ({ basic: 0, silver: 1, gold: 2 } as Record<string, number>)[t], upgrade: st.upgrade, toast: st.toast }),
   TIER: { basic: { n: "Basic", ic: "sprout", tc: "--t-basic" }, gold: { n: "Gold", ic: "crown", tc: "--t-gold" }, silver: { n: "Silver", ic: "medal", tc: "--t-silver" } },
@@ -64,7 +66,7 @@ describe("Advanced score screener (Gold)", () => {
     expect(kpi("Active filters")).toBe("0");
   });
 
-  it("shows the Prism score with its word, the four parts and the two technical views in the site's words, and nothing of the FinLit score", () => {
+  it("shows the Prism score with its word, the four parts and the two technical views in the site's words, and nothing of the FinLit IQ", () => {
     open();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/FinLit Prism/);
     const h = heads();
@@ -75,7 +77,7 @@ describe("Advanced score screener (Gold)", () => {
     expect(rowOf("BBB").textContent).toMatch(/Sideways\+5/); expect(rowOf("BBB").textContent).toMatch(/Downtrend−35/);
     expect(rowOf("FFF").textContent).toMatch(/30\s*PoorProvisional/);
     expect(document.body.textContent?.toLowerCase()).not.toMatch(forbidden);   // the model's own "Buy" / "Hold" never reach the screen
-    expect(screen.queryByRole("group", { name: "Business score" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Growth & Profitability score" })).toBeNull();
   });
 
   it("says Prism has rated X of Y with a progress bar, and a company without a rating says why, with a Rate now link", () => {

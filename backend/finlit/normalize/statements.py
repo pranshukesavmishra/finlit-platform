@@ -16,7 +16,7 @@ from .common import crore, fiscal_year_label, parse_date, quarter_label, rnd, su
 Row = Dict[str, Any]
 log = logging.getLogger("finlit.statements")
 
-# ONE set of definitions for the whole site (stock page, quarter results, screener, ratios, exports, FinLit score). They follow the
+# ONE set of definitions for the whole site (stock page, quarter results, screener, ratios, exports, FinLit IQ). They follow the
 # Indian convention (the one Screener.in and company filings use), and the stock page explains them next to the numbers:
 #   Revenue          = revenue from operations (a lender: interest earned plus fees; an insurer: premiums and investment income)
 #   Total expenses   = every cost the company reports, INCLUDING interest and depreciation (as the provider and the filing give it)

@@ -12,6 +12,7 @@ import { cr, nf } from "../../lib/format";
 import { watch } from "../../lib/watchlist";
 import { CAPS, PAGE_SIZES, pageList, type SortKey } from "../../lib/scoreScreen";
 import type { Plan } from "../../lib/ui";
+import { useAuth } from "../../lib/auth";
 import { CheckRow, FgxFocus, FilterGroup, SearchBox } from "./FilterGroup";
 import { KpiStrip, SectorBars, TitleCard, Toolbar, type Kpi } from "./PageParts";
 import "../../styles/fgx.css";
@@ -45,6 +46,7 @@ const KPI_ICONS: Kpi["icon"][] = ["building", "layers", "gauge", "tech"];
 const narrow = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia("(max-width: 1000px)").matches;
 export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, filters, tiles, lead, beforeTable, errorTitle, groupHead, columnHeads, cells, colSpan, plain, how, tier, sortChoices, donut, head }: Props) {
   const [sideW, setSide] = useSideWidth(splitKey);
+  const { isAdmin } = useAuth();
   const { draft, setDraft, facets, secQ, setSecQ, drawer, setDrawer, sort, size, pg, rows, sel, bad, dirty, isLoading, isError, chips, mix, filterCount, maxCompare } = s;
   const [collapsed, setCollapsed] = useState(false), [want, setWant] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
   const showPanel = (id: string | null) => { if (narrow()) setDrawer(true); else setCollapsed(false); if (id) setWant((w) => ({ id, n: w.n + 1 })); };
@@ -67,10 +69,11 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
         <TitleCard tier={tier} title={title} sub={intro} onLearn={() => s.setHow(true)} {...head} />
         <KpiStrip items={kpis} active={filterCount} filtersOpen={drawer || !collapsed} onFilters={() => (narrow() ? setDrawer(true) : setCollapsed((c) => !c))} />
         {beforeTable}
-        <div className="fgx-two" style={donut ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
-          {donut}
-          <SectorBars title="Results by sector (Top 5)" rows={mix} action={<button type="button" className="fgx-link" onClick={() => showPanel("sector")}>View all sectors &rsaquo;</button>} />
-        </div>
+        {isAdmin && (      // the "not rated yet" share and the sector mix of the result: for the team, not shown to members
+          <div className="fgx-two" style={donut ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
+            {donut}
+            <SectorBars title="Results by sector (Top 5)" rows={mix} action={<button type="button" className="fgx-link" onClick={() => showPanel("sector")}>View all sectors &rsaquo;</button>} />
+          </div>)}
         <Toolbar q={s.q} setQ={s.setQ} searchLabel="Search company name, sector or keyword" buttons={[
           { id: "cap", label: "Market cap", active: draft.caps.length, onClick: () => showPanel("cap") },
           { id: "sector", label: "Sector", active: draft.sectors.length, onClick: () => showPanel("sector") },

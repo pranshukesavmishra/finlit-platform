@@ -1,4 +1,4 @@
-// The one colour rule for every FinLit score on the site, as the founder set it: green from 70, orange from 50 to under 70, red under 50,
+// The one colour rule for every FinLit IQ on the site, as the founder set it: green from 70, orange from 50 to under 70, red under 50,
 // grey when there is no score. Colour only decorates; the model's own word (Strong / Healthy / Mixed / Weak) and the number carry the meaning,
 // and the model's thresholds and labels are not changed here. Also: the market-cap line, and which score badge a plan may see.
 import { capSize, nf } from "./format";
@@ -26,7 +26,7 @@ export function dotLabel(name: string, v: number | null | undefined, word?: stri
 
 export type Plan = "basic" | "silver" | "gold";
 export type BadgeKind = "none" | "basic" | "prism";
-/** Which score badge a plan sees at the top of a stock page: Silver the basic FinLit score only, Gold the advanced Prism rating only, Basic none. */
+/** Which score badge a plan sees at the top of a stock page: Silver the basic FinLit IQ only, Gold the advanced Prism rating only, Basic none. */
 export const badgeFor = (plan: Plan, admin = false): BadgeKind => (plan === "gold" || admin ? "prism" : plan === "silver" ? "basic" : "none");
 
 /** "₹1,23,456 Cr" in Indian grouping; null when the market value is not known. */
@@ -52,7 +52,7 @@ export type BadgeView =
   | { kind: "basic"; score: number | null; word: string | null; band: ScoreBand }
   | { kind: "prism"; score: number; word: string; band: ScoreBand; provisional: boolean }
   | { kind: "prism-none" };
-/** What the badge at the top of the stock page shows. Silver: the basic FinLit score and nothing of Prism. Gold: the Prism rating and nothing of the basic score.
+/** What the badge at the top of the stock page shows. Silver: the basic FinLit IQ and nothing of Prism. Gold: the Prism rating and nothing of the basic score.
  *  Basic: no badge (the header is as it was). Gold with no stored (or no usable) rating: "not rated yet" with a link. While the rating loads, or when the server hides it, nothing. */
 export function badgeView(plan: Plan, admin: boolean, basic: { overall: number | null; word: string | null }, prism: PrismInput): BadgeView {
   const kind = badgeFor(plan, admin);

@@ -125,7 +125,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | Daily price history | reference large caps have the expected session's bar | 1 h after 18:30 + grace / +14 h | technicals, ingest |
 | Index levels | fetched on demand; if market open and a visitor is looking: under 10 min | 30 min | (on demand) |
 | Technical views | at most 2% of reports behind the expected session | after 19:30 / >25% behind and 10 h | technicals |
-| Prism ratings, FinLit scores | newest row under 30 h | 60 h | prism, score |
+| Prism ratings, FinLit IQs | newest row under 30 h | 60 h | prism, score |
 | Quarterly results | no company whose declaration date passed still lacks figures: waiting yesterday = late, two or more days = stale (declaration is known by DATE only; target is 6 h, flagged at 24 h) | | results, results-light |
 | Results calendar | refreshed under 3 h ago and upcoming dates exist | 12 h | calendars |
 | IPO calendar, news, leadership | under 30 h / 3 days / 9 days | 96 h / 6 d / 14 d | calendars, leadership |

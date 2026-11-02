@@ -3,7 +3,7 @@
 Status: October 2026, pre-launch (staging). Live at https://finlit-arug.onrender.com
 
 ## 1. What it is
-FinLit is an Indian retail-investor research platform: stock research reports with a FinLit score, screener (160+ filters), query builder, compare, charts, ETF and mutual-fund pages, watchlists, portfolio tracker, alerts, results and IPO calendars, FII/DII flows, market heatmap and sector view, commodities, option chain and DCF calculator, under three plans (Basic, Silver, Gold). Information only, not investment advice.
+FinLit is an Indian retail-investor research platform: stock research reports with a FinLit IQ, screener (160+ filters), query builder, compare, charts, ETF and mutual-fund pages, watchlists, portfolio tracker, alerts, results and IPO calendars, FII/DII flows, market heatmap and sector view, commodities, option chain and DCF calculator, under three plans (Basic, Silver, Gold). Information only, not investment advice.
 
 ## 2. Architecture
 One Docker container on Render (free plan, Singapore) runs everything:

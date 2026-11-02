@@ -532,7 +532,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/stocks/{symbol}/score-history")
     async def score_history(request: Request, symbol: str, statement: str = Query("consolidated")):
-        """How the FinLit score has moved (one point per day it was computed). Silver and above, like the score itself."""
+        """How the FinLit IQ has moved (one point per day it was computed). Silver and above, like the score itself."""
         symbol = symbol.strip().upper()
         if not SYMBOL.match(symbol) or statement not in ("consolidated", "standalone"):
             return JSONResponse({"status": "invalid"}, status_code=400)

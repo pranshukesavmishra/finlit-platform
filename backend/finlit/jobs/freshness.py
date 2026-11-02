@@ -329,7 +329,7 @@ def evaluate_facts(f: Dict[str, Any], now: datetime, credentials: Optional[List[
     ds.append(judge_index(f.get("index_t"), now, bool(f.get("visitors"))))
     ds.append(judge_technicals(int(f.get("tech_total") or 0), int(f.get("tech_behind") or 0), f.get("tech_newest_bar"), exp, now))
     ds.append(judge_age("prism", "Prism ratings", ["prism"], f.get("prism_newest"), now, 30.0, 60.0))
-    ds.append(judge_age("scores", "FinLit scores", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
+    ds.append(judge_age("scores", "FinLit IQs", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
     if f.get("results_waiting") is not None:
         ds.append(judge_results(f["results_waiting"], today, int(f.get("results_declared") or 0), f.get("results_buckets")))
     ds.append(judge_calendar(int(f.get("results_upcoming") or 0), f.get("calendars_ran"), now))

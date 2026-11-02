@@ -1,4 +1,4 @@
-/* The stock page's first dashboard: FinLit score (left, ScoreCard.tsx) beside FinLit Prism (right, PrismCompare.tsx), both compact.
+/* The stock page's first dashboard: FinLit IQ (left, ScoreCard.tsx) beside FinLit Prism (right, PrismCompare.tsx), both compact.
    Both halves are dark "jewel" report cards built on the same row grid, so the rows line up across the pair:
      header | score row (dial or prism glyph + words) | one row of tiles | notes | footer | compliance line.
    "Show full breakdown" (DashToggle.tsx) reveals the detail panels under the pair. Tiles, glyph and status words are in dash-shared.css.
@@ -197,7 +197,7 @@
 
 
 /* ---------- spacious layout (founder feedback: the pair was too dense) ----------
-   The two cards stack at every width, FinLit score first, FinLit Prism below, each one with the same calm order:
+   The two cards stack at every width, FinLit IQ first, FinLit Prism below, each one with the same calm order:
    header, the big number and one-line read, one row of parts, a few points, then a quiet "more" fold for the secondary lines.
    No fixed row heights: the content decides, with 24-32px between groups. These rules come last on purpose and win over the compact ones above. */
 .pz-pair { --dk-h-row: auto; --dk-h-tiles: auto; --dk-h-notes: auto; --dk-h-foot: auto; --dk-h-comp: auto; grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 32px; }
@@ -344,6 +344,8 @@
 
 /* the score over time */
 .phx-card .seg { margin-left: auto; }
+.phx-card .seg + .seg { margin-left: 8px; }
+.phx-card .card-h { flex-wrap: wrap; gap: 8px; }
 .phx { position: relative; margin-top: 6px; }
 .phx svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
 .phx-ax { font: 500 10.5px var(--sans); fill: var(--faint); font-variant-numeric: tabular-nums; }

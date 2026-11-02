@@ -4143,7 +4143,7 @@ CHAT_TOOL_RULES = (
     "Use a tool for EVERY number about a company, fund, ETF, index or the market. Never invent, estimate or recall a figure from memory. Answer only from what the tools returned. "
     "If a figure is null, missing, locked or a tool returns an error, say plainly that it is not available; never write zero or a guess in its place. "
     "Give the as-of date (asOf) from the result next to the figures. If you only know a company's name, call search_stocks first. Use as few calls as needed. "
-    "A locked FinLit score is a Silver plan feature on the website: say so. "
+    "A locked FinLit IQ is a Silver plan feature on the website: say so. "
     "Describe the data neutrally. Never say or imply that anyone should buy, sell, hold, reduce, avoid or accumulate a security, and never give a price target or a prediction."
 )
 CHAT_TOOL_FALLBACK = "I couldn't finish looking that up. Please ask a narrower question, for example about one company or one figure."

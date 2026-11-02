@@ -83,7 +83,7 @@ function PriceSection({ k, side, onSide }: { k: PriceKey; side: PriceSide; onSid
       <div className="qg-radios">
         <label className={"qg-radio" + (side.band === "" && !typed ? " on" : "")}><input type="radio" name={`${id}-band`} checked={side.band === "" && !typed} onChange={() => onSide({ band: "", min: "", max: "" })} /><span>Any</span></label>
         {BAND_EDGES.map((_, i) => (
-          <label key={i} className={"qg-radio" + (side.band === String(i) ? " on" : "")}><input type="radio" name={`${id}-band`} checked={side.band === String(i)} onChange={() => onSide({ band: String(i), min: "", max: "" })} /><span>{bandLabel(i, k)}</span></label>
+          <label key={i} className={"qg-radio" + (side.band === String(i) ? " on" : "")}><input type="radio" name={`${id}-band`} checked={side.band === String(i)} onChange={() => onSide({ band: String(i), min: "", max: "" })} onClick={() => { if (side.band === String(i)) onSide({ band: "", min: "", max: "" }); }} /><span>{bandLabel(i, k)}</span></label>
         ))}
       </div>
       <div className="qg-range" role="group" aria-label={`Or type a range below the ${PRICE_WORD[k]}`}>
@@ -121,8 +121,8 @@ export function GrowthPanel({ state, onChange, summary, loading, price = DEFAULT
       <p className="muted qg-lead">Growth filters and price-position filters apply together.</p>
       <div className="qg-presets" role="group" aria-label="Quick fills">
         <span className="qg-pl">Quick fills</span>
-        {GROWTH_PRESETS.map((p) => <button key={p.id} type="button" className={preset === p.id && priceIsDefault(price) ? "on" : ""} aria-pressed={preset === p.id && priceIsDefault(price)} title={p.hint} onClick={() => (onBoth ? onBoth(applyPreset(p), DEFAULT_PRICE) : onChange(applyPreset(p)))}>{p.label}</button>)}
-        {onPrice && PRICE_PRESETS.map((p) => <button key={p.id} type="button" className={pPreset === p.id ? "on" : ""} aria-pressed={pPreset === p.id} title={p.hint} onClick={() => onBoth?.(p.growth ? applyPreset(p.growth) : DEFAULT_GROWTH, p.price)}>{p.label}</button>)}
+        {GROWTH_PRESETS.map((p) => <button key={p.id} type="button" className={preset === p.id && priceIsDefault(price) ? "on" : ""} aria-pressed={preset === p.id && priceIsDefault(price)} title={p.hint} onClick={() => (preset === p.id && priceIsDefault(price) ? (onBoth ? onBoth(DEFAULT_GROWTH, DEFAULT_PRICE) : onChange(DEFAULT_GROWTH)) : onBoth ? onBoth(applyPreset(p), DEFAULT_PRICE) : onChange(applyPreset(p)))}>{p.label}</button>)}   {/* a second press switches the quick fill off */}
+        {onPrice && PRICE_PRESETS.map((p) => <button key={p.id} type="button" className={pPreset === p.id ? "on" : ""} aria-pressed={pPreset === p.id} title={p.hint} onClick={() => (pPreset === p.id ? onBoth?.(DEFAULT_GROWTH, DEFAULT_PRICE) : onBoth?.(p.growth ? applyPreset(p.growth) : DEFAULT_GROWTH, p.price))}>{p.label}</button>)}
       </div>
       <div className="qg-blk">
         <h4 className="qg-bh">Growth</h4>

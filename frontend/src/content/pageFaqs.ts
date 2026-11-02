@@ -41,7 +41,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What is “Watchlist by band”?",
-    "a": "A bar showing how the stocks you follow split across the FinLit score bands: Strong, Healthy, Mixed and Watch."
+    "a": "A bar showing how the stocks you follow split across the FinLit IQ bands: Strong, Healthy, Mixed and Watch."
    },
    {
     "q": "Where can I see every index and its valuation history?",
@@ -59,7 +59,7 @@ export const PAGE_FAQS: PageFaq[] = [
   "items": [
    {
     "q": "Which screener should I use?",
-    "a": "Use this Stock screener when you want to combine many rules. The Basic score screener (Silver) filters by the FinLit score, the Advanced score screener (Gold) by the FinLit Prism rating, and the Query builder lets you type rules such as P/E < 15 instead of clicking."
+    "a": "Use this Stock screener when you want to combine many rules. The Basic score screener (Silver) filters by the FinLit IQ, the Advanced score screener (Gold) by the FinLit Prism rating, and the Query builder lets you type rules such as P/E < 15 instead of clicking."
    },
    {
     "q": "What can I filter on?",
@@ -101,12 +101,12 @@ export const PAGE_FAQS: PageFaq[] = [
   "plan": "Silver (full table)",
   "items": [
    {
-    "q": "What is the FinLit score?",
+    "q": "What is the FinLit IQ?",
     "a": "A score from 0 to 100 worked out from a company's filed statements and prices. It is the average of five pillars: Quality, Growth, Profitability, Balance sheet and Technical. It is free on each company's own page; this full table is part of Silver."
    },
    {
-    "q": "What is the difference between Business, Technical and Overall?",
-    "a": "Business is the average of the four business pillars and needs at least three of them. Technical reads the price trend against the 50-day and 200-day averages, and its momentum. Overall is the average of all the pillar scores that are available, the same number shown on the company's page."
+    "q": "What is the difference between Growth & Profitability, Technical and Overall?",
+    "a": "Growth & Profitability is the average of the four business pillars and needs at least three of them. Technical reads the price trend against the 50-day and 200-day averages, and its momentum. Overall is the average of all the pillar scores that are available, the same number shown on the company's page."
    },
    {
     "q": "What do Strong, Healthy, Mixed and Watch mean?",
@@ -114,7 +114,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What do the Quick views do?",
-    "a": "They apply common combinations in one click: Strong on both (Business and Technical both 78 or more), Strong business with a weak trend, and a strong trend with a weaker business score."
+    "a": "They apply common combinations in one click: Strong on both (Growth & Profitability and Technical both 78 or more), Strong growth & profitability with a weak trend, and a strong trend with a weaker Growth & Profitability score."
    },
    {
     "q": "How is Large, Mid or Small cap decided?",
@@ -165,7 +165,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "How is this different from the Basic score screener?",
-    "a": "The Basic score screener uses the FinLit score (five pillars, Silver). This page uses the FinLit Prism rating with its four parts and two technical views (Gold)."
+    "a": "The Basic score screener uses the FinLit IQ (five pillars, Silver). This page uses the FinLit Prism rating with its four parts and two technical views (Gold)."
    },
    {
     "q": "What do the Quick views do?",
@@ -229,7 +229,7 @@ export const PAGE_FAQS: PageFaq[] = [
     "a": "Sections for the company, its scorecard, price, latest quarter, financials, trends, ratios, ownership, peers, insights, dividends and pros & cons. Use All sections to jump between them. Labels such as Basic, Silver and Gold show which plan opens each section."
    },
    {
-    "q": "What does the FinLit score at the top mean?",
+    "q": "What does the FinLit IQ at the top mean?",
     "a": "A score out of 100: the average of five pillars, Quality, Growth, Profitability, Balance sheet and Technical. “The read” sums it up in a sentence and “What stands out” lists the main strengths. It is a research summary, not a recommendation."
    },
    {
@@ -396,7 +396,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What is in it?",
-    "a": "The FinLit score and band, a one-line summary, what drives the score (the five pillars), strengths and watch-outs, key ratios, who owns the company and how that changed in a year, and how its peers score."
+    "a": "The FinLit IQ and band, a one-line summary, what drives the score (the five pillars), strengths and watch-outs, key ratios, who owns the company and how that changed in a year, and how its peers score."
    },
    {
     "q": "How do I save it as a PDF?",
@@ -1015,7 +1015,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "How do I group and sort my stocks?",
-    "a": "Bucket by industry, company size, FinLit band or style, and sort by FinLit score, today's change, market cap, P/E, dividend yield or name."
+    "a": "Bucket by industry, company size, FinLit band or style, and sort by FinLit IQ, today's change, market cap, P/E, dividend yield or name."
    },
    {
     "q": "What are targets and notes for?",
@@ -1087,7 +1087,7 @@ export const PAGE_FAQS: PageFaq[] = [
   "items": [
    {
     "q": "What can I set an alert on?",
-    "a": "Price and price moves, circuits, volume, 52-week high and low, returns, RSI, moving averages, valuation and profitability ratios, the FinLit score and its pillars, quarterly profit and revenue, promoter and FII holding changes, upcoming results dates, and news or new filings for a company."
+    "a": "Price and price moves, circuits, volume, 52-week high and low, returns, RSI, moving averages, valuation and profitability ratios, the FinLit IQ and its pillars, quarterly profit and revenue, promoter and FII holding changes, upcoming results dates, and news or new filings for a company."
    },
    {
     "q": "How often are alerts checked?",
@@ -1107,7 +1107,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What are Quick alerts?",
-    "a": "Ready-made conditions such as a price target, a big move in a day, a volume spike, RSI oversold or overbought, near the 52-week high, a FinLit score upgrade, results announced or promoter holding falling. Pick one, then choose the stock."
+    "a": "Ready-made conditions such as a price target, a big move in a day, a volume spike, RSI oversold or overbought, near the 52-week high, a FinLit IQ upgrade, results announced or promoter holding falling. Pick one, then choose the stock."
    },
    {
     "q": "How do I manage my alerts?",

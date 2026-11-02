@@ -34,7 +34,7 @@ function Report({ symbol }: { symbol: string }) {
         <div className="pm-kpi"><small>Price</small><b>{q.price != null ? "₹" + nf(q.price) : MINUS}</b><i>{signed(q.changePct)} today</i></div>
         <div className="pm-kpi"><small>Market cap</small><b>{q.marketCapCr != null ? "₹" + cr(q.marketCapCr) + " Cr" : MINUS}</b></div>
         <div className="pm-kpi"><small>52-week range</small><b style={{ fontSize: 18 }}>{d.range52.low != null ? nf(d.range52.low) : MINUS} to {d.range52.high != null ? nf(d.range52.high) : MINUS}</b></div>
-        <div className="pm-kpi"><small>FinLit score · {d.score.band.label}</small><b>{d.score.overall != null ? Math.round(d.score.overall) : MINUS}<span className="faint" style={{ fontSize: 14 }}> / 100</span></b></div>
+        <div className="pm-kpi"><small>FinLit IQ · {d.score.band.label}</small><b>{d.score.overall != null ? Math.round(d.score.overall) : MINUS}<span className="faint" style={{ fontSize: 14 }}> / 100</span></b></div>
       </div>
       {d.thesis && <><h2>Summary</h2><p style={{ lineHeight: 1.65 }}>{d.thesis}</p></>}
       <h2>What drives the score <ChartHelp id="report-pillars" /></h2>

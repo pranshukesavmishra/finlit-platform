@@ -102,7 +102,7 @@ R1Y = Col("ret_1y", "1-year return", "pct")
 MCAP = Col("market_cap", "Market cap (Rs Cr)", "cr")
 SECTOR = Col("sector", "Sector", "text", "left")
 INDUSTRY = Col("industry", "Industry", "text", "left")
-FINLIT = Col("overall", "FinLit score", "score")
+FINLIT = Col("overall", "FinLit IQ", "score")
 
 
 TOP_COLS = (RANK, STOCK, PRISM, PLABEL, FUND, VAL, QUAL, RISK, ST, LT, R1Y, MCAP)
@@ -131,9 +131,9 @@ def _top(n: int, bucket: str, label: str, extra: Mapping = None) -> Preset:
                   (("prism_final", "desc"), ("prism_quality", "desc"), ("prism_risk", "desc")), 10, TOP_COLS, (TREND_CHECK,), tuple(how), True, None, (), f"p4 (screen {n})")
 
 
-BEYOND = Chip("beyond-rated", "Beyond rated stocks", "Drops the Prism rule and adds FinLit score 60 or more, market cap Rs 2,000 Cr or more and yearly volatility 60% or less. Off by default: the top of that list is fast-moving small caps.", False,
-              _m(prism_set={"zmin": None, "rated": None}, ql_add=("FinLit score >= 60", "Market cap >= 2000", "Volatility (yearly) <= 60")),
-              ("Beyond rated stocks: no Prism rule; FinLit score 60 or more, market cap Rs 2,000 Cr or more, yearly volatility 60% or less.",))
+BEYOND = Chip("beyond-rated", "Beyond rated stocks", "Drops the Prism rule and adds FinLit IQ 60 or more, market cap Rs 2,000 Cr or more and yearly volatility 60% or less. Off by default: the top of that list is fast-moving small caps.", False,
+              _m(prism_set={"zmin": None, "rated": None}, ql_add=("FinLit IQ >= 60", "Market cap >= 2000", "Volatility (yearly) <= 60")),
+              ("Beyond rated stocks: no Prism rule; FinLit IQ 60 or more, market cap Rs 2,000 Cr or more, yearly volatility 60% or less.",))
 RATED_ONLY = Chip("rated-only", "Rated only", "Keeps the names Prism has rated (Provisional ratings included, with their badge).", True, _m(prism_set={"rated": 1}),
                   ("Rated only: the company has a Prism score (Rated or Provisional).",))
 FAST = Chip("fast-growers", "Fast growers", "Raises the cut-offs to 20% / 20% / 15% / 15% and ROCE 15%.", False,
@@ -195,7 +195,7 @@ PRESETS: List[Preset] = [
            (SORT_GROWTH,) + SUB_CHIPS,
            ("Only companies on the research team's theme list (reviewed every quarter, IPOs added as they list); one company can carry several sub-themes.",
             "Market cap Rs 1,000 Cr or more.", "3-year sales growth 15% a year or more, OR sales up 20% or more on the same quarter last year.", "At most 2 red flags.",
-            "Loss-making companies stay in (many platforms are), with a Loss-making badge.", "Rated companies first by Prism score, then unrated ones by FinLit score."),
+            "Loss-making companies stay in (many platforms are), with a Loss-making badge.", "Rated companies first by Prism score, then unrated ones by FinLit IQ."),
            False, None, ("provisional", "unrated", "loss_making"), "p7-10 (screen 6)"),
 
     Preset("sector-themes", "Sector themes in play", "themes", "Industries where more stocks are rising than in the market as a whole, and the companies leading them.", "themes",
@@ -205,12 +205,12 @@ PRESETS: List[Preset] = [
            ("Every night each industry is scored on breadth (share of stocks above their 50-day and 200-day averages) and 3-month return against the whole market; stocks of Rs 500 Cr or more.",
             "In play: B50 at least 40% and 15 points above the market's, B200 at or above the market's, and 3-month return (RS3) at least 5 points above the market's.",
             "Emerging: B50 up 20 points or more in 20 sessions, now 10 points above the market, RS3 at or above 0. Fading: was in play in the last 20 sessions, now RS3 below 0 or B50 under 5 points above the market.",
-            "Leaders (up to 5 per theme): market cap Rs 1,000 Cr or more, above their 50-day average, 3-month return above the industry median; rated companies first by Prism score, then unrated by FinLit score.",
+            "Leaders (up to 5 per theme): market cap Rs 1,000 Cr or more, above their 50-day average, 3-month return above the industry median; rated companies first by Prism score, then unrated by FinLit IQ.",
             "Generic industries (Capital Goods, Financial Services, Services, FMCG, Healthcare, Information Technology) and groups under 8 companies are left out of theme status.",
             "With fewer than 3 industries in play, the 3 with the highest RS3 among those with B50 above the market are shown as Closest to qualifying."),
            False, None, ("provisional",), "p10-12 (screen 7)"),
 
-    Preset("quality-fair-price", "Quality at a fair price", "value-income", "Strong quality and fundamentals without a stretched valuation.", "rules",
+    Preset("quality-fair-price", "Quality at a fair price", "value-income", "Strong quality and growth & profitability without a stretched valuation.", "rules",
            _m(zqmin=70, zfmin=60, zvmin=50), "PEG Ratio > 0\nPEG Ratio <= 1.5", (), (("prism_final", "desc"), ("prism_quality", "desc")), 25,
            with_status((STOCK, PRISM, QUAL, FUND, VAL, Col("peg", "PEG ratio", "num1"), Col("pe", "P/E", "num1"), MCAP)), (),
            ("Prism Quality 70 or more, Growth & Profitability 60 or more, Valuation 50 or more.", "PEG ratio above 0 and at most 1.5.", "Ranked by Prism score."), False, None, ("provisional",), "p12 (screen 8)"),

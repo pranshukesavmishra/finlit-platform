@@ -54,7 +54,7 @@ async def test_plan_locks_in_validate_and_run(app, anon):  # noqa: F811
     assert (await post(anon, "ql/run", query="ROE > 3", sort={"key": "pb", "dir": "asc"})).json()["errors"][0]["code"] == "plan_locked"
     silver = await signed_in(app, "s@example.com", plan="silver")
     assert (await post(silver, "ql/run", query=q)).json()["ok"] is True
-    assert (await post(silver, "ql/run", query="FinLit score > 3")).json()["errors"][0]["plan"] == "gold"
+    assert (await post(silver, "ql/run", query="FinLit IQ > 3")).json()["errors"][0]["plan"] == "gold"
     await silver.aclose()
 
 
@@ -158,7 +158,7 @@ async def test_basket_rejects_bad_queries_names_and_locked_ratios(app):  # noqa:
     assert r.status_code == 422 and r.json()["detail"]["status"] == "invalid_query" and [e["code"] for e in r.json()["detail"]["errors"]] == ["unknown_metric", "missing_value"]
     assert (await c.post("/api/screener/baskets", json=b("   ", "ROE > 1"))).status_code == 422
     assert (await c.post("/api/screener/baskets", json=b("x" * 81, "ROE > 1"))).status_code == 422
-    assert (await c.post("/api/screener/baskets", json=b("L", "FinLit score > 50"))).json()["detail"]["plan"] == "gold"
+    assert (await c.post("/api/screener/baskets", json=b("L", "FinLit IQ > 50"))).json()["detail"]["plan"] == "gold"
     assert (await c.post("/api/screener/baskets", json=b("C", "ROE > 1", columns=["nonsense"]))).status_code == 422
     assert (await c.post("/api/screener/baskets", json=b("C", "ROE > 1", columns=["overall"]))).status_code == 403
     assert (await c.get("/api/screener/baskets/not-a-uuid")).status_code == 404

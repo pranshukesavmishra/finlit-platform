@@ -48,7 +48,7 @@ const PREVIEWS: Record<PlatformPreview, () => ReactNode> = {
 
 const BANNERS = [
   { k: "basic", name: "Free", tag: "Free forever", points: ["Starter screener: 14 filters, the first 25 matches, 3 saved screens", "Statements, key ratios, shareholding and peers for every listed company", "Compare two companies side by side", "3 alerts on price, volume and technical triggers"] },
-  { k: "silver", name: "Silver", tag: "Score and full screener", points: ["FinLit score and five pillars on every stock", "Full screener: 160+ filters and CSV download", "Watchlists with notes: 3 lists, 30 stocks", "Portfolio scorecard and downloads"] },
+  { k: "silver", name: "Silver", tag: "Score and full screener", points: ["FinLit IQ and five pillars on every stock", "Full screener: 160+ filters and CSV download", "Watchlists with notes: 3 lists, 30 stocks", "Portfolio scorecard and downloads"] },
   { k: "gold", name: "Gold", tag: "Most depth", points: ["FinLit Prism, an advanced financial-health rating", "FinLit model filters in the screener", "Profit and revenue outlook", "Compare up to 4 companies, up to 50 watchlists"] },
 ] as const;
 

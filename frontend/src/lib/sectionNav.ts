@@ -4,7 +4,7 @@ export type NavItem = [id: string, label: string, icon: string, hint: string];
 
 export const NAV: NavItem[] = [
   ["business", "Company", "building", "What the company does and how it earns"],
-  ["notes", "Scorecard", "notes", "The FinLit score and what lifts or weighs on it"],
+  ["notes", "Scorecard", "notes", "The FinLit IQ and what lifts or weighs on it"],
   ["price", "Price", "line", "Price chart, returns and technical levels"],
   ["quarter", "Quarter", "notes", "The latest quarter against a year ago"],
   ["earnings-call", "Earnings call", "notes", "What management said on the latest earnings call, with the quotes"],
