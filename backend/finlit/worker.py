@@ -888,6 +888,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_sv.add_argument("--dry-run", action="store_true", help="only print what is due and why; start nothing, write nothing")
     p_sv.add_argument("--no-wait", action="store_true", help="with --once: do not wait for the started jobs")
     sub.add_parser("jobs-status", help="print the same JSON as GET /api/jobs/status")
+    p_ad = sub.add_parser("audit-data", help="read-only data audit of the whole site: what is missing, stale or the wrong kind of data, per feature; prints a table and writes JSON (docs/DATA-AUDIT.md); not scheduled; exit code 0 always")
+    p_ad.add_argument("--only", nargs="+", metavar="FEATURE", help="check only these feature groups: stocks screeners funds etfs indices commodities macro flows news logos dhan jobs keys")
+    p_ad.add_argument("--quick", action="store_true", help="smaller samples and no heavy checks (about half the time)")
+    p_ad.add_argument("--json", default="/tmp/audit-data.json", help="where to write the same findings as JSON (default /tmp/audit-data.json)")  # nosec B108 - the founder asked for exactly this report path; the file holds findings only
     sub.add_parser("canary", help="re-fetch a few reference companies from the provider and compare them with what we hold (recorded at /api/jobs/status)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
@@ -901,6 +905,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     if args.cmd == "supervise":
         from .jobs.cli import supervise
         return await supervise(settings, once=args.once, dry_run=args.dry_run, wait=not args.no_wait)
+    if args.cmd == "audit-data":   # read-only, own connection, no migration, nothing written to the database; never fails (exit 0)
+        from .dataaudit import run_cli
+        return await run_cli(settings, args.only, args.quick, args.json)
     if args.cmd == "jobs-status":
         store = await Store.connect(settings, migrate=False)
         try:
