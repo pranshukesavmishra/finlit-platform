@@ -146,7 +146,12 @@ def read_quote(raw: dict, contract: dict) -> Tuple[Optional[dict], Optional[str]
     price = dec(ohlc.get("close")) if no_trade else last
     if not price or price <= 0:
         return None, "no price"
-    up, lo = dec(contract.get("upper")), dec(contract.get("lower"))
+    # The band: the quote's own circuit limits are today's and are used first. The stored contract band comes from Dhan's instrument file, which for MCX
+    # holds percentages (0.03 = 3 %) as often as price levels, and goes out of date; it is used only when it reads as a price range (upper above lower, both above 1).
+    up, lo = dec(raw.get("upper_circuit_limit")), dec(raw.get("lower_circuit_limit"))
+    if not (up and lo and up > lo > 0):
+        fu, fl = dec(contract.get("upper")), dec(contract.get("lower"))
+        up, lo = (fu, fl) if (fu and fl and fu > fl > 1) else (up if up and up > 0 else None, lo if lo and lo > 0 else None)
     if (up and up > 0 and price > up) or (lo and lo > 0 and price < lo):
         return None, "outside the exchange price band"
     prev = None
