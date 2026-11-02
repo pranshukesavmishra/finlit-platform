@@ -6,7 +6,7 @@ import report from "../lib/__fixtures__/prismReport.json";
 import variants from "../lib/__fixtures__/prismVariants.json";
 import technical from "../lib/__fixtures__/prismTechnical.json";
 import { score1, type PrismReport } from "../lib/prism";
-import { fmtScore, parseTechnical, ratingWord } from "../lib/prismTechnical";
+import { parseTechnical, ratingWord } from "../lib/prismTechnical";
 
 const state = vi.hoisted(() => ({ latest: null as unknown, gold: true, admin: true, calc: { phase: "idle" } as unknown }));
 vi.mock("../lib/prism", async (orig) => {

@@ -224,3 +224,21 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 /* the second header row starts with the Revenue "Rs cr" cell, which is NOT the pinned company cell */
 .qr-t thead tr:not(.qr-grp) th:first-child { position: static; z-index: auto; min-width: 0; max-width: none; padding-left: 12px; box-shadow: none; background: color-mix(in srgb, var(--qg1) 11%, var(--s1)); }
 .qr-t thead tr.qr-grp th:first-child { position: sticky; left: 0; z-index: 4; }
+
+/* Latest results: the filters live in a left panel (the same collapsible groups as the score screeners), the results on the right */
+.qr-split { display: grid; grid-template-columns: minmax(300px, 372px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.qr-side { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; padding: 14px 16px 18px; scrollbar-width: thin; min-width: 0; }
+.qr-side .qr-fd, .qr-side .qr-f1 { display: grid; gap: 12px; margin: 0; }
+.qr-side .qr-selects { display: grid; gap: 10px; margin-top: 12px; }
+.qr-side .qr-selects .wl-sel { width: 100%; } .qr-side .qr-selects select { width: 100%; }
+.qr-side .qr-search { display: flex; gap: 8px; } .qr-side .qr-search input { flex: 1; min-width: 0; }
+.qr-side .qr-dates { display: grid; grid-template-columns: 1fr; gap: 8px; } .qr-side .qr-or { text-align: center; }
+.qr-main { min-width: 0; }
+.qr-toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin: 0 0 12px; }
+.qg.qg-side { padding: 0; border: 0; background: transparent; box-shadow: none; display: grid; gap: 2px; }
+.qg-side .qg-reset { justify-self: start; margin: 4px 0 6px; }
+.qg-side .qg-gh { display: none; }   /* the narrow panel uses the one-column form: each cell carries its own QoQ / YoY label */
+.qg-side .qg-row { grid-template-columns: 1fr; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); } .qg-side .qg-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.qg-side .qg-set { padding: 10px; } .qg-side .qg-cl { display: block; }
+.qg-side .qg-psets { grid-template-columns: 1fr; }
+@media (max-width: 1000px) { .qr-split { grid-template-columns: minmax(0, 1fr); } .qr-side { position: static; max-height: none; } }

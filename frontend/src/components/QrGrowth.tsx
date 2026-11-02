@@ -3,6 +3,8 @@
 // shown here is what it sends back.
 import { useEffect, useId, useRef, useState } from "react";
 import { nf } from "../lib/format";
+import { FilterGroup } from "./screener/FilterGroup";
+import "../styles/fgx.css";
 import {
   CELL_OF, GROWTH_METRICS, GROWTH_OPS, GROWTH_PERIODS, GROWTH_PRESETS, activePreset, applyPreset, cellKeyOf, cleanValue, growthIsDefault, metricLabel, onCells, opWords, pctOf, periodLabel, valueProblem,
   BAND_EDGES, DEFAULT_PRICE, PRICE_KEYS, PRICE_PRESETS, PRICE_WORD, activePricePreset, bandLabel, priceIsDefault, rangeProblem, sideOn,
@@ -115,17 +117,19 @@ export function GrowthPanel({ state, onChange, summary, loading, price = DEFAULT
   const reset = () => (onReset ? onReset() : onChange(DEFAULT_GROWTH));
   const both = summary && priceSummary;
   return (
-    <section className="card qg" aria-labelledby="qg-h">
-      <div className="card-h"><h3 id="qg-h">Filter companies by growth and price position</h3>
-        <button type="button" className="btn qg-reset" disabled={growthIsDefault(state) && priceIsDefault(price)} onClick={reset}>Reset filters</button></div>
+    <section className="qg qg-side" aria-labelledby="qg-h">
+      <h2 className="sr-only" id="qg-h">Filter companies by growth and price position</h2>
       <p className="muted qg-lead">Growth filters and price-position filters apply together.</p>
+      <button type="button" className="btn qg-reset" disabled={growthIsDefault(state) && priceIsDefault(price)} onClick={reset}>Reset filters</button>
+      <FilterGroup id="qg-quick" title="Quick fills" defaultOpen>
       <div className="qg-presets" role="group" aria-label="Quick fills">
         <span className="qg-pl">Quick fills</span>
         {GROWTH_PRESETS.map((p) => <button key={p.id} type="button" className={preset === p.id && priceIsDefault(price) ? "on" : ""} aria-pressed={preset === p.id && priceIsDefault(price)} title={p.hint} onClick={() => (preset === p.id && priceIsDefault(price) ? (onBoth ? onBoth(DEFAULT_GROWTH, DEFAULT_PRICE) : onChange(DEFAULT_GROWTH)) : onBoth ? onBoth(applyPreset(p), DEFAULT_PRICE) : onChange(applyPreset(p)))}>{p.label}</button>)}   {/* a second press switches the quick fill off */}
         {onPrice && PRICE_PRESETS.map((p) => <button key={p.id} type="button" className={pPreset === p.id ? "on" : ""} aria-pressed={pPreset === p.id} title={p.hint} onClick={() => (pPreset === p.id ? onBoth?.(DEFAULT_GROWTH, DEFAULT_PRICE) : onBoth?.(p.growth ? applyPreset(p.growth) : DEFAULT_GROWTH, p.price))}>{p.label}</button>)}
       </div>
+      </FilterGroup>
+      <FilterGroup id="qg-growth" title="Growth" defaultOpen active={on.length}>
       <div className="qg-blk">
-        <h4 className="qg-bh">Growth</h4>
         <p className="muted qg-lead">Type a percentage threshold for the growth of revenue, operating profit or net profit, on the quarter before (QoQ) and on the same quarter a year earlier (YoY). Leave a cell empty to switch it off; any one cell works alone.</p>
         <fieldset className="qg-set">
           <legend className="sr-only">Growth thresholds, by metric and period</legend>
@@ -145,10 +149,10 @@ export function GrowthPanel({ state, onChange, summary, loading, price = DEFAULT
         </div>
         {opUsed && <p className="qg-note" id="qg-lender">{LENDER_NOTE}</p>}
       </div>
+      </FilterGroup>
       {onPrice && (
-        <div className="qg-blk qg-price" role="group" aria-labelledby="qg-ph">
-          <hr className="qg-div" />
-          <div className="qg-bhd"><h4 className="qg-bh" id="qg-ph">Price position</h4><span className="qg-new">New filter</span></div>
+        <FilterGroup id="qg-price" title="Price position" defaultOpen active={pOn.length} meta={<span className="qg-new">New filter</span>}>
+        <div className="qg-blk qg-price" role="group" aria-label="Price position">
           <p className="muted qg-lead">Identify companies based on how far their current market price is below their highest recorded price.</p>
           <div className="qg-psets">{PRICE_KEYS.map((x) => <PriceSection key={x} k={x} side={price[x]} onSide={(s) => setSide(x, s)} />)}</div>
           <div className="qg-modewrap">
@@ -160,6 +164,7 @@ export function GrowthPanel({ state, onChange, summary, loading, price = DEFAULT
           </div>
           <p className="qg-note">{PRICE_FOOT}</p>
         </div>
+        </FilterGroup>
       )}
       <div className="qg-state" role="status" aria-live="polite">
         {summary || priceSummary ? <>
