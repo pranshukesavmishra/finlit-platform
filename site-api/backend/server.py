@@ -43,11 +43,13 @@ try:
     from backend.portfolio_report import read_current_portfolio_report, save_portfolio_upload
     from backend.market_data import ENDPOINTS as MARKET_ENDPOINTS, market_params, normalize_market_payload
     from backend import mcp_tools
+    from backend import question_matcher
 except ModuleNotFoundError:
     from email_service import send_lead_emails, send_service_enquiry_email, EmailNotConfigured
     from portfolio_report import read_current_portfolio_report, save_portfolio_upload
     from market_data import ENDPOINTS as MARKET_ENDPOINTS, market_params, normalize_market_payload
     import mcp_tools
+    import question_matcher
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -272,6 +274,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+    question_id: Optional[str] = None      # the FinLit question-bank question this message was recognised as, when it was recognised with confidence
 
 
 class ContentInput(BaseModel):
@@ -4230,7 +4233,17 @@ async def chat(payload: ChatRequest, request: Request):
         except Exception as exc:
             logger.warning("FinLit AI tools not attached (event=chat_tools_unavailable, exception_type=%s)", type(exc).__name__)
             tool_config = None
-        system_instruction = FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES + (CHAT_TOOL_RULES if tool_config else "")
+        # The FinLit question bank: when the message is one of the predefined questions (in the user's own words), tell the assistant exactly which one, so it answers that question in full from the data tools.
+        bank_note, bank_id = "", None
+        try:
+            found = question_matcher.bank().match(payload.message)
+            bank_note = question_matcher.directive(found) if tool_config or found.best and found.best.group == "FinLit" else ""
+            if found.confidence == "high" and found.best: bank_id = found.best.id
+            if found.best:
+                logger.info("FinLit AI question bank (event=question_bank_match, question_id=%s, confidence=%s, score=%s)", found.best.id, found.confidence, found.best.score)
+        except Exception as exc:   # the bank is an addition: any problem leaves the chat as it was
+            logger.warning("FinLit AI question bank skipped (event=question_bank_error, exception_type=%s)", type(exc).__name__)
+        system_instruction = FINLIT_CHAT_SYSTEM_INSTRUCTION + CHAT_STYLE_RULES + (CHAT_TOOL_RULES if tool_config else "") + bank_note
 
         chat_deadline = monotonic() + CHAT_TOTAL_SECONDS   # the whole answer, tool rounds included, stays inside the site's 75 s proxy limit
 
@@ -4336,7 +4349,7 @@ async def chat(payload: ChatRequest, request: Request):
         if tools_used:
             answer += "\n\nData from FinLit tools: " + ", ".join(tools_used)
         logger.info("FinLit AI response ready (finish_reason=%s, response_chars=%s, tool_rounds=%s, tools_used=%s)", finish_reason, len(answer), tool_rounds, ",".join(tools_used) or "none")
-        return ChatResponse(response=answer)
+        return ChatResponse(response=answer, question_id=bank_id)
     except HTTPException:
         raise
     except Exception as exc:

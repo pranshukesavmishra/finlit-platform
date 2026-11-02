@@ -1,0 +1,5134 @@
+{
+ "source": "Sena / FinLit Predefined Question Bank",
+ "questions": [
+  {
+   "id": "C.1.1.1",
+   "text": "Which sector, industry and sub-industry does {company} belong to?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.1.2",
+   "text": "What is {company}'s market cap, and which cap bucket (large, mid, small, micro) is it in?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.1.3",
+   "text": "On which exchange is {company} listed, and what are its ISIN, face value and listing date?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.1.4",
+   "text": "Which indices (Nifty 50, Next 50, Midcap 150 etc.) include {company}?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.2.1",
+   "text": "Who are the closest peers of {company} by sector and market cap?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Peers"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.2.2",
+   "text": "Where does {company} rank in its sector by market cap, revenue and profit?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Peers"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.3.1",
+   "text": "How does {company}'s revenue and profit compare with the sector's top 5 companies?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Size"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.1.3.2",
+   "text": "How many employees does {company} have, and what are its business segments and geographies?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot",
+    "Size"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.1.1",
+   "text": "What was {company}'s revenue over the last 5 years and last 8 quarters?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Revenue"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.1.2",
+   "text": "What is {company}'s YoY and QoQ revenue growth in the latest quarter?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Revenue"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.1.3",
+   "text": "What are {company}'s 3-year, 5-year and 10-year revenue CAGRs?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Revenue"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.1.4",
+   "text": "Is {company}'s revenue growing faster or slower than the sector median?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Revenue"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.2.1",
+   "text": "How have {company}'s operating profit (EBITDA) and operating margin trended over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Profitability"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.2.2.2",
+   "text": "How have PBT and PAT moved over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Profitability"
+   ],
+   "placeholders": [
+    "n"
+   ]
+  },
+  {
+   "id": "C.2.2.3",
+   "text": "What is the trend in {company}'s net profit margin?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Profitability"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.2.4",
+   "text": "What are {company}'s 3-year and 5-year profit CAGRs?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Profitability"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.3.1",
+   "text": "How much of sales goes to raw material, employee and other expenses at {company}, and how has that changed?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Costs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.3.2",
+   "text": "How have depreciation and interest costs trended for {company}?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Costs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.3.3",
+   "text": "What has been {company}'s effective tax rate over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Costs"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.2.4.1",
+   "text": "How has {company}'s EPS (basic and diluted) trended over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Per Share"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.2.4.2",
+   "text": "How much dividend per share has {company} paid each year?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Per Share"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.4.3",
+   "text": "What is {company}'s book value per share, and how has it grown?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Per Share"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.5.1",
+   "text": "How did {company}'s latest quarter compare with the same quarter last year?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quarterly Results"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.5.2",
+   "text": "How did {company}'s latest quarter compare with the previous quarter?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quarterly Results"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.5.3",
+   "text": "Has {company}'s revenue and profit growth been accelerating or slowing over the last 4 quarters?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quarterly Results"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.5.4",
+   "text": "For how many consecutive quarters has {company} grown revenue and profit?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quarterly Results"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.6.1",
+   "text": "What share of {company}'s PBT comes from other income?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quality of Earnings"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.2.6.2",
+   "text": "Did exceptional items affect {company}'s profit in the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quality of Earnings"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.2.6.3",
+   "text": "Is {company}'s profit growth backed by operating cash flow growth?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss",
+    "Quality of Earnings"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.1.1",
+   "text": "What are {company}'s total borrowings, and how have they changed over {n} years?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Liabilities"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.3.1.2",
+   "text": "How has {company}'s debt-to-equity ratio trended?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Liabilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.1.3",
+   "text": "What is the split between short-term and long-term debt at {company}?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Liabilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.1.4",
+   "text": "What are {company}'s other liabilities and contingent liabilities?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Liabilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.2.1",
+   "text": "What are {company}'s share capital and reserves?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Equity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.2.2",
+   "text": "How has {company}'s net worth grown over {n} years?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Equity"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.3.2.3",
+   "text": "Has the number of {company}'s shares changed (dilution or buyback)?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Equity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.3.1",
+   "text": "How are {company}'s assets split between fixed assets, CWIP and investments?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Assets"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.3.2",
+   "text": "How much cash and bank balance does {company} hold?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Assets"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.3.3",
+   "text": "Are {company}'s assets growing faster than its revenue?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Assets"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.4.1",
+   "text": "What are {company}'s receivable days, and are they rising or falling?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Working Capital"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.4.2",
+   "text": "What are {company}'s inventory days over {n} years?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Working Capital"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.3.4.3",
+   "text": "What are {company}'s payable days over {n} years?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Working Capital"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.3.4.4",
+   "text": "What is {company}'s cash conversion cycle, and how has it changed?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Working Capital"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.5.1",
+   "text": "Is {company} net debt or net cash?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Financial Strength"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.5.2",
+   "text": "What is {company}'s debt-to-EBITDA ratio?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Financial Strength"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.3.5.3",
+   "text": "What is {company}'s interest coverage ratio, and is it improving?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet",
+    "Financial Strength"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.1.1",
+   "text": "How has {company}'s operating cash flow trended over {n} years?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Operating"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.4.1.2",
+   "text": "What is {company}'s CFO-to-PAT ratio each year?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Operating"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.2.1",
+   "text": "How much has {company} spent on capex each year, and what is capex as a percentage of sales?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Investing"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.2.2",
+   "text": "Has {company} made acquisitions or large investments recently?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Investing"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.3.1",
+   "text": "Has {company} been raising or repaying debt over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Financing"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.4.3.2",
+   "text": "How much has {company} paid in dividends and buybacks each year?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Financing"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.4.1",
+   "text": "What is {company}'s free cash flow trend over {n} years?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Free Cash Flow"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.4.4.2",
+   "text": "What is {company}'s FCF yield at the current price?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Free Cash Flow"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.4.4.3",
+   "text": "In how many of the last {n} years was {company}'s FCF positive?",
+   "group": "Company",
+   "path": [
+    "Cash Flow",
+    "Free Cash Flow"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.5.1.1",
+   "text": "What are {company}'s ROE, ROCE and ROA over the last {n} years?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Returns"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.5.1.2",
+   "text": "How do {company}'s ROE and ROCE compare with the sector median?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Returns"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.2.1",
+   "text": "How have {company}'s debt-to-equity, debt-to-EBITDA and interest coverage moved together?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Leverage"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.2.2",
+   "text": "Is {company}'s leverage higher or lower than its peers?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Leverage"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.3.1",
+   "text": "What are {company}'s asset turnover and fixed asset turnover?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Efficiency"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.3.2",
+   "text": "How efficiently does {company} use working capital compared with peers?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Efficiency"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.4.1",
+   "text": "What are {company}'s current ratio and quick ratio?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Liquidity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.4.2",
+   "text": "Can {company} cover its short-term liabilities from current assets?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Liquidity"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.5.1",
+   "text": "How does {company}'s ROE break down into margin, asset turnover and leverage?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "DuPont"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.5.2",
+   "text": "Which DuPont component drove the change in {company}'s ROE over {n} years?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "DuPont"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.5.6.1",
+   "text": "What are {company}'s NII and NIM trends?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.6.2",
+   "text": "What are {company}'s GNPA, NNPA and provision coverage?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.6.3",
+   "text": "What is {company}'s CASA ratio?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.6.4",
+   "text": "What are {company}'s capital adequacy ratio and CET1?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.6.5",
+   "text": "What are {company}'s credit growth, deposit growth and credit-deposit ratio?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.5.6.6",
+   "text": "What are {company}'s cost-to-income ratio, ROA and ROE?",
+   "group": "Company",
+   "path": [
+    "Ratios",
+    "Banks and NBFCs"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.1.1",
+   "text": "What are {company}'s current PE, PB and P/S ratios?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Current Multiples"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.1.2",
+   "text": "What are {company}'s EV/EBITDA, EV/Sales and PEG ratios?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Current Multiples"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.2.1",
+   "text": "How does {company}'s PE compare with its 3-year, 5-year and 10-year average?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Versus History"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.2.2",
+   "text": "In what percentile of its own history is {company}'s PE?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Versus History"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.2.3",
+   "text": "How does {company}'s PB compare with its historical average?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Versus History"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.3.1",
+   "text": "Is {company} cheaper or more expensive than the sector median on PE and PB?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Versus Peers"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.3.2",
+   "text": "Where does {company} rank on valuation within its sector?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Versus Peers"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.4.1",
+   "text": "What are {company}'s dividend yield and payout ratio?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Yield"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.4.2",
+   "text": "What is {company}'s earnings yield?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Yield"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.4.3",
+   "text": "For how many consecutive years has {company} paid a dividend?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Yield"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.6.5.1",
+   "text": "How has {company}'s market cap changed over 1, 3 and 5 years?",
+   "group": "Company",
+   "path": [
+    "Valuation",
+    "Market Cap Movement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.1.1",
+   "text": "How has promoter holding in {company} changed over the last {n} quarters?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Promoter"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.7.1.2",
+   "text": "What percentage of promoter shares in {company} is pledged?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Promoter"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.1.3",
+   "text": "Has the promoter bought or sold {company} shares recently?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Promoter"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.2.1",
+   "text": "How have FII and DII holdings in {company} changed over {n} quarters?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Institutions"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.7.2.2",
+   "text": "How much of {company} do mutual funds hold?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Institutions"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.2.3",
+   "text": "Did institutions increase or reduce their stake in {company} in the last 4 quarters?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Institutions"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.3.1",
+   "text": "What is the public and retail holding in {company}, and how has it changed?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Public"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.3.2",
+   "text": "How many shareholders does {company} have?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Public"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.7.4.1",
+   "text": "Who are {company}'s top shareholders?",
+   "group": "Company",
+   "path": [
+    "Shareholding",
+    "Large Holders"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.1.1",
+   "text": "What is {company}'s current price versus its 52-week high and low?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Price Levels"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.1.2",
+   "text": "How far is {company} from its all-time high?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Price Levels"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.1.3",
+   "text": "What was {company}'s price change and traded volume today?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Price Levels"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.2.1",
+   "text": "What are {company}'s returns over 1 week, 1 month, 3 months, 6 months and 1 year?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Returns"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.2.2",
+   "text": "What are {company}'s 3-year and 5-year returns?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Returns"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.2.3",
+   "text": "Has {company} outperformed its index and sector over 1 year?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Returns"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.3.1",
+   "text": "Is {company} trading above or below its 50, 100 and 200 day moving averages?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Trend"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.3.2",
+   "text": "Has {company} had a golden cross or death cross recently?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Trend"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.3.3",
+   "text": "What is the current MACD signal for {company}?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Trend"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.4.1",
+   "text": "What is {company}'s RSI, and is it overbought or oversold?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Momentum"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.4.2",
+   "text": "What is {company}'s rate of change over 1, 3 and 6 months?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Momentum"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.5.1",
+   "text": "How does {company}'s current volume compare with its average volume?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Volume"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.5.2",
+   "text": "What is {company}'s delivery percentage trend?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Volume"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.6.1",
+   "text": "What are {company}'s volatility and beta?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Risk"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.8.6.2",
+   "text": "What was {company}'s maximum drawdown over {n} years?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Risk"
+   ],
+   "placeholders": [
+    "company",
+    "n"
+   ]
+  },
+  {
+   "id": "C.8.6.3",
+   "text": "What are {company}'s nearest support and resistance levels?",
+   "group": "Company",
+   "path": [
+    "Price and Technicals",
+    "Risk"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.1.1",
+   "text": "What is {company}'s overall fundamental score and rating?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Fundamental Score"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.1.2",
+   "text": "How do the fundamental, valuation, quality and risk components of {company}'s score compare?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Fundamental Score"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.1.3",
+   "text": "Where does {company} rank on score within its sector?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Fundamental Score"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.2.1",
+   "text": "What is {company}'s technical score, and what drives it?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Technical Score"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.3.1",
+   "text": "How has {company}'s score changed versus last quarter?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Change Tracking"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.3.2",
+   "text": "Which factors contributed most to the change in {company}'s score?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Change Tracking"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.4.1",
+   "text": "What are {company}'s three strongest scoring pillars?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Strengths and Weaknesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.9.4.2",
+   "text": "What are {company}'s three weakest scoring pillars?",
+   "group": "Company",
+   "path": [
+    "Model Scores",
+    "Strengths and Weaknesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.10.1",
+   "text": "What is {company}'s dividend history?",
+   "group": "Company",
+   "path": [
+    "Corporate Actions and Events"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.10.2",
+   "text": "Has {company} had any splits, bonus issues or rights issues?",
+   "group": "Company",
+   "path": [
+    "Corporate Actions and Events"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.10.3",
+   "text": "Has {company} done any buybacks?",
+   "group": "Company",
+   "path": [
+    "Corporate Actions and Events"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.10.4",
+   "text": "When is {company}'s next result date, record date and AGM?",
+   "group": "Company",
+   "path": [
+    "Corporate Actions and Events"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.11.1",
+   "text": "How does {company} compare with {company_2} on growth, margins, returns and valuation?",
+   "group": "Company",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "company",
+    "company_2"
+   ]
+  },
+  {
+   "id": "C.11.2",
+   "text": "How does {company} compare with the sector median across key metrics?",
+   "group": "Company",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.11.3",
+   "text": "How has {company} performed versus {index} over {n} years?",
+   "group": "Company",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "company",
+    "index",
+    "n"
+   ]
+  },
+  {
+   "id": "C.12.1",
+   "text": "Is {company}'s debt rising while its margins fall?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.12.2",
+   "text": "Does {company} have a high promoter pledge?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.12.3",
+   "text": "Are {company}'s receivable days rising?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.12.4",
+   "text": "Has {company}'s CFO been consistently below PAT?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.12.5",
+   "text": "Has promoter holding in {company} been falling?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "C.12.6",
+   "text": "Has {company}'s ROCE declined for 3 or more years?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "M.1.1.1",
+   "text": "Which AMC manages {fund}, and what are its category, sub-category, plan and option?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.1.2",
+   "text": "When was {fund} launched, and how old is it?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Identity"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.2.1",
+   "text": "What is {fund}'s benchmark index?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Benchmark and Riskometer"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.2.2",
+   "text": "What is {fund}'s riskometer level?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Benchmark and Riskometer"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.3.1",
+   "text": "What is {fund}'s current AUM, and how has it changed over {n} years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Size"
+   ],
+   "placeholders": [
+    "fund",
+    "n"
+   ]
+  },
+  {
+   "id": "M.1.3.2",
+   "text": "How many folios does {fund} have?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Size"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.4.1",
+   "text": "Who manages {fund}, and for how long?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Management"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.1.4.2",
+   "text": "Which other funds does {fund}'s manager run?",
+   "group": "Mutual Fund",
+   "path": [
+    "Fund Snapshot",
+    "Management"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.1.1",
+   "text": "What are {fund}'s returns over 1 month, 3 months and 6 months?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Point-to-Point"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.1.2",
+   "text": "What are {fund}'s returns over 1, 3, 5 and 10 years and since inception?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Point-to-Point"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.2.1",
+   "text": "What are {fund}'s average, minimum and maximum rolling returns over 1, 3 and 5 years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Rolling Returns"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.2.2",
+   "text": "In what percentage of rolling periods has {fund} given positive returns?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Rolling Returns"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.3.1",
+   "text": "What were {fund}'s returns in each of the last 10 calendar years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Calendar Year"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.4.1",
+   "text": "What is {fund}'s alpha versus its benchmark?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Versus Benchmark"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.4.2",
+   "text": "In how many of the last {n} years did {fund} beat its benchmark?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Versus Benchmark"
+   ],
+   "placeholders": [
+    "fund",
+    "n"
+   ]
+  },
+  {
+   "id": "M.2.5.1",
+   "text": "What is {fund}'s rank and quartile in its category over 1, 3 and 5 years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Versus Category"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.5.2",
+   "text": "Are {fund}'s returns above or below the category average?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "Versus Category"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.6.1",
+   "text": "What would a monthly SIP of {amount} in {fund} be worth after 1, 3, 5 and 10 years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "SIP Returns"
+   ],
+   "placeholders": [
+    "amount",
+    "fund"
+   ]
+  },
+  {
+   "id": "M.2.6.2",
+   "text": "What is {fund}'s SIP XIRR over 3, 5 and 10 years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Returns",
+    "SIP Returns"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.1.1",
+   "text": "What are {fund}'s standard deviation and beta?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Volatility"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.1.2",
+   "text": "Is {fund} more or less volatile than its category?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Volatility"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.2.1",
+   "text": "What are {fund}'s Sharpe and Sortino ratios?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Risk-Adjusted"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.2.2",
+   "text": "What are {fund}'s Treynor and information ratios?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Risk-Adjusted"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.3.1",
+   "text": "What was {fund}'s maximum drawdown, and when did it happen?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Drawdown"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.3.2",
+   "text": "How long did {fund} take to recover from its worst fall?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Drawdown"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.4.1",
+   "text": "What are {fund}'s upside and downside capture ratios?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Capture"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.5.1",
+   "text": "What are {fund}'s modified duration and Macaulay duration?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Debt-Specific"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.3.5.2",
+   "text": "What is {fund}'s yield to maturity?",
+   "group": "Mutual Fund",
+   "path": [
+    "Risk",
+    "Debt-Specific"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.4.1.1",
+   "text": "What is {fund}'s expense ratio in direct and regular plans?",
+   "group": "Mutual Fund",
+   "path": [
+    "Costs and Terms",
+    "Expense Ratio"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.4.1.2",
+   "text": "Is {fund}'s expense ratio higher or lower than its category average?",
+   "group": "Mutual Fund",
+   "path": [
+    "Costs and Terms",
+    "Expense Ratio"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.4.2.1",
+   "text": "What is {fund}'s exit load and holding period?",
+   "group": "Mutual Fund",
+   "path": [
+    "Costs and Terms",
+    "Exit Load"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.4.3.1",
+   "text": "What are {fund}'s minimum SIP and lumpsum amounts?",
+   "group": "Mutual Fund",
+   "path": [
+    "Costs and Terms",
+    "Minimums"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.4.4.1",
+   "text": "How much extra would I pay over 10 years in the regular plan of {fund} compared with direct?",
+   "group": "Mutual Fund",
+   "path": [
+    "Costs and Terms",
+    "Cost Impact"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.1.1",
+   "text": "What are {fund}'s top 10 holdings?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Holdings"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.1.2",
+   "text": "What percentage of {fund} is in its top 10 stocks, and how many stocks does it hold?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Holdings"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.2.1",
+   "text": "What are {fund}'s top sectors by weight?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Sectors"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.2.2",
+   "text": "How have {fund}'s sector weights changed over the last {n} months?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Sectors"
+   ],
+   "placeholders": [
+    "fund",
+    "n"
+   ]
+  },
+  {
+   "id": "M.5.3.1",
+   "text": "What share of {fund} is in large, mid and small caps?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Market Cap Split"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.4.1",
+   "text": "What are the average PE and PB of {fund}'s portfolio?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Style"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.4.2",
+   "text": "Is {fund} tilted towards growth or value stocks?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Style"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.5.1",
+   "text": "Which stocks did {fund} add or exit in the latest month?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Changes"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.5.2",
+   "text": "Which stocks did {fund} increase or reduce the most?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Changes"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.6.1",
+   "text": "What is {fund}'s portfolio turnover ratio?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Turnover"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.5.7.1",
+   "text": "How much do {fund} and {fund_2} overlap in holdings?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Equity)",
+    "Overlap"
+   ],
+   "placeholders": [
+    "fund",
+    "fund_2"
+   ]
+  },
+  {
+   "id": "M.6.1.1",
+   "text": "What is the credit rating mix (sovereign, AAA, AA and below) of {fund}?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Debt)",
+    "Credit Quality"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.6.2.1",
+   "text": "What is {fund}'s maturity profile, and its average maturity?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Debt)",
+    "Maturity"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.6.3.1",
+   "text": "What share of {fund} is in G-Secs, SDLs, corporate bonds, CPs and CDs?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Debt)",
+    "Instruments"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.6.4.1",
+   "text": "Who are {fund}'s top issuers, and how concentrated is the portfolio?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Debt)",
+    "Issuers"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.7.1.1",
+   "text": "What is {fund}'s split between equity, debt, gold and cash?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Hybrid and Solution Oriented)",
+    "Asset Allocation"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.7.1.2",
+   "text": "How has {fund}'s asset allocation shifted over the last {n} months?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Hybrid and Solution Oriented)",
+    "Asset Allocation"
+   ],
+   "placeholders": [
+    "fund",
+    "n"
+   ]
+  },
+  {
+   "id": "M.7.2.1",
+   "text": "How much of {fund} is hedged or in arbitrage positions?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Hybrid and Solution Oriented)",
+    "Arbitrage and Hedging"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.7.3.1",
+   "text": "What lock-in or holding conditions apply to {fund}?",
+   "group": "Mutual Fund",
+   "path": [
+    "Portfolio (Hybrid and Solution Oriented)",
+    "Lock-in"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.8.1.1",
+   "text": "What is {fund}'s health score and rating?",
+   "group": "Mutual Fund",
+   "path": [
+    "Health Score (Your Model)",
+    "Overall"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.8.2.1",
+   "text": "How does {fund} score on each of the four pillars?",
+   "group": "Mutual Fund",
+   "path": [
+    "Health Score (Your Model)",
+    "Pillars"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.8.2.2",
+   "text": "Which pillar is {fund}'s strongest, and which is weakest?",
+   "group": "Mutual Fund",
+   "path": [
+    "Health Score (Your Model)",
+    "Pillars"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.8.3.1",
+   "text": "How does {fund}'s health score rank within its category?",
+   "group": "Mutual Fund",
+   "path": [
+    "Health Score (Your Model)",
+    "Peers"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.8.4.1",
+   "text": "How has {fund}'s health score changed over the last {n} periods?",
+   "group": "Mutual Fund",
+   "path": [
+    "Health Score (Your Model)",
+    "Trend"
+   ],
+   "placeholders": [
+    "fund",
+    "n"
+   ]
+  },
+  {
+   "id": "M.9.1.1",
+   "text": "Which are the top {n} funds in {category} by 3-year return?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Top Funds"
+   ],
+   "placeholders": [
+    "category",
+    "n"
+   ]
+  },
+  {
+   "id": "M.9.1.2",
+   "text": "Which are the top {n} funds in {category} by Sharpe ratio?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Top Funds"
+   ],
+   "placeholders": [
+    "category",
+    "n"
+   ]
+  },
+  {
+   "id": "M.9.1.3",
+   "text": "Which are the top {n} funds in {category} by health score?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Top Funds"
+   ],
+   "placeholders": [
+    "category",
+    "n"
+   ]
+  },
+  {
+   "id": "M.9.2.1",
+   "text": "Which funds combine a low expense ratio with high 5-year returns?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Cost and Return"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "M.9.3.1",
+   "text": "Which funds in {category} have AUM below, between or above given limits?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "AUM Size"
+   ],
+   "placeholders": [
+    "category"
+   ]
+  },
+  {
+   "id": "M.9.4.1",
+   "text": "Which are the best large cap, mid cap, small cap and flexi cap funds?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Cap Size"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "M.9.5.1",
+   "text": "Which defence, AI, PSU, consumption or infrastructure funds are available, and how have they performed?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "Thematic and Sector"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "M.9.6.1",
+   "text": "Which funds were launched in the last {n} months, and what do they hold?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "New Funds"
+   ],
+   "placeholders": [
+    "n"
+   ]
+  },
+  {
+   "id": "M.9.6.2",
+   "text": "Which funds have a track record of at least {n} years?",
+   "group": "Mutual Fund",
+   "path": [
+    "Screener-Style",
+    "New Funds"
+   ],
+   "placeholders": [
+    "n"
+   ]
+  },
+  {
+   "id": "M.10.1.1",
+   "text": "How do {fund} and {fund_2} compare on returns, risk, cost and holdings?",
+   "group": "Mutual Fund",
+   "path": [
+    "Compare",
+    "Fund versus Fund"
+   ],
+   "placeholders": [
+    "fund",
+    "fund_2"
+   ]
+  },
+  {
+   "id": "M.10.2.1",
+   "text": "How does {fund} compare with its category average?",
+   "group": "Mutual Fund",
+   "path": [
+    "Compare",
+    "Fund versus Category"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.10.3.1",
+   "text": "What is the return difference between the direct and regular plan of {fund}?",
+   "group": "Mutual Fund",
+   "path": [
+    "Compare",
+    "Direct versus Regular"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "M.10.4.1",
+   "text": "How does {fund} compare with an index fund or ETF on the same benchmark?",
+   "group": "Mutual Fund",
+   "path": [
+    "Compare",
+    "Fund versus Index Fund or ETF"
+   ],
+   "placeholders": [
+    "fund"
+   ]
+  },
+  {
+   "id": "E.1.1",
+   "text": "Who issues {etf}, and which index does it track?",
+   "group": "ETF",
+   "path": [
+    "Snapshot"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.1.2",
+   "text": "What are {etf}'s listing date, AUM and ISIN?",
+   "group": "ETF",
+   "path": [
+    "Snapshot"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.2.1",
+   "text": "What are {etf}'s 1, 3 and 5 year returns compared with its index?",
+   "group": "ETF",
+   "path": [
+    "Returns and Tracking"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.2.2",
+   "text": "What are {etf}'s tracking error and tracking difference?",
+   "group": "ETF",
+   "path": [
+    "Returns and Tracking"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.2.3",
+   "text": "What is {etf}'s current premium or discount to NAV, and how has it varied?",
+   "group": "ETF",
+   "path": [
+    "Returns and Tracking"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.3.1",
+   "text": "What are {etf}'s average daily volume and traded value?",
+   "group": "ETF",
+   "path": [
+    "Liquidity"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.3.2",
+   "text": "What is {etf}'s typical bid-ask spread?",
+   "group": "ETF",
+   "path": [
+    "Liquidity"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.3.3",
+   "text": "What is the creation unit size and who are the market makers for {etf}?",
+   "group": "ETF",
+   "path": [
+    "Liquidity"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.4.1",
+   "text": "What is {etf}'s expense ratio, and how does it compare with other ETFs on the same index?",
+   "group": "ETF",
+   "path": [
+    "Costs"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.5.1",
+   "text": "What are {etf}'s top holdings and their weights?",
+   "group": "ETF",
+   "path": [
+    "Holdings"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.5.2",
+   "text": "What are {etf}'s sector weights and number of constituents?",
+   "group": "ETF",
+   "path": [
+    "Holdings"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.6.1",
+   "text": "Which broad index ETFs (Nifty, Sensex) are available, and how do they compare?",
+   "group": "ETF",
+   "path": [
+    "Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "E.6.2",
+   "text": "Which sectoral and thematic ETFs are available?",
+   "group": "ETF",
+   "path": [
+    "Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "E.6.3",
+   "text": "Which gold and silver ETFs are available, and how do they compare?",
+   "group": "ETF",
+   "path": [
+    "Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "E.6.4",
+   "text": "Which debt and liquid ETFs are available?",
+   "group": "ETF",
+   "path": [
+    "Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "E.6.5",
+   "text": "Which international ETFs are available?",
+   "group": "ETF",
+   "path": [
+    "Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "E.7.1",
+   "text": "What are {etf}'s volatility, maximum drawdown and Sharpe ratio?",
+   "group": "ETF",
+   "path": [
+    "Risk"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.8.1",
+   "text": "How do {etf} and {etf_2} on the same index compare on cost, tracking and liquidity?",
+   "group": "ETF",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "etf",
+    "etf_2"
+   ]
+  },
+  {
+   "id": "E.8.2",
+   "text": "How does {etf} compare with an index fund on the same index?",
+   "group": "ETF",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "E.8.3",
+   "text": "How has {etf} performed against its underlying index?",
+   "group": "ETF",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "etf"
+   ]
+  },
+  {
+   "id": "F.1.1.1",
+   "text": "What is {term}?",
+   "group": "FinLit",
+   "path": [
+    "Glossary",
+    "Term Lookup"
+   ],
+   "placeholders": [
+    "term"
+   ]
+  },
+  {
+   "id": "F.1.1.2",
+   "text": "How is {term} used in investing?",
+   "group": "FinLit",
+   "path": [
+    "Glossary",
+    "Term Lookup"
+   ],
+   "placeholders": [
+    "term"
+   ]
+  },
+  {
+   "id": "F.1.2.1",
+   "text": "Which terms are used for stocks, mutual funds, ETFs, taxes and derivatives?",
+   "group": "FinLit",
+   "path": [
+    "Glossary",
+    "By Category"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.1.3.1",
+   "text": "What does the abbreviation {term} stand for?",
+   "group": "FinLit",
+   "path": [
+    "Glossary",
+    "Abbreviations"
+   ],
+   "placeholders": [
+    "term"
+   ]
+  },
+  {
+   "id": "F.2.1.1",
+   "text": "What is PE, and how is it calculated?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Valuation"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.1.2",
+   "text": "What is the difference between PE and forward PE?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Valuation"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.1.3",
+   "text": "What are PB, EV/EBITDA and PEG, and when should each be used?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Valuation"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.2.1",
+   "text": "What are ROE and ROCE, and how do they differ?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Profitability"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.2.2",
+   "text": "What do operating margin and net margin tell an investor?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Profitability"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.3.1",
+   "text": "What is debt-to-equity, and what level is risky?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Leverage"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.3.2",
+   "text": "What is interest coverage, and why does it matter?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Leverage"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.4.1",
+   "text": "What are alpha, beta, Sharpe ratio and standard deviation?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Mutual Fund Metrics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.4.2",
+   "text": "What is XIRR, and how is it different from CAGR?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Mutual Fund Metrics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.4.3",
+   "text": "What is an expense ratio, and how does it affect returns?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Mutual Fund Metrics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.5.1",
+   "text": "What is a good range for {metric}?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Good Ranges"
+   ],
+   "placeholders": [
+    "metric"
+   ]
+  },
+  {
+   "id": "F.2.5.2",
+   "text": "How does a good {metric} differ across sectors?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Good Ranges"
+   ],
+   "placeholders": [
+    "metric"
+   ]
+  },
+  {
+   "id": "F.2.6.1",
+   "text": "Which metrics suit banks, IT, FMCG, pharma, infrastructure and manufacturing companies?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Metric by Sector"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.2.6.2",
+   "text": "Why should banks not be judged on debt-to-equity?",
+   "group": "FinLit",
+   "path": [
+    "Metric Explainers",
+    "Metric by Sector"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.1.1",
+   "text": "What is the difference between stocks, mutual funds and ETFs?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Instruments"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.1.2",
+   "text": "What is an index fund, and how is it different from an ETF?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Instruments"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.2.1",
+   "text": "How does the stock market work (exchanges, T+1 settlement, circuits)?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Market Mechanics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.2.2",
+   "text": "What are market hours, pre-open session and circuit limits?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Market Mechanics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.3.1",
+   "text": "How does an IPO work, from application to allotment and listing?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "IPO Basics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.3.2",
+   "text": "What is GMP, and how reliable is it?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "IPO Basics"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.4.1",
+   "text": "What is a demat account, and how is it different from a trading account?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Demat and Brokerage"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.3.4.2",
+   "text": "What charges apply when buying and selling shares?",
+   "group": "FinLit",
+   "path": [
+    "Basics",
+    "Demat and Brokerage"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.1.1",
+   "text": "When is a SIP better than a lumpsum investment?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "SIP versus Lumpsum"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.1.2",
+   "text": "How does rupee cost averaging work?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "SIP versus Lumpsum"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.2.1",
+   "text": "What is diversification, and how many stocks or funds are enough?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Diversification and Allocation"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.2.2",
+   "text": "What is asset allocation, and how should it change with age and goals?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Diversification and Allocation"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.3.1",
+   "text": "What is risk appetite, and how can I assess mine?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Risk and Return"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.3.2",
+   "text": "What is the relationship between risk and return?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Risk and Return"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.4.1",
+   "text": "What is compounding, and why does starting early matter?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Compounding"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.4.2",
+   "text": "What is the Rule of 72?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Compounding"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.4.5.1",
+   "text": "What are the pros and cons of active versus passive investing?",
+   "group": "FinLit",
+   "path": [
+    "Investing Concepts",
+    "Passive versus Active"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.1.1",
+   "text": "How do I read a profit and loss statement?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Statements"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.1.2",
+   "text": "How do I read a balance sheet?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Statements"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.1.3",
+   "text": "How do I read a cash flow statement?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Statements"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.2.1",
+   "text": "How do I read a shareholding pattern, and what changes matter?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Shareholding Pattern"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.3.1",
+   "text": "Which sections of an annual report matter most to an investor?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Annual Report"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.5.4.1",
+   "text": "What are the common red flags to check before investing in a company?",
+   "group": "FinLit",
+   "path": [
+    "Reading Financials",
+    "Red Flags"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.6.1.1",
+   "text": "How are short-term and long-term capital gains taxed on stocks and equity funds?",
+   "group": "FinLit",
+   "path": [
+    "Taxation",
+    "Capital Gains"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.6.1.2",
+   "text": "How are debt funds and ETFs taxed?",
+   "group": "FinLit",
+   "path": [
+    "Taxation",
+    "Capital Gains"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.6.2.1",
+   "text": "How are dividends from stocks and mutual funds taxed?",
+   "group": "FinLit",
+   "path": [
+    "Taxation",
+    "Dividends"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.6.3.1",
+   "text": "What are ELSS, NPS and PPF, and how do they save tax?",
+   "group": "FinLit",
+   "path": [
+    "Taxation",
+    "Tax Saving"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.1.1",
+   "text": "How is the company score calculated, and what do its pillars mean?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Scores"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.1.2",
+   "text": "How is the mutual fund health score calculated?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Scores"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.1.3",
+   "text": "Why are fundamental and technical scores kept separate?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Scores"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.2.1",
+   "text": "How do I use the screener and its filters?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Screener"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.2.2",
+   "text": "How do I save a custom screen?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Screener"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "F.7.3.1",
+   "text": "How do alerts, watchlists and portfolio import work?",
+   "group": "FinLit",
+   "path": [
+    "Platform Help",
+    "Tools"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.1.1",
+   "text": "What are the current levels and returns of Nifty 50, Next 50, Midcap, Smallcap and Bank Nifty?",
+   "group": "Market and Sector",
+   "path": [
+    "Indices"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.1.2",
+   "text": "What are the PE and PB of {index} compared with its history?",
+   "group": "Market and Sector",
+   "path": [
+    "Indices"
+   ],
+   "placeholders": [
+    "index"
+   ]
+  },
+  {
+   "id": "S.2.1",
+   "text": "Which sectors have performed best over 1 month, 3 months and 1 year?",
+   "group": "Market and Sector",
+   "path": [
+    "Sectors"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.2.2",
+   "text": "How does {sector}'s PE compare with its historical average?",
+   "group": "Market and Sector",
+   "path": [
+    "Sectors"
+   ],
+   "placeholders": [
+    "sector"
+   ]
+  },
+  {
+   "id": "S.2.3",
+   "text": "What are the revenue growth and margin trends of {sector}?",
+   "group": "Market and Sector",
+   "path": [
+    "Sectors"
+   ],
+   "placeholders": [
+    "sector"
+   ]
+  },
+  {
+   "id": "S.2.4",
+   "text": "Who are the top companies in {sector} by market cap and by score?",
+   "group": "Market and Sector",
+   "path": [
+    "Sectors"
+   ],
+   "placeholders": [
+    "sector"
+   ]
+  },
+  {
+   "id": "S.3.1",
+   "text": "Which stocks were the top gainers and losers today?",
+   "group": "Market and Sector",
+   "path": [
+    "Movers"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.3.2",
+   "text": "Which stocks hit a 52-week high or low today?",
+   "group": "Market and Sector",
+   "path": [
+    "Movers"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.3.3",
+   "text": "Which stocks saw volume spikes today?",
+   "group": "Market and Sector",
+   "path": [
+    "Movers"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.4.1",
+   "text": "What were the FII and DII net flows today and this month?",
+   "group": "Market and Sector",
+   "path": [
+    "Flows"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.4.2",
+   "text": "What were the mutual fund inflows and SIP flows in the latest month?",
+   "group": "Market and Sector",
+   "path": [
+    "Flows"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.5.1",
+   "text": "What are today's advance and decline counts?",
+   "group": "Market and Sector",
+   "path": [
+    "Breadth"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "S.5.2",
+   "text": "What percentage of stocks are above their 200 day moving average?",
+   "group": "Market and Sector",
+   "path": [
+    "Breadth"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.1.1",
+   "text": "Which companies have ROCE above {x}%, debt-to-equity below {y} and consistent profit growth?",
+   "group": "Screener Presets",
+   "path": [
+    "Quality"
+   ],
+   "placeholders": [
+    "x",
+    "y"
+   ]
+  },
+  {
+   "id": "P.2.1",
+   "text": "Which companies have low PE, low PB and a high dividend yield?",
+   "group": "Screener Presets",
+   "path": [
+    "Value"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.3.1",
+   "text": "Which companies have high 3-year and 5-year revenue and profit CAGRs?",
+   "group": "Screener Presets",
+   "path": [
+    "Growth"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.4.1",
+   "text": "Which stocks are near their 52-week high, above the 200 DMA and have strong RSI?",
+   "group": "Screener Presets",
+   "path": [
+    "Momentum"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.5.1",
+   "text": "Which companies have a high dividend yield and have paid dividends for 5 or more years?",
+   "group": "Screener Presets",
+   "path": [
+    "Dividend"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.6.1",
+   "text": "Which companies are debt-free or have very low debt?",
+   "group": "Screener Presets",
+   "path": [
+    "Low Debt"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.7.1",
+   "text": "Which companies have high promoter holding and low pledge?",
+   "group": "Screener Presets",
+   "path": [
+    "Promoter Strength"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.8.1",
+   "text": "Which companies recently turned profitable or show rapid margin expansion?",
+   "group": "Screener Presets",
+   "path": [
+    "Turnaround"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "P.9.1",
+   "text": "Which companies have the top fundamental score in {sector}?",
+   "group": "Screener Presets",
+   "path": [
+    "Model Based"
+   ],
+   "placeholders": [
+    "sector"
+   ]
+  },
+  {
+   "id": "P.9.2",
+   "text": "Which companies improved their score the most in the latest quarter?",
+   "group": "Screener Presets",
+   "path": [
+    "Model Based"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.1.1",
+   "text": "What revenue and margin guidance did management give for {company} in {period}?",
+   "group": "Earnings Call",
+   "path": [
+    "Guidance"
+   ],
+   "placeholders": [
+    "company",
+    "period"
+   ]
+  },
+  {
+   "id": "T.1.2",
+   "text": "Did management raise, maintain or cut its earlier guidance?",
+   "group": "Earnings Call",
+   "path": [
+    "Guidance"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.2.1",
+   "text": "What did management say about demand outlook and order book?",
+   "group": "Earnings Call",
+   "path": [
+    "Demand"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.2.2",
+   "text": "What did management say about pricing?",
+   "group": "Earnings Call",
+   "path": [
+    "Demand"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.3.1",
+   "text": "What drove the change in margins this quarter?",
+   "group": "Earnings Call",
+   "path": [
+    "Margins"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.3.2",
+   "text": "What cost pressures or tailwinds did management mention?",
+   "group": "Earnings Call",
+   "path": [
+    "Margins"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.4.1",
+   "text": "What capex plans did management announce?",
+   "group": "Earnings Call",
+   "path": [
+    "Capital"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.4.2",
+   "text": "What did management say about debt reduction, acquisitions or dividends?",
+   "group": "Earnings Call",
+   "path": [
+    "Capital"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.5.1",
+   "text": "What risks did management flag?",
+   "group": "Earnings Call",
+   "path": [
+    "Risks"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.5.2",
+   "text": "Which concerns did analysts press management on?",
+   "group": "Earnings Call",
+   "path": [
+    "Risks"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.6.1",
+   "text": "What did management say about each business segment?",
+   "group": "Earnings Call",
+   "path": [
+    "Segments"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.7.1",
+   "text": "What were the key questions analysts asked, and how did management respond?",
+   "group": "Earnings Call",
+   "path": [
+    "Analyst Q&A"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.8.1",
+   "text": "What did management say differently compared with the previous call?",
+   "group": "Earnings Call",
+   "path": [
+    "Changes versus Last Call"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "T.8.2",
+   "text": "Which topics were new or dropped in this call?",
+   "group": "Earnings Call",
+   "path": [
+    "Changes versus Last Call"
+   ],
+   "placeholders": []
+  },
+  {
+   "id": "X.1.1",
+   "text": "What is {company}'s loan book mix across retail, corporate, MSME and agri?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.2",
+   "text": "What are {company}'s yield on advances, cost of funds and spread?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.3",
+   "text": "What are {company}'s slippage ratio and credit cost, and are they rising?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.4",
+   "text": "How much of {company}'s book is restructured or in stage 2 and stage 3?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.5",
+   "text": "What is {company}'s liquidity coverage ratio?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.6",
+   "text": "For NBFCs: what are {company}'s AUM growth, disbursements and borrowing mix?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.7",
+   "text": "What is {company}'s price to adjusted book value (P/ABV) versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.1.8",
+   "text": "How many branches does {company} have, and what is business per branch?",
+   "group": "Sector-specific",
+   "path": [
+    "Banks and NBFCs (adds to C.5.6)"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.1",
+   "text": "What are {company}'s APE growth and value of new business (VNB) margin?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.2",
+   "text": "What are {company}'s 13th and 61st month persistency ratios?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.3",
+   "text": "What is {company}'s solvency ratio versus the regulatory minimum?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.4",
+   "text": "For general insurers: what are {company}'s combined ratio, claims ratio and expense ratio?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.5",
+   "text": "What is {company}'s embedded value, and what is P/EV?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.6",
+   "text": "What is {company}'s product mix (term, ULIP, savings, annuity)?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.2.7",
+   "text": "What is {company}'s AUM and the split of its investment portfolio?",
+   "group": "Sector-specific",
+   "path": [
+    "Insurance"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.1",
+   "text": "What is {company}'s revenue growth in USD and in constant currency?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.2",
+   "text": "What is {company}'s EBIT margin trend, and how does it compare with the top IT peers?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.3",
+   "text": "What are {company}'s attrition rate, utilisation and headcount trend?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.4",
+   "text": "What was {company}'s total contract value (TCV) of deal wins this quarter?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.5",
+   "text": "How concentrated is {company}'s revenue in its top 5 and top 10 clients?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.6",
+   "text": "What is {company}'s revenue split by vertical (BFSI, retail, manufacturing etc.) and geography?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.7",
+   "text": "What is {company}'s revenue per employee and its trend?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.3.8",
+   "text": "What is {company}'s onsite versus offshore mix?",
+   "group": "Sector-specific",
+   "path": [
+    "IT Services"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.1",
+   "text": "What are {company}'s available seat kilometres (ASK) and revenue passenger kilometres (RPK)?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.2",
+   "text": "What is {company}'s passenger load factor, and how has it trended?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.3",
+   "text": "What are {company}'s yield per RPK, RASK and CASK?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.4",
+   "text": "What is {company}'s CASK excluding fuel?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.5",
+   "text": "What share of {company}'s revenue goes to fuel, and how sensitive are profits to crude and the rupee?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.6",
+   "text": "What is {company}'s fleet size, average aircraft age and aircraft utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.7",
+   "text": "What is {company}'s domestic and international market share?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.8",
+   "text": "What is {company}'s EBITDAR margin and lease liability?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.9",
+   "text": "What is {company}'s net debt including leases?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.4.10",
+   "text": "What is {company}'s on-time performance and cancellation rate?",
+   "group": "Sector-specific",
+   "path": [
+    "Airlines"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.1",
+   "text": "What were {company}'s unit volumes (domestic and export), and how did they change YoY?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.2",
+   "text": "What are {company}'s average selling price (ASP) and realisation per vehicle?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.3",
+   "text": "What is {company}'s EBITDA per vehicle?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.4",
+   "text": "What is {company}'s market share in each segment?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.5",
+   "text": "What share of {company}'s sales is EV, and what is its EV plan?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.6",
+   "text": "For ancillaries: what is {company}'s content per vehicle, and how concentrated are its customers?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.7",
+   "text": "What is {company}'s capacity utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.5.8",
+   "text": "What is {company}'s order book (ancillaries and commercial vehicles)?",
+   "group": "Sector-specific",
+   "path": [
+    "Auto and Auto Ancillaries"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.1",
+   "text": "What is {company}'s order book, and how many years of revenue does it cover?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.2",
+   "text": "What was {company}'s order inflow this quarter, and what is its book-to-bill ratio?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.3",
+   "text": "What is {company}'s capacity utilisation, and how much capacity is being added?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.4",
+   "text": "What is {company}'s gross margin, and how exposed is it to raw material prices?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.5",
+   "text": "What is {company}'s fixed asset turnover and capex per unit of capacity?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.6",
+   "text": "What share of {company}'s revenue comes from exports?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.7",
+   "text": "How quickly does {company}'s order book convert to revenue (execution rate)?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.6.8",
+   "text": "How do {company}'s working capital days compare with manufacturing peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Manufacturing and Capital Goods"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.1",
+   "text": "What is {company}'s product mix between specialty and commodity chemicals?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.2",
+   "text": "What are {company}'s installed capacity and utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.3",
+   "text": "What is {company}'s EBITDA per tonne?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.4",
+   "text": "How exposed is {company} to raw material and crude price swings?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.5",
+   "text": "What share of {company}'s revenue is exports, and how dependent is it on a few customers or on China?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.6",
+   "text": "What capex is {company} undertaking, and what revenue is expected from it?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.7.7",
+   "text": "What is {company}'s net block turnover versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Chemicals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.1",
+   "text": "What are {company}'s sales volume and capacity utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.2",
+   "text": "What is {company}'s realisation per tonne?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.3",
+   "text": "What is {company}'s EBITDA per tonne versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.4",
+   "text": "What are {company}'s cost per tonne components (power and fuel, freight, raw material)?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.5",
+   "text": "What is {company}'s regional presence and market share?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.6",
+   "text": "What is {company}'s capacity expansion plan and capex per tonne?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.8.7",
+   "text": "What is {company}'s EV per tonne of capacity versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Cement"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.1",
+   "text": "What are {company}'s production and sales volumes?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.2",
+   "text": "What is {company}'s realisation per tonne and EBITDA per tonne?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.3",
+   "text": "How integrated is {company} in iron ore and coking coal?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.4",
+   "text": "What is {company}'s net debt-to-EBITDA, and is it falling?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.5",
+   "text": "What is {company}'s export share, and how exposed is it to import duties?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.6",
+   "text": "How sensitive are {company}'s profits to commodity price changes?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.9.7",
+   "text": "What is {company}'s capacity expansion plan?",
+   "group": "Sector-specific",
+   "path": [
+    "Steel and Metals"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.1",
+   "text": "What is {company}'s R&D spend as a percentage of sales?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.2",
+   "text": "What share of {company}'s revenue comes from the US, India and other markets?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.3",
+   "text": "How many ANDA filings and approvals does {company} have, and what is its USFDA inspection status?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.4",
+   "text": "How concentrated is {company}'s revenue in a few products?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.5",
+   "text": "What is {company}'s gross margin and EBITDA margin trend?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.6",
+   "text": "For hospitals: what are {company}'s ARPOB, occupancy, average length of stay and bed count?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.7",
+   "text": "For hospitals: how many beds is {company} adding, and what is its payor mix?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.10.8",
+   "text": "For diagnostics: what is {company}'s revenue per test and per patient, and its collection centre count?",
+   "group": "Sector-specific",
+   "path": [
+    "Pharma and Healthcare"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.1",
+   "text": "How much of {company}'s growth comes from volume versus price?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.2",
+   "text": "What is {company}'s gross margin, and how exposed is it to commodity prices?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.3",
+   "text": "What does {company} spend on advertising as a percentage of sales?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.4",
+   "text": "What is {company}'s distribution reach and rural share of sales?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.5",
+   "text": "What is {company}'s market share in its key categories?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.6",
+   "text": "What share of {company}'s revenue comes from new products and premium products?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.11.7",
+   "text": "What are {company}'s working capital days compared with peers?",
+   "group": "Sector-specific",
+   "path": [
+    "FMCG and Consumer"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.1",
+   "text": "What is {company}'s same-store sales growth (SSSG)?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.2",
+   "text": "How many stores does {company} have, and how many did it add this year?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.3",
+   "text": "What are {company}'s revenue per square foot and revenue per store?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.4",
+   "text": "What are {company}'s inventory days and gross margin?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.5",
+   "text": "What share of {company}'s sales is online?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.12.6",
+   "text": "What are {company}'s lease liabilities, and what is EBITDA after lease costs?",
+   "group": "Sector-specific",
+   "path": [
+    "Retail and Consumer Discretionary"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.1",
+   "text": "What were {company}'s pre-sales (bookings) value and volume this quarter?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.2",
+   "text": "What are {company}'s collections, and how do they compare with pre-sales?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.3",
+   "text": "What new launches does {company} plan, and what is its unsold inventory?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.4",
+   "text": "What is {company}'s land bank and development pipeline?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.5",
+   "text": "What is {company}'s realisation per square foot?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.6",
+   "text": "What is {company}'s net debt-to-pre-sales or operating cash flow position?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.13.7",
+   "text": "For rental portfolios: what are {company}'s occupancy and rental yield?",
+   "group": "Sector-specific",
+   "path": [
+    "Real Estate"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.1",
+   "text": "What is {company}'s installed capacity, split by thermal, hydro and renewable?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.2",
+   "text": "What is {company}'s plant load factor (PLF) and total generation?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.3",
+   "text": "What is {company}'s average tariff, and how much is regulated?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.4",
+   "text": "How much capacity does {company} have under construction, and what is its commissioning timeline?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.5",
+   "text": "What are {company}'s receivables from state distribution companies, and how old are they?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.6",
+   "text": "What is {company}'s debt per MW of capacity?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.14.7",
+   "text": "What is {company}'s regulated equity and the return on it?",
+   "group": "Sector-specific",
+   "path": [
+    "Power and Utilities"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.1",
+   "text": "What are {company}'s gross refining margin (GRM) and refinery throughput?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.2",
+   "text": "What is {company}'s crude oil and gas production and realisation per barrel?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.3",
+   "text": "What are {company}'s marketing margins, and are there under-recoveries?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.4",
+   "text": "What are {company}'s reserves and reserve life?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.5",
+   "text": "What are {company}'s gas sales volumes and transmission or distribution volumes?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.6",
+   "text": "What is {company}'s sensitivity to crude price and exchange rate?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.15.7",
+   "text": "What are {company}'s capex and expansion plans?",
+   "group": "Sector-specific",
+   "path": [
+    "Oil, Gas and Energy"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.1",
+   "text": "What are {company}'s ARPU and its trend?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.2",
+   "text": "What is {company}'s subscriber base, net additions and churn?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.3",
+   "text": "What is {company}'s data usage per user and 4G / 5G subscriber share?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.4",
+   "text": "What is {company}'s EBITDA margin versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.5",
+   "text": "What are {company}'s spectrum and AGR liabilities?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.6",
+   "text": "What is {company}'s capex intensity and net debt-to-EBITDA?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.16.7",
+   "text": "How many towers does {company} have, and what is its tenancy ratio?",
+   "group": "Sector-specific",
+   "path": [
+    "Telecom"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.1",
+   "text": "What is {company}'s order book, and its order book-to-revenue ratio?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.2",
+   "text": "What new orders did {company} win, and what is its bid pipeline?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.3",
+   "text": "What is {company}'s execution rate and revenue conversion from the order book?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.4",
+   "text": "What are {company}'s receivable days and unbilled revenue?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.5",
+   "text": "How much equity has {company} invested in its road, power or other SPVs?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.6",
+   "text": "What is {company}'s project debt, and how much is non-recourse?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.17.7",
+   "text": "For toll and annuity assets: what are {company}'s toll revenue and traffic growth?",
+   "group": "Sector-specific",
+   "path": [
+    "Infrastructure and Construction"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.18.1",
+   "text": "What are {company}'s occupancy, average room rate (ARR) and RevPAR?",
+   "group": "Sector-specific",
+   "path": [
+    "Hospitality and Travel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.18.2",
+   "text": "What is {company}'s room count, and what is in its pipeline?",
+   "group": "Sector-specific",
+   "path": [
+    "Hospitality and Travel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.18.3",
+   "text": "What is {company}'s F&B share of revenue?",
+   "group": "Sector-specific",
+   "path": [
+    "Hospitality and Travel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.18.4",
+   "text": "How much of {company}'s portfolio is owned versus asset light (managed or franchised)?",
+   "group": "Sector-specific",
+   "path": [
+    "Hospitality and Travel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.18.5",
+   "text": "What is {company}'s EBITDA margin versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Hospitality and Travel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.19.1",
+   "text": "What are {company}'s capacity and utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Textiles and Apparel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.19.2",
+   "text": "What share of {company}'s revenue is exports, and which are its key markets?",
+   "group": "Sector-specific",
+   "path": [
+    "Textiles and Apparel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.19.3",
+   "text": "How exposed is {company} to cotton and yarn price changes?",
+   "group": "Sector-specific",
+   "path": [
+    "Textiles and Apparel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.19.4",
+   "text": "What are {company}'s realisation per unit and EBITDA margin?",
+   "group": "Sector-specific",
+   "path": [
+    "Textiles and Apparel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.19.5",
+   "text": "What are {company}'s inventory and receivable days?",
+   "group": "Sector-specific",
+   "path": [
+    "Textiles and Apparel"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.20.1",
+   "text": "What are {company}'s sales volumes by product (urea, DAP, NPK etc.)?",
+   "group": "Sector-specific",
+   "path": [
+    "Fertilizers and Agri"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.20.2",
+   "text": "What are {company}'s subsidy receivables, and how long do they take to be paid?",
+   "group": "Sector-specific",
+   "path": [
+    "Fertilizers and Agri"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.20.3",
+   "text": "How exposed is {company} to gas, ammonia and raw material prices?",
+   "group": "Sector-specific",
+   "path": [
+    "Fertilizers and Agri"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.20.4",
+   "text": "How dependent is {company} on the monsoon and government policy?",
+   "group": "Sector-specific",
+   "path": [
+    "Fertilizers and Agri"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.20.5",
+   "text": "What is {company}'s capacity utilisation?",
+   "group": "Sector-specific",
+   "path": [
+    "Fertilizers and Agri"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.1",
+   "text": "What are {company}'s gross merchandise value (GMV) and its growth?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.2",
+   "text": "What is {company}'s take rate?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.3",
+   "text": "What are {company}'s monthly active users and average order value?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.4",
+   "text": "What are {company}'s customer acquisition cost and contribution margin?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.5",
+   "text": "What are {company}'s adjusted EBITDA and cash burn?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.21.6",
+   "text": "How many quarters of cash runway does {company} have?",
+   "group": "Sector-specific",
+   "path": [
+    "Internet and New-Age Businesses"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.22.1",
+   "text": "Which valuation metric is most relevant for {company}'s sector (P/ABV for banks, P/EV for insurers, EV/EBITDA for airlines and cement, EV per tonne for cement and steel, P/E for IT and FMCG)?",
+   "group": "Sector-specific",
+   "path": [
+    "Right Valuation Lens"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.22.2",
+   "text": "How does {company} trade on its sector's key valuation metric versus its own history?",
+   "group": "Sector-specific",
+   "path": [
+    "Right Valuation Lens"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.22.3",
+   "text": "How does {company} trade on that metric versus peers?",
+   "group": "Sector-specific",
+   "path": [
+    "Right Valuation Lens"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  },
+  {
+   "id": "X.22.4",
+   "text": "Which standard metrics should be ignored for {company}'s sector, and why?",
+   "group": "Sector-specific",
+   "path": [
+    "Right Valuation Lens"
+   ],
+   "placeholders": [
+    "company"
+   ]
+  }
+ ]
+}

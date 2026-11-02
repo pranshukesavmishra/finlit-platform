@@ -116,7 +116,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         <TradingFacts s={s} />
 
         <div className="pz-pair dk-pair" data-open={dashOpen}>
-        <Gate tier="silver" title="Unlock the FinLit Research Score" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
+        <Gate tier="silver" title="Unlock the FinLit IQ" points={["Overall score from our proprietary model", "Five-pillar scorecard on every stock page", "See how each parameter drives the score"]}>
           <ScoreCard s={s} ratios={ratios} jump={jump} two={two} expanded={dashOpen} />
         </Gate>
         <PrismCompare symbol={s.profile.symbol} name={p.name} statement={s.meta.statement} />

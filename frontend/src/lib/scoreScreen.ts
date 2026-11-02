@@ -1,6 +1,6 @@
 // Pure logic of the Score screener: scores per company, filters, sorting, paging, presets, summary numbers, URL state and CSV.
 // No score is computed differently here than on the stock page: Business is the average of the four business pillars, Technical is the
-// technical pillar, Overall is the FinLit overall score as stored. A missing score is null and never passes a score filter or counts as zero.
+// technical pillar, Overall is the FinLit IQ as stored. A missing score is null and never passes a score filter or counts as zero.
 import { csvText } from "./format";
 import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
@@ -401,7 +401,7 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
     `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
     ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Growth & Profitability, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
       "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
-      : ["# Growth & Profitability = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
+      : ["# Growth & Profitability = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit IQ."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];
   const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];

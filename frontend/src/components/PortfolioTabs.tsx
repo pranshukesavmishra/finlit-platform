@@ -187,7 +187,7 @@ export function SummaryTiles({ lines, model, limit }: { lines: Line[]; model: Mo
   return (
     <div className="pf-k" aria-label="Portfolio summary">
       <div className="card ipo-t" style={tile("var(--k1)")}><span>Shares</span><b>{sum.shares}</b><small>{sum.preparing ? `${sum.preparing} being prepared` : `of ${limit} on your plan`}</small></div>
-      <div className="card ipo-t" style={tile("var(--k7)")}><span>Average {model === "prism" ? "Prism" : "FinLit"} score</span><b className={"ssp-t " + scoreBand(avg)}>{avg == null ? MINUS : avg}</b>
+      <div className="card ipo-t" style={tile("var(--k7)")}><span>{model === "prism" ? "Average Prism score" : "Average FinLit IQ"}</span><b className={"ssp-t " + scoreBand(avg)}>{avg == null ? MINUS : avg}</b>
         <small>{sum.scored ? `average of ${sum.scored} scored ${sum.scored === 1 ? "share" : "shares"}` : "no share is scored yet"}</small></div>
       <div className="card ipo-t" style={tile("var(--band-hi)")}><span>Score colours</span>
         <b className="pf-mix" aria-label={`${sum.bands.hi} green, ${sum.bands.mid} orange, ${sum.bands.lo} red`}><i className="hi">{sum.bands.hi}</i><i className="mid">{sum.bands.mid}</i><i className="lo">{sum.bands.lo}</i></b>
