@@ -138,22 +138,37 @@ export function validate(f: Filters): Problems {
   return out;
 }
 
-// ---------- presets (defined only by score bands and ranges) ----------
-export type Preset = { id: string; label: string; say: string; f: Band[]; t: Band[] };
+// ---------- presets (defined only by the basic model's own score bands and the overall score) ----------
+/** A quick view OWNS the six score bands (Business, Technical and the four pillars) and the Business, Technical and Overall boxes: choosing it sets those exactly
+ *  (cleared where it names nothing); size, sector and every other filter stay as they were. Each one states its rule in `say`; none is a recommendation. */
+export type Preset = { id: string; label: string; say: string; bands: Partial<Record<BandKey, Band[]>>; overallMin?: number };
 export const PRESETS: Preset[] = [
-  { id: "both", label: "Strong on both", say: "Business 78 and above and Technical 78 and above.", f: ["high"], t: ["high"] },
-  { id: "fund", label: "Strong business, weak trend", say: "Business 78 and above and Technical under 45.", f: ["high"], t: ["low"] },
-  { id: "trend", label: "Strong trend, weaker business", say: "Technical 78 and above and Business under 78.", f: ["low", "mid"], t: ["high"] },
+  { id: "both", label: "Strong on both", say: "Business 78 and above and Technical 78 and above.", bands: { f: ["high"], t: ["high"] } },
+  { id: "fund", label: "Strong business, weak trend", say: "Business 78 and above and Technical under 45.", bands: { f: ["high"], t: ["low"] } },
+  { id: "trend", label: "Strong trend, weaker business", say: "Technical 78 and above and Business under 78.", bands: { f: ["low", "mid"], t: ["high"] } },
+  { id: "top", label: "Top FinLit score", say: "An overall FinLit score of 78 or more (Strong).", bands: {}, overallMin: 78 },
+  { id: "quality", label: "Quality compounders", say: "Quality 78 and above and Profitability 78 and above: steady earnings and high returns on the money in the business.", bands: { q: ["high"], p: ["high"] } },
+  { id: "growth", label: "Growth leaders", say: "Growth 78 and above, with a Balance sheet score of 45 or more.", bands: { g: ["high"], b: ["mid", "high"] } },
+  { id: "balance", label: "Strong balance sheet", say: "Balance sheet 78 and above and Quality 45 or more: little debt, good interest cover and liquidity.", bands: { b: ["high"], q: ["mid", "high"] } },
 ];
-/** A preset sets the Business and Technical bands and clears their min-max boxes; every other filter stays as it was. */
-export function withPreset(f: Filters, p: Preset): Filters {
+const NO_RANGE = { min: null, max: null };
+/** The filters without any quick view: the six bands and the Business, Technical and Overall boxes cleared, everything else kept. */
+export function clearPreset(f: Filters): Filters {
   const n = cloneFilters(f);
-  n.bands.f = [...p.f]; n.bands.t = [...p.t];
-  n.ranges.f = { min: null, max: null }; n.ranges.t = { min: null, max: null };
+  BAND_KEYS.forEach((k) => { n.bands[k] = []; });
+  n.ranges.f = { ...NO_RANGE }; n.ranges.t = { ...NO_RANGE }; n.ranges.o = { ...NO_RANGE };
+  return n;
+}
+export function withPreset(f: Filters, p: Preset): Filters {
+  const n = clearPreset(f);
+  BAND_KEYS.forEach((k) => { n.bands[k] = [...(p.bands[k] ?? [])]; });
+  if (p.overallMin != null) n.ranges.o = { min: p.overallMin, max: null };
   return n;
 }
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
-export const activePreset = (f: Filters) => PRESETS.find((p) => same(f.bands.f, p.f) && same(f.bands.t, p.t) && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null)?.id ?? null;
+export const activePreset = (f: Filters) => PRESETS.find((p) => BAND_KEYS.every((k) => same(f.bands[k], p.bands[k] ?? []))
+  && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null
+  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null)?.id ?? null;
 
 /** Views of the advanced screener, built from the Prism parts only. A preset OWNS the Prism score, its four parts, the rating labels, the "rated only"
  *  switch and the two technical views: choosing it sets those exactly (cleared where it names nothing), every other filter stays. */
@@ -162,7 +177,7 @@ const min = (n: number): Range => ({ min: n, max: null });
 export const PRISM_PRESETS: PrismPreset[] = [
   { id: "strongsafe", label: "Prism strong and lower risk", say: "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { z: min(80), zr: min(65) }, labels: [], rated: true },
   { id: "fairvalue", label: "Strong Growth & Profitability at a fair valuation", say: "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
-  { id: "bothtech", label: "Positive on both technical views", say: "Prism's short-term and long-term technical views are both Positive (above the Neutral band).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
+  { id: "bothtech", label: "Uptrend on both technical views", say: "Prism's short-term and long-term technical views are both in an uptrend (+20 or more).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
   { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation 50 or less: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50 } }, labels: [], rated: true },
 ];
 const OWNED: RangeKey[] = [...PRISM_RANGE_KEYS];

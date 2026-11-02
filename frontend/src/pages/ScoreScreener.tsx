@@ -9,7 +9,7 @@ import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, cloneFilters, hasPrismParams, withPreset } from "../lib/scoreScreen";
+import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, clearPreset, hasPrismParams, withPreset } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -33,7 +33,7 @@ function Basic() {
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
   const usePreset = (id: string) => {
     if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
-    s.apply(preset === id ? { ...cloneFilters(draft), bands: { ...draft.bands, f: [], t: [] } } : withPreset(draft, PRESETS.find((p) => p.id === id)!));
+    s.apply(preset === id ? clearPreset(draft) : withPreset(draft, PRESETS.find((p) => p.id === id)!));
   };
 
   const tiles: [string, string, string?][] = [

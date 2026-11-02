@@ -292,7 +292,7 @@ PRESETS: List[Preset] = [
 QUICK_VIEWS: List[Preset] = [
     Preset("strongsafe", "Prism strong and lower risk", "prism-basics", "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", "quickview", _m(zmin=80, zrmin=65, rated=1)),
     Preset("fairvalue", "Strong Growth & Profitability at a fair valuation", "prism-basics", "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more.", "quickview", _m(zfmin=65, zvmin=50, rated=1)),
-    Preset("bothtech", "Positive on both technical views", "prism-basics", "Prism's short-term and long-term technical views are both Positive (above the Neutral band).", "quickview", _m()),
+    Preset("bothtech", "Uptrend on both technical views", "prism-basics", "Prism's short-term and long-term technical views are both in an uptrend (+20 or more).", "quickview", _m()),
     Preset("weakvalue", "Growth & Profitability strong but valuation weak", "prism-basics", "Prism Growth & Profitability 65 or more but Prism Valuation 50 or less.", "quickview", _m(zfmin=65, rated=1)),
 ]
 

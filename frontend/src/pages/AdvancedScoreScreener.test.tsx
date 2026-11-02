@@ -136,13 +136,13 @@ describe("Advanced score screener (Gold)", () => {
 
   it("offers four quick views built from the Prism parts only, each applying at once and switching off again", () => {
     open();
-    const views = screen.getAllByRole("button", { name: /^(Prism strong and lower risk|Strong Growth & Profitability at a fair valuation|Positive on both technical views|Growth & Profitability strong but valuation weak)$/ });
+    const views = screen.getAllByRole("button", { name: /^(Prism strong and lower risk|Strong Growth & Profitability at a fair valuation|Uptrend on both technical views|Growth & Profitability strong but valuation weak)$/ });
     expect(views).toHaveLength(4);
     fireEvent.click(screen.getByRole("button", { name: "Prism strong and lower risk" }));
     expect(symbols()).toEqual(["AAA"]); expect(loc()).toBe("/advanced-score-screener?zmin=80&zrmin=65&rated=1");
     fireEvent.click(screen.getByRole("button", { name: "Prism strong and lower risk" }));
     expect(symbols()).toHaveLength(6); expect(loc()).toBe("/advanced-score-screener");
-    fireEvent.click(screen.getByRole("button", { name: "Positive on both technical views" }));
+    fireEvent.click(screen.getByRole("button", { name: "Uptrend on both technical views" }));
     expect(symbols()).toEqual(["AAA"]); expect(loc()).toBe("/advanced-score-screener?st=pos&lt=pos");
     fireEvent.click(screen.getByRole("button", { name: "Growth & Profitability strong but valuation weak" }));
     expect(symbols()).toEqual(["BBB"]);                                        // Growth & Profitability 66 or more and Valuation 40 (50 or less)
