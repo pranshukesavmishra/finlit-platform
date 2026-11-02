@@ -66,7 +66,7 @@ function SearchSelect({ label, hint, value, items, onChange, placeholder, disabl
       <span className="label" id={`${id}-l`}>{label}</span>
       <button type="button" ref={btn} className="mf-pick-b" aria-haspopup="listbox" aria-expanded={open} aria-labelledby={`${id}-l ${id}-v`} disabled={disabled} onClick={() => setOpen((o) => !o)}>
         {badge && <Badge side={badge} />}
-        <span id={`${id}-v`} className={current ? "" : "ph"}>{current ? current.label : placeholder}</span><span aria-hidden="true" className="h2h-caret">▾</span>
+        <span id={`${id}-v`} className={current ? "" : "pick-ph"}>{current ? current.label : placeholder}</span><span aria-hidden="true" className="h2h-caret">▾</span>
       </button>
       {hint && <small className="faint h2h-hint">{hint}</small>}
       {open && (

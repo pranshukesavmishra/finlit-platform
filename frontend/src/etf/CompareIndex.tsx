@@ -41,7 +41,7 @@ function Picker({ label, placeholder, items, chosen, onChange, room, disabledWhy
       <span className="evi-label" id={id + "l"}>{label}</span>
       <button type="button" className="evi-sel" aria-haspopup="listbox" aria-expanded={open} aria-labelledby={id + "l " + id + "b"} disabled={!!disabledWhy} title={disabledWhy}
         onClick={() => { setOpen((o) => !o); setTimeout(() => input.current?.focus(), 0); }}>
-        <span id={id + "b"} className={chosen.length ? "" : "ph"}>{disabledWhy ? disabledWhy : chosen.length ? `${chosen.length} selected${room <= 0 ? " (the most this page can show)" : ""}` : placeholder}</span><Icon name="arrow" className="evi-chev" />
+        <span id={id + "b"} className={chosen.length ? "" : "pick-ph"}>{disabledWhy ? disabledWhy : chosen.length ? `${chosen.length} selected${room <= 0 ? " (the most this page can show)" : ""}` : placeholder}</span><Icon name="arrow" className="evi-chev" />
       </button>
       {open && (
         <div className="evi-pop" role="group" aria-label={`Choose: ${label}`}>
