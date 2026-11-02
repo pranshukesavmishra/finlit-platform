@@ -1,0 +1,63 @@
+### RELIANCE (company)
+asset_turnover [Steady] Steady over the last five years: 0.49–0.53×, down from 0.59× in FY19. || Each ₹1 of assets brings in about ₹0.51 of sales. [link:dupont]
+cash_conversion_cycle [Weakening] Worst in 8 years: −8 → 23 days in FY26. || Cash is now tied up for about 23 days in day-to-day running. Turned positive mainly because suppliers are being paid faster (payable days 108 → 84): the business now funds its own working capital instead of its suppliers.
+current_ratio [Steady] Steady over the last five years: 1.10–1.18×, up from 0.72× in FY19. || Current assets cover bills due within a year 1.10 times: a thin cushion.
+debt_to_assets [Steady] Steady over the last five years: 0.17–0.18×, down from 0.27× in FY19. || Borrowing funds about 17% of assets: low.
+debt_to_equity [Watch] Drifting higher over the last five years: 0.34 → 0.41×, flat for the last two. || ₹0.41 of debt for every ₹1 of owners' money: still conservative (under 0.5).
+debt_to_fcf [Improving] Most favourable in the 4 years with usable numbers: 8.46 → 5.35×. || Debt equals about 5.4 years of free cash flow: manageable. Free cash flow has grown faster than debt. FY23 not meaningful: free cash flow was negative.
+debtor_days [Weakening] Rising 3 years running (11 → 19 days), joint worst in 8 years. || Customers take about 19 days to pay. Slower collections tie up cash. [link:earnings-cash]
+dividend_payout [Context] Stable at 7.8–9.7% over the last five years. || Pays out about ₹9 of every ₹100 of profit and keeps the rest.
+ebit_margin [Steady] Steady over the last five years: 12.7–13.7% (FY21's 15.2% was a one-off high). || About ₹13.6 of operating profit after depreciation per ₹100 of sales.
+ebitda_margin [Above usual] Better than its usual level: 18.8% against an 8-year median of 17.9%, up from 15.7% in FY19. || About ₹18.8 of operating profit before depreciation per ₹100 of sales.
+effective_tax_rate [Context] Stable at 19.4–24.6% over the last five years (FY21's 3.1% was a one-off low). || Pays about 22% of pre-tax profit as tax: close to the usual 25%.
+financial_leverage [Watch] Rising 5 years running: 1.89 → 2.41×. || ₹2.41 of assets for every ₹1 of equity: moderate. Assets are growing faster than equity: this lifts ROE but adds risk. [link:dupont]
+gross_margin [Steady] Steady over the last five years: 34.9–37.7%, up from 33.1% in FY19. || Keeps about ₹37.7 of every ₹100 of sales after direct costs.
+interest_coverage [Watch] Drifting lower over the last five years: 6.75 → 5.55×. || Operating profit covers interest 5.6 times: comfortable (above 3×).
+inventory_days [Steady] Steady over the last five years: 83–95 days, up from 63 days in FY19. || Holds about 88 days of stock.
+lt_debt_to_equity [Watch] Drifting higher over the last five years: 0.24 → 0.30×. || ₹0.30 of long-term debt for every ₹1 of equity: still low (under 0.5). More long-term borrowing, usually to fund new projects.
+net_margin [Watch] Drifting lower over the last five years: 8.2 → 7.3%. || Keeps about ₹7.3 of every ₹100 of sales as profit. [link:dupont]
+operating_margin [Steady] Steady over the last five years: 12.7–13.7% (FY21's 14.0% was a one-off high). || About ₹13.6 of operating profit per ₹100 of sales.
+payable_days [Shifted] Lowest in 8 years: 108 → 84 days. || Pays suppliers in about 84 days. Paying suppliers faster uses cash. This is the main reason the cash cycle rose.
+pretax_margin [Steady] Steady over the last five years: 10.5–11.4%, up from 9.4% in FY19. || About ₹11.2 of every ₹100 of sales is left after interest and depreciation.
+quick_ratio [Steady] Steady over the last five years: 0.76–0.80×, up from 0.50× in FY19. || Without selling stock, liquid assets cover about 79% of bills due within a year: common for businesses that hold a lot of stock.
+retention_ratio [Context] Stable at 90.3–92.2% over the last five years. || Keeps about ₹91 of every ₹100 of profit to reinvest.
+roa [Watch] Drifting lower over the last five years: 4.1 → 3.7%. || Earns about ₹3.7 a year for every ₹100 of assets: low.
+roce [Recovering] Recovering from 7.3% in FY21 to 9.2%, still below FY19's 10.4%. || Earns about ₹9.2 for every ₹100 of capital employed: below the 12% many investors look for.
+roe [Recovering] Recovering from 7.0% in FY21 to 8.9%, still below FY19's 10.2%. || Earns about ₹8.9 for every ₹100 of shareholders' money: low (under 12%). [link:dupont]
+rota [Steady] Steady over the last five years: 4.5–4.9%. || Earns about ₹4.5 for every ₹100 of tangible assets: low.
+### TMPV (company)
+asset_turnover [Watch] Falling 2 years running: 1.20 → 0.89×. || Each ₹1 of assets brings in about ₹0.89 of sales. The asset base is growing faster than sales. [link:dupont]
+current_ratio [Weakening] Falling 3 years running (0.98 → 0.84×), joint worst in the 8 years with usable numbers. || Current assets cover about 84% of bills due within a year: tight. Less short-term cushion.
+ebit_margin [Weakening] Fell sharply in FY26: 8.7 → 0.2%. || About ₹0.2 of operating profit after depreciation per ₹100 of sales. Costs are taking a bigger slice of sales.
+ebitda_margin [Weakening] Fell sharply in FY26: 13.9 → 6.0%. || About ₹6.0 of operating profit before depreciation per ₹100 of sales. Costs are taking a bigger slice of sales.
+interest_coverage [Weakening] Fell sharply in FY26: 7.59 → 0.27×. || Operating profit covers interest 0.3 times: weak (under 1.5×). Interest costs are growing faster than profit.
+net_margin [Weakening] Turned negative in FY26: 5.2 → −0.5%. || Loses about ₹0.5 on every ₹100 of sales. Back to a loss. [link:dupont]
+operating_margin [Weakening] Fell sharply in FY26: 8.8 → 1.4%. || About ₹1.4 of operating profit per ₹100 of sales. Costs are taking a bigger slice of sales.
+pretax_margin [Weakening] Turned negative in FY26: 7.5 → −0.6%. || Pre-tax loss of about ₹0.6 per ₹100 of sales. Back to a loss.
+roa [Weakening] Turned negative in FY26: 6.1 → −0.4%. || Loses about ₹0.4 a year for every ₹100 of assets. Back to a loss.
+roce [Weakening] Fell sharply in FY26: 18.2 → 0.4%. || Earns about ₹0.4 for every ₹100 of capital employed: below the 12% many investors look for. Capital is earning less.
+rota [Above usual] Better than its usual level: 9.4% (latest usable year FY25) against a 7-year median of −4.2%. || Earns about ₹9.4 for every ₹100 of tangible assets: moderate. FY26 not meaningful: it does not match ROA; check the data.
+effective_tax_rate [Context] Ranged 23.0–38.9% since FY18, down from 38.9% in FY18. || Pays about 31% of pre-tax profit as tax: above the usual 25%. FY19, FY20, FY21, FY22, FY26 not meaningful: there was little or no pre-tax profit. FY24 not meaningful: the value is unusual.
+### SUZLON (company)
+ebit_margin [Above usual] Better than its usual level: 17.1% against a 9-year median of 14.2%. || About ₹17.1 of operating profit after depreciation per ₹100 of sales.
+roce [Improving] Rising 2 years running: 19.8 → 27.0%. || Earns about ₹27.0 for every ₹100 of capital employed: strong. Capital is earning more.
+effective_tax_rate [Context] Ranged −0.1–4.4% since FY21. || Pays about 0% of pre-tax profit as tax: well below the usual 25%: check why. FY18, FY19, FY20, FY22 not meaningful: there was little or no pre-tax profit. FY25, FY26 not meaningful: the value is unusual.
+pretax_margin [Above usual] Better than its usual level: 14.4% against a 9-year median of 3.1%. || About ₹14.4 of every ₹100 of sales is left after interest and depreciation.
+roa [Above usual] Better than its usual level: 16.8% against an 8-year median of 5.4%. || Earns about ₹16.8 a year for every ₹100 of assets: strong.
+rota [Above usual] Better than its usual level: 17.2% against an 8-year median of 5.5%. || Earns about ₹17.2 for every ₹100 of tangible assets: strong.
+### HDFCBANK (lender)
+pretax_margin [Watch] Drifting lower over the last five years: 30.3 → 20.0%, though up the last two years. || About ₹20.0 of every ₹100 of income is left before tax.
+roa [Watch] Worst in the 7 years with usable numbers: 1.61 → 1.55% in FY26. || Earns about ₹1.6 a year for every ₹100 of assets: healthy for a lender. Profit is not keeping up with the asset base.
+rota [Watch] Worst in the 7 years with usable numbers: 1.61 → 1.55% in FY26. || Earns about ₹1.6 for every ₹100 of tangible assets: healthy for a lender. Profit is not keeping up with tangible assets.
+roe [Watch] Falling 3 years running (15.9 → 13.1%), worst in the 7 years with usable numbers. || Earns about ₹13.1 for every ₹100 of shareholders' money: healthy. Returns to shareholders are slipping. [link:dupont]
+net_margin [Watch] Drifting lower over the last five years: 22.7 → 15.3%. || Keeps about ₹15.3 of every ₹100 of income as profit.
+### TCS (company)
+ebit_margin [Watch] Worst in 8 years: 25.5 → 24.6% in FY26. || About ₹24.6 of operating profit after depreciation per ₹100 of sales. Costs are taking a bigger slice of sales.
+debtor_days [Weakening] Worst in 8 years: 83 → 91 days in FY26. || Customers take about 91 days to pay. Slower collections tie up cash. [link:earnings-cash]
+roce [Watch] Falling 2 years running: 62.6 → 54.9%. || Earns about ₹54.9 for every ₹100 of capital employed: strong. Capital is earning less.
+### DMART (company)
+debt_to_assets [Steady] Took on a little debt in FY26: 0.03 → 0.08×, still almost debt-free. || Borrowing funds about 8% of assets: low.
+debtor_days [Steady] Steady over the last five years: 1 day (FY20's 0 days was a one-off low). || Customers take about 1 day to pay.
+### PAYTM (company)
+debtor_days [Improving] Most favourable in 5 years: 62 → 47 days. || Customers take about 47 days to pay. Faster collections free up cash. This is the main reason the cash cycle fell.
+cash_conversion_cycle [Improving] Most favourable in 5 years: 62 → 47 days. || Cash is now tied up for about 47 days in day-to-day running. Down mainly because customers are paying faster (debtor days 62 → 47).
