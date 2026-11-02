@@ -313,10 +313,24 @@ class DhanClient:
             if r.status_code != 200:
                 raise DhanError(f"{path}: HTTP {r.status_code}")
             try:
-                return r.json()
+                out = r.json()
             except ValueError:
                 raise DhanError(f"{path}: unreadable answer") from None
+            await self._accepted()
+            return out
         raise DhanError(f"{path}: gave up")
+
+    async def _accepted(self) -> None:
+        """A call went through: the token is accepted, so an earlier "key refused" note is stale. At most one Redis write per 10 minutes; never raises."""
+        now = time.monotonic()
+        if self.redis is None or now - getattr(self, "_accepted_at", -1e9) < 600:
+            return
+        self._accepted_at = now
+        try:
+            from .jobs.signals import clear_credential
+            await clear_credential(self.redis, "dhan")
+        except Exception:   # nosec B110 - an alert note must never fail a data call
+            pass
 
     async def _pace(self, gap: float) -> None:
         """Dhan's limit is per account, not per process: a Redis key that lives `gap` seconds is the turn to call (waits up to 20 seconds,
