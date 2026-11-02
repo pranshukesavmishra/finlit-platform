@@ -171,7 +171,7 @@ def _n(v: Any) -> str:
 
 
 PRISM_PARAMS = {  # filter -> (field, plain words)
-    "zmin": ("prism_final", "Prism score {n} or more"), "zfmin": ("prism_fundamental", "Prism Fundamentals {n} or more"), "zvmin": ("prism_valuation", "Prism Valuation {n} or more"),
+    "zmin": ("prism_final", "Prism score {n} or more"), "zfmin": ("prism_fundamental", "Prism Growth & Profitability {n} or more"), "zvmin": ("prism_valuation", "Prism Valuation {n} or more"),
     "zqmin": ("prism_quality", "Prism Quality {n} or more"), "zrmin": ("prism_risk", "Prism Risk {n} or more"),
     "st": ("prism_st_score", "Short-term technical view {n} or more"), "lt": ("prism_lt_score", "Long-term technical view {n} or more"),
 }

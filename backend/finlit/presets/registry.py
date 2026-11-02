@@ -5,7 +5,7 @@ To add or change a screen, edit the record, bump REGISTRY_VERSION (it is part of
 
 Record fields (spec names in brackets)
   id, name, group, card_text           what the user sees; names describe, never advise (a test scans every name and card for the banned words)
-  prism_filters                        the page's own Prism parameters: zmin (Prism score), zfmin / zvmin / zqmin / zrmin (Fundamentals / Valuation / Quality / Risk
+  prism_filters                        the page's own Prism parameters: zmin (Prism score), zfmin / zvmin / zqmin / zrmin (Growth & Profitability / Valuation / Quality / Risk
                                        part, "or more"), st / lt (short / long-term technical view score, "or more"), rated=1 (has a Prism score; Provisional
                                        included and badged), status="RATED" (Rated only: the three Top-10 screens), cap = Large | Mid | Small (the site's size buckets)
   ql                                   rules in the Query builder's own language, one condition per line (same parser, same units, same missing-data rule: unknown fails)
