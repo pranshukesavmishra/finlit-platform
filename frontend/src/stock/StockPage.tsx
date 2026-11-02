@@ -102,7 +102,7 @@ export function StockPage() {
   const mode: PreparingMode | null = sum.isLoading
     ? (st === 202 ? "building" : st === 429 ? "busy" : "loading")
     : sum.isError && (st === 202 || st === 429) ? "gaveUp"        // stopped asking after about 45 s: a visible end with "Try again", not a dead page
-    : sum.isError && (st ?? 0) >= 500 ? "failed"
+    : sum.isError && (st ?? 0) >= 500 ? (err?.body.status === "build_rejected" ? "rejected" : "failed")
     : null;
   if (mode) {
     const known = names.data?.rows.find((r) => r[0] === symbol);

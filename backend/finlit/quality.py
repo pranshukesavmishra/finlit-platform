@@ -122,6 +122,11 @@ def run(sections: Dict[str, dict], today: Optional[date] = None) -> dict:
         if r.get("dividend") is not None:
             # The current site showed 89% dividend return at every horizon; a real one is a few % a year.
             years = {"1M": 1 / 12, "3M": 0.25, "6M": 0.5, "1Y": 1, "2Y": 2, "3Y": 3, "5Y": 5}.get(r["period"], 1)
+            if r["period"] == "Since listing" and r.get("from"):      # the whole time since the first trading day, not one year: a long-listed dividend payer adds up to far more than 15%
+                try:
+                    years = (today - date.fromisoformat(str(r["from"])[:10])).days / 365.25
+                except ValueError:
+                    pass
             check(f"dividend_return_{r['period']}", r["dividend"] <= 15 * max(years, 1), CRITICAL,
                   f"{r['period']} dividend return of {r['dividend']}% is not believable.", value=r["dividend"])
 
