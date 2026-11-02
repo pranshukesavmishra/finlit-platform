@@ -210,7 +210,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
           <div className="payouts">{recent.map((d, i) => <div className="pay" key={d.date + d.amount} style={{ animationDelay: `${i * 70}ms` }}><div className="pc">₹{nf(d.amount ?? 0, d.amount && d.amount % 1 ? 2 : 0)}</div><div><b>{d.type === "interim_dividend" ? "Interim" : d.type === "special_dividend" ? "Special" : "Final"}</b><span>{dateIN(d.date)}</span></div></div>)}</div>
         </div>
       </div>
-      <div className="card acc dv-news" style={{ "--ac": "var(--info)", marginTop: 16 } as React.CSSProperties}>
+      <div className="card acc dv-news" id="announcements" style={{ "--ac": "var(--info)", marginTop: 16 } as React.CSSProperties}>
         <div className="card-h"><h3><span className="ci"><Icon name="notes" /></span>Exchange announcements</h3><span className="s">Routine filings hidden</span></div>
         <ol className="tl">{e.announcements.slice(0, 6).map((a) => {
           const ok = a.link && /^https?:\/\//.test(a.link);
@@ -243,7 +243,7 @@ export function SegmentCard({ seg }: { seg?: Segments }) {
   const colors = segmentColors(segmentNames(seg)).color;  // one colour per segment, shared by the strip, the tiles, the chart and the table
   const col = (name: string) => colors[name] ?? OTHERS_COLOR;
   return (
-    <div className="card acc" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
+    <div className="card acc" id="segments" style={{ "--ac": "var(--p-profit)" } as React.CSSProperties}>
       <div className="card-h"><h3 className="seg-title"><span className="ci"><Icon name="pie" /></span>Where the revenue comes from<ChartHelp id="segments" /></h3><span className="s">{seg?.periods[seg.periods.length - 1] || ""}</span></div>
       {latest.length ? (
         <>

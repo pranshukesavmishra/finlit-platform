@@ -23,7 +23,7 @@ import { LeadershipSection } from "./Leadership";
 import { EarningsCallSection } from "./EarningsCall";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
-import { navFor } from "../lib/sectionNav";
+import { GROUP_START, navFor } from "../lib/sectionNav";
 import { SectionsMenu } from "./SectionsMenu";
 import { PreparingReport, type PreparingMode } from "./PreparingReport";
 
@@ -124,7 +124,7 @@ export function StockPage() {
           <SectionsMenu items={navItems} active={active} onPick={jump} />
           <div className={"snav" + (edge.l ? " edge-l" : "") + (edge.r ? " edge-r" : "")}>
           {edge.l && <button type="button" className="snav-arrow" aria-label="Earlier sections" onClick={() => slide(-1)}>‹</button>}
-          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
+          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={(active === id ? "active" : "") + (GROUP_START.has(id) ? " grp" : "")} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
           {edge.r && <button type="button" className="snav-arrow" aria-label="More sections" onClick={() => slide(1)}>›</button>}
           </div>
         </div>
