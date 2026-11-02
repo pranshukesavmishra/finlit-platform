@@ -16,11 +16,23 @@ from .schedule import (IST, fmt_ist, in_active_hours, ist, is_weekday, latest_re
 
 RETRY_STEPS_MIN = (30, 60, 120)        # after the 1st, 2nd, 3rd and later failure in a row; reset by a success
 HELD_RETRY_MIN = 120                   # a job held after max_attempts failures is still retried this often
+HELD_MAX_WAIT_MIN = 180                # whatever retry time is stored, a failed or held job is never left waiting longer than this after its last attempt
+DEGRADED_RETRY_MIN = 240               # a job that finished degraded (essential step ok, an optional one not) is tried again after this long, without counting a failure
 YIELD_RETRY_MIN = 2                    # a resumable job that reached its time cap yields and continues after this long
 
 
 def retry_delay_min(failures: int) -> int:
     return RETRY_STEPS_MIN[min(max(failures, 1), len(RETRY_STEPS_MIN)) - 1]
+
+
+def effective_retry_at(st: "JobState") -> Optional[datetime]:
+    """When the job is tried again: the stored retry time, but never later than HELD_MAX_WAIT_MIN after its last attempt (a held job, or a retry time
+    written by an older rule, cannot leave a job waiting for days). A degraded job keeps its own, longer rhythm."""
+    if st.retry_at is None:
+        return None
+    if st.last_status == "partial" or st.last_attempt_at is None:
+        return st.retry_at
+    return min(st.retry_at, st.last_attempt_at + timedelta(minutes=HELD_MAX_WAIT_MIN))
 
 
 @dataclass
@@ -175,7 +187,8 @@ def need(job: Job, st: JobState, ctx: Ctx) -> Tuple[bool, str, bool]:
     now = ctx.now
     if st.forced_at and (st.last_attempt_at is None or st.last_attempt_at < st.forced_at):
         return True, "its data is stale (freshness check): running now", False
-    if st.retry_at and now >= st.retry_at:
+    retry_at = effective_retry_at(st)
+    if retry_at and now >= retry_at:
         return True, f"retrying after {st.last_status or 'a failed run'} (attempt {st.consecutive_failures + 1})", False
     if st.last_success_at is None and job.catchup and not (job.boot and not ctx.config.boot_load_enabled):
         return True, "has never succeeded: catching up", False
@@ -214,10 +227,13 @@ def evaluate(job: Job, st: JobState, ctx: Ctx) -> Verdict:
         return Verdict("idle", "kept alive by deploy/scheduler.sh")
     if st.running:
         return Verdict("running", "running")
-    if st.retry_at and now < st.retry_at:
+    retry_at = effective_retry_at(st)
+    if retry_at and now < retry_at:
+        if st.last_status == "partial":     # finished with its essential step done: degraded, not failed; the next try is a courtesy, not a retry of a failure
+            return Verdict("degraded", f"degraded: {st.state_reason or 'an optional step did not work'}; next try at {fmt_ist(retry_at)}", False, retry_at)
         held = st.consecutive_failures >= job.max_attempts
-        why = f"{'held after ' + str(st.consecutive_failures) + ' failures in a row; ' if held else ''}retry at {fmt_ist(st.retry_at)} after {st.last_status or 'a failed run'}"
-        return Verdict("held" if held else "waiting", why, False, st.retry_at)
+        why = f"{'held after ' + str(st.consecutive_failures) + ' failures in a row; ' if held else ''}retry at {fmt_ist(retry_at)} after {st.last_status or 'a failed run'}"
+        return Verdict("held" if held else "waiting", why, False, retry_at)
     needed, why, soft = need(job, st, ctx)
     if not needed:
         return Verdict("idle", "up to date", False, next_due_at(job, st, ctx))
@@ -234,8 +250,8 @@ def next_due_at(job: Job, st: JobState, ctx: Ctx) -> Optional[datetime]:
         return None
     now = ctx.now
     cands: List[datetime] = []
-    if st.retry_at and st.retry_at > now:
-        cands.append(st.retry_at)
+    if effective_retry_at(st) and effective_retry_at(st) > now:
+        cands.append(effective_retry_at(st))
     base = st.last_success_at or now
     if job.interval_min:
         t = base + timedelta(minutes=job.interval_min)

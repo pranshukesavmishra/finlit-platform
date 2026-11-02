@@ -51,7 +51,7 @@ async def build_supervisor(settings: Any, store: Any, dry_run: bool = False) -> 
             out.append((f"cred:{p}", f"The {name} key is not accepted", f"The {name} key is not accepted ({detail}). Update it in /opt/finlit/.env.aws and run: docker compose up -d app (see docs/JOBS.md, failure table)."))
         c = await signals.get_json(CANARY_KEY)
         if c and c.get("ok") is False:
-            ms = "; ".join(f"{m['symbol']} {m['field']}: ours {m['ours']} vs provider {m['provider']} ({m['diffPercent']}%)" for m in c.get("mismatches", [])[:6])
+            ms = canary_mod.alert_text(c)
             out.append(("canary", "FinLit canary found data that differs from the provider", ms))
         return out
 
@@ -67,8 +67,13 @@ async def build_supervisor(settings: Any, store: Any, dry_run: bool = False) -> 
                     continue
         return out
 
+    async def run_detail(cmd):
+        async with store.pool.acquire() as conn:
+            raw = await conn.fetchval("SELECT value FROM mf_meta WHERE key = $1", "run:" + cmd)
+        return (json.loads(raw) if isinstance(raw, str) else raw) if raw else None
+
     sup = Supervisor(jobs=build_jobs(env), state=PgState(store.pool), runner=ProcessRunner(nice=cfg.nice, oom_adj=cfg.oom_score_adj), resources=SystemResources(),
-                     signals=signals, pause=PgPause(store.pool), clock=clock, config=cfg, env=env, probes=probes.build(store), notifier=notifier, freshness=fresh, extra_alerts=extra, legacy=legacy)
+                     signals=signals, pause=PgPause(store.pool), clock=clock, config=cfg, env=env, probes=probes.build(store), notifier=notifier, freshness=fresh, extra_alerts=extra, legacy=legacy, run_detail=run_detail)
     return sup
 
 
@@ -122,8 +127,14 @@ async def run_canary(settings: Any, store: Any) -> int:
     from datetime import datetime
     from ..finedge import FinEdgeClient
     now = datetime.now(timezone.utc)
+    previous = None
+    try:   # the last result: a mismatch must repeat from it (two runs in a row) before it raises the alert
+        raw = await store.redis.get(CANARY_KEY)
+        previous = json.loads(raw) if raw else None
+    except Exception:   # nosec B110 - without it every mismatch is 'watching' once more
+        pass
     async with FinEdgeClient(settings) as client:
-        result = await canary_mod.run(store, client, now)
+        result = await canary_mod.run(store, client, now, previous)
     await store.redis.set(CANARY_KEY, json.dumps(result, default=str), ex=7 * 86400)
     from ..mf import record_run
     await record_run(store, "canary", {"status": "ok" if result["ok"] else "mismatch" if result["ok"] is False else "failed", "checked": len(result["checked"]), "mismatches": len(result["mismatches"])})

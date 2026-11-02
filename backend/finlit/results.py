@@ -1058,6 +1058,16 @@ async def pipeline_status(store, today: Optional[date] = None) -> Dict[str, Any]
                 skipped[job] = orjson.loads(raw)
     except Exception:   # nosec B110 - Redis down: the notes are simply not shown
         pass
+    failed_syms: List[Dict[str, Any]] = []
+    try:   # companies the full rebuild could not store (quality gate / provider did not answer): the reason per symbol; each is asked again on the next run
+        raw_fail = await store.redis.hgetall("results:fail")
+        for k, v in raw_fail.items():
+            d = orjson.loads(v)
+            failed_syms.append({"symbol": k.decode() if isinstance(k, bytes) else k, "status": d.get("status"), "reason": d.get("reason"), "attempts": d.get("attempts"),
+                                "lastTriedAt": datetime.fromtimestamp(float(d["at"]), timezone.utc).isoformat(timespec="seconds") if d.get("at") else None})
+        failed_syms.sort(key=lambda x: (x["lastTriedAt"] or "", x["symbol"]), reverse=True)
+    except Exception:   # nosec B110 - Redis down: the list is simply not shown
+        pass
     cal = dict(last.get("calendars") or {})
     ipo_fields = cal.pop("ipoFields", None)   # shown once, at the top level: the field names the provider's /ipo-calendar rows really carry, and one sample row
     if last.get("calendars") is not None:
@@ -1072,7 +1082,7 @@ async def pipeline_status(store, today: Optional[date] = None) -> Dict[str, Any]
         pass
     return {**sched, "loadsPaused": paused, "todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
             "upcomingCount": int(upcoming or 0), "companiesWithResultsDateTodayOrYesterday": int(declared_recent or 0),
-            "lastRun": last, "lastSkipped": skipped}
+            "lastRun": last, "lastSkipped": skipped, "failedSymbols": failed_syms[:50], "failedSymbolCount": len(failed_syms)}
 
 
 @router.get("/status")

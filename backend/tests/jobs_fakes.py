@@ -162,6 +162,7 @@ class FakeNotifier:
     def __init__(self) -> None:
         self.sent: List[tuple] = []
         self.seen: Dict[str, datetime] = {}
+        self.cleared: List[str] = []
 
     async def alert(self, key, subject, body, now=None) -> bool:
         if key in self.seen and now and (now - self.seen[key]).total_seconds() < 6 * 3600:
@@ -169,6 +170,10 @@ class FakeNotifier:
         self.seen[key] = now
         self.sent.append((key, subject, body))
         return True
+
+    async def clear(self, key) -> None:
+        self.seen.pop(key, None)
+        self.cleared.append(key)
 
 
 def config(**kw) -> JobsConfig:

@@ -124,7 +124,8 @@ def test_every_dataset_has_an_owner_job_that_exists_in_the_registry():
 def test_the_canary_compares_values_with_stated_tolerances():
     assert canary.compare("TCS", "price", 4000, 4010, 0.005) is None
     m = canary.compare("TCS", "price", 4000, 4100, 0.005)
-    assert m == {"symbol": "TCS", "field": "price", "ours": 4000.0, "provider": 4100.0, "diffPercent": 2.44, "tolerancePercent": 0.5}
+    assert {k: m[k] for k in ("symbol", "field", "ours", "provider", "diffPercent", "tolerancePercent")} == {"symbol": "TCS", "field": "price", "ours": 4000.0, "provider": 4100.0, "diffPercent": 2.44, "tolerancePercent": 0.5}
+    assert "ours 4000 vs the provider's 4100" in m["message"]
     assert canary.compare("TCS", "price", None, 4100, 0.005) is None and canary.compare("TCS", "price", 4000, None, 0.005) is None     # absence is a freshness matter
     closed, open_ = ist(2026, 10, 30, 17, 0), ist(2026, 10, 30, 11, 0)
     assert canary.tolerances(closed)["price"] == 0.005 and canary.tolerances(open_)["price"] == 0.03
@@ -168,7 +169,10 @@ async def test_the_canary_run_flags_a_wrong_stored_price_and_an_unreachable_prov
         await conn.execute("DELETE FROM listing_quotes")
         for s, p in (("RELIANCE", 1000), ("TCS", 4000), ("HDFCBANK", 1500), ("INFY", 1400)):
             await conn.execute("INSERT INTO listing_quotes (symbol, price, market_cap) VALUES ($1, $2, 1000)", s, p)
-    got = await canary.run(store, FakeProvider({"RELIANCE": 1001, "TCS": 4400, "HDFCBANK": 1500, "INFY": 1400}), now)
+    prices = FakeProvider({"RELIANCE": 1001, "TCS": 4400, "HDFCBANK": 1500, "INFY": 1400})
+    first = await canary.run(store, prices, now)
+    assert first["ok"] is True and first["mismatches"] == [] and [m["symbol"] for m in first["watching"]] == ["TCS"]      # seen once: watching, no alert
+    got = await canary.run(store, prices, now + timedelta(hours=12), first)                                              # the same mismatch on the next run: confirmed
     assert got["ok"] is False and [m["symbol"] for m in got["mismatches"]] == ["TCS"] and got["mismatches"][0]["field"] == "price"
     assert sorted(got["checked"]) == ["HDFCBANK", "INFY", "RELIANCE", "TCS"]
     down = await canary.run(store, FakeProvider({}), now)

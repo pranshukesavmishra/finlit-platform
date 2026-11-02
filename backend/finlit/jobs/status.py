@@ -80,6 +80,7 @@ async def build(store: Any, redis: Any, now: Optional[datetime] = None, env: Opt
     failing = [r["name"] for r in rows if r["consecutiveFailures"] >= 3]
     out["overdue"] = overdue
     out["failing"] = failing
+    out["degraded"] = [{"name": r["name"], "reason": r["reason"]} for r in rows if r["state"] == "degraded"]   # finished with the essential step done; an optional step did not work (not a failure)
     out["disabledByConfig"] = [{"name": r["name"], "reason": r["disabledReason"]} for r in rows if r["disabledByConfig"] and not next(j for j in jobs if j.name == r["name"]).external]
     out["pause"] = {"paused": bool(pause), "until": _iso(pause.until) if pause else None, "untilIST": fmt_ist(pause.until) if pause else None,
                     "resumesAutomatically": True, "setBy": "admin" if pause else None, "legacy": bool(pause and pause.legacy),

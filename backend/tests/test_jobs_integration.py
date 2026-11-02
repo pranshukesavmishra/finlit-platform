@@ -212,9 +212,11 @@ async def test_alerts_reach_every_admin_in_app_and_by_email_once_per_six_hours(a
     store = app.state.store
     await (await make_admin(app, "alert-boss@example.com")).aclose()
     await store.redis.flushdb()
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM admin_alerts")
     n = Notifier(store.pool, app.state.mailer, store.redis, "https://finlit.example")
     assert await n.alert("overdue:results", "FinLit job overdue: results", "results has not succeeded for 5 hours")
-    assert not await n.alert("overdue:results", "FinLit job overdue: results", "again")          # rate limited
+    assert not await n.alert("overdue:results", "FinLit job overdue: results", "results has not succeeded for 6 hours")          # already open: no new notification
     assert await n.alert("overdue:calendars", "FinLit job overdue: calendars", "x")              # another problem is its own alert
     async with store.pool.acquire() as conn:
         notes = await conn.fetch("SELECT n.title, n.kind, n.link FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = 'alert-boss@example.com' AND n.kind = 'system'")
@@ -259,3 +261,72 @@ async def test_pruning_deletes_old_finished_runs_only(store):
     fresh = await st.start_run("a", NOW, 1, 3)
     await st.prune_runs(NOW, 60)
     assert sorted(r["id"] for r in await st.recent_runs(10)) == sorted([running, fresh])
+
+
+# ------------------------------------------------------------------------------------------------ one open alert per problem
+async def _bell(store, email):
+    async with store.pool.acquire() as conn:
+        return [r["title"] + " | " + r["body"] for r in await conn.fetch(
+            "SELECT n.title, n.body FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.email = $1 AND n.kind = 'system' ORDER BY n.id", email)]
+
+
+async def test_one_open_alert_per_problem_changes_reminders_and_a_resolved_notice(app):  # noqa: F811
+    store = app.state.store
+    email = "bell-boss@example.com"
+    await (await make_admin(app, email)).aclose()
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM admin_alerts")
+        await conn.execute("DELETE FROM notifications WHERE kind = 'system'")
+    n = Notifier(store.pool, app.state.mailer, store.redis, "")
+    key, subject = "failing:facts", "FinLit job failing: facts"
+    reason = "facts: AMFI expense-ratio and fund-size download timed out from our server; last good figures 29 Oct kept"
+    assert await n.alert(key, subject, reason)
+    for _ in range(5):                                                                   # the supervisor looks every minute: the same problem is silent
+        assert not await n.alert(key, subject, reason)
+    assert len(await _bell(store, email)) == 1 and "last good figures 29 Oct kept" in (await _bell(store, email))[0]
+    refused = reason.replace("timed out", "was refused")
+    assert await n.alert(key, subject, refused)                                          # a new reason is worth a new notice
+    bell = await _bell(store, email)
+    assert len(bell) == 1 and "Update (the reason changed)" in bell[0]                   # and it replaces the old one in the bell
+    assert await n.alert("stale:results", "FinLit data is stale: Quarterly results", "12 companies for us to fix")
+    assert not await n.alert("stale:results", "FinLit data is stale: Quarterly results", "14 companies for us to fix")
+    assert await n.alert("stale:results", "FinLit data is stale: Quarterly results", "40 companies for us to fix")      # a jump in the count
+    async with store.pool.acquire() as conn:                                              # 24 hours of no change: one reminder
+        await conn.execute("UPDATE admin_alerts SET last_sent_at = now() - interval '25 hours' WHERE key = $1", key)
+    assert await n.alert(key, subject, refused)
+    assert any("Reminder" in b for b in await _bell(store, email))
+    assert not await n.alert(key, subject, refused)
+    assert sorted(await n.open_keys()) == ["failing:facts", "stale:results"]
+    assert await n.resolve(key) and not await n.resolve(key)                              # resolved once
+    assert any(b.startswith("Resolved: FinLit job failing: facts") for b in await _bell(store, email)) and await n.open_keys() == ["stale:results"]
+    assert await n.alert(key, subject, reason)                                            # it can come back: a fresh alert
+
+
+async def test_existing_duplicates_in_the_bell_collapse_to_the_newest(app):  # noqa: F811
+    store = app.state.store
+    email = "dup-boss@example.com"
+    await (await make_admin(app, email)).aclose()
+    async with store.pool.acquire() as conn:
+        uid = await conn.fetchval("SELECT id FROM users WHERE email = $1", email)
+        await conn.execute("DELETE FROM notifications WHERE user_id = $1", uid)
+        for i in range(4):
+            await conn.execute("INSERT INTO notifications (user_id, kind, title, body) VALUES ($1, 'system', 'FinLit data is stale: Quarterly results', $2)", uid, f"copy {i}")
+        await conn.execute("INSERT INTO notifications (user_id, kind, title, body, read_at) VALUES ($1, 'system', 'FinLit data is stale: Quarterly results', 'read one', now())", uid)
+    n = Notifier(store.pool, app.state.mailer, store.redis, "")
+    assert await n.dedupe() == 3 and await n.dedupe() == 0                                # idempotent
+    assert sorted(await _bell(store, email)) == ["FinLit data is stale: Quarterly results | copy 3", "FinLit data is stale: Quarterly results | read one"]
+
+
+async def test_the_supervisor_closes_an_alert_whose_problem_has_gone(app):  # noqa: F811
+    from finlit.jobs.due import Ctx
+    from finlit.jobs.supervisor import Plan
+    store = app.state.store
+    await (await make_admin(app, "close-boss@example.com")).aclose()
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM admin_alerts")
+    n = Notifier(store.pool, app.state.mailer, store.redis, "")
+    await n.alert("overdue:results", "FinLit job overdue: results", "results has not succeeded for 5 hours")
+    clock = FakeClock(datetime(2026, 10, 30, 6, 30, tzinfo=timezone.utc))
+    sup = Supervisor(jobs=[], state=PgState(store.pool), runner=FakeRunner(clock), resources=FakeResources(), signals=FakeSignals(), pause=None, clock=clock, config=config(), env={}, notifier=n)
+    await sup.check_alerts(Plan(ctx=Ctx(now=clock.now()), states={}, verdicts={}), clock.now())
+    assert await n.open_keys() == [] and any(b.startswith("Resolved:") for b in await _bell(store, "close-boss@example.com"))

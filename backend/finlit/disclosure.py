@@ -352,7 +352,20 @@ async def refresh(store, settings=None, *, client: Optional[httpx.AsyncClient] =
         if own:
             await client.aclose()
     statuses = {v.get("status") for v in out.values()}
+    # 'partial' = some steps ok, some not. The essential step is the scheme master (every other figure hangs on its scheme list): the worker treats a
+    # partial run with it ok as degraded, never as failed. The expense ratios and fund sizes already held are kept and keep being served, each with its
+    # date (`serving` below), until a later run replaces them.
     summary = {"status": "ok" if statuses == {"ok"} else ("failed" if "ok" not in statuses else "partial"), **out}
+    if any(v.get("status") != "ok" for v in out.values()):
+        try:
+            async with store.pool.acquire() as conn:
+                held = {"ter": await conn.fetchval("SELECT max(ter_date) FROM mf_ter"), "aum": await conn.fetchval("SELECT max(aum_end) FROM mf_facts")}
+            for name, day in held.items():
+                if name in out and out[name].get("status") != "ok":
+                    out[name]["serving"] = f"the last good figures, dated {day.isoformat()}" if day else "no earlier figures are held"
+                    out[name]["servingDate"] = day.isoformat() if day else None
+        except Exception:   # nosec B110 - the note is for the status page only
+            pass
     await mf.record_run(store, "refresh-facts", summary)
     if "ok" in statuses:
         summary["dashboard"] = await mf._guarded("dashboard", mf.derive_dashboard(store))   # fund size, expense ratio and checklist of the category table

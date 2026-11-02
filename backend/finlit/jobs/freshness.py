@@ -35,6 +35,7 @@ class Dataset:
     lag: Optional[float] = None
     lagUnit: Optional[str] = None
     detail: str = ""
+    buckets: Optional[Dict[str, Any]] = None   # results: the explicit buckets (counts, oldest, reasons); other datasets leave it empty
 
 
 def _d(x: Any) -> Optional[date]:
@@ -138,16 +139,46 @@ def judge_technicals(total: int, behind: int, newest_bar: Any, expected: date, n
     return ds
 
 
-def judge_results(waiting: List[date], today: date, declared: int) -> Dataset:
-    """Results: companies whose declaration date has passed but still have no figures. Target: figures within 6 h of the declaration, flagged at 24 h.
-    The declaration is known by DATE only, so: declared two or more days ago and still waiting = certainly over 24 h = stale; yesterday = late; today = counted."""
-    ds = Dataset("results", "Quarterly results", ["results", "results-light"], expected="figures within 6 hours of the declaration")
-    old = [d for d in waiting if (today - d).days >= 2]
-    yest = [d for d in waiting if (today - d).days == 1]
-    ds.actual = f"{len(waiting)} of {declared} declared companies waiting for figures"
-    ds.lag, ds.lagUnit = (today - min(waiting)).days if waiting else 0, "days"
-    ds.detail = f"{len(old)} waiting since 2+ days, {len(yest)} since yesterday, {len(waiting) - len(old) - len(yest)} today; oldest declaration {min(waiting).isoformat() if waiting else 'none'}"
-    ds.status = "stale" if old else "late" if yest else "fresh"
+def results_detail(b: Dict[str, Any]) -> str:
+    """The plain-words sentence for /api/jobs/status: which bucket holds how many companies and why."""
+    ours, wait, gave, queued, filled = b["ours_to_fix"], b["waiting_for_provider"], b["gave_up"], b["queued"], b["filled"]
+    if ours["count"]:
+        why = "; ".join(f"{n} x {r}" for r, n in (b.get("oursReasons") or {}).items())
+        head = f"FOR US TO FIX: {ours['count']} (oldest declaration {ours['oldest']}): {why}"
+    else:
+        head = "Nothing for us to fix"
+    parts = [f"waiting for the provider: {wait['count']} (we asked in the last 12 h and the provider has not published the quarter yet; oldest declaration {wait['oldest'] or 'none'}; information, not an alarm)"]
+    if queued["count"]:
+        parts.append(f"queued: {queued['count']} (declared today, the next hourly run asks)")
+    parts.append(f"gave up chasing every run: {gave['count']} (declared 5 to 14 days ago, still not published; asked once a day; oldest {gave['oldest'] or 'none'}; not an alarm)")
+    parts.append(f"figures held: {filled['count']}")
+    return head + "; " + "; ".join(parts)
+
+
+def judge_results(waiting: Any, today: date, declared: int, buckets: Optional[Dict[str, Any]] = None) -> Dataset:
+    """Results: companies whose declaration date has passed. The status is judged ONLY on the companies that are ours to fix (the provider has the quarter and
+    we did not fill it, or we did not ask in time): stale when one of them has waited 2+ days, late otherwise.
+    Companies the provider has not published yet (waiting_for_provider), ones given up on after 4 days (gave_up) and those declared today and not asked yet
+    (queued) are listed with counts but never make the dataset late or stale.
+    `buckets` is the summary from results_light.summarise_buckets; without it `waiting` (a list of declaration dates of companies with no figures) is judged the
+    old way: every one of them counts as ours to fix."""
+    ds = Dataset("results", "Quarterly results", ["results", "results-light"], expected="figures within 6 hours of the declaration, unless the provider has not published them")
+    if buckets is None:
+        old = [d for d in waiting if (today - d).days >= 2]
+        yest = [d for d in waiting if (today - d).days == 1]
+        ds.actual = f"{len(waiting)} of {declared} declared companies waiting for figures"
+        ds.lag, ds.lagUnit = (today - min(waiting)).days if waiting else 0, "days"
+        ds.detail = f"{len(old)} waiting since 2+ days, {len(yest)} since yesterday, {len(waiting) - len(old) - len(yest)} today; oldest declaration {min(waiting).isoformat() if waiting else 'none'}"
+        ds.status = "stale" if old else "late" if yest else "fresh"
+        return ds
+    open_n = sum(buckets[k]["count"] for k in ("ours_to_fix", "waiting_for_provider", "queued", "gave_up"))
+    ds.actual = f"{open_n} of {buckets.get('declared', declared)} declared companies waiting for figures"
+    oldest = buckets["ours_to_fix"]["oldest"]
+    ds.lag, ds.lagUnit = ((today - date.fromisoformat(oldest)).days if oldest else 0), "days"
+    ds.detail = results_detail(buckets)
+    ds.buckets = {k: buckets[k] for k in ("filled", "waiting_for_provider", "queued", "gave_up", "ours_to_fix")}
+    ds.buckets["oursReasons"], ds.buckets["oursSample"] = buckets.get("oursReasons", {}), buckets.get("oursSample", [])
+    ds.status = buckets.get("oursSeverity") or "fresh"
     return ds
 
 
@@ -278,15 +309,14 @@ async def gather(store: Any, now: datetime) -> Dict[str, Any]:
     except Exception:
         f["visitors"] = False
     try:
-        from ..results_light import recent_declarations, states
-        from .. import results
-        recent = await recent_declarations(store, today, 6, force=False)
-        st = await states(store, recent)
-        f["results_declared"] = len(st)
-        f["results_waiting"] = sorted(recent[s][1] for s, v in st.items() if v["source"] in ("provider", "ours"))
+        from ..results_light import bucket_facts
+        b = await bucket_facts(store, today, now)
+        f["results_declared"] = b["declared"]
+        f["results_buckets"] = b
+        f["results_waiting"] = []
     except Exception as exc:
         log.warning("results freshness fact failed: %s", type(exc).__name__)
-        f["results_declared"], f["results_waiting"] = 0, None
+        f["results_declared"], f["results_waiting"], f["results_buckets"] = 0, None, None
     return f
 
 
@@ -301,7 +331,7 @@ def evaluate_facts(f: Dict[str, Any], now: datetime, credentials: Optional[List[
     ds.append(judge_age("prism", "Prism ratings", ["prism"], f.get("prism_newest"), now, 30.0, 60.0))
     ds.append(judge_age("scores", "FinLit scores", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
     if f.get("results_waiting") is not None:
-        ds.append(judge_results(f["results_waiting"], today, int(f.get("results_declared") or 0)))
+        ds.append(judge_results(f["results_waiting"], today, int(f.get("results_declared") or 0), f.get("results_buckets")))
     ds.append(judge_calendar(int(f.get("results_upcoming") or 0), f.get("calendars_ran"), now))
     ipo = judge_age("ipo_calendar", "IPO calendar", ["calendars"], f.get("ipo_updated"), now, 30.0, 96.0)
     ds.append(ipo)

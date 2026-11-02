@@ -108,10 +108,14 @@ async def test_a_refusing_provider_is_not_asked_for_every_company(store, monkeyp
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM quarter_light")
     calls: list = []
+
+    async def no_sleep(_):
+        return None
+    monkeypatch.setattr("finlit.finedge.asyncio.sleep", no_sleep)
     async with provider({s: {"c": 429} for s in syms}, calls) as client:
         out = await L.refresh_light(client, store, today=date(2026, 7, 21), pause=0)
-    assert out["failed"] == L.MAX_IN_A_ROW and out["stoppedEarly"] is True and len(calls) <= L.MAX_IN_A_ROW * 4
-    assert any("HTTP 429" in k for k in out["errors"])
+    # "too many requests" is the provider asking us to slow down: not a failure, but the run still ends early and resumes next time
+    assert out["throttled"] == L.MAX_THROTTLED_IN_A_ROW and out["failed"] == 0 and out["stoppedEarly"] is True and len(calls) <= L.MAX_THROTTLED_IN_A_ROW * 4
 
 
 async def test_status_shows_the_last_runs_and_the_newest_result(store):  # noqa: F811
