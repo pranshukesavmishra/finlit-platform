@@ -53,3 +53,23 @@
 .hs-sc-k { font: 700 10.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .hs-sc { display: inline-flex; align-items: center; min-height: 26px; padding: 0 11px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--border)); background: var(--gold-soft); color: var(--text); font: 600 12.5px var(--sans); text-decoration: none; }
 .hs-sc:hover { border-color: var(--gold); } .hs-sc:focus-visible { outline: 2px solid var(--focus-ring, var(--gold)); outline-offset: 2px; }
+
+/* the macro backdrop of the company's sector, under its tags */
+.mb-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; font-size: 13px; }
+.mb-k { font: 700 10.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mb-s { color: var(--text); } .mb-more { color: var(--gold); font-weight: 600; text-underline-offset: 3px; } .mb-prev { font-size: 12px; }
+.msi-l { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; font: 600 12px var(--sans); border: 1px solid; white-space: nowrap; }
+.msi-l.up2, .msi-l.up { color: var(--gain); border-color: color-mix(in srgb, var(--gain) 55%, transparent); } .msi-l.up2 { background: color-mix(in srgb, var(--gain) 12%, transparent); }
+.msi-l.down2, .msi-l.down { color: var(--loss); border-color: color-mix(in srgb, var(--loss) 55%, transparent); } .msi-l.down2 { background: color-mix(in srgb, var(--loss) 12%, transparent); }
+.msi-l.flat { color: var(--muted); border-color: var(--border-strong); }
+/* the sector table on the macro page */
+.msi-t { width: 100%; border-collapse: collapse; font-size: 14px; } .msi-t th, .msi-t td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+.msi-t thead th { font: 600 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); } .msi-t .num { text-align: right; font-variant-numeric: tabular-nums; }
+.msi-t tbody th { font-weight: 600; }
+.msi-bar { position: relative; display: block; width: 100%; min-width: 120px; height: 10px; border-radius: 99px; background: var(--s2); overflow: hidden; }
+.msi-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; } .msi-bar u { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--text); opacity: .55; }
+.msi-bar i.up2 { background: var(--gain); } .msi-bar i.up { background: color-mix(in srgb, var(--gain) 65%, var(--s2)); } .msi-bar i.flat { background: var(--border-strong); }
+.msi-bar i.down { background: color-mix(in srgb, var(--loss) 65%, var(--s2)); } .msi-bar i.down2 { background: var(--loss); }
+.msi-sig ul { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; font-size: 13.5px; }
+.msi-sig summary { cursor: pointer; color: var(--muted); margin-top: 10px; }
+.msi-t tbody th { text-transform: none; letter-spacing: 0; font: 600 14px var(--sans); color: var(--text); }

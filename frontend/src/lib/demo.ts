@@ -25,6 +25,7 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (/^\/api\/screener\/presets\/for\//.test(path)) return json({ symbol: path.split("/").pop(), screens: [{ id: "emerging-tech", name: "Emerging tech", group: "themes", asOf: "2026-10-30" }, { id: "highest-rated-large", name: "Highest-rated large caps", group: "top-rated", asOf: "2026-10-30" }], ready: true, asOf: "2026-10-30" });
   if (/^\/api\/stocks\/[^/]+\/leadership$/.test(path)) return json(sampleLeadership());
   if (path === "/api/prism/history") return json(sampleHistory(url.searchParams.get("symbol") || "RELIANCE", url.searchParams.get("statement") || "consolidated"));
+  if (path === "/api/macro/sectors") return json(sampleMacroSectors(url.searchParams.get("symbol") || ""));
   if (path === "/api/macro") return file("macro.json");
   if (path === "/api/flows") return file("flows.json");
   if (path === "/api/indices") return file("indices.json");
@@ -109,4 +110,24 @@ function sampleLeadership() {
     display: { chip: "Laggard", line: "9th of 10 Trucks/Construction/Farm Machinery peers", tooltip: "Sample data for the demo.",
       parts: { rank: "9th of 10 Trucks/Construction/Farm Machinery peers", sector: { pts: "\u221223.2", name: "peer average", v: -0.232 }, market: { pts: "\u221233.0", name: "Nifty Midcap 150", v: -0.33 }, direction: "weakening" },
       note: "Business score ranks 3rd of 10, stronger than the price", benchmarkNote: "There is no matching sector index, so the average return of the peers stands in for it." } };
+}
+
+/** Sample macro backdrop for the demo build only: the owner's spec table (1 Nov 2026), with RELIANCE in the oil-marketing sector. Not live figures. */
+function sampleMacroSectors(symbol: string) {
+  const S = (key: string, name: string, score: number, label: string, reasons: string[]) => ({ key, name, score, label, raw: 0, reasons });
+  const sectors = [S("private_banks", "Private banks", 84.2, "Strong tailwind", ["Credit +", "Rate hikes +"]), S("metals", "Metals & mining", 74.9, "Strong tailwind", ["WPI-CPI +"]),
+    S("psu_banks", "PSU banks", 73.2, "Strong tailwind", ["Rate hikes +", "Credit +"]), S("agri", "Agri inputs", 68, "Tailwind", ["Food CPI +"]), S("chemicals", "Specialty chemicals", 62.4, "Tailwind", ["WPI-CPI +"]),
+    S("upstream", "Upstream oil & gas", 62.2, "Tailwind", ["WPI-CPI +"]), S("aviation", "Aviation", 54.49, "Neutral", ["No strong driver today"]), S("omc", "Oil marketing cos. (OMCs)", 52.3, "Neutral", ["No strong driver today"]),
+    S("it", "IT services", 45.7, "Neutral", ["No strong driver today"]), S("capital_goods", "Capital goods & infra", 36.1, "Headwind", ["Rate hikes -", "Credit +"]), S("hotels", "Hotels & QSR", 34.3, "Headwind", ["Food CPI -", "CPI +"]),
+    S("pharma", "Pharma (export-led)", 33.8, "Headwind", ["WPI-CPI -"]), S("paints", "Paints", 25.3, "Strong headwind", ["WPI-CPI -"]), S("realty", "Real estate", 22.3, "Strong headwind", ["Rate hikes -", "Credit +"]),
+    S("cement", "Cement", 22.3, "Strong headwind", ["Rate hikes -", "WPI-CPI -"]), S("nbfc", "NBFCs & housing finance", 17, "Strong headwind", ["Rate hikes -", "Credit +"]), S("autos", "Autos", 14.8, "Strong headwind", ["Rate hikes -", "Credit +"]),
+    S("fmcg", "FMCG", 4.7, "Strong headwind", ["Food CPI -", "WPI-CPI -"])];
+  const sig = (key: string, label: string, signal: number | null, reading: string | null, reason: string | null = null) => ({ key, label, signal, reading, reason });
+  const signals = [sig("cpi", "CPI", 0.89, "5.54%, +0.71 pp"), sig("wpi_cpi", "WPI-CPI", 0.88, "5.85 pp gap"), sig("rates", "Rate hikes", 1, "repo 5.5% (+0.25), real repo -0.29 pp"), sig("growth", "Growth", 0.01, "GDP 7.82%, IIP 6.70%"),
+    sig("credit", "Credit", 1, "bank credit +18.2% y/y"), sig("funding", "Funding", 0.5, "credit 18.2% vs deposits 16.7%"), sig("rupee", "Rupee", -0.13, "Rs 95.25 per US$"), sig("food", "Food CPI", 1, "7.4%, from 5.7%"),
+    sig("unemployment", "Unemployment", 0, "5.0%"), sig("crude", "Crude", null, null, "No three months of Brent prices are stored yet, so crude oil is left out.")];
+  const disclaimer = "Describes the macro backdrop of the company's sector from official data (MoSPI, RBI); not a view on the company and not a recommendation. The sector sensitivities are starting estimates. Information only, not investment advice.";
+  const omc = sectors.find((x) => x.key === "omc")!;
+  return { asOf: "2026-11-01", signals, sectors, disclaimer, method: "signal = average of level and momentum, each capped at plus or minus 1; score = 50 + 50 x tanh(sum of sensitivity x signal / 3).", switchedOn: true,
+    ...(symbol ? { company: { symbol, sectorKey: "omc", sector: omc, industry: "Refineries & Marketing", reason: null } } : {}) };
 }

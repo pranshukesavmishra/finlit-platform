@@ -44,7 +44,7 @@ function Features() {
     onSuccess: (_d, v) => { qc.invalidateQueries({ queryKey: ["admin-features"] }); qc.removeQueries({ queryKey: ["leadership"] }); toast(v.enabled ? "Switched on for everyone." : "Switched off: only administrators see it."); },
     onError: (e) => toast(msg(e)),
   });
-  const LABEL: Record<string, string> = { leadership: "Leader / In line / Laggard label" };
+  const LABEL: Record<string, string> = { leadership: "Leader / In line / Laggard label", macro_sectors: "Macro backdrop per sector (tailwind / headwind)" };
   if (q.isError) return null;
   return (
     <section className="card acct-c">

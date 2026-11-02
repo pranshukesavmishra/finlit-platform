@@ -1,6 +1,8 @@
 // India macro insights (free): the official numbers that move Indian markets (inflation, growth, jobs, interest rates, reserves, the rupee, credit)
 // from MoSPI and the RBI, with the history behind each, a read of where inflation stands against the RBI's mandate, a heat-map of what is getting
 // dearer, and a chart you build yourself. Everything is reproduced or derived as the notes on the page say; nothing is estimated or forecast.
+import { MacroSectorImpact } from "../components/MacroSectorImpact";
+import "../styles/headerscore.css";
 import { PageHeader } from "../components/PageHeader";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -279,6 +281,7 @@ export function MacroPage() {
         {m && <>
           {m.insights.length > 0 && <section className="mc-ins" aria-label="What the latest numbers say">{m.insights.slice(0, 4).map((i) => <div key={i.key} className={"t-" + i.tone}><h2>{i.title}</h2><p>{i.text}</p></div>)}</section>}
           <section className="mc-grid" aria-label="Latest figures">{m.cards.map((c) => <StatCard key={c.key} c={c} onOpen={open} />)}</section>
+          <div id="sector-impact"><MacroSectorImpact /></div>
           <History m={m} openId={tab} setOpenId={setTab} />
           <TargetWatch m={m} />
           {m.insights.length > 4 && <section className="mc-ins" aria-label="More readings">{m.insights.slice(4).map((i) => <div key={i.key} className={"t-" + i.tone}><h2>{i.title}</h2><p>{i.text}</p></div>)}</section>}

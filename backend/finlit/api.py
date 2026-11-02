@@ -665,6 +665,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(search_api.router)
     app.include_router(logos_api.router)
     app.include_router(macro_api.router)
+    app.include_router(__import__("finlit.macro_sectors", fromlist=["router"]).router)   # /api/macro/sectors: the macro backdrop per sector (Gold, switched on in the Console)
     app.include_router(markets_api.router)
     app.include_router(clienterrors_api.router)
     app.include_router(flows_api.router)
