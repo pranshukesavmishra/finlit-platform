@@ -72,8 +72,14 @@ async def build_supervisor(settings: Any, store: Any, dry_run: bool = False) -> 
             raw = await conn.fetchval("SELECT value FROM mf_meta WHERE key = $1", "run:" + cmd)
         return (json.loads(raw) if isinstance(raw, str) else raw) if raw else None
 
+    from ..commodities import CycleRunner
+    cycle = CycleRunner()
+
+    async def every_cycle():
+        await cycle.run(settings, store)
+
     sup = Supervisor(jobs=build_jobs(env), state=PgState(store.pool), runner=ProcessRunner(nice=cfg.nice, oom_adj=cfg.oom_score_adj), resources=SystemResources(),
-                     signals=signals, pause=PgPause(store.pool), clock=clock, config=cfg, env=env, probes=probes.build(store), notifier=notifier, freshness=fresh, extra_alerts=extra, legacy=legacy, run_detail=run_detail)
+                     signals=signals, pause=PgPause(store.pool), clock=clock, config=cfg, env=env, probes=probes.build(store), notifier=notifier, freshness=fresh, extra_alerts=extra, legacy=legacy, run_detail=run_detail, every_cycle=None if dry_run else every_cycle)
     return sup
 
 

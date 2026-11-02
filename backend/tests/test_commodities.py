@@ -575,3 +575,15 @@ async def test_worker_survives_provider_failures_and_keeps_the_last_good_values(
 async def test_run_without_any_source_does_nothing_and_says_so(store):
     out = await cm.run(make_settings(dhan_client_id="", metals_dev_api_key="", metalprice_api_key=""), store)
     assert out["status"] == "ok" and out["dhan"] is False and out["metals.dev"] is False and out["metalprice"] is False
+
+
+@pytest.mark.asyncio
+async def test_cycle_runner_does_nothing_without_a_source_and_never_raises():
+    class S:
+        dhan_client_id = ""
+        metals_dev_api_key = ""
+        metalprice_api_key = ""
+    runner = cm.CycleRunner()
+    assert await runner.run(S(), object()) == {}          # no provider configured: nothing to do, nothing asked again
+    assert await runner.run(S(), object()) == {}
+    await runner.close()

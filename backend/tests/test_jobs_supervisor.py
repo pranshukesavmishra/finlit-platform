@@ -509,3 +509,35 @@ async def test_old_run_history_is_pruned_but_running_rows_are_kept():
     live = await sup.state.start_run("a", NOON - timedelta(days=90), 1, 2)
     await sup.state.prune_runs(NOON, 60)
     assert [r["id"] for r in sup.state.runs] == [live]
+
+
+async def test_every_cycle_task_runs_on_each_step_and_never_overlaps_or_raises():
+    """The commodity prices ride on the supervisor's loop: called every step, not twice at once, and a failure never reaches the loop."""
+    import asyncio
+    calls = []
+    gate = asyncio.Event()
+
+    async def slow():
+        calls.append("start")
+        await gate.wait()
+        calls.append("end")
+
+    sup, clock = make([], every_cycle=slow)
+    await sup.step()
+    await asyncio.sleep(0)
+    await sup.step()                       # the first pass is still running: no second one starts
+    await asyncio.sleep(0)
+    assert calls == ["start"]
+    gate.set()
+    await asyncio.sleep(0.05)
+    await sup.step()
+    await asyncio.sleep(0.05)
+    assert calls.count("start") == 2       # next cycle: it runs again
+
+    async def boom():
+        raise RuntimeError("provider down")
+    sup2, _ = make([], every_cycle=boom)
+    await sup2.step()
+    await asyncio.sleep(0.05)
+    await sup2.step()                      # the failure was swallowed: the loop carries on
+    assert sup2.ticks == 2

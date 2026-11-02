@@ -63,7 +63,11 @@ class Supervisor:
                  env: Mapping[str, str], probes: Optional[Dict[str, Callable[[], Awaitable[Optional[bool]]]]] = None, notifier: Any = None,
                  freshness: Optional[Callable[[datetime], Awaitable[Dict[str, Any]]]] = None, extra_alerts: Optional[Callable[[datetime], Awaitable[List[tuple]]]] = None,
                  legacy: Optional[Callable[[], Awaitable[Dict[str, tuple]]]] = None,
-                 run_detail: Optional[Callable[[str], Awaitable[Optional[Dict[str, Any]]]]] = None) -> None:
+                 run_detail: Optional[Callable[[str], Awaitable[Optional[Dict[str, Any]]]]] = None,
+                 every_cycle: Optional[Callable[[], Awaitable[Any]]] = None) -> None:
+        # every_cycle(): a small, self-limiting job that rides on every round of the loop (the commodity prices); it never raises into the loop and never overlaps itself
+        self.every_cycle = every_cycle
+        self._cycle_task: Optional[asyncio.Task] = None
         # run_detail(command) -> the job's own stored result (`run:<command>` in mf_meta: status, per-step reasons, errors), used to say WHY in the run history and the alerts
         self.run_detail = run_detail
         self.jobs = {j.name: j for j in jobs}
@@ -461,6 +465,12 @@ class Supervisor:
                 log.exception("closing resolved alerts failed")
         return sent
 
+    async def _safe_cycle(self) -> None:
+        try:
+            await self.every_cycle()   # type: ignore[misc]
+        except Exception:
+            log.exception("the every-cycle task failed (the next cycle tries again)")
+
     # ------------------------------------------------------------------------------------------------ the loop
     async def step(self) -> None:
         now = self.clock.now()
@@ -472,6 +482,8 @@ class Supervisor:
                                                "dbOk": self.db_ok, "lastError": self.last_error})
         except Exception:   # nosec B110 - the heartbeat is best effort; the loop goes on
             pass
+        if self.every_cycle is not None and (self._cycle_task is None or self._cycle_task.done()):
+            self._cycle_task = asyncio.create_task(self._safe_cycle())
         finished = False
         try:
             finished = await self.poll()
