@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULTS, PRESETS, apiParams, chipsFor, isDefault, listPath, parseQuery, presetOn, queryToParams, withRange } from "./mfScreen";
+import { DEFAULTS, PRESETS, apiParams, chipsFor, figureOf, isDefault, listPath, parseQuery, presetOn, queryToParams, withRange, type ScreenRow } from "./mfScreen";
 import { NUM, unitText, rangeText, NUM_BY } from "./mfScreenDefs";
 
 const P = (s: string) => parseQuery(new URLSearchParams(s));
@@ -82,5 +82,23 @@ describe("preset screens", () => {
   it("preset names never recommend", () => {
     const words = /\b(buy|sell|hold|reduce|avoid|accumulate|target|best|top pick)\b/i;
     for (const p of PRESETS) { expect(p.label).not.toMatch(words); expect(p.say).not.toMatch(words); }
+  });
+});
+
+describe("calendar years, biggest monthly gain, downside deviation, volatility against the category", () => {
+  it("each has a filter definition with words that describe, never advise", () => {
+    const words = /\b(buy|sell|hold|reduce|avoid|accumulate|target|best|top pick)\b/i;
+    for (const k of ["cy1", "cy2", "cy3", "up_m", "down_dev", "vol_rel"]) {
+      const d = NUM_BY[k];
+      expect(d, k).toBeTruthy();
+      expect(d.label + " " + (d.hint ?? "")).not.toMatch(words);
+    }
+  });
+  it("a row's value is read from the screener figures, and a missing one stays missing", () => {
+    const x = { risk: { upMonth: 6.2, downDev: 4.1, volRel: 0.93 }, calYears: { "1": 14.5, "2": -3.2, "3": null } };
+    const row = { x } as unknown as ScreenRow;
+    expect(figureOf(row, "cy1")).toBe(14.5); expect(figureOf(row, "cy2")).toBe(-3.2); expect(figureOf(row, "cy3")).toBeNull();
+    expect(figureOf(row, "up_m")).toBe(6.2); expect(figureOf(row, "down_dev")).toBe(4.1); expect(figureOf(row, "vol_rel")).toBe(0.93);
+    expect(figureOf({ x: { risk: {} } } as unknown as ScreenRow, "cy1")).toBeNull();
   });
 });

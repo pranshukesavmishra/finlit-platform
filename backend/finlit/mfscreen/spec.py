@@ -64,6 +64,10 @@ NUMS: Tuple[Num, ...] = (
     _n("ex3y", "x_ex3y", *EXC),
     _n("ex5y", "x_ex5y", *EXC),
     _n("consist", "x_consist", 0, 20, 35, 45, 55, 65, 80, 100),
+    _n("up_m", "x_up_month", -5, 0, 1, 2, 4, 6, 10, 15, 20, 30),
+    _n("cy1", "x_cy1", *RET),
+    _n("cy2", "x_cy2", *RET),
+    _n("cy3", "x_cy3", *RET),
     # cost
     _n("ter", "ter", 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3.5),
     _n("ter_rel", "x_ter_rel", 0, 0.5, 0.7, 1.0, 1.3, 1.5, 2, 3),
@@ -73,6 +77,8 @@ NUMS: Tuple[Num, ...] = (
     # risk (month-end NAVs)
     _n("vol1", "x_vol1", *RISK),
     _n("vol3", "x_vol3", *RISK),
+    _n("vol_rel", "x_vol_rel", 0, 0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5, 2, 3),
+    _n("down_dev", "x_down_dev", 0, 1, 2, 4, 6, 8, 10, 15, 20, 30),
     _n("fall", "-mdd3y_m", 0, 2, 5, 10, 15, 20, 30, 40, 60),
     _n("worst_m", "x_worst_loss", 0, 0.25, 0.5, 1, 2, 4, 6, 10, 20, 40),
     _n("worst_12m", "x_worst12_loss", 0, 0.5, 1, 2, 5, 10, 20, 30, 50),
@@ -135,6 +141,7 @@ SORT_EXTRA = {
     "fall": "(-mdd3y_m)", "age": "x_age", "launch": "x_launch", "ex3y": "x_ex3y", "rank3y": "(x_rk3::float8 / NULLIF(x_rn3, 0))", "rank1y": "(x_rk1::float8 / NULLIF(x_rn1, 0))",
     "rank5y": "(x_rk5::float8 / NULLIF(x_rn5, 0))", "vol": "x_vol3", "sharpe": "x_sharpe", "r1m": "r1m", "r6m": "r6m", "gap": "x_ter_gap", "consist": "x_consist",
     "aumrank": "(x_aum_rk::float8 / NULLIF(x_aum_rn, 0))", "worst": "x_worst_loss", "negshare": "x_neg_share",
+    "cy1": "x_cy1", "downdev": "x_down_dev",
 }
 TAG_RE = re.compile(r"^[a-z0-9_]{1,24}$")
 SYMBOL_RE = re.compile(r"^[A-Z0-9&\-]{1,20}$")

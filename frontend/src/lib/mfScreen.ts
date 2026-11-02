@@ -32,7 +32,7 @@ const LISTS: ListKey[] = ["subs", "cap", "style", "struct", "mat", "amcs", "hous
 /** URL / API parameter name of each list (the same on both). */
 const PARAM: Record<ListKey, string> = { subs: "subs", cap: "cap", style: "style", struct: "struct", mat: "mat", amcs: "amcs", house: "house", plans: "plans", options: "options", inst: "inst",
   aumbasis: "aumbasis", aumrank: "aumrank", nd: "nd", rk: "rk", chkEach: "chk_each", exit: "exit", tick: "tick", tags: "tags", pfdate: "pfdate", cflow: "cflow", cstreak: "cstreak", csize: "csize" };
-const SORT_KEYS = new Set(["name", "amc", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "fall", "age", "launch", "ex3y", "rank3y", "rank1y", "rank5y", "vol", "sharpe", "r1m", "r6m", "gap", "consist", "aumrank", "worst", "negshare", "score", "checklist"]);
+const SORT_KEYS = new Set(["name", "amc", "nav", "r1y", "r3y", "r5y", "sip3y", "sip5y", "aum", "ter", "fall", "age", "launch", "ex3y", "rank3y", "rank1y", "rank5y", "vol", "sharpe", "r1m", "r6m", "gap", "consist", "aumrank", "worst", "negshare", "cy1", "downdev", "score", "checklist"]);
 const NUM_RE = /^-?\d+(\.\d+)?$/;
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
@@ -116,7 +116,9 @@ export type ExtraFigs = {
   age: number | null; launch: string | null; ckey: string | null; tags: string[]; isEtf: boolean; r1m: number | null; r6m: number | null;
   ex: Record<"1y" | "3y" | "5y", number | null>; rank: Record<"1y" | "3y" | "5y", { rank: number; of: number } | null>; aumRank: { rank: number; of: number } | null; aumShare: number | null; naChg: number | null;
   houseAum: number | null; terRel: number | null; terGap: number | null; feeShare: number | null; exit: { state: string | null; pct: number | null; days: number | null };
-  risk: { vol1: number | null; vol3: number | null; worstMonth: number | null; worstYear: number | null; negShare: number | null; belowHigh: number | null; downCapture: number | null; sharpe: number | null; consistency: number | null };
+  risk: { vol1: number | null; vol3: number | null; worstMonth: number | null; worstYear: number | null; negShare: number | null; belowHigh: number | null; downCapture: number | null; sharpe: number | null; consistency: number | null; upMonth?: number | null; downDev?: number | null; volRel?: number | null };
+  /** Calendar-year returns: "1" is the year before the screener's run year, "2" and "3" the years before that. */
+  calYears?: { "1": number | null; "2": number | null; "3": number | null };
   portfolio: { asOf: string; equity: number | null; debt: number | null; cash: number | null; other: number | null; holdings: number | null; top10: number | null; largest: number | null; sector: string | null; sectorPct: number | null } | null;
   category: { month: string | null; flow: number | null; streak: number | null; aumMom: number | null; aumYoy: number | null; share: number | null; folioMom: number | null };
 };
@@ -254,6 +256,8 @@ export function figureOf(r: ScreenRow, f: string): number | null {
     case "ter_rel": return x.terRel; case "ter_gap": return x.terGap; case "fee_share": return x.feeShare; case "exit_pct": return x.exit.pct;
     case "vol1": return x.risk.vol1; case "vol3": return x.risk.vol3; case "worst_m": return x.risk.worstMonth; case "worst_12m": return x.risk.worstYear;
     case "neg_share": return x.risk.negShare; case "below_high": return x.risk.belowHigh; case "down_cap": return x.risk.downCapture; case "sharpe": return x.risk.sharpe;
+    case "up_m": return x.risk.upMonth ?? null; case "down_dev": return x.risk.downDev ?? null; case "vol_rel": return x.risk.volRel ?? null;
+    case "cy1": return x.calYears?.["1"] ?? null; case "cy2": return x.calYears?.["2"] ?? null; case "cy3": return x.calYears?.["3"] ?? null;
     case "eq_pct": return x.portfolio?.equity ?? null; case "debt_pct": return x.portfolio?.debt ?? null; case "cash_pct": return x.portfolio?.cash ?? null; case "other_pct": return x.portfolio?.other ?? null;
     case "n_hold": return x.portfolio?.holdings ?? null; case "top10": return x.portfolio?.top10 ?? null; case "max_hold": return x.portfolio?.largest ?? null;
     case "cf_aum_mom": return x.category.aumMom; case "cf_aum_yoy": return x.category.aumYoy; case "cf_folio_mom": return x.category.folioMom; case "cf_share": return x.category.share;

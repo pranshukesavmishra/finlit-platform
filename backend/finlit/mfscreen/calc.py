@@ -8,6 +8,9 @@ All risk figures read MONTH-END NAVs (mf_monthly) up to the last full calendar m
   neg_share / below_high      share of months with a negative return / share of month-ends below an earlier high, percent
   down_capture                the fund's average return in the months the peer median fell, as a percentage of the peers' average in those months
   sharpe                      (3-year return - 6) / volatility with the assumed 6% the head-to-head page uses
+  biggest_gain                the the largest single-month return in percent (negative when every month fell)
+  downside_dev                downside deviation: root mean square of the monthly returns below 0 (others count as 0) x sqrt(12), in percent a year
+  calendar_return             one calendar year: December month-end NAV over the previous December's, in percent
 """
 
 from __future__ import annotations
@@ -75,6 +78,23 @@ def worst_rolling(navs: Sequence[float], months: int = 12) -> Optional[float]:
         return None
     worst = min(navs[i] / navs[i - months] - 1 for i in range(months, len(navs)))
     return max(0.0, -worst) * 100
+
+
+def biggest_gain(rets: Sequence[float]) -> Optional[float]:
+    return None if not rets else max(rets) * 100
+
+
+def downside_dev(rets: Sequence[float]) -> Optional[float]:
+    """Like volatility, but only the months that fell count (a month that rose counts as 0), measured from 0 rather than from the average."""
+    if len(rets) < 3:
+        return None
+    return math.sqrt(sum(min(r, 0.0) ** 2 for r in rets) / len(rets)) * math.sqrt(12) * 100
+
+
+def calendar_return(by: Dict[int, float], year: int) -> Optional[float]:
+    """Return over the calendar `year` from the stored month-end NAVs of December `year`-1 and December `year`; None when either is missing."""
+    a, b = by.get((year - 1) * 12 + 11), by.get(year * 12 + 11)
+    return None if a is None or b is None else (b / a - 1) * 100
 
 
 def neg_share(rets: Sequence[float]) -> Optional[float]:

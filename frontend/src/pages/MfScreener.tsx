@@ -53,7 +53,7 @@ export function MfScreenerPage() {
   const chips = chipsFor(q, subLabel, tagLabel);
   const shown = chips.length;
   const sortVal = `${q.sort}:${q.dir}`;
-  const onSort = (key: string) => go({ sort: key, dir: q.sort === key ? (q.dir === "asc" ? "desc" : "asc") : (key === "name" || key === "ter" || key === "fall" || key === "rank3y" || key === "gap" || key === "worst" || key === "negshare" ? "asc" : "desc"), page: 1 });
+  const onSort = (key: string) => go({ sort: key, dir: q.sort === key ? (q.dir === "asc" ? "desc" : "asc") : (key === "name" || key === "ter" || key === "fall" || key === "rank3y" || key === "gap" || key === "worst" || key === "negshare" || key === "downdev" ? "asc" : "desc"), page: 1 });
   const showPanel = () => { if (narrow()) setSheet(true); else { setPanelOpen(true); saveUi("mfscreen.panel", 1, true); } };
   const togglePanel = () => { if (narrow()) setSheet(true); else { setPanelOpen(!panelOpen); saveUi("mfscreen.panel", 1, !panelOpen); } };
   const reset = () => setSp(new URLSearchParams(), { replace: true });

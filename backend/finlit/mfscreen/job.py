@@ -32,6 +32,7 @@ COLS: Tuple[str, ...] = (
     "x_ex1y", "x_ex3y", "x_ex5y", "x_rk1", "x_rn1", "x_rk3", "x_rn3", "x_rk5", "x_rn5", "x_consist", "x_n_months",
     "x_ter_rel", "x_ter_gap", "x_fee_share", "x_exit_pct", "x_exit_days", "x_exit_state",
     "x_vol1", "x_vol3", "x_worst_loss", "x_worst12_loss", "x_neg_share", "x_below_high", "x_down_cap", "x_sharpe", "x_worst_less",
+    "x_up_month", "x_down_dev", "x_vol_rel", "x_cy1", "x_cy2", "x_cy3",
     "x_port_asof", "x_eq_pct", "x_debt_pct", "x_cash_pct", "x_other_pct", "x_n_hold", "x_top10", "x_max_hold", "x_top_sector", "x_top_sector_pct", "x_sectors",
     "x_cf_month", "x_cf_flow", "x_cf_streak", "x_cf_aum_mom", "x_cf_aum_yoy", "x_cf_folio_mom", "x_cf_share",
 )
@@ -157,7 +158,7 @@ def build_rows(schemes: Sequence[dict], monthly: Dict[int, Tuple[Sequence[date],
         w36 = calc.window(by, end_mk, 36)
         if w36:
             r = calc.returns(w36)
-            f.update(vol3=calc.volatility(r), worst=calc.worst_loss(r), neg=calc.neg_share(r), below=calc.below_high(w36))
+            f.update(vol3=calc.volatility(r), worst=calc.worst_loss(r), neg=calc.neg_share(r), below=calc.below_high(w36), up=calc.biggest_gain(r), down_dev=calc.downside_dev(r))
             rets36[s["code"]] = {end_mk - 36 + i: r[i] for i in range(36)}   # the month a return ENDS in: window months end_mk-1-36+1 .. end_mk-1
         w12 = calc.window(by, end_mk, 12)
         if w12:
@@ -166,6 +167,9 @@ def build_rows(schemes: Sequence[dict], monthly: Dict[int, Tuple[Sequence[date],
         if w48:
             f["worst12"] = calc.worst_rolling(w48, 12)
         f["sharpe"] = calc.sharpe(s["r3y"], f.get("vol3"))
+        for i in (1, 2, 3):   # the three calendar years before the run's year, the same years for every fund
+            if (run.year - i) * 12 + 11 <= end_mk - 1:   # December of that year is a full month of this fund's series
+                f["cy%d" % i] = calc.calendar_return(by, run.year - i)
         fig[s["code"]] = f
 
     # ---- peer groups: medians, excess returns, ranks, downside capture
@@ -193,12 +197,16 @@ def build_rows(schemes: Sequence[dict], monthly: Dict[int, Tuple[Sequence[date],
                         gfig[m["code"]]["ter_rel"] = m["ter"] / med
         w12 = [fig[m["code"]]["worst12"] for m in members if m["code"] in fig and fig[m["code"]].get("worst12") is not None]
         med12 = calc.median(w12) if len(w12) >= PEER_MIN else None
+        v3 = [fig[m["code"]]["vol3"] for m in members if m["code"] in fig and fig[m["code"]].get("vol3") is not None]
+        medv = calc.median(v3) if len(v3) >= PEER_MIN else None
         own = [rets36[m["code"]] for m in members if m["code"] in rets36]
         pm = calc.peer_median_months(own) if len(own) >= PEER_MIN else {}
         for m in members:
             c = m["code"]
             if med12 is not None and c in fig and fig[c].get("worst12") is not None:
                 gfig[c]["worst_less"] = fig[c]["worst12"] < med12
+            if medv and medv > 0 and c in fig and fig[c].get("vol3") is not None:
+                gfig[c]["vol_rel"] = fig[c]["vol3"] / medv
             if c in rets36 and pm:
                 gfig[c]["down_cap"] = calc.down_capture(rets36[c], pm)
                 gfig[c]["consist"] = calc.consistency(rets36[c], pm)
@@ -267,6 +275,8 @@ def build_rows(schemes: Sequence[dict], monthly: Dict[int, Tuple[Sequence[date],
             "x_exit_pct": r2(ex_pct), "x_exit_days": ex_days, "x_exit_state": ex_state,
             "x_vol1": r2(f.get("vol1")), "x_vol3": r2(f.get("vol3")), "x_worst_loss": r2(f.get("worst")), "x_worst12_loss": r2(f.get("worst12")), "x_neg_share": r2(f.get("neg")),
             "x_below_high": r2(f.get("below")), "x_down_cap": r2(g.get("down_cap")), "x_sharpe": r2(f.get("sharpe")), "x_worst_less": g.get("worst_less"),
+            "x_up_month": r2(f.get("up")), "x_down_dev": r2(f.get("down_dev")), "x_vol_rel": r2(g.get("vol_rel")),
+            "x_cy1": r2(f.get("cy1")), "x_cy2": r2(f.get("cy2")), "x_cy3": r2(f.get("cy3")),
             "x_port_asof": pf["asof"] if pf else None, "x_eq_pct": r2(pf["eq"]) if pf else None, "x_debt_pct": r2(pf["debt"]) if pf else None, "x_cash_pct": r2(pf["cash"]) if pf else None,
             "x_other_pct": r2(pf["other"]) if pf else None, "x_n_hold": pf["n"] if pf else None, "x_top10": r2(pf["top10"]) if pf else None, "x_max_hold": r2(pf["max"]) if pf else None,
             "x_top_sector": pf["top_sector"] if pf else None, "x_top_sector_pct": r2(pf["top_sector_pct"]) if pf else None,
