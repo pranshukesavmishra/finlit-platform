@@ -686,6 +686,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(mcp_server.router)   # POST /mcp (MCP for AI assistants) and /.well-known/mcp.json: before the site-backend catch-all and the website
     app.include_router(mcp_server.admin)   # /api/admin/mcp-stats
     app.include_router(__import__("finlit.prism_technical", fromlist=["router"]).router)   # GET /api/technicals/status: public, read-only (when the technical views were last refreshed, and the bar dates held)
+    app.include_router(__import__("finlit.sector_api", fromlist=["router"]).router)   # /api/sectors, /api/sectors/{slug}, /api/sectors/status, /api/technicals/{symbol}/sector: static JSON the nightly refresh-sectors job writes
     app.include_router(prism.router)   # /api/prism/*: the members' door to the site backend's administrator-only /api/premium-reports
     app.include_router(__import__("finlit.outlook.router", fromlist=["router"]).router)   # /api/outlook/{symbol}: Gold profit and revenue outlook
     app.include_router(__import__("finlit.mfportfolio.api", fromlist=["router"]).router)   # /api/me/mf-portfolio: My mutual funds (before the site-backend catch-all)

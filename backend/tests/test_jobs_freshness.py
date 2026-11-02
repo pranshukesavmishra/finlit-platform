@@ -202,3 +202,20 @@ async def test_a_refused_provider_key_is_remembered_for_the_alert_and_cleared_wh
     await report_refused(S(), "finedge", 403)
     assert "finedge" in await sig.credential_refused()
     await report_refused(S(), "finedge", 403)                           # throttled in-process: one write per 10 minutes
+
+
+# ------------------------------------------------------------------------------------------------ sector pulse (docs/SECTORS.md)
+def test_sector_pulse_is_judged_against_the_expected_session_only_when_the_job_is_on():
+    f, now = facts()
+    assert "sectors" not in {d["key"] for d in fr.evaluate_facts(f, now, [], disk=1.0)["datasets"]}                 # job switched off: nothing to be late
+    f["sector_enabled"], f["sector_board_date"] = True, FRI
+    sec = [d for d in fr.evaluate_facts(f, now, [], disk=1.0)["datasets"] if d["key"] == "sectors"][0]
+    assert sec["status"] == "fresh" and sec["jobs"] == ["sectors"] and sec["label"] == "Sector pulse" and "board date" in sec["detail"]
+    f["sector_board_date"] = FRI - timedelta(days=1)                                                                 # Thursday's board, Friday evening
+    late = ist(2026, 10, 30, 23, 0)
+    assert [d for d in fr.evaluate_facts(f, late, [], disk=1.0)["datasets"] if d["key"] == "sectors"][0]["status"] == "late"
+    stale = ist(2026, 10, 31, 13, 0)
+    rep = fr.evaluate_facts(f, stale, [], disk=1.0)
+    assert [d for d in rep["datasets"] if d["key"] == "sectors"][0]["status"] == "stale" and "sectors" in rep["stale"]
+    f["sector_board_date"] = None
+    assert [d for d in fr.evaluate_facts(f, now, [], disk=1.0)["datasets"] if d["key"] == "sectors"][0]["status"] == "unknown"      # enabled but no data yet: unknown, not stale

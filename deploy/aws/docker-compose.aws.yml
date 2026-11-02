@@ -34,10 +34,17 @@ services:
       CLIENT_IP_HEADER: x-forwarded-for
       TZ: Asia/Kolkata
     expose: ["8000"]
+    # Sector pages (docs/SECTORS.md). Two folders of the host are mounted into the one app container:
+    #   /opt/finlit/data/nse      NSE's daily files (about 240 MB, uploaded once by the founder); the nightly job adds the newest days to it.
+    #   /opt/finlit/data/sectors  what the job writes and the website reads (releases/, current -> the live one, last_run.json).
+    # Both are read-write on purpose: the job (fetch-nse, the market-panel cache, the swap) and the website live in this one container. Folders must be owned by uid 1000 (user finlit).
+    volumes:
+      - ${NSE_DATA_DIR:-/opt/finlit/data/nse}:/data/nse
+      - ${SECTORS_DATA_DIR:-/opt/finlit/data/sectors}:/data/sectors
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
-    mem_limit: 1200m
+    mem_limit: ${APP_MEM_LIMIT:-1200m}      # raise (and the server with it) only if the sector job is run on the server: docs/SECTORS.md, "Memory and time"
     # The API and website keep the default OOM score; every job process the supervisor starts raises its own to +500 (finlit/jobs/runner.py), so when
     # memory runs out the kernel kills a job first (it is retried within 30 minutes) and the site keeps answering. db, redis and caddy are protected below.
     cap_drop: [ALL]
