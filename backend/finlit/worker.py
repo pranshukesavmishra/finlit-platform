@@ -613,20 +613,69 @@ async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120,
             todo.append(sym)
         if len(todo) >= limit:
             break
-    done = {"candidates": len(todo), "ok": 0, "failed": 0}
+    done: Dict[str, Any] = {"candidates": len(todo), "ok": 0, "failed": 0}
     reasons: Dict[str, int] = {}
+    failed_syms: Dict[str, str] = {}
     for i in range(0, len(todo), 30):
         for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3, yield_to_readers=True):
-            done["ok" if r["status"] in ("ok", "warnings") else "failed"] += 1
-            if r["status"] not in ("ok", "warnings"):   # why a rebuild did not store: rejected by the quality gate, or the provider did not answer
-                reason = f"{r['status']}: {str((r.get('errors') or {}).get('error') or 'quality gate')[:80]}"
-                reasons[reason] = reasons.get(reason, 0) + 1
+            if r["status"] in ("ok", "warnings"):
+                done["ok"] += 1
+                await clear_result_failure(store, r["symbol"])
+                continue
+            done["failed"] += 1
+            reason = result_failure_reason(r)   # why a rebuild did not store: rejected by the quality gate (which check), or the provider did not answer (which part)
+            failed_syms[r["symbol"]] = reason
+            kind = reason.split(" [")[0]
+            reasons[kind[:100]] = reasons.get(kind[:100], 0) + 1
+            await note_result_failure(store, r["symbol"], r["status"], reason)
     if reasons:
         done["why"] = dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:4])
+    if failed_syms:
+        done["failedSymbols"] = dict(list(failed_syms.items())[:20])   # per symbol, shown at /api/results/status; each is asked again on the next run
     if todo:
         await store.invalidate_search()
-    log.info("refresh-results: %s", done)
+    log.info("refresh-results: %s", {k: v for k, v in done.items() if k != "failedSymbols"})
     return done
+
+
+# A company the full rebuild could not store is never dropped: the reason is kept per symbol (shown at /api/results/status) and the company is asked again
+# on the NEXT run (the "asked recently" lock is released). A quality-gate rejection is retried the same way for QUALITY_RETRIES runs, then at the normal
+# slower rhythm (the data may simply be wrong at the provider and need days to be corrected).
+FAIL_KEY = "results:fail"
+FAIL_TTL_S = 15 * 86400
+QUALITY_RETRIES = 6
+
+
+def result_failure_reason(r: dict) -> str:
+    """One readable sentence for a rebuild that stored nothing: 'rejected by the quality gate: <checks>' or 'provider did not answer for <parts>'."""
+    errors = r.get("errors") or {}
+    if r.get("status") == "rejected":
+        issues = errors.get("quality") or []
+        what = "; ".join(str(i.get("message") or i.get("key") or i)[:90] for i in issues[:3] if isinstance(i, dict)) or "critical data checks failed"
+        return f"rejected by the quality gate: {what}"[:240]
+    text = str(errors.get("error") or "no reason given")
+    if "did not answer" in text:
+        return f"provider {text[text.index('did not answer'):]}"[:240]
+    return f"failed: {text}"[:240]
+
+
+async def note_result_failure(store: Store, symbol: str, status: str, reason: str) -> None:
+    try:
+        raw = await store.redis.hget(FAIL_KEY, symbol)
+        attempts = (orjson.loads(raw).get("attempts", 0) if raw else 0) + 1
+        await store.redis.hset(FAIL_KEY, symbol, orjson.dumps({"status": status, "reason": reason, "attempts": attempts, "at": time.time()}).decode())
+        await store.redis.expire(FAIL_KEY, FAIL_TTL_S)
+        if status != "rejected" or attempts <= QUALITY_RETRIES:
+            await store.redis.delete(f"results:try:{symbol}")   # asked again on the next run, not after the usual wait
+    except Exception:   # nosec B110 - the note is for the status page; the retry rhythm still holds without it
+        pass
+
+
+async def clear_result_failure(store: Store, symbol: str) -> None:
+    try:
+        await store.redis.hdel(FAIL_KEY, symbol)
+    except Exception:   # nosec B110
+        pass
 
 
 async def _record_results_run(store: Store, cmd: str, status: str, counts: dict, extra: dict, error: Optional[str] = None) -> None:
@@ -839,6 +888,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_sv.add_argument("--dry-run", action="store_true", help="only print what is due and why; start nothing, write nothing")
     p_sv.add_argument("--no-wait", action="store_true", help="with --once: do not wait for the started jobs")
     sub.add_parser("jobs-status", help="print the same JSON as GET /api/jobs/status")
+    p_ad = sub.add_parser("audit-data", help="read-only data audit of the whole site: what is missing, stale or the wrong kind of data, per feature; prints a table and writes JSON (docs/DATA-AUDIT.md); not scheduled; exit code 0 always")
+    p_ad.add_argument("--only", nargs="+", metavar="FEATURE", help="check only these feature groups: stocks screeners funds etfs indices commodities macro flows news logos dhan jobs keys")
+    p_ad.add_argument("--quick", action="store_true", help="smaller samples and no heavy checks (about half the time)")
+    p_ad.add_argument("--json", default="/tmp/audit-data.json", help="where to write the same findings as JSON (default /tmp/audit-data.json)")  # nosec B108 - the founder asked for exactly this report path; the file holds findings only
     sub.add_parser("canary", help="re-fetch a few reference companies from the provider and compare them with what we hold (recorded at /api/jobs/status)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
@@ -852,6 +905,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     if args.cmd == "supervise":
         from .jobs.cli import supervise
         return await supervise(settings, once=args.once, dry_run=args.dry_run, wait=not args.no_wait)
+    if args.cmd == "audit-data":   # read-only, own connection, no migration, nothing written to the database; never fails (exit 0)
+        from .dataaudit import run_cli
+        return await run_cli(settings, args.only, args.quick, args.json)
     if args.cmd == "jobs-status":
         store = await Store.connect(settings, migrate=False)
         try:
@@ -926,7 +982,10 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 async with make_client() as client:              # NAV series is fetched (with a client), never left missing
                     result["hot"] = await refresh_hot(store, client)
             print(result)
-            return 0 if result["status"] == "ok" else 1
+            if result["status"] == "ok":
+                return 0
+            from .jobs.reasons import PARTIAL_EXIT, essential_ok
+            return PARTIAL_EXIT if result["status"] == "partial" and essential_ok(result) else 1   # master ok, TER and/or AUM not: degraded, not failed
         if args.cmd == "refresh-macro":
             from . import macro
             from .mf import last_run_age_hours, record_run
@@ -1280,7 +1339,8 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
                     raise
                 print(res)
-                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] else "ok", {k: v for k, v in res.items() if k != "why"}, {"why": res.get("why")} if res.get("why") else {})
+                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] else "ok",
+                                          {k: v for k, v in res.items() if isinstance(v, int)}, {k: res[k] for k in ("why", "failedSymbols") if res.get(k)})
             elif args.cmd == "refresh-results-light":
                 from . import results_light
                 try:   # a light job (one provider call per company): the admin "heavy loads" switch does not pause it
@@ -1289,8 +1349,9 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                     await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
                     raise
                 print(res)
-                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] else "partial" if res["failed"] else "ok",
-                                          {k: v for k, v in res.items() if isinstance(v, int)}, {"errors": res["errors"]} if res.get("errors") else {})
+                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] and not res.get("throttled")
+                                          else "partial" if res["failed"] or res.get("throttled") else "ok",
+                                          {k: v for k, v in res.items() if isinstance(v, int)}, {k: res[k] for k in ("errors", "stopReason", "deferred", "pauseSeconds") if res.get(k)})
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:

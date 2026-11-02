@@ -28,11 +28,18 @@ from .screener.compute import _round, quarter_block
 
 log = logging.getLogger("finlit.results_light")
 
-MAX_AGE_DAYS = 4          # a declaration is chased for this many days
+MAX_AGE_DAYS = 4          # a declaration is chased at the normal rate (every run, then every 3 and 5 hours) for this many days
+CHASE_DAYS = 14           # after MAX_AGE_DAYS it is still asked about, but only once a day, up to this many days after the declaration
+LATE_RECHECK_HOURS = 24   # a company past MAX_AGE_DAYS is asked again after this long
+LATE_PER_RUN = 25         # at most this many past-the-window companies per run (the provider's limits come first; the declared-lately ones are always asked first)
+ASKED_WITHIN_HOURS = 12   # "waiting for the provider" means we asked within this many hours (the job is quiet from 23:00 to 08:00, so a 9 hour gap is normal)
+LATE_ASKED_WITHIN_HOURS = 48   # for a past-the-window company the daily question may be this old before it counts as ours to fix
 RECHECK_MINUTES = 50      # a company the provider had nothing for is asked again after this long (the hourly run therefore asks again each hour)
 KEEP_QUARTERS = 3
 PER_RUN = 150
 MAX_IN_A_ROW = 10         # this many provider failures in a row end the run (a refusing or down provider is not asked 150 more times)
+MAX_THROTTLED_IN_A_ROW = 6   # this many "too many requests" answers in a row end the run; it is not a failure, the next run continues with the same companies
+PAUSE_MAX = 8.0           # the pause between calls doubles after a "too many requests" answer, up to this many seconds, and shrinks back after successes
 STALE_DAYS = 170          # finedge.stale_reason: standalone this much newer than consolidated means consolidated is stale
 TOLERANCE = 10            # days between the quarter asked for and the provider's period end (same as the full path)
 COLS = results.LIGHT_COLS   # quarter_light column -> the screener metric of the same meaning
@@ -160,40 +167,61 @@ async def states(store, recent: Dict[str, Tuple[str, date]]) -> Dict[str, Dict[s
             src = "provider"
         else:
             src = "ours"
-        out[r["symbol"]] = {"source": src, "mcap": r["mcap"], "checkedAt": r["checked_at"], "quarter": r["quarter"]}
+        out[r["symbol"]] = {"source": src, "mcap": r["mcap"], "checkedAt": r["checked_at"], "quarter": r["quarter"], "providerLatest": r["provider_latest"]}
     return out
 
 
-async def candidates(store, today: Optional[date] = None, recheck_minutes: int = RECHECK_MINUTES, max_age_days: int = MAX_AGE_DAYS) -> List[Tuple[str, str]]:
-    """(symbol, quarter key) to fetch: declared in the last `max_age_days`, figures not in the full report, no filled light row, and not asked in the
-    last `recheck_minutes`. Biggest market cap first (unknown last), symbol as the tie-break so the order never wobbles."""
+async def candidates(store, today: Optional[date] = None, recheck_minutes: int = RECHECK_MINUTES, max_age_days: int = MAX_AGE_DAYS, chase_days: int = CHASE_DAYS,
+                     late_per_run: int = LATE_PER_RUN) -> List[Tuple[str, str]]:
+    """(symbol, quarter key) to fetch: declared in the last `max_age_days` (asked on the normal rhythm), then, at a low rate, declared up to `chase_days`
+    ago (asked once a day, at most `late_per_run` of them); figures not in the full report, no filled light row. Biggest market cap first (unknown
+    last), symbol as the tie-break so the order never wobbles; the declared-lately ones always come before the older ones."""
     today = today or results.today_ist()
-    recent = await recent_declarations(store, today, max_age_days)
+    recent = await recent_declarations(store, today, max(chase_days, max_age_days))
     st = await states(store, recent)
     now = datetime.now().astimezone()
-    todo = []
+    todo, late = [], []
     for sym, s in st.items():
         if s["source"] in ("full", "light"):
             continue
-        # asked again every run for the first two days, then every 3 hours, then every 5 (results.retry_minutes): a late provider is not hammered
-        if s["checkedAt"] is not None and (now - s["checkedAt"]) < timedelta(minutes=results.retry_minutes(recheck_minutes, recent[sym][1], today)):
+        decl = recent[sym][1]
+        key = (-(s["mcap"] if s["mcap"] is not None else -1.0), sym, s["quarter"])
+        if (today - decl).days > max_age_days:
+            # given up chasing every run: asked once a day, so a provider that publishes a week late still gets picked up
+            if s["checkedAt"] is None or (now - s["checkedAt"]) >= timedelta(hours=LATE_RECHECK_HOURS):
+                late.append(key)
             continue
-        todo.append((-(s["mcap"] if s["mcap"] is not None else -1.0), sym, s["quarter"]))
-    return [(sym, qk) for _, sym, qk in sorted(todo)]
+        # asked again every run for the first two days, then every 3 hours, then every 5 (results.retry_minutes): a late provider is not hammered
+        if s["checkedAt"] is not None and (now - s["checkedAt"]) < timedelta(minutes=results.retry_minutes(recheck_minutes, decl, today)):
+            continue
+        todo.append(key)
+    return [(sym, qk) for _, sym, qk in sorted(todo)] + [(sym, qk) for _, sym, qk in sorted(late)[:late_per_run]]
+
+
+def throttled(exc: BaseException) -> bool:
+    """True for the provider's "too many requests" / "busy" answers (429, 503): slow down and carry on next run; not a failure of the company."""
+    return bool(getattr(exc, "throttled", False)) or getattr(exc, "status", None) in (429, 503)
 
 
 async def refresh_light(client: FinEdgeClient, store, limit: int = PER_RUN, today: Optional[date] = None, pause: float = 0.4, max_minutes: float = 25.0,
                         recheck_minutes: int = RECHECK_MINUTES) -> Dict[str, Any]:
-    """One run: up to `limit` companies, sequential, one provider call each (two when consolidated lacks the quarter). A per-company error is counted and
-    skipped; the company is asked again next run. Resumable by construction: a filled company is never asked again, an unfilled one only after
-    `recheck_minutes`."""
+    """One run: up to `limit` companies, sequential, one provider call each (two when consolidated lacks the quarter). Resumable by construction: a filled
+    company is never asked again, an unfilled one only after `recheck_minutes`.
+
+    Pacing: the pause between calls starts at `pause`, doubles (up to PAUSE_MAX, or the provider's Retry-After) after every "too many requests" answer and
+    shrinks back by a third after each success. Such an answer is not a failure: it is counted as `throttled`, the company keeps its place (nothing is
+    stored, so it is the first to be asked next run) and it does not count toward MAX_IN_A_ROW; only MAX_THROTTLED_IN_A_ROW of them in a row end the run.
+    A real error (anything else) is counted, listed under `errors`, and ends the run only after MAX_IN_A_ROW in a row."""
     todo = (await candidates(store, today, recheck_minutes))
-    out: Dict[str, Any] = {"candidates": len(todo), "tried": 0, "filled": 0, "providerPending": 0, "failed": 0}
+    out: Dict[str, Any] = {"candidates": len(todo), "tried": 0, "filled": 0, "providerPending": 0, "failed": 0, "throttled": 0}
     errors: Dict[str, int] = {}
-    in_a_row = 0
+    deferred: List[str] = []
+    in_a_row = throttled_in_a_row = 0
+    gap = pause
     deadline = time.monotonic() + max_minutes * 60
     for sym, qk in todo[:limit]:
         if time.monotonic() > deadline:
+            out["stoppedEarly"], out["stopReason"] = True, "the time limit of this run was reached; the next run continues"
             break
         e = results.parse_quarter(qk)
         if e is None:
@@ -204,23 +232,113 @@ async def refresh_light(client: FinEdgeClient, store, limit: int = PER_RUN, toda
             async with store.pool.acquire() as conn:
                 filled = await save(conn, sym, qk, got)
             out["filled" if filled else "providerPending"] += 1
-            in_a_row = 0
+            in_a_row = throttled_in_a_row = 0
+            gap = max(pause, gap * 0.67)
         except Exception as exc:   # one company never stops the run
-            out["failed"] += 1
-            in_a_row += 1
-            reason = why(exc)
-            errors[reason] = errors.get(reason, 0) + 1
-            log.warning("results-light %s failed: %s", sym, reason)
-            if in_a_row >= MAX_IN_A_ROW:   # the provider is refusing or down: stop here, the next run starts again
-                log.warning("results-light stopped after %d failures in a row (last: %s)", in_a_row, reason)
-                out["stoppedEarly"] = True
-                break
-        if pause:
-            await asyncio.sleep(pause)
+            if throttled(exc):
+                out["throttled"] += 1
+                throttled_in_a_row += 1
+                deferred.append(sym)
+                gap = min(PAUSE_MAX, max(gap * 2, pause * 2, getattr(exc, "retry_after", None) or 0.0))
+                log.warning("results-light %s: the provider asked us to slow down (%s); pause is now %.1fs", sym, why(exc), gap)
+                if throttled_in_a_row >= MAX_THROTTLED_IN_A_ROW:
+                    out["stoppedEarly"], out["stopReason"] = True, "the provider kept answering 'too many requests'; the next run continues with the same companies"
+                    break
+            else:
+                out["failed"] += 1
+                in_a_row += 1
+                throttled_in_a_row = 0
+                reason = why(exc)
+                errors[reason] = errors.get(reason, 0) + 1
+                log.warning("results-light %s failed: %s", sym, reason)
+                if in_a_row >= MAX_IN_A_ROW:   # the provider is refusing or down: stop here, the next run starts again
+                    log.warning("results-light stopped after %d failures in a row (last: %s)", in_a_row, reason)
+                    out["stoppedEarly"], out["stopReason"] = True, f"{in_a_row} failures in a row (last: {reason}); the next run starts again"
+                    break
+        if gap:
+            await asyncio.sleep(gap)
     if errors:
         out["errors"] = dict(sorted(errors.items(), key=lambda kv: -kv[1])[:4])
+    if deferred:
+        out["deferred"] = deferred[:10]    # told to wait by the provider; they are first in line next run
+    if out["throttled"]:
+        out["pauseSeconds"] = round(gap, 2)    # where the adaptive pause ended
     log.info("refresh-results-light: %s", out)
     return out
+
+
+# ------------------------------------------------------------------ buckets: why a declared company has no figures yet
+FILLED, WAITING, GAVE_UP, OURS, QUEUED = "filled", "waiting_for_provider", "gave_up", "ours_to_fix", "queued"
+
+
+def bucket_of(s: Dict[str, Any], declared: date, today: date, now: datetime) -> Dict[str, Any]:
+    """Which explicit bucket one declared company is in, and why. Returns {bucket, reason, severity, askedHoursAgo, declared}.
+      filled                figures held (full report or light row)
+      waiting_for_provider  we asked within ASKED_WITHIN_HOURS and the provider has no new quarter yet (declared at most MAX_AGE_DAYS ago): information, not an alarm
+      queued                declared today and not asked yet (the next hourly run asks)
+      gave_up               declared more than MAX_AGE_DAYS ago: no longer chased every run, asked once a day until CHASE_DAYS; listed, not an alarm
+      ours_to_fix           the provider HAS the quarter and we did not fill it, or we did not ask in time: this is the alarm (severity stale | late)"""
+    age = (today - declared).days
+    checked = s.get("checkedAt")
+    asked_h = round((now - checked).total_seconds() / 3600, 1) if checked is not None else None
+    base = {"askedHoursAgo": asked_h, "declared": declared}
+    if s["source"] in ("full", "light"):
+        return {**base, "bucket": FILLED, "reason": "figures held", "severity": None}
+
+    def ours(reason: str, stale: bool) -> Dict[str, Any]:
+        return {**base, "bucket": OURS, "reason": reason, "severity": "stale" if stale else "late"}
+
+    if age > MAX_AGE_DAYS:
+        if checked is None:
+            return {**base, "bucket": GAVE_UP, "reason": f"declared {age} days ago, the provider has not published it; the daily check has not reached it yet", "severity": None}
+        if asked_h is not None and asked_h <= LATE_ASKED_WITHIN_HOURS:
+            return {**base, "bucket": GAVE_UP, "reason": f"declared {age} days ago, the provider has not published it; asked {asked_h:g} h ago, then once a day", "severity": None}
+        return ours(f"declared {age} days ago and the daily check has not asked for {asked_h:g} h", False)
+    if s["source"] == "provider":
+        if asked_h is not None and asked_h <= ASKED_WITHIN_HOURS:
+            return {**base, "bucket": WAITING, "reason": f"asked {asked_h:g} h ago, the provider has not published the quarter yet", "severity": None}
+        return ours(f"not asked for {asked_h:g} h (it should be asked at least every {ASKED_WITHIN_HOURS} h)", age >= 2)
+    # source == "ours": no row at all, or the provider has the quarter (or newer data) and we did not fill it
+    if checked is None:
+        if age == 0:
+            return {**base, "bucket": QUEUED, "reason": "declared today, not asked yet", "severity": None}
+        return ours(f"declared {age} day(s) ago and never asked", age >= 2)
+    pl = s.get("providerLatest")
+    return ours(f"the provider has data up to {pl.isoformat()} but the quarter was not filled" if pl else "the provider answered but the quarter could not be read", age >= 2)
+
+
+def summarise_buckets(recent: Dict[str, Tuple[str, date]], st: Dict[str, Dict[str, Any]], today: date, now: datetime) -> Dict[str, Any]:
+    """Counts per bucket with the oldest declaration, and the reasons for ours_to_fix: the facts the freshness rule and the status text are built from."""
+    names = (FILLED, WAITING, QUEUED, GAVE_UP, OURS)
+    b: Dict[str, Any] = {n: {"count": 0, "oldest": None} for n in names}
+    ours: List[Dict[str, Any]] = []
+    for sym, s in st.items():
+        v = bucket_of(s, recent[sym][1], today, now)
+        e = b[v["bucket"]]
+        e["count"] += 1
+        d = v["declared"]
+        if e["oldest"] is None or d < e["oldest"]:
+            e["oldest"] = d
+        if v["bucket"] == OURS:
+            ours.append({"symbol": sym, "declared": d, "reason": v["reason"], "severity": v["severity"]})
+    ours.sort(key=lambda x: (x["declared"], x["symbol"]))
+    for n in names:
+        b[n]["oldest"] = b[n]["oldest"].isoformat() if b[n]["oldest"] else None
+    reasons: Dict[str, int] = {}
+    for o in ours:
+        k = " ".join("".join("#" if c.isdigit() else c for c in o["reason"].split(" (")[0]).split())   # one reason with different numbers is one reason
+        reasons[k] = reasons.get(k, 0) + 1
+    b["declared"] = len(st)
+    b["oursSeverity"] = "stale" if any(o["severity"] == "stale" for o in ours) else "late" if ours else None
+    b["oursReasons"] = dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:4])
+    b["oursSample"] = [{"symbol": o["symbol"], "declared": o["declared"].isoformat(), "reason": o["reason"]} for o in ours[:10]]
+    return b
+
+
+async def bucket_facts(store, today: date, now: datetime) -> Dict[str, Any]:
+    """The bucket summary for everyone who declared in the last CHASE_DAYS days (read-only; uses the cached declarations)."""
+    recent = await recent_declarations(store, today, CHASE_DAYS, force=False)
+    return summarise_buckets(recent, await states(store, recent), today, now)
 
 
 async def coverage(store, today: Optional[date] = None, days: int = 3) -> Dict[str, Any]:

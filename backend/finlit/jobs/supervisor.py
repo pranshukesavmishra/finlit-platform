@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional
 
-from .due import HELD_RETRY_MIN, YIELD_RETRY_MIN, Ctx, JobState, Verdict, evaluate, retry_delay_min, sla_status
+from .due import DEGRADED_RETRY_MIN, HELD_RETRY_MIN, YIELD_RETRY_MIN, Ctx, JobState, Verdict, evaluate, retry_delay_min, sla_status
+from .reasons import PARTIAL_EXIT, explain, failed_steps
 from .registry import Job, JobsConfig, disabled_reason
 from .schedule import fmt_ist
 
@@ -61,7 +62,14 @@ class Supervisor:
     def __init__(self, *, jobs: List[Job], state: Any, runner: Any, resources: Any, signals: Any, pause: Any, clock: Any, config: JobsConfig,
                  env: Mapping[str, str], probes: Optional[Dict[str, Callable[[], Awaitable[Optional[bool]]]]] = None, notifier: Any = None,
                  freshness: Optional[Callable[[datetime], Awaitable[Dict[str, Any]]]] = None, extra_alerts: Optional[Callable[[datetime], Awaitable[List[tuple]]]] = None,
-                 legacy: Optional[Callable[[], Awaitable[Dict[str, tuple]]]] = None) -> None:
+                 legacy: Optional[Callable[[], Awaitable[Dict[str, tuple]]]] = None,
+                 run_detail: Optional[Callable[[str], Awaitable[Optional[Dict[str, Any]]]]] = None,
+                 every_cycle: Optional[Callable[[], Awaitable[Any]]] = None) -> None:
+        # every_cycle(): a small, self-limiting job that rides on every round of the loop (the commodity prices); it never raises into the loop and never overlaps itself
+        self.every_cycle = every_cycle
+        self._cycle_task: Optional[asyncio.Task] = None
+        # run_detail(command) -> the job's own stored result (`run:<command>` in mf_meta: status, per-step reasons, errors), used to say WHY in the run history and the alerts
+        self.run_detail = run_detail
         self.jobs = {j.name: j for j in jobs}
         self.order = sorted(jobs, key=lambda j: (j.priority, j.name))
         self.state, self.runner, self.resources, self.signals, self.pause, self.clock = state, runner, resources, signals, pause, clock
@@ -295,6 +303,8 @@ class Supervisor:
         del self.running[r.job.name]
         tail = r.handle.tail()
         duration = (now - r.started).total_seconds()
+        detail = await self._detail(r.job, r.started) if (rc not in r.job.ok_exit and not r.kill_status) else None
+        counts: Dict[str, Any] = {"tail": tail} if tail else {}
         if r.kill_status:
             status, reason = r.kill_status, r.kill_reason
         elif rc in r.job.ok_exit:
@@ -302,10 +312,17 @@ class Supervisor:
         elif rc < 0:
             name = sigmod.Signals(-rc).name if -rc in {s.value for s in sigmod.Signals} else str(-rc)
             status, reason = "killed", f"killed by {name}" + (" (most likely out of memory)" if name == "SIGKILL" else "")
+        elif rc == PARTIAL_EXIT or (detail and detail.get("status") == "partial"):
+            # the job's essential step is done and an optional one is not (fund facts: scheme master ok, expense ratios or fund size not): degraded, not failed.
+            # The last good figures stay in use; the reason names each step that did not work.
+            status, reason = "partial", explain(detail) or (f"exit code {rc}: {tail}" if tail else f"exit code {rc}")
         else:
-            status, reason = "failed", f"exit code {rc}" + (f": {tail}" if tail else "")
+            why_text = explain(detail) or tail     # the job's own stored reason first, then the end of its output
+            status, reason = "failed", f"exit code {rc}" + (f": {why_text}" if why_text else "")
+        if detail:
+            counts["steps"] = failed_steps(detail)
         st = (await self.state.load_all()).get(r.job.name) or JobState(job=r.job.name, first_seen_at=now)
-        await self._complete_raw(r.job, st, r.run_id, now, status, reason, rc, duration, r.peak_mb or None, {"tail": tail} if tail else {})
+        await self._complete_raw(r.job, st, r.run_id, now, status, reason, rc, duration, r.peak_mb or None, counts)
         await self.state.save(st)
         log.info("done %s: %s%s", r.job.name, status, f" ({reason})" if reason else "")
 
@@ -316,6 +333,14 @@ class Supervisor:
         if status == "ok":
             st.last_success_at, st.consecutive_failures, st.retry_at, st.held_until, st.held_reason, st.forced_at = now, 0, None, None, None, None   # forced_attempts is cleared only when the data turns fresh
             st.state, st.state_reason = "idle", "finished"
+            await self._clear_alerts(job.name)
+            return
+        if status == "partial":
+            # degraded: counts as done for the schedule (the last good figures are served), is never a failure, is not held, and is tried again after a while
+            st.last_success_at, st.consecutive_failures, st.held_until, st.held_reason, st.forced_at = now, 0, None, None, None
+            st.retry_at = now + timedelta(minutes=DEGRADED_RETRY_MIN)
+            st.state, st.state_reason = "degraded", (reason or "an optional step did not work")[:300]
+            await self._clear_alerts(job.name)
             return
         if status == "timeout" and job.resumable and reason and reason.startswith("ran longer"):
             st.retry_at = now + timedelta(minutes=YIELD_RETRY_MIN)    # a resumable job yields at its time cap and continues: not a failure
@@ -328,6 +353,38 @@ class Supervisor:
         if held:
             st.held_until, st.held_reason = st.retry_at, f"failed {st.consecutive_failures} times in a row; last: {reason or status}"[:300]
         st.state, st.state_reason = ("held" if held else "waiting"), f"{status}: {reason or ''}; retry at {fmt_ist(st.retry_at)}"[:300]
+
+    async def _detail(self, job: Job, started: datetime) -> Optional[Dict[str, Any]]:
+        """The job's own stored result of THIS run (not an older one), or None."""
+        if not self.run_detail or not job.args:
+            return None
+        try:
+            info = await self.run_detail(job.args[0])
+            at = datetime.fromisoformat(str(info["at"])) if info and info.get("at") else None
+        except Exception:
+            return None
+        return info if info and at and at >= started - timedelta(seconds=120) else None
+
+    async def _clear_alerts(self, name: str) -> None:
+        """A run succeeded (or finished degraded): the 'failing' and 'overdue' alerts of this job end, and the next problem is reported at once."""
+        clear = getattr(self.notifier, "clear", None)
+        if clear is None:
+            return
+        for key in (f"failing:{name}", f"overdue:{name}"):
+            try:
+                await clear(key)
+            except Exception:   # nosec B110 - the alert simply repeats at its normal rate
+                pass
+
+    async def _why(self, name: str) -> str:
+        """The reason of the job's latest run that did not end ok (from its stored run), as 'Why: ...'; empty when none is on record."""
+        try:
+            for run in await self.state.recent_runs(8, name):
+                if run.get("status") in ("failed", "killed", "timeout", "partial") and run.get("reason"):
+                    return f" Why: {run['reason']}"[:420]
+        except Exception:   # nosec B110
+            pass
+        return ""
 
     # ------------------------------------------------------------------------------------------------ freshness, alerts
     async def check_freshness(self, now: datetime) -> None:
@@ -373,12 +430,13 @@ class Supervisor:
             if sla.overdue and not (job.honours_pause and plan.ctx.pause):
                 problems.append((f"overdue:{name}", f"FinLit job overdue: {name}",
                                  f"{name} ({job.what}) has not succeeded for {sla.age_hours:.1f} hours; its promise is {job.sla.hours:g} hours ({job.sla.kind}). "
-                                 f"State: {v.state}: {v.reason}. Last result: {st.last_status}. Open /api/jobs/status for the full picture."
-                                 if sla.age_hours is not None else f"{name} ({job.what}) has never succeeded and is {sla.lateness_hours:.1f} hours past its promise. State: {v.state}: {v.reason}."))
+                                 f"State: {v.state}: {v.reason}. Last result: {st.last_status}.{await self._why(name)} Open /api/jobs/status for the full picture."
+                                 if sla.age_hours is not None else f"{name} ({job.what}) has never succeeded and is {sla.lateness_hours:.1f} hours past its promise. State: {v.state}: {v.reason}.{await self._why(name)}"))
             if st.consecutive_failures >= 3:
                 problems.append((f"failing:{name}", f"FinLit job failing: {name}",
-                                 f"{name} has failed {st.consecutive_failures} times in a row ({st.last_status}). {st.state_reason or ''} It is retried automatically "
-                                 f"{'every 2 hours' if st.consecutive_failures >= job.max_attempts else 'with a growing delay'}. Look at /tmp/job-{name}.log in the app container."))
+                                 f"{name} has failed {st.consecutive_failures} times in a row ({st.last_status}).{await self._why(name)} {st.state_reason or ''} It is retried automatically "
+                                 f"{'every 2 hours (never later than 3)' if st.consecutive_failures >= job.max_attempts else 'with a growing delay'}; the alert ends when a run succeeds. "
+                                 f"Look at /tmp/job-{name}.log in the app container."))
         if self.last_fresh_report:
             states = plan.states
             for d in self.last_fresh_report.get("datasets", []):
@@ -396,7 +454,22 @@ class Supervisor:
         for key, subject, body in problems:
             if await self.notifier.alert(key, subject, body, now):
                 sent.append(key)
+        open_keys = getattr(self.notifier, "open_keys", None)
+        if open_keys is not None:       # a problem that is no longer there closes its alert, with a short 'resolved' notice
+            live = {k for k, _, _ in problems}
+            try:
+                for key in await open_keys():
+                    if key not in live:
+                        await self.notifier.resolve(key)
+            except Exception:
+                log.exception("closing resolved alerts failed")
         return sent
+
+    async def _safe_cycle(self) -> None:
+        try:
+            await self.every_cycle()   # type: ignore[misc]
+        except Exception:
+            log.exception("the every-cycle task failed (the next cycle tries again)")
 
     # ------------------------------------------------------------------------------------------------ the loop
     async def step(self) -> None:
@@ -409,6 +482,8 @@ class Supervisor:
                                                "dbOk": self.db_ok, "lastError": self.last_error})
         except Exception:   # nosec B110 - the heartbeat is best effort; the loop goes on
             pass
+        if self.every_cycle is not None and (self._cycle_task is None or self._cycle_task.done()):
+            self._cycle_task = asyncio.create_task(self._safe_cycle())
         finished = False
         try:
             finished = await self.poll()

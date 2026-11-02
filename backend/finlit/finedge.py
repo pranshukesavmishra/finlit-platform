@@ -12,6 +12,7 @@ import gzip
 import json
 import logging
 import random
+import time
 from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
@@ -29,10 +30,46 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 OPTIONAL = object()  # marker: endpoint failure should not fail the bundle
 
 
+THROTTLE_STATUS = {429, 503}      # "too many requests" / "busy": the provider is asking us to slow down, which is not a failure of the data
+MAX_RETRY_AFTER = 120.0           # never wait longer than this on one provider instruction
+PACE_STEP, PACE_MAX, PACE_DECAY = 0.5, 8.0, 0.7   # adaptive pace: seconds between calls; doubles on a throttle, recovers on success
+
+
 class FinEdgeError(RuntimeError):
-    def __init__(self, path: str, status: Optional[int], message: str):
+    def __init__(self, path: str, status: Optional[int], message: str, retry_after: Optional[float] = None):
         super().__init__(f"{path}: {status} {message}")
-        self.path, self.status = path, status
+        self.path, self.status, self.retry_after = path, status, retry_after
+
+    @property
+    def throttled(self) -> bool:
+        """The provider said 'too many requests' / 'busy' (429, 503): slow down and ask again later; the company itself is fine."""
+        return self.status in THROTTLE_STATUS
+
+
+def parse_retry_after(value: Optional[str]) -> Optional[float]:
+    """Retry-After as seconds (a number, or an HTTP date); None when absent or unreadable. Capped at MAX_RETRY_AFTER."""
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        secs = float(value)
+    except ValueError:
+        try:
+            from email.utils import parsedate_to_datetime
+            from datetime import datetime, timezone
+            secs = (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds()
+        except Exception:
+            return None
+    return max(0.0, min(secs, MAX_RETRY_AFTER))
+
+
+def backoff_delay(attempt: int, retry_after: Optional[float] = None, base: float = 0.5, cap: float = 30.0) -> float:
+    """How long to wait before retry number `attempt` (0 = first retry): the provider's Retry-After when it sent one, else exponential with jitter
+    (half to full of base*2^attempt, capped), so many callers do not come back at the same moment."""
+    if retry_after is not None:
+        return min(retry_after, MAX_RETRY_AFTER) + random.uniform(0, 0.25)
+    d = min(cap, base * 2 ** attempt)
+    return d * random.uniform(0.5, 1.0)
 
 
 def _p(symbol: str) -> str:
@@ -176,6 +213,31 @@ class FinEdgeClient:
         # is waiting on never queues behind them.
         self._low = asyncio.Semaphore(max(1, self.settings.finedge_concurrency // 2))
         self.calls = 0
+        # Adaptive pacing, shared by every caller of this client: after a 429/503 calls are spaced `pace` seconds apart (and not before a Retry-After
+        # has passed); every success shortens the spacing again until it is gone.
+        self.pace = 0.0
+        self.throttled = 0              # how many 429/503 answers this client has seen
+        self._next_at = 0.0             # loop time before which the next call must not start
+        self._clock = time.monotonic
+
+    def _slow_down(self, retry_after: Optional[float]) -> None:
+        self.throttled += 1
+        self.pace = min(PACE_MAX, max(PACE_STEP, self.pace * 2))
+        self._next_at = max(self._next_at, self._clock() + (retry_after if retry_after is not None else self.pace))
+
+    def _recovered(self) -> None:
+        if self.pace:
+            self.pace = 0.0 if self.pace * PACE_DECAY < 0.1 else self.pace * PACE_DECAY
+
+    async def _wait_turn(self) -> None:
+        """Takes the next call slot: immediately when the provider has not asked us to slow down, else `pace` seconds after the previous slot."""
+        if not self.pace and self._next_at <= self._clock():
+            return
+        now = self._clock()
+        slot = max(now, self._next_at)
+        self._next_at = slot + self.pace
+        if slot > now:
+            await asyncio.sleep(slot - now)
 
     async def __aenter__(self):
         return self
@@ -189,6 +251,7 @@ class FinEdgeClient:
     async def get(self, path: str, params: Optional[Dict[str, Any]] = None, timeout: float = 10, retries: int = 3, low: bool = False) -> Any:
         query = {**(params or {}), "token": self.settings.finedge_api_key}
         for attempt in range(retries + 1):
+            await self._wait_turn()
             async with (self._low if low else _NoLock()), self._sem:
                 self.calls += 1
                 try:
@@ -197,22 +260,24 @@ class FinEdgeClient:
                     if attempt == retries:
                         raise FinEdgeError(path, None, type(exc).__name__) from exc
                     response = None
+            retry_after = None
             if response is not None:
                 if response.status_code < 400:
                     try:
-                        return response.json()
+                        body = response.json()
                     except ValueError as exc:
                         raise FinEdgeError(path, response.status_code, "non-JSON response") from exc
+                    self._recovered()
+                    return body
                 if response.status_code in (401, 403):   # the key is not accepted: remembered for the admin alert (jobs/alerts), the error still goes to the caller
                     from .jobs.signals import report_refused
                     await report_refused(self.settings, "finedge", response.status_code)
+                retry_after = parse_retry_after(response.headers.get("retry-after"))
+                if response.status_code in THROTTLE_STATUS:
+                    self._slow_down(retry_after)
                 if response.status_code not in RETRY_STATUS or attempt == retries:
-                    raise FinEdgeError(path, response.status_code, response.text[:200])
-                retry_after = response.headers.get("retry-after")
-                delay = float(retry_after) if retry_after and retry_after.isdigit() else 0.5 * 2 ** attempt
-            else:
-                delay = 0.5 * 2 ** attempt
-            await asyncio.sleep(delay + random.uniform(0, 0.25))
+                    raise FinEdgeError(path, response.status_code, response.text[:200], retry_after)
+            await asyncio.sleep(backoff_delay(attempt, retry_after))
         raise FinEdgeError(path, None, "exhausted retries")  # pragma: no cover
 
     async def _fetch_many(self, requests: Dict[str, Tuple[str, Dict[str, Any], float]], low: bool = False, on_part=None) -> Tuple[Dict[str, Any], Dict[str, str]]:

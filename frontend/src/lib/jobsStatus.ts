@@ -4,15 +4,19 @@ import { apiGet } from "./api";
 
 /** What GET /api/jobs/status says (public, read-only): every background job, every dataset's freshness, the admin pause. */
 export type JobRow = { name: string; state: string; reason: string | null; ageHours: number | null; slaHours: number | null; late: boolean; overdue: boolean; consecutiveFailures: number; disabledByConfig: boolean; disabledReason: string | null; lastSuccessAt: string | null; nextDueAt: string | null; description?: string };
-export type Dataset = { key: string; label: string; status: "fresh" | "late" | "stale" | "unknown"; expected: string | null; actual: string | null; lag: number | null; lagUnit: string | null; jobs: string[]; detail: string };
+export type ResultBucket = { count: number; oldest: string | null };
+/** Quarterly results only: who holds the companies that declared but have no figures yet (waiting_for_provider and gave_up are information, ours_to_fix is the alarm). */
+export type ResultBuckets = { filled: ResultBucket; waiting_for_provider: ResultBucket; queued: ResultBucket; gave_up: ResultBucket; ours_to_fix: ResultBucket; oursReasons?: Record<string, number>; oursSample?: { symbol: string; declared: string; reason: string }[] };
+export type Dataset = { key: string; label: string; status: "fresh" | "late" | "stale" | "unknown"; expected: string | null; actual: string | null; lag: number | null; lagUnit: string | null; jobs: string[]; detail: string; buckets?: ResultBuckets | null };
 export type JobsStatus = {
   healthy: boolean; healthNote?: string; overdue: string[]; failing?: string[]; resultsDelayed: boolean; dataFresh: boolean | null;
   supervisor: { alive: boolean; heartbeatAgeSeconds: number | null };
   pause: { paused: boolean; until: string | null; untilIST: string | null; resumesAutomatically: boolean };
   disabledByConfig: { name: string; reason: string }[];
+  degraded?: { name: string; reason: string | null }[];
   jobs: JobRow[];
   data: { checkedAt: string | null; dataFresh: boolean | null; datasets: Dataset[]; system?: { diskPercent?: number | null; diskOk?: boolean } };
-  canary: { checkedAt: string | null; ok: boolean | null; mismatches: { symbol: string; field: string; ours: number; provider: number; diffPercent: number }[] };
+  canary: { checkedAt: string | null; ok: boolean | null; mismatches: { symbol: string; field: string; ours: number; provider: number; diffPercent: number; message?: string; probablyRight?: string }[]; watching?: { symbol: string; field: string; diffPercent: number }[] };
   credentials?: { provider: string; detail: string }[];
 };
 export const useJobsStatus = (enabled = true) => useQuery({ queryKey: ["jobs-status"], enabled, staleTime: 60_000, refetchInterval: 300_000, retry: 0, queryFn: () => apiGet<JobsStatus>("/api/jobs/status") });
@@ -29,8 +33,9 @@ export function bannerLines(s?: JobsStatus | null): BannerLine[] {
   for (const c of s.credentials || []) out.push({ level: "bad", text: `The ${c.provider === "dhan" ? "Dhan" : c.provider === "finedge" ? "FinEdge" : c.provider} key is not accepted (${c.detail}). Update it in /opt/finlit/.env.aws.` });
   for (const j of s.jobs.filter((x) => x.overdue)) out.push({ level: "bad", text: `${j.name} is overdue: last success ${j.ageHours == null ? "never" : `${j.ageHours.toFixed(1)} h ago`}, promised every ${j.slaHours} h. ${j.reason || ""}`.trim() });
   for (const d of s.data.datasets.filter((x) => x.status === "stale")) out.push({ level: "bad", text: `${d.label} is stale: expected ${d.expected}, found ${d.actual ?? "nothing"}. ${d.detail}`.trim() });
-  if (s.canary.ok === false) out.push({ level: "bad", text: `Canary: ${s.canary.mismatches.slice(0, 3).map((m) => `${m.symbol} ${m.field} differs from the provider by ${m.diffPercent}%`).join("; ")}.` });
+  if (s.canary.ok === false) out.push({ level: "bad", text: `Canary: ${s.canary.mismatches.slice(0, 3).map((m) => `${m.symbol} ${m.field} differs from the provider by ${m.diffPercent}%${m.probablyRight && m.probablyRight !== "unknown" ? ` (${m.probablyRight} is probably right)` : ""}`).join("; ")}.` });
   if (s.data.system && s.data.system.diskOk === false) out.push({ level: "bad", text: `Server disk is ${s.data.system.diskPercent}% full.` });
+  for (const j of s.degraded || []) out.push({ level: "warn", text: `${j.name} finished degraded (the last good figures stay in use): ${j.reason || "an optional step did not work"}` });
   for (const d of s.disabledByConfig) out.push({ level: "warn", text: `${d.name} is switched off by configuration: ${d.reason}.` });
   if (s.pause.paused) out.push({ level: "warn", text: `Heavy data loads are paused until ${s.pause.untilIST}; they resume automatically.` });
   for (const d of s.data.datasets.filter((x) => x.status === "late")) out.push({ level: "warn", text: `${d.label} is a little late (expected ${d.expected}, found ${d.actual ?? "nothing"}).` });

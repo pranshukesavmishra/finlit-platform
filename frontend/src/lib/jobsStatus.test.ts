@@ -26,4 +26,10 @@ describe("admin banner lines", () => {
     expect(lines.map((l) => l.level)).toEqual(["warn", "warn"]);
     expect(lines[1].text).toContain("paused until 31 Oct 14:35 IST; they resume automatically");
   });
+  it("shows a degraded job as a note and a results dataset with buckets as before", () => {
+    const lines = bannerLines({ ...ok, degraded: [{ name: "facts", reason: "ter step failed: ConnectTimeout" }], canary: { checkedAt: null, ok: null, mismatches: [], watching: [{ symbol: "TCS", field: "price", diffPercent: 1 }] },
+      data: { checkedAt: null, dataFresh: true, datasets: [{ key: "results", label: "Quarterly results", status: "fresh", expected: null, actual: "323 of 946", lag: 0, lagUnit: "days", jobs: ["results"], detail: "Nothing for us to fix",
+        buckets: { filled: { count: 623, oldest: null }, waiting_for_provider: { count: 323, oldest: "2026-10-30" }, queued: { count: 0, oldest: null }, gave_up: { count: 0, oldest: null }, ours_to_fix: { count: 0, oldest: null } } }] } });
+    expect(lines).toEqual([{ level: "warn", text: "facts finished degraded (the last good figures stay in use): ter step failed: ConnectTimeout" }]);
+  });
 });

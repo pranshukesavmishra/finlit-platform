@@ -244,6 +244,7 @@ def test_a_data_freshness_force_runs_the_job_now_outside_every_window_and_visito
 def test_retry_timing_a_failed_job_is_not_due_before_its_retry_time_and_ignores_windows_after_it():
     j, now = JOBS["score"], at(*SAT, 1, 0)
     st = state("score", now, 30, retry_at=now + timedelta(minutes=20), consecutive_failures=1, last_status="failed")
+    st.last_attempt_at = now - timedelta(minutes=10)                                  # the failed attempt that scheduled this retry
     v = evaluate(j, st, ctx(now))
     assert not v.due and v.state == "waiting" and "retry at" in v.reason                # inside the night window but still in backoff
     later = now + timedelta(minutes=31)
@@ -257,6 +258,7 @@ def test_retry_timing_a_failed_job_is_not_due_before_its_retry_time_and_ignores_
 def test_a_job_failed_five_times_is_held_in_the_status_but_is_still_retried():
     j, now = JOBS["score"], at(*SAT, 12, 0)
     st = state("score", now, 5, retry_at=now + timedelta(minutes=90), consecutive_failures=5, last_status="failed")
+    st.last_attempt_at = now - timedelta(minutes=30)
     v = evaluate(j, st, ctx(now))
     assert v.state == "held" and not v.due
     st.retry_at = now - timedelta(minutes=1)

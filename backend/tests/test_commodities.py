@@ -185,6 +185,13 @@ def test_read_quote_guards():
     assert cm.read_quote(raw_quote(150000, 880), gold)[1] == "outside the exchange price band"
     assert cm.read_quote(raw_quote(138000, 880), gold)[1] == "outside the exchange price band"
     assert cm.read_quote(raw_quote(142500, 880), {"upper": "147608", "lower": "0.0"})[0] is not None     # a zero bound is unknown
+    # Dhan's instrument file holds percentages for MCX (0.03 = 3 %), not prices: they must never refuse a real price. The quote's own circuit limits decide.
+    pct = {"upper": "0.03", "lower": "0.03"}
+    assert cm.read_quote(raw_quote(142500, 880), pct)[1] is None
+    q = {**raw_quote(142500, 880), "upper_circuit_limit": 151151, "lower_circuit_limit": 134041}
+    assert cm.read_quote(q, pct)[1] is None and cm.read_quote(q, gold)[1] is None                 # inside the live band: accepted, whatever the file says
+    assert cm.read_quote({**q, "last_price": 152000}, pct)[1] == "outside the exchange price band"
+    assert cm.read_quote({**q, "last_price": 133000}, pct)[1] == "outside the exchange price band"
     assert cm.read_quote(raw_quote(142500, 20000), {})[1] == "day move above 12%"
     nt, _ = cm.read_quote(raw_quote(0, 0, at="01/01/1980 00:00:00", close=141620), gold)               # no trade yet: the previous close, flagged
     assert nt["price"] == "141620" and nt["noTrade"] and nt["prev"] is None and nt["lastTrade"] is None
@@ -568,3 +575,15 @@ async def test_worker_survives_provider_failures_and_keeps_the_last_good_values(
 async def test_run_without_any_source_does_nothing_and_says_so(store):
     out = await cm.run(make_settings(dhan_client_id="", metals_dev_api_key="", metalprice_api_key=""), store)
     assert out["status"] == "ok" and out["dhan"] is False and out["metals.dev"] is False and out["metalprice"] is False
+
+
+@pytest.mark.asyncio
+async def test_cycle_runner_does_nothing_without_a_source_and_never_raises():
+    class S:
+        dhan_client_id = ""
+        metals_dev_api_key = ""
+        metalprice_api_key = ""
+    runner = cm.CycleRunner()
+    assert await runner.run(S(), object()) == {}          # no provider configured: nothing to do, nothing asked again
+    assert await runner.run(S(), object()) == {}
+    await runner.close()

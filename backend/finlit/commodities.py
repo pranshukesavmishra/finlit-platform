@@ -44,6 +44,7 @@ NY = ZoneInfo("America/New_York")
 MCX_SEGMENT = "MCX_COMM"
 KEEP = 7 * 24 * 3600
 K_CONTRACTS, K_MCX, K_INTL, K_CFG, K_HB, K_REF = "cmd:contracts", "cmd:mcx", "cmd:intl", "cmd:cfg", "cmd:hb", "cmd:ref"
+K_TICK = "cmd:tick"   # a 5-second lock: one polling pass at a time across processes
 
 # ------------------------------------------------------------------------------------------------------------------ what is shown
 # code: name, tab group, MCX symbol and how its quote converts to the displayed unit, international lines, duty row.
@@ -146,7 +147,12 @@ def read_quote(raw: dict, contract: dict) -> Tuple[Optional[dict], Optional[str]
     price = dec(ohlc.get("close")) if no_trade else last
     if not price or price <= 0:
         return None, "no price"
-    up, lo = dec(contract.get("upper")), dec(contract.get("lower"))
+    # The band: the quote's own circuit limits are today's and are used first. The stored contract band comes from Dhan's instrument file, which for MCX
+    # holds percentages (0.03 = 3 %) as often as price levels, and goes out of date; it is used only when it reads as a price range (upper above lower, both above 1).
+    up, lo = dec(raw.get("upper_circuit_limit")), dec(raw.get("lower_circuit_limit"))
+    if not (up and lo and up > lo > 0):
+        fu, fl = dec(contract.get("upper")), dec(contract.get("lower"))
+        up, lo = (fu, fl) if (fu and fl and fu > fl > 1) else (up if up and up > 0 else None, lo if lo and lo > 0 else None)
     if (up and up > 0 and price > up) or (lo and lo > 0 and price < lo):
         return None, "outside the exchange price band"
     prev = None
@@ -281,6 +287,12 @@ class Worker:
     async def tick(self, now: Optional[datetime] = None) -> Dict[str, Any]:
         if not self.loaded:
             await self._restore()
+        if now is None:   # two callers exist (the always-on loop and the job supervisor): only one may go to the providers in any 5 seconds
+            try:
+                if not await self.store.redis.set(K_TICK, "1", nx=True, ex=5):
+                    return {}
+            except Exception:   # nosec B110 - a Redis without the NX option (a test double) simply means no lock
+                pass
         wall = now or datetime.now(IST)
         mono = time.monotonic() if now is None else wall.timestamp()
         self.report = {}
@@ -610,3 +622,46 @@ async def commodities(request: Request) -> Response:
     body = build(app.state.settings, now, mcx, intl, cfg, hb)
     age = 10 if body["market"]["mcx"]["open"] else 60
     return Response(json.dumps(body), media_type="application/json", headers={"Cache-Control": f"public, max-age={age}"})
+
+
+class CycleRunner:
+    """Prices on every job-supervisor cycle: the supervisor calls `await runner.run(settings, store)` each time round its loop, so the commodity prices are
+    refreshed whenever the jobs are being looked after, with no separate process needed. The Worker keeps its own due-times (10 s while MCX is open, 10 min when
+    closed, 1 min to 15 min for the international prices), so most calls do nothing. Never raises; never blocks the loop for more than one pass."""
+
+    def __init__(self) -> None:
+        self.worker: Optional[Worker] = None
+        self.http: Optional[httpx.AsyncClient] = None
+        self.dhan: Optional[DhanClient] = None
+        self.busy = False
+
+    async def run(self, settings, store) -> Dict[str, Any]:
+        if self.busy:
+            return {}
+        self.busy = True
+        try:
+            if self.worker is None:
+                self.dhan = DhanClient(settings, store.redis) if getattr(settings, "dhan_client_id", "") else None
+                if self.dhan is not None and not self.dhan.configured:
+                    self.dhan = None
+                if self.dhan is None and not (getattr(settings, "metals_dev_api_key", "") or getattr(settings, "metalprice_api_key", "")):
+                    self.worker = False      # type: ignore[assignment]  # no source configured: nothing to refresh, and no need to ask again
+                    return {}
+                self.http = httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0))
+                self.worker = Worker(settings, store, self.dhan, self.http)
+            if not self.worker:
+                return {}
+            return await self.worker.tick()
+        except Exception:
+            log.exception("commodity prices: the pass failed (the next cycle tries again)")
+            return {}
+        finally:
+            self.busy = False
+
+    async def close(self) -> None:
+        for c in (self.dhan, self.http):
+            try:
+                if c is not None:
+                    await (c.aclose() if hasattr(c, "aclose") else asyncio.sleep(0))
+            except Exception:   # nosec B110
+                pass
