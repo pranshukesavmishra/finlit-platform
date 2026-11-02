@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TOP_N, TOP_PRESETS, activeTopPreset, applyTop, rankTop, topPool, withTopPreset, withScores as scoresOf } from "./scoreScreen";
 import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, hasPrismParams, techBandOf, trendWord, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
 import { PRESETS, applyFilters, activePreset, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
   summarize, toCsv, validate, withPreset, withScores, clearPreset, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
@@ -437,3 +438,73 @@ describe("colour rule", () => {
     expect([bandName(78), bandName(62), bandName(45), bandName(44)]).toEqual(["Strong", "Healthy", "Mixed", "Watch"]);
   });
 });
+
+
+describe("Top 10 large / mid / small caps by FinLit IQ", () => {
+  // 320 companies: market caps 3200 down to 10 (so ranks 1-100 are Large, 101-250 Mid, 251+ Small), each with an IQ; a few are given none.
+  const row = (i: number, o: Partial<Row> = {}): Row => ({
+    symbol: "S" + String(i).padStart(3, "0"), name: "S" + i, sector: "X", overall: 50 + (i % 41), band: null, pillar_quality: 40 + (i % 7), pillar_growth: 50, pillar_profitability: 50, pillar_balance: 50, pillar_technical: 50,
+    price: 100, market_cap: (321 - i) * 10, pe: null, pb: null, roe: null, roce: null, dividend_yield: null, debt_to_equity: null, sales_cagr: null, profit_cagr: null,
+    operating_margin: null, change_pct: null, return_1m: null, return_1y: null, scored: true, ...o,
+  } as Row);
+  const rows: Row[] = Array.from({ length: 320 }, (_, i) => row(i + 1)).map((r, i) => (i % 53 === 0 ? { ...r, overall: null, scored: false } : r));
+  const items = scoresOf(rows);
+  const largeP = TOP_PRESETS.find((p) => p.cap === "Large")!;
+
+  it("the three screens exist, named for the size class, each with a rule that describes and never advises", () => {
+    expect(TOP_PRESETS.map((p) => p.label)).toEqual(["Top 10 large caps", "Top 10 mid caps", "Top 10 small caps"]);
+    for (const p of TOP_PRESETS) expect(p.say).toMatch(/not a recommendation/);
+    expect(TOP_PRESETS.map((p) => p.say).join(" ")).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best)\b/i);
+  });
+  it("each shows exactly ten companies of its own size class, highest FinLit IQ first, none without an IQ", () => {
+    for (const p of TOP_PRESETS) {
+      const f = withTopPreset(emptyFilters(), p);
+      const out = applyTop(items, f, { key: "overall", dir: -1 });
+      expect(out).toHaveLength(TOP_N);
+      expect(out.every((r) => r.cap === p.cap && r.overall != null)).toBe(true);
+      expect(out.map((r) => r.overall)).toEqual([...out.map((r) => r.overall as number)].sort((a, b) => b - a));
+      // the ten really are the ten highest of that class (recomputed by hand)
+      const pool = items.filter((r) => r.cap === p.cap && r.overall != null).map((r) => r.overall as number).sort((a, b) => b - a);
+      expect(out.map((r) => r.overall)).toEqual(pool.slice(0, TOP_N));
+    }
+  });
+  it("ties go to the higher Quality score, then the larger market cap, then the symbol, and the result never depends on the input order", () => {
+    const a = items.filter((r) => r.cap === "Large" && r.overall != null);
+    const forward = rankTop(a, 10).map((r) => r.symbol), backward = rankTop([...a].reverse(), 10).map((r) => r.symbol);
+    expect(backward).toEqual(forward);
+    const tied = scoresOf([row(1, { overall: 80, pillar_quality: 60 }), row(2, { overall: 80, pillar_quality: 70 }), row(3, { overall: 80, pillar_quality: 70, market_cap: 1 }), row(4, { overall: 79 })]);
+    expect(rankTop(tied, 3).map((r) => r.symbol)).toEqual(["S002", "S003", "S001"]);       // 70 q (larger cap first), then 60 q
+  });
+  it("the pool says how many were ranked, and fewer than ten qualifying shows fewer, never padding", () => {
+    const f = withTopPreset(emptyFilters(), largeP);
+    expect(topPool(items, f)).toBe(items.filter((r) => r.cap === "Large" && r.overall != null).length);
+    expect(topPool(items, emptyFilters())).toBeNull();
+    const few = scoresOf(rows.slice(0, 6));
+    expect(applyTop(few, withTopPreset(emptyFilters(), largeP), { key: "overall", dir: -1 })).toHaveLength(5);   // six companies, one without an IQ: five are shown, not ten
+    expect(topPool(few, withTopPreset(emptyFilters(), largeP))).toBe(5);
+  });
+  it("the user can still re-sort the ten, other filters narrow the pool first, and choosing another view or removing the chip switches it off", () => {
+    const f = withTopPreset(emptyFilters(), largeP);
+    const byName = applyTop(items, f, { key: "name", dir: 1 });
+    expect(byName).toHaveLength(10);
+    expect(byName.map((r) => r.name)).toEqual([...byName.map((r) => r.name)].sort());
+    const g = { ...f, sectors: ["Nothing"] };
+    expect(applyTop(items, g, { key: "overall", dir: -1 })).toHaveLength(0);
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Market cap: Large", "Top 10 by FinLit IQ"]);
+    expect(removeChip(f, "top").top).toBeNull();
+    expect(activeTopPreset(f)).toBe("top10-large");
+    expect(activeTopPreset(removeChip(f, "top"))).toBeNull();
+    expect(activePreset(f)).toBeNull();
+    expect(withTopPreset(withPreset0(), largeP).bands.f).toEqual([]);
+  });
+  it("the address keeps the screen (top=10 with the size class) and a shared link opens it", () => {
+    const f = withTopPreset(emptyFilters(), TOP_PRESETS[1]);
+    const qs = serializeState({ filters: f, sort: { key: "overall", dir: -1 }, size: 10, page: 0 });
+    expect(qs.get("top")).toBe("10"); expect(qs.get("cap")).toBe("Mid");
+    const back = parseState(new URLSearchParams(qs.toString()), "basic");
+    expect(back.filters.top).toBe(10); expect(activeTopPreset(back.filters)).toBe("top10-mid");
+    expect(parseState(new URLSearchParams("top=7"), "basic").filters.top).toBeNull();          // only the ten the screen defines
+    expect(parseState(new URLSearchParams("top=10"), "advanced").filters.top).toBeNull();      // the advanced screener does not use it
+  });
+});
+const withPreset0 = () => { const f = emptyFilters(); f.bands.f = ["high"]; return f; };

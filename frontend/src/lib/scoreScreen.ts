@@ -89,15 +89,16 @@ export type Filters = {
   labels: PrismLabel[];     // FinLit Prism rating labels (any of these)
   rated: boolean;           // only companies that have a Prism score
   tech: Record<TechKey, TechBand[]>;   // Prism short-term and long-term technical views (any of these bands)
+  top: number | null;       // keep only the first N by FinLit IQ among the companies that pass every other filter (the Top 10 quick views)
 };
 export const emptyFilters = (): Filters => ({
   caps: [], sectors: [],
   bands: { f: [], t: [], q: [], g: [], p: [], b: [] },
   ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { min: null, max: null }])) as Filters["ranges"],
-  labels: [], rated: false, tech: { st: [], lt: [] },
+  labels: [], rated: false, tech: { st: [], lt: [] }, top: null,
 });
 export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], sectors: [...f.sectors], bands: Object.fromEntries(BAND_KEYS.map((k) => [k, [...f.bands[k]]])) as Filters["bands"],
-  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] } });
+  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] }, top: f.top });
 
 export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
 export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max));
@@ -157,6 +158,7 @@ export function clearPreset(f: Filters): Filters {
   const n = cloneFilters(f);
   BAND_KEYS.forEach((k) => { n.bands[k] = []; });
   n.ranges.f = { ...NO_RANGE }; n.ranges.t = { ...NO_RANGE }; n.ranges.o = { ...NO_RANGE };
+  n.top = null;
   return n;
 }
 export function withPreset(f: Filters, p: Preset): Filters {
@@ -168,7 +170,47 @@ export function withPreset(f: Filters, p: Preset): Filters {
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 export const activePreset = (f: Filters) => PRESETS.find((p) => BAND_KEYS.every((k) => same(f.bands[k], p.bands[k] ?? []))
   && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null
-  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null)?.id ?? null;
+  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null && f.top == null)?.id ?? null;
+
+/** Ready-made screens that run in the Advanced screener (they need data the Basic table does not carry: 52-week position, momentum, theme tags). The Basic screener lists them as links. */
+export const READY_MADE: { id: string; label: string; say: string }[] = [
+  { id: "momentum-leaders", label: "Momentum leaders", say: "Rated stocks in an uptrend near their 52-week high, ranked by 3-, 6- and 12-month returns against the market." },
+  { id: "near-high-volume", label: "Near 52-week high", say: "Within 5% of the 52-week high, volume 1.5 times normal and the short-term view positive." },
+  { id: "quality-off-highs", label: "Quality off its highs", say: "High quality, 25% or more below the 52-week high." },
+  { id: "emerging-tech", label: "Emerging tech", say: "Companies tagged to new-technology themes, with growth." },
+  { id: "sector-themes", label: "Sector themes in play", say: "Industries beating the market on breadth and 3-month return, plus their leaders." },
+];
+
+// ---------- Top 10 by size (the three most-used ready-made screens) ----------
+export const TOP_N = 10;
+export type TopPreset = { id: string; label: string; cap: Cap; say: string };
+/** "Top 10 Large / Mid / Small": the first ten companies of one size class by FinLit IQ. The size classes are the site's own (by market cap rank: 1 to 100 large, 101 to 250 mid, the rest small).
+ *  Only companies that have a FinLit IQ are ranked, so a company without one never takes a place. Ties go to the higher Quality score, then the larger market cap, then the symbol. */
+export const TOP_PRESETS: TopPreset[] = (["Large", "Mid", "Small"] as Cap[]).map((cap) => ({
+  id: "top10-" + cap.toLowerCase(), label: `Top 10 ${cap.toLowerCase()} caps`, cap,
+  say: `The ${TOP_N} ${cap.toLowerCase()} caps with the highest FinLit IQ. A screen narrows a list; it is not a recommendation.`,
+}));
+export function withTopPreset(f: Filters, p: TopPreset): Filters {
+  const n = clearPreset(f);
+  n.caps = [p.cap]; n.top = TOP_N;
+  return n;
+}
+export const activeTopPreset = (f: Filters): string | null =>
+  f.top === TOP_N && f.caps.length === 1 ? TOP_PRESETS.find((p) => p.cap === f.caps[0])?.id ?? null : null;
+const byNum = (a: number | null | undefined, b: number | null | undefined) => (a == null ? (b == null ? 0 : 1) : b == null ? -1 : b - a);
+/** The first `n` of `items` by FinLit IQ (highest first). Companies with no FinLit IQ are left out. Deterministic: IQ, then Quality, then market cap, then symbol. */
+export function rankTop(items: Item[], n: number): Item[] {
+  return items.filter((r) => r.overall != null)
+    .sort((a, b) => byNum(a.overall, b.overall) || byNum(a.pillar_quality, b.pillar_quality) || byNum(a.market_cap, b.market_cap) || a.symbol.localeCompare(b.symbol))
+    .slice(0, n);
+}
+/** The rows of the table: everything that passes, in the chosen order; with a Top N limit, the first N by FinLit IQ among them, then in the chosen order. */
+export function applyTop(items: Item[], f: Filters, sort: Sort): Item[] {
+  const pool = applyFilters(items, f);
+  return sortRows(f.top != null ? rankTop(pool, f.top) : pool, sort);
+}
+/** How many companies the Top N was ranked among (those that pass the other filters and have a FinLit IQ), or null without a limit. */
+export const topPool = (items: Item[], f: Filters): number | null => (f.top == null ? null : applyFilters(items, f).filter((r) => r.overall != null).length);
 
 /** Views of the advanced screener, built from the Prism parts only. A preset OWNS the Prism score, its four parts, the rating labels, the "rated only"
  *  switch and the two technical views: choosing it sets those exactly (cleared where it names nothing), every other filter stays. */
@@ -206,6 +248,7 @@ export function chipsFor(f: Filters): Chip[] {
   if (f.labels.length) out.push({ id: "labels", label: `Prism rating: ${PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_WORD[l]).join(", ")}` });
   TECH_KEYS.forEach((k) => { if (f.tech[k].length) out.push({ id: "tech:" + k, label: `${TECH_NAMES[k]}: ${TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).map((b) => TECH_BANDS[b].short).join(", ")}` }); });
   if (f.rated) out.push({ id: "rated", label: "Only companies rated by Prism" });
+  if (f.top != null) out.push({ id: "top", label: `Top ${f.top} by FinLit IQ` });
   return out;
 }
 export function removeChip(f: Filters, id: string): Filters {
@@ -216,6 +259,7 @@ export function removeChip(f: Filters, id: string): Filters {
   else if (id.startsWith("range:")) n.ranges[id.slice(6) as RangeKey] = { min: null, max: null };
   else if (id === "labels") n.labels = [];
   else if (id === "rated") n.rated = false;
+  else if (id === "top") n.top = null;
   else if (id.startsWith("tech:")) n.tech[id.slice(5) as TechKey] = [];
   return n;
 }
@@ -311,6 +355,7 @@ export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
     f.rated = p.get("rated") === "1";
     f.tech = { st: parseTech(p.get("st")), lt: parseTech(p.get("lt")) };
   }
+  if (finlit && Number(p.get("top")) === TOP_N) f.top = TOP_N;
   const key = SORT_KEYS.find((k) => k === p.get("sort") && !(scope === "basic" && PRISM_SORT.includes(k)) && !(scope === "advanced" && FINLIT_SORT.includes(k)));
   const sort: Sort = key ? { key, dir: p.get("dir") === "asc" ? 1 : p.get("dir") === "desc" ? -1 : firstDir(key) } : DEFAULT_SORT;
   const size = PAGE_SIZES.find((n) => n === Number(p.get("size"))) ?? 10;
@@ -325,6 +370,7 @@ export function serializeState(s: State): URLSearchParams {
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + "max", String(r.max)); });
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");
+  if (f.top != null) p.set("top", String(f.top));
   TECH_KEYS.forEach((k) => { if (f.tech[k].length) p.set(k, TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).join(",")); });
   if (s.sort.key !== DEFAULT_SORT.key || s.sort.dir !== DEFAULT_SORT.dir) { p.set("sort", s.sort.key); p.set("dir", s.sort.dir === 1 ? "asc" : "desc"); }
   if (s.size !== 10) p.set("size", String(s.size));

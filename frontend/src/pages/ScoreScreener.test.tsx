@@ -76,6 +76,32 @@ describe("Basic score screener page", () => {
     expect(screen.getByText("Results by sector (Top 5)")).toBeTruthy();
   });
 
+  it("Top 10 large caps shows exactly ten, highest FinLit IQ first, says how many it ranked among, and a second press switches it off", async () => {
+    open();
+    const btn = () => screen.getByRole("button", { name: /Top 10 large caps/ });
+    fireEvent.click(btn());
+    await act(async () => { await new Promise((r) => setTimeout(r, 80)); });            // the live-filter effect fires a delayed apply: it must not undo the sort
+    expect(symbols()).toHaveLength(10);
+    expect(symbols().slice(0, 3)).toEqual(["AAA", "BBB", "HHH"]);                       // IQ 90, 80, 78
+    expect(document.querySelector(".sx-topnote")!.textContent).toMatch(/The 10 large caps with the highest FinLit IQ, ranked among the 21 large caps that have one/);
+    expect(document.querySelector(".sx-topnote")!.textContent).toMatch(/not a recommendation/);
+    expect(loc()).toMatch(/top=10/); expect(loc()).toMatch(/cap=Large/);
+    expect(loc()).toMatch(/sort=overall&dir=desc/);                                     // the ten are listed in rank order, not by market cap
+    expect(screen.getByRole("button", { name: "Remove filter Top 10 by FinLit IQ" })).toBeTruthy();
+    fireEvent.click(btn());
+    expect(loc()).not.toMatch(/top=/);
+    expect(symbols().length).toBe(10);                                                   // back to the normal first page
+    expect(screen.queryByText(/ranked among/)).toBeNull();
+  });
+
+  it("lists the ready-made screens that run in the Advanced screener, each linking to its own screen", () => {
+    open();
+    const g = within(screen.getByRole("group", { name: "Ready-made screens in the Advanced screener" }));
+    const links = g.getAllByRole("link");
+    expect(links.map((a) => a.textContent)).toEqual(["Momentum leaders", "Near 52-week high", "Quality off its highs", "Emerging tech", "Sector themes in play"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/advanced-score-screener?preset=momentum-leaders", "/advanced-score-screener?preset=near-high-volume", "/advanced-score-screener?preset=quality-off-highs", "/advanced-score-screener?preset=emerging-tech", "/advanced-score-screener?preset=sector-themes"]);
+  });
+
   it("a typed number applies after a short pause, or on Enter, and an invalid range waits", async () => {
     vi.useFakeTimers();
     try {

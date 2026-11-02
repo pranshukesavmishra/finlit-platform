@@ -9,7 +9,7 @@ import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, clearPreset, hasPrismParams, withPreset } from "../lib/scoreScreen";
+import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, READY_MADE, TOP_PRESETS, TOP_N, activePreset, activeTopPreset, clearPreset, hasPrismParams, withPreset, withTopPreset } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -27,10 +27,14 @@ function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort, compare and export by size, sector and score.");
   const s = useScreener("basic");
   const { draft, setDraft, applied, locked, upgrade, isLoading, sum, asOf } = s;
-  const preset = activePreset(applied);
+  const preset = activePreset(applied), topPreset = activeTopPreset(applied);
   const notScored = s.rows.filter((r) => r.scored === false).length;
   const allStrong = PILLARS.every((x) => draft.bands[x.k].length === 1 && draft.bands[x.k][0] === "high");
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
+  const useTop = (id: string) => {
+    if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
+    s.apply(topPreset === id ? clearPreset(draft) : withTopPreset(draft, TOP_PRESETS.find((p) => p.id === id)!), false, topPreset === id ? undefined : { key: "overall", dir: -1 });
+  };
   const usePreset = (id: string) => {
     if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
     s.apply(preset === id ? clearPreset(draft) : withPreset(draft, PRESETS.find((p) => p.id === id)!));
@@ -51,6 +55,10 @@ function Basic() {
       tier="silver" sortChoices={[{ key: "overall", label: "FinLit IQ" }, { key: "f", label: "Growth & Profitability" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
       presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">
+        <div className="sx-pg" role="group" aria-label="Top 10 by size"><small className="sx-pgh">Top 10 by FinLit IQ</small>
+          {TOP_PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={topPreset === p.id} title={p.say} onClick={() => useTop(p.id)} />)}</div>
+        <div className="sx-pg" role="group" aria-label="Ready-made screens in the Advanced screener"><small className="sx-pgh">Ready-made screens (Advanced, Gold)</small>
+          {READY_MADE.map((r) => <Link key={r.id} className="sx-ready" to={`/advanced-score-screener?preset=${r.id}`} title={r.say}>{!s.gold && <Icon name="lock" />}<span>{r.label}</span><Icon name="arrow" /></Link>)}</div>
         {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
       </div>}
       filters={locked ? (
@@ -78,6 +86,9 @@ function Basic() {
         <span className="sx-adv-s">Advanced score screener (Gold): FinLit Prism, 4 financial-health parts and 2 technical views</span>
         <Icon name="arrow" /></Link>}
       beforeTable={<>
+        {applied.top != null && topPreset && s.topOf != null && (
+          <p className="sx-topnote" role="status"><b>{TOP_PRESETS.find((p) => p.id === topPreset)!.label}.</b> The {TOP_N} {applied.caps[0].toLowerCase()} caps with the highest FinLit IQ, ranked among the {nf(s.topOf, 0)} {applied.caps[0].toLowerCase()} caps that have one.
+            {s.topOf < TOP_N ? ` Only ${s.topOf} qualify, so fewer than ${TOP_N} are shown.` : ""} Ties go to the higher Quality score, then the larger company. A screen narrows a list. It is not a recommendation.</p>)}
         <details className="pzs-explain">
           <summary>What the FinLit IQ means</summary>
           <div className="pzs-two"><div><b>FinLit IQ</b><p>{EXPLAIN.finlit}</p></div></div>
