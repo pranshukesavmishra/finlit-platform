@@ -85,6 +85,14 @@ def technical_state(row: Any, now: Optional[datetime] = None, target: Optional[d
     return {"asOf": bar, "calculatedAt": at, "stale": bar is None or bar < target.isoformat()}
 
 
+def long_term_gap(row: Any) -> bool:
+    """True when the stored technical view holds no long-term score (kept out of `technical_state`, which is part of the public answer)."""
+    report = _json(row["report"])
+    tech = report.get("technicalAssessment") if isinstance(report, dict) else None
+    score = ((tech or {}).get("longTerm") or {}).get("score") if isinstance(tech, dict) else None
+    return not isinstance(score, (int, float)) or isinstance(score, bool)
+
+
 # ------------------------------------------------------------------------------------------------ selection
 async def pending(store, target: date, limit: int, skip: List[str], *, force: bool = False, symbols: Optional[List[str]] = None) -> List[str]:
     """Companies with a stored report (either basis) whose technical bar date is older than `target`, or whose stored long-term score is missing (so a later
@@ -316,9 +324,9 @@ async def current_target(redis, now: Optional[datetime] = None) -> date:
 
 
 async def refresh_on_open(app, symbol: str, state: Dict[str, Any]) -> bool:
-    """A company page was opened whose stored technical view is behind the newest session: refresh just that company in the background, at most once
+    """A company page was opened whose stored technical view is behind the newest session or has no long-term score: refresh just that company in the background, at most once
     in TRY_SECONDS per company and PAGE_REFRESH_SLOTS at a time, and only when Dhan was not found down. True when a refresh was started."""
-    if not state.get("stale") or not prism.connected(app.state.settings):
+    if not (state.get("stale") or state.get("gap")) or not prism.connected(app.state.settings):   # behind the newest session, or no long-term score stored (a company is healed the first time it is opened)
         return False
     redis = app.state.store.redis
     try:

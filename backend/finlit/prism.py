@@ -525,7 +525,7 @@ async def _refresh_stale_technical(app, symbol: str, row) -> bool:
     background (rate limited, see prism_technical.refresh_on_open). The stored view is shown now, with its own date; the page asks again shortly."""
     try:
         from . import prism_technical
-        state = prism_technical.technical_state(row, target=await prism_technical.current_target(app.state.store.redis))
+        state = {**prism_technical.technical_state(row, target=await prism_technical.current_target(app.state.store.redis)), "gap": prism_technical.long_term_gap(row)}
         return await prism_technical.refresh_on_open(app, symbol, state)
     except Exception as exc:
         log.warning("prism technical refresh on open not started for %s: %s", symbol, type(exc).__name__)

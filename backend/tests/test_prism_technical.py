@@ -4,6 +4,7 @@ ROOT CAUSE (test_precompute_never_refreshes_a_young_report_so_its_technical_view
 the nightly job selects only companies with no report or a report older than `days` (7), so a report calculated days ago keeps showing the technical
 scores of that day. The refresh below recalculates only that view, against a fake site backend and fake Dhan candles."""
 
+import asyncio
 import copy
 import json
 import re
@@ -299,11 +300,27 @@ class _App:
         self.state = SimpleNamespace(store=store, settings=settings)
 
 
+async def test_opening_a_current_report_with_no_long_term_score_starts_one_refresh(world, monkeypatch):
+    store, settings, site, http, seen = world
+    calls = []
+
+    async def fake_refresh(app, symbol, now, target=None, force=False):
+        calls.append(symbol)
+        return pt.Outcome.UPDATED, "ok"
+    monkeypatch.setattr(pt, "refresh_symbol", fake_refresh)
+    app = _App(store, settings)
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": False, "asOf": "2026-10-16"}) is False      # current and complete: nothing to do
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": True, "asOf": "2026-10-16"}) is True       # current but no long-term score: healed on first open
+    await asyncio.sleep(0.05)
+    assert calls == ["TQY"]
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": True, "asOf": "2026-10-16"}) is True and calls == ["TQY"]   # asked again: still "refreshing", never started twice
+
+
 async def test_opening_a_stale_report_starts_one_background_refresh_per_company_and_half_hour(world, monkeypatch):
     store, settings, site, http, seen = world
     calls = []
 
-    async def fake_refresh(app, symbol, now, target=None):
+    async def fake_refresh(app, symbol, now, target=None, force=False):
         calls.append(symbol)
         return pt.Outcome.UPDATED, "ok"
     monkeypatch.setattr(pt, "refresh_symbol", fake_refresh)
