@@ -206,3 +206,47 @@ def test_pdf_includes_the_same_incomplete_assessment_without_weights():
     assert "Combined verdict: Unavailable" in content
     assert "Relative strength rating" in content
     assert "weight" not in content.lower()
+
+
+# ---- a recent listing: the relative-strength rating needs ~2 years of prices; it alone missing gives a provisional long-term score
+def _lt_signals(**over):
+    signals = {key: (1, "Known") for key, *_ in LT}
+    signals.update(over)
+    return signals
+
+
+def test_provisional_long_term_score_only_when_the_rs_rating_alone_is_missing():
+    gap = _lt_signals(rs_rating=(None, "Aligned stock and benchmark history is insufficient for the beta-adjusted relative strength percentile."))
+    withheld = summarise_signals(LT, gap, stage=2)                                        # the model as it was: all or nothing
+    assert withheld["score"] is None and withheld["status"] == "incomplete" and "provisional" not in withheld
+    prov = summarise_signals(LT, gap, stage=2, allow_provisional=True)
+    assert prov["score"] == 100 and prov["status"] == "ready" and prov["provisional"] is True      # the 12 known signals' weights only (80), not 100
+    assert prov["availableCount"] == 12 and prov["requiredCount"] == 13 and "two years" in prov["provisionalNote"] and "12 signals" in prov["provisionalNote"]
+    half = summarise_signals(LT, _lt_signals(rs_rating=(None, "x"), weekly_rsi=(-1, "x")), stage=2, allow_provisional=True)
+    assert half["provisional"] is True and half["score"] == round(100 * (80 - 2 * 5) / 80, 6) or abs(half["score"] - 100 * (80 - 2 * 5) / 80) < 1e-9
+    assert not summarise_signals(LT, gap, stage=None, allow_provisional=True).get("provisional")                               # the market stage is still mandatory
+    assert summarise_signals(LT, _lt_signals(rs_rating=(None, "x"), weekly_rsi=(None, "x")), stage=2, allow_provisional=True)["score"] is None   # a second gap still withholds it
+    assert summarise_signals(LT, _lt_signals(leadership=(None, "x")), stage=2, allow_provisional=True)["score"] is None                       # only the RS rating may be missing
+    capped = summarise_signals(LT, gap, stage=3, allow_provisional=True)
+    assert capped["provisional"] is True and capped["score"] == 19 and capped["stageCapped"]                                            # the stage cap still applies
+    full = summarise_signals(LT, _lt_signals(), stage=2, allow_provisional=True)
+    assert full["score"] == 100 and "provisional" not in full and "provisionalNote" not in full                                          # a complete score is exactly as before
+    assert "provisional" not in summarise_signals(ST, {key: (1, "k") for key, *_ in ST}, allow_provisional=True)                      # nothing changes for the short term
+
+
+def test_a_short_listing_history_decides_whether_provisional_is_allowed():
+    from backend.premium_technical import PROVISIONAL_BELOW_BARS
+    assert PROVISIONAL_BELOW_BARS == 505        # 252 sessions for the first value + 252 values to rank against + the current one
+
+
+@pytest.mark.parametrize("count,provisional", [(300, True), (400, True), (504, True), (505, False), (600, False)])
+def test_end_to_end_a_recent_listing_gets_a_provisional_long_term_score_and_an_older_one_a_complete_score(count, provisional):
+    bars = candles(count)
+    result = build_technical_assessment(resolve_technical_prices(bars, "FinEdge", ASOF), ASOF, benchmarks(bars), 100)
+    lt = result["longTerm"]
+    assert lt["score"] is not None and result["shortTerm"]["score"] is not None
+    if provisional:
+        assert lt["provisional"] is True and lt["availableCount"] == 12 and lt["requiredCount"] == 13 and "two years" in lt["provisionalNote"]
+        assert [f["key"] for f in lt["factors"] if f["status"] == "unavailable"] == ["rs_rating"]
+    else:
+        assert "provisional" not in lt and lt["availableCount"] == lt["requiredCount"] == 13      # the model exactly as before

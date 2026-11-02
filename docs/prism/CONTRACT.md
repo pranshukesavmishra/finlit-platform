@@ -179,3 +179,18 @@ On every company page, for **Gold** members, the first dashboard (the report blo
 * Non-Gold members keep the single-column report they have today; the right half is replaced by a short locked teaser (`Gate`), so the comparison is visibly something Gold adds. Showcase symbols are open to everyone.
 * Phone (≤ 760 px): the halves stack, FinLit score first, then Prism, each with a clear heading. Both halves use the same visual grammar (ring, bars, status words) so differences in numbers, not styling, are what the eye sees. No colour-only meaning; aria-labels state each conclusion. Compliance line under the block.
 * The rest of the stock page is adapted to the advanced model where it explains scores: the "Pros & cons" (method) section and notes show a Prism sub-section for Gold when a report exists (its `review` pros/cons per part and the completeness list), the section nav links to it, and the downloads menu offers the Prism PDF when a report exists.
+
+## Score history and provisional long-term scores
+
+* `GET /api/prism/history?symbol=&statement=` (Gold, like the report; `403 {"status": "plan_required"}` below it, `422` for a bad symbol) returns
+  `{symbol, statement, points: [{day, modelVersion, final, label, status, parts: {fundamental, valuation, quality, risk}, shortTerm, longTerm}], firstDay, note}`,
+  oldest first, newest 800 days at most. One row per company, statement basis and Indian calendar day in `prism_history` (migration 082). A full calculation
+  writes the score and the four parts; the daily technical refresh writes only the two technical views of that day. A column is `null` on a day it was not
+  worked out (never zero, never estimated) and the history is not filled backwards: `firstDay` is the day recording began for that company.
+  `modelVersion` is carried on every point so a jump caused by a new formula can be marked.
+* `technicalAssessment.longTerm.provisional: true` (with `provisionalNote`): a company with fewer than 505 daily candles cannot have the long-term
+  relative-strength rating (252 sessions for the first value plus 252 values to rank against). When that is the ONE missing signal and the market stage is
+  known, the score is worked out from the other signals' weights and marked provisional (`status` stays `ready`, `availableCount` 12 of `requiredCount` 13). Any other
+  gap still withholds the score, and a complete score has no `provisional` key. The research API's screener card (`card.lt`) and `/api/prism/scores` treat a
+  provisional long-term score as not available, so no screen or list ranks on it; only the company page shows it, labelled provisional.
+

@@ -77,7 +77,7 @@ def item_of(r: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def screener_query(q: Dict[str, Any]):
-    where, args = ["m.final IS NOT NULL" if q["rated_only"] else "TRUE"], []
+    where, args = ["m.kind <> 'etf'", "m.final IS NOT NULL" if q["rated_only"] else "TRUE"], []   # the Health Score is not given for exchange-traded funds
 
     def arg(v):
         args.append(v)
@@ -214,7 +214,7 @@ async def score_facets(request: Request):
 
     async def build():
         async with request.app.state.store.pool.acquire() as conn:
-            rows = await conn.fetch("SELECT sub, plan, grp, min(category) AS category, count(*) AS n FROM mf_scores WHERE final IS NOT NULL GROUP BY sub, plan, grp ORDER BY sub")
+            rows = await conn.fetch("SELECT sub, plan, grp, min(category) AS category, count(*) AS n FROM mf_scores WHERE kind <> 'etf' AND final IS NOT NULL GROUP BY sub, plan, grp ORDER BY sub")
             run = await conn.fetchval("SELECT max(run_date) FROM mf_scores")
         subs: Dict[str, Dict[str, Any]] = {}
         for r in rows:
@@ -242,8 +242,8 @@ async def leaderboard(request: Request, sub: str = Query(..., min_length=1, max_
 
     async def build():
         async with request.app.state.store.pool.acquire() as conn:
-            rows = await conn.fetch(f"{SELECT} WHERE m.sub = $1 AND m.plan = $2 AND m.final IS NOT NULL ORDER BY m.final DESC, m.key LIMIT 400", sub, plan)  # nosec B608 - fixed text
-            n_all = await conn.fetchval("SELECT count(*) FROM mf_scores WHERE sub = $1 AND plan = $2", sub, plan)
+            rows = await conn.fetch(f"{SELECT} WHERE m.kind <> 'etf' AND m.sub = $1 AND m.plan = $2 AND m.final IS NOT NULL ORDER BY m.final DESC, m.key LIMIT 400", sub, plan)  # nosec B608 - fixed text
+            n_all = await conn.fetchval("SELECT count(*) FROM mf_scores WHERE kind <> 'etf' AND sub = $1 AND plan = $2", sub, plan)
             run = await conn.fetchval("SELECT max(run_date) FROM mf_scores")
         items = [item_of(dict(r)) for r in rows]
         near = any("NEAR_IDENTICAL" in it["flags"] for it in items)
@@ -288,7 +288,7 @@ async def many_history(request: Request, codes: str = Query("", max_length=200),
         raise fail(400, "bad_request", "Up to 10 funds.")
     if not await may_see(request):
         return locked_history(series={})
-    keys = [f"mf:{c}" for c in ids] + [f"etf:{s}" for s in syms]
+    keys = [f"mf:{c}" for c in ids]   # an exchange-traded fund symbol is ignored: no ETF Health Score history is given
     async with request.app.state.store.pool.acquire() as conn:
         rows = await conn.fetch("SELECT key, week, run_date, final, label FROM mf_score_history WHERE key = ANY($1::text[]) ORDER BY key, week", keys)
     series: Dict[str, List[Dict[str, Any]]] = {k: [] for k in keys}
@@ -318,9 +318,7 @@ async def etf_history(request: Request, symbol: str):
         raise fail(404, "not_found", "No exchange-traded fund has this symbol.")
     if not await may_see(request):
         return locked_history()
-    async with request.app.state.store.pool.acquire() as conn:
-        rows = await history_rows(conn, f"etf:{sym}")
-    return _json(history_body(rows, f"etf:{sym}"))
+    return _json(history_body([], f"etf:{sym}"))   # no Health Score history is given for an exchange-traded fund
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------ alerts
@@ -374,9 +372,7 @@ async def add_alert(request: Request, body: ScoreAlertIn, ctx: Ctx = Depends(sec
             key = row["key"]
             name = await conn.fetchval("SELECT name FROM mf_schemes WHERE code = $1", body.code)
         else:
-            name = await conn.fetchval("SELECT display_name FROM etf_funds WHERE symbol = $1", body.symbol.upper())
-            if name is None:
-                raise fail(404, "not_found", "No exchange-traded fund has this symbol.")
+            raise fail(422, "not_offered", "The Health Score is not given for exchange-traded funds.")
         if await conn.fetchval("SELECT 1 FROM mf_score_alerts WHERE user_id = $1 AND key = $2 AND kind = $3", ctx.user_id, key, body.kind):
             raise fail(409, "duplicate", "You already follow this.")
         cap = ALERT_LIMITS["gold"]

@@ -119,7 +119,7 @@ async def fire_alerts(conn, week: date, keys: Iterable[str]) -> List[Dict[str, A
         return []
     alerts = await conn.fetch("""SELECT a.id, a.user_id, a.key, a.name, a.kind, a.points, a.channels, u.email, s.prefs FROM mf_score_alerts a JOIN users u ON u.id = a.user_id
                                  LEFT JOIN user_state s ON s.user_id = u.id
-                                 WHERE a.status = 'active' AND a.key = ANY($1::text[]) AND (a.last_week IS NULL OR a.last_week < $2)
+                                 WHERE a.status = 'active' AND a.key = ANY($1::text[]) AND a.key NOT LIKE 'etf:%' AND (a.last_week IS NULL OR a.last_week < $2)
                                    AND u.status = 'active' AND u.plan = 'gold' AND (u.plan_until IS NULL OR u.plan_until > now())""", keys, week)
     if not alerts:
         return []

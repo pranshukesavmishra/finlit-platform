@@ -486,7 +486,7 @@
    },
    {
     "q": "What is the margin of safety?",
-    "a": "A cushion taken off the intrinsic value to give a buy price: intrinsic value × (1 − margin). The page suggests 20% for low uncertainty, 30% medium, 40% high and 50% very high."
+    "a": "A cushion taken off the intrinsic value to give a margin-of-safety price: intrinsic value × (1 − margin). The page suggests 20% for low uncertainty, 30% medium, 40% high and 50% very high."
    },
    {
     "q": "Gordon growth or exit multiple?",
@@ -498,7 +498,7 @@
    },
    {
     "q": "How do I read the sensitivity tables?",
-    "a": "Each cell is the value per share for a different discount rate and growth rate; the centre cell is your base case. Green means the price is at or below the buy price, amber between the buy price and value, red above the value."
+    "a": "Each cell is the value per share for a different discount rate and growth rate; the centre cell is your base case. Green means the price is at or below the margin-of-safety price, amber between the margin-of-safety price and value, red above the value."
    },
    {
     "q": "Can I save scenarios?",

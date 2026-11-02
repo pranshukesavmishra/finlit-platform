@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { Link } from "react-router";
 import { HScroll } from "./HScroll";
 import { Icon } from "../lib/icons";
@@ -40,7 +41,7 @@ function ScoreBadge({ l, model }: { l: Line; model: Model }) {
 function ShareCell({ l, flag }: { l: Line; flag?: string }) {
   const h = isReady(l.ov) ? l.ov : null;
   const where = h ? [h.sector, h.industry && h.industry !== h.sector ? h.industry : null].filter(Boolean).join(" · ") : "";
-  return <><Link to={`/stocks/${l.symbol}`}><b>{l.symbol}</b></Link><small className="muted">{l.name || h?.name}</small>{where && <small className="faint">{where}</small>}
+  return <><Link to={`/stocks/${l.symbol}`}><b title={codeNote({ symbol: l.symbol, name: l.name || h?.name })}>{titleOf({ symbol: l.symbol, name: l.name || h?.name })}</b></Link>{subOf({ symbol: l.symbol, name: l.name || h?.name }) && <small className="muted">{subOf({ symbol: l.symbol, name: l.name || h?.name })}</small>}{where && <small className="faint">{where}</small>}
     {flag && <small className="down" title={flag}> ⚑ {flag}</small>}</>;
 }
 

@@ -129,3 +129,16 @@ button.ld-chip { cursor: pointer; } button.ld-chip:hover { filter: brightness(.9
 .ld-nr li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
 .ld-nr .tk { font: 500 11px var(--mono); color: var(--faint); } .ld-nr .why { flex-basis: 100%; font-size: 12px; color: var(--muted); }
 @media (max-width: 560px) { .ld-status { padding: 10px 12px; } }
+
+/* ---- the line under a company's name, as one aligned strip: [label and rank] | [the figures] | [direction], then the notes side by side ---- */
+.ld-line { max-width: none; }
+.ld-row { gap: 0; align-items: stretch; border: 1px solid var(--border); border-radius: 14px; background: var(--s1); width: fit-content; max-width: 100%; }
+.ld-row > * { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 9px 16px; min-width: 0; }
+.ld-row > * + * { border-left: 1px solid var(--border); }
+.ld-row .ld-tipw { padding: 9px 12px; }
+.ld-row .ld-dir { white-space: nowrap; }
+.ld-notes { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
+.ld-notes .ld-caution, .ld-notes .ld-stale { margin: 0; }
+.ld-notes .ld-stale { padding: 7px 11px; border: 1px solid var(--border); border-radius: 10px; font-size: 12.5px; color: var(--muted); background: transparent; }
+@media (max-width: 640px) { .ld-row { width: 100%; } .ld-row > * { width: 100%; } .ld-row > * + * { border-left: 0; border-top: 1px solid var(--border); } .ld-row .ld-tipw { width: auto; position: absolute; right: 4px; } .ld-row { position: relative; } }
+@media (min-width: 641px) { .ld-row { flex-wrap: nowrap; } .ld-row > * { flex: 0 1 auto; } .ld-row > .ld-dir { flex: none; } }

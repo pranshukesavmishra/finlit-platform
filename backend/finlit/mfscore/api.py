@@ -39,6 +39,7 @@ NOT_SCORED = {
     "inactive": "Not scored: this scheme has stopped publishing NAVs.",
     "no_plan": "Not scored: the plan (Direct or Regular) is not stated for this scheme.",
     "etf_no_price": "Not scored: this exchange-traded fund has no exchange price history loaded yet.",
+    "etf_not_offered": "The Health Score is not given for exchange-traded funds.",
     "not_yet": "Not scored yet: the daily score run has not reached this scheme.",
 }
 
@@ -133,6 +134,8 @@ def _json(body: Dict[str, Any], status: int = 200) -> JSONResponse:
 
 
 async def _row(conn, key: str):
+    if key.startswith("etf:"):   # the Health Score is not given for exchange-traded funds: nothing about one leaves the server (the score run still reads them as peers)
+        return None
     r = await conn.fetchrow("SELECT * FROM mf_scores WHERE key = $1", key)
     return dict(r) if r else None
 
@@ -164,14 +167,13 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
     full = await may_see(request)
     if not full and not ids and not syms:
         return _json({"locked": True, "plan": "gold", "total": None, "items": [], "disclaimer": DISCLAIMER, "method": METHOD_URL})
-    where, args = [], []
+    where, args = ["kind <> 'etf'"], []   # no exchange-traded fund is ever listed with a score
 
     def arg(v):
         args.append(v)
         return f"${len(args)}"
-    if ids or syms:   # the funds on a page: scheme codes and/or ETF symbols
-        picks = ([f"code = ANY({arg(ids)}::int[])"] if ids else []) + ([f"(kind = 'etf' AND symbol = ANY({arg(syms)}::text[]))"] if syms else [])
-        where.append("(" + " OR ".join(picks) + ")")
+    if ids or syms:   # the funds on a page: scheme codes (an ETF symbol asked for is answered below with the reason, never with a score)
+        where.append(f"code = ANY({arg(ids)}::int[])" if ids else "false")
     for col, v in (("grp", group), ("category", category), ("plan", plan), ("status", status)):
         if v:
             where.append(f"{col} = {arg(v)}")
@@ -201,7 +203,7 @@ async def scores(request: Request, group: str = Query("", max_length=12), catego
             for x in gone:
                 if x in known:
                     items.append({"code": None, "symbol": x, "plan": "ETF", "group": None, "final": None, "label": None, "status": None, "pillars": None, "rank": None, "rankOf": None,
-                                  "rankScope": None, "percentile": None, "flags": [], "confidence": None, "category": None, "reason": NOT_SCORED["etf_no_price"] if full else None})
+                                  "rankScope": None, "percentile": None, "flags": [], "confidence": None, "category": None, "reason": NOT_SCORED["etf_not_offered"] if full else None, "notOffered": True})
     if ids:   # a scheme asked for with no row: say why (the page shows the reason, never a blank)
         have = {i["code"] for i in items}
         missing = [c for c in ids if c not in have]
@@ -252,16 +254,11 @@ async def resolve_mf(conn, code: int):
         return None, None, "inactive"
     if s["plan"] not in ("Direct", "Regular"):
         return None, None, "no_plan"
-    # an ETF category scheme: scored from its exchange prices, found by ISIN
+    # an ETF category scheme: no Health Score is given
     from ..mf import classify
     from .groups import ETF_SUBS
-    if classify(s["category"])[1] in ETF_SUBS and s["isin"]:
-        e = await conn.fetchrow("SELECT symbol, display_name FROM etf_funds WHERE isin = $1", s["isin"])
-        if e:
-            er = await _row(conn, f"etf:{e['symbol']}")
-            if er:
-                return er, {"symbol": e["symbol"], "name": e["display_name"], "why": "This is an exchange-traded fund: it is scored from its exchange prices on the ETF page."}, None
-        return None, None, "etf_no_price"
+    if classify(s["category"])[1] in ETF_SUBS:
+        return None, None, "etf_not_offered"
     return None, None, "not_yet"
 
 
@@ -282,18 +279,17 @@ async def etf_score(request: Request, symbol: str) -> JSONResponse:
     if not sym.isalnum() or len(sym) > 20:
         raise fail(404, "not_found", "No exchange-traded fund has this symbol.")
     async with request.app.state.store.pool.acquire() as conn:
-        row = await _row(conn, f"etf:{sym}")
-        known = row is not None or await conn.fetchval("SELECT 1 FROM etf_funds WHERE symbol = $1", sym)
+        known = await conn.fetchval("SELECT 1 FROM etf_funds WHERE symbol = $1", sym)
     if not known:
         raise fail(404, "not_found", "No exchange-traded fund has this symbol.")
-    return await _answer(request, row, None, None if row else "etf_no_price", None)
+    return await _answer(request, None, None, "etf_not_offered", None)
 
 
 async def _answer(request: Request, row, inherited, why, code: Optional[int]) -> JSONResponse:
     if not await may_see(request, code):
         return _json(locked_payload(row["grp"] if row else None, row["plan"] if row else None))
     if row is None:
-        return _json({"locked": False, "final": None, "status": "NOT SCORED", "reason": NOT_SCORED.get(why or "not_yet", NOT_SCORED["not_yet"]), "pillars": [], "reasons": {}, "metrics": [],
+        return _json({"locked": False, "final": None, "status": "NOT SCORED", "reason": NOT_SCORED.get(why or "not_yet", NOT_SCORED["not_yet"]), "notOffered": why == "etf_not_offered", "pillars": [], "reasons": {}, "metrics": [],
                       "disclaimer": DISCLAIMER, "method": METHOD_URL, "model": MODEL_VERSION})
     body = payload(row, inherited=inherited)
     if row["final"] is not None:   # the category's median parts, for the radar: the same category and plan (the tracking family for index funds and ETFs)

@@ -9,6 +9,7 @@ import { watch as wl, useWatchlist } from "../lib/watchlist";
 import { Spark } from "../charts/Small";
 import { Gate, OpenAccess } from "../components/Gate";
 import { PrismCompare, PrismDetail } from "./PrismCompare";
+import { ScreenBadges } from "./ScreenBadges";
 import { ScoreCard, ScoreDetail } from "./ScoreCard";
 import { DashToggle, useDashOpen } from "./DashToggle";
 import { usePrismLatest } from "./PrismCard";
@@ -76,6 +77,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
               <div className="hs-name"><h1>{p.name}</h1><NameDots score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} /></div>
               <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
               <div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.sector && <span className="tag">{p.sector}</span>}{p.bse && <span className="tag mono hide-sm">BSE {p.bse}</span>}</div>
+              <ScreenBadges symbol={p.symbol} />
               <LeadLine symbol={p.symbol} jump={jump} />
             </div>
           </div>

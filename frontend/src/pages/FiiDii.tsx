@@ -172,15 +172,17 @@ function Calendars({ f, st, day, setDay }: Ctx) {
   const t1f = totalSince(f.days, "fii", 12), yr = sinceMonths(f.days, 12), t1d = commonSpan(yr), from = f.coverage.diiPublishedFrom;
   const yrGap = yr.filter((d) => d.dii?.net == null), un = yrGap.filter((d) => diiGap(d.d, from) === "unpublished").length, missing = yrGap.length - un;
   const short = (d: string) => dateIN(d, { day: "numeric", month: "short", year: "numeric" });
+  const partYear = yr.length > 0 && yr[0].d === f.coverage.from;      // the data starts inside the last 12 months, so the window is "since the first day", not "1Y"
   return (
     <section className="fl-panel" aria-labelledby="flCal" id="calendar">
-      <div className="fl-ph"><h2 id="flCal">Daily flow calendar · last year</h2></div>
+      <div className="fl-ph"><h2 id="flCal">Daily flow calendar · {yr.length ? (partYear ? "since " : "from ") + short(yr[0].d) : "last year"}</h2></div>
+      {from && <p className="fl-note">FII and DII are both shown from {short(from)}, the first day NSDL's DII report exists, so the two sides always cover the same days.</p>}
       {st === "partial" && <p className="fl-note" id="flCalFeed"><b>{diiFeedText(f.coverage.diiFrom ?? availability(yr).dii?.from)}</b></p>}
       <p className="fl-note">One square per trading day. Deeper green is bigger net buying, deeper red bigger net selling; the scale is set by that side's own 92nd-percentile day, so a few extreme days do not wash out the rest. Select any day to read its figures.</p>
       <div className="fl-cals">
-        <div><div className="fl-cal-h"><h3>FII / FPI daily net</h3><b className={tone(t1f)}>1Y FII: {inr(t1f)}</b>{st !== "none" && t1d && yrGap.length > 0 && <small className="fl-cal-sub">same {t1d.n} sessions as DII: {inr(t1d.fii, { sign: true })}</small>}</div>
+        <div><div className="fl-cal-h"><h3>FII / FPI daily net</h3><b className={tone(t1f)}>{partYear && yr[0] ? `FII since ${short(yr[0].d)}` : "1Y FII"}: {inr(t1f)}</b>{st !== "none" && t1d && yrGap.length > 0 && <small className="fl-cal-sub">same {t1d.n} sessions as DII: {inr(t1d.fii, { sign: true })}</small>}</div>
           <CalendarHeat days={f.days} side="fii" selected={sel} onSelect={setDay} name="FII" /></div>
-        <div><div className="fl-cal-h"><h3>DII daily net</h3>{st !== "none" && t1d && <b className={tone(t1d.dii)}>{yrGap.length > 0 ? `DII since ${short(t1d.from)}` : "1Y DII"}: {inr(t1d.dii, { sign: yrGap.length > 0 })}</b>}</div>
+        <div><div className="fl-cal-h"><h3>DII daily net</h3>{st !== "none" && t1d && <b className={tone(t1d.dii)}>{yrGap.length > 0 || partYear ? `DII since ${short(t1d.from)}` : "1Y DII"}: {inr(t1d.dii, { sign: yrGap.length > 0 })}</b>}</div>
           {st === "none" ? <p className="fl-na">{NO_DII}</p> : <CalendarHeat days={f.days} side="dii" selected={sel} onSelect={setDay} name="DII" publishedFrom={f.coverage.diiFrom ?? from} />}</div>
       </div>
       <div className="fl-legend" aria-label="Colour key"><span style={{ margin: "0 6px 0 0" }}>▼ Selling</span>{CAL_LEGEND.map((l) => <i key={l} className="fl-cell" data-l={l} style={{ aspectRatio: "auto" }} />)}<span>Buying ▲</span><i className="fl-cell" data-n="1" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>missing session</span>{un > 0 && <><i className="fl-cell" data-n="2" style={{ aspectRatio: "auto" }} /><span style={{ margin: "0 0 0 6px" }}>not published</span></>}</div>

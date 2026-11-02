@@ -20,7 +20,7 @@ export type ScoreLine = { id: string; label: string; text: string; points: numbe
 export type ScoreMetric = { id: string; label: string; pillar: string; state: ScoreState; value: number | null; own: number | null; peer: number | null; peerN: number | null; points: number | null; weight: number | null; groupValue: number | null; why: string | null; whyText?: string | null };
 export type ScorePillar = { key: "performance" | "risk" | "cost" | "quality"; name: string; weight: number; score: number | null; allNotApplicable?: boolean };
 export type FundScore = {
-  locked: boolean; plan?: string; detail?: string; key?: string; kind?: string; group: string | null; groupName: string | null; fundPlan?: string | null;
+  locked: boolean; notOffered?: boolean; plan?: string; detail?: string; key?: string; kind?: string; group: string | null; groupName: string | null; fundPlan?: string | null;
   status: "RATED" | "PROVISIONAL" | "NOT RATED" | "NOT SCORED" | null; reason?: string | null; final: number | null; label: string | null; cap?: string | null; rawFinal?: number | null;
   pillars: ScorePillar[]; confidence?: number | null; months?: number; flags?: string[]; categoryLabel?: string | null; runDate?: string; nearIdentical?: boolean;
   rank?: { rank: number; of: number; scope: string; percentile: number | null; categoryLabel: string | null; plan: string } | null;

@@ -1,5 +1,6 @@
 // The page frame both score screeners share: header, filter sidebar (quick views, size, sector, then the page's own filters), summary tiles, active-filter
 // chips, sector mix, the results table with selection, compare, watchlist and CSV, and the pager. The page supplies the model-specific parts.
+import { titleOf, subOf, codeNote } from "../../lib/companyLabel";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { HScroll } from "../HScroll";
@@ -141,7 +142,7 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
                     <tr key={r.symbol} className={on ? "sx-sel" : ""}>
                       <td><input type="checkbox" checked={on} onChange={() => s.togglePick(r.symbol)} aria-label={`Select ${r.symbol}`} /></td>
                       <td className="sx-n">{pg.page * size + i + 1}</td>
-                      <td className="stick"><Link to={`/stocks/${r.symbol}`} className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b>{r.symbol}</b><small>{r.name}</small></span></Link></td>
+                      <td className="stick"><Link to={`/stocks/${r.symbol}`} className="co"><span className="av mini" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><span><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</span></Link></td>
                       <td>{r.price != null ? nf(r.price) : <Dash why="no price yet" />}</td>
                       <td>{r.market_cap != null ? <>{cr(r.market_cap)}{r.cap && <small className="sx-cap">{r.cap} cap</small>}</> : <Dash why="market value not available" />}</td>
                       <td style={{ fontFamily: "var(--sans)", textAlign: "left" }}>{r.sector || <Dash why="sector not listed" />}</td>

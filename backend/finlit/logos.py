@@ -18,6 +18,8 @@ Rules (the same as every other source in this repo):
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import hashlib
 import ipaddress
 import logging
@@ -33,8 +35,11 @@ from urllib.parse import urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
 
 import httpx
-from fastapi import APIRouter, Request
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, Field
+
+from .auth.routes import NO_STORE, Ctx, admin_ctx, fail
 
 log = logging.getLogger("finlit.logos")
 router = APIRouter(prefix="/api/logos")
@@ -483,3 +488,62 @@ async def amc_logos(store) -> Dict[str, str]:
         rows = await conn.fetch("SELECT owner_key, sha8 FROM logos WHERE owner_kind = 'amc' AND status IN ('ok', 'manual') AND sha8 IS NOT NULL")
     return {r["owner_key"]: r["sha8"] for r in rows}
 
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------ admin: coverage and manual logos
+def why_missing(status: Optional[str], note: Optional[str], website: Optional[str]) -> str:
+    """The reason a company has no logo, in words (every blank says why)."""
+    if status == "blocked":
+        return "Its website blocks automated requests, so nothing was fetched."
+    if status in ("none", "rejected"):
+        return note or ("Its website publishes no usable icon." if status == "none" else "The icon it publishes did not pass the image checks.")
+    if not website:
+        return "No website is stored for this company, so there is nowhere to look for an icon."
+    return "Not tried yet: the nightly job has not reached this company."
+
+
+@router.get("/admin/missing")
+async def missing(request: Request, limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0, le=20000), ctx: Ctx = Depends(admin_ctx)) -> JSONResponse:
+    """Administrators: the listed companies that show an initials tile instead of a logo, largest market cap first, with the reason; and how much is covered."""
+    async with request.app.state.store.pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT c.symbol, c.name, c.website, q.market_cap, l.status, l.note FROM companies c
+               LEFT JOIN listing_quotes q ON q.symbol = c.symbol LEFT JOIN logos l ON l.owner_kind = 'stock' AND l.owner_key = c.symbol
+               WHERE COALESCE(l.status, '') NOT IN ('ok', 'manual') ORDER BY q.market_cap DESC NULLS LAST, c.symbol LIMIT $1 OFFSET $2""", limit, offset)
+        total = await conn.fetchval("SELECT count(*) FROM companies")
+        have = await conn.fetchval("SELECT count(*) FROM logos WHERE owner_kind = 'stock' AND status IN ('ok', 'manual')")
+        top = await conn.fetch("""SELECT (l.status IN ('ok', 'manual')) AS has FROM companies c LEFT JOIN listing_quotes q ON q.symbol = c.symbol
+                                  LEFT JOIN logos l ON l.owner_kind = 'stock' AND l.owner_key = c.symbol ORDER BY q.market_cap DESC NULLS LAST, c.symbol LIMIT 500""")
+    items = [{"symbol": r["symbol"], "name": r["name"], "marketCapCr": None if r["market_cap"] is None else round(float(r["market_cap"])), "status": r["status"] or "untried",
+              "reason": why_missing(r["status"], r["note"], r["website"])} for r in rows]
+    return JSONResponse({"items": items, "companies": total, "withLogo": have, "top500WithLogo": sum(1 for r in top if r["has"]), "top500": len(top)}, headers=NO_STORE)
+
+
+class ManualLogoIn(BaseModel):
+    symbol: str = Field(min_length=1, max_length=24, pattern=r"^[A-Za-z0-9&._-]+$")
+    image: str = Field(min_length=8, max_length=100_000, description="the image file, base64 (the file itself is at most 64 KB)")
+
+
+@router.post("/admin/manual", status_code=201)
+async def manual(request: Request, body: ManualLogoIn, ctx: Ctx = Depends(admin_ctx)) -> JSONResponse:
+    """Administrators: set a company's logo by hand (an official brand image). The same checks as the automatic ones (real bitmap, square-ish, size); it is kept as
+    'manual', which the nightly job never overwrites."""
+    try:
+        data = base64.b64decode(body.image, validate=True)
+    except (binascii.Error, ValueError):
+        raise fail(422, "bad_image", "The image could not be read. Send the file as base64.")
+    try:
+        out, mime, w, h = sniff(data)
+    except Rejected as exc:
+        raise fail(422, "rejected", f"This image is not accepted: {exc}.")
+    sym = body.symbol.upper()
+    sha = hashlib.sha256(out).hexdigest()[:16]
+    async with request.app.state.store.pool.acquire() as conn:
+        if not await conn.fetchval("SELECT 1 FROM companies WHERE symbol = $1", sym):
+            raise fail(404, "not_found", "No listed company has this symbol.")
+        await conn.execute(
+            """INSERT INTO logos (owner_kind, owner_key, domain, status, mime, width, height, sha8, bytes, source_url, note, fetched_at, next_try_at)
+               VALUES ('stock', $1, NULL, 'manual', $2, $3, $4, $5, $6, NULL, 'Set by hand', now(), now() + interval '3650 days')
+               ON CONFLICT (owner_kind, owner_key) DO UPDATE SET status = 'manual', mime = EXCLUDED.mime, width = EXCLUDED.width, height = EXCLUDED.height, sha8 = EXCLUDED.sha8,
+                   bytes = EXCLUDED.bytes, note = 'Set by hand', fetched_at = now(), next_try_at = EXCLUDED.next_try_at""", sym, mime, w, h, sha, out)
+    return JSONResponse({"symbol": sym, "status": "manual", "path": logo_path(sha)}, status_code=201, headers=NO_STORE)

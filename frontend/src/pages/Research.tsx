@@ -1,4 +1,5 @@
 import { PageHeader } from "../components/PageHeader";
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { Link } from "react-router";
 import { useMemo, useState } from "react";
 import { BAND_LABEL, useUniverse, type Row } from "../lib/screener";
@@ -50,7 +51,7 @@ export function Research({ onSearch }: { onSearch: () => void }) {
         {isLoading && <div className="skeleton" style={{ height: 160 }} />}
         <div className="sgrid">
           {(rows.length ? list : FEATURED.map((s) => ({ symbol: s, name: s, band: null, overall: null, price: null, sector: null, change_pct: null, market_cap: null } as unknown as Row))).map((r) => (
-            <Link className="scard" key={r.symbol} to={`/stocks/${r.symbol}`}><b>{r.symbol}</b><span>{r.name && r.name !== r.symbol ? r.name : r.sector || "Open the report"}</span>
+            <Link className="scard" key={r.symbol} to={`/stocks/${r.symbol}`}><b title={codeNote(r)}>{titleOf(r)}</b><span>{subOf(r) && subOf(r) !== r.symbol ? subOf(r) : r.sector || "Open the report"}</span>
               <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 {r.overall != null && <span className={"vd " + (r.band === "strong" ? "strong" : r.band === "healthy" ? "healthy" : r.band === "mixed" ? "mixed" : "weak")}>{r.band ? BAND_LABEL[r.band] : ""} {r.overall}</span>}
                 {r.price != null && <span className="mono">₹{nf(r.price)}</span>}

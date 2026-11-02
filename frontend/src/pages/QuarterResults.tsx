@@ -1,4 +1,5 @@
 import { PageHeader } from "../components/PageHeader";
+import { titleOf } from "../lib/companyLabel";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
@@ -79,7 +80,7 @@ function Copy({ text }: { text: string }) {
 function Company({ r }: { r: QRow }) {
   return (
     <div className="qr-co">
-      <Link to={`/stocks/${r.symbol}#quarter`} className="qr-sym"><b>{/^\d+$/.test(r.symbol) ? r.name : r.symbol}</b></Link>
+      <Link to={`/stocks/${r.symbol}#quarter`} className="qr-sym"><b>{titleOf(r)}</b></Link>
       <small>{r.name}{r.sector ? ` · ${r.sector}` : ""}</small>
       <span className="qr-tags">
         {r.indices.includes("NIFTY50") ? <i>N50</i> : r.indices.includes("NIFTY100") ? <i>N100</i> : r.indices.includes("NIFTY500") ? <i>N500</i> : null}

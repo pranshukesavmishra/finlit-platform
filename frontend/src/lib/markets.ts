@@ -163,3 +163,18 @@ export const useLevels = (code: string, years: number, enabled = true) =>
 export const RANGES = [["1M", 21], ["3M", 63], ["6M", 126], ["1Y", 252], ["5Y", 0]] as const;
 /** The last n sessions of a daily series (0 = all). */
 export const lastN = <T,>(rows: readonly T[], n: number): T[] => (n > 0 ? rows.slice(-n) : [...rows]);
+
+// ---------------------------------------------------------------------------------------------------------------- heat map tile labels
+/** What a heat-map tile of w x h pixels can hold: 'full' (logo, symbol, move), 'medium' (symbol and move), 'mini' (the symbol alone) or 'none' (too small for a readable word:
+ *  the hover card names it). A small tile used to be left blank, so the smaller members of an index had no name at all. */
+export type TileMode = "full" | "medium" | "mini" | "none";
+export function tileMode(w: number, h: number, minLabel = 64): TileMode {
+  if (w >= minLabel && h >= 44) return "full";
+  if (w >= 44 && h >= 32) return "medium";
+  if (w >= 26 && h >= 15) return "mini";
+  return "none";
+}
+/** The font size that lets `text` fit a tile `w` pixels wide, between 8.5px (the smallest readable) and `max`; where even 8.5px is too wide the text is cut with an ellipsis. */
+export function labelFont(text: string, w: number, max: number): number {
+  return Math.round(Math.max(8.5, Math.min(max, (w - 8) / (Math.max(text.length, 1) * 0.62))) * 10) / 10;
+}

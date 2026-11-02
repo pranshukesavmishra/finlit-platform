@@ -1,6 +1,7 @@
 // The dashboard's markets block, top to bottom: Market today (index levels and the daily Nifty 50 / Sensex chart), Market snapshot (breadth, movers,
 // every sector as a heat-map), FII/DII flows, the index heat-map (stocks of an index, sized by market cap and coloured by today's move) and sectoral
 // activity (pick a sector group, see its index and its gainers and losers). Information only.
+import { titleOf } from "../../lib/companyLabel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "../search/parts";
@@ -12,11 +13,11 @@ import { MINUS, dateIN, nf } from "../../lib/format";
 import { niceTicks } from "../../lib/etf";
 import { useGold } from "../../lib/premium";
 import type { Row } from "../../lib/screener";
-import { CATEGORIES, FLAT_TILE, MAX_MOVE, RANGES, gainers, indexFor, largest, lastN, losers, moveColour, sectorBoard, stocksFor, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
+import { CATEGORIES, FLAT_TILE, MAX_MOVE, RANGES, gainers, indexFor, labelFont, largest, lastN, losers, moveColour, sectorBoard, stocksFor, tileMode, treemap, useLevels, useMembers, weightedMove, type Pill } from "../../lib/markets";
 import "../../styles/markets.css";
 
 /** A listed company's ticker, or its name when the ticker is only a numeric exchange code. */
-const shortName = (r: { symbol: string; name?: string | null }) => (/^\d+$/.test(r.symbol) && r.name ? r.name : r.symbol);
+const shortName = titleOf;
 const sgn = (v: number | null | undefined, d = 2) => (v == null ? MINUS : (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d) + "%");
 const tone = (v: number | null | undefined) => (v == null || Math.abs(v) < 0.005 ? "" : v > 0 ? "up" : "down");
 const reduced = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -123,11 +124,13 @@ function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells:
   return (
     <div className="mk-heat" ref={box} style={{ height, position: "relative" }} role="list" aria-label="Heat map, tile size is market capitalisation, colour is today's move" onPointerLeave={() => setTip(null)}>
       {tiles.map(({ x, y, w, h, item: c }) => {
-        const big = w >= minLabel && h >= 44, logoOk = logos && w >= 84 && h >= 84;
+        const mode = tileMode(w, h, minLabel), logoOk = logos && mode === "full" && w >= 84 && h >= 84;
         const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, "aria-label": `${c.name}: ${sgn(c.move)}`,
           onPointerEnter: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e), onPointerMove: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e),
           onFocus: (e: React.FocusEvent<HTMLElement>) => show(c, e.currentTarget), onBlur: () => setTip(null) };
-        const inner = big && <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b>{c.label}</b><em>{sgn(c.move)}</em></span>;
+        const inner = mode === "full" ? <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b style={{ fontSize: labelFont(c.label, w, 13.5) }}>{c.label}</b><em>{sgn(c.move)}</em></span>
+          : mode === "medium" ? <span className="mk-t-in mk-t-s"><b style={{ fontSize: labelFont(c.label, w, 11.5) }}>{c.label}</b><em>{sgn(c.move)}</em></span>
+          : mode === "mini" ? <span className="mk-t-in mk-t-s"><b style={{ fontSize: labelFont(c.label, w, 10.5) }}>{c.label}</b></span> : null;
         return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" tabIndex={0} {...common}>{inner}</div>;
       })}
       {tip && <div className="mk-htip" role="status" style={{ left: Math.max(8, Math.min(W - 188, tip.x + 14)), top: Math.max(4, Math.min(height - 70, tip.y + 14)) }}>

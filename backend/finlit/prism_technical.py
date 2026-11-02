@@ -151,6 +151,8 @@ def _apply(report: Dict[str, Any], card: Optional[Dict[str, Any]], view: Dict[st
 
     def horizon(key: str) -> Dict[str, Any]:
         part = view.get(key) if isinstance(view.get(key), dict) else {}
+        if part.get("provisional") is True:      # shown on the company page only; the screeners treat a provisional score as not available
+            return {"score": None, "rating": None}
         return {"score": part.get("score"), "rating": part.get("rating")}
     card.update(st=horizon("shortTerm"), lt=horizon("longTerm"), technicalAt=at, technicalBarDate=view.get("asOf"))
     return report, card
@@ -191,7 +193,7 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
             return Outcome.FAILED, "bad_answer"
         ready = assessment.get("status") == "ready"
         at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        updated = 0
+        updated, recorded = 0, []
         async with store.pool.acquire() as conn:
             async with conn.transaction():
                 for row in await conn.fetch("SELECT statement, report, card FROM prism_reports WHERE symbol = $1 FOR UPDATE", symbol):
@@ -202,7 +204,10 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
                     report, card = _apply(report, _json(row["card"]) if row["card"] is not None else None, view, at)
                     await conn.execute("UPDATE prism_reports SET report = $3::jsonb, card = $4::jsonb WHERE symbol = $1 AND statement = $2",
                                        symbol, row["statement"], json.dumps(report, allow_nan=False), json.dumps(card, allow_nan=False))
+                    recorded.append((row["statement"], card))
                     updated += 1
+        for statement, card in recorded:                    # today's short- and long-term views for the score chart (after the transaction: a failure there cannot undo the refresh)
+            await prism.record_technical(store.pool, symbol, statement, card)
         if not ready:
             return Outcome.WITHHELD, withheld_reason(assessment)
         return (Outcome.UPDATED, "ok") if updated else (Outcome.SKIPPED, "no_report")

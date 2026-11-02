@@ -765,6 +765,8 @@ async def build(store, today: date) -> dict:
     rows, issues = checked(rows, today)
     if issues:
         log.warning("flows checks left out %d days: %s", len(issues), "; ".join(issues[:5]))
+    pub_from = min([DII_START] + [r.d for r in rows if r.dn is not None and r.dsrc == "nsdl" and r.d < DII_START])   # NSDL's own earlier days (backfill-dii) move it back
+    rows = [r for r in rows if r.d >= pub_from]   # FII and DII are shown over the SAME days: nothing before the first day a DII report exists (the FII rows stay stored, only unshown)
     cut = (rows[-1].d - timedelta(days=round(365.25 * DAYS_SHOWN_YEARS))) if rows else today
     shown = [r for r in rows if r.d >= cut]
     days = [{"d": r.d.isoformat(), "fii": side(r.fb, r.fs, r.fn), "dii": side(r.db, r.ds, r.dn) if r.dn is not None else None} for r in shown]
@@ -775,7 +777,6 @@ async def build(store, today: date) -> dict:
         sells = last.fs is not None and last.ds is not None and (last.fs + last.ds) > 0
         latest = {"d": last.d.isoformat(), "fii": days[-1]["fii"], "dii": days[-1]["dii"], "combinedNet": r2(last.fn + last.dn) if both else None,
                   "fiiShareOfSelling": round(last.fs / (last.fs + last.ds), 4) if sells else None, "mood": mood_of(last.fn)}
-    pub_from = min([DII_START] + [r.d for r in rows if r.dn is not None and r.dsrc == "nsdl" and r.d < DII_START])   # NSDL's own earlier days (backfill-dii) move it back
     fser = [(r.d, r.fn) for r in rows if r.fn is not None]
     dser = [(r.d, r.dn) for r in rows if r.dn is not None]
     positions = positioning(oi)

@@ -179,3 +179,20 @@ describe("lib", () => {
     expect(csv).toContain("BBB,Beta Ltd,90,,50000,");
   });
 });
+
+describe("a company listed only on the BSE", () => {
+  it("is shown by its name, never by the bare BSE code; the link and the CSV keep the code", async () => {
+    detail.large = [200, { ...DETAIL, rows: [
+      { symbol: "AAA", name: "Alpha Ltd", prism: 80, ret1y: 12.5, mcap: 90000, badges: [] },
+      { symbol: "526775", name: "Valiant Communications Ltd", prism: 93, ret1y: 40, mcap: 1200, badges: [] },
+      { symbol: "530001", name: null, prism: 70, ret1y: 5, mcap: 800, badges: [] },
+    ] }];
+    mount("?preset=large");
+    await screen.findByText("Valiant Communications Ltd");
+    expect(rowSyms()).toEqual(["AAA", "Valiant Communications Ltd", "530001"]);                       // the title is the name; with no name on file the code stays
+    const table = screen.getByRole("table");
+    expect(within(table).getAllByText("Valiant Communications Ltd")).toHaveLength(1);                // the name is not printed twice (title and small line)
+    expect((within(table).getByText("Valiant Communications Ltd").closest("a") as HTMLAnchorElement).getAttribute("href")).toBe("/stocks/526775");
+    expect(within(table).getByText("530001").getAttribute("title")).toMatch(/name is not in our data/);   // a blank has its reason
+  });
+});

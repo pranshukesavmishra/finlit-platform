@@ -2,6 +2,7 @@
 //  - variant "bar": two compact dropdowns, "Sector" and "Market cap", each showing the active choice and a Clear option (the palette, wide pickers);
 //  - variant "panel": one "Filters" button that opens a small panel with the same two choices (narrow pickers, inline autocompletes).
 // Keyboard: Enter, Space or the arrow keys open a dropdown; arrows, Home and End move; Enter picks; Esc closes only the open list or panel.
+import { titleOf, subOf, codeNote } from "../lib/companyLabel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchIndex, type SearchIndex, type SearchRow } from "../lib/api";
 import { searchStocks } from "../lib/globalSearch";
@@ -191,7 +192,7 @@ export function HiddenRows({ hidden, filter, onChange }: { hidden: readonly Hidd
     <ul className="sf-hidden" aria-label="Matches hidden by your filter">
       {hidden.map((h) => (
         <li key={h.symbol} className="sf-hid">
-          <span className="sf-hid-t"><b>{h.symbol}</b><small>{h.name}</small><em>{h.why}</em></span>
+          <span className="sf-hid-t"><b title={codeNote(h)}>{titleOf(h)}</b>{subOf(h) && <small>{subOf(h)}</small>}<em>{h.why}</em></span>
           <button type="button" onClick={() => onChange(relaxed(filter, h.keys))} aria-label={`Show ${h.name}: remove ${h.keys.map((k) => (k === "sector" ? "sector" : "market cap")).join(" and ")} filter`}>Show it</button>
         </li>
       ))}

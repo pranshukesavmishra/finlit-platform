@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from typing import List
 
 from fastapi import APIRouter, Request, Response
@@ -76,6 +77,33 @@ async def listing(request: Request):
             as_of = max(filter(None, [as_of, (cached or {}).get("asOf")]), default=as_of)
         by_group[p.group].append(_card(p, gold, cached))
     return _json({"asOf": as_of, "groups": [{"id": g, "name": n, "presets": by_group[g]} for g, n in GROUPS if by_group[g]]})
+
+
+BADGE_GROUPS = ("top-rated", "themes")      # the screens a company page names: the highest-rated lists and the themes (a value or safety screen would read as a verdict on one company)
+SYMBOL = re.compile(r"^[A-Z0-9&._-]{1,24}$")
+
+
+@router.get("/for/{symbol}")
+async def screens_for(request: Request, symbol: str):
+    """The top-rated and theme screens a company is in, from the latest nightly results (every company that passes, not only the ones shown). Gold, like the screens."""
+    ctx = await current(request)
+    if not _gold(ctx):
+        raise fail(403, "plan_required", "Prebuilt screens are part of the Gold plan.", plan="gold")
+    sym = symbol.strip().upper()
+    if not SYMBOL.match(sym):
+        raise fail(422, "bad_symbol", "That is not a company symbol.")
+    store, screens, as_of, ready = request.app.state.store, [], None, False
+    for p in ALL:
+        if p.group not in BADGE_GROUPS or p.status != "live" or p.kind in ("blocked", "quickview"):
+            continue
+        cached = await service.read_cached(store, p.id, engine.chip_key([c.id for c in p.chips if c.default]))
+        if not cached:
+            continue
+        ready = True
+        as_of = max(filter(None, [as_of, cached.get("asOf")]), default=as_of)
+        if any(r.get("symbol") == sym for r in (cached.get("exportRows") or cached.get("rows") or [])):
+            screens.append({"id": p.id, "name": p.name, "group": p.group, "asOf": cached.get("asOf")})
+    return _json({"symbol": sym, "screens": screens, "ready": ready, "asOf": as_of})
 
 
 @router.get("/{pid}")

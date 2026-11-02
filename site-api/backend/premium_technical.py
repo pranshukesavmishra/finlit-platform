@@ -140,8 +140,16 @@ def combine_verdict(st, lt):
     return {"label": labels[a][b], "tone": tones[a][b]}
 
 
-def summarise_signals(specs, signals, sector_enabled=False, value_enabled=True, stage=None):
-    """Only explicitly disabled options leave the PDF denominator."""
+# The long-term relative-strength rating ranks the stock's own 252-session excess return against the 252 sessions before it, so it needs about 504 daily
+# candles (two years). A company listed more recently than that cannot have it, and without it the long-term score used to be withheld altogether.
+PROVISIONAL_BELOW_BARS = 505
+PROVISIONAL_NOTE = ("Provisional: the relative-strength rating needs about two years of daily prices and this company has less, so this score uses the other "
+                    "{n} signals and counts their weights only. It is shown as provisional and is not used by the screeners.")
+
+
+def summarise_signals(specs, signals, sector_enabled=False, value_enabled=True, stage=None, allow_provisional=False):
+    """Only explicitly disabled options leave the PDF denominator. `allow_provisional` (long term only, a short price history): when the relative-strength rating is
+    the ONE signal missing and the market stage is known, the score is worked out from the other signals' weights and marked provisional. Every other gap still withholds it."""
     rows = []
     for key, label, weight, rule in specs:
         disabled = (key == "sector" and not sector_enabled) or (key == "value_migration" and not value_enabled)
@@ -160,12 +168,17 @@ def summarise_signals(specs, signals, sector_enabled=False, value_enabled=True, 
     has_stage = any(row["key"] == "stage" for row in enabled)
     if has_stage and stage not in (1, 2, 3, 4):
         complete = False
-    raw_score = 100 * sum(row["weight"] * row["signal"] for row in known) / denominator if complete else None
+    stage_ok = not has_stage or stage in (1, 2, 3, 4)
+    provisional = (not complete) and allow_provisional and stage_ok and [row["key"] for row in enabled if row["signal"] is None] == ["rs_rating"]
+    if provisional:
+        denominator = sum(row["weight"] for row in known)
+    raw_score = 100 * sum(row["weight"] * row["signal"] for row in known) / denominator if (complete or provisional) else None
     score = min(raw_score, 19) if raw_score is not None and has_stage and stage in (3, 4) else raw_score
     capped = score is not None and score != raw_score
     return {"score": score, "rating": score_rating(score),
-            "status": "ready" if complete else "incomplete", "availableCount": len(known), "requiredCount": len(enabled),
-            "stageCapped": capped, **({"uncappedScore": raw_score} if capped else {}), "factors": rows}
+            "status": "ready" if (complete or provisional) else "incomplete", "availableCount": len(known), "requiredCount": len(enabled),
+            "stageCapped": capped, **({"uncappedScore": raw_score} if capped else {}),
+            **({"provisional": True, "provisionalNote": PROVISIONAL_NOTE.format(n=len(known))} if provisional else {}), "factors": rows}
 
 
 def build_technical_assessment(price_input, as_of, benchmarks=None, shares_cr=None):
@@ -179,7 +192,7 @@ def build_technical_assessment(price_input, as_of, benchmarks=None, shares_cr=No
     fresh = bool(valid) and 0 <= (as_of-date.fromisoformat(valid[-1]["date"])).days <= 10
     st, lt, observations = scoring_signals(valid, benchmarks or {}, shares_cr, as_of) if fresh else ({},{},{})
     short = summarise_signals(ST,st)
-    long = summarise_signals(LT,lt,stage=observations.get("stage"))
+    long = summarise_signals(LT,lt,stage=observations.get("stage"),allow_provisional=len(valid) < PROVISIONAL_BELOW_BARS)
     notes = list(price_input.get("notes", []))
     used_names = observations.get("benchmarksUsed", list((benchmarks or {}).keys()))
     for name, value in (benchmarks or {}).items():

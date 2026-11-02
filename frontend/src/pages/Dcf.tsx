@@ -15,6 +15,7 @@ import { useDocTitle } from "../lib/title";
 import { csvText, dateIN, nf } from "../lib/format";
 import { Gate } from "../components/Gate";
 import { Info } from "../components/Info";
+import { DcfIntro } from "../components/DcfIntro";
 import {
   GROWTH_PRESETS, INDIA_DEFAULTS, MOS_PRESETS, STATUS_PILL, STATUS_TEXT, around, costOfCapital, defaultScenarios, impliedGrowth, impliedReturn, run, scenarios, sensitivity,
   type CostOfCapital, type DcfInputs, type DcfResult, type GrowthPreset, type Issue, type Scenario,
@@ -78,7 +79,7 @@ const HELP: Record<string, Glossary> = {
   price: H("price", "Current share price", "Today's price of one share in ₹; the intrinsic value is compared with it."),
   netDebt: H("netDebt", "Net debt", "Borrowings minus cash and cash equivalents, in ₹ crore. Enter a negative number for net cash. It is taken off enterprise value to reach the value of the shares.",
     "Equity value = Enterprise value − Net debt", "Also take off minority interest and add non-operating assets (for example surplus investments) if they are material."),
-  mos: H("mos", "Margin of safety", "A discount to the intrinsic value you insist on before buying, to allow for being wrong.", "Buy price = Intrinsic value × (1 − MOS ÷ 100)",
+  mos: H("mos", "Margin of safety", "A discount to the intrinsic value, to allow for being wrong.", "Margin-of-safety price = Intrinsic value × (1 − MOS ÷ 100)",
     "Common choices: 20% for steady businesses, 30–40% for less certain ones, 50% or more for very uncertain ones."),
   shares: H("shares", "Shares outstanding", "Number of shares in crore. Left empty, it is market capitalisation ÷ price. A diluted count (including options and convertibles) is more precise."),
   exitMultiple: H("exitMultiple", "Exit multiple", "Terminal value as a multiple of year-10 free cash flow (EV ÷ FCF), instead of the growth formula.", "TV₁₀ = Multiple × FCF₁₀"),
@@ -206,7 +207,7 @@ function Steps({ i, res }: { i: DcfInputs; res: DcfResult }) {
     ["8", "Shares outstanding", i.shares ? `${nf(res.shares, 4)} crore (entered)` : `${crs(i.marketCap)} ÷ ${rs(i.price)} = ${nf(res.shares, 4)} crore`],
     ["9", "Intrinsic value per share", `${crs(res.equity)} ÷ ${nf(res.shares, 4)} crore = ${rs(res.iv)}`],
     ["10", "Upside / downside", `(${rs(res.iv)} ÷ ${rs(i.price)} − 1) × 100 = ${sgn(res.upside)}`],
-    ["11", "Buy price with margin of safety", `${rs(res.iv)} × (1 − ${nf(i.mos, 2)}%) = ${rs(res.buyPrice)}`],
+    ["11", "Margin-of-safety price", `${rs(res.iv)} × (1 − ${nf(i.mos, 2)}%) = ${rs(res.buyPrice)}`],
   ];
   return (
     <div className="tw"><table className="dcf-steps"><caption className="sr-only">How the intrinsic value is worked out, step by step</caption>
@@ -304,7 +305,7 @@ function exportCsv(i: DcfInputs, res: DcfResult, symbol: string) {
     ["Current share price (Rs)", i.price], ["Net debt (Rs Cr)", i.netDebt], ["Margin of safety %", i.mos], ["Mid-year convention", i.midYear ? "yes" : "no"], ["Shares (crore)", res.shares], [],
     ["Year", "Growth %", "FCF (Rs Cr)", "Discount factor", "PV (Rs Cr)"], ...res.years.map((y) => [y.t, y.growth, y.fcf, y.factor, y.pv]), ["Terminal value", "", res.tv, res.pvTv / res.tv, res.pvTv], [],
     ["Result", "Value"], ["Enterprise value (Rs Cr)", res.ev], ["Equity value (Rs Cr)", res.equity], ["Intrinsic value per share (Rs)", res.iv], ["Upside %", res.upside],
-    ["Buy price (Rs)", res.buyPrice], ["Status", STATUS_TEXT[res.status].label], ["Terminal value share of EV %", res.tvShare]];
+    ["Margin-of-safety price (Rs)", res.buyPrice], ["Status", STATUS_TEXT[res.status].label], ["Terminal value share of EV %", res.tvShare]];
   const csv = lines.map((r) => r.map((c) => { const s = csvText(String(c)); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
@@ -384,7 +385,8 @@ export function DcfPage() {
       <PageHeader wrap plan="gold" title="DCF valuation calculator" art="calculator" links={["/eps-calculator", "/sip-calculator", "/outlook"]}
         description={<>Estimate a company's <b>intrinsic value</b> from its projected cash flows with a Discounted Cash Flow (DCF) calculator. Every step of the working is shown, with checks that stop impossible assumptions.</>} />
       <div className="wrap dcf">
-        <Gate tier="gold" title="DCF calculator" points={["Intrinsic value per share, margin of safety and buy price", "Load any listed company's cash flow, debt and shares", "Sensitivity grids, reverse DCF and bear/base/bull cases", "Save scenarios, share links and export to Excel (CSV)"]}>
+        <DcfIntro />
+        <Gate tier="gold" title="DCF calculator" points={["Intrinsic value per share, margin of safety and margin-of-safety price", "Load any listed company's cash flow, debt and shares", "Sensitivity grids, reverse DCF and bear/base/bull cases", "Save scenarios, share links and export to Excel (CSV)"]}>
           <CompanyLoader enabled={gold && !!user && !DEMO} onLoad={onCompany} loaded={loaded} initial={sp.get("load") === "1" && form.symbol ? form.symbol.toUpperCase() : null} />
 
           <section className="card dcf-form" aria-labelledby="dcf-in-h">
@@ -425,7 +427,7 @@ export function DcfPage() {
               <div className={"dcf-k main st-" + res.status}><span>Intrinsic value per share</span><b>{res.equity > 0 ? rs(res.iv) : "N/M"}</b><small>{form.symbol ? form.symbol + " · " : ""}on these assumptions</small></div>
               <div className="dcf-k"><span>Current price</span><b>{rs(inputs.price)}</b><small>{loaded?.priceAsOf && form.symbol === loaded.symbol ? dateIN(loaded.priceAsOf.slice(0, 10)) : "as entered"}</small></div>
               <div className="dcf-k"><span>Upside / downside</span><b className={res.upside >= 0 ? "up" : "down"}>{res.equity > 0 ? sgn(res.upside) : "—"}</b><small>intrinsic value vs price</small></div>
-              <div className="dcf-k"><span>Buy price ({nf(inputs.mos, 0)}% margin)</span><b>{res.equity > 0 ? rs(res.buyPrice) : "—"}</b><small>intrinsic value × (1 − margin)</small></div>
+              <div className="dcf-k"><span>Margin-of-safety price ({nf(inputs.mos, 0)}% margin)</span><b>{res.equity > 0 ? rs(res.buyPrice) : "—"}</b><small>intrinsic value × (1 − margin)</small></div>
               <div className={"dcf-status st-" + res.status} role="status">
                 <span className="dcf-st-ico" aria-hidden="true"><Icon name={res.status === "buy" ? "check" : res.status === "overvalued" ? "alert" : "info"} /></span>
                 <div className="dcf-st-body">
@@ -462,7 +464,7 @@ export function DcfPage() {
 
             <section className="card"><h2>Sensitivity</h2>
               {inputs.tvMethod === "gordon" && <Grid title="Discount rate × terminal growth" i={inputs} rowKey="gT" rows={around(inputs.gT, 0.5)} rowLabel="Terminal growth" colKey="r" cols={around(inputs.r, 1)} colLabel="Discount rate"
-                note="Each cell is the intrinsic value per share. Green: price at or below the buy price; amber: between buy price and value; red: price above value; — where terminal growth is not below the discount rate." />}
+                note="Each cell is the intrinsic value per share. Green: price at or below the margin-of-safety price; amber: between margin-of-safety price and value; red: price above value; — where terminal growth is not below the discount rate." />}
               <Grid title="Discount rate × growth (years 1–5)" i={inputs} rowKey="g1" rows={around(inputs.g1, 2.5)} rowLabel="Growth 1–5" colKey="r" cols={around(inputs.r, 1)} colLabel="Discount rate"
                 note="The centre cell is your base case." />
             </section>

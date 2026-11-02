@@ -3,7 +3,7 @@ import { PRISM_PARTS } from "./prismWords";
 import { PART_LINE, alignSentence, arcPath, basedOn, fundSubtitle, horizonCaption, horizonLabel, partTip, partWord, polar, ringArcs, signalsLine, techEdgePos } from "./prismCardLogic";
 import { trendAlignment, type TechHorizon } from "../lib/prismTechnical";
 
-const H = (o: Partial<TechHorizon>): TechHorizon => ({ score: 1, rating: "Hold", status: "ready", horizon: "5–20 sessions", availableCount: 14, requiredCount: 14, stageCapped: false, uncappedScore: null, divisor: null, factors: [], ...o });
+const H = (o: Partial<TechHorizon>): TechHorizon => ({ score: 1, rating: "Hold", status: "ready", horizon: "5–20 sessions", availableCount: 14, requiredCount: 14, stageCapped: false, provisional: false, provisionalNote: null, uncappedScore: null, divisor: null, factors: [], ...o });
 
 describe("ring geometry", () => {
   it("sizes each arc by its weight and leaves the gaps", () => {

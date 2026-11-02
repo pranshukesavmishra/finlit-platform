@@ -86,7 +86,7 @@ HISTORY = ("quarterly", "annual", "latest")   # the parts of calculationTrace th
 # sourceCodeSha256. Each factor's weight IS passed on now (the indicator publishes them; the breakdown table shows weight and points, see
 # docs/technicals/README.md); the older model note said weights are not shown, and removing "weight" here removes the column again.
 TECH_TOP = ("modelVersion", "status", "asOf", "provider", "dailyBars", "usableDailyBars", "fresh", "sharesCr")   # sharesCr: the shares (crore) that chose the benchmark, kept so the daily refresh (prism_technical.py) chooses the same one
-TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore")
+TECH_HORIZON = ("score", "rating", "status", "horizon", "availableCount", "requiredCount", "stageCapped", "uncappedScore", "provisional", "provisionalNote")
 TECH_FACTOR = ("key", "label", "signal", "status", "detail", "weight")
 TECH_SOURCE = ("provider", "asOf", "bars")
 
@@ -330,15 +330,64 @@ def card_of(view: Dict[str, Any]) -> Dict[str, Any]:
 
     def horizon(key: str) -> Dict[str, Any]:
         part = technical.get(key) if isinstance(technical.get(key), dict) else {}
+        if part.get("provisional") is True:      # a provisional score (a recent listing) is shown on the company page only; the screeners treat it as not available
+            return {"score": None, "rating": None}
         return {"score": part.get("score"), "rating": part.get("rating")}
     return {"parts": None if rating.get("status") == "NOT RATED" else rating.get("parts"), "st": horizon("shortTerm"), "lt": horizon("longTerm"),
             "confidence": rating.get("confidence"), "technicalBarDate": technical.get("asOf"), "technicalAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
+def _score(v: Any) -> Optional[float]:
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float("inf") else None
+
+
+async def record_history(db, symbol: str, statement: str, view: Dict[str, Any], card: Optional[Dict[str, Any]] = None) -> bool:
+    """One row per company, basis and Indian calendar day in prism_history, from a full calculation: the score, its four parts, the label and model version.
+    Only a company the model gave a score to gets a row. The technical views are recorded separately (`record_technical`). Never raises: a failure here must not
+    stop the report being saved."""
+    rating = view.get("rating") if isinstance(view.get("rating"), dict) else {}
+    final = _score(rating.get("final"))
+    if final is None:
+        return False
+    parts = rating.get("parts") if isinstance(rating.get("parts"), dict) else {}
+    card = card if isinstance(card, dict) else card_of(view)
+    try:
+        await db.execute(
+            """INSERT INTO prism_history (symbol, statement, day, model_version, final, label, status, p_fundamental, p_valuation, p_quality, p_risk, st_score, lt_score)
+               VALUES ($1, $2, (now() AT TIME ZONE 'Asia/Kolkata')::date, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               ON CONFLICT (symbol, statement, day) DO UPDATE SET model_version = EXCLUDED.model_version, final = EXCLUDED.final, label = EXCLUDED.label, status = EXCLUDED.status,
+                   p_fundamental = EXCLUDED.p_fundamental, p_valuation = EXCLUDED.p_valuation, p_quality = EXCLUDED.p_quality, p_risk = EXCLUDED.p_risk,
+                   st_score = COALESCE(EXCLUDED.st_score, prism_history.st_score), lt_score = COALESCE(EXCLUDED.lt_score, prism_history.lt_score), recorded_at = now()""",
+            symbol, statement, rating.get("modelVersion"), final, rating.get("label"), rating.get("status"), _score(parts.get("fundamental")), _score(parts.get("valuation")),
+            _score(parts.get("quality")), _score(parts.get("risk")), _score((card.get("st") or {}).get("score")), _score((card.get("lt") or {}).get("score")))
+        return True
+    except Exception as exc:
+        log.warning("prism history not recorded for %s: %s", symbol, type(exc).__name__)
+        return False
+
+
+async def record_technical(db, symbol: str, statement: str, card: Optional[Dict[str, Any]]) -> bool:
+    """The short- and long-term technical views of today, from the daily refresh: only those two columns of today's row (the row is created with no score when no full
+    calculation ran today, so a score is never claimed for a day it was not worked out). Never raises."""
+    card = card if isinstance(card, dict) else {}
+    st, lt = _score((card.get("st") or {}).get("score")), _score((card.get("lt") or {}).get("score"))
+    if st is None and lt is None:
+        return False
+    try:
+        await db.execute(
+            """INSERT INTO prism_history (symbol, statement, day, st_score, lt_score) VALUES ($1, $2, (now() AT TIME ZONE 'Asia/Kolkata')::date, $3, $4)
+               ON CONFLICT (symbol, statement, day) DO UPDATE SET st_score = COALESCE(EXCLUDED.st_score, prism_history.st_score),
+                   lt_score = COALESCE(EXCLUDED.lt_score, prism_history.lt_score), recorded_at = now()""", symbol, statement, st, lt)
+        return True
+    except Exception as exc:
+        log.warning("prism technical history not recorded for %s: %s", symbol, type(exc).__name__)
+        return False
+
+
 async def _save(store, symbol: str, statement: str, view: Dict[str, Any], pdf_until: Optional[datetime]):
     rating = view.get("rating") or {}
     final = rating.get("final")
-    return await store.pool.fetchrow(
+    row = await store.pool.fetchrow(
         """INSERT INTO prism_reports (symbol, statement, id, report, model_version, final, label, status, generated_at, pdf_until, card)
            VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9, $10::jsonb)
            ON CONFLICT (symbol, statement) DO UPDATE SET id = EXCLUDED.id, report = EXCLUDED.report, model_version = EXCLUDED.model_version,
@@ -348,6 +397,8 @@ async def _save(store, symbol: str, statement: str, view: Dict[str, Any], pdf_un
         symbol, statement, view["id"], json.dumps(view, allow_nan=False), rating.get("modelVersion"),
         float(final) if isinstance(final, (int, float)) else None, rating.get("label"), rating.get("status"), pdf_until,
         json.dumps(card_of(view), allow_nan=False))
+    await record_history(store.pool, symbol, statement, view)      # one row a day for the score chart; a failure there never stops the report
+    return row
 
 
 async def _keep_snapshot(redis, snapshot: Dict[str, Any], sub: str, symbol: str) -> Optional[datetime]:
@@ -497,6 +548,29 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     return _reply({"summary": _summary(row, refreshing)} if view == "summary" else _shape(row, cached=True, refreshing=refreshing))
 
 
+HISTORY_MAX = 800     # points sent: the newest 800 days (a score is worked out at most once a day, so about three years)
+
+
+@router.get("/history")
+async def history(request: Request, symbol: str = Query("", max_length=40), statement: str = Query("consolidated", max_length=20)) -> JSONResponse:
+    """The Prism score, its four parts and the two technical views over time, oldest first: one point per day a figure was worked out. Gold, like the report itself.
+    The history starts on the day recording began and is never filled in backwards; `firstDay` says when, and a model-version change is carried on each point."""
+    wanted = target(symbol, statement)
+    if not wanted:
+        return _bad("Choose a company symbol and a statement basis (consolidated or standalone).")
+    _, refusal = await _access(request, wanted[0])
+    if refusal:
+        return refusal
+    rows = await request.app.state.store.pool.fetch(
+        """SELECT day, model_version, final, label, status, p_fundamental, p_valuation, p_quality, p_risk, st_score, lt_score FROM prism_history
+           WHERE symbol = $1 AND statement = $2 ORDER BY day DESC LIMIT $3""", wanted[0], wanted[1], HISTORY_MAX)
+    pts = [{"day": r["day"].isoformat(), "modelVersion": r["model_version"], "final": r["final"], "label": r["label"], "status": r["status"],
+            "parts": {"fundamental": r["p_fundamental"], "valuation": r["p_valuation"], "quality": r["p_quality"], "risk": r["p_risk"]},
+            "shortTerm": r["st_score"], "longTerm": r["lt_score"]} for r in reversed(rows)]
+    return _reply({"symbol": wanted[0], "statement": wanted[1], "points": pts, "firstDay": pts[0]["day"] if pts else None,
+                   "note": "One point for each day a figure was worked out. The history starts on the day recording began; earlier days are not estimated."})
+
+
 SCORES_MAX = 40
 SCORES_MAX_AGE = 60                # seconds a browser may reuse a scores answer
 _PARTS = ("fundamental", "valuation", "quality", "risk")
@@ -509,7 +583,8 @@ def _num(path: str) -> str:
 
 _SCORES_SQL = ("SELECT DISTINCT ON (symbol) symbol, statement, final, label, status, generated_at, "  # nosec B608: built only from constant names, never from a request value
                + ", ".join(f"{_num('rating,parts,' + k)} AS p_{k}" for k in _PARTS) + ", "
-               + ", ".join(f"{_num('technicalAssessment,' + h + ',score')} AS {h.lower()}_score, report #>> '{{technicalAssessment,{h},rating}}' AS {h.lower()}_rating"
+               + ", ".join(f"CASE WHEN report #>> '{{technicalAssessment,{h},provisional}}' = 'true' THEN NULL ELSE {_num('technicalAssessment,' + h + ',score')} END AS {h.lower()}_score, "
+                           f"CASE WHEN report #>> '{{technicalAssessment,{h},provisional}}' = 'true' THEN NULL ELSE report #>> '{{technicalAssessment,{h},rating}}' END AS {h.lower()}_rating"
                            for h in ("shortTerm", "longTerm"))
                + ", COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}') AS tech_bar, COALESCE(card->>'technicalAt', report->>'technicalCalculatedAt') AS tech_at"
                + " FROM prism_reports WHERE symbol = ANY($1::text[]) ORDER BY symbol, (statement = 'consolidated') DESC")

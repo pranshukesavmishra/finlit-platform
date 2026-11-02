@@ -93,3 +93,6 @@ code, pre, kbd, samp, .qb-box textarea, .qb-mirror { font-family: var(--code); }
 /* ---- light minimalism: fewer stacked effects, calmer hover ---- */
 :root .card:hover, :root .feat:hover, :root .kpi:hover { transform: none; }
 :root .hover-lift:hover { transform: none; }
+
+/* dashboard market tiles: one flat surface; the coloured edge and the coloured change figure are the only signal (no tinted fill, tinted border or shadow on top) */
+:root .mk-tile, :root .mk-tile.up, :root .mk-tile.down { background: var(--s1); border-color: var(--border); box-shadow: none; }
