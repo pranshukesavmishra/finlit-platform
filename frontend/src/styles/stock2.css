@@ -517,3 +517,4 @@ a.pr-row:hover, .pr-row.hot { transform: translateX(4px); border-color: color-mi
 .ob-cap { font-size: 13px; line-height: 1.5; margin: 10px 0 0; } .ob-empty { margin: 4px 0 0; font-size: 15px; }
 @media (max-width: 560px) { .ob-dl { margin-left: 0; } .ob-ctl { gap: 8px; } }
 @media (prefers-reduced-motion: reduce) { .ob-r, .ob-li { transition: none; } }
+.biz-src { position: relative; margin: 10px 0 0; font-size: 12px; }

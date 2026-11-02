@@ -493,7 +493,10 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
     need = {"quote": not p["quote"] and p["closes"] == 0, "pl": p["annual"] == 0, "bs": p["balance"] == 0, "cf": p["cash"] == 0, "ql": p["quarterly"] == 0}
     short = 0 < p["annual"] < 5            # the provider holds only a few years: older ones may be had from the second source, if it agrees on the years both have
     short_bs = 0 < p["balance"] < 5
-    if not any(need.values()) and not short and not short_bs:
+    prof0 = bundle.get("profile") if isinstance(bundle.get("profile"), dict) else {}
+    need_about = not prof0.get("description") or not prof0.get("sector")   # the company overview: asked for even when the statements are complete
+    about_only = not any(need.values()) and not short and not short_bs
+    if about_only and not need_about:
         return bundle
     symbol = str(bundle["symbol"]).upper()
     c = company or {}
@@ -502,6 +505,12 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
         if not inst:
             return bundle
         src: Dict[str, str] = {}
+        if about_only:      # the statements and prices are complete: only the company overview is asked for, nothing is re-compared
+            up = await client.profile(inst["isin"])
+            if isinstance(up, dict) and (up.get("company_profile") or up.get("sector")):
+                bundle["profile"] = {**prof0, "description": prof0.get("description") or up.get("company_profile"), "sector": prof0.get("sector") or up.get("sector")}
+                bundle["_source"] = {"profile": "upstox"}
+            return bundle
         stmt = bundle.get("statement") or "consolidated"
 
         async def stmts(kind, period):
@@ -574,7 +583,7 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
             if r:
                 bundle["ratios_pr"] = r; src["ratios_pr"] = "upstox"
         prof = bundle.get("profile") if isinstance(bundle.get("profile"), dict) else {}
-        if src and (not prof.get("description") or not prof.get("sector")):
+        if not prof.get("description") or not prof.get("sector"):
             up = await client.profile(inst["isin"])
             if isinstance(up, dict) and (up.get("company_profile") or up.get("sector")):
                 bundle["profile"] = {**prof, "description": prof.get("description") or up.get("company_profile"), "sector": prof.get("sector") or up.get("sector")}

@@ -108,7 +108,10 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
 /* ---------------- Company ---------------- */
 export function BusinessSection({ s }: { s: Summary }) {
   const p = s.profile, [more, setMore] = useState(false);
-  const desc = (p.description || "No description available.").replace(/\s+/g, " ");
+  const desc = (p.description || "Neither of our data sources holds a description of this company yet. The sector, the exchange codes and the announcements below are still shown.").replace(/\s+/g, " ");
+  const fromUpstox = !!p.description && s.dataQuality?.secondarySource?.profile === "upstox";
+  const nseUrl = p.nse && /^[A-Z0-9&-]{1,20}$/.test(p.nse) ? `https://www.nseindia.com/get-quotes/equity?symbol=${encodeURIComponent(p.nse)}` : null;
+  const bseUrl = p.bse && /^\d{6}$/.test(String(p.bse)) ? `https://www.bseindia.com/stock-share-price/x/x/${p.bse}/` : null;
   const long = desc.length > 330;
   const stats: [string, string, string, string][] = [
     ["cap", "Market cap", p.marketCapCr ? "₹" + cr(p.marketCapCr) + " Cr" : "—", "--p-growth"],
@@ -127,7 +130,10 @@ export function BusinessSection({ s }: { s: Summary }) {
           <div className="biz-id"><span className="biz-av">{initials(p.name)}</span><div><b>{p.name}</b><div className="biz-tags">{p.sector && <span className="chip">{p.sector}</span>}{p.industry && <span className="chip">{p.industry}</span>}</div></div></div>
           <p className={"biz-desc" + (more ? " open" : "")}>{desc}</p>
           <div className="biz-actions">{long && <button className="btn" onClick={() => setMore(!more)}>{more ? "Show less" : "Read the full description"}</button>}
-            {p.website && /^[\w.-]+\.[a-z]{2,}/i.test(p.website) && <a className="chip gold" href={`https://${p.website.replace(/^https?:\/\//, "")}`} target="_blank" rel="noopener noreferrer">{p.website} ↗</a>}</div>
+            {p.website && /^[\w.-]+\.[a-z]{2,}/i.test(p.website) && <a className="chip gold" href={`https://${p.website.replace(/^https?:\/\//, "")}`} target="_blank" rel="noopener noreferrer">{p.website} ↗</a>}
+            {nseUrl && <a className="chip" href={nseUrl} target="_blank" rel="noopener noreferrer" title="This company's page on the National Stock Exchange">NSE: {p.nse} ↗</a>}
+            {bseUrl && <a className="chip" href={bseUrl} target="_blank" rel="noopener noreferrer" title="This company's page on BSE, with its filings and announcements">BSE: {p.bse} ↗</a>}</div>
+          {fromUpstox && <p className="faint biz-src">Description from the company profile at Upstox (our second data source).</p>}
         </div>
         <div className="bstats">{stats.map(([ic, k, val, c], i) => <div className="bs" key={k} style={{ "--bc": v(c), animationDelay: `${i * 80}ms` } as React.CSSProperties}><span className="bs-i"><Icon name={ic} /></span><div className="label">{k}</div><div className="bs-v">{val}</div></div>)}</div>
       </div>

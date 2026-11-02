@@ -66,10 +66,31 @@ def test_good_finedge_untouched_no_calls():
     calls = []
     cl = upstox.UpstoxClient(S(), transport=httpx.MockTransport(handler_factory(calls)))
     b = {"symbol": "X", "quote": {"X": {"current_price": 10}}, "pl_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]}, "bs_annual": {"financials": [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]},
-         "cf_annual": {"financials": [{"period_end": "2025-03-31"}]}, "pl_quarterly": {"financials": [{"period_end": "2025-03-31"}]}}
+         "cf_annual": {"financials": [{"period_end": "2025-03-31"}]}, "pl_quarterly": {"financials": [{"period_end": "2025-03-31"}]},
+         "profile": {"description": "Makes things.", "sector": "Industrials"}}
     before = dict(b)
     run(upstox.supplement(b, cl, {}))
     assert calls == [] and b == before
+
+def test_complete_statements_but_no_description_asks_only_for_the_company_overview():
+    calls = []
+    prof = {"company_profile": "Spicy makes films and runs two TV channels.", "sector": "Media"}
+    base = handler_factory(calls)
+    def h(req):
+        if req.url.path.endswith("/profile"):
+            calls.append(req.url.path)
+            return httpx.Response(200, json={"status": "success", "data": prof})
+        return base(req)
+    cl = upstox.UpstoxClient(S(), transport=httpx.MockTransport(h))
+    yrs = [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]
+    b = {"symbol": "540084", "quote": {"540084": {"current_price": 10}}, "pl_annual": {"financials": yrs}, "bs_annual": {"financials": yrs},
+         "cf_annual": {"financials": yrs[-1:]}, "pl_quarterly": {"financials": yrs[-1:]}, "profile": {"description": "", "sector": "Media"}}
+    run(upstox.supplement(b, cl, {"name": "Spicy Entertainment & Media", "bse_code": "540084"}))
+    assert b["profile"]["description"] == prof["company_profile"] and b["profile"]["sector"] == "Media"
+    assert b["_source"] == {"profile": "upstox"}
+    assert not any(k in p for p in calls for k in ("income", "balance", "cash", "ltp", "candle"))    # nothing else was fetched
+    assert b["pl_annual"]["financials"] == yrs
+
 
 def test_no_token_no_calls():
     calls = []
