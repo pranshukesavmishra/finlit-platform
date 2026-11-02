@@ -500,9 +500,24 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
         return bundle
     symbol = str(bundle["symbol"]).upper()
     c = company or {}
+    miss_key = f"upstox:noabout:{symbol}"
+    if about_only and client.redis is not None:     # asked and found nothing in the last 7 days: do not ask again on every load
+        try:
+            if await client.redis.get(miss_key):
+                return bundle
+        except Exception:   # nosec B110 - the memory is an optimisation only
+            pass
+
+    async def remember_miss():
+        if about_only and client.redis is not None:
+            try:
+                await client.redis.set(miss_key, "1", ex=7 * 86400)
+            except Exception:   # nosec B110
+                pass
     try:
         inst = await client.resolve(symbol, [n for n in (c.get("name"), c.get("bse_code") and str(c["bse_code"]), c.get("nse_code")) if n], c.get("isin"))
         if not inst:
+            await remember_miss()
             return bundle
         src: Dict[str, str] = {}
         if about_only:      # the statements and prices are complete: only the company overview is asked for, nothing is re-compared
@@ -510,6 +525,8 @@ async def supplement(bundle: dict, client: Optional[UpstoxClient], company: Opti
             if isinstance(up, dict) and (up.get("company_profile") or up.get("sector")):
                 bundle["profile"] = {**prof0, "description": prof0.get("description") or up.get("company_profile"), "sector": prof0.get("sector") or up.get("sector")}
                 bundle["_source"] = {"profile": "upstox"}
+            else:
+                await remember_miss()
             return bundle
         stmt = bundle.get("statement") or "consolidated"
 

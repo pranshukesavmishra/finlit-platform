@@ -92,6 +92,30 @@ def test_complete_statements_but_no_description_asks_only_for_the_company_overvi
     assert b["pl_annual"]["financials"] == yrs
 
 
+def test_a_company_with_no_profile_at_upstox_is_not_asked_again_for_a_week():
+    calls = []
+    base = handler_factory(calls)
+    def h(req):
+        if req.url.path.endswith("/profile"):
+            calls.append(req.url.path)
+            return httpx.Response(200, json={"status": "success", "data": {}})
+        return base(req)
+    class R:
+        def __init__(self): self.d = {}
+        async def get(self, k): return self.d.get(k)
+        async def set(self, k, v, ex=None): self.d[k] = v
+    r = R()
+    cl = upstox.UpstoxClient(S(), transport=httpx.MockTransport(h), redis=r)
+    yrs = [{"period_end": f"{y}-03-31"} for y in range(2021, 2026)]
+    def bundle():
+        return {"symbol": "540084", "quote": {"540084": {"current_price": 10}}, "pl_annual": {"financials": yrs}, "bs_annual": {"financials": yrs},
+                "cf_annual": {"financials": yrs[-1:]}, "pl_quarterly": {"financials": yrs[-1:]}, "profile": {"description": "", "sector": "Media"}}
+    run(upstox.supplement(bundle(), cl, {"name": "Spicy Entertainment & Media", "bse_code": "540084"}))
+    first = len([c for c in calls if c.endswith("/profile")])
+    run(upstox.supplement(bundle(), cl, {"name": "Spicy Entertainment & Media", "bse_code": "540084"}))
+    assert first == 1 and len([c for c in calls if c.endswith("/profile")]) == 1 and "upstox:noabout:540084" in r.d
+
+
 def test_no_token_no_calls():
     calls = []
     cl = upstox.UpstoxClient(S(""), transport=httpx.MockTransport(handler_factory(calls)))
