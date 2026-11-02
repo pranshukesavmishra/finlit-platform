@@ -45,6 +45,7 @@ from . import graphviews as graphviews_api
 from . import forum as forum_api
 from . import dcf as dcf_api
 from . import logos as logos_api
+from . import amfi_import as amfi_import_api
 from . import search as search_api
 from . import macro as macro_api
 from . import clienterrors as clienterrors_api
@@ -664,6 +665,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(mf_api.router)
     app.include_router(search_api.router)
     app.include_router(logos_api.router)
+    app.include_router(amfi_import_api.router)
     app.include_router(macro_api.router)
     app.include_router(__import__("finlit.macro_sectors", fromlist=["router"]).router)   # /api/macro/sectors: the macro backdrop per sector (Gold, switched on in the Console)
     app.include_router(markets_api.router)

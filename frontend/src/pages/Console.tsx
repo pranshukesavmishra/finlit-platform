@@ -12,6 +12,7 @@ import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { ScoreAdminPanel } from "../mf/ScoreAdminPanel";
 import { LogoCoverage } from "../components/admin/LogoCoverage";
+import { AmfiImport } from "../components/admin/AmfiImport";
 import { fundJobLine, fundPollMs } from "../lib/fundJobs";
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" }) : "—");
@@ -77,7 +78,7 @@ export function Console() {
       {tab === "requests" && <Requests />}
       {tab === "users" && <Users />}
       {tab === "content" && <ContentAdmin />}
-      {tab === "data" && <><Health /><ScoreAdminPanel /><FundLoads /><LogoCoverage /><Features /><NotifyList /></>}
+      {tab === "data" && <><Health /><ScoreAdminPanel /><FundLoads /><AmfiImport /><LogoCoverage /><Features /><NotifyList /></>}
       {tab === "audit" && <Audit />}
     </div>
   );
