@@ -160,7 +160,7 @@ def _apply(report: Dict[str, Any], card: Optional[Dict[str, Any]], view: Dict[st
     return report, card
 
 
-async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date] = None) -> Tuple[str, str]:
+async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date] = None, force: bool = False) -> Tuple[str, str]:
     """Recalculate and store one company's technical view. (outcome, reason). Never raises."""
     store = app.state.store
     try:
@@ -178,7 +178,7 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
             return Outcome.FAILED, "no_candles"
         stored_bar = min((bar_date(_json(r["report"]), r["card"] and _json(r["card"])) or "0000-00-00") for r in rows)
         gap = any(not isinstance(((_json(r["report"]).get("technicalAssessment") or {}).get("longTerm") or {}).get("score"), (int, float)) for r in rows)   # no long-term score stored: recalculate even on the same bar
-        if target is not None and not gap and candles["stock"]["candles"][-1][0] <= stored_bar and stored_bar != "0000-00-00":
+        if target is not None and not gap and not force and candles["stock"]["candles"][-1][0] <= stored_bar and stored_bar != "0000-00-00":
             await store.redis.set(NONEW_PREFIX + symbol, stored_bar, ex=NONEW_SECONDS)       # Dhan has nothing newer for it: not asked again until tomorrow
             return Outcome.SKIPPED, "no_new_bar"
         r = await _post(app, {"suppliedCandles": candles, "sharesCr": shares, "priority": "background"})
@@ -272,7 +272,7 @@ async def refresh(store, settings, *, limit: int = 2500, max_minutes: float = 45
             if await prism._members_busy(redis):         # a member is calculating a report: the machine is theirs for now
                 out["paused_for_members"] += 1
                 await asyncio.sleep(prism.RETRY_AFTER_BACKGROUND)
-            outcome, reason = await refresh_symbol(app, symbol, now, target)
+            outcome, reason = await refresh_symbol(app, symbol, now, target, force)
             out[outcome] += 1
             if outcome != Outcome.UPDATED:
                 out["reasons"][reason] = out["reasons"].get(reason, 0) + 1

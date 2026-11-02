@@ -211,6 +211,17 @@ async def test_a_company_with_no_long_term_score_is_recalculated_even_on_its_new
     assert "TQFULL" not in asked and out["queued"] == 1             # a complete company at the newest bar is not even picked: nothing is fetched for it
 
 
+async def test_force_recalculates_a_company_already_on_the_newest_bar(world):
+    store, settings, site, http, seen = world
+    await seed(store, "TQFRC", bar=FRIDAY.isoformat())
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', '61') WHERE symbol = 'TQFRC'")
+    plain = await pt.refresh(store, settings, client=http, now=NOW)
+    assert plain["queued"] == 0 and site.technical == []                    # complete and current: left alone
+    forced = await pt.refresh(store, settings, client=http, now=NOW, force=True, symbols=["TQFRC"])
+    assert forced["updated"] == 1 and len(site.technical) == 1              # --force really recalculates it, as its help says
+
+
 async def test_a_company_still_without_a_long_term_score_is_asked_once_a_day_not_every_run(world):
     store, settings, site, http, seen = world
     await seed(store, "TQNOLT", bar=FRIDAY.isoformat())
