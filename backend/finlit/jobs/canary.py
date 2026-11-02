@@ -17,10 +17,10 @@ a few times a day and moves in steps of 5 paise):
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .schedule import expected_session, fmt_ist, ist, market_open
+from .schedule import IST, expected_session, fmt_ist, ist, market_open
 
 log = logging.getLogger("finlit.jobs.canary")
 CORE = ("RELIANCE", "TCS", "HDFCBANK", "INFY")
@@ -28,6 +28,7 @@ LIQUID_MIN_CAP_CR = 50000.0   # the rotating reference company must be at least 
 TICK = 0.05                   # NSE equity tick (Rs); the largest step of any listed stock, so the floor is never too tight
 TICKS_FLOOR = 2               # a price may differ by this many ticks before it counts, whatever the percentage says
 SAME_MOMENT_MIN = 30          # minutes: two closed-market prices taken further apart than this are not the same moment
+SESSION_END = dtime(15, 30)       # NSE equity session close (IST)
 CONFIRM_WITHIN_H = 48         # a mismatch seen on the previous run counts as "the second time" only when that run was this recent
 TOL_CLOSED = {"price": 0.005, "close": 0.005, "marketCap": 0.05, "revenue": 0.005, "netProfit": 0.005}
 TOL_OPEN = {"price": 0.03, "close": 0.005, "marketCap": 0.08, "revenue": 0.005, "netProfit": 0.005}
@@ -84,6 +85,28 @@ def compare(symbol: str, field: str, ours: Optional[float], theirs: Optional[flo
     return m
 
 
+def close_not_comparable(stored: Dict[str, Any], provider_at: Any) -> Optional[str]:
+    """None when our stored last close and the provider's price are for the SAME finished trading session; else the sentence saying why they are not.
+    Ours is the daily bar of `closeDay` (price_daily); the provider's is its quote, whose time says which session it belongs to. A close is compared only
+    when (1) both are of the same session date, (2) the provider's quote was taken after the close, and (3) our bar was stored after the close (a bar
+    written in the middle of the session is a price, not the close). HDFCBANK 690.0 vs 699.5 was a comparison of two different moments."""
+    close_day, b = stored.get("closeDay"), _dt(provider_at)
+    if stored.get("close") is None:
+        return None
+    if close_day is None or b is None:
+        return f"ours is from {close_day.strftime('%d %b') if close_day else 'an unknown date'}, the provider's from {fmt_ist(b)[:6] if b else 'an unknown date'}"
+    prov_day = ist(b).date()
+    if close_day != prov_day:
+        return f"ours is from {close_day.strftime('%d %b')}, the provider's from {prov_day.strftime('%d %b')}"
+    closed = datetime.combine(close_day, SESSION_END, IST)
+    if b < closed:
+        return f"the provider's quote ({fmt_ist(b)}) was taken before the {close_day.strftime('%d %b')} close ({SESSION_END.strftime('%H:%M')} IST), so it is not the close"
+    stored_at = _dt(stored.get("closeAt"))
+    if stored_at is not None and stored_at < closed:
+        return f"ours was stored {fmt_ist(stored_at)}, before the {close_day.strftime('%d %b')} close, so it is not the close"
+    return None
+
+
 def compare_company(symbol: str, stored: Dict[str, Any], fresh: Dict[str, Any], tol: Dict[str, float], skipped: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     ours_at, prov_at = stored.get("priceAt"), fresh.get("asOf")
     a, b = _dt(ours_at), _dt(prov_at)
@@ -96,7 +119,11 @@ def compare_company(symbol: str, stored: Dict[str, Any], fresh: Dict[str, Any], 
     else:
         out.append(compare(symbol, "price", stored.get("price"), fresh.get("price"), tol["price"], ours_at, prov_at))
         out.append(compare(symbol, "marketCap", stored.get("marketCap"), fresh.get("marketCapCr"), tol["marketCap"], ours_at, prov_at))
-    out.append(compare(symbol, "lastClose", stored.get("close") if stored.get("closeIsLatest") else None, fresh.get("price"), tol["close"], stored.get("closeAt"), prov_at))   # only when our newest bar IS the latest session's
+    why_not = close_not_comparable(stored, prov_at)
+    if why_not is None:
+        out.append(compare(symbol, "lastClose", stored.get("close"), fresh.get("price"), tol["close"], stored.get("closeAt"), prov_at))
+    elif skipped is not None and stored.get("close") is not None:
+        skipped.append(f"{symbol} last close not comparable: {why_not}")   # reported, never 'watching' and never an alert: two different sessions can differ by any amount
     q, fq = stored.get("quarter") or {}, fresh.get("quarter") or {}
     out += [compare(symbol, "quarterRevenue", q.get("revenue"), fq.get("revenue"), tol["revenue"], stored.get("quarterAt"), datetime.now(timezone.utc)),
             compare(symbol, "quarterNetProfit", q.get("netProfit"), fq.get("netProfit"), tol["netProfit"], stored.get("quarterAt"), datetime.now(timezone.utc))]
@@ -151,10 +178,13 @@ async def pick_symbols(conn: Any, today: date) -> List[str]:
 async def stored_view(conn: Any, symbol: str, now: datetime) -> Dict[str, Any]:
     q = await conn.fetchrow("SELECT price, market_cap, traded_at FROM listing_quotes WHERE symbol = $1", symbol)
     c = await conn.fetchrow("SELECT close, day FROM price_daily WHERE symbol = $1 ORDER BY day DESC LIMIT 1", symbol)
+    stored_at = await conn.fetchval("SELECT max(generated_at) FROM snapshots WHERE symbol = $1", symbol)   # price_daily is written with the snapshot, so this bounds when the bar was stored
     ql = await conn.fetchrow("SELECT revenue, net_profit, period_end, checked_at FROM quarter_light WHERE symbol = $1 AND filled ORDER BY period_end DESC NULLS LAST LIMIT 1", symbol)
     return {"price": float(q["price"]) if q and q["price"] is not None else None, "marketCap": float(q["market_cap"]) if q and q["market_cap"] is not None else None,
             "priceAt": q["traded_at"] if q else None,
             "close": float(c["close"]) if c is not None else None, "marketOpen": market_open(now),
+            "closeDay": c["day"] if c is not None else None,      # the session our last daily bar is of
+            "closeAt": stored_at,                                  # when that bar was stored (the report's snapshot time); None when unknown
             "closeIsLatest": bool(c is not None and c["day"] == expected_session(now) and not market_open(now)),
             "quarter": {"revenue": ql["revenue"], "netProfit": ql["net_profit"], "periodEnd": ql["period_end"]} if ql else None,
             "quarterAt": ql["checked_at"] if ql else None}

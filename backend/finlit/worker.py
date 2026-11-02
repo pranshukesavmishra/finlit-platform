@@ -597,43 +597,117 @@ async def results_candidates(store: Store, today: Optional[date] = None, max_age
     return [(sym, recent[sym]) if with_dates else sym for _, sym in sorted(out)]
 
 
-async def refresh_results(client: FinEdgeClient, store: Store, limit: int = 120, retry_minutes: int = 50) -> dict:
-    """Run every hour: a company that has just reported is rebuilt from the provider, so its new quarter shows on the site within hours
-    (the provider usually has it within a few hours of the filing). A company the provider has not updated yet is tried again an hour
-    later, and for up to four days after its declaration."""
-    from . import results
-    todo = []
+RESULTS_BATCH = 3            # companies rebuilt at a time (the time budget, the stop request and the progress note are looked at between batches)
+RESULTS_PER_RUN = 120
+RESULTS_BUDGET_FALLBACK_MIN = 16.0   # 80% of the registry's 20-minute max_runtime (results_run.budget_minutes reads the real figure)
+
+
+async def _fair_order(store: Store, cands: List[Tuple[str, date]]) -> List[str]:
+    """Symbols in the order they are asked: never asked first, then the longest unasked (3-hour bands), and only inside a band the bigger company first
+    (`cands` arrives biggest first). Biggest-first alone starved every smaller company behind the same big ones when a run could not finish."""
+    from . import results_run
+    asked: Dict[str, Optional[float]] = {}
+    try:
+        raw = await store.redis.hmget(ASKED_KEY, [s for s, _ in cands]) if cands else []
+        asked = {s: (float(v) if v else None) for (s, _), v in zip(cands, raw)}
+    except Exception:   # nosec B110 - Redis down: the size order is the fallback
+        pass
+    now = time.time()
+    keyed = [(results_run.fair_band(None if asked.get(s) is None else (now - asked[s]) / 3600), i, s) for i, (s, _) in enumerate(cands)]
+    return [s for _, _, s in sorted(keyed)]
+
+
+ASKED_KEY = "results:asked"      # symbol -> when the full rebuild last asked the provider about it (epoch seconds); only for the fair order
+
+
+async def refresh_results(client: FinEdgeClient, store: Store, limit: int = RESULTS_PER_RUN, retry_minutes: int = 50, max_minutes: Optional[float] = None,
+                          clock=time.monotonic) -> dict:
+    """Run every 25 minutes: a company that has just reported is rebuilt from the provider, so its new quarter shows on the site within hours
+    (the provider usually has it within a few hours of the filing). A company the provider has not updated yet is tried again later (see
+    results.retry_minutes), and for up to four days after its declaration.
+
+    Bounded, so the job is never killed by its limit: it stops by itself at `max_minutes` (default 80% of the job's max_runtime) or when asked to end
+    (SIGTERM), between batches of RESULTS_BATCH; one batch never holds it longer than COMPANY_TIMEOUT_S; the pace of the client is capped
+    (PACE_MAX_BOUNDED). The "asked recently" lock is taken per batch as it starts, so the companies a run did not reach are NOT locked out: they are the
+    first in line next run (never asked first, then the longest unasked). It reports `left` and `stoppedBy` so the status page shows the progress."""
+    from . import results, results_run
+    from .finedge import PACE_MAX_BOUNDED
+    started = clock()
+    budget_s = (max_minutes if max_minutes is not None else results_run.budget_minutes("results", RESULTS_BUDGET_FALLBACK_MIN)) * 60
+    deadline = started + budget_s
+    if client is not None and hasattr(client, "pace_max"):
+        client.pace_max = min(client.pace_max, PACE_MAX_BOUNDED)
     today = results.today_ist()
-    for sym, declared in await results_candidates(store, with_dates=True):
-        wait = results.retry_minutes(retry_minutes, declared, today)   # asked every run for two days, then less often: a late provider is not hammered
+    cands = await results_candidates(store, with_dates=True)
+    waits = {sym: results.retry_minutes(retry_minutes, declared, today) for sym, declared in cands}   # asked every run for two days, then less often: a late provider is not hammered
+    todo: List[str] = []
+    for sym in await _fair_order(store, cands):
         try:
-            if await store.redis.set(f"results:try:{sym}", 1, ex=wait * 60, nx=True):
-                todo.append(sym)
-        except Exception:
-            todo.append(sym)
-        if len(todo) >= limit:
-            break
-    done: Dict[str, Any] = {"candidates": len(todo), "ok": 0, "failed": 0}
+            if await store.redis.exists(f"results:try:{sym}"):
+                continue
+        except Exception:   # nosec B110 - Redis down: the company is asked
+            pass
+        todo.append(sym)
+    due = len(todo)
+    todo = todo[:limit]
+    done: Dict[str, Any] = {"candidates": due, "planned": len(todo), "tried": 0, "ok": 0, "failed": 0, "timedOut": 0}
     reasons: Dict[str, int] = {}
     failed_syms: Dict[str, str] = {}
-    for i in range(0, len(todo), 30):
-        for r in await ingest_many(client, store, [(s, "consolidated") for s in todo[i:i + 30]], parallel=3, yield_to_readers=True):
+    prog = results_run.Progress(store.redis, "refresh-results", budget_s, len(todo))
+    stop = ""
+
+    def failed(sym: str, reason: str, status: str):
+        done["failed"] += 1
+        failed_syms[sym] = reason
+        kind = reason.split(" [")[0]
+        reasons[kind[:100]] = reasons.get(kind[:100], 0) + 1
+        return note_result_failure(store, sym, status, reason)
+
+    for i in range(0, len(todo), RESULTS_BATCH):
+        if results_run.Stop.requested:
+            stop, done["stoppedBy"] = f"told to stop ({results_run.Stop.signal_name or 'signal'}) after {done['tried']} companies; the next run continues", "signal"
+            break
+        if clock() >= deadline:
+            stop, done["stoppedBy"] = f"the time budget of {budget_s / 60:.0f} minutes was reached after {done['tried']} companies; the next run continues", "budget"
+            break
+        batch = todo[i:i + RESULTS_BATCH]
+        for sym in batch:   # locked from here: this batch is being asked; the ones after it are not
+            try:
+                await store.redis.set(f"results:try:{sym}", 1, ex=waits.get(sym, retry_minutes) * 60)
+                await store.redis.hset(ASKED_KEY, sym, str(time.time()))
+            except Exception:   # nosec B110
+                pass
+        await prog.step(batch[0], f"rebuilding {', '.join(batch)} from the provider", done=done["tried"])
+        done["tried"] += len(batch)
+        try:
+            rows = await asyncio.wait_for(ingest_many(client, store, [(s, "consolidated") for s in batch], parallel=RESULTS_BATCH, yield_to_readers=True), results_run.COMPANY_TIMEOUT_S)
+        except asyncio.TimeoutError:
+            done["timedOut"] += len(batch)
+            for sym in batch:
+                await failed(sym, f"provider did not answer within {results_run.COMPANY_TIMEOUT_S:g} s (skipped, asked again next run)", "failed")
+            continue
+        for r in rows:
             if r["status"] in ("ok", "warnings"):
                 done["ok"] += 1
                 await clear_result_failure(store, r["symbol"])
                 continue
-            done["failed"] += 1
-            reason = result_failure_reason(r)   # why a rebuild did not store: rejected by the quality gate (which check), or the provider did not answer (which part)
-            failed_syms[r["symbol"]] = reason
-            kind = reason.split(" [")[0]
-            reasons[kind[:100]] = reasons.get(kind[:100], 0) + 1
-            await note_result_failure(store, r["symbol"], r["status"], reason)
+            # why a rebuild did not store: rejected by the quality gate (which check), or the provider did not answer (which part)
+            await failed(r["symbol"], result_failure_reason(r), r["status"])
+    try:
+        await store.redis.expire(ASKED_KEY, 15 * 86400)
+    except Exception:   # nosec B110
+        pass
     if reasons:
         done["why"] = dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:4])
     if failed_syms:
         done["failedSymbols"] = dict(list(failed_syms.items())[:20])   # per symbol, shown at /api/results/status; each is asked again on the next run
+    done["left"] = max(0, due - done["tried"])
+    if stop:
+        done["stoppedEarly"], done["stopReason"] = True, stop
+    done["durationSeconds"] = int(clock() - started)
     if todo:
         await store.invalidate_search()
+    await prog.finish("partial" if stop else "done", done=done["tried"], stopReason=stop or None)
     log.info("refresh-results: %s", {k: v for k, v in done.items() if k != "failedSymbols"})
     return done
 
@@ -794,7 +868,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_cp.add_argument("--pause", type=float, default=0.4, help="seconds between provider calls")
     sub.add_parser("refresh-results", help="rebuild companies that have just declared quarterly results (hourly)")
     p_rl = sub.add_parser("refresh-results-light", help="hourly: figures for companies that declared in the last 4 days and are not held in full (one provider call each: the quarterly P&L), biggest first, capped per run")
-    p_rl.add_argument("--limit", type=int, default=150, help="companies per run")
+    p_rl.add_argument("--limit", type=int, default=300, help="companies per run (results_light.PER_RUN); the run also stops by itself at 80% of its max_runtime")
     p_sa = sub.add_parser("score-all", help="score every listed company that has no score (or an old one), keeping only the small score row; capped and resumable")
     p_sa.add_argument("--limit", type=int, default=None, help="companies per run (default: SCORE_ALL_PER_RUN, else 1500)")
     p_sa.add_argument("--days", type=int, default=7, help="a score older than this many days is refreshed")
@@ -1332,26 +1406,30 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 res = await provider_compare.run(store, client, args.symbols, args.sample, args.seed, discover_fields=args.discover or bool(args.symbols and len(args.symbols) <= 3), pause=args.pause)
                 print(provider_compare.render(res))
                 return 1 if res["mismatches"] else 0
-            elif args.cmd == "refresh-results":
-                try:
-                    res = await refresh_results(client, store)
+            elif args.cmd in ("refresh-results", "refresh-results-light"):
+                from . import results_run
+                results_run.Stop.install(asyncio.get_running_loop())   # the supervisor's SIGTERM at the time limit: finish the company in hand, record `partial`, exit 0
+                t0 = time.monotonic()
+                light = args.cmd == "refresh-results-light"
+                try:   # the light job is one provider call per company: the admin "heavy loads" switch does not pause it
+                    if light:
+                        from . import results_light
+                        res = await results_light.refresh_light(client, store, limit=args.limit)
+                    else:
+                        res = await refresh_results(client, store)
                 except Exception as exc:
                     await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
                     raise
                 print(res)
-                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] else "ok",
-                                          {k: v for k, v in res.items() if isinstance(v, int)}, {k: res[k] for k in ("why", "failedSymbols") if res.get(k)})
-            elif args.cmd == "refresh-results-light":
-                from . import results_light
-                try:   # a light job (one provider call per company): the admin "heavy loads" switch does not pause it
-                    res = await results_light.refresh_light(client, store, limit=args.limit)
-                except Exception as exc:
-                    await _record_results_run(store, args.cmd, "failed", {}, {}, error=fail_reason(exc))
-                    raise
-                print(res)
-                await _record_results_run(store, args.cmd, "failed" if res["failed"] and not res["filled"] and not res["providerPending"] and not res.get("throttled")
-                                          else "partial" if res["failed"] or res.get("throttled") else "ok",
-                                          {k: v for k, v in res.items() if isinstance(v, int)}, {k: res[k] for k in ("errors", "stopReason", "deferred", "pauseSeconds") if res.get(k)})
+                budget_s = results_run.budget_minutes("results-light" if light else "results", 24.0 if light else 16.0) * 60
+                if light:
+                    bad = res["failed"] and not res["filled"] and not res["providerPending"] and not res.get("throttled")
+                    status = "failed" if bad else "partial" if res["failed"] or res.get("throttled") or res.get("stoppedEarly") else "ok"
+                else:
+                    status = "failed" if res["failed"] and not res["ok"] else "partial" if res["failed"] or res.get("stoppedEarly") else "ok"
+                await _record_results_run(store, args.cmd, status, {k: v for k, v in res.items() if isinstance(v, int) and not isinstance(v, bool)},
+                                          {**{k: res[k] for k in ("why", "failedSymbols", "errors", "stopReason", "deferred", "pauseSeconds") if res.get(k)},
+                                           "run": results_run.run_stats(res, t0, budget_s)})
             elif args.cmd == "drain-queue":
                 print(await drain_queue(client, store, loop=args.loop), "ingested")
     finally:

@@ -1029,6 +1029,17 @@ async def quarter_export(request: Request, quarter: str = Query("", max_length=7
 
 
 # ------------------------------------------------------------------ pipeline status (read-only, no secrets)
+# What one day of the results season takes, so the founder can compare it with "perRun" above. Per-company cost: results-light 1 provider call (2 when the
+# consolidated statements lack the quarter); results (full rebuild) ~21 calls. FinEdge's exact limit is not published; what is known is that the light job at its
+# 0.4 s pause (~2 calls/s at most) ran without 503s, while the full rebuild (3 companies x ~20 calls at once) drew them. So the pace adapts (0.4 s up to a 3 s cap
+# after a 503) and a throttled company is skipped, not waited on. Per run, and per 08:00-23:00 day (~16 light runs, ~36 full runs).
+THROUGHPUT = {
+    "resultsLight": {"companiesPerRun": 300, "timeBudgetMinutes": 24, "typicalPerMinute": "40-60", "worstCasePerRun": "~360 at the 3 s pace cap", "runsPerDay": 16,
+                     "companiesPerDay": 4800, "pastWindowPerRun": 60, "askedAgainAfter": "every run for 2 days, then 3 h, then 5 h, then once a day up to 14 days"},
+    "results": {"companiesPerRun": 120, "timeBudgetMinutes": 16, "batchSize": 3, "providerCallsPerCompany": 21, "paceCapSeconds": 2, "runsPerDay": 36,
+                "companyTimeoutSeconds": 150},
+    "declarationsPerBusyDay": 1300,
+}
 RUN_KEYS = {"calendars": "refresh-calendars", "results": "refresh-results", "resultsLight": "refresh-results-light"}
 NOTE_JOBS = ("calendars", "calendars-day", "calendars-hourly", "calendars-late", "results", "results-light")   # the names scheduler.sh gives these jobs
 
@@ -1080,7 +1091,21 @@ async def pipeline_status(store, today: Optional[date] = None) -> Dict[str, Any]
         paused = not await loads_enabled(store.pool)
     except Exception:   # nosec B110
         pass
-    return {**sched, "loadsPaused": paused, "todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
+    progress: Dict[str, Any] = {}
+    per_run: Dict[str, Any] = {}
+    try:
+        from . import results_run
+        for name, cmd in RUN_KEYS.items():
+            if name == "calendars":
+                continue
+            note = await results_run.read_progress(store.redis, cmd)
+            if note:
+                progress[name] = {**note, **{k: datetime.fromtimestamp(note[k], timezone.utc).isoformat(timespec="seconds") for k in ("startedAt", "updatedAt", "finishedAt") if note.get(k)}}
+            if (last.get(name) or {}).get("run"):
+                per_run[name] = {"status": last[name].get("status"), "at": last[name].get("at"), **last[name]["run"]}
+    except Exception:   # nosec B110 - the progress is extra information
+        pass
+    return {**sched, "loadsPaused": paused, "progress": progress, "perRun": per_run, "throughput": THROUGHPUT, "todayIST": today.isoformat(), "ipoFields": ipo_fields, "newestResultInDb": newest.isoformat() if newest else None, "newestFilingInDb": filing.isoformat() if filing else None,
             "upcomingCount": int(upcoming or 0), "companiesWithResultsDateTodayOrYesterday": int(declared_recent or 0),
             "lastRun": last, "lastSkipped": skipped, "failedSymbols": failed_syms[:50], "failedSymbolCount": len(failed_syms)}
 

@@ -16,7 +16,7 @@ export type JobsStatus = {
   degraded?: { name: string; reason: string | null }[];
   jobs: JobRow[];
   data: { checkedAt: string | null; dataFresh: boolean | null; datasets: Dataset[]; system?: { diskPercent?: number | null; diskOk?: boolean } };
-  canary: { checkedAt: string | null; ok: boolean | null; mismatches: { symbol: string; field: string; ours: number; provider: number; diffPercent: number; message?: string; probablyRight?: string }[]; watching?: { symbol: string; field: string; diffPercent: number }[] };
+  canary: { checkedAt: string | null; ok: boolean | null; mismatches: { symbol: string; field: string; ours: number; provider: number; diffPercent: number; message?: string; probablyRight?: string }[]; watching?: { symbol: string; field: string; diffPercent: number }[]; skipped?: string[] };
   credentials?: { provider: string; detail: string }[];
 };
 export const useJobsStatus = (enabled = true) => useQuery({ queryKey: ["jobs-status"], enabled, staleTime: 60_000, refetchInterval: 300_000, retry: 0, queryFn: () => apiGet<JobsStatus>("/api/jobs/status") });
