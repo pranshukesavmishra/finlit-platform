@@ -203,7 +203,7 @@ function Owners({ d, limit }: { d: Fund; limit: number }) {
 }
 
 export function FundamentalsPage() {
-  useDocTitle("Stock fundamental data dashboard", "Income statement, balance sheet, cash flow, ratios, named shareholders, peers and corporate actions for any listed company.");
+  useDocTitle("Company financials dashboard", "Income statement, balance sheet, cash flow, ratios, named shareholders, peers and corporate actions for any listed company.");
   const gold = useGold();
   const [params, setParams] = useSearchParams();
   const company = params.get("c") || "", statement = params.get("s") === "standalone" ? "standalone" : "consolidated", period = params.get("p") === "quarterly" ? "quarterly" : "yearly";
@@ -222,7 +222,7 @@ export function FundamentalsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = usePremium<Fund>(`/fundamentals${qs({ query: company, statement_type: statement, period })}`, gold && company.length >= 2);
   useEffect(() => { const s = data?.instrument?.symbol; if (s) { pushRecent(s); setRecent(readRecent()); } }, [data?.instrument?.symbol]);
   const stored = useSection<Financials>((data?.instrument?.symbol || "").toUpperCase(), "financials", !!data?.instrument?.symbol).data;
-  if (!gold) return <><PremiumHead title="Stock fundamentals" art="report" /><GoldLock title="Stock Fundamental Data Dashboard" /></>;
+  if (!gold) return <><PremiumHead title="Company financials" art="report" /><GoldLock title="Company Financials Dashboard" /></>;
   const limit = period === "quarterly" ? 10 : 8;
   const status = (error as { status?: number } | null)?.status;
   const sym = data?.instrument?.symbol || company;
@@ -230,7 +230,7 @@ export function FundamentalsPage() {
   const gateIncome = data?.incomeStatement?.income_statement || [], gateBalance = data?.balanceSheet?.balance_sheet || [], gateCash = data?.cashFlow?.cash_flow || [];
   return (
     <>
-      <PremiumHead title="Stock fundamentals" art="report" links={["/research", "/compare", "/premium"]}>Search any listed company for its <b>full statements, ratios and named shareholders</b>. Press <kbd>/</kbd> to search.</PremiumHead>
+      <PremiumHead title="Company financials" art="report" links={["/research", "/compare", "/premium"]}>Search any listed company for its <b>full statements, ratios and named shareholders</b>. Press <kbd>/</kbd> to search.</PremiumHead>
       <div className="wrap" style={{ paddingBottom: 56 }}>
         <div className="pm-bar" style={{ alignItems: "center" }}>
           <div className="pm-search" style={{ flex: 1, minWidth: 260 }}><Icon name="search" />

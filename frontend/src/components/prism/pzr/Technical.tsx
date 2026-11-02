@@ -8,14 +8,14 @@ import { Icon } from "../../../lib/icons";
 import { dateIN } from "../../../lib/format";
 import type { PrismReport } from "../../../lib/prism";
 import {
-  BANDS, FACTOR_GROUP_WORD, bandLegend, bandWidths, STAGE_WORD, TECH_NOTE, disabledFactors, factorGroup, filterTechFactors, fmtScore, isFresh, parseTechnical, ratingWord, safeText,
+  BANDS, FACTOR_GROUP_WORD, bandLegend, bandTip, bandWidths, STAGE_WORD, TECH_NOTE, disabledFactors, factorGroup, filterTechFactors, fmtScore, isFresh, parseTechnical, ratingWord, safeText,
   scalePos, scoreBand, signalWord, verdictView,
   type FactorGroup, type TechAssessment, type TechFactor, type TechHorizon, type TrendTone,
 } from "../../../lib/prismTechnical";
 import { Breakdown, TrendAlignmentBlock } from "./TechBreakdown";
 
 export const TECH_ID = "pzr-technical";
-const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "◆", neg: "▼", strongneg: "▼▼", na: "–" };
+const SHAPE: Record<TrendTone, string> = { strongpos: "▲▲", pos: "▲", neutral: "—", neg: "▼", strongneg: "▼▼", na: "–" };
 const FILTERS: (FactorGroup | "all")[] = ["all", "supporting", "adverse", "neutral", "unavailable"];
 const STATE_WORD = { ready: "Complete", incomplete: "Incomplete: score withheld" } as const;
 const minus = (s: string) => s.replace("-", "−");
@@ -49,7 +49,7 @@ function HorizonCard({ name, h, id }: { name: string; h: TechHorizon; id: string
     <article className={"pzt-card " + w.tone} aria-labelledby={id}>
       <header className="pzt-ch">
         <div><h4 id={id}>{name}</h4>{h.horizon && <p>Trend over about {h.horizon.replace("–", " to ")}</p>}</div>
-        <span className={"pzt-word " + w.tone}><i aria-hidden="true">{SHAPE[w.tone]}</i>{w.word}</span>
+        <span className={"pzt-word " + w.tone} title={bandTip(w.tone)}><i aria-hidden="true">{SHAPE[w.tone]}</i>{w.word}</span>
       </header>
       <p className="pzt-score">
         {have ? <>{fmtScore(h.score)}<small> on −100 to +100{h.provisional ? " · provisional" : ""}</small></> : <>Not available<small> score withheld</small></>}

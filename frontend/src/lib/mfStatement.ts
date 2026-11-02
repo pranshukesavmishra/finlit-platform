@@ -83,7 +83,7 @@ export function rowsFromGrid(grid: Grid, located: Located): { rows: RawRow[]; sk
   return { rows, skippedBlank, skippedTotal };
 }
 
-export type Statement = { rows: RawRow[]; headers: Partial<Record<Field, string>>; skippedBlank: number; skippedTotal: number; sheets: number };
+export type Statement = { rows: RawRow[]; headers: Partial<Record<Field, string>>; skippedBlank: number; skippedTotal: number; sheets: number; notes?: string[] };
 export class StatementError extends Error {}
 
 /** The best sheet of a file: the one with the most holding rows. Throws a StatementError (shown to the member) when no sheet has a usable header or no rows. */

@@ -91,7 +91,7 @@ describe("Basic score screener page", () => {
     expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("14");
     fireEvent.click(screen.getByRole("checkbox", { name: /^Large cap/ }));      // Large caps: the 100 largest, here all 22 are Large
     await waitFor(() => expect(loc()).toContain("cap=Large"));
-    fireEvent.click(within(screen.getByRole("group", { name: "Fundamental score" })).getByRole("button", { name: "78 and above (Strong)" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Business score" })).getByRole("button", { name: "78 and above (Strong)" }));
     await waitFor(() => expect(loc()).toContain("f=high"));
     expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
     expect(count("Banks")).toBe("2"); expect(count("Metals")).toBe("0"); expect(count("IT")).toBe("0"); expect(count("Pharma")).toBe("1");
@@ -115,7 +115,7 @@ describe("Basic score screener page", () => {
 
   it("score bands and min-max are exact, and missing scores never pass", () => {
     open();
-    const fund = screen.getByRole("group", { name: "Fundamental score" }), tech = screen.getByRole("group", { name: "Technical score" });
+    const fund = screen.getByRole("group", { name: "Business score" }), tech = screen.getByRole("group", { name: "Technical score" });
     fireEvent.click(within(fund).getByRole("button", { name: "78 and above (Strong)" }));
     fireEvent.submit(fund.closest("form")!);
     expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);                        // 78 is in, 77 (EEE) is out, GGG has no Fundamental
@@ -135,7 +135,7 @@ describe("Basic score screener page", () => {
   it("a removed chip, and Clear all, update the table and address at once", () => {
     open("?sector=IT&sector=Auto&f=mid");
     expect(symbols()).toEqual(["CCC", "EEE"]);                                // IT or Auto, Fundamental 45 to 77: 50 and 77 (DDD is 44)
-    fireEvent.click(screen.getByRole("button", { name: "Remove filter Fundamental: 45–77" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter Business: 45–77" }));
     expect(symbols()).toEqual(["CCC", "DDD", "EEE", "GGG"]);
     expect(loc()).toBe("/score-screener?sector=IT&sector=Auto");
     fireEvent.click(screen.getByRole("button", { name: "Remove filter IT" }));
@@ -149,18 +149,18 @@ describe("Basic score screener page", () => {
     open("?cap=Large&sector=Metals&sort=name&dir=asc&size=5&page=2");
     expect((sector("Metals") as HTMLInputElement).checked).toBe(true);
     expect(screen.getByRole("button", { name: "Sort by Stock" }).closest("th")!.getAttribute("aria-sort")).toBe("ascending");
-    expect(screen.getByRole("button", { name: "Sort by Fundamental" }).closest("th")!.getAttribute("aria-sort")).toBe("none");
+    expect(screen.getByRole("button", { name: "Sort by Business" }).closest("th")!.getAttribute("aria-sort")).toBe("none");
     expect((screen.getByLabelText("Rows per page") as HTMLSelectElement).value).toBe("5");
     expect(screen.getByRole("button", { name: "Page 2" }).getAttribute("aria-current")).toBe("page");
   });
 
   it("sorting by a heading flips the direction, keeps missing scores last and writes the address", () => {
     open("?size=50");
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Fundamental" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Business" }));
     expect(loc()).toBe("/score-screener?sort=f&dir=desc&size=50");
     expect(symbols().slice(0, 3)).toEqual(["AAA", "BBB", "HHH"]);
     expect(symbols().at(-1)).toBe("GGG");
-    fireEvent.click(screen.getByRole("button", { name: "Sort by Fundamental" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Business" }));
     expect(symbols().at(-1)).toBe("GGG");                                     // still last when ascending
     expect(symbols()[0]).toBe("DDD");
   });
@@ -293,20 +293,20 @@ describe("Basic score screener: no Prism", () => {
   it("has the FinLit columns only, in order", () => {
     open();
     const heads = within(screen.getByRole("table")).getAllByRole("columnheader").map((h) => h.textContent?.replace(/[▲▼▾]/g, "").trim());
-    expect(heads.map((h) => h?.replace(/ \?$/, ""))).toEqual(expect.arrayContaining(["Fundamental", "Quality", "Growth", "Profit.", "Balance", "Technical", "Overall"]));
-    expect(screen.getAllByRole("button", { name: /^(Strong on both|Strong fundamentals, weak trend|Strong trend, weaker fundamentals)/ })).toHaveLength(3);
+    expect(heads.map((h) => h?.replace(/ \?$/, ""))).toEqual(expect.arrayContaining(["Business", "Quality", "Growth", "Profit.", "Balance", "Technical", "Overall"]));
+    expect(screen.getAllByRole("button", { name: /^(Strong on both|Strong business, weak trend|Strong trend, weaker business)/ })).toHaveLength(3);
   });
   it("links to the Advanced score screener (Gold) with a Gold chip", () => {
     open();
     const a = screen.getByRole("link", { name: /Advanced score screener/ });
     expect(a.getAttribute("href")).toBe("/advanced-score-screener");
-    expect(a.textContent).toMatch(/Advanced score screener \(Gold\): FinLit Prism, 4 fundamental parts and 2 technical views/);
+    expect(a.textContent).toMatch(/Advanced score screener \(Gold\): FinLit Prism, 4 financial-health parts and 2 technical views/);
     expect(a.textContent).toMatch(/Gold/);
   });
   it("Silver sees the scores, Basic sees the locked state as before", () => {
     st.plan = "silver"; open();
     expect(screen.queryByText(/Score filters are part of Silver/)).toBeNull();
-    expect(screen.getByRole("group", { name: "Fundamental score" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Business score" })).toBeTruthy();
   });
   it("moves an old link that carries Prism filters to the advanced page with the same parameters", () => {
     open("?zmin=60&pl=strong&rated=1&sector=IT");

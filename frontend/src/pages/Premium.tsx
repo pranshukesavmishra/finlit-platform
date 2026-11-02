@@ -12,7 +12,7 @@ import { PRISM_NOTE, PRISM_PARTS } from "../stock/prismWords";
 import "../styles/prism-compare.css";
 
 const CARDS = [
-  { to: "/premium/fundamentals", icon: "table", title: "Stock Fundamental Data Dashboard", text: "Every statement, ratio and shareholder of a listed company, in one place.",
+  { to: "/premium/fundamentals", icon: "table", title: "Company Financials Dashboard", text: "Every statement, ratio and shareholder of a listed company, in one place.",
     points: ["Income statement, balance sheet and cash flow", "Named shareholders and promoter pledge", "Peers, dividends and corporate actions"] },
   { to: "/premium/markets", icon: "activity", title: "Market Events & Index Dashboard", text: "What is happening in the market this week, and how the indices and commodities are valued.",
     points: ["IPO and results calendars", "Announcements and call transcripts", "Index prices, valuation history and commodities"] },
@@ -45,7 +45,7 @@ export function GoldLock({ title }: { title: string }) {
   return (
     <div className="wrap" style={{ padding: "56px 0" }}>
       <div className="pm-lock"><span className="tier gold"><Icon name="crown" />Gold plan</span><h2>{title}</h2>
-        <p>This dashboard is part of the Gold plan. Gold members get the full research tools, live market events and the complete fundamentals of every company.</p>
+        <p>This dashboard is part of the Gold plan. Gold members get the full research tools, live market events and the complete financials of every company.</p>
         <button className="btn primary" onClick={() => upgrade("gold", `${title} is part of Gold.`)}>Unlock with Gold <Icon name="arrow" /></button>
         <p style={{ marginTop: 14 }}><Link to="/plans">Compare plans</Link></p></div>
     </div>
@@ -58,7 +58,7 @@ export function PremiumHead({ title, children, art = "report", links, stats, lea
 }
 
 export function PremiumHub() {
-  useDocTitle("Gold dashboards", "FinLit Prism financial-health ratings, stock fundamentals, market events and index dashboards, and printable premium reports for FinLit Gold members.");
+  useDocTitle("Gold dashboards", "FinLit Prism financial-health ratings, company financials, market events and index dashboards, and printable premium reports for FinLit Gold members.");
   const gold = useGold(); const qc = useQueryClient();
   return (
     <>

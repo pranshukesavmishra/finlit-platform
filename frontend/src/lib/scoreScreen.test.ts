@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, hasPrismParams, techBandOf, trendWord, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
 import { PRESETS, applyFilters, activePreset, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
-  summarize, toCsv, validate, withPreset, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
+  summarize, toCsv, validate, withPreset, withScores, clearPreset, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
 import type { Row } from "./screener";
 
 const row = (symbol: string, o: Partial<Row> = {}): Row => ({
@@ -110,13 +110,32 @@ describe("presets", () => {
   const items = [it1("A", 90, 90), it1("B", 90, 30), it1("C", 50, 90), it1("D", 70, 90), it1("E", 90, 44), it1("F", 90, null)];
   const run = (id: string) => syms(applyFilters(items, withPreset(emptyFilters(), PRESETS.find((p) => p.id === id)!)));
   it("Strong on both", () => expect(run("both")).toEqual(["A"]));
-  it("Strong fundamentals, weak trend (Technical under 45)", () => expect(run("fund")).toEqual(["B", "E"]));   // E is Technical 44, still under 45; F has no Technical and is left out
-  it("Strong trend, weaker fundamentals (Fundamental under 78)", () => expect(run("trend")).toEqual(["C", "D"]));
+  it("Strong business, weak trend (Technical under 45)", () => expect(run("fund")).toEqual(["B", "E"]));   // E is Technical 44, still under 45; F has no Technical and is left out
+  it("Strong trend, weaker business (Fundamental under 78)", () => expect(run("trend")).toEqual(["C", "D"]));
   it("keeps other filters and clears the Fundamental and Technical boxes; is recognised as active", () => {
     const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.f = { min: 10, max: 20 };
     const n = withPreset(f, PRESETS[0]);
     expect(n.sectors).toEqual(["IT"]); expect(n.ranges.f).toEqual({ min: null, max: null });
     expect(activePreset(n)).toBe("both"); expect(activePreset(emptyFilters())).toBeNull();
+  });
+  it("the pillar views: Quality compounders, Growth leaders, Strong balance sheet, each by its own pillars", () => {
+    const P = (s: string, q: number, g: number, p: number, b: number) => it1(s, null, 50, { pillar_quality: q, pillar_growth: g, pillar_profitability: p, pillar_balance: b });
+    const xs = [P("Q", 85, 50, 80, 50), P("QLOWP", 85, 50, 70, 50), P("G", 50, 90, 50, 50), P("GDEBT", 50, 90, 50, 40), P("BS", 50, 50, 50, 82), P("BSWEAKQ", 40, 50, 50, 82)];
+    const r = (id: string) => syms(applyFilters(xs, withPreset(emptyFilters(), PRESETS.find((p) => p.id === id)!)));
+    expect(r("quality")).toEqual(["Q"]);                 // Quality and Profitability both 78+
+    expect(r("growth")).toEqual(["G"]);                  // Growth 78+ and a Balance sheet of 45 or more
+    expect(r("balance")).toEqual(["BS"]);                // Balance sheet 78+ and Quality 45 or more
+  });
+  it("Top FinLit score sets the overall box to 78 or more, and every view clears what it does not name", () => {
+    const f = emptyFilters(); f.bands.q = ["low"]; f.ranges.o = { min: 10, max: 40 }; f.caps = ["Large"];
+    const top = withPreset(f, PRESETS.find((p) => p.id === "top")!);
+    expect(top.ranges.o).toEqual({ min: 78, max: null }); expect(top.bands.q).toEqual([]); expect(top.caps).toEqual(["Large"]);
+    expect(activePreset(top)).toBe("top");
+    const q = withPreset(top, PRESETS.find((p) => p.id === "quality")!);
+    expect(q.ranges.o).toEqual({ min: null, max: null }); expect(activePreset(q)).toBe("quality");
+    const cleared = clearPreset(q);
+    expect(activePreset(cleared)).toBeNull(); expect(cleared.caps).toEqual(["Large"]);
+    expect(PRESETS.map((p) => p.id)).toEqual(["both", "fund", "trend", "top", "quality", "growth", "balance"]);
   });
   it("uses no advice wording", () => {
     const text = PRESETS.map((p) => p.label + " " + p.say).join(" ").toLowerCase();
@@ -135,7 +154,7 @@ describe("chips", () => {
   it("one chip per active filter, each removable", () => {
     const f = emptyFilters(); f.caps = ["Mid", "Large"]; f.sectors = ["IT", "Auto"]; f.bands.f = ["high", "mid"]; f.ranges.o = { min: 50, max: null };
     const ch = chipsFor(f);
-    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Fundamental: 45–77, 78+", "Overall: 50 or more"]);
+    expect(ch.map((c) => c.label)).toEqual(["Market cap: Large, Mid", "IT", "Auto", "Business: 45–77, 78+", "Overall: 50 or more"]);
     expect(chipsFor(removeChip(f, "sector:IT")).map((c) => c.id)).toEqual(["caps", "sector:Auto", "band:f", "range:o"]);
     expect(chipsFor(removeChip(removeChip(removeChip(f, "caps"), "band:f"), "range:o")).map((c) => c.id)).toEqual(["sector:IT", "sector:Auto"]);
     expect(chipsFor(emptyFilters())).toEqual([]);
@@ -301,12 +320,12 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
     pr("D", null, null, {})];
   const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
   it("has the four views, none of them using the FinLit score", () => {
-    expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong Growth & Profitability at a fair valuation", "Positive on both technical views", "Growth & Profitability strong but valuation weak"]);
+    expect(PRISM_PRESETS.map((p) => p.label)).toEqual(["Prism strong and lower risk", "Strong Growth & Profitability at a fair valuation", "Uptrend on both technical views", "Growth & Profitability strong but valuation weak"]);
     PRISM_PRESETS.forEach((p) => expect(Object.keys(p.ranges).every((k) => ["z", "zf", "zv", "zq", "zr"].includes(k))).toBe(true));
   });
   it("Prism strong and lower risk: Prism 80+ and Risk 65+", () => expect(run("strongsafe")).toEqual(["A"]));
   it("Strong Growth & Profitability at a fair valuation: Growth & Profitability 65+ and Valuation 50+", () => expect(run("fairvalue")).toEqual(["A", "C"]));
-  it("Positive on both technical views: both scores at +20 or more", () => expect(run("bothtech")).toEqual(["A"]));   // B long term +10 is Neutral; C short term +5 is Neutral
+  it("Uptrend on both technical views: both scores at +20 or more", () => expect(run("bothtech")).toEqual(["A"]));   // B long term +10 is Neutral; C short term +5 is Neutral
   it("Growth & Profitability strong but valuation weak: Growth & Profitability 65+ and Valuation 50 or less", () => expect(run("weakvalue")).toEqual(["B"]));
   it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
     const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"]; f.tech.st = ["neg"]; f.ranges.o = { min: 50, max: null };
@@ -326,7 +345,7 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
 });
 
 describe("technical view bands", () => {
-  it("use the Prism card's edges: +20 and above Positive (strongly positive included), above -20 Neutral, -20 and below Negative", () => {
+  it("use the Prism card's edges: +20 and above Positive (strong uptrend included), above -20 Neutral, -20 and below Negative", () => {
     expect([100, 50, 20, 19.9, 0, -19.9, -20, -50, -100].map(techBandOf)).toEqual(["pos", "pos", "pos", "neutral", "neutral", "neutral", "neg", "neg", "neg"]);
     expect(techBandOf(null)).toBeNull(); expect(techBandOf(undefined)).toBeNull();
   });
@@ -337,11 +356,11 @@ describe("technical view bands", () => {
     f.tech.lt = ["neg"]; expect(syms(applyFilters(x, f))).toEqual(["A"]);
   });
   it("words come from the score (the site's descriptive words), whatever the model said", () => {
-    expect(trendWord(22.5)).toBe("Positive"); expect(trendWord(-60)).toBe("Strongly negative"); expect(trendWord(null)).toBeNull();
+    expect(trendWord(22.5)).toBe("Uptrend"); expect(trendWord(-60)).toBe("Strong downtrend"); expect(trendWord(null)).toBeNull();
   });
   it("chips, address and removal", () => {
     const f = emptyFilters(); f.tech.st = ["neg", "pos"]; f.tech.lt = ["neutral"];
-    expect(chipsFor(f).map((c) => c.label)).toEqual(["Short-term technical: Positive, Negative", "Long-term technical: Neutral"]);
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Short-term technical: Uptrend, Downtrend", "Long-term technical: Sideways"]);
     const qs = serializeState({ filters: f, sort: DEFAULT_SORT, size: 10, page: 0 }).toString();
     expect(qs).toBe("st=pos%2Cneg&lt=neutral");
     expect(parseState(new URLSearchParams(qs)).filters.tech).toEqual({ st: ["pos", "neg"], lt: ["neutral"] });
@@ -399,14 +418,14 @@ describe("Prism CSV", () => {
     const lines = toCsv(rows, { ...o, mode: "advanced", prismAsOf: "2026-10-27" }).split("\r\n");
     const head = lines.findIndex((l) => l.startsWith("Symbol,"));
     expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Positive,22\.5,Neutral,-4,2026-10-27$/);
+    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Uptrend,22\.5,Sideways,-4,2026-10-27$/);
     expect(lines[head + 2]).toMatch(/,,,,,,,,,,,,$/);
     const all = lines.join("\n");
     expect(all).toMatch(/Prism ratings as of: 2026-10-27/); expect(all).not.toMatch(/Fundamental,Quality|Overall|\bBuy\b|\bHold\b/);
   });
   it("basic: only the FinLit score columns and no Prism column at all", () => {
     const csv = toCsv(rows, { ...o, mode: "basic" });
-    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Fundamental,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
+    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Business,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
     expect(csv).not.toMatch(/Prism/i);
   });
 });

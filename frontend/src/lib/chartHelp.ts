@@ -393,7 +393,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     why: "It lets you compare companies on several strengths at once instead of one number at a time.",
   },
   "cmp-fundamentals": {
-    title: "Eight fundamentals against every company",
+    title: "Eight measures against every company",
     what: "A radar chart of eight measures for each selected company: ROE, ROCE, margin, sales growth, profit growth, low debt, low P/E and dividend.",
     x: "The eight spokes are the measures.",
     y: "Distance from the centre is the percentage of all companies the company beats on that measure, from 0 to 100. Further out is better.",
@@ -630,8 +630,8 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
   },
   "score-table": {
     title: "Score columns",
-    what: "The results table with a colour-coded score for each company's Fundamental, pillar, Technical and overall score.",
-    x: "The score columns, from Fundamental to Overall.",
+    what: "The results table with a colour-coded score for each company's Business, pillar, Technical and overall score.",
+    x: "The score columns, from Business to Overall.",
     y: "Companies, one row each. Scores run from 0 to 100.",
     read: "Higher numbers are better. Select a column heading to sort by it.",
     why: "It shows where each company is strong or weak, and a score screen narrows a long list.",

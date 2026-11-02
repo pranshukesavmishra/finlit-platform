@@ -931,7 +931,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_dc.add_argument("--skip", nargs="*", default=None, help="steps or fund-house keys to leave out")
     p_dc.add_argument("--months", type=int, default=None, help="month-ends to read per fund house (default: the latest 3)")
     p_dc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran in the last N hours")
-    p_sc = sub.add_parser("score-mf", help="daily, after refresh-portfolios: FinLit Mutual Fund Health Score of every Growth scheme and ETF (finlit/mfscore; one transaction, idempotent); recorded at /api/mf/status (run:score-mf)")
+    p_sc = sub.add_parser("score-mf", help="daily, after refresh-portfolios: FinLit Mutual Fund Health Score of every Growth scheme; exchange-traded funds are not scored (finlit/mfscore; one transaction, idempotent); recorded at /api/mf/status (run:score-mf)")
     p_sc.add_argument("--symbols", nargs="*", default=None, help="AMFI scheme codes or ETF symbols: the whole universe is scored (peer medians need it) but only these are written")
     p_sc.add_argument("--limit", type=int, default=None, help="testing only: score just the first N schemes and N ETFs (their peer sets are then not the real ones); never removes other rows")
     p_sc.add_argument("--max-age-hours", type=float, default=None, help="skip when this ran fine in the last N hours")

@@ -64,7 +64,7 @@ export function badgeView(plan: Plan, admin: boolean, basic: { overall: number |
   return { kind: "prism", score: prism.final, word: prism.word, band: scoreBand(prism.final), provisional: prism.status === "PROVISIONAL" };
 }
 
-/** The reading direction of a Prism fundamental part: every one of the four is "higher is better". Risk is the one people misread: a HIGH Risk score means LOW risk. */
+/** The reading direction of a Prism financial-health part: every one of the four is "higher is better". Risk is the one people misread: a HIGH Risk score means LOW risk. */
 export function partHint(key: string): { short: string; long: string } | null {
   if (key === "risk") return { short: "Higher is better", long: "Higher is better: a higher Risk score means lower risk." };
   return ["fundamental", "valuation", "quality"].includes(key) ? { short: "Higher is better", long: "Higher is better: a higher score is a stronger result." } : null;
@@ -73,9 +73,9 @@ export function partHint(key: string): { short: string; long: string } | null {
 /** The five word bands of a Prism score, written once so every tooltip quotes the same cut-offs as `partWord` / `scoreTone`. */
 export const BAND_RULE = "Strong 80 and above, Healthy 65 to 79, Average 50 to 64, Weak 35 to 49, Poor below 35.";
 
-/* ---- Gold header dots: the six FinLit Prism parameters (4 fundamental, 2 technical) ---- */
+/* ---- Gold header dots: the six FinLit Prism parameters (4 financial-health, 2 technical) ---- */
 export type GoldDot = { key: string; name: string; letter: string; group: "fund" | "tech"; value: number | null; band: ScoreBand; label: string };
-/** Fundamental parts in the Prism order, then the two technical horizons. Letter F V Q R S L. */
+/** Financial-health parts in the Prism order, then the two technical horizons. Letter F V Q R S L. */
 export const GOLD_DOTS: { key: string; name: string; letter: string; group: "fund" | "tech"; what: string }[] = [
   { key: "fundamental", name: FUND_PART_NAME, letter: "F", group: "fund", what: "how steadily sales and profit grow" },
   { key: "valuation", name: "Valuation", letter: "V", group: "fund", what: "the share price against earnings, book value and its own history" },

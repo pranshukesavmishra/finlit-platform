@@ -36,16 +36,24 @@ const Sub = ({ children }: { children: ReactNode }) => <h4 className="mfs-sh">{c
 const Tabs = ({ items, value, onPick, label }: { items: { v: string; label: string; off?: boolean }[]; value: string; onPick: (v: string) => void; label: string }) => (
   <div className="mfs-tabs" role="group" aria-label={label}>{items.map((t) => <button key={t.v} type="button" aria-pressed={value === t.v} disabled={t.off} onClick={() => onPick(t.v)}>{t.label}</button>)}</div>);
 
-type Fig = { field: string; label: string; tabs?: { v: string; label: string; field: string }[] };
+type Fig = { field: string; label: string; tabs?: { v: string; label: string; field: string }[]; firstTab?: boolean };
+/** The three calendar years the nightly run works out: the years before the run's year (the same years for every fund). */
+const calendarFig = (run: string | null | undefined): Fig => {
+  const y = Number((run ?? "").slice(0, 4)) || new Date().getFullYear();
+  return { field: "", label: "Calendar year", firstTab: true, tabs: [1, 2, 3].map((i) => ({ v: "cy" + i, label: String(y - i), field: "cy" + i })) };
+};
 const RETURN_FIGS: Fig[] = [
   { field: "", label: "Return", tabs: [{ v: "1y", label: "1Y", field: "r1y" }, { v: "3y", label: "3Y", field: "r3y" }, { v: "5y", label: "5Y", field: "r5y" }] },
   { field: "", label: "SIP return (XIRR)", tabs: [{ v: "3y", label: "3Y", field: "sip3y" }, { v: "5y", label: "5Y", field: "sip5y" }] },
   { field: "", label: "Against category median", tabs: [{ v: "1y", label: "1Y", field: "ex1y" }, { v: "3y", label: "3Y", field: "ex3y" }, { v: "5y", label: "5Y", field: "ex5y" }] },
   { field: "", label: "Short-term change", tabs: [{ v: "1d", label: "1 day", field: "r1d" }, { v: "1m", label: "1M", field: "r1m" }, { v: "6m", label: "6M", field: "r6m" }] },
+  calendarFig(null),   // the panel relabels the tabs with the years of the latest run
+  { field: "up_m", label: "Biggest monthly gain" },
   { field: "consist", label: "Months ahead of peers" },
 ];
 const RISK_FIGS: Fig[] = [
   { field: "", label: "Volatility", tabs: [{ v: "1y", label: "1Y", field: "vol1" }, { v: "3y", label: "3Y", field: "vol3" }] },
+  { field: "vol_rel", label: "Volatility vs category" }, { field: "down_dev", label: "Downside deviation" },
   { field: "fall", label: "Biggest fall" }, { field: "worst_m", label: "Worst month" }, { field: "worst_12m", label: "Worst 12 months" }, { field: "neg_share", label: "Months with a fall" },
   { field: "below_high", label: "Time below high" }, { field: "down_cap", label: "Downside capture" }, { field: "sharpe", label: "Sharpe ratio" },
 ];
@@ -76,7 +84,7 @@ export function Panel({ q, set, fac, waiting, canScore }: PanelProps) {
   /** A group whose chips pick the figure the slider works on, and whose tabs pick the period (spec section 1). */
   const figured = (id: string, figs: Fig[], tabLabel = "Period") => {
     const cur = figs.find((f) => f.label === fig[id]) ?? figs[0];
-    const tab = cur.tabs ? (cur.tabs.find((t) => t.v === fig[id + ":t"]) ?? cur.tabs[Math.min(1, cur.tabs.length - 1)]) : null;
+    const tab = cur.tabs ? (cur.tabs.find((t) => t.v === fig[id + ":t"]) ?? cur.tabs[cur.firstTab ? 0 : Math.min(1, cur.tabs.length - 1)]) : null;
     const field = tab ? tab.field : cur.field;
     return (
       <>
@@ -181,7 +189,7 @@ export function Panel({ q, set, fac, waiting, canScore }: PanelProps) {
 
       {/* ----- returns */}
       <FilterGroup id="returns" title="Returns" active={nr(fieldsOf(RETURN_FIGS)) + q.rk.length + (q.tick.includes("has_hist3") ? 1 : 0) + (q.tick.includes("has_hist5") ? 1 : 0)} {...og("returns")}>
-        {figured("ret", RETURN_FIGS)}
+        {figured("ret", RETURN_FIGS.map((f) => (f.label === "Calendar year" ? calendarFig(fac?.built.run) : f)))}
         <Sub>Rank inside its category</Sub>
         {(["1y", "3y", "5y"] as const).map((p) => (
           <div key={p} className="mfs-rkrow"><span>{p.replace("y", " year")}</span>

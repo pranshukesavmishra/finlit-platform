@@ -1792,7 +1792,9 @@ def extra_item(r) -> dict:
             "aumRank": rk("x_aum_rk", "x_aum_rn"), "aumShare": f("x_aum_share"), "naChg": f("x_na_chg", 1), "houseAum": f("x_house_aum_cr", 0), "terRel": f("x_ter_rel"), "terGap": f("x_ter_gap"), "feeShare": f("x_fee_share", 1),
             "exit": {"state": r["x_exit_state"], "pct": f("x_exit_pct"), "days": r["x_exit_days"]},
             "risk": {"vol1": f("x_vol1", 1), "vol3": f("x_vol3", 1), "worstMonth": f("x_worst_loss"), "worstYear": f("x_worst12_loss"), "negShare": f("x_neg_share", 0),
-                     "belowHigh": f("x_below_high", 0), "downCapture": f("x_down_cap", 0), "sharpe": f("x_sharpe"), "consistency": f("x_consist", 0)},
+                     "belowHigh": f("x_below_high", 0), "downCapture": f("x_down_cap", 0), "sharpe": f("x_sharpe"), "consistency": f("x_consist", 0),
+                     "upMonth": f("x_up_month"), "downDev": f("x_down_dev", 1), "volRel": f("x_vol_rel")},
+            "calYears": {"1": f("x_cy1", 1), "2": f("x_cy2", 1), "3": f("x_cy3", 1)},
             "portfolio": None if r["x_port_asof"] is None else {"asOf": iso(r["x_port_asof"]), "equity": f("x_eq_pct", 1), "debt": f("x_debt_pct", 1), "cash": f("x_cash_pct", 1),
                                                                 "other": f("x_other_pct", 1), "holdings": r["x_n_hold"], "top10": f("x_top10", 1), "largest": f("x_max_hold", 1),
                                                                 "sector": r["x_top_sector"], "sectorPct": f("x_top_sector_pct", 1)},
@@ -1801,7 +1803,7 @@ def extra_item(r) -> dict:
 
 
 EXTRA_COLS = ("x_age, x_launch, x_ckey, x_tags, x_is_etf, x_ex1y, x_ex3y, x_ex5y, x_rk1, x_rn1, x_rk3, x_rn3, x_rk5, x_rn5, x_aum_rk, x_aum_rn, x_house_aum_cr, x_ter_rel, "
-              "x_ter_gap, x_fee_share, x_exit_state, x_exit_pct, x_exit_days, x_vol1, x_vol3, x_worst_loss, x_worst12_loss, x_neg_share, x_below_high, x_down_cap, x_sharpe, x_consist, "
+              "x_ter_gap, x_fee_share, x_exit_state, x_exit_pct, x_exit_days, x_vol1, x_vol3, x_worst_loss, x_worst12_loss, x_neg_share, x_below_high, x_down_cap, x_sharpe, x_consist, x_up_month, x_down_dev, x_vol_rel, x_cy1, x_cy2, x_cy3, "
               "x_port_asof, x_eq_pct, x_debt_pct, x_cash_pct, x_other_pct, x_n_hold, x_top10, x_max_hold, x_top_sector, x_top_sector_pct, x_cf_month, x_cf_flow, x_cf_streak, "
               "x_cf_aum_mom, x_cf_aum_yoy, x_cf_folio_mom, x_cf_share, x_aum_share, x_na_chg")
 

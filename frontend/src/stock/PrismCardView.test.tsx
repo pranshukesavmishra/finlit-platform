@@ -21,7 +21,7 @@ describe("Fundamental section", () => {
     for (const w of ["AVERAGE", "Weak", "Healthy", "Strong", "59.1", "/ 100"]) expect(t.toLowerCase()).toContain(w.toLowerCase());
     expect(h).toContain('aria-label="Valuation 42 of 100: Weak. Counts for 30% of the overall score. Higher is better: a higher score is a stronger result."');
     expect(h).toContain("a higher Risk score means lower risk");
-    expect(t).toContain("Fundamental analysis");
+    expect(t).toContain("Financial health analysis");
   });
   it("is calm when not rated: grey ring, No data cards, no score", () => {
     const r = rating({ status: "NOT RATED", label: "NOT RATED", final: null });
@@ -43,7 +43,7 @@ describe("Technical section", () => {
   const draw = (t: unknown, r = rating()) => renderToStaticMarkup(<TechnicalSection a={parseTechnical(t)} report={rep(r, t)} />);
   it("shows both horizons with our captions, scores, words, scale labels, signals and the alignment", () => {
     const h = draw((tech as Record<string, unknown>).mixed), t = text(h);
-    for (const w of ["Technical short term", "5–20 sessions", "6–18 months", "−35", "+23", "Negative", "Positive", "Strongly negative", "Neutral", "Strongly positive", "14 of 14 signals available", "13 of 13 signals available", "Trend alignment", "Short-term pullback within a long-term uptrend", "The short-term trend is negative, while the long-term trend is positive."]) expect(t).toContain(w);
+    for (const w of ["Technical short term", "5–20 sessions", "6–18 months", "−35", "+23", "Downtrend", "Uptrend", "Strong downtrend", "Sideways", "Strong uptrend", "14 of 14 signals available", "13 of 13 signals available", "Trend alignment", "Dip in an uptrend", "The short-term trend is down, while the long-term trend is up."]) expect(t).toContain(w);
     expect(h).toContain("pcx-sc");
   });
   it("says Not available for a horizon without a score, and hides the alignment", () => {

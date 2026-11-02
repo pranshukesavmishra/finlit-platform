@@ -200,21 +200,21 @@ describe("Prism hero mini scores", () => {
 
   it("rated with technical: the report's own numbers, words, horizons and aria labels", () => {
     const { html, t } = mini(withTech);
-    expect(t).toContain("Fundamental"); expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Average");
+    expect(t).toContain("Financial-health score"); expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Average");
     expect(t).toContain(fmtScore(th.shortTerm.score)); expect(t).toContain(fmtScore(th.longTerm.score));
     expect(t).toContain(ratingWord(th.shortTerm.rating, th.shortTerm.score).word);
     expect(t).toContain(th.shortTerm.horizon!); expect(t).toContain(th.longTerm.horizon!);
     expect(t).toContain("Technical is separate from the score");
     expect(html).toContain(`aria-label="Technical short term ${fmtScore(th.shortTerm.score)}: ${ratingWord(th.shortTerm.rating, th.shortTerm.score).word}, ${th.shortTerm.horizon}"`);
-    expect(html).toContain(`aria-label="Fundamental score ${score1(R.rating.final)} out of 100: Average"`);
+    expect(html).toContain(`aria-label="Financial-health score ${score1(R.rating.final)} out of 100: Average"`);
   });
   it("provisional keeps the number and the band word", () => {
     const { t } = mini({ ...withTech, rating: { ...R.rating, status: "PROVISIONAL" } });
-    expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Fundamental");
+    expect(t).toContain(score1(R.rating.final)); expect(t).toContain("Financial-health score");
   });
   it("not rated: no fundamental number, technical tiles still shown", () => {
     const { html, t } = mini({ ...V.notRated, technicalAssessment: tech.ready } as PrismReport);
-    expect(t).toContain("Not rated"); expect(html).toContain('aria-label="Fundamental score: not rated"'); expect(t).toContain("No score");
+    expect(t).toContain("Not rated"); expect(html).toContain('aria-label="Financial-health score: not rated"'); expect(t).toContain("No score");
     expect(t).toContain(fmtScore(th.shortTerm.score));
   });
   it("old report without technical: one small tile, no fake numbers", () => {

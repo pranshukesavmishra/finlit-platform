@@ -60,11 +60,11 @@ export function basedOn(n: number, hasRisk: boolean): string {
 }
 /** "Evaluates business and financial strength using key metrics across four areas." */
 export const fundSubtitle = (n: number): string => `Evaluates business and financial strength using key metrics across ${COUNT_WORD[n] ?? n} areas.`;
-export const FUND_NOTE = "Fundamental score evaluates a company's business and financial strength. Technical indicators assess price trend and momentum separately and are not included in this score.";
+export const FUND_NOTE = "The financial-health score evaluates a company's business and financial strength. Technical indicators assess price trend and momentum separately and are not included in this score.";
 /** If the model ever sends a technical part, it is part of the score, and the note must not say it is not. */
 export const SCORE_NOTE_WITH_TECH = "The score is the weighted total of the components shown, each counted by its share.";
 export const TECH_SUBTITLE = "Assesses price trend and momentum using technical indicators.";
-export const TECH_SEPARATE_NOTE = "Technical analysis is not included in the fundamental score. It is shown separately to help assess price trend and momentum.";
+export const TECH_SEPARATE_NOTE = "Technical analysis is not included in the financial-health score. It is shown separately to help assess price trend and momentum.";
 
 /* ------------------------------------------------------------------ technical horizons */
 /** The scale under each bar: where the labels sit (percent along the -100..+100 scale) and the band edges that get a tick, from the shared BANDS. */

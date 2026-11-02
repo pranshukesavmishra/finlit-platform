@@ -11,6 +11,7 @@ import { saveFile } from "../stock/derive";
 import { bandOf, scoreText } from "../lib/mfScore";
 import { bandVar } from "../lib/scoreBands";
 import { statementFromFile, FIELD_LABEL, type Statement } from "../lib/mfStatement";
+import { PdfPasswordError, isPdf } from "../lib/holdingsPdf";
 import {
   LEVEL_WORD, MF_INFO_ONLY, MF_SCORE_LINE, PARTS, STATUS_WORD, commitItems, crores, csvFileName, gainTone, initialDecisions, pct1, reviewCounts, rupees, searchFunds, sortHoldings, toCsv,
   useMfPortfolio, useMfWrites, type Decision, type Fund, type Holding, type Preview, type ReviewRow, type SortKey,
@@ -93,6 +94,7 @@ function Review({ st, pv, onClose, onDone }: { st: Statement; pv: Preview; onClo
     <section className="card mp-review" aria-label="Import review">
       <div className="card-h"><h3>Review before importing</h3><span className="s">{pv.total} rows read</span></div>
       <p className="muted">Columns read: {hdr}. Nothing is imported until you confirm. Rows that are not matched to a fund, and company shares, are never imported.</p>
+      {st.notes?.map((n) => <p key={n} className="faint mp-note" role="note">{n}</p>)}
       <ul className="mp-counts">{(Object.keys(STATUS_WORD) as (keyof typeof STATUS_WORD)[]).filter((k) => pv.counts[k]).map((k) => <li key={k} className={"st-" + k}><b>{pv.counts[k]}</b> {STATUS_WORD[k].toLowerCase()}</li>)}</ul>
       <div className="mp-tablewrap"><table className="mp-rt">
         <thead><tr><th>Line</th><th>In your file</th><th>Status</th><th>Fund in FinLit</th><th>Notes</th><th>Import</th></tr></thead>
@@ -130,15 +132,26 @@ function Review({ st, pv, onClose, onDone }: { st: Statement; pv: Preview; onClo
 function ImportFile({ onDone }: { onDone: (msg: string) => void }) {
   const w = useMfWrites(), ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false), [err, setErr] = useState(""), [rev, setRev] = useState<{ st: Statement; pv: Preview } | null>(null);
-  const read = async (f: File) => {
+  const [locked, setLocked] = useState<{ file: File; wrong: boolean } | null>(null), [pw, setPw] = useState("");
+  const read = async (f: File, password?: string) => {
     setBusy(true); setErr(""); setRev(null);
-    try { const st = await statementFromFile(f); setRev({ st, pv: await w.preview.mutateAsync(st.rows) }); }
-    catch (x) { setErr(errText(x)); } finally { setBusy(false); }
+    try {
+      const st = isPdf(f) ? await (await import("../lib/mfCas")).statementFromPdf(f, password) : await statementFromFile(f);
+      setLocked(null); setPw("");
+      setRev({ st, pv: await w.preview.mutateAsync(st.rows) });
+    } catch (x) {
+      if (x instanceof PdfPasswordError) setLocked({ file: f, wrong: x.wrong });
+      else { setLocked(null); setErr(errText(x)); }
+    } finally { setBusy(false); }
   };
   return (<>
-    <div className="row mp-file"><button className="btn primary" onClick={() => ref.current?.click()} disabled={busy}><Icon name="table" />{busy ? "Reading…" : "Choose Excel or CSV…"}</button>
-      <input ref={ref} type="file" hidden accept=".xlsx,.xls,.csv,.tsv,.txt,.html,.htm" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) read(f); }} />
-      <span className="faint">.xlsx, .xls or .csv, up to 5 MB and 2,000 rows. CAMS, KFintech and broker holdings exports work. Read in your browser; only the fund rows are sent.</span></div>
+    <div className="row mp-file"><button className="btn primary" onClick={() => ref.current?.click()} disabled={busy}><Icon name="table" />{busy ? "Reading…" : "Choose a statement…"}</button>
+      <input ref={ref} type="file" hidden accept=".pdf,.xlsx,.xls,.csv,.tsv,.txt,.html,.htm" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) read(f); }} />
+      <span className="faint">The CAS PDF that CAMS, KFintech or MF Central emails you (detailed statement), or an .xlsx, .xls or .csv export, up to 2,000 rows. Read in your browser: the file and its password never leave your device; only the fund rows are sent.</span></div>
+    {locked && <form className="row mp-pw" onSubmit={(e) => { e.preventDefault(); if (pw) read(locked.file, pw); }}>
+      <label>{locked.wrong ? "That password is not correct. Try again" : "This statement is password protected. A CAS is usually locked with your PAN in capitals, or the password you chose when you asked for it"}
+        <input type="password" autoComplete="off" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus /></label>
+      <button className="btn primary" disabled={!pw || busy}>Open</button><button type="button" className="btn" onClick={() => { setLocked(null); setPw(""); }}>Cancel</button></form>}
     {err && <p className="mp-err" role="alert">{err}</p>}
     {rev && <Review st={rev.st} pv={rev.pv} onClose={() => setRev(null)} onDone={(m) => { setRev(null); onDone(m); }} />}
   </>);
@@ -176,7 +189,7 @@ function EditRow({ h, onClose, onDone }: { h: Holding; onClose: () => void; onDo
 
 /* --------------------------------------------------------------- page */
 export function MfPortfolioPage() {
-  useDocTitle("MF portfolio", "Add the mutual funds you hold, by search or from an Excel or CSV statement, and see each fund's value, returns and FinLit Health Score.");
+  useDocTitle("MF portfolio", "Add the mutual funds you hold, by search or from your CAS PDF, Excel or CSV statement, and see each fund's value, returns and FinLit Health Score.");
   const { plan, has, toast, upgrade } = useUI();
   const silver = has("silver");
   const q = useMfPortfolio(silver), w = useMfWrites();
@@ -194,7 +207,7 @@ export function MfPortfolioPage() {
       <PageHeader plan="silver" title="MF portfolio" art="funds" links={["/holdings", "/funds", "/fund-score-screener"]}
         description={<>The mutual funds you hold: <b>what they are worth at the latest NAV</b>, how they have returned and, on Gold, how healthy each fund is. Mutual funds only; company shares are left out.</>}
         stats={[{ icon: "layers", value: s && s.funds > 0 ? s.funds : null, label: "Funds held" }, { icon: "calendar", value: d?.dataDate, label: "NAV as of" }]} />
-      <Gate tier="silver" title="Track your mutual funds" points={["Value at the latest NAV, gain and XIRR", "Import Excel or CSV statements (CAMS, KFintech, broker apps)", "Allocation by category and fund house", "Health Score and its four parts on Gold"]}>
+      <Gate tier="silver" title="Track your mutual funds" points={["Value at the latest NAV, gain and XIRR", "Import your CAS PDF, or Excel / CSV statements (CAMS, KFintech, broker apps)", "Allocation by category and fund house", "Health Score and its four parts on Gold"]}>
         <aside className="pf-model" aria-label="About the score"><span className="ci"><Icon name="quality" /></span><p>{MF_SCORE_LINE} {MF_INFO_ONLY}{locked && <> The Health Score is part of the Gold plan; you still see values and returns. <Link to="/plans">See the Gold plan</Link>.</>}</p></aside>
         <section className="card acct-c pf-in">
           <div className="pf-tabs" role="tablist"><button role="tab" aria-selected={tab === "add"} className={tab === "add" ? "on" : ""} onClick={() => setTab("add")}>Add a fund</button><button role="tab" aria-selected={tab === "import"} className={tab === "import" ? "on" : ""} onClick={() => setTab("import")}>Import a file</button></div>

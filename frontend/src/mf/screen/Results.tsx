@@ -25,7 +25,7 @@ export const BASE_COLS: Col[] = [
   { id: "rank3", label: "Rank, 3Y", sort: "rank3y", hint: "Rank of the 3-year return among funds of the same category and plan (1 = highest)", cell: (r) => (r.x?.rank["3y"] ? `${r.x.rank["3y"]!.rank} of ${r.x.rank["3y"]!.of}` : ""), why: () => "Needs at least three funds of the same category and plan with a 3-year return." },
 ];
 const BASE_FIELDS = new Set(BASE_COLS.map((c) => c.field).filter(Boolean) as string[]);
-const SORT_OF: Record<string, string> = { r1y: "r1y", r3y: "r3y", r5y: "r5y", sip3y: "sip3y", sip5y: "sip5y", ter: "ter", aum: "aum", age: "age", fall: "fall", vol3: "vol", sharpe: "sharpe", ex3y: "ex3y", consist: "consist", r1m: "r1m", r6m: "r6m", ter_gap: "gap", worst_m: "worst", neg_share: "negshare" };
+const SORT_OF: Record<string, string> = { r1y: "r1y", r3y: "r3y", r5y: "r5y", sip3y: "sip3y", sip5y: "sip5y", ter: "ter", aum: "aum", age: "age", fall: "fall", vol3: "vol", sharpe: "sharpe", ex3y: "ex3y", consist: "consist", r1m: "r1m", r6m: "r6m", ter_gap: "gap", worst_m: "worst", neg_share: "negshare", cy1: "cy1", down_dev: "downdev" };
 
 /** The columns for this query: the base set plus one per range filter that has no column of its own yet. */
 export function columnsFor(q: SQ): Col[] {

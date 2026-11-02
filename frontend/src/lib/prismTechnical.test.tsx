@@ -22,17 +22,17 @@ const horizon = (score: number | null, rating: string | null) => ({ score, ratin
 describe("rating words: the model's advice words never reach the screen", () => {
   it("maps every upstream rating", () => {
     expect(Object.keys(RATING_WORD).sort()).toEqual(["buy", "hold", "reduce", "sell", "strong buy", "unavailable"]);
-    expect(ratingWord("Strong Buy", 60).word).toBe("Strongly positive");
-    expect(ratingWord("Buy", 30).word).toBe("Positive");
-    expect(ratingWord("Hold", 0).word).toBe("Neutral");
-    expect(ratingWord("Reduce", -30).word).toBe("Negative");
-    expect(ratingWord("Sell", -60).word).toBe("Strongly negative");
+    expect(ratingWord("Strong Buy", 60).word).toBe("Strong uptrend");
+    expect(ratingWord("Buy", 30).word).toBe("Uptrend");
+    expect(ratingWord("Hold", 0).word).toBe("Sideways");
+    expect(ratingWord("Reduce", -30).word).toBe("Downtrend");
+    expect(ratingWord("Sell", -60).word).toBe("Strong downtrend");
     expect(ratingWord("Unavailable", null).word).toBe("Not available");
     for (const r of Object.keys(RATING_WORD)) expect(ratingWord(r, 10).word).not.toMatch(FORBIDDEN);
   });
   it("uses the full-precision score when the rating word is unknown, and never shows an unknown word", () => {
-    expect(ratingWord("Accumulate", 19.999999).word).toBe("Neutral");
-    expect(ratingWord("???", 20).word).toBe("Positive");
+    expect(ratingWord("Accumulate", 19.999999).word).toBe("Sideways");
+    expect(ratingWord("???", 20).word).toBe("Uptrend");
     expect(ratingWord("Buy", null).word).toBe("Not available");
   });
   it("band boundaries follow the model: >=50, >=20, >-20, >-50, and exactly -50 is the lowest", () => {
@@ -44,12 +44,12 @@ describe("rating words: the model's advice words never reach the screen", () => 
 describe("trend alignment: all nine combinations (finlit_technicals v1.1, stlt.ALIGNMENT)", () => {
   // short-term band x long-term band; the labels are the team's, the tone is the model's own nine-cell verdict (BUY ... SELL, never shown)
   const MATRIX: [number, number, string, string, "pos" | "mixed" | "neg"][] = [
-    [20, 20, "Strong on both timeframes", "STRONG BUY", "pos"], [20, 0, "Short-term strength, no long-term trend", "BUY", "pos"],
-    [20, -20, "Short-term bounce within a long-term downtrend", "BOUNCE ONLY, DON'T INVEST", "mixed"],
-    [0, 20, "Long-term uptrend, short-term pause", "ACCUMULATE ON DIPS", "pos"], [0, 0, "No clear trend", "HOLD", "mixed"],
-    [0, -20, "Long-term downtrend, short-term flat", "REDUCE", "neg"],
-    [-20, 20, "Short-term pullback within a long-term uptrend", "BUY THE DIP, WAIT FOR ST TURN", "pos"], [-20, 0, "Short-term weakness, no long-term trend", "REDUCE", "neg"],
-    [-20, -20, "Weak on both timeframes", "SELL / AVOID", "neg"],
+    [20, 20, "Rising on both", "STRONG BUY", "pos"], [20, 0, "Rising lately", "BUY", "pos"],
+    [20, -20, "Bounce in a downtrend", "BOUNCE ONLY, DON'T INVEST", "mixed"],
+    [0, 20, "Uptrend, pausing", "ACCUMULATE ON DIPS", "pos"], [0, 0, "No clear trend", "HOLD", "mixed"],
+    [0, -20, "Downtrend, pausing", "REDUCE", "neg"],
+    [-20, 20, "Dip in an uptrend", "BUY THE DIP, WAIT FOR ST TURN", "pos"], [-20, 0, "Falling lately", "REDUCE", "neg"],
+    [-20, -20, "Falling on both", "SELL / AVOID", "neg"],
   ];
   it.each(MATRIX)("short %s, long %s: %s", (st, lt, label, model, expected) => {
     const v = verdictView({ shortTerm: horizon(st, null), longTerm: horizon(lt, null) });
@@ -64,7 +64,7 @@ describe("trend alignment: all nine combinations (finlit_technicals v1.1, stlt.A
   it("the band rule: +20 or more positive, -20 or less negative", () => {
     expect([20, 19.99, -19.99, -20, 0].map((x) => trendBand(x))).toEqual(["positive", "neutral", "neutral", "negative", "neutral"]);
     expect([null, undefined, NaN].map((x) => trendBand(x))).toEqual([null, null, null]);
-    expect(trendAlignment(35.3, 39.3)?.label).toBe("Strong on both timeframes");
+    expect(trendAlignment(35.3, 39.3)?.label).toBe("Rising on both");
     expect(trendAlignment(-30, 25)?.code).toBe("st_negative_lt_positive");
   });
   it("needs both scores, says so, and never shows a verdict word of the model", () => {
@@ -73,7 +73,7 @@ describe("trend alignment: all nine combinations (finlit_technicals v1.1, stlt.A
     expect(trendAlignment(30, null)).toBeNull();
   });
   it("shows the working: both scores, both bands and the label", () => {
-    expect(alignmentSentence({ shortTerm: horizon(39.3, null), longTerm: horizon(35.3, null) })).toBe("Short-term +39 (Positive) × long-term +35 (Positive) = Strong on both timeframes.");
+    expect(alignmentSentence({ shortTerm: horizon(39.3, null), longTerm: horizon(35.3, null) })).toBe("Short-term +39 (Up) × long-term +35 (Up) = Rising on both.");
   });
 });
 
@@ -157,10 +157,10 @@ describe("report page section", () => {
     const h = html(fx.ready), t = strip(h);
     expect(t).toContain("+64");   // 63.54 rounded for display
     expect(t).toContain("+65");
-    expect(t).toContain("Strongly positive");
-    expect(t).toContain("Strong on both timeframes");
-    expect(t).toContain("Short-term +64 (Positive) × long-term +65 (Positive) = Strong on both timeframes.");
-    expect(h).toContain('aria-label="Short term: +64 on a scale from minus 100 to plus 100, strongly positive. 14 of 14 signals available."');
+    expect(t).toContain("Strong uptrend");
+    expect(t).toContain("Rising on both");
+    expect(t).toContain("Short-term +64 (Up) × long-term +65 (Up) = Rising on both.");
+    expect(h).toContain('aria-label="Short term: +64 on a scale from minus 100 to plus 100, strong uptrend. 14 of 14 signals available."');
     expect(t).toContain("Volume flow (on-balance volume)");
     expect(t).toContain("Stage 2: advancing");
     expect(t).toContain("Nifty Midcap 100");
@@ -170,13 +170,13 @@ describe("report page section", () => {
   it("mixed: opposite horizons are both stated beside the chip", () => {
     const t = strip(html(fx.mixed));
     expect(t).toContain("−35"); expect(t).toContain("+23");
-    expect(t).toContain("Short-term −35 (Negative) × long-term +23 (Positive) = Short-term pullback within a long-term uptrend.");
+    expect(t).toContain("Short-term −35 (Down) × long-term +23 (Up) = Dip in an uptrend.");
   });
   it("capped: says why the long-term score is limited", () => {
     const t = strip(html(fx.capped));
     expect(t).toContain("Limited by the market stage");
     expect(t).toContain("+19");
-    expect(t).toContain("Neutral");
+    expect(t).toContain("Sideways");
   });
   it("incomplete: withholds the score, lists missing inputs with reasons, no combined trend", () => {
     const h = html(fx.incomplete), t = strip(h);
@@ -193,7 +193,7 @@ describe("report page section", () => {
     expect(t).toContain("does not predict prices");
     expect(h).not.toMatch(FORBIDDEN);
     expect(renderToStaticMarkup(<TechPointer report={OLD} />)).toBe("");
-    expect(strip(renderToStaticMarkup(<TechPointer report={withTech(fx.ready)} />)).replace(/ ([,.])/g, "$1")).toContain("Technical view: short term strongly positive, long term strongly positive");
+    expect(strip(renderToStaticMarkup(<TechPointer report={withTech(fx.ready)} />)).replace(/ ([,.])/g, "$1")).toContain("Technical view: short term strong uptrend, long term strong uptrend");
   });
   it("is not a part of the score", () => {
     const r = withTech(fx.ready);
@@ -211,7 +211,7 @@ describe("stock page row", () => {
       expect(h).toContain("Technical view, separate from the Prism score");
     }
     const t = strip(renderToStaticMarkup(<PrismTechRow report={L(fx.mixed)} />));
-    expect(t).toContain("−35"); expect(t).toContain("Negative"); expect(t).toContain("+23"); expect(t).toContain("Positive");
+    expect(t).toContain("−35"); expect(t).toContain("Downtrend"); expect(t).toContain("+23"); expect(t).toContain("Uptrend");
   });
   it("incomplete shows Not available for the missing horizon; older reports get one quiet line", () => {
     expect(strip(renderToStaticMarkup(<PrismTechRow report={L(fx.incomplete)} />))).toContain("Not available");
@@ -246,12 +246,12 @@ describe("one wording file shared with the PDF", () => {
 describe("legend, gauge and light-theme contrast", () => {
   it("the legend is written from the same bands the rating uses", async () => {
     const { bandLegend, bandWidths } = await import("./prismTechnical");
-    expect(bandLegend()).toBe("Strongly positive: +50 or more · Positive: +20 up to +50 · Neutral: above −20 up to +20 · Negative: above −50 up to −20 · Strongly negative: −50 or less.");
+    expect(bandLegend()).toBe("Strong uptrend: +50 or more · Uptrend: +20 up to +50 · Sideways: above −20 up to +20 · Downtrend: above −50 up to −20 · Strong downtrend: −50 or less.");
     expect(bandWidths()).toEqual([25, 15, 20, 15, 25]);
   });
   it("the technical card shows that legend, and no aria-label sits on a plain span, paragraph or list item", () => {
     const html = renderToStaticMarkup(<Technical report={withTech(fx.ready)} />);
-    expect(strip(html)).toContain("Strongly positive: +50 or more");
+    expect(strip(html)).toContain("Strong uptrend: +50 or more");
     expect(html).not.toMatch(/<(span|p|li)\b[^>]*\baria-label=/);
   });
   it("`.pzt-rn small` keeps WCAG AA contrast (4.5:1) on every light surface", async () => {
@@ -269,7 +269,7 @@ describe("legend, gauge and light-theme contrast", () => {
 
 describe("values already mapped by the API render the same as the model's raw words", () => {
   it("rating", () => {
-    for (const [raw, mapped, score] of [["Strong Buy", "Strongly positive", 60], ["Buy", "Positive", 30], ["Hold", "Neutral", 0], ["Reduce", "Negative", -30], ["Sell", "Strongly negative", -60]] as const)
+    for (const [raw, mapped, score] of [["Strong Buy", "Strong uptrend", 60], ["Buy", "Uptrend", 30], ["Hold", "Sideways", 0], ["Reduce", "Downtrend", -30], ["Sell", "Strong downtrend", -60]] as const)
       expect(ratingWord(mapped, score)).toEqual(ratingWord(raw, score));
   });
   it("the alignment on the screen is the one the API sends with the report", () => {
@@ -299,7 +299,7 @@ describe("trend alignment and the build-up on the report page", () => {
     const h = renderToStaticMarkup(<TrendMap al={trendAlignment(-30, 25)!} />);
     expect((h.match(/pzt-mc /g) || []).length).toBe(9);
     expect(h).toMatch(/pzt-mc neg now[^>]*aria-current="true"|pzt-mc pos now[^>]*aria-current="true"/);
-    expect(strip(h)).toContain("Short-term pullback within a long-term uptrend");
+    expect(strip(h)).toContain("Dip in an uptrend");
   });
   it("the build-up table: every row with reading, signal, weight and points; the points add up to the score", () => {
     const v = built.smallcap_stage2 as never as { shortTerm: { score: number; divisor: number; factors: { key: string; label: string; signal: number | null; weight?: number; points?: number; status: string }[] }; longTerm: { score: number; divisor: number; factors: { points?: number; status: string }[] } };
@@ -327,7 +327,7 @@ describe("trend alignment and the build-up on the report page", () => {
   });
   it("a report stored before the breakdown existed still shows the alignment, says why there is no table, and offers a recalculation", () => {
     const t = strip(html(fx.ready, () => undefined));
-    expect(t).toContain("Strong on both timeframes");
+    expect(t).toContain("Rising on both");
     expect(t).toContain("This stored report was made before the breakdown existed");
     expect(t).toContain("Recalculate to add the breakdown");
     expect(t).not.toContain("Total of the points");
@@ -343,8 +343,8 @@ describe("the stock page row shows the alignment under both bars", () => {
   const L = (a?: unknown) => ({ technicalAssessment: a }) as unknown as PrismLatest;
   it("label, shape and a spoken summary; nothing when a score is missing", () => {
     const h = renderToStaticMarkup(<PrismTechRow report={L(built.smallcap_stage2)} />), t = strip(h);
-    expect(t).toContain("Trend alignment"); expect(t).toContain("Long-term uptrend, short-term pause");
-    expect(h).toContain("Trend alignment: Long-term uptrend, short-term pause.");
+    expect(t).toContain("Trend alignment"); expect(t).toContain("Uptrend, pausing");
+    expect(h).toContain("Trend alignment: Uptrend, pausing.");
     expect(h).not.toMatch(FORBIDDEN);
     expect(strip(renderToStaticMarkup(<PrismTechRow report={L(fx.incomplete)} />))).not.toContain("Trend alignment");
   });

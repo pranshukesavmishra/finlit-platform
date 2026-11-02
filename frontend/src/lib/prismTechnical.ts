@@ -143,7 +143,8 @@ export function scoreBand(score: number | null): TrendTone {
 export function bandLegend(): string {
   const n = (v: number) => (v > 0 ? "+" : v < 0 ? MINUS : "") + Math.abs(v);
   const { strongPositive: a, positive: b, neutral: c, negative: d } = BANDS;
-  return `Strongly positive: ${n(a)} or more · Positive: ${n(b)} up to ${n(a)} · Neutral: above ${n(c)} up to ${n(b)} · Negative: above ${n(d)} up to ${n(c)} · Strongly negative: ${n(d)} or less.`;
+  const w = WORDING.bandWords as Record<TrendTone, string>;
+  return `${w.strongpos}: ${n(a)} or more · ${w.pos}: ${n(b)} up to ${n(a)} · ${w.neutral}: above ${n(c)} up to ${n(b)} · ${w.neg}: above ${n(d)} up to ${n(c)} · ${w.strongneg}: ${n(d)} or less.`;
 }
 /** Widths (percent of the -100..+100 scale) of the five gauge bands, lowest first, from BANDS. */
 export const bandWidths = (): number[] => {
@@ -151,6 +152,9 @@ export const bandWidths = (): number[] => {
   return edges.slice(1).map((e, i) => (e - edges[i]) / 2);
 };
 const BAND_WORD = WORDING.bandWords as Record<TrendTone, string>;
+const BAND_TIP = (WORDING as { bandTips?: Record<TrendTone, string> }).bandTips ?? ({} as Record<TrendTone, string>);
+/** The one-line meaning of a band, for the tooltip on its word ("Price has mostly been rising"). */
+export const bandTip = (tone: TrendTone): string => BAND_TIP[tone] ?? "";
 
 /** The word and tone for a horizon. The model's rating is used when it is one we know; otherwise the full-precision score decides.
  *  A rating word we do not know is never shown. A horizon without a score is "Not available" whatever its rating says. */
@@ -164,12 +168,12 @@ export function ratingWord(rating: string | null | undefined, score: number | nu
 
 export type VerdictTone = "pos" | "mixed" | "neg" | "na";
 export type TrendBand = "positive" | "neutral" | "negative";
-export type AlignCell = { stBand: TrendBand; ltBand: TrendBand; code: string; label: string; tone: VerdictTone; current: boolean };
+export type AlignCell = { stBand: TrendBand; ltBand: TrendBand; code: string; label: string; text: string; tone: VerdictTone; current: boolean };
 /** How the short-term and the long-term trend line up. The label only describes the two trends. */
-export type TrendAlignment = { label: string; code: string; tone: VerdictTone; stBand: TrendBand; ltBand: TrendBand; stBandWord: string; ltBandWord: string; rule: string; cells: AlignCell[] };
+export type TrendAlignment = { label: string; text: string; code: string; tone: VerdictTone; stBand: TrendBand; ltBand: TrendBand; stBandWord: string; ltBandWord: string; rule: string; cells: AlignCell[] };
 
 /** The nine cells and the band rule come from the shared wording file (finlit_technicals v1.1, stlt.ALIGNMENT): the same words on the screen, in the PDF and in the API. */
-const ALIGN = WORDING.alignment as { bands: { positive: number; negative: number }; bandWords: Record<TrendBand, string>; rule: string; notAvailable: string; cells: { st: TrendBand; lt: TrendBand; code: string; label: string; tone: VerdictTone }[] };
+const ALIGN = WORDING.alignment as { bands: { positive: number; negative: number }; bandWords: Record<TrendBand, string>; rule: string; notAvailable: string; cells: { st: TrendBand; lt: TrendBand; code: string; label: string; text?: string; tone: VerdictTone }[] };
 export const ALIGN_NA = ALIGN.notAvailable;
 export const BAND_ORDER: TrendBand[] = ["positive", "neutral", "negative"];
 export const ALIGN_BAND_WORD = ALIGN.bandWords;
@@ -180,9 +184,9 @@ export const trendBand = (score: number | null | undefined): TrendBand | null =>
 export function trendAlignment(shortScore: number | null | undefined, longScore: number | null | undefined): TrendAlignment | null {
   const st = trendBand(shortScore), lt = trendBand(longScore);
   if (!st || !lt) return null;
-  const cells = ALIGN.cells.map((c) => ({ stBand: c.st, ltBand: c.lt, code: c.code, label: c.label, tone: c.tone, current: c.st === st && c.lt === lt }));
+  const cells = ALIGN.cells.map((c) => ({ stBand: c.st, ltBand: c.lt, code: c.code, label: c.label, text: c.text ?? "", tone: c.tone, current: c.st === st && c.lt === lt }));
   const now = cells.find((c) => c.current)!;
-  return { label: now.label, code: now.code, tone: now.tone, stBand: st, ltBand: lt, stBandWord: ALIGN_BAND_WORD[st], ltBandWord: ALIGN_BAND_WORD[lt], rule: ALIGN.rule, cells };
+  return { label: now.label, text: now.text, code: now.code, tone: now.tone, stBand: st, ltBand: lt, stBandWord: ALIGN_BAND_WORD[st], ltBandWord: ALIGN_BAND_WORD[lt], rule: ALIGN.rule, cells };
 }
 /** The model's own verdict labels (a cross-check only: its nine cells are the alignment's nine cells, with the same tone). */
 export const MODEL_VERDICT_TONE = WORDING.verdicts as Record<string, VerdictTone>;

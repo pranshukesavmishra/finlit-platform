@@ -37,7 +37,7 @@ export function TrendMap({ al }: { al: TrendAlignment }) {
               {BAND_ORDER.map((lt) => {
                 const c = cell(st, lt);
                 return (
-                  <td key={lt} className={"pzt-mc " + c.tone + (c.current ? " now" : "")} aria-current={c.current ? "true" : undefined}>
+                  <td key={lt} className={"pzt-mc " + c.tone + (c.current ? " now" : "")} aria-current={c.current ? "true" : undefined} title={c.text || undefined}>
                     {c.label}{c.current && <><b className="pzt-now" aria-hidden="true">Now</b><span className="sr-only"> (this is where the company is now)</span></>}
                   </td>
                 );
@@ -57,6 +57,7 @@ export function TrendAlignmentBlock({ a }: { a: TechAssessment }) {
     <section className={"pzt-verdict " + v.tone} aria-label={`Trend alignment: ${v.word}. ${v.detail}`}>
       <span className="pzt-vk">Trend alignment</span>
       <span className={"pzt-vchip " + v.tone}><i aria-hidden="true">{VSHAPE[v.tone]}</i>{v.word}</span>
+      {al?.text && <span className="pzt-vtext">{al.text}.</span>}
       <span className="pzt-vd">{al ? <>{alignmentSentence(a)} {al.rule}</> : v.detail} It is separate from the 0 to 100 financial-health score.</span>
       {al && <TrendMap al={al} />}
     </section>

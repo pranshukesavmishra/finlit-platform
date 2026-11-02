@@ -38,8 +38,8 @@ describe("header", () => {
   const rep = { kind: "report", final: 61, word: "Average", status: "RATED", parts: { fundamental: 68.8, valuation: 42.4, quality: 73.2, risk: 80 }, short: { score: 1, rating: "Hold" }, long: { score: -60, rating: "Sell" } } as const;
   it("Gold shows the six Prism dots, never the pillar dots; the legend lists them", () => {
     const h = renderToStaticMarkup(<NameDots score={sc} plan="gold" admin={false} prism={rep} />);
-    expect(h).toContain('title="Valuation 42: red, weak"'); expect(h).toContain('aria-label="Short-term technical +1: orange, neutral"');
-    expect(h).toContain("Long-term technical −60: red, strongly negative");
+    expect(h).toContain('title="Valuation 42: red, weak"'); expect(h).toContain('aria-label="Short-term technical +1: orange, sideways"');
+    expect(h).toContain("Long-term technical −60: red, strong downtrend");
     expect(h).toContain("hs-gap"); expect(h.match(/class="hs-dot /g)).toHaveLength(6 + 6);   // six real dots + six in the legend
     expect(h).not.toMatch(/Growth(?! &amp; Profitability)/); expect(h).not.toMatch(/(?<!Growth &amp; )Profitability/);
     expect(h).toContain("a high Risk score means lower risk"); expect(h).toContain("What do the dots mean?");

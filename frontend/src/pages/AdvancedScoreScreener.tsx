@@ -20,7 +20,7 @@ import "../styles/scorescreen.css";
  *  Informational; not a recommendation. Plans below Gold get the upgrade page and never request the universe. */
 export function AdvancedScoreScreener() {
   const { has } = useUI();
-  useDocTitle("Advanced score screener", "Every listed company with its FinLit Prism rating: the four fundamental parts and the short-term and long-term technical views. Gold plan.");
+  useDocTitle("Advanced score screener", "Every listed company with its FinLit Prism rating: the four financial-health parts and the short-term and long-term technical views. Gold plan.");
   return has("gold") ? <Advanced /> : <AdvancedUpgrade />;
 }
 
@@ -48,7 +48,7 @@ function Advanced() {
 
   return (
     <ScreenerFrame s={s} splitKey="score-adv" eyebrow="Advanced score screener" title="Every listed company, rated by FinLit Prism." sideLabel="Advanced score screener filters" errorTitle="The advanced score screener is unavailable right now"
-      intro={<>The advanced model for the whole market: the <b>Prism score</b>, its four fundamental parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export.</>}
+      intro={<>The advanced model for the whole market: the <b>Prism score</b>, its four financial-health parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export.</>}
       head={{ art: "rating", links: ["/score-screener", "/screener", "/query-builder"], stats: [{ icon: "building", value: cover && cover.total > 0 ? nf(cover.total, 0) : null, label: "Companies" }, { icon: "layers", value: cover && cover.total > 0 ? nf(cover.rated + cover.provisional, 0) : null, label: "Rated by Prism" }] }}
       tier="gold" sortChoices={[{ key: "prism_final", label: "Prism" }, ...PRISM_PARTS.map((x) => ({ key: x.col, label: x.label })), { key: "prism_st_score", label: "Short-term technical" }, { key: "prism_lt_score", label: "Long-term technical" }]}
       donut={!isLoading && sum.found > 0 ? <Donut part={sum.nZ} total={sum.found} partLabel="Rated" restLabel="Not rated yet" title={`${nf(sum.found - sum.nZ, 0)} of ${nf(sum.found, 0)} companies in this result are not rated yet.`} note="More are added every night, largest first." /> : undefined}
@@ -62,7 +62,7 @@ function Advanced() {
           <RangeRow label="Prism score" group="Prism score, exact range" min={draft.ranges.z.min} max={draft.ranges.z.max} error={s.problems.z} onChange={(end, v) => s.setRange("z", end, v)} />
           <div className="pzs-sls"><Slider s={s} k="z" end="min" label="Prism" /><Slider s={s} k="z" end="max" label="Prism" /></div>
         </FilterGroup>
-        <FilterGroup id="parts" title="Fundamental parts" defaultOpen active={PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="0 to 100, higher is better. A high Risk score means lower risk.">
+        <FilterGroup id="parts" title="Financial-health parts" defaultOpen active={PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="0 to 100, higher is better. A high Risk score means lower risk.">
           {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={"Prism " + x.label} group={`Prism ${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
         </FilterGroup>
         <FilterGroup id="tech" title="Technical views" defaultOpen active={draft.tech.st.length + draft.tech.lt.length}>

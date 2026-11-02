@@ -93,7 +93,7 @@ export function LeadershipLabelPage() {
           <li><b>Rank.</b> Peers are ordered by their 12-month return against the sector index. The 3 and 6 month figures are shown but not ranked on.</li>
           <li><b>The label.</b> <span className="ld-chip leader"><i className="ld-dot" />Leader</span> means in the top 30% of peers and ahead of the sector index over 12 months. <span className="ld-chip laggard"><i className="ld-dot" />Laggard</span> means in the bottom 30% and behind it. Everything else is <span className="ld-chip in_line"><i className="ld-dot" />In line</span>. If a whole group is behind its index, nobody is a Leader.</li>
           <li><b>Direction.</b> “Gaining” when the 3-month relative return is 5 points or more; “weakening” when it is minus 5 or less.</li>
-          <li><b>Fundamentals note.</b> A Leader whose fundamentals rank in the bottom 30% of its peers gets a caution note, and a Laggard whose fundamentals rank in the top 30% gets a note that fundamentals are stronger than the price.</li>
+          <li><b>Business score note.</b> A Leader whose business score ranks in the bottom 30% of its peers gets a caution note, and a Laggard whose business score ranks in the top 30% gets a note that the business score is stronger than the price.</li>
           <li><b>Steadiness.</b> Labels are refreshed weekly after Friday's close. A new label must come out the same way two weeks running before it replaces the old one; until then the page shows this week's own answer beside the label and says so. Thinly traded stocks (under ₹1 crore a day), stocks with under a year of prices and stale prices are left out rather than guessed, and each list names the companies it left out and why.</li>
         </ol>
 

@@ -15,10 +15,11 @@
    2. Items are placed on their own track, so a folded (display:none) panel hands its width back instead of pushing the divider into
       track 1 and the results into the 18px divider track.
    3. The results track is minmax(0, 1fr) and the table scrolls inside its own wrapper (HScroll). */
-.scr { display: grid; grid-template-columns: min(var(--side-w, 330px), max(240px, calc(100% - 438px))) 18px minmax(0, 1fr); gap: 0; align-items: start; } .scr-side[hidden] { display: none; }
+.scr { display: grid; grid-template-columns: min(var(--side-w, 330px), max(240px, calc(100% - 448px))) 28px minmax(0, 1fr); gap: 0; align-items: start; } .scr-side[hidden] { display: none; }
 .scr > .scr-side { grid-column: 1; grid-row: 1; } .scr > .scr-split { grid-column: 2; grid-row: 1; } .scr > .scr-main { grid-column: 3; grid-row: 1; min-width: 0; }
 .scr-split { position: sticky; top: 130px; align-self: stretch; min-height: 200px; display: flex; align-items: center; justify-content: center; cursor: col-resize; touch-action: none; outline: none; } .scr-split::before { content: ""; width: 3px; height: 64px; border-radius: 3px; background: var(--border-strong); transition: background .15s, height .15s; } .scr-split:hover::before, .scr-split:focus-visible::before { background: var(--gold); height: 120px; }
-.scr-split-btn { position: absolute; top: 8px; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); font: 700 14px/20px var(--sans); cursor: pointer; } .scr-split-btn:hover { border-color: var(--gold); color: var(--gold); }
+.scr-split-btn { position: absolute; top: 36px; left: 50%; transform: translateX(-50%); display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--s1); color: var(--muted); cursor: pointer; z-index: 1; }
+.scr-split-btn svg { width: 12px; height: 12px; } /* a drawn chevron, centred (the text arrow sat off-centre); the gutter (28px) is wider than the button (24px), so it never covers the cards' edges */ .scr-split-btn:hover { border-color: var(--gold); color: var(--gold); }
 .scr-side { position: sticky; top: 130px; padding: 16px; max-height: calc(100vh - 150px); overflow: auto; }
 .scr-tabs { width: 100%; display: grid; grid-template-columns: 1fr 1fr; } .scr-tabs button { justify-content: center; } .dotn { margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px; font: 700 10.5px/18px var(--sans); font-style: normal; background: var(--gold); color: var(--on-gold); }
 .scr-find { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; padding: 0 14px; height: 44px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--s2); } .scr-find svg { width: 16px; height: 16px; color: var(--faint); } .scr-find input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--text); font: 14px var(--sans); } .scr-find:focus-within { border-color: var(--gold); } .scr-find.sm { margin: 0; height: 40px; min-width: 220px; }
@@ -297,3 +298,7 @@ main#main { min-height: 90vh; }
 .pr-t tbody tr:hover td { filter: brightness(1.08); } .pr-t tbody tr[aria-current="true"] td:not(:first-child):not(.pr-chg) { outline: 1px solid color-mix(in srgb, var(--gold) 60%, transparent); outline-offset: -1px; }
 .pr-t td:first-child, .pr-t th:first-child { position: sticky; left: 0; z-index: 1; background: var(--bg); }
 @media (max-width: 480px) { .pr-t { font-size: 14px; } .pr-t td { padding: 10px 8px; } }
+
+/* the filter panel scrolls with a thin scrollbar in the theme's colours, not the browser's wide default bar beside the divider */
+.scr-side, .sx-side { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.scr-side::-webkit-scrollbar, .sx-side::-webkit-scrollbar { width: 6px; } .scr-side::-webkit-scrollbar-thumb, .sx-side::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 6px; } .scr-side::-webkit-scrollbar-button, .sx-side::-webkit-scrollbar-button { display: none; }

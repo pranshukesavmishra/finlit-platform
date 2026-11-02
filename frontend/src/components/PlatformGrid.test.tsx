@@ -12,27 +12,27 @@ const app = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
 const routes = new Set([...app.matchAll(/path="([^"]+)"/g)].map((m) => "/" + m[1].replace(/\/\*$/, "")));
 
 describe("Explore our platform grid", () => {
-  it("renders 21 cards with the exact titles, in order", () => {
-    expect((html.match(/class="pg-card"/g) ?? []).length).toBe(21);
-    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research and Health Score", "Revenue and Profit Forecasting", "Smart Finance Calculators", "FinLit Prism", "Advanced Score Screener", "Gold Markets Dashboard", "Gold Fundamentals Dashboard", "Premium Report", "Option Chain", "DCF Calculator", "Mutual Fund Health Score Screener"];
+  it("renders 22 cards with the exact titles, in order", () => {
+    expect((html.match(/class="pg-card"/g) ?? []).length).toBe(22);
+    const titles = ["Pick Your Stocks", "Analyse Any Stock", "Compare Companies", "Track with Watchlists", "Analyse Your Portfolio", "Stay Ahead with Alerts", "Follow Market News", "Join the Discussion", "Explore ETFs", "Explore Mutual Funds", "Mutual Fund Research and Health Score", "Revenue and Profit Forecasting", "Smart Finance Calculators", "FinLit Prism", "Advanced Score Screener", "Gold Markets Dashboard", "Gold Financials Dashboard", "Premium Report", "Option Chain", "DCF Calculator", "Mutual Fund Health Score Screener", "Market Themes"];
     expect(PLATFORM_CARDS.map((c) => c.title)).toEqual(titles);
     titles.forEach((t) => expect(html).toContain(t));
     expect(html).not.toContain("Value Smarter");
     expect(html).toContain("Everything you need to invest smarter");
   });
-  it("numbers 01 to 21, three bullets each, a known plan badge", () => {
-    expect(PLATFORM_CARDS.map((c) => c.n)).toEqual(Array.from({ length: 21 }, (_, i) => String(i + 1).padStart(2, "0")));
+  it("numbers 01 to 22, three bullets each, a known plan badge", () => {
+    expect(PLATFORM_CARDS.map((c) => c.n)).toEqual(Array.from({ length: 22 }, (_, i) => String(i + 1).padStart(2, "0")));
     PLATFORM_CARDS.forEach((c) => { expect(c.bullets).toHaveLength(3); expect(["FREE ACCOUNT", "SILVER", "GOLD"]).toContain(c.plan); });
   });
   it("links every card to a route that exists in App.tsx", () => {
-    PLATFORM_CARDS.forEach((c) => { expect(routes.has(c.to), c.to).toBe(true); expect(html).toContain(`href="${c.to}"`); });
+    PLATFORM_CARDS.forEach((c) => { expect(routes.has(c.to.split("?")[0]), c.to).toBe(true); expect(html).toContain(`href="${c.to}"`); });
   });
   it("uses no advice wording", () => { expect(html).not.toMatch(/\b(buy|sell|target price|recommend\w*)\b|\bhold (rating|call)/i); });
   it("filters by the lowest plan", () => {
-    expect(filterByTier(PLATFORM_CARDS, "all")).toHaveLength(21);
+    expect(filterByTier(PLATFORM_CARDS, "all")).toHaveLength(22);
     const by = (k: "basic" | "silver" | "gold") => filterByTier(PLATFORM_CARDS, k).map((c) => c.title);
     expect(by("silver")).toEqual(["Track with Watchlists", "Analyse Your Portfolio"]);
-    expect(by("gold")).toHaveLength(9);
+    expect(by("gold")).toHaveLength(10);
     expect(by("basic")).toHaveLength(10);
     expect(TIER_FILTERS.map((f) => f.label)).toEqual(["All", "Free", "Silver", "Gold"]);
     PLATFORM_CARDS.forEach((c) => expect(by(PLAN_TIER[c.plan])).toContain(c.title));
@@ -42,7 +42,7 @@ describe("Explore our platform grid", () => {
     expect(html).toContain('href="/plans#gold"'); expect(html).toContain('href="/plans#silver"');
     expect(html).toContain("See the Gold plan"); expect(html).toContain("See the Silver plan");
     const goldBadges = html.match(/<a[^>]*class="pg-badge gold"[^>]*href="\/plans#gold"|<a[^>]*href="\/plans#gold"[^>]*class="pg-badge gold"/g) ?? [];
-    expect(goldBadges).toHaveLength(9);
+    expect(goldBadges).toHaveLength(10);
     expect((html.match(/class="pg-badge silver"/g) ?? []).length).toBe(2);
     expect(html).toContain("Free, Silver and Gold");
   });
@@ -76,9 +76,10 @@ describe("Explore our platform grid", () => {
     const gatedByHook: Record<string, string> = { "/advanced-score-screener": "pages/AdvancedScoreScreener.tsx", "/premium/markets": "pages/Markets.tsx", "/premium/fundamentals": "pages/Fundamentals.tsx", "/premium/report": "pages/PremiumReport.tsx" };
     PLATFORM_CARDS.forEach((c) => {
       const t = PLAN_TIER[c.plan];
-      if (gatedByHook[c.to]) { expect(t).toBe("gold"); expect(readFileSync(new URL("../" + gatedByHook[c.to], import.meta.url), "utf8")).toMatch(/useGold\(\)|has\("gold"\)/); }
-      else if (t !== "basic") { const [f, tier] = gated[c.to]; expect(tier).toBe(t); expect(readFileSync(new URL("../" + f, import.meta.url), "utf8")).toContain(`<Gate tier="${tier}"`); }
-      else expect(gated[c.to], c.title).toBeUndefined();
+      const to = c.to.split("?")[0];
+      if (gatedByHook[to]) { expect(t).toBe("gold"); expect(readFileSync(new URL("../" + gatedByHook[to], import.meta.url), "utf8")).toMatch(/useGold\(\)|has\("gold"\)/); }
+      else if (t !== "basic") { const [f, tier] = gated[to]; expect(tier).toBe(t); expect(readFileSync(new URL("../" + f, import.meta.url), "utf8")).toContain(`<Gate tier="${tier}"`); }
+      else expect(gated[to], c.title).toBeUndefined();
     });
     const back = readFileSync(new URL("../../../backend/finlit/outlook/router.py", import.meta.url), "utf8");
     expect(back).toContain('has(ctx.plan, "gold")');

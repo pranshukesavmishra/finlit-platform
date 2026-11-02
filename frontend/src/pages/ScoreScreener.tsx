@@ -9,7 +9,7 @@ import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, cloneFilters, hasPrismParams, withPreset } from "../lib/scoreScreen";
+import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, activePreset, clearPreset, hasPrismParams, withPreset } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -21,7 +21,7 @@ export function ScoreScreener() {
   return <Basic />;
 }
 
-const RANGES: [RangeKey, string][] = [["f", "Fundamental score"], ["t", "Technical score"], ["o", "Overall score"]];
+const RANGES: [RangeKey, string][] = [["f", "Business score"], ["t", "Technical score"], ["o", "Overall score"]];
 
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit score, the basic model: filter, sort, compare and export by size, sector and score.");
@@ -33,29 +33,29 @@ function Basic() {
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
   const usePreset = (id: string) => {
     if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
-    s.apply(preset === id ? { ...cloneFilters(draft), bands: { ...draft.bands, f: [], t: [] } } : withPreset(draft, PRESETS.find((p) => p.id === id)!));
+    s.apply(preset === id ? clearPreset(draft) : withPreset(draft, PRESETS.find((p) => p.id === id)!));
   };
 
   const tiles: [string, string, string?][] = [
     ["Companies found", isLoading ? "…" : nf(sum.found, 0)],
     ["Sectors", isLoading ? "…" : nf(sum.sectors, 0)],
-    ["Median Fundamental", med(sum.medF) ?? MINUS, sum.medF == null ? (locked ? "Scores are part of the Silver plan" : "No company in this result has a Fundamental score") : `Middle value of ${nf(sum.nF, 0)} companies with a Fundamental score`],
+    ["Median Business score", med(sum.medF) ?? MINUS, sum.medF == null ? (locked ? "Scores are part of the Silver plan" : "No company in this result has a Business score") : `Middle value of ${nf(sum.nF, 0)} companies with a Fundamental score`],
     ["Median Technical", med(sum.medT) ?? MINUS, sum.medT == null ? (locked ? "Scores are part of the Silver plan" : "No company in this result has a Technical score") : `Middle value of ${nf(sum.nT, 0)} companies with a Technical score`],
     ["Active filters", nf(s.filterCount, 0)],
   ];
 
   return (
     <ScreenerFrame s={s} splitKey="score" eyebrow="Score screener" title="Basic score screener" sideLabel="Score screener filters" errorTitle="The score screener is unavailable right now"
-      intro={<>Every listed company with its <b>FinLit score</b>, the basic model: Fundamental, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score.</>}
+      intro={<>Every listed company with its <b>FinLit score</b>, the basic model: Business, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score.</>}
       head={{ art: "rating", links: ["/screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"], stats: [{ icon: "building", value: !isLoading && s.items.length > 0 ? nf(s.items.length, 0) : null, label: "Companies" }, { icon: "quality", value: !isLoading && s.items.length > 0 ? nf(s.items.length - s.unscored, 0) : null, label: "Scored" }] }}
-      tier="silver" sortChoices={[{ key: "overall", label: "FinLit score" }, { key: "f", label: "Fundamental" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
+      tier="silver" sortChoices={[{ key: "overall", label: "FinLit score" }, { key: "f", label: "Business" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
       presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">
         {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
       </div>}
       filters={locked ? (
         <FilterGroup id="score" title="Score filters" defaultOpen>
-          <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by Fundamental, Technical and Overall scores.</span>
+          <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by Business, Technical and Overall scores.</span>
             <button type="button" className="btn primary" onClick={() => upgrade("silver", "Score filters come with the Silver plan.")}>Unlock with Silver</button></div>
         </FilterGroup>
       ) : (<>
@@ -63,10 +63,10 @@ function Basic() {
           {RANGES.map(([k, label]) => <RangeRow key={k} label={label} group={`${label.replace(" score", "")} score, exact range`} min={draft.ranges[k].min} max={draft.ranges[k].max} error={s.problems[k]} onChange={(end, v) => s.setRange(k, end, v)} />)}
         </FilterGroup>
         <FilterGroup id="bands" title="Score bands" defaultOpen active={draft.bands.f.length + draft.bands.t.length}>
-          {(["f", "t"] as const).map((k) => <ChipRow key={k} label={k === "f" ? "Fundamental" : "Technical"} group={`${k === "f" ? "Fundamental" : "Technical"} score`} onToggle={(b) => s.setBand(k, b as Band)}
+          {(["f", "t"] as const).map((k) => <ChipRow key={k} label={k === "f" ? "Business" : "Technical"} group={`${k === "f" ? "Business" : "Technical"} score`} onToggle={(b) => s.setBand(k, b as Band)}
             chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[k].includes(b), aria: BANDS[b].label }))} />)}
         </FilterGroup>
-        <FilterGroup id="pillars" title="Fundamental by pillar" defaultOpen active={PILLARS.reduce((n, x) => n + draft.bands[x.k].length, 0)} hint="Select a range for each pillar">
+        <FilterGroup id="pillars" title="Business score by pillar" defaultOpen active={PILLARS.reduce((n, x) => n + draft.bands[x.k].length, 0)} hint="Select a range for each pillar">
           <button type="button" className={"fgx-chip fgx-all" + (allStrong ? " is-on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>{allStrong && <i aria-hidden="true">&#10003;</i>}Strong on all four (78 and above)</button>
           {PILLARS.map((x) => <ChipRow key={x.k} label={x.label} title={x.say} onToggle={(b) => s.setBand(x.k, b as Band)}
             chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[x.k].includes(b), aria: `${x.label} ${BANDS[b].label}` }))} />)}
@@ -75,7 +75,7 @@ function Basic() {
       tiles={tiles}
       lead={<Link to="/advanced-score-screener" className="sx-adv">
         <span className="sx-adv-t"><TierChip tier="gold" /><b>Advanced score screener</b></span>
-        <span className="sx-adv-s">Advanced score screener (Gold): FinLit Prism, 4 fundamental parts and 2 technical views</span>
+        <span className="sx-adv-s">Advanced score screener (Gold): FinLit Prism, 4 financial-health parts and 2 technical views</span>
         <Icon name="arrow" /></Link>}
       beforeTable={<>
         <details className="pzs-explain">
@@ -85,7 +85,7 @@ function Basic() {
       </>}
       groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit score</th><th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
-        <SortTh s={s} k="f" label="Fundamental" help="score-table" />
+        <SortTh s={s} k="f" label="Business" help="score-table" />
         {PILLARS.map((x) => <SortTh key={x.k} s={s} k={x.col} label={x.short} cls="ss-ph" title={x.say} />)}
         <SortTh s={s} k="t" label="Technical" /><SortTh s={s} k="overall" label="Overall" />
       </>}
@@ -99,7 +99,7 @@ function Basic() {
       how={<HowDialog onClose={() => s.setHow(false)}>
         <p>Every score runs from 0 to 100 and is worked out from a company's filed statements and its prices. Nothing on this page is computed differently from the company's own report page.</p>
         <dl>
-          <dt>Fundamental</dt><dd>The average of four business pillars, rounded to a whole number: Quality (steady earnings, cash that matches profit), Growth (sales and profit growth over 3 to 5 years), Profitability (margins and returns on capital) and Balance sheet (debt, interest cover, liquidity). It needs at least 3 of the 4 pillars; with fewer it shows a dash.</dd>
+          <dt>Business</dt><dd>The average of four business pillars, rounded to a whole number: Quality (steady earnings, cash that matches profit), Growth (sales and profit growth over 3 to 5 years), Profitability (margins and returns on capital) and Balance sheet (debt, interest cover, liquidity). It needs at least 3 of the 4 pillars; with fewer it shows a dash.</dd>
           <dt>Technical</dt><dd>The technical pillar: how the price is trending against its 50 and 200 day averages, and its momentum.</dd>
           <dt>Overall</dt><dd>The FinLit overall score shown on every company page: the average of the pillar scores that are available, rounded to a whole number.</dd>
           <dt>Bands</dt><dd>Strong 78 and above, Healthy 62 to 77, Mixed 45 to 61, Watch under 45. The filter groups Healthy and Mixed together as 45 to 77. Bands use whole numbers: 44 is Watch, 45 is Mixed, 77 is Healthy, 78 is Strong.</dd>

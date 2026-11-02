@@ -303,24 +303,39 @@ async def step_master(store, client, *, min_rows: int = MIN_MASTER_ROWS) -> dict
     return {"status": "ok", "schemes": len(items)}
 
 
-async def step_ter(store, client, today: date, *, min_schemes: int = MIN_TER_SCHEMES) -> dict:
-    month, rows = await fetch_ter(client, today)
+async def store_ter(store, rows: Dict[str, TerRow], month: Optional[str], *, min_schemes: int = MIN_TER_SCHEMES, newer_only: bool = False) -> dict:
+    """The checks and the write of an expense-ratio file, shared by the nightly fetch and the administrators' import. `newer_only` (the import) refuses a file
+    whose newest day is older than the figures already held, so an old download can never replace newer figures."""
     if len(rows) < min_schemes:
         return {"status": "refused", "why": f"AMFI's TER file for {month or 'the newest month'} gave {len(rows)} schemes (expected at least {min_schemes})"}
+    newest = max(r.day for r in rows.values())
     async with store.pool.acquire() as conn:
+        if newer_only:
+            held = await conn.fetchval("SELECT max(ter_date) FROM mf_ter")
+            if held and newest < held:
+                return {"status": "refused", "why": f"This file's newest day is {newest.isoformat()}, older than the figures already held ({held.isoformat()}); nothing was replaced"}
         async with conn.transaction():
             await conn.execute("DELETE FROM mf_ter")
             await conn.executemany("INSERT INTO mf_ter (name_key, name, category, ter_regular, ter_direct, ter_date) VALUES ($1, $2, $3, $4, $5, $6)",
                                    [(r.key, r.name, r.category, r.regular, r.direct, r.day) for r in rows.values()])
-    return {"status": "ok", "month": month, "schemes": len(rows), "day": max(r.day for r in rows.values()).isoformat()}
+    return {"status": "ok", "month": month, "schemes": len(rows), "day": newest.isoformat()}
 
 
-async def step_aum(store, client, *, min_codes: int = MIN_AUM_CODES) -> dict:
-    label, end, codes = await fetch_aum(client, min_codes)
+async def step_ter(store, client, today: date, *, min_schemes: int = MIN_TER_SCHEMES) -> dict:
+    month, rows = await fetch_ter(client, today)
+    return await store_ter(store, rows, month, min_schemes=min_schemes)
+
+
+async def store_aum(store, label: Optional[str], end: Optional[date], codes: Dict[int, float], *, min_codes: int = MIN_AUM_CODES, newer_only: bool = False) -> dict:
+    """The checks and the write of one quarter of average AUM, shared by the nightly fetch and the administrators' import (see `store_ter` for `newer_only`)."""
     if len(codes) < min_codes or end is None:
         return {"status": "refused", "why": f"AMFI's average AUM gave {len(codes)} scheme codes for {label or 'no period'} (expected at least {min_codes})"}
     total_crore = sum(codes.values()) / 100
     async with store.pool.acquire() as conn:
+        if newer_only:
+            held = await conn.fetchval("SELECT max(aum_end) FROM mf_facts")
+            if held and end < held:
+                return {"status": "refused", "why": f"This file is for {label} (ends {end.isoformat()}), older than the quarter already held ({held.isoformat()}); nothing was replaced"}
         known = {r["code"] for r in await conn.fetch("SELECT code FROM mf_schemes")}
         items = [(c, v, end, label) for c, v in codes.items() if c in known]
         async with conn.transaction():   # one quarter replaces the other whole: a code AMFI no longer lists has no figure, never last quarter's
@@ -330,6 +345,17 @@ async def step_aum(store, client, *, min_codes: int = MIN_AUM_CODES) -> dict:
                 "ON CONFLICT (code) DO UPDATE SET aum_lakh = EXCLUDED.aum_lakh, aum_end = EXCLUDED.aum_end, aum_label = EXCLUDED.aum_label, updated_at = now()",
                 items)
     return {"status": "ok", "period": label, "codes": len(items), "industryCrore": round(total_crore)}
+
+
+async def step_aum(store, client, *, min_codes: int = MIN_AUM_CODES) -> dict:
+    label, end, codes = await fetch_aum(client, min_codes)
+    return await store_aum(store, label, end, codes, min_codes=min_codes)
+
+
+async def after_import(store) -> None:
+    """What `refresh` does once a step succeeded: the category table's fund size, expense ratio and checklist, and the cached fund pages."""
+    await mf._guarded("dashboard", mf.derive_dashboard(store))
+    await mf._bump(store, None)
 
 
 async def refresh(store, settings=None, *, client: Optional[httpx.AsyncClient] = None, today: Optional[date] = None, **limits) -> dict:

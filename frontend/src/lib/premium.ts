@@ -5,7 +5,7 @@ import { useAuth } from "./auth";
 import { useUI } from "./ui";
 import { csvText } from "./format";
 
-/** Gold-plan market and fundamentals data. The server keeps every answer saved, so repeat views come back in milliseconds. */
+/** Gold-plan market and financials data. The server keeps every answer saved, so repeat views come back in milliseconds. */
 export type MarketSection = "ipo" | "results" | "announcements" | "transcripts" | "indices" | "valuations";
 export type Feed<T> = { items: T[]; total: number; fetchedAt: string; cached?: boolean; provider: string };
 

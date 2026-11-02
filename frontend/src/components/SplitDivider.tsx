@@ -23,7 +23,7 @@ export function SplitDivider({ width, set }: { width: number; set: (w: number, s
         el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); }}
       onDoubleClick={toggle}
       onKeyDown={(e) => { if (e.key === "ArrowLeft") { e.preventDefault(); set(width - 30, true); } else if (e.key === "ArrowRight") { e.preventDefault(); set(width + 30); } else if (e.key === "Enter") toggle(); }}>
-      <button type="button" className="scr-split-btn" tabIndex={-1} aria-hidden="true" onPointerDown={(e) => e.stopPropagation()} onClick={toggle} title={width === 0 ? "Show filters" : "Hide filters"}>{width === 0 ? "›" : "‹"}</button>
+      <button type="button" className="scr-split-btn" tabIndex={-1} aria-hidden="true" onPointerDown={(e) => e.stopPropagation()} onClick={toggle} title={width === 0 ? "Show filters" : "Hide filters"}><svg viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={width === 0 ? "M4.5 2.5 8 6l-3.5 3.5" : "M7.5 2.5 4 6l3.5 3.5"} /></svg></button>
     </div>
   );
 }

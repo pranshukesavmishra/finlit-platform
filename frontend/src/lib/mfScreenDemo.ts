@@ -18,6 +18,8 @@ const EDGES: Record<string, number[]> = {
   sharpe: [-2, -1, 0, 0.5, 1, 1.5, 2, 3, 5], eq_pct: [0, 10, 25, 40, 65, 80, 100], debt_pct: [0, 10, 25, 50, 75, 100], cash_pct: [0, 2, 5, 10, 25, 50, 100], other_pct: [0, 2, 5, 10, 25, 50, 100],
   n_hold: [0, 10, 25, 50, 75, 100, 150, 250, 500], top10: [0, 30, 50, 70, 100], max_hold: [0, 2, 5, 8, 12, 20, 40, 100], cf_aum_mom: [-10, -5, -2, 0, 2, 5, 10], cf_aum_yoy: [-20, 0, 10, 20, 40, 80],
   cf_folio_mom: [-3, -1, 0, 1, 2, 5], cf_share: [0, 0.5, 1, 2, 5, 10, 20, 50],
+  up_m: [-5, 0, 1, 2, 4, 6, 10, 15, 20, 30], cy1: [-40, -20, -10, 0, 5, 10, 15, 20, 30, 40, 60], cy2: [-40, -20, -10, 0, 5, 10, 15, 20, 30, 40, 60], cy3: [-40, -20, -10, 0, 5, 10, 15, 20, 30, 40, 60],
+  vol_rel: [0, 0.5, 0.7, 0.9, 1, 1.1, 1.3, 1.5, 2, 3], down_dev: [0, 1, 2, 4, 6, 8, 10, 15, 20, 30],
 };
 const rand = (seed: number) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 const r1 = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d;
@@ -44,7 +46,9 @@ export function demoRows(rows: FundRow[]): ScreenRow[] {
       aumRank: null, aumShare: r1(u() * 4, 2), naChg: r1((u() - 0.4) * 20), houseAum: null, terRel: r1(0.6 + u() * 0.9, 2), terGap: r1(0.3 + u() * 1.2, 2), feeShare: r1(3 + u() * 25, 0),
       exit: { state: "nil", pct: 0, days: null },
       risk: { vol1: vol3 == null ? null : r1(vol3 * (0.8 + u() * 0.4)), vol3, worstMonth: g ? r1(debt ? u() * 0.8 : 2 + u() * 9, 2) : null, worstYear: g ? r1(debt ? u() * 3 : 8 + u() * 25) : null, negShare: g ? r1(debt ? u() * 15 : 25 + u() * 25, 0) : null,
-        belowHigh: g ? r1(20 + u() * 50, 0) : null, downCapture: g ? r1(70 + u() * 50, 0) : null, sharpe: g && vol3 && r.r3y != null ? r1((r.r3y - 6) / vol3, 2) : null, consistency: g ? r1(30 + u() * 50, 0) : null },
+        belowHigh: g ? r1(20 + u() * 50, 0) : null, downCapture: g ? r1(70 + u() * 50, 0) : null, sharpe: g && vol3 && r.r3y != null ? r1((r.r3y - 6) / vol3, 2) : null, consistency: g ? r1(30 + u() * 50, 0) : null,
+        upMonth: g ? r1(debt ? 0.4 + u() * 0.8 : 3 + u() * 9) : null, downDev: vol3 == null ? null : r1(vol3 * (0.45 + u() * 0.25)), volRel: vol3 == null ? null : r1(0.7 + u() * 0.6, 2) },
+      calYears: g ? { "1": r1(debt ? 6 + u() * 2 : -5 + u() * 35), "2": r1(debt ? 6 + u() * 2 : -5 + u() * 35), "3": r.r3y != null ? r1(debt ? 5 + u() * 3 : -10 + u() * 40) : null } : undefined,
       portfolio: hasPort ? { asOf: "2026-09-30", equity: eq, debt: r1(100 - eq - 2), cash: 2, other: 0, holdings: Math.round(25 + u() * 60), top10: r1(30 + u() * 35), largest: r1(3 + u() * 8), sector: debt ? null : "Banks", sectorPct: debt ? null : r1(12 + u() * 20) } : null,
       category: { month: "2026-09-01", flow: r1((u() - 0.3) * 6000, 0), streak: u() > 0.5 ? 3 : 0, aumMom: r1((u() - 0.3) * 6), aumYoy: r1(u() * 40), share: r1(1 + u() * 9), folioMom: r1((u() - 0.3) * 3) },
     };

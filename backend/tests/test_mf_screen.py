@@ -6,7 +6,7 @@ Expected answers are worked out here, in plain Python, from the same seeded arra
 import json
 import math
 import statistics
-from datetime import date
+from datetime import date, datetime, timezone
 
 import httpx
 import pytest
@@ -33,6 +33,20 @@ def test_volatility_worst_month_and_shares_by_hand():
     assert calc.worst_loss([0.01, 0.02]) == 0.0                     # a fund whose every month rose has no loss, not a negative one
     assert calc.neg_share([0.01, 0.02]) == 0.0
     assert calc.volatility([0.01, 0.02]) is None                     # fewer than three returns: no figure
+
+
+def test_biggest_gain_downside_deviation_and_calendar_years_by_hand():
+    r = [0.1, -0.1, 0.05, -0.02]
+    assert calc.biggest_gain(r) == pytest.approx(10.0)
+    assert calc.biggest_gain([-0.03, -0.01]) == pytest.approx(-1.0)            # every month fell: the biggest gain is still a fall, shown as one
+    assert calc.biggest_gain([]) is None
+    # only the falls count, measured from 0: sqrt((0.01 + 0.0004) / 4) x sqrt 12
+    assert calc.downside_dev(r) == pytest.approx(math.sqrt((0.01 + 0.0004) / 4) * math.sqrt(12) * 100)
+    assert calc.downside_dev([0.01, 0.02, 0.03]) == 0.0                     # a fund that never fell has no downside, not a missing figure
+    assert calc.downside_dev([0.01, -0.02]) is None                          # fewer than three returns
+    by = {calc.month_key(date(2024, 12, 31)): 100.0, calc.month_key(date(2025, 12, 31)): 112.0}
+    assert calc.calendar_return(by, 2025) == pytest.approx(12.0)
+    assert calc.calendar_return(by, 2024) is None                            # December 2023 missing: no figure, never a guess
 
 
 def test_below_high_counts_closes_under_an_earlier_high():
@@ -193,6 +207,7 @@ async def world(store):
     app.state.settings = None
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
         c.funds, c.job = funds, res
+        c.job_run = datetime.now(timezone.utc).date()     # the job's run day picks the calendar years
         yield c
 
 
@@ -230,11 +245,13 @@ async def test_job_wrote_a_row_per_scheme_and_values_match_a_plain_python_recoun
                 r = [navs[i] / navs[i - 1] - 1 for i in range(1, 37)]
                 checked += 1
                 ok = (row["x_vol3"] == pytest.approx(statistics.stdev(r) * math.sqrt(12) * 100, abs=1e-3)
+                      and row["x_up_month"] == pytest.approx(max(r) * 100, abs=1e-3)
+                      and row["x_down_dev"] == pytest.approx(math.sqrt(sum(min(x, 0) ** 2 for x in r) / 36) * math.sqrt(12) * 100, abs=1e-3)
                       and row["x_worst_loss"] == pytest.approx(max(0, -min(r)) * 100, abs=1e-3)
                       and row["x_neg_share"] == pytest.approx(sum(1 for x in r if x < 0) / 36 * 100, abs=1e-3))
                 wrong += not ok
             else:
-                assert row["x_vol3"] is None and row["x_neg_share"] is None, f.name        # a young fund has no 3-year risk figures, not zeros
+                assert row["x_vol3"] is None and row["x_neg_share"] is None and row["x_down_dev"] is None, f.name        # a young fund has no 3-year risk figures, not zeros
         assert checked > 50 and wrong == 0
         # excess over the peer median, recomputed: every Direct Growth fund of Mid Cap
         mids = [f for f in c.funds if "Mid Cap" in f.cat]
@@ -245,6 +262,27 @@ async def test_job_wrote_a_row_per_scheme_and_values_match_a_plain_python_recoun
             assert (ex is None) == (f.name not in r3)
             if ex is not None:
                 assert ex == pytest.approx(r3[f.name] - med, abs=1e-3)
+        # calendar years: the three years before the run's year, December to December, the same years for every fund
+        ycheck = 0
+        for f in c.funds:
+            row = await conn.fetchrow("SELECT x_cy1, x_cy2, x_cy3 FROM mf_screen WHERE x_code = $1", f.codes["Direct|Growth"])
+            for i, col in ((1, "x_cy1"), (2, "x_cy2"), (3, "x_cy3")):
+                y = c.job_run.year - i
+                a, b = f.navs.get((y - 1, 12)), f.navs.get((y, 12))
+                if a is None or b is None:
+                    assert row[col] is None, (f.name, col)
+                else:
+                    assert row[col] == pytest.approx((b / a - 1) * 100, abs=1e-3)
+                    ycheck += 1
+        assert ycheck > 50
+        # volatility against the category: the fund's 3-year volatility over the median of its sub-category and plan (Direct Growth of Mid Cap)
+        pairs = [tuple(await conn.fetchrow("SELECT x_vol_rel, x_vol3 FROM mf_screen WHERE x_code = $1", f.codes["Direct|Growth"])) for f in mids]
+        medv = statistics.median([v for _, v in pairs if v is not None])
+        assert sum(1 for _, v in pairs if v is not None) >= 3
+        for vr, v in pairs:
+            assert (vr is None) == (v is None)
+            if v is not None:
+                assert vr == pytest.approx(v / medv, abs=1e-3)
         # IDCW options are never given return-derived figures
         assert await conn.fetchval("SELECT count(*) FROM mf_screen s JOIN mf_schemes m ON m.code = s.x_code WHERE m.option_class = 'IDCW' AND (s.x_vol3 IS NOT NULL OR s.x_ex3y IS NOT NULL)") == 0
         # houses without a portfolio file have NULL, never 0, in every portfolio column
@@ -290,6 +328,24 @@ async def test_default_list_is_growth_plans_of_active_funds_and_old_parameters_w
     a = (await lst(c, ("min1y", "5"), ("max1y", "30")))["total"]
     b = (await lst(c, ("rng", "r1y:5:30")))["total"]
     assert a == b > 0
+
+
+@needs_db
+async def test_calendar_year_downside_and_volatility_vs_category_filter_and_show(world):
+    c = world
+    async with c._transport.app.state.store.pool.acquire() as conn:
+        want = await conn.fetchval("SELECT count(*) FROM mf_screen s JOIN mf_schemes m ON m.code = s.x_code WHERE m.option_class = 'Growth' AND m.plan IN ('Direct', 'Regular') AND s.x_cy1 >= 10")
+        want_dd = await conn.fetchval("SELECT count(*) FROM mf_screen s JOIN mf_schemes m ON m.code = s.x_code WHERE m.option_class = 'Growth' AND m.plan IN ('Direct', 'Regular') AND s.x_down_dev <= 3 AND s.x_vol_rel <= 1")
+    assert want > 0
+    assert (await lst(c, ("rng", "cy1:10:")))["total"] == want
+    assert (await lst(c, ("rng", "down_dev::3"), ("rng", "vol_rel::1")))["total"] == want_dd
+    d = await lst(c, ("rng", "cy1:10:"), ("extra", "true"), ("sort", "cy1"), ("dir", "desc"))
+    ys = [r["x"]["calYears"]["1"] for r in d["items"]]
+    assert all(y is not None and y >= 10 for y in ys) and ys == sorted(ys, reverse=True)
+    x = d["items"][0]["x"]["risk"]
+    assert set(("upMonth", "downDev", "volRel")) <= set(x)
+    h = await fac(c, ("rng", "cy1:10:"))
+    assert "cy1" in h["numeric"] and "down_dev" in h["numeric"] and "up_m" in h["numeric"]
 
 
 @needs_db
