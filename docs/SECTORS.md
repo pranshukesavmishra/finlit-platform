@@ -110,8 +110,9 @@ Measured on a generated folder of the real scale (2,800 stocks, Jan 2016 to Oct 
 |---|---|
 | building the market panel (load, adjust, pivot) | v2.0.1 as delivered: peak **2,449 MB**; with the two memory patches: peak **1,495 MB**, about 40 s |
 | holding the engine (panel + universe) | about 980 MB steady |
-| per-stock scores and peer labels, 2,467 stocks | RSS stays about 1,050 to 1,100 MB |
-| batch time | about 1.3 to 1.5 s per stock on one core of a fast 4-core machine: **about @TIME@ minutes** for 2,467 stocks (the package's own figure was 20 minutes) |
+| per-stock scores and peer labels, 2,467 stocks | RSS grows from about 960 MB to **1,214 MB** by the last stock; the whole run's peak stays the 1,495 MB of the panel build; 0 errors |
+| output on disk | about 76M (one release; two are kept) |
+| batch time | about 1.3 to 1.5 s per stock on one core of a fast 4-core machine: **53 minutes** for all 2,467 stocks, start to finish (the package's own figure was 20 minutes; this run shared the machine with the test suites) |
 | cached panel on disk | 285 MB |
 
 Honest reading for the t3.small (2 vCPU, about 2 GB, app container limit 1,200 MB): **the job needs about 1.5 GB at its peak, so it does not fit the 1,200 MB app container next to the website.** The registry weight is 1500 MB, so the supervisor's memory gate keeps it waiting ("waiting for memory: ... needs about 1500 MB") rather than starting and being killed; nothing else is affected. The time on the t3.small was not measured (expect longer than the figure above).
