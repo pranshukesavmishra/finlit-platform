@@ -31,8 +31,8 @@ export function ProfitReality({ symbol, lender, sector, industry }: { symbol: st
   const hasWc = !lender && ys.some((y) => y.receivablesGrowth != null || y.inventoryGrowth != null);
   const hasCash = !lender && ys.some((y) => y.cfoToProfit != null);
   return (
-    <div className="card pr-card" aria-label="Profit Reality Check">
-      <div className="card-h"><h3><span className="ci"><Icon name="shield" /></span>Profit Reality Check<ChartHelp id="profit-reality" /></h3><span className="s">Is the profit real, repeatable and backed by cash? · ₹ crore</span></div>
+    <div className="card pr-card" aria-label="Is the profit clean?">
+      <div className="card-h"><h3><span className="ci"><Icon name="shield" /></span>Is the profit clean?<ChartHelp id="profit-reality" /></h3><span className="s">Is the profit real, repeatable and backed by cash? · ₹ crore</span></div>
 
       <EarningsIntel pr={r} sector={sector} industry={industry} />
 

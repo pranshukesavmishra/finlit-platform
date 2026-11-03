@@ -9,7 +9,9 @@ import { ChartHelp } from "../components/ChartHelp";
 import { Plain } from "../components/Plain";
 import { Spark } from "../charts/Small";
 import { LineChart } from "../charts/LineChart";
-import { cr, fmtUnit, initials, nf, pct } from "../lib/format";
+import { MINUS, cr, fmtUnit, initials, nf, num, pct } from "../lib/format";
+import { Fragment } from "react";
+import { NotMeaningful, ReadingCell, ReadingFilter, ReadingMobileRow, useRatioReadings } from "./RatioReading";
 import { prefetchStock, type Peers, type Ratios, type Segments, type Summary } from "../lib/api";
 import { buckets, metric } from "./derive";
 import { useUI } from "../lib/ui";
@@ -74,29 +76,48 @@ function TrendCard({ k, label, col, vals, better }: { k: string; label: string; 
   );
 }
 
-function HistoryTable({ r }: { r: Ratios }) {
+/** The change of a ratio in its own unit (+31 days, +0.33 pts, +0.10×): a percent change of a ratio misleads. */
+export function ratioChange(unit: string | null | undefined, last: number, prev: number): { text: string; delta: number } {
+  const d = last - prev, sg = d > 0 ? "+" : d < 0 ? MINUS : "", a = Math.abs(d);
+  return { delta: d, text: unit === "days" ? `${sg}${nf(a, 0)} days` : unit === "x" ? `${sg}${nf(a, 2)}×` : `${sg}${nf(a, 2)} pts` };
+}
+
+function HistoryTable({ r, profile }: { r: Ratios; profile?: unknown }) {
   const hist = r.history;
-  const rows = Object.entries(hist.rows).filter(([k]) => r.glossary[k]?.label);
+  const readings = useRatioReadings(r, profile);
+  const [group, setGroup] = useState("all");
+  const rows = Object.entries(hist.rows).filter(([k]) => r.glossary[k]?.label && (group === "all" || readings[k]?.group === group));
+  const colSpan = hist.periods.length + 4;
   return (
+    <>
+    <ReadingFilter readings={readings} value={group} onChange={setGroup} />
     <HScroll className="" label="table"><table className="htab">
-      <thead><tr><th>Ratio</th>{hist.periods.map((p, i) => <th key={p} className={i === hist.periods.length - 1 ? "latest" : ""}>{p}</th>)}<th>Change</th><th>Trend</th></tr></thead>
+      <thead><tr><th>Ratio</th>{hist.periods.map((p, i) => <th key={p} className={i === hist.periods.length - 1 ? "latest" : ""}>{p}</th>)}<th>Change</th><th>Trend</th><th className="rr-col">What it tells you</th></tr></thead>
       <tbody>{rows.map(([k, vals]) => {
-        const nn = vals.filter((x): x is number => x != null), lo = Math.min(...nn), hi = Math.max(...nn), better = r.glossary[k].better || r.latest[k]?.better;
-        const last = nn[nn.length - 1], prev = nn[nn.length - 2], ch = prev ? ((last - prev) / Math.abs(prev)) * 100 : null;
-        const up = (ch ?? 0) >= 0, good = better === "lower" ? !up : better === "higher" ? up : null;
+        const rd = readings[k];
+        const nn = vals.filter((x, i): x is number => x != null && !rd?.nm?.[i]), lo = Math.min(...nn), hi = Math.max(...nn), better = r.glossary[k].better || r.latest[k]?.better;
+        const lastI = vals.length - 1, last = vals[lastI], prev = vals[lastI - 1];
+        const ch = last != null && prev != null && !rd?.nm?.[lastI] && !rd?.nm?.[lastI - 1] ? ratioChange(r.latest[k]?.unit, last, prev) : null;
+        const up = (ch?.delta ?? 0) >= 0, good = better === "lower" ? !up : better === "higher" ? up : null;
         const sc = good == null ? "var(--c2)" : good ? "var(--gain)" : "var(--loss)";
         return (
-          <tr key={k}><td>{r.glossary[k].label}</td>
+          <Fragment key={k}>
+          <tr className={rd?.group === "weak" ? "rr-weak-row" : undefined}><td>{r.glossary[k].label}</td>
             {vals.map((x, i) => {
-              let t = x == null || hi === lo ? 0.5 : (x - lo) / (hi - lo); if (better === "lower") t = 1 - t;
-              const bg = x == null ? "transparent" : t >= 0.5 ? `color-mix(in srgb, var(--gain) ${Math.round((t - 0.5) * 44)}%, transparent)` : `color-mix(in srgb, var(--loss) ${Math.round((0.5 - t) * 44)}%, transparent)`;
-              return <td key={i} className={i === vals.length - 1 ? "latest" : ""} style={{ background: good == null ? undefined : bg }}>{x == null ? <span className="faint">—</span> : nf(x)}</td>;
+              const bad = !!rd?.nm?.[i];
+              let t = x == null || bad || hi === lo ? 0.5 : (x - lo) / (hi - lo); if (better === "lower") t = 1 - t;
+              const bg = x == null || bad ? "transparent" : t >= 0.5 ? `color-mix(in srgb, var(--gain) ${Math.round((t - 0.5) * 44)}%, transparent)` : `color-mix(in srgb, var(--loss) ${Math.round((0.5 - t) * 44)}%, transparent)`;
+              return <td key={i} className={i === vals.length - 1 ? "latest" : ""} style={{ background: good == null ? undefined : bg }}>{x == null ? <span className="faint">—</span> : bad ? <NotMeaningful reason={rd.nm[i] as string} /> : num(x)}</td>;
             })}
-            <td>{ch == null ? "—" : <span className={"dchip " + (good == null ? "" : good ? "up" : "down")}>{up ? "▲" : "▼"} {nf(Math.abs(ch), 1)}%</span>}</td>
-            <td><Spark values={vals} color={sc} w={84} h={30} /></td></tr>
+            <td>{ch == null ? "—" : <span className={"dchip " + (good == null ? "" : good ? "up" : "down")}>{ch.delta === 0 ? "" : up ? "▲ " : "▼ "}{ch.text}</span>}</td>
+            <td><Spark values={vals.map((x, i) => (rd?.nm?.[i] ? null : x))} color={sc} w={84} h={30} /></td>
+            <td className="rr-col"><ReadingCell reading={rd} /></td></tr>
+          <ReadingMobileRow reading={rd} colSpan={colSpan} />
+          </Fragment>
         );
       })}</tbody>
-    </table><p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Green cells are the best years for that ratio, red the weakest. Where "better" depends on the business, cells stay uncoloured.</p></HScroll>
+    </table><p className="faint" style={{ fontSize: 12, margin: "10px 0 0" }}>Green cells are the most favourable years for that ratio, red the weakest. Where "better" depends on the business, cells stay uncoloured. n/m: the figure cannot be read that year (for example a negative base). The readings are worked out by fixed rules from these numbers; they describe, they are not a recommendation.</p></HScroll>
+    </>
   );
 }
 
@@ -123,12 +144,12 @@ function ValuationHistory({ r }: { r: Ratios }) {
 export function RatiosSection({ r, lender = false, sector, industry, labels }: { r?: Ratios; lender?: boolean; sector?: string | null; industry?: string | null; labels?: (string | null | undefined)[] }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
-  if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
+  if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
   const hist = r.history, meters = METERS.filter((m) => r.latest[m.key]);
   const cur = meters.find((m) => m.key === sel) || meters[0];
   return (
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
-      <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, quality and safety" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
+      <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
       <Plain>Ratios turn big numbers into fair comparisons. The meters below show where each one sits against common rules of thumb. Zones are a starting point: always compare with companies in the same industry.</Plain>
       <div className="mtr-grid">{meters.map((m) => <Meter key={m.key} m={m} r={r} on={cur?.key === m.key} onSel={() => setSel(m.key)} />)}</div>
       {cur && <p className="mtr-say" aria-live="polite"><b>{r.latest[cur.key].label}</b> {cur.say(r.latest[cur.key].value)}</p>}
@@ -137,6 +158,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
       <DuPont symbol={r.meta.symbol} lender={lender} />
+      <SectionHead id="earnings" no="Earnings & cash" icon="shield" tier="gold" title="Earnings & cash quality: Is the profit real, and is it turning into cash?" sub="One section: profit against cash, collections and stock, one-off items, then the rule-based checks. Each check appears once." color="--p-profit" />
       <ProfitReality symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} />
       <RevenueCash symbol={r.meta.symbol} lender={lender} labels={labels} />
       <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
@@ -168,7 +190,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
       <Gate tier="gold" title="Detailed ratio analysis" points={["Every ratio with its history", "Quality, growth, solvency and efficiency", "Full multi-year table"]}>
         <div className="card acc" style={{ marginTop: 16, "--ac": "var(--p-profit)" } as React.CSSProperties}>
           <div className="card-h"><h3><span className="ci"><Icon name="table" /></span>Ratio history<ChartHelp id="ratio-history" /></h3><TierChip tier="gold" /></div>
-          <HistoryTable r={r} />
+          <HistoryTable r={r} profile={{ sector, industry, subIndustry: labels?.[2] }} />
           <ValuationHistory r={r} />
         </div>
       </Gate>
@@ -196,7 +218,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
   const N = peers.length, CX = 190, CY = 190, RR = 128;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title="Companies in the same space" sub="Select a company to open its report." color="--gold-deep" />
+      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
@@ -259,7 +281,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
-      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title="Buckets, triggers and segments" sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits | Where the revenue comes from`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
       <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>

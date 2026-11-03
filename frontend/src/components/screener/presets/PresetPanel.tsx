@@ -46,7 +46,7 @@ export function PresetPanel({ basics, basicsActive, route }: { basics: ReactNode
     <div className="psx-panel">
       {r.list.isLoading && <p className="psx-note" role="status">Loading prebuilt screens…</p>}
       {r.list.isError && <p className="psx-note" role="status">Prebuilt screens are unavailable right now. The Prism quick views below still work.</p>}
-      {r.groups.map((g) => (
+      {r.groups.filter((g) => g.id !== "prism-basics").map((g) => (
         <Group key={g.id} id={g.id} name={g.name} count={g.presets.length} open={isOpen(g.id)} onToggle={() => setTouched((t) => ({ ...t, [g.id]: !isOpen(g.id) }))}>
           <div className="psx-cards">{g.presets.map((p) => <Card key={p.id} p={p} on={r.id === p.id} onPick={() => pick(p)} />)}</div>
         </Group>))}

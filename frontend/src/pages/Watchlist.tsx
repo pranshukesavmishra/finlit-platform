@@ -20,14 +20,14 @@ import { ChartHelp } from "../components/ChartHelp";
 
 type GroupBy = "none" | "sector" | "size" | "band" | "style";
 const GROUPS: { id: GroupBy; label: string; gold?: boolean }[] = [{ id: "none", label: "No grouping" }, { id: "sector", label: "Industry" }, { id: "size", label: "Company size" }, { id: "band", label: "FinLit band", gold: true }, { id: "style", label: "Style", gold: true }];
-const SORTS: { id: NumKey | "name"; label: string }[] = [{ id: "overall", label: "FinLit score" }, { id: "change_pct", label: "Today's change" }, { id: "market_cap", label: "Market cap" }, { id: "pe", label: "P/E" }, { id: "dividend_yield", label: "Dividend yield" }, { id: "name", label: "Name" }];
+const SORTS: { id: NumKey | "name"; label: string }[] = [{ id: "overall", label: "FinLit IQ" }, { id: "change_pct", label: "Today's change" }, { id: "market_cap", label: "Market cap" }, { id: "pe", label: "P/E" }, { id: "dividend_yield", label: "Dividend yield" }, { id: "name", label: "Name" }];
 const size = (c: number | null) => (c == null ? "Unknown" : c >= 100000 ? "Large cap" : c >= 30000 ? "Mid cap" : c >= 5000 ? "Small cap" : "Micro cap");
 const style = (r: Row) => (r.pe == null ? "Unknown" : r.pe < 15 || (r.pb != null && r.pb < 1.5) ? "Value" : r.pe > 35 ? "Premium growth" : "Blend");
 const keyOf = (g: GroupBy, r: Row) => (g === "sector" ? r.sector || "Other" : g === "size" ? size(r.market_cap) : g === "band" ? (r.band ? BAND_LABEL[r.band] : "Unscored") : g === "style" ? style(r) : "");
 
 export function signals(r: Row, target?: number): string[] {
   const out: string[] = [];
-  if (r.band === "watch") out.push(`FinLit score is ${r.overall}, in the Watch band`);
+  if (r.band === "watch") out.push(`FinLit IQ is ${r.overall}, in the Watch band`);
   if ((r.pillar_balance ?? 100) <= 35) out.push(`Weak balance sheet (${r.pillar_balance}/100)`);
   if ((r.return_1m ?? 0) <= -10) out.push(`Fell ${nf(Math.abs(r.return_1m!), 1)}% in a month`);
   if ((r.pe ?? 0) >= 60) out.push(`Expensive at ${nf(r.pe!, 0)}× earnings`);
@@ -106,7 +106,7 @@ export function WatchlistPage() {
             <div className="wk"><b>{items.length}</b><span>Stocks in this list</span></div>
             <div className="wk up"><b>{adv}</b><span>Rising today</span></div>
             <div className="wk down"><b>{dec}</b><span>Falling today</span></div>
-            <div className="wk"><b>{avg == null ? "—" : nf(avg, 0)}</b><span>Average FinLit score</span></div>
+            <div className="wk"><b>{avg == null ? "—" : nf(avg, 0)}</b><span>Average FinLit IQ</span></div>
             <div className={"wk" + (attention.length ? " warn" : "")}><b>{gold ? attention.length : "—"}</b><span>{gold ? "Need a second look" : "Needs attention · Gold"}</span></div>
           </div>
 

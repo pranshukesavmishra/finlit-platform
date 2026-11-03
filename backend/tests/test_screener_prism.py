@@ -69,7 +69,7 @@ def test_redaction_by_plan():
 
 
 def test_two_screeners_two_plans_prism_only_for_gold_and_the_finlit_score_only_for_silver_and_up():
-    """Basic score screener = Silver (FinLit score fields); Advanced score screener = Gold (Prism fields). Every field of each model is checked, not a sample."""
+    """Basic score screener = Silver (FinLit IQ fields); Advanced score screener = Gold (Prism fields). Every field of each model is checked, not a sample."""
     full = {f: 61.5 for f in PRISM_FIELDS + MODEL_FIELDS}
     rows = [{"symbol": "SHOWCASE", **full}, {"symbol": "OTHER", **full}]
     for plan in ("basic", "silver"):                                                              # Prism: not for Basic, not for Silver
@@ -77,7 +77,7 @@ def test_two_screeners_two_plans_prism_only_for_gold_and_the_finlit_score_only_f
         assert all(out["OTHER"][f] is None for f in PRISM_FIELDS), plan
         assert not any("61.5" in repr(v) for k, v in out["OTHER"].items() if k.startswith("prism_")), plan
         assert all(out["SHOWCASE"][f] == 61.5 for f in PRISM_FIELDS + MODEL_FIELDS), plan           # the free example company stays open
-    assert all(r[f] is None for r in redact_universe(rows, "basic", {"SHOWCASE"}) if r["symbol"] == "OTHER" for f in MODEL_FIELDS)   # FinLit score: not for Basic
+    assert all(r[f] is None for r in redact_universe(rows, "basic", {"SHOWCASE"}) if r["symbol"] == "OTHER" for f in MODEL_FIELDS)   # FinLit IQ: not for Basic
     silver = next(r for r in redact_universe(rows, "silver", {"SHOWCASE"}) if r["symbol"] == "OTHER")
     assert all(silver[f] == 61.5 for f in MODEL_FIELDS)                                           # ... but for Silver
     gold = redact_universe(rows, "gold", {"SHOWCASE"})
@@ -103,7 +103,7 @@ async def test_the_universe_lists_the_newest_rating_prefers_consolidated_and_kee
     assert none["prism_state"] == "none" and none["prism_final"] is None
     cover = body["prism"]
     assert cover["rated"] == 2 and cover["stored"] == 3 and cover["not_rated"] == 1 and cover["total"] == len(body["rows"]) and cover["per_night"] == prism.widen_per_night()
-    # the rating is on its way to Gold only: Silver keeps the FinLit score, a visitor neither; the showcase company stays open
+    # the rating is on its way to Gold only: Silver keeps the FinLit IQ, a visitor neither; the showcase company stays open
     silver = await signed_in(app, "silver@example.com", plan="silver")
     raw = (await silver.get("/api/screener/universe")).content
     srows = {r["symbol"]: r for r in json.loads(raw)["rows"]}

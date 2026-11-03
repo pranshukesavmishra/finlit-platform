@@ -1,0 +1,9 @@
+
+/* The top of a Prism report is the company page's card pair (see components/prism/pzr/CardTop.tsx) */
+.pzr-cardtop { margin: 0 0 22px; }
+.pzr-ct-h { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.pzr-ct-h h2 { margin: 0; font: 500 clamp(24px, 3.2vw, 34px)/1.15 var(--serif, Georgia, serif); }
+.pzr-ct-sub { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+.pzr-ct-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.pzr-ct-chips .pzr-st { color: var(--text); background: var(--s1); border: 1px solid var(--border-strong, var(--border)); padding: 5px 12px; border-radius: 999px; font: 700 12px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.pzr-ct-chips .pzr-lab { font-size: 18px; }

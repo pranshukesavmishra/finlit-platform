@@ -1521,7 +1521,7 @@
    ]
   },
   {
-   "term": "FinLit score",
+   "term": "FinLit IQ",
    "topic": "FinLit words",
    "meaning": "FinLit's 0–100 summary of a company's health: the average of five pillar scores, each built from ratios scored against fixed thresholds.",
    "why": "It turns dozens of numbers into one readable starting point.",
@@ -1529,7 +1529,7 @@
    "formula": "",
    "id": "finlit-score",
    "letter": "F",
-   "finlit": "The overall score averages all five pillars including Technical; the screener's fundamental score averages the four business pillars.",
+   "finlit": "The overall score averages all five pillars including Technical; the screener's Growth & Profitability score averages the four business pillars.",
    "aliases": [
     "Score change since last quarter",
     "overall",
@@ -1545,7 +1545,7 @@
    "formula": "Prism score = 0.40 × Growth & Profitability + 0.30 × Valuation + 0.20 × Quality + 0.10 × Risk",
    "id": "finlit-prism",
    "letter": "F",
-   "finlit": "Prism is separate from the FinLit score: the FinLit score averages five pillars scored against fixed thresholds, while Prism weighs many factors by industry group and applies rules for losses and weak businesses. Every Prism report can be saved as a PDF.",
+   "finlit": "Prism is separate from the FinLit IQ: the FinLit IQ averages five pillars scored against fixed thresholds, while Prism weighs many factors by industry group and applies rules for losses and weak businesses. Every Prism report can be saved as a PDF.",
    "aliases": [
     "Prism",
     "Prism rating",
@@ -1681,7 +1681,7 @@
    "formula": "",
    "id": "fundamental-score-and-technical-score",
    "letter": "F",
-   "finlit": "The overall FinLit score averages all five pillars including Technical; the fundamental score averages only the four business pillars.",
+   "finlit": "The overall FinLit IQ averages all five pillars including Technical; the Growth & Profitability score averages only the four business pillars.",
    "aliases": [
     "Fundamental score",
     "fundamental score",
@@ -2940,7 +2940,7 @@
   {
    "term": "Pillars (Quality, Growth, Profitability, Balance sheet, Technical)",
    "topic": "FinLit words",
-   "meaning": "The five areas FinLit scores. Quality covers returns on capital and how well profit turns into cash; Growth covers sales and profit growth; Profitability covers margins and how hard assets work; Balance sheet covers how much of the assets are funded by liabilities and whether profit is backed by cash; Technical covers the price trend.",
+   "meaning": "The five areas FinLit IQs. Quality covers returns on capital and how well profit turns into cash; Growth covers sales and profit growth; Profitability covers margins and how hard assets work; Balance sheet covers how much of the assets are funded by liabilities and whether profit is backed by cash; Technical covers the price trend.",
    "why": "A stock can be strong in some pillars and weak in others; the pillars show where.",
    "how": "Read the pillars before the overall score: a 60 made of 80s and 40s is very different from steady 60s.",
    "formula": "",
@@ -4144,7 +4144,7 @@
    "topic": "Price and technicals",
    "meaning": "Studying price and trading volume to judge trends and momentum, rather than studying the business itself (fundamental analysis).",
    "why": "Price behaviour shows what buyers and sellers are doing right now.",
-   "how": "FinLit keeps the technical score separate from the fundamental score so you can read each on its own.",
+   "how": "FinLit keeps the technical score separate from the Growth & Profitability score so you can read each on its own.",
    "formula": "",
    "id": "technical-analysis",
    "letter": "T",

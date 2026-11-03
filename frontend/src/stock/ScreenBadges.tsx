@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ApiError, apiGet } from "../lib/api";
 import { dateIN } from "../lib/format";
 import { useGold } from "../lib/premium";
+import { Row } from "./HeaderScore";
 
 type ScreensFor = { symbol: string; screens: { id: string; name: string; group: string; asOf: string | null }[]; ready: boolean; asOf: string | null };
 
@@ -15,9 +16,10 @@ export function ScreenBadges({ symbol }: { symbol: string }) {
   const screens = q.data?.screens ?? [];
   if (!gold || q.isError || !screens.length) return null;
   return (
-    <div className="hs-screens" role="group" aria-label="Prebuilt screens this company is in">
-      <span className="hs-sc-k">In screens</span>
+    <Row label="In screens">
+      <div className="hs-screens" role="group" aria-label="Prebuilt screens this company is in">
       {screens.map((s) => <Link key={s.id} className="hs-sc" to={`/advanced-score-screener?preset=${encodeURIComponent(s.id)}`} title={`${s.name}${s.asOf ? `, as of ${dateIN(s.asOf)}` : ""}. A screen narrows a list; it is not a recommendation.`}>{s.name}</Link>)}
-    </div>
+      </div>
+    </Row>
   );
 }

@@ -58,7 +58,7 @@ export function QuarterSection({ f }: { f?: Financials }) {
   const cols = [last, last - 1, yoy].filter((i) => i >= 0);
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="quarter" no="04 · Latest quarter" icon="notes" tier="basic" title={`Results for ${q.periods[last]}`} sub={`Quarter ended ${end}. Compared with the previous quarter and the same quarter a year earlier.`} color="--gold-deep" />
+      <SectionHead id="quarter" no="04 · Latest quarter" icon="notes" tier="basic" title={`${q.periods[last]} quarter against a year ago`} sub={`Quarter ended ${end}. Compared with the previous quarter and the same quarter a year earlier.`} color="--gold-deep" />
       {rvY != null && npY != null && <Plain tone={npY >= 0 ? "good" : "warn"}>In the latest quarter, sales {rvY >= 0 ? "grew" : "fell"} {nf(Math.abs(rvY), 1)}% and profit {npY >= 0 ? "rose" : "fell"} {nf(Math.abs(npY), 1)}% compared with the same quarter last year.{opm[last] != null && opm[yoy] != null ? ` The operating margin ${(opm[last] as number) >= (opm[yoy] as number) ? "widened" : "narrowed"} from ${nf(opm[yoy] as number, 1)}% to ${nf(opm[last] as number, 1)}%.` : ""}</Plain>}
       <div className="qk">{tiles.map((t) => (
         <div className="qt" key={t.k} style={{ "--qc": t.c } as React.CSSProperties}>
@@ -151,7 +151,7 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
   const missing = built.filter((b) => !b.d).map((b) => b.c.title);
   return (
     <section className="block" style={{ "--sc": "var(--gold)" } as React.CSSProperties}>
-      <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How the numbers have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold"
+      <SectionHead id="trends" no="06 · Trends" icon="line" tier="basic" title="How sales, profit and cash have moved" sub="Quarter by quarter or year by year. Hover a column for its exact value." color="--gold"
         aside={<div className="seg" role="group" aria-label="Period" onKeyDown={segKeys}><button type="button" aria-pressed={mode === "q"} tabIndex={mode === "q" ? 0 : -1} onClick={() => setMode("q")}>Quarterly</button><button type="button" aria-pressed={mode === "a"} tabIndex={mode === "a" ? 0 : -1} onClick={() => setMode("a")}>Annual</button></div>} />
       <div className="tr-bar">
         <div className="seg" role="tablist" aria-label="Trend groups" onKeyDown={segKeys}>{([["key", "Key metrics"], ["margin", "Margins and investment"], ["div", "Dividends"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" id={"trtab-" + k} aria-controls="trpanel" tabIndex={tab === k ? 0 : -1} aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>

@@ -35,11 +35,11 @@ const BAND_ROWS = [["hi", "Green", "70 or more", "var(--band-hi)"], ["mid", "Ora
 /* ---------------------------------------------------------------- page */
 
 export function HoldingsPage() {
-  useDocTitle("My portfolio", "Add the shares you hold, by name or from a CSV, and see each one's FinLit score, the portfolio's average score, band mix and sector spread.");
+  useDocTitle("My portfolio", "Add the shares you hold, by name or from a CSV, and see each one's FinLit IQ, the portfolio's average score, band mix and sector spread.");
   const { plan, toast } = useUI();
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  const model = modelFor(plan, isAdmin);          // Silver: the basic FinLit score. Gold: FinLit Prism only. Basic: the page is gated.
+  const model = modelFor(plan, isAdmin);          // Silver: the basic FinLit IQ. Gold: FinLit Prism only. Basic: the page is gated.
   const [params, setParams] = useSearchParams();
   const tab = parseTab(params.get("tab")), period = parsePeriod(params.get("period"));
   const go = (t: Tab, pd: Period = period) => setParams(withTab(params.toString(), t, pd), { replace: true });
@@ -89,7 +89,7 @@ export function HoldingsPage() {
       <PageHeader plan="silver" title="My portfolio" art="portfolio" links={["/mf-portfolio", "/watchlist", "/alerts"]}
         description={<>Add the shares you hold and see how strong they are: <b>each company's score, ratios and latest financials</b>, and the portfolio as a whole. Only names are needed; nothing is sent to a broker.</>}
         stats={[{ icon: "building", value: lines.length > 0 ? lines.length : null, label: "Shares held" }]} />
-      <Gate tier="silver" title="Score your portfolio" points={["FinLit score and pillars for every share you hold (Gold: FinLit Prism)", "Ratios and latest financials in one table", "Average score, band mix and sector spread", "Import Excel, CSV or PDF statements"]}>
+      <Gate tier="silver" title="Score your portfolio" points={["FinLit IQ and pillars for every share you hold (Gold: FinLit Prism)", "Ratios and latest financials in one table", "Average score, band mix and sector spread", "Import Excel, CSV or PDF statements"]}>
         {model && <aside className="pf-model" aria-label="Which score model this page uses"><span className="ci"><Icon name="quality" /></span>
           <p>{MODEL_BANNER[model]}{model === "finlit" && <> <Link to="/plans">See the Gold plan</Link>.</>}</p></aside>}
         <section className="card acct-c pf-in">

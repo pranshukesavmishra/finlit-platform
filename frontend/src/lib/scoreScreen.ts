@@ -1,6 +1,6 @@
 // Pure logic of the Score screener: scores per company, filters, sorting, paging, presets, summary numbers, URL state and CSV.
 // No score is computed differently here than on the stock page: Business is the average of the four business pillars, Technical is the
-// technical pillar, Overall is the FinLit overall score as stored. A missing score is null and never passes a score filter or counts as zero.
+// technical pillar, Overall is the FinLit IQ as stored. A missing score is null and never passes a score filter or counts as zero.
 import { csvText } from "./format";
 import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
@@ -53,7 +53,7 @@ export const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; sh
   { k: "p", col: "pillar_profitability", label: "Profitability", short: "Profit.", say: "Margins and returns on the money in the business." },
   { k: "b", col: "pillar_balance", label: "Balance sheet", short: "Balance", say: "Debt, interest cover and liquidity." },
 ];
-export const NAMES: Record<BandKey | RangeKey, string> = { f: "Business", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
+export const NAMES: Record<BandKey | RangeKey, string> = { f: "Growth & Profitability", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
 export const PAGE_SIZES = [5, 10, 20, 50];
 
 /** Colour level of a score: the site's one colour rule (green 70+, orange 50 to 69, red under 50), see lib/scoreBands.ts. Colour only decorates; the model's word and the number carry the meaning. */
@@ -89,15 +89,16 @@ export type Filters = {
   labels: PrismLabel[];     // FinLit Prism rating labels (any of these)
   rated: boolean;           // only companies that have a Prism score
   tech: Record<TechKey, TechBand[]>;   // Prism short-term and long-term technical views (any of these bands)
+  top: number | null;       // keep only the first N by FinLit IQ among the companies that pass every other filter (the Top 10 quick views)
 };
 export const emptyFilters = (): Filters => ({
   caps: [], sectors: [],
   bands: { f: [], t: [], q: [], g: [], p: [], b: [] },
   ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { min: null, max: null }])) as Filters["ranges"],
-  labels: [], rated: false, tech: { st: [], lt: [] },
+  labels: [], rated: false, tech: { st: [], lt: [] }, top: null,
 });
 export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], sectors: [...f.sectors], bands: Object.fromEntries(BAND_KEYS.map((k) => [k, [...f.bands[k]]])) as Filters["bands"],
-  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] } });
+  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] }, top: f.top });
 
 export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
 export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max));
@@ -143,10 +144,10 @@ export function validate(f: Filters): Problems {
  *  (cleared where it names nothing); size, sector and every other filter stay as they were. Each one states its rule in `say`; none is a recommendation. */
 export type Preset = { id: string; label: string; say: string; bands: Partial<Record<BandKey, Band[]>>; overallMin?: number };
 export const PRESETS: Preset[] = [
-  { id: "both", label: "Strong on both", say: "Business 78 and above and Technical 78 and above.", bands: { f: ["high"], t: ["high"] } },
-  { id: "fund", label: "Strong business, weak trend", say: "Business 78 and above and Technical under 45.", bands: { f: ["high"], t: ["low"] } },
-  { id: "trend", label: "Strong trend, weaker business", say: "Technical 78 and above and Business under 78.", bands: { f: ["low", "mid"], t: ["high"] } },
-  { id: "top", label: "Top FinLit score", say: "An overall FinLit score of 78 or more (Strong).", bands: {}, overallMin: 78 },
+  { id: "both", label: "Strong on both", say: "Growth & Profitability 78 and above and Technical 78 and above.", bands: { f: ["high"], t: ["high"] } },
+  { id: "fund", label: "Strong growth & profitability, weak trend", say: "Growth & Profitability 78 and above and Technical under 45.", bands: { f: ["high"], t: ["low"] } },
+  { id: "trend", label: "Strong trend, weaker growth & profitability", say: "Technical 78 and above and Growth & Profitability under 78.", bands: { f: ["low", "mid"], t: ["high"] } },
+  { id: "top", label: "Top FinLit IQ", say: "An overall FinLit IQ of 78 or more (Strong).", bands: {}, overallMin: 78 },
   { id: "quality", label: "Quality compounders", say: "Quality 78 and above and Profitability 78 and above: steady earnings and high returns on the money in the business.", bands: { q: ["high"], p: ["high"] } },
   { id: "growth", label: "Growth leaders", say: "Growth 78 and above, with a Balance sheet score of 45 or more.", bands: { g: ["high"], b: ["mid", "high"] } },
   { id: "balance", label: "Strong balance sheet", say: "Balance sheet 78 and above and Quality 45 or more: little debt, good interest cover and liquidity.", bands: { b: ["high"], q: ["mid", "high"] } },
@@ -157,6 +158,7 @@ export function clearPreset(f: Filters): Filters {
   const n = cloneFilters(f);
   BAND_KEYS.forEach((k) => { n.bands[k] = []; });
   n.ranges.f = { ...NO_RANGE }; n.ranges.t = { ...NO_RANGE }; n.ranges.o = { ...NO_RANGE };
+  n.top = null;
   return n;
 }
 export function withPreset(f: Filters, p: Preset): Filters {
@@ -168,7 +170,47 @@ export function withPreset(f: Filters, p: Preset): Filters {
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 export const activePreset = (f: Filters) => PRESETS.find((p) => BAND_KEYS.every((k) => same(f.bands[k], p.bands[k] ?? []))
   && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null
-  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null)?.id ?? null;
+  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null && f.top == null)?.id ?? null;
+
+/** Ready-made screens that run in the Advanced screener (they need data the Basic table does not carry: 52-week position, momentum, theme tags). The Basic screener lists them as links. */
+export const READY_MADE: { id: string; label: string; say: string }[] = [
+  { id: "momentum-leaders", label: "Momentum leaders", say: "Rated stocks in an uptrend near their 52-week high, ranked by 3-, 6- and 12-month returns against the market." },
+  { id: "near-high-volume", label: "Near 52-week high", say: "Within 5% of the 52-week high, volume 1.5 times normal and the short-term view positive." },
+  { id: "quality-off-highs", label: "Quality off its highs", say: "High quality, 25% or more below the 52-week high." },
+  { id: "emerging-tech", label: "Emerging tech", say: "Companies tagged to new-technology themes, with growth." },
+  { id: "sector-themes", label: "Sector themes in play", say: "Industries beating the market on breadth and 3-month return, plus their leaders." },
+];
+
+// ---------- Top 10 by size (the three most-used ready-made screens) ----------
+export const TOP_N = 10;
+export type TopPreset = { id: string; label: string; cap: Cap; say: string };
+/** "Top 10 Large / Mid / Small": the first ten companies of one size class by FinLit IQ. The size classes are the site's own (by market cap rank: 1 to 100 large, 101 to 250 mid, the rest small).
+ *  Only companies that have a FinLit IQ are ranked, so a company without one never takes a place. Ties go to the higher Quality score, then the larger market cap, then the symbol. */
+export const TOP_PRESETS: TopPreset[] = (["Large", "Mid", "Small"] as Cap[]).map((cap) => ({
+  id: "top10-" + cap.toLowerCase(), label: `Top 10 ${cap.toLowerCase()} caps`, cap,
+  say: `The ${TOP_N} ${cap.toLowerCase()} caps with the highest FinLit IQ. A screen narrows a list; it is not a recommendation.`,
+}));
+export function withTopPreset(f: Filters, p: TopPreset): Filters {
+  const n = clearPreset(f);
+  n.caps = [p.cap]; n.top = TOP_N;
+  return n;
+}
+export const activeTopPreset = (f: Filters): string | null =>
+  f.top === TOP_N && f.caps.length === 1 ? TOP_PRESETS.find((p) => p.cap === f.caps[0])?.id ?? null : null;
+const byNum = (a: number | null | undefined, b: number | null | undefined) => (a == null ? (b == null ? 0 : 1) : b == null ? -1 : b - a);
+/** The first `n` of `items` by FinLit IQ (highest first). Companies with no FinLit IQ are left out. Deterministic: IQ, then Quality, then market cap, then symbol. */
+export function rankTop(items: Item[], n: number): Item[] {
+  return items.filter((r) => r.overall != null)
+    .sort((a, b) => byNum(a.overall, b.overall) || byNum(a.pillar_quality, b.pillar_quality) || byNum(a.market_cap, b.market_cap) || a.symbol.localeCompare(b.symbol))
+    .slice(0, n);
+}
+/** The rows of the table: everything that passes, in the chosen order; with a Top N limit, the first N by FinLit IQ among them, then in the chosen order. */
+export function applyTop(items: Item[], f: Filters, sort: Sort): Item[] {
+  const pool = applyFilters(items, f);
+  return sortRows(f.top != null ? rankTop(pool, f.top) : pool, sort);
+}
+/** How many companies the Top N was ranked among (those that pass the other filters and have a FinLit IQ), or null without a limit. */
+export const topPool = (items: Item[], f: Filters): number | null => (f.top == null ? null : applyFilters(items, f).filter((r) => r.overall != null).length);
 
 /** Views of the advanced screener, built from the Prism parts only. A preset OWNS the Prism score, its four parts, the rating labels, the "rated only"
  *  switch and the two technical views: choosing it sets those exactly (cleared where it names nothing), every other filter stays. */
@@ -206,6 +248,7 @@ export function chipsFor(f: Filters): Chip[] {
   if (f.labels.length) out.push({ id: "labels", label: `Prism rating: ${PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_WORD[l]).join(", ")}` });
   TECH_KEYS.forEach((k) => { if (f.tech[k].length) out.push({ id: "tech:" + k, label: `${TECH_NAMES[k]}: ${TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).map((b) => TECH_BANDS[b].short).join(", ")}` }); });
   if (f.rated) out.push({ id: "rated", label: "Only companies rated by Prism" });
+  if (f.top != null) out.push({ id: "top", label: `Top ${f.top} by FinLit IQ` });
   return out;
 }
 export function removeChip(f: Filters, id: string): Filters {
@@ -216,6 +259,7 @@ export function removeChip(f: Filters, id: string): Filters {
   else if (id.startsWith("range:")) n.ranges[id.slice(6) as RangeKey] = { min: null, max: null };
   else if (id === "labels") n.labels = [];
   else if (id === "rated") n.rated = false;
+  else if (id === "top") n.top = null;
   else if (id.startsWith("tech:")) n.tech[id.slice(5) as TechKey] = [];
   return n;
 }
@@ -284,7 +328,7 @@ export const SORT_KEYS: SortKey[] = ["name", "price", "market_cap", "sector", "f
 const num = (s: string | null) => { if (s == null || s.trim() === "") return null; const n = Number(s); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null; };
 const parseBands = (s: string | null): Band[] => BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
 const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
-/** Which page reads the address: the Basic score screener (FinLit score only), the Advanced one (Prism only), or both (the pure logic and its tests). */
+/** Which page reads the address: the Basic score screener (FinLit IQ only), the Advanced one (Prism only), or both (the pure logic and its tests). */
 export type Scope = "all" | "basic" | "advanced";
 const FINLIT_SORT: SortKey[] = ["f", "t", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance"];
 const PRISM_SORT: SortKey[] = ["prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"];
@@ -311,6 +355,7 @@ export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
     f.rated = p.get("rated") === "1";
     f.tech = { st: parseTech(p.get("st")), lt: parseTech(p.get("lt")) };
   }
+  if (finlit && Number(p.get("top")) === TOP_N) f.top = TOP_N;
   const key = SORT_KEYS.find((k) => k === p.get("sort") && !(scope === "basic" && PRISM_SORT.includes(k)) && !(scope === "advanced" && FINLIT_SORT.includes(k)));
   const sort: Sort = key ? { key, dir: p.get("dir") === "asc" ? 1 : p.get("dir") === "desc" ? -1 : firstDir(key) } : DEFAULT_SORT;
   const size = PAGE_SIZES.find((n) => n === Number(p.get("size"))) ?? 10;
@@ -325,6 +370,7 @@ export function serializeState(s: State): URLSearchParams {
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + "max", String(r.max)); });
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");
+  if (f.top != null) p.set("top", String(f.top));
   TECH_KEYS.forEach((k) => { if (f.tech[k].length) p.set(k, TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).join(",")); });
   if (s.sort.key !== DEFAULT_SORT.key || s.sort.dir !== DEFAULT_SORT.dir) { p.set("sort", s.sort.key); p.set("dir", s.sort.dir === 1 ? "asc" : "desc"); }
   if (s.size !== 10) p.set("size", String(s.size));
@@ -342,7 +388,7 @@ export function describeFilters(f: Filters): string[] {
   return c.length ? c.map((x) => x.label) : ["None (all companies)"];
 }
 /** Rows as CSV with a commented header (filters, sort, data date, what a blank means). A missing value is a blank cell, never 0.
- *  `mode` "basic" is the FinLit score columns (Silver); "advanced" is the FinLit Prism columns only (Gold), with the technical views in the site's descriptive words. */
+ *  `mode` "basic" is the FinLit IQ columns (Silver); "advanced" is the FinLit Prism columns only (Gold), with the technical views in the site's descriptive words. */
 export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; mode?: "basic" | "advanced"; prismAsOf?: string | null }): string {
   const adv = o.mode === "advanced";
   const head = [
@@ -355,12 +401,12 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
     `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
     ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Growth & Profitability, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
       "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
-      : ["# Business = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit overall score."]),
+      : ["# Growth & Profitability = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit IQ."]),
     "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
   ];
   const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
   const cols = adv ? [...base, "Prism", "Prism label", "Prism status", `Prism ${FUND_PART_NAME}`, "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
-    : [...base, "Business", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
+    : [...base, "Growth & Profitability", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
   const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
     ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
       csvText(trendWord(r.prism_st_score) ?? ""), n(r.prism_st_score), csvText(trendWord(r.prism_lt_score) ?? ""), n(r.prism_lt_score), r.prism_at ?? ""]

@@ -128,9 +128,9 @@ export const READY: Ready[] = [
   { id: "newhigh", label: "Near a 52-week high with volume", says: "Within 3% of the high and trading 1.5× average volume", tier: "silver", state: r({ near_high: { min: 1 }, volume_vs_avg: { min: 1.5 } }) },
   { id: "oversold", label: "Oversold quality", says: "RSI under 35 but ROE above 12% and debt under 1×", tier: "silver", state: r({ rsi14: { max: 35 }, roe: { min: 12 }, debt_to_equity: { max: 1 } }) },
   { id: "clean", label: "No red flags", says: "None of the eight warnings apply, large and mid companies", tier: "silver", state: { ranges: { flag_count: { max: 0 } }, caps: ["Large", "Mid"] } },
-  { id: "strong", label: "FinLit Strong", says: "FinLit score of 78 or more", tier: "gold", state: r({ overall: { min: 78 } }) },
+  { id: "strong", label: "FinLit Strong", says: "FinLit IQ of 78 or more", tier: "gold", state: r({ overall: { min: 78 } }) },
   { id: "modelcompound", label: "Quality compounders (model)", says: "Quality 70+ and Growth 60+", tier: "gold", state: r({ pillar_quality: { min: 70 }, pillar_growth: { min: 60 } }) },
   { id: "safe", label: "Safe and profitable (model)", says: "Balance sheet 70+ and Profitability 60+", tier: "gold", state: r({ pillar_balance: { min: 70 }, pillar_profitability: { min: 60 } }) },
-  { id: "improving", label: "Improving scores", says: "FinLit score up 5+ points since last quarter", tier: "gold", state: r({ score_change: { min: 5 }, overall: { min: 50 } }) },
+  { id: "improving", label: "Improving scores", says: "FinLit IQ up 5+ points since last quarter", tier: "gold", state: r({ score_change: { min: 5 }, overall: { min: 50 } }) },
   { id: "outfavour", label: "Sound but out of favour", says: "Quality 55+ with the Technical pillar 35 or less", tier: "gold", state: r({ pillar_quality: { min: 55 }, pillar_technical: { max: 35 } }) },
 ];

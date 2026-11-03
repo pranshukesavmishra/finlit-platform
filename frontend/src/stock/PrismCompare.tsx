@@ -1,4 +1,4 @@
-// The right half of the stock page's first dashboard: FinLit Prism beside the FinLit score (left half, in Hero.tsx).
+// The right half of the stock page's first dashboard: FinLit Prism beside the FinLit IQ (left half, in Hero.tsx).
 // Compact by design: one row each for the header, the score (prism glyph + words), the parts (tiles), the top pros and cons, and a footer.
 // The left half uses the same row grid, so the two halves line up. The full lists live in PrismDetail, which the page shows under the pair
 // when the person presses "Show full breakdown".

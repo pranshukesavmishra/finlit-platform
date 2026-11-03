@@ -1,5 +1,6 @@
 // The top of a stock page, next to the company name: the fundamental dots (one per FinLit pillar, coloured by the shared band rule), a score badge that
 // depends on the plan, and the labelled industry / market cap line. Pure rules are in lib/scoreBands.ts. Research summary, not a recommendation.
+import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
@@ -44,7 +45,7 @@ function DotsLegend({ gold = false }: { gold?: boolean }) {
           <p>Higher is better for all four financial-health dots; a high Risk score means lower risk. The technical dots describe recent price behaviour and are not part of the Prism score.</p>
           <p className="hs-leg-n">Research summary, not a recommendation.</p>
         </> : <>
-        <p><b>One dot for each part of the FinLit score.</b> Colour follows the score of that part, out of 100.</p>
+        <p><b>One dot for each part of the FinLit IQ.</b> Colour follows the score of that part, out of 100.</p>
         <ul className="hs-leg-d">{DOT_ORDER.map((d) => <li key={d.key}><span className="hs-dot band-na" aria-hidden="true">{d.letter}</span>{d.name}</li>)}</ul>
         <ul className="hs-leg-c">{LEGEND.map((l) => <li key={l.band}><span className={"hs-sw band-" + l.band} aria-hidden="true" /><b>{BAND_NAME[l.band][0].toUpperCase() + BAND_NAME[l.band].slice(1)}</b>{": "}{l.rule}</li>)}</ul>
         <p>In FinLit Prism, Growth & Profitability, Valuation, Quality and Risk are all higher-is-better (a high Risk score means lower risk); its Technical view is separate, from −100 to +100.</p>
@@ -80,10 +81,10 @@ export function ScoreBadge({ view, symbol }: { view: BadgeView; symbol: string }
   if (view.kind === "none") return null;
   if (view.kind === "prism-none") return <div className="hs-badge band-na"><span className="hs-bk">FinLit Prism</span><span className="hs-bw">Prism: not rated yet</span><Link className="hs-bl" to={`/prism/${encodeURIComponent(symbol)}`}>Open the Prism page</Link></div>;
   const prism = view.kind === "prism", n = view.score == null ? null : prism ? view.score.toFixed(1) : String(Math.round(view.score));
-  const text = n == null ? "FinLit score: not scored yet" : `${prism ? "FinLit Prism" : "FinLit score"} ${n} out of 100: ${view.word}${prism && view.provisional ? ", provisional" : ""}`;
+  const text = n == null ? "FinLit IQ: not scored yet" : `${prism ? "FinLit Prism" : "FinLit IQ"} ${n} out of 100: ${view.word}${prism && view.provisional ? ", provisional" : ""}`;
   return (
     <div className={"hs-badge band-" + view.band} role="group" aria-label={text} title={text}>
-      <span className="hs-bk">{prism ? "FinLit Prism" : "FinLit score"}</span>
+      <span className="hs-bk">{prism ? "FinLit Prism" : "FinLit IQ"}</span>
       {n == null ? <span className="hs-bw">Not scored yet</span> : <><span className="hs-bn">{n}</span><span className="hs-bw">{view.word}{prism && view.provisional ? " · provisional" : ""}</span></>}
     </div>
   );
@@ -94,11 +95,16 @@ export function CompanyFacts({ p }: { p: Profile }) {
   const ind = industryText(p), cap = marketCapLine(p.marketCapCr);
   if (!ind && !cap) return null;
   return (
-    <dl className="hs-facts">
-      {ind && <div><dt>Industry</dt><dd>{ind}</dd></div>}
-      {cap && <div><dt>Market cap</dt><dd>{cap.replace(/^Market cap /, "")}</dd></div>}
-    </dl>
+    <>
+      {ind && <Row label="Industry"><span className="hs-t">{ind}</span></Row>}
+      {cap && <Row label="Market cap"><span className="hs-t">{cap.replace(/^Market cap /, "")}</span></Row>}
+    </>
   );
+}
+
+/** One labelled row of the company's header block: a fixed label column, the content beside it. */
+export function Row({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
+  return <div className={"hs-r" + (className ? " " + className : "")}><span className="hs-l">{label}</span><div className="hs-c">{children}</div></div>;
 }
 
 type ScoreLike = { overall: number | null; band: { label: string }; pillars: PillarSummary[] };
@@ -115,9 +121,9 @@ export function NameDots({ score, plan, admin, prism }: { score: ScoreLike; plan
 export function SubLine({ profile, score, plan, admin, prism }: { profile: Profile; score: ScoreLike; plan: Plan; admin: boolean; prism: PrismInput }) {
   const view = badgeView(plan, admin, { overall: score.overall, word: score.band.label }, prism);
   return (
-    <div className="hs-sub">
-      <ScoreBadge view={view} symbol={profile.symbol} />
+    <>
+      <Row label="Rating"><ScoreBadge view={view} symbol={profile.symbol} /></Row>
       <CompanyFacts p={profile} />
-    </div>
+    </>
   );
 }

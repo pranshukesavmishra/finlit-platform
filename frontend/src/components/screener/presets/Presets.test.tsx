@@ -66,6 +66,12 @@ describe("grouped panel", () => {
     fireEvent.click(card);
     expect(loc()).not.toContain("preset");
   });
+  it("Prism basics is listed once: the server's own Prism basics group is not shown next to the page's list", async () => {
+    listBody = { ...LIST, groups: [...LIST.groups, { id: "prism-basics", name: "Prism basics", presets: [P("pb1", "Prism strong and lower risk", "Prism basics")] }] };
+    mount();
+    await screen.findByText("Top rated");
+    expect(screen.getAllByText("Prism basics")).toHaveLength(1);
+  });
   it("keeps the Prism quick views working when the list is unavailable", async () => {
     listStatus = 500;
     mount();

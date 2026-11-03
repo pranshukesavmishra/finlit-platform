@@ -24,7 +24,7 @@ export function RevenueCash({ symbol, lender, labels }: { symbol: string; lender
   const head = (
     <div className="rcx-h">
       <div>
-        <h3><span className="ci"><Icon name="coins" /></span>Revenue-to-Cash Intelligence<ChartHelp id="revenue-cash" /></h3>
+        <h3><span className="ci"><Icon name="coins" /></span>Revenue turning into cash<ChartHelp id="revenue-cash" /></h3>
         <p className="rcx-sub">Understand how efficiently sales convert into cash.</p>
       </div>
       <TierChip tier="gold" />
@@ -33,18 +33,18 @@ export function RevenueCash({ symbol, lender, labels }: { symbol: string; lender
   if (locked) {
     // Nothing worked out is drawn here: the locked state holds an empty outline, not figures behind a blur.
     return (
-      <div className="card rcx" id="revenue-cash" aria-label="Revenue-to-Cash Intelligence">{head}
+      <div className="card rcx" id="revenue-cash" aria-label="Revenue turning into cash">{head}
         <Gate tier="gold" title="Revenue-to-cash analysis" points={["Operating cash flow against revenue, five years", "Receivables and inventory against sales", "Plain-language warnings built from the filings"]}>
           <div className="rcx-skel" aria-hidden="true"><i /><i /><i /><i /></div>
         </Gate>
       </div>
     );
   }
-  if (!f.data) return <div className="card rcx" id="revenue-cash" aria-label="Revenue-to-Cash Intelligence">{head}<div className="skeleton" style={{ height: 220 }} /></div>;
-  if (!m || m.state === "nodata") return <div className="card rcx" id="revenue-cash" aria-label="Revenue-to-Cash Intelligence">{head}<p className="rcx-note">Revenue and cash flow are not reported for enough years to show this.</p></div>;
+  if (!f.data) return <div className="card rcx" id="revenue-cash" aria-label="Revenue turning into cash">{head}<div className="skeleton" style={{ height: 220 }} /></div>;
+  if (!m || m.state === "nodata") return <div className="card rcx" id="revenue-cash" aria-label="Revenue turning into cash">{head}<p className="rcx-note">Revenue and cash flow are not reported for enough years to show this.</p></div>;
   if (m.state === "lender") {
     return (
-      <div className="card rcx" id="revenue-cash" aria-label="Revenue-to-Cash Intelligence">{head}
+      <div className="card rcx" id="revenue-cash" aria-label="Revenue turning into cash">{head}
         <div className="rcx-lender" role="status"><b>Not comparable for lenders</b><p>{m.notes[0]}</p></div>
         <p className="rcx-disc">{DISCLAIMER}</p>
       </div>
@@ -56,7 +56,7 @@ export function RevenueCash({ symbol, lender, labels }: { symbol: string; lender
 function Body({ m, head }: { m: Model; head: React.ReactNode }) {
   const L = m.latest as Year;
   return (
-    <div className="card rcx" id="revenue-cash" aria-label="Revenue-to-Cash Intelligence">
+    <div className="card rcx" id="revenue-cash" aria-label="Revenue turning into cash">
       {head}
       <section className="rcx-sec" aria-labelledby="rcx-health">
         <h4 id="rcx-health" className="rcx-k">Cash conversion health</h4>

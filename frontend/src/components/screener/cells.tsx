@@ -11,7 +11,7 @@ export const Score = ({ r, k, locked }: { r: Item; k: "f" | "t" | "overall" | (t
   const v = k === "f" ? r.f : k === "t" ? r.t : r[k];
   if (v != null) return <span className={"ssp " + level(v)}>{v}</span>;
   const why = missingReason(r, k, locked);
-  return <span className="ssp na" title={why}>{locked ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
+  return <span className="ssp na" title={why}>{locked ? <Icon name="lock" /> : <>{MINUS}<small className="ss-why">{r.scored === false ? "Not scored yet" : k === "f" ? "Too little data" : "No data"}</small></>}<span className="sr">Not available: {why}</span></span>;
 };
 /** The Prism rating: score and label in words; a company without one says why and (Gold) links to its Prism page, which starts the calculation. */
 export const PrismScore = ({ r, gold }: { r: Item; gold: boolean }) => {
@@ -27,14 +27,15 @@ export const PrismScore = ({ r, gold }: { r: Item; gold: boolean }) => {
 export const PrismPart = ({ r, v, gold }: { r: Item; v: number | null | undefined; gold: boolean }) => {
   if (v != null) return <span className={"ssp pzs-n " + scoreBand(v)}>{Math.round(v)}</span>;
   const why = prismReason(r, gold, "part");
-  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
+  const showWhy = hasPrism(r) && prismCell(r, gold) !== "locked";   // an unrated row already says so in its Prism cell
+  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : <>{MINUS}{showWhy && <small className="ss-why">Not scored</small>}</>}<span className="sr">Not available: {why}</span></span>;
 };
 /** A technical view: the site's descriptive word for the score (never the model's own word) and the signed score, -100 to +100. */
 export const PrismTrend = ({ r, score, gold, col }: { r: Item; score: number | null | undefined; gold: boolean; col: "st" | "lt" }) => {
   const word = trendWord(score);
   if (word && score != null) { const sg = score > 0 ? "+" : score < 0 ? MINUS : ""; return <span className="pzs-w" title={`${word} (${sg}${nf(Math.abs(score), 0)} on a scale of ${MINUS}100 to +100)${r.prism_tech_at ? `, as of ${asOfText(r.prism_tech_at)}` : ""}`}><b>{word}</b><small>{sg}{nf(Math.abs(score), 0)}</small></span>; }
   const why = prismReason(r, gold, col);
-  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : MINUS}<span className="sr">Not available: {why}</span></span>;
+  return <span className="ssp na" title={why}>{prismCell(r, gold) === "locked" ? <Icon name="lock" /> : <>{MINUS}<small className="ss-why">Not calculated</small></>}<span className="sr">Not available: {why}</span></span>;
 };
 export const Dash = ({ why }: { why: string }) => <span title={why}>{MINUS}<span className="sr"> not available: {why}</span></span>;
 export const med = (v: number | null) => (v == null ? null : nf(v, v % 1 ? 1 : 0));

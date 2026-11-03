@@ -5,7 +5,7 @@ import { Icon } from "../lib/icons";
 import { dateIN, MINUS } from "../lib/format";
 import { useGold } from "../lib/premium";
 import { OpenAccess } from "../components/Gate";
-import { changeOver, emptyReason, modelChanges, usePrismHistory, valueOf, withValue, type HistPoint, type Series } from "../lib/prismHistory";
+import { changeOver, emptyReason, modelChanges, toWeekly, usePrismHistory, valueOf, withValue, type HistPoint, type Series } from "../lib/prismHistory";
 import { PRISM_PARTS } from "./prismWords";
 
 const W = 640, H = 230, L = 40, R = 14, T = 12, B = 28;
@@ -72,21 +72,24 @@ export function PrismHistoryCard({ symbol, statement }: { symbol: string; statem
   const gold = useGold(), open = useContext(OpenAccess);
   const q = usePrismHistory(symbol, statement, gold || open);
   const [view, setView] = useState<View>("score");
+  const [step, setStep] = useState<"day" | "week">("day");
   if (q.isError || (!q.data && !q.isLoading)) return null;           // the server and this page disagree about the plan: say nothing rather than show a lock to a member
-  const points = q.data?.points ?? [];
+  const all = q.data?.points ?? [];
+  const points = step === "week" ? toWeekly(all) : all;      // weekly: the last day recorded in each week, as recorded
   const main: Series = view === "score" ? "final" : "shortTerm";
   const why = emptyReason(points, main);
   const ch = changeOver(points, main);
   return (
     <section className="card acc phx-card" id="prism-history" aria-label="FinLit Prism score over time">
       <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>FinLit Prism: score over time</h3>
+        <div className="seg" role="group" aria-label="One point for each">{([["day", "Daily"], ["week", "Weekly"]] as const).map(([k, l]) => <button key={k} aria-pressed={step === k} onClick={() => setStep(k)}>{l}</button>)}</div>
         <div className="seg" role="tablist" aria-label="What to plot">{([["score", "Prism score"], ["technical", "Technical views"]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} aria-pressed={view === k} onClick={() => setView(k)}>{l}</button>)}</div></div>
       {q.isLoading ? <div className="skeleton" style={{ height: 160 }} /> : why ? <p className="faint phx-empty">{why}</p> : (
         <>
           {ch && <p className="phx-sum">{view === "score" ? "Prism score" : "Short-term view"} moved from {fmt(valueOf(withValue(points, main)[0], main), view === "technical")} on {dateIN(ch.from)} to {fmt(valueOf(withValue(points, main).slice(-1)[0], main), view === "technical")} on {dateIN(ch.to)} ({fmt(ch.delta, true)} points).</p>}
           <HistoryChart points={points} view={view} />
         </>)}
-      <p className="faint phx-foot">One point for each day a figure was worked out; the history starts on the day recording began and earlier days are not estimated. It describes how the score moved; it is not a forecast. Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice.</p>
+      <p className="faint phx-foot">One point for each day a figure was worked out (Weekly shows the last day recorded in each week); the history starts on the day recording began and earlier days are not estimated. It describes how the score moved; it is not a forecast. Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice.</p>
     </section>
   );
 }

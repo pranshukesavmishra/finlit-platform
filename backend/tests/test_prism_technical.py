@@ -4,6 +4,7 @@ ROOT CAUSE (test_precompute_never_refreshes_a_young_report_so_its_technical_view
 the nightly job selects only companies with no report or a report older than `days` (7), so a report calculated days ago keeps showing the technical
 scores of that day. The refresh below recalculates only that view, against a fake site backend and fake Dhan candles."""
 
+import asyncio
 import copy
 import json
 import re
@@ -195,6 +196,46 @@ async def test_a_company_dhan_holds_nothing_newer_for_is_not_asked_again_that_da
     assert second["queued"] == 0 and len(seen["candles"]) == n
 
 
+async def test_a_company_with_no_long_term_score_is_recalculated_even_on_its_newest_bar(world):
+    """After a fix to how a score is worked out (a provisional long-term score for a recent listing) the companies already at the newest bar must not keep their old
+    gap: one with no stored long-term score is recalculated; one that has a score is left alone (nothing newer, nothing asked)."""
+    store, settings, site, http, seen = world
+    await seed(store, "TQGAP", bar=FRIDAY.isoformat(), cap=500)
+    await seed(store, "TQFULL", bar=FRIDAY.isoformat(), cap=400)
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', 'null') WHERE symbol = 'TQGAP'")
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', '61') WHERE symbol = 'TQFULL'")
+    out = await pt.refresh(store, settings, client=http, now=NOW)
+    asked = [c[0] for c in seen["candles"]]
+    assert "TQGAP" in asked and out["updated"] == 1
+    assert (await row(store, "TQGAP"))[1]["technicalAssessment"]["longTerm"]["score"] is not None
+    assert "TQFULL" not in asked and out["queued"] == 1             # a complete company at the newest bar is not even picked: nothing is fetched for it
+
+
+async def test_force_recalculates_a_company_already_on_the_newest_bar(world):
+    store, settings, site, http, seen = world
+    await seed(store, "TQFRC", bar=FRIDAY.isoformat())
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', '61') WHERE symbol = 'TQFRC'")
+    plain = await pt.refresh(store, settings, client=http, now=NOW)
+    assert plain["queued"] == 0 and site.technical == []                    # complete and current: left alone
+    forced = await pt.refresh(store, settings, client=http, now=NOW, force=True, symbols=["TQFRC"])
+    assert forced["updated"] == 1 and len(site.technical) == 1              # --force really recalculates it, as its help says
+
+
+async def test_a_company_still_without_a_long_term_score_is_asked_once_a_day_not_every_run(world):
+    store, settings, site, http, seen = world
+    await seed(store, "TQNOLT", bar=FRIDAY.isoformat())
+    async with store.pool.acquire() as conn:
+        await conn.execute("UPDATE prism_reports SET report = jsonb_set(report, '{technicalAssessment,longTerm,score}', 'null') WHERE symbol = 'TQNOLT'")
+    site.ready = False                                         # today's candles still give no complete view
+    first = await pt.refresh(store, settings, client=http, now=NOW)
+    assert first["withheld"] == 1
+    n = len(seen["candles"])
+    second = await pt.refresh(store, settings, client=http, now=NOW)
+    assert second["queued"] == 0 and len(seen["candles"]) == n
+
+
 async def test_no_candles_leaves_the_stored_view_and_says_why_and_five_failures_stop_the_run(world):
     store, settings, site, http, seen = world
     for i in range(8):
@@ -259,11 +300,27 @@ class _App:
         self.state = SimpleNamespace(store=store, settings=settings)
 
 
+async def test_opening_a_current_report_with_no_long_term_score_starts_one_refresh(world, monkeypatch):
+    store, settings, site, http, seen = world
+    calls = []
+
+    async def fake_refresh(app, symbol, now, target=None, force=False):
+        calls.append(symbol)
+        return pt.Outcome.UPDATED, "ok"
+    monkeypatch.setattr(pt, "refresh_symbol", fake_refresh)
+    app = _App(store, settings)
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": False, "asOf": "2026-10-16"}) is False      # current and complete: nothing to do
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": True, "asOf": "2026-10-16"}) is True       # current but no long-term score: healed on first open
+    await asyncio.sleep(0.05)
+    assert calls == ["TQY"]
+    assert await pt.refresh_on_open(app, "TQY", {"stale": False, "gap": True, "asOf": "2026-10-16"}) is True and calls == ["TQY"]   # asked again: still "refreshing", never started twice
+
+
 async def test_opening_a_stale_report_starts_one_background_refresh_per_company_and_half_hour(world, monkeypatch):
     store, settings, site, http, seen = world
     calls = []
 
-    async def fake_refresh(app, symbol, now, target=None):
+    async def fake_refresh(app, symbol, now, target=None, force=False):
         calls.append(symbol)
         return pt.Outcome.UPDATED, "ok"
     monkeypatch.setattr(pt, "refresh_symbol", fake_refresh)

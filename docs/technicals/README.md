@@ -2,7 +2,7 @@
 
 > **Freshness (read this first):** the technical scores are refreshed every trading evening by `refresh-technicals` and carry the date of the last
 > candle they describe ("Technical view as of ..."). Why they used to be late, the fixes, the cross-check against independent indicator code and how to
-> verify from a browser: [INCIDENT-2026-10.md](INCIDENT-2026-10.md) and [CROSSCHECK.md](CROSSCHECK.md). The basic FinLit score's Technical pillar is a
+> verify from a browser: [INCIDENT-2026-10.md](INCIDENT-2026-10.md) and [CROSSCHECK.md](CROSSCHECK.md). The basic FinLit IQ's Technical pillar is a
 > different number, rebuilt nightly with each company's snapshot (up to a day old), not by this job.
 
 The team delivered a Python package, `finlit_technicals` v1.1, with ports of two TradingView indicators:

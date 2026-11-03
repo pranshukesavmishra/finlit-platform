@@ -63,7 +63,7 @@ Per job, each tick (60 s; and at once when a job ends):
 3. Otherwise it is due when any of these holds:
    * freshness forced it (a dataset it owns is stale);
    * a retry is owed;
-   * it never succeeded (first start / boot catch-up; not for jobs that send mail; `BOOT_LOAD_ENABLED=0` stops this for first-start loads);
+   * it never succeeded (first start / boot catch-up; not for jobs that send mail; the old `BOOT_LOAD_ENABLED=0` setting is ignored: scheduled work is never held back);
    * **a quiet window is open** and its last success is older than the window's `min_age_h`;
    * its **interval** has passed (inside its active hours / market hours; quotes follow visitors, `RESULTS_NEED_VISITOR=1` restores "only while a visitor is on the site" for the results jobs);
    * its **daily time** has passed without a success that day (`listing` 15:50, `alerts-daily` 19:10 ...);
@@ -97,6 +97,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | alerts-flag / alerts-daily / screens / digest | light | 8-9 | none / 80 h / 80 h / 8 d | each window / weekdays 19:10 / MORNING weekdays / Sunday 19:10 |
 | prune | bulk | 5 | 30 h | NIGHT |
 | **technicals** (`refresh-technicals`) | bulk | 10 | session, 12 h | AFTER_CLOSE and MORNING until the session is processed; probe re-runs every 30 min |
+| **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 1500 MB, max 90 min; off by default |
 | ingest-flagship / **ingest** (`ingest-all`) | bulk | 15 / 20 | 26 h | NIGHT (18 h), MORNING (14 h); 90 min per run, resumable |
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
@@ -125,7 +126,8 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | Daily price history | reference large caps have the expected session's bar | 1 h after 18:30 + grace / +14 h | technicals, ingest |
 | Index levels | fetched on demand; if market open and a visitor is looking: under 10 min | 30 min | (on demand) |
 | Technical views | at most 2% of reports behind the expected session | after 19:30 / >25% behind and 10 h | technicals |
-| Prism ratings, FinLit scores | newest row under 30 h | 60 h | prism, score |
+| Sector pulse (`sectors`) | the live board's date is the expected session (always on) | 4 h after 18:30 / +14 h | sectors |
+| Prism ratings, FinLit IQs | newest row under 30 h | 60 h | prism, score |
 | Quarterly results | no company whose declaration date passed still lacks figures: waiting yesterday = late, two or more days = stale (declaration is known by DATE only; target is 6 h, flagged at 24 h) | | results, results-light |
 | Results calendar | refreshed under 3 h ago and upcoming dates exist | 12 h | calendars |
 | IPO calendar, news, leadership | under 30 h / 3 days / 9 days | 96 h / 6 d / 14 d | calendars, leadership |
@@ -201,10 +203,10 @@ Header lock icon > System > "Heavy data loads" switch. Switching OFF pauses for 
 | `JOBS_TICK_S` / `JOBS_POLL_S` | 60 / 5 | decision period / process check period |
 | `JOBS_RESERVE_MB` | 100 | memory left for the website when starting a bulk job |
 | `JOBS_MAX_LOAD_PER_CPU` | 3.0 | a second job waits above this 1-minute load per core |
-| `BOOT_LOAD_ENABLED` | 1 | 0: first-start loads do not start just because they never ran (windows and 2 x SLA still apply) |
+| `BOOT_LOAD_ENABLED` | 1 | ignored (kept so an old `.env.aws` line does no harm): first-start loads always run |
 | `BOOT_LOAD_DELAY_S` | 240 | bulk jobs wait this long after a start |
-| `FUND_LOADS_ENABLED` | 0 | must be 1 for the fund/ETF jobs (else shown as disabled by configuration) |
-| `PRISM_PRECOMPUTE_ENABLED`, `PRISM_WORKERS` (2) | 1 | Prism job on/off, shards per run |
+| `FUND_LOADS_ENABLED` | 1 | ignored: the fund/ETF jobs are always on |
+| `PRISM_PRECOMPUTE_ENABLED` (ignored: always on), `PRISM_WORKERS` (2) | 1 | shards per Prism run |
 | `INGEST_LIMIT`, `INGEST_PARALLEL` (2), `NIGHT_INGEST_MAX_MIN` (90) | | ingest-all size, parallelism, cap per run |
 | `RESULTS_NEED_VISITOR` | 0 | 1: results jobs run only while a visitor is on the site |
 | `QUOTES_EVERY_MINUTES` | 1 | quotes period while a visitor is on the site |
@@ -263,3 +265,10 @@ Header lock icon > System > "Heavy data loads" switch. Switching OFF pauses for 
 * **Declaration time**: results are known by date, so "figures within 6 h of the declaration" is enforced as "same day / next day", not to the hour.
 * **Holidays** are inferred (the newest session actually found), not read from an exchange calendar.
 * Everything here was tested with a fake clock and fake processes; the real process runner, cgroup memory reading, `oom_score_adj` and email delivery can only be proven on the server (first-deploy checklist in `deploy/aws/README.md`).
+
+
+## Scheduled jobs are never switched off (founder's rule)
+
+* The environment switches `FUND_LOADS_ENABLED`, `SECTORS_ENABLED`, `PRISM_PRECOMPUTE_ENABLED` and `BOOT_LOAD_ENABLED` can no longer disable or hold back a job (`Gate.forced` in `jobs/registry.py`). Only a missing credential (no `DHAN_CLIENT_ID`, no `GEMINI_API_KEY`) keeps a job from starting, and the status says so.
+* The admin pause is ignored inside the MORNING, AFTER_CLOSE and NIGHT windows and for any job already past its promise (SLA). It can only hold daytime, not-yet-late work.
+* A job that cannot start because the server lacks memory waits and says so; it is never skipped, and it does not block the other jobs.

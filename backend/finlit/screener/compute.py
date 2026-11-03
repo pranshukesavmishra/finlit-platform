@@ -236,7 +236,7 @@ def compute(sections: Dict[str, dict], today: Optional[date] = None) -> Dict[str
     for k, src in (("roe", "roe"), ("roce", "roce"), ("roa", "roa"), ("rota", "rota"), ("gross_margin", "gross_margin"), ("ebitda_margin", "ebitda_margin"),
                    ("ebit_margin", "ebit_margin"), ("pretax_margin", "pretax_margin"), ("tax_rate", "effective_tax_rate")):
         out[k] = latest.get(src)
-    # the margins the FinLit score uses (operating profit before depreciation and interest, and profit attributable to shareholders, over sales),
+    # the margins the FinLit IQ uses (operating profit before depreciation and interest, and profit attributable to shareholders, over sales),
     # so the screener, the report and the score all show the same number
     out["operating_margin"] = latest.get("opm") if latest.get("opm") is not None else latest.get("operating_margin")
     out["net_margin"] = latest.get("npm") if latest.get("npm") is not None else latest.get("net_margin")

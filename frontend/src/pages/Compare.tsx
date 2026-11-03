@@ -111,8 +111,8 @@ export function Compare() {
                 <div className="cc-h"><span className="av" aria-hidden="true">{(r.name || r.symbol).slice(0, 2).toUpperCase()}</span><div><span className="tk">Company {LETTER[i]}{isBseCode(r.symbol) ? "" : ` · ${r.symbol}`}</span><b>{r.name || r.symbol}</b><small>{r.sector}</small></div></div>
                 <div className="cc-p"><b>{fmt(METRICS.price, r.price)}</b><span className={(r.change_pct ?? 0) >= 0 ? "pos" : "neg"}>{fmt(METRICS.change_pct, r.change_pct)}</span></div>
                 <div className="cc-g"><div><span>Market cap</span><b>{fmt(METRICS.market_cap, r.market_cap)}</b></div><div><span>P/E</span><b>{fmt(METRICS.pe, r.pe)}</b></div><div><span>ROE</span><b>{fmt(METRICS.roe, r.roe)}</b></div><div><span>Debt/Equity</span><b>{fmt(METRICS.debt_to_equity, r.debt_to_equity)}</b></div></div>
-                <Gate tier="silver" title="See the FinLit score" points={["Overall research score", "Five-pillar scorecard"]}>
-                  <div className="cc-s"><Ring v={r.overall} band={r.band} /><div><span className="label">FinLit score</span><b>{r.overall ?? "—"}<small>/100</small></b>{r.band && <span className={"vd " + r.band}>{BAND_LABEL[r.band]}</span>}</div></div>
+                <Gate tier="silver" title="See the FinLit IQ" points={["Overall research score", "Five-pillar scorecard"]}>
+                  <div className="cc-s"><Ring v={r.overall} band={r.band} /><div><span className="label">FinLit IQ</span><b>{r.overall ?? "—"}<small>/100</small></b>{r.band && <span className={"vd " + r.band}>{BAND_LABEL[r.band]}</span>}</div></div>
                 </Gate>
               </div>))}</div>
             <Gate tier="silver" title="Compare the five FinLit pillars" points={["Quality, Growth, Profitability, Balance sheet, Technical", "See where each company is stronger"]}>

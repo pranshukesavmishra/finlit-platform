@@ -6,8 +6,8 @@ stored report sections (summary, ratios, financials: jsonb paths, so no whole re
 except the tax ratio (tax over profit before tax, from two rows of the same yearly statement, and only when both exist).
 
 Plan rules, applied here and never left to the page:
-  Silver  the basic FinLit score block (overall, band and the five pillars); no Prism field at all.
-  Gold    FinLit Prism only (rating, the four parts and the two technical readings); no FinLit score block at all.
+  Silver  the basic FinLit IQ block (overall, band and the five pillars); no Prism field at all.
+  Gold    FinLit Prism only (rating, the four parts and the two technical readings); no FinLit IQ block at all.
   Basic   refused (403 plan_required), as the other member tools are.
 A company with no stored report is `status: "preparing"` (and is queued for building, within the same per-visitor and total limits as opening its
 page) or `status: "unknown"` (not a company FinLit lists), each with a reason. A blank figure carries the reason in `why`.
@@ -184,7 +184,7 @@ def prism_block(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def holding(sym: str, parts: Dict[str, Any], prism: Optional[Dict[str, Any]], gold: bool) -> Dict[str, Any]:
-    """One stored company as the page's row. `prism` is read only for Gold, and the FinLit score block only for Silver."""
+    """One stored company as the page's row. `prism` is read only for Gold, and the FinLit IQ block only for Silver."""
     s, r, f = parts.get("summary") or {}, parts.get("ratios") or {}, parts.get("financials") or {}
     prof, quote = s.get("profile") or {}, s.get("quote") or {}
     lender = bool(s.get("isBank"))

@@ -256,7 +256,7 @@ async def get_finlit_score(gw: Gateway, a: Dict[str, Any]) -> Out:
     asof = (s.get("meta") or {}).get("generatedAt")
     if sc.get("overall") is None:
         return Out({"symbol": sym, "locked": True, "score": None,
-                    "message": "The FinLit score for this company is a Silver plan feature on the FinLit website and is not available through this free server."},
+                    "message": "The FinLit IQ for this company is a Silver plan feature on the FinLit website and is not available through this free server."},
                    as_of=asof, routes=[f"/api/stocks/{sym}"])
     return Out({"symbol": sym, "locked": False, "score": {"overall": sc.get("overall"), "scale": "0 to 100", "band": sc.get("band"), "model": sc.get("model"),
                                                            "pillars": [{k: p.get(k) for k in ("key", "label", "score", "band")} for p in sc.get("pillars", [])]}},
@@ -469,7 +469,7 @@ def build_tools() -> List[Tool]:
         Tool("get_price_history", "Price history", "Daily or weekly open, high, low, close and volume. Beyond about one year only weekly closes are stored.",
              {**sym, "days": {"type": "integer", "minimum": 5, "maximum": 1825, "default": 90, "description": "How many calendar days back, up to 1825"},
               "interval": {"type": "string", "enum": ["daily", "weekly"], "default": "daily", "description": "daily or weekly"}}, get_price_history, ["symbol"]),
-        Tool("get_finlit_score", "FinLit score", "The FinLit financial-health score (0 to 100) and its five pillars, only where the website shows it to a visitor. Otherwise it says the score is a Silver plan feature.", sym, get_finlit_score, ["symbol"]),
+        Tool("get_finlit_score", "FinLit IQ", "The FinLit financial-health score (0 to 100) and its five pillars, only where the website shows it to a visitor. Otherwise it says the score is a Silver plan feature.", sym, get_finlit_score, ["symbol"]),
         Tool("get_quarter_results", "Quarter results", "Companies that announced results for a quarter or on a date, with status. Figures such as growth are withheld, as on the free website.",
              {"quarter": {"type": "string", "pattern": r"^\d{4}-(03|06|09|12)$", "maxLength": 7, "description": "Quarter-end month, for example 2026-09"},
               "date": {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$", "maxLength": 10, "description": "Announcement date, YYYY-MM-DD"},

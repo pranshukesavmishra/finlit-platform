@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeOver, emptyReason, modelChanges, valueOf, withValue, type HistPoint } from "./prismHistory";
+import { changeOver, emptyReason, modelChanges, toWeekly, valueOf, withValue, type HistPoint } from "./prismHistory";
 
 const P = (day: string, final: number | null, o: Partial<HistPoint> = {}): HistPoint => ({ day, modelVersion: "3.6.10", final, label: "HEALTHY", status: "RATED", parts: { fundamental: 50, valuation: 60, quality: 70, risk: 80 }, shortTerm: null, longTerm: null, ...o });
 
@@ -24,5 +24,20 @@ describe("prism history helpers", () => {
   it("the change is between the first and the newest figure", () => {
     expect(changeOver([P("2026-10-20", 60), P("2026-10-21", null), P("2026-10-22", 64.4)], "final")).toEqual({ from: "2026-10-20", to: "2026-10-22", delta: 4.4 });
     expect(changeOver([P("2026-10-20", 60)], "final")).toBeNull();
+  });
+});
+
+describe("weekly view", () => {
+  it("keeps the last recorded day of each Monday-to-Sunday week, as recorded, in order", () => {
+    const pts = [P("2026-10-26", 50), P("2026-10-30", 54), P("2026-10-27", 52), P("2026-11-02", 58), P("2026-11-03", 60)];   // given out of order
+    expect(toWeekly(pts).map((p) => [p.day, p.final])).toEqual([["2026-10-30", 54], ["2026-11-03", 60]]);
+  });
+  it("a Sunday belongs to the week before it, and a week with one day keeps that day", () => {
+    expect(toWeekly([P("2026-11-01", 41), P("2026-11-02", 43)]).map((p) => p.day)).toEqual(["2026-11-01", "2026-11-02"]);
+    expect(toWeekly([])).toEqual([]);
+  });
+  it("a day with no figure is not turned into one", () => {
+    const w = toWeekly([P("2026-10-26", 50), P("2026-10-30", null)]);
+    expect(w).toHaveLength(1); expect(w[0].final).toBeNull();
   });
 });

@@ -341,7 +341,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                 return "waiting"
             if not busy:
                 try:
-                    return "failed" if await redis.get(f"ingest:fail:{symbol}:{statement}") else "ready"
+                    note = await redis.get(f"ingest:fail:{symbol}:{statement}")
+                    if not note: return "ready"
+                    return "rejected" if (note.decode() if isinstance(note, bytes) else str(note)) == "rejected" else "failed"   # "rejected": built, then refused by our own accuracy checks
                 except Exception:
                     return "ready"
             if time.monotonic() >= deadline:
@@ -371,6 +373,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             hit = await app.state.store.get_section(symbol, statement, name)
             if hit is not None:
                 return await serve_hit(request, symbol, statement, name, hit, time.perf_counter())
+        elif state == "rejected":
+            return JSONResponse({"status": "build_rejected", "symbol": symbol, "detail": "We built this report but it did not pass our own accuracy checks, so we are not showing it rather than show a number we cannot stand behind. The provider answered; nothing is wrong with your connection."},
+                                status_code=503, headers={"Retry-After": "3600", "Cache-Control": "no-store"})
         elif state == "failed":
             return JSONResponse({"status": "build_failed", "symbol": symbol, "detail": "We could not build this report right now: the data provider did not answer. Please try again in a minute."},
                                 status_code=503, headers={"Retry-After": "30", "Cache-Control": "no-store"})
@@ -532,7 +537,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
 
     @app.get("/api/stocks/{symbol}/score-history")
     async def score_history(request: Request, symbol: str, statement: str = Query("consolidated")):
-        """How the FinLit score has moved (one point per day it was computed). Silver and above, like the score itself."""
+        """How the FinLit IQ has moved (one point per day it was computed). Silver and above, like the score itself."""
         symbol = symbol.strip().upper()
         if not SYMBOL.match(symbol) or statement not in ("consolidated", "standalone"):
             return JSONResponse({"status": "invalid"}, status_code=400)
@@ -686,6 +691,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(mcp_server.router)   # POST /mcp (MCP for AI assistants) and /.well-known/mcp.json: before the site-backend catch-all and the website
     app.include_router(mcp_server.admin)   # /api/admin/mcp-stats
     app.include_router(__import__("finlit.prism_technical", fromlist=["router"]).router)   # GET /api/technicals/status: public, read-only (when the technical views were last refreshed, and the bar dates held)
+    app.include_router(__import__("finlit.sector_api", fromlist=["router"]).router)   # /api/sectors, /api/sectors/{slug}, /api/sectors/status, /api/technicals/{symbol}/sector: static JSON the nightly refresh-sectors job writes
     app.include_router(prism.router)   # /api/prism/*: the members' door to the site backend's administrator-only /api/premium-reports
     app.include_router(__import__("finlit.outlook.router", fromlist=["router"]).router)   # /api/outlook/{symbol}: Gold profit and revenue outlook
     app.include_router(__import__("finlit.mfportfolio.api", fromlist=["router"]).router)   # /api/me/mf-portfolio: My mutual funds (before the site-backend catch-all)

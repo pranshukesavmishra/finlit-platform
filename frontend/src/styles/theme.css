@@ -98,5 +98,5 @@
 :root[data-theme="light"] .skeleton { background: var(--s2); }
 
 /* ---------- No looping or wobbling motion, in any theme ---------- */
-.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip, .term, .skyline .win, .bt-art *, .art * { animation-iteration-count: 1 !important; }
-.tape-track, .marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip { animation: none !important; }
+.marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip, .term, .skyline .win, .bt-art *, .art * { animation-iteration-count: 1 !important; }   /* the market strip is the one thing that keeps moving (premium.css) */
+.marq div, .typing i, .pm-live.on, .live::before, .plan.feat, .dial-spin, .float-chip { animation: none !important; }

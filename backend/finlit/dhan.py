@@ -41,6 +41,26 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 IST = timezone(timedelta(hours=5, minutes=30))
 
 
+
+def _why(r: httpx.Response) -> str:
+    """Dhan's own error code and message from a refused call (never a credential), so a 400 says what was wrong with the request."""
+    try:
+        j = r.json()
+        code, msg = j.get("errorCode") or j.get("error_code"), j.get("errorMessage") or j.get("error_message") or j.get("message")
+        return f" ({code}: {str(msg)[:160]})" if code or msg else ""
+    except Exception:   # nosec B110 - a diagnostic only
+        return ""
+
+
+def _bad_token(r: httpx.Response) -> bool:
+    """Dhan answers an invalid or expired token with HTTP 400 and error code DH-906 (or DH-901), not 401: treat it as a refused token so it is renewed."""
+    if r.status_code != 400:
+        return False
+    try:
+        return str(r.json().get("errorCode") or "") in ("DH-906", "DH-901")
+    except Exception:   # nosec B110 - a diagnostic only
+        return False
+
 class DhanError(RuntimeError):
     """Any failure talking to Dhan. The text never holds a URL, PIN, code or token."""
 
@@ -299,11 +319,12 @@ class DhanClient:
                     raise DhanError(f"{path}: {type(e).__name__}") from None
                 await asyncio.sleep(1 + attempt)
                 continue
-            if r.status_code in (401, 403) and not tried_renew and self.settings.dhan_pin and self.settings.dhan_totp_secret:
+            refused = r.status_code in (401, 403) or _bad_token(r)
+            if refused and not tried_renew and self.settings.dhan_pin and self.settings.dhan_totp_secret:
                 tried_renew = True
                 await self.token(force=True)
                 continue
-            if r.status_code in (401, 403):
+            if refused:
                 from .jobs.signals import report_refused
                 await report_refused(self.settings, "dhan", r.status_code)
                 raise DhanError(f"{path}: token refused (HTTP {r.status_code}); a pasted token lasts 24 hours")
@@ -311,12 +332,26 @@ class DhanClient:
                 await asyncio.sleep(2 ** attempt)
                 continue
             if r.status_code != 200:
-                raise DhanError(f"{path}: HTTP {r.status_code}")
+                raise DhanError(f"{path}: HTTP {r.status_code}{_why(r)}")
             try:
-                return r.json()
+                out = r.json()
             except ValueError:
                 raise DhanError(f"{path}: unreadable answer") from None
+            await self._accepted()
+            return out
         raise DhanError(f"{path}: gave up")
+
+    async def _accepted(self) -> None:
+        """A call went through: the token is accepted, so an earlier "key refused" note is stale. At most one Redis write per 10 minutes; never raises."""
+        now = time.monotonic()
+        if self.redis is None or now - getattr(self, "_accepted_at", -1e9) < 600:
+            return
+        self._accepted_at = now
+        try:
+            from .jobs.signals import clear_credential
+            await clear_credential(self.redis, "dhan")
+        except Exception:   # nosec B110 - an alert note must never fail a data call
+            pass
 
     async def _pace(self, gap: float) -> None:
         """Dhan's limit is per account, not per process: a Redis key that lives `gap` seconds is the turn to call (waits up to 20 seconds,

@@ -20,7 +20,7 @@ export const SECTIONS: NavSection[] = [
   { id: "research", label: "Research", wide: true, groups: [
     { title: "Find stocks", items: [
       i("/screener", "Stock screener", "Filter every listed company by size, valuation, growth and debt", "table"),
-      i("/score-screener", "Basic score screener", "Every listed company with its FinLit score, filtered by size, sector and score", "quality"),
+      i("/score-screener", "Basic score screener", "Every listed company with its FinLit IQ, filtered by size, sector and score", "quality"),
       i("/advanced-score-screener", "Advanced score screener", "Every listed company with its FinLit Prism rating: four financial-health parts and two technical views", "layers", { gold: true }),
       i("/query-builder", "Query builder", "Type a rule like P/E < 15, get the companies; save baskets", "notes"),
     ] },
@@ -42,6 +42,7 @@ export const SECTIONS: NavSection[] = [
     ] },
   ] },
   { id: "markets", label: "Markets", groups: [{ items: [
+    i("/sectors", "Sector Pulse", "Which NSE industries are in a washout, a rebound or fading", "activity"),
     i("/fii-dii", "FII & DII flows", "Institutional buying and selling, streaks and history", "bars"),
     i("/macro", "India economy", "Inflation, growth, interest rates and reserves", "activity"),
     i("/commodities", "Commodity prices", "Gold, silver, crude and metals: MCX, global and import parity", "activity"),
@@ -70,6 +71,7 @@ export const MORE: NavSection = { id: "more", label: "More", groups: [
     i("/forum", "Discussion forums", "Information and opinion only, moderated", "users"),
     i("/blog", "Insights & blog", "Research notes and explainers", "spark"),
     i("/glossary", "Glossary", "Terms in plain words, with formulas", "book"),
+    i("/learn/sector-signals", "How sector signals work", "Breadth, the industry cycle and what the study found", "book"),
     i("/documents", "Documents", "Annual reports and presentations", "layers"),
     i("/mcp", "Connect AI assistants", "Free, read-only data for Claude, ChatGPT and Cursor", "spark"),
   ] },

@@ -8,6 +8,7 @@ export type ContentItem = {
   status: "DRAFT" | "PUBLISHED"; publishedAt?: string | null; updatedAt?: string; createdAt?: string;
   coverImageUrl?: string | null; coverImageKey?: string | null; articleHtml?: string; articleBody?: string;
   fileKey?: string | null; fileUrl?: string | null; originalFileName?: string | null; mimeType?: string | null; fileSize?: number | null;
+  category?: "Myth Busters" | "Explainers" | "Hot Topics" | "Investing Basics" | "Industry Insights" | null; featured?: boolean;
 };
 export type PortfolioReport = {
   sourceFileName: string; generatedAt: string;

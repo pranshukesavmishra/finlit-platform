@@ -7,7 +7,7 @@ import { Plain } from "../components/Plain";
 import { Icon } from "../lib/icons";
 import { nf } from "../lib/format";
 import { API_BASE, apiUrl } from "../lib/api";
-import { limitsFor } from "../lib/auth";
+import { limitsFor, useAuth } from "../lib/auth";
 import { READY, UNIT_SUFFIX, activeCount, chipColumn, decodeState, defaultColumns, emptyReason, encodeState, firstPeriod, fmtMetric, loadCols, norm, storeCols, tableColumns, toBody, useCatalog, useScreen, type Catalog, type MetricInfo, type PState, type Range } from "../lib/proscreen";
 import { screens, useSavedScreens } from "../lib/screens";
 import { saveFile } from "../stock/derive";
@@ -101,6 +101,7 @@ function Checks({ items, picked, toggle, search }: { items: { key: string; label
 }
 
 export function ScreenerPro() {
+  const { isAdmin } = useAuth();
   useDocTitle("Stock screener", "Filter every listed Indian stock with 160+ filters: valuation, profitability, growth, quarterly results, financial health, ownership, red flags and trend. Gold adds FinLit model filters.");
   const { upgrade, toast, plan: uiPlan } = useUI();
   const [sideW, setSide] = useSideWidth("screener");
@@ -226,7 +227,7 @@ export function ScreenerPro() {
           { icon: "layers", label: "Listed companies", value: data ? nf(data.total, 0) : "…" },
           { icon: "map", label: "Sectors", value: data ? nf(data.sectors.length, 0) : "…" },
           { icon: "table", label: "Filters available", value: data ? nf(data.groups.reduce((a, g) => a + g.metrics.length, 0), 0) : "…" } as Kpi]} />
-        {data && data.total > 0 && (
+        {isAdmin && data && data.total > 0 && (      // how many companies have a report, and the sector mix: for the team (Console view), not shown to members
           <div className="fgx-two">
             <Donut part={data.withReport} total={data.total} partLabel="Report loaded" restLabel="Price and market cap only" title={`${nf(data.total - data.withReport, 0)} of ${nf(data.total, 0)} companies have no full report loaded yet.`}
               note="Ratios, growth and statements show a dash until a company's report is loaded." />
@@ -264,7 +265,7 @@ export function ScreenerPro() {
                           <>
                             {g.id === "size" && data && <div role="group" aria-label="Company size">{data.caps.map((c) => <CheckRow key={c.name} label={`${c.name} cap`} count={c.n} checked={f.caps.includes(c.name)} onChange={() => toggle("caps", c.name)} />)}</div>}
                             {model && (
-                              allLocked ? <div className="scr-lock"><span className="lk"><Icon name="lock" /></span><b>Filter by the FinLit model</b><p>The FinLit score, its band and each of the five pillars (Quality, Growth, Profitability, Balance sheet, Technical), plus how the score has moved.</p>
+                              allLocked ? <div className="scr-lock"><span className="lk"><Icon name="lock" /></span><b>Filter by the FinLit model</b><p>The FinLit IQ, its band and each of the five pillars (Quality, Growth, Profitability, Balance sheet, Technical), plus how the score has moved.</p>
                                 <button className="btn primary" onClick={() => ask("gold", "FinLit model filters come with the Gold plan.")}>Unlock with Gold</button></div>
                               : <div className="fgx-chips" role="group" aria-label="FinLit band">{(data?.bands || []).map((b) => <button key={b.key} type="button" className={"fgx-chip" + (f.bands.includes(b.key) ? " is-on" : "")} aria-pressed={f.bands.includes(b.key)} onClick={() => toggle("bands", b.key)}>{f.bands.includes(b.key) && <i aria-hidden="true">&#10003;</i>}{b.label}</button>)}</div>
                             )}

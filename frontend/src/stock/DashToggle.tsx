@@ -1,4 +1,4 @@
-// "Show full breakdown": the single toggle under the stock page's first dashboard (FinLit score beside FinLit Prism).
+// "Show full breakdown": the single toggle under the stock page's first dashboard (FinLit IQ beside FinLit Prism).
 // Collapsed is the default. The choice is remembered in this browser only; storage can be missing or blocked, so every access is guarded.
 import { useCallback, useState } from "react";
 import { Icon } from "../lib/icons";

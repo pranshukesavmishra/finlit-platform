@@ -1,0 +1,480 @@
+"""NSE's own daily files as the price source: every main-board stock (including ones later delisted), adjusted for
+splits, bonuses, rights and demergers, plus the closes of every NSE index.
+
+The folder is the one `python -m finlit_technicals fetch-nse --dir FOLDER` keeps up to date:
+    bhav_<year>.csv.gz        one row per security and trading day (NSE's bhavcopy): date,symbol,series,isin,open,
+                              high,low,close,last,prev_close,volume,value,trades
+    idx_<year>.csv.gz         closes of every NSE index: date,index,open,high,low,close,...
+    ref/symbolchange.csv      NSE's old -> new symbol changes
+    ref/EQUITY_L.csv          stocks listed today (names, listing dates)
+    ref/corporate_actions.txt corporate actions fetched after the bundled list (optional)
+    amfi/<yyyy>H<n>.xlsx      AMFI half-yearly average market caps (used by the universe rules)
+
+    nse = NseHistory("~/dhan_alerts/nse_history")
+    nse.daily("SAMBHV")            # adjusted open/high/low/close/volume, like any other source in sources.py
+    nse.index("NSE:NIFTY")         # Nifty 50 closes
+    nse.panel                      # every stock at once (used by the universe and the sector engine)
+
+How a stock is followed: by its current symbol, through NSE's symbol changes; a rename missing from that file is
+linked by ISIN (same issuer and security type, trading resumes within 20 days). Adjustments come from NSE's
+corporate actions (bundled for 2016 - Oct 2026 in data/nse_corporate_actions.txt; newer ones fetched daily):
+the stated ratio for splits, bonuses and consolidations, the theoretical ex-rights price for rights issues, the
+opening gap for demergers, and any move no price band allows (below 35% or above 2.8x of the last close) is treated
+as an unrecorded action.
+"""
+from __future__ import annotations
+
+import csv
+import datetime as dt
+import glob
+import hashlib
+import os
+import pickle
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List, Optional
+
+import numpy as np
+import pandas as pd
+
+from .peers import norm_symbol
+from .sources import COLUMNS, INDICES
+
+MAIN = ("EQ", "BE", "BZ")
+SERIES_RANK = {"EQ": 0, "BE": 1, "BZ": 2}
+DATA_DIR = Path(__file__).resolve().parent / "data"
+BUNDLED_ACTIONS = DATA_DIR / "nse_corporate_actions.txt"
+INDEX_ALIASES = {"NIFTY MIDCAP 100": ["NIFTY FREE MIDCAP 100"], "NIFTY SMALLCAP 100": ["NIFTY FREE SMALL 100"]}
+CACHE_VERSION = "2"
+
+
+# ─── reading the files ────────────────────────────────────────────────────────────────────────────────────────────
+def _shared(s: pd.Series, strip: bool = False) -> pd.Series:
+    """The same strings with one object per distinct value (missing stays NaN)."""
+    codes, uniq = pd.factorize(s.str.strip() if strip else s)
+    values = np.append(np.array([sys.intern(x) if isinstance(x, str) else x for x in uniq], dtype=object), np.nan)    # code -1 (missing) picks the last element
+    return pd.Series(values[codes], index=s.index, dtype=object)
+
+
+def load_bhav(folder: str | Path) -> pd.DataFrame:
+    """All main-board rows (series EQ, BE, BZ) from the yearly bhavcopy files."""
+    files = sorted(glob.glob(os.path.join(str(folder), "bhav_[0-9][0-9][0-9][0-9].csv.gz")))
+    if not files:
+        raise FileNotFoundError(f"{folder}: no bhav_<year>.csv.gz files (run: python -m finlit_technicals fetch-nse)")
+    parts = []
+    for f in files:
+        d = pd.read_csv(f, dtype={"symbol": str, "series": str, "isin": str},
+                        usecols=["date", "symbol", "series", "isin", "open", "high", "low", "close", "volume",
+                                 "value", "trades"])
+        d["series"] = d["series"].str.strip()
+        d = d[d["series"].isin(MAIN)].copy()
+        # FinLit patch: one shared string object per distinct symbol / series / ISIN instead of one per row (the same values; far less memory)
+        d["symbol"], d["series"], d["isin"] = _shared(d["symbol"], True), _shared(d["series"]), _shared(d["isin"])
+        parts.append(d)
+    b = pd.concat(parts, ignore_index=True)
+    b["date"] = pd.to_datetime(b["date"])
+    return b
+
+
+def _row_hashes(eq: pd.DataFrame) -> np.ndarray:
+    """One 64-bit hash per EQ row of (symbol, open, high, low, close, volume rounded to 4 places). A row with a missing number never equals another row."""
+    cols = eq[["symbol", "open", "high", "low", "close", "volume"]]
+    h = pd.util.hash_pandas_object(cols.assign(**{c: cols[c].round(4) for c in ("open", "high", "low", "close", "volume")}), index=False).to_numpy(np.uint64).copy()
+    bad = cols[["open", "high", "low", "close", "volume"]].isna().any(axis=1).to_numpy()
+    if bad.any():
+        h[bad] = (np.arange(len(h), dtype=np.uint64)[bad] + np.uint64(1)) * np.uint64(0x9E3779B97F4A7C15)
+    return h
+
+
+def drop_repeated_days(b: pd.DataFrame, share: float = 0.95) -> tuple:
+    """NSE serves the previous day's file on some holidays; drop days whose EQ rows repeat the day before.
+
+    FinLit patch: the same rule, with each row reduced to a 64-bit hash and only the previous kept day held, instead of a Python set of tuples for every day
+    (those alone took about 1.5 GB for ten years of NSE files). The days dropped are identical (tests/test_nse_memory.py compares with the original)."""
+    eq = b[b["series"] == "EQ"]
+    h = _row_hashes(eq)
+    dates = eq["date"].to_numpy()
+    order = np.argsort(dates, kind="stable")
+    sd = dates[order]
+    cuts = np.flatnonzero(np.r_[True, sd[1:] != sd[:-1], True])
+    drop, prev = [], None
+    for lo, hi in zip(cuts[:-1], cuts[1:]):
+        cur = np.unique(h[order[lo:hi]])
+        d = pd.Timestamp(sd[lo])
+        if prev is not None and len(cur) >= share * len(prev) and np.isin(cur, prev, assume_unique=True).sum() >= share * len(cur):
+            drop.append(d)
+            continue
+        prev = cur
+    return b[~b["date"].isin(drop)].reset_index(drop=True), drop
+
+
+def load_symbol_changes(path: str | Path) -> Dict[str, List[tuple]]:
+    """old symbol -> [(effective date, new symbol), ...] sorted by date."""
+    out: Dict[str, List[tuple]] = {}
+    if not os.path.exists(path):
+        return out
+    with open(path, newline="", encoding="utf-8", errors="replace") as f:
+        rd = csv.reader(f)
+        next(rd, None)
+        for r in rd:
+            if len(r) < 4 or not r[1].strip() or not r[2].strip():
+                continue
+            try:
+                eff = dt.datetime.strptime(r[3].strip().title(), "%d-%b-%Y").date()
+            except ValueError:
+                continue
+            out.setdefault(r[1].strip(), []).append((eff, r[2].strip()))
+    for v in out.values():
+        v.sort()
+    return out
+
+
+def resolve(symbol: str, day: dt.date, changes: Dict[str, List[tuple]]) -> str:
+    """The symbol a stock trading as `symbol` on `day` uses after every later change."""
+    seen = set()
+    s = symbol
+    while s in changes and s not in seen:
+        seen.add(s)
+        nxt = [(eff, new) for eff, new in changes[s] if day < eff]
+        if not nxt:
+            break
+        s = nxt[0][1]
+    return s
+
+
+def link_by_isin(b: pd.DataFrame, max_gap_days: int = 20) -> Dict[str, str]:
+    """Renames missing from NSE's symbol change file: a key that stops trading and a key that starts within
+    `max_gap_days` with the same issuer and security type in the ISIN. Returns old key -> new key."""
+    has = b.dropna(subset=["isin"])
+    has = has[has["isin"].str.len() >= 9]
+    if has.empty:
+        return {}
+    span = has.groupby("key").agg(first=("date", "min"), last=("date", "max"),
+                                  code=("isin", lambda s: s.iloc[-1][3:9]), code0=("isin", lambda s: s.iloc[0][3:9]))
+    end_all = b["date"].max()
+    by_code: Dict[str, list] = {}
+    for k, r in span.iterrows():
+        by_code.setdefault(r["code0"], []).append(k)
+    rename = {}
+    for k, r in span.iterrows():
+        if r["last"] >= end_all - pd.Timedelta(days=5):
+            continue
+        for k2 in by_code.get(r["code"], []):
+            gap = (span.loc[k2, "first"] - r["last"]).days
+            if k2 != k and 0 < gap <= max_gap_days:
+                rename[k] = k2
+
+    def final(k):
+        seen = set()
+        while k in rename and k not in seen:
+            seen.add(k)
+            k = rename[k]
+        return k
+    return {k: final(k) for k in rename}
+
+
+def add_keys(b: pd.DataFrame, changes: Dict[str, List[tuple]]) -> tuple:
+    """key = the symbol the stock trades under today; one row per key and day (EQ preferred over BE, BZ)."""
+    pairs = b.loc[b["symbol"].isin(list(changes)), ["symbol", "date"]].drop_duplicates()
+    keymap = {(s, d): resolve(s, d, changes) for s, d in zip(pairs["symbol"].to_numpy(), pairs["date"].dt.date.to_numpy())}
+    if keymap:
+        mapped = pd.Series(keymap).reindex(pd.MultiIndex.from_arrays([b["symbol"], b["date"].dt.date])).to_numpy()
+        b["key"] = np.where(pd.isna(mapped), b["symbol"].to_numpy(), mapped)
+    else:
+        b["key"] = b["symbol"]
+    links = link_by_isin(b)
+    if links:
+        b["key"] = b["key"].map(lambda k: links.get(k, k))
+    b["srank"] = b["series"].map(SERIES_RANK).fillna(9)
+    b = b.sort_values(["key", "date", "srank"]).drop_duplicates(["key", "date"], keep="first")
+    return b.drop(columns="srank").reset_index(drop=True), links
+
+
+# ─── corporate actions ────────────────────────────────────────────────────────────────────────────────────────────
+NICE = sorted({a / b for a in range(1, 13) for b in range(1, 13) if a < b} | {1 / x for x in (15, 20, 25, 50, 100)})
+
+
+def load_actions(*paths) -> list:
+    """(symbol, ex_date, factor, type) rows. Lines: "SYM YYYYMMDD a/b B|S|C" (factor a/b on prices before the
+    ex-date), "SYM YYYYMMDD R new:held premium face_value" (rights), "SYM YYYYMMDD D" (demerger)."""
+    out, seen = [], set()
+    for path in paths:
+        if not path or not os.path.exists(path):
+            continue
+        for line in open(path, encoding="utf-8"):
+            line = line.strip()
+            if not line or line.startswith("#") or line in seen:
+                continue
+            seen.add(line)
+            parts = line.split()
+            try:
+                sym, d = parts[0], pd.Timestamp(dt.datetime.strptime(parts[1], "%Y%m%d"))
+                if parts[2] == "D":
+                    out.append((sym, d, None, "D"))
+                elif parts[2] == "R":
+                    if parts[4] == "?":
+                        continue
+                    a, b = parts[3].split(":")
+                    out.append((sym, d, ("R", float(a), float(b), float(parts[4]) + float(parts[5])), "R"))
+                else:
+                    a, b = parts[2].split("/")
+                    out.append((sym, d, float(a) / float(b), parts[3]))
+            except (IndexError, ValueError):
+                continue
+    return out
+
+
+def adjustment_factors(dates, keys, close, opens, actions, changes) -> tuple:
+    """Per day and stock, the factor that multiplies all earlier prices (1 = nothing happened)."""
+    T, N = close.shape
+    kidx = {k: i for i, k in enumerate(keys)}
+    f = np.ones((T, N))
+    rep = {"applied": 0, "corrected": 0, "rights": 0, "demerger": 0, "not_matched": 0}
+    last_close = pd.DataFrame(close).ffill().shift(1).to_numpy()
+    by_day: Dict[tuple, list] = {}
+    for sym, d, fac, typ in actions:
+        j = kidx.get(resolve(sym, d.date(), changes), kidx.get(sym))
+        if j is None:
+            rep["not_matched"] += 1
+            continue
+        t = int(np.searchsorted(dates.values, np.datetime64(d)))
+        while t < T and np.isnan(close[t, j]):
+            t += 1
+        if t >= T or t == 0 or np.isnan(last_close[t, j]):
+            rep["not_matched"] += 1
+            continue
+        by_day.setdefault((t, j), []).append((fac, typ))
+    for (t, j), acts in by_day.items():
+        P = last_close[t, j]
+        ratio = close[t, j] / P
+        o = opens[t, j]
+        oratio = (o if not np.isnan(o) else close[t, j]) / P
+        rights = [a for a in acts if a[1] == "R"]
+        for a in rights:
+            _, new, held, issue = a[0]
+            if issue < P:
+                fr = (held * P + new * issue) / ((held + new) * P)
+                if fr < 0.97:
+                    f[t, j] *= fr
+                    rep["rights"] += 1
+        stated = [a for a in acts if a[1] not in ("D", "R")]
+        if not stated:
+            if not rights and oratio < 0.9:          # demerger: the opening gap
+                f[t, j] *= oratio
+                rep["demerger"] += 1
+            continue
+        fac = float(np.prod([a[0] for a in stated]))
+        if fac * 0.75 <= ratio <= fac * 1.33:
+            f[t, j] *= fac
+            rep["applied"] += 1
+            continue
+        nice = min(NICE, key=lambda x: abs(np.log(ratio / x)))   # a split and a bonus filed as one action, say
+        if abs(np.log(ratio / nice)) < np.log(1.12) and nice < 0.95:
+            f[t, j] *= nice
+            rep["corrected"] += 1
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = close / last_close
+    odd = ((r < 0.35) | (r > 2.8)) & (f == 1) & ~np.isnan(r)
+    f[odd] = r[odd]
+    rep["unrecorded"] = int(odd.sum())
+    return f, rep
+
+
+# ─── the panel ────────────────────────────────────────────────────────────────────────────────────────────────────
+@dataclass
+class Panel:
+    """Every main-board stock on every trading day. Prices are as traded (raw); `cum` turns them into today's terms
+    (adjusted = raw * cum). Arrays are T x N; nan (or -1 for series) when the stock did not trade that day."""
+    dates: pd.DatetimeIndex
+    keys: List[str]
+    close: np.ndarray
+    open: np.ndarray
+    high: np.ndarray
+    low: np.ndarray
+    volume: np.ndarray
+    value: np.ndarray          # traded value, rupees
+    trades: np.ndarray
+    series: np.ndarray         # 0 EQ, 1 BE, 2 BZ, -1 not traded
+    cum: np.ndarray            # product of the adjustment factors after each day
+    isin: Dict[str, str] = field(default_factory=dict)
+    links: Dict[str, str] = field(default_factory=dict)
+    report: Dict[str, int] = field(default_factory=dict)
+    _adj: Optional[np.ndarray] = None
+
+    @property
+    def adj(self) -> np.ndarray:
+        if self._adj is None:
+            self._adj = np.round(self.close.astype(float), 2) * self.cum
+        return self._adj
+
+    def col(self, key: str) -> int:
+        return self.keys.index(key)
+
+
+def build_panel(b: pd.DataFrame, actions: list, changes, links=None) -> Panel:
+    dates = pd.DatetimeIndex(sorted(b["date"].unique()))
+    keys = sorted(b["key"].unique())
+    ti = pd.Index(dates).get_indexer(b["date"])
+    ki = pd.Index(keys).get_indexer(b["key"])
+    T, N = len(dates), len(keys)
+
+    def mat(col, dtype=np.float32):
+        m = np.full((T, N), np.nan, dtype=dtype)
+        m[ti, ki] = b[col].to_numpy(dtype=dtype)
+        return m
+
+    close = mat("close", np.float64)
+    close[close <= 0] = np.nan
+    opn = mat("open")
+    series = np.full((T, N), -1, dtype=np.int8)
+    series[ti, ki] = b["series"].map(SERIES_RANK).fillna(9).to_numpy(dtype=np.int8)
+    f, rep = adjustment_factors(dates, keys, close, opn, actions, changes)
+    logf = np.log(f)
+    cum = np.exp(np.flipud(np.cumsum(np.flipud(logf), axis=0)) - logf)
+    isin = b.drop_duplicates("key", keep="last").set_index("key")["isin"].to_dict()
+    return Panel(dates=dates, keys=keys, close=close.astype(np.float32), open=opn, high=mat("high"), low=mat("low"),
+                 volume=mat("volume"), value=mat("value"), trades=mat("trades"), series=series, cum=cum,
+                 isin={k: v for k, v in isin.items() if isinstance(v, str)}, links=links or {}, report=rep)
+
+
+def load_indices(folder: str | Path) -> pd.DataFrame:
+    files = sorted(glob.glob(os.path.join(str(folder), "idx_[0-9][0-9][0-9][0-9].csv.gz")))
+    if not files:
+        return pd.DataFrame(columns=["date", "index", "open", "high", "low", "close", "volume"])
+    d = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+    d["date"] = pd.to_datetime(d["date"])
+    d["name"] = d["index"].astype(str).str.upper().str.strip()
+    return d
+
+
+# ─── the source ───────────────────────────────────────────────────────────────────────────────────────────────────
+class NseHistory:
+    """A price source (daily / index, like CsvFolder) built from NSE's daily files, plus the whole panel."""
+
+    def __init__(self, folder: str | Path, actions_file: Optional[str | Path] = None, cache: bool = True):
+        self.folder = Path(folder).expanduser()
+        self.actions_files = [BUNDLED_ACTIONS, self.folder / "ref" / "corporate_actions.txt"]
+        if actions_file:
+            self.actions_files.append(Path(actions_file))
+        self.cache = cache
+        self._panel: Optional[Panel] = None
+        self._idx: Optional[pd.DataFrame] = None
+        self._changes = None
+        self._kidx: Optional[Dict[str, int]] = None
+        self._names: Optional[Dict[str, str]] = None
+
+    # building
+    def _signature(self) -> str:
+        h = hashlib.sha1(CACHE_VERSION.encode())
+        files = sorted(glob.glob(str(self.folder / "bhav_*.csv.gz"))) + [str(self.folder / "ref" / "symbolchange.csv")]
+        files += [str(p) for p in self.actions_files]
+        for f in files:
+            if os.path.exists(f):
+                st = os.stat(f)
+                h.update(f"{os.path.basename(f)}:{st.st_size}:{int(st.st_mtime)}".encode())
+        return h.hexdigest()
+
+    @property
+    def changes(self):
+        if self._changes is None:
+            self._changes = load_symbol_changes(self.folder / "ref" / "symbolchange.csv")
+        return self._changes
+
+    @property
+    def panel(self) -> Panel:
+        if self._panel is None:
+            sig = self._signature()
+            cpath = self.folder / ".finlit_cache" / "panel.pkl"
+            if self.cache and cpath.exists():
+                try:
+                    with open(cpath, "rb") as fh:
+                        saved_sig, panel = pickle.load(fh)
+                    if saved_sig == sig:
+                        self._panel = panel
+                except Exception:      # noqa: BLE001  (a stale or partial cache is rebuilt)
+                    self._panel = None
+            if self._panel is None:
+                b = load_bhav(self.folder)
+                b, _ = drop_repeated_days(b)
+                b, links = add_keys(b, self.changes)
+                self._panel = build_panel(b, load_actions(*self.actions_files), self.changes, links)
+                if self.cache:
+                    try:
+                        cpath.parent.mkdir(exist_ok=True)
+                        tmp = cpath.with_suffix(".tmp")
+                        with open(tmp, "wb") as fh:
+                            pickle.dump((sig, self._panel), fh, protocol=4)
+                        tmp.replace(cpath)
+                    except OSError:
+                        pass
+        return self._panel
+
+    @property
+    def calendar(self) -> pd.DatetimeIndex:
+        return self.panel.dates
+
+    def key(self, symbol: str) -> Optional[str]:
+        """The panel key (today's symbol) for a symbol, old symbols included."""
+        p = self.panel
+        if self._kidx is None:
+            self._kidx = {k: i for i, k in enumerate(p.keys)}
+            self._norm = {norm_symbol(k): k for k in p.keys}
+        s = symbol.split(":")[-1].strip().upper()
+        s = self._norm.get(norm_symbol(s), s)
+        if s in self._kidx:
+            return s
+        s2 = resolve(s, dt.date(1990, 1, 1), self.changes)
+        s2 = p.links.get(s2, s2)
+        return s2 if s2 in self._kidx else None
+
+    def symbols(self) -> List[str]:
+        return list(self.panel.keys)
+
+    def names(self) -> Dict[str, str]:
+        """Company names of stocks listed today (from ref/EQUITY_L.csv)."""
+        if self._names is None:
+            self._names = {}
+            path = self.folder / "ref" / "EQUITY_L.csv"
+            if path.exists():
+                d = pd.read_csv(path)
+                d.columns = [c.strip().upper() for c in d.columns]
+                if "SYMBOL" in d and "NAME OF COMPANY" in d:
+                    self._names = dict(zip(d["SYMBOL"].astype(str).str.strip(), d["NAME OF COMPANY"].astype(str).str.strip()))
+        return self._names
+
+    # the PriceSource interface
+    def daily(self, symbol: str) -> Optional[pd.DataFrame]:
+        k = self.key(symbol)
+        if k is None:
+            return None
+        p = self.panel
+        j = self._kidx[k]
+        ok = ~np.isnan(p.close[:, j])
+        if not ok.any():
+            return None
+        c = p.cum[ok, j]
+
+        def adj(a):
+            return np.round(a[ok, j].astype(float), 2) * c
+        df = pd.DataFrame({"open": adj(p.open), "high": adj(p.high), "low": adj(p.low), "close": adj(p.close),
+                           "volume": np.round(p.volume[ok, j].astype(float)) / c},
+                          index=pd.DatetimeIndex(p.dates[ok], name="date"))
+        return df[COLUMNS]
+
+    def index(self, code: str) -> Optional[pd.DataFrame]:
+        if self._idx is None:
+            self._idx = load_indices(self.folder)
+        info = INDICES.get(code)
+        name = (info["nse"] if info else code.split(":")[-1]).upper()
+        d = self._idx[self._idx["name"].isin([name] + INDEX_ALIASES.get(name, []))]
+        if d.empty:
+            return None
+        d = d.sort_values("date").drop_duplicates("date", keep="last").set_index("date")
+        out = pd.DataFrame({c: pd.to_numeric(d[c], errors="coerce") for c in ("open", "high", "low", "close", "volume")
+                            if c in d})
+        for c in ("open", "high", "low"):
+            out[c] = out[c].fillna(out["close"])
+        out["volume"] = out.get("volume", pd.Series(0.0, index=out.index)).fillna(0.0)
+        out.index.name = "date"
+        return out[COLUMNS]

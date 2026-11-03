@@ -4,6 +4,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY finlit ./finlit
+COPY finlit_technicals ./finlit_technicals
 COPY scripts ./scripts
 # Fixtures let `FINEDGE_MODE=fixtures` run the whole stack offline.
 COPY tests/fixtures ./tests/fixtures

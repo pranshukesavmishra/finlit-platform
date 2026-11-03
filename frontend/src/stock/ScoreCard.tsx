@@ -1,4 +1,4 @@
-// The left half of the stock page's first dashboard: the FinLit score. Compact by default (header row, dial + the read, one row of five
+// The left half of the stock page's first dashboard: the FinLit IQ. Compact by default (header row, dial + the read, one row of five
 // pillar tiles, three one-line insights, a footer); `expanded` shows the full read, and ScoreDetail adds the insight cards and the pillar notes.
 // Plan gating is unchanged: Hero wraps this in the Silver Gate. The right half (FinLit Prism) uses the same row grid, see PrismCompare.tsx.
 import { useState } from "react";
@@ -12,7 +12,7 @@ import { PartTile, type Tone } from "../components/prism/shared/PartTile";
 import { scoreChange, useScoreHistory, type Ratios, type Summary } from "../lib/api";
 import { PILLAR_COLOR, PILLAR_ICON } from "./derive";
 
-/** Where the FinLit score changes its word (45 / 62 / 78, see backend analytics/scoring.py); drawn as the ticks on every pillar bar. */
+/** Where the FinLit IQ changes its word (45 / 62 / 78, see backend analytics/scoring.py); drawn as the ticks on every pillar bar. */
 export const SCORE_TICKS = [45, 62, 78];
 const bandStyle = (v: number | null | undefined) => (scoreBand(v) === "na" ? undefined : ({ "--tc": bandInk(scoreBand(v)) } as React.CSSProperties));
 const toneOf = (key: string | undefined, score: number | null): Tone => score == null ? "na" : key === "strong" ? "strong" : key === "healthy" ? "healthy" : key === "mixed" ? "mixed" : "weak";
@@ -27,15 +27,15 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
   const know = [...s.strengths.slice(0, 2).map((n) => ({ ...n, tone: "good" as const })), ...s.watchouts.slice(0, 1).map((n) => ({ ...n, tone: "bad" as const }))];
   const ob = open ? byKey[open] : null, os = open ? s.score.pillars.find((x) => x.key === open) : null;
   const toggle = (k: string) => setOpen((o) => (o === k ? null : k));
-  const thesis = s.thesis || (s.score.overall == null && !has("silver") ? "The written read of this company comes with the Silver plan, together with its FinLit score." : (cov?.state === "empty" ? "Our data provider has not sent any price or financial statements for this company, so there is nothing to score yet. We check again every night." : cov && cov.reasons.length ? `Not enough data to summarise this company yet: ${cov.reasons.join("; ")}. We check again every night.` : "Not enough data to summarise this company yet."));
+  const thesis = s.thesis || (s.score.overall == null && !has("silver") ? "The written read of this company comes with the Silver plan, together with its FinLit IQ." : (cov?.state === "empty" ? "Our data provider has not sent any price or financial statements for this company, so there is nothing to score yet. We check again every night." : cov && cov.reasons.length ? `Not enough data to summarise this company yet: ${cov.reasons.join("; ")}. We check again every night.` : "Not enough data to summarise this company yet."));
   const updated = `Updated ${dateIN(s.meta.generatedAt, { day: "numeric", month: "short" })}`;
-  const chipTitle = `This score is the FinLit score for every plan; Gold's advanced model is FinLit Prism, a separate rating. Data as of ${s.dataQuality.fundamentalsAsOf}, ${s.meta.statement} accounts.`;
+  const chipTitle = `This score is the FinLit IQ for every plan; Gold's advanced model is FinLit Prism, a separate rating. Data as of ${s.dataQuality.fundamentalsAsOf}, ${s.meta.statement} accounts.`;
   const bandTone = toneOf(s.score.band.key, s.score.overall);
 
   return (
     <article className="report dk-card dk-left" aria-labelledby="reportTitle">
       <header className="dk-head">
-        <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit score" : "FinLit Research Report"}</span></div>
+        <div className="dk-ht"><span className="eyebrow" id="reportTitle">{two ? "FinLit IQ" : "FinLit Research Report"}</span></div>
       </header>
       <div className="dk-row">
         <Dial compact overall={s.score.overall} pillars={s.score.pillars} onPillar={toggle} active={open} bandLabel={s.score.band.label} />
@@ -76,7 +76,7 @@ export function ScoreCard({ s, ratios, jump, two, expanded }: { s: Summary; rati
           <span className="dk-chip dk-live dk-fchip" title={chipTitle}><span className="dk-m">Model </span>{s.score.model} · {s.dataQuality.fundamentalsAsOf} · {updated}</span>
           <span className="dk-cap"><span className="dk-cap-t">Average of five pillars · select a ring segment or a pillar</span> <ChartHelp id="score-dial" /><ChartHelp id="score-pillars" /></span>
           <a className="dk-link" href="#method" onClick={(e) => { e.preventDefault(); jump("method"); }}>Pros &amp; cons →</a>
-          {plan === "gold" && <a className="dk-link" href="#prism" title="This score is the FinLit score. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism →</a>}
+          {plan === "gold" && <a className="dk-link" href="#prism" title="This score is the FinLit IQ. Gold's advanced model, FinLit Prism, rates the company separately." onClick={(e) => { e.preventDefault(); jump("prism"); }}>Advanced model: FinLit Prism →</a>}
         </div>
       </details>
       <p className="dk-comp disc"><Icon name="info" /><span>Research summary, not a recommendation to buy or sell. FinLit Ventures is a technology company and is not registered with SEBI or AMFI.</span></p>
@@ -89,8 +89,8 @@ export function ScoreDetail({ s, ratios }: { s: Summary; ratios?: Ratios }) {
   const byKey = Object.fromEntries((ratios?.score.pillars || []).map((x) => [x.key, x]));
   const know = [...s.strengths.slice(0, 2).map((n) => ({ ...n, tone: "good" as const })), ...s.watchouts.slice(0, 1).map((n) => ({ ...n, tone: "bad" as const }))];
   return (
-    <section className="report dk-card dk-detail" aria-label="FinLit score: full breakdown">
-      <h3 className="dk-dh"><span className="eyebrow">FinLit score</span>What stands out, and what each pillar rests on</h3>
+    <section className="report dk-card dk-detail" aria-label="FinLit IQ: full breakdown">
+      <h3 className="dk-dh"><span className="eyebrow">FinLit IQ</span>What stands out, and what each pillar rests on</h3>
       {know.length > 0 && <div className="know dk-know">
         {know.map((n) => (
           <div key={n.key} style={{ "--k": n.tone === "good" ? "var(--p-quality)" : "var(--p-tech)" } as React.CSSProperties}>

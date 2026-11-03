@@ -39,7 +39,7 @@ function ScoreCard({ s, tower, failed }: { s?: Summary; tower?: boolean; failed?
       <div className="hh-card-top"><span className="hh-stamp">A real report</span><span className="hh-tk">{s.profile.nse ?? SAMPLE}</span></div>
       <div className="hh-card-name"><b>{s.profile.name}</b><span className={up ? "up" : "down"}>₹{nf(s.quote.price ?? 0)}{s.quote.changePct != null && <> · {up ? "+" : ""}{s.quote.changePct.toFixed(2)}%</>}</span></div>
       <div className="hh-card-score">
-        <svg viewBox="0 0 110 110" role="img" aria-label={`FinLit score ${o} out of 100`}>
+        <svg viewBox="0 0 110 110" role="img" aria-label={`FinLit IQ ${o} out of 100`}>
           <circle cx="55" cy="55" r="46" fill="none" stroke="var(--s3)" strokeWidth="8" />
           <circle cx="55" cy="55" r="46" fill="none" stroke="var(--gold)" strokeWidth="8" strokeLinecap="butt" strokeDasharray={`${(circ * o) / 100} ${circ}`} transform="rotate(-90 55 55)" />
           <text x="55" y="58" textAnchor="middle" className="hh-dial-n">{o}</text>
@@ -65,7 +65,7 @@ function Lenses() {
   return (
     <section className="sec hh-sec" aria-label="Financial and technical analysis" style={{ paddingTop: 0 }}><div className="wrap">
       <div className="split" role="note">
-        <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Business</h3><p>The business itself: quality, growth, profitability and balance sheet, read from the company's statements.</p></div>
+        <div><h3><span className="mark" style={{ background: "var(--p-quality)" }} />Growth & Profitability</h3><p>The business itself: quality, growth, profitability and balance sheet, read from the company's statements.</p></div>
         <div><h3><span className="mark" style={{ background: "var(--p-tech)" }} />Technical</h3><p>The share price only: trend, momentum and moving averages, read from the price chart.</p></div>
         <p className="split-note"><b>These are two different lenses and we do not blend them.</b> Each gets its own score so you can read it on its own.</p>
       </div>

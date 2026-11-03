@@ -34,7 +34,7 @@ METRICS: Dict[str, M] = {
     "from_low52":     dict(label="Distance from 52-week low", unit="%", live=False, tier="basic", ops=("below",)),
     "return_1m":      dict(label="1-month return", unit="%", live=False, tier="silver", ops=("above", "below")),
     "return_1y":      dict(label="1-year return", unit="%", live=False, tier="silver", ops=("above", "below")),
-    "overall":        dict(label="FinLit score", unit="", live=False, tier="silver", ops=("above", "below")),
+    "overall":        dict(label="FinLit IQ", unit="", live=False, tier="silver", ops=("above", "below")),
     "pillar_quality": dict(label="Quality score", unit="", live=False, tier="silver", ops=("above", "below")),
     "pillar_growth":  dict(label="Growth score", unit="", live=False, tier="silver", ops=("above", "below")),
     "pillar_profitability": dict(label="Profitability score", unit="", live=False, tier="silver", ops=("above", "below")),

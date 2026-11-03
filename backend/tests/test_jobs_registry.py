@@ -59,12 +59,11 @@ def test_bulk_and_light_classes_match_the_incident_analysis():
 
 
 def test_env_switches_keep_their_meaning():
-    off = by_name({})
     for n in ("mf", "etf", "facts", "industry", "instruments", "portfolios", "score-mf", "backfill-mf"):
-        assert disabled_reason(off[n], {}) and "FUND_LOADS_ENABLED=1" in disabled_reason(off[n], {}), n      # FUND_LOADS_ENABLED=0 (the default): disabled, not overdue
-        assert disabled_reason(JOBS[n], ENV) is None
-    assert disabled_reason(JOBS["prism"], {"PRISM_PRECOMPUTE_ENABLED": "0"})
-    assert disabled_reason(JOBS["prism"], {}) is None
+        for env in ({}, {"FUND_LOADS_ENABLED": "0"}, ENV):
+            assert disabled_reason(JOBS[n], env) is None, (n, env)          # no environment value switches a scheduled job off
+    for env in ({"PRISM_PRECOMPUTE_ENABLED": "0"}, {}):
+        assert disabled_reason(JOBS["prism"], env) is None
     assert disabled_reason(JOBS["dhan-check"], {}) and disabled_reason(JOBS["dhan-check"], ENV) is None
     cfg = JobsConfig.from_env({"BOOT_LOAD_ENABLED": "0", "BULK_CONCURRENCY": "2", "QUOTES_EVERY_MINUTES": "3", "BOOT_LOAD_DELAY_S": "10"})
     assert not cfg.boot_load_enabled and cfg.bulk_concurrency == 2 and cfg.quotes_every_min == 3 and cfg.boot_delay_s == 10
@@ -122,3 +121,33 @@ def test_the_new_morning_window_runs_the_whole_catch_up_chain_when_the_night_fai
         st = JobState(job=n, first_seen_at=t - timedelta(days=30), last_success_at=t - timedelta(hours=24 if n == "instruments" else 16), last_attempt_at=t - timedelta(hours=16))
         v = evaluate(j, st, Ctx(now=t, env=ENV, probes={"technicals": True, "prism": True}))
         assert v.due, (n, v.reason)
+
+
+# ------------------------------------------------------------------------------------------------ the sector job (docs/SECTORS.md)
+SEC_ENV = {**ENV, "SECTORS_ENABLED": "1"}
+
+
+def _sec_due(t, last_success_hours_ago, env=SEC_ENV, technicals_ok=True):
+    j = by_name(env)["sectors"]
+    st = JobState(job="sectors", first_seen_at=t - timedelta(days=30), last_success_at=t - timedelta(hours=last_success_hours_ago), last_attempt_at=t - timedelta(hours=last_success_hours_ago))
+    return evaluate(j, st, Ctx(now=t, env=env, probes={}))
+
+
+def test_the_sector_job_is_a_bulk_job_after_technicals_and_always_on():
+    j = JOBS["sectors"]
+    assert j.cls == "bulk" and j.command == "refresh-sectors" and j.prerequisites == ("technicals",) and j.owns == ("sectors",)
+    assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and j.weight_mb >= 1000 and j.honours_pause
+    assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("MORNING", None)]
+    for env in ({}, {"SECTORS_ENABLED": "0"}, SEC_ENV):
+        assert disabled_reason(j, env) is None                                # always on: the environment cannot switch it off
+    assert evaluate(j, JobState(job="sectors", first_seen_at=ist(2026, 10, 1)), Ctx(now=ist(2026, 10, 30, 19, 30), env={}, probes={})).state != "disabled"
+
+
+def test_the_sector_job_runs_on_weekday_evenings_from_seven_and_catches_up_in_the_morning_but_not_at_weekends():
+    assert not _sec_due(ist(*FRI, 18, 45), 24).due                           # the window is open from 18:30 but the job starts from 19:00
+    assert _sec_due(ist(*FRI, 19, 5), 24).due and "latest session" in _sec_due(ist(*FRI, 19, 5), 24).reason
+    assert not _sec_due(ist(*FRI, 19, 40), 0.3).due                          # done tonight: nothing more until tomorrow's session
+    assert _sec_due(ist(*SAT, 6, 0), 12).due                                 # Friday's run failed: the morning window catches up
+    assert not _sec_due(ist(*SAT, 19, 30), 23.8).due                         # Friday's run (19:40) is the latest session's: no evening run on a Saturday
+    assert not _sec_due(ist(*SUN, 19, 30), 47.8).due and not _sec_due(ist(2026, 11, 2, 6, 0), 58).due        # nor on Sunday, nor on Monday morning before Monday's session
+    assert _sec_due(ist(2026, 11, 2, 19, 5), 72).due                         # Monday evening: due again

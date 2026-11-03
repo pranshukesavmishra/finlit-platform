@@ -1,6 +1,6 @@
 import { PageHeader } from "../components/PageHeader";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Gate } from "../components/Gate";
 import { Donut } from "../charts/Atlas";
 import { Icon } from "../lib/icons";
@@ -193,7 +193,8 @@ export function MfPortfolioPage() {
   const { plan, has, toast, upgrade } = useUI();
   const silver = has("silver");
   const q = useMfPortfolio(silver), w = useMfWrites();
-  const [tab, setTab] = useState<"add" | "import">("add"), [key, setKey] = useState<SortKey>("current"), [dir, setDir] = useState<"asc" | "desc">("desc"), [editing, setEditing] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<"add" | "import">(params.get("tab") === "import" ? "import" : "add"), [key, setKey] = useState<SortKey>("current"), [dir, setDir] = useState<"asc" | "desc">("desc"), [editing, setEditing] = useState<string | null>(null);
   const d = q.data, locked = d ? d.scoreLocked : !has("gold");
   const rows = useMemo(() => (d ? sortHoldings(d.holdings, key, dir) : []), [d, key, dir]);
   const limit = d?.limit ?? limitsFor(plan).mf_holdings;

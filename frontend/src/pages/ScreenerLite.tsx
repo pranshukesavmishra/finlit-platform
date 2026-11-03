@@ -115,7 +115,7 @@ export function ScreenerLite() {
                       {isOpen && (
                         <div className="scr-gb">
                           {g.id === "sector" && (<ul className="scr-sec">{sectors.map(([s, c]) => <li key={s}><label><input type="checkbox" checked={f.sectors.includes(s)} onChange={() => setF((x) => ({ ...x, sectors: toggle(x.sectors, s) }))} />{s}<em>{c}</em></label></li>)}</ul>)}
-                          {g.model && locked && (<div className="scr-lock"><span className="lk"><Icon name="lock" /></span><b>Filter by the FinLit model</b><p>FinLit score, band and each of the five pillars: Quality, Growth, Profitability, Balance sheet and Technical.</p><button className="btn" onClick={lockedTap}>Unlock with Gold <Icon name="arrow" /></button></div>)}
+                          {g.model && locked && (<div className="scr-lock"><span className="lk"><Icon name="lock" /></span><b>Filter by the FinLit model</b><p>FinLit IQ, band and each of the five pillars: Quality, Growth, Profitability, Balance sheet and Technical.</p><button className="btn" onClick={lockedTap}>Unlock with Gold <Icon name="arrow" /></button></div>)}
                           {g.model && !locked && (<div className="scr-bands" role="group" aria-label="FinLit band">{(["strong", "healthy", "mixed", "watch"] as const).map((b) => <button key={b} className={"bandc " + b} aria-pressed={f.bands.includes(b)} onClick={() => setF((x) => ({ ...x, bands: toggle(x.bands, b) }))}>{BAND_LABEL[b]}</button>)}</div>)}
                           {!(g.model && locked) && g.filters.map((d) => { const m = METRICS[d.key], r = f.ranges[d.key] || {}; return (
                             <div className="scr-f" key={d.key}>

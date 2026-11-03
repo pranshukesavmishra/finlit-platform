@@ -232,14 +232,14 @@ CATALOG: List[Metric] = [
     M("volatility", "Volatility (yearly)", "trading", "%", "lower", "silver", "How much the price swings in a year.", 0),
     M("max_drawdown", "Worst fall (since data starts)", "trading", "%", "higher", "silver", "Biggest drop from a peak to a low.", 0),
     # ---- FinLit model (Gold)
-    M("overall", "FinLit score", "model", "pts", "higher", "gold", "Average of the five FinLit pillars, out of 100.", 0),
+    M("overall", "FinLit IQ", "model", "pts", "higher", "gold", "Average of the five FinLit pillars, out of 100.", 0),
     M("pillar_quality", "Quality pillar", "model", "pts", "higher", "gold", "Return on money and how well profit turns into cash.", 0),
     M("pillar_growth", "Growth pillar", "model", "pts", "higher", "gold", "Sales and profit growth over the years.", 0),
     M("pillar_profitability", "Profitability pillar", "model", "pts", "higher", "gold", "Margins and returns on money.", 0),
     M("pillar_balance", "Balance sheet pillar", "model", "pts", "higher", "gold", "Debt, liquidity and interest cover.", 0),
     M("pillar_technical", "Technical pillar", "model", "pts", "higher", "gold", "Price trend and momentum.", 0),
-    M("fundamental_score", "Fundamental score", "model", "pts", "higher", "gold", "Average of the four business pillars (no price trend).", 0),
-    M("score_change", "Score change since last quarter", "model", "pts", "higher", "gold", "Points the FinLit score moved since the last quarter.", 0),
+    M("fundamental_score", "Growth & Profitability score", "model", "pts", "higher", "gold", "Average of the four pillars: quality, growth, profitability and balance sheet (no price trend).", 0),
+    M("score_change", "Score change since last quarter", "model", "pts", "higher", "gold", "Points the FinLit IQ moved since the last quarter.", 0),
     M("strengths_count", "Strengths found", "model", "n", "higher", "gold", "How many strengths the FinLit model lists for the company.", 0),
     M("watchouts_count", "Watch-outs found", "model", "n", "lower", "gold", "How many watch-outs the FinLit model lists for the company.", 0),
 ]

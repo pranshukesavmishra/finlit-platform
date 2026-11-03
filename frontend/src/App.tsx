@@ -42,6 +42,9 @@ const LeadershipLabelPage = lazy(() => import("./pages/LeadershipLabel").then((m
 const ConnectAIPage = lazy(() => import("./pages/ConnectAI").then((m) => ({ default: m.ConnectAIPage })));
 const GlossaryPage = lazy(() => import("./pages/Glossary").then((m) => ({ default: m.GlossaryPage })));
 const WatchlistPage = lazy(() => import("./pages/Watchlist").then((m) => ({ default: m.WatchlistPage })));
+const SectorPulsePage = lazy(() => import("./pages/SectorPulse").then((m) => ({ default: m.SectorPulsePage })));
+const SectorIndustryPage = lazy(() => import("./pages/SectorIndustry").then((m) => ({ default: m.SectorIndustryPage })));
+const LearnSectorSignalsPage = lazy(() => import("./pages/LearnSectorSignals").then((m) => ({ default: m.LearnSectorSignalsPage })));
 const MacroPage = lazy(() => import("./pages/Macro").then((m) => ({ default: m.MacroPage })));
 const FiiDiiPage = lazy(() => import("./pages/FiiDii").then((m) => ({ default: m.FiiDiiPage })));
 const SipCalculator = lazy(() => import("./pages/SipCalculator").then((m) => ({ default: m.SipCalculator })));
@@ -128,6 +131,9 @@ export default function App() {
             <Route path="forum/*" element={<ForumPage />} />
             <Route path="ipo" element={<IpoPage />} />
             <Route path="macro" element={<MacroPage />} />
+            <Route path="sectors" element={<SectorPulsePage />} />
+            <Route path="sectors/:slug" element={<SectorIndustryPage />} />
+            <Route path="learn/sector-signals" element={<LearnSectorSignalsPage />} />
             <Route path="fii-dii" element={<FiiDiiPage />} />
             <Route path="results" element={<ResultsPage />} />
             <Route path="results/quarter" element={<QuarterResultsPage />} />

@@ -3,23 +3,32 @@
 export type NavItem = [id: string, label: string, icon: string, hint: string];
 
 export const NAV: NavItem[] = [
+  ["prism", "Scores", "gauge", "The FinLit IQ and the FinLit Prism score, side by side"],
   ["business", "Company", "building", "What the company does and how it earns"],
-  ["notes", "Scorecard", "notes", "The FinLit score and what lifts or weighs on it"],
+  ["notes", "Strengths & watch-outs", "notes", "Plain-language findings and what lifts or weighs on the score"],
   ["price", "Price", "line", "Price chart, returns and technical levels"],
   ["quarter", "Quarter", "notes", "The latest quarter against a year ago"],
   ["earnings-call", "Earnings call", "notes", "What management said on the latest earnings call, with the quotes"],
-  ["financials", "Financials", "bars", "Profit and loss, balance sheet and cash flow"],
-  ["trends", "Trends", "line", "How sales, profit and margins have moved"],
-  ["ratios", "Ratios", "gauge", "Valuation, returns and balance sheet ratios"],
-  ["revenue-cash", "Cash conversion", "coins", "How efficiently sales turn into operating cash"],
+  ["financials", "Financials", "bars", "Profit and loss, balance sheet and cash flow by year"],
+  ["trends", "Trends", "line", "How sales, profit and cash have moved"],
+  ["charts", "Charts", "bars", "Price history, statements and ownership in charts"],
+  ["ratios", "Ratios", "gauge", "Valuation, returns, margins and debt"],
+  ["dupont", "DuPont analysis", "layers", "What drives return on equity"],
+  ["earnings", "Earnings & cash", "coins", "Is the profit real, and is it turning into cash?"],
   ["ownership", "Ownership", "pie", "Promoters, institutions and the public"],
-  ["peers", "Peers", "layers", "Similar companies side by side"],
-  ["insights", "Insights", "crown", "Gold insights worked out from the numbers"],
+  ["peers", "Peers", "layers", "How the company compares with its peers"],
+  ["sector", "Sector & peers", "activity", "Where its industry stands, and how the stock ranks inside it"],
+  ["insights", "What to watch", "crown", "Triggers to watch and where the company fits"],
+  ["segments", "Segments", "pie", "Where the revenue comes from"],
   ["dividends", "Dividends", "coins", "Dividends, splits, bonuses and events"],
-  ["method", "Pros & cons", "info", "Strengths, weaknesses and data notes"],
+  ["announcements", "Announcements", "notes", "Exchange announcements, routine filings hidden"],
+  ["method", "Pros & cons", "info", "Pros, cons and how the Prism score has moved"],
   ["leadership", "Leadership", "medal", "Directors and key management"],
   ["plans", "Plans", "medal", "Compare Basic, Silver and Gold"],
 ];
+
+/** The first section of each reading group: the bar draws a thin separator before it. */
+export const GROUP_START = new Set(["price", "quarter", "ratios", "ownership", "insights", "dividends", "method"]);
 
 /** The sections to list: Leadership only when the report shows it. */
 export const navFor = (leadershipShown: boolean): NavItem[] => NAV.filter(([id]) => id !== "leadership" || leadershipShown);

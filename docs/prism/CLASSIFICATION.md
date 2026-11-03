@@ -11,7 +11,7 @@ complete (100% found), which is why the card showed "100% of inputs available" b
 
 The card then hid the specific reason: `PrismCompare.tsx` printed a fixed sentence ("Too little verified data to rate this company") whatever the reason,
 although the report carried `rating.notRatedReasons[0]` ("... industry label ... not mapped ..."). The Gold header badge shows the Prism rating only, so for a
-Gold user "the FinLit score is not coming" is this same NOT RATED. The basic FinLit score (five pillars) has no industry logic at all and was never blocked:
+Gold user "the FinLit IQ is not coming" is this same NOT RATED. The basic FinLit IQ (five pillars) has no industry logic at all and was never blocked:
 `backend/tests/test_score_extremes.py` scores a debt-free, zero-interest, negative-equity, huge-figure or no-dividend company normally.
 
 The Bajaj Finserv fix (classification version 2) only added financial labels, so Coal and every other label outside the old word list stayed blocked.
@@ -55,7 +55,7 @@ It recalculates at most 300 reports per run, one second apart; repeat until `aud
 cd /opt/finlit && docker compose --env-file .env.aws -f src/finlit-platform/deploy/aws/docker-compose.aws.yml exec -T -d app sh -c 'python -m finlit.worker audit-prism > /tmp/prism-audit.log 2>&1'
 ```
 
-then `docker compose ... exec -T app cat /tmp/prism-audit.log`. The basic FinLit score needs no recalculation for this issue (it was never blocked). `score-all` rescoring is only for companies with
+then `docker compose ... exec -T app cat /tmp/prism-audit.log`. The basic FinLit IQ needs no recalculation for this issue (it was never blocked). `score-all` rescoring is only for companies with
 no or an old score row.
 
 To verify in a browser: open `/stock/COALINDIA` as a Gold user (the Prism card shows a score and four part scores, not "Not rated"), open `/prism/COALINDIA`, click Recalculate if a stored

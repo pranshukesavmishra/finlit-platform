@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { alignSeries, asOf, changes, corrMatrix, csvCell, domain, pearson, rebase, windowPts } from "./graphData";
 import { extract, fmtTick, fmtValue, fyEnd, monthEnd, BY_ID } from "./graphMetrics";
-import { chartCheck, decodeView, defaultView, encodeView, sanitize } from "./graphState";
+import { cellCount, chartCheck, decodeView, defaultView, encodeView, layoutAbove, layoutBelow, sanitize, withoutCell, type View } from "./graphState";
 
 const pt = (t: string, v: number | null) => ({ t, v });
 describe("correlation", () => {
@@ -90,5 +90,38 @@ describe("indices in a view", () => {
     const b = { ixl: { rows: [{ d: "2026-10-16", c: 100 }, { d: "2026-10-19", c: 110 }] }, ixv: { rows: [{ d: "2026-10-19", pe: 19.7, pb: 2.8, dy: 1.49 }] } };
     expect(extract(BY_ID.price, b, "annual", "basic", true).pts.map((p) => p.v)).toEqual([100, 110]);
     expect(extract(BY_ID.ix_dy, b, "annual", "gold", true).pts).toEqual([{ t: "2026-10-19", v: 1.49 }]);
+  });
+});
+
+
+describe("adding and removing charts", () => {
+  const view = (layout: string, n: number): View => ({ v: 1, layout, basis: "annual", range: "5Y", cells: Array.from({ length: n }, (_, i) => ({ chart: "line" as const, series: [{ s: "S" + i, m: "price" }] })) });
+  it("the layouts step 1, 2, 3, 4, 6, 9 charts, and + goes up one step, never past nine", () => {
+    expect(["1x1", "1x2", "1x3", "2x2", "2x3", "3x3"].map(cellCount)).toEqual([1, 2, 3, 4, 6, 9]);
+    expect(layoutAbove("1x1")).toBe("1x2"); expect(layoutAbove("2x2")).toBe("2x3"); expect(layoutAbove("3x3")).toBeNull();
+    expect(layoutBelow("2x2")).toBe("1x3"); expect(layoutBelow("2x3")).toBeNull();     // no layout holds exactly five charts
+  });
+  it("× moves the later charts up and steps the layout down when one with one chart fewer exists", () => {
+    const v = withoutCell(view("2x2", 4), 1);
+    expect(v.layout).toBe("1x3");
+    expect(v.cells.map((c) => c.series[0].s)).toEqual(["S0", "S2", "S3"]);
+    expect(withoutCell(view("1x3", 3), 0).layout).toBe("1x2");
+  });
+  it("where no smaller layout fits exactly the grid keeps its shape and the charts after the removed one move up", () => {
+    const v = withoutCell(view("2x3", 6), 2);
+    expect(v.layout).toBe("2x3");
+    expect(v.cells.map((c) => c.series[0].s)).toEqual(["S0", "S1", "S3", "S4", "S5"]);
+  });
+  it("removing a chart that has not been filled in (past the stored cells) removes nothing else", () => {
+    const v = withoutCell(view("2x2", 2), 3);
+    expect(v.layout).toBe("1x3"); expect(v.cells).toHaveLength(2);
+  });
+  it("the only chart left is cleared, not removed, and a stored view with the new layout round-trips", () => {
+    const one = withoutCell(view("1x1", 1), 0);
+    expect(one.layout).toBe("1x1"); expect(one.cells).toEqual([{ chart: "line", series: [] }]);
+    const v = view("1x3", 3);
+    expect(decodeView(encodeView(v), "gold")?.layout).toBe("1x3");
+    expect(decodeView(encodeView(v), "basic")?.layout).toBe("1x3");          // Basic holds four charts, so three is fine
+    expect(decodeView(encodeView(view("2x3", 6)), "basic")?.layout).toBe("2x2");   // six is more than Basic holds: the nearest layout it may use
   });
 });

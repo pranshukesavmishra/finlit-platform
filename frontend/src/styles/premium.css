@@ -281,10 +281,13 @@ footer.band { border-top: 1px solid #3A362D; --band-a: #1B1915; }
 @media (max-width: 760px) { .ffine { grid-template-columns: 1fr; } }
 
 /* ---- ticker: static strip (no scrolling), scrollable when narrow ---- */
-.tape { background: var(--s2); color: var(--text); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; font-size: 12.5px; }
+.tape { background: var(--s2); color: var(--text); border-bottom: 1px solid var(--border); overflow: hidden; font-size: 12.5px; }
 .tape::-webkit-scrollbar { display: none; }
-.tape-track { animation: none !important; will-change: auto; padding-inline: 20px; gap: 28px; width: max-content; margin-inline: auto; }
-.tape-track > span[aria-hidden] { display: none; }
+/* the strip scrolls again: the list is drawn twice and the track moves by half its width, so it loops without a jump; hover pauses it */
+.tape-track { animation: tape 75s linear infinite !important; will-change: transform; padding-inline: 0 28px; gap: 28px; width: max-content; margin-inline: 0; }
+.tape:hover .tape-track, .tape:focus-within .tape-track { animation-play-state: paused !important; }
+.tape-track > span { display: inline-flex; align-items: baseline; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { .tape { overflow-x: auto; scrollbar-width: none; } .tape-track { animation: none !important; margin-inline: auto; } .tape-track > span[aria-hidden] { display: none; } }
 .tape-track .u { color: var(--gain); } .tape-track .d { color: var(--loss); }
 .marq { -webkit-mask-image: none; mask-image: none; }
 .marq div { animation: none !important; width: auto; flex-wrap: wrap; justify-content: center; gap: 8px 32px; font-size: clamp(20px, 2.4vw, 28px); }
@@ -340,3 +343,7 @@ footer.band { border-top: 1px solid #3A362D; --band-a: #1B1915; }
 :root[data-theme="light"]:root .nt-n { color: #fff; }
 .sh .no { opacity: 1; }
 
+.tape { position: relative; }
+.tape-st { position: absolute; left: 0; top: 0; bottom: 0; z-index: 2; display: flex; align-items: center; padding: 0 14px 0 14px; background: var(--s2); border-right: 1px solid var(--border); font: 700 10.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tape-st.live { color: var(--gain); }
+.tape-st.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--gain); margin-right: 6px; }

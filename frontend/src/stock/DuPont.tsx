@@ -39,7 +39,7 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
         <div className="card dp-card dp-main" id="dupont">
           <div className="dp-top">
             <div className="dp-title">
-              <h3><span className="ci"><Icon name="layers" /></span>DuPont analysis<ChartHelp id="dupont" /></h3>
+              <h3><span className="ci"><Icon name="layers" /></span>DuPont analysis: what drives return on equity<ChartHelp id="dupont" /></h3>
               <p className="faint">ROE is broken into three components: <b>Net profit margin × Asset turnover × Equity multiplier</b></p>
             </div>
             <aside className="dp-info" aria-label="What drives ROE"><Icon name="info" /><div><b>What drives the return on equity (ROE)?</b><span>ROE shows how efficiently a company turns equity into profits.</span></div></aside>
