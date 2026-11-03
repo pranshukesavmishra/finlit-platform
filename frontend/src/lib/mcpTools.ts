@@ -12,7 +12,7 @@ export const MCP_TOOLS: McpTool[] = [
   { name: "get_ratios", what: "Margins, returns and the other ratios the site shows, with history", group: "Stocks" },
   { name: "get_shareholding", what: "Promoter, FII, DII, government and public holding by quarter", group: "Stocks" },
   { name: "get_price_history", what: "Daily or weekly prices, up to five years", group: "Stocks" },
-  { name: "get_finlit_score", what: "The FinLit score where the free site shows it, otherwise says it is a Silver feature", group: "Stocks" },
+  { name: "get_finlit_score", what: "The FinLit IQ where the free site shows it, otherwise says it is a Silver feature", group: "Stocks" },
   { name: "get_quarter_results", what: "Who announced results for a quarter or a date", group: "Stocks" },
   { name: "get_results_calendar", what: "Who is due to announce results in the next days", group: "Stocks" },
   { name: "screen_stocks", what: "Filter companies on the free screener metrics", group: "Stocks" },

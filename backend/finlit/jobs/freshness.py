@@ -337,7 +337,7 @@ def evaluate_facts(f: Dict[str, Any], now: datetime, credentials: Optional[List[
     if f.get("sector_enabled"):     # only when the sector job is switched on (SECTORS_ENABLED=1): otherwise there is nothing to be late
         ds.append(judge_session("sectors", "Sector pulse", ["sectors"], f.get("sector_board_date"), exp, now, 4.0, 14.0, "board date vs expected session"))
     ds.append(judge_age("prism", "Prism ratings", ["prism"], f.get("prism_newest"), now, 30.0, 60.0))
-    ds.append(judge_age("scores", "FinLit scores", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
+    ds.append(judge_age("scores", "FinLit IQs", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
     if f.get("results_waiting") is not None:
         ds.append(judge_results(f["results_waiting"], today, int(f.get("results_declared") or 0), f.get("results_buckets")))
     ds.append(judge_calendar(int(f.get("results_upcoming") or 0), f.get("calendars_ran"), now))

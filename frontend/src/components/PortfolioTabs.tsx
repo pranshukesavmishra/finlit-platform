@@ -14,7 +14,7 @@ import {
 import "../styles/scorescreen.css";
 
 /** The imported holdings as three tabs over one table: Overview (share, price, size and the plan's score model), Ratios and Financials.
- *  Silver sees the basic FinLit score and its pillars; Gold only FinLit Prism (four parts and two technical views). Information only, not advice. */
+ *  Silver sees the basic FinLit IQ and its pillars; Gold only FinLit Prism (four parts and two technical views). Information only, not advice. */
 
 const heat = (v: number | null | undefined) => (v == null ? undefined : ({ "--hc": `hsl(${Math.round(Math.max(0, Math.min(100, v)) * 1.25)} 62% 46%)` } as CSSProperties));
 const tone: Record<ScoreBand, string> = { hi: "hi", mid: "mid", lo: "lo", na: "na" };
@@ -187,7 +187,7 @@ export function SummaryTiles({ lines, model, limit }: { lines: Line[]; model: Mo
   return (
     <div className="pf-k" aria-label="Portfolio summary">
       <div className="card ipo-t" style={tile("var(--k1)")}><span>Shares</span><b>{sum.shares}</b><small>{sum.preparing ? `${sum.preparing} being prepared` : `of ${limit} on your plan`}</small></div>
-      <div className="card ipo-t" style={tile("var(--k7)")}><span>Average {model === "prism" ? "Prism" : "FinLit"} score</span><b className={"ssp-t " + scoreBand(avg)}>{avg == null ? MINUS : avg}</b>
+      <div className="card ipo-t" style={tile("var(--k7)")}><span>{model === "prism" ? "Average Prism score" : "Average FinLit IQ"}</span><b className={"ssp-t " + scoreBand(avg)}>{avg == null ? MINUS : avg}</b>
         <small>{sum.scored ? `average of ${sum.scored} scored ${sum.scored === 1 ? "share" : "shares"}` : "no share is scored yet"}</small></div>
       <div className="card ipo-t" style={tile("var(--band-hi)")}><span>Score colours</span>
         <b className="pf-mix" aria-label={`${sum.bands.hi} green, ${sum.bands.mid} orange, ${sum.bands.lo} red`}><i className="hi">{sum.bands.hi}</i><i className="mid">{sum.bands.mid}</i><i className="lo">{sum.bands.lo}</i></b>

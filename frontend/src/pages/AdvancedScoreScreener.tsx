@@ -84,9 +84,9 @@ function Advanced() {
       groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={5}>FinLit Prism</th><th scope="colgroup" colSpan={2}>Technical views</th><th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
         <SortTh s={s} k="prism_final" label="Prism" cls="pzs-h" title={EXPLAIN.prism} />
-        {PRISM_PARTS.map((x) => <SortTh key={x.col} s={s} k={x.col} label={x.label} cls="ss-ph" title={"Prism " + x.label + ": " + x.say} />)}
-        <SortTh s={s} k="prism_st_score" label="Short-term technical" cls="ss-ph" title="Prism's short-term (5 to 20 sessions) price-trend reading" />
-        <SortTh s={s} k="prism_lt_score" label="Long-term technical" cls="ss-ph" title="Prism's long-term (6 to 18 months) price-trend reading" />
+        {PRISM_PARTS.map((x) => <SortTh key={x.col} s={s} k={x.col} label={x.label} of="Prism" cls="ss-ph" title={"Prism " + x.label + ": " + x.say} />)}
+        <SortTh s={s} k="prism_st_score" label="Short-term technical" of="Technical" cls="ss-ph" title="Prism's short-term (5 to 20 sessions) price-trend reading" />
+        <SortTh s={s} k="prism_lt_score" label="Long-term technical" of="Technical" cls="ss-ph" title="Prism's long-term (6 to 18 months) price-trend reading" />
       </>}
       colSpan={14}
       cells={(r) => <>
@@ -104,7 +104,7 @@ function Advanced() {
           <dt>Not rated yet</dt><dd>Prism ratings are calculated about 30 seconds each from the provider's data, so they are added in steps: first for companies with a full report, then a few hundred more companies every night, largest first. A company without one shows "Not rated yet" and a Rate now link to its Prism page, which starts the calculation when opened. "Not rated" means Prism looked and the filed data was not enough.</dd>
           <dt>Size</dt><dd>Follows SEBI's rule, ranked by market value among the companies loaded here: the 100 largest are Large cap, the next 150 Mid cap, the rest Small cap.</dd>
           <dt>Missing data</dt><dd>A dash means the figure is not available (not rated yet, or not enough data). It never counts as a pass and is never treated as zero.</dd>
-          <dt>FinLit score</dt><dd>The basic model has its own page, the <Link to="/score-screener">Basic score screener</Link> (Silver).</dd>
+          <dt>FinLit IQ</dt><dd>The basic model has its own page, the <Link to="/score-screener">Basic score screener</Link> (Silver).</dd>
         </dl>
       </HowDialog>} />
   );

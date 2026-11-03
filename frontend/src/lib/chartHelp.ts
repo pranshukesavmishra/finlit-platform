@@ -367,8 +367,8 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
 
   /* ---------------------------------------------------------------- stock page: hero score */
   "score-dial": {
-    title: "FinLit score dial",
-    what: "The overall FinLit research score from 0 to 100, which is the average of five pillars: quality, growth, profitability, balance sheet and technical (price trend).",
+    title: "FinLit IQ dial",
+    what: "The overall FinLit IQ from 0 to 100, which is the average of five pillars: quality, growth, profitability, balance sheet and technical (price trend).",
     x: "The ring is divided into five segments, one per pillar. Select a segment to open the detail for that pillar.",
     y: "The number in the middle is the overall score out of 100, with a band label beside it. Higher is better.",
     read: "A longer filled segment means a higher score for that pillar, so you can see which pillar lifts or drags the overall number.",
@@ -522,7 +522,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
   },
   "dash-buckets": {
     title: "Watchlist by band",
-    what: "A bar showing how your followed stocks split across the FinLit score bands: strong, healthy, mixed and watch.",
+    what: "A bar showing how your followed stocks split across the FinLit IQ bands: strong, healthy, mixed and watch.",
     read: "Each coloured block's width is the number of your stocks in that band; the list underneath gives the counts.",
     why: "It shows how your list is balanced between stronger and weaker companies.",
   },

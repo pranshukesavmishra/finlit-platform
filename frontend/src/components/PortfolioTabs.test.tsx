@@ -25,9 +25,9 @@ describe("tab strip", () => {
 });
 
 describe("Overview tab", () => {
-  it("Silver: FinLit score with its word and the five pillars; nothing of Prism", () => {
+  it("Silver: FinLit IQ with its word and the five pillars; nothing of Prism", () => {
     const t = text(table(silver, "finlit", "overview"));
-    expect(t).toContain("FinLit score"); ["Quality", "Growth", "Profit.", "Balance", "Technical"].forEach((x) => expect(t).toContain(x));
+    expect(t).toContain("FinLit IQ"); ["Quality", "Growth", "Profit.", "Balance", "Technical"].forEach((x) => expect(t).toContain(x));
     expect(t).toContain("Reliance Industries Ltd"); expect(t).toContain("₹1,184.00"); expect(t).toContain("₹16,02,253 Cr"); expect(t).toContain("Large cap"); expect(t).toContain("Strong");
     expect(t).not.toMatch(/Prism|Growth & Profitability|Valuation|Risk|Rate now/);
     expect(t).toContain("Portfolio average"); expect(t).toContain("Preparing… Its report is being prepared"); expect(t).toContain("FinLit does not list a company");
@@ -35,7 +35,7 @@ describe("Overview tab", () => {
   it("Gold: Prism score and word, the four parts, two technical views with words and signed scores; no FinLit pillars", () => {
     const html = table(gold, "prism", "overview"), t = text(html);
     expect(t).toContain("Prism score"); ["Growth &amp; Profitability", "Valuation", "Quality", "Risk", "Short term", "Long term"].forEach((x) => expect(t).toContain(x));
-    expect(t).not.toMatch(/Growth(?! &amp; Profitability)|Profit\.|Balance|Technical|FinLit score/);
+    expect(t).not.toMatch(/Growth(?! &amp; Profitability)|Profit\.|Balance|Technical|FinLit IQ/);
     expect(t).toContain("Healthy"); expect(t).toContain("Positive"); expect(t).toContain("Strongly positive"); expect(t).toContain("Negative"); expect(t).toContain("+34"); expect(t).toContain("−22");
     expect(html).toContain("ssp pzs-n hi"); expect(html).toContain("ssp pzs-n lo");                       // the shared colour bands
     expect(t).toContain("Provisional");
@@ -63,7 +63,7 @@ describe("Ratios tab", () => {
   });
   it("Gold keeps its model's score column", () => {
     const t = text(table(gold, "prism", "ratios"));
-    expect(t).toContain("Prism score"); expect(t).not.toContain("FinLit score");
+    expect(t).toContain("Prism score"); expect(t).not.toContain("FinLit IQ");
   });
 });
 
@@ -93,7 +93,7 @@ describe("states", () => {
 describe("summary tiles", () => {
   it("shares, average score, colour mix and sectors", () => {
     const t = text(renderToStaticMarkup(<SummaryTiles lines={lines(silver)} model="finlit" limit={30} />));
-    expect(t).toContain("Shares"); expect(t).toContain("7"); expect(t).toContain("1 being prepared"); expect(t).toContain("Average FinLit score"); expect(t).toContain("59"); expect(t).toContain("average of 5 scored shares");
+    expect(t).toContain("Shares"); expect(t).toContain("7"); expect(t).toContain("1 being prepared"); expect(t).toContain("Average FinLit IQ"); expect(t).toContain("59"); expect(t).toContain("average of 5 scored shares");
     expect(t).toContain("green 70+"); expect(t).toContain("Sectors");
     expect(text(renderToStaticMarkup(<SummaryTiles lines={lines(gold)} model="prism" limit={500} />))).toContain("Average Prism score");
   });

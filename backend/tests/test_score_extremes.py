@@ -1,4 +1,4 @@
-"""The basic FinLit score must not depend on the industry or on a company having debt (Coal India: debt-free, huge figures, large dividends).
+"""The basic FinLit IQ must not depend on the industry or on a company having debt (Coal India: debt-free, huge figures, large dividends).
 A pillar with no score says exactly which inputs the provider did not report."""
 import copy
 

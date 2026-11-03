@@ -27,9 +27,9 @@ describe("header", () => {
   it("Silver badge is the basic score; Gold is Prism or 'not rated yet' with a link", () => {
     const wrap = (v: ReturnType<typeof badgeView>) => renderToStaticMarkup(<MemoryRouter><ScoreBadge view={v} symbol="RELIANCE" /></MemoryRouter>);
     const s = wrap(badgeView("silver", false, { overall: 51, word: "Mixed" }, { kind: "none" }));
-    expect(s).toContain("FinLit score"); expect(s).toContain("band-mid"); expect(s).not.toContain("Prism");
+    expect(s).toContain("FinLit IQ"); expect(s).toContain("band-mid"); expect(s).not.toContain("Prism");
     const g = wrap(badgeView("gold", false, { overall: 51, word: "Mixed" }, { kind: "report", final: 74.2, word: "Healthy", status: "RATED" }));
-    expect(g).toContain("FinLit Prism"); expect(g).toContain("74.2"); expect(g).toContain("band-hi"); expect(g).not.toContain("FinLit score");
+    expect(g).toContain("FinLit Prism"); expect(g).toContain("74.2"); expect(g).toContain("band-hi"); expect(g).not.toContain("FinLit IQ");
     const n = wrap(badgeView("gold", false, { overall: 51, word: "Mixed" }, { kind: "none" }));
     expect(n).toContain("Prism: not rated yet"); expect(n).toContain('href="/prism/RELIANCE"');
     expect(wrap(badgeView("basic", false, { overall: 51, word: "Mixed" }, { kind: "none" }))).toBe("");

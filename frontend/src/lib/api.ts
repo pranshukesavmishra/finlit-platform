@@ -156,7 +156,7 @@ const SECTION_STALE = 60_000;
 export const POLL_FAST_TRIES = 5;
 export const POLL_MAX_TRIES = 25;
 export const pollDelayMs = (attempt: number): number => (attempt < POLL_FAST_TRIES ? 1000 : 2000);
-export const shouldRetry = (count: number, err: ApiError): boolean => (err.status === 202 ? count < POLL_MAX_TRIES : err.status === 429 ? count < 8 : err.status === 503 && err.body.status === "build_failed" ? false : err.status >= 500 && count < 2);
+export const shouldRetry = (count: number, err: ApiError): boolean => (err.status === 202 ? count < POLL_MAX_TRIES : err.status === 429 ? count < 8 : err.status === 503 && (err.body.status === "build_failed" || err.body.status === "build_rejected") ? false : err.status >= 500 && count < 2);
 export const retryDelayMs = (count: number, err: ApiError): number => (err.status === 202 ? pollDelayMs(count) : err.status === 429 ? Math.min(30, err.body.retryAfter || 10) * 1000 : 1500);
 
 function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryOptions<T, ApiError>>, basis: Basis = "consolidated") {
@@ -166,7 +166,7 @@ function sectionQuery<T>(symbol: string, path: string, extra?: Partial<UseQueryO
     staleTime: SECTION_STALE,
     // A stock that has never been opened is prepared on demand: the first request itself waits (server side) for its key numbers, so most open at once.
     // Past that wait the answer is 202 and the page keeps asking, 1 s then 2 s, for about 45 s (the server counts only the first request).
-    // 429 means many reports are being prepared at once: wait as told and ask again. 503 build_failed (the provider did not answer) is final.
+    // 429 means many reports are being prepared at once: wait as told and ask again. 503 build_failed (the provider did not answer) and build_rejected (our accuracy checks refused it) are final.
     retry: shouldRetry,
     retryDelay: retryDelayMs,
     ...extra,

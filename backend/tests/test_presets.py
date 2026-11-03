@@ -213,7 +213,7 @@ def test_emerging_tech_tags_growth_flags_and_order():
     tags = {"A": ["Semiconductors"], "B": ["EV and batteries"], "C": ["EV and batteries"], "D": ["EV and batteries"], "E": ["Semiconductors", "EV and batteries"], "SMALL": ["EV and batteries"]}
     fr = frame(rows, {"A": pz(final=50), "B": pz(final=70, status="PROVISIONAL")}, tags)
     body = engine.run(fr, BY_ID["emerging-tech"])
-    assert syms(body) == ["B", "A", "E"]                                  # rated by Prism score first, then unrated by FinLit score
+    assert syms(body) == ["B", "A", "E"]                                  # rated by Prism score first, then unrated by FinLit IQ
     assert [b for r in body["rows"] for b in r["badges"]] == ["Provisional", "Not rated by Prism", "Not rated by Prism", "Loss-making"] or "Loss-making" in body["rows"][2]["badges"]
     assert syms(engine.run(fr, BY_ID["emerging-tech"], ["sort-growth"])) == ["E", "A", "B"] or syms(engine.run(fr, BY_ID["emerging-tech"], ["sort-growth"]))[0] == "E"
     assert syms(engine.run(fr, BY_ID["emerging-tech"], [seed.slug("Semiconductors")])) == ["A", "E"]

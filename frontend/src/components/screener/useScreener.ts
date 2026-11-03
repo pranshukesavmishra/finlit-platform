@@ -6,8 +6,8 @@ import { useUniverse } from "../../lib/screener";
 import { useUI } from "../../lib/ui";
 import { useWatchlist, watch } from "../../lib/watchlist";
 import {
-  applyFilters, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, sortRows, summarize, toCsv, validate, withScores,
-  type Band, type BandKey, type Filters, type Item, type RangeKey, type Scope, type SortKey, type State, type TechBand, type TechKey,
+  applyTop, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, toCsv, validate, withScores,
+  type Band, type BandKey, type Filters, type Item, type RangeKey, type Scope, type Sort, type SortKey, type State, type TechBand, type TechKey,
 } from "../../lib/scoreScreen";
 import { coverageFrom } from "../../lib/scorePrism";
 import type { PrismLabel } from "../../lib/scorePrism";
@@ -25,6 +25,7 @@ export function useScreener(mode: Mode) {
   const scope: Scope = mode;
   const state = useMemo(() => parseState(params, scope), [params.toString(), scope]);   // eslint-disable-line react-hooks/exhaustive-deps
   const { filters: applied, sort, size } = state;
+  const latest = useRef(state); latest.current = state;   // the newest address state: a delayed apply (the live-filter effect) must not rebuild the address from an older sort
   const [draft, setDraft] = useState<Filters>(() => cloneFilters(applied));
   const [secQ, setSecQ] = useState(""), [q, setQ] = useState(() => params.get("q") ?? "");   // q: the toolbar search; it narrows the table and is kept in the address as ?q=
   const [picked, setPicked] = useState<string[]>([]);
@@ -42,7 +43,8 @@ export function useScreener(mode: Mode) {
   const prismAsOf = useMemo(() => cover?.as_of ?? (items.map((r) => r.prism_at).filter((d): d is string => !!d).sort().at(-1) ?? null), [cover, items]);
   const found = useMemo(() => { const k = q.trim().toLowerCase(); return k ? items.filter((r) => `${r.symbol} ${r.name ?? ""} ${r.sector ?? ""}`.toLowerCase().includes(k)) : items; }, [items, q]);   // the toolbar search narrows everything, the counts beside the options included
   const facets = useMemo(() => facetCounts(found, draft), [found, draft]);   // each option's count respects every OTHER active filter (faceted search); the option's own group is left out so you can see what ticking another one would add
-  const rows = useMemo(() => sortRows(applyFilters(found, applied), sort), [found, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => applyTop(found, applied, sort), [found, appliedKey, sort]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const topOf = useMemo(() => topPool(found, applied), [found, appliedKey]);   // eslint-disable-line react-hooks/exhaustive-deps
   const sum = useMemo(() => summarize(rows), [rows]);
   const mix = useMemo(() => concentration(rows), [rows]);
   const pg = pageOf(rows, state.page, size);
@@ -54,7 +56,9 @@ export function useScreener(mode: Mode) {
   const selRows = rows.filter((r) => sel.includes(r.symbol));
 
   const withQ = (p: URLSearchParams) => { if (q.trim()) p.set("q", q.trim()); return p; };
-  const go = (next: Partial<State>) => { setParams(withQ(serializeState({ ...state, ...next })), { replace: true }); };
+  const wantSort = useRef<Sort | null>(null);   // the sort a quick view asked for, kept until the address shows it (the router applies an address change a moment later; a delayed apply must not undo it)
+  useEffect(() => { if (wantSort.current && wantSort.current.key === sort.key && wantSort.current.dir === sort.dir) wantSort.current = null; }, [sort.key, sort.dir]);
+  const go = (next: Partial<State>) => { if (next.sort) wantSort.current = null; setParams(withQ(serializeState({ ...latest.current, ...(wantSort.current ? { sort: wantSort.current } : {}), ...next })), { replace: true }); };
   useEffect(() => {   // keep ?q= in step with the search box (a new search starts again from page 1)
     const t = setTimeout(() => setParams(() => {
       const prev = live.current, cur = prev.get("q") ?? "", want = q.trim();   // the latest address, not the one this render closed over (that would undo a filter applied a moment ago)
@@ -63,7 +67,7 @@ export function useScreener(mode: Mode) {
     }, { replace: true }), 300);
     return () => clearTimeout(t);
   }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const apply = (f: Filters = draft, close = false) => { if (Object.keys(validate(f)).length) return; if (filtersKey(f) !== appliedKey) mine.current = filtersKey(f); setDraft(cloneFilters(f)); go({ filters: f, page: 0 }); if (close) setDrawer(false); };
+  const apply = (f: Filters = draft, close = false, withSort?: Sort) => { if (Object.keys(validate(f)).length) return; if (filtersKey(f) !== appliedKey) mine.current = filtersKey(f); setDraft(cloneFilters(f)); if (withSort) wantSort.current = withSort; go({ filters: f, page: 0 }); if (close) setDrawer(false); };
   const clear = () => { wait.current = 0; apply(emptyFilters()); };
   const drop = (id: string) => apply(removeChip(applied, id));
   // Filters apply live: a tick, chip or quick view applies at once; typed numbers apply 400 ms after the last key (or on Enter / leaving the box).
@@ -106,7 +110,7 @@ export function useScreener(mode: Mode) {
 
   return {
     mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft: setDraftLive, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
-    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, sum, mix, pg, chips, problems, bad, dirty, flush: () => apply(draft), sel, filterCount: chips.length,
+    silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, topOf, sum, mix, pg, chips, problems, bad, dirty, flush: () => apply(draft), sel, filterCount: chips.length,
     go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
   };
 }

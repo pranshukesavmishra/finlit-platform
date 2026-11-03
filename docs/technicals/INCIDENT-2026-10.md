@@ -96,7 +96,7 @@ CROSSCHECK.md; in short: the live bar (up to about 5 points on the short-term sc
   date. The portfolio tiles show the basic pillar (below), not Prism's.
 * Cache: `/api/prism/reports/latest` is `no-store` (Cache-Control) and the stock page's query has `staleTime` 60 s, refetching every 20 s while a refresh runs;
   `/api/prism/scores` is private for 60 s; the screener universe (including the card's technical columns) is built from the database and kept in Redis for **3 minutes** (`build_universe`, api.py), and now also reports `tech_as_of`, the newest bar date it holds. No cache longer than 3 minutes was found.
-* **The basic FinLit score's Technical pillar** (price against the 50 and 200 day averages, RSI) is computed in `snapshot.build` from the stored daily history
+* **The basic FinLit IQ's Technical pillar** (price against the 50 and 200 day averages, RSI) is computed in `snapshot.build` from the stored daily history
   (`indicators.technical_snapshot`) when a company's snapshot is built: nightly by `ingest-all` (about 01:00 IST, skipped for a company loaded in the last 20 hours),
   adding the live quote as a provisional bar at that moment. `refresh-quotes` patches the price into the summary during market hours but does **not** recompute
   the pillar. So the pillar is **as of the last nightly build** (up to about a day old) while the header price is live: the two can disagree during the session

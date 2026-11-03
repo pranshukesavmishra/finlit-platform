@@ -385,3 +385,27 @@ async def test_the_admin_loads_switch_never_blocks_a_visitor_or_the_results_jobs
     assert (await results.pipeline_status(store))["loadsPaused"] is True          # shown on /api/results/status
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM mf_meta WHERE key = 'switch:loads'")
+
+
+async def test_a_report_refused_by_our_own_checks_says_so_and_not_that_the_provider_did_not_answer(ingested, monkeypatch):
+    """Kennametal India: the provider answered, our accuracy gate refused one figure. The page must say that, not blame the provider."""
+    app, tr = await _app(ingested, ondemand_wait_seconds=6.0)
+
+    async def refuse(*a, **k):
+        raise worker.DataRejected([{"key": "dividend_return_Since listing", "severity": "critical"}])
+    monkeypatch.setattr(worker, "_build_sections", refuse)
+    c = client_with(SlowTransport(0.0))
+
+    async def the_worker():
+        for _ in range(3):
+            for _ in range(100):
+                if await ingested.queue_length():
+                    break
+                await asyncio.sleep(0.05)
+            await worker.drain_queue(c, ingested)
+    async with app.router.lifespan_context(app), httpx.AsyncClient(transport=tr, base_url="http://test") as http:
+        task = asyncio.create_task(the_worker())
+        r = await http.get("/api/stocks/TCS")
+        await task
+    assert r.status_code == 503 and r.json()["status"] == "build_rejected"
+    assert "did not pass our own accuracy checks" in r.json()["detail"] and "did not answer" not in r.json()["detail"]

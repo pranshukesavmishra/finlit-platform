@@ -15,6 +15,8 @@ import { saveFile } from "../stock/derive";
 import { ChartHelp } from "../components/ChartHelp";
 import { HScroll } from "../components/HScroll";
 import { GrowthCharts, GrowthPanel } from "../components/QrGrowth";
+import { FilterGroup } from "../components/screener/FilterGroup";
+import "../styles/fgx.css";
 import "../styles/qresults.css";
 
 const SORTS: [string, string, boolean][] = [   // value, label, needs Silver
@@ -331,7 +333,9 @@ export function QuarterResultsPage() {
           <button type="button" className="btn primary" onClick={() => need("Quarter results figures are part of the Silver plan.")}>See Silver</button></div>
       )}
 
-      <section className="card qr-filters" aria-label="Filters">
+      <div className="qr-split">
+      <aside className="qr-side card" aria-label="Filters">
+        <FilterGroup id="qr-date" title="Announcement date" defaultOpen>
         <div className="qr-fd" role="group" aria-label="Announcement date">
           <div className="chips" role="group" aria-label="Quick dates">
             {chips.map((c) => <button key={c.id} type="button" className={chipOn === c.id ? "on" : ""} aria-pressed={chipOn === c.id} onClick={() => (chipOn === c.id ? setDates(null) : apply(c.sel))}>{c.label}</button>)}
@@ -349,6 +353,8 @@ export function QuarterResultsPage() {
           <p id="qr-datenote" className="qr-datenote muted">{d?.dateMeaning || DATE_MEANING} Pick a day, or a from and to range (both days included), up to today.</p>
           {msg && <p className="qr-dmsg" role="alert">{msg}</p>}
         </div>
+        </FilterGroup>
+        <FilterGroup id="qr-co" title="Companies" defaultOpen>
         <div className="qr-f1">
           <div className="chips" role="group" aria-label="Whose results">
             {([["all", "All companies"], ["watchlist", "My watchlist"], ["portfolio", "My portfolio"]] as const).map(([k, l]) => <button key={k} type="button" className={f.scope === k ? "on" : ""} aria-pressed={f.scope === k} onClick={() => setScope(k)}>{l}</button>)}
@@ -360,23 +366,26 @@ export function QuarterResultsPage() {
             <button className="btn" type="submit">Search</button>
           </form>
         </div>
-        <div className="qr-f2">
+          <div className="qr-f2 qr-selects">
           <label className="wl-sel"><span>Sector</span>
             <select value={f.sector || ""} onChange={(e) => set({ sector: e.target.value })} aria-label="Sector"><option value="">All sectors</option>{(d?.facets.sectors || []).map((s) => <option key={s.name} value={s.name}>{s.name} ({s.n})</option>)}</select></label>
           <label className="wl-sel"><span>Market cap</span>
             <select value={f.cap || ""} onChange={(e) => set({ cap: e.target.value })} aria-label="Market cap band">{CAPS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           <label className="wl-sel"><span>Status</span>
             <select value={f.status || ""} onChange={(e) => set({ status: e.target.value })} aria-label="Status">{STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+          </div>
+        </FilterGroup>
+      <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} price={price} onPrice={setPrice} priceSummary={d?.price} onBoth={setBoth} onReset={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)} />
+      </aside>
+      <div className="qr-main">
+      <div className="qr-toolbar" role="group" aria-label="Sort and export">
           <label className="wl-sel"><span>Sort by</span>
             <select value={f.sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">{SORTS.map(([v, l, s]) => <option key={v} value={v}>{l}{s && !silver ? " (Silver)" : ""}</option>)}</select></label>
           <button type="button" className="btn qr-dir" aria-label={f.dir === "desc" ? "Highest first" : "Lowest first"} onClick={() => set({ dir: f.dir === "desc" ? "asc" : "desc" })}>{grouped ? (f.dir === "desc" ? "Newest first" : "Oldest first") : f.dir === "desc" ? "High to low" : "Low to high"}</button>
           <span className="qr-flagged"><label className="sw"><input type="checkbox" checked={!!f.flagged} onChange={(e) => (silver ? set({ flagged: e.target.checked }) : need("The sales-and-profit flag is part of the Silver plan."))} /><span aria-hidden="true" /><b>Only flagged</b></label><ChartHelp id="qr-gap" /></span>
           <button type="button" className="btn qr-csv" onClick={exportCsv}><Icon name="table" /> CSV{silver ? "" : " (Silver)"}</button>
           {filtersOn && <button type="button" className="alx-link" onClick={clearFilters}>Clear filters</button>}
-        </div>
-      </section>
-
-      <GrowthPanel state={growth} onChange={setGrowth} summary={d?.growth} loading={res.isFetching} price={price} onPrice={setPrice} priceSummary={d?.price} onBoth={setBoth} onReset={() => setBoth(DEFAULT_GROWTH, DEFAULT_PRICE)} />
+      </div>
       <GrowthCharts summary={d?.growth} dist={d?.distribution} locked={!silver} />
 
       <section className="card qr-card">
@@ -418,6 +427,8 @@ export function QuarterResultsPage() {
         )}
         <p className="qr-foot muted">Growth is against the same quarter last year (YoY) and the quarter before (QoQ); it shows a dash, with the reason on hover or focus, when the earlier quarter was zero or a loss or is not in our statements. Operating profit is revenue less operating expenses before interest and depreciation (for banks, before provisions), the same figure as on the stock page and in the screener; OPM is operating profit over revenue. Dates come from exchange filings and announced board meetings. The two Price position columns show how far the latest price is below the 52-week high (the exchange's intraday high) and below the all-time high (the highest close in our price history); a dash means that high is not held. Distance below a high is a fact about the price, not a view on it. Not investment advice. <Link to="/results">Results calendar</Link></p>
       </section>
+      </div>
+      </div>
     </div>
   );
 }

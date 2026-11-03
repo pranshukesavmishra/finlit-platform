@@ -9,12 +9,12 @@ import { LABEL_WORD, PRISM_PARTS, type PrismLabel } from "./scorePrism";
 
 export type Model = "finlit" | "prism";
 export type PlanName = "basic" | "silver" | "gold";
-/** The score model a plan sees on this page: Silver the basic FinLit score, Gold only FinLit Prism. Basic sees none (the page is gated). */
+/** The score model a plan sees on this page: Silver the basic FinLit IQ, Gold only FinLit Prism. Basic sees none (the page is gated). */
 export const modelFor = (plan: PlanName, admin = false): Model | null => (plan === "gold" || admin ? "prism" : plan === "silver" ? "finlit" : null);
 
 export const MODEL_BANNER: Record<Model, string> = {
   prism: "Scores on this page use FinLit Prism, our advanced model: four financial-health parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views (short and long term). Higher is better for the four parts; a high Risk score means lower risk.",
-  finlit: "Scores on this page use the FinLit score (our basic model). Gold shows FinLit Prism, the advanced model.",
+  finlit: "Scores on this page use the FinLit IQ (our basic model). Gold shows FinLit Prism, the advanced model.",
 };
 
 // ---------------------------------------------------------------------------------------------------- API shape (POST /api/portfolio/overview)
@@ -140,7 +140,7 @@ const shareCols: Col[] = [
   { id: "share", label: "Share", hint: "Name, symbol and sector", sort: (h) => h.symbol, csv: (h) => h.symbol },
 ];
 const scoreCol = (model: Model): Col => ({
-  id: "score", label: model === "prism" ? "Prism score" : "FinLit score", num: true, hint: model === "prism" ? "FinLit Prism, 0 to 100" : "FinLit score, 0 to 100",
+  id: "score", label: model === "prism" ? "Prism score" : "FinLit IQ", num: true, hint: model === "prism" ? "FinLit Prism, 0 to 100" : "FinLit IQ, 0 to 100",
   sort: (h) => scoreOf(h, model).value, csv: (h) => scoreOf(h, model).value,
 });
 const priceCols: Col[] = [

@@ -85,14 +85,24 @@ def technical_state(row: Any, now: Optional[datetime] = None, target: Optional[d
     return {"asOf": bar, "calculatedAt": at, "stale": bar is None or bar < target.isoformat()}
 
 
+def long_term_gap(row: Any) -> bool:
+    """True when the stored technical view holds no long-term score (kept out of `technical_state`, which is part of the public answer)."""
+    report = _json(row["report"])
+    tech = report.get("technicalAssessment") if isinstance(report, dict) else None
+    score = ((tech or {}).get("longTerm") or {}).get("score") if isinstance(tech, dict) else None
+    return not isinstance(score, (int, float)) or isinstance(score, bool)
+
+
 # ------------------------------------------------------------------------------------------------ selection
 async def pending(store, target: date, limit: int, skip: List[str], *, force: bool = False, symbols: Optional[List[str]] = None) -> List[str]:
-    """Companies with a stored report (either basis) whose technical bar date is older than `target`, the biggest first; `skip`: left out for now."""
+    """Companies with a stored report (either basis) whose technical bar date is older than `target`, or whose stored long-term score is missing (so a later
+    fix to how a score is worked out reaches them although their newest candle is already stored), the biggest first; `skip`: left out for now."""
     async with store.pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT p.symbol FROM (SELECT symbol, min(COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}', '0000-00-00')) AS bar "
+            "SELECT p.symbol FROM (SELECT symbol, min(COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}', '0000-00-00')) AS bar, "
+            "bool_or(report #>> '{technicalAssessment,longTerm,score}' IS NULL) AS gap "
             "FROM prism_reports GROUP BY symbol) p LEFT JOIN listing_quotes q ON q.symbol = p.symbol "
-            "WHERE ($4::boolean OR p.bar < $1) AND NOT (p.symbol = ANY($3::text[])) AND ($5::text[] IS NULL OR p.symbol = ANY($5::text[])) "
+            "WHERE ($4::boolean OR p.bar < $1 OR p.gap) AND NOT (p.symbol = ANY($3::text[])) AND ($5::text[] IS NULL OR p.symbol = ANY($5::text[])) "
             "ORDER BY q.market_cap DESC NULLS LAST, p.symbol LIMIT $2", target.isoformat(), limit, skip, force, symbols)
     return [r["symbol"] for r in rows if prism.SYMBOL.match(r["symbol"])]
 
@@ -158,7 +168,7 @@ def _apply(report: Dict[str, Any], card: Optional[Dict[str, Any]], view: Dict[st
     return report, card
 
 
-async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date] = None) -> Tuple[str, str]:
+async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date] = None, force: bool = False) -> Tuple[str, str]:
     """Recalculate and store one company's technical view. (outcome, reason). Never raises."""
     store = app.state.store
     try:
@@ -175,7 +185,8 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
         if not candles or "stock" not in candles:
             return Outcome.FAILED, "no_candles"
         stored_bar = min((bar_date(_json(r["report"]), r["card"] and _json(r["card"])) or "0000-00-00") for r in rows)
-        if target is not None and candles["stock"]["candles"][-1][0] <= stored_bar and stored_bar != "0000-00-00":
+        gap = any(not isinstance(((_json(r["report"]).get("technicalAssessment") or {}).get("longTerm") or {}).get("score"), (int, float)) for r in rows)   # no long-term score stored: recalculate even on the same bar
+        if target is not None and not gap and not force and candles["stock"]["candles"][-1][0] <= stored_bar and stored_bar != "0000-00-00":
             await store.redis.set(NONEW_PREFIX + symbol, stored_bar, ex=NONEW_SECONDS)       # Dhan has nothing newer for it: not asked again until tomorrow
             return Outcome.SKIPPED, "no_new_bar"
         r = await _post(app, {"suppliedCandles": candles, "sharesCr": shares, "priority": "background"})
@@ -209,6 +220,8 @@ async def refresh_symbol(app, symbol: str, now: datetime, target: Optional[date]
         for statement, card in recorded:                    # today's short- and long-term views for the score chart (after the transaction: a failure there cannot undo the refresh)
             await prism.record_technical(store.pool, symbol, statement, card)
         if not ready:
+            if gap:      # still no long-term score with today's candles: not asked again until tomorrow
+                await store.redis.set(NONEW_PREFIX + symbol, stored_bar, ex=NONEW_SECONDS)
             return Outcome.WITHHELD, withheld_reason(assessment)
         return (Outcome.UPDATED, "ok") if updated else (Outcome.SKIPPED, "no_report")
     except Exception as exc:        # one company must never stop the run
@@ -267,7 +280,7 @@ async def refresh(store, settings, *, limit: int = 2500, max_minutes: float = 45
             if await prism._members_busy(redis):         # a member is calculating a report: the machine is theirs for now
                 out["paused_for_members"] += 1
                 await asyncio.sleep(prism.RETRY_AFTER_BACKGROUND)
-            outcome, reason = await refresh_symbol(app, symbol, now, target)
+            outcome, reason = await refresh_symbol(app, symbol, now, target, force)
             out[outcome] += 1
             if outcome != Outcome.UPDATED:
                 out["reasons"][reason] = out["reasons"].get(reason, 0) + 1
@@ -311,9 +324,9 @@ async def current_target(redis, now: Optional[datetime] = None) -> date:
 
 
 async def refresh_on_open(app, symbol: str, state: Dict[str, Any]) -> bool:
-    """A company page was opened whose stored technical view is behind the newest session: refresh just that company in the background, at most once
+    """A company page was opened whose stored technical view is behind the newest session or has no long-term score: refresh just that company in the background, at most once
     in TRY_SECONDS per company and PAGE_REFRESH_SLOTS at a time, and only when Dhan was not found down. True when a refresh was started."""
-    if not state.get("stale") or not prism.connected(app.state.settings):
+    if not (state.get("stale") or state.get("gap")) or not prism.connected(app.state.settings):   # behind the newest session, or no long-term score stored (a company is healed the first time it is opened)
         return False
     redis = app.state.store.redis
     try:

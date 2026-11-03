@@ -132,7 +132,7 @@ describe("insight rules", () => {
     const f = ys([100, 80], [1000, 1000], [3000, 1500], [600, 600]);     // margin 10 -> 8 (-0.223), turnover 0.333 -> 0.667 (+0.693), multiplier 5 -> 2.5 (-0.693), ROE 16.7 -> 13.3
     const m = move(f)!; expect(m.shares.multiplier).toBeGreaterThan(40); expect(m.roeChange).toBeLessThan(0);
     const cards = evaluateInsights(insightContext(f), false).cards;
-    expect(cards.map((c) => c.text)).toContain("Over 40% of the ROE decline is due to lower leverage, not worse operations.");
+    expect(cards.map((c) => c.text)).toContain(`About ${m.shares.multiplier}% of the ROE decline is due to lower leverage, not worse operations.`);
     expect(cards.find((c) => c.id === "leverage-fell")!.evidence.join(" ")).toMatch(/5\.00× to 2\.50×/);
   });
   it("covers each sentence in the brief", () => {
@@ -147,7 +147,7 @@ describe("insight rules", () => {
     expect(say({ marginCv: 0.5, marginMean: 20, marginStd: 10 })).toEqual([]);                        // not strictly above
     expect(say({ turnoverChange: 12, marginChange: -8 })).toContain("Growth is coming with price or margin pressure.");
     expect(say({ turnoverChange: -12, marginChange: 8 })[0]).toMatch(/^Each rupee of sales earns more/);
-    expect(say({ roeChange: 4, emShare: 60 })[0]).toMatch(/^Over 40% of the ROE rise comes from a higher equity multiplier/);
+    expect(say({ roeChange: 4, emShare: 60 })[0]).toMatch(/^About 60% of the ROE rise comes from a higher equity multiplier/);
   });
   it("orders by importance, caps the list, drops duplicates and sentences already shown", () => {
     const all = { roeChange: -5, emShare: 55, marginShare: 45, turnoverShare: 0, emLatest: 3.5, emDelta: 0.4, marginCv: 0.9, marginMean: 10, marginStd: 9, turnoverChange: 10, marginChange: -10, endpointOneOffPct: 80, emFirst: 5, emLast: 3.5, roeFirst: 20, roeLast: 15, marginFirst: 12, marginLast: 9, turnoverFirst: 0.5, turnoverLast: 0.7 } as never;
@@ -162,7 +162,7 @@ describe("insight rules", () => {
     const rule = { ...INSIGHT_RULES.find((x) => x.id === "leverage-fell")!, threshold: 60 };
     const ctx = { roeChange: -3, emShare: 50, emFirst: 4, emLast: 3, roeFirst: 10, roeLast: 7 } as never;
     expect(evaluateInsights(ctx, false, { rules: [rule] }).cards).toEqual([]);
-    expect(evaluateInsights(ctx, false, { rules: [{ ...rule, threshold: 45 }] }).cards[0].text).toMatch(/^Over 45%/);
+    expect(evaluateInsights(ctx, false, { rules: [{ ...rule, threshold: 45 }] }).cards[0].text).toMatch(/^About 50% of the ROE decline/);
   });
   it("uses a coefficient of variation over the last five years (population standard deviation)", () => {
     const f = ys([30, 30, 30, 30, 30], [100, 100, 100, 100, 100], [500, 500, 500, 500, 500], [250, 250, 250, 250, 250]);

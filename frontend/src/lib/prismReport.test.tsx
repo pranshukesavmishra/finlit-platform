@@ -2,6 +2,7 @@
 // automatic fifth part. Fixtures are real-engine outputs (the example) and the production RELIANCE report.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router";
 import { PrismReportView } from "../components/prism/ReportView";
 import reliance from "./__fixtures__/prismReliance.json";
 import example from "./__fixtures__/prismReport.json";
@@ -128,15 +129,15 @@ describe("report rendering", () => {
     const r = JSON.parse(JSON.stringify(E)) as PrismReport;
     r.rating.partWeights = { fundamental: 0.3, valuation: 0.25, quality: 0.2, risk: 0.1, technical: 0.15 };
     r.rating.parts.technical = 61.2; r.rating.coverage.technical = 1;
-    const html = renderToStaticMarkup(<PrismReportView report={r} />);
-    expect(html).toContain("Technical: 61.2 out of 100");
+    const html = renderToStaticMarkup(<MemoryRouter><PrismReportView report={r} /></MemoryRouter>);
+    expect(html).toMatch(/Technical 61 of 100: [A-Za-z]+\. Counts for 15% of the overall score\./);       // the fifth component of the ring, with its weight
     expect(html).not.toContain("Technical part coming soon");
   });
   it("marks the locked preview as an example", () => {
-    expect(renderToStaticMarkup(<PrismReportView report={E} example />)).toContain("A fictional company, to show the layout");
+    expect(renderToStaticMarkup(<MemoryRouter><PrismReportView report={E} example /></MemoryRouter>)).toContain("A fictional company, to show the layout");
   });
   it("renders the real RELIANCE report with its waterfall and benchmark", () => {
-    const html = renderToStaticMarkup(<PrismReportView report={R} />);
+    const html = renderToStaticMarkup(<MemoryRouter><PrismReportView report={R} /></MemoryRouter>);
     expect(html).toContain("Overall 58.4 is the sum of");
     expect(html).toContain("Sector P/E benchmark 15.98×");
     expect(html).toContain("No loss or valuation limit was applied");

@@ -200,9 +200,9 @@ def test_yes_no_ratios():
 
 
 def test_plan_locks_name_the_plan_and_are_not_dropped():
-    q = "ROE > 10 AND P/B < 2 AND FinLit score > 60"
+    q = "ROE > 10 AND P/B < 2 AND FinLit IQ > 60"
     probs = [p for p in ql.analyze(q, "basic").problems if p.code == "plan_locked"]
-    assert [(q[p.start:p.end], p.extra["plan"]) for p in probs] == [("P/B", "silver"), ("FinLit score", "gold")]
+    assert [(q[p.start:p.end], p.extra["plan"]) for p in probs] == [("P/B", "silver"), ("FinLit IQ", "gold")]
     assert "Silver plan" in probs[0].message and "Gold plan" in probs[1].message
     assert [p.code for p in ql.analyze(q, "silver").problems] == ["plan_locked"]
     assert ql.analyze(q, "gold").ok

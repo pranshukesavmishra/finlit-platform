@@ -10,13 +10,13 @@ export function progressText(done?: number, total?: number): string {
   return `Reading statements, ratios and prices… ${done} of ${total} parts ready`;
 }
 
-export type PreparingMode = "loading" | "building" | "busy" | "gaveUp" | "failed";
+export type PreparingMode = "loading" | "building" | "busy" | "gaveUp" | "failed" | "rejected";
 
 /** The page of a company whose report is not stored yet: its name, the shape of the report as placeholders (so nothing jumps when the real page
  *  arrives), a truthful progress line, and a hard end (failed / gave up) with "Try again" instead of waiting for ever. */
 export function PreparingReport({ symbol, name, sector, mode, done, total, onRetry, elapsed }: { symbol: string; name?: string | null; sector?: string | null; mode: PreparingMode; done?: number; total?: number; onRetry?: () => void; elapsed?: number }) {
   const secs = useElapsed(mode === "building" || mode === "loading", elapsed);
-  const title = mode === "failed" ? "We could not build this report right now" : mode === "gaveUp" ? "This is taking longer than usual" : mode === "busy" ? "Many reports are being prepared right now" : mode === "loading" ? "Opening the report" : "Preparing this report";
+  const title = mode === "rejected" ? "We are not showing this report yet" : mode === "failed" ? "We could not build this report right now" : mode === "gaveUp" ? "This is taking longer than usual" : mode === "busy" ? "Many reports are being prepared right now" : mode === "loading" ? "Opening the report" : "Preparing this report";
   const pct = total ? Math.min(100, Math.round(((done ?? 0) / total) * 100)) : 0;
   return (
     <div className="wrap prep" role="status" aria-live="polite" aria-busy={mode === "building" || mode === "loading"} data-mode={mode}>
@@ -30,6 +30,7 @@ export function PreparingReport({ symbol, name, sector, mode, done, total, onRet
       </div>
       <div className="prep-card">
         <h2>{title}</h2>
+        {mode === "rejected" && <p>We built this report, but one of its figures did not pass our own accuracy checks, so we are not showing it rather than show a number we cannot stand behind. The data provider answered and nothing is wrong with your connection. Our team looks at these; try again later.</p>}
         {mode === "failed" && <p>The data provider did not answer for this company. Nothing is wrong with your connection; trying again usually works.</p>}
         {mode === "gaveUp" && <p>The report is still being built. You can keep waiting or check again.</p>}
         {mode === "busy" && <p>Yours is in the queue and will open by itself.</p>}
@@ -41,7 +42,7 @@ export function PreparingReport({ symbol, name, sector, mode, done, total, onRet
           </>
         )}
         {(mode === "failed" || mode === "gaveUp") && onRetry && <button type="button" className="btn primary" onClick={onRetry}>Try again</button>}
-        {mode === "failed" && <Link className="btn" to="/research">Browse research</Link>}
+        {(mode === "failed" || mode === "rejected") && <Link className="btn" to="/research">Browse research</Link>}
       </div>
       <div className="prep-skel" aria-hidden="true">
         <div className="skeleton prep-chart" />

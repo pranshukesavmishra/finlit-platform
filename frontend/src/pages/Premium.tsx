@@ -17,7 +17,7 @@ const CARDS = [
   { to: "/premium/markets", icon: "activity", title: "Market Events & Index Dashboard", text: "What is happening in the market this week, and how the indices and commodities are valued.",
     points: ["IPO and results calendars", "Announcements and call transcripts", "Index prices, valuation history and commodities"] },
   { to: "/premium/report", icon: "notes", title: "Premium Report", text: "A clean, printable research report for any company. Save it as a PDF to share.",
-    points: ["FinLit score and what drives it", "Key ratios, ownership and peers", "One page you can print or save"] },
+    points: ["FinLit IQ and what drives it", "Key ratios, ownership and peers", "One page you can print or save"] },
 ];
 
 /** FinLit Prism leads the hub: the advanced financial-health rating, with its four parts and their weights. */

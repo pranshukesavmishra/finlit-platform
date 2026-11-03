@@ -49,7 +49,7 @@
 :root:root :is(.alx-modal, .modal, .ec-dlg, .palette, .dl-menu, .nt-p, .ddm, .ai, .qb-drawer, .plf-note, .pop, .ld-tip, .chh-p, .sf-panel, .etf-pop, .mf-cols-pop) { box-shadow: var(--ov-shadow); }
 
 /* ---- backdrops: dim enough that the page behind is clearly secondary ---- */
-:root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
+:root:root :is(.scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim, .gx-backdrop) { background: var(--ov-backdrop); z-index: var(--z-backdrop); }
 :root:root .gs-scrim { background: var(--ov-backdrop); z-index: calc(var(--z-backdrop) + 20); }
 
 /* ---- stacking ---- */
@@ -86,5 +86,5 @@
 @media (prefers-reduced-transparency: reduce) {
   :root:root * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   :root:root .top { background: var(--bg); }
-  :root:root :is(.scrim, .gs-scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim) { background: var(--ov-backdrop); }
+  :root:root :is(.scrim, .gs-scrim, .shell-scrim, .ipo-dr-bg, .qb-scrim, .sx-back, .ec-scrim, .gx-backdrop) { background: var(--ov-backdrop); }
 }

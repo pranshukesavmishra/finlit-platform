@@ -90,7 +90,7 @@ export function Dial({ overall, pillars, onPillar, active, bandLabel, compact = 
   }, [overall, pillars, active, compact]);
 
   return (
-    <div className={"dial" + (compact ? " compact" : "")} ref={wrap} role="img" aria-label={`FinLit research score ${overall ?? "not available"} out of 100, ${bandLabel}. ${pillars.map((p) => `${p.label} ${p.score ?? "n/a"}`).join(", ")}.`}>
+    <div className={"dial" + (compact ? " compact" : "")} ref={wrap} role="img" aria-label={`FinLit IQ ${overall ?? "not available"} out of 100, ${bandLabel}. ${pillars.map((p) => `${p.label} ${p.score ?? "n/a"}`).join(", ")}.`}>
       <svg ref={svg} aria-hidden="true" />
       <div className="dcenter"><div className={"n band-" + scoreBand(overall)}>{overall == null ? "—" : shown}</div><div className="of">/ 100</div></div>
       {!compact && <div className="dial-band"><span className={"vd " + (bandLabel === "Strong" ? "strong" : bandLabel === "Healthy" ? "healthy" : bandLabel === "Mixed" ? "mixed" : "weak")}>{bandLabel}</span><span className="faint">overall research score</span></div>}

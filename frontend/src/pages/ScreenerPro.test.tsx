@@ -8,7 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chipColumn, defaultColumns, emptyReason, encodeState, norm, tableColumns, type Catalog, type MetricInfo } from "../lib/proscreen";
 
 vi.mock("../lib/ui", () => ({ useUI: () => ({ upgrade: vi.fn(), toast: vi.fn(), plan: "silver" }), TIER: { gold: { n: "Gold" }, silver: { n: "Silver" }, basic: { n: "Basic" } } }));
-vi.mock("../lib/auth", () => ({ limitsFor: () => ({ screens: 5 }) }));
+const admin = vi.hoisted(() => ({ on: true }));
+vi.mock("../lib/auth", () => ({ limitsFor: () => ({ screens: 5 }), useAuth: () => ({ isAdmin: admin.on }) }));
 vi.mock("../three/support", () => ({ supports3d: () => false, whenIdle: () => () => {} }));
 import { ScreenerPro } from "./ScreenerPro";
 

@@ -94,7 +94,7 @@ export function MfScoreMethodPage() {
         {FAQ.map(([q, a]) => <details key={q} className="mfu-faq"><summary>{q}</summary><p>{a}</p></details>)}</section>
 
       <section className="card mf-card"><h2 className="mf-h4">Labels and colours</h2>
-        <p>Labels follow the FinLit scores: {SCORE_BANDS.map(([w, a, b]) => `${w} (${a}${b === 100 ? " to 100" : " to under " + b})`).join(", ")}. Colour is green from 70, orange from 50 and red under 50.</p>
+        <p>Labels follow the FinLit IQs: {SCORE_BANDS.map(([w, a, b]) => `${w} (${a}${b === 100 ? " to 100" : " to under " + b})`).join(", ")}. Colour is green from 70, orange from 50 and red under 50.</p>
         <p>Not scored in this version: 1 and 6 month returns, daily volatility, exit load of solution-oriented funds (lock-in), fund managers and the five-point checklist. Not available at all: tracking error, index total return, portfolio P/E, credit ratings, yield and duration, portfolio turnover and manager tenure.</p>
       </section>
     </div>

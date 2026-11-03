@@ -42,6 +42,15 @@ describe("the waiting page of a company that is being built", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalledOnce();
   });
+  it("a report our own accuracy checks refused says exactly that, and does not blame the provider or the connection", () => {
+    show({ mode: "rejected" });
+    expect(screen.getByText("We are not showing this report yet")).toBeTruthy();
+    const t = document.body.textContent || "";
+    expect(t).toContain("did not pass our own accuracy checks"); expect(t).toContain("The data provider answered");
+    expect(t).not.toContain("did not answer for this company");
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();          // asking again returns the same refusal
+    expect(screen.getByRole("link", { name: "Browse research" })).toBeTruthy();
+  });
   it("after the polling budget it says so and offers Try again", () => {
     show({ mode: "gaveUp", onRetry: () => {} });
     expect(screen.getByText("This is taking longer than usual")).toBeTruthy();
@@ -69,6 +78,7 @@ describe("how the page asks again", () => {
   });
   it("a provider failure is final at once; other server errors get two quick retries", () => {
     expect(shouldRetry(0, e(503, { status: "build_failed" }))).toBe(false);
+    expect(shouldRetry(0, e(503, { status: "build_rejected" }))).toBe(false);
     expect(shouldRetry(1, e(500))).toBe(true); expect(shouldRetry(2, e(500))).toBe(false);
     expect(shouldRetry(0, e(404))).toBe(false);
     expect(shouldRetry(7, e(429))).toBe(true); expect(shouldRetry(8, e(429))).toBe(false);

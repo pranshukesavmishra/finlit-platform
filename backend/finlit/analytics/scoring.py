@@ -1,4 +1,4 @@
-"""FinLit research score — model v1.
+"""FinLit IQ — model v1.
 
 A faithful server-side port of the score the current site computes in the browser
 (StockFundamentalsAdminPage.jsx `buildResearchReport`, `scoreFromThresholds`, `scoreLabel`),

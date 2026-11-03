@@ -22,6 +22,18 @@ export const valueOf = (p: HistPoint, s: Series): number | null =>
 /** Points on which a series has a figure; the others (a day it was not worked out) are skipped, never drawn as zero. */
 export const withValue = (points: HistPoint[], s: Series): HistPoint[] => points.filter((p) => valueOf(p, s) != null);
 
+/** One point per calendar week (Monday to Sunday): the LAST day recorded in that week, as recorded (nothing averaged or filled in). */
+export function toWeekly(points: HistPoint[]): HistPoint[] {
+  const weekOf = (day: string) => {
+    const d = new Date(day + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  const last = new Map<string, HistPoint>();
+  for (const p of [...points].sort((a, b) => (a.day < b.day ? -1 : 1))) last.set(weekOf(p.day), p);
+  return [...last.values()];
+}
+
 /** The days on which the model version differs from the day before: a jump there can be a new formula, not a changed business. */
 export function modelChanges(points: HistPoint[]): { day: string; from: string; to: string }[] {
   const out: { day: string; from: string; to: string }[] = [];

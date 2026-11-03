@@ -32,7 +32,8 @@ import "../styles/mf.css";
 import "../styles/etfvs.css";
 
 const HEAD = (title: string, lead: string, stats?: PageHeaderProps["stats"]) => (
-  <PageHeader wrap plan="free" title={title} description={lead} stats={stats} art="funds" links={[{ to: "/fund-score-screener", primary: true }, "/funds/compare", "/etfs"]} />
+  <PageHeader wrap plan="free" title={title} description={lead} stats={stats} art="funds" links={[{ to: "/fund-score-screener", primary: true }, "/funds/compare", "/etfs"]}
+    actions={<Link className="btn" to="/mf-portfolio?tab=import">Import my funds <span aria-hidden="true">→</span></Link>} />
 );
 const Problem = ({ title, text, retry }: { title: string; text: string; retry?: () => void }) => (
   <div className="wrap state" role="alert"><h2>{title}</h2><p>{text}</p>{retry && <button className="btn" onClick={retry}>Try again</button>} <Link className="btn" to="/funds">Back to all schemes</Link></div>
