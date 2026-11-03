@@ -59,7 +59,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
         </nav>
         <div className="grow" />
         <button className="search" onClick={onSearch} aria-label="Search stocks" aria-haspopup="dialog">
-          <Icon name="table" /><span className="t">Search stocks, funds, ETFs</span><span className="kbd">Ctrl K</span>
+          <Icon name="search" /><span className="t">Search for a company</span>
         </button>
         {DEMO && onStock && (
           <div className="seg planseg" role="group" aria-label="Preview plan">
