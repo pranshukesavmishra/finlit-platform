@@ -1,15 +1,18 @@
-"""Screen 7, Sector themes in play (spec p10-12): industry breadth and the nightly state machine.
+"""Sector themes in play (redesign pdf, p12): sector breadth and the nightly state machine.
 
-Universe: stocks with a market cap of Rs 500 Cr or more, grouped by CLEANED industry. Generic industries are left out of theme status; groups with fewer than
+Breadth is now the share of a sector's stocks within 15% of their 52-week high (fields the score tabs may use); the moving-average breadth of the first version is gone.
+It is stored in the `b50` column (`b200` stays empty), and history written by the old definition is ignored, so Emerging and Fading start again from a clean 20 sessions.
+
+Universe: stocks with a market cap of Rs 1,000 Cr or more, grouped by CLEANED industry (the Sector label). Generic industries are left out of theme status; groups with fewer than
 8 companies are "small groups" (shown only behind the small-groups chip: spec p11 lists four of them with the label "Small group").
 Per industry and for the whole universe, per night:
-    B50  share of members above their 50-day average        B200  share above their 200-day average
-    R3   median 3-month return (even count: the mean of the two middle values)           NH  share within 10 % of the 52-week high
+    B    breadth: share of members within 15 % of the 52-week high (stored in the `b50` column)
+    R3   median 3-month return (even count: the mean of the two middle values)
     RS3  industry R3 minus market R3, in percentage points
-States, all relative to the market (B50, B200, RS3 in percent / points):
-    In play    B50 >= max(40, market B50 + 15) AND B200 >= market B200 AND RS3 >= +5
-    Emerging   B50 up 20 points or more over 20 sessions, now >= market B50 + 10, AND RS3 >= 0
-    Fading     in play at some point in the last 20 sessions, now RS3 < 0 OR B50 < market B50 + 5
+States, all relative to the market (B, RS3 in percent / points):
+    In play    B >= max(40, market B + 15) AND RS3 >= +5
+    Emerging   B up 20 points or more over 20 sessions, now >= market B + 10, AND RS3 >= 0
+    Fading     in play at some point in the last 20 sessions, now RS3 < 0 OR B < market B + 5
     None       everything else
 Emerging and Fading need history (the 20th session back); until 20 sessions are stored an industry can only be In play or None. This is not guessed.
 Never empty: with fewer than 3 industries in play, the 3 with the highest RS3 among those whose B50 is above the market's are listed as "closest".
@@ -21,12 +24,12 @@ from typing import Callable, Dict, List, Optional, Sequence
 
 from .industry import is_generic
 
-FLOOR = 500.0           # Rs crore
+FLOOR = 1000.0          # Rs crore
 MIN_MEMBERS = 8
 MIN_SMALL = 5           # smaller than this is not shown at all (a group of three is a coincidence, not a theme)
 LOOKBACK = 20           # sessions
 KEEP_SESSIONS = 60
-NEAR_HIGH = 10.0        # within 10 % of the 52-week high
+NEAR_HIGH = 15.0        # within 15 % of the 52-week high
 MARKET = "*"
 NEVER_EMPTY = 3
 
@@ -64,14 +67,15 @@ def breadth_of(table, idx: Sequence[int]) -> Breadth:
     c = table.cols
     pick = lambda k: [c[k][i] for i in idx]   # noqa: E731
     r3 = median([v for v in pick("ret_3m") if v == v])
-    return Breadth(len(idx), _share(pick("vs_ema50"), lambda v: v > 0), _share(pick("vs_ema200"), lambda v: v > 0), None if r3 is None else round(r3, 4),
-                   _share(pick("pct_from_high"), lambda v: v <= NEAR_HIGH))
+    nh = _share(pick("pct_from_high"), lambda v: v <= NEAR_HIGH)
+    return Breadth(len(idx), nh, None, None if r3 is None else round(r3, 4), nh)
 
 
-def in_play(b50: Optional[float], b200: Optional[float], rs3: Optional[float], m_b50: Optional[float], m_b200: Optional[float]) -> bool:
-    if None in (b50, b200, rs3, m_b50, m_b200):
+def in_play(b50: Optional[float], b200: Optional[float], rs3: Optional[float], m_b50: Optional[float], m_b200: Optional[float] = None) -> bool:
+    """`b50` is the breadth (share within 15% of the 52-week high); `b200` and `m_b200` are kept only so older callers still fit and are ignored."""
+    if None in (b50, rs3, m_b50):
         return False
-    return b50 >= max(IN_PLAY_FLOOR, m_b50 + IN_PLAY_B50_MARGIN) and b200 >= m_b200 and rs3 >= IN_PLAY_RS3
+    return b50 >= max(IN_PLAY_FLOOR, m_b50 + IN_PLAY_B50_MARGIN) and rs3 >= IN_PLAY_RS3
 
 
 def classify(b50, b200, rs3, m_b50, m_b200, history: Sequence[dict]) -> str:
@@ -128,20 +132,19 @@ def evaluate(table, industry_of: Callable[[int], Optional[str]], history: Sequen
 
 def why_not(row: dict, market: Breadth) -> str:
     """Plain words for the first in-play condition a closest industry misses."""
-    need50 = max(IN_PLAY_FLOOR, (market.b50 or 0) + IN_PLAY_B50_MARGIN)
-    if row["b50"] is None or row["b50"] < need50:
-        return f"B50 below {need50:.0f}%"
-    if row["b200"] is None or market.b200 is None or row["b200"] < market.b200:
-        return "B200 below market"
-    return f"RS3 below +{IN_PLAY_RS3:.0f} points"
+    need = max(IN_PLAY_FLOOR, (market.b50 or 0) + IN_PLAY_B50_MARGIN)
+    if row["b50"] is None or row["b50"] < need:
+        return f"Fewer than {need:.0f}% of its stocks are near their 52-week high"
+    short = None if row["rs3"] is None else IN_PLAY_RS3 - row["rs3"]
+    return "Its median 3-month return is " + ("not yet " if short is None else f"{max(short, 0):.1f} points short of the +{IN_PLAY_RS3:.0f} points needed ") + "above the market's"
 
 
 def stored_rows(as_of, ev: ThemeEval) -> List[tuple]:
     """Rows for industry_breadth_daily: the market first, then every industry (small groups too, so their history builds up)."""
     m = ev.market
-    rows = [(as_of, MARKET, m.members, m.b50, m.b200, m.r3, m.nh, None, False, None)]
+    rows = [(as_of, MARKET, m.members, m.b50, None, m.r3, m.nh, None, False, None)]
     for ind, v in ev.industries.items():
-        rows.append((as_of, ind, v["members"], v["b50"], v["b200"], v["r3"], v["nh"], v["rs3"], v["in_play"], v["state"]))
+        rows.append((as_of, ind, v["members"], v["b50"], None, v["r3"], v["nh"], v["rs3"], v["in_play"], v["state"]))
     return rows
 
 
@@ -149,6 +152,8 @@ def history_from_rows(rows: Sequence[dict]) -> List[dict]:
     """industry_breadth_daily rows (any order) -> [{industry: {...}}] oldest session first."""
     by_day: Dict[object, dict] = {}
     for r in rows:
+        if r.get("b200") is not None:
+            continue          # written by the first version (moving-average breadth): a different measure, never mixed in
         by_day.setdefault(r["as_of"], {})[r["industry"]] = {"b50": r["b50"], "b200": r["b200"], "rs3": r["rs3"], "in_play": bool(r["in_play"])}
     return [by_day[d] for d in sorted(by_day)]
 

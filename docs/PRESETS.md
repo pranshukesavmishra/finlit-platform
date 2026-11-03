@@ -1,7 +1,14 @@
-# Prebuilt screens (Advanced score screener, spec "Prebuilt Screens Spec", 31 Oct 2026)
+# Prebuilt screens (Advanced and Basic score screeners; spec "Prebuilt Screens Spec", 31 Oct 2026, rebuilt per the "Pre-built Filter Redesign", Nov 2026)
 
 Code: `backend/finlit/presets/` (registry, engine, derive, themes, industry, seed, service, api). Migration `078_presets.sql`. Tests: `tests/test_presets.py`, `tests/test_presets_api.py`.
 Gold only (same gate as the Prism columns of the screener; admins too). Below Gold the list has names and card text only (`count` null, `locked` true) and the detail/export answer 403 `plan_required`.
+
+## Redesign (registry version 2)
+* **Two tabs, one registry.** `Preset.tab` is `advanced` (Gold, Prism fields) or `basic` (Silver, FinLit score fields). `GET /api/screener/presets?tab=basic` lists the Basic cards; the detail/export gate follows the screen's own tab (`plan_required` names Gold or Silver). A rule uses only fields the tab shows, plus the 52-week high/low and 3-, 6-, 12-month returns.
+* **Top 10 Large / Mid / Small** (`highest-rated-*` on Advanced, `basic-top-*` on Basic): gates (Advanced: Rated only, Prism 60+, Quality 50+, Risk 50+/60+ small, long-term view above -20, within 30% of the 52-week high; Basic: Growth & Profitability 65+, Technical 45+, Quality 50+, Balance sheet 45+/55+ small with a blank allowed for banks, within 30%, Rs 1,000 Cr+) then a weighted percentile rank score (`Preset.rank_score`, 100 x sum of weight x percentile among the size bucket's members: Advanced = Rated Prism companies, Basic = Rs 1,000 Cr+), at most 3 per Sector label (`sector_cap`), ties by Quality then Prism (Advanced) or Growth & Profitability then FinLit IQ (Basic). A short Advanced list is filled with names failing only the trend or 52-week gate, badged "Trend not confirmed" (`fill`). Cards say "Top 10 of N that pass" (`listText`).
+* **Themes.** `theme_map.py` replaces the hand-made list: sub-themes found from the Sector label plus a short named list the research team reviews each quarter (Defence, aerospace and shipbuilding is new). `themes.py` breadth = share of a sector's Rs 1,000 Cr+ stocks within 15% of their 52-week high (response fields `breadth`, `marketBreadth`).
+* **Moved.** Results-season standouts, Steady dividend payers and Institutions buying are Stock screener ready-made screens (`frontend/src/lib/proscreen.ts`, `READY`). Rating upgrades and PSU stocks stay blocked with a plain-words reason.
+* **Optional columns.** Both score screeners can add 3M/6M/1Y return and Below 52-week high (`store.PRICE_EXTRAS` reads them from `scores.metrics`; `components/screener/PriceColumns.tsx`).
 
 ## API
 * `GET /api/screener/presets` -> `{asOf, groups:[{id,name,presets:[{id,name,group,cardText,count,asOf,status,blockedReason,chips,howItWorks,locked,...}]}]}`

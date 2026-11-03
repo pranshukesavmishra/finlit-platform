@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from finlit.presets import service
+from finlit.presets import engine, service
 from finlit.screener import data
 from finlit.screener.data import Table
 from test_auth import ORIGIN, anon, app, new_client, signed_in  # noqa: F401  (fixtures and helpers)
@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 
 
 def row(sym, **m):
-    return {"symbol": sym, "name": sym.title(), "sector": "IT", "industry": "Pharmaceuticals", "band": "mixed", "metrics": json.dumps(m)}
+    return {"symbol": sym, "name": sym.title(), "sector": "Software Products", "industry": "Pharmaceuticals", "band": "mixed", "metrics": json.dumps(m)}
 
 
 @pytest.fixture(autouse=True)
@@ -34,13 +34,13 @@ async def test_non_gold_gets_names_but_no_values(app, anon):  # noqa: F811
     r = await anon.get("/api/screener/presets")
     body = r.json()
     cards = [c for g in body["groups"] for c in g["presets"]]
-    assert r.status_code == 200 and len(cards) == 24 and all(c["locked"] and c["count"] is None for c in cards) and cards[0]["name"]
+    assert r.status_code == 200 and len(cards) == 20 and (await anon.get("/api/screener/presets?tab=basic")).json()["groups"] and all(c["locked"] and c["count"] is None for c in cards) and cards[0]["name"]
     assert [g["name"] for g in body["groups"]][0] == "Top rated" and body["groups"][-1]["name"] == "Prism basics"
-    assert (await anon.get("/api/screener/presets/consistent-growers")).status_code == 403
+    assert (await anon.get("/api/screener/presets/emerging-tech")).status_code == 403
     silver = await signed_in(app, "s@example.com", plan="silver")
-    d = await silver.get("/api/screener/presets/consistent-growers")
+    d = await silver.get("/api/screener/presets/emerging-tech")
     assert d.status_code == 403 and d.json()["detail"]["status"] == "plan_required"
-    assert (await silver.get("/api/screener/presets/consistent-growers/export")).status_code == 403
+    assert (await silver.get("/api/screener/presets/emerging-tech/export")).status_code == 403
     await silver.aclose()
 
 
@@ -48,28 +48,28 @@ async def test_gold_detail_cache_chips_usage_and_export(app, store):  # noqa: F8
     await wipe(store)
     gold = await signed_in(app, "g@example.com", plan="gold")
     assert (await gold.get("/api/screener/presets/nope")).status_code == 404
-    assert (await gold.get("/api/screener/presets/consistent-growers?chip=bogus")).status_code == 422
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=bogus")).status_code == 422
     assert (await gold.get("/api/screener/presets/psu-stocks")).status_code == 409
     async with store.pool.acquire() as conn:
         assert await conn.fetchval("SELECT count(*) FROM preset_results") == 0
-    r = await gold.get("/api/screener/presets/consistent-growers?chip=none")      # empty cache: computed on demand, not a 404
+    r = await gold.get("/api/screener/presets/emerging-tech?chip=none")      # empty cache: computed on demand, not a 404
     b = r.json()
     assert r.status_code == 200 and b["count"] == 30 and b["shown"] == 25 and b["disclaimer"] == "A screen narrows a list. It is not a recommendation." and "exportRows" not in b
     assert b["chips"] == [] and {"key", "label", "format", "align"} <= set(b["columns"][0]) and b["rows"][0]["symbol"] and b["asOf"]
     async with store.pool.acquire() as conn:
-        assert await conn.fetchval("SELECT count(*) FROM preset_results WHERE preset_id = 'consistent-growers' AND chips = 'none'") == 1
+        assert await conn.fetchval("SELECT count(*) FROM preset_results WHERE preset_id = 'emerging-tech' AND chips = 'none'") == 1
     data.reset()                                                                    # the second answer is the cached one, not a recomputation
-    assert (await gold.get("/api/screener/presets/consistent-growers?chip=none")).json()["count"] == 30
-    assert (await gold.get("/api/screener/presets/consistent-growers")).json()["chips"] == ["rated-only"]   # defaults when no chip is given
-    e = await gold.get("/api/screener/presets/consistent-growers/export?chip=none")
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=none")).json()["count"] == 30
+    assert (await gold.get("/api/screener/presets/emerging-tech")).json()["chips"] == []   # defaults when no chip is given
+    e = await gold.get("/api/screener/presets/emerging-tech/export?chip=none")
     assert e.status_code == 200 and e.text.lstrip("﻿").startswith("Symbol,") and "not a recommendation" in e.text
     async with store.pool.acquire() as conn:
-        use = {(r["event"]): r["n"] for r in await conn.fetch("SELECT event, sum(n)::int AS n FROM preset_usage WHERE preset_id = 'consistent-growers' GROUP BY event")}
+        use = {(r["event"]): r["n"] for r in await conn.fetch("SELECT event, sum(n)::int AS n FROM preset_usage WHERE preset_id = 'emerging-tech' GROUP BY event")}
         cols = [r["column_name"] for r in await conn.fetch("SELECT column_name FROM information_schema.columns WHERE table_name = 'preset_usage'")]
     assert use["open"] >= 2 and use["export"] == 1 and not {"user_id", "ip"} & set(cols)
     listing = (await gold.get("/api/screener/presets")).json()
-    card = [c for g in listing["groups"] for c in g["presets"] if c["id"] == "consistent-growers"][0]
-    assert card["locked"] is False and card["status"] == "live" and card["chips"][0]["id"] == "rated-only"
+    card = [c for g in listing["groups"] for c in g["presets"] if c["id"] == "emerging-tech"][0]
+    assert card["locked"] is False and card["status"] == "live" and card["chips"][0]["id"] == "show-all-theme"
     await gold.aclose()
 
 
@@ -78,16 +78,14 @@ async def test_nightly_job_fills_tables_and_cache(store):  # noqa: F811
     async with store.pool.acquire() as conn:
         await conn.execute("INSERT INTO companies (symbol, name) VALUES ('DIXON', 'Dixon') ON CONFLICT DO NOTHING")
     res = await service.refresh_presets(store)
-    assert res["failed"] == [] and "SIFY" in res["themeSeedMissing"] and res["results"] >= 18
+    assert res["failed"] == [] and res["results"] >= 18
     async with store.pool.acquire() as conn:
-        assert await conn.fetchval("SELECT count(*) FROM theme_tags WHERE symbol = 'DIXON'") >= 1
         assert await conn.fetchval("SELECT count(*) FROM industry_breadth_daily") >= 1 and await conn.fetchval("SELECT count(*) FROM industry_clean") == 30
         assert await conn.fetchval("SELECT count(*) FROM preset_scores") >= 0
     again = await service.refresh_presets(store)                                   # the same session twice is one session, not two
     async with store.pool.acquire() as conn:
         assert await conn.fetchval("SELECT count(DISTINCT as_of) FROM industry_breadth_daily") == 1
-    assert again["themeTagsAdded"] == 0
-    assert (await service.read_cached(store, "consistent-growers", "rated-only")) is not None
+        assert (await service.read_cached(store, "emerging-tech", engine.chip_key([]))) is not None
 
 
 def test_job_is_registered_after_prism():
@@ -119,3 +117,33 @@ async def test_a_company_page_can_ask_which_top_rated_and_theme_screens_it_is_in
     await wipe(store)
     await store.redis.flushdb()                                                                       # the results are also kept in Redis; this is the test database 15
     assert (await gold.get("/api/screener/presets/for/AAA")).json() == {"symbol": "AAA", "screens": [], "ready": False, "asOf": None}   # before the first nightly run: says it is not ready
+
+
+async def test_basic_tab_screens_are_silver_and_advanced_stay_gold(app, store):  # noqa: F811
+    await wipe(store)
+    silver = await signed_in(app, "bs@example.com", plan="silver")
+    free = await signed_in(app, "bf@example.com", plan="basic")
+    lst = (await silver.get("/api/screener/presets?tab=basic")).json()
+    cards = [c for g in lst["groups"] for c in g["presets"]]
+    assert lst["tab"] == "basic" and len(cards) == 16 and all(c["tab"] == "basic" and c["locked"] is False for c in cards)
+    assert all(c["locked"] for g in (await free.get("/api/screener/presets?tab=basic")).json()["groups"] for c in g["presets"])
+    d = await silver.get("/api/screener/presets/basic-emerging-tech")
+    assert d.status_code == 200 and d.json()["id"] == "basic-emerging-tech"
+    assert (await free.get("/api/screener/presets/basic-top-large")).status_code == 403
+    assert (await silver.get("/api/screener/presets/highest-rated-large")).status_code == 403          # the Prism screens are Gold
+    adv = (await silver.get("/api/screener/presets")).json()
+    assert adv["tab"] == "advanced" and all(c["locked"] for g in adv["groups"] for c in g["presets"])
+    await silver.aclose(); await free.aclose()
+
+
+async def test_the_screener_rows_carry_the_52_week_and_return_figures_for_the_optional_columns(store):  # noqa: F811
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM scores WHERE symbol = 'EXTRA1'")
+        await conn.execute("INSERT INTO scores (symbol, statement, model, overall, metrics) VALUES ('EXTRA1', 'consolidated', 'v1', 70, $1::jsonb)",
+                           json.dumps({"pct_from_high": 12.5, "ret_3m": 4.0, "ret_6m": -2.5}))
+        await conn.execute("INSERT INTO scores (symbol, statement, model, overall, metrics) VALUES ('EXTRA2', 'consolidated', 'v1', 60, '{}'::jsonb) ON CONFLICT DO NOTHING")
+    rows = {r["symbol"]: r for r in await store.screener_rows()}
+    assert rows["EXTRA1"]["pct_from_high"] == 12.5 and rows["EXTRA1"]["ret_3m"] == 4.0 and rows["EXTRA1"]["ret_6m"] == -2.5
+    assert rows["EXTRA2"]["pct_from_high"] is None and rows["EXTRA2"]["ret_6m"] is None            # missing is blank, never zero
+    async with store.pool.acquire() as conn:
+        await conn.execute("DELETE FROM scores WHERE symbol IN ('EXTRA1', 'EXTRA2')")

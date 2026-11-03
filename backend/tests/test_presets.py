@@ -6,17 +6,17 @@ from pathlib import Path
 
 import pytest
 
-from finlit.presets import derive, engine, expr, industry, seed, themes
-from finlit.presets.registry import ALL, BANNED_WORDS, BY_ID, DISCLAIMER, PRESETS, QUICK_VIEWS
+from finlit.presets import derive, engine, expr, industry, theme_map, themes
+from finlit.presets.registry import ADVANCED, ALL, BANNED_WORDS, BY_ID, DISCLAIMER, PRESETS, QUICK_VIEWS
 from finlit.screener.data import Table
 from finlit.screener.ql import analyze
 
 AS_OF = date(2026, 10, 30)
 
 
-def row(sym, mcap=5000, ind="Pharmaceuticals", **m):
+def row(sym, mcap=5000, ind="Pharmaceuticals", sector="S", **m):
     m.setdefault("market_cap", mcap)
-    return {"symbol": sym, "name": sym.title(), "sector": "S", "industry": ind, "band": "mixed", "metrics": json.dumps(m)}
+    return {"symbol": sym, "name": sym.title(), "sector": sector, "industry": ind, "band": "mixed", "metrics": json.dumps(m)}
 
 
 def pz(final=70, status="RATED", fund=70, val=60, qual=75, risk=70, st=30, lt=30, label="HEALTHY"):
@@ -35,8 +35,8 @@ def syms(body):
 
 # ---------------------------------------------------------------------------------------------------------------- registry
 def test_registry_shape_names_and_rules():
-    live = [p for p in PRESETS if p.status == "live"]
-    assert len(live) == 18 and [p.id for p in PRESETS if p.status == "blocked"] == ["rating-upgrades", "psu-stocks"] and len(QUICK_VIEWS) == 4
+    live = [p for p in ADVANCED if p.status == "live"]
+    assert len(live) == 15 and [p.id for p in ADVANCED if p.status == "blocked"] == ["rating-upgrades", "psu-stocks"] and len(QUICK_VIEWS) == 3
     assert len({p.id for p in ALL}) == len(ALL)
     for p in ALL:
         text = (p.name + " " + p.card_text).lower()
@@ -51,16 +51,16 @@ def test_registry_shape_names_and_rules():
                 assert analyze(line, "gold").ok, (p.id, line)
             for rule, _ in c.effect.get("derived_add", ()):
                 expr.parse(rule)
-    assert [p.limit for p in PRESETS[:3]] == [10, 10, 10] and all(p.limit == 25 for p in live[3:]) and all(p.top10 for p in PRESETS[:3])
-    assert BY_ID["highest-rated-small"].card_text.endswith("the {n} that Prism has rated so far.") and "momentum-leaders" in BY_ID
-    assert BY_ID["higher-risk-list"].card_text == "Companies with more warning signs than usual. Read the red flags on each company page before acting."
-    assert PRESETS[0].prism_filters["status"] == "RATED" and "status" not in BY_ID["momentum-leaders"].prism_filters
-
-
-def test_seed_matches_migration():
-    sql = (Path(__file__).parents[1] / "finlit/migrations/078_presets.sql").read_text()
-    got = set(re.findall(r"\('([A-Z0-9&]+)', '([^']+)'\)", sql))
-    assert got == set(seed.pairs()) and len(seed.pairs(False)) == 83
+    tops = [BY_ID[f"highest-rated-{k}"] for k in ("large", "mid", "small")]
+    assert all(p.limit == 10 and p.top10 and p.sector_cap == 3 and abs(sum(w for _, w in p.rank_score) - 1.0) < 1e-9 for p in tops)
+    assert [p.prism_filters["zrmin"] for p in tops] == [50, 50, 60] and all(p.prism_filters["zmin"] == 60 and p.prism_filters["zqmin"] == 50 for p in tops)
+    assert all(p.limit == 25 for p in live[3:]) and tops[0].card_text == "The 10 large caps with the strongest mix of Prism rating, valuation, risk and price strength."
+    assert [p.id for p in live][3:] == ["momentum-leaders", "at-52-week-high", "both-views-positive", "consistent-growers", "emerging-tech", "sector-themes", "quality-fair-price",
+                                         "quality-off-highs", "value-with-quality", "low-risk-compounders", "low-volatility", "higher-risk-list"]
+    assert [p.id for p in QUICK_VIEWS] == ["strongsafe", "fairvalue", "weakvalue"] and "Valuation below 50" in BY_ID["weakvalue"].card_text
+    for p in PRESETS:     # a blocked card says it in plain words, never a developer's note
+        if p.status == "blocked":
+            assert not re.search(r"prism_reports|is_psu|one row|flag", p.blocked_reason or "", re.I), p.id
 
 
 # ---------------------------------------------------------------------------------------------------------------- maths
@@ -116,225 +116,275 @@ def test_industry_cleaning_merges_without_touching_raw():
     assert industry.is_generic("Capital Goods") and not industry.is_generic("Pharmaceuticals")
 
 
-# ---------------------------------------------------------------------------------------------------------------- screens 1-3
-def top_universe():
-    rows = [row(f"L{i:02d}", mcap=100000 - i * 100, flag_count=1.0, ret_1y=10) for i in range(100)]          # the 100 largest
-    rows += [row(f"M{i:03d}", mcap=20000 - i * 10, flag_count=1.0) for i in range(150)]
-    rows += [row(f"X{i:02d}", mcap=3000 - i * 10, flag_count=1.0) for i in range(30)]
-    return rows
+# ---------------------------------------------------------------------------------------------------------------- rank score, sector cap, short list
+def test_percentile_of_a_value_among_a_bucket_ties_and_non_members():
+    arr = [10, 20, 20, 40]
+    assert engine._pct_in(arr, 10) == 0.0 and engine._pct_in(arr, 40) == 1.0 and engine._pct_in(arr, 20) == pytest.approx((1 + 2) / 2 / 3)
+    assert engine._pct_in(arr, 5) == 0.0 and engine._pct_in(arr, 99) == 1.0 and engine._pct_in([7], 7) == 0.5
+    assert engine._pct_in(arr, 30) == pytest.approx(2.5 / 3 - 0.0, abs=0.2)
 
 
-def test_top_large_ranking_ties_flags_status_and_chip():
-    rows = top_universe()
-    rows[1]["metrics"] = json.dumps({"market_cap": 99900, "flag_count": 3.0})        # too many red flags
-    rows[2]["metrics"] = json.dumps({"market_cap": 99800})                           # bank: missing flag count counts as 0
-    prism = {r["symbol"]: pz(final=50 + (i % 40)) for i, r in enumerate(rows)}
-    prism["L00"] = pz(final=90, qual=60); prism["L03"] = pz(final=90, qual=80)       # tie on score: higher Quality first
-    prism["L04"] = pz(final=95, status="PROVISIONAL")                               # Provisional never in a Top-10
-    prism["L05"] = pz(final=89, lt=-30)                                              # downtrend: only the Trend check drops it
-    fr = frame(rows, prism)
-    body = engine.run(fr, BY_ID["highest-rated-large"])
-    s = syms(body)
-    assert s[:2] == ["L03", "L00"] and "L04" not in s and "L01" not in s and body["shown"] == 10 and "L05" in s + ["L05"]
-    assert all(r["symbol"].startswith("L") for r in body["rows"]) and body["count"] <= 100 and not any(b for r in body["rows"] for b in r["badges"])
-    assert "L02" in syms(engine.run(fr, BY_ID["highest-rated-large"]))[:20] or True
-    on = engine.run(fr, BY_ID["highest-rated-large"], ["trend-check"])
-    assert "L05" not in syms(on) and on["chips"] == ["trend-check"] and body["chips"] == []
+def uni(extra=()):
+    """100 large, 150 mid and 30 small companies of Rs 1,000 Cr or more, each with the figures every Top 10 gate and input reads."""
+    def m(mc, i): return dict(market_cap=mc, pct_from_high=10, ret_3m=5 + i % 9, ret_6m=8 + i % 7, ret_1y=15 + i % 11, high_52w=120, low_52w=100)
+    rows = [row(f"L{i:03d}", mcap=100000 - i * 100, sector=f"SecL{i % 30}", **m(100000 - i * 100, i)) for i in range(100)]
+    rows += [row(f"M{i:03d}", mcap=20000 - i * 10, sector=f"SecM{i % 30}", **m(20000 - i * 10, i)) for i in range(150)]
+    rows += [row(f"X{i:03d}", mcap=3000 - i * 10, sector=f"SecX{i % 20}", **m(3000 - i * 10, i)) for i in range(30)]
+    return rows + list(extra)
 
 
-def test_top_small_needs_risk_40_and_card_counts_rated():
-    rows = top_universe()
-    prism = {r["symbol"]: pz(final=60 + i % 7, risk=60) for i, r in enumerate(rows)}
-    prism["X00"] = pz(final=99, risk=39)
-    body = engine.run(frame(rows, prism), BY_ID["highest-rated-small"])
-    assert "X00" not in syms(body) and body["rows"][0]["symbol"].startswith("X") and body["of"]["n"] == 30 and "the 30 that" in body["cardText"]
+def with_prism(rows, **over):
+    prism = {r["symbol"]: pz(final=70, qual=70, risk=70, val=60, st=30, lt=30) for r in rows}
+    for k, v in over.items():
+        prism[k] = v
+    return prism
 
 
-# ---------------------------------------------------------------------------------------------------------------- screen 4
-def mom_row(sym, **over):
-    m = dict(vs_ema50=5, vs_ema200=10, pct_from_high=8, ret_3m=4, ret_6m=9, ret_1y=20, rsi14=60, market_cap=3000)
+def test_top_large_gates_each_fail_and_count_text():
+    rows = uni()
+    bad = {"G_PRISM": pz(final=59), "G_QUAL": pz(qual=49), "G_RISK": pz(risk=49), "G_LT": pz(lt=-20), "G_PROV": pz(status="PROVISIONAL")}
+    for i, k in enumerate(bad):
+        rows[i]["symbol"] = k
+    prism = with_prism(rows, **bad)
+    rows[5]["metrics"] = json.dumps({**json.loads(rows[5]["metrics"]), "pct_from_high": 31}); rows[5]["symbol"] = "G_HIGH"; prism["G_HIGH"] = pz()
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    got = syms(body)
+    assert not set(bad) & set(got) and "G_HIGH" not in got and body["shown"] == 10 and body["listText"] == f"Top 10 of {body['count']} that pass"
+    assert all(s.startswith("L") or s in bad or s == "G_HIGH" for s in got)
+
+
+def test_top_small_risk_floor_is_60():
+    rows = uni()
+    prism = with_prism(rows)
+    prism["X000"] = pz(risk=59); prism["X001"] = pz(risk=60)
+    got = syms(engine.run(frame(rows, prism), BY_ID["highest-rated-small"]))
+    assert "X000" not in got and all(s.startswith("X") for s in got)
+
+
+def test_top_rank_is_a_weighted_percentile_mix_so_a_better_long_term_view_wins_a_tie_on_prism():
+    rows = uni()
+    for r in rows:
+        r["metrics"] = json.dumps({**json.loads(r["metrics"]), "ret_3m": 6, "ret_6m": 9, "ret_1y": 20})   # equal returns: only the long-term view differs
+    prism = with_prism(rows)
+    for i, r in enumerate(rows[:100]):
+        prism[r["symbol"]] = pz(final=70, qual=70, risk=70, val=60, st=30, lt=20 + i % 50)
+    prism["L040"] = pz(final=70, qual=70, risk=70, val=60, st=30, lt=90)        # same everything, a far stronger long-term view
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    first = body["rows"][0]
+    assert first["symbol"] == "L040" and first["rank_score"] > body["rows"][-1]["rank_score"]
+
+
+def test_top_sector_cap_is_three_per_label_and_ties_go_to_quality_then_prism():
+    rows = uni()
+    for r in rows[:6]:
+        r["sector"] = "Same"
+    prism = with_prism(rows)
+    for i, r in enumerate(rows[:6]):
+        prism[r["symbol"]] = pz(final=95 - i, qual=70 + i, risk=70, val=60, st=30, lt=30)
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    same = [r["symbol"] for r in body["rows"] if r["symbol"] in {x["symbol"] for x in rows[:6]}]
+    assert len(same) == 3 and len(body["rows"]) == 10
+
+
+def test_a_short_top_list_is_filled_with_names_that_fail_only_the_trend_or_52_week_gate_and_badged():
+    rows = uni()[:100]
+    prism = {r["symbol"]: pz(final=70, lt=-40) for r in rows}                    # every large cap fails the trend gate...
+    for r in rows[:4]:
+        prism[r["symbol"]] = pz(final=70, lt=30)                                  # ...except four
+    prism["L010"] = pz(final=40, lt=30)                                           # fails the Prism gate too: never a filler
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    assert body["count"] == 4 and body["shown"] == 10 and [r["badges"] for r in body["rows"][:4]] == [[]] * 4
+    fill = body["rows"][4:]
+    assert len(fill) == 6 and all("Trend not confirmed" in r["badges"] for r in fill) and "L010" not in syms(body)
+
+
+def test_provisional_chip_adds_provisional_names_with_a_badge():
+    rows = uni()
+    prism = with_prism(rows)
+    prism["L000"] = pz(final=99, status="PROVISIONAL", qual=90, risk=90, val=90, st=60, lt=60)
+    off = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    on = engine.run(frame(rows, prism), BY_ID["highest-rated-large"], ["include-provisional"])
+    assert "L000" not in syms(off) and "L000" in syms(on) and next(r for r in on["rows"] if r["symbol"] == "L000")["badges"] == ["Provisional"]
+
+
+def test_a_blank_technical_view_drops_a_company_and_the_card_says_how_many():
+    rows = uni()[:100]
+    prism = with_prism(rows)
+    for r in rows[:3]:
+        z = pz(); z["prism_lt_score"] = None; prism[r["symbol"]] = z
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    assert not {"L000", "L001", "L002"} & set(syms(body)) and any("3 rated companies have no long-term technical view" in n for n in body["notes"])
+
+
+# ---------------------------------------------------------------------------------------------------------------- the other Advanced screens
+def mrow(sym, **over):
+    m = dict(pct_from_high=8, ret_3m=4, ret_6m=9, ret_1y=20, market_cap=3000, high_52w=110, low_52w=100)
     m.update(over)
     return row(sym, **m)
 
 
-@pytest.mark.parametrize("field,value", [("vs_ema50", -1), ("vs_ema200", -1), ("pct_from_high", 16), ("ret_3m", 0), ("ret_6m", -2), ("rsi14", 49), ("rsi14", 81), ("market_cap", 900),
-                                         ("vs_ema200", 3)])   # last: 50-day average not above the 200-day (200dma gap 3 < 50dma gap 5)
-def test_momentum_each_rule_fails(field, value):
-    rows = [mom_row("OK"), mom_row("BAD", **{field: value})] + [mom_row(f"F{i}", ret_3m=i, ret_6m=i, ret_1y=i) for i in range(1, 5)]
-    prism = {"OK": pz(final=60), "BAD": pz(final=60)}
+@pytest.mark.parametrize("field,value", [("pct_from_high", 16), ("ret_3m", 0), ("ret_6m", -2), ("market_cap", 900)])
+def test_momentum_each_price_rule_fails(field, value):
+    rows = [mrow("OK"), mrow("BAD", **{field: value})] + [mrow(f"F{i}", ret_3m=i, ret_6m=i, ret_1y=i) for i in range(1, 5)]
+    prism = {"OK": pz(final=60, st=0, lt=20), "BAD": pz(final=60, st=0, lt=20)}
     body = engine.run(frame(rows, prism), BY_ID["momentum-leaders"])
     assert "OK" in syms(body) and "BAD" not in syms(body)
 
 
-def test_momentum_prism_rule_badge_and_beyond_rated_chip():
-    rows = [mom_row("A"), mom_row("B"), mom_row("UNR", overall=65, volatility=40, market_cap=2500), mom_row("LOWFIN", overall=50, volatility=40, market_cap=2500)]
-    prism = {"A": pz(final=55, st=25, lt=25), "B": pz(final=49)}
+@pytest.mark.parametrize("z", [pz(final=49, st=0, lt=20), pz(final=60, st=0, lt=19), pz(final=60, st=-1, lt=20)])
+def test_momentum_each_prism_rule_fails(z):
+    rows = [mrow("OK"), mrow("BAD")] + [mrow(f"F{i}", ret_3m=i, ret_6m=i, ret_1y=i) for i in range(1, 5)]
+    body = engine.run(frame(rows, {"OK": pz(final=60, st=0, lt=20), "BAD": z}), BY_ID["momentum-leaders"])
+    assert "OK" in syms(body) and "BAD" not in syms(body)
+
+
+def test_at_52_week_high_needs_5_percent_and_a_positive_short_term_view_no_volume():
+    rows = [mrow("OK", pct_from_high=5), mrow("FAR", pct_from_high=5.1), mrow("WEAKST", pct_from_high=1), mrow("LOWPRISM", pct_from_high=1), mrow("NOVOL", pct_from_high=2)]
+    prism = {"OK": pz(final=50, st=20), "FAR": pz(final=70, st=40), "WEAKST": pz(final=70, st=19), "LOWPRISM": pz(final=49, st=40), "NOVOL": pz(final=70, st=45)}
+    body = engine.run(frame(rows, prism), BY_ID["at-52-week-high"])
+    assert syms(body) == ["NOVOL", "OK"]                      # ranked by the short-term view; no volume figure is read
+
+
+def test_both_views_positive_is_large_and_mid_by_default_and_all_caps_with_the_chip():
+    rows = uni()
+    prism = {r["symbol"]: pz(final=70, st=25, lt=25) for r in rows}
     fr = frame(rows, prism)
-    body = engine.run(fr, BY_ID["momentum-leaders"])
-    assert syms(body) == ["A"] and body["rows"][0]["badges"] == ["Prism-confirmed"]
-    chip = engine.run(fr, BY_ID["momentum-leaders"], ["beyond-rated"])
-    assert set(syms(chip)) == {"UNR"} | set() or "UNR" in syms(chip)
-    assert "LOWFIN" not in syms(chip) and "B" in syms(chip) or "B" not in syms(chip)
+    default = engine.run(fr, BY_ID["both-views-positive"])
+    allc = engine.run(fr, BY_ID["both-views-positive"], ["all-caps"])
+    assert not any(r["symbol"].startswith("X") for r in default["exportRows"]) and any(r["symbol"].startswith("X") for r in allc["exportRows"]) and default["count"] == 250 and allc["count"] == 280
 
 
-# ---------------------------------------------------------------------------------------------------------------- screen 5
-def grow(sym, **over):
-    m = dict(sales_cagr_3y=18, profit_cagr_3y=18, q_sales_yoy=12, q_profit_yoy=12, q_sales_up=4, roce=15, debt_to_equity=0.5, flag_count=0, q_revenue=100, is_bank=0)
-    m.update(over)
-    return row(sym, **m)
-
-
-@pytest.mark.parametrize("field,value", [("sales_cagr_3y", 14), ("profit_cagr_3y", 14), ("q_sales_yoy", 9), ("q_profit_yoy", 9), ("q_sales_up", 2), ("roce", 11), ("debt_to_equity", 1.5),
-                                         ("flag_count", 2), ("market_cap", 900)])
-def test_growers_each_rule_fails(field, value):
-    fr = frame([grow("OK"), grow("BAD", **{field: value})])
-    s = syms(engine.run(fr, BY_ID["consistent-growers"], ["none"]))
-    assert s == ["OK"]
-
-
-def test_growers_banks_exempt_chips_and_ranking():
-    bank = grow("BANK", roce=None, debt_to_equity=None, is_bank=1, flag_count=None)
-    nonbank_missing = grow("NB", roce=None)
-    rows = [grow("OK"), bank, nonbank_missing, grow("FAST", sales_cagr_3y=25, profit_cagr_3y=25, q_sales_yoy=20, q_profit_yoy=20, roce=20)]
-    prism = {"OK": pz(), "FAST": pz(status="PROVISIONAL")}
+def test_consistent_growers_use_the_prism_parts_and_the_fast_growers_chip():
+    rows = [mrow(s) for s in ("OK", "FAST", "G", "Q", "R", "PROV")]
+    prism = {"OK": pz(fund=75, qual=60, risk=50), "FAST": pz(fund=88, qual=70, risk=60), "G": pz(fund=74.9, qual=70, risk=70), "Q": pz(fund=80, qual=59, risk=70), "R": pz(fund=80, qual=70, risk=49),
+             "PROV": pz(fund=80, qual=70, risk=70, status="PROVISIONAL")}
     fr = frame(rows, prism)
-    none = engine.run(fr, BY_ID["consistent-growers"], ["none"])
-    assert set(syms(none)) == {"OK", "BANK", "FAST"}                      # a missing ROCE fails for a non-bank; a bank is exempt, its missing flag count counts as 0
-    rated = engine.run(fr, BY_ID["consistent-growers"])                   # "Rated only" is on by default and keeps Provisional with a badge
-    assert rated["chips"] == ["rated-only"] and set(syms(rated)) == {"OK", "FAST"} and [r for r in rated["rows"] if r["symbol"] == "FAST"][0]["badges"] == ["Provisional"]
-    assert syms(engine.run(fr, BY_ID["consistent-growers"], ["fast-growers", "none"])) == ["FAST"] or True
+    body = engine.run(fr, BY_ID["consistent-growers"])
+    assert syms(body) == ["FAST", "PROV", "OK"] and next(r for r in body["rows"] if r["symbol"] == "PROV")["badges"] == ["Provisional"]
     assert syms(engine.run(fr, BY_ID["consistent-growers"], ["fast-growers"])) == ["FAST"]
 
 
-# ---------------------------------------------------------------------------------------------------------------- screens 6, 8-18
-def test_emerging_tech_tags_growth_flags_and_order():
-    rows = [row("A", sales_cagr_3y=20, flag_count=0, overall=60), row("B", q_sales_yoy=25, flag_count=1, overall=80), row("C", sales_cagr_3y=5, q_sales_yoy=5, flag_count=0),
-            row("D", sales_cagr_3y=30, flag_count=3), row("E", sales_cagr_3y=40, flag_count=0, flag_loss=1, overall=10), row("UNTAGGED", sales_cagr_3y=90), row("SMALL", mcap=500, sales_cagr_3y=90)]
-    tags = {"A": ["Semiconductors"], "B": ["EV and batteries"], "C": ["EV and batteries"], "D": ["EV and batteries"], "E": ["Semiconductors", "EV and batteries"], "SMALL": ["EV and batteries"]}
-    fr = frame(rows, {"A": pz(final=50), "B": pz(final=70, status="PROVISIONAL")}, tags)
+@pytest.mark.parametrize("pid,good,bad", [
+    ("quality-fair-price", dict(qual=70, fund=60, val=60), [dict(qual=69), dict(fund=59), dict(val=59)]),
+    ("value-with-quality", dict(val=75, qual=60, risk=60, fund=50), [dict(val=74), dict(qual=59), dict(risk=59), dict(fund=49)]),
+    ("low-risk-compounders", dict(risk=80, qual=75, fund=65), [dict(risk=79), dict(qual=74), dict(fund=64)]),
+])
+def test_value_and_safety_screens_use_only_prism_parts(pid, good, bad):
+    rows = [mrow("OK")] + [mrow(f"B{i}") for i in range(len(bad))]
+    base = dict(final=70, fund=70, qual=80, risk=90, val=80)
+    prism = {"OK": pz(**{**base, **good})}
+    for i, d in enumerate(bad):
+        prism[f"B{i}"] = pz(**{**base, **good, **d})
+    assert syms(engine.run(frame(rows, prism), BY_ID[pid])) == ["OK"]
+
+
+def test_quality_off_highs_keeps_its_rule_and_the_turning_up_chip_reads_the_short_term_view():
+    rows = [mrow("UP", pct_from_high=30), mrow("DOWN", pct_from_high=40), mrow("NEAR", pct_from_high=24)]
+    prism = {"UP": pz(qual=80, fund=70, risk=60, st=5), "DOWN": pz(qual=80, fund=70, risk=60, st=-5), "NEAR": pz(qual=80, fund=70, risk=60, st=5)}
+    fr = frame(rows, prism)
+    assert set(syms(engine.run(fr, BY_ID["quality-off-highs"]))) == {"UP", "DOWN"}
+    assert syms(engine.run(fr, BY_ID["quality-off-highs"], ["turning-up"])) == ["UP"]
+    assert {"prism_st_score", "prism_lt_score"} <= {c["key"] for c in engine.run(fr, BY_ID["quality-off-highs"])["columns"]}
+
+
+def test_low_volatility_reads_the_52_week_range_not_a_volatility_figure():
+    rows = [mrow("OK", high_52w=135, low_52w=100), mrow("WIDE", high_52w=136, low_52w=100)]
+    prism = {"OK": pz(final=60, risk=80), "WIDE": pz(final=60, risk=95)}
+    assert syms(engine.run(frame(rows, prism), BY_ID["low-volatility"])) == ["OK"]
+
+
+def test_higher_risk_has_three_ways_in_and_ranks_the_lowest_risk_first():
+    rows = [mrow(s) for s in ("RISK", "PRISM", "TREND", "NONE", "DEEPONLY")]
+    rows[2] = mrow("TREND", pct_from_high=40); rows[4] = mrow("DEEPONLY", pct_from_high=40)
+    prism = {"RISK": pz(final=70, risk=39), "PRISM": pz(final=34, risk=70), "TREND": pz(final=70, risk=70, lt=-50), "NONE": pz(final=70, risk=70), "DEEPONLY": pz(final=70, risk=70, lt=-49)}
+    assert syms(engine.run(frame(rows, prism), BY_ID["higher-risk-list"])) == ["RISK", "PRISM", "TREND"]
+
+
+def test_blocked_and_quick_views_do_not_run():
+    for pid in ("rating-upgrades", "psu-stocks", "strongsafe"):
+        with pytest.raises(engine.Blocked):
+            engine.run(frame([mrow("A")]), BY_ID[pid])
+
+
+# ---------------------------------------------------------------------------------------------------------------- Emerging tech
+def test_theme_map_joins_by_sector_label_named_additions_and_exclusions():
+    tags = theme_map.tags_for(["HAL", "HAVELLS", "KAYNES", "PERSISTENT", "ZZZ", "AMARAJABAT"], ["Aerospace & Defense", "Consumer Electronics", "Capital Goods", "Information Technology", "Pharma", "Auto Components"])
+    assert tags["HAL"] == ["Defence, aerospace and shipbuilding"] and "HAVELLS" not in tags
+    assert tags["KAYNES"] == ["Electronics, EMS and semiconductors"] and tags["PERSISTENT"] == ["Software products, AI and data"] and "ZZZ" not in tags
+    assert tags["AMARAJABAT"] == ["EV and batteries"]                      # the old symbol still counts while only it is listed
+    assert len(theme_map.subthemes()) == 8 and theme_map.subthemes()[0] == "Defence, aerospace and shipbuilding"
+
+
+def test_emerging_tech_gates_order_and_unrated_below():
+    rows = [mrow("GOOD", sector="Aerospace & Defense"), mrow("GOOD2", sector="Aerospace & Defense"), mrow("SLOW", sector="Aerospace & Defense"), mrow("RISKY", sector="Aerospace & Defense"),
+            mrow("SMALLCAP", sector="Aerospace & Defense", market_cap=900), mrow("UNR", sector="Aerospace & Defense", market_cap=2500), mrow("OTHER", sector="Banks"), mrow("UNR2", sector="Aerospace & Defense", market_cap=2000)]
+    prism = {"GOOD": pz(final=70, fund=60, risk=60), "GOOD2": pz(final=80, fund=60, risk=60), "SLOW": pz(final=80, fund=49, risk=60), "RISKY": pz(final=80, fund=60, risk=39),
+             "SMALLCAP": pz(final=80, fund=60, risk=60), "OTHER": pz(final=90, fund=90, risk=90)}
+    tags = theme_map.tags_for([r["symbol"] for r in rows], [r["sector"] for r in rows])
+    fr = frame(rows, prism, tags=tags)
     body = engine.run(fr, BY_ID["emerging-tech"])
-    assert syms(body) == ["B", "A", "E"]                                  # rated by Prism score first, then unrated by FinLit IQ
-    assert [b for r in body["rows"] for b in r["badges"]] == ["Provisional", "Not rated by Prism", "Not rated by Prism", "Loss-making"] or "Loss-making" in body["rows"][2]["badges"]
-    assert syms(engine.run(fr, BY_ID["emerging-tech"], ["sort-growth"])) == ["E", "A", "B"] or syms(engine.run(fr, BY_ID["emerging-tech"], ["sort-growth"]))[0] == "E"
-    assert syms(engine.run(fr, BY_ID["emerging-tech"], [seed.slug("Semiconductors")])) == ["A", "E"]
-    both = engine.run(fr, BY_ID["emerging-tech"], [seed.slug("Semiconductors"), seed.slug("EV and batteries")])
-    assert set(syms(both)) == {"A", "B", "E"}
+    assert syms(body) == ["GOOD2", "GOOD", "UNR", "UNR2"]                     # rated first by the rank score; unrated below by market cap; no trend gate
+    assert all("Defence, aerospace and shipbuilding" in str(r["sub_theme"]) for r in body["rows"])
+    every = engine.run(fr, BY_ID["emerging-tech"], ["show-all-theme"])
+    assert {"SLOW", "RISKY"} <= set(syms(every)) and "SMALLCAP" not in syms(every)
+    one = engine.run(fr, BY_ID["emerging-tech"], ["defence-aerospace-and-shipbuilding"])
+    assert set(syms(one)) == set(syms(body))
 
 
-SIMPLE = [
-    # (preset, passing figures, prism, [(field, failing value)])
-    ("quality-fair-price", dict(peg=1.0), dict(qual=70, fund=60, val=50), [("peg", 1.6), ("peg", 0)]),
-    ("near-high-volume", dict(pct_from_high=4, volume_vs_avg=2), dict(final=50, st=20), [("pct_from_high", 6), ("volume_vs_avg", 1.4)]),
-    ("quality-off-highs", dict(pct_from_high=30), dict(qual=75, fund=65, risk=50), [("pct_from_high", 24)]),
-    ("cheaper-than-history", dict(pe_vs_median_5y=-25), dict(qual=65, fund=55), [("pe_vs_median_5y", -19)]),
-    ("dividend-payers", dict(dividend_yield=3, div_years=6, dividend_payout=50, flag_count=1), {}, [("dividend_yield", 2.4), ("div_years", 5), ("dividend_payout", 76), ("flag_count", 2), ("market_cap", 900)]),
-    ("debt-free-compounders", dict(debt_to_equity=0.05, roce=25, sales_cagr_3y=15, years_profit_up=4), {}, [("debt_to_equity", 0.2), ("roce", 19), ("sales_cagr_3y", 11), ("years_profit_up", 3)]),
-    ("institutions-buying", dict(own_fii_chg_1q=0.6, own_dii_chg_1q=0.5, own_promoters_chg_1y=-1), dict(final=55), [("own_fii_chg_1q", 0.3), ("own_promoters_chg_1y", -1.5)]),
-    ("low-volatility", dict(volatility=20), dict(risk=80, final=60), [("volatility", 26)]),
-    ("fno-both-positive", dict(fno=1), dict(st=20, lt=20), [("fno", 0)]),
-]
-
-
-@pytest.mark.parametrize("pid,good,pr,fails", SIMPLE)
-def test_simple_screens_pass_and_each_rule_fails(pid, good, pr, fails):
-    base = dict(flag_count=0)
-    base.update(good)
-    rows = [row("OK", **base)]
-    prism = {"OK": pz(**pr)}
-    for n, (f, v) in enumerate(fails):
-        m = dict(base)
-        if f == "market_cap":
-            rows.append(row(f"B{n}", mcap=v, **m))
-        else:
-            m[f] = v
-            rows.append(row(f"B{n}", **m))
-        prism[f"B{n}"] = pz(**pr)
-    body = engine.run(frame(rows, prism), BY_ID[pid])
-    assert syms(body) == ["OK"], (pid, syms(body))
-
-
-@pytest.mark.parametrize("pid,field,prism", [("quality-fair-price", "zq", dict(qual=69, fund=60, val=50)), ("quality-fair-price", "zf", dict(qual=70, fund=59, val=50)),
-                                             ("quality-fair-price", "zv", dict(qual=70, fund=60, val=49)), ("near-high-volume", "st", dict(final=50, st=19)),
-                                             ("near-high-volume", "z", dict(final=49, st=20)), ("institutions-buying", "z", dict(final=54)), ("low-volatility", "r", dict(risk=79, final=60)),
-                                             ("fno-both-positive", "lt", dict(st=20, lt=19))])
-def test_prism_parameter_rules_fail(pid, field, prism):
-    good = SIMPLE[[s[0] for s in SIMPLE].index(pid)]
-    rows = [row("BAD", flag_count=0, **good[1])]
-    assert syms(engine.run(frame(rows, {"BAD": pz(**prism)}), BY_ID[pid])) == []
-
-
-def test_results_standouts_recent_only_and_capped_rank():
-    q = 20260930
-    rows = [row("A", q_sales_yoy=25, q_profit_yoy=90, q_period_end=q), row("B", q_sales_yoy=25, q_profit_yoy=5000, q_period_end=q), row("OLD", q_sales_yoy=25, q_profit_yoy=300, q_period_end=20260630)]
-    rows += [row(f"R{i}", q_period_end=q) for i in range(30)]
-    fr = frame(rows)
-    body = engine.run(fr, BY_ID["results-standouts"])
-    assert set(syms(body)) == {"A", "B"} and syms(body)[0] == "B"
-    # the 200% cap: two companies both above it tie, then Prism score decides
-    rows2 = [row("P", q_sales_yoy=25, q_profit_yoy=250, q_period_end=q), row("Q", q_sales_yoy=25, q_profit_yoy=9000, q_period_end=q)] + [row(f"R{i}", q_period_end=q) for i in range(30)]
-    assert syms(engine.run(frame(rows2, {"P": pz(final=80)}), BY_ID["results-standouts"]))[0] == "P"
-
-
-def test_higher_risk_or_rule_and_ordering():
-    rows = [row("LOWRISK", flag_count=0), row("FLAGS", flag_count=3), row("OK", flag_count=0), row("UNRATED", flag_count=5)]
-    prism = {"LOWRISK": pz(risk=30), "FLAGS": pz(risk=80), "OK": pz(risk=70)}
-    assert syms(engine.run(frame(rows, prism), BY_ID["higher-risk-list"])) == ["LOWRISK", "FLAGS"]
-
-
-# ---------------------------------------------------------------------------------------------------------------- empty result, chips, blocked
+# ---------------------------------------------------------------------------------------------------------------- empty result and chips
 def test_closest_misses_when_nothing_qualifies():
-    rows = [grow("A", sales_cagr_3y=5), grow("B", sales_cagr_3y=5, roce=5), grow("C", sales_cagr_3y=5, roce=5, debt_to_equity=3)] + [grow(f"Z{i}", sales_cagr_3y=1, roce=1, debt_to_equity=9, q_sales_up=0) for i in range(6)]
-    body = engine.run(frame(rows), BY_ID["consistent-growers"], ["none"])
-    assert body["count"] == 0 and body["rows"] == [] and len(body["closestMisses"]) == 5
-    first = body["closestMisses"][0]
-    assert first["symbol"] == "A" and first["failed"] == ["Sales growth, 3 years a year >= 15"] and body["emptyText"] == "No company meets every rule today."
-    assert len(body["closestMisses"][1]["failed"]) == 2
+    rows = [mrow("NEAR1"), mrow("FAR")]
+    prism = {"NEAR1": pz(final=70, fund=74, qual=70, risk=60), "FAR": pz(final=30, fund=20, qual=20, risk=20)}
+    body = engine.run(frame(rows, prism), BY_ID["consistent-growers"])
+    assert body["count"] == 0 and body["closestMisses"][0]["symbol"] == "NEAR1" and "No company meets every rule" in body["emptyText"]
 
 
 def test_chip_resolution_and_unknown_chip():
-    p = BY_ID["consistent-growers"]
-    assert engine.resolve_chips(p, None) == ["rated-only"] and engine.resolve_chips(p, ["none"]) == [] and engine.resolve_chips(p, ["fast-growers"]) == ["fast-growers"]
+    p = BY_ID["highest-rated-large"]
+    assert engine.resolve_chips(p, None) == [] and engine.resolve_chips(p, ["include-provisional"]) == ["include-provisional"] and engine.resolve_chips(p, ["none"]) == []
     with pytest.raises(engine.UnknownChip):
         engine.resolve_chips(p, ["nope"])
     assert engine.chip_key([]) == "none" and engine.chip_key(["b", "a"]) == "a,b"
 
 
-def test_blocked_and_quickview_do_not_run():
-    for pid in ("rating-upgrades", "psu-stocks", "strongsafe"):
-        with pytest.raises(engine.Blocked):
-            engine.run(frame([row("A")]), BY_ID[pid])
-    assert "weekly" in BY_ID["rating-upgrades"].blocked_reason and "is_psu" in BY_ID["psu-stocks"].blocked_reason
-
-
-# ---------------------------------------------------------------------------------------------------------------- themes
+# ---------------------------------------------------------------------------------------------------------------- Sector themes in play
 def test_in_play_rule_and_states():
-    assert themes.in_play(60, 70, 6, 40, 60) and not themes.in_play(60, 70, 4.9, 40, 60) and not themes.in_play(54, 70, 6, 40, 60) and not themes.in_play(60, 59, 6, 40, 60)
-    assert not themes.in_play(39, 99, 9, 10, 10)                       # the 40% floor
+    assert themes.in_play(60, None, 6, 40) and not themes.in_play(60, None, 4.9, 40) and not themes.in_play(54, None, 6, 40)      # 15 points above the market's breadth
+    assert not themes.in_play(39, None, 9, 10)                         # the 40% floor
     hist = [{"b50": 20, "in_play": False}] * 20
-    assert themes.classify(45, 50, 1, 30, 50, hist) == "emerging"      # up 25 points over 20 sessions, 15 above the market
-    assert themes.classify(45, 50, 1, 30, 50, hist[:19]) == "none"     # not enough history: never guessed
-    assert themes.classify(45, 50, -1, 30, 50, hist) == "none"
+    assert themes.classify(45, None, 1, 30, None, hist) == "emerging"  # up 25 points over 20 sessions, 15 above the market
+    assert themes.classify(45, None, 1, 30, None, hist[:19]) == "none"  # not enough history: never guessed
+    assert themes.classify(45, None, -1, 30, None, hist) == "none"
     played = [{"b50": 50, "in_play": True}] + [{"b50": 50, "in_play": False}] * 5
-    assert themes.classify(40, 50, -1, 30, 50, played) == "fading" and themes.classify(33, 50, 3, 30, 50, played) == "fading"
-    assert themes.classify(60, 60, 8, 30, 50, played) == "in_play"
+    assert themes.classify(40, None, -1, 30, None, played) == "fading" and themes.classify(33, None, 3, 30, None, played) == "fading"
+    assert themes.classify(60, None, 8, 30, None, played) == "in_play"
     old = [{"b50": 50, "in_play": True}] + [{"b50": 50, "in_play": False}] * 25
-    assert themes.classify(40, 50, -1, 30, 50, old) == "none"          # in play more than 20 sessions ago
-    assert themes.median([1, 2, 3, 4]) == 2.5
+    assert themes.classify(40, None, -1, 30, None, old) == "none"      # in play more than 20 sessions ago
+    assert themes.median([1, 2, 3, 4]) == 2.5 and themes.FLOOR == 1000 and themes.NEAR_HIGH == 15
 
 
 def theme_universe(n_up=10):
     rows = []
-    for i in range(n_up):    # a hot industry
-        rows.append(row(f"H{i}", mcap=2000, ind="Hot", vs_ema50=5, vs_ema200=5, ret_3m=20 + i, pct_from_high=5))
+    for i in range(n_up):    # a hot sector: close to its highs, rising
+        rows.append(row(f"H{i}", mcap=2000, ind="Hot", ret_3m=20 + i, pct_from_high=5))
     for i in range(10):
-        rows.append(row(f"C{i}", mcap=2000, ind="Cold", vs_ema50=-5, vs_ema200=-5, ret_3m=-10, pct_from_high=30))
+        rows.append(row(f"C{i}", mcap=2000, ind="Cold", ret_3m=-10, pct_from_high=30))
     for i in range(6):       # a small group, also hot
-        rows.append(row(f"S{i}", mcap=2000, ind="Tiny", vs_ema50=5, vs_ema200=5, ret_3m=30, pct_from_high=5))
+        rows.append(row(f"S{i}", mcap=2000, ind="Tiny", ret_3m=30, pct_from_high=5))
     for i in range(10):
-        rows.append(row(f"G{i}", mcap=2000, ind="Capital Goods", vs_ema50=5, vs_ema200=5, ret_3m=40))
+        rows.append(row(f"G{i}", mcap=2000, ind="Capital Goods", ret_3m=40, pct_from_high=1))
     for i in range(40):      # the rest of the market
-        rows.append(row(f"M{i}", mcap=2000, ind=f"Ind{i // 8}", vs_ema50=-1 if i % 4 else 1, vs_ema200=-1 if i % 3 else 1, ret_3m=-5, pct_from_high=40))
+        rows.append(row(f"M{i}", mcap=2000, ind=f"Ind{i // 8}", ret_3m=-5, pct_from_high=40))
     return rows
+
+
+def test_breadth_is_the_share_near_the_52_week_high_not_moving_averages():
+    rows = theme_universe()
+    t = Table(rows, {}, {})
+    ind = {r["symbol"]: r["industry"] for r in rows}
+    ev = themes.evaluate(t, lambda i: ind[t.symbols[i]], [])
+    hot = ev.industries["Hot"]
+    assert hot["b50"] == 100.0 and ev.industries["Cold"]["b50"] == 0.0 and hot["rs3"] > 5 and ev.market.b50 is not None
 
 
 def test_theme_screen_in_play_small_groups_leaders_and_never_empty():
@@ -352,26 +402,92 @@ def test_theme_screen_in_play_small_groups_leaders_and_never_empty():
     assert not any(c["industry"] == "Tiny" for c in body["themes"])
     withsmall = engine.run(fr, BY_ID["sector-themes"], ["small-groups"])
     assert withsmall["count"] == 2 and any(c["industry"] == "Tiny" and c["small"] for c in withsmall["themes"])
-    closest = [c for c in body["themes"] if c["state"] == "closest"]            # fewer than 3 in play: up to 3 closest, B50 above the market, highest RS3 first
-    assert all(c["b50"] > ev.market.b50 and c["leaders"] == [] for c in closest) and len(closest) <= 3
-    # leaders must be above their 50-day average and above the industry median 3M return
-    for r in body["rows"]:
-        assert r["vs_ema50"] > 0 and r["vs_industry_3m"] > 0
+    closest = [c for c in body["themes"] if c["state"] == "closest"]            # fewer than 3 in play: up to 3 closest, breadth above the market, highest RS3 first
+    assert all(c["breadth"] > ev.market.b50 and c["leaders"] == [] for c in closest) and len(closest) <= 3
+    for r in body["rows"]:                                                       # leaders: within 15% of the high, 3-month return above the sector median
+        assert r["pct_from_high"] <= 15 and r["vs_industry_3m"] > 0
     rows_back = themes.stored_rows(AS_OF, ev)
-    assert rows_back[0][1] == "*" and any(r[1] == "Hot" and r[8] for r in rows_back)
+    assert rows_back[0][1] == "*" and any(r[1] == "Hot" and r[8] for r in rows_back) and all(r[4] is None for r in rows_back)
 
 
-def test_history_roundtrip_feeds_the_state_machine():
-    rows = theme_universe()
-    t = Table(rows, {}, {})
-    ind = {r["symbol"]: r["industry"] for r in rows}
-    past = [{"*": {"b50": 20, "in_play": False}, "Hot": {"b50": 20, "in_play": False}} for _ in range(20)]
-    # make Hot not in play now but rising: shrink its leaders' strength
-    for r in rows:
-        if r["industry"] == "Hot":
-            m = json.loads(r["metrics"]); m["ret_3m"] = -5; m["vs_ema200"] = -1; r["metrics"] = json.dumps(m)
-    t = Table(rows, {}, {})
-    ev = themes.evaluate(t, lambda i: ind[t.symbols[i]], past)
-    assert ev.industries["Hot"]["state"] in ("emerging", "none")
-    stored = themes.history_from_rows([{"as_of": date(2026, 10, d), "industry": "Hot", "b50": 20, "b200": 1, "rs3": 0, "in_play": d == 5} for d in range(1, 6)])
-    assert len(stored) == 5 and stored[-1]["Hot"]["in_play"] is True
+def test_history_roundtrip_ignores_rows_written_by_the_old_moving_average_breadth():
+    stored = themes.history_from_rows([{"as_of": date(2026, 10, d), "industry": "Hot", "b50": 20, "b200": None, "rs3": 0, "in_play": d == 5} for d in range(1, 6)]
+                                      + [{"as_of": date(2026, 9, 1), "industry": "Hot", "b50": 99, "b200": 70, "rs3": 9, "in_play": True}])
+    assert len(stored) == 5 and stored[-1]["Hot"]["in_play"] is True and all(h["Hot"]["b50"] == 20 for h in stored)
+
+
+# ---------------------------------------------------------------------------------------------------------------- the Basic tab
+def buni(n_large=100, n_mid=60):
+    """Large and mid caps of Rs 1,000 Cr or more with FinLit scores, no Prism ratings at all (the Basic tab never needs them)."""
+    def m(mc, i): return dict(market_cap=mc, pct_from_high=10, ret_3m=5 + i % 9, ret_6m=8 + i % 7, ret_1y=15 + i % 11, fundamental_score=70 + i % 10, pillar_technical=60 + i % 10, pillar_quality=60,
+                              pillar_growth=60, pillar_profitability=60, pillar_balance=60, overall=70, is_bank=0)
+    rows = [row(f"L{i:03d}", sector=f"SecL{i % 30}", **m(100000 - i * 100, i)) for i in range(n_large)]
+    rows += [row(f"M{i:03d}", sector=f"SecM{i % 30}", **m(20000 - i * 10, i)) for i in range(n_mid)]
+    return rows
+
+
+def edit(r, **kw):
+    r["metrics"] = json.dumps({**json.loads(r["metrics"]), **kw})
+    return r
+
+
+def test_basic_registry_has_the_fourteen_cards_all_on_the_basic_tab():
+    basic = [p for p in PRESETS if p.tab == "basic"]
+    assert [p.id for p in basic] == ["basic-top-large", "basic-top-mid", "basic-top-small", "basic-strong-both", "basic-strong-business-lagging", "basic-strong-trend-weaker-business",
+                                     "basic-strong-all-four", "basic-growth-leaders", "basic-profitable-debt-light", "basic-quality-compounders", "basic-momentum-leaders", "basic-near-high",
+                                     "basic-quality-off-highs", "basic-emerging-tech", "basic-sector-themes", "basic-caution-list"]
+    assert all(p.status == "live" for p in basic) and sum(1 for p in basic if p.top10) == 3
+    for p in basic:
+        text = " ".join(p.how_it_works).lower()
+        assert "prism" not in text and "prism" not in p.card_text.lower(), p.id       # the Basic tab never names a Prism field
+
+
+def test_basic_top_gates_sector_cap_and_the_bank_balance_sheet_blank():
+    rows = buni()
+    edit(rows[0], fundamental_score=64)                       # fails the Growth & Profitability gate
+    edit(rows[1], pillar_technical=44)
+    edit(rows[2], pillar_quality=49)
+    edit(rows[3], pillar_balance=44)
+    edit(rows[4], pct_from_high=31)
+    edit(rows[5], pillar_balance=None)                        # blank, not a bank: out
+    edit(rows[6], pillar_balance=None, is_bank=1)             # blank bank: in
+    body = engine.run(frame(rows), BY_ID["basic-top-large"])
+    got = syms(body)
+    assert all(s not in got for s in ("L000", "L001", "L002", "L003", "L004", "L005"))
+    assert body["listText"] == f"Top 10 of {body['count']} that pass" and body["count"] == 94 and body["shown"] == 10
+    secs = [r["sector"] for r in body["rows"]]
+    assert max(secs.count(s) for s in set(secs)) <= 3 and body["rows"][0]["rank_score"] >= body["rows"][-1]["rank_score"]
+    allrows = engine.run(frame(rows), BY_ID["basic-top-large"])["exportRows"]
+    assert allrows[0]["symbol"] and all(c["key"] != "prism_final" for c in body["columns"])
+    mids = engine.run(frame(rows), BY_ID["basic-top-mid"])
+    assert all(s.startswith("M") for s in syms(mids)) and mids["count"] == 60
+
+
+def test_basic_small_cap_needs_a_balance_sheet_of_55_and_one_thousand_crore():
+    rows = buni(100, 150)
+    smalls = [row(f"X{i:03d}", sector=f"SecX{i}", market_cap=3000 - i * 10, pct_from_high=10, ret_3m=5, ret_6m=8, ret_1y=15, fundamental_score=70 + i % 5, pillar_technical=60, pillar_quality=60,
+                  pillar_growth=60, pillar_profitability=60, pillar_balance=55 if i else 54, overall=70, is_bank=0) for i in range(20)]
+    smalls.append(row("MICRO", sector="Other", market_cap=400, pct_from_high=10, ret_3m=5, ret_6m=8, ret_1y=15, fundamental_score=90, pillar_technical=90, pillar_quality=90, pillar_growth=90,
+                      pillar_profitability=90, pillar_balance=90, overall=90, is_bank=0))
+    body = engine.run(frame(rows + smalls), BY_ID["basic-top-small"])
+    assert body["count"] == 19 and "X000" not in body["exportRows"][0]["symbol"] and "MICRO" not in [r["symbol"] for r in body["exportRows"]]
+
+
+def test_basic_two_sided_cards_blank_allowed_and_cautions():
+    def one(sym, **kw):
+        base = dict(market_cap=5000, fundamental_score=80, pillar_technical=80, pillar_quality=80, pillar_growth=80, pillar_profitability=80, pillar_balance=80, overall=80, pct_from_high=3,
+                    ret_3m=4, ret_6m=9, ret_1y=20, is_bank=0)
+        base.update(kw)
+        return row(sym, **base)
+    rows = [one("BOTH"), one("LAG", pillar_technical=40, pct_from_high=35), one("TREND", fundamental_score=40, pillar_quality=40), one("NOBAL", pillar_balance=None),
+            one("SMALLMC", market_cap=1500), one("RISKY", overall=40, pct_from_high=50, pillar_technical=20), one("DEEP", pct_from_high=30, fundamental_score=75)]
+
+    def ids(pid): return set(syms(engine.run(frame(rows), BY_ID[pid])))
+    assert ids("basic-strong-both") == {"BOTH", "NOBAL", "SMALLMC"}
+    assert ids("basic-strong-business-lagging") == {"LAG", "RISKY"} and ids("basic-strong-trend-weaker-business") == {"TREND"}
+    assert "NOBAL" not in ids("basic-strong-all-four") and "NOBAL" in ids("basic-growth-leaders") and "SMALLMC" not in ids("basic-growth-leaders")     # blank balance sheet allowed there; floor Rs 2,000 Cr
+    assert ids("basic-caution-list") >= {"RISKY"} and "BOTH" not in ids("basic-caution-list")
+    assert ids("basic-quality-off-highs") == {"LAG", "RISKY", "DEEP"}
+    assert ids("basic-near-high") >= {"BOTH"} and "LAG" not in ids("basic-near-high") and "SMALLMC" not in ids("basic-near-high")
+    pb = engine.run(frame(rows), BY_ID["basic-profitable-debt-light"])
+    assert pb["rows"][0]["profit_plus_balance"] == 160

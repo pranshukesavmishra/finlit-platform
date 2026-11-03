@@ -100,3 +100,4 @@
 .sx-t thead th[data-of] { text-align: left; vertical-align: bottom; }
 .sx-t thead th[data-of]::before { text-align: left; white-space: nowrap; }
 .sx-t thead th[data-of] > button { white-space: normal; text-align: left; line-height: 1.25; overflow: visible; text-overflow: clip; max-width: 112px; }
+.sx-colopt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 10px; } .sx-colopt small { color: var(--muted); font-size: 12.5px; }

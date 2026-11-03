@@ -65,6 +65,12 @@ class _P:
         return items[0] if len(items) == 1 else ("and", items)
 
     def cmp(self) -> Node:
+        if self.peek() == "(":
+            self.take()
+            inner = self.or_()
+            if self.take() != ")":
+                raise RuleError("missing )")
+            return inner
         left = self.value()
         op = self.take()
         if op not in OPS:

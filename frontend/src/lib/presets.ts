@@ -1,4 +1,4 @@
-// Prebuilt screens on the Advanced score screener: the API types, the address (?preset=<id>&chip=<id>...), the two queries, client-side sorting and the CSV.
+// Prebuilt screens on the Advanced (Gold) and Basic (Silver) score screeners: the API types, the address (?preset=<id>&chip=<id>...), the two queries, client-side sorting and the CSV.
 // Every number shown comes from the response; nothing is computed here except ordering and layout.
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ApiError, apiGet } from "./api";
@@ -7,20 +7,28 @@ import { csvText } from "./format";
 export type PresetChip = { id: string; label: string; default: boolean; description: string };
 export type Preset = {
   id: string; name: string; group: string; cardText: string; count: number | null; asOf: string | null; status: "live" | "blocked"; blockedReason: string | null;
-  chips: PresetChip[]; howItWorks: string[]; locked: boolean;
+  /** "Top 10 of 40 that pass" or "First 25 of 129 that pass", as the card says it; null when the whole match is listed. */
+  listText?: string | null;
+  chips: PresetChip[]; howItWorks: string[]; locked: boolean; tab?: PresetTab;
 };
+/** Advanced screens are Gold (Prism fields); Basic screens are Silver (FinLit score fields). */
+export type PresetTab = "advanced" | "basic";
+export const PLAN_OF: Record<PresetTab, "gold" | "silver"> = { advanced: "gold", basic: "silver" };
 export type PresetGroup = { id: string; name: string; presets: Preset[] };
-export type PresetList = { asOf: string | null; groups: PresetGroup[] };
+export type PresetList = { asOf: string | null; groups: PresetGroup[]; tab?: PresetTab };
 
 export type ColFormat = "text" | "num1" | "pct" | "score" | "cr" | "label" | "badge";
 export type PresetColumn = { key: string; label: string; format: ColFormat; align?: "left" | "right" | "center" };
 export type PresetRow = { symbol: string; name?: string | null; badges?: string[] } & Record<string, unknown>;
 export type ThemeState = "in_play" | "emerging" | "fading" | "closest";
-export type Theme = { industry: string; state: ThemeState; b50: number | null; rs3: number | null; members: number | null; leaders: string[] };
+/** `breadth` is the share of the sector's stocks within 15% of their 52-week high; `marketBreadth` the same for the whole market; `reason` says why a "closest" sector is not in play. */
+export type Theme = { industry: string; state: ThemeState; breadth: number | null; marketBreadth?: number | null; r3?: number | null; rs3: number | null; members: number | null; small?: boolean; leaders: string[]; reason?: string | null };
 export type Miss = { symbol: string; name?: string | null; failed: string[] };
 export type PresetDetail = {
   id: string; name: string; asOf: string | null; count: number; shown: number; columns: PresetColumn[]; rows: PresetRow[]; themes?: Theme[]; closestMisses?: Miss[];
   howItWorks: string[]; cardText: string; disclaimer: string;
+  /** "Top 10 of 40 that pass": what the list shows of the companies that pass. */
+  listText?: string; notes?: string[]; rankScoreNote?: string; emptyText?: string; ratedCount?: number;
 };
 
 export const DISCLAIMER = "A screen narrows a list. It is not a recommendation.";
@@ -70,10 +78,10 @@ export function presetParams(prev: URLSearchParams, id: string | null, chips: st
 }
 
 // ---------- the queries ----------
-export function usePresetList(enabled = true) {
+export function usePresetList(enabled = true, tab: PresetTab = "advanced") {
   return useQuery<PresetList, ApiError>({
-    queryKey: ["presets"], staleTime: 300_000, enabled, retry: (n, e) => !(e instanceof ApiError && e.status >= 400 && e.status < 500) && n < 1,
-    queryFn: async () => { const d = await apiGet<PresetList>("/api/screener/presets"); return { asOf: d.asOf ?? null, groups: Array.isArray(d.groups) ? d.groups : [] }; },
+    queryKey: ["presets", tab], staleTime: 300_000, enabled, retry: (n, e) => !(e instanceof ApiError && e.status >= 400 && e.status < 500) && n < 1,
+    queryFn: async () => { const d = await apiGet<PresetList>("/api/screener/presets" + (tab === "basic" ? "?tab=basic" : "")); return { asOf: d.asOf ?? null, tab, groups: Array.isArray(d.groups) ? d.groups : [] }; },
   });
 }
 export const detailPath = (id: string, chips: string[]) => `/api/screener/presets/${encodeURIComponent(id)}` + (chips.length ? "?" + chips.map((c) => "chip=" + encodeURIComponent(c)).join("&") : "");
@@ -103,7 +111,7 @@ export const nextSortState = (s: SortState, key: string, firstDir: 1 | -1 = -1):
 /** A theme's leaders only (the row filter behind the theme cards). */
 export const rowsForTheme = (rows: PresetRow[], t: Theme | null): PresetRow[] => (t ? rows.filter((r) => t.leaders.includes(r.symbol)) : rows);
 
-/** B50 arrives as a percentage (43) or a share (0.43); both are shown as a percentage. */
+/** A breadth figure arrives as a percentage (43) or a share (0.43); both are shown as a percentage. */
 export const asPct = (v: number | null | undefined): number | null => (v == null ? null : Math.abs(v) <= 1 ? v * 100 : v);
 
 // ---------- CSV ----------
@@ -111,13 +119,13 @@ const cell = (s: string) => (/[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + 
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? String(Math.round(v * 10 ** d) / 10 ** d) : v == null ? "" : String(v));
 const csvCell = (v: unknown, f: ColFormat) => (typeof v === "number" ? num(v, f === "score" ? 0 : f === "num1" || f === "pct" ? 1 : 2) : v == null ? "" : cell(csvText(String(v))));
 /** The screen's rows as CSV, with a commented header (screen, date, options, sort, what a blank means) and the screen's own columns. The browser builds it: the existing export takes whole-universe rows, not a screen's response. */
-export function presetCsv(d: PresetDetail, rows: PresetRow[], o: { chips: string[]; chipLabels: Record<string, string>; sort: SortState; exportedOn: string; theme?: string | null }): string {
+export function presetCsv(d: PresetDetail, rows: PresetRow[], o: { chips: string[]; chipLabels: Record<string, string>; sort: SortState; exportedOn: string; theme?: string | null; tab?: PresetTab }): string {
   const sortCol = o.sort ? d.columns.find((c) => c.key === o.sort!.key)?.label ?? o.sort.key : null;
   const head = [
-    `# FinLit Advanced score screener export: ${d.name}`,
+    `# FinLit ${o.tab === "basic" ? "Basic" : "Advanced"} score screener export: ${d.name}`,
     `# Exported on: ${o.exportedOn}`,
     `# Screen as of: ${d.asOf ?? "date not available"}`,
-    `# Rows: ${rows.length} (the ${d.shown} shown${o.theme ? `, narrowed to the ${o.theme} theme` : ""}; ${d.count} companies match the screen)`,
+    `# Rows: ${rows.length} (${d.listText ? d.listText.toLowerCase() : `the ${d.shown} shown`}${o.theme ? `, narrowed to the ${o.theme} theme` : ""}; ${d.count} companies match the screen)`,
     `# Options: ${o.chips.length ? o.chips.map((c) => o.chipLabels[c] ?? c).join(", ") : "none"}`,
     `# Sorted by: ${sortCol ? `${sortCol} ${o.sort!.dir === 1 ? "ascending" : "descending"}` : "the screen's own order"}`,
     "# Blank cell = not available. It is never zero.",

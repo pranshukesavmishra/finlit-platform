@@ -12,7 +12,7 @@ import orjson
 from .. import prism_screen
 from ..prism_candles import expected_session
 from ..screener.data import get_table
-from . import derive, engine, industry as ind_mod, seed, themes
+from . import derive, engine, industry as ind_mod, theme_map, themes
 from .registry import PRESETS, REGISTRY_VERSION, Preset
 
 log = logging.getLogger("finlit.presets")
@@ -22,22 +22,6 @@ COMPUTE_TIMEOUT = 45
 WAIT_S = 10
 
 
-async def seed_theme_tags(store) -> Dict[str, List[str]]:
-    """Top the theme table up from the seed list for every symbol now present in `companies`. Returns {'added': [...], 'missing': [...]}."""
-    async with store.pool.acquire() as conn:
-        have = {r["symbol"] for r in await conn.fetch("SELECT symbol FROM companies")}
-        added, missing = [], []
-        for sym, sub in seed.pairs():
-            use = sym if sym in have else next((a for a in seed.ALIASES.get(sym, []) if a in have), None)
-            if use is None:
-                missing.append(sym)
-                continue
-            r = await conn.execute("INSERT INTO theme_tags (symbol, theme, sub_theme) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", use, seed.THEME, sub)
-            if r.endswith(" 1"):
-                added.append(use)
-    return {"added": added, "missing": missing}
-
-
 async def build_frame(store, persist: bool = False, now: Optional[datetime] = None) -> engine.Frame:
     now = now or datetime.now(timezone.utc)
     as_of = expected_session(now)
@@ -45,15 +29,12 @@ async def build_frame(store, persist: bool = False, now: Optional[datetime] = No
     prism = prism_screen.cards(await store.prism_cards(None))
     async with store.pool.acquire() as conn:
         overrides = {r["symbol"]: r["industry"] for r in await conn.fetch("SELECT symbol, industry FROM industry_override")}
-        tag_rows = await conn.fetch("SELECT symbol, sub_theme FROM theme_tags WHERE theme = $1 ORDER BY sub_theme", seed.THEME)
         hist_rows = [dict(r) for r in await conn.fetch(
             "SELECT as_of, industry, b50, b200, rs3, in_play FROM industry_breadth_daily WHERE as_of < $1 AND as_of IN "
             "(SELECT DISTINCT as_of FROM industry_breadth_daily WHERE as_of < $1 ORDER BY as_of DESC LIMIT $2)", as_of, themes.KEEP_SESSIONS)]
     clean = ind_mod.derive(zip(table.symbols, table.industry), overrides)
     industry = {s: v[1] for s, v in clean.items()}
-    tags: Dict[str, List[str]] = {}
-    for r in tag_rows:
-        tags.setdefault(r["symbol"], []).append(r["sub_theme"])
+    tags = theme_map.tags_for(table.symbols, table.sector)      # found from the Sector label and the research team's named lists, shown as a column
     pos = table.pos
     ev = themes.evaluate(table, lambda i: industry.get(table.symbols[i]), themes.history_from_rows(hist_rows))
     fr = engine.Frame(table, prism, as_of, tags, industry, ev)
@@ -176,7 +157,6 @@ def live_presets() -> List[Preset]:
 
 async def refresh_presets(store) -> dict:
     """The nightly job: seed top-up, derived tables, every live screen for its common chip sets into the cache."""
-    seeded = await seed_theme_tags(store)
     fr = await build_frame(store, persist=True)
     done, failed = 0, []
     for p in live_presets():
@@ -189,5 +169,5 @@ async def refresh_presets(store) -> dict:
                 failed.append(f"{p.id}:{type(exc).__name__}")
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM preset_results WHERE registry <> $1", REGISTRY_VERSION)
-    return {"asOf": fr.as_of.isoformat(), "results": done, "failed": failed, "themeTagsAdded": len(seeded["added"]), "themeSeedMissing": seeded["missing"],
+    return {"asOf": fr.as_of.isoformat(), "results": done, "failed": failed, "themeTagged": len(fr.tags),
             "momentum": len(fr.momentum), "growth": len(fr.growth), "inPlay": len(fr.theme_eval.in_play) if fr.theme_eval else 0}

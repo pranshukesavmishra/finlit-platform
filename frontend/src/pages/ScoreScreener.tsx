@@ -1,15 +1,19 @@
 import { Link, Navigate, useSearchParams } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
 import { HowDialog } from "../components/screener/controls";
-import { ChipRow, FilterGroup, QuickRow, RangeRow } from "../components/screener/FilterGroup";
+import { ChipRow, FilterGroup, RangeRow } from "../components/screener/FilterGroup";
 import { Donut } from "../components/screener/PageParts";
 import { Score, med } from "../components/screener/cells";
 import { useScreener } from "../components/screener/useScreener";
+import { PRICE_COL_COUNT, PriceCells, PriceColumnsToggle, PriceHeads, usePriceColumns } from "../components/screener/PriceColumns";
+import { PresetPanel } from "../components/screener/presets/PresetPanel";
+import { PresetPage } from "../components/screener/presets/PresetPage";
+import { usePresetRoute } from "../components/screener/presets/usePresetRoute";
 import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, PRESETS, READY_MADE, TOP_PRESETS, TOP_N, activePreset, activeTopPreset, clearPreset, hasPrismParams, withPreset, withTopPreset } from "../lib/scoreScreen";
+import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, hasPrismParams } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -26,19 +30,14 @@ const RANGES: [RangeKey, string][] = [["q", "Quality score"], ["g", "Growth scor
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort, compare and export by size, sector and score.");
   const s = useScreener("basic");
-  const { draft, setDraft, applied, locked, upgrade, isLoading, sum, asOf } = s;
-  const preset = activePreset(applied), topPreset = activeTopPreset(applied);
+  const [priceCols, setPriceCols] = usePriceColumns();
+  const { draft, setDraft, locked, upgrade, isLoading, sum, asOf } = s;
+  const route = usePresetRoute("basic");   // the prebuilt screen in the address (?preset=...)
   const notScored = s.rows.filter((r) => r.scored === false).length;
   const allStrong = PILLARS.every((x) => draft.bands[x.k].length === 1 && draft.bands[x.k][0] === "high");
   const setAllStrong = () => setDraft((d) => ({ ...d, bands: { ...d.bands, ...Object.fromEntries(PILLARS.map((x) => [x.k, allStrong ? [] : ["high"]])) } }));
-  const useTop = (id: string) => {
-    if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
-    s.apply(topPreset === id ? clearPreset(draft) : withTopPreset(draft, TOP_PRESETS.find((p) => p.id === id)!), false, topPreset === id ? undefined : { key: "overall", dir: -1 });
-  };
-  const usePreset = (id: string) => {
-    if (locked) { upgrade("silver", "Score filters come with the Silver plan."); return; }
-    s.apply(preset === id ? clearPreset(draft) : withPreset(draft, PRESETS.find((p) => p.id === id)!));
-  };
+
+  if (route.id) return <PresetPage route={route} />;
 
   const tiles: [string, string, string?][] = [
     ["Companies found", isLoading ? "…" : nf(sum.found, 0)],
@@ -54,15 +53,7 @@ function Basic() {
       head={{ art: "rating", links: ["/screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"], stats: [{ icon: "building", value: !isLoading && s.items.length > 0 ? nf(s.items.length, 0) : null, label: "Companies" }, { icon: "quality", value: !isLoading && s.items.length > 0 ? nf(s.items.length - s.unscored, 0) : null, label: "Scored" }] }}
       tier="silver" sortChoices={[{ key: "overall", label: "FinLit IQ" }, { key: "f", label: "Growth & Profitability" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
-      presets={<div className="sx-presets" role="group" aria-label="Quick views by score band">
-        <div className="sx-pg" role="group" aria-label="Top 10 by size"><small className="sx-pgh">Top 10 by FinLit IQ</small>
-          {TOP_PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={topPreset === p.id} title={p.say} onClick={() => useTop(p.id)} />)}</div>
-        <div className="sx-pg" role="group" aria-label="Ready-made screens in the Advanced screener"><small className="sx-pgh">Ready-made screens (Advanced, Gold)</small>
-          {READY_MADE.map((r) => locked
-            ? <button key={r.id} type="button" className="sx-ready is-locked" title={r.say} onClick={() => upgrade("silver", "Ready-made screens come with the Silver plan.")}><Icon name="lock" /><span>{r.label}</span><Icon name="arrow" /></button>
-            : <Link key={r.id} className="sx-ready" to={`/advanced-score-screener?preset=${r.id}`} title={r.say}><span>{r.label}</span><Icon name="arrow" /></Link>)}</div>
-        {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
-      </div>}
+      presets={<PresetPanel route={route} />}
       filters={locked ? (
         <FilterGroup id="score" title="Score filters" defaultOpen>
           <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by the Quality, Growth, Profitability and Balance sheet scores.</span>
@@ -88,25 +79,25 @@ function Basic() {
         <span className="sx-adv-s">Advanced score screener (Gold): FinLit Prism, 4 financial-health parts and 2 technical views</span>
         <Icon name="arrow" /></Link>}
       beforeTable={<>
-        {applied.top != null && topPreset && s.topOf != null && (
-          <p className="sx-topnote" role="status"><b>{TOP_PRESETS.find((p) => p.id === topPreset)!.label}.</b> The {TOP_N} {applied.caps[0].toLowerCase()} caps with the highest FinLit IQ, ranked among the {nf(s.topOf, 0)} {applied.caps[0].toLowerCase()} caps that have one.
-            {s.topOf < TOP_N ? ` Only ${s.topOf} qualify, so fewer than ${TOP_N} are shown.` : ""} Ties go to the higher Quality score, then the larger company. A screen narrows a list. It is not a recommendation.</p>)}
+        <PriceColumnsToggle on={priceCols} set={setPriceCols} />
         <details className="pzs-explain">
           <summary>What the FinLit IQ means</summary>
           <div className="pzs-two"><div><b>FinLit IQ</b><p>{EXPLAIN.finlit}</p></div></div>
         </details>
       </>}
-      groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit IQ</th><th scope="col"><span className="sr">Actions</span></th></tr>}
+      groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={7}>FinLit IQ</th>{priceCols && <th scope="colgroup" colSpan={PRICE_COL_COUNT}>Price</th>}<th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
         <SortTh s={s} k="f" label="Growth & Profitability" of="FinLit IQ" help="score-table" />
         {PILLARS.map((x) => <SortTh key={x.k} s={s} k={x.col} label={x.short} of="FinLit IQ" cls="ss-ph" title={x.say} />)}
         <SortTh s={s} k="t" label="Technical" of="FinLit IQ" /><SortTh s={s} k="overall" label="Overall" of="FinLit IQ" />
+        {priceCols && <PriceHeads s={s} />}
       </>}
-      colSpan={14}
+      colSpan={14 + (priceCols ? PRICE_COL_COUNT : 0)}
       cells={(r) => <>
         <td><Score r={r} k="f" locked={locked} /></td>
         {PILLARS.map((x) => <td key={x.k} className="ss-pc"><Score r={r} k={x.col} locked={locked} /></td>)}
         <td><Score r={r} k="t" locked={locked} /></td><td><Score r={r} k="overall" locked={locked} /></td>
+        {priceCols && <PriceCells r={r} />}
       </>}
       plain="A score screen narrows a long list. It describes financial health and price trend from filings and prices; it is not a recommendation. Open a company's report to see why a score looks the way it does."
       how={<HowDialog onClose={() => s.setHow(false)}>

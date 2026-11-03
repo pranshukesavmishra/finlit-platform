@@ -50,6 +50,10 @@ VIEWED_KEY = "viewed"   # sorted set: symbol -> last time a member or visitor op
 LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
                 "pe, pb, roe, roce, dividend_yield, debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, sector, name, updated_at")
 
+# The 52-week and return figures the score screeners can show as optional columns, read from the stored screener numbers (scores.metrics).
+EXTRA_KEYS = ("pct_from_high", "ret_3m", "ret_6m")
+PRICE_EXTRAS = ", ".join(f"NULLIF(metrics ->> '{k}', '')::float8 AS {k}" for k in EXTRA_KEYS)
+
 SCORE_COLUMNS = ("symbol", "statement", "model", "overall", "band", "pillar_quality", "pillar_growth",
                  "pillar_profitability", "pillar_balance", "pillar_technical", "price", "market_cap", "pe", "roe",
                  "dividend_yield", "sector", "name", "pb", "roce", "debt_to_equity", "sales_cagr", "profit_cagr",
@@ -345,7 +349,7 @@ class Store:
     async def light_rows(self) -> List[dict]:
         """Every listed company that has no score yet: its name and sector from the symbol list and its price figures from the nightly listing
         refresh (the same rows the full screener lists), so a screener counts every company we hold, scored or not."""
-        keys = [k.strip() for k in LIST_COLUMNS.split(",") if k.strip() not in ("statement", "model", "updated_at")]
+        keys = [k.strip() for k in LIST_COLUMNS.split(",") if k.strip() not in ("statement", "model", "updated_at")] + list(EXTRA_KEYS)
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT c.symbol, c.name, c.sector, l.price, l.change_pct, l.market_cap FROM companies c LEFT JOIN listing_quotes l ON l.symbol = c.symbol "
@@ -795,7 +799,7 @@ class Store:
         """One row per company for the screener and comparison tool (client-side filtering, so no per-click queries)."""
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                f"SELECT DISTINCT ON (symbol) {LIST_COLUMNS} FROM scores WHERE model = $1 "  # nosec B608 - fixed column list
+                f"SELECT DISTINCT ON (symbol) {LIST_COLUMNS}, {PRICE_EXTRAS} FROM scores WHERE model = $1 "  # nosec B608 - fixed column lists
                 "ORDER BY symbol, (statement = $2) DESC, updated_at DESC LIMIT $3", model, statement, limit)
         return [dict(r) for r in rows]
 

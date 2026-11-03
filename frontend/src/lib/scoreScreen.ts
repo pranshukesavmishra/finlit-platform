@@ -11,10 +11,11 @@ import { FUND_PART_NAME } from "./prismNames";
 export type Cap = "Large" | "Mid" | "Small";
 export type Band = "low" | "mid" | "high";
 export type Pillar = "pillar_quality" | "pillar_growth" | "pillar_profitability" | "pillar_balance";
-export type Item = Row & { cap: Cap | null; f: number | null; t: number | null };
+/** `ret_3m`, `ret_6m` and `pct_from_high` feed the optional 52-week and return columns: read from the stored screener numbers, blank without enough price history. */
+export type Item = Row & { cap: Cap | null; f: number | null; t: number | null; ret_3m?: number | null; ret_6m?: number | null; pct_from_high?: number | null };
 export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
 export type RangeKey = "f" | "t" | "o" | "q" | "g" | "p" | "b" | PrismRangeKey;   // q g p b: the four pillars (min and max boxes in the Basic screener)
-export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol;
+export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol | "ret_3m" | "ret_6m" | "return_1y" | "pct_from_high";
 export type Range = { min: number | null; max: number | null };
 /** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strong uptrend" counted as Uptrend and "Strong downtrend" as Downtrend. */
 export type TechBand = "pos" | "neutral" | "neg";
@@ -139,64 +140,9 @@ export function validate(f: Filters): Problems {
   return out;
 }
 
-// ---------- presets (defined only by the basic model's own score bands and the overall score) ----------
-/** A quick view OWNS the six score bands (Business, Technical and the four pillars) and the Business, Technical and Overall boxes: choosing it sets those exactly
- *  (cleared where it names nothing); size, sector and every other filter stay as they were. Each one states its rule in `say`; none is a recommendation. */
-export type Preset = { id: string; label: string; say: string; bands: Partial<Record<BandKey, Band[]>>; overallMin?: number };
-export const PRESETS: Preset[] = [
-  { id: "both", label: "Strong on both", say: "Growth & Profitability 78 and above and Technical 78 and above.", bands: { f: ["high"], t: ["high"] } },
-  { id: "fund", label: "Strong growth & profitability, weak trend", say: "Growth & Profitability 78 and above and Technical under 45.", bands: { f: ["high"], t: ["low"] } },
-  { id: "trend", label: "Strong trend, weaker growth & profitability", say: "Technical 78 and above and Growth & Profitability under 78.", bands: { f: ["low", "mid"], t: ["high"] } },
-  { id: "top", label: "Top FinLit IQ", say: "An overall FinLit IQ of 78 or more (Strong).", bands: {}, overallMin: 78 },
-  { id: "quality", label: "Quality compounders", say: "Quality 78 and above and Profitability 78 and above: steady earnings and high returns on the money in the business.", bands: { q: ["high"], p: ["high"] } },
-  { id: "growth", label: "Growth leaders", say: "Growth 78 and above, with a Balance sheet score of 45 or more.", bands: { g: ["high"], b: ["mid", "high"] } },
-  { id: "balance", label: "Strong balance sheet", say: "Balance sheet 78 and above and Quality 45 or more: little debt, good interest cover and liquidity.", bands: { b: ["high"], q: ["mid", "high"] } },
-];
-const NO_RANGE = { min: null, max: null };
-/** The filters without any quick view: the six bands and the Business, Technical and Overall boxes cleared, everything else kept. */
-export function clearPreset(f: Filters): Filters {
-  const n = cloneFilters(f);
-  BAND_KEYS.forEach((k) => { n.bands[k] = []; });
-  n.ranges.f = { ...NO_RANGE }; n.ranges.t = { ...NO_RANGE }; n.ranges.o = { ...NO_RANGE };
-  n.top = null;
-  return n;
-}
-export function withPreset(f: Filters, p: Preset): Filters {
-  const n = clearPreset(f);
-  BAND_KEYS.forEach((k) => { n.bands[k] = [...(p.bands[k] ?? [])]; });
-  if (p.overallMin != null) n.ranges.o = { min: p.overallMin, max: null };
-  return n;
-}
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
-export const activePreset = (f: Filters) => PRESETS.find((p) => BAND_KEYS.every((k) => same(f.bands[k], p.bands[k] ?? []))
-  && f.ranges.f.min == null && f.ranges.f.max == null && f.ranges.t.min == null && f.ranges.t.max == null
-  && f.ranges.o.min === (p.overallMin ?? null) && f.ranges.o.max == null && f.top == null)?.id ?? null;
-
-/** Ready-made screens that run in the Advanced screener (they need data the Basic table does not carry: 52-week position, momentum, theme tags). The Basic screener lists them as links. */
-export const READY_MADE: { id: string; label: string; say: string }[] = [
-  { id: "momentum-leaders", label: "Momentum leaders", say: "Rated stocks in an uptrend near their 52-week high, ranked by 3-, 6- and 12-month returns against the market." },
-  { id: "near-high-volume", label: "Near 52-week high", say: "Within 5% of the 52-week high, volume 1.5 times normal and the short-term view positive." },
-  { id: "quality-off-highs", label: "Quality off its highs", say: "High quality, 25% or more below the 52-week high." },
-  { id: "emerging-tech", label: "Emerging tech", say: "Companies tagged to new-technology themes, with growth." },
-  { id: "sector-themes", label: "Sector themes in play", say: "Industries beating the market on breadth and 3-month return, plus their leaders." },
-];
-
-// ---------- Top 10 by size (the three most-used ready-made screens) ----------
+// The Basic tab's quick views are now the server's prebuilt screens (lib/presets.ts, backend/finlit/presets/registry.py): one rule set, one place.
 export const TOP_N = 10;
-export type TopPreset = { id: string; label: string; cap: Cap; say: string };
-/** "Top 10 Large / Mid / Small": the first ten companies of one size class by FinLit IQ. The size classes are the site's own (by market cap rank: 1 to 100 large, 101 to 250 mid, the rest small).
- *  Only companies that have a FinLit IQ are ranked, so a company without one never takes a place. Ties go to the higher Quality score, then the larger market cap, then the symbol. */
-export const TOP_PRESETS: TopPreset[] = (["Large", "Mid", "Small"] as Cap[]).map((cap) => ({
-  id: "top10-" + cap.toLowerCase(), label: `Top 10 ${cap.toLowerCase()} caps`, cap,
-  say: `The ${TOP_N} ${cap.toLowerCase()} caps with the highest FinLit IQ. A screen narrows a list; it is not a recommendation.`,
-}));
-export function withTopPreset(f: Filters, p: TopPreset): Filters {
-  const n = clearPreset(f);
-  n.caps = [p.cap]; n.top = TOP_N;
-  return n;
-}
-export const activeTopPreset = (f: Filters): string | null =>
-  f.top === TOP_N && f.caps.length === 1 ? TOP_PRESETS.find((p) => p.cap === f.caps[0])?.id ?? null : null;
 const byNum = (a: number | null | undefined, b: number | null | undefined) => (a == null ? (b == null ? 0 : 1) : b == null ? -1 : b - a);
 /** The first `n` of `items` by FinLit IQ (highest first). Companies with no FinLit IQ are left out. Deterministic: IQ, then Quality, then market cap, then symbol. */
 export function rankTop(items: Item[], n: number): Item[] {
@@ -220,7 +166,7 @@ export const PRISM_PRESETS: PrismPreset[] = [
   { id: "strongsafe", label: "Prism strong and lower risk", say: "A Prism score of 80 or more (Strong) and Prism Risk 65 or more (a higher Risk score means lower risk).", ranges: { z: min(80), zr: min(65) }, labels: [], rated: true },
   { id: "fairvalue", label: "Strong Growth & Profitability at a fair valuation", say: "Prism Growth & Profitability 65 or more and Prism Valuation 50 or more. Valuation is higher when the price is more modest for what the company earns.", ranges: { zf: min(65), zv: min(50) }, labels: [], rated: true },
   { id: "bothtech", label: "Uptrend on both technical views", say: "Prism's short-term and long-term technical views are both in an uptrend (+20 or more).", ranges: {}, labels: [], rated: false, tech: { st: ["pos"], lt: ["pos"] } },
-  { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation 50 or less: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 50 } }, labels: [], rated: true },
+  { id: "weakvalue", label: "Growth & Profitability strong but valuation weak", say: "Prism Growth & Profitability 65 or more but Prism Valuation below 50: a business that scores well, at a price that is less modest for what it earns.", ranges: { zf: min(65), zv: { min: null, max: 49 } }, labels: [], rated: true },
 ];
 const OWNED: RangeKey[] = [...PRISM_RANGE_KEYS];
 const none = (): Range => ({ min: null, max: null });
@@ -279,7 +225,7 @@ export function sortRows(rows: Item[], s: Sort): Item[] {
   }).map((x) => x.r);
 }
 /** Clicking a heading: same column flips the direction, a new column starts high-to-low (A to Z for text). */
-const firstDir = (key: SortKey): 1 | -1 => (key === "name" || key === "sector" ? 1 : -1);
+const firstDir = (key: SortKey): 1 | -1 => (key === "name" || key === "sector" || key === "pct_from_high" ? 1 : -1);
 export const nextSort = (s: Sort, key: SortKey): Sort => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : firstDir(key) });
 
 export function pageOf<T>(rows: T[], page: number, size: number) {
@@ -324,7 +270,7 @@ export function concentration(rows: Item[], top = 5): { label: string; n: number
 // ---------- URL state ----------
 export type State = { filters: Filters; sort: Sort; size: number; page: number };
 export const SORT_KEYS: SortKey[] = ["name", "price", "market_cap", "sector", "f", "t", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance",
-  "prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score"];
+  "prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score", "ret_3m", "ret_6m", "return_1y", "pct_from_high"];
 const num = (s: string | null) => { if (s == null || s.trim() === "") return null; const n = Number(s); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null; };
 const parseBands = (s: string | null): Band[] => BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
 const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) => (s || "").split(",").includes(b));

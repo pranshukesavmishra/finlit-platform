@@ -4,10 +4,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within, configure } f
 configure({ asyncUtilTimeout: 8000 });
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Row } from "../lib/screener";
 
 const st = vi.hoisted(() => ({ plan: "gold" as "basic" | "silver" | "gold", rows: [] as unknown[], cover: null as unknown, upgrade: vi.fn(), toast: vi.fn() }));
 vi.mock("../lib/screener", async (orig) => ({ ...(await orig<typeof import("../lib/screener")>()), useUniverse: () => ({ data: { rows: st.rows, sample: true, asOf: "2026-10-26", prism: st.cover }, isLoading: false, isError: false }) }));
+const api = vi.hoisted(() => ({ list: { tab: "basic", asOf: "2026-10-30", groups: [] as unknown[] } as unknown }));
+vi.mock("../lib/api", async (orig) => ({ ...(await orig<typeof import("../lib/api")>()), apiGet: vi.fn(async (path: string) => { if (path.startsWith("/api/screener/presets")) return api.list; throw new Error("unexpected " + path); }) }));
 const admin = vi.hoisted(() => ({ on: true }));
 vi.mock("../lib/auth", async (orig) => ({ ...(await orig<typeof import("../lib/auth")>()), useAuth: () => ({ isAdmin: admin.on }) }));
 vi.mock("../lib/ui", () => ({
@@ -22,6 +25,8 @@ const mk = (symbol: string, sector: string | null, f: number | null, t: number |
   price: cap == null ? null : 100, market_cap: cap, pe: null, pb: null, roe: null, roce: null, dividend_yield: null, debt_to_equity: null, sales_cagr: null, profit_cagr: null,
   operating_margin: null, change_pct: null, return_1m: null, return_1y: null, scored: true, ...o,
 });
+const CARD = { id: "basic-top-large", name: "Top 10 large caps", group: "top-rated", cardText: "The 10 large caps with the strongest mix of business scores and price strength.", count: 40, asOf: "2026-10-30", status: "live", blockedReason: null,
+  listText: "Top 10 of 40 that pass", chips: [], howItWorks: [], locked: false, tab: "basic" };
 const DATA = [
   mk("AAA", "Banks", 90, 90, 9000), mk("BBB", "Banks", 80, 30, 8000), mk("CCC", "IT", 50, 85, 7000), mk("DDD", "IT", 44, 45, 6000), mk("EEE", "Auto", 77, 78, 5000),
   mk("FFF", null, 60, null, 4000), mk("GGG", "Auto", null, 60, null, { scored: false }), mk("HHH", "Pharma", 78, 77, 3000),
@@ -29,7 +34,7 @@ const DATA = [
 ];
 vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 const Where = () => { const l = useLocation(); return <output data-testid="loc">{l.pathname + l.search}</output>; };
-const open = (qs = "") => render(<MemoryRouter initialEntries={["/score-screener" + qs]}><Routes><Route path="/score-screener" element={<ScoreScreener />} /><Route path="/advanced-score-screener" element={<div data-testid="adv">advanced page</div>} /><Route path="*" element={<div>elsewhere</div>} /></Routes><Where /></MemoryRouter>);
+const open = (qs = "") => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={["/score-screener" + qs]}><Routes><Route path="/score-screener" element={<ScoreScreener />} /><Route path="/advanced-score-screener" element={<div data-testid="adv">advanced page</div>} /><Route path="*" element={<div>elsewhere</div>} /></Routes><Where /></MemoryRouter></QueryClientProvider>);
 const loc = () => screen.getByTestId("loc").textContent || "";
 const symbols = () => within(screen.getByRole("table")).getAllByRole("row").slice(1).map((r) => within(r).queryAllByRole("cell")[2]?.querySelector("b")?.textContent).filter(Boolean);
 const hint = () => document.querySelector(".sx-hint")!;
@@ -74,32 +79,6 @@ describe("Basic score screener page", () => {
     admin.on = true;
     open();
     expect(screen.getByText("Results by sector (Top 5)")).toBeTruthy();
-  });
-
-  it("Top 10 large caps shows exactly ten, highest FinLit IQ first, says how many it ranked among, and a second press switches it off", async () => {
-    open();
-    const btn = () => screen.getByRole("button", { name: /Top 10 large caps/ });
-    fireEvent.click(btn());
-    await act(async () => { await new Promise((r) => setTimeout(r, 80)); });            // the live-filter effect fires a delayed apply: it must not undo the sort
-    expect(symbols()).toHaveLength(10);
-    expect(symbols().slice(0, 3)).toEqual(["AAA", "BBB", "HHH"]);                       // IQ 90, 80, 78
-    expect(document.querySelector(".sx-topnote")!.textContent).toMatch(/The 10 large caps with the highest FinLit IQ, ranked among the 21 large caps that have one/);
-    expect(document.querySelector(".sx-topnote")!.textContent).toMatch(/not a recommendation/);
-    expect(loc()).toMatch(/top=10/); expect(loc()).toMatch(/cap=Large/);
-    expect(loc()).toMatch(/sort=overall&dir=desc/);                                     // the ten are listed in rank order, not by market cap
-    expect(screen.getByRole("button", { name: "Remove filter Top 10 by FinLit IQ" })).toBeTruthy();
-    fireEvent.click(btn());
-    expect(loc()).not.toMatch(/top=/);
-    expect(symbols().length).toBe(10);                                                   // back to the normal first page
-    expect(screen.queryByText(/ranked among/)).toBeNull();
-  });
-
-  it("lists the ready-made screens that run in the Advanced screener, each linking to its own screen", () => {
-    open();
-    const g = within(screen.getByRole("group", { name: "Ready-made screens in the Advanced screener" }));
-    const links = g.getAllByRole("link");
-    expect(links.map((a) => a.textContent)).toEqual(["Momentum leaders", "Near 52-week high", "Quality off its highs", "Emerging tech", "Sector themes in play"]);
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/advanced-score-screener?preset=momentum-leaders", "/advanced-score-screener?preset=near-high-volume", "/advanced-score-screener?preset=quality-off-highs", "/advanced-score-screener?preset=emerging-tech", "/advanced-score-screener?preset=sector-themes"]);
   });
 
   it("a typed number applies after a short pause, or on Enter, and an invalid range waits", async () => {
@@ -275,23 +254,41 @@ describe("Basic score screener page", () => {
     expect(within(row).getAllByTitle(/Not scored yet/).length).toBeGreaterThan(0);
   });
 
-  it("Basic members see locks and the upgrade card instead of score filters; presets ask for Silver", () => {
+  it("Basic members see locks and the upgrade card instead of score filters; the prebuilt screens ask for Silver", async () => {
     st.plan = "basic"; st.rows = DATA.map((r) => ({ ...r, overall: null, pillar_quality: null, pillar_growth: null, pillar_profitability: null, pillar_balance: null, pillar_technical: null }));
+    api.list = { tab: "basic", asOf: null, groups: [{ id: "top-rated", name: "Top rated", presets: [{ ...CARD, locked: true, count: null, listText: null }] }] };
     open();
     expect(screen.getByText(/Score filters are part of Silver/)).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Fundamental score, exact range" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Strong on both/ }));
-    expect(st.upgrade).toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole("button", { name: /Top 10 large caps/ }));
+    expect(st.upgrade).toHaveBeenCalledWith("silver", expect.stringMatching(/Silver/));
     expect(loc()).toBe("/score-screener");
   });
 
-  it("a quick view applies straight away and can be switched off", () => {
+  it("the Quick views are the server's prebuilt screens: each card says how many of those that pass it lists, and opening one writes the address", async () => {
+    api.list = { tab: "basic", asOf: "2026-10-30", groups: [{ id: "top-rated", name: "Top rated", presets: [CARD, { ...CARD, id: "basic-strong-both", name: "Strong on both", cardText: "Growth & Profitability score and Technical both 78 or more.", listText: null, count: 19 }] }] };
     open();
-    fireEvent.click(screen.getByRole("button", { name: /Strong on both/ }));
-    expect(symbols()).toEqual(["AAA"]);
-    expect(loc()).toBe("/score-screener?f=high&t=high");
-    fireEvent.click(screen.getByRole("button", { name: /Strong on both/ }));
-    expect(loc()).toBe("/score-screener");
+    const card = await screen.findByRole("button", { name: /Top 10 large caps/ });
+    expect(card.textContent).toMatch(/Top 10 of 40 that pass/);
+    expect(screen.getByRole("button", { name: /Strong on both/ }).textContent).toMatch(/19 match/);
+    expect(screen.queryByText("Prism basics")).toBeNull();                                   // the Prism quick views belong to the Advanced page
+    fireEvent.click(card);
+    await waitFor(() => expect(loc()).toBe("/score-screener?preset=basic-top-large"));
+  });
+
+  it("the 52-week and return columns are off until asked for, then show blanks as dashes, never zero, and sort", () => {
+    st.rows = DATA.map((r, i) => (i === 0 ? { ...r, ret_3m: 12.34, ret_6m: -3.2, return_1y: 40, pct_from_high: 4.56 } : r));
+    open();
+    const heads = () => within(screen.getByRole("table")).getAllByRole("columnheader").map((h) => h.textContent);
+    expect(heads().join("|")).not.toMatch(/52-week/);
+    fireEvent.click(screen.getByRole("button", { name: "Add 52-week and return columns" }));
+    expect(heads().join("|")).toMatch(/3M return.*6M return.*1Y return.*Below 52-week high/);
+    const first = within(screen.getByRole("table")).getAllByRole("row")[2].textContent!;
+    expect(first).toMatch(/\+12\.3%/); expect(first).toMatch(/−3\.2%/); expect(first).toMatch(/4\.6%/);
+    const second = within(screen.getByRole("table")).getAllByRole("row")[3].textContent!;
+    expect(second).not.toMatch(/0\.0%/);                                               // a company with no figure shows a dash
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Below 52-week high" }));
+    expect(loc()).toMatch(/sort=pct_from_high/);
   });
 
   it("opens and closes the How scores work dialog with the exact definitions", () => {
@@ -334,7 +331,6 @@ describe("Basic score screener: no Prism", () => {
     open();
     const heads = within(screen.getByRole("table")).getAllByRole("columnheader").map((h) => h.textContent?.replace(/[▲▼▾]/g, "").trim());
     expect(heads.map((h) => h?.replace(/ \?$/, ""))).toEqual(expect.arrayContaining(["Growth & Profitability", "Quality", "Growth", "Profit.", "Balance", "Technical", "Overall"]));
-    expect(screen.getAllByRole("button", { name: /^(Strong on both|Strong growth & profitability, weak trend|Strong trend, weaker growth & profitability)/ })).toHaveLength(3);
   });
   it("links to the Advanced score screener (Gold) with a Gold chip", () => {
     open();

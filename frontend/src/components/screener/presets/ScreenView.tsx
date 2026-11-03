@@ -9,7 +9,7 @@ import { cr, dateIN, nf, MINUS } from "../../../lib/format";
 import { useUI } from "../../../lib/ui";
 import { HScroll } from "../../HScroll";
 import {
-  DISCLAIMER, asPct, downloadCsv, nextSortState, presetCsv, rowsForTheme, sortPresetRows, usePresetDetail,
+  DISCLAIMER, PLAN_OF, asPct, downloadCsv, nextSortState, presetCsv, rowsForTheme, sortPresetRows, usePresetDetail,
   type ColFormat, type PresetColumn, type PresetDetail, type PresetRow, type SortState, type Theme,
 } from "../../../lib/presets";
 import type { PresetRoute } from "./usePresetRoute";
@@ -17,7 +17,7 @@ import "../../../styles/presets.css";
 
 const STATE_WORD: Record<Theme["state"], string> = { in_play: "In play", emerging: "Emerging", fading: "Fading", closest: "Closest to qualifying" };
 const signed = (v: number, d = 1) => (v > 0 ? "+" : v < 0 ? MINUS : "") + nf(Math.abs(v), d);
-const BADGE_TONE: Record<string, string> = { "prism-confirmed": "good", provisional: "warn", "loss-making": "warn", "closest to qualifying": "info" };
+const BADGE_TONE: Record<string, string> = { "prism-confirmed": "good", provisional: "warn", "loss-making": "warn", "closest to qualifying": "info", "trend not confirmed": "warn", "not rated by prism": "plain" };
 export const Badge = ({ text }: { text: string }) => <span className={"psx-b psx-b-" + (BADGE_TONE[text.trim().toLowerCase()] ?? "plain")}>{text}</span>;
 
 /** One table cell in its column's format. A missing value is a dash. */
@@ -38,15 +38,16 @@ function ThemeCards({ themes, on, onPick }: { themes: Theme[]; on: string | null
   return (
     <div className="psx-themes" role="group" aria-label="Themes. Choose one to show only its leaders.">
       {themes.map((t) => {
-        const b50 = asPct(t.b50), pressed = on === t.industry;
+        const breadth = asPct(t.breadth), market = asPct(t.marketBreadth ?? null), pressed = on === t.industry;
         return (
           <button key={t.industry} type="button" className={"psx-th" + (pressed ? " is-on" : "")} aria-pressed={pressed} onClick={() => onPick(t.industry)}>
             <span className="psx-thh"><b>{t.industry}</b><span className={"psx-st psx-st-" + t.state}>{STATE_WORD[t.state] ?? t.state}</span></span>
             <span className="psx-thm">
-              <span title="Share of the industry's companies above their 50-day average"><small>B50</small><b>{b50 == null ? MINUS : nf(b50, 0) + "%"}</b></span>
-              <span title="3-month return of the industry against the market, in percentage points"><small>RS3</small><b>{t.rs3 == null ? MINUS : signed(t.rs3) + " pts"}</b></span>
+              <span title="Share of the sector's companies within 15% of their 52-week high"><small>Near the high</small><b>{breadth == null ? MINUS : nf(breadth, 0) + "%"}</b>{market != null && <small>market {nf(market, 0)}%</small>}</span>
+              <span title="3-month return of the sector against the market, in percentage points"><small>3M vs market</small><b>{t.rs3 == null ? MINUS : signed(t.rs3) + " pts"}</b></span>
               <span><small>Members</small><b>{t.members == null ? MINUS : nf(t.members, 0)}</b></span>
             </span>
+            {t.reason && <span className="psx-thr">{t.reason}</span>}
           </button>);
       })}
     </div>);
@@ -76,7 +77,7 @@ function Misses({ d }: { d: PresetDetail }) {
   const list = (d.closestMisses ?? []).slice(0, 5);
   return (
     <div className="psx-empty">
-      <p className="psx-eh" role="status">No company meets every rule today.</p>
+      <p className="psx-eh" role="status">{d.emptyText || "No company meets every rule today."}</p>
       {list.length > 0 && <>
         <h3>The {list.length === 1 ? "company" : `${list.length} companies`} closest to qualifying</h3>
         <ol className="psx-miss">{list.map((m) => (
@@ -102,6 +103,7 @@ const Disclaimer = ({ text }: { text?: string }) => <p className="psx-disc" role
 export function ScreenView({ route }: { route: PresetRoute }) {
   const { id, preset, chips, list } = route;
   const { has, upgrade } = useUI();
+  const plan = PLAN_OF[route.tab], planName = plan === "gold" ? "Gold" : "Silver";
   const listReady = list.isSuccess || list.isError;
   const unknown = list.isSuccess && !preset;
   const blocked = preset?.status === "blocked", lockedList = !!preset?.locked;
@@ -121,8 +123,8 @@ export function ScreenView({ route }: { route: PresetRoute }) {
   if (preset && blocked) return (
     <Frame route={route} name={preset.name} cardText={preset.cardText}><div className="psx-state"><h2>Coming soon</h2><p>{preset.blockedReason || "Coming soon: this screen needs data we do not hold yet."}</p></div><Disclaimer /></Frame>);
   if (lockedList || (err instanceof ApiError && err.status === 403)) return (
-    <Frame route={route} name={name} cardText={preset?.cardText}><div className="psx-state psx-lock"><h2><Icon name="lock" /> This screen is part of Gold</h2><p>{preset?.cardText ?? "Prebuilt screens narrow the whole market with ready-made rules."} Upgrade to see which companies it finds today.</p>
-      <button type="button" className="btn primary" onClick={() => upgrade("gold", "Prebuilt screens are part of Gold.")}>Unlock with Gold <Icon name="arrow" /></button></div><Disclaimer /></Frame>);
+    <Frame route={route} name={name} cardText={preset?.cardText}><div className="psx-state psx-lock"><h2><Icon name="lock" /> This screen is part of {planName}</h2><p>{preset?.cardText ?? "Prebuilt screens narrow the whole market with ready-made rules."} Upgrade to see which companies it finds today.</p>
+      <button type="button" className="btn primary" onClick={() => upgrade(plan, `Prebuilt screens on this page are part of ${planName}.`)}>Unlock with {planName} <Icon name="arrow" /></button></div><Disclaimer /></Frame>);
   if (err instanceof ApiError && err.status === 404) return (
     <section className="psx-screen card" aria-label="Prebuilt screen not found"><div className="psx-state"><h2>We could not find that screen</h2><p>There is no prebuilt screen called “{id}”. Pick one from the list, or go back to the filters.</p>
       <button type="button" className="btn primary" onClick={route.clear}>Clear screen</button></div></section>);
@@ -134,11 +136,11 @@ export function ScreenView({ route }: { route: PresetRoute }) {
     if (!d) return;
     if (!has("silver")) { upgrade("silver", "CSV export comes with the Silver plan."); return; }
     const labels = Object.fromEntries((preset?.chips ?? []).map((c) => [c.id, c.label]));
-    downloadCsv(presetCsv(d, rows, { chips, chipLabels: labels, sort, exportedOn: new Date().toISOString().slice(0, 10), theme: activeTheme?.industry }), `finlit-screen-${id}-${new Date().toISOString().slice(0, 10)}.csv`);
+    downloadCsv(presetCsv(d, rows, { chips, chipLabels: labels, sort, exportedOn: new Date().toISOString().slice(0, 10), theme: activeTheme?.industry, tab: route.tab }), `finlit-screen-${id}-${new Date().toISOString().slice(0, 10)}.csv`);
   };
   const meta = d ? (
-    <p className="psx-meta"><b>{nf(d.count, 0)} match</b>{d.shown !== d.count && <span>showing {nf(d.shown, 0)}</span>}{d.asOf && <span>as of {dateIN(d.asOf)}</span>}</p>
-  ) : preset ? <p className="psx-meta">{preset.count != null && <b>{nf(preset.count, 0)} match</b>}{preset.asOf && <span>as of {dateIN(preset.asOf)}</span>}</p> : null;
+    <p className="psx-meta"><b>{d.listText || `${nf(d.count, 0)} match`}</b>{!d.listText && d.shown !== d.count && <span>showing {nf(d.shown, 0)}</span>}{d.asOf && <span>as of {dateIN(d.asOf)}</span>}</p>
+  ) : preset ? <p className="psx-meta">{preset.count != null && <b>{preset.listText || `${nf(preset.count, 0)} match`}</b>}{preset.asOf && <span>as of {dateIN(preset.asOf)}</span>}</p> : null;
   const how = d?.howItWorks?.length ? d.howItWorks : preset?.howItWorks ?? [];
   return (
     <Frame route={route} name={name} cardText={d?.cardText ?? preset?.cardText} meta={meta}
@@ -155,6 +157,7 @@ export function ScreenView({ route }: { route: PresetRoute }) {
               </div>);
           })}
         </div>)}
+      {!!d?.notes?.length && <div className="psx-notes" role="note">{d.notes.map((n) => <p key={n}>{n}</p>)}</div>}
       {themes.length > 0 && <ThemeCards themes={themes} on={theme} onPick={(i) => setTheme((t) => (t === i ? null : i))} />}
       <div className={"psx-res" + (q.isFetching && d ? " is-busy" : "")} aria-busy={q.isFetching}>
         {!d ? <div className="skeleton" style={{ height: 300 }} role="status" aria-label="Loading the screen" />
@@ -165,6 +168,7 @@ export function ScreenView({ route }: { route: PresetRoute }) {
             {rows.length ? <Results d={d} cols={cols} rows={rows} sort={sort} setSort={setSort} /> : <p className="psx-filt">No leaders are listed for this theme today.</p>}
           </>}
       </div>
+      {d?.rankScoreNote && !!d.rows.length && <p className="psx-notes" role="note">{d.rankScoreNote}</p>}
       <Disclaimer text={d?.disclaimer} />
     </Frame>);
 }

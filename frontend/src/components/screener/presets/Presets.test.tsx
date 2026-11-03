@@ -24,7 +24,7 @@ const col = (key: string, label: string, format = "num1") => ({ key, label, form
 const DETAIL = { id: "large", name: "Highest-rated large caps", asOf: "2026-10-31", count: 86, shown: 3, cardText: "Card text", disclaimer: "A screen narrows a list. It is not a recommendation.", howItWorks: ["Rule one"],
   columns: [col("prism", "Prism score", "score"), col("ret1y", "1-year return", "pct"), col("mcap", "Market cap", "cr")],
   rows: [{ symbol: "AAA", name: "Alpha Ltd", prism: 80, ret1y: 12.5, mcap: 90000, badges: ["Prism-confirmed"] }, { symbol: "BBB", name: "Beta Ltd", prism: 90, ret1y: null, mcap: 50000, badges: [] }, { symbol: "CCC", name: "Gamma", prism: 70, ret1y: -3, mcap: 70000, badges: ["Provisional"] }] };
-const THEMES = { ...DETAIL, id: "themes", name: "Sector themes in play", themes: [{ industry: "Pharma", state: "in_play", b50: 43, rs3: 7.5, members: 81, leaders: ["AAA"] }, { industry: "Telecom", state: "closest", b50: 50, rs3: 41.9, members: 6, leaders: ["CCC"] }] };
+const THEMES = { ...DETAIL, id: "themes", name: "Sector themes in play", themes: [{ industry: "Pharma", state: "in_play", breadth: 43, rs3: 7.5, members: 81, leaders: ["AAA"] }, { industry: "Telecom", state: "closest", breadth: 50, rs3: 41.9, members: 6, leaders: ["CCC"] }] };
 const EMPTY = { ...DETAIL, id: "debt", name: "Debt-free compounders", count: 0, shown: 0, rows: [], closestMisses: [{ symbol: "ZZZ", name: "Zed", failed: ["Debt to equity above 0.1"] }] };
 
 let calls: string[] = [], listBody: unknown = LIST, listStatus = 200, detail: Record<string, [number, unknown]> = {};
@@ -202,3 +202,35 @@ describe("a company listed only on the BSE", () => {
     expect(within(table).getByText("530001").getAttribute("title")).toMatch(/name is not in our data/);   // a blank has its reason
   });
 });
+
+describe("redesign: list text, notes, theme figures and the Basic tab", () => {
+  it("the card and the screen say how much of what passes the list shows", async () => {
+    listBody = { ...LIST, groups: [{ id: "top", name: "Top rated", presets: [P("large", "Highest-rated large caps", "Top rated", { listText: "Top 10 of 40 that pass" })] }] };
+    detail.large = [200, { ...DETAIL, count: 40, shown: 10, listText: "Top 10 of 40 that pass", notes: ["2 rated companies were left out because their long-term technical view is blank."], rankScoreNote: "Ranked by a weighted score." }];
+    mount("?preset=large");
+    expect((await screen.findAllByText("Top 10 of 40 that pass")).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText(/2 rated companies were left out/)).toBeTruthy();
+    expect(await screen.findByText("Ranked by a weighted score.")).toBeTruthy();
+    expect(screen.queryByText(/40 match/)).toBeNull();
+  });
+  it("a sector theme card shows the share near the 52-week high against the market, and why a closest sector is not in play", async () => {
+    detail.themes = [200, { ...THEMES, themes: [{ industry: "Pharma", state: "in_play", breadth: 52, marketBreadth: 31, rs3: 7.5, members: 81, leaders: ["AAA"] },
+      { industry: "Telecom", state: "closest", breadth: 38, marketBreadth: 31, rs3: 4.1, members: 12, leaders: [], reason: "Breadth is 38%, below the 40% needed." }] }];
+    mount("?preset=themes");
+    const card = await screen.findByRole("button", { name: /Pharma/ });
+    expect(card.textContent).toMatch(/Near the high.*52%.*market 31%/);
+    expect(screen.getByText("Breadth is 38%, below the 40% needed.")).toBeTruthy();
+    expect(screen.queryByText("B50")).toBeNull();
+  });
+  it("a Basic-tab screen asks for Silver, not Gold, when the plan is short", async () => {
+    detail.large = [403, { detail: { status: "plan_required" } }];
+    st.plan = "basic";
+    const Basic = () => { const r = usePresetRoute("basic"); return r.id ? <PresetPage route={r} /> : <PresetPanel route={r} />; };
+    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={["/score-screener?preset=large"]}><Basic /></MemoryRouter></QueryClientProvider>);
+    expect(await screen.findByRole("heading", { name: /This screen is part of Silver/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Unlock with Silver/ }));
+    expect(st.upgrade).toHaveBeenCalledWith("silver", expect.any(String));
+    expect(screen.queryByText("Prism basics")).toBeNull();
+  });
+});
+

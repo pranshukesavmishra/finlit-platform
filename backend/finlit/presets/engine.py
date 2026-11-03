@@ -7,6 +7,7 @@ with the rules they missed (spec p16, "Empty result").
 """
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
@@ -52,6 +53,7 @@ class Frame:
         self.growth = growth if growth is not None else derive.growth_scores(table)
         self.caps = caps if caps is not None else derive.outlier_caps(table)
         self.latest_q = table.latest_quarter()
+        self.rank_scores: Dict[int, float] = {}      # set by run() for a screen that has a rank score
         self._r3: Dict[str, float] = {}
         if theme_eval is not None:
             for ind, v in theme_eval.industries.items():
@@ -94,6 +96,19 @@ class Frame:
             return t.cap[i]
         if name == "has_prism":
             return 1.0 if self.has_prism(i) else 0.0
+        if name == "rank_score":
+            return self.rank_scores.get(i)
+        if name == "w52_score":                                     # 100 minus the % below the 52-week high (the redesign's price-strength input)
+            v = self.get(i, "pct_from_high")
+            return None if v is None else max(0.0, 100.0 - v)
+        if name == "profit_plus_balance":                           # the Basic tab's "Profitability + Balance sheet" (both pillars needed)
+            a, b = self.get(i, "pillar_profitability"), self.get(i, "pillar_balance")
+            return None if a is None or b is None else a + b
+        if name == "high_over_low":                                 # how far the 52-week high stands above the 52-week low, in %
+            hi, lo = self.get(i, "high_52w"), self.get(i, "low_52w")
+            return None if hi is None or lo is None or lo <= 0 else round((hi / lo - 1.0) * 100.0, 4)
+        if name == "is_large_mid":
+            return None if t.cap[i] is None else (1.0 if t.cap[i] in ("Large", "Mid") else 0.0)
         if name == "momentum_score":
             return self.momentum.get(sym)
         if name == "growth_score":
@@ -151,6 +166,10 @@ class Config:
                     self.prism[k] = v
             self.ql = [e.get("ql_replace", {}).get(ln, ln) for ln in self.ql] + list(e.get("ql_add", ()))
             self.derived = [e.get("derived_replace", {}).get(rule, (rule, label)) if rule in e.get("derived_replace", {}) else (rule, label) for rule, label in self.derived]
+            if e.get("derived_drop"):
+                self.derived = [(r, lab) for r, lab in self.derived if r not in set(e["derived_drop"])]
+            if e.get("ql_drop"):
+                self.ql = [ln for ln in self.ql if ln not in set(e["ql_drop"])]
             self.derived += list(e.get("derived_add", ()))
             if e.get("rank"):
                 self.rank = tuple(e["rank"])
@@ -245,6 +264,84 @@ def sort_key(fr: Frame, rank: Sequence[Tuple[str, str]]) -> Callable[[int], tupl
     return key
 
 
+def _pct_in(arr: Sequence[float], v: float) -> float:
+    """Percentile 0..1 of v among an ascending list (average rank for ties), for a member or not."""
+    n = len(arr)
+    if n == 1:
+        return 0.5
+    lo, hi = bisect_left(arr, v), bisect_right(arr, v)
+    return min(1.0, max(0.0, ((lo + hi - 1) / 2.0) / (n - 1)))
+
+
+def rank_scores_of(fr: Frame, terms: Sequence[Tuple[str, float]], member: Callable[[int], bool]) -> Dict[int, float]:
+    """100 x the weighted sum of each input's percentile among its own size bucket's members. A company missing an input has no score (never a zero)."""
+    pops: Dict[Tuple[str, str], List[float]] = {}
+    for i in range(fr.t.n):
+        b = fr.t.cap[i]
+        if b is None or not member(i):
+            continue
+        for f, _ in terms:
+            v = fr.get(i, f)
+            if v is not None:
+                pops.setdefault((b, f), []).append(v)
+    for arr in pops.values():
+        arr.sort()
+    out: Dict[int, float] = {}
+    for i in range(fr.t.n):
+        b = fr.t.cap[i]
+        if b is None:
+            continue
+        tot, ok = 0.0, True
+        for f, w in terms:
+            v, arr = fr.get(i, f), pops.get((b, f))
+            if v is None or not arr:
+                ok = False
+                break
+            tot += w * _pct_in(arr, v)
+        if ok:
+            out[i] = round(100.0 * tot, 4)
+    return out
+
+
+def rank_member(preset: Preset) -> Callable[[Frame], Callable[[int], bool]]:
+    """Who counts in the percentile population: the bucket's Prism-rated companies (Advanced tab) or the bucket's companies of Rs 1,000 Cr or more (Basic tab)."""
+    if preset.tab == "basic":
+        return lambda fr: (lambda i: (fr.get(i, "market_cap") or 0) >= LEADER_FLOOR)
+    return lambda fr: (lambda i: fr.pz[i].get("prism_status") == "RATED" and fr.pz[i].get("prism_final") is not None)
+
+
+def apply_sector_cap(fr: Frame, order: Sequence[int], cap: int) -> List[int]:
+    """The ordered list with at most `cap` companies from one Sector label (a company with no label counts as one group of its own)."""
+    if not cap:
+        return list(order)
+    seen: Dict[str, int] = {}
+    out: List[int] = []
+    for i in order:
+        k = fr.t.sector[i] or "(no sector)"
+        if seen.get(k, 0) >= cap:
+            continue
+        seen[k] = seen.get(k, 0) + 1
+        out.append(i)
+    return out
+
+
+VIEW_FIELD = (("Short-term technical view", "prism_st_score"), ("Long-term technical view", "prism_lt_score"))
+
+
+def view_notes(fr: Frame, rules: List[Rule]) -> List[str]:
+    """How many rated companies were left out only because a technical view is blank (mostly recent listings), said on the card."""
+    out = []
+    for r in rules:
+        field = next((f for w, f in VIEW_FIELD if r.label.startswith(w)), None)
+        if field is None:
+            continue
+        n = sum(1 for i in range(fr.t.n) if fr.has_prism(i) and fr.get(i, field) is None and all(o.ok[i] for o in rules if o is not r))
+        if n:
+            out.append(f"{n} rated {'company has' if n == 1 else 'companies have'} no {'short' if field == 'prism_st_score' else 'long'}-term technical view yet "
+                       f"(mostly recent listings), so {'it is' if n == 1 else 'they are'} left out.")
+    return out
+
+
 def _fmt(v: Any, fmt: str) -> Any:
     if v is None:
         return None
@@ -255,7 +352,7 @@ def _fmt(v: Any, fmt: str) -> Any:
     return v
 
 
-def _row(fr: Frame, preset: Preset, i: int, pos: int) -> dict:
+def _row(fr: Frame, preset: Preset, i: int, pos: int, extra: Sequence[str] = ()) -> dict:
     row: Dict[str, Any] = {"symbol": fr.symbols[i], "name": fr.t.name[i]}
     for c in preset.columns:
         if c.key == "rank":
@@ -267,7 +364,7 @@ def _row(fr: Frame, preset: Preset, i: int, pos: int) -> dict:
             row["prism_status"] = s.title() if s in SCORED else None
         else:
             row[c.key] = _fmt(fr.get(i, c.key), c.format)
-    row["badges"] = badges(fr, preset, i)
+    row["badges"] = badges(fr, preset, i) + [b for b in extra if b]
     return row
 
 
@@ -322,6 +419,7 @@ def run(fr: Frame, preset: Preset, requested: Optional[Sequence[str]] = None) ->
         raise Blocked(preset)
     active = resolve_chips(preset, requested)
     cfg = Config(preset, active)
+    fr.rank_scores = rank_scores_of(fr, preset.rank_score, rank_member(preset)(fr)) if preset.rank_score else {}
     if preset.kind == "themes":
         return run_themes(fr, preset, cfg, active)
     rules = build_rules(fr, cfg)
@@ -329,9 +427,28 @@ def run(fr: Frame, preset: Preset, requested: Optional[Sequence[str]] = None) ->
     idx = [i for i in range(n) if all(r.ok[i] for r in rules)]
     if preset.id == "results-standouts" and fr.latest_q is None:
         idx = []      # no reporting quarter can be told: say nothing rather than guess (the Query builder's recent check refuses the same way)
-    idx.sort(key=sort_key(fr, cfg.rank))
-    rows = [_row(fr, preset, i, pos) for pos, i in enumerate(idx[:preset.limit], 1)]
+    key = sort_key(fr, cfg.rank)
+    idx.sort(key=key)
+    listed = apply_sector_cap(fr, idx, preset.sector_cap)
+    filled: List[int] = []
+    if preset.fill and len(listed) < preset.limit:
+        # a short list: the next names that fail ONLY a gate this screen allows to fail (the trend and 52-week gates), badged
+        soft = [r for r in rules if any(w.lower() in r.label.lower() for w in preset.fill)]
+        hard = [r for r in rules if r not in soft]
+        have = set(idx)
+        cand = sorted((i for i in range(n) if i not in have and all(r.ok[i] for r in hard)), key=key)
+        taken = apply_sector_cap(fr, listed + cand, preset.sector_cap)
+        filled = [i for i in taken if i not in set(listed)][:preset.limit - len(listed)]
+    rows = [_row(fr, preset, i, pos) for pos, i in enumerate(listed[:preset.limit], 1)]
+    rows += [_row(fr, preset, i, pos, ("Trend not confirmed",)) for pos, i in enumerate(filled, len(rows) + 1)]
     out = _base(fr, preset, cfg, active, len(idx), rows)
+    if preset.rank_score:
+        out["rankScoreNote"] = "Ranked by a weighted score: each input is the company's percentile among its own size group."
+    notes = view_notes(fr, rules)
+    if notes:
+        out["notes"] = notes
+    if preset.limit < len(idx) or preset.top10:
+        out["listText"] = f"Top {preset.limit} of {len(idx)} that pass" if preset.top10 else f"First {preset.limit} of {len(idx)}"
     out["cardText"] = render_card(preset, sum(1 for i in range(n) if fr.t.cap[i] == preset.prism_filters.get("cap") and fr.pz[i].get("prism_status") == "RATED") or None) if "{n}" in preset.card_text else preset.card_text
     out["ratedCount"] = sum(1 for i in idx if fr.has_prism(i))
     if preset.id == "fno-both-positive":
@@ -341,18 +458,19 @@ def run(fr: Frame, preset: Preset, requested: Optional[Sequence[str]] = None) ->
     if not idx:
         out["closestMisses"] = closest_misses(fr, rules)
         out["emptyText"] = "No company meets every rule today."
-    out["exportRows"] = [_row(fr, preset, i, pos) for pos, i in enumerate(idx[:EXPORT_MAX], 1)]
+    out["exportRows"] = [_row(fr, preset, i, pos) for pos, i in enumerate(listed[:EXPORT_MAX], 1)]
     return out
 
 
-def leaders_of(fr: Frame, idx: Sequence[int], r3: Optional[float]) -> List[int]:
+def leaders_of(fr: Frame, idx: Sequence[int], r3: Optional[float], rank: Optional[Sequence[Tuple[str, str]]] = None) -> List[int]:
+    """A sector's leaders: market cap Rs 1,000 Cr or more, within 15% of the 52-week high, 3-month return above the sector's median; rated companies first."""
     pick = []
     for i in idx:
-        mc, e50, ret3 = fr.get(i, "market_cap"), fr.get(i, "vs_ema50"), fr.get(i, "ret_3m")
-        if mc is None or mc < LEADER_FLOOR or e50 is None or e50 <= 0 or ret3 is None or r3 is None or ret3 <= r3:
+        mc, below, ret3 = fr.get(i, "market_cap"), fr.get(i, "pct_from_high"), fr.get(i, "ret_3m")
+        if mc is None or mc < LEADER_FLOOR or below is None or below > themes.NEAR_HIGH or ret3 is None or r3 is None or ret3 <= r3:
             continue
         pick.append(i)
-    pick.sort(key=sort_key(fr, (("has_prism", "desc"), ("prism_final", "desc"), ("overall", "desc"))))
+    pick.sort(key=sort_key(fr, rank or (("has_prism", "desc"), ("prism_final", "desc"), ("overall", "desc"))))
     return pick[:LEADERS]
 
 
@@ -366,14 +484,14 @@ def run_themes(fr: Frame, preset: Preset, cfg: Config, active: Sequence[str]) ->
 
         def card(ind: str, state: str, leaders: List[int], reason: Optional[str] = None) -> dict:
             v = ev.industries[ind]
-            return {"industry": ind, "state": state, "b50": v["b50"], "b200": v["b200"], "r3": v["r3"], "rs3": v["rs3"], "members": v["members"], "small": v["small"],
-                    "leaders": [fr.symbols[i] for i in leaders], "marketB50": market.b50, "marketB200": market.b200, "reason": reason}
+            return {"industry": ind, "state": state, "breadth": v["b50"], "r3": v["r3"], "rs3": v["rs3"], "members": v["members"], "small": v["small"],
+                    "leaders": [fr.symbols[i] for i in leaders], "marketBreadth": market.b50, "reason": reason}
 
         names = sorted((k for k, v in ev.industries.items() if v["state"] == "in_play" and (cfg.small_groups or not v["small"])),
                        key=lambda k: -(ev.industries[k]["rs3"] or 0))
         for ind in names:
             v = ev.industries[ind]
-            lead = leaders_of(fr, v["idx"], v["r3"])
+            lead = leaders_of(fr, v["idx"], v["r3"], cfg.rank if preset.rank_score else None)
             cards.append(card(ind, "in_play", lead))
             for i in lead:
                 r = _row(fr, preset, i, len(rows) + 1)
@@ -389,7 +507,7 @@ def run_themes(fr: Frame, preset: Preset, cfg: Config, active: Sequence[str]) ->
             cards.append(card(ind, "closest", [], themes.why_not(ev.industries[ind], market)))
     out = _base(fr, preset, cfg, active, in_play_n, rows)
     out["themes"] = cards
-    out["market"] = None if ev is None else {"b50": ev.market.b50, "b200": ev.market.b200, "r3": ev.market.r3, "members": ev.market.members}
+    out["market"] = None if ev is None else {"breadth": ev.market.b50, "r3": ev.market.r3, "members": ev.market.members}
     out["closestTitle"] = "Closest to qualifying"
     out["exportRows"] = list(rows)
     return out

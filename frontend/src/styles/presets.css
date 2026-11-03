@@ -96,3 +96,6 @@
   .psx-act .btn { min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { .psx-gb svg, .psx-res { transition: none; } }
+.psx-thm small + b + small { color: var(--faint); font: 400 11px var(--sans, inherit); white-space: normal; }
+.psx-thr { display: block; margin-top: 6px; color: var(--faint); font-size: 12px; line-height: 1.4; text-align: left; }
+.psx-notes { margin: 8px 0; color: var(--muted); font-size: 13px; line-height: 1.5; } .psx-notes p { margin: 2px 0; }

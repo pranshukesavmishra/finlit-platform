@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { TOP_N, TOP_PRESETS, activeTopPreset, applyTop, rankTop, topPool, withTopPreset, withScores as scoresOf } from "./scoreScreen";
+import { TOP_N, applyTop, rankTop, topPool, withScores as scoresOf } from "./scoreScreen";
 import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, hasPrismParams, techBandOf, trendWord, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
-import { PRESETS, applyFilters, activePreset, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
-  summarize, toCsv, validate, withPreset, withScores, clearPreset, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
+import { applyFilters, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
+  summarize, toCsv, validate, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
 import type { Row } from "./screener";
 
 const row = (symbol: string, o: Partial<Row> = {}): Row => ({
@@ -104,43 +104,6 @@ describe("applying filters", () => {
     const c = facetCounts(items, f);
     expect(Object.fromEntries(c.sectors)).toEqual({ Banks: 2, IT: 1, Auto: 0 });   // sector counts ignore the sector choice itself
     expect(c.caps.Large).toBe(1);                                                    // B only: IT, Fundamental 78+
-  });
-});
-
-describe("presets", () => {
-  const items = [it1("A", 90, 90), it1("B", 90, 30), it1("C", 50, 90), it1("D", 70, 90), it1("E", 90, 44), it1("F", 90, null)];
-  const run = (id: string) => syms(applyFilters(items, withPreset(emptyFilters(), PRESETS.find((p) => p.id === id)!)));
-  it("Strong on both", () => expect(run("both")).toEqual(["A"]));
-  it("Strong business, weak trend (Technical under 45)", () => expect(run("fund")).toEqual(["B", "E"]));   // E is Technical 44, still under 45; F has no Technical and is left out
-  it("Strong trend, weaker business (Fundamental under 78)", () => expect(run("trend")).toEqual(["C", "D"]));
-  it("keeps other filters and clears the Fundamental and Technical boxes; is recognised as active", () => {
-    const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.f = { min: 10, max: 20 };
-    const n = withPreset(f, PRESETS[0]);
-    expect(n.sectors).toEqual(["IT"]); expect(n.ranges.f).toEqual({ min: null, max: null });
-    expect(activePreset(n)).toBe("both"); expect(activePreset(emptyFilters())).toBeNull();
-  });
-  it("the pillar views: Quality compounders, Growth leaders, Strong balance sheet, each by its own pillars", () => {
-    const P = (s: string, q: number, g: number, p: number, b: number) => it1(s, null, 50, { pillar_quality: q, pillar_growth: g, pillar_profitability: p, pillar_balance: b });
-    const xs = [P("Q", 85, 50, 80, 50), P("QLOWP", 85, 50, 70, 50), P("G", 50, 90, 50, 50), P("GDEBT", 50, 90, 50, 40), P("BS", 50, 50, 50, 82), P("BSWEAKQ", 40, 50, 50, 82)];
-    const r = (id: string) => syms(applyFilters(xs, withPreset(emptyFilters(), PRESETS.find((p) => p.id === id)!)));
-    expect(r("quality")).toEqual(["Q"]);                 // Quality and Profitability both 78+
-    expect(r("growth")).toEqual(["G"]);                  // Growth 78+ and a Balance sheet of 45 or more
-    expect(r("balance")).toEqual(["BS"]);                // Balance sheet 78+ and Quality 45 or more
-  });
-  it("Top FinLit IQ sets the overall box to 78 or more, and every view clears what it does not name", () => {
-    const f = emptyFilters(); f.bands.q = ["low"]; f.ranges.o = { min: 10, max: 40 }; f.caps = ["Large"];
-    const top = withPreset(f, PRESETS.find((p) => p.id === "top")!);
-    expect(top.ranges.o).toEqual({ min: 78, max: null }); expect(top.bands.q).toEqual([]); expect(top.caps).toEqual(["Large"]);
-    expect(activePreset(top)).toBe("top");
-    const q = withPreset(top, PRESETS.find((p) => p.id === "quality")!);
-    expect(q.ranges.o).toEqual({ min: null, max: null }); expect(activePreset(q)).toBe("quality");
-    const cleared = clearPreset(q);
-    expect(activePreset(cleared)).toBeNull(); expect(cleared.caps).toEqual(["Large"]);
-    expect(PRESETS.map((p) => p.id)).toEqual(["both", "fund", "trend", "top", "quality", "growth", "balance"]);
-  });
-  it("uses no advice wording", () => {
-    const text = PRESETS.map((p) => p.label + " " + p.say).join(" ").toLowerCase();
-    expect(text).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target)\b/);
   });
 });
 
@@ -327,7 +290,7 @@ describe("Prism presets (advanced screener: Prism parts only)", () => {
   it("Prism strong and lower risk: Prism 80+ and Risk 65+", () => expect(run("strongsafe")).toEqual(["A"]));
   it("Strong Growth & Profitability at a fair valuation: Growth & Profitability 65+ and Valuation 50+", () => expect(run("fairvalue")).toEqual(["A", "C"]));
   it("Uptrend on both technical views: both scores at +20 or more", () => expect(run("bothtech")).toEqual(["A"]));   // B long term +10 is Neutral; C short term +5 is Neutral
-  it("Growth & Profitability strong but valuation weak: Growth & Profitability 65+ and Valuation 50 or less", () => expect(run("weakvalue")).toEqual(["B"]));
+  it("Growth & Profitability strong but valuation weak: Growth & Profitability 65+ and Valuation below 50", () => expect(run("weakvalue")).toEqual(["B"]));
   it("a preset owns the Prism filters (sets exactly its own), keeps the others, and is recognised and removable", () => {
     const f = emptyFilters(); f.sectors = ["IT"]; f.ranges.z = { min: 10, max: 20 }; f.labels = ["POOR"]; f.tech.st = ["neg"]; f.ranges.o = { min: 50, max: null };
     const n = withPrismPreset(f, PRISM_PRESETS[1]);
@@ -449,16 +412,13 @@ describe("Top 10 large / mid / small caps by FinLit IQ", () => {
   } as Row);
   const rows: Row[] = Array.from({ length: 320 }, (_, i) => row(i + 1)).map((r, i) => (i % 53 === 0 ? { ...r, overall: null, scored: false } : r));
   const items = scoresOf(rows);
-  const largeP = TOP_PRESETS.find((p) => p.cap === "Large")!;
+  type Cap3 = "Large" | "Mid" | "Small";
+  const topOf = (cap: Cap3) => ({ ...emptyFilters(), caps: [cap], top: TOP_N });   // what an old shared link (?top=10&cap=...) sets
+  const TOP_PRESETS = (["Large", "Mid", "Small"] as Cap3[]).map((cap) => ({ cap }));
 
-  it("the three screens exist, named for the size class, each with a rule that describes and never advises", () => {
-    expect(TOP_PRESETS.map((p) => p.label)).toEqual(["Top 10 large caps", "Top 10 mid caps", "Top 10 small caps"]);
-    for (const p of TOP_PRESETS) expect(p.say).toMatch(/not a recommendation/);
-    expect(TOP_PRESETS.map((p) => p.say).join(" ")).not.toMatch(/\b(buy|sell|hold|reduce|avoid|accumulate|target|best)\b/i);
-  });
   it("each shows exactly ten companies of its own size class, highest FinLit IQ first, none without an IQ", () => {
     for (const p of TOP_PRESETS) {
-      const f = withTopPreset(emptyFilters(), p);
+      const f = topOf(p.cap);
       const out = applyTop(items, f, { key: "overall", dir: -1 });
       expect(out).toHaveLength(TOP_N);
       expect(out.every((r) => r.cap === p.cap && r.overall != null)).toBe(true);
@@ -476,15 +436,15 @@ describe("Top 10 large / mid / small caps by FinLit IQ", () => {
     expect(rankTop(tied, 3).map((r) => r.symbol)).toEqual(["S002", "S003", "S001"]);       // 70 q (larger cap first), then 60 q
   });
   it("the pool says how many were ranked, and fewer than ten qualifying shows fewer, never padding", () => {
-    const f = withTopPreset(emptyFilters(), largeP);
+    const f = topOf("Large");
     expect(topPool(items, f)).toBe(items.filter((r) => r.cap === "Large" && r.overall != null).length);
     expect(topPool(items, emptyFilters())).toBeNull();
     const few = scoresOf(rows.slice(0, 6));
-    expect(applyTop(few, withTopPreset(emptyFilters(), largeP), { key: "overall", dir: -1 })).toHaveLength(5);   // six companies, one without an IQ: five are shown, not ten
-    expect(topPool(few, withTopPreset(emptyFilters(), largeP))).toBe(5);
+    expect(applyTop(few, topOf("Large"), { key: "overall", dir: -1 })).toHaveLength(5);   // six companies, one without an IQ: five are shown, not ten
+    expect(topPool(few, topOf("Large"))).toBe(5);
   });
   it("the user can still re-sort the ten, other filters narrow the pool first, and choosing another view or removing the chip switches it off", () => {
-    const f = withTopPreset(emptyFilters(), largeP);
+    const f = topOf("Large");
     const byName = applyTop(items, f, { key: "name", dir: 1 });
     expect(byName).toHaveLength(10);
     expect(byName.map((r) => r.name)).toEqual([...byName.map((r) => r.name)].sort());
@@ -492,19 +452,14 @@ describe("Top 10 large / mid / small caps by FinLit IQ", () => {
     expect(applyTop(items, g, { key: "overall", dir: -1 })).toHaveLength(0);
     expect(chipsFor(f).map((c) => c.label)).toEqual(["Market cap: Large", "Top 10 by FinLit IQ"]);
     expect(removeChip(f, "top").top).toBeNull();
-    expect(activeTopPreset(f)).toBe("top10-large");
-    expect(activeTopPreset(removeChip(f, "top"))).toBeNull();
-    expect(activePreset(f)).toBeNull();
-    expect(withTopPreset(withPreset0(), largeP).bands.f).toEqual([]);
   });
   it("the address keeps the screen (top=10 with the size class) and a shared link opens it", () => {
-    const f = withTopPreset(emptyFilters(), TOP_PRESETS[1]);
+    const f = topOf("Mid");
     const qs = serializeState({ filters: f, sort: { key: "overall", dir: -1 }, size: 10, page: 0 });
     expect(qs.get("top")).toBe("10"); expect(qs.get("cap")).toBe("Mid");
     const back = parseState(new URLSearchParams(qs.toString()), "basic");
-    expect(back.filters.top).toBe(10); expect(activeTopPreset(back.filters)).toBe("top10-mid");
+    expect(back.filters.top).toBe(10);
     expect(parseState(new URLSearchParams("top=7"), "basic").filters.top).toBeNull();          // only the ten the screen defines
     expect(parseState(new URLSearchParams("top=10"), "advanced").filters.top).toBeNull();      // the advanced screener does not use it
   });
 });
-const withPreset0 = () => { const f = emptyFilters(); f.bands.f = ["high"]; return f; };

@@ -6,6 +6,7 @@ import { Donut } from "../components/screener/PageParts";
 import { PrismPart, PrismScore, PrismTrend, med } from "../components/screener/cells";
 import { AdvancedUpgrade } from "../components/screener/AdvancedUpgrade";
 import { useScreener } from "../components/screener/useScreener";
+import { PRICE_COL_COUNT, PriceCells, PriceColumnsToggle, PriceHeads, usePriceColumns } from "../components/screener/PriceColumns";
 import { PresetPanel } from "../components/screener/presets/PresetPanel";
 import { PresetPage } from "../components/screener/presets/PresetPage";
 import { usePresetRoute } from "../components/screener/presets/usePresetRoute";
@@ -26,6 +27,7 @@ export function AdvancedScoreScreener() {
 
 function Advanced() {
   const s = useScreener("advanced");
+  const [priceCols, setPriceCols] = usePriceColumns();
   const { draft, applied, isLoading, sum, cover, prismAsOf, techAsOf } = s;
   const prismPreset = activePrismPreset(applied);
   const route = usePresetRoute();   // the prebuilt screen in the address (?preset=...)
@@ -69,6 +71,7 @@ function Advanced() {
       </>}
       tiles={tiles}
       beforeTable={<>
+        <PriceColumnsToggle on={priceCols} set={setPriceCols} />
         <details className="pzs-explain">
           <summary>What the Prism rating means</summary>
           <div className="pzs-two"><div><b>FinLit Prism <span className="faint">(Gold)</span></b><p>{EXPLAIN.prism}</p></div><div><b>Technical views</b><p>{EXPLAIN.technical}</p></div></div>
@@ -76,18 +79,20 @@ function Advanced() {
         {line && cover && (<div className="pzs-cover" role="note"><p>{line} {cover.per_night ? `More are added every night, largest first (about ${nf(cover.per_night, 0)} beyond the companies with a full report).` : "More are added over time, largest first."} Not rated yet? Use Rate now on its row: its Prism page starts the calculation.</p>
           <div className="pzs-bar" aria-hidden="true"><i style={{ width: Math.min(100, (n / cover.total) * 100) + "%" }} /></div></div>)}
       </>}
-      groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={5}>FinLit Prism</th><th scope="colgroup" colSpan={2}>Technical views</th><th scope="col"><span className="sr">Actions</span></th></tr>}
+      groupHead={<tr className="gh"><th scope="col" colSpan={6} className="sr-only-th"><span className="sr">Company</span></th><th scope="colgroup" colSpan={5}>FinLit Prism</th><th scope="colgroup" colSpan={2}>Technical views</th>{priceCols && <th scope="colgroup" colSpan={PRICE_COL_COUNT}>Price</th>}<th scope="col"><span className="sr">Actions</span></th></tr>}
       columnHeads={<>
         <SortTh s={s} k="prism_final" label="Prism" cls="pzs-h" title={EXPLAIN.prism} />
         {PRISM_PARTS.map((x) => <SortTh key={x.col} s={s} k={x.col} label={x.label} of="Prism" cls="ss-ph" title={"Prism " + x.label + ": " + x.say} />)}
         <SortTh s={s} k="prism_st_score" label="Short-term technical" of="Technical" cls="ss-ph" title="Prism's short-term (5 to 20 sessions) price-trend reading" />
         <SortTh s={s} k="prism_lt_score" label="Long-term technical" of="Technical" cls="ss-ph" title="Prism's long-term (6 to 18 months) price-trend reading" />
+        {priceCols && <PriceHeads s={s} />}
       </>}
-      colSpan={14}
+      colSpan={14 + (priceCols ? PRICE_COL_COUNT : 0)}
       cells={(r) => <>
         <td className="pzs-c"><PrismScore r={r} gold /></td>
         {PRISM_PARTS.map((x) => <td key={x.col} className="ss-pc"><PrismPart r={r} v={r[x.col]} gold /></td>)}
         <td><PrismTrend r={r} score={r.prism_st_score} gold col="st" /></td><td><PrismTrend r={r} score={r.prism_lt_score} gold col="lt" /></td>
+        {priceCols && <PriceCells r={r} />}
       </>}
       plain="A screen narrows a long list. The Prism rating describes financial health and price trend from filings and prices; it is not a recommendation. Open a company's Prism page to see why a rating looks the way it does."
       how={<HowDialog onClose={() => s.setHow(false)}>
