@@ -101,7 +101,7 @@ export function useScreener(mode: Mode) {
   };
   const exportCsv = (which: "selected" | "filtered") => {
     const list = which === "selected" ? selRows : rows, day = new Date().toISOString().slice(0, 10);
-    const csv = toCsv(list, { filters: applied, sort, scope: which, total: rows.length, asOf, exportedOn: day, mode, prismAsOf });
+    const csv = toCsv(list, { filters: applied, sort, scope: which, total: rows.length, asOf, exportedOn: day, mode, prismAsOf, priceCols: (() => { try { return localStorage.getItem("finlit.screener.priceCols") === "1"; } catch { return false; } })() });
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `finlit-${mode}-score-screen-${day}.csv`; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);

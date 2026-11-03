@@ -335,7 +335,7 @@ export function describeFilters(f: Filters): string[] {
 }
 /** Rows as CSV with a commented header (filters, sort, data date, what a blank means). A missing value is a blank cell, never 0.
  *  `mode` "basic" is the FinLit IQ columns (Silver); "advanced" is the FinLit Prism columns only (Gold), with the technical views in the site's descriptive words. */
-export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; mode?: "basic" | "advanced"; prismAsOf?: string | null }): string {
+export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; mode?: "basic" | "advanced"; prismAsOf?: string | null; priceCols?: boolean }): string {
   const adv = o.mode === "advanced";
   const head = [
     adv ? "# FinLit Advanced score screener export (FinLit Prism)" : "# FinLit Basic score screener export",
@@ -353,9 +353,10 @@ export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "s
   const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
   const cols = adv ? [...base, "Prism", "Prism label", "Prism status", `Prism ${FUND_PART_NAME}`, "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
     : [...base, "Growth & Profitability", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
+  const extra = o.priceCols ? ["3-month return (%)", "6-month return (%)", "1-year return (%)", "Below 52-week high (%)"] : [];
   const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
     ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
       csvText(trendWord(r.prism_st_score) ?? ""), n(r.prism_st_score), csvText(trendWord(r.prism_lt_score) ?? ""), n(r.prism_lt_score), r.prism_at ?? ""]
-      : [n(r.f), n(r.pillar_quality), n(r.pillar_growth), n(r.pillar_profitability), n(r.pillar_balance), n(r.t), n(r.overall)])].map(cell).join(","));
-  return [...head, cols.join(","), ...lines].join("\r\n") + "\r\n";
+      : [n(r.f), n(r.pillar_quality), n(r.pillar_growth), n(r.pillar_profitability), n(r.pillar_balance), n(r.t), n(r.overall)]), ...(o.priceCols ? [n(r.ret_3m), n(r.ret_6m), n(r.return_1y), n(r.pct_from_high)] : [])].map(cell).join(","));
+  return [...head, [...cols, ...extra].join(","), ...lines].join("\r\n") + "\r\n";
 }
