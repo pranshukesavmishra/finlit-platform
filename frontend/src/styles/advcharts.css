@@ -209,3 +209,9 @@ line.adv-gl { stroke: var(--border); stroke-width: 1; }
 .cinf-bar.w1 { width: 80%; } .cinf-bar.w2 { width: 60%; } .cinf-bar.w3 { width: 70%; }
 @keyframes cinf-pulse { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .cinf-bar { animation: none; } }
+
+/* CorrInsight: company blocks and comparison read as short paragraphs, the footer is the data period and count */
+.ci-co p, .ci-cmp p { margin: 6px 0; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.ci-co { border-left: 3px solid var(--gold); padding-left: 12px; margin: 10px 0; } .ci-cmp { margin: 8px 0; padding-left: 15px; }
+.ci-more summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--gold-deep, var(--gold)); }
+.ci-foot { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; }
