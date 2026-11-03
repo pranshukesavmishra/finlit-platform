@@ -243,6 +243,12 @@ def session_open(now: Optional[datetime] = None) -> bool:
     return t.weekday() < 5 and SESSION[0] <= t.time() <= SESSION[1]
 
 
+def dhan_window(now: Optional[datetime] = None) -> bool:
+    """When Dhan is asked: the session plus ten minutes, so the day's closing levels are read once the market has shut."""
+    t = (now or datetime.now(IST)).astimezone(IST)
+    return t.weekday() < 5 and SESSION[0] <= t.time() <= (dtime(15, 40))
+
+
 def exchange_of(code: str) -> str:
     return "BSE" if code.startswith("SNSX") else "NSE"
 
@@ -523,7 +529,9 @@ def overlay(feed: Dict[str, Any], dh: Optional[Dict[str, Any]], now: datetime) -
     """The FinEdge feed with Dhan's level, move and day range in place for each index that has a reading (only during the session, and only
     from a reading at most three minutes old). P/E, P/B and yield stay FinEdge's, dated by valDate; `source` says which provider each
     row's level is from and `time` when Dhan last updated it."""
-    fresh = dh and session_open(now) and (now - datetime.fromisoformat(dh["t"])).total_seconds() <= DHAN_MAX_AGE
+    # a reading taken after the close is the day's final level: it stays (until the next session) in place of a FinEdge figure that may still be yesterday's
+    final = bool(dh) and dh["t"][:10] == now.date().isoformat() and datetime.fromisoformat(dh["t"]).time() >= SESSION[1] and not session_open(now)
+    fresh = dh and ((session_open(now) and (now - datetime.fromisoformat(dh["t"])).total_seconds() <= DHAN_MAX_AGE) or final)
     q = (dh.get("q") or {}) if fresh else {}
     items = []
     for x in feed["items"]:
@@ -545,7 +553,16 @@ async def indices(request: Request) -> Response:
     data = await _cached(app, "idx:feed", fresh, lambda: _fetch_feed(app))
     if data is None:
         raise fail(502, "provider_unavailable", "Index prices are not available right now. Please try again in a moment.")
-    dh = await _cached(app, DHAN_KEY, DHAN_FRESH, lambda: _fetch_dhan(app), wait=False) if session_open() and _dhan(app) is not None else None
+    dh = None
+    if _dhan(app) is not None:
+        if dhan_window():
+            dh = await _cached(app, DHAN_KEY, DHAN_FRESH, lambda: _fetch_dhan(app), wait=False)
+        else:                                                         # shut: no call to Dhan, only the day's last saved reading (overlay decides if it is the final one)
+            try:
+                raw = await app.state.store.redis.get(DHAN_KEY)
+                dh = json.loads(raw)["v"] if raw else None
+            except Exception:
+                dh = None
     return Response(json.dumps({**overlay(data, dh, datetime.now(IST)), "marketOpen": session_open()}), media_type="application/json",
                     headers={"Cache-Control": "public, max-age=30"})
 

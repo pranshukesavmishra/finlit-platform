@@ -357,3 +357,16 @@ async def test_quote_calls_keep_one_a_second_across_processes(store):  # noqa: F
     seen.sort()
     assert all(y - x >= 1.0 for x, y in zip(seen, seen[1:]))                        # two clients (two processes), one pace
     await a.aclose(); await b.aclose()
+
+
+def test_after_the_close_the_days_final_dhan_level_stays_in_place_of_a_lagging_close_and_a_stale_one_does_not():
+    feed = {"key": ["NIF50"], "asOf": "2026-10-22", "items": [{"code": "NIF50", "name": "NIFTY 50", "close": 100.0, "points": 1.0, "changePct": 1.0, "open": 99.0, "high": 101.0, "low": 98.0, "date": "2026-10-22"}]}
+    q = {"NIF50": {"close": 105.0, "points": 5.0, "changePct": 5.0, "open": 100.0, "high": 106.0, "low": 99.0, "time": "2026-10-23T15:31:00+05:30", "date": "2026-10-23"}}
+    shut = datetime(2026, 10, 23, 17, 30, tzinfo=IST)                                                   # Friday 17:30
+    out = indices.overlay(feed, {"t": "2026-10-23T15:31:00+05:30", "q": q}, shut)                         # read at 15:31 the same day: final
+    assert out["items"][0]["close"] == 105.0 and out["items"][0]["source"] == "dhan" and out["asOf"] == "2026-10-23"
+    mid = indices.overlay(feed, {"t": "2026-10-23T13:00:00+05:30", "q": q}, shut)                         # a mid-session reading is not the close
+    assert mid["items"][0]["close"] == 100.0
+    nxt = indices.overlay(feed, {"t": "2026-10-23T15:31:00+05:30", "q": q}, datetime(2026, 10, 26, 8, 0, tzinfo=IST))   # Monday morning: yesterday's
+    assert nxt["items"][0]["close"] == 100.0
+    assert indices.dhan_window(datetime(2026, 10, 23, 15, 40, tzinfo=IST)) and not indices.dhan_window(datetime(2026, 10, 23, 15, 41, tzinfo=IST))

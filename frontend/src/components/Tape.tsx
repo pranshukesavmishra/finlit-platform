@@ -10,9 +10,11 @@ export function Tape() {
   if (!items.length) return null;
   const row = [...items, ...items];
   const live = !!idx.data?.live && !!idx.data?.marketOpen, asOf = idx.data?.asOf;
+  const at = idx.data?.items.find((r) => (idx.data?.key || []).includes(r.code) && r.source === "dhan" && r.time)?.time;   // when Dhan last updated the levels
+  const hhmm = at ? new Date(at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }) : null;
   return (
     <div className="tape" aria-label="Market snapshot">
-      <span className={"tape-st" + (live ? " live" : "")} title={live ? "Levels are live during the market session" : "Last close; live levels return when the market opens"}>{live ? "LIVE" : asOf ? `Close · ${dateIN(asOf, { day: "numeric", month: "short" })}` : "Last close"}</span>
+      <span className={"tape-st" + (live ? " live" : "")} title={live ? "Levels are live during the market session" : "Last close; live levels return when the market opens"}>{live ? `LIVE${hhmm ? " · " + hhmm : ""}` : asOf ? `Close · ${dateIN(asOf, { day: "numeric", month: "short" })}${hhmm ? ", " + hhmm : ""}` : "Last close"}</span>
       <div className="tape-track">
         {row.map((i, k) => (
           <span key={k} aria-hidden={k >= items.length || undefined}><b>{i.name}</b>{nf(i.price)}{" "}
