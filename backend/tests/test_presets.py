@@ -491,3 +491,14 @@ def test_basic_two_sided_cards_blank_allowed_and_cautions():
     assert ids("basic-near-high") >= {"BOTH"} and "LAG" not in ids("basic-near-high") and "SMALLMC" not in ids("basic-near-high")
     pb = engine.run(frame(rows), BY_ID["basic-profitable-debt-light"])
     assert pb["rows"][0]["profit_plus_balance"] == 160
+
+
+def test_a_stock_that_ran_over_300_percent_in_a_year_stays_out_of_top_10_and_momentum_lists():
+    rows = buni()
+    edit(rows[0], ret_1y=450)
+    edit(rows[1], ret_1y=None)                  # not enough price history: not a reason to drop it
+    for pid in ("basic-top-large", "basic-momentum-leaders"):
+        body = engine.run(frame(rows), BY_ID[pid])
+        got = [r["symbol"] for r in body["exportRows"]]
+        assert "L000" not in got, pid
+    assert engine.run(frame(rows), BY_ID["basic-top-large"])["count"] == 99       # only the 450% run is out; the blank one still passes

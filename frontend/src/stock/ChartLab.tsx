@@ -223,7 +223,7 @@ const kind = (t: string) => (/dividend/i.test(t) ? "dividend" : /bonus/i.test(t)
 function EvTab({ e, p, s }: { e?: Events; p?: Peers; s: Summary }) {
   const events = (e?.actions || []).map((a) => ({ date: a.date, label: a.title, kind: kind(a.type) }));
   const peers = (p?.items || []).filter((x) => x.market_cap != null).map((x) => ({ label: x.symbol, value: x.market_cap as number }));
-  const self = s.quote.marketCapCr ?? s.profile.marketCapCr;
+  const self = s.profile.marketCapCr ?? s.quote.marketCapCr;   // one source for the company's own market cap: the profile figure
   const bars = self ? [...peers, { label: s.profile.symbol, value: self, self: true }].sort((a, b) => b.value - a.value) : peers;
   return (
     <div className="cl-grid">

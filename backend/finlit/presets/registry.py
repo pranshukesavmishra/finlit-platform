@@ -32,6 +32,7 @@ from .theme_map import SUBTHEMES as THEME_SUBS
 REGISTRY_VERSION = 2
 DISCLAIMER = "A screen narrows a list. It is not a recommendation."
 BANNED_WORDS = ("best", "buy", "multibagger", "sell", "top pick", "undervalued gem")   # in names and card text, never (spec p2: names describe, never advise)
+RUN_GUARD = ("coalesce(ret_1y, 0) <= 300", "1-year return no more than 300%")   # a stock that has run far past that is not a steady leader: kept out of the Top 10 and momentum lists
 LIQUIDITY_FLOOR_CR = 1000   # market cap, until the average-volume data is fixed (spec p2-3)
 
 
@@ -144,13 +145,13 @@ def _top(n: int, bucket: str, label: str) -> Preset:
     filters = {"cap": bucket, "rated": 1, "status": "RATED", "zmin": 60, "zqmin": 50, "zrmin": risk}
     how = [f"Only {label} caps: companies ranked {'1 to 100' if bucket == 'Large' else '101 to 250' if bucket == 'Mid' else '251 onward'} by market cap, as the site buckets them.",
            "Only companies with a full Prism rating (Provisional ratings appear only with the Include provisional chip, with their badge).",
-           f"Gates: Prism score 60 or more, Quality 50 or more, Risk {risk} or more, long-term technical view above -20, and no more than 30% below the 52-week high.",
+           f"Gates: Prism score 60 or more, Quality 50 or more, Risk {risk} or more, long-term technical view above -20, no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
            "Ranked by a weighted score, 55% business and 45% price. Each input is the company's percentile among the rated companies of its size group: Prism score 40%, Valuation 7.5%, Risk 7.5%, "
            "long-term view 15%, short-term view 5%, momentum 15% (the momentum score of the Momentum leaders screen), and 52-week position 10% (100 minus the % below the high).",
            "At most 3 companies from one Sector label. Ties go to the higher Quality, then the higher Prism score.",
            "If fewer than 10 pass, the list is filled with the next names that fail only the trend or the 52-week gate, badged Trend not confirmed."]
     return Preset(f"highest-rated-{label}", f"Highest-rated {label} caps", "top-rated", f"The 10 {label} caps with the strongest mix of Prism rating, valuation, risk and price strength.", "rules",
-                  _m(**filters), "Below 52-week high <= 30", (("prism_lt_score > -20", "Long-term technical view above -20"),), TOP_ORDER, 10, TOP_COLS, (PROVISIONAL,), tuple(how), True, None, ("provisional",),
+                  _m(**filters), "Below 52-week high <= 30", (("prism_lt_score > -20", "Long-term technical view above -20"), RUN_GUARD), TOP_ORDER, 10, TOP_COLS, (PROVISIONAL,), tuple(how), True, None, ("provisional",),
                   f"p4 (Top 10, {label})", "advanced", TOP_RANK, 3, ("technical view", "52-week high"))
 
 
@@ -164,11 +165,11 @@ PRESETS: List[Preset] = [
     Preset("momentum-leaders", "Momentum leaders", "trend", "Rated stocks in an uptrend near their 52-week high, ranked by 3-, 6- and 12-month returns against the market.", "rules",
            _m(zmin=50, rated=1, lt=20),
            "Below 52-week high <= 15\n3-month return > 0\n6-month return > 0\nMarket cap >= 1000",
-           (("prism_st_score >= 0", "Short-term technical view 0 or more"),),
+           (("prism_st_score >= 0", "Short-term technical view 0 or more"), RUN_GUARD),
            (("momentum_score", "desc"), ("prism_final", "desc")), 25,
            with_status((STOCK, Col("momentum_score", "Momentum score", "score"), R3M, R6M, R1Y, W52, STS, LTS, PRISM, SECTOR, MCAP)), (),
            ("Rated by Prism with a score of 50 or more.", "Long-term technical view +20 or more (price above its long-term average) and short-term view 0 or more (not stretched down).",
-            "No more than 15% below its 52-week high; 3-month and 6-month returns both positive; market cap Rs 1,000 Cr or more.",
+            "No more than 15% below its 52-week high; 3-month and 6-month returns both positive; 1-year return 300% or less; market cap Rs 1,000 Cr or more.",
             "Ranked by the momentum score: 100 x (0.3 x P3M + 0.4 x P6M + 0.3 x P12M), P being the percentile (0 to 1) of that period's return among stocks of Rs 1,000 Cr or more."),
            False, None, ("provisional",), "p10 (Momentum leaders)"),
 
@@ -289,11 +290,11 @@ def _bal(minimum: int, blank: str = "any") -> Tuple[str, str]:
 def _bt(bucket: str, label: str) -> Preset:
     small = bucket == "Small"
     rules = (("fundamental_score >= 65", "Growth & Profitability score 65 or more"), ("pillar_technical >= 45", "Technical 45 or more"), ("pillar_quality >= 50", "Quality 50 or more"),
-             _bal(55 if small else 45, "bank"), ("pct_from_high <= 30", "No more than 30% below the 52-week high"), MC1000)
+             _bal(55 if small else 45, "bank"), ("pct_from_high <= 30", "No more than 30% below the 52-week high"), RUN_GUARD, MC1000)
     how = (f"Only {label} caps: companies ranked {'1 to 100' if bucket == 'Large' else '101 to 250' if bucket == 'Mid' else '251 onward'} by market cap, as the site buckets them.",
            "Market cap Rs 1,000 Cr or more" + (": thinly traded micro caps are left out." if small else "."),
            f"Gates: Growth & Profitability score 65 or more, Technical 45 or more, Quality 50 or more, Balance sheet {55 if small else 45} or more (a blank is allowed for banks), "
-           "and no more than 30% below the 52-week high.",
+           "no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
            "Ranked by a weighted score: each input is the company's percentile among the companies of its size group with a market cap of Rs 1,000 Cr or more: Growth & Profitability 50%, "
            "Technical 20%, momentum 15% (the momentum score of the Momentum leaders card), 52-week position 10% (100 minus the % below the high) and Quality 5%.",
            "At most 3 companies from one Sector label. Ties go to the higher Growth & Profitability score, then the higher FinLit IQ.", B_NOTE)
@@ -337,9 +338,9 @@ BASIC: List[Preset] = [
         ("Quality 78 or more, Growth 60 or more, Profitability 70 or more, Balance sheet 60 or more (a blank is allowed).", "Market cap Rs 1,000 Cr or more.", "Ranked by Growth & Profitability score.")),
     _bp("basic-momentum-leaders", "Momentum leaders", "trend", "Strong Technical score, within 15% of the 52-week high, with 3- and 6-month returns up.",
         (("pillar_technical >= 75", "Technical 75 or more"), ("fundamental_score >= 55", "Growth & Profitability score 55 or more"), ("pct_from_high <= 15", "No more than 15% below the 52-week high"),
-         ("ret_3m > 0", "3-month return above 0"), ("ret_6m > 0", "6-month return above 0"), MC2000), (("momentum_score", "desc"), ("pillar_technical", "desc")),
+         ("ret_3m > 0", "3-month return above 0"), ("ret_6m > 0", "6-month return above 0"), RUN_GUARD, MC2000), (("momentum_score", "desc"), ("pillar_technical", "desc")),
         (RANK, STOCK, B_MOM, R3M, R6M, R1Y, W52, B_TECH, B_FUND, FINLIT, SECTOR, MCAP),
-        ("Technical 75 or more, Growth & Profitability score 55 or more, no more than 15% below the 52-week high, 3-month and 6-month returns both positive.", "Market cap Rs 2,000 Cr or more (the fastest movers below that are thinly traded).",
+        ("Technical 75 or more, Growth & Profitability score 55 or more, no more than 15% below the 52-week high, 3-month and 6-month returns both positive, 1-year return 300% or less.", "Market cap Rs 2,000 Cr or more (the fastest movers below that are thinly traded).",
          "Ranked by the momentum score: 100 x (0.3 x P3M + 0.4 x P6M + 0.3 x P12M), P being the percentile (0 to 1) of that period's return among stocks of Rs 1,000 Cr or more.")),
     _bp("basic-near-high", "Near 52-week high", "trend", "Within 5% of the 52-week high with a strong Technical score.",
         (("pct_from_high <= 5", "No more than 5% below the 52-week high"), ("pillar_technical >= 75", "Technical 75 or more"), ("fundamental_score >= 55", "Growth & Profitability score 55 or more"), MC2000),

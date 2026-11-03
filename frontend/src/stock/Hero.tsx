@@ -113,7 +113,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
               <div className="kpi" key={key} style={{ "--kc": `var(${color})` } as React.CSSProperties}>
                 <div className="kl"><Icon name={icon} />{label} <Info g={ratios?.glossary[key]} /></div>
                 <div className="v">{key === "market_cap" && val != null ? <>₹{val >= 100000 ? nf(val / 100000) : nf(val, 0)}<span className="unit">{val >= 100000 ? "L Cr" : "Cr"}</span></> : fmtUnit(val, unit)}</div>
-                <div className="s">{period === "latest" ? "Latest" : period || ""}</div>
+                <div className="s">{period === "latest" ? "Latest" : period || ""}{key === "roe" && val != null ? " · reported, year-end equity" : ""}</div>
               </div>
             );
           })}
