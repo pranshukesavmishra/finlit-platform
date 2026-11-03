@@ -1,6 +1,6 @@
 // "Sector & peers" on the stock page: where the company's NSE industry is in its cycle (card 1), how the stock ranks inside that industry (card 2), how it compares with its
 // closest peers (card 3, the Leader / In line / Laggard label already on the page), what its own chart says (card 4, the technical readings already on the page) and the
-// business behind it (card 5, the FinLit score). Cards 1 and 2 come from GET /api/technicals/{symbol}/sector, a Gold feature: below Gold the section shows the industry's state (which
+// business behind it (card 5, the FinLit IQ). Cards 1 and 2 come from GET /api/technicals/{symbol}/sector, a Gold feature: below Gold the section shows the industry's state (which
 // every plan sees on Sector Pulse) and says what Gold adds. Describes price and breadth data; never advice.
 import { Link } from "react-router";
 import { SectionHead } from "./Sections";
@@ -86,7 +86,7 @@ function Cards({ symbol, name, s, tech, score, jump }: { symbol: string; name: s
         <article className="sx-c5" aria-labelledby={`sxc5-${symbol}`}>
           <header><h3 id={`sxc5-${symbol}`}>5 · Is the business sound?</h3></header>
           <p>Price strength says nothing about the balance sheet. A stock rising out of a weak industry can still carry debt, pledged shares or weak cash flow.</p>
-          <div className="sx-mini2"><div><small>FinLit score</small><b>{score?.overall ?? "—"}</b></div><div><small>Band</small><b>{score?.overall == null ? "Not scored yet" : score?.band?.label ?? "—"}</b></div></div>
+          <div className="sx-mini2"><div><small>FinLit IQ</small><b>{score?.overall ?? "—"}</b></div><div><small>Band</small><b>{score?.overall == null ? "Not scored yet" : score?.band?.label ?? "—"}</b></div></div>
           <button type="button" className="more" onClick={() => jump?.("notes")}>Open the health score</button>
         </article>
         <aside className="sx-c5 study" aria-labelledby={`sxs-${symbol}`}>
