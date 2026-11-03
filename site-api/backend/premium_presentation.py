@@ -26,7 +26,7 @@ REASONS = {
     "CAPITAL_ADEQUACY": ("A strong capital buffer supports the balance sheet.", "The capital buffer is limited."),
     "ROA": ("Strong profit generation relative to assets.", "Low profit generation relative to assets."),
     "SOLVENCY": ("A strong solvency buffer supports financial resilience.", "The solvency buffer is limited."),
-    "PEG": ("The earnings multiple is favourable relative to profit growth.", "The earnings multiple is unfavourable relative to profit growth."),
+    "PEG": ("The earnings multiple is favourable relative to earnings growth.", "The earnings multiple is unfavourable relative to earnings growth."),
     "VOLATILITY": ("Relatively low share-price volatility.", "High share-price volatility increases market risk."),
     "BIGGEST_FALL": ("The largest one-year share-price decline was relatively limited.", "The share price experienced a large one-year decline."),
     "TRADING_VALUE": ("Higher trading activity supports liquidity.", "Low trading activity can make entry and exit harder."),
@@ -45,7 +45,7 @@ MIXED = {
     "CASH_CONVERSION": "Operating cash flow provides moderate support for profits.",
     "GROSS_NPA": "Gross non-performing loans warrant monitoring.", "NET_NPA": "Net non-performing loans warrant monitoring.",
     "CAPITAL_ADEQUACY": "The capital buffer is in the middle assessment range.", "SOLVENCY": "The solvency buffer is in the middle assessment range.",
-    "PEG": "The earnings multiple offers limited support relative to profit growth.",
+    "PEG": "The earnings multiple offers limited support relative to earnings growth.",
     "VOLATILITY": "Share-price volatility warrants monitoring.", "BIGGEST_FALL": "The one-year price decline warrants monitoring.",
     "TRADING_VALUE": "Trading activity provides moderate liquidity.", "PLEDGE": "Some promoter holdings are pledged; monitor pledge levels.",
 }

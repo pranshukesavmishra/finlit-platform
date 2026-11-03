@@ -1,7 +1,7 @@
 """FinLit v3.6.1 configuration supplied by the project owner.
 Group fill values are the supplied 13–14 October 2026 snapshot, not live medians.
 """
-MODEL_VERSION = "3.6.11"
+MODEL_VERSION = "3.6.12"
 BASELINE_VERSION = "3.6.1-simple"
 FILL_VERSION = "2026-10-14"
 QUARTERS_JUDGED = 10
@@ -108,6 +108,14 @@ NOT_RATED_BELOW = 0.50          # data confidence below this -> NOT RATED
 PROVISIONAL_MIN_QUARTERS = 6    # fewer comparable quarters than this -> PROVISIONAL
 PEG_MIN_PROFIT_STREAK = 6             # used only if a group is taken out of PEG_CORE_GROUPS: PEG then needs this many ACTUAL good quarters
 PEG_GROWTH_CAP = 40                   # % growth used in PEG is capped here
+# 3.6.12: the growth in PEG is EPS growth (per share, like P/E): the CAGR of yearly EPS over the latest consecutive annual window (5 years, then 3, then what
+# exists), with every year put on the same share basis. Only if there is no usable EPS CAGR (history too short, a missing year, or an oldest EPS that is zero or
+# negative) does it fall back to net profit growth: the net profit CAGR, then the 12-month profit growth.
+# Share-basis adjustment: a stock split or bonus issue shows in the filing's own numbers as a step in the implied share count (profit / EPS) between two years.
+# A step that matches a common split/bonus ratio (within the tolerance) puts the older EPS on the newer share basis; gradual dilution or a merger does not match
+# these ratios and is NOT adjusted, because that really does cut each shareholder's share of the profit.
+EPS_SPLIT_BONUS_RATIOS = (1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 10.0, 20.0, 50.0)     # new share count / old share count; steps below 1.5 (1:4 or 1:5 bonuses) are too close to ordinary dilution to tell apart, so they are left alone
+EPS_SPLIT_BONUS_TOLERANCE = 0.02                                                              # relative; the same ratios inverted cover a reverse split
 FLAG_RED, FLAG_GREEN = 40, 70         # metric points: < 40 red flag, 40-69 amber, >= 70 strength
 PLEDGE_ALERT = 25                     # % pledged that triggers a hard alert
 VALUE_TRAP = {"limit": 35, "cap": 60}

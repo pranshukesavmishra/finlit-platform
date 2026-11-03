@@ -124,6 +124,7 @@ def adapt_inputs(raw, symbol, as_of, statement_type):
         "eps_q": [eps(qmap.get(key, {})) for key in qkeys],
         "sales_y": [revenue(amap.get(key, {})) for key in ykeys],
         "net_profit_y": [profit(amap.get(key, {})) for key in ykeys],
+        "eps_y": [eps(amap.get(key, {})) for key in ykeys],
         "operating_cash_flow_y": [], "eps_fy": eps(current_a),
         "annual_net_worth": None, "annual_total_assets": None,
         "net_worth": net_worth(current_b),

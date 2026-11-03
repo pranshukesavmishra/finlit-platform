@@ -280,8 +280,8 @@ def _summary(row, refreshing: bool = False) -> Dict[str, Any]:
 # what a stored NOT RATED report would show: reports of an older version that were withheld by the classification check are then stale.
 CLASSIFICATION_VERSION = 3
 # Mirrors site-api/backend/premium_model_config.py; a regression test keeps them aligned.
-# The prior all-group PEG change kept 3.6.10, leaving older PEG-excluded reports reusable.
-REQUIRED_MODEL_VERSION = "3.6.11"
+# 3.6.12: the growth in PEG is EPS growth (split/bonus adjusted), falling back to net profit growth; stored reports of an older version are rebuilt.
+REQUIRED_MODEL_VERSION = "3.6.12"
 CLASSIFICATION_MARK = "model group"      # in the rating's alerts of a report withheld by the classification check, before and after the fix
 
 

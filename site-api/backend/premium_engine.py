@@ -15,6 +15,7 @@ try:
         MISS_PENALTY, STREAK_MAGNITUDE_SHARE, PROFIT_TURNAROUND_POINTS,
         LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE,
         PEG_CORE_GROUPS, PEG_MIN_PROFIT_STREAK, PEG_GROWTH_CAP,
+        EPS_SPLIT_BONUS_RATIOS, EPS_SPLIT_BONUS_TOLERANCE,
         PROVISIONAL_BELOW, NOT_RATED_BELOW, PROVISIONAL_MIN_QUARTERS,
         FLAG_RED, FLAG_GREEN, PLEDGE_ALERT, VALUE_TRAP,
     )
@@ -30,6 +31,7 @@ except ImportError:
         MISS_PENALTY, STREAK_MAGNITUDE_SHARE, PROFIT_TURNAROUND_POINTS,
         LOSS_NARROWED_POINTS, CASH_LOSS_POINTS, IC_NOT_APPLICABLE_DE,
         PEG_CORE_GROUPS, PEG_MIN_PROFIT_STREAK, PEG_GROWTH_CAP,
+        EPS_SPLIT_BONUS_RATIOS, EPS_SPLIT_BONUS_TOLERANCE,
         PROVISIONAL_BELOW, NOT_RATED_BELOW, PROVISIONAL_MIN_QUARTERS,
         FLAG_RED, FLAG_GREEN, PLEDGE_ALERT, VALUE_TRAP,
     )
@@ -115,6 +117,34 @@ def cagr_window(annual):
         return [], 0, span
     years = next((n for n in CAGR_PREFERRED_YEARS if span >= n), span)
     return list(reversed(available[:years + 1])), years, span
+
+
+def split_adjusted_eps(eps_y, profit_y):
+    """Yearly EPS (oldest to newest) put on the share basis of the newest year, for stock splits and bonus issues only.
+
+    The filing's own numbers show a split or bonus as a step in the implied share count, profit / EPS, between two years. A step that matches a common
+    split/bonus ratio (EPS_SPLIT_BONUS_RATIOS, or its inverse for a reverse split) within EPS_SPLIT_BONUS_TOLERANCE moves the older EPS to the newer basis.
+    A provider that already restated the older years shows no step, so nothing changes. Slow dilution or a merger does not match these ratios and is left
+    alone (it really does cut a shareholder's share of the profit). A year with no positive profit and EPS cannot show a step, so no adjustment is guessed.
+    Returns (adjusted list, [{"fromIndex": i, "ratio": r}] for each adjustment made)."""
+    eps_list = [num(v) for v in (eps_y or [])]
+    profit_list = [num(v) for v in (profit_y or [])]
+    if len(profit_list) < len(eps_list):
+        profit_list += [None] * (len(eps_list) - len(profit_list))
+    shares = [p / e if p is not None and e is not None and p > 0 and e > 0 else None for p, e in zip(profit_list, eps_list)]
+    known = [r for r in EPS_SPLIT_BONUS_RATIOS] + [1 / r for r in EPS_SPLIT_BONUS_RATIOS]
+    out, applied, factor = list(eps_list), [], 1.0
+    for i in range(len(eps_list) - 2, -1, -1):          # newest boundary first: factor accumulates towards older years
+        later, earlier = shares[i + 1], shares[i]
+        if later is not None and earlier is not None:
+            ratio = later / earlier                      # new share count / old share count
+            match = next((k for k in known if abs(ratio / k - 1) <= EPS_SPLIT_BONUS_TOLERANCE), None)
+            if match is not None:
+                factor *= match
+                applied.append({"fromIndex": i, "ratio": round(match, 4)})
+        if out[i] is not None:
+            out[i] = out[i] / factor
+    return out, applied
 
 
 def growth(new, old, years, limits):
@@ -347,14 +377,28 @@ def score_company(d, group):
                 put(metric, ratio(current, industry), "S", {"note": "Industry median substituted for unavailable own history"})
             else:
                 put(metric, ratio(current, benchmark))
-    g = values.get("PROFIT_CAGR")
+    # PEG growth (3.6.12): EPS growth first, because P/E is price per share and the growth must be per share too. Net profit growth only when there is no EPS CAGR.
+    adj_eps, eps_adjustments = split_adjusted_eps(d.get("eps_y", []), d.get("net_profit_y", []))
+    eps_window, eps_years, _ = cagr_window(adj_eps)
+    g, g_basis = None, None
+    if eps_years and eps_window[0] is not None and eps_window[0] > 0:
+        g = ((eps_window[-1] / eps_window[0]) ** (1 / eps_years) - 1) * 100 if eps_window[-1] > 0 else -100.
+        g_basis = {"kind": "eps", "text": f"EPS growth over {eps_years} years", "years": eps_years}
+    if g is None:
+        g = values.get("PROFIT_CAGR")
+        if g is not None:
+            g_basis = {"kind": "profit_cagr", "text": "net profit growth (no usable EPS growth)", "years": (details.get("PROFIT_CAGR") or {}).get("years")}
     if g is None:
         g = values.get("PROFIT_GROWTH")
+        if g is not None:
+            g_basis = {"kind": "profit_12m", "text": "12-month net profit growth (no usable EPS or profit CAGR)", "years": None}
     core = group in PEG_CORE_GROUPS
     if loss or (pe is not None and g is not None and g <= 0):
-        put("PEG", None, "Z", {"note": "Loss-making or non-positive profit growth"}, 0.)
+        put("PEG", None, "Z", {"note": "Loss-making or non-positive earnings growth", "growthBasis": g_basis and g_basis["text"], "growthKind": g_basis and g_basis["kind"]}, 0.)
     elif pe is not None and g is not None and g > 0 and (core or details["PROFIT_STREAK"]["good"] >= PEG_MIN_PROFIT_STREAK):
-        put("PEG", pe / min(g, PEG_GROWTH_CAP), detail={"growthUsed": min(g, PEG_GROWTH_CAP), "note": "Core group" if core else f"At least {PEG_MIN_PROFIT_STREAK} actual good profit quarters"})
+        put("PEG", pe / min(g, PEG_GROWTH_CAP), detail={"growthUsed": min(g, PEG_GROWTH_CAP), "growthRaw": g, "growthBasis": g_basis["text"], "growthKind": g_basis["kind"],
+                                                        "growthYears": g_basis["years"], "epsSplitAdjustments": eps_adjustments or None,
+                                                        "note": "Core group" if core else f"At least {PEG_MIN_PROFIT_STREAK} actual good profit quarters"})
     elif not core:
         statuses["PEG"] = "N"
         details["PEG"] = {"note": "Optional PEG eligibility requirements not met"}
