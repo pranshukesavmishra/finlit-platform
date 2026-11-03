@@ -50,7 +50,7 @@ ENV_FILE=/opt/finlit/.env.aws docker compose -p finlit -f deploy/aws/docker-comp
 ## Background jobs: first-deploy steps for the job supervisor (see `docs/JOBS.md`)
 
 1. Deploy as usual (`finlit` / `deploy.sh`): migration `077_jobs.sql` creates `job_runs` and `job_state`; the container's `start.sh` launches `scheduler.sh`, which keeps the supervisor alive.
-2. In `/opt/finlit/.env.aws` make sure the fund loads are on if you want them: `FUND_LOADS_ENABLED=1` (default is off; the status then shows the fund jobs as `disabledByConfig`, not overdue). Optional knobs: `BULK_CONCURRENCY` (1), `LIGHT_CONCURRENCY` (2), `JOBS_RESERVE_MB` (100).
+2. In `/opt/finlit/.env.aws` make sure the fund loads are on if you want them: `FUND_LOADS_ENABLED=1` (now on by default and ignored if set to 0; the status used to show the fund jobs as `disabledByConfig`, not overdue). Optional knobs: `BULK_CONCURRENCY` (1), `LIGHT_CONCURRENCY` (2), `JOBS_RESERVE_MB` (100).
 3. Swap (for an existing server; `bootstrap.sh` does it on a new one, idempotently): `swapon --show | grep -q . || (sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab && echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-finlit.conf && sudo sysctl --system)`; check `free -m`.
 4. After the restart, open `https://<site>/api/jobs/status`: `supervisor.alive` true within a minute; `healthy` turns true once the catch-up has run (technicals first, then the nightly chain, one bulk job at a time). Check `disabledByConfig`.
 5. In the admin Console > Data health the green/red "Background jobs" box is the same information. Alerts arrive by email to the admin account(s).

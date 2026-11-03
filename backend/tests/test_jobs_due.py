@@ -200,15 +200,13 @@ def test_never_run_jobs_are_due_at_once_but_not_the_ones_that_send_mail():
         assert not evaluate(JOBS[mail], fresh("x"), ctx(now)).due, mail
 
 
-def test_boot_load_disabled_stops_the_first_start_catch_up_but_not_the_windows_or_a_far_breach():
+def test_boot_load_setting_never_holds_back_a_job_that_is_past_its_promise():
     now = at(*SAT, 12, 0)
     off = ctx(now, config=JobsConfig(boot_load_enabled=False))
-    fresh = JobState(job="ingest", first_seen_at=now)
-    assert not evaluate(JOBS["ingest"], fresh, off).due
+    assert evaluate(JOBS["ingest"], JobState(job="ingest", first_seen_at=now), off).due              # never ran: runs
+    assert evaluate(JOBS["ingest"], state("ingest", now, 30), off).due                               # slightly late: runs
     night = at(*FRI, 23, 45)
     assert evaluate(JOBS["ingest"], state("ingest", night, 22), ctx(night, config=JobsConfig(boot_load_enabled=False))).due
-    assert not evaluate(JOBS["ingest"], state("ingest", now, 30), off).due              # only slightly late: left to the windows
-    assert evaluate(JOBS["ingest"], state("ingest", now, 60), off).due                  # more than twice the SLA: never starve
 
 
 def test_probe_driven_jobs_run_only_when_the_probe_says_there_is_work():
@@ -265,23 +263,25 @@ def test_a_job_failed_five_times_is_held_in_the_status_but_is_still_retried():
     assert evaluate(j, st, ctx(now)).due
 
 
-def test_the_admin_pause_holds_the_bulk_jobs_only_and_names_the_expiry():
-    now = at(*FRI, 23, 45)
-    p = PauseInfo(until=now + timedelta(minutes=20), by="boss@example.com")
-    v = evaluate(JOBS["ingest"], state("ingest", now, 22), ctx(now, pause=p))
-    assert v.state == "waiting" and not v.due and "paused by the admin until" in v.reason and "resumes automatically" in v.reason
-    assert evaluate(JOBS["results"], state("results", now, 1), ctx(now, pause=p)).due                  # results ignore the pause
-    assert evaluate(JOBS["calendars"], state("calendars", now, 1), ctx(now, pause=p)).due
-    after = now + timedelta(minutes=21)
-    assert evaluate(JOBS["ingest"], state("ingest", after, 22), ctx(after, pause=None)).due           # expired = resumed, no manual action
+def test_the_admin_pause_never_stops_a_night_morning_or_after_close_window_or_a_late_job():
+    p_for = lambda now: PauseInfo(until=now + timedelta(minutes=20), by="boss@example.com")
+    night = at(*FRI, 23, 45)
+    assert evaluate(JOBS["ingest"], state("ingest", night, 22), ctx(night, pause=p_for(night))).due     # inside the night window: the pause is ignored
+    after_close = at(*FRI, 19, 0)
+    assert evaluate(JOBS["technicals"], state("technicals", after_close, 40), ctx(after_close, pause=p_for(after_close), probes={"technicals": True})).due
+    day = at(*FRI, 12, 0)
+    assert evaluate(JOBS["ingest"], state("ingest", day, 30), ctx(day, pause=p_for(day))).due          # past its 26 h promise: runs whatever the pause says
+    v = evaluate(JOBS["ingest"], state("ingest", day, 3), ctx(day, pause=p_for(day)))                  # not due at all: nothing to hold
+    assert not v.due
+    assert evaluate(JOBS["results"], state("results", night, 1), ctx(night, pause=p_for(night))).due
 
 
-def test_disabled_by_config_is_not_overdue_and_says_why():
+def test_no_environment_value_switches_off_a_scheduled_job():
     now = at(*FRI, 12, 0)
-    v = evaluate(JOBS["mf"], state("mf", now, 300), Ctx(now=now, env={"FUND_LOADS_ENABLED": "0"}))
-    assert v.state == "disabled" and "FUND_LOADS_ENABLED=1" in v.reason and not v.due
-    assert evaluate(JOBS["prism"], state("prism", now, 300), Ctx(now=now, env={"PRISM_PRECOMPUTE_ENABLED": "0"})).state == "disabled"
-    assert evaluate(JOBS["dhan-check"], state("d", now, 500), Ctx(now=now, env={})).state == "disabled"
+    for env in ({"FUND_LOADS_ENABLED": "0"}, {"PRISM_PRECOMPUTE_ENABLED": "0"}, {"SECTORS_ENABLED": "0"}, {}):
+        for name in ("mf", "prism", "sectors", "portfolios"):
+            assert evaluate(JOBS[name], state(name, now, 300), Ctx(now=now, env=env)).state != "disabled", (name, env)
+    assert evaluate(JOBS["dhan-check"], state("d", now, 500), Ctx(now=now, env={})).state == "disabled"   # no credentials: cannot run at all
 
 
 def test_next_due_is_the_earliest_of_interval_window_daily_and_sla():

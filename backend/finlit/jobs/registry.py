@@ -45,8 +45,11 @@ class Gate:
     wants: str = "1"
     default: str = "1"
     kind: str = "equals"
+    forced: bool = False        # an always-on job: no environment value can switch it off (the founder's rule: scheduled night jobs never stop)
 
     def disabled_reason(self, env: Mapping[str, str]) -> Optional[str]:
+        if self.forced:
+            return None
         if self.kind == "set":
             return None if env.get(self.var) else self.message
         return None if str(env.get(self.var, self.default)).strip() == self.wants else self.message
@@ -144,7 +147,7 @@ class JobsConfig:
 
 
 SECTORS_WEIGHT_MB = 1500        # measured on a synthetic folder of the real size (docs/SECTORS.md, "Memory"): above the app container's usual free memory, so on a 2 GB box the job waits visibly
-FUNDS_GATE = Gate("FUND_LOADS_ENABLED", "ETF and fund loads are switched off: set FUND_LOADS_ENABLED=1 in /opt/finlit/.env.aws and restart", wants="1", default="0")
+FUNDS_GATE = Gate("FUND_LOADS_ENABLED", "ETF and fund loads are switched off: set FUND_LOADS_ENABLED=1 in /opt/finlit/.env.aws and restart", wants="1", default="1", forced=True)
 
 
 def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
@@ -195,7 +198,7 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             what="technical view of every stored Prism report from fresh Dhan daily candles (resumable, yields to members)"),
         Job("sectors", ("refresh-sectors",), cls="bulk", priority=12, max_runtime_min=90, weight_mb=SECTORS_WEIGHT_MB, stall_min=45, prerequisites=("technicals",),
             windows=(W("AFTER_CLOSE", 0, (19, 0)), W("MORNING", 0)), sla=Sla("session", 14), owns=("sectors",), catchup=False,
-            gate=Gate("SECTORS_ENABLED", "Sector pages are off: upload the NSE data folder and set SECTORS_ENABLED=1 in /opt/finlit/.env.aws (docs/SECTORS.md)", wants="1", default="0"),
+            gate=Gate("SECTORS_ENABLED", "Sector pages are off: upload the NSE data folder and set SECTORS_ENABLED=1 in /opt/finlit/.env.aws (docs/SECTORS.md)", wants="1", default="1", forced=True),
             what="Sector Pulse: NSE's daily files, then every industry's breadth state, leader flags and ranked stocks, swapped in whole (docs/SECTORS.md)"),
         Job("ingest-flagship", ("ingest", "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "ITC", "LT", "BHARTIARTL", "HINDUNILVR"), cls="bulk",
             priority=15, max_runtime_min=30, weight_mb=300, windows=(W("NIGHT", 144),), sla=Sla("hours", 400), boot=True, resumable=True,
@@ -207,7 +210,7 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             boot=True, prerequisites=("ingest",), owns=("scores",), what="FinLit IQ of every listed company"),
         Job("prism", ("precompute-prism", "--max-minutes", "55", "--limit", "800"), cls="bulk", priority=40, max_runtime_min=60, weight_mb=250 * prism_workers,
             shards=prism_workers, resumable=True, probe="prism", interval_min=10, windows=(W("NIGHT", 20), W("MORNING", 14)), sla=Sla("hours", 26), boot=True, prerequisites=("ingest", "score"),
-            gate=Gate("PRISM_PRECOMPUTE_ENABLED", "Prism pre-compute is switched off: PRISM_PRECOMPUTE_ENABLED is not 1"), owns=("prism",),
+            gate=Gate("PRISM_PRECOMPUTE_ENABLED", "Prism pre-compute is switched off: PRISM_PRECOMPUTE_ENABLED is not 1", forced=True), owns=("prism",),
             what="FinLit Prism rating of every company with a full report (resumable, one company at a time per worker)"),
         Job("presets", ("refresh-presets",), cls="bulk", priority=42, max_runtime_min=20, weight_mb=350, windows=(W("NIGHT", 20), W("MORNING", 14)), sla=Sla("hours", 30),
             prerequisites=("prism",), catchup=False,

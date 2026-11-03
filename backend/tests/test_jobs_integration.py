@@ -161,8 +161,9 @@ async def test_status_shape_healthy_and_overdue_logic(store):
     job = {j["name"]: j for j in body["jobs"]}
     assert set(job["results"]) >= {"name", "state", "reason", "lastSuccessAt", "ageHours", "slaHours", "nextDueAt", "consecutiveFailures", "late", "overdue", "disabledByConfig"}
     assert job["results"]["slaHours"] == 1.5 and job["results"]["ageHours"] == pytest.approx(0.17, abs=0.01)
-    assert job["mf"]["state"] == "disabled" and job["mf"]["disabledByConfig"] and "FUND_LOADS_ENABLED=1" in job["mf"]["disabledReason"]
-    assert body["disabledByConfig"] and any(d["name"] == "mf" for d in body["disabledByConfig"]) and "mf" not in body["overdue"]       # disabled is flagged, never "overdue"
+    assert job["mf"]["state"] != "disabled"                                                    # the fund switch no longer disables anything
+    assert job["dhan-check"]["state"] == "disabled" and job["dhan-check"]["disabledByConfig"] and "DHAN_CLIENT_ID" in job["dhan-check"]["disabledReason"]
+    assert body["disabledByConfig"] and any(d["name"] == "dhan-check" for d in body["disabledByConfig"]) and "dhan-check" not in body["overdue"]   # disabled is flagged, never "overdue"
     assert body["pause"]["paused"] is False and body["pause"]["resumesAutomatically"] is True
     # a job 3 times past its promise is overdue and makes the whole thing unhealthy
     await seed(store, {"ingest": dict(last_success_at=NOW - timedelta(hours=60))})

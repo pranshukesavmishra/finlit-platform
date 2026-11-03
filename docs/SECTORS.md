@@ -76,7 +76,7 @@ ssh -i key.pem ubuntu@SERVER "sudo mv /tmp/nse-upload/* /opt/finlit/data/nse/ &&
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SECTORS_ENABLED` | `0` | `1` switches the nightly job on |
+| `SECTORS_ENABLED` | `1` | ignored: the nightly job is always on (it waits for memory and for the NSE folder, and says why) |
 | `SECTOR_NSE_DIR` | `/data/nse` | the NSE data folder inside the container |
 | `SECTOR_OUT_DIR` | `/data/sectors` | the swap-in folder the website reads |
 | `SECTOR_FETCH` | `1` | `0`: do not download; build from the files in the folder (use when NSE refuses the server and you copy files up by hand) |
@@ -119,7 +119,7 @@ Honest reading for the t3.small (2 vCPU, about 2 GB, app container limit 1,200 M
 Decision for the founder, in order of preference:
 * **A. Build on the PC, upload the result (recommended on the 2 GB server).** About 100 MB output, one `scp` and one command (section 7, remedy 1). Also solves NSE refusing the server. Costs a daily manual step (a Windows scheduled task can do the build and upload).
 * **B. Give the server more memory**: a 4 GB instance (t3.medium), then change `mem_limit: 1200m` of the `app` service in `deploy/aws/docker-compose.aws.yml` to `2600m` and redeploy; the job then starts by itself each evening.
-* **C. Leave the feature off** (`SECTORS_ENABLED=0`): the pages say "Sector data is not loaded yet".
+* **C. Do nothing**: the job stays on, waits for memory, and the pages say "Sector data is not loaded yet" with the reason.
 
 ## 9. Things that were not verified offline
 
