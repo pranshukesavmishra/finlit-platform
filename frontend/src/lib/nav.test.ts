@@ -14,7 +14,7 @@ describe("site map", () => {
     expect(RESEARCH.groups[1].items.map((i) => i.label)).toEqual(["Company report", "Compare companies", "FinLit Prism", "Profit and revenue outlook", "Premium reports"]);
     expect(RESEARCH.groups[2].items.map((i) => i.label)).toEqual(["EPS & P/E calculator", "DCF valuation calculator", "SIP calculator"]);
     expect(RESEARCH.groups[3].items.map((i) => i.label)).toEqual(["Chart builder", "Correlation charts"]);
-    expect(names("markets")).toEqual(["FII & DII flows", "India economy", "Commodity prices"]);
+    expect(names("markets")).toEqual(["Sector Pulse", "FII & DII flows", "India economy", "Commodity prices"]);
     expect(names("news")).toEqual(["Results calendar", "Latest results", "IPO calendar", "News & filings"]);
     expect(names("funds")).toEqual(["Mutual funds", "Mutual fund screener", "ETFs"]);
     expect(names("myfinlit")).toEqual(["Dashboard", "Watchlists", "My portfolio", "MF portfolio", "Alerts"]);

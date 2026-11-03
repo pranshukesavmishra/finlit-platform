@@ -17,6 +17,7 @@ export const NAV: NavItem[] = [
   ["earnings", "Earnings & cash", "coins", "Is the profit real, and is it turning into cash?"],
   ["ownership", "Ownership", "pie", "Promoters, institutions and the public"],
   ["peers", "Peers", "layers", "How the company compares with its peers"],
+  ["sector", "Sector & peers", "activity", "Where its industry stands, and how the stock ranks inside it"],
   ["insights", "What to watch", "crown", "Triggers to watch and where the company fits"],
   ["segments", "Segments", "pie", "Where the revenue comes from"],
   ["dividends", "Dividends", "coins", "Dividends, splits, bonuses and events"],

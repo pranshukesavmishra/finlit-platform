@@ -190,7 +190,7 @@ def need(job: Job, st: JobState, ctx: Ctx) -> Tuple[bool, str, bool]:
     retry_at = effective_retry_at(st)
     if retry_at and now >= retry_at:
         return True, f"retrying after {st.last_status or 'a failed run'} (attempt {st.consecutive_failures + 1})", False
-    if st.last_success_at is None and job.catchup and not (job.boot and not ctx.config.boot_load_enabled):
+    if st.last_success_at is None and job.catchup:
         return True, "has never succeeded: catching up", False
     w = _window_hit(job, st, ctx)
     if w:
@@ -210,8 +210,6 @@ def need(job: Job, st: JobState, ctx: Ctx) -> Tuple[bool, str, bool]:
             return True, f"daily run from {job.daily_at[0]:02d}:{job.daily_at[1]:02d} IST has not succeeded yet", False
     sla = sla_status(job, st, now)
     if sla.breached:
-        if job.boot and not ctx.config.boot_load_enabled and sla.lateness_hours <= job.sla.hours:
-            return False, "", False
         if open_windows(now) or not ctx.visitor_active or sla.lateness_hours > job.sla.hours:
             return True, f"SLA breached by {sla.lateness_hours:.1f} h", False
         return True, f"SLA breached by {sla.lateness_hours:.1f} h; waiting for a quiet moment (visitors are on the site)", True
@@ -237,7 +235,8 @@ def evaluate(job: Job, st: JobState, ctx: Ctx) -> Verdict:
     needed, why, soft = need(job, st, ctx)
     if not needed:
         return Verdict("idle", "up to date", False, next_due_at(job, st, ctx))
-    if job.honours_pause and ctx.pause:
+    # The pause never stops scheduled work: not in the morning, after-close or night window, and not for a job already past its promise.
+    if job.honours_pause and ctx.pause and not open_windows(now) and not sla_status(job, st, now).breached:
         return Verdict("waiting", f"paused by the admin until {fmt_ist(ctx.pause.until)}; resumes automatically (wanted: {why})", False, ctx.pause.until)
     if soft:
         return Verdict("waiting", why, False, None)

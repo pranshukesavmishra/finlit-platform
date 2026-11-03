@@ -20,6 +20,7 @@ import { DiscussionLink } from "../components/DiscussionLink";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
+import { SectorPeersSection } from "./SectorPeers";
 import { EarningsCallSection } from "./EarningsCall";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
@@ -144,6 +145,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><RatiosSection r={ratios} lender={!!s.dataQuality.isBank} sector={s.profile.sector} industry={s.profile.industry} labels={[s.profile.sector, s.profile.industry, s.profile.subIndustry]} /></ErrorBoundary>
         <ErrorBoundary section="This section"><OwnershipSection o={own} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><SectorPeersSection symbol={symbol} name={s.profile.name} tech={tech} score={s.score} jump={jump} /></ErrorBoundary>
         <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>
         <ErrorBoundary section="This section"><DividendsSection e={events} price={q?.price} r={ratios} /></ErrorBoundary>
         <DiscussionLink symbol={symbol} />

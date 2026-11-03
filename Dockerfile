@@ -16,6 +16,7 @@ RUN pip install -r requirements.txt
 COPY site-api/backend/requirements.txt /tmp/site-requirements.txt
 RUN python -m venv /opt/site-venv && /opt/site-venv/bin/pip install -r /tmp/site-requirements.txt
 COPY backend/finlit ./finlit
+COPY backend/finlit_technicals ./finlit_technicals
 COPY backend/scripts ./scripts
 COPY backend/tests/fixtures ./tests/fixtures
 COPY site-api/backend ./site-api/backend
