@@ -22,6 +22,9 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (path === "/api/stocks/search-index") return file("search-index.json");
   if (path === "/api/screener/universe") return file("screener.json");
   if (path === "/api/search/quotes") return file("search-quotes.json");
+  if (path === "/api/screener/presets") return file(url.searchParams.get("tab") === "basic" ? "presets-basic.json" : "presets-advanced.json");
+  const presetId = /^\/api\/screener\/presets\/([a-z0-9-]+)$/.exec(path)?.[1];   // the screens the demo holds a saved result for; any other is "not found"
+  if (presetId && ["basic-top-small", "sector-themes", "basic-sector-themes"].includes(presetId)) return file(`preset-${presetId}.json`);
   if (/^\/api\/screener\/presets\/for\//.test(path)) return json({ symbol: path.split("/").pop(), screens: [{ id: "emerging-tech", name: "Emerging tech", group: "themes", asOf: "2026-10-30" }, { id: "highest-rated-large", name: "Highest-rated large caps", group: "top-rated", asOf: "2026-10-30" }], ready: true, asOf: "2026-10-30" });
   if (/^\/api\/stocks\/[^/]+\/leadership$/.test(path)) return json(sampleLeadership());
   if (path === "/api/prism/history") return json(sampleHistory(url.searchParams.get("symbol") || "RELIANCE", url.searchParams.get("statement") || "consolidated"));

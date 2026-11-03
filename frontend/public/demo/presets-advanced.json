@@ -1,0 +1,547 @@
+{
+ "tab": "advanced",
+ "asOf": "2026-10-30",
+ "groups": [
+  {
+   "id": "top-rated",
+   "name": "Top rated",
+   "presets": [
+    {
+     "id": "highest-rated-large",
+     "name": "Highest-rated large caps",
+     "group": "top-rated",
+     "cardText": "The 10 large caps with the strongest mix of Prism rating, valuation, risk and price strength.",
+     "count": 19,
+     "listText": "Top 10 of 19 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "include-provisional",
+       "label": "Include provisional",
+       "default": false,
+       "description": "Also lists companies with a Provisional Prism rating (a rating built on limited history), each with its badge."
+      }
+     ],
+     "howItWorks": [
+      "Only large caps: companies ranked 1 to 100 by market cap, as the site buckets them.",
+      "Only companies with a full Prism rating (Provisional ratings appear only with the Include provisional chip, with their badge).",
+      "Gates: Prism score 60 or more, Quality 50 or more, Risk 50 or more, long-term technical view above -20, no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score, 55% business and 45% price. Each input is the company's percentile among the rated companies of its size group: Prism score 40%, Valuation 7.5%, Risk 7.5%, long-term view 15%, short-term view 5%, momentum 15% (the momentum score of the Momentum leaders screen), and 52-week position 10% (100 minus the % below the high).",
+      "At most 3 companies from one Sector label. Ties go to the higher Quality, then the higher Prism score.",
+      "If fewer than 10 pass, the list is filled with the next names that fail only the trend or the 52-week gate, badged Trend not confirmed."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "highest-rated-mid",
+     "name": "Highest-rated mid caps",
+     "group": "top-rated",
+     "cardText": "The 10 mid caps with the strongest mix of Prism rating, valuation, risk and price strength.",
+     "count": 10,
+     "listText": "Top 10 of 10 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "include-provisional",
+       "label": "Include provisional",
+       "default": false,
+       "description": "Also lists companies with a Provisional Prism rating (a rating built on limited history), each with its badge."
+      }
+     ],
+     "howItWorks": [
+      "Only mid caps: companies ranked 101 to 250 by market cap, as the site buckets them.",
+      "Only companies with a full Prism rating (Provisional ratings appear only with the Include provisional chip, with their badge).",
+      "Gates: Prism score 60 or more, Quality 50 or more, Risk 50 or more, long-term technical view above -20, no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score, 55% business and 45% price. Each input is the company's percentile among the rated companies of its size group: Prism score 40%, Valuation 7.5%, Risk 7.5%, long-term view 15%, short-term view 5%, momentum 15% (the momentum score of the Momentum leaders screen), and 52-week position 10% (100 minus the % below the high).",
+      "At most 3 companies from one Sector label. Ties go to the higher Quality, then the higher Prism score.",
+      "If fewer than 10 pass, the list is filled with the next names that fail only the trend or the 52-week gate, badged Trend not confirmed."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "highest-rated-small",
+     "name": "Highest-rated small caps",
+     "group": "top-rated",
+     "cardText": "The 10 small caps with the strongest mix of Prism rating, valuation, risk and price strength.",
+     "count": 33,
+     "listText": "Top 10 of 33 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "include-provisional",
+       "label": "Include provisional",
+       "default": false,
+       "description": "Also lists companies with a Provisional Prism rating (a rating built on limited history), each with its badge."
+      }
+     ],
+     "howItWorks": [
+      "Only small caps: companies ranked 251 onward by market cap, as the site buckets them.",
+      "Only companies with a full Prism rating (Provisional ratings appear only with the Include provisional chip, with their badge).",
+      "Gates: Prism score 60 or more, Quality 50 or more, Risk 60 or more, long-term technical view above -20, no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score, 55% business and 45% price. Each input is the company's percentile among the rated companies of its size group: Prism score 40%, Valuation 7.5%, Risk 7.5%, long-term view 15%, short-term view 5%, momentum 15% (the momentum score of the Momentum leaders screen), and 52-week position 10% (100 minus the % below the high).",
+      "At most 3 companies from one Sector label. Ties go to the higher Quality, then the higher Prism score.",
+      "If fewer than 10 pass, the list is filled with the next names that fail only the trend or the 52-week gate, badged Trend not confirmed."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "rating-upgrades",
+     "name": "Rating upgrades",
+     "group": "top-rated",
+     "cardText": "Companies whose Prism rating moved up a band, or whose score rose 8 points or more, in the last 30 days.",
+     "count": null,
+     "listText": null,
+     "asOf": null,
+     "status": "blocked",
+     "blockedReason": "Needs rating history; coming once weekly rating snapshots start.",
+     "chips": [],
+     "howItWorks": [],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "blocked",
+     "handledBy": "server",
+     "computed": false,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "trend",
+   "name": "Trend",
+   "presets": [
+    {
+     "id": "momentum-leaders",
+     "name": "Momentum leaders",
+     "group": "trend",
+     "cardText": "Rated stocks in an uptrend near their 52-week high, ranked by 3-, 6- and 12-month returns against the market.",
+     "count": 33,
+     "listText": "First 25 of 33 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Rated by Prism with a score of 50 or more.",
+      "Long-term technical view +20 or more (price above its long-term average) and short-term view 0 or more (not stretched down).",
+      "No more than 15% below its 52-week high; 3-month and 6-month returns both positive; 1-year return 300% or less; market cap Rs 1,000 Cr or more.",
+      "Ranked by the momentum score: 100 x (0.3 x P3M + 0.4 x P6M + 0.3 x P12M), P being the percentile (0 to 1) of that period's return among stocks of Rs 1,000 Cr or more."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "at-52-week-high",
+     "name": "At a 52-week high",
+     "group": "trend",
+     "cardText": "Within 5% of the 52-week high with a positive short-term view.",
+     "count": 25,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Rated by Prism with a score of 50 or more.",
+      "No more than 5% below the 52-week high.",
+      "Short-term technical view +20 or more.",
+      "Ranked by the short-term view."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "both-views-positive",
+     "name": "Positive on both technical views",
+     "group": "trend",
+     "cardText": "Large and mid caps whose short-term and long-term technical views are both positive.",
+     "count": 10,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "all-caps",
+       "label": "All caps",
+       "default": false,
+       "description": "Also lists small caps (the default is large and mid caps)."
+      }
+     ],
+     "howItWorks": [
+      "Rated by Prism.",
+      "Short-term and long-term technical views both +20 or more.",
+      "Large and mid caps by default; the All caps chip adds small caps.",
+      "Ranked by Prism score."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "growth",
+   "name": "Growth",
+   "presets": [
+    {
+     "id": "consistent-growers",
+     "name": "Consistent growers",
+     "group": "growth",
+     "cardText": "Companies with strong Growth & Profitability, quality and risk scores together.",
+     "count": 10,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "fast-growers",
+       "label": "Fast growers",
+       "default": false,
+       "description": "Raises the Growth & Profitability cut-off from 75 to 85."
+      }
+     ],
+     "howItWorks": [
+      "Prism Growth & Profitability 75 or more, Quality 60 or more, Risk 50 or more.",
+      "Ranked by Growth & Profitability. The Fast growers chip raises the cut-off to 85."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "themes",
+   "name": "Themes",
+   "presets": [
+    {
+     "id": "emerging-tech",
+     "name": "Emerging tech",
+     "group": "themes",
+     "cardText": "Companies in new-technology businesses (electronics, defence and shipbuilding, software and data, digital platforms, fintech, EVs, clean energy), still growing.",
+     "count": 41,
+     "listText": "First 25 of 41 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "show-all-theme",
+       "label": "Show all theme members",
+       "default": false,
+       "description": "Drops the Growth & Profitability and Risk gates: every theme member of Rs 1,000 Cr or more is listed."
+      },
+      {
+       "id": "defence-aerospace-and-shipbuilding",
+       "label": "Defence, aerospace and shipbuilding",
+       "default": false,
+       "description": "Only companies in Defence, aerospace and shipbuilding. Pick several to see any of them."
+      },
+      {
+       "id": "electronics-ems-and-semiconductors",
+       "label": "Electronics, EMS and semiconductors",
+       "default": false,
+       "description": "Only companies in Electronics, EMS and semiconductors. Pick several to see any of them."
+      },
+      {
+       "id": "software-products-ai-and-data",
+       "label": "Software products, AI and data",
+       "default": false,
+       "description": "Only companies in Software products, AI and data. Pick several to see any of them."
+      },
+      {
+       "id": "digital-platforms",
+       "label": "Digital platforms",
+       "default": false,
+       "description": "Only companies in Digital platforms. Pick several to see any of them."
+      },
+      {
+       "id": "fintech-and-market-infrastructure",
+       "label": "Fintech and market infrastructure",
+       "default": false,
+       "description": "Only companies in Fintech and market infrastructure. Pick several to see any of them."
+      },
+      {
+       "id": "data-centres-cloud-and-telecom-tech",
+       "label": "Data centres, cloud and telecom tech",
+       "default": false,
+       "description": "Only companies in Data centres, cloud and telecom tech. Pick several to see any of them."
+      },
+      {
+       "id": "ev-and-batteries",
+       "label": "EV and batteries",
+       "default": false,
+       "description": "Only companies in EV and batteries. Pick several to see any of them."
+      },
+      {
+       "id": "clean-energy-manufacturing",
+       "label": "Clean-energy manufacturing",
+       "default": false,
+       "description": "Only companies in Clean-energy manufacturing. Pick several to see any of them."
+      }
+     ],
+     "howItWorks": [
+      "Companies in a sub-theme, found from their Sector label and a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Rated or Provisional by Prism: Growth & Profitability 50 or more (still growing) and Risk 40 or more. No trend gate: the two technical views are shown as columns.",
+      "Ranked by the same weighted score as the Top 10 lists. Companies Prism has not rated yet are listed below, by market cap, with no score."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "tags",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "sector-themes",
+     "name": "Sector themes in play",
+     "group": "themes",
+     "cardText": "Sectors where more stocks sit near their 52-week high than in the market as a whole, and the companies leading them.",
+     "count": 37,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "small-groups",
+       "label": "Include small groups",
+       "default": false,
+       "description": "Also lists industries with 5 to 7 companies, which are too few to call a theme with the same confidence."
+      }
+     ],
+     "howItWorks": [
+      "Every night each sector (by its Sector label) is scored on breadth, the share of its stocks within 15% of their 52-week high, and its median 3-month return against the whole market; stocks of Rs 1,000 Cr or more.",
+      "In play: breadth at least 40% and 15 points above the market's, and median 3-month return at least 5 points above the market's.",
+      "Leaders (up to 5 per sector): market cap Rs 1,000 Cr or more, within 15% of their 52-week high, 3-month return above the sector median; rated companies first by Prism score, then unrated by FinLit IQ.",
+      "Generic labels (Capital Goods, Financial Services, Services, FMCG, Healthcare, Information Technology) and groups under 8 companies are left out of theme status.",
+      "With fewer than 3 sectors in play, the 3 with the highest relative 3-month return among those with breadth above the market are shown as Closest to qualifying."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "themes",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "value-income",
+   "name": "Value and income",
+   "presets": [
+    {
+     "id": "quality-fair-price",
+     "name": "Quality at a fair price",
+     "group": "value-income",
+     "cardText": "Strong quality and growth & profitability without a stretched valuation.",
+     "count": 26,
+     "listText": "First 25 of 26 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Prism Quality 70 or more, Growth & Profitability 60 or more, Valuation 60 or more.",
+      "Ranked by Prism score."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "quality-off-highs",
+     "name": "Quality off its highs",
+     "group": "value-income",
+     "cardText": "High quality, 25%+ below the 52-week high.",
+     "count": 43,
+     "listText": "First 25 of 43 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "turning-up",
+       "label": "Turning up",
+       "default": false,
+       "description": "Keeps only names whose short-term technical view is 0 or more: the price has stopped falling."
+      }
+     ],
+     "howItWorks": [
+      "Prism Quality 75 or more, Growth & Profitability 65 or more, Risk 50 or more.",
+      "At least 25% below the 52-week high.",
+      "Both technical views are shown; the Turning up chip keeps names whose short-term view is 0 or more.",
+      "Ranked by Prism score."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "value-with-quality",
+     "name": "Value with quality",
+     "group": "value-income",
+     "cardText": "Cheaper-valued companies that also score well on quality, risk and growth & profitability.",
+     "count": 22,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Prism Valuation 75 or more, Quality 60 or more, Risk 60 or more, Growth & Profitability 50 or more.",
+      "Ranked by Valuation, highest first (a higher Valuation score means cheaper)."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "safety",
+   "name": "Safety",
+   "presets": [
+    {
+     "id": "low-risk-compounders",
+     "name": "Low-risk compounders",
+     "group": "safety",
+     "cardText": "Companies that score high on risk, quality and growth & profitability together.",
+     "count": 38,
+     "listText": "First 25 of 38 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Prism Risk 80 or more (a higher Risk score means lower risk), Quality 75 or more, Growth & Profitability 65 or more.",
+      "Ranked by Prism score."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "low-volatility",
+     "name": "Low-volatility names",
+     "group": "safety",
+     "cardText": "Low risk score and a narrow 52-week range.",
+     "count": 18,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Prism Risk 80 or more and Prism score 60 or more.",
+      "The 52-week high is no more than 35% above the 52-week low.",
+      "Ranked by the Prism Risk part."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "higher-risk-list",
+     "name": "Higher-risk list",
+     "group": "safety",
+     "cardText": "Companies with more warning signs than usual. Read the company page before acting.",
+     "count": 16,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Rated by Prism.",
+      "Prism Risk below 40, or Prism score below 35, or 40% or more below the 52-week high with a long-term technical view of -50 or lower.",
+      "Ranked by the Risk part, lowest first. This is a caution list, not a sell list."
+     ],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "ownership",
+   "name": "Ownership",
+   "presets": [
+    {
+     "id": "psu-stocks",
+     "name": "PSU stocks",
+     "group": "ownership",
+     "cardText": "Public-sector companies with a Prism score of 55 or more, ranked by Prism score.",
+     "count": null,
+     "listText": null,
+     "asOf": null,
+     "status": "blocked",
+     "blockedReason": "Needs a maintained list of public-sector companies; coming once that list is shown as a column.",
+     "chips": [],
+     "howItWorks": [],
+     "locked": false,
+     "tab": "advanced",
+     "kind": "blocked",
+     "handledBy": "server",
+     "computed": false,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,488 @@
+{
+ "tab": "basic",
+ "asOf": "2026-10-30",
+ "groups": [
+  {
+   "id": "top-rated",
+   "name": "Top rated",
+   "presets": [
+    {
+     "id": "basic-top-large",
+     "name": "Top 10 large caps",
+     "group": "top-rated",
+     "cardText": "The 10 large caps with the strongest mix of business scores and price strength, from the FinLit score.",
+     "count": 36,
+     "listText": "Top 10 of 36 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Only large caps: companies ranked 1 to 100 by market cap, as the site buckets them.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Gates: Growth & Profitability score 65 or more, Technical 45 or more, Quality 50 or more, Balance sheet 45 or more (a blank is allowed for banks), no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score: each input is the company's percentile among the companies of its size group with a market cap of Rs 1,000 Cr or more: Growth & Profitability 50%, Technical 20%, momentum 15% (the momentum score of the Momentum leaders card), 52-week position 10% (100 minus the % below the high) and Quality 5%.",
+      "At most 3 companies from one Sector label. Ties go to the higher Growth & Profitability score, then the higher FinLit IQ.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-top-mid",
+     "name": "Top 10 mid caps",
+     "group": "top-rated",
+     "cardText": "The 10 mid caps with the strongest mix of business scores and price strength, from the FinLit score.",
+     "count": 27,
+     "listText": "Top 10 of 27 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Only mid caps: companies ranked 101 to 250 by market cap, as the site buckets them.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Gates: Growth & Profitability score 65 or more, Technical 45 or more, Quality 50 or more, Balance sheet 45 or more (a blank is allowed for banks), no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score: each input is the company's percentile among the companies of its size group with a market cap of Rs 1,000 Cr or more: Growth & Profitability 50%, Technical 20%, momentum 15% (the momentum score of the Momentum leaders card), 52-week position 10% (100 minus the % below the high) and Quality 5%.",
+      "At most 3 companies from one Sector label. Ties go to the higher Growth & Profitability score, then the higher FinLit IQ.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-top-small",
+     "name": "Top 10 small caps",
+     "group": "top-rated",
+     "cardText": "The 10 small caps with the strongest mix of business scores and price strength, from the FinLit score.",
+     "count": 10,
+     "listText": "Top 10 of 10 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Only small caps: companies ranked 251 onward by market cap, as the site buckets them.",
+      "Market cap Rs 1,000 Cr or more: thinly traded micro caps are left out.",
+      "Gates: Growth & Profitability score 65 or more, Technical 45 or more, Quality 50 or more, Balance sheet 55 or more (a blank is allowed for banks), no more than 30% below the 52-week high, and a 1-year return of 300% or less.",
+      "Ranked by a weighted score: each input is the company's percentile among the companies of its size group with a market cap of Rs 1,000 Cr or more: Growth & Profitability 50%, Technical 20%, momentum 15% (the momentum score of the Momentum leaders card), 52-week position 10% (100 minus the % below the high) and Quality 5%.",
+      "At most 3 companies from one Sector label. Ties go to the higher Growth & Profitability score, then the higher FinLit IQ.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-strong-both",
+     "name": "Strong on both",
+     "group": "top-rated",
+     "cardText": "Growth & Profitability score and Technical both 78 or more.",
+     "count": 32,
+     "listText": "First 25 of 32 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Growth & Profitability score 78 or more and Technical 78 or more.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by FinLit IQ.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-strong-all-four",
+     "name": "Strong on all four pillars",
+     "group": "top-rated",
+     "cardText": "Quality, Growth, Profitability and Balance sheet all 78 or more.",
+     "count": 45,
+     "listText": "First 25 of 45 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Quality, Growth, Profitability and Balance sheet all 78 or more.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by FinLit IQ.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "trend",
+   "name": "Trend",
+   "presets": [
+    {
+     "id": "basic-momentum-leaders",
+     "name": "Momentum leaders",
+     "group": "trend",
+     "cardText": "Strong Technical score, within 15% of the 52-week high, with 3- and 6-month returns up.",
+     "count": 32,
+     "listText": "First 25 of 32 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Technical 75 or more, Growth & Profitability score 55 or more, no more than 15% below the 52-week high, 3-month and 6-month returns both positive, 1-year return 300% or less.",
+      "Market cap Rs 2,000 Cr or more (the fastest movers below that are thinly traded).",
+      "Ranked by the momentum score: 100 x (0.3 x P3M + 0.4 x P6M + 0.3 x P12M), P being the percentile (0 to 1) of that period's return among stocks of Rs 1,000 Cr or more.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-near-high",
+     "name": "Near 52-week high",
+     "group": "trend",
+     "cardText": "Within 5% of the 52-week high with a strong Technical score.",
+     "count": 12,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "No more than 5% below the 52-week high, Technical 75 or more, Growth & Profitability score 55 or more.",
+      "Market cap Rs 2,000 Cr or more.",
+      "Ranked by Technical, then momentum score.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "growth",
+   "name": "Growth",
+   "presets": [
+    {
+     "id": "basic-growth-leaders",
+     "name": "Growth leaders",
+     "group": "growth",
+     "cardText": "High growth with real profitability, a sound balance sheet and a price that is not falling apart.",
+     "count": 17,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Growth 78 or more, Profitability 60 or more, Balance sheet 50 or more (a blank is allowed), Technical 45 or more.",
+      "Market cap Rs 2,000 Cr or more.",
+      "Ranked by Growth, then Growth & Profitability score.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-quality-compounders",
+     "name": "Quality compounders",
+     "group": "growth",
+     "cardText": "Top Quality with growth, profitability and a sound balance sheet.",
+     "count": 30,
+     "listText": "First 25 of 30 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Quality 78 or more, Growth 60 or more, Profitability 70 or more, Balance sheet 60 or more (a blank is allowed).",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by Growth & Profitability score.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "themes",
+   "name": "Themes",
+   "presets": [
+    {
+     "id": "basic-emerging-tech",
+     "name": "Emerging tech",
+     "group": "themes",
+     "cardText": "Companies in new-technology businesses (electronics, defence and shipbuilding, software and data, digital platforms, fintech, EVs, clean energy), still growing.",
+     "count": 40,
+     "listText": "First 25 of 40 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "defence-aerospace-and-shipbuilding",
+       "label": "Defence, aerospace and shipbuilding",
+       "default": false,
+       "description": "Only companies in Defence, aerospace and shipbuilding. Pick several to see any of them."
+      },
+      {
+       "id": "electronics-ems-and-semiconductors",
+       "label": "Electronics, EMS and semiconductors",
+       "default": false,
+       "description": "Only companies in Electronics, EMS and semiconductors. Pick several to see any of them."
+      },
+      {
+       "id": "software-products-ai-and-data",
+       "label": "Software products, AI and data",
+       "default": false,
+       "description": "Only companies in Software products, AI and data. Pick several to see any of them."
+      },
+      {
+       "id": "digital-platforms",
+       "label": "Digital platforms",
+       "default": false,
+       "description": "Only companies in Digital platforms. Pick several to see any of them."
+      },
+      {
+       "id": "fintech-and-market-infrastructure",
+       "label": "Fintech and market infrastructure",
+       "default": false,
+       "description": "Only companies in Fintech and market infrastructure. Pick several to see any of them."
+      },
+      {
+       "id": "data-centres-cloud-and-telecom-tech",
+       "label": "Data centres, cloud and telecom tech",
+       "default": false,
+       "description": "Only companies in Data centres, cloud and telecom tech. Pick several to see any of them."
+      },
+      {
+       "id": "ev-and-batteries",
+       "label": "EV and batteries",
+       "default": false,
+       "description": "Only companies in EV and batteries. Pick several to see any of them."
+      },
+      {
+       "id": "clean-energy-manufacturing",
+       "label": "Clean-energy manufacturing",
+       "default": false,
+       "description": "Only companies in Clean-energy manufacturing. Pick several to see any of them."
+      }
+     ],
+     "howItWorks": [
+      "Companies in a sub-theme, found from their Sector label and a short named list that the research team reviews every quarter. The sub-theme is shown as a column.",
+      "Market cap Rs 1,000 Cr or more, Growth 55 or more, Balance sheet 40 or more (a blank is allowed).",
+      "Ranked by a theme rank score: 50% Growth & Profitability score, 30% Technical, 20% Growth, each a percentile among companies of its size group of Rs 1,000 Cr or more.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "tags",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-sector-themes",
+     "name": "Sector themes in play",
+     "group": "themes",
+     "cardText": "Sectors where more stocks sit near their 52-week high than in the market as a whole, and the companies leading them.",
+     "count": 36,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [
+      {
+       "id": "small-groups",
+       "label": "Include small groups",
+       "default": false,
+       "description": "Also lists industries with 5 to 7 companies, which are too few to call a theme with the same confidence."
+      }
+     ],
+     "howItWorks": [
+      "Every night each sector (by its Sector label) is scored on breadth, the share of its stocks within 15% of their 52-week high, and its median 3-month return against the whole market; stocks of Rs 1,000 Cr or more.",
+      "In play: breadth at least 40% and 15 points above the market's, and median 3-month return at least 5 points above the market's.",
+      "Leaders (up to 5 per sector): market cap Rs 1,000 Cr or more, within 15% of their 52-week high, 3-month return above the sector median; ranked by the Top 10 rank score of the Basic tab.",
+      "Generic labels (Capital Goods, Financial Services, Services, FMCG, Healthcare, Information Technology) and groups under 8 companies are left out of theme status."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "themes",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "value-income",
+   "name": "Value and income",
+   "presets": [
+    {
+     "id": "basic-strong-business-lagging",
+     "name": "Strong business, price lagging",
+     "group": "value-income",
+     "cardText": "Growth & Profitability score 78 or more while the Technical score is below 45, and how far below the 52-week high.",
+     "count": 13,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Growth & Profitability score 78 or more and Technical below 45: a strong business whose price has not followed.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by Growth & Profitability score; the % below the 52-week high is shown.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-quality-off-highs",
+     "name": "Quality off its highs",
+     "group": "value-income",
+     "cardText": "High Quality and Growth & Profitability, 25% or more below the 52-week high.",
+     "count": 42,
+     "listText": "First 25 of 42 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Quality 78 or more, Growth & Profitability score 70 or more, at least 25% below the 52-week high.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by Growth & Profitability score.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  },
+  {
+   "id": "safety",
+   "name": "Safety",
+   "presets": [
+    {
+     "id": "basic-strong-trend-weaker-business",
+     "name": "Strong trend, weaker business",
+     "group": "safety",
+     "cardText": "A caution view: Technical 78 or more while the Growth & Profitability score is below 45.",
+     "count": 29,
+     "listText": "First 25 of 29 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Technical 78 or more and Growth & Profitability score below 45: the price is strong but the business scores are weak. This is a caution view, not a signal.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by Technical.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-profitable-debt-light",
+     "name": "Profitable and debt-light",
+     "group": "safety",
+     "cardText": "Profitability and Balance sheet both 78 or more.",
+     "count": 34,
+     "listText": "First 25 of 34 that pass",
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "Profitability 78 or more and Balance sheet 78 or more.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by Profitability plus Balance sheet.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    },
+    {
+     "id": "basic-caution-list",
+     "name": "Caution list",
+     "group": "safety",
+     "cardText": "Companies with more warning signs than usual. Read the company page before acting.",
+     "count": 13,
+     "listText": null,
+     "asOf": "2026-10-30",
+     "status": "live",
+     "blockedReason": null,
+     "chips": [],
+     "howItWorks": [
+      "FinLit IQ below 45 (Watch), or Balance sheet below 35, or 40% or more below the 52-week high with Technical 25 or less.",
+      "Market cap Rs 1,000 Cr or more.",
+      "Ranked by FinLit IQ, lowest first. This is a caution list, not a sell list.",
+      "A company with a blank score drops out of any rule that uses that score."
+     ],
+     "locked": false,
+     "tab": "basic",
+     "kind": "rules",
+     "handledBy": "server",
+     "computed": true,
+     "disclaimer": "A screen narrows a list. It is not a recommendation."
+    }
+   ]
+  }
+ ]
+}
