@@ -110,9 +110,8 @@ export function MfScreenerPage() {
         </aside>
 
         <section className="card mfs-main" aria-label="Results">
-          <div className="mfs-bar">
+          <div className="mfs-rbar">
             <p className="mf-count" role="status" aria-live="polite">{list.isLoading ? "Loading funds…" : list.isError ? "Could not load the funds." : <><b>{nf(total, 0)}</b> fund{total === 1 ? "" : "s"}{list.data?.dataDate ? <> · NAV data of {dateIN(list.data.dataDate)}</> : null}{loadingNow && !list.isLoading ? <span className="mfs-busy"> · updating…</span> : null}</>}</p>
-            <span className="mfs-bar-b"><button type="button" className="btn sm mfs-open" onClick={showPanel}><Icon name="panel" /> Filters{shown > 0 && <span className="dotn">{shown}</span>}</button></span>
           </div>
 
           <div className="mfs-active" aria-label="Active filters">

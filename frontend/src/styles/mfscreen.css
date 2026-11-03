@@ -16,21 +16,19 @@
 .mfs-layout.is-collapsed { grid-template-columns: minmax(0, 1fr); }
 .mfs-side { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; padding: 14px 16px 8px; overscroll-behavior: contain; }
 .mfs-side[hidden] { display: none; }
-.mfs-grab, .mfs-foot, .mfs-open { display: none; }
+.mfs-grab, .mfs-foot { display: none; }
 .mfs-sh-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 0 10px; font: 600 13px var(--sans); color: var(--muted); flex-wrap: wrap; }
 .mfs-sh-t { color: var(--text); }
 .mfs-hide { background: none; border: 0; padding: 4px 2px; color: var(--muted); font: 600 13px var(--sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; } .mfs-hide:hover { color: var(--text); }
 .mfs-main { min-width: 0; padding: 16px 18px; }
-.mfs-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.mfs-bar .mf-count { margin: 0; } .mfs-busy { color: var(--faint); }
-.mfs-bar-b .btn { display: inline-flex; align-items: center; gap: 6px; }
+.mfs-rbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.mfs-rbar .mf-count { margin: 0; } .mfs-busy { color: var(--faint); }
 .mfs-active { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 14px; font-size: 13.5px; }
 .mfs-active .fchip { margin: 0; cursor: pointer; }
 .mfs-active .fchip:hover { border-color: var(--gold); }
 @media (max-width: 900px) {
   .mfs-layout { grid-template-columns: minmax(0, 1fr); }
   .mfs-side { display: none; }
-  .mfs-open { display: inline-flex; }
   .mfs-layout.is-sheet .mfs-side { display: block; position: fixed; z-index: var(--z-drawer, 320); left: 0; right: 0; bottom: 0; top: auto; height: auto; max-height: 90dvh; border-radius: 20px 20px 0 0;
     padding: 6px 16px 0; background: var(--ov-surface, var(--s1)); border: 1px solid var(--ov-border, var(--border-strong)); box-shadow: var(--ov-shadow, 0 -12px 40px rgba(0, 0, 0, .35)); overflow: auto; animation: mfs-up .22s ease-out; }
   .mfs-back { position: fixed; inset: 0; z-index: var(--z-backdrop, 300); background: var(--ov-backdrop, rgba(10, 9, 7, .6)); }
