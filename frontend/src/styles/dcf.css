@@ -145,3 +145,5 @@
 .dcf-get li { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-ctl, 12px); background: var(--s1); font: 600 14px var(--sans); }
 .dcf-intro .dcf-intro-note { margin: 14px 0 0; color: var(--faint); font-size: 12.5px; }
 @media (max-width: 820px) { .dcf-intro-grid { grid-template-columns: minmax(0, 1fr); } }
+.dcf-intro > summary { display: flex; align-items: center; gap: 10px; } .dcf-intro > summary::after { display: none; }
+.dcf-hide { margin-left: auto; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 13px var(--sans); cursor: pointer; } .dcf-hide:hover { border-color: var(--gold); }

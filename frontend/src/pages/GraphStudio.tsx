@@ -208,7 +208,20 @@ export function GraphStudio() {
   };
   const toggle = (mid: string) => { const cell = cellOf(active); const has = cell.series.some((s) => s.m === mid); if (has) setCell(active, { ...cell, series: cell.series.filter((s) => s.m !== mid) }); else addTo(active, mid); };
   const nCo = (l: string[]) => l.filter((x) => !isIndexSym(x)).length;
-  const addCompany = (s: string) => { if (companies.includes(s)) return; if (!isIndexSym(s) && nCo(companies) >= lim.companies) { upgrade(plan === "basic" ? "silver" : "gold", `Comparing more than ${lim.companies} companies`); return; } setCompanies([...companies, s]); setCq(""); };
+  const addCompany = (s: string) => { if (companies.includes(s)) return; if (!isIndexSym(s) && nCo(companies) >= lim.companies) { upgrade(plan === "basic" ? "silver" : "gold", `Comparing more than ${lim.companies} companies`); return; } setCompanies([...companies, s]); setCq("");
+    // the new company joins every chart: each measure already drawn gets a line for it (breakdown charts stay with one company; the plan's series limit and unsupported measures are respected)
+    let changed = false;
+    const cells = view.cells.map((c) => {
+      const series = [...c.series];
+      for (const m of [...new Set(c.series.map((x) => x.m))]) {
+        const mt = BY_ID[m]; if (!mt || mt.grain === "composition" || unsupportedWhy(s, mt) || series.some((x) => x.s === s && x.m === m)) continue;
+        if (series.length >= lim.series) break;
+        series.push({ s, m }); changed = true;
+      }
+      return series.length === c.series.length ? c : { ...c, series };
+    });
+    if (changed) set({ ...view, cells });
+  };
   const removeCompany = (s: string) => { const left = companies.filter((x) => x !== s); setCompanies(left); set({ ...view, cells: view.cells.map((c) => ({ ...c, series: c.series.filter((x) => x.s !== s) })) }); };
   const searchRows = useMemo(() => (sf.on ? (sf.rows as unknown as [string, string][]) : rows), [sf.on, sf.rows, rows]);   // with a filter on, indices (no sector or size) drop out
   const hits = useMemo(() => { const n = cq.trim().toLowerCase(); if (n.length < 1) return sf.on ? searchRows.slice(0, 8) : []; const f = searchRows.filter((r) => r[0].toLowerCase().startsWith(n) || r[1].toLowerCase().includes(n)), ixs = f.filter((r) => isIndexSym(r[0])).slice(0, 3); return [...f.filter((r) => !isIndexSym(r[0])).slice(0, 8 - ixs.length), ...ixs]; }, [cq, searchRows, sf.on]);

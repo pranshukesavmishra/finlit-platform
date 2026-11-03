@@ -1,3 +1,4 @@
+import { useState } from "react";
 // The start of the DCF calculator page: what a DCF is, five steps to use it, what comes out. Plain words; it describes a calculation and never advises.
 const STEPS: [string, string][] = [
   ["Choose a company", "Search a listed company to fill its free cash flow, net debt, shares, price and market cap (Gold)."],
@@ -8,10 +9,16 @@ const STEPS: [string, string][] = [
 ];
 const GET = ["Intrinsic value per share", "Price against estimated value", "Bear, Base and Bull cases", "Sensitivity grid", "Year-wise cash flow and terminal value", "Full calculation and assumptions"];
 
+const KEY = "finlit.dcf.intro";
+const read = () => { try { return localStorage.getItem(KEY) !== "hidden"; } catch { return true; } };
+const save = (open: boolean) => { try { localStorage.setItem(KEY, open ? "open" : "hidden"); } catch { /* private mode */ } };
+
 export function DcfIntro() {
+  const [open, setOpen] = useState(read);
+  const set = (v: boolean) => { setOpen(v); save(v); };
   return (
-    <details className="card dcf-intro" open>
-      <summary><h2>How this calculator works</h2></summary>
+    <details className="card dcf-intro" open={open} onToggle={(e) => { const v = (e.currentTarget as HTMLDetailsElement).open; if (v !== open) set(v); }}>
+      <summary><h2>How this calculator works</h2><button type="button" className="dcf-hide" onClick={(e) => { e.preventDefault(); set(!open); }}>{open ? "Hide" : "Show"}</button></summary>
       <div className="dcf-intro-grid">
         <div>
           <h3>What is a DCF?</h3>

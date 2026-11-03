@@ -44,3 +44,9 @@ td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent
 .plf-blk .plf-vs { margin: 0 0 12px; line-height: 1.5; } .plf-blk .plf-vs b { color: var(--text); }
 
 .plf-blk .plf-vs2 { margin-top: 16px; }
+
+/* a smaller card: it no longer fills the screen */
+.plf-note { width: min(420px, calc(100vw - 24px)); padding: 12px; border-radius: 16px; max-height: min(60vh, calc(100vh - 150px)); top: 100px; font-size: 13px; }
+.plf-note h3 { font-size: 14.5px; } .plf-note h4 { margin: 10px 0 6px; font-size: 13px; }
+.plf-in { margin-top: 8px; padding: 10px; border-radius: 12px; } .plf-pane { min-height: 0; padding: 8px 10px; font-size: 13px; line-height: 1.5; }
+.plf-pager { margin-top: 8px; } .plf-pager button, .plf-tabs button { padding: 4px 9px; font-size: 12px; } .plf-f { margin-top: 8px; font-size: 11.5px; }

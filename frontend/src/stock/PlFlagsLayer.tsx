@@ -150,6 +150,16 @@ export function PlFlagsLayer({ f, lender = false }: { f?: Financials; lender?: b
     return () => io.disconnect();
   }, [flags.length]);
   useEffect(() => { if (shown && reduced()) setLanded(true); }, [shown]);
+  // the notice goes by itself once the reader moves on: when the next section (trends) reaches the middle of the screen, or the results area is well above the screen
+  useEffect(() => {
+    if (!shown || gone) return;
+    const check = () => {
+      const next = document.getElementById("trends"), top = bar.current?.getBoundingClientRect().bottom ?? 0;
+      if ((next && next.getBoundingClientRect().top < window.innerHeight * 0.45) || top < -window.innerHeight * 0.8) { setGone(true); setLanded(true); }
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, [shown, gone]);
   const land = useCallback(() => setLanded(true), []);
   useEffect(() => {
     if (!flags.length) return;
