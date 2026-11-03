@@ -24,6 +24,7 @@ import { SectorPeersSection } from "./SectorPeers";
 import { EarningsCallSection } from "./EarningsCall";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
+import { KeyFindings, findingsOf } from "./KeyFindings";
 import { GROUP_START, navFor } from "../lib/sectionNav";
 import { SectionsMenu } from "./SectionsMenu";
 import { PreparingReport, type PreparingMode } from "./PreparingReport";
@@ -57,6 +58,8 @@ export function StockPage() {
   const events = useSection<Events>(symbol, "events", ready).data;
   const lead = useLeadership(symbol, ready).data;
   const navItems = useMemo(() => navFor(!!(lead && (lead.available || lead.display))), [lead]);   // no pill for a section that is switched off
+  const found = useMemo(() => (s ? findingsOf(s, fin, !!s.dataQuality.isBank) : null), [s, fin]);   // the red / orange dots on the tabs
+  const dotOf = (id: string): "f" | "w" | null => { if (!found) return null; const only = (x: { to: string }[]) => x.filter((i) => i.to === id).length; if (id === "findings") return found.flags.length ? "f" : found.watch.length ? "w" : null; return only(found.flags) ? "f" : only(found.watch) ? "w" : null; };
   const tech = usePrice(symbol, "1Y", ready).data?.technical;   // waits for the summary, so a new stock is asked for once, not twice
   useDocTitle(s ? `${s.profile.name} research` : `${symbol} research`, s ? `FinLit research report for ${s.profile.name}: score ${s.score.overall ?? "n/a"}, financials, ratios, ownership and peers.` : undefined);
 
@@ -125,7 +128,7 @@ export function StockPage() {
           <SectionsMenu items={navItems} active={active} onPick={jump} />
           <div className={"snav" + (edge.l ? " edge-l" : "") + (edge.r ? " edge-r" : "")}>
           {edge.l && <button type="button" className="snav-arrow" aria-label="Earlier sections" onClick={() => slide(-1)}>‹</button>}
-          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={(active === id ? "active" : "") + (GROUP_START.has(id) ? " grp" : "")} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}</a>)}</nav>
+          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={(active === id ? "active" : "") + (GROUP_START.has(id) ? " grp" : "")} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}{dotOf(id) && <i className={"tdot " + dotOf(id)} role="img" aria-label={dotOf(id) === "f" ? "has a red flag" : "has something to watch"} />}</a>)}</nav>
           {edge.r && <button type="button" className="snav-arrow" aria-label="More sections" onClick={() => slide(1)}>›</button>}
           </div>
         </div>
@@ -135,6 +138,7 @@ export function StockPage() {
         {/* What the company does comes first: someone who has never heard of it starts here, then the score, then the numbers. */}
         <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><Notes s={s} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><KeyFindings s={s} f={fin} lender={!!s.dataQuality.isBank} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>
         <PlFlagsLayer f={fin} lender={!!s.dataQuality.isBank} />
         <ErrorBoundary section="This section"><QuarterSection f={fin} /></ErrorBoundary>

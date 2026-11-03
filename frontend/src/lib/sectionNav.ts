@@ -6,6 +6,7 @@ export const NAV: NavItem[] = [
   ["prism", "Scores", "gauge", "The FinLit IQ and the FinLit Prism score, side by side"],
   ["business", "Company", "building", "What the company does and how it earns"],
   ["notes", "Strengths & watch-outs", "notes", "Plain-language findings and what lifts or weighs on the score"],
+  ["findings", "Key findings", "notes", "Every red flag, watch item and strength, each linking to its section"],
   ["price", "Price", "line", "Price chart, returns and technical levels"],
   ["quarter", "Quarter", "notes", "The latest quarter against a year ago"],
   ["earnings-call", "Earnings call", "notes", "What management said on the latest earnings call, with the quotes"],
