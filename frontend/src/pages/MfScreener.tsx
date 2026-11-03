@@ -89,11 +89,11 @@ export function MfScreenerPage() {
         <p className="fgx-note">Presets are plain starting points: they set filters you can change. They describe past figures and do not recommend any fund.</p>
       </section>
 
-      <Toolbar q={text} setQ={setText} searchLabel="Search by fund or fund house, e.g. hdfc mid cap" buttons={[{ id: "filters", label: "Filters", active: shown, onClick: showPanel }]}
+      <Toolbar q={text} setQ={setText} searchLabel="Search by fund or fund house, e.g. hdfc mid cap" buttons={panelOpen && !narrow() ? [] : [{ id: "filters", label: "Filters", active: shown, onClick: showPanel }]}
         sort={<label className="fgx-sort"><span className="sr-only">Sort by</span>
           <select aria-label="Sort by" value={sortVal} onChange={(e) => { const [k, d] = e.target.value.split(":"); go({ sort: k, dir: d as "asc" | "desc", page: 1 }); }}>
             {!sorts.some((s) => `${s.v}:${s.dir}` === sortVal) && <option value={sortVal}>Sorted by column</option>}
-            {sorts.map((s) => <option key={s.v + s.dir} value={`${s.v}:${s.dir}`}>Sort: {s.label}</option>)}</select></label>} />
+            {sorts.map((s) => <option key={s.v + s.dir} value={`${s.v}:${s.dir}`}>{s.v === "aum" && s.dir === "desc" ? "No sort: default order (fund size, largest first)" : `Sort: ${s.label}`}</option>)}</select></label>} />
 
       <div className={"mfs-layout" + (panelOpen ? "" : " is-collapsed") + (sheet ? " is-sheet" : "")}>
         {sheet && <div className="mfs-back" onClick={() => setSheet(false)} aria-hidden="true" />}
