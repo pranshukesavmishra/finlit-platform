@@ -140,7 +140,7 @@ describe("DuPont placement", () => {
     st.fin = { yearly: { pl: RIL.pl, bs: RIL.bs } };
     const { container } = render(<DuPont symbol="RELIANCE" lender={false} />);
     const kids = [...container.querySelector(".dp")!.children];
-    expect(kids).toHaveLength(1); expect(kids[0].id).toBe("dupont"); expect(kids[0].querySelector("h3")?.textContent).toContain("DuPont analysis");
+    expect(kids).toHaveLength(1); expect(kids[0].id).toBe("dupont-card");
     const sub = kids[0].querySelector("#decoding-roe")!;
     expect(sub.querySelector(".dp-head h4")?.textContent).toBe("Decoding ROE");
     expect(container.querySelectorAll(".dp-head")).toHaveLength(1);

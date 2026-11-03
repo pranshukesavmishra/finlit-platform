@@ -18,8 +18,7 @@ import { useUI } from "../lib/ui";
 import { SectionHead } from "./Sections";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
 import { DuPont } from "./DuPont";
-import { ProfitReality } from "./ProfitReality";
-import { RevenueCash } from "./RevenueCash";
+import { EarningsCash } from "./EarningsCash";
 import { SegmentCard } from "./Sections2";
 import { PeerRanking } from "./Leadership";
 import { useLeadership } from "../lib/leadership";
@@ -106,8 +105,9 @@ function HistoryTable({ r, profile }: { r: Ratios; profile?: unknown }) {
             {vals.map((x, i) => {
               const bad = !!rd?.nm?.[i];
               let t = x == null || bad || hi === lo ? 0.5 : (x - lo) / (hi - lo); if (better === "lower") t = 1 - t;
-              const bg = x == null || bad ? "transparent" : t >= 0.5 ? `color-mix(in srgb, var(--gain) ${Math.round((t - 0.5) * 44)}%, transparent)` : `color-mix(in srgb, var(--loss) ${Math.round((0.5 - t) * 44)}%, transparent)`;
-              return <td key={i} className={i === vals.length - 1 ? "latest" : ""} style={{ background: good == null ? undefined : bg }}>{x == null ? <span className="faint">—</span> : bad ? <NotMeaningful reason={rd.nm[i] as string} /> : num(x)}</td>;
+              const n = Math.round(Math.abs(t - 0.5) * 44), heat = n === 0 ? 0 : Math.min(37, Math.round(6 + 1.4 * n));   // 7 to 37 per cent: the colours stay readable on the page, text keeps about 9:1 contrast
+              const bg = x == null || bad ? "transparent" : t >= 0.5 ? `color-mix(in srgb, var(--gain) ${heat}%, transparent)` : `color-mix(in srgb, var(--loss) ${heat}%, transparent)`;
+              return <td key={i} className={i === vals.length - 1 ? "latest" : ""} style={{ background: good == null ? undefined : bg }}>{x == null ? <span className="faint">—</span> : bad ? <NotMeaningful reason={rd.nm[i] as string} /> : num(x, r.latest[k]?.unit === "days" ? 0 : 2)}</td>;
             })}
             <td>{ch == null ? "—" : <span className={"dchip " + (good == null ? "" : good ? "up" : "down")}>{ch.delta === 0 ? "" : up ? "▲ " : "▼ "}{ch.text}</span>}</td>
             <td><Spark values={vals.map((x, i) => (rd?.nm?.[i] ? null : x))} color={sc} w={84} h={30} /></td>
@@ -148,6 +148,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
   const hist = r.history, meters = METERS.filter((m) => r.latest[m.key]);
   const cur = meters.find((m) => m.key === sel) || meters[0];
   return (
+    <>
     <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
       <SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" sub="Latest value with its period. Select i for what it means and how to read it." color="--p-profit" />
       <Plain>Ratios turn big numbers into fair comparisons. The meters below show where each one sits against common rules of thumb. Zones are a starting point: always compare with companies in the same industry.</Plain>
@@ -157,16 +158,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
         <div className="card-h"><h3><span className="ci"><Icon name="gauge" /></span>Profitability ratios<ChartHelp id="profit-ratios" /></h3><span className="chip ghost">Annual · 8 years</span></div>
         <ProfitabilityRatios periods={hist.periods} rows={hist.rows as Record<string, (number | null)[]>} />
       </div>
-      <DuPont symbol={r.meta.symbol} lender={lender} />
-      <SectionHead id="earnings" no="Earnings & cash" icon="shield" tier="gold" title="Earnings & cash quality: Is the profit real, and is it turning into cash?" sub="One section: profit against cash, collections and stock, one-off items, then the rule-based checks. Each check appears once." color="--p-profit" />
-      <ProfitReality symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} />
-      <RevenueCash symbol={r.meta.symbol} lender={lender} labels={labels} />
-      <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
-        <div style={{ margin: "24px 0 16px" }}>
-          <div className="label" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>Historical trend · {hist.periods[0]}–{hist.periods[hist.periods.length - 1]} <TierChip tier="silver" /><ChartHelp id="ratio-trend" /></div>
-          <div className="trc-grid">{TREND_KEYS.filter(([k]) => hist.rows[k]).map(([k, label, col]) => <TrendCard key={k} k={k} label={label} col={col} vals={hist.rows[k]} better="higher" />)}</div>
-        </div>
-      </Gate>
+      <h3 className="rg-h">All ratios today</h3>
       <div className="grid g3">
         {r.groups.filter((g) => g.keys.length).map((g) => {
           const keys = g.keys.filter((k) => !(DUPES[k] && r.latest[DUPES[k]]));
@@ -195,6 +187,21 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
         </div>
       </Gate>
     </section>
+      <DuPont symbol={r.meta.symbol} lender={lender}
+        head={<SectionHead id="dupont" no="08 · DuPont analysis" icon="layers" tier="basic" title="What drives return on equity" sub="ROE split into profit margin, asset turnover and leverage, then cleaned of one-off items and split further." color="--p-quality" />} />
+      <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
+        <SectionHead id="earnings" no="09 · Earnings & cash quality" icon="shield" tier="gold" title="Is the profit real, and is it turning into cash?" sub="Profit against cash, collections and stock, and one-off items, checked against fixed rules." color="--p-profit" />
+        <EarningsCash symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} labels={labels} />
+      </section>
+      <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>
+        <SectionHead id="history" no="10 · Historical trend · FY19–FY26" icon="line" tier="silver" title="Margins and returns against their own history" sub="Latest year against the low, average and high since FY19." color="--p-growth" />
+      <Gate tier="basic" title="Historical trend for each parameter" points={["Eight years of margins and returns", "Spot improvement or deterioration", "Median and low for every series"]}>
+        <div style={{ margin: "24px 0 16px" }}>
+          <div className="trc-grid">{TREND_KEYS.filter(([k]) => hist.rows[k]).map(([k, label, col]) => <TrendCard key={k} k={k} label={label} col={col} vals={hist.rows[k]} better="higher" />)}</div>
+        </div>
+      </Gate>
+      </section>
+    </>
   );
 }
 
@@ -218,7 +225,7 @@ export function PeersSection({ p, self, s }: { p?: Peers; self: string; s: Summa
   const N = peers.length, CX = 190, CY = 190, RR = 128;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="peers" no="09 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
+      <SectionHead id="peers" no="12 · Peers" icon="layers" tier="basic" title={`How ${s.profile.name.split(" ")[0]} compares with its peers`} sub="Select a company to open its report." color="--gold-deep" />
       <Plain>Comparing a company with its closest rivals is the quickest way to tell whether a number is good or just normal for the industry. {s.profile.sector ? `These ${N} companies work in ${s.profile.sector}.` : ""}</Plain>
       <div className="pr2">
         <div className="card acc orbit-card" style={{ "--ac": "var(--gold)" } as React.CSSProperties}>
@@ -281,7 +288,7 @@ export function InsightsSection({ s, r, seg, tech }: { s: Summary; r?: Ratios; s
   const spec = b.filter(([, k]) => SPEC[k]), plain = b.filter(([, k]) => !SPEC[k]);
   return (
     <section className="block" style={{ "--sc": "var(--t-gold)" } as React.CSSProperties}>
-      <SectionHead id="insights" no="10 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits | Where the revenue comes from`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
+      <SectionHead id="insights" no="13 · Gold insights" icon="crown" tier="gold" title={`Triggers to watch and where ${s.profile.name.split(" ")[0]} fits`} sub="Where this company sits in FinLit's stock buckets, and what to watch next." color="--t-gold" />
       <Plain>Buckets tell you what kind of company this is, and where it sits on each scale. Triggers are the specific things most worth watching next. Segments show where the money comes from.</Plain>
       <p className="faint" style={{ margin: "0 0 14px" }}><Link to={`/outlook/${encodeURIComponent(s.profile.symbol)}`}>Profit and revenue outlook, from this company's own history (Gold) →</Link></p>
       <Gate tier="gold" title="Unlock Gold insights" points={["Stock bucketing by size, style and theme", "Key triggers and sector benchmarking", "Revenue segmentation by segment"]}>

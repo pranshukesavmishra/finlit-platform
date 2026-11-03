@@ -13,7 +13,7 @@ describe("All sections panel", () => {
   });
   it("is closed to start with and lists Leadership only when it is shown", () => {
     const h = renderToStaticMarkup(<SectionsMenu items={navFor(false)} active={null} onPick={() => {}} />);
-    expect(h).toContain("hidden"); expect(h).toContain('aria-expanded="false"'); expect(h).not.toContain('data-s="leadership"'); expect(h).toContain('data-s="plans"');
+    expect(h).toContain("hidden"); expect(h).toContain('aria-expanded="false"'); expect(h).not.toContain('data-s="leadership"'); expect(h).toContain('data-s="history"'); expect(h).not.toContain('data-s="plans"');
     expect(navFor(false)).toHaveLength(22); expect(navFor(true)).toHaveLength(23);
   });
 });

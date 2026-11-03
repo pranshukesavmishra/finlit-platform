@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { HScroll } from "../components/HScroll";
-import { ChartHelp } from "../components/ChartHelp";
 import { Icon } from "../lib/icons";
 import { useSection, type Financials } from "../lib/api";
 import { dupont, dupontSummary, shareText, shareTitle, roeMoveText } from "../lib/dupont";
@@ -23,7 +22,7 @@ const TIP: Record<string, string> = {
   t: "Asset turnover: how many rupees of sales the company makes from each ₹1 of assets. Higher means the assets work harder.",
   e: "Equity multiplier: total assets divided by shareholders' equity. Higher means more of the assets are funded by liabilities rather than equity.",
 };
-export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) {
+export function DuPont({ symbol, lender, head }: { symbol: string; lender: boolean; head?: React.ReactNode }) {
   const f = useSection<Financials>(symbol, "financials", !!symbol);
   const [five, setFive] = useState(false);
   const d = useMemo(() => dupont(f.data?.yearly.pl, f.data?.yearly.bs, lender), [f.data, lender]);
@@ -33,13 +32,13 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
   const now = [...years].reverse().find((y) => y.roe != null) ?? null;
   const summary = dupontSummary(d);
   const cur = (i: number) => (i === years.length - 1 ? "cur" : "");
-  return (
+  const has = years.length >= 1 && years.some((y) => y.roe != null);
+  const body = (
     <div className="dp">
-      {years.length >= 1 && years.some((y) => y.roe != null) && (
-        <div className="card dp-card dp-main" id="dupont">
+      {has && (
+        <div className="card dp-card dp-main" id="dupont-card">
           <div className="dp-top">
             <div className="dp-title">
-              <h3><span className="ci"><Icon name="layers" /></span>DuPont analysis: what drives return on equity<ChartHelp id="dupont" /></h3>
               <p className="faint">ROE is broken into three components: <b>Net profit margin × Asset turnover × Equity multiplier</b></p>
             </div>
             <aside className="dp-info" aria-label="What drives ROE"><Icon name="info" /><div><b>What drives the return on equity (ROE)?</b><span>ROE shows how efficiently a company turns equity into profits.</span></div></aside>
@@ -102,4 +101,6 @@ export function DuPont({ symbol, lender }: { symbol: string; lender: boolean }) 
       )}
     </div>
   );
+  // as its own section: the header comes only when there is a DuPont analysis to show
+  return head ? (has ? <section className="block" style={{ "--sc": "var(--p-quality)" } as React.CSSProperties}>{head}{body}</section> : null) : body;
 }

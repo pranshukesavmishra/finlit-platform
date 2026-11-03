@@ -4,7 +4,7 @@ import { ChartHelp } from "../components/ChartHelp";
 import { Icon } from "../lib/icons";
 import { useSection, type Financials } from "../lib/api";
 import { MINUS, nf } from "../lib/format";
-import { fyLabel, profitReality, type Status } from "../lib/profitReality";
+import { fyLabel, profitReality, type ProfitReality as PrModel, type Status } from "../lib/profitReality";
 import { EarningsIntel } from "./EarningsIntel";
 import "../styles/profitreality.css";
 
@@ -14,40 +14,21 @@ const mark: Record<Status, string> = { ok: "✓", warn: "!", flag: "⚑", na: "�
 const word: Record<Status, string> = { ok: "Passed", warn: "Watch", flag: "Flagged", na: "Not tested" };
 const tone = { Strong: "good", Mixed: "mid", "Needs a closer look": "bad" } as const;
 
-/** Profit Reality Check: reported profit against normalized profit, cash conversion, one-off items and working capital, from the company's own statements. */
-export function ProfitReality({ symbol, lender, sector, industry }: { symbol: string; lender: boolean; sector?: string | null; industry?: string | null }) {
-  const f = useSection<Financials>(symbol, "financials", !!symbol);
-  const r = useMemo(() => profitReality(f.data?.yearly.pl, f.data?.yearly.bs, f.data?.yearly.cf, lender), [f.data, lender]);
+type View = { r: PrModel; lender: boolean };
+function dv(r: PrModel, lender: boolean) {
   const ys = r.years;
-  if (!ys.length) return null;
   // Bar heights: scaled by the largest absolute value, clamped to 3..100 per cent so a bad number can never zero or overflow a bar.
   const max = Math.max(...ys.flatMap((y) => [Math.abs(y.netProfit ?? 0), Math.abs(y.normalized ?? 0)]));
   const h = (v: number | null) => (v == null || !Number.isFinite(v) || !(max > 0) ? 0 : Math.min(100, Math.max(3, (Math.abs(v) / max) * 100)));
   const anyNeg = ys.some((y) => (y.netProfit ?? 0) < 0 || (y.normalized ?? 0) < 0);
   const bar = (v: number | null, cls: string, label: string) => v == null ? <i className="pr-bar none" /> : (
     <i className={"pr-bar " + cls + (v < 0 ? " neg" : "")} style={{ height: `${h(v)}%` }} title={`${label}: ${sn(v)} crore`} />);
-  const hasOneOff = ys.some((y) => y.exceptional != null || y.discontinued != null);
-  const hasOi = ys.some((y) => y.otherIncomeShare != null);
-  const hasWc = !lender && ys.some((y) => y.receivablesGrowth != null || y.inventoryGrowth != null);
-  const hasCash = !lender && ys.some((y) => y.cfoToProfit != null);
-  return (
-    <div className="card pr-card" aria-label="Is the profit clean?">
-      <div className="card-h"><h3><span className="ci"><Icon name="shield" /></span>Is the profit clean?<ChartHelp id="profit-reality" /></h3><span className="s">Is the profit real, repeatable and backed by cash? · ₹ crore</span></div>
+  return { ys, anyNeg, bar, hasOneOff: ys.some((y) => y.exceptional != null || y.discontinued != null), hasOi: ys.some((y) => y.otherIncomeShare != null),
+    hasWc: !lender && ys.some((y) => y.receivablesGrowth != null || y.inventoryGrowth != null), hasCash: !lender && ys.some((y) => y.cfoToProfit != null) };
+}
 
-      <EarningsIntel pr={r} sector={sector} industry={industry} />
-
-      <div className={"pr-verdict " + (r.verdict ? tone[r.verdict] : "none")} role="status">
-        <span className="k">Earnings quality</span>
-        <b>{r.verdict ?? "Not enough data to judge"}</b>
-        {r.findings.length > 0 && <ul>{r.findings.map((t, i) => <li key={i}>{t}</li>)}</ul>}
-        {r.verdict === "Strong" && !r.findings.length && <p>Profit is backed by cash, one-off items are small and receivables and inventory are keeping pace with sales.</p>}
-      </div>
-      <details className="pr-rules"><summary>How this is decided</summary>
-        <ul>{r.rules.map((x) => <li key={x.key} className={x.status}><span className="m" aria-hidden="true">{mark[x.status]}</span><span><b>{word[x.status]}.</b> {x.text}. <small>{x.detail}</small></span></li>)}</ul>
-        <p className="faint">Two or more flagged rules, or "profit rose but cash did not", gives "Needs a closer look". One flagged rule or two watch rules gives "Mixed". Otherwise "Strong". At least three tests (one for lenders) need data first.</p>
-      </details>
-      {r.notes.map((t, i) => <p className="faint pr-note" key={i}>{t}</p>)}
-
+/** The numbered parts of the Earnings & cash quality section, each drawn once: profit against cash, collections and stock, the one-off items and the clean profit. */
+export function PrChart({ r, lender }: View) { const { ys, anyNeg, bar, hasOneOff, hasOi } = dv(r, lender); return (<>
       <h4 className="pr-h">Reported profit against normalized profit</h4>
       <p className="pr-say">Normalized profit takes out discontinued operations, exceptional items after tax, and other income above {20}% of pre-tax profit. It is a cleaner guide to what the core business earns, not a forecast.</p>
       <div className={"pr-chart" + (anyNeg ? " neg" : "")} role="img" aria-label={"Reported and normalized net profit by year: " + ys.map((y) => `${fyLabel(y.period)} reported ${sn(y.netProfit)}, normalized ${sn(y.normalized)}`).join("; ")}>
@@ -71,6 +52,8 @@ export function ProfitReality({ symbol, lender, sector, industry }: { symbol: st
       </HScroll>
       <p className="faint pr-note">Exceptional items are taxed at the company's effective tax rate for that year (not below 0%, not above 40%; 25% when it cannot be worked out). A dash means nothing to remove or no data.</p>
 
+  </>); }
+export function PrCash({ r, lender }: View) { const { ys, hasCash } = dv(r, lender); return (<>
       {lender ? null : hasCash ? (<>
         <h4 className="pr-h">Cash conversion</h4>
         <HScroll className="" label="cash conversion">
@@ -88,6 +71,8 @@ export function ProfitReality({ symbol, lender, sector, industry }: { symbol: st
         </div>
       </>) : <p className="faint pr-note">Operating cash flow was not reported for these years, so cash conversion cannot be shown.</p>}
 
+  </>); }
+export function PrOneOff({ r, lender }: View) { const { ys, hasOneOff } = dv(r, lender); void lender; return (<>
       {hasOneOff && (<>
         <h4 className="pr-h">One-off gains and losses</h4>
         <HScroll className="" label="one-off items">
@@ -102,6 +87,8 @@ export function ProfitReality({ symbol, lender, sector, industry }: { symbol: st
         </HScroll>
       </>)}
 
+  </>); }
+export function PrWorking({ r, lender }: View) { const { ys, hasWc } = dv(r, lender); return (<>
       {lender ? null : hasWc ? (<>
         <h4 className="pr-h">Receivables and inventory against sales</h4>
         <HScroll className="" label="working capital growth">
@@ -114,6 +101,41 @@ export function ProfitReality({ symbol, lender, sector, industry }: { symbol: st
         </HScroll>
         <p className="faint pr-note">Flagged when receivables or inventory grew 10 or more points faster than revenue in the latest year, or two years running. Growth is not worked out when the earlier year is zero or missing.</p>
       </>) : <p className="faint pr-note">Receivables and inventory are not reported, so the working-capital test cannot be shown.</p>}
+
+  </>); }
+export const useProfitReality = (symbol: string, lender: boolean) => {
+  const f = useSection<Financials>(symbol, "financials", !!symbol);
+  return useMemo(() => profitReality(f.data?.yearly.pl, f.data?.yearly.bs, f.data?.yearly.cf, lender), [f.data, lender]);
+};
+
+/** Profit Reality Check: reported profit against normalized profit, cash conversion, one-off items and working capital, from the company's own statements. */
+export function ProfitReality({ symbol, lender, sector, industry }: { symbol: string; lender: boolean; sector?: string | null; industry?: string | null }) {
+  const f = useSection<Financials>(symbol, "financials", !!symbol);
+  const r = useMemo(() => profitReality(f.data?.yearly.pl, f.data?.yearly.bs, f.data?.yearly.cf, lender), [f.data, lender]);
+  const ys = r.years;
+  if (!ys.length) return null;
+  return (
+    <div className="card pr-card" aria-label="Is the profit clean?">
+      <div className="card-h"><h3><span className="ci"><Icon name="shield" /></span>Is the profit clean?<ChartHelp id="profit-reality" /></h3><span className="s">Is the profit real, repeatable and backed by cash? · ₹ crore</span></div>
+
+      <EarningsIntel pr={r} sector={sector} industry={industry} />
+
+      <div className={"pr-verdict " + (r.verdict ? tone[r.verdict] : "none")} role="status">
+        <span className="k">Earnings quality</span>
+        <b>{r.verdict ?? "Not enough data to judge"}</b>
+        {r.findings.length > 0 && <ul>{r.findings.map((t, i) => <li key={i}>{t}</li>)}</ul>}
+        {r.verdict === "Strong" && !r.findings.length && <p>Profit is backed by cash, one-off items are small and receivables and inventory are keeping pace with sales.</p>}
+      </div>
+      <details className="pr-rules"><summary>How this is decided</summary>
+        <ul>{r.rules.map((x) => <li key={x.key} className={x.status}><span className="m" aria-hidden="true">{mark[x.status]}</span><span><b>{word[x.status]}.</b> {x.text}. <small>{x.detail}</small></span></li>)}</ul>
+        <p className="faint">Two or more flagged rules, or "profit rose but cash did not", gives "Needs a closer look". One flagged rule or two watch rules gives "Mixed". Otherwise "Strong". At least three tests (one for lenders) need data first.</p>
+      </details>
+      {r.notes.map((t, i) => <p className="faint pr-note" key={i}>{t}</p>)}
+
+      <PrChart r={r} lender={lender} />
+      <PrCash r={r} lender={lender} />
+      <PrOneOff r={r} lender={lender} />
+      <PrWorking r={r} lender={lender} />
 
       <p className="faint pr-note">Worked out from the company's own yearly statements. These are warning signs to investigate, not proof of anything, and not investment advice.</p>
     </div>

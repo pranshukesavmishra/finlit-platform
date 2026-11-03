@@ -13,6 +13,17 @@ const SEV_MARK: Record<Severity, string> = { Critical: "■", High: "◆", Moder
 const STATUS_MARK: Record<Status, string> = { "Needs attention": "✕", Watch: "!", Healthy: "✓", Improving: "↗" };
 const arrow = (v: number | null) => (v == null || Math.round(v * 10) === 0 ? "" : v > 0 ? "▲ " : "▼ ");
 
+/** The revenue-to-cash model for a company, or null while locked (Gold) or still loading. */
+export function useRevenueCashModel(symbol: string, lender: boolean, labels?: (string | null | undefined)[]) {
+  const { has } = useUI();
+  const open = useContext(OpenAccess);
+  const locked = !open && !has("gold");
+  const f = useSection<Financials>(symbol, "financials", !!symbol && !locked);
+  const key = (labels ?? []).join("|");
+  const m = useMemo(() => (locked ? null : revenueCash(f.data?.yearly.pl, f.data?.yearly.bs, f.data?.yearly.cf, { lender: isLenderLike(lender, ...(labels ?? [])), labels })), [locked, f.data, lender, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { locked, loaded: !!f.data, m };
+}
+
 /** Revenue-to-Cash Intelligence on the stock page (Gold): operating cash flow against revenue, five years, with rule-based warnings. Annual statements only. */
 export function RevenueCash({ symbol, lender, labels }: { symbol: string; lender: boolean; labels?: (string | null | undefined)[] }) {
   const { has } = useUI();
@@ -103,9 +114,9 @@ function Body({ m, head }: { m: Model; head: React.ReactNode }) {
   );
 }
 
-const gapLine = (gap: number | null) => (gap == null ? "No comparison with revenue growth" : `${gap > 0 ? "+" : gap < 0 ? MINUS : ""}${Math.abs(gap).toFixed(1)} points against revenue growth`);
+export const gapLine = (gap: number | null) => (gap == null ? "No comparison with revenue growth" : `${gap > 0 ? "+" : gap < 0 ? MINUS : ""}${Math.abs(gap).toFixed(1)} points against revenue growth`);
 
-function Tile({ label, v, tone, sub, tip, basis, plain }: { label: string; v: number | null; tone: string; sub: string; tip: string; basis?: Basis | null; plain?: boolean }) {
+export function Tile({ label, v, tone, sub, tip, basis, plain }: { label: string; v: number | null; tone: string; sub: string; tip: string; basis?: Basis | null; plain?: boolean }) {
   const id = "rcx-t" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   return (
     <div className={"rcx-tile " + tone}>
@@ -119,7 +130,7 @@ function Tile({ label, v, tone, sub, tip, basis, plain }: { label: string; v: nu
   );
 }
 
-function WarningRow({ w }: { w: Warning }) {
+export function WarningRow({ w }: { w: Warning }) {
   return (
     <li className={"rcx-w sev-" + w.severity.toLowerCase()}>
       <div className="rcx-wh"><span className="rcx-sev"><span aria-hidden="true">{SEV_MARK[w.severity]}</span>{w.severity}</span><b>{w.text}</b><span className="rcx-pat">{w.pattern}</span></div>
@@ -152,7 +163,7 @@ export function niceTicks(lo: number, hi: number, target = 5): number[] {
   return out;
 }
 
-function Trend({ years }: { years: Year[] }) {
+export function Trend({ years }: { years: Year[] }) {
   const [ref, W] = useWidth();
   const [on, setOn] = useState<number | null>(null);
   const [table, setTable] = useState(false);

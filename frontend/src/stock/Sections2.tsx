@@ -58,8 +58,8 @@ function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; v
 export function OwnershipSection({ o }: { o?: Ownership }) {
   const [hl, setHl] = useState<string | null>(null);
   const [pick, setPick] = useState<number | null>(null);
-  if (!o) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
-  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
+  if (!o) return <section className="block"><SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
+  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
   const years = ownershipYears(o.periods), idx = pick != null && pick < o.periods.length ? pick : o.periods.length - 1;
   const view = ownershipAt(o, idx) ?? { asOf: o.asOf ?? "", index: idx, year: null, comparedWith: o.comparedWith, basis: null, latest: o.latest.map((l) => ({ ...l, before: null })) };
   const sel = view.year ?? years.find((y) => y.index === idx)?.year;
@@ -72,7 +72,7 @@ export function OwnershipSection({ o }: { o?: Ownership }) {
   const selInfo = selectionInfo(o.periods, idx);
   return (
     <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="08 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${now}${then ? `, with the change since ${then}` : ""}.`} color="--p-balance" />
+      <SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${now}${then ? `, with the change since ${then}` : ""}.`} color="--p-balance" />
       {years.length > 0 && <OwnershipYearPicker years={years.map((y) => y.year)} selected={sel ?? null} onPick={(y) => { const f = years.find((q) => q.year === y); if (f) setPick(f.index); }} cap={{ now, then, basis: view.basis, isLatest, year: selInfo.year, isYearLatest: selInfo.isYearLatest, yearLatest: selInfo.yearLatest }} />}
       {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
       <div className="own4">
@@ -158,7 +158,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
   const monthly = (shares * last) / 12;
   return (
     <section className="block" style={{ "--sc": "var(--gold-deep)" } as React.CSSProperties}>
-      <SectionHead id="dividends" no="11 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
+      <SectionHead id="dividends" no="14 · Dividends & events" icon="coins" tier="basic" title="Cash returned to shareholders" sub="Amounts are adjusted for splits and bonuses." color="--gold-deep" />
       {e.dividendYieldTtm != null && <Plain tone={streak >= 5 && rising >= 3 ? "good" : "info"}>For every ₹100 invested at today's price, this company pays about ₹{nf(e.dividendYieldTtm, 2)} a year. It has paid a dividend for {streak} year{streak === 1 ? "" : "s"} running{rising >= 2 ? ` and raised it ${rising} years in a row` : ""}.{payout != null ? ` It keeps about ${nf(100 - payout, 0)}% of its profit to grow the business.` : ""} {e.dividendYieldTtm < 1 ? "A low yield suggests owning it for growth rather than income." : ""}</Plain>}
       <div className="dvk">
         <div className="dk" style={{ "--dc": "var(--gold)" } as React.CSSProperties}>
@@ -226,7 +226,7 @@ export function DividendsSection({ e, price, r }: { e?: Events; price?: number |
 export function MethodSection({ s }: { s: Summary }) {
   return (
     <section className="block" style={{ "--sc": "var(--info)" } as React.CSSProperties}>
-      <SectionHead id="method" no="12 · Pros, cons & data" icon="info" title="Pros and cons, and how the Prism score has moved" sub="What is strong and what needs care, overall, then how the Prism score has changed over time." color="--info" />
+      <SectionHead id="method" no="15 · Pros, cons & Prism history" icon="info" title="Pros and cons, and how the Prism score has moved" sub="What is strong and what needs care, overall, then how the Prism score has changed over time." color="--info" />
       <div className="pc-g pc-all">
         <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
         <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>

@@ -24,6 +24,7 @@ import { SectorPeersSection } from "./SectorPeers";
 import { EarningsCallSection } from "./EarningsCall";
 import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
+import "../styles/report-polish.css";
 import { KeyFindings, findingsOf } from "./KeyFindings";
 import { GROUP_START, navFor } from "../lib/sectionNav";
 import { SectionsMenu } from "./SectionsMenu";
