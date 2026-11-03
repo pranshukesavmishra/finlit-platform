@@ -29,7 +29,7 @@ from typing import Dict, List, Mapping, Optional, Tuple
 from .seed import slug
 from .theme_map import SUBTHEMES as THEME_SUBS
 
-REGISTRY_VERSION = 4
+REGISTRY_VERSION = 5
 DISCLAIMER = "A screen narrows a list. It is not a recommendation."
 BANNED_WORDS = ("best", "buy", "multibagger", "sell", "top pick", "undervalued gem")   # in names and card text, never (spec p2: names describe, never advise)
 RUN_GUARD = ("coalesce(ret_1y, 0) <= 300", "1-year return no more than 300%")   # a stock that has run far past that is not a steady leader: kept out of the Top 10 and momentum lists
@@ -241,7 +241,7 @@ PRESETS: List[Preset] = [
     Preset("higher-risk-list", "Higher-risk list", "safety", "Companies with more warning signs than usual. Read the company page before acting.", "rules",
            _m(rated=1), "", (("prism_risk < 40 or prism_final < 35 or (pct_from_high >= 40 and prism_lt_score <= -50)", "Risk below 40, or Prism below 35, or 40% or more below the high with a long-term view of -50 or lower"),),
            (("prism_risk", "asc"), ("prism_final", "asc")), 25, with_status((STOCK, RISK, PRISM, PLABEL, W52, LTS, R6M, SECTOR, MCAP)), (),
-           ("Rated by Prism.", "Prism Risk below 40, or Prism score below 35, or 40% or more below the 52-week high with a long-term technical view of -50 or lower.", "Ranked by the Risk part, lowest first. This is a caution list, not a sell list."),
+           ("Rated by Prism.", "Prism Risk below 40, or Prism score below 35, or 40% or more below the 52-week high with a long-term technical view of -50 or lower.", "Ranked by the Risk part, lowest first. This is a caution list, not a recommendation."),
            False, None, ("provisional",), "p14 (Higher-risk list)"),
 
     # ---- not built: the data does not exist yet. Listed so the cards can say so in plain words, never computed.
@@ -368,7 +368,7 @@ BASIC: List[Preset] = [
     _bp("basic-caution-list", "Caution list", "safety", "Companies with more warning signs than usual. Read the company page before acting.",
         (("overall < 45 or pillar_balance < 35 or (pct_from_high >= 40 and pillar_technical <= 25)", "FinLit IQ below 45, or Balance sheet below 35, or 40% or more below the high with Technical 25 or less"), MC1000),
         (("overall", "asc"),), (RANK, STOCK, FINLIT, B_BAL, B_TECH, W52, R6M, SECTOR, MCAP),
-        ("FinLit IQ below 45 (Watch), or Balance sheet below 35, or 40% or more below the 52-week high with Technical 25 or less.", "Market cap Rs 1,000 Cr or more.", "Ranked by FinLit IQ, lowest first. This is a caution list, not a sell list.")),
+        ("FinLit IQ below 45 (Watch), or Balance sheet below 35, or 40% or more below the 52-week high with Technical 25 or less.", "Market cap Rs 1,000 Cr or more.", "Ranked by FinLit IQ, lowest first. This is a caution list, not a recommendation.")),
 ]
 
 ADVANCED: List[Preset] = list(PRESETS)

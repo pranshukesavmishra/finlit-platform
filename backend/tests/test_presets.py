@@ -64,6 +64,25 @@ def test_registry_shape_names_and_rules():
 
 
 # ---------------------------------------------------------------------------------------------------------------- maths
+def test_no_banned_word_in_any_visible_text_of_any_screen():
+    # every string a card, chip or ranking note can show, not only the name and the card text (a "not a sell list" note slipped through once)
+    import dataclasses
+
+    def texts(o):
+        if isinstance(o, str):
+            yield o
+        elif dataclasses.is_dataclass(o) and not isinstance(o, type):
+            for f in dataclasses.fields(o):
+                yield from texts(getattr(o, f.name))
+        elif isinstance(o, (tuple, list)):
+            for v in o:
+                yield from texts(v)
+    for p in ALL:
+        shown = " ".join(t for t in texts(p) if t != p.ql and not t.startswith(("ql_", "coalesce"))).lower()
+        for w in BANNED_WORDS:
+            assert not re.search(rf"\b{w}\b", shown), (p.id, w)
+
+
 def test_percentiles_ties_and_missing():
     assert derive.pct_ranks([10, 20, 30, None]) == [0.0, 0.5, 1.0, None]
     assert derive.pct_ranks([5, 5, 9]) == [0.25, 0.25, 1.0]
