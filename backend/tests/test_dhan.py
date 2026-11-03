@@ -257,3 +257,14 @@ async def test_statement_history_boot_commands_run_end_to_end(store):  # noqa: F
     from test_integration import make_settings
     assert await worker.main(["history-probe", "RELIANCE"], settings=make_settings()) == 0
     assert await worker.main(["refresh-short-history"], settings=make_settings()) in (0, None)
+
+
+@pytest.mark.asyncio
+async def test_a_refused_request_says_what_dhan_said_and_never_a_credential():
+    def h(req):
+        return httpx.Response(400, json={"errorType": "Input_Exception", "errorCode": "DH-905", "errorMessage": "toDate cannot be in the future"})
+    c = dhan.DhanClient(Settings(dhan_client_id="1000000001", dhan_access_token="SECRETTOKEN"), http=httpx.AsyncClient(transport=httpx.MockTransport(h)))
+    with pytest.raises(dhan.DhanError) as e:
+        await c.daily("2885", "NSE_EQ", date(2026, 10, 1), date(2026, 11, 4))
+    assert "HTTP 400" in str(e.value) and "DH-905" in str(e.value) and "toDate cannot be in the future" in str(e.value)
+    assert "SECRETTOKEN" not in str(e.value)

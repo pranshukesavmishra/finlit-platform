@@ -41,6 +41,16 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 IST = timezone(timedelta(hours=5, minutes=30))
 
 
+
+def _why(r: httpx.Response) -> str:
+    """Dhan's own error code and message from a refused call (never a credential), so a 400 says what was wrong with the request."""
+    try:
+        j = r.json()
+        code, msg = j.get("errorCode") or j.get("error_code"), j.get("errorMessage") or j.get("error_message") or j.get("message")
+        return f" ({code}: {str(msg)[:160]})" if code or msg else ""
+    except Exception:   # nosec B110 - a diagnostic only
+        return ""
+
 class DhanError(RuntimeError):
     """Any failure talking to Dhan. The text never holds a URL, PIN, code or token."""
 
@@ -311,7 +321,7 @@ class DhanClient:
                 await asyncio.sleep(2 ** attempt)
                 continue
             if r.status_code != 200:
-                raise DhanError(f"{path}: HTTP {r.status_code}")
+                raise DhanError(f"{path}: HTTP {r.status_code}{_why(r)}")
             try:
                 out = r.json()
             except ValueError:
