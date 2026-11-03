@@ -29,7 +29,7 @@ from typing import Dict, List, Mapping, Optional, Tuple
 from .seed import slug
 from .theme_map import SUBTHEMES as THEME_SUBS
 
-REGISTRY_VERSION = 3
+REGISTRY_VERSION = 4
 DISCLAIMER = "A screen narrows a list. It is not a recommendation."
 BANNED_WORDS = ("best", "buy", "multibagger", "sell", "top pick", "undervalued gem")   # in names and card text, never (spec p2: names describe, never advise)
 RUN_GUARD = ("coalesce(ret_1y, 0) <= 300", "1-year return no more than 300%")   # a stock that has run far past that is not a steady leader: kept out of the Top 10 and momentum lists

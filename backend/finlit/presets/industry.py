@@ -77,6 +77,23 @@ def build_map(raw_counts: Dict[str, int]) -> Dict[str, Tuple[Optional[str], str]
     return out
 
 
+def sector_map(raw_counts: Dict[str, int]) -> Dict[str, str]:
+    """raw Sector label -> the label shown for it. Spellings that differ only in case, punctuation, spacing or "&" against "and" share one label (the commonest
+    spelling that is not shouted names the group). Unlike industries nothing is dropped as stray and no spelling is moved to another group: the raw label stays in the store."""
+    groups: Dict[str, List[str]] = {}
+    for raw in raw_counts:
+        if key(raw):
+            groups.setdefault(key(raw), []).append(raw)
+    out: Dict[str, str] = {}
+    for raws in groups.values():
+        tidy = Counter()
+        for r in raws:
+            tidy[_tidy(r)] += raw_counts[r]
+        name = _shout_fix(sorted(tidy, key=lambda t: (_shout_fix(t) != t, -tidy[t], -len(t), t))[0])
+        out.update({r: name for r in raws})
+    return out
+
+
 def derive(rows: Iterable[Tuple[str, Optional[str]]], overrides: Optional[Dict[str, str]] = None) -> Dict[str, Tuple[Optional[str], Optional[str], str]]:
     """symbol -> (raw, clean, rule) for (symbol, raw industry) rows. An override is applied last and wins."""
     rows = list(rows)

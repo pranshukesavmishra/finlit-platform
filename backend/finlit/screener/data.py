@@ -27,6 +27,7 @@ from ..advanced.derive import AGG_GROWTH, COMPONENTS
 from .catalog import BY_KEY, CAPS, CATALOG, INDEX_LISTS
 from .compute import METRICS_VERSION, MULTIPLES
 from .listing import metrics_of
+from ..presets.industry import sector_map
 
 NAN = float("nan")
 # advanced-chart figures (advanced/derive.py), plus the stored amounts behind them that index aggregates are summed from
@@ -67,6 +68,16 @@ def _median(xs: List[float]) -> float:
 
 def _pct(sorted_xs: List[float], p: float) -> float:
     return sorted_xs[min(len(sorted_xs) - 1, int(p * (len(sorted_xs) - 1)))]
+
+
+def _tidy_sectors(raw: List[Optional[str]]) -> Tuple[List[Optional[str]], Dict[str, str]]:
+    """The sector labels with variant spellings merged, and raw spelling -> shown label (a saved filter may still carry a raw spelling)."""
+    counts: Dict[str, int] = {}
+    for v in raw:
+        if v:
+            counts[v] = counts.get(v, 0) + 1
+    m = sector_map(counts)
+    return [m.get(v, v) if v else v for v in raw], m
 
 
 class Table:
@@ -113,6 +124,7 @@ class Table:
             self.ax_sig_fy.append(m.get("ax_sig_fy") if isinstance(m.get("ax_sig_fy"), str) else None)
             self.ax_miss.append(m.get("ax_miss") if isinstance(m.get("ax_miss"), dict) else {})
             self.ax_ready.append(isinstance(m.get("ax_miss"), dict) and _num(m.get("m_ver")) >= METRICS_VERSION)
+        self.sector, self.sector_alias = _tidy_sectors(self.sector)   # variant spellings of one sector share a label in the filter, the cap and the tables; the stored label is untouched
         n = len(self.symbols)
         self.n = n
         self.n_full = sum(self.full)
@@ -193,7 +205,7 @@ class Table:
             else:
                 idx = [i for i in idx if col[i] == col[i] and (lo is None or col[i] >= lo) and (hi is None or col[i] <= hi)]
         if cats.get("sector"):
-            want = set(cats["sector"]); idx = [i for i in idx if self.sector[i] in want]
+            want = {self.sector_alias.get(w, w) for w in cats["sector"]}; idx = [i for i in idx if self.sector[i] in want]
         if cats.get("industry"):
             want = set(cats["industry"]); idx = [i for i in idx if self.industry[i] in want]
         if cats.get("cap"):

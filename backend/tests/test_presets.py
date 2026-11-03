@@ -186,6 +186,22 @@ def test_top_sector_cap_is_three_per_label_and_ties_go_to_quality_then_prism():
     assert len(same) == 3 and len(body["rows"]) == 10
 
 
+def test_sector_spellings_merge_for_the_filter_the_cap_and_the_table_without_touching_the_row():
+    rows = uni()
+    for r, sec in zip(rows[:6], ["Oil, Gas & Consumable Fuels", "Oil Gas & Consumable Fuels", "oil gas and consumable fuels ", "Oil, Gas & Consumable Fuels", "OIL GAS & CONSUMABLE FUELS", "Oil, Gas & Consumable Fuels"]):
+        r["sector"] = sec
+    raw = [r["sector"] for r in rows[:6]]
+    t = Table(rows, {}, {})
+    assert len({t.sector[i] for i in range(6)}) == 1 and t.sector[0] == "Oil, Gas & Consumable Fuels" and [r["sector"] for r in rows[:6]] == raw
+    assert dict(t.sectors)["Oil, Gas & Consumable Fuels"] == 6 and sum(1 for n, _ in t.sectors if "oil" in n.lower()) == 1
+    assert len(t.match({}, {"sector": ["Oil Gas & Consumable Fuels"]})) == 6
+    prism = with_prism(rows)
+    for i, r in enumerate(rows[:6]):
+        prism[r["symbol"]] = pz(final=95 - i)
+    body = engine.run(frame(rows, prism), BY_ID["highest-rated-large"])
+    assert len([r for r in body["rows"] if r["symbol"] in {x["symbol"] for x in rows[:6]}]) == 3
+
+
 def test_rows_carry_the_exchange_from_the_company_record_and_none_when_it_is_not_known():
     rows = uni()
     prism = with_prism(rows)
