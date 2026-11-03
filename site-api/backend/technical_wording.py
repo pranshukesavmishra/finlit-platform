@@ -44,11 +44,17 @@ def score_band(score):
     return "neg" if score > BANDS["negative"] else "strongneg"
 
 
+def _rating_entry(rating):
+    """The `ratings` entry for a rating: its own key (strong_uptrend ...) or, for a report stored with the model's word, the key that word stands for."""
+    n = " ".join(str(rating).lower().split())
+    return WORDING["ratings"].get(WORDING["ratingAlias"].get(n) or n.replace(" ", "_"))
+
+
 def rating_word(rating, score):
     """Same rule as ratingWord in prismTechnical.ts: no score means 'Not available'; the model's rating if known, else the score decides."""
     if not isinstance(score, (int, float)) or isinstance(score, bool) or score != score or score in (float("inf"), float("-inf")):
         return WORDING["bandWords"]["na"]
-    known = WORDING["ratings"].get(" ".join(str(rating).lower().split())) if rating else None
+    known = _rating_entry(rating) if rating else None
     if known and known["tone"] != "na":
         return known["word"]
     return WORDING["bandWords"][score_band(score)]
@@ -56,7 +62,7 @@ def rating_word(rating, score):
 
 def verdict_tone(label, tone):
     normal = re.sub(r"\s+", " ", str(label or "").replace("‘", "'").replace("’", "'").replace("ʼ", "'")).strip().upper()
-    return WORDING["verdicts"].get(normal) or WORDING["toneAlias"].get(str(tone or "").strip().lower()) or "na"
+    return WORDING["verdicts"].get(WORDING["verdictAlias"].get(normal) or normal.lower().replace(" ", "_")) or WORDING["toneAlias"].get(str(tone or "").strip().lower()) or "na"
 
 
 def _number(value):

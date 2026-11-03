@@ -131,6 +131,8 @@ export const BANDS = WORDING.bands as { strongPositive: number; positive: number
 
 /** The model's rating words (upstream premium_technical.score_rating) -> the site's descriptive trend words. The ONLY place the two meet. */
 export const RATING_WORD = WORDING.ratings as Record<string, { word: string; tone: TrendTone }>;
+const RATING_ALIAS = WORDING.ratingAlias as Record<string, string>;   // a report stored with the model's own word still reads: it is looked up here
+const ratingEntry = (rating: string) => { const n = rating.trim().toLowerCase().replace(/\s+/g, " "); return RATING_WORD[RATING_ALIAS[n] ?? n.replace(/ /g, "_")]; };
 const NA = { word: "Not available", tone: "na" as TrendTone };
 
 /** The band of a full-precision score: >= 50 strongly positive, >= 20 positive, > -20 neutral, > -50 negative, else strongly negative
@@ -160,7 +162,7 @@ export const bandTip = (tone: TrendTone): string => BAND_TIP[tone] ?? "";
  *  A rating word we do not know is never shown. A horizon without a score is "Not available" whatever its rating says. */
 export function ratingWord(rating: string | null | undefined, score: number | null): { word: string; tone: TrendTone } {
   if (score == null || !Number.isFinite(score)) return NA;
-  const known = rating ? RATING_WORD[rating.trim().toLowerCase().replace(/\s+/g, " ")] : undefined;
+  const known = rating ? ratingEntry(rating) : undefined;
   if (known && known.tone !== "na") return known;
   const tone = scoreBand(score);
   return { word: BAND_WORD[tone], tone };
@@ -190,6 +192,9 @@ export function trendAlignment(shortScore: number | null | undefined, longScore:
 }
 /** The model's own verdict labels (a cross-check only: its nine cells are the alignment's nine cells, with the same tone). */
 export const MODEL_VERDICT_TONE = WORDING.verdicts as Record<string, VerdictTone>;
+const VERDICT_ALIAS = WORDING.verdictAlias as Record<string, string>;   // the model's stored label (upper case) -> its key above
+/** The tone of a verdict, by its own key or by the model's stored label; undefined when it is neither. */
+export const modelVerdictTone = (label: string): VerdictTone | undefined => { const n = label.trim().toUpperCase(); return MODEL_VERDICT_TONE[VERDICT_ALIAS[n] ?? n.toLowerCase().replace(/ /g, "_")]; };
 
 /** The combined trend as the site words it: the descriptive alignment label (the model's verdict label is never shown). Needs both scores. The sentence
  *  names each horizon so the chip is never read on its own. */

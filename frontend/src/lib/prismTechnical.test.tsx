@@ -9,7 +9,7 @@ import { TrendMap, alignmentSentence, fmtPoints, fmtSignal } from "../components
 import type { PrismReport } from "./prism";
 import type { PrismLatest } from "../stock/PrismCard";
 import {
-  ALIGN_NA, BANDS, FORBIDDEN, HOW, MODEL_VERDICT_TONE, RATING_WORD, TECH_NOTE, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, trendAlignment, trendBand,
+  ALIGN_NA, BANDS, FORBIDDEN, HOW, RATING_WORD, modelVerdictTone, TECH_NOTE, allShownText, factorGroup, filterTechFactors, fmtScore, parseTechnical, ratingWord, safeText, scalePos, scoreBand, trendAlignment, trendBand,
   verdictView,
 } from "./prismTechnical";
 
@@ -21,7 +21,7 @@ const horizon = (score: number | null, rating: string | null) => ({ score, ratin
 
 describe("rating words: the model's advice words never reach the screen", () => {
   it("maps every upstream rating", () => {
-    expect(Object.keys(RATING_WORD).sort()).toEqual(["buy", "hold", "reduce", "sell", "strong buy", "unavailable"]);
+    expect(Object.keys(RATING_WORD).sort()).toEqual(["downtrend", "sideways", "strong_downtrend", "strong_uptrend", "unavailable", "uptrend"]);
     expect(ratingWord("Strong Buy", 60).word).toBe("Strong uptrend");
     expect(ratingWord("Buy", 30).word).toBe("Uptrend");
     expect(ratingWord("Hold", 0).word).toBe("Sideways");
@@ -29,6 +29,11 @@ describe("rating words: the model's advice words never reach the screen", () => 
     expect(ratingWord("Sell", -60).word).toBe("Strong downtrend");
     expect(ratingWord("Unavailable", null).word).toBe("Not available");
     for (const r of Object.keys(RATING_WORD)) expect(ratingWord(r, 10).word).not.toMatch(FORBIDDEN);
+  });
+  it("reads a rating by its neutral key and by the model's word stored in an older report", () => {
+    expect(ratingWord("strong_uptrend", 10).word).toBe("Strong uptrend"); expect(ratingWord("strong_downtrend", 10).word).toBe("Strong downtrend");
+    expect(ratingWord("  STRONG   BUY ", 10).word).toBe("Strong uptrend"); expect(ratingWord("sell", 10).word).toBe("Strong downtrend");
+    expect(modelVerdictTone("STRONG BUY")).toBe("pos"); expect(modelVerdictTone("rising_strongly")).toBe("pos"); expect(modelVerdictTone("sell / avoid")).toBe("neg"); expect(modelVerdictTone("nope")).toBeUndefined();
   });
   it("uses the full-precision score when the rating word is unknown, and never shows an unknown word", () => {
     expect(ratingWord("Accumulate", 19.999999).word).toBe("Sideways");
@@ -55,7 +60,7 @@ describe("trend alignment: all nine combinations (finlit_technicals v1.1, stlt.A
     const v = verdictView({ shortTerm: horizon(st, null), longTerm: horizon(lt, null) });
     expect(v.word).toBe(label);
     expect(v.tone).toBe(expected);
-    expect(MODEL_VERDICT_TONE[model]).toBe(expected);       // same nine cells and same tone as the model's own verdict
+    expect(modelVerdictTone(model)).toBe(expected);       // same nine cells and same tone as the model's own verdict
     expect(`${v.word} ${v.detail}`).not.toMatch(FORBIDDEN);
     const al = trendAlignment(st, lt)!;
     expect(al.cells).toHaveLength(9); expect(al.cells.filter((c) => c.current)).toHaveLength(1); expect(al.cells.find((c) => c.current)!.label).toBe(label);

@@ -944,6 +944,16 @@ def test_research_api_wording_files_equal_the_site_api_ones():
     assert (here.parents[1] / "frontend" / "src" / "lib" / "technicalWording.json").read_bytes() == (here / "technical_wording.json").read_bytes()
 
 
+def test_ratings_and_verdicts_read_by_neutral_key_and_by_the_model_word_stored_in_an_older_report():
+    from finlit import technical_wording as mine
+    for stored, neutral, word in (("Strong Buy", "strong_uptrend", "Strong uptrend"), ("Buy", "uptrend", "Uptrend"), ("Hold", "sideways", "Sideways"),
+                                  ("Reduce", "downtrend", "Downtrend"), ("Sell", "strong_downtrend", "Strong downtrend"), ("  strong   buy ", "strong_uptrend", "Strong uptrend")):
+        assert mine.rating_word(stored, 10) == mine.rating_word(neutral, 10) == word
+    for stored, neutral, tone in (("STRONG BUY", "rising_strongly", "pos"), ("SELL / AVOID", "falling_strongly", "neg"), ("BOUNCE ONLY, DON'T INVEST", "bounce_in_downtrend", "mixed")):
+        assert mine.verdict_tone(stored, None) == mine.verdict_tone(neutral, None) == tone
+    assert mine.verdict_tone("unknown", None) == "na"
+
+
 # ------------------------------------------------------------------ /api/prism/scores (the Gold search palette)
 async def test_scores_are_gold_only_and_small(env):
     app, _ = env

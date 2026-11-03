@@ -157,3 +157,12 @@ def test_trend_alignment_labels_and_how_texts_have_no_advice_word():
     # every row key the engine can emit has its text, for both horizons
     from backend.premium_technical import ST, LT
     assert {k for k, *_ in ST} == set(tw.WORDING["how"]["st"]) and {k for k, *_ in LT} == set(tw.WORDING["how"]["lt"])
+
+
+def test_ratings_and_verdicts_read_by_neutral_key_and_by_the_model_word_stored_in_an_older_report():
+    for stored, neutral, word in (("Strong Buy", "strong_uptrend", "Strong uptrend"), ("Buy", "uptrend", "Uptrend"), ("Hold", "sideways", "Sideways"),
+                                  ("Reduce", "downtrend", "Downtrend"), ("Sell", "strong_downtrend", "Strong downtrend"), ("  strong   buy ", "strong_uptrend", "Strong uptrend")):
+        assert tw.rating_word(stored, 10) == tw.rating_word(neutral, 10) == word
+    for stored, neutral, tone in (("STRONG BUY", "rising_strongly", "pos"), ("SELL / AVOID", "falling_strongly", "neg"), ("BOUNCE ONLY, DON'T INVEST", "bounce_in_downtrend", "mixed")):
+        assert tw.verdict_tone(stored, None) == tw.verdict_tone(neutral, None) == tone
+    assert tw.verdict_tone("unknown", None) == "na"

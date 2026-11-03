@@ -2,19 +2,29 @@
   "_comment": "ONE wording table for the technical view. Read by site-api/backend/technical_wording.py (PDF) and, as an identical copy, by frontend/src/lib/prismTechnical.ts (web). The two files must stay byte-identical (tests in both suites). Compliance: the model's advice words are never shown to readers.",
   "bands": {"strongPositive": 50, "positive": 20, "neutral": -20, "negative": -50},
   "ratings": {
-    "strong buy": {"word": "Strong uptrend", "tone": "strongpos"},
-    "buy": {"word": "Uptrend", "tone": "pos"},
-    "hold": {"word": "Sideways", "tone": "neutral"},
-    "reduce": {"word": "Downtrend", "tone": "neg"},
-    "sell": {"word": "Strong downtrend", "tone": "strongneg"},
+    "strong_uptrend": {"word": "Strong uptrend", "tone": "strongpos"},
+    "uptrend": {"word": "Uptrend", "tone": "pos"},
+    "sideways": {"word": "Sideways", "tone": "neutral"},
+    "downtrend": {"word": "Downtrend", "tone": "neg"},
+    "strong_downtrend": {"word": "Strong downtrend", "tone": "strongneg"},
     "unavailable": {"word": "Not available", "tone": "na"}
+  },
+  "ratingAlias": {
+    "_comment": "The model's own rating words (stored in reports as the provider sent them) -> the key in `ratings`. Only a tolerant reader looks here; nothing shown to a reader comes from these keys.",
+    "strong buy": "strong_uptrend", "buy": "uptrend", "hold": "sideways", "reduce": "downtrend", "sell": "strong_downtrend"
   },
   "bandWords": {"strongpos": "Strong uptrend", "pos": "Uptrend", "neutral": "Sideways", "neg": "Downtrend", "strongneg": "Strong downtrend", "na": "Not available"},
   "bandTips": {"strongpos": "Price has been rising clearly and steadily", "pos": "Price has mostly been rising", "neutral": "No clear direction: price is flat or the signals disagree", "neg": "Price has mostly been falling", "strongneg": "Price has been falling clearly and steadily", "na": "No score: a required signal is missing"},
   "verdicts": {
-    "STRONG BUY": "pos", "BUY": "pos", "BOUNCE ONLY, DON'T INVEST": "mixed",
-    "ACCUMULATE ON DIPS": "pos", "HOLD": "mixed", "REDUCE": "neg",
-    "BUY THE DIP, WAIT FOR ST TURN": "pos", "SELL / AVOID": "neg"
+    "rising_strongly": "pos", "rising": "pos", "bounce_in_downtrend": "mixed",
+    "dip_in_uptrend_holding": "pos", "sideways": "mixed", "falling": "neg",
+    "dip_in_uptrend_turning": "pos", "falling_strongly": "neg"
+  },
+  "verdictAlias": {
+    "_comment": "The model's own verdict labels (stored in reports as the provider sent them, upper case) -> the key in `verdicts`. Only a tolerant reader looks here.",
+    "STRONG BUY": "rising_strongly", "BUY": "rising", "BOUNCE ONLY, DON'T INVEST": "bounce_in_downtrend",
+    "ACCUMULATE ON DIPS": "dip_in_uptrend_holding", "HOLD": "sideways", "REDUCE": "falling",
+    "BUY THE DIP, WAIT FOR ST TURN": "dip_in_uptrend_turning", "SELL / AVOID": "falling_strongly"
   },
   "toneAlias": {"pos": "pos", "neg": "neg", "na": "na", "positive": "pos", "bullish": "pos", "caution": "mixed", "neutral": "mixed", "mixed": "mixed", "negative": "neg", "bearish": "neg"},
   "alignment": {
