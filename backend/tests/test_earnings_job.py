@@ -1,7 +1,7 @@
 """The nightly job end to end with a FAKE language model and a recorded PDF: collection from the stored feed and from the exchange's list, text extraction, answers,
 quote validation, advice words, "not covered", idempotency, prompt versions, rate limits and bounds. Needs Postgres and Redis."""
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -341,5 +341,5 @@ async def test_a_failed_download_is_retried_later_and_not_before(store):  # noqa
     rep2 = {}
     await S.download_pending(store, exchange(), rep2)
     assert rep2["downloaded"] == 0                            # two days must pass first
-    await S.download_pending(store, exchange(), rep2, now=datetime(2026, 11, 5, tzinfo=timezone.utc))
+    await S.download_pending(store, exchange(), rep2, now=datetime.now(timezone.utc) + timedelta(days=3))   # the first try is stamped with the clock, so the retry date is read from the clock too
     assert rep2["downloaded"] == 2
