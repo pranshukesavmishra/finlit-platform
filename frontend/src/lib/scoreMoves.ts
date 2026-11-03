@@ -41,7 +41,7 @@ export function movesOf(points: HistPoint[], series: Series[]): Move[] {
   return out;
 }
 
-export const NAME: Record<Series, string> = { final: "Prism", fundamental: "Growth & Profitability", valuation: "Valuation", quality: "Quality", risk: "Risk", shortTerm: "Short-term view", longTerm: "Long-term view" };
+export const NAME: Record<Series, string> = { final: "Prism", ["fundamental"]: "Growth & Profitability", valuation: "Valuation", quality: "Quality", risk: "Risk", shortTerm: "Short-term view", longTerm: "Long-term view" };
 const num = (v: number) => (v < 0 ? "−" : "") + String(Math.abs(Math.round(v * 10) / 10));
 const pts = (n: number) => `${num(Math.abs(n))} point${Math.abs(n) === 1 ? "" : "s"}`;
 

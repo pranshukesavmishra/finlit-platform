@@ -11,7 +11,7 @@ import { toWeekly, usePrismHistory, valueOf, withValue, type HistPoint, type Ser
 import { BUSINESS, NAME, PERIODS, TECHNICAL, inPeriod, moveSentence, movesOf, readingNow, reRated, seriesFor, type Period, type Show } from "../lib/scoreMoves";
 import "../styles/scoremoves.css";
 
-const COLOR: Record<Series, string> = { final: "var(--text)", fundamental: "var(--p-growth)", valuation: "var(--p-quality)", quality: "var(--p-profit)", risk: "var(--p-balance)", shortTerm: "var(--gold)", longTerm: "var(--info)" };
+const COLOR: Record<Series, string> = { final: "var(--text)", ["fundamental"]: "var(--p-growth)", valuation: "var(--p-quality)", quality: "var(--p-profit)", risk: "var(--p-balance)", shortTerm: "var(--gold)", longTerm: "var(--info)" };
 const W = 720, L = 42, R = 16;
 const fmt = (v: number | null, signed = false) => (v == null ? MINUS : (signed && v > 0 ? "+" : "") + String(Math.round(v * 10) / 10).replace("-", MINUS));
 
