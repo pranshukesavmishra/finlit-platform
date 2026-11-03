@@ -9,10 +9,9 @@ export function readStoredTheme(): Theme | null {
   } catch { return null; }
 }
 
-export function getSystemTheme(): Theme {
-  return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
+/** A first visit opens in the light theme whatever the device prefers; the visitor's own choice (the sun / moon button) is kept after that. */
+export const DEFAULT_THEME: Theme = "light";
 
 export function getInitialTheme(root: HTMLElement = document.documentElement): Theme {
-  return readStoredTheme() || (root.dataset.theme === "dark" || root.dataset.theme === "light" ? root.dataset.theme : getSystemTheme());
+  return readStoredTheme() || (root.dataset.theme === "dark" || root.dataset.theme === "light" ? root.dataset.theme : DEFAULT_THEME);
 }

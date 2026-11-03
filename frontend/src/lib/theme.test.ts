@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getInitialTheme, getSystemTheme, readStoredTheme } from "./theme";
+import { getInitialTheme, readStoredTheme } from "./theme";
 
 describe("theme foundation", () => {
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe("theme foundation", () => {
     const root = { dataset: { theme: "light" } } as unknown as HTMLElement;
     expect(getInitialTheme(root)).toBe("light");
     delete root.dataset.theme;
-    expect(["light", "dark"]).toContain(getSystemTheme());
+    expect(getInitialTheme(root)).toBe("light");   // no saved choice and no pre-paint theme: the light theme, whatever the device prefers
   });
 
   it("ignores invalid stored values", () => {

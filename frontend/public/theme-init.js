@@ -2,7 +2,7 @@
   var t = null, p = null, pv = null, d = null, root = document.documentElement;
   try { t = localStorage.getItem("finlit-theme"); p = localStorage.getItem("finlit-plan"); pv = localStorage.getItem("finlit-palette-vars"); d = localStorage.getItem("finlit-density"); } catch (e) {}
   if (t !== "dark" && t !== "light") {
-    t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    t = "light";   // a first visit opens in the light theme; the visitor's own choice is saved after that
   }
   if (["basic", "bronze", "gold"].indexOf(p) < 0) p = "gold";
   root.setAttribute("data-theme", t);

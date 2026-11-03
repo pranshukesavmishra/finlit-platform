@@ -13,7 +13,7 @@ import { ownershipAt, ownershipYears } from "../lib/ownershipYears";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
-import { PrismHistoryCard } from "./PrismHistory";
+import { ScoreMovesCard } from "./ScoreMoves";
 import { SegmentHistory } from "./SegmentMix";
 import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
 
@@ -231,7 +231,7 @@ export function MethodSection({ s }: { s: Summary }) {
         <div className="pcb pro"><h4><Icon name="check" /> Pros <span className="chip up">{s.strengths.length}</span></h4>{s.strengths.length ? <ul>{s.strengths.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">Nothing stands out as a clear strength.</p>}</div>
         <div className="pcb con"><h4><Icon name="alert" /> Cons <span className="chip down">{s.watchouts.length}</span></h4>{s.watchouts.length ? <ul>{s.watchouts.map((n) => <li key={n.key}><b>{n.title}</b><small>{n.text}</small></li>)}</ul> : <p className="faint">No clear weakness stands out.</p>}</div>
       </div>
-      <PrismHistoryCard symbol={s.meta.symbol} statement={s.meta.statement} />
+      <ScoreMovesCard symbol={s.meta.symbol} statement={s.meta.statement} />
     </section>
   );
 }

@@ -5,7 +5,7 @@ import { useAuth, type Plan } from "./auth";
 import { DEMO } from "./demo";
 import { applyPalette } from "./palettes";
 import { usePrefs } from "./prefs";
-import { getInitialTheme, getSystemTheme, readStoredTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
+import { getInitialTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
 
 export type { Plan };
 export const RANK: Record<Plan, number> = { basic: 0, silver: 1, gold: 2 };
@@ -43,14 +43,6 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
   const prefs = usePrefs();
   useEffect(() => { root.dataset.theme = theme; applyPalette(prefs.palette, theme, root); }, [theme, prefs.palette, root]);
-  useEffect(() => {
-    if (readStoredTheme()) return;
-    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
-    if (!media) return;
-    const onChange = () => setTheme(getSystemTheme());
-    media.addEventListener?.("change", onChange);
-    return () => media.removeEventListener?.("change", onChange);
-  }, []);
   useEffect(() => { if (prefs.density === "compact") root.dataset.density = "compact"; else delete root.dataset.density; write("finlit-density", prefs.density); }, [prefs.density, root]);
   useEffect(() => { root.dataset.plan = plan; if (DEMO) write("finlit-plan", plan); }, [plan, root]);
 

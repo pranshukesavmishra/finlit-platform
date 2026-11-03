@@ -1,0 +1,13 @@
+.scm-card .card-h { flex-wrap: wrap; gap: 8px; } .scm-card .card-h .s { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+.scm-ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+.scm-sum { margin: 0 0 12px; font: 400 18px/1.4 var(--serif); color: var(--text); max-width: 70ch; }
+.scm-keys { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-bottom: 10px; } .scm-keys small { display: block; margin-bottom: 6px; font: 700 10px var(--sans); letter-spacing: .1em; color: var(--muted); }
+.scm-key { display: inline-flex; align-items: center; gap: 7px; margin: 0 8px 6px 0; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 13px var(--sans); cursor: pointer; }
+.scm-key i, .scm-t i, .scm-tip i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; } .scm-key i { margin: 0; }
+.scm-key b { font-weight: 700; } .scm-key.off { opacity: .45; text-decoration: line-through; } .scm-key:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.scm-panel { position: relative; margin: 4px 0 10px; } .scm-panel svg { width: 100%; height: auto; display: block; touch-action: pan-y; } .scm-ax { font: 11px var(--sans); fill: var(--muted); }
+.scm-tip { position: absolute; top: 4px; right: 8px; display: grid; gap: 2px; padding: 6px 10px; border-radius: 10px; background: var(--s2); border: 1px solid var(--border-strong); font-size: 12px; box-shadow: var(--shadow); pointer-events: none; } .scm-tip b { font-size: 12px; }
+.scm-note { display: flex; gap: 8px; margin: 8px 0 12px; font-size: 12.5px; line-height: 1.5; color: var(--muted); } .scm-note svg { flex: none; width: 15px; height: 15px; margin-top: 2px; }
+.scm-t caption { text-align: left; padding: 6px 0; font: 700 12px var(--sans); letter-spacing: .04em; color: var(--muted); } .scm-t td:first-child { white-space: nowrap; }
+.scm-empty { margin: 8px 0; } .scm-foot { margin: 12px 0 0; font-size: 12px; }
+@media (max-width: 640px) { .scm-sum { font-size: 16px; } .scm-keys { gap: 6px 14px; } }
