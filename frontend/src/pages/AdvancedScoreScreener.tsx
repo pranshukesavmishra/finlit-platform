@@ -54,7 +54,7 @@ function Advanced() {
       donut={!isLoading && sum.found > 0 ? <Donut part={sum.nZ} total={sum.found} partLabel="Rated" restLabel="Not rated yet" title={`${nf(sum.found - sum.nZ, 0)} of ${nf(sum.found, 0)} companies in this result are not rated yet.`} note="More are added every night, largest first." /> : undefined}
       presets={<PresetPanel route={route} basics={basics} basicsActive={!!prismPreset} />}
       filters={<>
-        <FilterGroup id="score" title="Fundamental" defaultOpen active={draft.labels.length + PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="Pick the ratings you want, then set the lowest and highest value (0 to 100) for any of the four pillars. A high Risk score means lower risk.">
+        <FilterGroup id="score" title="Financial health" defaultOpen active={draft.labels.length + PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="Pick the ratings you want, then set the lowest and highest value (0 to 100) for any of the four pillars. A high Risk score means lower risk.">
           <div className="fgx-chips" role="group" aria-label="Rating">
             {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{LABEL_WORD[l]}</button>)}
           </div>
