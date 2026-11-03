@@ -9,7 +9,7 @@ describe("All sections panel", () => {
     for (const [id, label, , hint] of NAV) { expect(h).toContain(`data-s="${id}"`); expect(h).toContain(`<b>${label.replace("&", "&amp;")}</b>`); expect(h).toContain(hint); }
     expect(h).toContain("All sections");
     expect(h.match(/aria-current="true"/g)).toHaveLength(1);
-    expect(h).toMatch(/data-s="ratios"[^>]*aria-current|aria-current="true"[^>]*data-s="ratios"|class="sx-i on"[^>]*aria-current="true"[^>]*data-s="ratios"/);
+    expect(h).toMatch(/data-s="ratios"[^>]*aria-current|aria-current="true"[^>]*data-s="ratios"|class="smn-i on"[^>]*aria-current="true"[^>]*data-s="ratios"/);
   });
   it("is closed to start with and lists Leadership only when it is shown", () => {
     const h = renderToStaticMarkup(<SectionsMenu items={navFor(false)} active={null} onPick={() => {}} />);

@@ -91,33 +91,26 @@ describe("Advanced score screener (Gold)", () => {
     expect(d.textContent).toMatch(/Not rated/); expect(d.textContent).not.toMatch(/Rate now/);
   });
 
-  it("filters by label chips, the rated switch and the Prism range, and writes them to the address", () => {
+  it("filters by the rating chips and writes them to the address", () => {
     open();
-    const prism = screen.getByRole("group", { name: "Prism rating label" });
+    const prism = screen.getByRole("group", { name: "Rating" });
     fireEvent.click(within(prism).getByRole("button", { name: "Strong" })); fireEvent.click(within(prism).getByRole("button", { name: "Healthy" }));
     fireEvent.submit(prism.closest("form")!);
     expect(symbols()).toEqual(["AAA", "BBB"]); expect(loc()).toBe("/advanced-score-screener?pl=strong%2Chealthy");
     fireEvent.click(screen.getByRole("button", { name: "Remove filter Prism rating: Strong, Healthy" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Only companies rated by Prism" }));
-    fireEvent.submit(prism.closest("form")!);
-    expect(symbols()).toEqual(["AAA", "BBB", "CCC", "FFF"]); expect(loc()).toBe("/advanced-score-screener?rated=1");
-    fireEvent.change(within(screen.getByRole("group", { name: "Prism score, exact range" })).getByLabelText("Min"), { target: { value: "60" } });
-    fireEvent.submit(prism.closest("form")!);
-    expect(symbols()).toEqual(["AAA", "BBB"]);
-    fireEvent.click(within(screen.getByLabelText("Active filters")).getByRole("button", { name: "Clear all" }));
     expect(symbols()).toHaveLength(6);
   });
 
   it("has a min and max for each of the four parts, and a missing value never passes", () => {
     open();
     const box = (name: string, end: "Min" | "Max") => within(screen.getByRole("group", { name: `${name}, exact range` })).getByLabelText(end);
-    fireEvent.change(box("Prism Valuation score", "Min"), { target: { value: "50" } });
-    fireEvent.change(box("Prism Risk score", "Min"), { target: { value: "65" } });
+    fireEvent.change(box("Valuation score", "Min"), { target: { value: "50" } });
+    fireEvent.change(box("Risk score", "Min"), { target: { value: "65" } });
     fireEvent.submit(screen.getByRole("button", { name: "Apply filters" }).closest("form")!);
     expect(symbols()).toEqual(["AAA"]);
     expect(loc()).toBe("/advanced-score-screener?zvmin=50&zrmin=65");
     expect(screen.getByRole("button", { name: "Remove filter Prism Valuation: 50 or more" })).toBeTruthy();
-    for (const p of ["Growth & Profitability", "Quality"]) expect(screen.getByRole("group", { name: `Prism ${p} score, exact range` })).toBeTruthy();
+    for (const p of ["Growth & Profitability", "Quality"]) expect(screen.getByRole("group", { name: `${p} score, exact range` })).toBeTruthy();
   });
 
   it("filters each technical view by Positive, Neutral or Negative, using the Prism card's bands", () => {

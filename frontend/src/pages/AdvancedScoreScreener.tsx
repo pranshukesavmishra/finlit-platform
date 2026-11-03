@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
-import { HowDialog, Slider } from "../components/screener/controls";
+import { HowDialog } from "../components/screener/controls";
 import { CheckRow, FilterGroup, QuickRow, RangeRow } from "../components/screener/FilterGroup";
 import { Donut } from "../components/screener/PageParts";
 import { PrismPart, PrismScore, PrismTrend, med } from "../components/screener/cells";
@@ -26,7 +26,7 @@ export function AdvancedScoreScreener() {
 
 function Advanced() {
   const s = useScreener("advanced");
-  const { draft, setDraft, applied, isLoading, sum, cover, prismAsOf, techAsOf } = s;
+  const { draft, applied, isLoading, sum, cover, prismAsOf, techAsOf } = s;
   const prismPreset = activePrismPreset(applied);
   const route = usePresetRoute();   // the prebuilt screen in the address (?preset=...)
   const pickPreset = (id: string) => s.apply(prismPreset === id ? withoutPrismPreset(draft) : withPrismPreset(draft, PRISM_PRESETS.find((p) => p.id === id)!));
@@ -54,16 +54,11 @@ function Advanced() {
       donut={!isLoading && sum.found > 0 ? <Donut part={sum.nZ} total={sum.found} partLabel="Rated" restLabel="Not rated yet" title={`${nf(sum.found - sum.nZ, 0)} of ${nf(sum.found, 0)} companies in this result are not rated yet.`} note="More are added every night, largest first." /> : undefined}
       presets={<PresetPanel route={route} basics={basics} basicsActive={!!prismPreset} />}
       filters={<>
-        <FilterGroup id="score" title="Prism rating" defaultOpen active={(draft.rated ? 1 : 0) + draft.labels.length + (draft.ranges.z.min != null || draft.ranges.z.max != null ? 1 : 0)}>
-          <CheckRow label="Only companies rated by Prism" checked={draft.rated} onChange={() => setDraft((d) => ({ ...d, rated: !d.rated }))} />
-          <div className="fgx-chips" role="group" aria-label="Prism rating label">
+        <FilterGroup id="score" title="Fundamental" defaultOpen active={draft.labels.length + PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="Pick the ratings you want, then set the lowest and highest value (0 to 100) for any of the four pillars. A high Risk score means lower risk.">
+          <div className="fgx-chips" role="group" aria-label="Rating">
             {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{LABEL_WORD[l]}</button>)}
           </div>
-          <RangeRow label="Prism score" group="Prism score, exact range" min={draft.ranges.z.min} max={draft.ranges.z.max} error={s.problems.z} onChange={(end, v) => s.setRange("z", end, v)} />
-          <div className="pzs-sls"><Slider s={s} k="z" end="min" label="Prism" /><Slider s={s} k="z" end="max" label="Prism" /></div>
-        </FilterGroup>
-        <FilterGroup id="parts" title="Financial-health parts" defaultOpen active={PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="0 to 100, higher is better. A high Risk score means lower risk.">
-          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={"Prism " + x.label} group={`Prism ${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
+          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={x.label} group={`${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
         </FilterGroup>
         <FilterGroup id="tech" title="Technical views" defaultOpen active={draft.tech.st.length + draft.tech.lt.length}>
           {TECH_KEYS.map((k) => (

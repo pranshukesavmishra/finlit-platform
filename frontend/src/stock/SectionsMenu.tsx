@@ -6,7 +6,7 @@ import { columnsOf, moveIndex, type NavItem } from "../lib/sectionNav";
 
 export function SectionsMenu({ items, active, onPick }: { items: NavItem[]; active: string | null; onPick: (id: string) => void }) {
   const [open, setOpen] = useState(false);
-  const id = "sx-" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const id = "smn-" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const box = useRef<HTMLDivElement>(null), btn = useRef<HTMLButtonElement>(null), grid = useRef<HTMLDivElement>(null);
   const close = (back: boolean) => { setOpen(false); if (back) btn.current?.focus({ preventScroll: true }); };
   const cells = () => [...(grid.current?.querySelectorAll<HTMLButtonElement>("button[data-s]") ?? [])];
@@ -29,16 +29,16 @@ export function SectionsMenu({ items, active, onPick }: { items: NavItem[]; acti
   };
 
   return (
-    <div className="sx" ref={box} onKeyDown={key}>
-      <button type="button" ref={btn} className="sx-b" aria-expanded={open} aria-controls={id} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}>
-        <Icon name="grid" /><span className="sx-l"><span className="sx-d">All sections</span><span className="sx-w">Sections</span></span>
+    <div className="smn" ref={box} onKeyDown={key}>
+      <button type="button" ref={btn} className="smn-b" aria-expanded={open} aria-controls={id} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}>
+        <Icon name="grid" /><span className="smn-l"><span className="smn-d">All sections</span><span className="smn-w">Sections</span></span>
       </button>
-      <div id={id} className="sx-p" role="dialog" aria-label="All sections" hidden={!open}>
-        <div className="sx-g" ref={grid}>
+      <div id={id} className="smn-p" role="dialog" aria-label="All sections" hidden={!open}>
+        <div className="smn-g" ref={grid}>
           {items.map(([sid, label, ic, hint]) => (
-            <button key={sid} type="button" data-s={sid} className={"sx-i" + (active === sid ? " on" : "")} aria-current={active === sid ? "true" : undefined}
+            <button key={sid} type="button" data-s={sid} className={"smn-i" + (active === sid ? " on" : "")} aria-current={active === sid ? "true" : undefined}
               onClick={() => { close(true); onPick(sid); }}>
-              <span className="sx-ic"><Icon name={ic} /></span><span className="sx-t"><b>{label}</b><small>{hint}</small></span>
+              <span className="smn-ic"><Icon name={ic} /></span><span className="smn-t"><b>{label}</b><small>{hint}</small></span>
             </button>
           ))}
         </div>

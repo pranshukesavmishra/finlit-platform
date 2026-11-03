@@ -13,7 +13,7 @@ export type Band = "low" | "mid" | "high";
 export type Pillar = "pillar_quality" | "pillar_growth" | "pillar_profitability" | "pillar_balance";
 export type Item = Row & { cap: Cap | null; f: number | null; t: number | null };
 export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
-export type RangeKey = "f" | "t" | "o" | PrismRangeKey;
+export type RangeKey = "f" | "t" | "o" | "q" | "g" | "p" | "b" | PrismRangeKey;   // q g p b: the four pillars (min and max boxes in the Basic screener)
 export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol;
 export type Range = { min: number | null; max: number | null };
 /** The three technical-view bands of the advanced screener: the Prism card's own bands, with "Strong uptrend" counted as Uptrend and "Strong downtrend" as Downtrend. */
@@ -38,7 +38,7 @@ export const trendWord = (score: number | null | undefined): string | null => (s
 
 export const CAPS: Cap[] = ["Large", "Mid", "Small"];
 export const BAND_KEYS: BandKey[] = ["f", "t", "q", "g", "p", "b"];
-export const RANGE_KEYS: RangeKey[] = ["f", "t", "o", ...PRISM_RANGE_KEYS];
+export const RANGE_KEYS: RangeKey[] = ["f", "t", "o", "q", "g", "p", "b", ...PRISM_RANGE_KEYS];
 /** The three score bands. They follow the FinLit model: Strong 78 and above, Watch under 45; "mid" joins its Healthy (62+) and Mixed (45+) bands. */
 export const BANDS: Record<Band, { label: string; short: string; min: number; max: number }> = {
   low: { label: "Under 45 (Watch)", short: "<45", min: 0, max: 44 },
@@ -102,7 +102,7 @@ export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], secto
 
 export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => v >= BANDS[b].min && v <= BANDS[b].max));
 export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || v <= r.max));
-const rangeValue = (r: Item, k: RangeKey) => (k === "f" ? r.f : k === "t" ? r.t : k === "o" ? r.overall : prismRangeValue(r, k) ?? null);
+const rangeValue = (r: Item, k: RangeKey) => (k === "f" ? r.f : k === "t" ? r.t : k === "o" ? r.overall : k === "q" || k === "g" || k === "p" || k === "b" ? r[PILLARS.find((x) => x.k === k)!.col] : prismRangeValue(r, k) ?? null);
 const bandValue = (r: Item, k: BandKey) => (k === "f" ? r.f : k === "t" ? r.t : r[PILLARS.find((x) => x.k === k)!.col]);
 
 /** True when the company passes every filter. `skip` leaves one group out (used for the live counts beside the size and sector options). */

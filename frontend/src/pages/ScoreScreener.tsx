@@ -21,7 +21,7 @@ export function ScoreScreener() {
   return <Basic />;
 }
 
-const RANGES: [RangeKey, string][] = [["f", "Growth & Profitability score"], ["t", "Technical score"], ["o", "Overall score"]];
+const RANGES: [RangeKey, string][] = [["q", "Quality score"], ["g", "Growth score"], ["p", "Profitability score"], ["b", "Balance sheet score"]];   // the four pillars: tick one, then set the lowest and highest value
 
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort, compare and export by size, sector and score.");
@@ -63,7 +63,7 @@ function Basic() {
       </div>}
       filters={locked ? (
         <FilterGroup id="score" title="Score filters" defaultOpen>
-          <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by Growth & Profitability, Technical and Overall scores.</span>
+          <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by the Quality, Growth, Profitability and Balance sheet scores.</span>
             <button type="button" className="btn primary" onClick={() => upgrade("silver", "Score filters come with the Silver plan.")}>Unlock with Silver</button></div>
         </FilterGroup>
       ) : (<>

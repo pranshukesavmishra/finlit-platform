@@ -66,6 +66,10 @@
 .qb-step select, .qb-step input, .qb-saveform input { height: 42px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); padding: 0 12px; font: 500 15px var(--sans); width: 100%; box-sizing: border-box; min-width: 0; }
 .qb-step select:focus, .qb-step input:focus, .qb-saveform input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
 .qb-step input[aria-invalid="true"], .qb-saveform input[aria-invalid="true"] { border-color: var(--loss); }
+/* the ratio search box is itself a label with an icon and an input: keep it one row (the step rules above are for the plain Compare / Value fields) */
+.qb-step .scr-find { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 400; color: var(--text); }
+.qb-step .scr-find input { flex: 1; width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; font: 14px var(--sans); }
+.qb-step .scr-find input:focus { box-shadow: none; }
 .qb-chosen { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s1); } .qb-chosen small { color: var(--muted); } .qb-chosen .lnk { margin-left: auto; font-size: 13px; }
 .qb-def { display: block; margin-top: 6px; color: var(--muted); line-height: 1.5; }
 .qb-prev { padding: 10px 12px; border-radius: 10px; background: var(--s3); display: grid; gap: 4px; min-height: 20px; } .qb-prev code { font: 600 14px var(--mono); overflow-wrap: anywhere; }

@@ -106,22 +106,22 @@ describe("Basic score screener page", () => {
     vi.useFakeTimers();
     try {
       open();
-      const tech = () => within(screen.getByRole("group", { name: "Technical score, exact range" }));
-      fireEvent.click(tech().getByRole("checkbox", { name: "Technical score" }));
+      const tech = () => within(screen.getByRole("group", { name: "Quality score, exact range" }));
+      fireEvent.click(tech().getByRole("checkbox", { name: "Quality score" }));
       fireEvent.change(tech().getByLabelText("Min"), { target: { value: "7" } });
       fireEvent.change(tech().getByLabelText("Min"), { target: { value: "78" } });
       act(() => { vi.advanceTimersByTime(300); });
       expect(loc()).toBe("/score-screener");                                   // still typing: nothing applied yet
       act(() => { vi.advanceTimersByTime(150); });
-      expect(loc()).toBe("/score-screener?tmin=78");
-      expect(symbols()).toEqual(["AAA", "CCC", "EEE"]);
+      expect(loc()).toBe("/score-screener?qmin=78");
+      expect(symbols()).toEqual(["AAA", "BBB", "HHH"]);
       fireEvent.change(tech().getByLabelText("Max"), { target: { value: "50" } });   // below the minimum
       act(() => { vi.advanceTimersByTime(1000); });
-      expect(loc()).toBe("/score-screener?tmin=78");
+      expect(loc()).toBe("/score-screener?qmin=78");
       expect(screen.getByRole("alert").textContent).toMatch(/minimum is above the maximum/);
       fireEvent.change(tech().getByLabelText("Max"), { target: { value: "85" } });
       fireEvent.submit(screen.getByRole("button", { name: /Apply filters|Show/ }).closest("form")!);   // Enter applies at once
-      expect(loc()).toBe("/score-screener?tmin=78&tmax=85");
+      expect(loc()).toBe("/score-screener?qmin=78&qmax=85");
     } finally { vi.useRealTimers(); }
   });
 
@@ -162,10 +162,10 @@ describe("Basic score screener page", () => {
     fireEvent.click(within(tech).getByRole("button", { name: "45 to 77 (Mixed, Healthy)" }));
     fireEvent.submit(fund.closest("form")!);
     expect(symbols()).toEqual(["HHH"]);                                      // Technical 77 is in, 78 is out
-    fireEvent.click(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByRole("checkbox", { name: "Technical score" }));   // ticking enables Min and Max
-    fireEvent.change(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByLabelText("Min"), { target: { value: "78" } });
+    fireEvent.click(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByRole("checkbox", { name: "Quality score" }));   // ticking enables Min and Max
+    fireEvent.change(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByLabelText("Min"), { target: { value: "78" } });
     expect(screen.getByRole("button", { name: "Apply filters" }).hasAttribute("disabled")).toBe(false);
-    fireEvent.change(within(screen.getByRole("group", { name: "Technical score, exact range" })).getByLabelText("Max"), { target: { value: "50" } });
+    fireEvent.change(within(screen.getByRole("group", { name: "Quality score, exact range" })).getByLabelText("Max"), { target: { value: "50" } });
     expect(screen.getByRole("alert").textContent).toMatch(/minimum is above the maximum/);
     expect(screen.getByRole("button", { name: "Apply filters" }).hasAttribute("disabled")).toBe(true);
     fireEvent.submit(fund.closest("form")!);
@@ -389,15 +389,15 @@ describe("Basic score screener: no Prism", () => {
 
   it("a Min - Max row is disabled until its box is ticked, unticking clears it, and the value reaches the address", () => {
     open();
-    const g = screen.getByRole("group", { name: "Overall score, exact range" });
+    const g = screen.getByRole("group", { name: "Quality score, exact range" });
     const min = within(g).getByLabelText("Min") as HTMLInputElement;
     expect(min.disabled).toBe(true);
-    fireEvent.click(within(g).getByRole("checkbox", { name: "Overall score" }));
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality score" }));
     expect(min.disabled).toBe(false);
     fireEvent.change(min, { target: { value: "70" } });
     fireEvent.submit(g.closest("form")!);
-    expect(loc()).toBe("/score-screener?omin=70");
-    fireEvent.click(within(g).getByRole("checkbox", { name: "Overall score" }));
+    expect(loc()).toBe("/score-screener?qmin=70");
+    fireEvent.click(within(g).getByRole("checkbox", { name: "Quality score" }));
     expect(min.value).toBe("");
     expect(min.disabled).toBe(true);
   });
