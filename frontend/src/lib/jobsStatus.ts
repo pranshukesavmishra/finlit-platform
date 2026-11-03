@@ -14,6 +14,8 @@ export type JobsStatus = {
   pause: { paused: boolean; until: string | null; untilIST: string | null; resumesAutomatically: boolean };
   disabledByConfig: { name: string; reason: string }[];
   degraded?: { name: string; reason: string | null }[];
+  /** Jobs that are getting close to their time limit (they are not failing yet): the early warning. */
+  nearLimit?: { name: string; usePct: number; limitMin: number; timedOut: boolean }[];
   jobs: JobRow[];
   data: { checkedAt: string | null; dataFresh: boolean | null; datasets: Dataset[]; system?: { diskPercent?: number | null; diskOk?: boolean } };
   canary: { checkedAt: string | null; ok: boolean | null; mismatches: { symbol: string; field: string; ours: number; provider: number; diffPercent: number; message?: string; probablyRight?: string }[]; watching?: { symbol: string; field: string; diffPercent: number }[]; skipped?: string[] };
@@ -36,6 +38,7 @@ export function bannerLines(s?: JobsStatus | null): BannerLine[] {
   if (s.canary.ok === false) out.push({ level: "bad", text: `Canary: ${s.canary.mismatches.slice(0, 3).map((m) => `${m.symbol} ${m.field} differs from the provider by ${m.diffPercent}%${m.probablyRight && m.probablyRight !== "unknown" ? ` (${m.probablyRight} is probably right)` : ""}`).join("; ")}.` });
   if (s.data.system && s.data.system.diskOk === false) out.push({ level: "bad", text: `Server disk is ${s.data.system.diskPercent}% full.` });
   for (const j of s.degraded || []) out.push({ level: "warn", text: `${j.name} finished degraded (the last good figures stay in use): ${j.reason || "an optional step did not work"}` });
+  for (const n of s.nearLimit || []) out.push({ level: "warn", text: n.timedOut ? `${n.name} reached its ${n.limitMin}-minute time limit recently: it needs its work split or its limit raised before it starts failing.` : `${n.name} is using ${n.usePct}% of its ${n.limitMin}-minute time limit: it needs attention before it starts failing.` });
   for (const d of s.disabledByConfig) out.push({ level: "warn", text: `${d.name} is switched off by configuration: ${d.reason}.` });
   if (s.pause.paused) out.push({ level: "warn", text: `Heavy data loads are paused until ${s.pause.untilIST}; they resume automatically.` });
   for (const d of s.data.datasets.filter((x) => x.status === "late")) out.push({ level: "warn", text: `${d.label} is a little late (expected ${d.expected}, found ${d.actual ?? "nothing"}).` });

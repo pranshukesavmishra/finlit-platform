@@ -32,4 +32,13 @@ describe("admin banner lines", () => {
         buckets: { filled: { count: 623, oldest: null }, waiting_for_provider: { count: 323, oldest: "2026-10-30" }, queued: { count: 0, oldest: null }, gave_up: { count: 0, oldest: null }, ours_to_fix: { count: 0, oldest: null } } }] } });
     expect(lines).toEqual([{ level: "warn", text: "facts finished degraded (the last good figures stay in use): ter step failed: ConnectTimeout" }]);
   });
+
+  it("warns before a job fails: close to its time limit, or it reached the limit recently", () => {
+    const lines = bannerLines({ ...ok, nearLimit: [{ name: "coverage", usePct: 76, limitMin: 22, timedOut: false }, { name: "logos", usePct: 100, limitMin: 30, timedOut: true }] });
+    expect(lines).toEqual([
+      { level: "warn", text: "coverage is using 76% of its 22-minute time limit: it needs attention before it starts failing." },
+      { level: "warn", text: "logos reached its 30-minute time limit recently: it needs its work split or its limit raised before it starts failing." },
+    ]);
+    expect(bannerLines({ ...ok, nearLimit: [] })).toEqual([]);
+  });
 });

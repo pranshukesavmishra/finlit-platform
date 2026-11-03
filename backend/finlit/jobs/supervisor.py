@@ -164,6 +164,9 @@ class Supervisor:
                 return f"waiting for the web server to settle after the start ({int(self.cfg.boot_delay_s - since)} s)"
         running_bulk = [r.job.name for r in self.running.values() if r.job.cls == "bulk"] + [j.name for j in plan.start if j.cls == "bulk"]
         running_light = [r.job.name for r in self.running.values() if r.job.cls == "light"] + [j.name for j in plan.start if j.cls == "light"]
+        running_audit = [r.job.name for r in self.running.values() if r.job.cls == "audit"] + [j.name for j in plan.start if j.cls == "audit"]
+        if job.cls == "audit" and len(running_audit) >= self.cfg.audit_cap:
+            return f"waiting for {running_audit[0]} (audits run one at a time, in their own lane)"
         if job.cls == "bulk" and len(running_bulk) >= self.cfg.bulk_concurrency:
             return f"waiting for {running_bulk[0]} (bulk jobs run one at a time)"
         if job.cls == "light" and len(running_light) >= self.cfg.light_cap:

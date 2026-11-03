@@ -839,7 +839,8 @@ def _start_job_heartbeat():
     return asyncio.get_running_loop().create_task(beat())
 
 
-async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Every worker command and its options. A function of its own so a test can check that each scheduled job's arguments (jobs/registry.py) are valid."""
     parser = argparse.ArgumentParser(prog="finlit.worker")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate")
@@ -983,6 +984,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("canary", help="re-fetch a few reference companies from the provider and compare them with what we hold (recorded at /api/jobs/status)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
+    return parser
+
+
+async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
     settings = settings or get_settings()

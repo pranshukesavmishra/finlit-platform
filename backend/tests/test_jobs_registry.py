@@ -16,7 +16,7 @@ def test_names_are_unique_priorities_sane_and_prerequisites_exist():
     names = [j.name for j in jobs]
     assert len(names) == len(set(names))
     for j in jobs:
-        assert j.cls in ("bulk", "light", "ondemand") and j.max_runtime_min > 0 and j.weight_mb > 0
+        assert j.cls in ("bulk", "light", "audit", "ondemand") and j.max_runtime_min > 0 and j.weight_mb > 0
         for p in j.prerequisites:
             assert p in names, (j.name, p)
         if j.sla.kind != "none":

@@ -331,3 +331,21 @@ async def test_the_supervisor_closes_an_alert_whose_problem_has_gone(app):  # no
     sup = Supervisor(jobs=[], state=PgState(store.pool), runner=FakeRunner(clock), resources=FakeResources(), signals=FakeSignals(), pause=None, clock=clock, config=config(), env={}, notifier=n)
     await sup.check_alerts(Plan(ctx=Ctx(now=clock.now()), states={}, verdicts={}), clock.now())
     assert await n.open_keys() == [] and any(b.startswith("Resolved:") for b in await _bell(store, "close-boss@example.com"))
+
+
+async def test_status_warns_before_a_job_hits_its_time_limit(store):
+    """The early warning: two recent runs at 70% or more of the limit, or a recent timeout, put the job in `nearLimit`; resumable jobs are never judged."""
+    await clean(store)
+    env = {"FUND_LOADS_ENABLED": "0"}
+    async with store.pool.acquire() as conn:
+        for st, dur in (("ok", 1000), ("ok", 950), ("ok", 60)):                   # coverage: limit 22 min = 1320 s, so 76% and 72%
+            await conn.execute("INSERT INTO job_runs (job, status, duration_s, finished_at) VALUES ('coverage', $1, $2, now())", st, dur)
+        for st, dur in (("timeout", 5400), ("ok", 4000)):                          # ingest is resumable: long runs are its design
+            await conn.execute("INSERT INTO job_runs (job, status, duration_s, finished_at) VALUES ('ingest', $1, $2, now())", st, dur)
+    body = await jobs_status.build(store, store.redis, NOW, env)
+    warn = {w["name"]: w for w in body["nearLimit"]}
+    assert "coverage" in warn and warn["coverage"]["usePct"] >= 70 and warn["coverage"]["limitMin"] == 22 and warn["coverage"]["timedOut"] is False
+    assert "ingest" not in warn
+    await clean(store)
+    body = await jobs_status.build(store, store.redis, NOW, env)
+    assert body["nearLimit"] == []

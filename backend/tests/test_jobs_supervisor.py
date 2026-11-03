@@ -31,6 +31,11 @@ def light(name, prio=10, **kw):
     return Job(name, (name,), cls="light", priority=prio, **kw)
 
 
+def audit(name, prio=60, **kw):
+    kw.setdefault("weight_mb", 100)
+    return Job(name, (name,), cls="audit", priority=prio, **kw)
+
+
 async def settle(sup, clock, seconds=0):
     """one step of the loop at the current time (decide runs because enough time has passed)."""
     clock.advance(seconds=seconds)
@@ -541,3 +546,21 @@ async def test_every_cycle_task_runs_on_each_step_and_never_overlaps_or_raises()
     await asyncio.sleep(0.05)
     await sup2.step()                      # the failure was swallowed: the loop carries on
     assert sup2.ticks == 2
+
+
+async def test_a_slow_audit_does_not_take_a_light_slot_and_audits_run_one_at_a_time():
+    """The 3 Nov incident: a 15-minute coverage audit held one of the two light slots, so results and calendars waited behind it."""
+    sup, _ = make([audit("cov", 60), audit("integ", 61), light("results", 1), light("calendars", 2), light("quotes", 3)])
+    await sup.step()
+    started = set(sup.runner.started)
+    assert {"results", "calendars", "cov"} <= started                    # both light slots stay free for light jobs, the audit runs beside them
+    assert "integ" not in started                                        # one audit at a time
+    st = await sup.state.load_all()
+    assert "in their own lane" in st["integ"].state_reason
+    assert "free light slot" in st["quotes"].state_reason                # the cap on light jobs is unchanged
+
+
+async def test_the_audit_lane_is_a_config_value():
+    sup, _ = make([audit("cov", 60), audit("integ", 61)], cfg=config(audit_cap=2))
+    await sup.step()
+    assert set(sup.runner.started) == {"cov", "integ"}
