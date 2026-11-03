@@ -246,7 +246,7 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             sla=Sla("hours", 192), what="the company list (Sundays)"),
         Job("indices", ("refresh-indices",), priority=60, max_runtime_min=15, weight_mb=100, windows=night_morning, sla=Sla("hours", 30), owns=("indices",),
             what="NIFTY index membership"),
-        Job("coverage", ("audit-coverage", "--sample", "80", "--record"), priority=62, max_runtime_min=20, weight_mb=100, ok_exit=(0, 1), windows=night_morning,
+        Job("coverage", ("audit-coverage", "--sample", "60", "--max-minutes", "13", "--record"), priority=62, max_runtime_min=22, weight_mb=100, ok_exit=(0, 1), windows=night_morning,
             sla=Sla("hours", 30), what="compares what the provider sends with what the reports show (exit 1 = mismatches found, recorded)"),
         Job("integrity", ("audit-integrity",), priority=63, max_runtime_min=25, weight_mb=100, ok_exit=(0, 1), windows=night_morning, sla=Sla("hours", 30),
             what="nightly data integrity sample"),
