@@ -63,7 +63,7 @@ export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: str
     const y = years[i];
     if (v == null) return <Blank why={row.whys[i]} onHint={setHint} />;
     if (row.key === "oneOff" && y.oneOffShare != null && y.oneOffShare > LIM.implausibleOneOffShare)
-      return <span className="dp-na dp-caution" tabIndex={0} role="note" title="Implausible ratio: likely a tiny pre-tax profit or a data issue." aria-label={`Implausible ratio of ${nf(y.oneOffShare * 100, 0)} per cent of pre-tax profit: likely a tiny pre-tax profit or a data issue`} onMouseEnter={() => setHint("Implausible ratio: likely a tiny pre-tax profit or a data issue.")} onFocus={() => setHint("Implausible ratio: likely a tiny pre-tax profit or a data issue.")} onMouseLeave={() => setHint(null)} onBlur={() => setHint(null)}>⚠ implausible<small>{nf(y.oneOffShare * 100, 0)}%</small></span>;
+      return <span className="dp-na dp-caution" tabIndex={0} role="note" title="Implausible ratio: likely a tiny pre-tax profit or a data issue." aria-label={`Implausible ratio of ${nf(y.oneOffShare * 100, 0)} per cent of pre-tax profit: likely a tiny pre-tax profit or a data issue`} onMouseEnter={() => setHint("Implausible ratio: likely a tiny pre-tax profit or a data issue.")} onFocus={() => setHint("Implausible ratio: likely a tiny pre-tax profit or a data issue.")} onMouseLeave={() => setHint(null)} onBlur={() => setHint(null)}>implausible<small>{nf(y.oneOffShare * 100, 0)}%</small></span>;
     if (typeof v === "string") return <span className={v === "Low quality" ? "dp-lq" : ""}>{v === "Low quality" ? "⚑ " : ""}{v}</span>;
     return <>{sg(v, DIGITS[row.key] ?? 1)}{row.kind === "x" ? "×" : "%"}</>;
   };

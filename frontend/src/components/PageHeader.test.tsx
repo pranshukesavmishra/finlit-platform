@@ -25,13 +25,12 @@ describe("PageHeader", () => {
     const { container } = wrap(<PageHeader title="T" />);
     expect(container.querySelector(".ph-plan")).toBeNull();
   });
-  it("draws a stat tile only for real data, never a placeholder", () => {
+  it("draws no stat tiles (the props are accepted so no page has to change)", () => {
     const { container } = wrap(<PageHeader title="T" stats={[
       { icon: "building", value: "5,816", label: "Companies" }, { icon: "table", value: null, label: "Filters" }, { icon: "layers", value: NaN, label: "Sectors" },
       { icon: "layers", value: "—", label: "Dash" }, { icon: "layers", value: undefined, label: "Missing" }, { icon: "layers", value: "", label: "Empty" }, { icon: "layers", value: 0, label: "Zero" }, { icon: "layers", value: 7, label: "Fourth" },
     ]} />);
-    const tiles = [...container.querySelectorAll(".ph-stat")].map((t) => t.textContent);
-    expect(tiles).toEqual(["5,816Companies", "0Zero", "7Fourth"]);
+    expect(container.querySelector(".ph-stat")).toBeNull();      // the figure tiles are no longer drawn on any page
   });
   it("shows no stats list at all when every value is missing", () => {
     const { container } = wrap(<PageHeader title="T" stats={[{ icon: "building", value: null, label: "Companies" }]} />);
@@ -58,10 +57,9 @@ describe("PageHeader", () => {
     const d = wrap(<PageHeader title="T" learn />, "/no-such-page");
     expect(d.container.querySelector(".ph-learn")).toBeNull();
   });
-  it("hides the illustration from assistive tech and keeps the header usable without a router", () => {
+  it("draws no illustration and keeps the header usable without a router", () => {
     const { container } = render(<PageHeader plan="silver" title="T" art="chart" links={["/screener"]} />);
-    const svg = container.querySelector("svg.ph-art");
-    expect(svg?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector("svg.ph-art")).toBeNull();      // the line illustration is no longer drawn on any page
     expect(container.querySelector("a.ph-lk")?.getAttribute("href")).toBe("/screener");
   });
   it("keeps back links, notes and extra actions, and wraps in the page container on request", () => {
@@ -75,7 +73,7 @@ describe("PageHeader", () => {
     expect(container.querySelector(".ph h1")?.textContent).toBe("Fund score screener");
     expect(container.querySelector(".ph-plan")?.textContent).toBe("Gold");
     screen.getByRole("button", { name: "Read" }).click(); expect(fn).toHaveBeenCalled();
-    expect(container.querySelector(".ph-stat")?.textContent).toBe("12Categories");
+    expect(container.querySelector(".ph-stat")).toBeNull();
   });
 });
 

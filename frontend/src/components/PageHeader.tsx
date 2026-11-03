@@ -40,13 +40,15 @@ export function PageHeader({ plan, title, description, eyebrow, stats, links, le
   const uid = useId(), tid = id ?? "ph-t" + uid.replace(/:/g, "");
   const inRouter = useInRouterContext();   // the header also renders on its own (tests, previews): plain anchors then
   const pathname = inRouter ? useLocation().pathname : (typeof window !== "undefined" ? window.location.pathname : "/");   // eslint-disable-line react-hooks/rules-of-hooks
-  const tiles = (stats ?? []).filter((s) => realValue(s.value)).slice(0, 3);
+  // the figure tiles and the line illustration are no longer drawn (they said nothing the page does not already say); the props stay so no page has to change
+  const tiles: PhStat[] = [];
+  void stats; void art; void realValue;
   const btns = resolveLinks(links, 4);
   const hasFaq = learn === true && !!faqForPath(pathname);
   const lo: PhLearn | null = learn === true ? (hasFaq ? {} : null) : learn ? learn : null;
   const label = lo?.label ?? "Learn more";
   const p = plan ? PLAN[plan] : undefined;
-  const sided = tiles.length > 0 || !!art;
+  const sided = false;
   const learnEl = !lo ? null : lo.to
     ? <HLink className="ph-learn" to={lo.to}><Icon name="info" />{label}</HLink>
     : lo.onClick
