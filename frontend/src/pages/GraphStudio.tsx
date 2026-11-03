@@ -222,7 +222,7 @@ export function GraphStudio() {
   /** "+ Add chart" steps to the next larger layout (plan limits and the upgrade prompt apply as for the layout buttons) and selects the new chart. */
   const addChart = () => {
     const n = cellCount(view.layout), next = layoutAbove(view.layout);
-    if (!next) { toast("Nine charts is the most a view can hold."); return; }
+    if (!next) { toast("Six charts is the most a view can hold."); return; }
     if (cellCount(next) > lim.cells) { upgrade(plan === "basic" ? "silver" : "gold", `Layouts with ${cellCount(next)} charts`); return; }
     set({ ...view, layout: next });
     setActive(n);
@@ -303,7 +303,7 @@ export function GraphStudio() {
             <div className="gx-seg" role="group" aria-label="Time range">{RANGES.map((r) => <button key={r.id} aria-pressed={!view.from && view.range === r.id} onClick={() => set({ ...view, range: r.id, from: undefined })}>{r.label}</button>)}</div>
             <label className="gx-yr">From year <select value={view.from ?? ""} onChange={(e) => set({ ...view, from: e.target.value ? Number(e.target.value) : undefined })}><option value="">Any</option>{Array.from({ length: new Date().getFullYear() - 2009 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}</select></label>
             <div className="gx-seg" role="group" aria-label="Annual or quarterly">{(["annual", "quarterly"] as const).map((b) => <button key={b} aria-pressed={view.basis === b} onClick={() => set({ ...view, basis: b })}>{b === "annual" ? "Annual" : "Quarterly"}</button>)}</div>
-            <div className="gx-seg" role="group" aria-label="Layout">{Object.keys(LAYOUTS).map((l) => <button key={l} aria-pressed={view.layout === l} aria-label={`Layout ${l.replace("x", " by ")}`} onClick={() => setLayout(l)}>{l.replace("x", "×")}{cellCount(l) > lim.cells && <Icon name="lock" />}</button>)}</div>
+            <div className="gx-seg" role="group" aria-label="Layout">{Object.keys(LAYOUTS).filter((l) => l !== "2x3-5").map((l) => <button key={l} aria-pressed={view.layout === l || (l === "2x3" && view.layout === "2x3-5")} aria-label={`Layout ${l.replace("x", " by ")}`} onClick={() => setLayout(l)}>{l.replace("x", "×")}{cellCount(l) > lim.cells && <Icon name="lock" />}</button>)}</div>
             <button className="btn ghost gx-addchart" aria-label="Add a chart" title="Add a chart" onClick={addChart}><span aria-hidden="true">+</span> Add chart</button>
             <button className="btn ghost" onClick={copy}><Icon name="spark" />Copy link</button>
             <button className="btn ghost" onClick={exportPng}>PNG</button><button className="btn ghost" onClick={exportCsv}>CSV</button>
