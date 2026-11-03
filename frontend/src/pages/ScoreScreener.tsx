@@ -58,7 +58,9 @@ function Basic() {
         <div className="sx-pg" role="group" aria-label="Top 10 by size"><small className="sx-pgh">Top 10 by FinLit IQ</small>
           {TOP_PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={topPreset === p.id} title={p.say} onClick={() => useTop(p.id)} />)}</div>
         <div className="sx-pg" role="group" aria-label="Ready-made screens in the Advanced screener"><small className="sx-pgh">Ready-made screens (Advanced, Gold)</small>
-          {READY_MADE.map((r) => <Link key={r.id} className="sx-ready" to={`/advanced-score-screener?preset=${r.id}`} title={r.say}>{!s.gold && <Icon name="lock" />}<span>{r.label}</span><Icon name="arrow" /></Link>)}</div>
+          {READY_MADE.map((r) => locked
+            ? <button key={r.id} type="button" className="sx-ready is-locked" title={r.say} onClick={() => upgrade("silver", "Ready-made screens come with the Silver plan.")}><Icon name="lock" /><span>{r.label}</span><Icon name="arrow" /></button>
+            : <Link key={r.id} className="sx-ready" to={`/advanced-score-screener?preset=${r.id}`} title={r.say}><span>{r.label}</span><Icon name="arrow" /></Link>)}</div>
         {PRESETS.map((p) => <QuickRow key={p.id} label={<>{locked && <Icon name="lock" />} {p.label}</>} on={preset === p.id} title={p.say} onClick={() => usePreset(p.id)} />)}
       </div>}
       filters={locked ? (
