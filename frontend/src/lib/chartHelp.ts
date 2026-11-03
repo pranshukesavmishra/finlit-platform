@@ -645,7 +645,7 @@ export const CHART_HELP: Record<string, ChartHelpEntry> = {
     why: "Profit is an accounting opinion; cash is what arrives. When profit jumps from a one-off gain, or keeps running ahead of cash, the headline number may overstate what the business earns year after year.",
   },
   "revenue-cash": {
-    title: "Revenue-to-Cash Intelligence",
+    title: "Earnings & cash quality: revenue turning into cash",
     what: "Shows how much of a company's sales arrived as operating cash. The headline is operating cash flow divided by revenue (the OCF margin) for the latest financial year, and the chart sets it beside revenue growth for the last five years.",
     x: "Financial year (April to March), the last five. A missing year is left as a gap, never drawn as zero.",
     y: "Per cent. The line at 0% is the zero line: an OCF margin below it means operating cash flow was negative.",

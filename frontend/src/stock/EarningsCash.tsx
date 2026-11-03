@@ -31,6 +31,16 @@ export function flagsOf(pr: PrModel, m: ReturnType<typeof useRevenueCashModel>["
   return { flag, watch, investigate };
 }
 
+/** The counts behind the section header and the tab dot: red flags, items to watch and items to investigate. Null while Gold is locked or nothing is loaded. */
+export function useEarningsFindings(symbol: string, lender: boolean, sector?: string | null, industry?: string | null, labels?: (string | null | undefined)[]) {
+  const { has } = useUI(), open = useContext(OpenAccess);
+  const pr = useProfitReality(symbol, lender), rc = useRevenueCashModel(symbol, lender, labels);
+  if ((!open && !has("gold")) || !pr.years.length) return null;
+  const { flag, watch, investigate } = flagsOf(pr, rc.m, earningsIntel(pr, sector, industry));
+  const red = (flag ? 1 : 0) + (pr.verdict === "Needs a closer look" ? 1 : 0), amber = watch.length + (pr.verdict === "Mixed" ? 1 : 0);
+  return { red, watch: amber, investigate: investigate.length };
+}
+
 export function EarningsCash({ symbol, lender, sector, industry, labels }: { symbol: string; lender: boolean; sector?: string | null; industry?: string | null; labels?: (string | null | undefined)[] }) {
   const { has } = useUI(), open = useContext(OpenAccess);
   const locked = !open && !has("gold");

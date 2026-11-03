@@ -98,3 +98,8 @@ section.block table td { font-size: var(--fs-table); line-height: var(--lh-table
   :root { --fs-num: 40px; --fs-h2: 24px; --fs-h3: 17px; --section-gap: var(--sp-12); --block-gap: var(--sp-6); --card-pad-y: var(--sp-4); --card-pad-x: var(--sp-4); }
   .dp-title h3 { font-size: 21px; }
 }
+
+/* the plans note at the end of a report: one line, not a pricing page */
+.rp-plans { margin: var(--sp-16, 64px) 0 var(--sp-8, 32px); padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--s1); font-size: var(--fs-body, 14px); color: var(--muted); }
+.rp-plans a { margin-left: 6px; font-weight: 600; color: var(--gold-deep, var(--gold)); }
+.rg-h { margin: var(--sp-10, 40px) 0 var(--sp-4, 16px); font: 500 var(--fs-h3, 18px) var(--serif); }

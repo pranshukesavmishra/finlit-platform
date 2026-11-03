@@ -18,7 +18,7 @@ import { useUI } from "../lib/ui";
 import { SectionHead } from "./Sections";
 import { ProfitabilityRatios } from "./ProfitabilityRatios";
 import { DuPont } from "./DuPont";
-import { EarningsCash } from "./EarningsCash";
+import { EarningsCash, useEarningsFindings } from "./EarningsCash";
 import { SegmentCard } from "./Sections2";
 import { PeerRanking } from "./Leadership";
 import { useLeadership } from "../lib/leadership";
@@ -144,6 +144,7 @@ function ValuationHistory({ r }: { r: Ratios }) {
 export function RatiosSection({ r, lender = false, sector, industry, labels }: { r?: Ratios; lender?: boolean; sector?: string | null; industry?: string | null; labels?: (string | null | undefined)[] }) {
   const { has, upgrade } = useUI();
   const [sel, setSel] = useState("pe");
+  const ef = useEarningsFindings(r?.meta.symbol ?? "", lender, sector, industry, labels);
   if (!r) return <section className="block"><SectionHead id="ratios" no="07 · Ratios" icon="gauge" tier="basic" title="Valuation, returns, margins and debt" color="--p-profit" /><div className="skeleton" style={{ height: 300 }} /></section>;
   const hist = r.history, meters = METERS.filter((m) => r.latest[m.key]);
   const cur = meters.find((m) => m.key === sel) || meters[0];
@@ -190,7 +191,7 @@ export function RatiosSection({ r, lender = false, sector, industry, labels }: {
       <DuPont symbol={r.meta.symbol} lender={lender}
         head={<SectionHead id="dupont" no="08 · DuPont analysis" icon="layers" tier="basic" title="What drives return on equity" sub="ROE split into profit margin, asset turnover and leverage, then cleaned of one-off items and split further." color="--p-quality" />} />
       <section className="block" style={{ "--sc": "var(--p-profit)" } as React.CSSProperties}>
-        <SectionHead id="earnings" no="09 · Earnings & cash quality" icon="shield" tier="gold" title="Is the profit real, and is it turning into cash?" sub="Profit against cash, collections and stock, and one-off items, checked against fixed rules." color="--p-profit" />
+        <SectionHead id="earnings" no="09 · Earnings & cash quality" icon="shield" tier="gold" title="Is the profit real, and is it turning into cash?" sub="Profit against cash, collections and stock, and one-off items, checked against fixed rules." color="--p-profit" aside={ef ? <span className="sh-counts">{ef.red} red flag{ef.red === 1 ? "" : "s"} · {ef.watch} to watch · {ef.investigate} to investigate</span> : undefined} />
         <EarningsCash symbol={r.meta.symbol} lender={lender} sector={sector} industry={industry} labels={labels} />
       </section>
       <section className="block" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>

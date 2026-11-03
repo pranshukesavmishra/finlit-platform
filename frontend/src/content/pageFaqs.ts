@@ -226,7 +226,7 @@ export const PAGE_FAQS: PageFaq[] = [
    },
    {
     "q": "What is in a report?",
-    "a": "Sections for the company, its scorecard, price, latest quarter, financials, trends, ratios, ownership, peers, insights, dividends and pros & cons. Use All sections to jump between them. Labels such as Basic, Silver and Gold show which plan opens each section."
+    "a": "Sections for the company, its scorecard and key findings, price, latest quarter, financials, trends, ratios, DuPont analysis, earnings and cash quality, historical trend, ownership, peers, insights, dividends and pros & cons. Use All sections to jump between them. Labels such as Basic, Silver and Gold show which plan opens each section."
    },
    {
     "q": "What does the FinLit IQ at the top mean?",
@@ -257,8 +257,8 @@ export const PAGE_FAQS: PageFaq[] = [
     "a": "A Gold section. Buckets say what kind of company this is (size, style, income, momentum), triggers are the specific things most worth watching next, and segments show where the revenue comes from."
    },
    {
-    "q": "What is Revenue-to-Cash Intelligence?",
-    "a": "A Gold section under Ratios that shows how much of a company's sales arrived as operating cash. It gives operating cash flow divided by revenue for the latest year, a five-year chart against revenue growth, receivables and inventory growth, and plain-language warnings built from the company's own filings. It is not shown for banks, NBFCs and insurers, and it describes the numbers; it is not a recommendation."
+    "q": "What is Earnings & cash quality?",
+    "a": "A Gold section after the DuPont analysis that asks whether the profit is real and turning into cash. It starts with three verdicts (earnings quality, cash backing, cash conversion health), then the red flag and the items to investigate, then profit against cash, collections and stock, and the profit with one-offs taken out. It shows how much of a company's sales arrived as operating cash. It gives operating cash flow divided by revenue for the latest year, a five-year chart against revenue growth, receivables and inventory growth, and plain-language warnings built from the company's own filings. It is not shown for banks, NBFCs and insurers, and it describes the numbers; it is not a recommendation."
    }
   ]
  },

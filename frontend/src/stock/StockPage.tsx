@@ -6,7 +6,6 @@ import { recents } from "../lib/mycompanies";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiError, useSearchIndex, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
-import { signed, nf } from "../lib/format";
 import { OpenAccess } from "../components/Gate";
 import { useAuth } from "../lib/auth";
 import { Hero } from "./Hero";
@@ -22,14 +21,22 @@ import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
 import { SectorPeersSection } from "./SectorPeers";
 import { EarningsCallSection } from "./EarningsCall";
-import { PlansBand } from "../pages/Plans";
 import { useDocTitle } from "../lib/title";
 import "../styles/report-polish.css";
+import { MiniBar } from "./MiniBar";
+import { useEarningsFindings } from "./EarningsCash";
 import { KeyFindings, findingsOf } from "./KeyFindings";
 import { GROUP_START, navFor } from "../lib/sectionNav";
 import { SectionsMenu } from "./SectionsMenu";
 import { PreparingReport, type PreparingMode } from "./PreparingReport";
 
+
+/** The dot on the Earnings & cash tab: it needs the section's own models, so it is a small component of its own (drawn only once the report is there). */
+function EarnDot({ s }: { s: NonNullable<ReturnType<typeof useSummary>["data"]> }) {
+  const e = useEarningsFindings(s.meta.symbol, !!s.dataQuality.isBank, s.profile.sector, s.profile.industry, [s.profile.sector, s.profile.industry, s.profile.subIndustry]);
+  const k = e ? (e.red ? "f" : e.watch || e.investigate ? "w" : null) : null;
+  return k ? <i className={"tdot " + k} role="img" aria-label={k === "f" ? "has a red flag" : "has something to watch"} /> : null;
+}
 
 export function StockPage() {
   const { symbol: raw = "" } = useParams();
@@ -82,10 +89,10 @@ export function StockPage() {
   useEffect(() => {
     if (!s) return;
     const vis = new Map<string, boolean>();
-    const io = new IntersectionObserver((es) => { es.forEach((e) => vis.set(e.target.id, e.isIntersecting)); const f = navItems.find(([id]) => vis.get(id)); setActive(f ? f[0] : null); }, { rootMargin: "-130px 0px -55% 0px" });
+    const io = new IntersectionObserver((es) => { es.forEach((e) => vis.set(e.target.id, e.isIntersecting)); const f = navItems.find(([id]) => vis.get(id)); setActive(f ? f[0] : null); }, { rootMargin: "-180px 0px -55% 0px" });
     navItems.forEach(([id]) => { const n = document.getElementById(id); if (n) io.observe(n); });
-    const hero = document.querySelector(".idrow");
-    const io2 = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting), { rootMargin: "-130px 0px 0px 0px" });
+    const hero = document.querySelector(".idr");
+    const io2 = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting && e.boundingClientRect.bottom < 200), { rootMargin: "-130px 0px 0px 0px" });   // gone off the TOP of the screen, not merely below it
     if (hero) io2.observe(hero);
     return () => { io.disconnect(); io2.disconnect(); };
   }, [s, ratios, fin, own, peers, seg, events, navItems]);
@@ -99,7 +106,7 @@ export function StockPage() {
   }, [active]);
 
   // The Prism section hides itself when there is nothing to show; its links then open the Prism page instead.
-  const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 124, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else if (id === "prism") nav(`/prism/${encodeURIComponent(symbol)}`); };
+  const jump = (id: string) => { const t = document.getElementById(id); if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 176, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else if (id === "prism") nav(`/prism/${encodeURIComponent(symbol)}`); };
   const q = useMemo(() => s?.quote, [s]);
 
   const err = (sum.error ?? sum.failureReason) as ApiError | null;   // while it retries, the last answer is the failure reason (it carries the progress)
@@ -124,12 +131,13 @@ export function StockPage() {
     <>
       <Hero s={s} ratios={ratios} fin={fin} jump={jump} />
       <div className={"secnav" + (stuck ? " stuck" : "")} id="secnav">
+        <MiniBar s={s} on={stuck} />
         <div className="wrap">
-          <div className="mini" aria-hidden="true"><span className="bd">{s.profile.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}</span><b>{s.profile.nse}</b><span>₹{nf(q?.price ?? 0)}</span><span className={(q?.changePct ?? 0) >= 0 ? "pos" : "neg"}>{signed(q?.changePct)}</span><span className="sc">{s.score.overall ?? "—"}</span></div>
+
           <SectionsMenu items={navItems} active={active} onPick={jump} />
           <div className={"snav" + (edge.l ? " edge-l" : "") + (edge.r ? " edge-r" : "")}>
           {edge.l && <button type="button" className="snav-arrow" aria-label="Earlier sections" onClick={() => slide(-1)}>‹</button>}
-          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={(active === id ? "active" : "") + (GROUP_START.has(id) ? " grp" : "")} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}{dotOf(id) && <i className={"tdot " + dotOf(id)} role="img" aria-label={dotOf(id) === "f" ? "has a red flag" : "has something to watch"} />}</a>)}</nav>
+          <nav ref={links} aria-label="Sections"><span className="pill" ref={pill} />{navItems.map(([id, label, ic]) => <a key={id} data-s={id} href={`#${id}`} className={(active === id ? "active" : "") + (GROUP_START.has(id) ? " grp" : "")} aria-current={active === id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(id); }}><Icon name={ic} />{label}{id === "earnings" ? <EarnDot s={s} /> : dotOf(id) && <i className={"tdot " + dotOf(id)} role="img" aria-label={dotOf(id) === "f" ? "has a red flag" : "has something to watch"} />}</a>)}</nav>
           {edge.r && <button type="button" className="snav-arrow" aria-label="More sections" onClick={() => slide(1)}>›</button>}
           </div>
         </div>
@@ -157,7 +165,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><MethodSection s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><LeadershipSection symbol={symbol} name={s.profile.name} /></ErrorBoundary>
       </div>
-      <PlansBand id="plans" />
+      <div className="wrap"><p className="rp-plans" id="plans">Basic, Silver and Gold open more of every report: the scores, the checks and the full statements. <Link to="/pricing">Compare the plans</Link></p></div>
       {partial && <div className="prep-toast" role="status"><i aria-hidden="true" />Ownership, peers, segments and announcements are still loading. Everything above is final.</div>}
     </>
     </OpenAccess.Provider>

@@ -1,19 +1,16 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { AlertButton } from "../components/AlertComposer";
 import { Link } from "react-router";
 import { Icon } from "../lib/icons";
 import { MINUS, dateIN, fmtUnit, initials, nf, signed } from "../lib/format";
-import { useUI, TIER } from "../lib/ui";
-import { useAuth } from "../lib/auth";
-import { watch as wl, useWatchlist } from "../lib/watchlist";
+import { useUI } from "../lib/ui";
 import { Spark } from "../charts/Small";
-import { Gate, OpenAccess } from "../components/Gate";
+import { Gate } from "../components/Gate";
 import { PrismCompare, PrismDetail } from "./PrismCompare";
 import { ScreenBadges } from "./ScreenBadges";
 import { MacroBackdrop } from "./MacroBackdrop";
 import { ScoreCard, ScoreDetail } from "./ScoreCard";
 import { DashToggle, useDashOpen } from "./DashToggle";
-import { usePrismLatest } from "./PrismCard";
 import { apiUrl } from "../lib/api";
 import { Info } from "../components/Info";
 import { LeadLine } from "./Leadership";
@@ -21,10 +18,7 @@ import { type Financials, type Ratios, type Summary } from "../lib/api";
 import { csvOf, metric, offlineHtml, saveFile } from "./derive";
 import { TradingFacts } from "./TradingFacts";
 import { NameDots, Row, SubLine } from "./HeaderScore";
-import { LABEL } from "./PrismCard";
-import type { Plan, PrismInput } from "../lib/scoreBands";
-import { notRatedReason } from "../lib/prism";
-import { parseTechnical } from "../lib/prismTechnical";
+import { useReportHeader } from "./useReportHeader";
 
 const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
   ["market_cap", "Market cap", "cap", "--p-growth"], ["pe", "P/E", "tag", "--p-quality"], ["pb", "P/B", "id", "--p-quality"], ["ev_ebitda", "EV/EBITDA", "gauge", "--p-quality"],
@@ -33,32 +27,12 @@ const KPI_SPEC: [key: string, label: string, icon: string, color: string][] = [
 
 
 export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fin?: Financials; jump: (id: string) => void }) {
-  const { has, toast, upgrade } = useUI();
+  const { toast } = useUI();
   const [dashOpen, setDashOpen] = useDashOpen();
   const [dl, setDl] = useState(false);
-  const open_ = useContext(OpenAccess);
-  const two = has("gold") || open_;   // Gold sees the score and FinLit Prism side by side
-  const { isAdmin } = useAuth();
-  const prism = usePrismLatest(s.profile.symbol, s.meta.statement, two || isAdmin).data;
-  const prismRep = prism?.kind === "report" ? prism.report : null;
-  const effPlan: Plan = two || isAdmin ? "gold" : has("silver") ? "silver" : "basic";
-  const tech = prismRep ? parseTechnical(prismRep.technicalAssessment) : null;
-  const prismIn: PrismInput = !prism ? { kind: "loading" } : prism.kind === "report"
-    ? { kind: "report", final: prism.report.rating.final, word: LABEL[prism.report.rating.label][0], status: prism.report.rating.status, parts: prism.report.rating.parts,
-        short: tech && { score: tech.shortTerm.score, rating: tech.shortTerm.rating }, long: tech && { score: tech.longTerm.score, rating: tech.longTerm.rating },
-        reason: notRatedReason(prism.report.rating), techAsOf: prism.report.technical?.asOf ?? tech?.asOf ?? null }
-    : { kind: prism.kind };
-  const wlState = useWatchlist(); void wlState;
-  const watch = wl.has(s.profile.symbol);
+  const { open: open_, two, isAdmin, prismRep, effPlan, prismIn, watch, toggleWatch, need, has } = useReportHeader(s);
   const q = s.quote, p = s.profile, good = (q.change ?? 0) >= 0, cov = s.dataQuality.coverage;
   const asOf = q.asOf ? new Date(q.asOf) : null;
-  const need = (tier: "silver" | "gold", what: string) => { if (has(tier)) return true; upgrade(tier, `${what} come with the ${TIER[tier].n} plan.`); return false; };
-  const toggleWatch = () => {
-    if (!need("silver", "Watchlist and portfolio tracking")) return;
-    const on = !watch;
-    if (on) { if (!has("gold") && wl.total() >= 30) { upgrade("gold", "Silver holds up to 30 stocks; Gold holds up to 1,000."); return; } wl.add(p.symbol); } else wl.remove(p.symbol);
-    toast(on ? `${p.nse || p.symbol} added to your watchlist.` : `${p.nse || p.symbol} removed from your watchlist.`);
-  };
   const download = (kind: "pdf" | "html" | "csv") => {
     setDl(false);
     const name = `${p.nse || p.symbol}-FinLit`;
@@ -123,6 +97,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
         </Gate>
         <PrismCompare symbol={s.profile.symbol} name={p.name} statement={s.meta.statement} />
         </div>
+        {two && <p className="faint hs-two">FinLit IQ and FinLit Prism are two different models, built differently on purpose: IQ averages five pillars (including the price trend); Prism weighs four parts and adds valuation and risk. They can disagree; the reason is in the report.</p>}
         <DashToggle open={dashOpen} onToggle={setDashOpen} controls="dk-full" />
         <div id="dk-full" className="dk-full" hidden={!dashOpen}>
           {dashOpen && <>
@@ -133,7 +108,7 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
 
         <div className="kpis">
           {KPI_SPEC.map(([key, label, icon, color]) => {
-            const m = metric(s, key), e = ratios?.latest[key], val = m?.value ?? e?.value, unit = m?.unit ?? e?.unit, period = m?.period ?? e?.period;
+            const m = metric(s, key), e = ratios?.latest[key], val = key === "market_cap" ? (s.profile.marketCapCr ?? m?.value ?? e?.value) : (m?.value ?? e?.value), unit = m?.unit ?? e?.unit, period = m?.period ?? e?.period;
             return (
               <div className="kpi" key={key} style={{ "--kc": `var(${color})` } as React.CSSProperties}>
                 <div className="kl"><Icon name={icon} />{label} <Info g={ratios?.glossary[key]} /></div>

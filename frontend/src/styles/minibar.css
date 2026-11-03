@@ -1,0 +1,12 @@
+/* the slim company bar sits above the section tabs inside the sticky tab bar; it is closed (no height, not reachable) until the full header has gone */
+.mhbar { height: 0; overflow: hidden; visibility: hidden; border-bottom: 0 solid var(--border); transition: height .22s ease, visibility 0s linear .22s; background: var(--header); }
+.mhbar.on { height: 50px; visibility: visible; border-bottom-width: 1px; transition: height .22s ease, visibility 0s; }
+.mhbar-in { display: flex; align-items: center; gap: 12px; height: 50px; min-width: 0; }
+.mhbar-bd { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font: 700 11px/1 var(--sans); background: var(--s3); color: var(--text); border: 1px solid var(--border-strong); }
+.mhbar-nm { min-width: 0; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 17px var(--serif); }
+.mhbar-px { font: 600 15px var(--sans); font-variant-numeric: tabular-nums; } .mhbar-chg { font: 600 13px var(--sans); padding: 2px 8px; border-radius: 6px; } .mhbar-chg.up { color: var(--gain); background: color-mix(in srgb, var(--gain) 12%, transparent); } .mhbar-chg.down { color: var(--loss); background: color-mix(in srgb, var(--loss) 12%, transparent); }
+.mhbar .hs-badge { min-height: 26px; padding: 1px 10px 1px 9px; } .mhbar .hs-bn { font-size: 17px; }
+.mhbar-wl { margin-left: auto; flex: none; }
+@media (max-width: 760px) { .mhbar-px { display: none; } .mhbar .hs-bk { display: none; } .mhbar-dots { display: none; } .mhbar-nm { font-size: 15px; } }
+@media (max-width: 480px) { .mhbar-chg { display: none; } }
+.mhbar-wl { height: 34px; min-height: 0; padding: 0 14px; gap: 6px; font-size: 13.5px; } .mhbar-wl svg { width: 16px; height: 16px; flex: none; }

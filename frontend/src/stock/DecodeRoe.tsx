@@ -152,7 +152,7 @@ export function DecodeRoe({ symbol, pl, bs, lender, said = NONE }: { symbol: str
       )}
 
       <div className="card dp-card">
-        <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>What the numbers say</h3><span className="s">Descriptive only · reported figures</span></div>
+        <div className="card-h"><h3><span className="ci"><Icon name="layers" /></span>What the ROE figures say</h3><span className="s">Descriptive only · reported figures</span></div>
         {ins.cards.length ? <div className="dp-ins" role="list">{ins.cards.map((c) => (
           <div className="dp-insc" role="listitem" key={c.id}><p><b>{c.text}</b></p><ul>{c.evidence.map((e, i) => <li key={i}>{e}</li>)}</ul></div>))}</div>
           : <p className="faint">{mv ? "None of the observation rules applies to this range." : "Needs at least two years with margin, turnover, multiplier and a meaningful ROE."}</p>}
