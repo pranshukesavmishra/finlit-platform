@@ -30,7 +30,7 @@ export type PrismMetric = {
   details: {
     basis?: string; note?: string | null; current?: number | null; previous?: number | null; years?: number; availableYears?: number;
     good?: number; slips?: number; judged?: number; medianYoY?: number | null; lossFill?: boolean; latestLoss?: boolean;
-    operatingLoss?: boolean; opMarginNow?: number; growthUsed?: number; [k: string]: unknown;
+    operatingLoss?: boolean; opMarginNow?: number; growthUsed?: number; growthRaw?: number; growthBasis?: string; growthKind?: string; [k: string]: unknown;
   };
   fallbackFor: string | null; worst: number | null; best: number | null; redBoundary: number | null; greenBoundary: number | null;
   severity?: "GREEN" | "AMBER" | "RED" | "NO DATA" | "NOT APPLICABLE"; pointsEarned?: number; pointsLost?: number;
@@ -218,7 +218,10 @@ export function factorDetail(row: PrismMetric, group: string): string | null {
     if (d.years) return `${d.years}-year period: ${income} from ${crore(d.previous)} to ${crore(d.current)}.`;
     return "Needs at least two consecutive annual results ending in the latest financial year.";
   }
-  if (row.metric === "PEG" && d.growthUsed != null) return `Profit growth used: ${nf(d.growthUsed, 1)}% a year (capped at 40%).`;
+  if (row.metric === "PEG" && d.growthUsed != null) {
+    const basis = typeof d.growthBasis === "string" ? ` (${d.growthBasis}${d.growthRaw != null && d.growthRaw > 40 ? `, ${nf(d.growthRaw, 1)}% before the 40% cap` : ", capped at 40%"})` : " (capped at 40%)";
+    return `Earnings growth used: ${nf(d.growthUsed, 1)}% a year${basis}.`;
+  }
   if (d.operatingLoss && d.opMarginNow != null) return `The current operating margin is ${(d.opMarginNow < 0 ? MINUS : "") + nf(d.opMarginNow, 2)}%.`;
   const note = typeof d.note === "string" ? d.note : null;
   return note && note !== "Core group" ? note.replace(/\.?$/, ".") : null;

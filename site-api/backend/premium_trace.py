@@ -106,7 +106,7 @@ def build_calculation_trace(d, rating, meta):
                 benchmark=d.get('own_5y_median_'+key) if metric.endswith('HISTORY') and state!='S' else d.get('industry_median_'+key)
                 base = f'P/E = {fmt(price)} / {fmt(eps)} = {fmt(pe)}x.' if key=='pe' else f'P/B = ({fmt(price)} x {fmt(shares)}) / {fmt(nw)} = {fmt(pb)}x.' if key=='pb' else f'EV/EBITDA = ({fmt(market_cap)} + {fmt(debt)} - {fmt(cash)}) / {fmt(ebitda)} = {fmt(ev_ebitda)}x.'
                 formula=f'{base} Relative multiple = {fmt(current)} / {fmt(benchmark)} = {fmt(row["value"])}x.'
-            elif metric=='PEG': formula=f'P/E / positive profit growth capped at 40% = {fmt(pe)} / {fmt(info.get("growthUsed"))} = {fmt(row["value"])}. {info.get("note", "")}'
+            elif metric=='PEG': formula=f'P/E / positive earnings growth capped at 40% = {fmt(pe)} / {fmt(info.get("growthUsed"))} = {fmt(row["value"])}. Growth basis: {info.get("growthBasis") or "not available"}. {info.get("note", "")}'
             elif metric=='VOLATILITY':
                 risk=d.get('risk_calculation',{})
                 formula=f'Sample daily-return standard deviation x sqrt(250) x 100 = {fmt(risk.get("dailyStdDev"))} x sqrt(250) x 100 = {fmt(row["value"])}%. Uses {risk.get("returnCount","available")} valid returns, minimum 60; missing sessions are not bridged.'

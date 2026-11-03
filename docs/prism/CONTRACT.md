@@ -1,7 +1,7 @@
 # FinLit Prism: integration contract
 
 **FinLit Prism** is the Gold plan's advanced financial-health rating. It is the model merged from
-`Yusra-Khan532/financial-portfolio` (engine 3.6.11 plus the additive ST/LT technical assessment; see `premium-model-implementation.md`), renamed for the website.
+`Yusra-Khan532/financial-portfolio` (engine 3.6.12 plus the additive ST/LT technical assessment; see `premium-model-implementation.md`), renamed for the website.
 The name is in one place on each side: `PRISM_NAME` in `backend/finlit/prism.py` and in `frontend/src/lib/prism.ts`.
 
 A prism splits light into its bands: the rating splits a company into its four parts (Growth & Profitability, Valuation, Quality, Risk).
@@ -46,16 +46,16 @@ or `standalone`.
 
 ### Scoring-version freshness
 
-Stored reports must match the current financial model version, 3.6.11. An older
+Stored reports must match the current financial model version, 3.6.12. An older
 calculation is not returned as the latest report or reused by generation just
 because it was created recently. The page starts a fresh calculation when the
 latest endpoint returns no current-model report. The nightly precompute queue
 also includes outdated model versions, independently of its usual age cutoff.
 Previously issued signed PDF snapshots remain unchanged.
 
-Version 3.6.11 records the existing all-group PEG eligibility override; it does
-not change that formula. The earlier override kept version 3.6.10, which allowed
-pre-override reports (including PEG-excluded Reliance reports) to remain visible.
+Version 3.6.11 recorded the all-group PEG eligibility override. Version 3.6.12 changes the growth in PEG: it is now EPS growth (a yearly EPS CAGR over the
+latest consecutive annual window, 5 years, then 3, then what exists, with splits and bonus issues put on one share basis), falling back to net profit growth
+(the net profit CAGR, then the 12-month profit growth) only when there is no usable EPS CAGR. Reports of an older version are rebuilt.
 
 ### Storage
 
@@ -131,7 +131,7 @@ type TechnicalAssessment = {
 };
 ```
 
-Trimmed example (engine 3.6.11, synthetic prices, from `backend/tests/fixtures/prism/snapshot_example.json`):
+Trimmed example (engine 3.6.12, synthetic prices, from `backend/tests/fixtures/prism/snapshot_example.json`):
 
 ```json
 "technicalAssessment": {
