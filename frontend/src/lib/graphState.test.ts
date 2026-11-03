@@ -96,10 +96,10 @@ describe("indices in a view", () => {
 
 describe("adding and removing charts", () => {
   const view = (layout: string, n: number): View => ({ v: 1, layout, basis: "annual", range: "5Y", cells: Array.from({ length: n }, (_, i) => ({ chart: "line" as const, series: [{ s: "S" + i, m: "price" }] })) });
-  it("the layouts step 1, 2, 3, 4, 6, 9 charts, and + goes up one step, never past nine", () => {
-    expect(["1x1", "1x2", "1x3", "2x2", "2x3", "3x3"].map(cellCount)).toEqual([1, 2, 3, 4, 6, 9]);
-    expect(layoutAbove("1x1")).toBe("1x2"); expect(layoutAbove("2x2")).toBe("2x3"); expect(layoutAbove("3x3")).toBeNull();
-    expect(layoutBelow("2x2")).toBe("1x3"); expect(layoutBelow("2x3")).toBeNull();     // no layout holds exactly five charts
+  it("the layouts step 1, 2, 3, 4, 5, 6 charts, and + goes up one step, never past six (there is no 3 by 3)", () => {
+    expect(["1x1", "1x2", "1x3", "2x2", "2x3-5", "2x3"].map(cellCount)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(layoutAbove("1x1")).toBe("1x2"); expect(layoutAbove("2x2")).toBe("2x3-5"); expect(layoutAbove("2x3-5")).toBe("2x3"); expect(layoutAbove("2x3")).toBeNull();
+    expect(layoutBelow("2x2")).toBe("1x3"); expect(layoutBelow("2x3")).toBe("2x3-5"); expect(layoutBelow("2x3-5")).toBe("2x2");
   });
   it("× moves the later charts up and steps the layout down when one with one chart fewer exists", () => {
     const v = withoutCell(view("2x2", 4), 1);
@@ -107,9 +107,9 @@ describe("adding and removing charts", () => {
     expect(v.cells.map((c) => c.series[0].s)).toEqual(["S0", "S2", "S3"]);
     expect(withoutCell(view("1x3", 3), 0).layout).toBe("1x2");
   });
-  it("where no smaller layout fits exactly the grid keeps its shape and the charts after the removed one move up", () => {
+  it("× on a chart of the 2 by 3 grid really removes it: five charts remain, the later ones moved up", () => {
     const v = withoutCell(view("2x3", 6), 2);
-    expect(v.layout).toBe("2x3");
+    expect(v.layout).toBe("2x3-5");
     expect(v.cells.map((c) => c.series[0].s)).toEqual(["S0", "S1", "S3", "S4", "S5"]);
   });
   it("removing a chart that has not been filled in (past the stored cells) removes nothing else", () => {
@@ -123,5 +123,13 @@ describe("adding and removing charts", () => {
     expect(decodeView(encodeView(v), "gold")?.layout).toBe("1x3");
     expect(decodeView(encodeView(v), "basic")?.layout).toBe("1x3");          // Basic holds four charts, so three is fine
     expect(decodeView(encodeView(view("2x3", 6)), "basic")?.layout).toBe("2x2");   // six is more than Basic holds: the nearest layout it may use
+  });
+});
+
+describe("the removed 3 by 3 grid", () => {
+  it("an old link with nine charts opens as the 2 by 3 grid with its first six", () => {
+    const cells = Array.from({ length: 9 }, (_, i) => ({ chart: "line", series: [{ s: "S" + i, m: "price" }] }));
+    const s = sanitize({ layout: "3x3", cells }, "gold");
+    expect(s.layout).toBe("2x3"); expect(s.cells.map((c) => c.series[0].s)).toEqual(["S0", "S1", "S2", "S3", "S4", "S5"]);
   });
 });
