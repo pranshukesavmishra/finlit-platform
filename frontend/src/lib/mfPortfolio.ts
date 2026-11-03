@@ -18,7 +18,7 @@ export type ScoreBlock = {
   parts: Record<PartKey, number | null> | null; inherited: { name: string; why: string } | null;
 };
 export type Holding = {
-  id: string; code: number; folio: string; units: number; lots: Lot[];
+  id: string; code: number; folio: string; units: number | null; lots: Lot[]; followed?: boolean;
   name: string | null; amc: string | null; plan: string | null; option: string | null; category: string | null; categoryLabel: string | null; active: boolean; isin?: string | null;
   nav: number | null; navDate: string | null; navStale: boolean; navNote: string | null;
   invested: number | null; investedWhy: string | null; current: number | null; currentWhy: string | null;
@@ -57,7 +57,7 @@ export function useMfWrites() {
   const qc = useQueryClient();
   const done = () => qc.invalidateQueries({ queryKey: KEY });
   return {
-    add: useMutation({ mutationFn: (b: LotInput & { code: number; folio?: string }) => apiSend<{ id: string; merged: boolean }>("POST", "/api/me/mf-portfolio", b), onSuccess: done }),
+    add: useMutation({ mutationFn: (b: Partial<LotInput> & { code: number; folio?: string; follow?: boolean }) => apiSend<{ id: string; merged: boolean }>("POST", "/api/me/mf-portfolio", b), onSuccess: done }),
     update: useMutation({ mutationFn: (b: { id: string; folio?: string; lots: LotInput[] }) => apiSend("PUT", `/api/me/mf-portfolio/${b.id}`, { folio: b.folio, lots: b.lots }), onSuccess: done }),
     remove: useMutation({ mutationFn: (id: string) => apiSend("DELETE", `/api/me/mf-portfolio/${id}`), onSuccess: done }),
     preview: useMutation({ mutationFn: (rows: RawRow[]) => apiSend<Preview>("POST", "/api/me/mf-portfolio/import-preview", { rows }) }),
@@ -153,3 +153,17 @@ export const pct1 = (v: number | null | undefined, signed = false) => (v == null
 /** Fund size in rupees crore with Indian grouping: 12345 -> "₹12,345 cr". */
 export const crores = (v: number | null | undefined) => (v == null ? "—" : "₹" + v.toLocaleString("en-IN", { maximumFractionDigits: v >= 100 ? 0 : 1 }) + " cr");
 export const gainTone = (v: number | null | undefined) => (v == null || v === 0 ? "" : v > 0 ? "up" : "dn");
+
+
+/** The share of funds by size (large, mid, small cap) and by type (equity, debt, hybrid, solution oriented, others), for the two pie charts.
+ *  Weighted by current value when every fund has one; otherwise each fund counts the same (a followed fund has no units, so no value). */
+export type Slice = { label: string; value: number; pct: number };
+export const sizeOf = (category: string | null): string | null => (/large\s*&\s*mid/i.test(category || "") ? "Large & mid cap" : /large/i.test(category || "") ? "Large cap" : /mid/i.test(category || "") ? "Mid cap" : /small/i.test(category || "") ? "Small cap" : null);
+export const typeOf = (category: string | null): string => (/^equity/i.test(category || "") ? "Equity" : /^debt/i.test(category || "") ? "Debt" : /^hybrid/i.test(category || "") ? "Hybrid" : /solution/i.test(category || "") ? "Solution oriented" : "Others");
+export function shares(hs: Holding[], keyOf: (h: Holding) => string | null): { slices: Slice[]; by: "value" | "count"; left: number } {
+  const byValue = hs.length > 0 && hs.every((h) => h.current != null && h.current > 0), m = new Map<string, number>();
+  let left = 0;
+  for (const h of hs) { const k = keyOf(h); if (k == null) { left++; continue; } m.set(k, (m.get(k) || 0) + (byValue ? (h.current as number) : 1)); }
+  const total = [...m.values()].reduce((a, b) => a + b, 0);
+  return { slices: [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([label, value]) => ({ label, value, pct: total ? Math.round((value / total) * 1000) / 10 : 0 })), by: byValue ? "value" : "count", left };
+}

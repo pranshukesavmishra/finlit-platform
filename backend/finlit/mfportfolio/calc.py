@@ -67,9 +67,27 @@ def xirr_of(lots: Sequence[Tuple[Decimal, Optional[Decimal], Optional[date]]], c
     return round(r * 100, 2), None, kind
 
 
+def _followed(h: Dict[str, Any], s: Optional[Dict[str, Any]], data_date: Optional[date]) -> Dict[str, Any]:
+    """A fund that is only followed (no units, cost or date given): its own facts show, every money figure says why it is blank, and it is never valued as zero."""
+    nav = dec(s["nav"]) if s and s["nav"] is not None else None
+    nav_date: Optional[date] = s["nav_date"] if s else None
+    why = "No units were added for this fund, so its value is not worked out."
+    stale = bool(s) and nav_date is not None and (not s["active"] or (data_date is not None and (data_date - nav_date).days > NAV_STALE_DAYS))
+    return {
+        "id": h["id"], "code": h["code"], "folio": h["folio"], "units": None, "lots": [], "followed": True,
+        "invested": None, "investedWhy": why, "current": None, "currentWhy": why,
+        "nav": num(nav, 4) if nav is not None else None, "navDate": nav_date.isoformat() if nav_date else None, "navStale": stale,
+        "navNote": ("This NAV is older than the other funds' (from " + nav_date.strftime("%d %b %Y") + ").") if stale and nav_date else None,
+        "gain": None, "gainPct": None, "gainWhy": why, "xirr": None, "xirrWhy": why, "xirrKind": "cagr",
+    }
+
+
+
 def value_holding(h: Dict[str, Any], s: Optional[Dict[str, Any]], data_date: Optional[date]) -> Dict[str, Any]:
     """One holding's row for the page. `h` = {id, code, folio, lots: [{id, units, invested, bought_on}]}, `s` = the scheme's row (None if it vanished)."""
     lots = [(l["units"], l["invested"], l["bought_on"]) for l in h["lots"]]
+    if not lots:
+        return _followed(h, s, data_date)
     units = sum((l[0] for l in lots), Decimal(0))
     cost_known = all(l[1] is not None for l in lots)
     invested = q_money(sum((l[1] for l in lots), Decimal(0))) if cost_known else None
@@ -116,8 +134,9 @@ def summarize(rows: List[Dict[str, Any]], score_locked: bool) -> Dict[str, Any]:
         "navFrom": min(dates) if dates else None, "navTo": max(dates) if dates else None,
     }
     notes = []
-    if n and len(valued) < n:
-        notes.append(f"{n - len(valued)} of {n} funds could not be valued (no NAV), so they are left out of the totals.")
+    followed = sum(1 for r in rows if r.get("followed"))
+    if n and len(valued) < n - followed:
+        notes.append(f"{n - followed - len(valued)} of {n - followed} funds could not be valued (no NAV), so they are left out of the totals.")
     if valued and len(both) < len(valued):
         notes.append(f"The gain covers {len(both)} of {len(valued)} valued funds: the others have no amount paid.")
     out["notes"] = notes
@@ -139,16 +158,17 @@ def summarize(rows: List[Dict[str, Any]], score_locked: bool) -> Dict[str, Any]:
     if score_locked:
         out["score"] = {"locked": True, "value": None, "label": None, "why": None}
     else:
-        finals = [(r["score"]["final"], dec(r["current"])) for r in rows if r.get("score") and r["score"].get("final") is not None and r["current"] is not None]
+        finals = [(r["score"]["final"], dec(r["current"]) if r["current"] is not None else Decimal(1)) for r in rows if r.get("score") and r["score"].get("final") is not None and (r["current"] is not None or not valued)]   # followed funds only: every fund counts the same
         scored = len(finals)
-        if n and scored == n and sum(w for _, w in finals) > 0:
+        n_eff = n if not valued else n - followed       # beside funds that have a value, followed ones stay out of the weighted score
+        if n_eff and scored == n_eff and sum(w for _, w in finals) > 0:
             tot = sum(w for _, w in finals)
             val = round(float(sum(Decimal(str(f)) * w for f, w in finals) / tot), 1)
-            out["score"] = {"locked": False, "value": val, "label": label_of(val), "why": None, "funds": n}
+            out["score"] = {"locked": False, "value": val, "label": label_of(val), "why": None, "funds": n_eff}
         else:
-            missing = n - scored
+            missing = n_eff - scored
             out["score"] = {"locked": False, "value": None, "label": None, "funds": scored,
-                            "why": f"{missing} of {n} funds {'has' if missing == 1 else 'have'} no score, so a portfolio score is not shown." if n else None}
+                            "why": f"{missing} of {n_eff} funds {'has' if missing == 1 else 'have'} no score, so a portfolio score is not shown." if n_eff else None}
     return out
 
 

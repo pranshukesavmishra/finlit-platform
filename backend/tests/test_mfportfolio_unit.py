@@ -321,3 +321,21 @@ def test_concentration_is_plain_and_never_advice():
     spread = calc.concentration([{"name": f"F{i}", "amc": f"A{i}", "categoryLabel": "c", "current": 100} for i in range(10)])
     assert spread["level"] == "spread" and spread["top1Pct"] == 10.0
     assert calc.concentration([])["level"] is None
+
+
+# ------------------------------------------------------------------------------------------------------------------ a fund that is only followed
+
+def test_a_followed_fund_has_no_money_figures_and_is_never_valued_as_zero():
+    v = calc.value_holding({"id": "a", "code": 1, "folio": "", "lots": []}, scheme(), date(2026, 10, 29))
+    assert v["followed"] is True and v["units"] is None and v["current"] is None and v["invested"] is None and v["gain"] is None and v["xirr"] is None
+    assert "No units were added" in v["currentWhy"] and v["nav"] == 25.1234 and v["navDate"] == "2026-10-29"
+
+
+def test_followed_funds_are_not_reported_as_unvalued_and_share_the_score_equally():
+    def mk(final):
+        return {"followed": True, "current": None, "invested": None, "navDate": "2026-10-29", "xirr": None, "lots": [], "score": {"final": final}}
+    s = calc.summarize([mk(80), mk(60)], score_locked=False)
+    assert s["valued"] == 0 and s["notes"] == [] and s["score"]["value"] == 70.0 and s["score"]["funds"] == 2
+    held = {"current": 300, "invested": 300, "navDate": "2026-10-29", "xirr": None, "lots": [], "score": {"final": 80}}
+    m = calc.summarize([held, mk(10)], score_locked=False)
+    assert m["score"]["value"] == 80.0 and m["notes"] == []               # beside a fund with a value, a followed one stays out of the weighted score

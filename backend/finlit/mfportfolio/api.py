@@ -87,12 +87,13 @@ async def scheme_index(request: Request) -> Index:
 
 async def holdings_of(conn, user_id: str) -> List[Dict[str, Any]]:
     rows = await conn.fetch(
-        "SELECT h.id, h.code, h.folio, l.id AS lot_id, l.units, l.invested, l.bought_on FROM mf_holdings h JOIN mf_holding_lots l ON l.holding_id = h.id "
+        "SELECT h.id, h.code, h.folio, l.id AS lot_id, l.units, l.invested, l.bought_on FROM mf_holdings h LEFT JOIN mf_holding_lots l ON l.holding_id = h.id "
         "WHERE h.user_id = $1 ORDER BY h.created_at, h.id, l.bought_on NULLS LAST, l.created_at, l.id", user_id)
     out: Dict[Any, Dict[str, Any]] = {}
     for r in rows:
         h = out.setdefault(r["id"], {"id": str(r["id"]), "code": r["code"], "folio": r["folio"], "lots": []})
-        h["lots"].append({"id": str(r["lot_id"]), "units": r["units"], "invested": r["invested"], "bought_on": r["bought_on"]})
+        if r["lot_id"] is not None:        # a fund that is only followed (no units given) has no purchase lines
+            h["lots"].append({"id": str(r["lot_id"]), "units": r["units"], "invested": r["invested"], "bought_on": r["bought_on"]})
     return list(out.values())
 
 
@@ -187,6 +188,7 @@ class LotIn(BaseModel):
 class AddIn(LotIn):
     code: int = Field(ge=1, lt=10 ** 7)
     folio: str = Field(default="", max_length=60)
+    follow: bool = False       # true: only the fund is given (no units, cost or date): it is followed; a missing units figure without this is still refused
 
 
 class UpdateIn(BaseModel):
@@ -214,7 +216,8 @@ async def ensure_scheme(conn, code: int) -> None:
 @router.post("", status_code=201)
 async def add_holding(request: Request, body: AddIn, ctx: Ctx = Depends(member_ctx)):
     await limit(request, "mfpw", ctx.user_id, 120, 600)
-    units, invested, bought = lot_of(body)
+    follow = body.follow and body.units is None and body.invested is None and body.avgCost is None and body.boughtOn is None   # asked for, with nothing else given: the fund is followed, with no units or cost
+    units, invested, bought = (None, None, None) if follow else lot_of(body)
     folio = clean_folio(body.folio)
     async with request.app.state.store.pool.acquire() as conn:
         async with conn.transaction():
@@ -227,9 +230,12 @@ async def add_holding(request: Request, body: AddIn, ctx: Ctx = Depends(member_c
                 if used >= cap_for(ctx):
                     raise fail(403, "plan_limit", f"Your plan includes {cap_for(ctx)} funds.", plan="gold")
                 hid = await conn.fetchval("INSERT INTO mf_holdings (user_id, code, folio) VALUES ($1, $2, $3) RETURNING id", ctx.user_id, body.code, folio)
+            elif follow:
+                return reply({"status": "saved", "id": str(hid), "merged": True}, 201)            # already in the list: nothing to add
             elif await conn.fetchval("SELECT count(*) FROM mf_holding_lots WHERE holding_id = $1", hid) >= MAX_LOTS:
                 raise fail(403, "plan_limit", f"A holding keeps up to {MAX_LOTS} purchases.")
-            await conn.execute("INSERT INTO mf_holding_lots (holding_id, units, invested, bought_on) VALUES ($1, $2, $3, $4)", hid, units, invested, bought)
+            if not follow:
+                await conn.execute("INSERT INTO mf_holding_lots (holding_id, units, invested, bought_on) VALUES ($1, $2, $3, $4)", hid, units, invested, bought)
             await conn.execute("UPDATE mf_holdings SET updated_at = now() WHERE id = $1", hid)
     return reply({"status": "saved", "id": str(hid), "merged": merged}, 201)
 

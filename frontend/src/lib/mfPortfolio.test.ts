@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commitItems, initialDecisions, reviewCounts, rupees, pct1, sortHoldings, toCsv, type Fund, type Holding, type ReviewRow } from "./mfPortfolio";
+import { commitItems, initialDecisions, reviewCounts, rupees, pct1, shares, sizeOf, typeOf, sortHoldings, toCsv, type Fund, type Holding, type ReviewRow } from "./mfPortfolio";
 
 const F = (code: number): Fund => ({ code, name: `Fund ${code}`, amc: "A", plan: "Direct", option: "Growth", active: true, navDate: "2026-10-29" });
 const H = (id: string, o: Partial<Holding> = {}, score: number | null = null): Holding => ({
@@ -61,5 +61,21 @@ describe("text", () => {
   it("money has Indian grouping and a true minus", () => {
     expect(rupees(1234567.5)).toBe("₹12,34,568"); expect(rupees(-1500)).toBe("−₹1,500"); expect(rupees(null)).toBe("—"); expect(rupees(12.5, true)).toBe("₹12.50");
     expect(pct1(12.345, true)).toBe("+12.35%"); expect(pct1(-3)).toBe("−3.00%");
+  });
+});
+
+describe("the size and type pie charts", () => {
+  const h = (category: string | null, current: number | null) => ({ category, current } as unknown as Holding);
+  it("sizes and types are read from the SEBI category", () => {
+    expect(["Equity Scheme - Large Cap Fund", "Equity Scheme - Mid Cap Fund", "Equity Scheme - Small Cap Fund", "Equity Scheme - Large & Mid Cap Fund", "Equity Scheme - Flexi Cap Fund", "Debt Scheme - Liquid Fund"].map(sizeOf))
+      .toEqual(["Large cap", "Mid cap", "Small cap", "Large & mid cap", null, null]);
+    expect(["Equity Scheme - Flexi Cap Fund", "Debt Scheme - Liquid Fund", "Hybrid Scheme - Balanced Hybrid Fund", "Solution Oriented Scheme - Retirement Fund", "Other Scheme - Index Funds", null].map(typeOf))
+      .toEqual(["Equity", "Debt", "Hybrid", "Solution oriented", "Others", "Others"]);
+  });
+  it("funds with no value count the same; with values every fund is weighted by its value; funds outside the groups are counted apart", () => {
+    const f = shares([h("Equity Scheme - Large Cap Fund", null), h("Equity Scheme - Large Cap Fund", null), h("Equity Scheme - Small Cap Fund", null), h("Debt Scheme - Liquid Fund", null)], (x) => sizeOf(x.category));
+    expect(f.by).toBe("count"); expect(f.left).toBe(1); expect(f.slices).toEqual([{ label: "Large cap", value: 2, pct: 66.7 }, { label: "Small cap", value: 1, pct: 33.3 }]);
+    const v = shares([h("Equity Scheme - Large Cap Fund", 300), h("Equity Scheme - Mid Cap Fund", 100)], (x) => sizeOf(x.category));
+    expect(v.by).toBe("value"); expect(v.slices.map((s) => s.pct)).toEqual([75, 25]);
   });
 });

@@ -15,6 +15,7 @@ import { PdfPasswordError, isPdf } from "../lib/holdingsPdf";
 import {
   LEVEL_WORD, MF_INFO_ONLY, MF_SCORE_LINE, PARTS, STATUS_WORD, commitItems, crores, csvFileName, gainTone, initialDecisions, pct1, reviewCounts, rupees, searchFunds, sortHoldings, toCsv,
   useMfPortfolio, useMfWrites, type Decision, type Fund, type Holding, type Preview, type ReviewRow, type SortKey,
+  shares, sizeOf, typeOf,
 } from "../lib/mfPortfolio";
 import { dateIN } from "../lib/format";
 import "../styles/mf.css";
@@ -55,21 +56,24 @@ function AddFund({ disabled, onDone }: { disabled: boolean; onDone: (msg: string
     e.preventDefault(); setErr("");
     if (!fund) { setErr("Choose a fund from the search first."); return; }
     try {
-      const r = await w.add.mutateAsync({ code: fund.code, units, folio, ...(mode === "avg" && cost ? { avgCost: cost } : mode === "total" && cost ? { invested: cost } : {}), ...(date ? { boughtOn: date } : {}) });
-      onDone(r.merged ? "Added as another purchase of the fund you already hold in that folio." : "Fund added."); setFund(null); setUnits(""); setCost(""); setDate(""); setFolio("");
+      const hold = units.trim() !== "";    // no units: the fund is only followed, with its score, returns and place in the charts
+      const r = await w.add.mutateAsync(hold ? { code: fund.code, units, folio, ...(mode === "avg" && cost ? { avgCost: cost } : mode === "total" && cost ? { invested: cost } : {}), ...(date ? { boughtOn: date } : {}) } : { code: fund.code, follow: true });
+      onDone(r.merged ? (hold ? "Added as another purchase of the fund you already hold in that folio." : "That fund is already in your list.") : "Fund added."); setFund(null); setUnits(""); setCost(""); setDate(""); setFolio("");
     } catch (x) { setErr(errText(x)); }
   };
   return (
     <form className="mp-form" onSubmit={submit}>
       {fund ? <div className="mp-picked"><b>{fund.name}</b><small>{fund.amc} · {fund.plan} · {fund.option}</small><button type="button" className="btn" onClick={() => setFund(null)}>Change</button></div> : <FundSearch onPick={setFund} />}
-      <div className="mp-grid">
-        <label>Units held<input inputMode="decimal" value={units} onChange={(e) => setUnits(e.target.value)} placeholder="e.g. 245.678" required /></label>
-        <label>Cost<select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="total">Amount invested (₹)</option><option value="avg">Average cost per unit (₹)</option><option value="none">Not known</option></select></label>
-        <label>{mode === "avg" ? "Average cost" : "Amount"}<input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} disabled={mode === "none"} placeholder={mode === "none" ? "—" : "e.g. 50000"} /></label>
-        <label>Purchase date (optional)<input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} /></label>
-        <label>Folio (optional)<input value={folio} onChange={(e) => setFolio(e.target.value)} maxLength={40} placeholder="e.g. 1234567/89" /></label>
-      </div>
-      <p className="faint mp-note">A purchase date lets us work out XIRR. Without a cost, the gain is shown as a dash with the reason.</p>
+      <details className="mp-opt"><summary>I hold units of this fund (optional: adds its value and gain)</summary>
+        <div className="mp-grid">
+          <label>Units held<input inputMode="decimal" value={units} onChange={(e) => setUnits(e.target.value)} placeholder="e.g. 245.678" /></label>
+          <label>Cost<select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="total">Amount invested (₹)</option><option value="avg">Average cost per unit (₹)</option><option value="none">Not known</option></select></label>
+          <label>{mode === "avg" ? "Average cost" : "Amount"}<input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} disabled={mode === "none"} placeholder={mode === "none" ? "—" : "e.g. 50000"} /></label>
+          <label>Purchase date (optional)<input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={new Date().toISOString().slice(0, 10)} /></label>
+          <label>Folio (optional)<input value={folio} onChange={(e) => setFolio(e.target.value)} maxLength={40} placeholder="e.g. 1234567/89" /></label>
+        </div>
+        <p className="faint mp-note">A purchase date lets us work out XIRR. Without a cost, the gain is shown as a dash with the reason.</p>
+      </details>
       {err && <p className="mp-err" role="alert">{err}</p>}
       <button className="btn primary" disabled={disabled || w.add.isPending}>{w.add.isPending ? "Adding…" : "Add fund"}</button>
     </form>
@@ -196,6 +200,7 @@ export function MfPortfolioPage() {
   const [params] = useSearchParams();
   const [tab, setTab] = useState<"add" | "import">(params.get("tab") === "import" ? "import" : "add"), [key, setKey] = useState<SortKey>("current"), [dir, setDir] = useState<"asc" | "desc">("desc"), [editing, setEditing] = useState<string | null>(null);
   const d = q.data, locked = d ? d.scoreLocked : !has("gold");
+  const sizeShare = shares(d?.holdings ?? [], (h) => sizeOf(h.category)), typeShare = shares(d?.holdings ?? [], (h) => typeOf(h.category));
   const rows = useMemo(() => (d ? sortHoldings(d.holdings, key, dir) : []), [d, key, dir]);
   const limit = d?.limit ?? limitsFor(plan).mf_holdings;
   const sort = (k: SortKey) => { if (k === key) setDir(dir === "asc" ? "desc" : "asc"); else { setKey(k); setDir(k === "name" ? "asc" : "desc"); } };
@@ -217,20 +222,24 @@ export function MfPortfolioPage() {
 
         {q.isPending && silver && <div className="card dw-empty" aria-busy="true"><b>Loading your funds…</b></div>}
         {q.isError && <div className="card dw-empty" role="alert"><b>Your funds could not be loaded</b><p>{errText(q.error)}</p><button className="btn" onClick={() => q.refetch()}>Try again</button></div>}
-        {d && !d.count && <div className="card dw-empty"><span className="dw-ei"><Icon name="wallet" /></span><b>No mutual funds yet</b><p>Search a fund above and enter your units, or import a statement. {limit} funds fit in your plan.</p></div>}
+        {d && !d.count && <div className="card dw-empty"><span className="dw-ei"><Icon name="wallet" /></span><b>No mutual funds yet</b><p>Search a fund above to add it (units are optional), or import a statement. {limit} funds fit in your plan.</p></div>}
         {d && s && d.count > 0 && <>
           <div className="mp-tiles">
+            {s.valued > 0 && <>
             <div className="card"><small>Invested</small><b>{rupees(s.invested)}</b><span className="faint">{s.invested == null ? "No amount paid is known yet." : `${s.gainFunds} of ${s.funds} funds`}</span></div>
             <div className="card"><small>Current value</small><b>{rupees(s.current)}</b><span className="faint">{s.navTo ? `NAV ${s.navFrom === s.navTo ? dateIN(s.navTo) : dateIN(s.navFrom!) + " to " + dateIN(s.navTo)}` : "No NAV yet"}</span></div>
             <div className={"card " + gainTone(s.gain)}><small>Total gain</small><b>{s.gain == null ? "—" : (s.gain > 0 ? "+" : "") + rupees(s.gain)}</b><span>{pct1(s.gainPct, true)}</span></div>
             <div className="card"><small>XIRR</small><b>{s.xirr == null ? "–" : pct1(s.xirr)}</b><span className="faint">{s.xirr == null ? s.xirrWhy : `${s.xirrFunds} fund(s) with dated purchases`}</span></div>
+            </>}
             <div className="card"><small>Funds</small><b>{s.funds}</b><span className="faint">of {limit} in your plan</span></div>
             <div className="card"><small>Portfolio Health Score</small>{locked ? <button className="mp-lock" onClick={unlock}><Icon name="lock" /><span>Gold</span></button> : <b className={"mfs-pv b-" + bandOf(s.score.value)}>{s.score.value == null ? "–" : scoreText(s.score.value)}</b>}<span className="faint">{locked ? "Unlock with Gold" : s.score.value != null ? `${s.score.label}, weighted by value` : s.score.why}</span></div>
           </div>
           {s.notes.map((n) => <p key={n} className="faint mp-note" role="note">{n}</p>)}
           <div className="pf-g">
-            <section className="card"><div className="card-h"><h3>By category</h3><span className="s">Share of current value</span></div><Donut parts={d.allocation.byCategory.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(d.allocation.byCategory.length)} sub="CATEGORIES" /></section>
-            <section className="card"><div className="card-h"><h3>By fund house</h3><span className="s">Share of current value</span></div><Donut parts={d.allocation.byAmc.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(d.allocation.byAmc.length)} sub="FUND HOUSES" /></section>
+            {([["By size", "Large, mid and small cap funds", sizeShare, "SIZES"], ["By type", "Equity, debt, solution oriented and others", typeShare, "TYPES"]] as const).map(([title, sub, sh, c]) => (
+              <section className="card" key={title}><div className="card-h"><h3>{title}</h3><span className="s">{sub} · {sh.by === "value" ? "share of current value" : "share of funds"}</span></div>
+                {sh.slices.length ? <Donut parts={sh.slices.map((p, i) => ({ label: p.label, value: p.value, color: K[i % K.length] }))} center={String(sh.slices.length)} sub={c} /> : <p className="faint mp-note">None of your funds is in these groups.</p>}
+                {sh.left > 0 && <p className="faint mp-note">{sh.left} fund{sh.left === 1 ? " is" : "s are"} not a large, mid or small cap fund, so {sh.left === 1 ? "it is" : "they are"} left out of this chart.</p>}</section>))}
           </div>
           <section className="card mp-conc"><div className="card-h"><h3>Concentration</h3>{d.concentration.level && <span className={"mp-chip lv-" + d.concentration.level}>{LEVEL_WORD[d.concentration.level]}</span>}</div><p>{d.concentration.text}</p></section>
           {locked && <section className="card mp-teaser"><Icon name="lock" /><div><b>Each fund's Health Score is part of Gold</b><p className="muted">Gold shows a score from 0 to 100 for every fund you hold, with its four parts: Performance, Risk, Cost and Quality. {MF_SCORE_LINE}</p></div><button className="btn" onClick={unlock}>Unlock with Gold</button></section>}
@@ -243,7 +252,7 @@ export function MfPortfolioPage() {
                 <tr>
                   <td data-label="Fund" className="l"><Link to={`/funds/${h.code}`}><b>{h.name || `Scheme ${h.code}`}</b></Link><small>{h.amc} · {h.plan} · {h.option}{h.categoryLabel ? ` · ${h.categoryLabel}` : ""}{h.folio ? ` · folio ${h.folio}` : ""}</small></td>
                   <td data-label="Health Score"><Score h={h} locked={locked} onUnlock={unlock} /></td>
-                  <td data-label="Current value">{h.current == null ? <Dash why={h.currentWhy} /> : <><b>{rupees(h.current)}</b><small className={h.navStale ? "warn" : ""} title={h.navNote || undefined}>{h.units.toLocaleString("en-IN", { maximumFractionDigits: 4 })} × ₹{h.nav} · {h.navDate ? dateIN(h.navDate) : ""}</small></>}</td>
+                  <td data-label="Current value">{h.current == null ? <Dash why={h.currentWhy} /> : <><b>{rupees(h.current)}</b><small className={h.navStale ? "warn" : ""} title={h.navNote || undefined}>{(h.units ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 4 })} × ₹{h.nav} · {h.navDate ? dateIN(h.navDate) : ""}</small></>}</td>
                   <td data-label="Invested">{h.invested == null ? <Dash why={h.investedWhy} /> : rupees(h.invested)}</td>
                   <td data-label="Gain" className={gainTone(h.gain)}>{h.gain == null ? <Dash why={h.gainWhy} /> : <><b>{(h.gain > 0 ? "+" : "") + rupees(h.gain)}</b><small>{pct1(h.gainPct, true)}</small></>}</td>
                   <td data-label="XIRR">{h.xirr == null ? <Dash why={h.xirrWhy} /> : <><b>{pct1(h.xirr)}</b><small>{h.xirrKind === "cagr" ? "CAGR" : "XIRR"}</small></>}</td>

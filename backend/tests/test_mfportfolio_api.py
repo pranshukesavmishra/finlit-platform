@@ -417,3 +417,29 @@ async def test_import_rate_limit(app):
     c = await signed_in(app, "s@example.com", plan="silver")
     codes = [(await preview(c, [])).status_code for _ in range(31)]
     assert codes[-1] == 429 and codes.count(200) == 30
+
+
+# ------------------------------------------------------------------------------------------------------------------ a fund that is only followed
+
+async def test_a_fund_can_be_added_with_no_units_and_is_followed_with_its_score_and_returns(app):
+    gold = await signed_in(app, "follow@example.com", plan="gold")
+    r = await gold.post(URL, json={"code": BASE + 1, "follow": True})
+    assert r.status_code == 201 and r.json()["merged"] is False
+    assert (await gold.post(URL, json={"code": BASE + 1, "follow": True})).json()["merged"] is True               # the same fund again: nothing is added
+    assert (await gold.post(URL, json={"code": BASE + 5, "follow": True})).status_code == 201
+    body = (await gold.get(URL)).json()
+    assert body["count"] == 2 and body["summary"]["valued"] == 0 and body["summary"]["notes"] == []
+    h = next(x for x in body["holdings"] if x["code"] == BASE + 1)
+    assert h["followed"] is True and h["current"] is None and h["units"] is None and "No units were added" in h["currentWhy"]
+    assert h["score"]["final"] == 83.0 and h["score"]["parts"]["quality"] == 77.0 and h["returns"]["r1y"] == 12.5 and h["categoryLabel"]
+    assert body["summary"]["score"]["value"] == 67.5            # (83.0 + 52.0) / 2: every followed fund counts the same
+    assert (await gold.post(URL, json={"code": BASE + 2, "units": "10"})).status_code == 201     # a fund with units still works as before
+    mixed = (await gold.get(URL)).json()
+    assert mixed["summary"]["valued"] == 1 and next(x for x in mixed["holdings"] if x["code"] == BASE + 2)["current"] == 1400.0
+
+
+async def test_a_missing_units_figure_is_still_refused_unless_following_was_asked_for(app):
+    c = await signed_in(app, "nofollow@example.com", plan="silver")
+    assert (await c.post(URL, json={"code": BASE + 1})).status_code == 422
+    assert (await c.post(URL, json={"code": BASE + 1, "follow": True, "units": "5"})).status_code == 201     # with units it is an ordinary purchase
+    assert (await c.get(URL)).json()["holdings"][0].get("followed") is not True
