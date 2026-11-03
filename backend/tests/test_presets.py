@@ -186,6 +186,15 @@ def test_top_sector_cap_is_three_per_label_and_ties_go_to_quality_then_prism():
     assert len(same) == 3 and len(body["rows"]) == 10
 
 
+def test_rows_carry_the_exchange_from_the_company_record_and_none_when_it_is_not_known():
+    rows = uni()
+    prism = with_prism(rows)
+    got = engine.run(frame(rows, prism, listed={rows[0]["symbol"]: "NSE", rows[1]["symbol"]: "BSE"}), BY_ID["highest-rated-large"])
+    ex = {r["symbol"]: r["exchange"] for r in got["rows"]}
+    assert ex.get(rows[0]["symbol"], "NSE") == "NSE" and ex.get(rows[1]["symbol"], "BSE") == "BSE" and set(ex.values()) <= {"NSE", "BSE", None}
+    assert all(r["exchange"] is None for r in engine.run(frame(rows, prism), BY_ID["highest-rated-large"])["rows"])
+
+
 def test_a_short_top_list_is_filled_with_names_that_fail_only_the_trend_or_52_week_gate_and_badged():
     rows = uni()[:100]
     prism = {r["symbol"]: pz(final=70, lt=-40) for r in rows}                    # every large cap fails the trend gate...

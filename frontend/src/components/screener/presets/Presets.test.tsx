@@ -128,6 +128,14 @@ describe("screen view", () => {
     await screen.findByRole("table");
     expect(calls.at(-1)).toBe("/api/screener/presets/large?chip=trend");
   });
+  it("a BSE-only company shows its name with the exchange and code, and NSE-listed only leaves it out", async () => {
+    detail.large = [200, { ...DETAIL, rows: [{ symbol: "AAA", name: "Alpha Ltd", exchange: "NSE", badges: [] }, { symbol: "543914", name: "Delta Small Ltd", exchange: "BSE", badges: [] }] }];
+    mount("?preset=large");
+    await screen.findByRole("table");
+    expect(screen.getByText("Delta Small Ltd")).toBeTruthy(); expect(screen.getByText("BSE only, code 543914")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "NSE-listed only" }));
+    expect(rowSyms()).toEqual(["AAA"]);
+  });
   it("an empty result says so and lists the closest misses with the rule missed", async () => {
     mount("?preset=debt");
     expect(await screen.findByText("No company meets every rule today.")).toBeTruthy();
@@ -180,9 +188,9 @@ describe("lib", () => {
     const csv = presetCsv(DETAIL as unknown as PresetDetail, DETAIL.rows as never, { chips: ["trend"], chipLabels: { trend: "Trend check" }, sort: null, exportedOn: "2026-10-31" }).split("\r\n");
     expect(csv).toContain("# A screen narrows a list. It is not a recommendation.");
     expect(csv).toContain("# Options: Trend check");
-    expect(csv).toContain("Symbol,Name,Prism score,1-year return,Market cap,Flags");
-    expect(csv).toContain("AAA,Alpha Ltd,80,12.5,90000,Prism-confirmed");
-    expect(csv).toContain("BBB,Beta Ltd,90,,50000,");
+    expect(csv).toContain("Symbol,Name,Exchange,Prism score,1-year return,Market cap,Flags");
+    expect(csv).toContain("AAA,Alpha Ltd,,80,12.5,90000,Prism-confirmed");
+    expect(csv).toContain("BBB,Beta Ltd,,90,,50000,");
   });
 });
 

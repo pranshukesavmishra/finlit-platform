@@ -42,8 +42,9 @@ class Frame:
 
     def __init__(self, table, prism: Dict[str, dict], as_of: date, tags: Optional[Dict[str, List[str]]] = None, industry: Optional[Dict[str, Optional[str]]] = None,
                  theme_eval: Optional[themes.ThemeEval] = None, momentum: Optional[Dict[str, float]] = None, growth: Optional[Dict[str, float]] = None,
-                 caps: Optional[Dict[str, Tuple[float, float]]] = None):
+                 caps: Optional[Dict[str, Tuple[float, float]]] = None, listed: Optional[Dict[str, str]] = None):
         self.t, self.as_of = table, as_of
+        self.listed = listed or {}      # symbol -> "NSE" or "BSE" from the company record; a symbol it does not name has no exchange shown
         self.symbols = table.symbols
         self.pz: List[dict] = [prism.get(s) or {} for s in self.symbols]
         self.tags = tags or {}
@@ -353,7 +354,7 @@ def _fmt(v: Any, fmt: str) -> Any:
 
 
 def _row(fr: Frame, preset: Preset, i: int, pos: int, extra: Sequence[str] = ()) -> dict:
-    row: Dict[str, Any] = {"symbol": fr.symbols[i], "name": fr.t.name[i]}
+    row: Dict[str, Any] = {"symbol": fr.symbols[i], "name": fr.t.name[i], "exchange": fr.listed.get(fr.symbols[i])}
     for c in preset.columns:
         if c.key == "rank":
             row["rank"] = pos
@@ -397,7 +398,7 @@ def closest_misses(fr: Frame, rules: List[Rule]) -> List[dict]:
     out = []
     for failed, _, sym, i in best[:MISS_COUNT]:
         if failed:
-            out.append({"symbol": sym, "name": fr.t.name[i], "failed": [r.label for r in rules if not r.ok[i]]})
+            out.append({"symbol": sym, "name": fr.t.name[i], "exchange": fr.listed.get(sym), "failed": [r.label for r in rules if not r.ok[i]]})
     return out
 
 

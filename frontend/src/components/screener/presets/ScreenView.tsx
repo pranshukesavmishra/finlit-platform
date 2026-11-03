@@ -1,6 +1,6 @@
 // The screen view: one prebuilt screen as a card (name, card text, match count, as-of date, how it works, its options) with a results table built from the response.
 // Values come from the response only: a missing one is a dash, never zero, and nothing is ranked or recommended here.
-import { titleOf, subOf, codeNote } from "../../../lib/companyLabel";
+import { titleOf, subOf, codeNote, exchangeTag, isBseOnly } from "../../../lib/companyLabel";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ApiError } from "../../../lib/api";
@@ -64,7 +64,7 @@ function Results({ d, cols, rows, sort, setSort }: { d: PresetDetail; cols: Pres
       <tbody>{rows.map((r, i) => (
         <tr key={r.symbol}>
           <td className="psx-n">{i + 1}</td>
-          <td className="stick psx-stock"><Link to={`/stocks/${encodeURIComponent(r.symbol)}`} className="psx-co"><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}</Link>
+          <td className="stick psx-stock"><Link to={`/stocks/${encodeURIComponent(r.symbol)}`} className="psx-co"><b title={codeNote(r)}>{titleOf(r)}</b>{subOf(r) && <small>{subOf(r)}</small>}{exchangeTag(r) && <small className="psx-ex">{exchangeTag(r)}</small>}</Link>
             {!!r.badges?.length && <span className="psx-bs">{r.badges.map((b) => <Badge key={b} text={b} />)}</span>}</td>
           {cols.map((c) => <td key={c.key} className={"psx-a-" + alignOf(c)}><CellValue v={r[c.key]} f={c.format} /></td>)}
         </tr>))}
@@ -81,7 +81,7 @@ function Misses({ d }: { d: PresetDetail }) {
       {list.length > 0 && <>
         <h3>The {list.length === 1 ? "company" : `${list.length} companies`} closest to qualifying</h3>
         <ol className="psx-miss">{list.map((m) => (
-          <li key={m.symbol}><span className="psx-mh"><Link to={`/stocks/${encodeURIComponent(m.symbol)}`}><b title={codeNote(m)}>{titleOf(m)}</b></Link>{subOf(m) && <small>{subOf(m)}</small>}<Badge text="Closest to qualifying" /></span>
+          <li key={m.symbol}><span className="psx-mh"><Link to={`/stocks/${encodeURIComponent(m.symbol)}`}><b title={codeNote(m)}>{titleOf(m)}</b></Link>{subOf(m) && <small>{subOf(m)}</small>}{exchangeTag(m) && <small className="psx-ex">{exchangeTag(m)}</small>}<Badge text="Closest to qualifying" /></span>
             <span className="psx-mr">{m.failed.length > 1 ? "Rules missed" : "Rule missed"}: {m.failed.join("; ")}</span></li>))}
         </ol></>}
     </div>);
@@ -109,12 +109,13 @@ export function ScreenView({ route }: { route: PresetRoute }) {
   const blocked = preset?.status === "blocked", lockedList = !!preset?.locked;
   const q = usePresetDetail(id, chips, listReady && !unknown && !blocked && !lockedList);
   const d = q.data, err = q.error;
-  const [theme, setTheme] = useState<string | null>(null), [sort, setSortState] = useState<SortState>(null);
+  const [theme, setTheme] = useState<string | null>(null), [nseOnly, setNseOnly] = useState(false), [sort, setSortState] = useState<SortState>(null);
   const setSort = (k: string, first: 1 | -1) => setSortState((s) => nextSortState(s, k, first));
   const themes = d?.themes ?? [];
   const activeTheme = themes.find((t) => t.industry === theme) ?? null;
   const cols = useMemo(() => (d?.columns ?? []).filter((c) => !["symbol", "name", "stock", "badges"].includes(c.key)), [d]);
-  const rows = useMemo(() => sortPresetRows(rowsForTheme(d?.rows ?? [], activeTheme), sort), [d, activeTheme, sort]);
+  const bseCount = useMemo(() => (d?.rows ?? []).filter(isBseOnly).length, [d]);
+  const rows = useMemo(() => sortPresetRows(rowsForTheme(d?.rows ?? [], activeTheme), sort).filter((r) => !nseOnly || !isBseOnly(r)), [d, activeTheme, sort, nseOnly]);
   const name = d?.name ?? preset?.name ?? id ?? "";
 
   if (unknown) return (
@@ -157,6 +158,13 @@ export function ScreenView({ route }: { route: PresetRoute }) {
               </div>);
           })}
         </div>)}
+      {bseCount > 0 && (
+        <div className="psx-chips" role="group" aria-label="Exchange">
+          <div className="psx-chipw">
+            <button type="button" className={"fgx-chip psx-chip" + (nseOnly ? " is-on" : "")} aria-pressed={nseOnly} aria-describedby="psx-cd-nse" onClick={() => setNseOnly((v) => !v)}>{nseOnly && <i aria-hidden="true">&#10003;</i>}NSE-listed only</button>
+            <small id="psx-cd-nse">Leaves out the {bseCount} {bseCount === 1 ? "company" : "companies"} listed only on the BSE.</small>
+          </div>
+        </div>)}
       {!!d?.notes?.length && <div className="psx-notes" role="note">{d.notes.map((n) => <p key={n}>{n}</p>)}</div>}
       {themes.length > 0 && <ThemeCards themes={themes} on={theme} onPick={(i) => setTheme((t) => (t === i ? null : i))} />}
       <div className={"psx-res" + (q.isFetching && d ? " is-busy" : "")} aria-busy={q.isFetching}>
@@ -165,7 +173,7 @@ export function ScreenView({ route }: { route: PresetRoute }) {
           : <>
             {activeTheme && <p className="psx-filt" role="status">Showing the leaders of {activeTheme.industry}. <button type="button" className="fgx-link" onClick={() => setTheme(null)}>Show all</button></p>}
             <p className="sr" role="status" aria-live="polite">{rows.length} {rows.length === 1 ? "company" : "companies"} shown.</p>
-            {rows.length ? <Results d={d} cols={cols} rows={rows} sort={sort} setSort={setSort} /> : <p className="psx-filt">No leaders are listed for this theme today.</p>}
+            {rows.length ? <Results d={d} cols={cols} rows={rows} sort={sort} setSort={setSort} /> : <p className="psx-filt">{nseOnly ? "Every company shown for this screen is listed only on the BSE. Switch off NSE-listed only to see them." : "No leaders are listed for this theme today."}</p>}
           </>}
       </div>
       {d?.rankScoreNote && !!d.rows.length && <p className="psx-notes" role="note">{d.rankScoreNote}</p>}

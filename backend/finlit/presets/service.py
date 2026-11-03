@@ -29,6 +29,7 @@ async def build_frame(store, persist: bool = False, now: Optional[datetime] = No
     prism = prism_screen.cards(await store.prism_cards(None))
     async with store.pool.acquire() as conn:
         overrides = {r["symbol"]: r["industry"] for r in await conn.fetch("SELECT symbol, industry FROM industry_override")}
+        listed = {r["symbol"]: ("NSE" if r["nse_code"] else "BSE") for r in await conn.fetch("SELECT symbol, nse_code FROM companies WHERE nse_code <> '' OR bse_code <> ''")}
         hist_rows = [dict(r) for r in await conn.fetch(
             "SELECT as_of, industry, b50, b200, rs3, in_play FROM industry_breadth_daily WHERE as_of < $1 AND as_of IN "
             "(SELECT DISTINCT as_of FROM industry_breadth_daily WHERE as_of < $1 ORDER BY as_of DESC LIMIT $2)", as_of, themes.KEEP_SESSIONS)]
@@ -37,7 +38,7 @@ async def build_frame(store, persist: bool = False, now: Optional[datetime] = No
     tags = theme_map.tags_for(table.symbols, table.sector)      # found from the Sector label and the research team's named lists, shown as a column
     pos = table.pos
     ev = themes.evaluate(table, lambda i: industry.get(table.symbols[i]), themes.history_from_rows(hist_rows))
-    fr = engine.Frame(table, prism, as_of, tags, industry, ev)
+    fr = engine.Frame(table, prism, as_of, tags, industry, ev, listed=listed)
     if persist:
         await _persist(store, fr, clean, ev, pos)
     return fr

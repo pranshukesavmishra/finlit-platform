@@ -3,6 +3,7 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ApiError, apiGet } from "./api";
 import { csvText } from "./format";
+import { exchangeOf } from "./companyLabel";
 
 export type PresetChip = { id: string; label: string; default: boolean; description: string };
 export type Preset = {
@@ -19,11 +20,11 @@ export type PresetList = { asOf: string | null; groups: PresetGroup[]; tab?: Pre
 
 export type ColFormat = "text" | "num1" | "pct" | "score" | "cr" | "label" | "badge";
 export type PresetColumn = { key: string; label: string; format: ColFormat; align?: "left" | "right" | "center" };
-export type PresetRow = { symbol: string; name?: string | null; badges?: string[] } & Record<string, unknown>;
+export type PresetRow = { symbol: string; name?: string | null; exchange?: string | null; badges?: string[] } & Record<string, unknown>;
 export type ThemeState = "in_play" | "emerging" | "fading" | "closest";
 /** `breadth` is the share of the sector's stocks within 15% of their 52-week high; `marketBreadth` the same for the whole market; `reason` says why a "closest" sector is not in play. */
 export type Theme = { industry: string; state: ThemeState; breadth: number | null; marketBreadth?: number | null; r3?: number | null; rs3: number | null; members: number | null; small?: boolean; leaders: string[]; reason?: string | null };
-export type Miss = { symbol: string; name?: string | null; failed: string[] };
+export type Miss = { symbol: string; name?: string | null; exchange?: string | null; failed: string[] };
 export type PresetDetail = {
   id: string; name: string; asOf: string | null; count: number; shown: number; columns: PresetColumn[]; rows: PresetRow[]; themes?: Theme[]; closestMisses?: Miss[];
   howItWorks: string[]; cardText: string; disclaimer: string;
@@ -131,9 +132,9 @@ export function presetCsv(d: PresetDetail, rows: PresetRow[], o: { chips: string
     "# Blank cell = not available. It is never zero.",
     `# ${d.disclaimer || DISCLAIMER}`,
   ];
-  const cols = ["Symbol", "Name", ...d.columns.filter((c) => !["symbol", "name"].includes(c.key)).map((c) => c.label), "Flags"];
+  const cols = ["Symbol", "Name", "Exchange", ...d.columns.filter((c) => !["symbol", "name"].includes(c.key)).map((c) => c.label), "Flags"];
   const keys = d.columns.filter((c) => !["symbol", "name"].includes(c.key));
-  const lines = rows.map((r) => [cell(csvText(r.symbol)), cell(csvText(String(r.name ?? ""))), ...keys.map((c) => csvCell(r[c.key], c.format)), cell((r.badges ?? []).join("; "))].join(","));
+  const lines = rows.map((r) => [cell(csvText(r.symbol)), cell(csvText(String(r.name ?? ""))), cell(exchangeOf(r) ?? ""), ...keys.map((c) => csvCell(r[c.key], c.format)), cell((r.badges ?? []).join("; "))].join(","));
   return [...head, cols.map(cell).join(","), ...lines].join("\r\n") + "\r\n";
 }
 export function downloadCsv(csv: string, name: string) {
