@@ -51,6 +51,16 @@ def _why(r: httpx.Response) -> str:
     except Exception:   # nosec B110 - a diagnostic only
         return ""
 
+
+def _bad_token(r: httpx.Response) -> bool:
+    """Dhan answers an invalid or expired token with HTTP 400 and error code DH-906 (or DH-901), not 401: treat it as a refused token so it is renewed."""
+    if r.status_code != 400:
+        return False
+    try:
+        return str(r.json().get("errorCode") or "") in ("DH-906", "DH-901")
+    except Exception:   # nosec B110 - a diagnostic only
+        return False
+
 class DhanError(RuntimeError):
     """Any failure talking to Dhan. The text never holds a URL, PIN, code or token."""
 
@@ -309,11 +319,12 @@ class DhanClient:
                     raise DhanError(f"{path}: {type(e).__name__}") from None
                 await asyncio.sleep(1 + attempt)
                 continue
-            if r.status_code in (401, 403) and not tried_renew and self.settings.dhan_pin and self.settings.dhan_totp_secret:
+            refused = r.status_code in (401, 403) or _bad_token(r)
+            if refused and not tried_renew and self.settings.dhan_pin and self.settings.dhan_totp_secret:
                 tried_renew = True
                 await self.token(force=True)
                 continue
-            if r.status_code in (401, 403):
+            if refused:
                 from .jobs.signals import report_refused
                 await report_refused(self.settings, "dhan", r.status_code)
                 raise DhanError(f"{path}: token refused (HTTP {r.status_code}); a pasted token lasts 24 hours")
