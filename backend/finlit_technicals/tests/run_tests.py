@@ -12,9 +12,10 @@ import test_core  # noqa: E402
 import test_sectors  # noqa: E402
 import test_fetch_merge  # noqa: E402
 import test_nse_memory  # noqa: E402
+import test_staged_equals_single_run  # noqa: E402
 
 ok = fail = 0
-for mod in (test_core, test_api, test_sectors, test_fetch_merge, test_nse_memory):
+for mod in (test_core, test_api, test_sectors, test_fetch_merge, test_nse_memory, test_staged_equals_single_run):
     for name, fn in sorted(vars(mod).items()):
         if not name.startswith("test_") or not callable(fn):
             continue
