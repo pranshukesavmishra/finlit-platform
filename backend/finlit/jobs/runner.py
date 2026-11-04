@@ -160,7 +160,7 @@ class ProcessRunner:
             with open(log_path, "ab") as out:
                 out.write(f"\n--- {time.strftime('%F %T')} start {job.name}\n".encode())
                 proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT, env=env, cwd=self.cwd,  # nosec B603 - fixed list, no shell
-                                        start_new_session=True, preexec_fn=self._preexec(self.nice if job.cls == "bulk" else 0, self.oom_adj))  # nosec B602
+                                        start_new_session=True, preexec_fn=self._preexec(self.nice if job.cls in ("bulk", "audit") else 0, self.oom_adj))  # nosec B602
             parts.append(ProcHandle(proc, log_path, hb_path))
         return parts[0] if len(parts) == 1 else ShardHandle(parts)
 

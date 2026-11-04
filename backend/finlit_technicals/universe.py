@@ -123,7 +123,13 @@ def _rolling_sum(x: np.ndarray, w: int) -> np.ndarray:
 
 def market_scale(p, span: int = 250) -> np.ndarray:
     """NSE turnover (EQ series, 250-session average) relative to its latest value."""
-    tv = np.where(p.series == 0, np.nan_to_num(p.value.astype(float)), 0.0).sum(1)
+    tv = np.empty(p.close.shape[0])
+    step = 256                                            # rows at a time (as C-ordered arrays); each day's sum is taken over that day's own row, so the numbers are the same as for the whole matrix
+    for a in range(0, len(tv), step):
+        tv[a:a + step] = np.where(np.ascontiguousarray(p.series[a:a + step]) == 0, np.nan_to_num(np.ascontiguousarray(p.value[a:a + step]).astype(float)), 0.0).sum(1)
+    release = getattr(p, "release_pages", None)              # a memory-mapped panel gives the pages back
+    if release is not None:
+        release()
     s = pd.Series(tv).rolling(span, min_periods=20).mean().to_numpy()
     return s / s[-1]
 
@@ -135,51 +141,88 @@ class Universe:
     rules: UniverseRules
 
 
+class LastDay:
+    """The last row of a T x N rule input, answering [t, j] for the last day only (a universe built with lean=True keeps no history of the rule inputs)."""
+
+    def __init__(self, row: np.ndarray, T: int):
+        self.row, self.T = np.asarray(row), T
+
+    def __getitem__(self, key):
+        t, j = key
+        if t not in (-1, self.T - 1):
+            raise IndexError("this universe keeps the rule inputs of the last day only (built with lean=True)")
+        return self.row[j]
+
+
 def build_universe(p, rules: UniverseRules = UniverseRules(), caps: Optional[np.ndarray] = None,
-                   cap_scale: Optional[np.ndarray] = None) -> Universe:
+                   cap_scale: Optional[np.ndarray] = None, block: Optional[int] = None, lean: bool = False) -> Universe:
+    """Who counts, day by day. Every stock is judged on its own numbers (plus two market-wide series, `vscale` and `mscale`), so the work can be done for
+    blocks of `block` stocks at a time: the answer is the same for any block size.
+
+    FinLit patch: `block` bounds the working memory (a block of stocks instead of ten T x N float64 matrices), and `lean=True` keeps the rule inputs of the
+    last day only (the only day the explanations read) instead of the whole history; `inputs[name][-1, j]` and `why_not(u, j)` work as before."""
     T, N = p.close.shape
-    traded = ~np.isnan(p.close)
-    eq = p.series == 0
-    val = np.where(traded, np.nan_to_num(p.value.astype(float)), 0.0) / 1e7
-    med_val = pd.DataFrame(val).rolling(rules.window, min_periods=rules.window).median().to_numpy()
-    tdays = _rolling_sum(traded.astype(float), rules.window)
-    ldays = _rolling_sum((traded & (p.high == p.low)).astype(float), rules.window)
-    sessions = np.cumsum(traded, axis=0)
-    at_start = traded[:5].any(0)                     # trading when the files begin: listed long enough
-    seasoned = (sessions >= rules.seasoning) | at_start[None, :]
-    last_px = pd.DataFrame(p.close.astype(float)).ffill().to_numpy()
-    since = np.zeros((T, N))
-    run = np.zeros(N)
-    for t in range(T):
-        run = np.where(traded[t], 0, run + 1)
-        since[t] = run
+    step = N if not block or block >= N else int(block)
     vscale = market_scale(p) if rules.scale_value else np.ones(T)
     mscale = cap_scale if (rules.scale_mcap and cap_scale is not None) else np.ones(T)
     use_caps = rules.use_mcap and caps is not None
     months = pd.Series(p.dates.to_period("M"))
     review = set(int(x) for x in np.where(months.ne(months.shift()).to_numpy())[0])
     member = np.zeros((T, N), bool)
-    cur = np.zeros(N, bool)
-    for t in range(T):
-        if t in review and t > 0:
-            s = t - 1
-            base = (eq[s] & seasoned[s] & (np.nan_to_num(tdays[s]) >= rules.min_trade_days)
-                    & (np.nan_to_num(ldays[s], nan=99) <= rules.max_locked_days)
-                    & (np.nan_to_num(last_px[s]) >= rules.min_price))
-            mv = np.nan_to_num(med_val[s])
-            liq_join, liq_stay = mv >= rules.join_value_cr * vscale[s], mv >= rules.leave_value_cr * vscale[s]
-            if use_caps:
-                cap = np.nan_to_num(caps[s])
-                size_join, size_stay = cap >= rules.join_mcap_cr * mscale[s], cap >= rules.leave_mcap_cr * mscale[s]
+    names = ("median_value_cr", "trade_days", "locked_days", "price", "sessions", "seasoned", "eq", "since_trade")
+    kept: Dict[str, np.ndarray] = {}
+    for j0 in range(0, max(N, 1), max(step, 1)):
+        j1 = min(N, j0 + step)
+        cl = np.ascontiguousarray(p.close[:, j0:j1])
+        traded = ~np.isnan(cl)
+        eq = np.ascontiguousarray(p.series[:, j0:j1]) == 0
+        val = np.where(traded, np.nan_to_num(np.ascontiguousarray(p.value[:, j0:j1]).astype(float)), 0.0) / 1e7
+        med_val = pd.DataFrame(val).rolling(rules.window, min_periods=rules.window).median().to_numpy()
+        tdays = _rolling_sum(traded.astype(float), rules.window)
+        ldays = _rolling_sum((traded & (np.ascontiguousarray(p.high[:, j0:j1]) == np.ascontiguousarray(p.low[:, j0:j1]))).astype(float), rules.window)
+        sessions = np.cumsum(traded, axis=0)
+        at_start = traded[:5].any(0)                     # trading when the files begin: listed long enough
+        seasoned = (sessions >= rules.seasoning) | at_start[None, :]
+        last_px = pd.DataFrame(cl.astype(float)).ffill().to_numpy()
+        since = np.zeros((T, j1 - j0))
+        run = np.zeros(j1 - j0)
+        for t in range(T):
+            run = np.where(traded[t], 0, run + 1)
+            since[t] = run
+        cur = np.zeros(j1 - j0, bool)
+        for t in range(T):
+            if t in review and t > 0:
+                s = t - 1
+                base = (eq[s] & seasoned[s] & (np.nan_to_num(tdays[s]) >= rules.min_trade_days)
+                        & (np.nan_to_num(ldays[s], nan=99) <= rules.max_locked_days)
+                        & (np.nan_to_num(last_px[s]) >= rules.min_price))
+                mv = np.nan_to_num(med_val[s])
+                liq_join, liq_stay = mv >= rules.join_value_cr * vscale[s], mv >= rules.leave_value_cr * vscale[s]
+                if use_caps:
+                    cap = np.nan_to_num(np.ascontiguousarray(caps[s, j0:j1]))
+                    size_join, size_stay = cap >= rules.join_mcap_cr * mscale[s], cap >= rules.leave_mcap_cr * mscale[s]
+                else:
+                    size_join = size_stay = np.ones(j1 - j0, bool)
+                cur = base & np.where(cur, liq_stay & size_stay, liq_join & size_join)
+            cur = cur & (eq[t] | ~traded[t]) & (since[t] < rules.stale_exit)
+            member[t, j0:j1] = cur
+        release = getattr(p, "release_pages", None)          # a memory-mapped panel gives the block's pages back
+        if release is not None:
+            release()
+        part = dict(zip(names, (med_val, tdays, ldays, last_px, sessions, seasoned, eq, since)))
+        part["caps"] = np.ascontiguousarray(caps[:, j0:j1]) if caps is not None else np.full((T, j1 - j0), np.nan)
+        for name, arr in part.items():
+            if lean:
+                kept.setdefault(name, np.empty(N, arr.dtype))[j0:j1] = arr[-1]
             else:
-                size_join = size_stay = np.ones(N, bool)
-            cur = base & np.where(cur, liq_stay & size_stay, liq_join & size_join)
-        cur = cur & (eq[t] | ~traded[t]) & (since[t] < rules.stale_exit)
-        member[t] = cur
-    return Universe(member=member, rules=rules,
-                    inputs={"median_value_cr": med_val, "trade_days": tdays, "locked_days": ldays, "price": last_px,
-                            "sessions": sessions, "seasoned": seasoned, "eq": eq, "vscale": vscale, "mscale": mscale,
-                            "caps": caps if caps is not None else np.full((T, N), np.nan), "since_trade": since})
+                kept.setdefault(name, np.empty((T, N), arr.dtype))[:, j0:j1] = arr
+    if lean:
+        inputs: Dict[str, object] = {k: LastDay(v, T) for k, v in kept.items()}
+    else:
+        inputs = dict(kept)
+    inputs.update({"vscale": vscale, "mscale": mscale})
+    order = ["median_value_cr", "trade_days", "locked_days", "price", "sessions", "seasoned", "eq", "vscale", "mscale", "caps", "since_trade"]
+    return Universe(member=member, rules=rules, inputs={k: inputs[k] for k in order})
 
 
 def why_not(u: Universe, j: int, t: int = -1) -> list:

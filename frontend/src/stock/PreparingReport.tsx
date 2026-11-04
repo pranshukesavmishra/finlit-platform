@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { LogoLoader } from "../components/LogoLoader";
 import "../styles/preparing.css";
 
 /** What the waiting page says about progress. The numbers are the parts of the report the server has received so far (it counts them), never a guess. */
@@ -29,6 +30,7 @@ export function PreparingReport({ symbol, name, sector, mode, done, total, onRet
         <div className="prep-price skeleton" aria-hidden="true" />
       </div>
       <div className="prep-card">
+        {(mode === "building" || mode === "loading") && <LogoLoader size="lg" label="Building the report" />}
         <h2>{title}</h2>
         {mode === "rejected" && <p>We built this report, but one of its figures did not pass our own accuracy checks, so we are not showing it rather than show a number we cannot stand behind. The data provider answered and nothing is wrong with your connection. Our team looks at these; try again later.</p>}
         {mode === "failed" && <p>The data provider did not answer for this company. Nothing is wrong with your connection; trying again usually works.</p>}

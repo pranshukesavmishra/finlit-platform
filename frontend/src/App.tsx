@@ -1,4 +1,5 @@
 import { Suspense, useState } from "react";
+import { PageLoading } from "./components/LogoLoader";
 import { lazyPage as lazy } from "./lib/resilience";
 import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "./components/Layout";
@@ -77,7 +78,7 @@ const FundInsightsPage = lazy(() => import("./pages/FundInsights").then((m) => (
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 const AdminLogin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.AdminLogin })));
 
-const Fallback = () => <div className="wrap state" role="status"><div className="skeleton" style={{ height: 14, width: 200, margin: "0 auto" }} /></div>;
+const Fallback = () => <PageLoading label="Loading the page" />;
 
 export default function App() {
   const [search, setSearch] = useState(false);

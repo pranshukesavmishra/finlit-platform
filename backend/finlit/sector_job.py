@@ -9,8 +9,9 @@
     5. record  the result goes to the job log, to Postgres (record_run, key run:refresh-sectors) and to last_run.json beside the data, which is what the
                pages read to say why they are blank.
 
-A second way in, for a server that cannot hold the market panel in memory (docs/SECTORS.md, "Memory and time"): `refresh-sectors --import FOLDER` checks and swaps in
-a batch output folder that was built elsewhere (the founder's PC, with `python -m finlit_technicals batch`), with the same checks and the same atomic swap.
+The build runs in stages, each in its own process, so the job fits the server's memory (docs/SECTORS.md, "Memory and time"). A second way in:
+`refresh-sectors --import FOLDER` checks and swaps in a batch output folder that was built elsewhere (the founder's PC, with `python -m finlit_technicals batch`),
+with the same checks and the same atomic swap.
 
 Exit code (see worker.py): 0 when the new data is current or nothing newer exists; 1 when the run failed or the data is still older than the latest session
 (the supervisor then retries after 30, 60, 120 minutes and tells the founder after three failures).
@@ -163,9 +164,13 @@ def interpret_fetch(code: Optional[int], lines: List[str]) -> Dict[str, Any]:
 
 # ------------------------------------------------------------------------------------------------ step 2: build
 def default_batch(nse: Path, building: Path, symbols: Optional[List[str]], progress: Callable[[int, int, str], None]) -> List[Dict[str, Any]]:
-    """The finlit_technicals batch over NSE's files. One SectorEngine is built and handed to the batch, so the market panel is held once."""
+    """The finlit_technicals batch over NSE's files, in stages that each run in their own process (finlit_technicals/staged.py): the market panel is written
+    to disk year by year and read memory-mapped, and the stocks are scored in SECTOR_PARTS (default 4) sequential parts, so no process goes above about 600 MB
+    (docs/SECTORS.md, "Memory and time"). The files are byte for byte those of the single-process run. SECTOR_STAGED=0 runs the old single process (about 1.5 GB)."""
     if str(BACKEND_DIR) not in sys.path:
         sys.path.insert(0, str(BACKEND_DIR))
+    if str(os.environ.get("SECTOR_STAGED", "1")).strip() != "0":
+        return staged_runner().run_staged(nse, building, symbols, progress)
     from finlit_technicals import NseHistory, SectorEngine
     from finlit_technicals.batch import nse_symbols, run
     src = NseHistory(nse)
@@ -174,10 +179,22 @@ def default_batch(nse: Path, building: Path, symbols: Optional[List[str]], progr
     return run(syms, src, building, progress=progress, engine=eng)
 
 
+def staged_runner():
+    """finlit_technicals/staged.py loaded as a plain file: the runner needs only the standard library, and importing the package here would put numpy and pandas
+    (about 100 MB) into the job process for nothing; the stages are separate processes that import them."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("finlit_staged_runner", BACKEND_DIR / "finlit_technicals" / "staged.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def peak_rss_mb() -> Optional[float]:
+    """The largest resident memory of this process or of any stage it ran (the staged batch runs in child processes), in MB."""
     try:
         import resource
-        v = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss          # kilobytes on Linux
+        v = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)          # kilobytes on Linux
         return round(v / 1024.0, 1)
     except Exception:
         return None

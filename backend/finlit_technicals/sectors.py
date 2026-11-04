@@ -474,8 +474,9 @@ class SectorEngine:
 
     def __init__(self, source, params: SectorParams = SectorParams(), rules: Optional[UniverseRules] = None,
                  amfi_dir: Optional[str] = None, industries: Optional[Dict[str, tuple]] = None,
-                 min_members: Optional[int] = None):
+                 min_members: Optional[int] = None, lean: bool = False):
         self.source = source
+        self.lean = lean          # FinLit patch: the universe is worked out a block of stocks at a time and keeps the rule inputs of the last day only (the nightly job's setting; same answers)
         self.p = params
         self.min_members = params.min_members if min_members is None else min_members
         folder = getattr(source, "folder", None)
@@ -511,7 +512,8 @@ class SectorEngine:
         if self.rules.use_mcap and self.amfi_dir:
             caps, cscale, self.category = amfi_matrix(p, load_amfi(self.amfi_dir))
         self.panel = p
-        self.universe = build_universe(p, self.rules, caps, cscale)
+        self.universe = build_universe(p, self.rules, caps, cscale, block=256 if self.lean else None, lean=self.lean)
+        del caps
         self.classified = np.array([k in self.cls for k in p.keys])
         self.member = self.universe.member & self.classified[None, :]
         self.groups, self.meta = build_groups(p.keys, self.member[-1], self.cls, self.min_members)
@@ -543,10 +545,13 @@ class SectorEngine:
             p = self.panel
             closes, masks = {}, {}
             for j in self.groups[g]:
-                s = pd.Series(p.adj[:, j], index=p.dates).dropna()
+                s = pd.Series(p.adj_col(j), index=p.dates).dropna()
                 if len(s):
                     closes[p.keys[j]] = s
                     masks[p.keys[j]] = self.member[:, j]
+            release = getattr(p, "release_pages", None)      # FinLit patch: a memory-mapped panel gives the pages this group touched back
+            if release is not None:
+                release()
             self._res[g] = run_group(g, list(closes), closes, p.dates, self.p, kind=self.meta[g]["kind"], masks=masks)
             self._res[g].listed = len(self.groups[g])
         return self._res[g]
@@ -792,7 +797,7 @@ class SectorEngine:
             if self.member[-1, j] or np.isnan(self.panel.close[-1, j]):
                 continue
             others.append({"symbol": k, "name": names.get(k), "industry": self.cls[k][0],
-                           "close": _num(self.panel.adj[-1, j], 2), "not_counted_because": self._stock_reasons(k)})
+                           "close": _num(self.panel.adj_at(-1, j), 2), "not_counted_because": self._stock_reasons(k)})
         dd = row["index_vs_52w_high"]
         flag_note = None
         if dd is not None and dd > -self.p.flag_lo:

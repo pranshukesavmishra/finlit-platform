@@ -768,20 +768,28 @@ async def _record_results_run(store: Store, cmd: str, status: str, counts: dict,
     await record_run(store, cmd, info)
 
 
-async def audit_coverage(client: FinEdgeClient, symbols: List[str]) -> dict:
+async def audit_coverage(client: FinEdgeClient, symbols: List[str], deadline: Optional[float] = None, per_company_s: float = 150.0) -> dict:
     """Rebuild each company from the provider (nothing is stored) and compare what the provider sent with what the report shows.
-    Any mismatch is a bug in this code. Companies the provider sent nothing for are listed, never hidden."""
+    Any mismatch is a bug in this code. Companies the provider sent nothing for are listed, never hidden.
+    `deadline` (a time.monotonic() value) stops it from starting new companies: what was checked by then is returned (and recorded by the caller),
+    so a slow provider gives a smaller sample, never a job that is killed at its time limit with nothing saved. One company that hangs is given up
+    after `per_company_s` seconds and listed as an error; it cannot hold the rest back."""
     sem = asyncio.Semaphore(3)
-    out = {"checked": 0, "byState": {}, "mismatches": [], "providerEmpty": [], "errors": [], "all": {}}
+    out = {"checked": 0, "byState": {}, "mismatches": [], "providerEmpty": [], "errors": [], "skipped": 0, "all": {}}
 
     async def one(sym: str):
         async with sem:
+            if deadline is not None and time.monotonic() >= deadline:
+                out["skipped"] += 1   # not started: the time limit was reached
+                return
             try:
-                bundle = await client.fetch_bundle(sym, "consolidated")
+                bundle = await asyncio.wait_for(client.fetch_bundle(sym, "consolidated"), per_company_s)
                 failed = [k for k, why in (bundle.get("errors") or {}).items() if k in CORE_PARTS and why != "404"]
                 if failed:
                     out["errors"].append((sym, "provider did not answer: " + ", ".join(failed))); return
                 cov = snapshot.build(bundle)["summary"]["dataQuality"]["coverage"]
+            except asyncio.TimeoutError:
+                out["errors"].append((sym, f"no answer within {per_company_s:.0f} s")); return
             except Exception as exc:
                 out["errors"].append((sym, str(exc)[:80])); return
             out["checked"] += 1
@@ -831,7 +839,8 @@ def _start_job_heartbeat():
     return asyncio.get_running_loop().create_task(beat())
 
 
-async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Every worker command and its options. A function of its own so a test can check that each scheduled job's arguments (jobs/registry.py) are valid."""
     parser = argparse.ArgumentParser(prog="finlit.worker")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate")
@@ -858,6 +867,7 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     p_aud.add_argument("--sample", type=int, default=100)
     p_aud.add_argument("--seed", type=int, default=None)
     p_aud.add_argument("--record", action="store_true", help="also store the results (the admin Data health panel then covers the sample)")
+    p_aud.add_argument("--max-minutes", type=float, default=0.0, help="stop starting new companies after this many minutes (0 = no limit); what was checked is still recorded")
     p_aud.add_argument("symbols", nargs="*")
     sub.add_parser("audit-integrity", help="nightly: samples up to 40 companies (one provider call each) and checks prices, latest quarter, profit and loss identities, declared results and risk figures; stores the result for the admin Data health tab")
     p_cp = sub.add_parser("compare-provider", help="for chosen companies (or a random sample with stored reports): FinEdge's raw figure next to the figure our report shows, the difference, a verdict and the rule that produced ours (exit 1 on any unexplained mismatch)")
@@ -974,6 +984,11 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
     sub.add_parser("canary", help="re-fetch a few reference companies from the provider and compare them with what we hold (recorded at /api/jobs/status)")
     p_drain = sub.add_parser("drain-queue")
     p_drain.add_argument("--loop", action="store_true")
+    return parser
+
+
+async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
     settings = settings or get_settings()
@@ -1000,19 +1015,25 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
         async with FinEdgeClient(settings) as client:
             names = list(args.symbols) or [r["symbol"] for r in await client.stock_symbols()]
             picks = list(args.symbols) or random.Random(args.seed).sample(names, min(args.sample, len(names)))
-            res = await audit_coverage(client, picks)
-        if args.record:
+            deadline = time.monotonic() + args.max_minutes * 60 if args.max_minutes and args.max_minutes > 0 else None
+            res = await audit_coverage(client, picks, deadline)
+        if args.record and res["checked"]:
             store = await Store.connect(settings, migrate=True)
             try:
                 for sym, cov in res["all"].items():
                     await store.save_coverage(sym, "consolidated", cov)
             finally:
                 await store.close()
-        print(f"checked {res['checked']}  provider state {res['byState']}  mismatches {len(res['mismatches'])}  provider-empty {len(res['providerEmpty'])}  errors {len(res['errors'])}")
+        print(f"checked {res['checked']} of {len(picks)}  provider state {res['byState']}  mismatches {len(res['mismatches'])}  provider-empty {len(res['providerEmpty'])}  errors {len(res['errors'])}  not started (time limit) {res['skipped']}")
         for sym, lines in res["mismatches"]:
             print("MISMATCH", sym, "; ".join(lines))
         for sym in res["providerEmpty"][:15]:
             print("provider sent nothing:", sym)
+        for sym, why in res["errors"][:15]:
+            print("not checked:", sym, why)
+        if picks and not res["checked"]:
+            print("FAILED: not one company could be checked (the provider did not answer)")
+            return 2
         return 1 if res["mismatches"] else 0
     looping = args.cmd in ("drain-queue", "refresh-commodities") and getattr(args, "loop", False)
     # The two never-ending loops (waiting for the Redis flag; prices into Redis) start without a migration and without any query: the first thing they

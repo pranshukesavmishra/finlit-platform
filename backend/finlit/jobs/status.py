@@ -49,6 +49,27 @@ def job_row(job: Job, st: JobState, now: datetime, env: Mapping[str, str], pause
     }
 
 
+NEAR_LIMIT_SHARE = 0.70      # a run that used this share of the time limit is "close"
+NEAR_LIMIT_RUNS = 6          # the last runs looked at
+
+
+def near_limit(job: Job, runs: list) -> Optional[Dict[str, Any]]:
+    """Early warning for a job that is not resumable: `runs` are the newest (status, duration_s) of its finished runs, newest first. It is close to its
+    limit when it hit the limit in one of the last three runs, or at least two of the recent runs used 70% or more of it. Shown to the admin as a note
+    BEFORE the job starts failing; never an alert by itself. Resumable jobs and the always-on lanes are not judged (running long is their design)."""
+    if job.resumable or job.cls == "ondemand" or not job.max_runtime_min:
+        return None
+    limit_s = job.max_runtime_min * 60.0
+    recent = [(st, float(d)) for st, d in runs[:NEAR_LIMIT_RUNS] if d is not None]
+    timed_out = bool(recent) and recent[0][0] == "timeout"   # the NEWEST run hit the limit; a good run since then means whatever caused it is over
+    heavy = [d for _, d in recent if d / limit_s >= NEAR_LIMIT_SHARE]
+    newest_heavy = bool(recent) and recent[0][1] / limit_s >= NEAR_LIMIT_SHARE
+    if not timed_out and not (newest_heavy and len(heavy) >= 2):   # two heavy runs count only while the newest one is still heavy
+        return None
+    use = max((d for _, d in recent), default=0.0) / limit_s
+    return {"name": job.name, "usePct": int(round(min(use, 1.0) * 100)), "limitMin": job.max_runtime_min, "timedOut": timed_out}
+
+
 async def build(store: Any, redis: Any, now: Optional[datetime] = None, env: Optional[Mapping[str, str]] = None, admin: bool = False) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     env = os.environ if env is None else env
@@ -64,6 +85,15 @@ async def build(store: Any, redis: Any, now: Optional[datetime] = None, env: Opt
         pause, _ = interpret(raw, now)
     except Exception:
         db_ok = False
+    recent_runs: Dict[str, list] = {}
+    try:   # the newest finished runs of every job, for the early warning (a failed read just means no warning)
+        async with store.pool.acquire() as conn:
+            for r in await conn.fetch(
+                    "SELECT job, status, duration_s FROM (SELECT job, status, duration_s, row_number() OVER (PARTITION BY job ORDER BY started_at DESC) AS rn "
+                    "FROM job_runs WHERE status IN ('ok', 'timeout') AND started_at > now() - interval '14 days') t WHERE rn <= $1", NEAR_LIMIT_RUNS):
+                recent_runs.setdefault(r["job"], []).append((r["status"], r["duration_s"]))
+    except Exception:   # nosec B110
+        pass
     beat: Dict[str, Any] = {}
     try:
         raw = await redis.get(BEAT_KEY)
@@ -81,6 +111,7 @@ async def build(store: Any, redis: Any, now: Optional[datetime] = None, env: Opt
     out["overdue"] = overdue
     out["failing"] = failing
     out["degraded"] = [{"name": r["name"], "reason": r["reason"]} for r in rows if r["state"] == "degraded"]   # finished with the essential step done; an optional step did not work (not a failure)
+    out["nearLimit"] = [w for w in (near_limit(j, recent_runs.get(j.name, [])) for j in jobs if not disabled_reason(j, env)) if w]
     out["disabledByConfig"] = [{"name": r["name"], "reason": r["disabledReason"]} for r in rows if r["disabledByConfig"] and not next(j for j in jobs if j.name == r["name"]).external]
     out["pause"] = {"paused": bool(pause), "until": _iso(pause.until) if pause else None, "untilIST": fmt_ist(pause.until) if pause else None,
                     "resumesAutomatically": True, "setBy": "admin" if pause else None, "legacy": bool(pause and pause.legacy),

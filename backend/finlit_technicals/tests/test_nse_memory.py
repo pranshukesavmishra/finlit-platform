@@ -64,3 +64,20 @@ def test_load_bhav_gives_the_same_values_with_shared_strings(tmp_path):
     assert b["symbol"].dtype == object and b["series"].isin(nse.MAIN).all() and not b["symbol"].str.startswith(" ").any()
     ids = {id(x) for x in b["symbol"].to_numpy()}
     assert len(ids) == b["symbol"].nunique()          # one string object per symbol, not one per row
+
+
+def test_drop_repeated_days_one_file_at_a_time_drops_the_same_days_and_keeps_the_same_rows():
+    """The panel is built a yearly file at a time (nse.build_panel_files): the rule fed in pieces must give what it gives on the whole."""
+    for kw in ({}, {"repeat_days": (1, 2, 3, 4)}, {"nan_rows": True, "seed": 9, "n_stocks": 30}):
+        b = make(**kw)
+        whole, dropped = nse.drop_repeated_days(b)
+        for cut in ([20], [11, 12, 41], [1, 2, 3, 4, 5]):                    # cuts that fall right after, on and before the repeated days
+            days = sorted(b["date"].unique())
+            edges = [days[0]] + [days[c] for c in cut] + [days[-1] + pd.Timedelta(days=1)]
+            dropper, kept = nse._DayDropper(), []
+            for lo, hi in zip(edges[:-1], edges[1:]):
+                part = b[(b["date"] >= lo) & (b["date"] < hi)]
+                gone = dropper.feed(part)
+                kept.append(part[~part["date"].isin(gone)])
+            assert [pd.Timestamp(x) for x in dropper.drop] == [pd.Timestamp(x) for x in dropped], (kw, cut)
+            pd.testing.assert_frame_equal(pd.concat(kept, ignore_index=True), whole)

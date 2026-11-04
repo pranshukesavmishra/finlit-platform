@@ -13,6 +13,7 @@ import pytest
 from backend import premium_service, server
 from backend import premium_supplied_candles as supplied_mod
 from backend.premium_technical import build_technical_assessment
+from backend.tests.clock import frozen_datetime
 from backend.tests.test_premium_technical import ASOF, candles
 
 NAMES = {"NIF50": "Nifty 50", "NIFMID100": "Nifty Midcap 100", "NIFSMA100": "Nifty Smallcap 100", "NIF500": "Nifty 500"}
@@ -177,6 +178,13 @@ def dashboard(monkeypatch):
 
 
 NOW = datetime(2026, 10, 23, 12, 0, tzinfo=timezone.utc)      # 17:30 IST on ASOF: its session is complete
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    """The sample prices end on ASOF: the report path (premium_service.generate_report) must see that day as today, whatever day the tests run on."""
+    monkeypatch.setattr(premium_service, "datetime", frozen_datetime(NOW))
+    monkeypatch.setattr(server, "datetime", frozen_datetime(NOW))
 
 
 def test_supplied_candles_win_through_the_report_and_the_usual_providers_are_not_asked_for_candles(dashboard):

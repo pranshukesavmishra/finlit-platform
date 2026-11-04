@@ -77,3 +77,19 @@ def test_fetch_days_skips_days_in_the_joined_files_and_old_holidays(tmp_path):
     assert (got, miss, fail) == (0, 0, 0)
     written_off = set((tmp_path / "bhav" / "_no_session.txt").read_text().split())
     assert "2026-01-26" in written_off and "2026-01-10" in written_off      # the holiday and a Saturday: never asked for
+
+
+def test_a_new_listing_whose_industry_record_is_null_is_skipped_not_fatal(tmp_path, monkeypatch):
+    """The 4 Nov 2026 crash on the server: NSE answered 'secInfo': null for one new listing and the whole download stopped with
+    AttributeError('NoneType' object has no attribute 'get') after the prices were saved. A stock without an industry record is skipped."""
+    ref = tmp_path / "ref"
+    ref.mkdir()
+    (ref / "EQUITY_L.csv").write_text("SYMBOL,SERIES\nNEWCO,EQ\nGOODCO,EQ\n")
+    monkeypatch.setattr(fetch, "HERE", tmp_path)
+    answers = {"NEWCO": {"equityResponse": [{"secInfo": None}]},
+               "GOODCO": {"equityResponse": [{"secInfo": {"industryInfo": "Paints", "sector": "Chemicals"}}]}}
+    monkeypatch.setattr(fetch, "_api", lambda f, path, ref_url: next(v for k, v in answers.items() if "symbol=" + k in path))
+    got = fetch.fetch_industries(None, known=set(), limit=10)
+    assert got == 1
+    saved = __import__("json").loads((ref / "industries_extra.json").read_text())["stocks"]
+    assert saved == {"GOODCO": ["Paints", "Chemicals"]}

@@ -5,6 +5,7 @@ Changing a schedule, an SLA or a priority is a one-line edit here plus a test; t
 
 Fields in plain words
   cls            bulk: strictly one (BULK_CONCURRENCY) at a time, niced, first by priority. light: up to LIGHT_CONCURRENCY beside the bulk job.
+                 audit: slow checks that are never urgent (coverage, integrity): their own lane, one (AUDIT_CONCURRENCY) at a time, niced, so a 15-minute audit can never hold a light slot that results or calendars are waiting for.
                  ondemand: its own always-on process kept by deploy/scheduler.sh (visible in the status, never started by the supervisor).
   windows        quiet windows in which the job runs when its last success is at least min_age_h old (not_before: not earlier than that IST time).
   interval_min   also run when the last success is this old (inside active_hours / market hours when those are set).
@@ -120,6 +121,7 @@ class JobsConfig:
     """Resource and behaviour knobs, all from the environment with safe defaults (docs/JOBS.md, "Resource knobs")."""
     bulk_concurrency: int = 1
     light_cap: int = 2
+    audit_cap: int = 1
     tick_s: float = 60.0
     poll_s: float = 5.0
     reserve_mb: int = 100                   # memory left alone for the website beyond a job's own weight
@@ -139,15 +141,66 @@ class JobsConfig:
             except (TypeError, ValueError):
                 return cast(d)
         return JobsConfig(
-            bulk_concurrency=max(1, num("BULK_CONCURRENCY", 1, int)), light_cap=max(1, num("LIGHT_CONCURRENCY", 2, int)),
+            bulk_concurrency=max(1, num("BULK_CONCURRENCY", 1, int)), light_cap=max(1, num("LIGHT_CONCURRENCY", 2, int)), audit_cap=max(1, num("AUDIT_CONCURRENCY", 1, int)),
             tick_s=max(5.0, num("JOBS_TICK_S", 60.0)), poll_s=max(1.0, num("JOBS_POLL_S", 5.0)),
             reserve_mb=max(0, num("JOBS_RESERVE_MB", 100, int)), max_load_per_cpu=num("JOBS_MAX_LOAD_PER_CPU", 3.0),
             boot_delay_s=max(0.0, num("BOOT_LOAD_DELAY_S", 240.0)), boot_load_enabled=str(env.get("BOOT_LOAD_ENABLED", "1")) == "1",
             quotes_every_min=max(1.0, num("QUOTES_EVERY_MINUTES", 1.0)), web_port=num("PORT", 8000, int))
 
 
-SECTORS_WEIGHT_MB = 1500        # measured on a synthetic folder of the real size (docs/SECTORS.md, "Memory"): above the app container's usual free memory, so on a 2 GB box the job waits visibly
+SECTORS_WEIGHT_MB = 450         # measured on a synthetic folder of the real size (docs/SECTORS.md, section 8): the staged job's largest moment was 364 MB (job process + the stage working), 450 leaves a margin for real NSE files having more securities
 FUNDS_GATE = Gate("FUND_LOADS_ENABLED", "ETF and fund loads are switched off: set FUND_LOADS_ENABLED=1 in /opt/finlit/.env.aws and restart", wants="1", default="1", forced=True)
+
+
+# What happens to each job when its time limit is reached. A job that does not say is not allowed (tests/test_jobs_limits.py): a job must never be written
+# so that the supervisor kills it at its limit with nothing saved (the nightly `coverage` audit failed 19 times in 3 days exactly like that, and every
+# time the founder saw "overdue"). resume = it continues where it stopped (Job.resumable). The others are declared here, with the reason:
+#   deadline   it stops starting new work by itself before the limit and records what it did (the flag is in its arguments; the test checks it)
+#   fixed      a small, fixed amount of work whatever the data size
+#   database   works on tables already held, no provider calls
+#   measured   no hard bound known: the typical run is far below the limit, and the early warning (status.near_limit) tells the admin before it nears it
+LIMIT_POLICY: Dict[str, str] = {
+    "ath": "deadline: stops itself after --max-minutes 8 (limit 12)",
+    "coverage": "deadline: stops itself after --max-minutes 13 and records what it checked (limit 22)",
+    "calendars": "fixed: two provider calendars (IPO and results dates); measured about 9 s",
+    "quotes": "fixed: one batch of live prices per cycle, every request has its own timeout; measured about 17 s",
+    "alerts-live": "fixed: members' own alerts only; measured about 3 s",
+    "listing": "fixed: two provider calls for the whole market list; measured about 13 s",
+    "alerts-flag": "fixed: one flag in Redis; measured about 4 s",
+    "alerts-daily": "fixed: members' own alerts only; measured about 4 s",
+    "screens": "fixed: members' saved screens only; measured about 2 s",
+    "digest": "fixed: members who switched the digest on; measured about 6 s",
+    "prune": "database: deletes old rows; measured about 9 s",
+    "presets": "database: builds the prebuilt screens from tables already held; measured about 4 s",
+    "leadership": "database: weekly labels from stored prices, Saturdays only",
+    "score-mf": "database: scores from tables already held; measured about 2 s",
+    "mf-screen": "database: one transaction over tables already held; measured about 4 s",
+    "backtest-leadership": "database: quarterly, stored weekly prices only",
+    "rebuild-metrics": "database: only the companies still missing their screener values (--only-missing)",
+    "sectors": "measured: not yet run on this server (switched off until the sector files are uploaded, docs/SECTORS.md); the early warning watches it",
+    "universe": "fixed: one provider list, Sundays only",
+    "indices": "fixed: one membership list per index; measured about 6 s",
+    "integrity": "fixed: a sample of at most 40 companies, one provider call each; measured about 25 s",
+    "logos": "measured: about 132 s against a 30-minute limit; the early warning watches it",
+    "macro": "measured: about 50 s against a 20-minute limit; the early warning watches it",
+    "flows-nse": "fixed: one request for the latest session; measured about 3 s",
+    "flows": "measured: about 20 s against a 20-minute limit; the early warning watches it",
+    "history-probe": "measured: a read-only count per source; the early warning watches it",
+    "dhan-check": "fixed: a handful of calls that prove the credentials; limit 5 minutes",
+    "canary": "fixed: a few reference companies; measured about 6 s",
+    "instruments": "fixed: one public file; measured about 5 s",
+    "mf": "measured: about 56 s against a 20-minute limit (AMFI's NAV file); the early warning watches it",
+    "facts": "measured: about 159 s against a 20-minute limit (AMFI files, often unreachable from AWS); the early warning watches it",
+    "industry": "measured: about 25 s against a 20-minute limit (one AMFI report a month); the early warning watches it",
+    "etf": "measured: about 20 s against a 30-minute limit and it can --resume; the early warning watches it",
+}
+
+
+def limit_policy(job: "Job") -> Optional[str]:
+    """How the job behaves at its time limit: "resume", or the declared text above; None for the always-on lanes (they have no limit to hit)."""
+    if job.cls == "ondemand":
+        return None
+    return "resume" if job.resumable else LIMIT_POLICY.get(job.name)
 
 
 def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
@@ -246,9 +299,9 @@ def build_jobs(env: Optional[Mapping[str, str]] = None) -> List[Job]:
             sla=Sla("hours", 192), what="the company list (Sundays)"),
         Job("indices", ("refresh-indices",), priority=60, max_runtime_min=15, weight_mb=100, windows=night_morning, sla=Sla("hours", 30), owns=("indices",),
             what="NIFTY index membership"),
-        Job("coverage", ("audit-coverage", "--sample", "80", "--record"), priority=62, max_runtime_min=20, weight_mb=100, ok_exit=(0, 1), windows=night_morning,
+        Job("coverage", ("audit-coverage", "--sample", "60", "--max-minutes", "13", "--record"), cls="audit", priority=62, max_runtime_min=22, weight_mb=100, ok_exit=(0, 1), windows=night_morning,
             sla=Sla("hours", 30), what="compares what the provider sends with what the reports show (exit 1 = mismatches found, recorded)"),
-        Job("integrity", ("audit-integrity",), priority=63, max_runtime_min=25, weight_mb=100, ok_exit=(0, 1), windows=night_morning, sla=Sla("hours", 30),
+        Job("integrity", ("audit-integrity",), cls="audit", priority=63, max_runtime_min=25, weight_mb=100, ok_exit=(0, 1), windows=night_morning, sla=Sla("hours", 30),
             what="nightly data integrity sample"),
         Job("logos", ("refresh-logos",), priority=80, max_runtime_min=30, weight_mb=100, windows=(W("NIGHT", 20),), sla=Sla("hours", 60), what="company and fund-house logos"),
         Job("macro", ("refresh-macro",), priority=20, max_runtime_min=20, weight_mb=100, windows=(W("AFTER_CLOSE", 18, (19, 10)), W("MORNING", 14)),
@@ -288,5 +341,30 @@ def by_name(env: Optional[Mapping[str, str]] = None) -> Dict[str, Job]:
     return {j.name: j for j in build_jobs(env)}
 
 
+RESERVE_MB = 100   # what a bulk job leaves for the website (JobsConfig.reserve_mb)
+
+
+def unfit_reason(job: Job, capacity_mb: Optional[int]) -> Optional[str]:
+    """A job that needs more memory than this server's app container can ever give it can never start here: the supervisor's memory gate would make it wait
+    for ever, and the founder would be told every day that it is "overdue". It is reported as what it is instead (disabled, with the reason), never as late."""
+    if not capacity_mb or job.cls == "ondemand":
+        return None
+    need = job.weight_mb + (RESERVE_MB if job.cls == "bulk" else 0)
+    if need <= capacity_mb:
+        return None
+    return (f"needs about {job.weight_mb} MB of memory and this server's app container has {capacity_mb} MB, so it can never start here "
+            f"(build its data on a PC and upload it, or give the container more memory: see the job's document)")
+
+
 def disabled_reason(job: Job, env: Mapping[str, str]) -> Optional[str]:
-    return job.gate.disabled_reason(env) if job.gate else None
+    """Why the job is switched off: its own gate (an env setting), or the server being too small for it. Tests pass their own env dict (JOBS_CAPACITY_MB to try
+    a size); the real process environment also reads the container's real limit."""
+    if job.gate:
+        off = job.gate.disabled_reason(env)
+        if off:
+            return off
+    cap = env.get("JOBS_CAPACITY_MB")
+    if cap is None and env is os.environ:
+        from .resources import container_limit_mb
+        return unfit_reason(job, container_limit_mb())
+    return unfit_reason(job, int(cap)) if cap and str(cap).isdigit() else None

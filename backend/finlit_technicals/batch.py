@@ -81,24 +81,13 @@ def read_caps(path: str | Path) -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def run(symbols: Iterable[str], source, out_dir: str | Path, *, caps: Optional[Dict[str, Dict[str, Any]]] = None,
-        bench: str = "auto", table: str = "all", history_weeks: int = 52, groups_file: Optional[str] = None,
-        sectors: bool = True, history_sessions: int = 260,
-        progress: Optional[Callable[[int, int, str], None]] = None,
-        engine: Optional[SectorEngine] = None) -> List[Dict[str, Any]]:
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    src = Cached(source)
-    # FinLit patch: `engine` lets the caller pass the SectorEngine it already built (to choose the stock list), so the market panel is held once (docs/SECTORS.md)
-    eng = (engine if engine is not None else SectorEngine(src)) if sectors else None
-    if not caps and eng is not None and getattr(eng, "nse", False):
-        caps = amfi_caps(eng)
-    caps = caps or {}
+def score_stocks(syms: List[str], src, eng: Optional[SectorEngine], out: Path, *, caps: Dict[str, Dict[str, Any]], bench: str = "auto", table: str = "all",
+                 history_weeks: int = 52, groups_file: Optional[str] = None, progress: Optional[Callable[[int, int, str], None]] = None) -> tuple:
+    """The per-stock part of `run`: writes <SYMBOL>.json for each of `syms` and returns (summary lines, peer labels, sector homes).
+    `caps` must cover the whole market (the peers' sizes are read from it), whichever stocks are in `syms`."""
     peer_caps = {k: v["mcap_cr"] for k, v in caps.items() if "mcap_cr" in v}
     wcache: dict = {}
-    syms = list(symbols)
     summary: List[Dict[str, Any]] = []
-    t0 = time.time()
     db = peer_db(groups_file)
     labels: Dict[str, str] = {}
     homes: Dict[str, tuple] = {}
@@ -141,22 +130,52 @@ def run(symbols: Iterable[str], source, out_dir: str | Path, *, caps: Optional[D
         summary.append(line)
         if progress:
             progress(n, len(syms), sym)
-    if eng is not None:
-        sdir = out / "sectors"
-        sdir.mkdir(exist_ok=True)
-        board = eng.board()
-        (sdir / "_board.json").write_text(json.dumps(jsonable(board), ensure_ascii=False), encoding="utf-8")
-        pages = list(dict.fromkeys([r["name"] for r in board["rows"]] + sorted({h[0] for h in homes.values()})))
-        for name in pages:
-            try:
-                g = eng.group(name)
-                view = eng.industry(name, history_sessions=history_sessions,
-                                    peer_labels={m: labels[m] for m in g.members if m in labels})
-                (sdir / f"{slug(name)}.json").write_text(json.dumps(jsonable(view), ensure_ascii=False), encoding="utf-8")
-            except LookupError as e:
-                log.warning("%s: %s", name, e)
+    return summary, labels, homes
+
+
+def write_sector_files(eng: SectorEngine, out: Path, labels: Dict[str, str], homes: Dict[str, tuple], history_sessions: int = 260) -> None:
+    """sectors/_board.json and one page per group (the part of `run` that needs every group and every stock's peer label)."""
+    sdir = out / "sectors"
+    sdir.mkdir(exist_ok=True)
+    board = eng.board()
+    (sdir / "_board.json").write_text(json.dumps(jsonable(board), ensure_ascii=False), encoding="utf-8")
+    pages = list(dict.fromkeys([r["name"] for r in board["rows"]] + sorted({h[0] for h in homes.values()})))
+    for name in pages:
+        try:
+            g = eng.group(name)
+            view = eng.industry(name, history_sessions=history_sessions,
+                                peer_labels={m: labels[m] for m in g.members if m in labels})
+            (sdir / f"{slug(name)}.json").write_text(json.dumps(jsonable(view), ensure_ascii=False), encoding="utf-8")
+        except LookupError as e:
+            log.warning("%s: %s", name, e)
+
+
+def write_summary(out: Path, summary: List[Dict[str, Any]], t0: float) -> None:
     meta = {"generated": pd.Timestamp.now(tz="Asia/Kolkata").strftime("%Y-%m-%d %H:%M"), "stocks": len(summary),
             "errors": sum(1 for x in summary if "error" in x), "seconds": round(time.time() - t0, 1)}
     (out / "_summary.json").write_text(json.dumps(jsonable({"meta": meta, "stocks": summary}), ensure_ascii=False),
                                        encoding="utf-8")
+
+
+def run(symbols: Iterable[str], source, out_dir: str | Path, *, caps: Optional[Dict[str, Dict[str, Any]]] = None,
+        bench: str = "auto", table: str = "all", history_weeks: int = 52, groups_file: Optional[str] = None,
+        sectors: bool = True, history_sessions: int = 260,
+        progress: Optional[Callable[[int, int, str], None]] = None,
+        engine: Optional[SectorEngine] = None) -> List[Dict[str, Any]]:
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    src = Cached(source)
+    # FinLit patch: `engine` lets the caller pass the SectorEngine it already built (to choose the stock list), so the market panel is held once (docs/SECTORS.md)
+    eng = (engine if engine is not None else SectorEngine(src)) if sectors else None
+    if not caps and eng is not None and getattr(eng, "nse", False):
+        caps = amfi_caps(eng)
+    caps = caps or {}
+    syms = list(symbols)
+    t0 = time.time()
+    # FinLit patch: the three parts of the run are functions (score_stocks, write_sector_files, write_summary) so finlit_technicals/staged.py can run them in separate processes
+    summary, labels, homes = score_stocks(syms, src, eng, out, caps=caps, bench=bench, table=table, history_weeks=history_weeks,
+                                          groups_file=groups_file, progress=progress)
+    if eng is not None:
+        write_sector_files(eng, out, labels, homes, history_sessions)
+    write_summary(out, summary, t0)
     return summary

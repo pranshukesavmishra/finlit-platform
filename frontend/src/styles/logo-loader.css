@@ -1,0 +1,53 @@
+/* The FinLit logo and its loading animation (components/LogoLoader.tsx). One file for the first-load splash in index.html (before any script has run)
+   and the React component. Movement only for people who have not asked for less; otherwise the finished logo, still.
+   Colours follow the theme: --ll-ink (navy; near-white in the dark theme), --ll-gold, the green gradient in the SVG. */
+.ll { --ll-d: 3.6s; --ll-ink: #0B1530; --ll-gold: #B8913F; display: block; width: 190px; height: auto; overflow: visible; }
+html[data-theme="dark"] .ll { --ll-ink: #F4F2EC; --ll-gold: #D9B96C; }
+.ll-sm { width: 70px; } .ll-md { width: 120px; } .ll-lg { width: 200px; } .ll-xl { width: 320px; }
+.ll-ink { fill: var(--ll-ink); } .ll-gold { fill: var(--ll-gold); } .ll-grad { fill: url(#ll-grad); }
+.ll-stack { display: flex; flex-direction: column; align-items: center; }
+.ll-full { display: grid; place-items: center; min-height: 46vh; padding: 24px; }
+.ll-splash { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg, #F7F3EA); }
+.ll-inline { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
+.ll-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ll-play .ll-all { animation: ll-life var(--ll-d) linear infinite; }
+  .ll-play .ll-stairs { animation: ll-wipe var(--ll-d) cubic-bezier(.4, 0, .2, 1) infinite; }
+  .ll-play .ll-F { animation: ll-rise-f var(--ll-d) ease-out infinite; }
+  .ll-play .ll-n { animation: ll-rise-n var(--ll-d) ease-out infinite; }
+  .ll-play .ll-i { animation: ll-rise-i var(--ll-d) ease-out infinite; }
+  .ll-play .ll-t { animation: ll-rise-t var(--ll-d) ease-out infinite; }
+  .ll-play .ll-person { animation: ll-walk var(--ll-d) ease-in-out infinite; }
+  .ll-play .ll-hair { animation: ll-fade var(--ll-d) ease-out infinite; }
+  .ll-play .ll-b1, .ll-play .ll-b2, .ll-play .ll-b3 { transform-box: fill-box; transform-origin: 50% 100%; }
+  .ll-play .ll-b1 { animation: ll-bar1 var(--ll-d) cubic-bezier(.2, .9, .3, 1.15) infinite; }
+  .ll-play .ll-b2 { animation: ll-bar2 var(--ll-d) cubic-bezier(.2, .9, .3, 1.15) infinite; }
+  .ll-play .ll-b3 { animation: ll-bar3 var(--ll-d) cubic-bezier(.2, .9, .3, 1.15) infinite; }
+  .ll-play .ll-arrow { animation: ll-sweep var(--ll-d) ease-in-out infinite; }
+}
+
+@keyframes ll-life { 0%, 94% { opacity: 1; } 99.5%, 100% { opacity: 0; } }
+@keyframes ll-wipe { 0% { clip-path: inset(0 100% 0 0); } 24%, 100% { clip-path: inset(0 0 0 0); } }
+@keyframes ll-rise-f { 0%, 3% { opacity: 0; transform: translateY(16px); } 14%, 100% { opacity: 1; transform: translateY(0); } }
+@keyframes ll-rise-n { 0%, 9% { opacity: 0; transform: translateY(16px); } 20%, 100% { opacity: 1; transform: translateY(0); } }
+@keyframes ll-rise-i { 0%, 20% { opacity: 0; transform: translateY(16px); } 30%, 100% { opacity: 1; transform: translateY(0); } }
+@keyframes ll-rise-t { 0%, 25% { opacity: 0; transform: translateY(16px); } 35%, 100% { opacity: 1; transform: translateY(0); } }
+@keyframes ll-fade { 0%, 52% { opacity: 0; } 60%, 100% { opacity: 1; } }
+@keyframes ll-walk {
+  0% { transform: translate(-80px, 20px); opacity: 0; }
+  12% { transform: translate(-80px, 20px); opacity: 0; }
+  14% { transform: translate(-80px, 20px); opacity: 1; }
+  20% { transform: translate(-60px, 10px); opacity: 1; }
+  26% { transform: translate(-40px, 20px); opacity: 1; }
+  32% { transform: translate(-40px, 20px); opacity: 1; }
+  39% { transform: translate(-20px, -6px); opacity: 1; }
+  46% { transform: translate(0px, 0px); opacity: 1; }
+  47.5% { transform: translate(0px, 3px); opacity: 1; }
+  50% { transform: translate(0px, 0px); opacity: 1; }
+  100% { transform: translate(0px, 0px); opacity: 1; }
+}
+@keyframes ll-bar1 { 0%, 52% { transform: scaleY(0); } 62%, 100% { transform: scaleY(1); } }
+@keyframes ll-bar2 { 0%, 57% { transform: scaleY(0); } 67%, 100% { transform: scaleY(1); } }
+@keyframes ll-bar3 { 0%, 62% { transform: scaleY(0); } 72%, 100% { transform: scaleY(1); } }
+@keyframes ll-sweep { 0%, 66% { clip-path: inset(0 100% 0 0); } 82%, 100% { clip-path: inset(0 0 0 0); } }

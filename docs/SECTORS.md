@@ -41,10 +41,10 @@ A locked value arrives as `null` and the answer carries `locked: {field: plan}`,
 
 ## 3. The nightly flow
 
-`refresh-sectors`, job `sectors` in the registry: bulk, weekdays after 19:00 IST (AFTER_CLOSE window, not before 19:00) and a MORNING catch-up, SLA "session" 14 h (the data for each trading day must be processed after 18:30; overdue 14 h later), after the `technicals` job, memory weight 1500 MB, at most 90 minutes, stall watch 45 minutes. It never runs beside another bulk job. **Off until `SECTORS_ENABLED=1`**; until then the status says "disabledByConfig" and it is never counted as overdue.
+`refresh-sectors`, job `sectors` in the registry: bulk, weekdays after 19:00 IST (AFTER_CLOSE window, not before 19:00) and a MORNING catch-up, SLA "session" 14 h (the data for each trading day must be processed after 18:30; overdue 14 h later), after the `technicals` job, memory weight 450 MB (measured peak 364 MB, section 8), at most 90 minutes, stall watch 45 minutes. It never runs beside another bulk job. **Off until `SECTORS_ENABLED=1`**; until then the status says "disabledByConfig" and it is never counted as overdue.
 
 1. **fetch** (`SECTOR_FETCH`, default on): one quick request to NSE's archive first; if NSE refuses the server the run says so at once ("NSE's archive refused this server (HTTP 403) ... run the download from a PC in India") instead of waiting minutes. Otherwise `fetch-nse` runs in a child process with a time cap. The newest days are added to `/data/nse`. A failed download never crashes the supervisor; the run carries on with the files it has.
-2. **build** into a new folder; the files in use are not touched.
+2. **build** into a new folder; the files in use are not touched. The build runs in stages, each in its own process, so none holds the whole market in memory (section 8).
 3. **check**: board and every industry page written, stock files, fewer than 5% stocks with an error, not below 80% of the live stock count, not older than the live data. Otherwise nothing is published.
 4. **swap** atomically. Any failure or kill leaves the last good set serving.
 5. **record**: job log, `last_run.json`, Postgres (`record_run`, key `run:refresh-sectors`, visible at `/api/mf/status`), and `GET /api/sectors/status` (date of data, stocks counted, stock files, errors, how the last run ended and why). `/api/jobs/status` shows the job and the dataset "Sector pulse: board date vs expected session".
@@ -81,6 +81,8 @@ ssh -i key.pem ubuntu@SERVER "sudo mv /tmp/nse-upload/* /opt/finlit/data/nse/ &&
 | `SECTOR_OUT_DIR` | `/data/sectors` | the swap-in folder the website reads |
 | `SECTOR_FETCH` | `1` | `0`: do not download; build from the files in the folder (use when NSE refuses the server and you copy files up by hand) |
 | `SECTOR_FETCH_MAX_MIN` | `40` | time cap for the download |
+| `SECTOR_PARTS` | `4` | how many sequential parts the stocks are scored in (section 8); each part is its own process and rebuilds the market universe (about 10 s) |
+| `SECTOR_STAGED` | `1` | `0`: run the whole build in one process, as before (needs about 2 GB; only for a bigger server or to compare) |
 | `NSE_DATA_DIR`, `SECTORS_DATA_DIR` | `/opt/finlit/data/nse`, `/opt/finlit/data/sectors` | compose-level: the host folders that are mounted |
 
 ## 6. Run it by hand
@@ -104,22 +106,43 @@ NSE sometimes refuses data-centre addresses. The job then reports it (`/api/sect
 
 ## 8. Memory and time (measured, synthetic data of the real size)
 
-Measured on a generated folder of the real scale (2,800 stocks, Jan 2016 to Oct 2026, 5.7 million rows; real NSE files have more securities, so expect somewhat more):
+The job used to hold the whole market in one process (about 1.5 to 2 GB) and could not start in the 1,200 MB app container. It now runs in **stages, each in its own process**, and the largest moment of the whole run is **364 MB**. The files it releases are **byte for byte the same** as before.
 
-| Step | Result |
+Measured on a generated folder of the real scale (`finlit_technicals/tests/big_fixture.py`: 2,800 stocks, 2,820 keys after renames, 2,672 days Jan 2016 to Oct 2026, 5.76 million rows, 2,270 stocks scored; real NSE files have more securities, so expect somewhat more). Same machine, same folder, the code of commit `80a422e` against the new code, started the same way (`sector_job.default_batch`), memory sampled from `/proc` every 0.25 s:
+
+| | before (one process) | after (stages) |
+|---|---|---|
+| largest memory of any one process | **2,038 MB** | **342 MB** (the panel stage) |
+| largest total of all processes at one moment (the job process counts) | 1,995 MB | **364 MB** |
+| of which anonymous memory (the rest is shared libraries and memory-mapped file pages the kernel can drop at any time) | 1,965 MB | 298 MB |
+| total time, one core at a time | 47 min (2,812 s) | 49.5 min (2,968 s) |
+| files released | 2,316 | 2,316, **all byte for byte identical** (`measure_job.py compare`) |
+
+(The package's own earlier figure for the same step was 1,495 MB; on this folder and with pandas 3.0 the single process reached 2,038 MB. Either way it does not fit.)
+
+The stages, with the peak of each process and its time (`stages:` lines in the job log):
+
+| Stage | What it does | Peak | Time |
+|---|---|---|---|
+| panel | reads the yearly bhavcopy files one at a time (twice: days to drop, keys and ISIN links, then each year's rows), writes the panel as `.npy` files in `<nse>/.finlit_cache/panel/` | 342 MB | 42 s (skipped when the cache is current) |
+| prepare | opens the panel memory-mapped, builds the whole-market universe month by month, chooses the stocks, splits them into 4 parts by industry group | 268 MB | 10 s |
+| score x 4 | per part (about 567 stocks): the same per-stock work as before, with the whole-market universe rebuilt in that process (so every stock is judged against the full market) | 270 to 299 MB | 12 min each |
+| merge | the board (counts, ordering, "too few stocks" lists), every industry page with all peer labels, `_summary.json` | 284 MB | 11 s |
+
+What was changed, and why the answers cannot change: the panel is built a year at a time and kept as plain `.npy` files that are opened read-only with `mmap` (only the pages in use are resident; the cache signature is unchanged and a stale or half-written cache is rebuilt); the universe rules are applied to blocks of stocks (each stock is judged on its own numbers plus two market-wide series that are worked out once) and keep only the last day's inputs (the only day the explanations read); the stocks are scored in four sequential child processes, and the merge process sees every group and every peer label. No value is rounded, shortened or estimated: `float32` was **not** introduced anywhere (the adjustment factors, `cum`, and everything computed from them stay `float64`; the arrays that were `float32` stay `float32`). The list of changes to the package is in `finlit_technicals/FINLIT_PATCHES.md` (6 to 12).
+
+The proof: `finlit_technicals/tests/test_staged_equals_single_run.py` runs a frozen copy of the old code (`tests/reference_v201/`) and the new job on the same synthetic folder and compares every panel array bit for bit and every released file byte for byte (`_summary.json` without its clock fields); the same comparison at the real size is `python finlit_technicals/tests/measure_job.py compare OLD_OUT NEW_OUT` (the numbers above). To measure again: `big_fixture.py DEST` builds the folder, `measure_job.py run --tree BACKEND_DIR --nse DEST --out OUT` runs a tree's job and samples its memory.
+
+| Other figures | |
 |---|---|
-| building the market panel (load, adjust, pivot) | v2.0.1 as delivered: peak **2,449 MB**; with the two memory patches: peak **1,495 MB**, about 40 s |
-| holding the engine (panel + universe) | about 980 MB steady |
-| per-stock scores and peer labels, 2,467 stocks | RSS grows from about 960 MB to **1,214 MB** by the last stock; the whole run's peak stays the 1,495 MB of the panel build; 0 errors |
-| output on disk | about 76M (one release; two are kept) |
-| batch time | about 1.3 to 1.5 s per stock on one core of a fast 4-core machine: **53 minutes** for all 2,467 stocks, start to finish (the package's own figure was 20 minutes; this run shared the machine with the test suites) |
-| cached panel on disk | 285 MB |
+| output on disk | about 69 MB (one release; two are kept) |
+| cache on disk | 267 MB (`.finlit_cache/panel/`; it replaces the 285 MB `panel.pkl`, which is deleted at the first rebuild) |
+| time per stock | about 1.3 s on one core of this 4-core machine; the t3.small (2 vCPU, burstable) was not measured: expect longer, the job limit is 90 minutes |
+| failure of a stage | the run stops with the stage's name and last lines in the status ("the 'score' step was killed (most likely out of memory)"), the previous release keeps serving |
 
-Honest reading for the t3.small (2 vCPU, about 2 GB, app container limit 1,200 MB): **the job needs about 1.5 GB at its peak, so it does not fit the 1,200 MB app container next to the website.** The registry weight is 1500 MB, so the supervisor's memory gate keeps it waiting ("waiting for memory: ... needs about 1500 MB") rather than starting and being killed; nothing else is affected. The time on the t3.small was not measured (expect longer than the figure above).
-Decision for the founder, in order of preference:
-* **A. Build on the PC, upload the result (recommended on the 2 GB server).** About 100 MB output, one `scp` and one command (section 7, remedy 1). Also solves NSE refusing the server. Costs a daily manual step (a Windows scheduled task can do the build and upload).
-* **B. Give the server more memory**: a 4 GB instance (t3.medium), then change `mem_limit: 1200m` of the `app` service in `deploy/aws/docker-compose.aws.yml` to `2600m` and redeploy; the job then starts by itself each evening.
-* **C. Do nothing**: the job stays on, waits for memory, and the pages say "Sector data is not loaded yet" with the reason.
+Reading for the t3.small (2 vCPU, about 2 GB, app container limit 1,200 MB): **the job fits.** Its registry weight is 450 MB (the measured 364 MB plus a margin for real NSE files having more securities), so the supervisor's memory gate starts it when 550 MB (weight + the 100 MB left for the site) are free and otherwise shows "waiting for memory".
+Limits of this measurement: the data is synthetic (same size, not the same values); the machine is faster and has more cores than the t3.small; the real NSE folder has more securities, so expect somewhat more (the margin in the weight is for that). The "before" run shared the machine with the "after" run and the test suites (each job uses one core of four), so its time is slightly pessimistic. The page cache of the server will hold part of the 267 MB panel files; it is reclaimable and is not counted above.
+Building on the founder's PC and uploading the result (section 7, remedy 1) still works unchanged and is the answer when NSE refuses the server's address.
 
 ## 9. Things that were not verified offline
 
@@ -133,7 +156,7 @@ A real NSE fetch (the sandbox cannot reach NSE; the refusal path, partial and ti
 | "... the NSE data folder /data/nse does not exist" | upload not done or mount missing | section 4; check `ls /opt/finlit/data/nse` |
 | `behind`: "NSE's archive refused this server" | NSE blocks the address | section 7 |
 | `behind` with "NSE had not published a newer file" | normal before about 19:00 or on a holiday | none; retried automatically |
-| job state "waiting for memory" | the job needs 1.5 GB | section 8 |
+| job state "waiting for memory" | the job needs about 550 MB free (450 + 100 for the site) and something else is using it | none: it starts by itself when memory is free (section 8) |
 | `error`: "The new set was not published (...)" | a check failed; the old set keeps serving | read the reason; run again with `--force` after fixing |
 | a stock shows "Industry not yet classified" | new listing NSE has not classified | picked up when `fetch-nse` can read NSE's website API (it sometimes refuses scripts) |
 

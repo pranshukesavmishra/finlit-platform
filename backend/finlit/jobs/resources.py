@@ -58,3 +58,20 @@ def disk_percent(path: str = "/") -> Optional[float]:
         return round(100.0 * (total - free) / total, 1) if total else None
     except OSError:
         return None
+
+
+_LIMIT_CACHE: dict = {}
+
+
+def container_limit_mb(root: str = "/sys/fs/cgroup") -> Optional[int]:
+    """The memory limit of this container in MB (cgroup v2, then v1), or None when there is no limit. Read once per process: it does not change while running."""
+    if root in _LIMIT_CACHE:
+        return _LIMIT_CACHE[root]
+    out: Optional[int] = None
+    for p in (f"{root}/memory.max", f"{root}/memory/memory.limit_in_bytes"):
+        v = _read(p)
+        if v and v.isdigit() and len(v) < 16:   # "max", or a v1 "unlimited" 19-digit number, means no limit
+            out = int(v) // 1048576
+            break
+    _LIMIT_CACHE[root] = out
+    return out

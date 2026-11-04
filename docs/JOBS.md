@@ -97,7 +97,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | alerts-flag / alerts-daily / screens / digest | light | 8-9 | none / 80 h / 80 h / 8 d | each window / weekdays 19:10 / MORNING weekdays / Sunday 19:10 |
 | prune | bulk | 5 | 30 h | NIGHT |
 | **technicals** (`refresh-technicals`) | bulk | 10 | session, 12 h | AFTER_CLOSE and MORNING until the session is processed; probe re-runs every 30 min |
-| **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 1500 MB, max 90 min; off by default |
+| **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 450 MB (staged, peak 364 MB), max 90 min; off by default |
 | ingest-flagship / **ingest** (`ingest-all`) | bulk | 15 / 20 | 26 h | NIGHT (18 h), MORNING (14 h); 90 min per run, resumable |
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
@@ -272,3 +272,26 @@ Header lock icon > System > "Heavy data loads" switch. Switching OFF pauses for 
 * The environment switches `FUND_LOADS_ENABLED`, `SECTORS_ENABLED`, `PRISM_PRECOMPUTE_ENABLED` and `BOOT_LOAD_ENABLED` can no longer disable or hold back a job (`Gate.forced` in `jobs/registry.py`). Only a missing credential (no `DHAN_CLIENT_ID`, no `GEMINI_API_KEY`) keeps a job from starting, and the status says so.
 * The admin pause is ignored inside the MORNING, AFTER_CLOSE and NIGHT windows and for any job already past its promise (SLA). It can only hold daytime, not-yet-late work.
 * A job that cannot start because the server lacks memory waits and says so; it is never skipped, and it does not block the other jobs.
+
+## 7. The time-limit contract (why `coverage` can never again fail 19 times in 3 days)
+
+**What happened (3 Nov 2026):** the nightly `coverage` audit rebuilt 80 random companies from the provider (about 30 calls each) and saved nothing until all 80 were done.
+With a 20-minute limit and a slow provider it was killed at the limit every night with nothing saved, 14 times in a row; the page said "overdue". Meanwhile its
+15-minute runs held one of the two light slots, so results and calendars waited behind it ("waiting for a free light slot").
+
+**What now makes that class of failure impossible to write again (all enforced by tests, `tests/test_jobs_limits.py`):**
+
+1. **Every job declares what happens at its time limit** (`LIMIT_POLICY` in `jobs/registry.py`, or `resumable=True`): `resume` (it continues where it stopped),
+   `deadline` (it stops starting new work by itself before the limit and records what it did; the flag must be in its command and below the limit),
+   `fixed` / `database` (a small fixed amount of work, or no provider calls), or `measured` (no hard bound known; watched by the early warning).
+   A new job without a declaration fails the build. A `measured` note that names a limit that is no longer the job's limit fails the build.
+2. **Every scheduled command is checked against the worker's real argument parser** (`worker.build_parser()`), so a renamed or mistyped flag fails in the tests, not at 3 a.m.
+3. **`audit` is a lane of its own** (`AUDIT_CONCURRENCY`, default 1): slow, never-urgent checks (`coverage`, `integrity`) can never take a light slot that results, calendars or quotes need.
+4. **Early warning:** `/api/jobs/status` has `nearLimit`: a non-resumable job whose last runs used 70% or more of its limit twice, or that hit its limit in one of the last
+   three runs, is shown on the admin Data health banner ("coverage is using 76% of its 22-minute time limit") before it starts failing. Resumable jobs are not judged.
+5. **`coverage` itself** (`audit-coverage --sample 60 --max-minutes 13 --record`): no new company is started after the deadline, what was checked is recorded, one company that
+   hangs is given up after 150 s, and if not one company could be checked (the provider did not answer) it exits 2, a real failure.
+
+**What still cannot be guaranteed:** the data providers (FinEdge, AMFI, Dhan) will sometimes be slow or down; AMFI does not answer from the AWS address range (the fund
+facts job then reports "degraded" with the last good figures kept). A restart of the app (a deploy) ends the jobs in progress ("killed: the supervisor restarted", no
+failure counted) and they start again. The difference is that none of this can now silently turn into "killed at the limit with nothing saved", and a job drifting towards its limit is reported first.
