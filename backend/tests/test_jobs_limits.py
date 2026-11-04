@@ -68,6 +68,7 @@ def test_a_job_close_to_its_limit_is_reported_before_it_fails():
     t = near_limit(job, [("timeout", 1200), ("ok", 100)])                  # it hit the limit in a recent run
     assert t and t["timedOut"] and t["usePct"] == 100
     assert near_limit(job, [("ok", 100), ("ok", 100), ("ok", 100), ("timeout", 1200)]) is None   # an old timeout, three good runs since
+    assert near_limit(job, [("ok", 100), ("timeout", 1200), ("timeout", 1200)]) is None          # a good run since the timeouts: the cause is over
     assert NEAR_LIMIT_SHARE == 0.70
 
 

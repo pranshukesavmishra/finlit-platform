@@ -61,9 +61,10 @@ def near_limit(job: Job, runs: list) -> Optional[Dict[str, Any]]:
         return None
     limit_s = job.max_runtime_min * 60.0
     recent = [(st, float(d)) for st, d in runs[:NEAR_LIMIT_RUNS] if d is not None]
-    timed_out = any(st == "timeout" for st, _ in recent[:3])
+    timed_out = bool(recent) and recent[0][0] == "timeout"   # the NEWEST run hit the limit; a good run since then means whatever caused it is over
     heavy = [d for _, d in recent if d / limit_s >= NEAR_LIMIT_SHARE]
-    if not timed_out and len(heavy) < 2:
+    newest_heavy = bool(recent) and recent[0][1] / limit_s >= NEAR_LIMIT_SHARE
+    if not timed_out and not (newest_heavy and len(heavy) >= 2):   # two heavy runs count only while the newest one is still heavy
         return None
     use = max((d for _, d in recent), default=0.0) / limit_s
     return {"name": job.name, "usePct": int(round(min(use, 1.0) * 100)), "limitMin": job.max_runtime_min, "timedOut": timed_out}
