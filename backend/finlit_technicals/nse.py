@@ -301,7 +301,7 @@ def adjustment_blocks(dates, keys, close, opens, actions, changes, rep: Optional
     step = N if not block or block >= N else int(block)
     for j0 in range(0, max(N, 1), max(step, 1)):
         j1 = min(N, j0 + step)
-        cl = np.array(close[:, j0:j1], dtype=np.float64)
+        cl = np.array(close[:, j0:j1], dtype=np.float64, order="C")
         op = opens[:, j0:j1]
         f = np.ones((T, j1 - j0))
         last_close = pd.DataFrame(cl).ffill().shift(1).to_numpy()
@@ -468,7 +468,9 @@ _MATRIX_DTYPES = {"close": np.float32, "open": np.float32, "high": np.float32, "
 
 
 def _new_matrix(path: Path, dtype, shape):
-    return np.lib.format.open_memmap(str(path), mode="w+", dtype=dtype, shape=shape)
+    """A new T x N .npy file, one stock after the other (Fortran order): a stock's whole history is one contiguous piece of the file, so reading some stocks
+    through the memory map brings in only their pages, not a page of every day of the year for each of them."""
+    return np.lib.format.open_memmap(str(path), mode="w+", dtype=dtype, shape=shape, fortran_order=True)
 
 
 def build_panel_files(folder: str | Path, actions: list, changes, dest: Path, block: int = 256, log=None) -> dict:
@@ -538,19 +540,20 @@ def build_panel_files(folder: str | Path, actions: list, changes, dest: Path, bl
             m = np.full((rows, N), np.nan, dtype=dtype)
             m[tl, ki] = d[col].to_numpy(dtype=dtype)
             return m
+        def put(m, a):
+            m[t0:t1] = a
+            release_mapped(m, flush=True)               # written: its pages need not stay in memory
         c = band("close", np.float64)
         c[c <= 0] = np.nan
-        close64[t0:t1] = c
-        mats["close"][t0:t1] = c.astype(np.float32)
+        put(close64, c)
+        put(mats["close"], c.astype(np.float32))
         for name in ("open", "high", "low", "volume", "value", "trades"):
-            mats[name][t0:t1] = band(name)
+            put(mats[name], band(name))
         ser = np.full((rows, N), -1, dtype=np.int8)
         ser[tl, ki] = d["series"].map(SERIES_RANK).fillna(9).to_numpy(dtype=np.int8)
-        mats["series"][t0:t1] = ser
+        put(mats["series"], ser)
         last = d.drop_duplicates("key", keep="last")
         isin_last.update(zip(last["key"].tolist(), last["isin"].tolist()))
-        for m in (*mats.values(), close64):                # the year is on disk: its pages need not stay in memory
-            release_mapped(m, flush=True)
         say(f"pass 2: {os.path.basename(f)}")
         del d, c, ser, last
     for m in mats.values():

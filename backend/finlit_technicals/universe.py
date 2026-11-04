@@ -124,9 +124,12 @@ def _rolling_sum(x: np.ndarray, w: int) -> np.ndarray:
 def market_scale(p, span: int = 250) -> np.ndarray:
     """NSE turnover (EQ series, 250-session average) relative to its latest value."""
     tv = np.empty(p.close.shape[0])
-    step = 256                                            # rows at a time; each day's sum is taken over that day's own row, so the numbers are the same as for the whole matrix
+    step = 256                                            # rows at a time (as C-ordered arrays); each day's sum is taken over that day's own row, so the numbers are the same as for the whole matrix
     for a in range(0, len(tv), step):
-        tv[a:a + step] = np.where(np.asarray(p.series[a:a + step]) == 0, np.nan_to_num(np.asarray(p.value[a:a + step]).astype(float)), 0.0).sum(1)
+        tv[a:a + step] = np.where(np.ascontiguousarray(p.series[a:a + step]) == 0, np.nan_to_num(np.ascontiguousarray(p.value[a:a + step]).astype(float)), 0.0).sum(1)
+    release = getattr(p, "release_pages", None)              # a memory-mapped panel gives the pages back
+    if release is not None:
+        release()
     s = pd.Series(tv).rolling(span, min_periods=20).mean().to_numpy()
     return s / s[-1]
 
@@ -170,13 +173,13 @@ def build_universe(p, rules: UniverseRules = UniverseRules(), caps: Optional[np.
     kept: Dict[str, np.ndarray] = {}
     for j0 in range(0, max(N, 1), max(step, 1)):
         j1 = min(N, j0 + step)
-        cl = np.asarray(p.close[:, j0:j1])
+        cl = np.ascontiguousarray(p.close[:, j0:j1])
         traded = ~np.isnan(cl)
-        eq = np.asarray(p.series[:, j0:j1]) == 0
-        val = np.where(traded, np.nan_to_num(np.asarray(p.value[:, j0:j1]).astype(float)), 0.0) / 1e7
+        eq = np.ascontiguousarray(p.series[:, j0:j1]) == 0
+        val = np.where(traded, np.nan_to_num(np.ascontiguousarray(p.value[:, j0:j1]).astype(float)), 0.0) / 1e7
         med_val = pd.DataFrame(val).rolling(rules.window, min_periods=rules.window).median().to_numpy()
         tdays = _rolling_sum(traded.astype(float), rules.window)
-        ldays = _rolling_sum((traded & (np.asarray(p.high[:, j0:j1]) == np.asarray(p.low[:, j0:j1]))).astype(float), rules.window)
+        ldays = _rolling_sum((traded & (np.ascontiguousarray(p.high[:, j0:j1]) == np.ascontiguousarray(p.low[:, j0:j1]))).astype(float), rules.window)
         sessions = np.cumsum(traded, axis=0)
         at_start = traded[:5].any(0)                     # trading when the files begin: listed long enough
         seasoned = (sessions >= rules.seasoning) | at_start[None, :]
@@ -196,7 +199,7 @@ def build_universe(p, rules: UniverseRules = UniverseRules(), caps: Optional[np.
                 mv = np.nan_to_num(med_val[s])
                 liq_join, liq_stay = mv >= rules.join_value_cr * vscale[s], mv >= rules.leave_value_cr * vscale[s]
                 if use_caps:
-                    cap = np.nan_to_num(np.asarray(caps[s, j0:j1]))
+                    cap = np.nan_to_num(np.ascontiguousarray(caps[s, j0:j1]))
                     size_join, size_stay = cap >= rules.join_mcap_cr * mscale[s], cap >= rules.leave_mcap_cr * mscale[s]
                 else:
                     size_join = size_stay = np.ones(j1 - j0, bool)
@@ -207,7 +210,7 @@ def build_universe(p, rules: UniverseRules = UniverseRules(), caps: Optional[np.
         if release is not None:
             release()
         part = dict(zip(names, (med_val, tdays, ldays, last_px, sessions, seasoned, eq, since)))
-        part["caps"] = np.asarray(caps[:, j0:j1]) if caps is not None else np.full((T, j1 - j0), np.nan)
+        part["caps"] = np.ascontiguousarray(caps[:, j0:j1]) if caps is not None else np.full((T, j1 - j0), np.nan)
         for name, arr in part.items():
             if lean:
                 kept.setdefault(name, np.empty(N, arr.dtype))[j0:j1] = arr[-1]
