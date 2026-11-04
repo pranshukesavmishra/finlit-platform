@@ -55,7 +55,7 @@ def test_history_reads_adjusts_and_links(tmp_path):
     assert len(n) == F.DAYS and list(n.columns) == ["open", "high", "low", "close", "volume"]
     assert nse.index("NSE:CNXMETAL") is None
     assert nse.names()["SAIL"] == "Sail Limited"
-    assert (d / ".finlit_cache" / "panel.pkl").exists()
+    assert (d / ".finlit_cache" / "panel" / "meta.pkl").exists()
     again = NseHistory(d).panel                                     # from the cache
     assert again.keys == p.keys and np.allclose(again.cum, p.cum)
 
