@@ -1,4 +1,3 @@
-import { FinLitLogo } from "../components/LogoLoader";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useMutation } from "@tanstack/react-query";
@@ -16,7 +15,7 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
       <div className="aurora" style={{ opacity: 0.8 }} />
       <div className="wrap" style={{ display: "grid", placeItems: "center" }}>
         <div className="card login-card" style={{ width: "min(480px, 100%)" }}>
-          <Link to="/" className="lg-login" aria-label="FinLit home"><FinLitLogo className="lg-svg" /></Link>
+          <Link to="/" className="lg-mark" aria-label="FinLit home" style={{ height: 48, marginBottom: 14 }} />
           <h1 style={{ font: "400 28px var(--serif)", margin: "0 0 10px" }}>{title}</h1>
           {children}
         </div>

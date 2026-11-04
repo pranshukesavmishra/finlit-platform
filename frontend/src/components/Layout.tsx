@@ -18,7 +18,6 @@ import { DEMO } from "../lib/demo";
 import { useAuth } from "../lib/auth";
 import { MORE, PRICING, SECTIONS, isHere, sectionHere, type NavSection } from "../lib/nav";
 import { versionLine } from "../lib/version";
-import { FinLitLogo } from "./LogoLoader";
 
 /** One header dropdown, built from lib/nav.ts. */
 function Menu({ m, open, setOpen, path }: { m: NavSection; open: boolean; setOpen: (v: string | null) => void; path: string }) {
@@ -52,7 +51,7 @@ function Header({ onSearch }: { onSearch: () => void }) {
   return (
     <header className="top">
       <div className="wrap">
-        <Link className="logo" to="/" aria-label="FinLit home"><FinLitLogo className="lg-svg" /></Link>
+        <Link className="logo" to="/" aria-label="FinLit home"><span className="lg-mark" role="img" aria-label="FinLit" /></Link>
         <nav className="topnav" aria-label="Site">
           {SECTIONS.map((m) => <Menu key={m.id} m={m} open={open === m.id} setOpen={setOpen} path={loc.pathname} />)}
           <NavLink to={PRICING.to} className={({ isActive }) => (isActive ? "hl" : "")}>{PRICING.label}</NavLink>
@@ -124,7 +123,7 @@ function Footer() {
     <footer className="band">
       <div className="wrap">
         <div className="fcta">
-          <div><FinLitLogo className="lg-svg lg-foot" /><h2>Follow the numbers, not the noise.</h2><p>Open a free account to follow stocks, set alerts and read the research reports we have built so far.</p></div>
+          <div><span className="lg-mark" role="img" aria-label="FinLit" style={{ marginBottom: 18 }} /><h2>Follow the numbers, not the noise.</h2><p>Open a free account to follow stocks, set alerts and read the research reports we have built so far.</p></div>
           <div className="cta-row">{!user && <Link className="btn primary" to="/login?mode=signup">Create free account</Link>}<button className="btn" onClick={() => enquire()}>Talk to the team</button></div>
         </div>
         <div className="fcols fcols5">

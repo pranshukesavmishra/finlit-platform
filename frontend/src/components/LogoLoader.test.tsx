@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { render, screen } from "@testing-library/react";
@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { FinLitLogo, InlineLoading, LogoLoader, PageLoading } from "./LogoLoader";
 
 const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
-const css = readFileSync(resolve(process.cwd(), "public/logo-loader.css"), "utf8");
+const css = readFileSync(resolve(process.cwd(), "src/styles/logo-loader.css"), "utf8");
 
 describe("the FinLit logo and its loader", () => {
   it("the loader tells a screen reader what is happening and hides the drawing", () => {
@@ -31,7 +31,8 @@ describe("the FinLit logo and its loader", () => {
   it("the first-load splash in index.html is the same markup as the component (regenerate it when the component changes)", () => {
     const want = renderToStaticMarkup(<div className="ll-splash"><LogoLoader size="xl" label="Loading FinLit" /></div>);
     expect(html).toContain(want);
-    expect(html).toContain('href="%BASE_URL%logo-loader.css"');
+    expect(html).toContain('href="/src/styles/logo-loader.css"');   // linked as a source file: Vite bundles it with a content hash, so it can never be served stale
+    expect(existsSync(resolve(process.cwd(), "public/logo-loader.css"))).toBe(false);   // a plain file in public/ keeps its name and is cached by browsers
   });
   it("the animation has its beats, plays only for people who have not asked for less motion, and the still logo is the finished one", () => {
     for (const name of ["ll-life", "ll-wipe", "ll-rise-f", "ll-rise-n", "ll-rise-i", "ll-rise-t", "ll-walk", "ll-bar1", "ll-bar2", "ll-bar3", "ll-sweep"]) expect(css).toContain("@keyframes " + name);

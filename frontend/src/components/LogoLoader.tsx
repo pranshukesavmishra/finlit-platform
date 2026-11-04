@@ -2,7 +2,8 @@
 //  <FinLitLogo/>   the logo as a still picture (the website header)
 //  <LogoLoader/>   the same logo building itself: the staircase draws, F and n appear, the person walks onto the first step and climbs to his place in
 //                  the "i", then L, i and t appear, the bars rise and the growth arrow sweeps up (about 2.7 s of a 3.4 s loop)
-// Pure CSS on inline SVG (public/logo-loader.css, loaded by index.html, so the same logo also shows before any script has run). Colours follow the theme
+// Pure CSS on inline SVG (src/styles/logo-loader.css, linked from index.html and bundled by Vite with a content hash in its file name, so a visitor can never
+// get an old copy of it next to new markup; the same logo also shows before any script has run). Colours follow the theme
 // (navy or white letters, gold, green). Reduced motion: the finished logo, still. The loader markup is checked against the splash in index.html by a test.
 import { LOGO_ARROW, LOGO_BAR1, LOGO_BAR2, LOGO_BAR3, LOGO_F, LOGO_HAIR, LOGO_HEAD, LOGO_IDOT, LOGO_ISTEM, LOGO_N, LOGO_PERSON, LOGO_STAIRSL_GOLD, LOGO_STAIRL_WHITE, LOGO_T, LOGO_VIEWBOX } from "./logoPaths";
 
