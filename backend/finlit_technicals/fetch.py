@@ -645,7 +645,7 @@ def fetch_industries(f, known, limit=400):
         try:
             si_ = j["equityResponse"][0]["secInfo"]
             ind, sec = si_.get("industryInfo"), si_.get("sector")
-        except (KeyError, IndexError, TypeError):
+        except (KeyError, IndexError, TypeError, AttributeError):   # AttributeError: NSE sent "secInfo": null for this stock
             continue
         if ind:
             extra[sym] = [ind, sec or ""]

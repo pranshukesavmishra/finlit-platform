@@ -28,8 +28,8 @@ Rule for all of these: **the answers do not change**. The files released are byt
 (numbers in docs/SECTORS.md, section 8).
 
 6. `nse.py`, `build_panel_files` (used by `NseHistory.panel`): the market panel is built one yearly file at a time (a first pass for the days to drop, the keys and the ISIN
-   links, which need the whole history; a second for each year's rows) and written as plain `.npy` files in `<nse>/.finlit_cache/panel/`, then opened read-only with
-   `mmap_mode="r"`. The old cache was one pickle (`panel.pkl`) that had to be loaded whole. Yearly files that overlap in dates, or a cache folder that cannot be written,
+   links, which need the whole history; a second for each year's rows) and written as plain `.npy` files (one stock after the other, so a stock's history is one piece of the file) in `<nse>/.finlit_cache/panel/`, then opened read-only with
+   `mmap_mode="r"`; the pages are given back (`release_mapped`) after each year, block of stocks and a few stocks scored. The old cache was one pickle (`panel.pkl`) that had to be loaded whole. Yearly files that overlap in dates, or a cache folder that cannot be written,
    fall back to the old in-memory build (`NseHistory(..., chunked=False)` forces it). Same dtypes, same numbers, bit for bit. A cache without its `meta.pkl` (a build that never
    finished), with a file cut short, or built from other files (the signature logic is unchanged) is rebuilt.
 7. `nse.py`, `adjustment_blocks`: the adjustment factors are worked out for blocks of stocks (every stock is independent), and `cumulative_factors` is the same running product;
@@ -44,3 +44,6 @@ Rule for all of these: **the answers do not change**. The files released are byt
     `SECTOR_STAGED=0` runs the old single process). Every part builds the whole-market universe itself, so each stock is judged against the full market; the parts are split by industry group so a group is worked out once; the
     merge stage sees every group and every peer label (board order, the "too few stocks" lists, the pages).
 12. `tests/big_fixture.py` (a seeded synthetic NSE folder of any size, up to the real 2,800 stocks x 10 years) and `tests/measure_job.py` (memory, time and the byte-for-byte comparison).
+
+6. `fetch.py`, `fetch_industries`: a new listing for which NSE sends `"secInfo": null` is skipped (it used to raise AttributeError and stop the whole download after the
+   prices and indices were saved: seen on the server on 4 Nov 2026). Test: `tests/test_fetch_merge.py::test_a_new_listing_whose_industry_record_is_null_is_skipped_not_fatal`.
