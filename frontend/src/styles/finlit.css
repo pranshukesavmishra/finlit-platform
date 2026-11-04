@@ -137,6 +137,10 @@ a { color: inherit; }
 .lg-mark { display: block; height: 52px; aspect-ratio: 439 / 285; background: url("/brand/finlit-logo-on-dark.png") center / contain no-repeat; }
 :root[data-theme="light"] .top .lg-mark { background-image: url("/brand/finlit-logo-on-light.png"); }
 .fcta .lg-mark { height: 64px; }
+/* The logo as a crisp vector (components/LogoLoader.tsx, FinLitLogo): the whole mark with its designed wordmark, in the header, the footer banner and the sign-in page */
+.lg-svg { height: 58px; width: auto; display: block; }
+.lg-svg.lg-foot { height: 88px; margin-bottom: 18px; }
+.lg-login { display: inline-block; margin-bottom: 14px; line-height: 0; } .lg-login .lg-svg { height: 72px; }
 .topnav { display: flex; gap: 2px; margin-left: 8px; }
 .topnav a { text-decoration: none; font-size: 13.5px; font-weight: 500; color: var(--muted); padding: 8px 10px; border-radius: 8px; transition: color .15s, background-color .15s; white-space: nowrap; }
 .topnav a:hover { color: var(--text); background: var(--s3); }
@@ -688,7 +692,7 @@ footer.band { padding-block: 0; border-top: 1px solid rgba(255,255,255,.08); }
   .ring { width: 46px; height: 46px; }
   .pt-ev { display: none; }
   .pd-ev { grid-template-columns: 1fr; }
-  .lg-mark { height: 40px; }
+  .lg-mark { height: 40px; } .lg-svg { height: 46px; } .lg-svg.lg-foot { height: 70px; }
   .otiles { grid-template-columns: 1fr 1fr; }
 }
 .vd.na { color: var(--faint); }
