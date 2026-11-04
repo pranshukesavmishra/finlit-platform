@@ -16,6 +16,7 @@ import {
 } from "../lib/prism";
 import { useDocTitle } from "../lib/title";
 import { PremiumHead } from "./Premium";
+import { LogoLoader } from "../components/LogoLoader";
 import example from "../lib/__fixtures__/prismReport.json";
 
 function Head({ children }: { children?: React.ReactNode }) {
@@ -56,7 +57,8 @@ function Working({ since, expected }: { since: number; expected: number }) {
   return (
     <div className="card pzr-card pzr-work">
       <div className="pzr-workbody">
-        <b role="status">Calculating the rating…</b>
+        <LogoLoader size="md" label="Calculating the rating" />
+        <b>Calculating the rating…</b>
         <p>Reading the financial statements, prices and the industry's valuations, and checking the inputs. This usually takes about {Math.max(5, Math.round(expected))} seconds. You can keep this page open: the rating appears here by itself.</p>
         <div className="pzr-prog" role="progressbar" aria-label="Calculation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: `${pct}%` }} /></div>
         <p className="pzr-small">{s} second{s === 1 ? "" : "s"} so far</p>

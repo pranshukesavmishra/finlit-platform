@@ -10,6 +10,7 @@ import { useDocTitle } from "../lib/title";
 import { GoldLock, PremiumHead } from "./Premium";
 import { useIndexHistory, useIndices, type IndexRow, type Stat } from "../lib/indices";
 import { ChartHelp } from "../components/ChartHelp";
+import { LogoLoader } from "../components/LogoLoader";
 
 type Row = Record<string, string | number | null | undefined>;
 type Col = { key: string; label: string; num?: boolean; wide?: boolean; fmt?: (v: string | number | null | undefined, r: Row) => React.ReactNode };
@@ -39,7 +40,7 @@ const COLS: Record<string, Col[]> = {
 
 const PAGE = 15;
 
-function Loading() { return <div className="skeleton" style={{ height: 360 }} aria-busy="true" aria-label="Loading" />; }
+function Loading() { return <div aria-busy="true" style={{ minHeight: 360, display: "grid", placeItems: "center" }}><LogoLoader size="lg" label="Loading" /></div>; }
 function Problem({ e, retry }: { e: unknown; retry: () => void }) {
   const status = (e as { status?: number })?.status;
   return <div className="state"><h2>{status === 403 ? "This tool is part of Gold" : "This data is not available right now"}</h2><p>{status === 403 ? "Sign in with a Gold account to use it." : "The data provider did not answer. Nothing is wrong with your account."}</p>
