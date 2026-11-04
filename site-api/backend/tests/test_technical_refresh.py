@@ -13,9 +13,18 @@ from backend import premium_supplied_candles as supplied_mod
 from backend.premium_technical import build_technical_assessment, last_completed_session, normalise_bars
 from backend.technical_refresh import NoUsableCandles, technical_only
 from backend.technical_series import fit_range, weekly_closes
+from backend.tests.clock import frozen_datetime
 from backend.tests.test_premium_reports import asgi_request, auth
 
 NOW = datetime(2026, 10, 23, 12, 0, tzinfo=timezone.utc)       # 17:30 IST on Friday 23 Oct 2026: its session is complete
+
+
+@pytest.fixture(autouse=True)
+def fixed_clock(monkeypatch):
+    """The endpoint reads the real clock; the sample sessions end on 23 Oct 2026, so the tests freeze it there (see tests/clock.py)."""
+    monkeypatch.setattr(server, "datetime", frozen_datetime(NOW))
+
+
 NAMES = {"NIF50": "Nifty 50", "NIFMID100": "Nifty Midcap 100", "NIFSMA100": "Nifty Smallcap 100", "NIF500": "Nifty 500"}
 
 
