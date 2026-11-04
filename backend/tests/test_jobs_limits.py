@@ -75,3 +75,29 @@ def test_a_job_close_to_its_limit_is_reported_before_it_fails():
 def test_resumable_jobs_and_always_on_lanes_are_never_judged():
     assert near_limit(_job(resumable=True), [("timeout", 1200), ("timeout", 1200)]) is None
     assert near_limit(Job("d", ("x",), cls="ondemand"), [("timeout", 1200)]) is None
+
+
+# ---------------------------------------------------------------- jobs that can never fit the server
+from finlit.jobs.registry import disabled_reason, unfit_reason   # noqa: E402
+
+
+def test_a_job_too_big_for_the_container_is_disabled_with_a_reason_not_reported_late():
+    """The 4 Nov 2026 alert "job overdue: sectors": the job needs about 1.5 GB, the app container has 1.2 GB, so it can never start. That is a fact about the
+    server, not a late job: it is shown as disabled, with the reason, and never raises the overdue alarm."""
+    jobs = {j.name: j for j in build_jobs(ENV)}
+    sectors = jobs["sectors"]
+    why = disabled_reason(sectors, {**ENV, "JOBS_CAPACITY_MB": "1200"})
+    assert why and "1500 MB" in why and "1200 MB" in why and "never start" in why
+    assert disabled_reason(sectors, {**ENV, "JOBS_CAPACITY_MB": "4096"}) is None      # a bigger server runs it
+    assert disabled_reason(sectors, ENV) is None                                         # capacity unknown (a test, a laptop): no judgement
+    assert unfit_reason(sectors, None) is None and unfit_reason(sectors, 0) is None
+
+
+def test_on_this_server_exactly_the_sector_job_is_too_big():
+    """If a new job is added that does not fit the 1,200 MB app container, this test names it: decide on purpose (smaller weight, or build elsewhere)."""
+    too_big = sorted(j.name for j in JOBS if unfit_reason(j, 1200))
+    assert too_big == ["sectors"], too_big
+
+
+def test_the_always_on_lanes_are_never_judged_by_memory():
+    assert unfit_reason(Job("d", ("x",), cls="ondemand", weight_mb=99999), 1200) is None

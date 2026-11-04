@@ -341,5 +341,30 @@ def by_name(env: Optional[Mapping[str, str]] = None) -> Dict[str, Job]:
     return {j.name: j for j in build_jobs(env)}
 
 
+RESERVE_MB = 100   # what a bulk job leaves for the website (JobsConfig.reserve_mb)
+
+
+def unfit_reason(job: Job, capacity_mb: Optional[int]) -> Optional[str]:
+    """A job that needs more memory than this server's app container can ever give it can never start here: the supervisor's memory gate would make it wait
+    for ever, and the founder would be told every day that it is "overdue". It is reported as what it is instead (disabled, with the reason), never as late."""
+    if not capacity_mb or job.cls == "ondemand":
+        return None
+    need = job.weight_mb + (RESERVE_MB if job.cls == "bulk" else 0)
+    if need <= capacity_mb:
+        return None
+    return (f"needs about {job.weight_mb} MB of memory and this server's app container has {capacity_mb} MB, so it can never start here "
+            f"(build its data on a PC and upload it, or give the container more memory: see the job's document)")
+
+
 def disabled_reason(job: Job, env: Mapping[str, str]) -> Optional[str]:
-    return job.gate.disabled_reason(env) if job.gate else None
+    """Why the job is switched off: its own gate (an env setting), or the server being too small for it. Tests pass their own env dict (JOBS_CAPACITY_MB to try
+    a size); the real process environment also reads the container's real limit."""
+    if job.gate:
+        off = job.gate.disabled_reason(env)
+        if off:
+            return off
+    cap = env.get("JOBS_CAPACITY_MB")
+    if cap is None and env is os.environ:
+        from .resources import container_limit_mb
+        return unfit_reason(job, container_limit_mb())
+    return unfit_reason(job, int(cap)) if cap and str(cap).isdigit() else None
