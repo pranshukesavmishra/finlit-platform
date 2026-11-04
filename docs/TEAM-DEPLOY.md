@@ -44,3 +44,10 @@ Look: `bash /opt/finlit/bin/auto-deploy.sh status`. Check now: `... now`. Stop: 
 Private repository: put a read-only token alone in `/opt/finlit/git-token` (`chmod 600`).
 
 **Protect `main` on GitHub** (repository Settings, Branches, rule for `main`: require a pull request and at least one approval, no direct pushes). Whatever lands on `main` runs on the server, so this review step is the safety gate. Do not give the server a token that can push.
+
+## 6. Disk space (what keeps it from filling)
+The server disk is about 19 GB. What grows: database backups (about 85 MB each; one is taken before every automatic deploy and one every night), Docker build cache (up to a gigabyte a day with automatic deploys), and the database.
+- Backups: files older than `KEEP_DAYS` (7) go; of each day only the newest `PER_DAY` (3) stay; at most `MAX_FILES` (14) in total; the newest is never removed (`deploy/aws/backup.sh`, `prune`). That is at most about 1.2 GB.
+- Build cache: every deploy removes build cache older than 24 hours.
+- Guard: a deploy first cleans unused cache and images if the disk is more than 90% full, and refuses above 97% (a full disk stops the database).
+- Look: `df -h /` and `sudo docker system df` on the server; `bash /opt/finlit/bin/auto-deploy.sh status`.

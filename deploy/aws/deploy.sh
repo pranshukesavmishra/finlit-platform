@@ -157,6 +157,20 @@ wait_healthy() {  # wait_healthy -> 0 when /api/ping and then /api/health answer
 image_id() { docker image inspect -f '{{.Id}}' "$1" 2>/dev/null || true; }
 image_commit() { docker image inspect -f '{{index .Config.Labels "finlit.commit"}}' "$1" 2>/dev/null || true; }
 
+disk_guard() {  # before a deploy: if the disk is more than 90% full, clean what is safe to clean and say so; refuse above 97% (a full disk stops the database)
+  local pct
+  pct="$(df --output=pcent / | tail -n 1 | tr -dc '0-9')"
+  [ -n "$pct" ] || return 0
+  if [ "$pct" -ge 90 ]; then
+    info "WARNING: the disk is ${pct}% full; removing unused build cache and images first"
+    docker builder prune -af >/dev/null 2>&1 || true
+    docker image prune -f >/dev/null 2>&1 || true
+    pct="$(df --output=pcent / | tail -n 1 | tr -dc '0-9')"
+    info "the disk is now ${pct}% full"
+  fi
+  [ "${pct:-0}" -lt 97 ] || die "the disk is ${pct}% full: a deploy now could stop the database. Free space first (docker system df; bash $0 backups)."
+}
+
 cmd_deploy() {
   need_docker
   mkdir -p "$STATE"
@@ -176,6 +190,7 @@ cmd_deploy() {
     fi
     docker rmi "$IMAGE:pending" >/dev/null 2>&1 || true
   fi
+  disk_guard
   say "Starting everything"
   dc up -d --remove-orphans
   echo "$commit" > "$STATE/current_commit"
@@ -193,7 +208,7 @@ cmd_deploy() {
     exit 1
   fi
   docker image prune -f >/dev/null 2>&1 || true
-  docker builder prune -f --filter until=168h >/dev/null 2>&1 || true
+  docker builder prune -f --filter until=24h >/dev/null 2>&1 || true   # the cache of builds older than a day: automatic deploys add up to a gigabyte a day otherwise
   say "Done: FinLit is running (commit $commit)"
   info "Open:        $(site_url)"
   info "Check it:    cd $PROJ && bash scripts/smoke.sh $(site_url)"

@@ -3,12 +3,25 @@
 #   backup.sh loop            every night at 20:30 UTC (02:00 IST)   <- what the container does
 #   backup.sh once            one backup now
 #   backup.sh restore FILE    replace the live database with a dump (needs CONFIRM=yes; stop the app first, see the README)
-# Files: /backups/finlit-YYYY-MM-DD_HHMMSS.dump (pg_dump custom format, already compressed), newest KEEP_DAYS days kept.
+# Files: /backups/finlit-YYYY-MM-DD_HHMMSS.dump (pg_dump custom format, already compressed).
+# Retention (a backup is taken before every automatic deploy, so there can be many a day): files older than KEEP_DAYS days are removed; of each remaining DAY only the
+# newest PER_DAY are kept (the older ones of that day go); and whatever is left is capped at MAX_FILES, oldest first. The newest backup is never removed.
 # The connection comes from PGHOST / PGUSER / PGDATABASE / PGPASSWORD in the container's environment (never on a command line).
 set -eu
 DIR=/backups
 KEEP_DAYS="${KEEP_DAYS:-7}"
+PER_DAY="${PER_DAY:-3}"
+MAX_FILES="${MAX_FILES:-14}"
 log() { echo "$(date -u '+%F %T') UTC backup: $*"; }
+
+prune() {   # the retention rules above; never fails the backup, never removes the newest file
+  find "$DIR" -name 'finlit-*.dump' -type f -mtime +"$((KEEP_DAYS - 1))" -exec rm -f {} + 2>/dev/null || true
+  # per day: newest first (the names sort by time), keep PER_DAY, remove the rest of that day
+  ls -1 "$DIR" 2>/dev/null | grep '^finlit-.*\.dump$' | sort -r | awk -v n="$PER_DAY" '{ d = substr($0, 8, 10); if (++c[d] > n) print }' |
+    while read -r f; do rm -f "$DIR/$f"; done
+  ls -1 "$DIR" 2>/dev/null | grep '^finlit-.*\.dump$' | sort -r | awk -v n="$MAX_FILES" 'NR > n' |
+    while read -r f; do rm -f "$DIR/$f"; done
+}
 
 do_backup() {
   stamp="$(date -u '+%Y-%m-%d_%H%M%S')"
@@ -17,7 +30,7 @@ do_backup() {
   if pg_dump --format=custom --compress=6 --no-owner --no-privileges --file="$tmp" && pg_restore --list "$tmp" >/dev/null 2>&1; then
     mv "$tmp" "$out"
     log "saved $out ($(du -h "$out" | cut -f1))"
-    find "$DIR" -name 'finlit-*.dump' -type f -mtime +"$((KEEP_DAYS - 1))" -exec rm -f {} + 2>/dev/null || true
+    prune
     return 0
   fi
   rm -f "$tmp"
