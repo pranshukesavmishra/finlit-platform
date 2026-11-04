@@ -148,7 +148,7 @@ class JobsConfig:
             quotes_every_min=max(1.0, num("QUOTES_EVERY_MINUTES", 1.0)), web_port=num("PORT", 8000, int))
 
 
-SECTORS_WEIGHT_MB = 1500        # measured on a synthetic folder of the real size (docs/SECTORS.md, "Memory"): above the app container's usual free memory, so on a 2 GB box the job waits visibly
+SECTORS_WEIGHT_MB = 450         # measured on a synthetic folder of the real size (docs/SECTORS.md, section 8): the staged job's largest moment was 364 MB (job process + the stage working), 450 leaves a margin for real NSE files having more securities
 FUNDS_GATE = Gate("FUND_LOADS_ENABLED", "ETF and fund loads are switched off: set FUND_LOADS_ENABLED=1 in /opt/finlit/.env.aws and restart", wants="1", default="1", forced=True)
 
 

@@ -136,7 +136,7 @@ def _sec_due(t, last_success_hours_ago, env=SEC_ENV, technicals_ok=True):
 def test_the_sector_job_is_a_bulk_job_after_technicals_and_always_on():
     j = JOBS["sectors"]
     assert j.cls == "bulk" and j.command == "refresh-sectors" and j.prerequisites == ("technicals",) and j.owns == ("sectors",)
-    assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and j.weight_mb >= 1000 and j.honours_pause
+    assert j.sla.kind == "session" and j.sla.hours == 14 and j.max_runtime_min == 90 and 364 <= j.weight_mb <= 600 and j.honours_pause
     assert [(w.window, w.not_before) for w in j.windows] == [("AFTER_CLOSE", (19, 0)), ("MORNING", None)]
     for env in ({}, {"SECTORS_ENABLED": "0"}, SEC_ENV):
         assert disabled_reason(j, env) is None                                # always on: the environment cannot switch it off
