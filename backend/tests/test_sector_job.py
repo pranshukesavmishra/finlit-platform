@@ -289,3 +289,36 @@ async def test_the_real_batch_runs_on_an_nse_folder_and_the_files_are_what_the_a
     assert page["history"]["dates"] and page["summary"]
     assert (sd.live_release(out) / "TATASTEEL.json").is_file() and sd.read_json(sd.live_release(out) / "_summary.json")["meta"]["errors"] == 0
     assert res["peakMb"] and "nse_signature" in sd.sector_meta(sd.live_release(out))
+
+
+# ------------------------------------------------------------------------------------------------ the staged batch (docs/SECTORS.md, "Memory and time")
+def test_the_job_process_stays_light_and_the_peak_counts_the_stages():
+    """The runner of the stages needs only the standard library: importing finlit_technicals in the job process would put numpy and pandas (about 100 MB) beside the
+    stage that is working. The peak reported (status page, meta) is the largest of the job process and of the stages it ran."""
+    import subprocess
+    import sys
+    code = ("import sys; sys.path.insert(0, %r); from finlit import sector_job as sj; m = sj.staged_runner(); "
+            "assert callable(m.run_staged) and 'numpy' not in sys.modules and 'pandas' not in sys.modules and 'finlit_technicals' not in sys.modules") % str(Path(sj.BACKEND_DIR))
+    assert subprocess.run([sys.executable, "-c", code], capture_output=True, text=True).returncode == 0
+    child = subprocess.run([sys.executable, "-c", "x = bytearray(150 * 1024 * 1024); x[::4096] = b'1' * len(x[::4096])"])
+    assert child.returncode == 0
+    assert sj.peak_rss_mb() >= 150
+
+
+async def test_the_single_process_batch_is_still_there_and_gives_the_same_files(tmp_path, monkeypatch):
+    pytest.importorskip("pandas")
+    monkeypatch.syspath_prepend(str(Path(sj.BACKEND_DIR) / "finlit_technicals" / "tests"))
+    from nse_fixture import write_folder
+    write_folder(tmp_path / "nse")
+    for flag in ("0", "1"):
+        building = tmp_path / f"b{flag}"
+        monkeypatch.setenv("SECTOR_STAGED", flag)
+        summary = sj.default_batch(tmp_path / "nse", building, None, lambda *a: None)
+        assert len(summary) >= 5 and not [x for x in summary if "error" in x]
+    import json
+    a, b = tmp_path / "b0", tmp_path / "b1"
+    files = sorted(p.relative_to(a) for p in a.rglob("*.json") if p.name != "_summary.json")
+    assert files == sorted(p.relative_to(b) for p in b.rglob("*.json") if p.name != "_summary.json") and len(files) > 10
+    assert all((a / f).read_bytes() == (b / f).read_bytes() for f in files)
+    sa, sb = (json.loads((x / "_summary.json").read_text()) for x in (a, b))
+    assert sa["stocks"] == sb["stocks"]
