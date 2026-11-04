@@ -610,5 +610,5 @@ async def check(settings: Optional[Settings] = None, redis: Any = None) -> dict:
         if ril:
             out["ltp"] = (await c.ltp({"NSE_EQ": [int(ril["security_id"])]})).get("NSE_EQ", {}).get(ril["security_id"])
             today = datetime.now(IST).date()
-            out["candles"] = [{**k, "day": k["day"].isoformat()} for k in (await c.daily(ril["security_id"], "NSE_EQ", today - timedelta(days=10), today + timedelta(days=1)))[-3:]]
+            out["candles"] = [{**k, "day": k["day"].isoformat()} for k in (await c.daily(ril["security_id"], "NSE_EQ", today - timedelta(days=400), today + timedelta(days=1)))[-3:]]   # a long window like the real loads (Prism asks for six years): a 10-day window was refused with DH-905 while the real loads worked
     return out
