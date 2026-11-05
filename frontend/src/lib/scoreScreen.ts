@@ -11,7 +11,7 @@ export type Band = "low" | "mid" | "high";
 export type Pillar = "pillar_quality" | "pillar_growth" | "pillar_profitability" | "pillar_balance";
 /** `ret_3m`, `ret_6m` and `pct_from_high` feed the optional 52-week and return columns: read from the stored screener numbers, blank without enough price history. */
 export type Item = Row & { cap: Cap | null; f: number | null; t: number | null; ret_3m?: number | null; ret_6m?: number | null; pct_from_high?: number | null };
-export type BandKey = "f" | "t" | "q" | "g" | "p" | "b";
+export type BandKey = "f" | "t" | "o" | "q" | "g" | "p" | "b";   // o: the overall FinLit IQ ("Total FinLit IQ Score" row of the Basic panel)
 export type RangeKey = "f" | "t" | "o" | "q" | "g" | "p" | "b" | PrismRangeKey;   // q g p b: the four pillars (min and max boxes in the Basic screener)
 export type SortKey = "name" | "price" | "market_cap" | "sector" | "f" | "t" | "overall" | Pillar | PrismCol | "ret_3m" | "ret_6m" | "return_1y" | "pct_from_high";
 /** `maxExcl`: the maximum is a strict upper bound ("below 50"), so a score of 49.75 is in and 50 is out, with no gap between "below 50" and "50 or more". */
@@ -37,7 +37,7 @@ export const techBandOf = (score: number | null | undefined): TechBand | null =>
 export const trendWord = (score: number | null | undefined): string | null => (score == null ? null : ratingWord(null, score).word);
 
 export const CAPS: Cap[] = ["Large", "Mid", "Small"];
-export const BAND_KEYS: BandKey[] = ["f", "t", "q", "g", "p", "b"];
+export const BAND_KEYS: BandKey[] = ["f", "t", "o", "q", "g", "p", "b"];
 export const RANGE_KEYS: RangeKey[] = ["f", "t", "o", "q", "g", "p", "b", ...PRISM_RANGE_KEYS];
 /** The three score bands. They follow the FinLit model: Strong 78 and above, Watch under 45; "mid" joins its Healthy (62+) and Mixed (45+) bands. */
 export const BANDS: Record<Band, { label: string; short: string; min: number; max: number }> = {
@@ -46,6 +46,15 @@ export const BANDS: Record<Band, { label: string; short: string; min: number; ma
   high: { label: "78 and above (Strong)", short: "78+", min: 78, max: 100 },
 };
 export const BAND_ORDER: Band[] = ["low", "mid", "high"];
+
+/** The six rating chips of the Basic screener, on the overall FinLit IQ. The edges are the FinLit IQ model's own (Strong 78, Healthy 62, the "Mixed" 45 band shown here as
+ *  Average), with its "Watch" band (under 45) split in two at 35, the edge the site's rating words use everywhere. Every edge is half-open, so no score falls between two chips.
+ *  "Not rated" is a company with no FinLit IQ; it never passes a score range. */
+export type IqLabel = "strong" | "healthy" | "average" | "weak" | "poor" | "notrated";
+export const IQ_LABELS: IqLabel[] = ["strong", "healthy", "average", "weak", "poor", "notrated"];
+export const IQ_LABEL_WORD: Record<IqLabel, string> = { strong: "Strong", healthy: "Healthy", average: "Average", weak: "Weak", poor: "Poor", notrated: "Not rated" };
+export const IQ_LABEL_SAY: Record<IqLabel, string> = { strong: "FinLit IQ 78 and above", healthy: "FinLit IQ 62 up to 78", average: "FinLit IQ 45 up to 62", weak: "FinLit IQ 35 up to 45", poor: "FinLit IQ under 35", notrated: "No FinLit IQ yet (not scored, or not enough data)" };
+export const iqLabelOf = (v: number | null | undefined): IqLabel => (v == null || !Number.isFinite(v) ? "notrated" : v >= 78 ? "strong" : v >= 62 ? "healthy" : v >= 45 ? "average" : v >= 35 ? "weak" : "poor");
 export const FUNDAMENTAL = ["pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance"] as const;
 export const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; short: string; say: string }[] = [
   { k: "q", col: "pillar_quality", label: "Quality", short: "Quality", say: "Steady earnings, clean accounts, cash that matches profit." },
@@ -53,7 +62,7 @@ export const PILLARS: { k: "q" | "g" | "p" | "b"; col: Pillar; label: string; sh
   { k: "p", col: "pillar_profitability", label: "Profitability", short: "Profit.", say: "Margins and returns on the money in the business." },
   { k: "b", col: "pillar_balance", label: "Balance sheet", short: "Balance", say: "Debt, interest cover and liquidity." },
 ];
-export const NAMES: Record<BandKey | RangeKey, string> = { f: "Growth & Profitability", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Overall", ...PRISM_NAMES };
+export const NAMES: Record<BandKey | RangeKey, string> = { f: "Growth & Profitability", t: "Technical", q: "Quality", g: "Growth", p: "Profitability", b: "Balance sheet", o: "Total FinLit IQ", ...PRISM_NAMES };
 export const PAGE_SIZES = [5, 10, 20, 50];
 
 /** Colour level of a score: the site's one colour rule (green 70+, orange 50 to 69, red under 50), see lib/scoreBands.ts. Colour only decorates; the model's word and the number carry the meaning. */
@@ -87,33 +96,60 @@ export type Filters = {
   bands: Record<BandKey, Band[]>;
   ranges: Record<RangeKey, Range>;
   labels: PrismLabel[];     // FinLit Prism rating labels (any of these)
+  iqLabels: IqLabel[];      // Basic screener: FinLit IQ rating chips (any of these), on the overall FinLit IQ
   rated: boolean;           // only companies that have a Prism score
   tech: Record<TechKey, TechBand[]>;   // Prism short-term and long-term technical views (any of these bands)
   top: number | null;       // keep only the first N by FinLit IQ among the companies that pass every other filter (the Top 10 quick views)
 };
 export const emptyFilters = (): Filters => ({
   caps: [], sectors: [],
-  bands: { f: [], t: [], q: [], g: [], p: [], b: [] },
+  bands: { f: [], t: [], o: [], q: [], g: [], p: [], b: [] },
   ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { min: null, max: null }])) as Filters["ranges"],
-  labels: [], rated: false, tech: { st: [], lt: [] }, top: null,
+  labels: [], iqLabels: [], rated: false, tech: { st: [], lt: [] }, top: null,
 });
 export const cloneFilters = (f: Filters): Filters => ({ caps: [...f.caps], sectors: [...f.sectors], bands: Object.fromEntries(BAND_KEYS.map((k) => [k, [...f.bands[k]]])) as Filters["bands"],
-  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] }, top: f.top });
+  ranges: Object.fromEntries(RANGE_KEYS.map((k) => [k, { ...f.ranges[k] }])) as Filters["ranges"], labels: [...f.labels], iqLabels: [...f.iqLabels], rated: f.rated, tech: { st: [...f.tech.st], lt: [...f.tech.lt] }, top: f.top });
 
 /** Each band runs up to, but not including, the start of the next one, so a fractional score (44.6) is in a band and never between two. */
 export const inBands = (v: number | null, bands: Band[]) => !bands.length || (v != null && bands.some((b) => {
   const next = BAND_ORDER[BAND_ORDER.indexOf(b) + 1];
   return v >= BANDS[b].min && (next ? v < BANDS[next].min : v <= BANDS[b].max);
 }));
+/** The three band chips as a Min - Max range (the Advanced panel's pillar rows hold one range each): below 45, 45 up to below 78, 78 and above. Half-open, so no score falls between two chips.
+ *  Chips next to each other join into one range (< 45 and 45 - 77 = below 78); a chip that is not next to the selection starts a new selection, since one range cannot skip a band. */
+const EDGE = [null, BANDS.mid.min, BANDS.high.min] as const;
+export function bandsToRange(bands: Band[]): Range {
+  const idx = BAND_ORDER.map((b, i) => (bands.includes(b) ? i : -1)).filter((i) => i >= 0);
+  if (!idx.length) return { min: null, max: null };
+  const lo = idx[0], hi = idx[idx.length - 1];
+  const min = lo === 0 ? null : (EDGE[lo] as number), max = hi === 2 ? null : (EDGE[hi + 1] as number);
+  return max == null ? { min, max } : { min, max, maxExcl: true };
+}
+/** The chips that light up for a range: those whose joined range is exactly this one; a typed custom range lights none. */
+export function rangeToBands(r: Range): Band[] {
+  if (r.min == null && r.max == null) return [];
+  for (let lo = 0; lo < 3; lo++) for (let hi = lo; hi < 3; hi++) {
+    const bands = BAND_ORDER.slice(lo, hi + 1), w = bandsToRange(bands);
+    if (w.min === r.min && w.max === r.max && !!w.maxExcl === !!r.maxExcl) return bands;
+  }
+  return [];
+}
+export function toggleRangeBand(r: Range, b: Band): Range {
+  const cur = rangeToBands(r), i = BAND_ORDER.indexOf(b);
+  if (cur.includes(b)) { const rest = cur.filter((x) => x !== b); const ok = rest.length === 0 || rest.every((x, k) => k === 0 || BAND_ORDER.indexOf(x) === BAND_ORDER.indexOf(rest[k - 1]) + 1); return bandsToRange(ok ? rest : []); }
+  const next = cur.length && (BAND_ORDER.indexOf(cur[0]) === i + 1 || BAND_ORDER.indexOf(cur[cur.length - 1]) === i - 1) ? [...cur, b] : [b];
+  return bandsToRange(next);
+}
 export const inRange = (v: number | null, r: Range) => (r.min == null && r.max == null) || (v != null && (r.min == null || v >= r.min) && (r.max == null || (r.maxExcl ? v < r.max : v <= r.max)));
 const rangeValue = (r: Item, k: RangeKey) => (k === "f" ? r.f : k === "t" ? r.t : k === "o" ? r.overall : k === "q" || k === "g" || k === "p" || k === "b" ? r[PILLARS.find((x) => x.k === k)!.col] : prismRangeValue(r, k) ?? null);
-const bandValue = (r: Item, k: BandKey) => (k === "f" ? r.f : k === "t" ? r.t : r[PILLARS.find((x) => x.k === k)!.col]);
+const bandValue = (r: Item, k: BandKey) => (k === "f" ? r.f : k === "t" ? r.t : k === "o" ? r.overall : r[PILLARS.find((x) => x.k === k)!.col]);
 
 /** True when the company passes every filter. `skip` leaves one group out (used for the live counts beside the size and sector options). */
 export function passes(r: Item, f: Filters, skip?: "caps" | "sectors"): boolean {
   if (skip !== "caps" && f.caps.length && !(r.cap && f.caps.includes(r.cap))) return false;
   if (skip !== "sectors" && f.sectors.length && !(r.sector && f.sectors.includes(r.sector))) return false;
   if (f.rated && !hasPrism(r)) return false;
+  if (f.iqLabels.length && !f.iqLabels.includes(iqLabelOf(r.overall))) return false;
   if (f.labels.length && !(isLabel(r.prism_label) && f.labels.includes(r.prism_label))) return false;
   if (!TECH_KEYS.every((k) => { const b = techBandOf(r[k === "st" ? "prism_st_score" : "prism_lt_score"]); return !f.tech[k].length || (b != null && f.tech[k].includes(b)); })) return false;
   return BAND_KEYS.every((k) => inBands(bandValue(r, k), f.bands[k])) && RANGE_KEYS.every((k) => inRange(rangeValue(r, k), f.ranges[k]));
@@ -194,6 +230,7 @@ export function chipsFor(f: Filters): Chip[] {
   f.sectors.forEach((s) => out.push({ id: "sector:" + s, label: s }));
   BAND_KEYS.forEach((k) => { if (f.bands[k].length) out.push({ id: "band:" + k, label: `${NAMES[k]}: ${BAND_ORDER.filter((b) => f.bands[k].includes(b)).map((b) => BANDS[b].short).join(", ")}` }); });
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null || r.max != null) out.push({ id: "range:" + k, label: `${NAMES[k]}: ${rangeText(r)}` }); });
+  if (f.iqLabels.length) out.push({ id: "iqlabels", label: `FinLit IQ rating: ${IQ_LABELS.filter((l) => f.iqLabels.includes(l)).map((l) => IQ_LABEL_WORD[l]).join(", ")}` });
   if (f.labels.length) out.push({ id: "labels", label: `Prism rating: ${PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_WORD[l]).join(", ")}` });
   TECH_KEYS.forEach((k) => { if (f.tech[k].length) out.push({ id: "tech:" + k, label: `${TECH_NAMES[k]}: ${TECH_BAND_ORDER.filter((b) => f.tech[k].includes(b)).map((b) => TECH_BANDS[b].short).join(", ")}` }); });
   if (f.rated) out.push({ id: "rated", label: "Only companies rated by Prism" });
@@ -207,6 +244,7 @@ export function removeChip(f: Filters, id: string): Filters {
   else if (id.startsWith("band:")) n.bands[id.slice(5) as BandKey] = [];
   else if (id.startsWith("range:")) n.ranges[id.slice(6) as RangeKey] = { min: null, max: null };
   else if (id === "labels") n.labels = [];
+  else if (id === "iqlabels") n.iqLabels = [];
   else if (id === "rated") n.rated = false;
   else if (id === "top") n.top = null;
   else if (id.startsWith("tech:")) n.tech[id.slice(5) as TechKey] = [];
@@ -276,7 +314,9 @@ export const SORT_KEYS: SortKey[] = ["name", "price", "market_cap", "sector", "f
   "prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score", "ret_3m", "ret_6m", "return_1y", "pct_from_high"];
 const num = (s: string | null) => { if (s == null || s.trim() === "") return null; const n = Number(s); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null; };
 /** The address key of a score's band list. The Quality pillar's old key "q" is also the toolbar search, so it is written as "qual"; an old link with a band list in ?q= is still read. */
-export const BAND_PARAM: Record<BandKey, string> = { f: "f", t: "t", q: "qual", g: "g", p: "p", b: "b" };
+export const BAND_PARAM: Record<BandKey, string> = { f: "f", t: "t", o: "ovr", q: "qual", g: "g", p: "p", b: "b" };
+/** The address key of the FinLit IQ rating chips (the Prism ratings use ?pl=). */
+export const IQ_LABEL_PARAM = "iql";
 export const isBandList = (s: string | null) => !!s && s.split(",").every((x) => (BAND_ORDER as string[]).includes(x));
 const parseBands = (s: string | null): Band[] => BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
 const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
@@ -309,6 +349,7 @@ export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
     f.rated = p.get("rated") === "1";
     f.tech = { st: parseTech(p.get("st")), lt: parseTech(p.get("lt")) };
   }
+  if (finlit) f.iqLabels = (p.get(IQ_LABEL_PARAM) || "").split(",").filter((x): x is IqLabel => (IQ_LABELS as string[]).includes(x)).sort((a, b) => IQ_LABELS.indexOf(a) - IQ_LABELS.indexOf(b));
   if (finlit && Number(p.get("top")) === TOP_N) f.top = TOP_N;
   const key = SORT_KEYS.find((k) => k === p.get("sort") && !(scope === "basic" && PRISM_SORT.includes(k)) && !(scope === "advanced" && FINLIT_SORT.includes(k)));
   const sort: Sort = key ? { key, dir: p.get("dir") === "asc" ? 1 : p.get("dir") === "desc" ? -1 : firstDir(key) } : DEFAULT_SORT;
@@ -322,6 +363,7 @@ export function serializeState(s: State): URLSearchParams {
   f.sectors.forEach((x) => p.append("sector", x));
   BAND_KEYS.forEach((k) => { if (f.bands[k].length) p.set(BAND_PARAM[k], BAND_ORDER.filter((b) => f.bands[k].includes(b)).join(",")); });
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + (r.maxExcl ? "lt" : "max"), String(r.max)); });
+  if (f.iqLabels.length) p.set(IQ_LABEL_PARAM, IQ_LABELS.filter((l) => f.iqLabels.includes(l)).join(","));
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");
   if (f.top != null) p.set("top", String(f.top));

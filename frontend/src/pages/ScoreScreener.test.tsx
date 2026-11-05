@@ -157,16 +157,38 @@ describe("Basic score screener page", () => {
 
   it("one panel, FinLit IQ Score: four pillar rows with band chips and Min - Max, and no Score bands section", () => {
     open();
-    expect(screen.getByRole("button", { name: /FinLit IQ Score/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^FinLit IQ Score/ })).toBeTruthy();
     expect(screen.getByText("Filter stocks using our multi-pillar statistical scoring model.")).toBeTruthy();
     expect(screen.queryByText("Score bands")).toBeNull();
     expect(screen.queryByText("Growth & Profitability score by pillar")).toBeNull();
-    expect(screen.queryByRole("group", { name: "Technical score" })).toBeNull();
-    for (const n of ["Quality Score", "Growth Score", "Profitability Score", "Balance Sheet Score"]) {
+    expect(within(screen.getByRole("group", { name: "FinLit IQ rating" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["Strong", "Healthy", "Average", "Weak", "Poor", "Not rated"]);
+    const order = [...document.querySelectorAll(".iq-rating, .iq-row")].map((e) => e.getAttribute("aria-label"));
+    expect(order).toEqual(["FinLit IQ rating", "Quality Score", "Growth Score", "Profitability Score", "Balance Sheet Score", "Technical Score", "Total FinLit IQ Score"]);
+    for (const n of ["Quality Score", "Growth Score", "Profitability Score", "Balance Sheet Score", "Technical Score", "Total FinLit IQ Score"]) {
       const row = within(screen.getByRole("group", { name: n }));
       expect(row.getAllByRole("button").map((b) => b.textContent)).toEqual(["< 45", "45 - 77", ">= 78"]);
       expect(row.getByLabelText("Min")).toBeTruthy(); expect(row.getByLabelText("Max")).toBeTruthy();
     }
+  });
+  it("rating chips, Technical and Total rows filter the table, the count, the chips and the address", { timeout: 30000 }, async () => {
+    open();
+    const rating = () => within(screen.getByRole("group", { name: "FinLit IQ rating" }));
+    fireEvent.click(rating().getByRole("button", { name: "Strong" }));
+    await waitFor(() => expect(symbols()).toEqual(["AAA", "BBB", "HHH"]));
+    expect(loc()).toBe("/score-screener?iql=strong");
+    fireEvent.click(rating().getByRole("button", { name: "Not rated" }));
+    await waitFor(() => expect(symbols()).toEqual(["AAA", "BBB", "HHH", "GGG"]));
+    fireEvent.click(screen.getByRole("button", { name: "Remove filter FinLit IQ rating: Strong, Not rated" }));
+    await waitFor(() => expect(loc()).toBe("/score-screener"));
+    fireEvent.click(within(screen.getByRole("group", { name: "Technical Score" })).getByRole("button", { name: /78 and above/ }));
+    await waitFor(() => expect(symbols()).toEqual(["AAA", "CCC", "EEE"]));
+    fireEvent.change(within(screen.getByRole("group", { name: "Total FinLit IQ Score" })).getByLabelText("Min"), { target: { value: "80" } });
+    await waitFor(() => { expect(symbols()).toEqual(["AAA"]); expect(loc()).toBe("/score-screener?t=high&omin=80"); });
+  });
+  it("a shared link with the new keys opens with the rows ticked", () => {
+    open("?iql=poor,weak&ovr=low&tmin=40");
+    expect(screen.getByRole("button", { name: "Weak" }).getAttribute("aria-pressed")).toBe("true");
+    expect(symbols()).toEqual(["DDD"]);
   });
   it("the Quality band is written as ?qual= so it never collides with the toolbar search ?q=, and an old ?q=high link still reads", () => {
     open("?q=high");

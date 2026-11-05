@@ -6,8 +6,8 @@ import { useUniverse } from "../../lib/screener";
 import { useUI } from "../../lib/ui";
 import { useWatchlist, watch } from "../../lib/watchlist";
 import {
-  applyTop, isBandList, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, validate, withScores,
-  type Band, type BandKey, type Filters, type Item, type RangeKey, type Scope, type Sort, type SortKey, type State, type TechBand, type TechKey,
+  applyTop, toggleRangeBand, isBandList, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, validate, withScores,
+  type Band, type BandKey, type Filters, type IqLabel, type Item, type RangeKey, type Scope, type Sort, type SortKey, type State, type TechBand, type TechKey,
 } from "../../lib/scoreScreen";
 import { coverageFrom } from "../../lib/scorePrism";
 import type { PrismLabel } from "../../lib/scorePrism";
@@ -80,6 +80,8 @@ export function useScreener(mode: Mode) {
   const setBand = (k: BandKey, b: Band) => edit((d) => ({ ...d, bands: { ...d.bands, [k]: toggle(d.bands[k], b) } }));
   const setRange = (k: RangeKey, end: "min" | "max", v: string) => edit((d) => ({ ...d, ranges: { ...d.ranges, [k]: { ...d.ranges[k], [end]: v.trim() === "" ? null : Number(v), ...(end === "max" ? { maxExcl: false } : {}) } } }), true);
   const setLabel = (l: PrismLabel) => edit((d) => ({ ...d, labels: toggle(d.labels, l) }));
+  const setRangeBand = (k: RangeKey, b: Band) => edit((d) => ({ ...d, ranges: { ...d.ranges, [k]: toggleRangeBand(d.ranges[k], b) } }));
+  const setIqLabel = (l: IqLabel) => edit((d) => ({ ...d, iqLabels: toggle(d.iqLabels, l) }));
   const setTech = (k: TechKey, b: TechBand) => edit((d) => ({ ...d, tech: { ...d.tech, [k]: toggle(d.tech[k], b) } }));
 
   const togglePick = (s: string) => setPicked((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
@@ -103,7 +105,7 @@ export function useScreener(mode: Mode) {
   return {
     mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft: setDraftLive, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
     silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, topOf, sum, mix, pg, chips, problems, bad, dirty, flush: () => apply(draft), sel, filterCount: chips.length,
-    go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, sortBy,
+    go, apply, clear, drop, toggle, setBand, setRange, setLabel, setIqLabel, setRangeBand, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, sortBy,
   };
 }
 export type Screener = ReturnType<typeof useScreener>;
