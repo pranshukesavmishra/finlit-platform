@@ -9,6 +9,7 @@ import { useSummary, useSearchIndex, type Summary } from "../lib/api";
 import { useDocTitle } from "../lib/title";
 import { nf } from "../lib/format";
 import { PlansBand } from "./Plans";
+import { FeatureBucket } from "../components/FeatureBucket";
 import { PlatformGrid } from "../components/PlatformGrid";
 import { useAuth } from "../lib/auth";
 import { Safe3D } from "../three/Safe3D";
@@ -151,6 +152,8 @@ export function Home() {
       </div></section>
 
       <Method s={s} failed={sErr} />
+
+      <FeatureBucket />
 
       <PlansBand id="pricing" compact />
 

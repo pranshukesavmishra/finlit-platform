@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools &amp; Research Hub — FinLit</title>
+<meta name="description" content="A complete suite of screeners, research tools and calculators to discover, assess, value, manage and stay ahead in the markets.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b120e;
+  --bg-soft:#101a14;
+  --card:#101a14;
+  --card-hover:#14211a;
+  --border:#223329;
+  --border-soft:#1a2b21;
+  --text:#e8f4ec;
+  --text-2:#a9bfae;
+  --text-3:#7d9483;
+  --mint:#9ff0c0;
+  --mint-dim:rgba(159,240,192,.12);
+  --blue:#8ec9ff;
+  --gold:#ffd479;
+  --gold-dim:rgba(255,212,121,.12);
+  --silver:#c9d4cc;
+  --silver-dim:rgba(201,212,204,.10);
+  --radius:14px;
+  --font-display:"Sora",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+
+/* ---------- Header ---------- */
+header.site{
+  position:sticky;top:0;z-index:50;
+  background:rgba(11,18,14,.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border-soft);
+}
+header.site .wrap{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding-top:14px;padding-bottom:14px;
+}
+.logo{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo svg{flex:none}
+.search{
+  flex:1;max-width:420px;
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-soft);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:8px 16px;
+  transition:border-color .18s ease;
+}
+.search:focus-within{border-color:var(--mint)}
+.search input{
+  flex:1;background:none;border:none;outline:none;color:var(--text);
+  font:inherit;font-size:14px;
+}
+.search input::placeholder{color:var(--text-3)}
+.search svg{color:var(--text-3);flex:none}
+
+/* ---------- Hero ---------- */
+.hero{padding:56px 0 8px}
+.hero h1{
+  font-family:var(--font-display);
+  font-size:clamp(30px,4.5vw,46px);
+  font-weight:600;letter-spacing:-.01em;line-height:1.1;
+}
+.hero h1 em{font-style:normal;color:var(--mint)}
+.hero p{margin-top:12px;max-width:640px;color:var(--text-2);font-size:16px}
+
+/* ---------- Filter bar ---------- */
+.filters{
+  position:sticky;top:57px;z-index:40;
+  background:rgba(11,18,14,.92);
+  backdrop-filter:blur(10px);
+  padding:16px 0 12px;
+  border-bottom:1px solid var(--border-soft);
+}
+.tabs,.tiers{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tiers{margin-top:8px}
+.tab,.chip{
+  font:inherit;font-size:14px;cursor:pointer;
+  background:transparent;color:var(--text-2);
+  border:1px solid var(--border);
+  border-radius:999px;padding:7px 14px;
+  transition:all .18s ease;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.tab:hover,.chip:hover{border-color:var(--text-3);color:var(--text)}
+.tab.active,.chip.active{
+  background:var(--mint);border-color:var(--mint);color:#0b120e;font-weight:500;
+}
+.tab i{font-style:normal;font-size:12px;color:var(--text-3)}
+.tab.active i{color:rgba(11,18,14,.6)}
+.tiers .chip{padding:5px 12px;font-size:13px}
+.chip .sw{width:8px;height:8px;border-radius:999px;display:inline-block}
+.sw.free{background:var(--mint)}.sw.silver{background:var(--silver)}.sw.gold{background:var(--gold)}
+
+/* ---------- Sections ---------- */
+.section{padding:36px 0 8px}
+.sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head h2{
+  font-family:var(--font-display);font-size:22px;font-weight:600;
+  display:flex;align-items:center;gap:10px;
+}
+.sec-head .dot{width:9px;height:9px;border-radius:999px;display:inline-block}
+.sec-head p{color:var(--text-2);font-size:14px;flex-basis:100%}
+.was{
+  font-size:12px;color:var(--text-3);
+  border:1px dashed var(--border);
+  border-radius:6px;padding:2px 8px;
+  white-space:nowrap;
+}
+
+/* ---------- Grid & cards ---------- */
+.grid{
+  display:grid;gap:16px;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius);
+  padding:20px;
+  display:flex;flex-direction:column;gap:10px;
+  transition:border-color .18s ease,transform .18s ease,background .18s ease;
+}
+.card:hover{border-color:#35523f;background:var(--card-hover);transform:translateY(-2px)}
+.card-top{display:flex;justify-content:space-between;align-items:center}
+.num{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.pill{font-size:12px;font-weight:500;border-radius:6px;padding:2px 9px;letter-spacing:.02em}
+.pill.free{background:var(--mint-dim);color:var(--mint)}
+.pill.silver{background:var(--silver-dim);color:var(--silver)}
+.pill.gold{background:var(--gold-dim);color:var(--gold)}
+.card h3{font-family:var(--font-display);font-size:17px;font-weight:600;margin-top:2px}
+.tagline{font-size:12.5px;color:var(--text-3);margin-top:-6px}
+.desc{font-size:14.5px;color:var(--text-2)}
+.feat{list-style:none;display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.feat li{font-size:13.5px;color:var(--text-2);padding-left:20px;position:relative}
+.feat li::before{
+  content:"✓";position:absolute;left:0;top:1px;
+  color:var(--mint);font-size:12px;font-weight:600;
+}
+.edge{
+  border:1px dashed var(--border);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:12.5px;color:var(--text-3);
+  margin-top:auto;
+}
+.edge b{font-weight:600;color:var(--text-2)}
+.btn{
+  margin-top:6px;width:100%;
+  font:inherit;font-size:14px;font-weight:500;
+  padding:10px 14px;border-radius:10px;cursor:pointer;
+  background:transparent;color:var(--mint);
+  border:1px solid #2c4434;
+  transition:all .18s ease;
+}
+.btn:hover{background:var(--mint);color:#0b120e;border-color:var(--mint)}
+.empty{
+  padding:48px;text-align:center;color:var(--text-3);font-size:15px;
+  border:1px dashed var(--border);border-radius:var(--radius);
+}
+
+/* ---------- Legend & footer ---------- */
+.legend{
+  display:flex;gap:20px;flex-wrap:wrap;
+  font-size:13px;color:var(--text-3);
+  padding:32px 0 48px;
+}
+.legend span{display:flex;align-items:center;gap:8px}
+footer.site{
+  border-top:1px solid var(--border-soft);
+  padding:24px 0;color:var(--text-3);font-size:13px;
+}
+
+@media (max-width:640px){
+  header.site .wrap{flex-wrap:wrap}
+  .search{order:3;max-width:none;flex-basis:100%}
+  .filters{top:105px}
+  .hero{padding-top:36px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" stroke="#9ff0c0" stroke-width="1.8"/>
+        <path d="M12 7v5l3.5 2" stroke="#9ff0c0" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      FinLit
+    </a>
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <input id="q" type="search" placeholder="Search for a screen, tool or topic…" aria-label="Search tools">
+    </label>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Tools &amp; <em>Research Hub</em></h1>
+    <p>A complete suite of screeners, research tools and calculators to discover, assess, value, manage and stay ahead in the markets — grouped by what you want to do.</p>
+  </section>
+
+  <div class="filters">
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+    <div class="tiers" id="tiers" aria-label="Plan tier"></div>
+  </div>
+
+  <div id="body"></div>
+
+  <div class="legend">
+    <span><span class="pill free">Free</span> available on the free plan</span>
+    <span><span class="pill silver">Silver</span> needs a Silver plan</span>
+    <span><span class="pill gold">Gold</span> needs a Gold plan</span>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">Tools are for information and education only — never investment advice.</div>
+</footer>
+
+<script>
+const SECTIONS=[
+ {id:"discover",name:"Discover",old:"Scout",color:"#9ff0c0",desc:"Find stocks, ETFs and mutual funds worth a closer look."},
+ {id:"company360",name:"Company 360",old:"X-Ray",color:"#8ec9ff",desc:"Open one company up from every side — charts, comparisons and ratings."},
+ {id:"quantlab",name:"Quant Lab",old:null,color:"#ffd479",desc:"Valuation models, forecasts and option data to test your own assumptions."},
+ {id:"track",name:"Track & manage",old:"Command Deck",color:"#c9a7ff",desc:"Watch what you follow, score what you hold, and get alerted."},
+ {id:"follow",name:"Follow the market",old:"Pulse",color:"#ff9d8a",desc:"Themes, news, calendars and the investor conversation behind today's moves."}
+];
+const TOOLS=[
+ {s:"discover",n:1,t:"Stock Radar",tag:"Stock screener",d:"Scan every listed stock in seconds.",tier:"free",f:["14 free filters to get you started","Silver: 160+ filters, health score, CSV export","Gold: FinLit model filters"],e:"Our health score and own model filters, built into the screener.",href:"#"},
+ {s:"discover",n:2,t:"Score Screener",w:"Score Hunter",tag:"Screen by financial-health score",d:"Hunt for stocks by financial-health score.",tier:"gold",f:["Filter by health score and its four parts","Short and long-term trend signals","Track score band and movement"],e:"Screen by health score and how that score is moving.",href:"#"},
+ {s:"discover",n:3,t:"ETF Explorer",w:"ETF Atlas",tag:"Explore ETFs",d:"Map the ETF universe by return and risk.",tier:"free",f:["Broad, sector and thematic ETFs","Returns, risk and tracking in one view","Compare across categories"],e:"Sector and theme ETFs ranked right beside broad index funds.",href:"#"},
+ {s:"discover",n:4,t:"Fund Finder",tag:"Explore mutual funds",d:"Shortlist mutual funds with confidence.",tier:"free",f:["Equity, debt and hybrid in one place","Size, expense ratio and SIP returns","Consistency checks across categories"],e:"Consistency analysis, not just trailing returns.",href:"#"},
+ {s:"discover",n:5,t:"Fund Health Check",w:"Fund Vitals",tag:"Score every mutual fund",d:"A health check for every mutual fund.",tier:"gold",f:["0–100 score from NAVs, costs, holdings","Performance, risk, cost and quality","Category leaderboards and CSV"],e:"Every score comes with its reasons, not just a number.",href:"#"},
+ {s:"company360",n:6,t:"Chart Studio",tag:"Price and fundamentals charts",d:"See price and fundamentals on one canvas.",tier:"free",f:["Line, bar and candlestick charts","Overlay price on financials and ratios","See how companies move together"],e:"Price and financials drawn on the same chart.",href:"#"},
+ {s:"company360",n:7,t:"Peer Compare",w:"Face-Off",tag:"Compare companies",d:"See how companies stack up against each other.",tier:"free",f:["Financials, charts and ratios side by side","Spider chart and valuation view","2 free, up to 4 on Gold"],e:"Spider chart shows each company's strengths at a glance.",href:"#"},
+ {s:"company360",n:8,t:"Company Health Score",w:"FinLit Prism",tag:"A company\u2019s health out of 100",d:"A company's health, scored out of 100.",tier:"gold",f:["Growth, valuation, quality and risk","Short and long-term trend readings","Data-completeness check; save as PDF"],e:"Shows how complete the data is behind every score.",href:"#"},
+ {s:"company360",n:9,t:"Company Financials",w:"Financial Vault",tag:"Every financial statement",d:"Every number behind a company, in one place.",tier:"gold",f:["Income, balance sheet and cash flow","Named shareholders and promoter pledge","Peers, dividends, corporate actions"],e:"Promoter pledge and named shareholders, not just totals.",href:"#"},
+ {s:"company360",n:10,t:"Deep-Dive Report",tag:"Premium report",d:"A shareable one-pager on any company.",tier:"gold",f:["Health score and what drives it","Key ratios, ownership and peers","Print it or save as a PDF"],e:"Health score and what drives it, on one printable page.",href:"#"},
+ {s:"quantlab",n:11,t:"Fair Value Calculator",w:"Fair Value Engine",tag:"Step-by-step DCF valuation",d:"Find what a share is worth, step by step.",tier:"gold",f:["Margin of safety, cash flow and debt","Sensitivity grids and reverse DCF","Checks that block impossible inputs"],e:"Reverse DCF: start from today's price, see the growth it implies.",href:"#"},
+ {s:"quantlab",n:12,t:"Forecast Builder",w:"Future Lens",tag:"Revenue and profit forecasts",d:"See where revenue and profit could head.",tier:"gold",f:["1, 3 or 5-year horizons","Solid line reported, dotted estimated","Set the weight of each input"],e:"Built from the company's own history and its sector's.",href:"#"},
+ {s:"quantlab",n:13,t:"Finance Calculators",w:"Scenario Sandbox",tag:"EPS, P/E and SIP calculators",d:"Change one assumption, watch the result.",tier:"free",f:["EPS, P/E and SIP calculators","Test growth and discount rates","Information only, never advice"],e:"Change one assumption and see per-share value move.",href:"#"},
+ {s:"quantlab",n:14,t:"Option Chain",w:"Strike Map",tag:"OI, volume and max pain at a glance",d:"Read an option chain at a glance.",tier:"gold",f:["OI, OI change, volume, implied volatility","Put-call ratio worked out for you","Max pain and busiest strikes"],e:"Max pain and put-call ratio worked out for you.",href:"#"},
+ {s:"track",n:15,t:"Watchlists",w:"Watchtower",tag:"Watchlists",d:"Keep every stock you follow in sight.",tier:"silver",f:["3 lists on Silver, up to 50 on Gold","Notes and price levels on each stock","Group by industry and size"],e:"Group by your own strategy and leave review notes.",href:"#"},
+ {s:"track",n:16,t:"Portfolio Check-Up",tag:"Portfolio health score",d:"Find out how healthy your holdings are.",tier:"silver",f:["Import from a file or by share name","Health score for each holding","Band mix and sector spread"],e:"Band mix and sector spread expose concentration fast.",href:"#"},
+ {s:"track",n:17,t:"Alerts",w:"Tripwire Alerts",tag:"Price and fundamental alerts",d:"Get pinged the moment a level is hit.",tier:"free",f:["Price, volume and technical alerts","3 free, 30 on Silver, 300 on Gold","P/E, ROE and health-score alerts on Silver"],e:"Alert on fundamentals like P/E and ROE, not just price.",href:"#"},
+ {s:"track",n:18,t:"Compare Funds",w:"Fund Duel",tag:"Compare any two mutual funds",d:"Settle which of two funds wins.",tier:"free",f:["1, 3, 5 and 10-year comparison","Costs against the category average","Gold: health score from past NAVs"],e:"Every cost shown against the category average.",href:"#"},
+ {s:"follow",n:19,t:"Theme Tracker",tag:"Market themes",d:"Spot the themes the market is backing.",tier:"gold",f:["Defence, EVs, clean energy, fintech","Sectors beating the market","Pick a theme, see its leaders"],e:"Themes picked on breadth and 3-month return, dated.",href:"#"},
+ {s:"follow",n:20,t:"Market Dashboard",w:"Market Compass",tag:"Weekly market dashboard",d:"Your weekly bearings on the market.",tier:"gold",f:["IPO and results calendars","Announcements and call transcripts","Index valuations and commodities"],e:"Call transcripts sit right beside the results calendar.",href:"#"},
+ {s:"follow",n:21,t:"Newsroom",tag:"Market news",d:"News and filings as they land.",tier:"free",f:["Company news and market updates","Filings, announcements and concalls","Filter by company or watchlist"],e:"Narrow the feed to your own watchlist.",href:"#"},
+ {s:"follow",n:22,t:"Investor Circle",tag:"Discussion",d:"Learn from other investors.",tier:"free",f:["Ask questions, share ideas","Community insight on listed companies","Moderated and informational"],e:"Moderated discussion tied to listed companies.",href:"#"}
+];
+const TIERS=[["all","All tiers",null],["free","Free","free"],["silver","Silver","silver"],["gold","Gold","gold"]];
+let sec="all",tier="all",q="";
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function card(t){return `<article class="card">
+ <div class="card-top"><span class="num">${String(t.n).padStart(2,"0")}</span><span class="pill ${t.tier}">${t.tier[0].toUpperCase()+t.tier.slice(1)}</span></div>
+ <h3>${t.t}</h3><div class="tagline">${t.tag}${t.w?` <span class="was">was “${t.w}”</span>`:""}</div>
+ <p class="desc">${t.d}</p>
+ <ul class="feat">${t.f.map(x=>`<li>${x}</li>`).join("")}</ul>
+ <div class="edge"><b>FinLit edge</b> — ${t.e}</div>
+ <a class="btn" href="${t.href}" aria-label="Open ${t.t}">Open ${t.t} →</a></article>`}
+function match(t){const h=(t.t+" "+(t.w||"")+" "+t.tag+" "+t.d+" "+t.f.join(" ")+" "+t.e).toLowerCase();
+ return (sec==="all"||t.s===sec)&&(tier==="all"||t.tier===tier)&&(!q||h.includes(q))}
+function renderTabs(){document.getElementById("tabs").innerHTML=
+ `<button class="tab ${sec==="all"?"active":""}" data-s="all">All tools <i>${TOOLS.length}</i></button>`+
+ SECTIONS.map(s=>`<button class="tab ${sec===s.id?"active":""}" data-s="${s.id}">${s.name} <i>${TOOLS.filter(t=>t.s===s.id).length}</i></button>`).join("")}
+function renderTiers(){document.getElementById("tiers").innerHTML=TIERS.map(([id,l,sw])=>`<button class="chip ${tier===id?"active":""}" data-t="${id}">${sw?`<span class="sw ${sw}"></span>`:""}${l}</button>`).join("")}
+function render(){
+ renderTabs();renderTiers();
+ const secs=SECTIONS.filter(s=>sec==="all"||s.id===sec);
+ let html="",any=false;
+ for(const s of secs){const list=TOOLS.filter(t=>t.s===s.id&&match(t));if(!list.length)continue;any=true;
+  html+=`<section class="section" id="${s.id}"><div class="sec-head"><h2><span class="dot" style="background:${s.color}"></span>${s.name}</h2>${s.old?`<span class="was">was “${s.old}”</span>`:""}<p>${s.desc}</p></div><div class="grid">${list.map(card).join("")}</div></section>`}
+ document.getElementById("body").innerHTML=any?html:`<div class="empty" style="margin-top:24px">No tools match your search. Try a different keyword.</div>`;
+ document.querySelectorAll("#tabs .tab").forEach(b=>b.onclick=()=>{sec=b.dataset.s;render()});
+ document.querySelectorAll("#tiers .chip").forEach(b=>b.onclick=()=>{tier=b.dataset.t;render()});
+}
+document.getElementById("q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
+render();
+</script>
+</body>
+</html>
