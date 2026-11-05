@@ -27,8 +27,8 @@
 .dv-scale-bar i { background: var(--dv-hue-soft); border-radius: 2px; }
 .dv-scale-bar i.on { background: var(--dv-hue); }
 .dv-scale-bar b { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--text-primary, #0B192C); transform: translateX(-1px); }
-.dv-scale-k { display: flex; gap: 2px; margin-top: 8px; font-size: 11px; line-height: 14px; color: var(--text-muted, #5B6779); }
-.dv-scale-k span { min-width: 0; padding-right: 4px; overflow-wrap: anywhere; }
+.dv-scale-k { display: flex; gap: 2px; font-size: 11px; margin-top: 8px; font-size: 11px; line-height: 14px; color: var(--text-muted, #5B6779); }
+.dv-scale-k span { min-width: 0; font-size: 11px; padding-right: 4px; overflow-wrap: break-word; hyphens: manual; }
 .dv-scale-k span.on { color: var(--text-primary, #0B192C); font-weight: 600; }
 .dv-parts { display: grid; gap: 16px; align-content: start; }
 .dv-part { border: 1px solid var(--dv-line); border-radius: 8px; padding: 16px; background: var(--bg-subtle, #ECEFF3); }
