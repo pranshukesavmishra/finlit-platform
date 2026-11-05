@@ -19,6 +19,7 @@ import asyncio
 import csv
 import io
 import logging
+import os
 import re
 import tempfile
 import unicodedata
@@ -238,9 +239,25 @@ def fiscal_year(d: date) -> str:
 
 # ------------------------------------------------------------------------------------------------------------- fetching
 
+WWW_AMFI = "https://www.amfiindia.com"
+
+
+def relay_for(url: str) -> Tuple[str, dict]:
+    """(url, headers) to use for an AMFI address. www.amfiindia.com does not answer from the AWS server's address; when AMFI_RELAY_URL is set (a free
+    Cloudflare Worker, deploy/amfi-relay/) the same request goes through it, with AMFI_RELAY_KEY as the shared secret. Only www.amfiindia.com addresses
+    are relayed (the scheme master on portal.amfiindia.com answers directly)."""
+    base = os.getenv("AMFI_RELAY_URL", "").strip().rstrip("/")
+    if not base or not url.startswith(WWW_AMFI):
+        return url, {}
+    key = os.getenv("AMFI_RELAY_KEY", "").strip()
+    return base + url[len(WWW_AMFI):], ({"X-Relay-Key": key} if key else {})
+
+
 async def _get(client: httpx.AsyncClient, url: str, **kw) -> httpx.Response:
+    url, headers = relay_for(url)
+
     async def go():
-        r = await client.get(url, **kw)
+        r = await client.get(url, headers=headers or None, **kw)
         r.raise_for_status()
         return r
     return await mf._retry(go)
@@ -262,7 +279,8 @@ async def fetch_ter(client: httpx.AsyncClient, today: date) -> Tuple[Optional[st
         return None, {}
     month = months[0]["MonthNumber"]             # AMFI lists the newest month first
     with tempfile.NamedTemporaryFile(suffix=".xlsx") as fh:
-        async with client.stream("GET", URL_TER, params={"MF_ID": "All", "Month": month, "strCat": "-1", "strType": "-1", "excel": "true"}) as r:
+        ter_url, ter_headers = relay_for(URL_TER)
+        async with client.stream("GET", ter_url, headers=ter_headers or None, params={"MF_ID": "All", "Month": month, "strCat": "-1", "strType": "-1", "excel": "true"}) as r:
             r.raise_for_status()
             async for chunk in r.aiter_bytes():
                 fh.write(chunk)
