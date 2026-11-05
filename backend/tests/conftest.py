@@ -63,3 +63,13 @@ def _mf_clock(monkeypatch):
     except Exception:
         return
     monkeypatch.setattr(mf, "india_today", lambda: date(2099, 1, 1))
+
+
+@pytest.fixture(autouse=True)
+def _no_instant_fill(monkeypatch):
+    """Adding a fund starts a background fill of its returns from the public mirror; no test may reach the network."""
+    try:
+        from finlit import mf_fill
+    except Exception:
+        return
+    monkeypatch.setattr(mf_fill, "BACKGROUND", False)

@@ -187,6 +187,12 @@ export function MfPortfolioPage() {
   const toggleAll = () => setOff((o) => { const n = new Set(o); for (const [c] of cats) { if (allOn) n.add(group + "|" + c); else n.delete(group + "|" + c); } return n; });
   const groups = useMemo(() => ["All funds", ...["Equity", "Hybrid", "Debt", "Solution oriented", "Others"].filter((g) => all.some((h) => typeOf(h.category) === g))], [all]);
   const noReturns = all.filter((h) => h.returns.r1y == null && h.returns.r3y == null && h.returns.r5y == null).length;
+  const [polls, setPolls] = useState(0);
+  useEffect(() => {   // returns of a just-added fund are filled in within seconds: look again a few times so the numbers appear without a reload
+    if (noReturns === 0 || polls >= 6) return;
+    const t = setTimeout(() => { setPolls((n) => n + 1); q.refetch(); }, 20000);
+    return () => clearTimeout(t);
+  }, [noReturns, polls, q]);
   const limit = d?.limit ?? limitsFor(plan).mf_holdings;
   const sort = (k: SortKey) => { if (k === key) setDir(dir === "asc" ? "desc" : "asc"); else { setKey(k); setDir(k === "name" ? "asc" : "desc"); } };
   const th = (k: SortKey, label: string, cls = "") => <th key={k} scope="col" className={cls} aria-sort={k === key ? (dir === "asc" ? "ascending" : "descending") : "none"}><button className="mp-sortb" onClick={() => sort(k)}>{label}{k === key ? (dir === "asc" ? " ▲" : " ▼") : ""}</button></th>;
@@ -227,7 +233,7 @@ export function MfPortfolioPage() {
           {locked && <section className="card mp-teaser"><Icon name="lock" /><div><b>Each fund's Health Score is part of Gold</b><p className="muted">Gold shows a score from 0 to 100 for every fund you hold, with its four parts: Performance, Risk, Cost and Quality. {MF_SCORE_LINE}</p></div><button className="btn" onClick={unlock}>Unlock with Gold</button></section>}
           <section className="card pf-tabs-card">
             <div className="card-h"><h3>Your funds</h3><span className="s">{d.count} of {limit}</span><button className="btn" onClick={() => saveFile(csvFileName(), toCsv(rows, locked), "text/csv;charset=utf-8")}>Export CSV</button></div>
-            {noReturns > 0 && <p className="faint mp-note" role="status">1Y, 3Y and 5Y returns are still loading for {noReturns} of your funds: price history is downloaded one fund house at a time, every night. Nothing is wrong with the fund; the figures appear as its fund house finishes.</p>}
+            {noReturns > 0 && <p className="faint mp-note" role="status">1Y, 3Y and 5Y returns are being worked out now for {noReturns} of your funds (from the fund's published NAV history). They appear here by themselves within a minute or two. A fund younger than a year has no 1Y return, and one younger than 3 or 5 years has no 3Y or 5Y return.</p>}
             {!locked && <p className="faint mp-note">Score parts: Perf = Performance, Risk, Cost, Qual = Quality. Green 70 or more, orange 50 to 69, red under 50.</p>}
             <div className="mp-tablewrap"><table className="mp-t">
               <thead><tr>{th("name", "Fund", "l")}{th("score", "Health Score")}{COLS.map((c) => th(c.k, c.label))}<th scope="col"><span className="sr-only">Actions</span></th></tr></thead>

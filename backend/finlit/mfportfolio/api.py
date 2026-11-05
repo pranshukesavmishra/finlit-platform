@@ -29,6 +29,7 @@ from .. import mf
 from ..auth.entitlements import LIMITS, has
 from ..auth.routes import Ctx, fail, limit, secure_ctx
 from ..mfscore.api import NOT_SCORED
+from .. import mf_fill
 from . import DISCLAIMER, SCORE_DISCLAIMER
 from .calc import NO_RETURNS, allocation, concentration, num, summarize, value_holding
 from .match import Index, match_row
@@ -237,6 +238,7 @@ async def add_holding(request: Request, body: AddIn, ctx: Ctx = Depends(member_c
             if not follow:
                 await conn.execute("INSERT INTO mf_holding_lots (holding_id, units, invested, bought_on) VALUES ($1, $2, $3, $4)", hid, units, invested, bought)
             await conn.execute("UPDATE mf_holdings SET updated_at = now() WHERE id = $1", hid)
+    mf_fill.fill_in_background(request.app.state.store, [body.code])    # a fund with no returns yet gets them now, not at the next nightly run
     return reply({"status": "saved", "id": str(hid), "merged": merged}, 201)
 
 
@@ -401,4 +403,5 @@ async def import_commit(request: Request, body: CommitIn, ctx: Ctx = Depends(mem
                     await conn.execute("UPDATE mf_holdings SET updated_at = now() WHERE id = $1", hid)
                     replaced += 1
                 await conn.executemany("INSERT INTO mf_holding_lots (holding_id, units, invested, bought_on) VALUES ($1, $2, $3, $4)", [(hid, u, i, d) for u, i, d in lots])
+    mf_fill.fill_in_background(request.app.state.store, sorted({k[0] for k in groups}))
     return reply({"status": "saved", "added": added, "replaced": replaced, "skipped": skipped, "duplicates": dupes}, 201)

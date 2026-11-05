@@ -104,6 +104,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | presets (`refresh-presets`) | bulk | 42 | 30 h | NIGHT, MORNING; after prism (docs/PRESETS.md) |
 | earnings-calls (`refresh-earnings-calls`, needs `GEMINI_API_KEY`) | bulk | 44 | 48 h | NIGHT, MORNING; bounded per run, resumable (docs/EARNINGS-CALLS.md) |
 | leadership | bulk | 45 | 8 d | Saturday NIGHT |
+| **mf-returns** (`fill-mf-returns`) | light | 27 | 30 h | every 30 min, NIGHT, MORNING; after `mf`; fills the 1/3/5 year returns of every fund that has none from the public mirror of AMFI's data (held funds first, newest NAV checked against AMFI's); also run at once when a fund is added (`finlit/mf_fill.py`) |
 | portfolios, score-mf, backfill-mf (funds, `FUND_LOADS_ENABLED=1`) | bulk | 50, 55, 60 | 26 h, 26 h, 8 d | NIGHT, MORNING; score-mf after portfolios |
 | mf-screen (funds, `FUND_LOADS_ENABLED=1`; `refresh-mf-screen`, docs/MF-FILTERS.md) | bulk | 57 | 30 h | NIGHT, MORNING; after facts, industry and portfolios; database only |
 | backfill-history | bulk | 65 | 8 d | NIGHT, MORNING |

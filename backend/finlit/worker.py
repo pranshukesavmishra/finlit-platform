@@ -916,6 +916,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_sec.add_argument("--import", dest="import_dir", default=None, metavar="FOLDER", help="do not build: check and swap in a batch output folder built elsewhere (python -m finlit_technicals batch --out ...) and uploaded to the server")
     p_ap = sub.add_parser("audit-prism", help="why are companies NOT RATED or PROVISIONAL? Buckets by reason (classification label, low confidence, thin history), one database query, no provider calls; stores the summary in mf_meta ('prism-audit:last')")
     p_ap.add_argument("--statement", default="consolidated", choices=("consolidated", "standalone"))
+    p_fr = sub.add_parser("fill-mf-returns", help="fill the 1, 3 and 5 year returns of every fund that has none, from the public mirror of AMFI's data (held funds first; each fund's newest NAV is checked against AMFI's)")
+    p_fr.add_argument("--limit", type=int, default=400, help="funds per run")
+    p_fr.add_argument("--max-minutes", type=float, default=10.0)
     p_bh = sub.add_parser("backfill-history", help="nightly: weekly closes back to 2004 from the provider's daily quotes, for the Leader / Laggard reliability backtest (resumable, biggest companies first)")
     p_bh.add_argument("--limit", type=int, default=300, help="companies per run")
     p_bh.add_argument("--max-minutes", type=float, default=60.0)
@@ -1402,6 +1405,16 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
                 from .screener.listing import refresh_listing
                 async with DhanClient(settings, store.redis) as dc:
                     print(await refresh_listing(client, store, force=args.force, dhan_client=dc))
+            elif args.cmd == "fill-mf-returns":
+                from . import mf_fill
+                from .mf import record_run as mf_record
+                client = mf_fill.make_client()
+                try:
+                    res = await mf_fill.fill(store, client, limit=args.limit, max_seconds=args.max_minutes * 60)
+                finally:
+                    await client.aclose()
+                await mf_record(store, args.cmd, {"status": "ok", **res})
+                print(res)
             elif args.cmd == "backfill-history":
                 from .history import backfill as backfill_history
                 print(await backfill_history(client, store, limit=args.limit, max_minutes=args.max_minutes, results_first=args.results_first))
