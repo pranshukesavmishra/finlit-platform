@@ -7,6 +7,7 @@ import { Plain } from "../components/Plain";
 import { MINUS, cr, nf, num } from "../lib/format";
 import type { Events, Financials, Ratios, Segments, Table } from "../lib/api";
 import { SectionHead } from "./Sections";
+import { badgeOf, insightLine, lastIndex, shortPeriod, yoyChange, type Tone } from "../lib/trendInsight";
 
 const crf = (v: number) => (v < 0 ? MINUS : "") + (Math.abs(v) >= 1000 ? cr(Math.abs(v)) : nf(v, Math.abs(v) < 10 && v !== 0 ? 1 : 0));
 const pctf = (v: number) => num(v, 1) + "%";
@@ -88,7 +89,12 @@ export function QuarterSection({ f }: { f?: Financials }) {
 }
 
 /* ============== Trends grid ============== */
-type Card = { id: string; title: string; hint?: string; annualOnly?: boolean; build: (m: "q" | "a") => { labels: string[]; series: BarSeries[]; mode?: "single" | "group" | "stack"; fmt: (v: number) => string } | null };
+/** unit: crore amounts (default), rupees per share, or per cent. kind: how the one-line reading is worded. */
+type Card = { id: string; title: string; hint?: string; annualOnly?: boolean; unit?: "cr" | "rs" | "pct"; kind?: "flow" | "ratio" | "pair" | "mix"; since?: boolean; iname?: string; build: (m: "q" | "a") => { labels: string[]; series: BarSeries[]; mode?: "single" | "group" | "stack"; fmt: (v: number) => string } | null };
+
+/** Amount with its unit, the way the big value and the sentences print it: ₹3.33 L Cr, ₹56,616 Cr, ₹20.0, 12.3%. */
+export const trendMoney = (unit: "cr" | "rs" | "pct" = "cr") => (v: number) => (unit === "rs" ? eps(v) : unit === "pct" ? (v < 0 ? MINUS : "") + nf(v, 1) + "%" : (v < 0 ? MINUS : "") + "₹" + cr(Math.abs(v)) + " Cr");
+const ARROW: Record<Tone, string> = { up: "↑", down: "↓", flat: "→", none: "" };
 
 const MODE_KEY = "finlit.trends.mode";
 const readMode = (): "q" | "a" => { try { return sessionStorage.getItem(MODE_KEY) === "a" ? "a" : "q"; } catch { return "q"; } };
@@ -116,32 +122,32 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
   if (!f) return null;
   const A = f.yearly, Q = f.quarterly.pl;
   const tbl = (m: "q" | "a") => (m === "q" ? Q : A.pl);
-  const mk = (title: string, key: string, color: string, fmt = crf): Card => ({ id: key, title, build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key, label: title, values: row(t, key), color }], fmt }; } });
-  const annual = (id: string, title: string, hint: string, build: Card["build"]): Card => ({ id, title, hint, annualOnly: true, build });
-  const segColors = [G, INK, STONE, DEEP, "var(--c3)"];
+  const mk = (title: string, key: string, color: string, fmt = crf, x: Partial<Card> = {}): Card => ({ id: key, title, ...x, build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key, label: title, values: row(t, key), color }], fmt }; } });
+  const annual = (id: string, title: string, hint: string, build: Card["build"], x: Partial<Card> = {}): Card => ({ id, title, hint, annualOnly: true, ...x, build });
+  const segColors = [G, INK, STONE, DEEP, "var(--k4)", "var(--k5)", "var(--k6)", "var(--k8)"];
   const cards: Record<typeof tab, Card[]> = {
     key: [
-      mk("Revenue", "revenue", G),
-      annual("seg", "Revenue by segment", "Annual", () => seg && seg.periods.length ? { labels: seg.periods, mode: "stack" as const, fmt: crf, series: Object.entries(seg.segments).sort((a, b) => ((b[1].revenue.slice(-1)[0] as number) || 0) - ((a[1].revenue.slice(-1)[0] as number) || 0)).map(([k, v], i) => ({ key: k, label: k, values: v.revenue, color: segColors[i % segColors.length] })) } : null),
-      mk("Operating profit", "operating_profit", DEEP),
-      annual("fcf", "Free cash flow", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "fcf", label: "Free cash flow", values: row(A.cf, "free_cash_flow"), color: INK }], fmt: crf })),
-      mk("Net profit", "net_profit", INK),
-      mk("Earnings per share", "eps", STONE, eps),
-      annual("cashdebt", "Cash and borrowings", "Annual", () => ({ labels: A.bs.periods, mode: "group" as const, fmt: crf, series: [{ key: "cash", label: "Cash", values: row(A.bs, "cash"), color: G }, { key: "debt", label: "Borrowings", values: row(A.bs, "borrowings"), color: INK }] })),
-      annual("cfo", "Cash from operations", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "cfo", label: "Cash from operations", values: row(A.cf, "operating"), color: DEEP }], fmt: crf })),
+      mk("Revenue", "revenue", G, crf, { iname: "Revenue" }),
+      annual("seg", "Revenue by segment", "Annual", () => seg && seg.periods.length ? { labels: seg.periods, mode: "stack" as const, fmt: crf, series: Object.entries(seg.segments).sort((a, b) => ((b[1].revenue.slice(-1)[0] as number) || 0) - ((a[1].revenue.slice(-1)[0] as number) || 0)).map(([k, v], i) => ({ key: k, label: k, values: v.revenue, color: segColors[i % segColors.length] })) } : null, { kind: "mix", iname: "Segments" }),
+      mk("Operating profit", "operating_profit", DEEP, crf, { iname: "Operating profit" }),
+      annual("fcf", "Free cash flow", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "fcf", label: "Free cash flow", values: row(A.cf, "free_cash_flow"), color: INK }], fmt: crf }), { iname: "Free cash flow" }),
+      mk("Net profit", "net_profit", INK, crf, { iname: "Net profit" }),
+      mk("Earnings per share", "eps", STONE, eps, { unit: "rs", iname: "EPS" }),
+      annual("cashdebt", "Cash and borrowings", "Annual", () => ({ labels: A.bs.periods, mode: "group" as const, fmt: crf, series: [{ key: "cash", label: "Cash", values: row(A.bs, "cash"), color: G }, { key: "debt", label: "Borrowings", values: row(A.bs, "borrowings"), color: INK }] }), { kind: "pair" }),
+      annual("cfo", "Cash from operations", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "cfo", label: "Cash from operations", values: row(A.cf, "operating"), color: DEEP }], fmt: crf }), { iname: "Operating cash flow", since: true }),
     ],
     margin: [
-      { id: "opm", title: "Operating margin", build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key: "opm", label: "Operating margin", values: ratio(row(t, "operating_profit"), row(t, "revenue")), color: G }], fmt: pctf }; } },
-      { id: "npm", title: "Net margin", build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key: "npm", label: "Net margin", values: ratio(row(t, "net_profit"), row(t, "revenue")), color: INK }], fmt: pctf }; } },
-      annual("capex", "Capital spending", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "capex", label: "Capital spending", values: row(A.cf, "capex").map((x) => (x == null ? null : Math.abs(x))), color: DEEP }], fmt: crf })),
-      annual("roe", "Return on equity and capital", "Annual", () => r && r.history.rows.roe ? { labels: r.history.periods, mode: "group" as const, fmt: pctf, series: [{ key: "roe", label: "ROE (reported)", values: r.history.rows.roe, color: G }, { key: "roce", label: "ROCE", values: r.history.rows.roce || [], color: INK }] } : null),
-      annual("int", "Interest and depreciation", "Annual", () => ({ labels: A.pl.periods, mode: "group" as const, fmt: crf, series: [{ key: "i", label: "Interest", values: row(A.pl, "finance_costs"), color: INK }, { key: "d", label: "Depreciation", values: row(A.pl, "depreciation"), color: STONE }] })),
-      annual("tax", "Tax paid on profit", "Annual", () => ({ labels: A.pl.periods, series: [{ key: "t", label: "Tax", values: row(A.pl, "tax"), color: STONE }], fmt: crf })),
+      { id: "opm", title: "Operating margin", unit: "pct", kind: "ratio", iname: "Operating margin", build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key: "opm", label: "Operating margin", values: ratio(row(t, "operating_profit"), row(t, "revenue")), color: G }], fmt: pctf }; } },
+      { id: "npm", title: "Net margin", unit: "pct", kind: "ratio", iname: "Net margin", build: (m) => { const t = tbl(m); return { labels: t.periods, series: [{ key: "npm", label: "Net margin", values: ratio(row(t, "net_profit"), row(t, "revenue")), color: INK }], fmt: pctf }; } },
+      annual("capex", "Capital spending", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "capex", label: "Capital spending", values: row(A.cf, "capex").map((x) => (x == null ? null : Math.abs(x))), color: DEEP }], fmt: crf }), { iname: "Capital spending" }),
+      annual("roe", "Return on equity and capital", "Annual", () => r && r.history.rows.roe ? { labels: r.history.periods, mode: "group" as const, fmt: pctf, series: [{ key: "roe", label: "ROE (reported)", values: r.history.rows.roe, color: G }, { key: "roce", label: "ROCE", values: r.history.rows.roce || [], color: INK }] } : null, { kind: "pair", unit: "pct" }),
+      annual("int", "Interest and depreciation", "Annual", () => ({ labels: A.pl.periods, mode: "group" as const, fmt: crf, series: [{ key: "i", label: "Interest", values: row(A.pl, "finance_costs"), color: INK }, { key: "d", label: "Depreciation", values: row(A.pl, "depreciation"), color: STONE }] }), { kind: "pair" }),
+      annual("tax", "Tax paid on profit", "Annual", () => ({ labels: A.pl.periods, series: [{ key: "t", label: "Tax", values: row(A.pl, "tax"), color: STONE }], fmt: crf }), { iname: "Tax" }),
     ],
     div: [
-      annual("dps", "Dividend per share", "Annual", () => e && e.dividendsByFY.periods.length ? { labels: e.dividendsByFY.periods, series: [{ key: "dps", label: "Dividend per share", values: e.dividendsByFY.dps, color: G }], fmt: eps } : null),
-      annual("paid", "Dividends paid out", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "p", label: "Dividends paid", values: row(A.cf, "dividends_paid").map((x) => (x == null ? null : Math.abs(x))), color: DEEP }], fmt: crf })),
-      annual("payout", "Share of profit paid out", "Annual", () => r && r.history.rows.dividend_payout ? { labels: r.history.periods, series: [{ key: "po", label: "Payout ratio", values: r.history.rows.dividend_payout, color: INK }], fmt: pctf } : null),
+      annual("dps", "Dividend per share", "Annual", () => e && e.dividendsByFY.periods.length ? { labels: e.dividendsByFY.periods, series: [{ key: "dps", label: "Dividend per share", values: e.dividendsByFY.dps, color: G }], fmt: eps } : null, { unit: "rs", iname: "Dividend per share" }),
+      annual("paid", "Dividends paid out", "Annual", () => ({ labels: A.cf.periods, series: [{ key: "p", label: "Dividends paid", values: row(A.cf, "dividends_paid").map((x) => (x == null ? null : Math.abs(x))), color: DEEP }], fmt: crf }), { iname: "Dividends paid" }),
+      annual("payout", "Share of profit paid out", "Annual", () => r && r.history.rows.dividend_payout ? { labels: r.history.periods, series: [{ key: "po", label: "Payout ratio", values: r.history.rows.dividend_payout, color: INK }], fmt: pctf } : null, { unit: "pct", kind: "ratio", iname: "Payout ratio" }),
     ],
   };
   const list = cards[tab];
@@ -159,13 +165,25 @@ export function TrendsSection({ f, seg, e, r }: { f?: Financials; seg?: Segments
       <p className="sr-only" role="status" aria-live="polite">{`Showing ${mode === "q" ? "quarterly" : "annual"} figures, ${shownCount} of ${list.length} charts in ${tabName}.`}</p>
       <div className="tr-grid" role="tabpanel" id="trpanel" aria-labelledby={"trtab-" + tab}>{built.map(({ c, d }) => {
         if (!d) return null;
-        const open = big === c.id;
+        const open = big === c.id, unit = c.unit ?? "cr", money = trendMoney(unit), single = d.series.length === 1;
+        const kind = c.kind ?? (single ? "flow" : "pair");
+        const v0 = d.series[0].values, li = single ? lastIndex(v0) : -1;
+        const hi = single ? (li < 0 ? d.labels.length - 1 : li) : d.labels.length - 1;
+        const ch = single ? yoyChange(v0, mode, kind === "ratio") : null, bd = ch ? badgeOf(ch) : null;
+        const line = insightLine({ kind, name: c.iname ?? c.title, labels: d.labels, mode, series: d.series.map((x) => ({ label: x.label, values: x.values })), money, since: c.since });
+        const latest = (x: BarSeries) => { const i = lastIndex(x.values); return i < 0 ? null : money(x.values[i] as number); };
+        const summary = `${c.title} by period. ` + (single && li >= 0 ? `Latest, ${shortPeriod(d.labels[li])}: ${money(v0[li] as number)}. ` : "") + line.text;
         return (
           <div className={"card tr-c" + (open ? " big" : "")} key={c.id}>
             <div className="tr-h"><h3>{c.title} <ChartHelp id={"trend-" + c.id} /></h3>{c.annualOnly && mode === "q" && <span className="chip ghost">Annual</span>}
-              <button className="tr-x" aria-label={open ? `Shrink ${c.title}` : `Expand ${c.title}`} aria-expanded={open} title={open ? "Shrink chart (Esc)" : "Expand chart"} onClick={() => setBig(open ? null : c.id)}><Icon name="arrow" /></button></div>
-            <MiniBars labels={d.labels} series={d.series} mode={d.mode} fmt={d.fmt} height={open ? 240 : 150} w={open ? 900 : 300} highlight={d.labels.length - 1} />
-            {d.series.length > 1 && <div className="tr-key">{d.series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}</span>)}</div>}
+              <button type="button" className="tr-x" aria-label={open ? `Shrink ${c.title}` : `Expand ${c.title}`} aria-expanded={open} title={open ? "Shrink chart (Esc)" : "Expand chart"} onClick={() => setBig(open ? null : c.id)}><Icon name="arrow" /></button></div>
+            {single && (li >= 0 ? <>
+              <div className="tr-v">{money(v0[li] as number)}</div>
+              <div className="tr-b">{bd && <span className={"tr-bd " + bd.tone} title={bd.title}>{ARROW[bd.tone] && <span aria-hidden="true">{ARROW[bd.tone]} </span>}{bd.text}</span>}<span className="tr-per">{shortPeriod(d.labels[li])}</span></div></>
+              : <div className="tr-v none">—</div>)}
+            <MiniBars labels={d.labels} series={d.series} mode={d.mode} fmt={d.fmt} height={open ? 280 : 170} w={open ? 900 : 300} highlight={hi} fit tag={single} summary={summary} />
+            {d.series.length > 1 && <div className={"tr-key" + (d.series.length > 3 ? " two" : "")}>{d.series.map((s) => <span key={s.key}><i style={{ background: s.color }} />{s.label}{d.mode === "group" && latest(s) ? <b>{latest(s)}</b> : null}</span>)}</div>}
+            <p className={"tr-in " + line.tone}><Icon name={line.tone === "down" ? "decline" : line.tone === "up" ? "growth" : "line"} />{line.text}</p>
           </div>);
       })}</div>
       {shownCount === 0 && <p className="faint" style={{ fontSize: 13, margin: "10px 2px" }}>– No {tabName.toLowerCase()} figures are available for this company in the {mode === "q" ? "quarterly" : "annual"} view.</p>}

@@ -20,3 +20,13 @@ export function priceFrom(d: PriceRange, year?: number): PriceRange {
   const s = d.series;
   return { ...d, series: { t: s.t.slice(at), o: cut(s.o), h: cut(s.h), l: cut(s.l), c: s.c.slice(at), v: cut(s.v) as never, ema50: cut(s.ema50) as never, ema200: cut(s.ema200) as never } };
 }
+
+/** Round, ascending axis values that cover [lo, hi] in about `count` steps (1, 2, 2.5, 5 x 10^n), zero included when the range spans it. */
+export function niceTicks(lo: number, hi: number, count = 4): number[] {
+  if (!(hi > lo)) return [Math.min(lo, 0), Math.max(hi, 1)];
+  const raw = (hi - lo) / count, mag = 10 ** Math.floor(Math.log10(raw)), r = raw / mag;
+  const step = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * mag;
+  const out: number[] = [];
+  for (let t = Math.floor(lo / step) * step; t <= Math.ceil(hi / step) * step + step / 1e6; t += step) out.push(+t.toFixed(10) || 0);
+  return out;
+}
