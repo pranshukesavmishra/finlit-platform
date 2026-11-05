@@ -286,7 +286,6 @@ export function QueryBuilder() {
             <div className="qb-bar-b">
               <button className={"btn" + (helper ? " on" : "")} aria-expanded={helper} aria-controls="qb-helper" onClick={() => setHelper(!helper)}>Add a condition</button>
               <button className="btn" onClick={() => openAll()}><Icon name="table" />Show all ratios</button>
-              <button className={"btn" + (rulesOpen ? " on" : "")} aria-expanded={rulesOpen} aria-controls="qb-rules" onClick={toggleRules}><Icon name="book" />Rules</button>
             </div>
           </div>
 
