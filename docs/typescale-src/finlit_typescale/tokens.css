@@ -1,0 +1,34 @@
+/* FinLit type scale. Load before the app's own CSS. Sizes in px, line heights to match. */
+:root {
+  --fs-11: 11px;  --lh-11: 16px;   /* eyebrows (uppercase, 0.08em tracking), chart axis ticks, legend keys. Labels only */
+  --fs-12: 12px;  --lh-12: 16px;   /* captions, timestamps, table headers, chips, footnotes */
+  --fs-13: 13px;  --lh-13: 18px;   /* secondary text, labels, dense table cells */
+  --fs-14: 14px;  --lh-14: 20px;   /* default: card and table text, menus, buttons */
+  --fs-16: 16px;  --lh-16: 24px;   /* reading text, key values, every form input */
+  --fs-18: 18px;  --lh-18: 24px;   /* card titles (Source Serif 4, 600) */
+  --fs-20: 20px;  --lh-20: 28px;   /* section titles (Source Serif 4, 600) */
+  --fs-24: 24px;  --lh-24: 32px;   /* big numbers: KPIs, index levels */
+  --fs-28: 28px;  --lh-28: 36px;   /* page title on phones, report section titles */
+  --fs-32: 32px;  --lh-32: 40px;   /* page title on desktop */
+  --fs-40: 40px;  --lh-40: 48px;   /* hero numbers (score dial) */
+
+  /* names by role, for new code */
+  --fs-label: var(--fs-11);
+  --fs-caption: var(--fs-12);
+  --fs-small: var(--fs-13);
+  --fs-body: var(--fs-14);
+  --fs-reading: var(--fs-16);
+  --fs-card-title: var(--fs-18);
+  --fs-section-title: var(--fs-20);
+  --fs-kpi: var(--fs-24);
+  --fs-page-title: var(--fs-32);
+}
+
+@media (max-width: 760px) {
+  :root { --fs-page-title: var(--fs-28); }
+}
+
+/* site-wide basics that go with the scale */
+body { font-size: var(--fs-body); line-height: var(--lh-14); }
+input, select, textarea { font-size: var(--fs-16); }          /* below 16px, phones zoom in on focus */
+table, .num, [data-num] { font-variant-numeric: tabular-nums; }

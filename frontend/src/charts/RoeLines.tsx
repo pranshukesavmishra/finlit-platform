@@ -40,7 +40,7 @@ export function RoeLines({ labels, series, fmt, flags, notes, height = 230, aria
   return (
     <div className="mb dp-chart" ref={wrap} onMouseLeave={() => setHv(null)}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={ariaLabel}>
-        {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="10" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(t)}</text></g>)}
+        {ticks.map((t) => <g key={t}><line x1={pl} x2={W - pr} y1={Y(t)} y2={Y(t)} stroke="var(--border)" strokeWidth={t === 0 ? 1.4 : 1} /><text x={pl - 6} y={Y(t) + 3.5} textAnchor="end" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{fmt(t)}</text></g>)}
         {hv != null && <rect x={X(hv) - (W - pl - pr) / n / 2} y={pt} width={(W - pl - pr) / n} height={H - pt - pb} fill="var(--row-hover)" />}
         {series.map((s) => (
           <g key={s.key}>
@@ -51,7 +51,7 @@ export function RoeLines({ labels, series, fmt, flags, notes, height = 230, aria
           </g>
         ))}
         {labels.map((_, i) => notes?.[i] && series.every((s) => s.values[i] == null) ? <text key={"n" + i} x={X(i)} y={Y(Math.max(0, bot)) - 6} textAnchor="middle" fontSize="12" fill="var(--faint)">–</text> : null)}
-        {labels.map((l, i) => ((n - 1 - i) % every === 0) && <text key={"l" + i} x={X(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="var(--faint)">{l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3")}</text>)}
+        {labels.map((l, i) => ((n - 1 - i) % every === 0) && <text key={"l" + i} x={X(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="var(--faint)">{l.replace(/^(\w{3}) (\d{2})(\d{2})$/, "$1 '$3")}</text>)}
         {labels.map((l, i) => (
           <rect key={"h" + i} x={X(i) - (W - pl - pr) / n / 2} y={pt} width={(W - pl - pr) / n} height={H - pt - pb} fill="transparent" tabIndex={0} onMouseEnter={() => setHv(i)} onFocus={() => setHv(i)} onBlur={() => setHv(null)} style={{ outline: "none" }}
             aria-label={`${l}: ${series.map((s) => `${s.label} ${s.values[i] == null ? "not available" : fmt(s.values[i] as number)}`).join(", ")}${flags?.[i] ? ", low-quality earnings year" : ""}${notes?.[i] ? `. ${notes[i]}` : ""}`} />

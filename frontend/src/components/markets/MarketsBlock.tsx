@@ -128,9 +128,9 @@ function HeatMap({ cells, height, empty, minLabel = 64, logos = true }: { cells:
         const common = { className: "mk-tile2 " + tone(c.move), style: { left: x, top: y, width: w, height: h, background: moveColour(c.move) } as React.CSSProperties, "aria-label": `${c.name}: ${sgn(c.move)}`,
           onPointerEnter: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e), onPointerMove: (e: React.PointerEvent<HTMLElement>) => show(c, e.currentTarget, e),
           onFocus: (e: React.FocusEvent<HTMLElement>) => show(c, e.currentTarget), onBlur: () => setTip(null) };
-        const inner = mode === "full" ? <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}<b style={{ fontSize: labelFont(c.label, w, 13.5) }}>{c.label}</b><em>{sgn(c.move)}</em></span>
-          : mode === "medium" ? <span className="mk-t-in mk-t-s"><b style={{ fontSize: labelFont(c.label, w, 11.5) }}>{c.label}</b><em>{sgn(c.move)}</em></span>
-          : mode === "mini" ? <span className="mk-t-in mk-t-s"><b style={{ fontSize: labelFont(c.label, w, 10.5) }}>{c.label}</b></span> : null;
+        const inner = mode === "full" ? <span className="mk-t-in">{logoOk && <Logo src={c.logo} name={c.name} kind="stock" size={Math.min(40, Math.round(Math.min(w, h) / 3))} />}{labelFont(c.label, w, 14) > 0 && <b style={{ fontSize: labelFont(c.label, w, 14) }}>{c.label}</b>}<em>{sgn(c.move)}</em></span>
+          : mode === "medium" ? <span className="mk-t-in mk-t-s">{labelFont(c.label, w, 12) > 0 && <b style={{ fontSize: labelFont(c.label, w, 12) }}>{c.label}</b>}<em>{sgn(c.move)}</em></span>
+          : mode === "mini" ? <span className="mk-t-in mk-t-s">{labelFont(c.label, w, 11) > 0 && <b style={{ fontSize: labelFont(c.label, w, 11) }}>{c.label}</b>}</span> : null;
         return c.href ? <Link key={c.key} to={c.href} role="listitem" {...common}>{inner}</Link> : <div key={c.key} role="listitem" tabIndex={0} {...common}>{inner}</div>;
       })}
       {tip && <div className="mk-htip" role="status" style={{ left: Math.max(8, Math.min(W - 188, tip.x + 14)), top: Math.max(4, Math.min(height - 70, tip.y + 14)) }}>

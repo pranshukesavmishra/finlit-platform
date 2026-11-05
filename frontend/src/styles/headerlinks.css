@@ -2,9 +2,9 @@
    (a Dashboard button when signed in, a Sign in button when not), so nobody has to open the menu to find it. */
 .mob-only { display: none; }
 .mnav .mg-first { padding-bottom: 6px; }
-.mnav .mdash { display: block; font-weight: 700; font-size: 17px; padding: 12px 14px; border-radius: 12px; background: var(--s2); border: 1px solid var(--border); color: var(--text); text-align: center; }
+.mnav .mdash { display: block; font-weight: 700; font-size: var(--fs-16); padding: 12px 14px; border-radius: 12px; background: var(--s2); border: 1px solid var(--border); color: var(--text); text-align: center; }
 @media (max-width: 760px) {
-  .mob-only.mob-cta { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; min-height: 38px; font-size: 13.5px; white-space: nowrap; }
+  .mob-only.mob-cta { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; min-height: 38px; font-size: var(--fs-14); white-space: nowrap; }
 }
 @media (max-width: 380px) {
   .mob-only.mob-cta { padding: 7px 11px; font-size: 13px; }

@@ -11,13 +11,13 @@
 .ph-plan svg { width: 13px; height: 13px; flex: none; }
 .ph-plan.gold { background: var(--gold-soft); border-color: color-mix(in srgb, var(--gold) 55%, transparent); color: var(--gold); }
 .ph-eyebrow { font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.ph-title { margin: 0; font: 500 clamp(26px, 3.1vw, 36px)/1.12 var(--serif); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
-.ph-desc { margin: 0; max-width: 64ch; color: var(--muted); font-size: 15.5px; line-height: 1.55; }
+.ph-title { margin: 0; font: 500 var(--fs-page-title)/1.12 var(--serif); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
+.ph-desc { margin: 0; max-width: 64ch; color: var(--muted); font-size: var(--fs-16); line-height: 1.55; }
 .ph-desc b, .ph-desc strong { color: var(--text); font-weight: 650; }
 .ph-desc a { color: var(--gold); text-underline-offset: 3px; }
 .ph-meta { margin: 0; color: var(--faint); font-size: 13px; }
 .ph-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 4px; }
-.ph-lk, .ph-learn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 13.5px var(--sans); text-decoration: none; cursor: pointer; transition: border-color .15s, background .15s; }
+.ph-lk, .ph-learn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--s1); color: var(--text); font: 600 14px var(--sans); text-decoration: none; cursor: pointer; transition: border-color .15s, background .15s; }
 .ph-lk:hover, .ph-learn:hover { border-color: var(--gold); background: var(--s2); }
 .ph-lk svg, .ph-learn svg { width: 15px; height: 15px; flex: none; }
 .ph-lk.primary { background: var(--gold); border-color: var(--gold); color: var(--ph-on); }
@@ -45,7 +45,7 @@
   .ph-art-box { display: none; }
   .ph-side { width: auto; }
   .ph-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ph-title { font-size: clamp(24px, 7vw, 30px); }
+  .ph-title { font-size: var(--fs-28); }
   .ph-lk, .ph-learn { min-height: 40px; }
 }
 @media print { .ph { animation: none; } .ph-art-box { display: none; } }

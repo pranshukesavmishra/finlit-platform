@@ -11,9 +11,9 @@
 .ow > .ow-card:first-of-type { margin-top: 0; }
 .ow-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; margin-bottom: 12px; }
 .ow-center-v { align-items: center; }
-.ow-card h3 { margin: 0; font: 600 15px/1.35 var(--font-sans); color: var(--ow-ink); }
+.ow-card h3 { margin: 0; font: 600 16px/1.35 var(--font-sans); color: var(--ow-ink); }
 .ow-card .ow-h2 { font: 600 20px/1.3 var(--font-serif); display: inline-flex; align-items: center; gap: 8px; }
-.ow-card .ow-h3 { font: 600 15px/1.35 var(--font-sans); }
+.ow-card .ow-h3 { font: 600 16px/1.35 var(--font-sans); }
 .ow-sub { margin: 2px 0 0; }
 .ow-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--ow-muted); }
 .ow-why { color: var(--ow-body); }
@@ -39,8 +39,8 @@
 .ow-icard.t-supportive { background: var(--financial-positive-bg); } .ow-icard.t-neutral { background: var(--ow-chip); } .ow-icard.t-watch { background: var(--status-warning-bg); }
 .ow-tone { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1.3 var(--font-sans); letter-spacing: .02em; }
 .ow-tone.t-supportive { color: var(--financial-positive); } .ow-tone.t-neutral { color: var(--text-secondary); } .ow-tone.t-watch { color: var(--status-warning); }
-.ow-glyph { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; flex: none; }
-.ow-ct { margin-top: 6px; font: 600 15px/1.35 var(--font-sans); color: var(--ow-ink); }
+.ow-glyph { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-11); line-height: 1; flex: none; }
+.ow-ct { margin-top: 6px; font: 600 16px/1.35 var(--font-sans); color: var(--ow-ink); }
 .ow-cs { margin-top: 3px; font-size: 13px; color: var(--ow-body); }
 .ow-more { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 20px; }
 .ow-more li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 13px; color: var(--ow-ink); }

@@ -1,0 +1,41 @@
+/* FinLit type scale (docs/TYPE-SCALE.md). Loaded before the app's own CSS. Sizes in px, line heights to match. */
+:root {
+  --fs-11: 11px;  --lh-11: 16px;   /* eyebrows (uppercase, 0.08em tracking), chart axis ticks, legend keys. Labels only */
+  --fs-12: 12px;  --lh-12: 16px;   /* captions, timestamps, table headers, chips, footnotes */
+  --fs-13: 13px;  --lh-13: 18px;   /* secondary text, labels, dense table cells */
+  --fs-14: 14px;  --lh-14: 20px;   /* default: card and table text, menus, buttons */
+  --fs-16: 16px;  --lh-16: 24px;   /* reading text, key values, every form input */
+  --fs-18: 18px;  --lh-18: 24px;   /* card titles (Source Serif 4, 600) */
+  --fs-20: 20px;  --lh-20: 28px;   /* section titles (Source Serif 4, 600) */
+  --fs-24: 24px;  --lh-24: 32px;   /* big numbers: KPIs, index levels */
+  --fs-28: 28px;  --lh-28: 36px;   /* page title on phones, report section titles */
+  --fs-32: 32px;  --lh-32: 40px;   /* page title on desktop */
+  --fs-40: 40px;  --lh-40: 48px;   /* hero numbers (score dial) */
+
+  /* names by role, for new code */
+  --fs-label: var(--fs-11);
+  --fs-caption: var(--fs-12);
+  --fs-small: var(--fs-13);
+  --fs-body: var(--fs-14);
+  --fs-reading: var(--fs-16);
+  --fs-card-title: var(--fs-18);
+  --fs-section-title: var(--fs-20);
+  --fs-kpi: var(--fs-24);
+  --fs-page-title: var(--fs-32);
+}
+
+@media (max-width: 760px) {
+  :root { --fs-page-title: var(--fs-28); }
+}
+
+/* site-wide basics that go with the scale.
+   The page body keeps the size the app sets (16px/1.6 in finlit.css); the handover's `body { font-size: 14px }` is left out because
+   it would resize every component that inherits from body. */
+/* Every form field is 16px at every width: below that, phones zoom the page in when a field is focused. !important because the
+   field styles are spread over 40 stylesheets with 13/14px values; checkboxes, radios, sliders and buttons are not text fields. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="reset"]),
+select, textarea { font-size: var(--fs-16) !important; }
+/* Browsers size <small>, <sup> and <sub> as "smaller" than their parent (about 10px in 12-13px text); pin them to the scale. Class rules still win. */
+small { font-size: var(--fs-12); }
+sup, sub { font-size: var(--fs-12); }
+table, .num, [data-num] { font-variant-numeric: tabular-nums; }

@@ -42,7 +42,7 @@
 .side-body::-webkit-scrollbar { width: 8px; } .side-body::-webkit-scrollbar-track { background: transparent; }
 .side-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; border: 2px solid var(--s1); }
 .side nav { display: grid; gap: 4px; }
-.side-none { margin: 8px; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+.side-none { margin: 8px; font-size: var(--fs-14); line-height: 1.45; color: var(--muted); }
 
 /* ---- group header: line icon, label, quiet count, chevron ---- */
 .side-g { display: block; }

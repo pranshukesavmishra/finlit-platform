@@ -3,21 +3,21 @@
 .ins { --ic: var(--gold); position: relative; padding: 10px 12px 10px 14px; border: 1px solid color-mix(in srgb, var(--ic) 35%, var(--border)); border-left: 3px solid var(--ic); border-radius: 10px; background: color-mix(in srgb, var(--ic) 7%, var(--s1, var(--card))); margin: 0 0 10px; }
 .ins.v { --ic: var(--gold); } .ins.s { --ic: var(--gain); } .ins.w { --ic: var(--warn, #CC7A00); } .ins.i { --ic: var(--info, #2F5D86); }
 .ins.f { --ic: var(--loss); border-left-width: 4px; }
-.ins-tag { display: inline-block; margin-bottom: 4px; font: 800 9.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--ic); }
-.ins b { display: block; font-size: 13.5px; line-height: 1.35; color: var(--text); }
-.ins p { margin: 3px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.ins-tag { display: inline-block; margin-bottom: 4px; font: 800 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--ic); }
+.ins b { display: block; font-size: var(--fs-14); line-height: 1.35; color: var(--text); }
+.ins p { margin: 3px 0 0; font-size: var(--fs-13); line-height: 1.45; color: var(--muted); }
 .ins a { display: inline-block; margin-top: 5px; font-size: 12px; font-weight: 600; color: var(--gold-deep, var(--gold)); text-decoration: none; }
-.ins.v b { font-family: var(--serif); font-weight: 400; font-size: 15px; }
+.ins.v b { font-family: var(--serif); font-weight: 400; font-size: var(--fs-16); }
 mark.k { background: linear-gradient(transparent 62%, color-mix(in srgb, var(--gold) 38%, transparent) 62%); color: inherit; padding: 0 1px; }
 mark.k.g { background: linear-gradient(transparent 62%, color-mix(in srgb, var(--gain) 38%, transparent) 62%); } mark.k.r { background: linear-gradient(transparent 62%, color-mix(in srgb, var(--loss) 38%, transparent) 62%); }
 
-.sh-counts { font: 600 12.5px var(--sans); color: var(--muted); white-space: nowrap; }
+.sh-counts { font: 600 13px var(--sans); color: var(--muted); white-space: nowrap; }
 .kf-g { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .kf-col h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--text); }
 .kf-n { margin-left: auto; font-weight: 700; color: var(--muted); }
 .ins-dot { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: var(--gold); }
 .ins-dot svg { width: 13px; height: 13px; } .ins-dot.f { background: var(--loss); } .ins-dot.w { background: var(--warn, #CC7A00); } .ins-dot.s { background: var(--gain); }
-.kf-none { margin: 0; font-size: 12.5px; color: var(--faint); } .kf-foot { margin: 12px 2px 0; font-size: 12px; }
+.kf-none { margin: 0; font-size: var(--fs-13); color: var(--faint); } .kf-foot { margin: 12px 2px 0; font-size: 12px; }
 @media (max-width: 900px) { .kf-g { grid-template-columns: minmax(0, 1fr); } }
 
 /* dots on the section tabs: red = a red flag, orange = something to watch */

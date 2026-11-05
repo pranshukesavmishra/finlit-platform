@@ -86,7 +86,7 @@ code, pre, kbd, samp, .qb-box textarea, .qb-mirror { font-family: var(--code); }
 }
 :root .dash-h::before { display: none; }
 :root .dash-h .eyebrow { color: var(--tone); }
-:root .dash-h h1 { font: 500 clamp(26px, 3.1vw, 36px)/1.12 var(--font-serif); letter-spacing: -.01em; color: var(--text); }
+:root .dash-h h1 { font: 500 var(--fs-page-title)/1.12 var(--font-serif); letter-spacing: -.01em; color: var(--text); }
 :root .dash-h .btn:not(.primary) { background: var(--s1); color: var(--text); border-color: var(--border-strong); }
 :root .dash-h .btn:not(.primary):hover { background: var(--s2); border-color: var(--gold); }
 

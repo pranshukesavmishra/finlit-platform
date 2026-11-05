@@ -219,8 +219,8 @@ function IndexValuation({ code, setCode }: { code: string; setCode: (c: string) 
           <div className="pm-cards" aria-label="Range over the period">
             <div className="pm-kpi"><small>Now</small><b>{f(st.now)}</b><i>{data.to ? dateIN(data.to) : ""}</i></div>
             <div className="pm-kpi"><small>{years}-year median</small><b>{f(st.median)}</b><i>Average {f(st.mean)}</i></div>
-            <div className="pm-kpi"><small>Usual range (±1 sd)</small><b style={{ fontSize: 21 }}>{f(Math.max(0, st.median - st.sd))} – {f(st.median + st.sd)}</b><i>Two days in three fall here</i></div>
-            <div className="pm-kpi"><small>Low · High</small><b style={{ fontSize: 21 }}>{f(st.min)} · {f(st.max)}</b><i>{nf(st.n, 0)} trading days</i></div>
+            <div className="pm-kpi"><small>Usual range (±1 sd)</small><b style={{ fontSize: 20 }}>{f(Math.max(0, st.median - st.sd))} – {f(st.median + st.sd)}</b><i>Two days in three fall here</i></div>
+            <div className="pm-kpi"><small>Low · High</small><b style={{ fontSize: 20 }}>{f(st.min)} · {f(st.max)}</b><i>{nf(st.n, 0)} trading days</i></div>
           </div>
           <div className="pm-chart card"><div className="pm-chart-h"><div><small>{MEASURES[m].say}</small><b>{data.name} {MEASURES[m].label}, last {years} year{years > 1 ? "s" : ""} <ChartHelp id="idx-valuation" /></b></div><span className="faint">Dashed: median · faint lines: usual range</span></div>
             <LineChart periods={rows.map((r) => dateIN(r.d, { day: "numeric", month: "short", year: "2-digit" }))} fmt={(x) => nf(x, MEASURES[m].d)} height={280} avg={st.median} avgLabel="Median"
