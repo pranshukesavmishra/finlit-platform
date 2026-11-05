@@ -423,6 +423,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(intraday.router)   # /api/stocks/{symbol}/intraday: also before the /api/stocks/{symbol}/{section} route
     app.include_router(leadership_api.router)   # /api/stocks/{symbol}/leadership and /leadership-history: likewise
     app.include_router(ownership_insights.router)   # /api/stocks/{symbol}/ownership-insights: likewise
+    from .company_brief import api as _cb
+    app.include_router(_cb.router)   # /api/stocks/{symbol}/brief: before the generic section route too
+    app.include_router(_cb.admin)   # /api/admin/company-brief/*
     from .macro_outlook import api as _mo
     app.include_router(_mo.router)   # /api/stocks/{symbol}/macro-outlook: before the generic section route too
 

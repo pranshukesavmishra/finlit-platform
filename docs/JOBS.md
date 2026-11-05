@@ -104,6 +104,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
 | presets (`refresh-presets`) | bulk | 42 | 30 h | NIGHT, MORNING; after prism (docs/PRESETS.md) |
 | earnings-calls (`refresh-earnings-calls`, needs `GEMINI_API_KEY`) | bulk | 44 | 48 h | NIGHT, MORNING; bounded per run, resumable (docs/EARNINGS-CALLS.md) |
+| company-brief (`refresh-company-brief`, needs `GEMINI_API_KEY`, else it records "not configured" and writes nothing; docs/COMPANY-BRIEF.md) | bulk | 46 | 72 h | NIGHT (20 h), MORNING (14 h); only companies with new filings, followed and largest first, at most `BRIEF_MAX_WRITES_PER_NIGHT` (6) model calls a night, resumable; stores DRAFTS, a person publishes |
 | ownership-insights (`refresh-ownership`, always on; docs/OWNERSHIP.md) | light | 47 | 36 h | NIGHT (20 h), MORNING (14 h) and every 3 h; after ingest; resumable: pass 1 builds a row for every company from the stored shareholding (database only), pass 2 makes the slow premium call (3 at a time, 120 a run, none started after 20 min), visitors' companies first |
 | leadership | bulk | 45 | 8 d | Saturday NIGHT |
 | **mf-returns** (`fill-mf-returns`) | light | 27 | 30 h | every 30 min, NIGHT, MORNING; after `mf`; fills the 1/3/5 year returns of every fund that has none from the public mirror of AMFI's data (held funds first, newest NAV checked against AMFI's); also run at once when a fund is added (`finlit/mf_fill.py`) |

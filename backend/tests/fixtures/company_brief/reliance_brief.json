@@ -1,0 +1,1037 @@
+{
+ "symbol": "RELIANCE",
+ "name": "Reliance Industries Ltd",
+ "as_of": "2026-11-04",
+ "status": "prototype · not reviewed",
+ "template": "company-brief-1.0",
+ "docs": {
+  "AR": {
+   "title": "Integrated Annual Report 2025-26",
+   "date": "2026-05-27",
+   "kind": "Annual report",
+   "url": "https://www.ril.com/reports/RIL-Integrated-Annual-Report-2025-26.pdf"
+  },
+  "MR": {
+   "title": "Q2 FY27 media release",
+   "date": "2026-10-30",
+   "kind": "Press release",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_30102026194315_SE_30102026_MR.pdf"
+  },
+  "IP": {
+   "title": "Q2 FY27 investor presentation",
+   "date": "2026-10-30",
+   "kind": "Investor presentation",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_30102026194557_SE_30102026_IP.pdf"
+  },
+  "RES": {
+   "title": "Q2 FY27 results and board meeting outcome",
+   "date": "2026-10-30",
+   "kind": "Results filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_30102026193935_SE_30102026_Results.pdf"
+  },
+  "LIST27": {
+   "title": "Jio Platforms listing and trading approval",
+   "date": "2026-10-27",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_27102026220855_RIL_SELETTER_271026.pdf"
+  },
+  "ICRA": {
+   "title": "Credit rating by ICRA",
+   "date": "2026-10-21",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/PVIVINMA_21102026204310_SE_ICRA.pdf"
+  },
+  "MS21": {
+   "title": "Media statement, Jamnagar",
+   "date": "2026-10-21",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_21102026224413_SE_21102026.pdf"
+  },
+  "HAM": {
+   "title": "Strike-off of Hamleys (Franchising) Ltd",
+   "date": "2026-10-29",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_29102026084603_SE_29102026.pdf"
+  },
+  "CUS": {
+   "title": "Customs order",
+   "date": "2026-10-07",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/PVIVINMA_07102026223504_RIL_SEletter07102026.pdf"
+  },
+  "NCD1": {
+   "title": "Allotment of NCDs",
+   "date": "2026-09-16",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_16092026154842_SE_16092026.pdf"
+  },
+  "NCD2": {
+   "title": "Allotment of NCDs",
+   "date": "2026-10-01",
+   "kind": "Exchange filing",
+   "url": "https://nsearchives.nseindia.com/corporate/kavinavora_01102026150203_SE_01102026.pdf"
+  },
+  "FINLIT": {
+   "title": "FinLit shareholding data (Sep 2026 filing)",
+   "date": "2026-11-04",
+   "kind": "FinLit data",
+   "url": "https://finlitventures.com/stocks/RELIANCE"
+  }
+ },
+ "about": [
+  {
+   "text": "Founded by Dhirubhai H. Ambani (Founder Chairman). Led by Mukesh D. Ambani, Chairman and Managing Director.",
+   "cites": [
+    {
+     "doc": "AR",
+     "page": 2,
+     "needles": [
+      "Dhirubhai H. Ambani",
+      "Founder Chairman"
+     ]
+    },
+    {
+     "doc": "AR",
+     "page": 4,
+     "needles": [
+      "Mukesh D. Ambani Chairman and Managing Director"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "Six businesses: oil to chemicals (O2C), oil and gas, retail, digital services (Jio), media and entertainment (JioStar) and new energy. Workforce of 4,19,911.",
+   "cites": [
+    {
+     "doc": "AR",
+     "page": 2,
+     "needles": [
+      "4,19,911"
+     ]
+    },
+    {
+     "doc": "AR",
+     "page": 3,
+     "needles": [
+      "Oil and Gas",
+      "Digital Services",
+      "Consumption Baskets"
+     ]
+    }
+   ]
+  },
+  {
+   "text": "Promoters hold 50.4% of the company.",
+   "cites": [
+    {
+     "doc": "FINLIT",
+     "page": null,
+     "needles": []
+    }
+   ]
+  }
+ ],
+ "key_figures": [
+  {
+   "label": "Revenue, Q2 FY27",
+   "value": "₹3.62 lakh cr",
+   "note": "up 27.8%",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "362,268",
+      "27.8%"
+     ]
+    }
+   ]
+  },
+  {
+   "label": "EBITDA, Q2 FY27",
+   "value": "₹62,409 cr",
+   "note": "up 23.9%",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "62,409",
+      "23.9%"
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Profit, Q2 FY27",
+   "value": "₹29,550 cr",
+   "note": "up 33.8%",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "29,550",
+      "33.8%"
+     ]
+    }
+   ]
+  },
+  {
+   "label": "Net debt",
+   "value": "0.47x",
+   "note": "of annualised EBITDA",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "117,140",
+      "0.47"
+     ]
+    }
+   ]
+  }
+ ],
+ "group": {
+  "as_of": "31 Mar 2026",
+  "note": "RIL's share of each company, from the list of subsidiaries and associates in the annual report.",
+  "rows": [
+   {
+    "name": "Jio Platforms",
+    "what": "Jio telecom and digital services",
+    "stake": 66.43,
+    "note": "Before the October 2026 IPO of new shares, which lowers RIL's share",
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 131,
+      "needles": [
+       "Jio Platforms Limited India 66.43%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Reliance Retail Ventures",
+    "what": "Retail",
+    "stake": 83.56,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 132,
+      "needles": [
+       "Reliance Retail Ventures Limited India 83.56%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Reliance Consumer Products",
+    "what": "Consumer brands (FMCG)",
+    "stake": 83.56,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 132,
+      "needles": [
+       "Reliance Consumer Products Limited (Formerly known as Tira Beauty Limited) India 83.56%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "JioStar India",
+    "what": "Media and entertainment, JioHotstar",
+    "stake": 59.59,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 131,
+      "needles": [
+       "Jiostar India Private Limited (Formerly known as Star India Private Limited) India 59.59%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Network18 Media & Investments",
+    "what": "News media",
+    "stake": 52.41,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 131,
+      "needles": [
+       "Network18 Media & Investments Limited India 52.41%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Just Dial",
+    "what": "Local search",
+    "stake": 53.34,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 131,
+      "needles": [
+       "Just Dial Limited India 53.34%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Reliance BP Mobility (Jio-bp)",
+    "what": "Fuel and EV-charging retail, with bp",
+    "stake": 51.0,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 132,
+      "needles": [
+       "Reliance BP Mobility Limited India 51.00%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Reliance Enterprise Intelligence",
+    "what": "Enterprise AI, joint venture with Meta",
+    "stake": 70.0,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 132,
+      "needles": [
+       "Reliance Enterprise Intelligence Limited India 70.00%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Reliance New Energy",
+    "what": "Solar, batteries, hydrogen",
+    "stake": 100.0,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 132,
+      "needles": [
+       "Reliance New Energy Limited India 100.00%"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "MIL Limited (formerly Oval Invincibles)",
+    "what": "Cricket franchise, UK",
+    "stake": 49.0,
+    "cites": [
+     {
+      "doc": "AR",
+      "page": 133,
+      "needles": [
+       "MIL Limited (Formerly known as Oval Invincibles Limited) United Kingdom 49.00%"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "segments": [
+  {
+   "name": "Oil to Chemicals (O2C)",
+   "what": "Refining and petrochemicals: transportation fuels, polymers and elastomers, intermediates and polyesters.",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 3,
+     "needles": [
+      "Transportation Fuels, Polymers & Elastomers, Intermediates, and Polyesters"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "FY26: 80.0 MMT of crude and feedstock processed; 70.9 MMT of products for sale.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 12,
+       "needles": [
+        "80.0 MMT",
+        "TOTAL THROUGHPUT",
+        "70.9 MMT"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Q2 FY27: revenue ₹231,601 crore; EBITDA ₹25,203 crore, up 67.9%, its best quarter so far.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 14,
+       "needles": [
+        "231,601",
+        "25,203"
+       ]
+      },
+      {
+       "doc": "MR",
+       "page": 2,
+       "needles": [
+        "Best ever O2C business performance",
+        "67.9%"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Jio-bp fuel retail network of 2,304 outlets.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 17,
+       "needles": [
+        "2,304"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "The company describes Jamnagar as the world's largest refinery.",
+     "cites": [
+      {
+       "doc": "MS21",
+       "page": 2,
+       "needles": [
+        "largest refinery"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Oil and gas",
+   "what": "Deep-water and ultra-deep-water gas and oil fields in the KG basin, and coal-bed methane (CBM).",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 3,
+     "needles": [
+      "ultra-deep-water"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "FY26: average gas production of 26.7 MMSCMD, about 30% of India's domestic output.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 14,
+       "needles": [
+        "26.7 MMSCMD",
+        "~30% of domestic output"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Q2 FY27: KG-D6 averaged 24.0 MMSCMD of gas and about 15,903 barrels a day of oil and condensate; CBM 1.04 MMSCMD.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 20,
+       "needles": [
+        "24.0",
+        "15,903",
+        "1.04"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Digital services (Jio)",
+   "what": "Mobile, home broadband and enterprise connectivity, plus digital platforms, held through Jio Platforms.",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 3,
+     "needles": [
+      "Digital Services"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "Q2 FY27: 542.4 million customers; average revenue per user ₹218.8 a month; monthly churn 1.6%; 44.2 GB of data per user a month.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 7,
+       "needles": [
+        "542.4",
+        "218.8",
+        "1.6%",
+        "44.2"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "300 million 5G users and 30.0 million broadband homes, 15.1 million of them on Jio AirFiber.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 8,
+       "needles": [
+        "300 million",
+        "30.0",
+        "15.1"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Jio Platforms Q2 FY27: revenue ₹47,485 crore (up 11.3%), EBITDA ₹21,879 crore (up 16.6%).",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 6,
+       "needles": [
+        "47,485",
+        "11.3%",
+        "21,879",
+        "16.6%"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Retail",
+   "what": "Consumer electronics, grocery, fashion and lifestyle, and connectivity, in stores and online (JioMart, AJIO).",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 3,
+     "needles": [
+      "Consumer Electronics, Grocery, Fashion and Lifestyle, and Connectivity"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "FY26: 20,160 stores, 78.3 million sq ft, 387 million registered customers, about 1.9 billion transactions.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 6,
+       "needles": [
+        "20,160",
+        "78.3",
+        "387",
+        "1.9 Billion"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Q2 FY27: 19,947 stores after 303 openings and a net reduction of 222; gross revenue ₹91,716 crore, up 6.4%.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 11,
+       "needles": [
+        "19,947",
+        "303 stores opened",
+        "222"
+       ]
+      },
+      {
+       "doc": "MR",
+       "page": 10,
+       "needles": [
+        "91,716",
+        "6.4%"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "JioMart revenue up 42% in Q2 FY27, served from 5,000+ stores across 1,000+ cities.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 12,
+       "needles": [
+        "42%",
+        "5,000+ stores across 1,000+ cities"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Management says FY27 builds online scale and FY28 to FY29 converts scale into value.",
+     "cites": [
+      {
+       "doc": "IP",
+       "page": 21,
+       "needles": [
+        "FY28 – FY29 converts scale into value"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Media and entertainment (JioStar)",
+   "what": "TV channels, the JioHotstar streaming app, sports and news (Network18).",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 10,
+     "needles": [
+      "451 Million"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "FY26: JioHotstar averaged 451 million monthly users; a record 72.5 million watched at once during the T20 World Cup 2026.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 10,
+       "needles": [
+        "451 Million",
+        "72.5 Million",
+        "T20 World Cup 2026"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Q2 FY27: about 440 million monthly users (up 10%); revenue ₹6,806 crore.",
+     "cites": [
+      {
+       "doc": "MR",
+       "page": 21,
+       "needles": [
+        "~440 million MAUs",
+        "10% Y-o-Y"
+       ]
+      },
+      {
+       "doc": "MR",
+       "page": 21,
+       "needles": [
+        "6,806"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Provision for loss-making content contracts at JioStar: ₹17,742 crore at 31 Mar 2026, after ₹8,018 crore was used in FY26.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 114,
+       "needles": [
+        "onerous contracts (Jiostar India Private Limited)",
+        "17,742",
+        "8,018"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "New energy",
+   "what": "Solar modules and cells, batteries, electrolysers and green hydrogen at Jamnagar, and solar power in Kutch.",
+   "what_cites": [
+    {
+     "doc": "AR",
+     "page": 15,
+     "needles": [
+      "Solar PV Manufacturing"
+     ]
+    }
+   ],
+   "points": [
+    {
+     "text": "Solar: heterojunction (HJT) cell and module lines being commissioned, Phase I operating; the plant is to scale to 10 GWp a year.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 15,
+       "needles": [
+        "Phase I operational",
+        "HJT cells",
+        "10 GWp per annum"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Batteries: giga-factory in advanced commissioning, 40 GWh a year with a roadmap to 100 GWh; production to ramp up through the second half of 2026.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 15,
+       "needles": [
+        "40 GWh of annual capacity",
+        "100 GWh",
+        "second half of 2026"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Hydrogen: alkaline-electrolyser technology licensed from Nel ASA; target of 3 MMTPA green-hydrogen-equivalent capacity by 2032.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 15,
+       "needles": [
+        "Nel ASA",
+        "3 MMTPA of green hydrogen equivalent capacity by 2032"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Kutch: solar project across 5,50,000 acres, up to 55 MWp a day at peak deployment.",
+     "cites": [
+      {
+       "doc": "AR",
+       "page": 19,
+       "needles": [
+        "5,50,000 acres",
+        "55 MWp per day"
+       ]
+      }
+     ]
+    },
+    {
+     "text": "Management expects New Energy to contribute to earnings from FY28.",
+     "cites": [
+      {
+       "doc": "IP",
+       "page": 7,
+       "needles": [
+        "Earning contribution from FY28"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "mix": {
+  "period": "Q2 FY27 (Jul–Sep 2026)",
+  "ebitda": {
+   "total_cr": 62409,
+   "rows": [
+    {
+     "name": "O2C",
+     "value_cr": 25203,
+     "share_pct": 40.4
+    },
+    {
+     "name": "Digital services",
+     "value_cr": 22223,
+     "share_pct": 35.6
+    },
+    {
+     "name": "Retail",
+     "value_cr": 6120,
+     "share_pct": 9.8
+    },
+    {
+     "name": "Oil and gas",
+     "value_cr": 4901,
+     "share_pct": 7.9
+    },
+    {
+     "name": "Others, incl. media",
+     "value_cr": 3962,
+     "share_pct": 6.3
+    }
+   ],
+   "cites": [
+    {
+     "doc": "IP",
+     "page": 11,
+     "needles": [
+      "25,203",
+      "22,223",
+      "6,120",
+      "4,901",
+      "3,962",
+      "62,409"
+     ]
+    }
+   ]
+  },
+  "revenue": {
+   "total_cr": 403141,
+   "rows": [
+    {
+     "name": "O2C",
+     "value_cr": 231601,
+     "share_pct": 57.4
+    },
+    {
+     "name": "Retail",
+     "value_cr": 91717,
+     "share_pct": 22.8
+    },
+    {
+     "name": "Digital services",
+     "value_cr": 48486,
+     "share_pct": 12.0
+    },
+    {
+     "name": "Others, incl. media",
+     "value_cr": 25317,
+     "share_pct": 6.3
+    },
+    {
+     "name": "Oil and gas",
+     "value_cr": 6020,
+     "share_pct": 1.5
+    }
+   ],
+   "basis": "Gross value of sales and services, before sales between segments",
+   "cites": [
+    {
+     "doc": "RES",
+     "page": 17,
+     "needles": [
+      "231,601",
+      "91,717",
+      "48,486",
+      "25,317",
+      "403,141"
+     ]
+    }
+   ]
+  }
+ },
+ "recent": [
+  {
+   "date": "2026-10-30",
+   "title": "Q2 FY27 results",
+   "text": "Revenue ₹362,268 crore (up 27.8%), EBITDA ₹62,409 crore (up 23.9%), profit ₹29,550 crore (up 33.8%). Net debt ₹117,140 crore, 0.47 times annualised EBITDA.",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "362,268",
+      "27.8%",
+      "62,409",
+      "23.9%",
+      "29,550",
+      "33.8%"
+     ]
+    },
+    {
+     "doc": "MR",
+     "page": 2,
+     "needles": [
+      "117,140",
+      "0.47"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-30",
+   "title": "Board approves more debentures",
+   "text": "Enabling resolution to issue non-convertible debentures of up to ₹15,000 crore by private placement.",
+   "cites": [
+    {
+     "doc": "RES",
+     "page": 1,
+     "needles": [
+      "15,000 crore"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-29",
+   "title": "Hamleys franchising company to be struck off",
+   "text": "A UK step-down subsidiary, Hamleys (Franchising) Ltd, is being struck off. Its 2025 turnover was ₹56.08 crore, 0.0048% of RIL's consolidated turnover.",
+   "cites": [
+    {
+     "doc": "HAM",
+     "page": 1,
+     "needles": [
+      "56.08",
+      "0.0048%"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "title": "Jio Platforms listed",
+   "text": "Jio Platforms listed on NSE and BSE after an IPO of 27 crore new shares at ₹1,119 each, raising ₹30,188 crore. About ₹27,500 crore goes to repaying Reliance Jio Infocomm's foreign-currency loans early.",
+   "cites": [
+    {
+     "doc": "MR",
+     "page": 8,
+     "needles": [
+      "27,00,00,000",
+      "1,119",
+      "30,188",
+      "27,500"
+     ]
+    },
+    {
+     "doc": "LIST27",
+     "page": 1,
+     "needles": [
+      "October 28, 2026"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-21",
+   "title": "ICRA ratings",
+   "text": "ICRA reaffirmed AAA (Stable) on ₹12,000 crore of debentures and A1+ on ₹10,000 crore of commercial paper, and assigned AAA (Stable) to ₹50,000 crore of bank loans.",
+   "cites": [
+    {
+     "doc": "ICRA",
+     "page": 2,
+     "needles": [
+      "12,000",
+      "[ICRA]AAA (Stable); reaffirmed",
+      "10,000.00",
+      "[ICRA]A1+; reaffirmed",
+      "50,000.00",
+      "Assigned"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-07",
+   "title": "Customs order",
+   "text": "Fine and penalty of ₹18,74,978 for alleged misclassification of imported goods. The company plans to appeal and says operations are not affected.",
+   "cites": [
+    {
+     "doc": "CUS",
+     "page": 1,
+     "needles": [
+      "18,74,978",
+      "intends to file an appeal",
+      "There is no impact on operati"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "2026-10-01",
+   "title": "Debentures issued",
+   "text": "Allotted 13,00,000 unsecured debentures of ₹1 lakh each (₹13,000 crore), after 12,00,000 (₹12,000 crore) on 16 Sep.",
+   "cites": [
+    {
+     "doc": "NCD2",
+     "page": 1,
+     "needles": [
+      "13,00,000"
+     ]
+    },
+    {
+     "doc": "NCD1",
+     "page": 1,
+     "needles": [
+      "12,00,000"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "FY26",
+   "title": "Enterprise AI joint venture with Meta",
+   "text": "Reliance and Meta invested ₹855 crore in the ratio 70:30 to build AI products for Indian businesses on Meta's Llama models.",
+   "cites": [
+    {
+     "doc": "AR",
+     "page": 41,
+     "needles": [
+      "855 crore in the ratio of 70% and 30%"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "FY26",
+   "title": "Google partnerships",
+   "text": "Jio users get 18 months of Google AI Pro (Gemini) free; Reliance is building a dedicated Google Cloud region at Jamnagar.",
+   "cites": [
+    {
+     "doc": "AR",
+     "page": 10,
+     "needles": [
+      "18 months of complimentary access to Google AI Pro"
+     ]
+    },
+    {
+     "doc": "AR",
+     "page": 41,
+     "needles": [
+      "Google Cloud",
+      "Jamnagar"
+     ]
+    }
+   ]
+  },
+  {
+   "date": "FY26",
+   "title": "Dividend",
+   "text": "Final dividend of ₹6 a share for FY26, ₹8,119 crore in all (₹5.50 a share for FY25).",
+   "cites": [
+    {
+     "doc": "AR",
+     "page": 41,
+     "needles": [
+      "8,119 crore",
+      "5.50"
+     ]
+    }
+   ]
+  }
+ ],
+ "gaps": [
+  "RIL's stake in Jio Platforms after the IPO: in Jio Platforms' prospectus, not yet read.",
+  "No earnings call transcript on FinLit for Reliance yet (only the 31 Oct audio-recording notice).",
+  "O2C capacities and world rankings: not stated in the documents read."
+ ],
+ "checks": {
+  "date": "2026-11-04",
+  "citations": 65,
+  "passed_first_time": 64,
+  "passed": 65,
+  "fixed": [
+   "Net debt and leverage were cited to page 3 of the Q2 media release; they are on page 2."
+  ],
+  "method": "Each quoted string must appear on the cited PDF page after whitespace and quote normalisation."
+ },
+ "disclaimer": "Written from the company's own filings. Descriptions and the company's stated plans, not FinLit's views or advice."
+}

@@ -903,6 +903,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
     p_ec = sub.add_parser("refresh-earnings-calls", help="nightly: find the latest earnings-call transcripts of the largest companies, extract their text and answer the fixed questions with the language model (docs/EARNINGS-CALLS.md; needs GEMINI_API_KEY)")
     p_ec.add_argument("--max-calls", type=int, default=None, help="summarise at most this many calls in this run")
+    p_cb = sub.add_parser("refresh-company-brief", help="nightly: write the company brief (About section) draft for companies with new filings, from the company's own filings with the language model behind Ask FinLit AI; needs GEMINI_API_KEY (docs/COMPANY-BRIEF.md)")
+    p_cb.add_argument("--max-writes", type=int, default=None, help="write at most this many briefs in this run (default BRIEF_MAX_WRITES_PER_NIGHT)")
+    p_cb.add_argument("--max-minutes", type=float, default=40.0, help="start no new company after this many minutes")
+    p_cb.add_argument("symbols", nargs="*", help="only these companies")
     p_oi = sub.add_parser("refresh-ownership", help="nightly: ownership insights of every company (docs/OWNERSHIP.md): a row from the stored shareholding, then the premium filing details (shareholders, pledge, share count, lock-in, named holders) for the companies that lack them, bounded")
     p_oi.add_argument("--max-minutes", type=float, default=20.0, help="start no new premium call after this many minutes")
     p_oi.add_argument("--limit", type=int, default=120, help="premium calls per run")
@@ -1382,6 +1386,13 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .mf import record_run
             res = await earnings_service.run(store, settings, max_calls=args.max_calls or MAX_CALLS_PER_RUN)
             await record_run(store, args.cmd, res)
+            print(json.dumps(res, default=str)[:3000])
+            return 0
+        if args.cmd == "refresh-company-brief":
+            from .company_brief import service as brief_service
+            from .mf import record_run
+            res = await brief_service.run(store, settings, max_writes=args.max_writes, max_minutes=args.max_minutes, symbols=[x.upper() for x in args.symbols] or None)
+            await record_run(store, args.cmd, {k: v for k, v in res.items() if k != "written_symbols"})
             print(json.dumps(res, default=str)[:3000])
             return 0
         if args.cmd == "refresh-ownership":
