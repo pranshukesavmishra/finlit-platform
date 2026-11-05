@@ -35,7 +35,7 @@ REASONS = {
     "not_written": "Not written yet. Briefs are written overnight from each company's own filings, largest companies first.",
     "no_annual_report": "No annual report is on file for this company yet, so its brief has not been written.",
     "in_review": "Written and being reviewed. It is shown here once a person has read it.",
-    "held_back": "A reviewer held this brief back. It is rewritten when the company files something new.",
+    "held_back": "A reviewer kept this brief back. It is rewritten when the company files something new.",
     "failed_checks": "Its citations are being re-checked, so it is not shown for now.",
 }
 
