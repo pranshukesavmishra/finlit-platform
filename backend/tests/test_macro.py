@@ -1,6 +1,6 @@
 """India macro data: parsers against recorded real answers (tests/fixtures/macro), derived series, checks and the nightly job end to end."""
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import httpx
@@ -262,3 +262,72 @@ def test_a_misread_rbi_rates_panel_is_refused_before_it_is_saved():
         macro.check_rbi_rates({"rates": {"repo": 9.5}}, decisions)   # 400 bp jump
     ok = macro.check_rbi_rates({"rates": {"repo": 5.25, "crr": 300.0, "slr": 18.0}, "fx": {}}, decisions)
     assert ok["rates"] == {"repo": 5.25, "slr": 18.0}
+
+
+# ---- Brent crude from the EIA (needs the free EIA_API_KEY; never invented)
+def _brent(vals):
+    return {D(2025, 10, 1) + timedelta(days=i): v for i, v in enumerate(vals)}
+
+
+def test_brent_block_compares_with_the_last_four_finished_quarters():
+    pts = _brent([80.0] * 365)                     # 1 Oct 2025 .. 30 Sep 2026: the window for a date in Oct-Dec 2026
+    pts[D(2026, 11, 2)] = 100.0
+    b = macro.brent_block(pts, {"status": "ok"}, D(2026, 11, 4))
+    assert b["status"] == "ok" and b["value"] == 100.0 and b["date"] == "2026-11-02"
+    assert b["avgFrom"] == "2025-10-01" and b["avgTo"] == "2026-09-30" and b["avg4q"] == 80.0 and b["vsAvgPct"] == 25.0
+
+
+def test_brent_block_says_why_when_there_is_no_price_or_a_thin_window():
+    assert macro.brent_block({}, {"status": "nokey", "reason": "Brent: source key not set"}, D(2026, 11, 4)) == {"status": "nokey", "reason": "Brent: source key not set"}
+    assert macro.brent_block({}, None, D(2026, 11, 4))["reason"] == "Brent: no prices loaded yet"
+    thin = macro.brent_block({D(2026, 11, 2): 100.0, D(2026, 9, 1): 90.0}, None, D(2026, 11, 4))
+    assert thin["value"] == 100.0 and thin["vsAvgPct"] is None and "only 1 days" in thin["reason"]
+
+
+def eia_site(rows, status=200):
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.host == "api.eia.gov":
+            assert req.url.params["facets[series][]"] == "RBRTE" and req.url.params["api_key"] == "k-test"
+            return httpx.Response(status, json={"response": {"data": rows}})
+        return httpx.Response(404)
+    return httpx.MockTransport(handler)
+
+
+@pytest.mark.integration
+async def test_eia_step_without_a_key_loads_nothing_and_says_so(mstore, monkeypatch):
+    monkeypatch.delenv("EIA_API_KEY", raising=False)
+    res = await macro.refresh(mstore, transport=eia_site([]), today=D(2026, 11, 4), only=["eia_brent"])
+    assert res["steps"]["eia_brent"]["status"] == "skipped"
+    async with mstore.pool.acquire() as conn:
+        assert await conn.fetchval("SELECT count(*) FROM macro_points WHERE series = 'brent_d'") == 0
+        payload = await macro.get_meta(conn, "payload")
+    assert payload["brent"] == {"status": "nokey", "reason": "Brent: source key not set"} and "brent_d" not in payload["series"]
+
+
+@pytest.mark.integration
+async def test_eia_step_with_a_key_stores_prices_and_skips_blank_days(mstore, monkeypatch):
+    monkeypatch.setenv("EIA_API_KEY", "k-test")
+    rows = [{"period": "2026-11-02", "series": "RBRTE", "value": "105.55"}, {"period": "2026-10-30", "series": "RBRTE", "value": ""},
+            {"period": "2026-10-29", "series": "RBRTE", "value": "99.10"}]
+    res = await macro.refresh(mstore, transport=eia_site(rows), today=D(2026, 11, 4), only=["eia_brent"])
+    assert res["steps"]["eia_brent"]["status"] == "ok" and res["steps"]["eia_brent"]["points"] == 2
+    async with mstore.pool.acquire() as conn:
+        payload = await macro.get_meta(conn, "payload")
+    assert payload["brent"]["value"] == 105.55 and payload["brent"]["date"] == "2026-11-02" and payload["series"]["brent_d"]["points"][-1] == ["2026-11-02", 105.55]
+
+
+@pytest.mark.integration
+async def test_eia_failure_keeps_the_last_prices_and_never_leaks_the_key(mstore, monkeypatch):
+    monkeypatch.setenv("EIA_API_KEY", "k-test")
+    await macro.refresh(mstore, transport=eia_site([{"period": "2026-11-02", "series": "RBRTE", "value": "105.55"}]), today=D(2026, 11, 4), only=["eia_brent"])
+    res = await macro.refresh(mstore, transport=eia_site([], status=403), today=D(2026, 11, 5), only=["eia_brent"])
+    assert res["steps"]["eia_brent"]["status"] == "failed" and "k-test" not in json.dumps(res)
+    async with mstore.pool.acquire() as conn:
+        payload = await macro.get_meta(conn, "payload")
+    assert payload["brent"]["value"] == 105.55 and payload["brent"]["note"]
+
+
+def test_the_dashboard_layout_accepts_third_width_blocks():
+    from finlit.auth.routes import PrefsIn
+    p = PrefsIn(dashboard=[{"id": "mystocks", "on": True, "size": "full"}, {"id": "ipos", "on": True, "size": "third"}])
+    assert [w.size for w in p.dashboard] == ["full", "third"]

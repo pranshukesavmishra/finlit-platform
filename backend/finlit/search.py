@@ -16,6 +16,7 @@ import time
 import zlib
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
+from typing import Optional
 
 import orjson
 
@@ -153,6 +154,21 @@ async def build(app, level: str):
     return body, packed, etag
 
 
+MAX_SYMBOLS = 200
+
+
+def wanted_symbols(raw: Optional[str]) -> Optional[set]:
+    """The symbols of ?symbols=A,B,C (upper-cased, at most MAX_SYMBOLS); None when the parameter is absent, so the whole list is served. An empty value means no company."""
+    if raw is None:
+        return None
+    return set(list(dict.fromkeys(p.strip().upper() for p in raw.split(",") if p.strip() and len(p.strip()) <= 40))[:MAX_SYMBOLS])
+
+
+def _only(doc: dict, wanted: set) -> dict:
+    """The saved quotes document cut down to the wanted symbols (the other fields, including the AMC logos, stay as they are)."""
+    return {**doc, "rows": [r for r in doc.get("rows", []) if r[0] in wanted]}
+
+
 @router.get("/quotes")
 async def quotes(request: Request):
     level = "silver" if has((await current(request)).plan, "silver") else "basic"
@@ -165,6 +181,10 @@ async def quotes(request: Request):
         body, packed, etag = await build(request.app, level)
     else:
         body, packed, etag = hit[0], hit[1], hit[2].decode()
+    wanted = wanted_symbols(request.query_params.get("symbols"))
+    if wanted is not None:   # ?symbols=A,B: only those rows (the dashboard follows a handful of stocks, not 5,000); a filtered copy is built per request from the saved one
+        body = dumps(_only(orjson.loads(body), wanted))
+        packed, etag = gzip.compress(body, compresslevel=6, mtime=0), etag_for(body)
     headers = {"ETag": etag, "Cache-Control": CACHE, "Vary": "Cookie, Accept-Encoding"}
     if etag_matches(request.headers.get("if-none-match"), etag):
         return Response(status_code=304, headers=headers)

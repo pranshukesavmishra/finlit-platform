@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import ssl
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -34,6 +35,8 @@ router = APIRouter(prefix="/api/macro")
 MOSPI = "https://api.mospi.gov.in"
 RBI_HOME = "https://www.rbi.org.in/"
 RBI_RSS = "https://rbi.org.in/pressreleases_rss.xml"
+EIA_URL = "https://api.eia.gov/v2/petroleum/pri/spt/data/"   # U.S. Energy Information Administration open data, series RBRTE (public domain)
+EIA_NO_KEY = "Brent: source key not set"
 USER_AGENT = "FinLit-data/1.0 (+https://finlitventures.com)"
 PAUSE = 0.25                                  # seconds between two MoSPI requests
 KEY = "macro:v1"
@@ -70,17 +73,18 @@ SERIES: Dict[str, dict] = {
     "real_rate": {"label": "Real repo rate", "unit": "pp", "freq": "M", "source": "Derived: RBI repo rate minus CPI inflation", "what": "The repo rate minus CPI inflation of the same month."},
     "fx_reserves": {"label": "Forex reserves", "short": "Reserves", "unit": "US$ bn", "freq": "W", "source": "RBI", "what": "Foreign exchange reserves: currency assets, gold, SDRs and the IMF position."},
     "usdinr_d": {"label": "Rupee per US dollar, daily", "unit": "₹", "freq": "D", "source": "RBI / FBIL"},
+    "brent_d": {"label": "Brent crude, daily", "unit": "US$/bbl", "freq": "D", "source": "U.S. EIA", "what": "Europe Brent spot price FOB (EIA series RBRTE), US dollars a barrel."},
     "usdinr": {"label": "Rupee per US dollar", "short": "USD/INR", "unit": "₹", "freq": "M", "source": "RBI / FBIL", "what": "Reference rate, monthly average (latest: today's FBIL reference rate)."},
     "credit_yoy": {"label": "Bank credit growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Scheduled commercial banks' credit in India, year on year."},
     "deposits_yoy": {"label": "Bank deposit growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Aggregate deposits, year on year."},
     "m3_yoy": {"label": "Money supply (M3) growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Broad money, year on year."},
 }
 SOURCE_URL = {"MoSPI": "https://esankhyiki.mospi.gov.in", "NSO / MoSPI": "https://esankhyiki.mospi.gov.in", "PLFS / MoSPI": "https://esankhyiki.mospi.gov.in",
-              "RBI": "https://www.rbi.org.in", "RBI / FBIL": "https://www.fbil.org.in"}
+              "RBI": "https://www.rbi.org.in", "RBI / FBIL": "https://www.fbil.org.in", "U.S. EIA": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"}
 CARDS = ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "real_rate", "fx_reserves", "usdinr", "credit_yoy"]
 RANGES = {"cpi": (-5, 30), "cpi_rural": (-5, 30), "cpi_urban": (-5, 30), "wpi": (-20, 40), "gdp": (-30, 30), "gdp_nominal": (-30, 40), "iip": (-70, 100),
           "unemployment": (0, 40), "unemployment_youth": (0, 60), "unemployment_urban": (0, 40), "repo": (1, 15), "fx_reserves": (1, 2500),
-          "usdinr": (20, 250), "usdinr_d": (20, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
+          "usdinr": (20, 250), "usdinr_d": (20, 250), "brent_d": (5, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
 
 
 def mospi_ssl() -> ssl.SSLContext:
@@ -305,6 +309,34 @@ async def step_rbi_home(src: Sources, conn, today: date, full: bool) -> dict:
     return {"points": n, "repo": got["rates"]["repo"]}
 
 
+async def step_eia_brent(src: Sources, conn, today: date, full: bool) -> dict:
+    """Brent crude (EIA series RBRTE, US$ a barrel, daily). Needs the free EIA key in EIA_API_KEY; without it nothing is loaded and the page says the key is not set
+    (a price is never filled in). The first run loads about 5 years, later runs the last 60 days."""
+    key = os.getenv("EIA_API_KEY", "").strip()
+    if not key:
+        await set_meta(conn, "run:eia_brent", {"status": "nokey", "reason": EIA_NO_KEY, "at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+        return {"skipped": EIA_NO_KEY}
+    have = await conn.fetchval("SELECT count(*) FROM macro_points WHERE series = 'brent_d'")
+    length = 1500 if full or not have else 60
+    params = {"api_key": key, "frequency": "daily", "data[0]": "value", "facets[series][]": "RBRTE", "sort[0][column]": "period", "sort[0][direction]": "desc", "length": length}
+    src.calls += 1
+    try:
+        r = await src.web.get(EIA_URL, params=params)
+    except httpx.TransportError as exc:
+        raise RuntimeError(f"EIA: {type(exc).__name__}") from exc      # the message never carries the URL (it holds the key)
+    if r.status_code != 200:
+        raise RuntimeError(f"EIA answered {r.status_code}")
+    pts: S.Points = {}
+    for row in (r.json().get("response") or {}).get("data") or []:
+        try:
+            pts[date.fromisoformat(row["period"])] = round(float(row["value"]), 2)
+        except (KeyError, TypeError, ValueError):
+            continue                                                  # a blank or malformed day is skipped, never guessed
+    if not pts:
+        raise RuntimeError("EIA sent no Brent prices")
+    return {"points": await save_points(conn, "brent_d", pts), "latest": max(pts).isoformat()}
+
+
 async def step_rbi_wss(src: Sources, conn, today: date, full: bool) -> dict:
     found = S.latest_wss_link(await src.get_text(RBI_RSS))
     if not found:
@@ -323,7 +355,7 @@ async def step_rbi_wss(src: Sources, conn, today: date, full: bool) -> dict:
 
 
 STEPS: List[Tuple[str, Callable]] = [("cpi", step_cpi), ("wpi", step_wpi), ("gdp", step_gdp), ("iip", step_iip), ("plfs", step_plfs),
-                                    ("rbi_tables", step_rbi_tables), ("rbi_home", step_rbi_home), ("rbi_wss", step_rbi_wss)]
+                                    ("rbi_tables", step_rbi_tables), ("rbi_home", step_rbi_home), ("rbi_wss", step_rbi_wss), ("eia_brent", step_eia_brent)]
 
 
 def load_decisions() -> List[S.Decision]:
@@ -431,6 +463,8 @@ def derive(raw: Dict[str, S.Points], decisions: List[S.Decision], today: date) -
     out["usdinr_d"] = dict(raw.get("usdinr_d", {}))
     notes["usdinr"] = ("Monthly average of the reference rate (RBI tables, as republished by MoSPI), then the daily FBIL reference rate shown on "
                        "rbi.org.in from the day it was first read.")
+    out["brent_d"] = dict(raw.get("brent_d", {}))
+    notes["brent_d"] = "U.S. Energy Information Administration, Europe Brent spot price FOB (series RBRTE), daily, US dollars a barrel; public-domain data."
     for key in ("credit_yoy", "deposits_yoy", "m3_yoy"):
         out[key] = raw.get(key, {})
     notes["credit_yoy"] = "Scheduled commercial banks, business in India, as the RBI's weekly statistical supplement states it, from the week it was first read."
@@ -567,6 +601,28 @@ def coverage(series: Dict[str, S.Points], today: date) -> List[dict]:
     return out
 
 
+def brent_block(pts: S.Points, run: Optional[dict], today: date) -> dict:
+    """What the dashboard's Brent tile shows: the latest price and how it stands against its average over the last four completed calendar quarters (the
+    period behind companies' latest results). A reason in place of a number whenever there is none."""
+    if not pts:
+        reason = (run or {}).get("reason") or ("Brent: no prices loaded yet" if not run else "Brent: the last download failed")
+        return {"status": (run or {}).get("status") or "empty", "reason": reason}
+    last = max(pts)
+    qe = date(today.year, ((today.month - 1) // 3) * 3 + 1, 1) - timedelta(days=1)     # the last day of the most recent finished quarter
+    nxt = qe + timedelta(days=1)
+    start = date(nxt.year - 1, nxt.month, 1)                                           # four quarters back from the first day after that quarter
+    win = [v for d, v in pts.items() if start <= d <= qe]
+    out = {"status": "ok", "value": pts[last], "date": last.isoformat(), "avg4q": None, "vsAvgPct": None, "avgFrom": start.isoformat(), "avgTo": qe.isoformat()}
+    if len(win) >= 150:                                                                 # about 250 trading days in a year: a thin window is not an average
+        avg = sum(win) / len(win)
+        out.update(avg4q=round(avg, 2), vsAvgPct=round((pts[last] / avg - 1) * 100, 1))
+    else:
+        out["reason"] = f"Brent: only {len(win)} days held for the 4-quarter average"
+    if (run or {}).get("status") == "failed":
+        out["note"] = "The last download failed; showing the last prices held."
+    return out
+
+
 async def build(store, today: date) -> dict:
     async with store.pool.acquire() as conn:
         raw = await load_points(conn)
@@ -611,7 +667,8 @@ async def build(store, today: date) -> dict:
         "targetWatch": target_watch(series.get("cpi", {})),
         "series": {k: {"label": SERIES[k]["label"], "unit": SERIES[k]["unit"], "freq": SERIES[k]["freq"], "source": SERIES[k]["source"],
                        "sourceUrl": SOURCE_URL.get(SERIES[k]["source"]), "what": SERIES[k].get("what"), "note": notes.get(k), "breaks": breaks.get(k, []),
-                       "points": [[d.isoformat(), v] for d, v in pts.items()]} for k, pts in series.items() if k in SERIES and pts},
+                       "points": [[d.isoformat(), v] for d, v in (list(pts.items())[-400:] if k == "brent_d" else pts.items())]} for k, pts in series.items() if k in SERIES and pts},
+        "brent": brent_block(series.get("brent_d", {}), runs.get("eia_brent"), today),
         "cpiDivisions": divisions,
         "rates": rates, "reserves": wss,
         "decisions": [{"date": x.date.isoformat(), "rate": x.rate, "bp": x.change_bp, "url": x.source} for x in sorted(decisions, key=lambda x: x.date)],

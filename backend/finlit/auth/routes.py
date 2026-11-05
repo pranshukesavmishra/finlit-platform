@@ -243,7 +243,7 @@ class ScreensIn(BaseModel):
 class Widget(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]{1,24}$")
     on: bool = True
-    size: Literal["half", "full"] = "half"
+    size: Literal["third", "half", "full"] = "half"
 
 
 class PrefsIn(BaseModel):
