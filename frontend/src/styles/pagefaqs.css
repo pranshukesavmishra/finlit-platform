@@ -1,9 +1,10 @@
 /* "Questions about this page" panel at the bottom of each page, and the All FAQs hub */
-.pfq { margin: 40px 0 0; padding: 0 20px; }
-main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 300px; }
-main:has(.shell.is-collapsed) > .pfq { padding-left: 96px; }
-.pfq-in { max-width: 900px; margin: 0 auto; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
-main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
+/* The panel lines up with the page's content column: the same left and right edges as a .wrap (max 1260 with a 20px gutter, 14px on a phone), centred.
+   On a page with the workspace sidebar the column starts after the sidebar (280px, 76px when it is collapsed), exactly like the page's own content. */
+.pfq { margin: 40px auto 0; padding: 0; max-width: 1640px; box-sizing: border-box; }
+main:has(.shell:not(.is-collapsed)) > .pfq { padding-left: 280px; }
+main:has(.shell.is-collapsed) > .pfq { padding-left: 76px; }
+.pfq-in { width: min(1220px, calc(100% - 40px)); margin: 0 auto; box-sizing: border-box; padding: 26px 28px 20px; border: 1.5px solid var(--frame); border-radius: 20px; background: var(--s1); }
 .pfq-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
 .pfq-k { display: block; font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
 .pfq-h h2, .pfq-hub h1 { margin: 0; font: 400 26px/1.2 var(--serif); color: var(--text); }
@@ -39,10 +40,10 @@ main:not(:has(.shell)) > .pfq .pfq-in { margin: 0 auto; }
 .pfq-pg { margin-top: 18px; scroll-margin-top: 80px; }
 .pfq-pgh { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
 .pfq-pgh h3 { margin: 0; font: 400 22px var(--serif); } .pfq-pgh h3 a { color: var(--text); text-decoration: none; } .pfq-pgh h3 a:hover { color: var(--gold); }
-@media (max-width: 960px) { main:has(.shell) > .pfq { padding-left: 20px !important; } .pfq-in { margin: 0 auto; } }
+@media (max-width: 960px) { main:has(.shell) > .pfq { padding-left: 0 !important; } }
+@media (max-width: 760px) { .pfq-in { width: calc(100% - 28px); } }   /* the phone gutter of .wrap */
 @media (max-width: 720px) {
-  .pfq { margin-top: 28px; padding: 0 16px; }
-  main:has(.shell) > .pfq { padding-left: 16px !important; }
+  .pfq { margin-top: 28px; }
   .pfq-in { padding: 20px 16px 16px; border-radius: 16px; }
   .pfq-h { flex-direction: column; gap: 8px; } .pfq-h h2 { font-size: 22px; }
   .pfq-h h2 small { display: block; margin: 2px 0 0; }
