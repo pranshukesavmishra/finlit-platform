@@ -174,3 +174,76 @@ async def test_a_swap_changes_what_is_served_at_once_and_the_old_release_is_kept
     sd.publish(b, out, "20261030-1934")
     assert (await anon.get("/api/sectors")).json()["date"] == "2026-10-30" and first.is_dir()
     assert os.path.islink(out / "current")
+
+
+# ------------------------------------------------------------------------------------------------ Sector Rotation
+@pytest.fixture
+def rot_out(tmp_path, monkeypatch):
+    """A live release that also holds the rotation files (the real output of 29 Oct 2026, three groups)."""
+    monkeypatch.setenv("SECTOR_OUT_DIR", str(tmp_path / "out"))
+    monkeypatch.setenv("SECTORS_ENABLED", "1")
+    sd.clear_cache()
+    root = tmp_path / "out"
+    b = sd.building_dir(root, "20261029-1934")
+    fakes.make_release(b, rotation=True)
+    sd.publish(b, root, "20261029-1934")
+    yield root
+    sd.clear_cache()
+
+
+async def test_rotation_map_and_cards_are_open_to_every_plan_but_the_leader_flag_count_follows_the_board(anon, app, rot_out):  # noqa: F811
+    r = await anon.get("/api/rotation")
+    m = r.json()
+    assert r.status_code == 200 and m["plan"] == "basic" and len(m["rows"]) == 3 and m["disclaimer"] and m["study"]["corners"]
+    assert all(x["corner"] and x["rank"] and x["tail"] for x in m["rows"]) and all(x["leader_flags"] is None for x in m["rows"]) and m["locked"] == {"leader_flags": "silver"}
+    assert r.headers["cache-control"].startswith("private") and r.headers["etag"]
+    card = await anon.get("/api/rotation/banks")
+    c = card.json()
+    assert card.status_code == 200 and c["reading"] is True and c["name"] == "Banks" and c["summary"] and c["study"]
+    silver = await signed_in(app, "rs@example.com", plan="silver")
+    assert (await silver.get("/api/rotation")).json()["locked"] == {}
+    await silver.aclose()
+
+
+async def test_rotation_says_why_when_it_is_missing_and_serves_only_listed_slugs(anon, rot_out, tmp_path, monkeypatch):  # noqa: F811
+    for slug in ("nope", "..", "_map", "BANKS", "banks.json", "a" * 200):
+        r = await anon.get(f"/api/rotation/{slug}")
+        assert r.status_code in (404, 422) and "disclaimer" not in r.text, slug
+    (rot_out / "current").resolve().joinpath("rotation", "banks.json").unlink()
+    sd.clear_cache()
+    r = await anon.get("/api/rotation/banks")
+    assert r.status_code == 503 and "rotation card is missing" in r.json()["reason"]
+    # a release with no rotation folder (built before rotation existed)
+    older = tmp_path / "older"
+    b = sd.building_dir(older, "20261028-1934")
+    fakes.make_release(b)
+    sd.publish(b, older, "20261028-1934")
+    monkeypatch.setenv("SECTOR_OUT_DIR", str(older))
+    sd.clear_cache()
+    r = await anon.get("/api/rotation")
+    assert r.status_code == 503 and r.json()["reason"].startswith("Rotation data is not loaded yet:") and r.headers["cache-control"] == "no-store"
+    assert (await anon.get("/api/sectors")).status_code == 200 and (await anon.get("/api/sectors/status")).json()["rotationLoaded"] is False
+
+
+async def test_nothing_loaded_rotation_gives_the_sector_reason(anon, tmp_path, monkeypatch):  # noqa: F811
+    monkeypatch.setenv("SECTOR_OUT_DIR", str(tmp_path / "empty"))
+    monkeypatch.setenv("SECTORS_ENABLED", "1")
+    sd.clear_cache()
+    for url in ("/api/rotation", "/api/rotation/banks"):
+        r = await anon.get(url)
+        assert r.status_code == 503 and r.json()["reason"].startswith("Sector data is not loaded yet:")
+
+
+async def test_the_old_capital_goods_address_answers_with_the_renamed_group(anon, rot_out, monkeypatch):  # noqa: F811
+    assert sd.resolve_slug("capital-goods") == "agricultural-commercial-construction-vehicles" and sd.resolve_slug("banks") == "banks"
+    monkeypatch.setattr(sd, "SLUG_ALIASES", {"capital-goods": "banks"})                     # the fixture holds no vehicles group: alias a group it does hold
+    a, b = await anon.get("/api/sectors/capital-goods"), await anon.get("/api/sectors/banks")
+    assert a.status_code == 200 and a.json()["slug"] == b.json()["slug"] == "banks"
+    assert (await anon.get("/api/rotation/capital-goods")).json()["slug"] == "banks"
+
+
+async def test_a_basic_stock_teaser_carries_the_industrys_rotation_line(anon, rot_out):  # noqa: F811
+    doc = json.loads((fakes.FIX / "SAMBHV.json").read_text())["sector"]
+    doc["rotation"] = {"corner": "ahead_slowing", "corner_name": "Ahead but slowing", "rank": 7, "ranked": 37}
+    t = redact_sector_stock(doc, "SAMBHV", "basic")
+    assert t["rotation"]["rank"] == 7 and t["locked"] == {"stock": "gold"} and "rank_6m" not in json.dumps(t)
