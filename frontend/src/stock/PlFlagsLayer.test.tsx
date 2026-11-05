@@ -54,3 +54,15 @@ describe("earnings popup, Kotak", () => {
     expect(html).toContain("revenue +15.4%, net profit +26.3%");
   });
 });
+
+import { isAway } from "./PlFlagsLayer";
+describe("the alert belongs to its section", () => {
+  const vh = 800;
+  it("is shown while the reader is on its section", () => { expect(isAway(100, 500, 1200, vh)).toBe(false); });
+  it("goes away when the next section passes the middle of the screen", () => { expect(isAway(-300, 100, 300, vh)).toBe(true); expect(isAway(-300, 100, null, vh)).toBe(false); });
+  it("goes away when the results are far above, or when the reader has gone back up to an earlier section", () => {
+    expect(isAway(-1500, -700, 2000, vh)).toBe(true);
+    expect(isAway(900, 1200, 2500, vh)).toBe(true);
+  });
+});
+

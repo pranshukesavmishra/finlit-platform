@@ -32,16 +32,22 @@ function apply(flags: PlFlag[], on: boolean) {
 
 type Tab = "why" | "causes" | "check";
 const TABS: [Tab, string][] = [["why", "Why it matters"], ["causes", "Possible causes"], ["check", "What to check"]];
-/** Neutral, case-level pointers: what could explain the gap and where to look. Possibilities only, never a verdict. */
-const MORE: Record<number, { causes: string[]; check: string[] }> = {
-  1: { causes: ["One-off gains or asset sales", "Unusual cost savings or lower tax", "Lower interest or depreciation"], check: ["Other income in the P&L", "Exceptional items in the notes", "Whether operating profit moved the same way"] },
-  2: { causes: ["One-off gains", "Cost cuts or a better product mix", "Lower tax or interest"], check: ["Operating margin trend", "Other income and exceptional items", "Why sales fell"] },
-  3: { causes: ["Costs rising faster than sales", "Weaker pricing or margins", "Higher interest, depreciation or tax", "One-off charges"], check: ["Operating margin against last year", "Exceptional items and one-off charges", "Interest and tax lines"] },
-  4: { causes: ["Costs rising as fast as sales", "Discounting to win volume", "One-off charges in the period"], check: ["Operating margin trend", "Raw material and staff costs", "Whether the next quarter repeats it"] },
-  5: { causes: ["Non-operating or other income", "Exceptional savings or write-backs", "Lower tax or interest"], check: ["Other income in the P&L", "Operating profit against net profit", "Whether the gain can repeat"] },
-  6: { causes: ["Weaker demand or a slowdown", "Price cuts or lost customers", "Fixed costs spread over lower sales"], check: ["Management commentary on demand", "Order book or volumes", "Whether peers saw the same"] },
-  7: { causes: ["Other income or non-operating gains", "Lower tax or a tax credit", "Lower interest cost"], check: ["Other income in the P&L", "Tax rate against last year", "Operating profit trend"] },
-  8: { causes: ["A change in the business or its costs", "Repeating one-off items", "A shift in pricing or mix"], check: ["Each quarter against the same one a year earlier", "Operating margin over the run", "Management commentary"] },
+type Para = { lead?: string; text: string };
+const list = (a: string[]): Para[] => [{ text: a.join(", ") + "." }];
+/** Neutral, case-level pointers: what could explain the gap and where to look. Possibilities only, never a verdict. Every tab is a list of paragraphs. */
+const MORE: Record<number, { causes: Para[]; check: Para[]; why?: Para[] }> = {
+  1: {
+    why: [{ lead: "Quarter on quarter", text: "Profit and sales moved very differently. One quarter can be seasonal, so read it as momentum, not a trend." }, { lead: "Year on year", text: "Same-quarter view removes seasonality. Strong profit growth may be real efficiency or a one-time boost." }],
+    causes: [{ lead: "Quarter on quarter", text: "Seasonal demand, sudden cost changes, one-time gains or expenses, discounting, higher interest or tax." }, { lead: "Year on year", text: "Costs growing slower than sales, lower input costs, weak base last year, one-time gains, lower interest." }],
+    check: [{ lead: "Quarter on quarter", text: "Same quarter last year. One-time items in the results. Gap between operating and net profit." }, { lead: "Year on year", text: "Is profit from the core business? Is margin improving over several quarters? Is cash flow strong?" }],
+  },
+  2: { causes: list(["One-off gains", "Cost cuts or a better product mix", "Lower tax or interest"]), check: list(["Operating margin trend", "Other income and exceptional items", "Why sales fell"]) },
+  3: { causes: list(["Costs rising faster than sales", "Weaker pricing or margins", "Higher interest, depreciation or tax", "One-off charges"]), check: list(["Operating margin against last year", "Exceptional items and one-off charges", "Interest and tax lines"]) },
+  4: { causes: list(["Costs rising as fast as sales", "Discounting to win volume", "One-off charges in the period"]), check: list(["Operating margin trend", "Raw material and staff costs", "Whether the next quarter repeats it"]) },
+  5: { causes: list(["Non-operating or other income", "Exceptional savings or write-backs", "Lower tax or interest"]), check: list(["Other income in the P&L", "Operating profit against net profit", "Whether the gain can repeat"]) },
+  6: { causes: list(["Weaker demand or a slowdown", "Price cuts or lost customers", "Fixed costs spread over lower sales"]), check: list(["Management commentary on demand", "Order book or volumes", "Whether peers saw the same"]) },
+  7: { causes: list(["Other income or non-operating gains", "Lower tax or a tax credit", "Lower interest cost"]), check: list(["Other income in the P&L", "Tax rate against last year", "Operating profit trend"]) },
+  8: { causes: list(["A change in the business or its costs", "Repeating one-off items", "A shift in pricing or mix"]), check: list(["Each quarter against the same one a year earlier", "Operating margin over the run", "Management commentary"]) },
 };
 const SEV = { watch: "Watch", caution: "Investigate" } as const;
 const sgn = (v: number) => (v < 0 ? "−" : v > 0 ? "+" : "") + Math.abs(v).toFixed(1) + "%";
@@ -100,7 +106,15 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
   const scopes = (["quarterly", "annual"] as const).filter((sc) => x.views[sc]);
   const sc: Scope = pick_ && x.views[pick_] ? pick_ : x.headline, v = x.views[sc]!, hv = x.views[x.headline]!;
   const pick = (n: number) => { setI(n); setTab("why"); setPick(null); };
-  const body = tab === "why" ? <p>{x.why}</p> : <ul>{more[tab === "causes" ? "causes" : "check"].map((t) => <li key={t}>{t}</li>)}</ul>;
+  const paras: Para[] = tab === "why" ? more.why ?? [{ text: x.why }] : more[tab];
+  const body = paras.map((p) => <p key={p.text}>{p.lead && <b>{p.lead}: </b>}{p.text}</p>);
+  const onTabKey = (e: React.KeyboardEvent) => {
+    const n = TABS.length, at = TABS.findIndex(([k]) => k === tab);
+    const to = e.key === "ArrowRight" ? (at + 1) % n : e.key === "ArrowLeft" ? (at + n - 1) % n : e.key === "Home" ? 0 : e.key === "End" ? n - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault(); setTab(TABS[to][0]);
+    (e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to])?.focus();
+  };
   return (
     <aside className="plf-note" role="status" aria-label="Flags from the latest results" onAnimationEnd={onAnimationEnd}>
       <div className="plf-top">
@@ -116,7 +130,6 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
       )}
       <section className="plf-in">
         <h3>{x.title}</h3>
-        <p className="plf-base">Flag based on the {hv.label.toLowerCase()}: {hv.period} against {hv.against}.</p>
         {scopes.length > 1 && (
           <div className="plf-tabs plf-views" role="tablist" aria-label="Period">
             {scopes.map((k) => <button key={k} type="button" role="tab" aria-selected={sc === k} className={sc === k ? "on" : ""} onClick={() => setPick(k)}>{x.views[k]!.label} · {x.views[k]!.period}{x.views[k]!.triggered ? "" : " (no flag)"}</button>)}
@@ -126,20 +139,26 @@ function FlagCard({ items, onClose, onAnimationEnd }: { items: Insight[]; onClos
         <Block v={v} lender={x.lender} recent={sc === "annual" ? x.views.quarterly : undefined} />
       </section>
       <h4>Explore this insight</h4>
-      <div className="plf-tabs" role="tablist">
-        {TABS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}
+      <div className="plf-tabs plf-explore" role="tablist" aria-label="Explore this insight" onKeyDown={onTabKey}>
+        {TABS.map(([k, l]) => <button key={k} type="button" role="tab" id={`plf-t-${k}`} aria-selected={tab === k} aria-controls="plf-pane" tabIndex={tab === k ? 0 : -1} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}
       </div>
-      <div className="plf-pane" role="tabpanel">{body}</div>
+      <div className="plf-pane" id="plf-pane" role="tabpanel" aria-labelledby={`plf-t-${tab}`} key={tab}>{body}</div>
       <p className="plf-f">Based on reported figures{x.lender ? " (for a bank or lender, operating profit is not shown)" : ""}. Information only, not advice.</p>
     </aside>
   );
+}
+
+/** True when the reader is not on the alert's own section: the next section (trends) is past the middle of the screen, the results are far above, or the
+ *  reader has gone back up so the results are still well below the fold. `nextTop` is null when the next section is not on the page. */
+export function isAway(barTop: number, barBottom: number, nextTop: number | null, vh: number): boolean {
+  return (nextTop != null && nextTop < vh * 0.45) || barBottom < -vh * 0.8 || barTop > vh * 0.85;
 }
 
 export function PlFlagsLayer({ f, lender = false }: { f?: Financials; lender?: boolean }) {
   // both series come from the same stored financials report as the results tables and the quarter section, so a new quarter shows after a refresh
   const items = useMemo(() => plInsights({ annual: f?.yearly?.pl, quarterly: f?.quarterly?.pl, lender }), [f, lender]);
   const flags = useMemo(() => items.flatMap((x) => x.flags), [items]);
-  const [on, setOn] = useState(read), [shown, setShown] = useState(false), [gone, setGone] = useState(false), [landed, setLanded] = useState(false);
+  const [on, setOn] = useState(read), [shown, setShown] = useState(false), [dismissed, setDismissed] = useState(false), [away, setAway] = useState(false), [forced, setForced] = useState(false), [landed, setLanded] = useState(false);
   const bar = useRef<HTMLDivElement>(null);
   const toggle = () => { setOn((v) => { write(!v); return !v; }); };
   // the notice drops in once, the first time the results area comes into view
@@ -150,16 +169,21 @@ export function PlFlagsLayer({ f, lender = false }: { f?: Financials; lender?: b
     return () => io.disconnect();
   }, [flags.length]);
   useEffect(() => { if (shown && reduced()) setLanded(true); }, [shown]);
-  // the notice goes by itself once the reader moves on: when the next section (trends) reaches the middle of the screen, or the results area is well above the screen
+  // the notice belongs to its section: it goes by itself when the reader moves to another section, and a small edge tab brings it back
   useEffect(() => {
-    if (!shown || gone) return;
+    if (!shown) return;
     const check = () => {
-      const next = document.getElementById("trends"), top = bar.current?.getBoundingClientRect().bottom ?? 0;
-      if ((next && next.getBoundingClientRect().top < window.innerHeight * 0.45) || top < -window.innerHeight * 0.8) { setGone(true); setLanded(true); }
+      const r = bar.current?.getBoundingClientRect(), next = document.getElementById("trends");
+      const a = isAway(r?.top ?? 0, r?.bottom ?? 0, next ? next.getBoundingClientRect().top : null, window.innerHeight);
+      setAway(a);
+      if (a) setLanded(true); else setForced(false);
     };
+    check();
     window.addEventListener("scroll", check, { passive: true });
-    return () => window.removeEventListener("scroll", check);
-  }, [shown, gone]);
+    window.addEventListener("resize", check);
+    return () => { window.removeEventListener("scroll", check); window.removeEventListener("resize", check); };
+  }, [shown]);
+  const gone = dismissed || (away && !forced);
   const land = useCallback(() => setLanded(true), []);
   useEffect(() => {
     if (!flags.length) return;
@@ -177,9 +201,14 @@ export function PlFlagsLayer({ f, lender = false }: { f?: Financials; lender?: b
         <span className="plf-chip" title="Revenue and profit comparisons worth a closer look">Flags · {items.length}</span>
         <span className="plf-legend"><i className="plf-sw" />highlighted rows and columns in the results tables</span>
         <button type="button" className="plf-btn" aria-pressed={on} onClick={toggle}>{on ? "Turn highlights off" : "Turn highlights on"}</button>
-        <button type="button" className="plf-btn" onClick={() => { setGone(false); setShown(true); }}>Show details</button>
+        <button type="button" className="plf-btn" onClick={() => { setDismissed(false); setForced(true); setShown(true); }}>Show details</button>
       </div>
-      {shown && !gone && <FlagCard items={items} onClose={() => { setGone(true); setLanded(true); }} onAnimationEnd={land} />}
+      {shown && !gone && <FlagCard items={items} onClose={() => { setDismissed(true); setLanded(true); }} onAnimationEnd={land} />}
+      {shown && !dismissed && away && !forced && (
+        <button type="button" className="plf-edge" aria-label={`Open alert: ${items[0].title}`} title="Open the earnings alert" onClick={() => setForced(true)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3" /></svg><i className="plf-dot" aria-hidden="true" />
+        </button>
+      )}
     </>
   );
 }
