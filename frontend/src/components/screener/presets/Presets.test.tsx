@@ -10,7 +10,7 @@ vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect()
 import { PresetPanel } from "./PresetPanel";
 import { PresetPage } from "./PresetPage";
 import { usePresetRoute } from "./usePresetRoute";
-import { orderGroups, presetCsv, readPresetUrl, resolveChips, sortPresetRows, type PresetDetail } from "../../../lib/presets";
+import { orderGroups, readPresetUrl, resolveChips, sortPresetRows } from "../../../lib/presets";
 
 const chip = (id: string, label: string, d = false) => ({ id, label, default: d, description: label + " description" });
 const P = (id: string, name: string, group: string, o = {}) => ({ id, name, group, cardText: name + " text", count: 5, asOf: "2026-10-31", status: "live", blockedReason: null, chips: [], howItWorks: ["Rule one", "Rule two"], locked: false, ...o });
@@ -184,14 +184,6 @@ describe("lib", () => {
   it("sorts text and numbers", () => {
     expect(sortPresetRows([{ symbol: "B" }, { symbol: "A" }], { key: "symbol", dir: 1 }).map((r) => r.symbol)).toEqual(["A", "B"]);
   });
-  it("builds the CSV with the screen's own columns, the disclaimer and blanks for missing values", () => {
-    const csv = presetCsv(DETAIL as unknown as PresetDetail, DETAIL.rows as never, { chips: ["trend"], chipLabels: { trend: "Trend check" }, sort: null, exportedOn: "2026-10-31" }).split("\r\n");
-    expect(csv).toContain("# A screen narrows a list. It is not a recommendation.");
-    expect(csv).toContain("# Options: Trend check");
-    expect(csv).toContain("Symbol,Name,Exchange,Prism score,1-year return,Market cap,Flags");
-    expect(csv).toContain("AAA,Alpha Ltd,,80,12.5,90000,Prism-confirmed");
-    expect(csv).toContain("BBB,Beta Ltd,,90,,50000,");
-  });
 });
 
 describe("a company listed only on the BSE", () => {
@@ -277,20 +269,11 @@ describe("results page by 25 (issue 30.b)", () => {
     mount("?preset=large");
     await screen.findByText("Alpha Ltd");
     expect(screen.queryByRole("navigation", { name: "Pages of this screen" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Export CSV" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Export/ })).toBeNull();
   });
-  it("the export holds every row that passes, not only the page, and the button says so", async () => {
+  it("has no export button", async () => {
     serve(); mount("?preset=large");
     await screen.findByText("Stock 1");
-    const btn = screen.getByRole("button", { name: "Export CSV (all 60)" });
-    expect(btn.getAttribute("title")).toMatch(/all 60 companies/);
-    const blobs: Blob[] = [];
-    URL.createObjectURL = ((b: Blob) => { blobs.push(b); return "blob:x"; }) as typeof URL.createObjectURL; URL.revokeObjectURL = () => {};
-    fireEvent.click(btn);
-    await waitFor(() => expect(blobs).toHaveLength(1));
-    expect(calls.some((c) => /limit=2000/.test(c))).toBe(true);
-    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blobs[0]); });
-    expect(text.split("\r\n").filter((l) => /^S\d+,/.test(l))).toHaveLength(60);
-    expect(text).toMatch(/Rows: 60 \(all 60 that pass/);
+    expect(screen.queryByRole("button", { name: /Export/ })).toBeNull();
   });
 });

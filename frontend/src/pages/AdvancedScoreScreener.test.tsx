@@ -176,18 +176,9 @@ describe("Advanced score screener (Gold)", () => {
     expect(watch.has("AAA")).toBe(true);
   });
 
-  it("exports only the Prism columns, with the site's words and blanks for unrated companies", async () => {
+  it("has no export buttons", () => {
     open();
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-    let blob: Blob | null = null;
-    URL.createObjectURL = vi.fn((b: Blob) => { blob = b; return "blob:x"; }); URL.revokeObjectURL = vi.fn();
-    fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
-    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
-    expect(text).toMatch(/Prism ratings as of: 2026-10-27/);
-    expect(text).toContain("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,85,Strong,RATED,85,55,70,70,Strong uptrend,55,Uptrend,30,2026-10-27");
-    expect(text).toContain("EEE,EEE Limited,Auto,Large cap,100,5000,,,,,,,,,,,,");
-    expect(text).not.toMatch(/Overall|Balance sheet|\bBuy\b|\bHold\b/);
+    expect(screen.queryByRole("button", { name: /Export/ })).toBeNull();
   });
 
   it("opens the How scores work dialog with the Prism definitions and the technical bands", () => {

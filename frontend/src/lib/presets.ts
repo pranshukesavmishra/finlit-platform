@@ -2,8 +2,6 @@
 // Every number shown comes from the response; nothing is computed here except ordering and layout.
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ApiError, apiGet } from "./api";
-import { csvText } from "./format";
-import { exchangeOf } from "./companyLabel";
 
 export type PresetChip = { id: string; label: string; default: boolean; description: string };
 export type Preset = {
@@ -107,8 +105,6 @@ export function usePresetDetail(id: string | null, chips: string[], enabled: boo
     queryFn: () => apiGet<PresetDetail>(detailPath(id!, chips, offset)),
   });
 }
-/** Every row that passes (up to the server's export limit), for the CSV: the page on screen holds 25. */
-export const fetchAllRows = (id: string, chips: string[]) => apiGet<PresetDetail>(detailPath(id, chips, 0, 2000));
 
 // ---------- the table ----------
 export type SortState = { key: string; dir: 1 | -1 } | null;
@@ -130,31 +126,3 @@ export const rowsForTheme = (rows: PresetRow[], t: Theme | null): PresetRow[] =>
 
 /** A breadth figure arrives as a percentage (43) or a share (0.43); both are shown as a percentage. */
 export const asPct = (v: number | null | undefined): number | null => (v == null ? null : Math.abs(v) <= 1 ? v * 100 : v);
-
-// ---------- CSV ----------
-const cell = (s: string) => (/[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s);
-const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? String(Math.round(v * 10 ** d) / 10 ** d) : v == null ? "" : String(v));
-const csvCell = (v: unknown, f: ColFormat) => (typeof v === "number" ? num(v, f === "score" ? 0 : f === "num1" || f === "pct" ? 1 : 2) : v == null ? "" : cell(csvText(String(v))));
-/** The screen's rows as CSV, with a commented header (screen, date, options, sort, what a blank means) and the screen's own columns. The browser builds it: the existing export takes whole-universe rows, not a screen's response. */
-export function presetCsv(d: PresetDetail, rows: PresetRow[], o: { chips: string[]; chipLabels: Record<string, string>; sort: SortState; exportedOn: string; theme?: string | null; tab?: PresetTab }): string {
-  const sortCol = o.sort ? d.columns.find((c) => c.key === o.sort!.key)?.label ?? o.sort.key : null;
-  const head = [
-    `# FinLit ${o.tab === "basic" ? "Basic" : "Advanced"} score screener export: ${d.name}`,
-    `# Exported on: ${o.exportedOn}`,
-    `# Screen as of: ${d.asOf ?? "date not available"}`,
-    `# Rows: ${rows.length} (${d.listText ? d.listText.toLowerCase() : `the ${d.shown} shown`}${o.theme ? `, narrowed to the ${o.theme} theme` : ""}; ${d.count} companies match the screen)`,
-    `# Options: ${o.chips.length ? o.chips.map((c) => o.chipLabels[c] ?? c).join(", ") : "none"}`,
-    `# Sorted by: ${sortCol ? `${sortCol} ${o.sort!.dir === 1 ? "ascending" : "descending"}` : "the screen's own order"}`,
-    "# Blank cell = not available. It is never zero.",
-    `# ${d.disclaimer || DISCLAIMER}`,
-  ];
-  const cols = ["Symbol", "Name", "Exchange", ...d.columns.filter((c) => !["symbol", "name"].includes(c.key)).map((c) => c.label), "Flags"];
-  const keys = d.columns.filter((c) => !["symbol", "name"].includes(c.key));
-  const lines = rows.map((r) => [cell(csvText(r.symbol)), cell(csvText(String(r.name ?? ""))), cell(exchangeOf(r) ?? ""), ...keys.map((c) => csvCell(r[c.key], c.format)), cell((r.badges ?? []).join("; "))].join(","));
-  return [...head, cols.map(cell).join(","), ...lines].join("\r\n") + "\r\n";
-}
-export function downloadCsv(csv: string, name: string) {
-  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

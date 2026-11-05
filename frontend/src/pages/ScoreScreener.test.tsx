@@ -255,21 +255,10 @@ describe("Basic score screener page", () => {
     expect(screen.getByText(/compares up to 2/)).toBeTruthy();
   });
 
-  it("exports the selected rows to CSV with the filters in the header and blanks for missing data", async () => {
-    open("?sector=Banks&sector=IT&sector=Auto&sort=f&dir=desc");
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-    let blob: Blob | null = null;
-    URL.createObjectURL = vi.fn((b: Blob) => { blob = b; return "blob:x"; }); URL.revokeObjectURL = vi.fn();
-    fireEvent.click(screen.getByRole("checkbox", { name: "Select GGG" }));
-    fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
-    expect(text).toMatch(/Scores computed on: 2026-10-26/);
-    expect(text).toMatch(/# Filters: Banks\r\n#          IT\r\n#          Auto/);
-    expect(text).toMatch(/Rows: 1 \(selected rows only; 6 companies match the filters\)/);
-    expect(text).toContain("\r\n" + ["GGG", "GGG Limited", "Auto", "", "", "", "", "", "", "", "", "60", ""].join(",") + "\r\n");   // blanks, never zeros
-    fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
-    const all = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
-    expect(all.match(/\r\n[A-Z]{3},/g)).toHaveLength(6);
+  it("has no export buttons, only Compare and Add to watchlist", () => {
+    open();
+    expect(screen.queryByRole("button", { name: /Export/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add to watchlist" })).toBeTruthy();
   });
 
   it("shows a dash with its reason, never a zero, for missing data", () => {

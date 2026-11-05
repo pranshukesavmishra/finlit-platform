@@ -124,8 +124,6 @@ export function ScreenerFrame({ s, splitKey, title, intro, sideLabel, presets, f
                     <button type="button" className="btn primary" disabled={sel.length < 2 || sel.length > maxCompare} onClick={() => s.nav(`/compare?c=${sel.join(",")}`)}
                       title={sel.length > maxCompare ? `Your plan compares up to ${maxCompare} companies` : "Select 2 to " + maxCompare + " companies"}><span aria-hidden="true">Compare ({sel.length})</span><span className="sr">{sel.length >= 2 && sel.length <= maxCompare ? `Compare ${sel.length}` : "Compare"}</span></button>
                     <button type="button" className="btn" disabled={!sel.length} onClick={s.addSelected}><span aria-hidden="true">Add to watchlist ({sel.length})</span><span className="sr">Add to watchlist</span></button>
-                    <button type="button" className="btn" disabled={!sel.length} onClick={() => s.exportCsv("selected")}><span aria-hidden="true">Export selected ({sel.length})</span><span className="sr">Export selected</span></button>
-                    <button type="button" className="btn" disabled={!rows.length} onClick={() => s.exportCsv("filtered")}>Export all {nf(rows.length, 0)}</button>
                     {sel.length > 0 && <button type="button" className="alx-link" onClick={() => s.setPicked([])}>Clear selection</button>}
                   </span>
                   {sel.length > maxCompare && <small className="muted">{s.has("gold") ? "Compare takes up to 4 companies." : "Your plan compares up to 2 companies; Gold compares 4."}</small>}
