@@ -6,75 +6,109 @@
 tr[data-flag-row] > td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); transition: background .4s; }
 
-.plf-note { position: fixed; z-index: 60; top: 112px; left: 0; right: 0; margin-inline: auto; width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 140px); overflow: auto; padding: 16px; border-radius: 20px; background: var(--s2, var(--s1)); color: var(--text); border: 1px solid var(--border-strong); box-shadow: 0 18px 48px rgba(0, 0, 0, .38); animation: plf-drop .5s cubic-bezier(.2, .9, .3, 1) 1 backwards; }
-.plf-note h3 { margin: 0; font-size: 17px; line-height: 1.3; } .plf-note h4 { margin: 16px 0 8px; font-size: 14px; }
-.plf-top { display: flex; align-items: center; gap: 12px; }
-.plf-ico { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
-.plf-ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.plf-tt { flex: 1; min-width: 0; display: grid; } .plf-tt b { font-size: 17px; } .plf-tt small { color: var(--muted); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
-.plf-sev { flex: none; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-.plf-sev-caution { color: var(--warn); background: var(--warn-soft); } .plf-sev-watch { color: var(--info); background: var(--info-soft); }
-.plf-x { font-size: 22px; line-height: 1; background: none; border: 0; color: var(--text); cursor: pointer; min-width: 32px; min-height: 32px; border-radius: 8px; } .plf-x:hover { background: var(--s2); }
-.plf-pager { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.plf-pager button, .plf-tabs button { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+/* ---- the alert card: a header, the headline, two boxed comparisons (QoQ blue, YoY teal) and an Insights box of icon chips.
+   Solid surface (no blur); every colour comes from the design tokens, with two local hues for the boxes that are re-tuned per theme. ---- */
+.plf-note {
+  --plf-blue: #5B9DF5; --plf-teal: #2DC4B2; --plf-mix-h: 20%; --plf-mix-b: 6%; --plf-mix-line: 52%;
+  position: fixed; z-index: 60; top: max(72px, min(96px, calc(100vh - 650px))); left: 0; right: 0; margin-inline: auto; width: min(660px, calc(100vw - 24px));
+  max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); overflow: auto; overscroll-behavior: contain; padding: 10px 14px 10px; border-radius: 18px;
+  background: var(--s2, var(--s1)); color: var(--text); border: 1px solid var(--border-strong); box-shadow: 0 18px 48px rgba(0, 0, 0, .38);
+  font-size: 13px; line-height: 1.4; animation: plf-drop .5s cubic-bezier(.2, .9, .3, 1) 1 backwards;
+}
+:root[data-theme="light"] .plf-note { --plf-blue: #1F5FBF; --plf-teal: #0B7F72; --plf-mix-h: 15%; --plf-mix-b: 5%; --plf-mix-line: 50%; }
+.plf-note svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.plf-top { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.plf-ico { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
+.plf-ico svg { width: 18px; height: 18px; }
+.plf-tt { flex: 1; min-width: 0; display: grid; } .plf-tt b { font-size: 15.5px; line-height: 1.2; } .plf-tt small { color: var(--muted); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plf-sev { flex: none; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+.plf-sev-caution { color: var(--warn); background: var(--warn-soft); } .plf-sev-watch { color: var(--plf-blue); background: color-mix(in srgb, var(--plf-blue) 12%, transparent); }
+.plf-x { flex: none; display: grid; place-items: center; background: none; border: 0; color: var(--text); cursor: pointer; width: 32px; height: 32px; min-height: 32px; border-radius: 8px; }
+.plf-x svg { width: 15px; height: 15px; stroke-width: 2; } .plf-x:hover { background: var(--s3); }
+.plf-pager { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.plf-pager button, .plf-tabs button { font: inherit; font-size: 12.5px; min-height: 30px; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
 .plf-pager button:hover, .plf-tabs button:hover { border-color: var(--gold); color: var(--text); }
 .plf-pager button.on, .plf-tabs button.on { border-color: var(--gold); color: var(--text); background: var(--gold-soft); font-weight: 600; }
-.plf-in { margin-top: 12px; padding: 14px; border-radius: 14px; background: var(--s1); border: 1px solid var(--border); }
-.plf-vs { margin: 4px 0 12px; color: var(--muted); font-size: 13px; }
-.plf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.plf-tile { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--s2); animation: plf-pop .45s ease-out backwards; }
-.plf-tile:nth-child(2) { animation-delay: .1s; }
-.plf-tile span { font-size: 13px; color: var(--muted); } .plf-tile b { font: 700 28px/1.15 var(--mono); letter-spacing: -.01em; }
-.plf-tile em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-size: 13px; }
-.plf-tile svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.plf-up b, .plf-up em { color: var(--gain); } .plf-down b, .plf-down em { color: var(--loss); } .plf-flat b, .plf-flat em { color: var(--muted); }
-.plf-sum { margin: 12px 0 0; font-size: 14px; line-height: 1.5; }
-.plf-pane { min-height: 84px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); font-size: 14px; line-height: 1.55; animation: plf-fade .25s ease-out; }
-.plf-pane p { margin: 0; } .plf-pane ul { margin: 0; padding-left: 18px; } .plf-pane li { margin: 3px 0; }
 .plf-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-.plf-f { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
-@keyframes plf-drop { from { opacity: 0; transform: translateY(-40px); } }
-@keyframes plf-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes plf-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .plf-note, .plf-tile, .plf-pane { animation: none; } }
-.plf-base { margin: 4px 0 10px; color: var(--muted); font-size: 13px; }
-.plf-views { margin: 0 0 12px; } .plf-views button { text-align: left; }
-.plf-lbl { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.plf-qoq { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
-.plf-blk .plf-vs { margin: 0 0 12px; line-height: 1.5; } .plf-blk .plf-vs b { color: var(--text); }
 
-.plf-blk .plf-vs2 { margin-top: 16px; }
+.plf-body { padding-top: 8px; display: grid; gap: 7px; }
+.plf-body h3 { margin: 0; font-size: 15.5px; line-height: 1.3; }
+.plf-views { margin: 0; }
+.plf-lbl { margin: 0; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.plf-blk { display: grid; gap: 7px; }
+.plf-sum, .plf-qoq { margin: 0; font-size: 12px; color: var(--muted); }
 
-/* a smaller card: it no longer fills the screen */
-.plf-note { width: min(420px, calc(100vw - 24px)); padding: 12px; border-radius: 16px; max-height: min(60vh, calc(100vh - 150px)); top: 100px; font-size: 13px; }
-.plf-note h3 { font-size: 14.5px; } .plf-note h4 { margin: 10px 0 6px; font-size: 13px; }
-.plf-in { margin-top: 8px; padding: 10px; border-radius: 12px; } .plf-pane { min-height: 0; padding: 8px 10px; font-size: 13px; line-height: 1.5; }
-.plf-pager { margin-top: 8px; } .plf-pager button, .plf-tabs button { padding: 4px 9px; font-size: 12px; } .plf-f { margin-top: 8px; font-size: 11.5px; }
+/* boxed comparisons */
+.plf-box { --h: var(--plf-blue); border-radius: 12px; border: 1px solid color-mix(in srgb, var(--h) var(--plf-mix-line), var(--s2)); background: color-mix(in srgb, var(--h) var(--plf-mix-b), var(--s2)); overflow: hidden; animation: plf-pop .4s ease-out backwards; }
+.plf-yoy { --h: var(--plf-teal); animation-delay: .08s; }
+.plf-box > header { display: flex; align-items: center; gap: 8px; padding: 5px 10px; background: color-mix(in srgb, var(--h) var(--plf-mix-h), var(--s2)); border-bottom: 1px solid color-mix(in srgb, var(--h) 30%, transparent); }
+.plf-bi { flex: none; width: 16px; height: 16px; color: var(--h); stroke-width: 2; }
+.plf-box h5 { margin: 0; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.plf-box h5 span { text-transform: none; }
+.plf-box > header p { margin: 0 0 0 auto; padding-left: 10px; border-left: 1px solid var(--border-strong); font-size: 11.5px; color: var(--muted); text-align: right; line-height: 1.3; }
+.plf-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; padding: 7px 8px 6px; }
+.plf-tile { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; padding: 5px 9px; border-radius: 9px; background: var(--s2); border: 1px solid transparent; animation: plf-pop .45s ease-out backwards; }
+.plf-tile:nth-child(2) { animation-delay: .06s; } .plf-tile:nth-child(3) { animation-delay: .12s; }
+.plf-tile span { flex-basis: 100%; font-size: 11.5px; color: var(--muted); line-height: 1.25; }
+.plf-tile b { font: 700 22px/1.15 var(--mono); letter-spacing: -.02em; }
+.plf-tile em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-size: 12px; }
+.plf-tile svg { width: 14px; height: 14px; }
+.plf-up { background: color-mix(in srgb, var(--gain) 13%, var(--s2)); border-color: color-mix(in srgb, var(--gain) 28%, transparent); }
+.plf-down { background: color-mix(in srgb, var(--loss) 13%, var(--s2)); border-color: color-mix(in srgb, var(--loss) 28%, transparent); }
+.plf-up b, .plf-up em { color: var(--gain); } .plf-down b, .plf-down em { color: var(--loss); } .plf-flat b, .plf-flat em { color: var(--muted); }
+.plf-tile.plf-flat em { font-size: 11px; line-height: 1.25; }
 
-/* sized to its content: no inner scroll at normal sizes; only a very short screen lets the whole card scroll as a sheet */
-.plf-note { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 16px); top: max(72px, min(100px, calc(100vh - 640px))); overflow: auto; overscroll-behavior: contain; padding: 10px 12px; }
-.plf-tile { padding: 6px 10px; gap: 0; } .plf-tile b { font-size: 20px; } .plf-tile span, .plf-tile em { font-size: 12px; }
-.plf-tiles { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
-.plf-blk .plf-vs { margin: 0 0 6px; line-height: 1.4; font-size: 12.5px; } .plf-blk .plf-vs2 { margin-top: 8px; }
-.plf-sum { margin-top: 6px; font-size: 13px; line-height: 1.4; } .plf-base { margin: 2px 0 6px; } .plf-qoq { margin-top: 6px; }
-.plf-note h4 { margin: 8px 0 6px; } .plf-f { margin-top: 6px; }
-.plf-ico { width: 32px; height: 32px; border-radius: 10px; } .plf-ico svg { width: 17px; height: 17px; } .plf-tt b { font-size: 15px; }
-.plf-explore button { min-height: 30px; font-size: 12.5px; padding: 3px 12px; }
+/* revenue growth against net profit growth: two bars and the multiple */
+.plf-gap { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 7px; padding: 0 10px 6px; position: relative; }
+.plf-gl { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.plf-bar-i { display: block; height: 6px; border-radius: 99px; transform-origin: left; animation: plf-grow .6s cubic-bezier(.2, .8, .2, 1) backwards; }
+.plf-bar-i.u { background: var(--gain); } .plf-bar-i.d { background: var(--loss); }
+.plf-mult { position: absolute; right: 10px; top: -1px; display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font: 600 11.5px var(--mono); color: var(--gain); background: var(--gain-soft); border: 1px solid color-mix(in srgb, var(--gain) 35%, transparent); }
+.plf-mult svg { width: 12px; height: 12px; }
+.plf-box .plf-qoq { padding: 0 10px 7px; }
+
+/* Insights */
+.plf-ins { border-radius: 12px; border: 1px solid var(--border-strong); background: var(--s1); padding: 7px 10px 6px; }
+.plf-insh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.plf-ins h4 { margin: 0; font-size: 13.5px; }
+.plf-explore button { min-height: 28px; font-size: 12px; padding: 2px 11px; }
 .plf-explore button.on { background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: var(--warn); color: var(--text); }
-.plf-pane { min-height: 0; padding: 8px 12px; border-radius: 12px; } .plf-pane p + p { margin-top: 6px; } .plf-pane b { color: var(--text); }
-.plf-in { padding: 8px 10px; } .plf-views { margin: 0 0 8px; }
-.plf-pager button, .plf-views button { min-height: 30px; }
-.plf-x { min-height: 32px; }
+.plf-pane { margin-top: 6px; animation: plf-fade .25s ease-out; }
+.plf-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.plf-c { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px 3px 8px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; animation: plf-pop .35s ease-out backwards; transition: border-color .15s, background .15s; }
+.plf-c:hover, .plf-c.on { border-color: var(--gold); background: var(--gold-soft); }
+.plf-i { flex: none; width: 15px; height: 15px; color: var(--gold-deep, var(--gold)); }
+:root[data-theme="dark"] .plf-i, :root:not([data-theme]) .plf-i { color: var(--gold); }
+.plf-tag { padding: 0 5px; border-radius: 99px; font: 700 9.5px/16px var(--mono); letter-spacing: .03em; color: var(--plf-blue); background: color-mix(in srgb, var(--plf-blue) 14%, transparent); border: 1px solid color-mix(in srgb, var(--plf-blue) 40%, transparent); }
+.plf-tag-yoy { color: var(--plf-teal); background: color-mix(in srgb, var(--plf-teal) 14%, transparent); border-color: color-mix(in srgb, var(--plf-teal) 40%, transparent); }
+.plf-cap { margin: 5px 0 0; min-height: 17px; font-size: 12px; line-height: 1.4; color: var(--muted); } .plf-cap b { color: var(--text); }
+.plf-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.plf-f { margin: 0; font-size: 11.5px; color: var(--muted); }
 
-/* the small tab on the screen edge that brings the alert back */
-.plf-edge { position: fixed; z-index: 59; left: 0; top: 46%; width: 38px; height: 40px; min-height: 40px; padding: 0; display: grid; place-items: center; border: 1px solid var(--gold); border-left: 0; border-radius: 0 12px 12px 0; background: var(--s1); color: var(--gold); cursor: pointer; opacity: .6; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); transition: opacity .15s, width .15s; }
+@keyframes plf-drop { from { opacity: 0; transform: translateY(-40px); } }
+@keyframes plf-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes plf-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes plf-grow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .plf-note, .plf-box, .plf-tile, .plf-pane, .plf-c, .plf-bar-i { animation: none; } .plf-c, .plf-edge { transition: none; } }
+
+/* a card that was opened from the edge tab floats over whatever the reader is on */
+.plf-floating { box-shadow: 0 22px 60px rgba(0, 0, 0, .5); }
+
+/* phone: the whole card is a sheet that scrolls if it must */
+@media (max-width: 560px) {
+  .plf-note { top: 8px; padding: 10px; width: calc(100vw - 16px); overscroll-behavior: auto; }
+  .plf-box > header { flex-wrap: wrap; row-gap: 1px; } .plf-box > header p { flex-basis: 100%; margin: 0; padding: 0; border: 0; text-align: left; order: 3; }
+  .plf-tiles { grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 6px; } .plf-tile { padding: 5px 7px; } .plf-tile b { font-size: 17px; } .plf-tile em { font-size: 11px; } .plf-tile span { font-size: 10.5px; }
+  .plf-mult { position: static; grid-column: 1 / -1; justify-self: start; margin-top: 3px; }
+  .plf-tt small { white-space: normal; }
+  .plf-explore { gap: 4px; } .plf-explore button { font-size: 11.5px; padding: 2px 9px; }
+}
+
+/* the small tab on the right edge of the screen that brings the alert back */
+.plf-edge { position: fixed; z-index: 59; right: 0; top: 46%; width: 38px; height: 40px; min-height: 40px; padding: 0; display: grid; place-items: center; border: 1px solid var(--gold); border-right: 0; border-radius: 12px 0 0 12px; background: var(--s1); color: var(--gold); cursor: pointer; opacity: .75; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); transition: opacity .15s, width .15s; animation: plf-edge-in .3s ease-out backwards; }
 .plf-edge:hover, .plf-edge:focus-visible { opacity: 1; width: 44px; } .plf-edge:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .plf-edge svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.plf-dot { position: absolute; top: 5px; left: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--s1); }
-@media (prefers-reduced-motion: reduce) { .plf-edge { transition: none; } }
-.plf-tile { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; } .plf-tile span { flex-basis: 100%; }
-.plf-tile em { margin-left: auto; }
-.plf-in h3 { margin-bottom: 6px; }
-.plf-note { width: min(580px, calc(100vw - 24px)); }
-.plf-tile em { margin-left: 0; }
-@media (max-width: 520px) { .plf-tile b { font-size: 18px; } .plf-tile em { margin-left: auto; } }
+.plf-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--s1); }
+@keyframes plf-edge-in { from { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .plf-edge { animation: none; } }

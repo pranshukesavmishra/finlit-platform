@@ -35,10 +35,12 @@ describe("earnings popup, Kotak", () => {
   it("quarter view: quarter-on-quarter boxes first, then the year-on-year boxes", () => {
     const x = insight();
     const html = renderToStaticMarkup(<Block v={x.views.quarterly!} lender />);
-    expect(html).toContain("Quarter on quarter:");
+    expect(html).toContain("Quarter-on-quarter");
     expect(html).toContain("+8.2%");
     expect(html).toContain("+3.0%");
-    expect(html).toContain("Year on year: ");
+    expect(html).toContain("Year-on-year");
+    expect(html).toContain("Sep 2026 compared with Jun 2026 (the quarter before).");
+    expect(html).toContain("Sep 2026 compared with Sep 2025 (the same quarter a year earlier).");
     expect(html).toContain("+15.4%");
     expect(html).toContain("+26.3%");
     expect(html.indexOf("+8.2%")).toBeLessThan(html.indexOf("+15.4%"));
@@ -66,3 +68,40 @@ describe("the alert belongs to its section", () => {
   });
 });
 
+
+import { GapBars, Insights } from "./PlFlagsLayer";
+import { readFileSync } from "node:fs";
+describe("compact popup", () => {
+  const case1 = () => plInsights({ annual: KOTAK.annual, quarterly: { ...KOTAK.quarterly, rows: { revenue: [100, 100, 100, 100, 100, 106.7], net_profit: [100, 100, 100, 100, 100, 122] } } as Table, lender: true }).find((x) => x.case === 1);
+  it("draws the revenue and profit bars and the multiple from the growth figures shown", () => {
+    const html = renderToStaticMarkup(<GapBars g={{ revenue: 6.7, profit: 22, operating: null }} />);
+    expect(html).toContain("Net profit 3.3x faster");
+    expect(renderToStaticMarkup(<GapBars g={{ revenue: 6.7, profit: 7.5, operating: null }} />)).not.toContain("faster");
+    expect(renderToStaticMarkup(<GapBars g={{ revenue: null, profit: 7.5, operating: null }} />)).toBe("");
+  });
+  it("Insights shows icon chips with QoQ / YoY tags and keeps the long wording as tooltip and hidden text", () => {
+    const x = plInsights({ annual: KOTAK.annual, quarterly: KOTAK.quarterly, lender: true })[0];
+    const html = renderToStaticMarkup(<Insights x={{ ...x, case: 1 }} />);
+    for (const t of ["Sales vs profit gap", "Quarter = momentum", "Year view = no seasonality", "Core gain or one-off?"]) expect(html).toContain(t);
+    expect(html).toContain(">QoQ<"); expect(html).toContain(">YoY<");
+    expect(html).toContain('title="One quarter can be seasonal, so read it as momentum, not a trend."');
+    expect(html).toContain("Quarter on quarter: Profit and sales moved very differently.");
+    expect(html).not.toContain("<p>Quarter on quarter:");
+    expect(case1()).toBeDefined();
+  });
+  it("every case has chips for the three tabs, each label 2 to 5 words", () => {
+    const x = plInsights({ annual: KOTAK.annual, quarterly: KOTAK.quarterly, lender: true })[0];
+    for (let n = 1; n <= 8; n++) {
+      const html = renderToStaticMarkup(<Insights x={{ ...x, case: n as never }} />);
+      const labels = [...html.matchAll(/<\/svg>([^<]+)/g)].map((m) => m[1]);
+      expect(labels.length).toBeGreaterThanOrEqual(1);
+      for (const l of labels) expect(l.trim().split(/\s+/).length).toBeLessThanOrEqual(5);
+    }
+  });
+  it("the edge tab sits on the right edge, rounded on its left side; no blur on the card", () => {
+    const css = readFileSync(new URL("../styles/plflags.css", import.meta.url), "utf8");
+    const edge = css.match(/^\.plf-edge\s*\{[^}]*\}/m)![0];
+    expect(edge).toMatch(/right:\s*0/); expect(edge).not.toMatch(/left:\s*0/); expect(edge).toMatch(/border-radius:\s*12px 0 0 12px/);
+    expect(css).not.toMatch(/backdrop-filter:\s*blur/);
+  });
+});
