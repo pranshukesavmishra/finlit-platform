@@ -15,6 +15,7 @@ const q = (d: unknown) => (d instanceof Error ? { data: undefined, isLoading: fa
 vi.mock("../lib/sectors", async (orig) => ({ ...(await orig<typeof import("../lib/sectors")>()), useSectorBoard: () => q(st.board), useSectorPage: () => q(st.page), useStockSector: () => q(st.stock) }));
 vi.mock("../lib/leadership", async (orig) => ({ ...(await orig<typeof import("../lib/leadership")>()), useLeadership: () => ({ data: undefined }) }));
 vi.mock("../lib/ui", () => ({ useUI: () => ({ toast: vi.fn(), plan: "basic", upgrade: vi.fn(), has: () => true }), TIER: { basic: { n: "Basic", ic: "sprout", tc: "--t-basic" }, silver: { n: "Silver", ic: "medal", tc: "--t-silver" }, gold: { n: "Gold", ic: "crown", tc: "--t-gold" } } }));
+vi.mock("../lib/rotation", async (orig) => ({ ...(await orig<typeof import("../lib/rotation")>()), useRotationMap: () => ({ data: undefined, isLoading: false, isError: false }), useRotationCard: () => ({ data: undefined, isLoading: false, isError: false }) }));   // the rotation card has its own tests (Rotation.test.tsx)
 vi.mock("../lib/title", () => ({ useDocTitle: () => undefined }));
 import { SectorPulsePage } from "./SectorPulse";
 import { SectorIndustryPage } from "./SectorIndustry";
@@ -135,7 +136,7 @@ describe("industry page", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Ferrous Metals" })).toBeTruthy();
     expect(document.body.textContent).toContain("Washout · since 21 Sept");
     expect(document.body.textContent).toContain("14 stocks counted, 8 not counted");
-    expect(document.body.textContent).toContain("Nifty 50 22,936.75, 4.1% below its 200-day average");
+    expect(document.body.textContent).toContain("Nifty 50 22,936.75, 4.1% below its 200-day exponential average");
     expect(screen.getByText(/Ferrous Metals stocks have been sold broadly/)).toBeTruthy();
     expect(document.querySelector(".sx-cyc4 .here")?.textContent).toContain("1 · Washout");
     expect(document.body.textContent).toContain("2 · Thrust (CAP if it came now)");
@@ -200,8 +201,15 @@ describe("industry page", () => {
 });
 
 describe("stock page section", () => {
+  it("adds the rotation line under the industry's state, from sector.rotation", () => {
+    st.stock = { ...S, rotation: { corner: "ahead_slowing", corner_name: "Ahead but slowing", weeks_in_corner: 1, this_week_reading_name: "Ahead and gaining", rank: 7, ranked: 37, rank_change_1w: 1, rank_change_4w: -3, strength_pts: 7.8, change_pts: -2.1, breadth: "narrow", breadth_name: "Narrow" } };
+    render(<MemoryRouter><SectorPeersSection symbol="SAMBHV" name="Sambhv Steel Tubes" /></MemoryRouter>);
+    const line = screen.getByTestId("stock-rotation");
+    expect(line.textContent).toContain("Against other industries:"); expect(line.textContent).toContain("Ahead but slowing"); expect(line.textContent).toContain("7 of 37");
+    expect(line.textContent).toContain("+7.8 pts"); expect(line.textContent).toContain("New this week; this week reads Ahead and gaining"); expect(line.textContent).toContain("Past returns, not a forecast");
+  });
   it("writes the one line and the two cards from the sector JSON", () => {
-    expect(oneLine("SAMBHV", S)).toBe("SAMBHV is in the top quarter of Industrial Products stocks over 6 months (+32.4%), and the industry as a whole is in a Washout while the Nifty 50 is below its 200-day average.");
+    expect(oneLine("SAMBHV", S)).toBe("SAMBHV is in the top quarter of Industrial Products stocks over 6 months (+32.4%), and the industry as a whole is in a Washout while the Nifty 50 is below its 200-day exponential average.");
     render(<MemoryRouter><SectorPeersSection symbol="SAMBHV" name="Sambhv Steel Tubes" /></MemoryRouter>);
     const t = screen.getByTestId("sector-peers").textContent ?? "";
     expect(t).toContain("20th of 105 counted Industrial Products stocks by 6-month return");

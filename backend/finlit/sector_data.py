@@ -5,7 +5,7 @@ step, so a reader never meets half-written files:
 
     $SECTOR_OUT_DIR/                      default /data/sectors
         current -> releases/20261029-1934     a symlink; renamed over the old one in one operation (os.replace)
-        releases/20261029-1934/               _summary.json, <SYMBOL>.json (one per stock), sectors/_board.json, sectors/<slug>.json, _sectors_meta.json
+        releases/20261029-1934/               _summary.json, <SYMBOL>.json (one per stock), sectors/_board.json, sectors/<slug>.json, rotation/_map.json, rotation/<slug>.json, _sectors_meta.json
         releases/20261028-1931/               the one before (kept so a request that is still reading it finishes; older ones are deleted)
         last_run.json                         how the last run ended (ok, or why not), written on every run, success or failure
 
@@ -30,6 +30,8 @@ KEEP_RELEASES = 2
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
 SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9&_.\-]{0,23}$")      # NSE symbols (M&M, BAJAJ-AUTO); must not start with a dot or dash
 META_NAME = "_sectors_meta.json"
+# Addresses that were renamed by a newer grouping: old slug -> the slug that replaced it (NSE's Capital Goods sector of one small industry is now named after it).
+SLUG_ALIASES = {"capital-goods": "agricultural-commercial-construction-vehicles"}
 LAST_RUN = "last_run.json"
 
 
@@ -150,6 +152,11 @@ def read_json(path: Path) -> Any:
 def clear_cache() -> None:
     with _lock:
         _cache.clear()
+
+
+def resolve_slug(slug: str) -> str:
+    """A renamed group's old address answers with the new group's page."""
+    return SLUG_ALIASES.get(slug, slug)
 
 
 def board_slugs(board: Dict[str, Any]) -> set:

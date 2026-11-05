@@ -57,5 +57,13 @@ def build_groups(keys, members_now, cls: Dict[str, Tuple[str, str]], min_members
         groups.setdefault(name, []).append(j)
         m = meta.setdefault(name, {"kind": kind, "industries": set(), "sector": sec})
         m["industries"].add(ind)
+    # A "sector group" that holds a single small industry is that industry: name it after the industry, so that
+    # e.g. NSE's Capital Goods sector is not shown as a group made only of commercial vehicles and tractors.
+    for name in [g for g, m in meta.items() if m["kind"] == "sector" and len(m["industries"]) == 1]:
+        ind = next(iter(meta[name]["industries"]))
+        if ind in groups:          # never merge into an existing group
+            continue
+        groups[ind] = groups.pop(name)
+        meta[ind] = {**meta.pop(name), "kind": "industry"}
     return groups, {g: {"kind": m["kind"], "industries": sorted(m["industries"]), "sector": m["sector"]}
                     for g, m in meta.items()}

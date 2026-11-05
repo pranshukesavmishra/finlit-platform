@@ -8,9 +8,10 @@ import { HScroll } from "../components/HScroll";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import {
-  FILTERS, SORT_LABEL, STATES, count, failureText, filterCounts, flagAge, flagText, fullDate, groupKindText, groupsLine, inFilter, level, mergedReasons, pct, plural, signedPct, sortRows, thrustText,
+  AVERAGES_NOTE, FILTERS, SORT_LABEL, averageLabel, STATES, count, failureText, filterCounts, flagAge, flagText, fullDate, groupKindText, groupsLine, inFilter, level, mergedReasons, pct, plural, signedPct, sortRows, thrustText,
   useSectorBoard, type Board, type FilterKey, type GroupRow, type SortKey,
 } from "../lib/sectors";
+import { CornerBadge, RankMove, SectorTabs } from "../components/rotation/Parts";
 import { BreadthBars, Blank, LockedBlock, SectorFooter, StateChip } from "../components/sectors/Parts";
 
 const TITLE = "Sector Pulse";
@@ -33,10 +34,10 @@ function Market({ b }: { b: Board }) {
   const below = m.above_200d === false;
   return (
     <section className="sx-card" aria-labelledby="sx-mkt">
-      <div className="sx-mkt-h"><h2 id="sx-mkt">The market behind the industries</h2>{m.above_200d != null && <span className={`sx-chip ${below ? "st-fading" : "st-confirmed"}`}>{below ? "Below its 200-day average" : "Above its 200-day average"}</span>}</div>
+      <div className="sx-mkt-h"><h2 id="sx-mkt">The market behind the industries</h2>{m.above_200d != null && <span className={`sx-chip ${below ? "st-fading" : "st-confirmed"}`}>{below ? "Below its " : "Above its "}{averageLabel(m)}</span>}</div>
       <div className="sx-nums">
         <div className="sx-num"><small>Nifty 50</small><b>{level(m.nifty50)}</b></div>
-        <div className="sx-num"><small>200-day average</small><b>{level(m.nifty50_200d_average)}</b></div>
+        <div className="sx-num"><small>{averageLabel(m)[0].toUpperCase() + averageLabel(m).slice(1)}</small><b>{level(m.nifty50_200d_average)}</b></div>
         <div className="sx-num"><small>Difference</small><b className={m.pct_vs_200d != null ? (m.pct_vs_200d < 0 ? "neg" : "pos") : ""}>{signedPct(m.pct_vs_200d, 1)}</b></div>
       </div>
       {b.study?.market && <p className="sx-sub" style={{ marginBottom: 8 }}>{b.study.market}</p>}
@@ -52,7 +53,7 @@ function HowTo() {
         <h2 id="sx-how">How to read this page</h2>
         <ol className="sx-steps">
           <li><i>1</i><span><b>The coloured state</b> shows where an industry is in its cycle, from a broad sell-off (Washout) through a broad rebound (Thrust) to an established trend (Confirmed).</span></li>
-          <li><i>2</i><span><b>The three bars</b> show the share of its counted stocks above their 9, 20 and 50-day averages: the short, medium and longer trend. Long bars mean most stocks are rising together.</span></li>
+          <li><i>2</i><span><b>The three bars</b> show the share of its counted stocks above their 9, 20 and 50-day averages: the short, medium and longer trend. Long bars mean most stocks are rising together. {AVERAGES_NOTE}</span></li>
           <li><i>3</i><span><b>Industries are NSE's.</b> An industry with fewer than 10 counted stocks is read together with the other small industries of its NSE sector, as a sector group.</span></li>
           <li><i>4</i><span><b>Open an industry</b> to see a year of its history, how each stock compares inside it, which stocks are not counted and why, and what the 2017–2026 study found for its state.</span></li>
         </ol>
@@ -61,7 +62,7 @@ function HowTo() {
       <section className="sx-card" aria-labelledby="sx-cyc">
         <h2 id="sx-cyc">The industry cycle</h2>
         <div className="sx-cycle">
-          <div className="sx-stage st-washout"><b>Washout</b>Fewer than 40% of stocks above their 50-day average</div><span className="arrow" aria-hidden="true">→</span>
+          <div className="sx-stage st-washout"><b>Washout</b>Fewer than 40% of stocks above their 50-day average at some point in the last 30 sessions</div><span className="arrow" aria-hidden="true">→</span>
           <div className="sx-stage st-thrust"><b>Thrust C / CAP</b>A sudden, broad rebound within 5 sessions</div><span className="arrow" aria-hidden="true">→</span>
           <div className="sx-stage st-confirmed"><b>Confirmed</b>70%+ of stocks above all three averages</div>
         </div>
@@ -87,7 +88,7 @@ function GroupsTable({ b }: { b: Board }) {
   const counts = useMemo(() => filterCounts(b.rows), [b.rows]);
   const rows = useMemo(() => sortRows(b.rows.filter((r) => inFilter(r, filter)), sort, dir), [b.rows, filter, sort, dir]);
   const flagsLocked = b.rows.some((r) => r.leader_flags == null);
-  const onSort = (k: SortKey) => { if (sort === k) setDir(dir === "asc" ? "desc" : "asc"); else { setSort(k); setDir(k === "name" || k === "state" || k === "thrust" || k === "index" ? "asc" : "desc"); } };
+  const onSort = (k: SortKey) => { if (sort === k) setDir(dir === "asc" ? "desc" : "asc"); else { setSort(k); setDir(k === "name" || k === "state" || k === "thrust" || k === "index" || k === "rotation" ? "asc" : "desc"); } };
   return (
     <section className="sx-sec" aria-labelledby="sx-all">
       <div className="sx-bar">
@@ -101,7 +102,7 @@ function GroupsTable({ b }: { b: Board }) {
         </div>
       </div>
       <div className="sx-sortsel"><label htmlFor="sx-sort">Sort by</label>
-        <select id="sx-sort" value={sort ?? ""} onChange={(e) => { const v = e.target.value as SortKey | ""; if (v) { setSort(v); setDir(v === "name" || v === "state" || v === "thrust" || v === "index" ? "asc" : "desc"); } else setSort(null); }}>
+        <select id="sx-sort" value={sort ?? ""} onChange={(e) => { const v = e.target.value as SortKey | ""; if (v) { setSort(v); setDir(v === "name" || v === "state" || v === "thrust" || v === "index" || v === "rotation" ? "asc" : "desc"); } else setSort(null); }}>
           <option value="">The board's order</option>{(Object.keys(SORT_LABEL) as SortKey[]).map((k) => <option key={k} value={k}>{SORT_LABEL[k]}</option>)}
         </select>
         {sort && <button type="button" className="btn" style={{ height: 38 }} onClick={() => setDir(dir === "asc" ? "desc" : "asc")} aria-label={dir === "asc" ? "Lowest first; switch to highest first" : "Highest first; switch to lowest first"}>{dir === "asc" ? "▲ Low to high" : "▼ High to low"}</button>}
@@ -119,10 +120,12 @@ function GroupsTable({ b }: { b: Board }) {
               <Th k="higher_low" label="Higher-low share" sort={sort} dir={dir} onSort={onSort} />
               <Th k="thrust" label="Last thrust" sort={sort} dir={dir} onSort={onSort} cls="l" />
               <Th k="flags" label="Leader flags" sort={sort} dir={dir} onSort={onSort} />
+              <th scope="col" className="l rt-colh">Corner</th>
+              <Th k="rotation" label="Rotation rank" sort={sort} dir={dir} onSort={onSort} cls="rt-colh" />
             </tr></thead>
             <tbody>
               {rows.map((r) => <Row key={r.slug} r={r} />)}
-              {!rows.length && <tr><td colSpan={7} className="l" style={{ whiteSpace: "normal", textAlign: "left" }}>{filter === "thrust" ? "No group is in a fresh thrust today." : "No group matches this filter today."}</td></tr>}
+              {!rows.length && <tr><td colSpan={9} className="l" style={{ whiteSpace: "normal", textAlign: "left" }}>{filter === "thrust" ? "No group is in a fresh thrust today." : "No group matches this filter today."}</td></tr>}
             </tbody>
           </table>
         </HScroll>
@@ -140,9 +143,11 @@ function Row({ r }: { r: GroupRow }) {
       <td className="l"><StateChip state={r.state} /></td>
       <td className="l"><BreadthBars b={r.breadth} name={r.name} /></td>
       <td>{signedPct(r.index_vs_52w_high, 1)}</td>
-      <td className={r.higher_low_share != null && r.higher_low_share < 20 ? "sx-low" : ""}>{pct(r.higher_low_share)}{r.higher_low_share != null && r.higher_low_share < 20 ? <span className="sx-visually"> (under 20%: a capitulation)</span> : null}</td>
+      <td className={r.higher_low_share != null && r.higher_low_share < 20 ? "sx-low" : ""}>{r.higher_low_share == null ? <span className="sx-na" title={r.higher_low_note ?? undefined}>—<span className="sx-visually"> {r.higher_low_note ?? "No reading"}</span></span> : pct(r.higher_low_share)}{r.higher_low_share != null && r.higher_low_share < 20 ? <span className="sx-visually"> (under 20%: a capitulation)</span> : null}</td>
       <td className="l" style={{ whiteSpace: "normal", minWidth: 118 }}>{thrustText(r.last_thrust)}</td>
       <td className="sx-flagn">{r.leader_flags == null ? <span className="sx-na" title="Leader flags are part of the Silver plan">Silver</span> : r.leader_flags > 0 ? r.leader_flags : <span className="sx-na" aria-label="none">—</span>}</td>
+      <td className="l rt-colc">{r.rotation ? <Link to={`/sectors/rotation?corner=${r.rotation.corner}`} className="rt-clink" title="Open Sector Rotation, filtered to this corner"><CornerBadge corner={r.rotation.corner} name={r.rotation.corner_name} /></Link> : <span className="sx-na" title="Fewer than 8 counted stocks: too few for a rotation reading, or the rotation files are not in this data set yet">No reading</span>}</td>
+      <td className="rt-colc">{r.rotation?.rank != null ? <><b>{r.rotation.rank}</b> <RankMove v={r.rotation.rank_change_1w} /></> : <span className="sx-na">—</span>}</td>
     </tr>
   );
 }
@@ -220,7 +225,7 @@ export function SectorPulsePage() {
   const b = q.data;
   return (
     <div className="wrap sx" data-testid="sector-pulse">
-      <PageHeader eyebrow="Sectors" title={TITLE} description={DESC} meta={b ? groupsLine(b) : undefined} links={["/learn/sector-signals"]} learn={false} />
+      <PageHeader eyebrow="Sectors" title={TITLE} description={DESC} meta={b ? groupsLine(b) : undefined} links={["/learn/sector-signals"]} learn={false}><SectorTabs active="pulse" /></PageHeader>
       {q.isLoading && <div className="sx-skel sx-sec" role="status" aria-label="Loading the sector readings" />}
       {q.isError && <div className="sx-sec"><Blank title="Sector Pulse is not available right now" reason={failureText(q.error)}><button type="button" className="btn" onClick={() => q.refetch()}>Try again</button></Blank></div>}
       {b && (

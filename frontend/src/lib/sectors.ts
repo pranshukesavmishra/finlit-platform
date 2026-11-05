@@ -17,17 +17,32 @@ export const STATES: { name: StateName; code: StateCode }[] = [
   { name: "Washout", code: "washout" }, { name: "Fading", code: "fading" }, { name: "Neutral", code: "neutral" },
 ];
 
+/** The few rotation fields other pages show (finlit_technicals rotation.brief). */
+export type RotationBrief = {
+  corner: CornerCode; corner_name: string; weeks_in_corner: number; this_week_reading_name: string | null; rank: number | null; ranked: number | null;
+  rank_change_1w: number | null; rank_change_4w: number | null; strength_pts: number | null; change_pts: number | null; breadth: "broad" | "narrow" | "between" | null; breadth_name: string | null;
+};
+export type CornerCode = "ahead_gaining" | "ahead_slowing" | "behind_slipping" | "behind_gaining" | "middle";
+
 export type Breadth = { above_9: number | null; above_20: number | null; above_50: number | null; lowest_50_last_30?: number | null };
 export type Thrust = { type: "C" | "CAP"; date: string; sessions_ago: number } | null;
 export type GroupRow = {
   name: string; slug: string; kind: "industry" | "sector"; sector: string; industries: string[]; date: string; state: StateName; state_code: StateCode; meaning: string;
   breadth: Breadth; index_vs_52w_high: number | null; last_60d_low: { sessions_ago: number; date: string } | null; higher_low_share: number | null; last_thrust: Thrust;
+  /** Why the higher-low share is blank (null when it has a value). */
+  higher_low_note?: string | null;
   today: { thrust_c: boolean; thrust_cap: boolean; turned_fading: boolean; confirmed: boolean }; leader_flags: number | null;
   stocks_counted: number; stocks_listed: number; stocks_traded_today: number;
+  /** Counted members with no price on the last session (usually 0); `stocks_counted` is the base of the breadth readings and leaves them out. */
+  members_not_traded_today?: number;
+  /** Rotation reading (sectors/_board.json rows[].rotation); null when the group has fewer than 8 counted stocks or the set has no rotation yet. */
+  rotation?: RotationBrief | null;
   /** The one-line story (industry page and stock card only). */
   summary?: string; rule?: string; study?: string; since?: string | null;
 };
-export type MarketNow = { date: string; nifty50: number | null; nifty50_200d_average: number | null; pct_vs_200d: number | null; above_200d: boolean | null; note: string | null };
+export type MarketNow = { date: string; nifty50: number | null; nifty50_200d_average: number | null; pct_vs_200d: number | null; above_200d: boolean | null; note: string | null;
+  /** "200-day exponential average": the name to print for the average. */
+  average_label?: string };
 export type LeaderFlag = { symbol: string; group: string; group_slug: string; tier: string; tier_code: number; sessions_ago: number; new_today: boolean; quarter: number | null; state: StateName };
 export type Universe = { date: string; stocks_with_industry_traded: number; meet_rules: number; counted_in_groups_with_reading: number; not_counted: number; reasons: { reason: string; stocks: number }[] };
 export type StudyFigures = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -48,6 +63,8 @@ export type Band = { state: StateName; state_code: StateCode; from: string; to: 
 export type SectorEvent = { date: string; kind: "thrust_c" | "thrust_cap" | "turned_fading" | "confirmed" };
 export type IndustryPage = GroupRow & {
   market: MarketNow | null; ranked_6m: number; rule: string; summary: string; since: string | null;
+  /** Past readings use today's grouping (show under the breadth chart). */
+  history_note?: string; /** The 9, 20 and 50-day averages are exponential averages. */ averages_note?: string;
   history: { dates: string[]; above_9: (number | null)[]; above_20: (number | null)[]; above_50: (number | null)[]; state_code: StateCode[]; index_vs_52w_high: (number | null)[]; stocks_counted: number[] };
   bands: Band[]; events: SectorEvent[];
   study: { state: string; market: string; rallies: string; limits: string; quarter?: string; bottom?: string; leader_flag?: string; figures?: StudyFigures };
@@ -55,7 +72,7 @@ export type IndustryPage = GroupRow & {
 };
 export type StockSector = {
   symbol: string; name?: string | null; industry?: string | null; sector?: string | null; amfi_category?: string | null; in_group?: boolean | null;
-  group: (GroupRow & { study?: string }) | null; market?: MarketNow | null; disclaimer?: string | null;
+  group: (GroupRow & { study?: string }) | null; rotation?: RotationBrief | null; market?: MarketNow | null; disclaimer?: string | null;
   rank_6m?: number | null; ranked_6m?: number | null; return_6m_pct?: number | null; quarter?: number | null; quarter_name?: string | null; bottom_code?: number | null; bottom?: string | null;
   leader_flag?: { tier: string; tier_code: number; sessions_ago: number } | null; leader_flag_text?: string | null;
   study?: { leader_flag?: string; quarter?: string; bottom?: string; limits?: string }; note?: string | null; not_counted_because?: string[] | null;
@@ -89,6 +106,9 @@ export function failureText(e: unknown): string {
 }
 
 // ------------------------------------------------------------------------------------------------ numbers and words
+/** The board carries no averages_note (industry pages do): the same sentence, for the pages that read only the board. */
+export const AVERAGES_NOTE = "The 9, 20 and 50-day averages of each stock, and the Nifty 50's 200-day average, are exponential moving averages (EMA).";
+export const averageLabel = (m: { average_label?: string } | null | undefined): string => m?.average_label || "200-day exponential average";
 export const pct = (v: number | null | undefined, d = 0, plus = false): string => (v == null || !Number.isFinite(v) ? "—" : (v < 0 ? MINUS : plus && v > 0 ? "+" : "") + Math.abs(v).toFixed(d) + "%");
 export const level = (v: number | null | undefined): string => (v == null ? "—" : new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v));
 export const count = (v: number | null | undefined): string => (v == null ? "—" : new Intl.NumberFormat("en-IN").format(v));
@@ -100,8 +120,11 @@ export const stateClass = (s: string | null | undefined): string => (s ? "st-" +
 
 export const thrustText = (t: Thrust): string => (t ? `${t.type} · ${t.sessions_ago} ${t.sessions_ago === 1 ? "session" : "sessions"} ago` : "None in the past year");
 export const thrustLong = (t: Thrust): string => (t ? `${t.type} · ${fullDate(t.date)}` : "None");
-export const groupKindText = (r: Pick<GroupRow, "kind" | "industries" | "stocks_counted">): string =>
-  `${plural(r.stocks_counted, "stock")} counted${r.kind === "sector" ? ` · sector group of ${r.industries.length} small ${r.industries.length === 1 ? "industry" : "industries"}` : ""}`;
+/** "80 stocks counted (1 did not trade today)": members with no price on the last session are said, never hidden. */
+export const countedText = (r: Pick<GroupRow, "stocks_counted" | "members_not_traded_today">): string =>
+  `${plural(r.stocks_counted, "stock")} counted${r.members_not_traded_today ? ` (${r.members_not_traded_today} did not trade today)` : ""}`;
+export const groupKindText = (r: Pick<GroupRow, "kind" | "industries" | "stocks_counted" | "members_not_traded_today">): string =>
+  `${countedText(r)}${r.kind === "sector" ? ` · sector group of ${r.industries.length} small ${r.industries.length === 1 ? "industry" : "industries"}` : ""}`;
 export const QUARTER = ["", "Top quarter", "2nd quarter", "3rd quarter", "Bottom quarter"];
 export const flagText = (f: { tier: string } | null | undefined): string => (f ? (f.tier === "15%+" ? "15%+ below" : "10–15% below") : "None");
 export const flagAge = (n: number): string => (n === 0 ? "52-week high today" : `last high ${n} ${n === 1 ? "session" : "sessions"} ago`);
@@ -121,11 +144,11 @@ export const filterCounts = (rows: GroupRow[]): Record<FilterKey, number | null>
 
 /** The order the board arrives in: fresh thrusts first, then Washout, then Fading ("Neutral" and "Confirmed" between). */
 const STATE_ORDER: Record<string, number> = { thrust_cap: 0, thrust_c: 1, confirmed: 2, washout: 3, fading: 4, neutral: 5 };
-export type SortKey = "name" | "state" | "above_9" | "above_20" | "above_50" | "index" | "higher_low" | "thrust" | "flags" | "counted";
-export const SORT_LABEL: Record<SortKey, string> = { name: "Industry", state: "State", above_9: "9-day", above_20: "20-day", above_50: "50-day", index: "Index vs 52-week high", higher_low: "Higher-low share", thrust: "Last thrust", flags: "Leader flags", counted: "Stocks counted" };
+export type SortKey = "name" | "state" | "above_9" | "above_20" | "above_50" | "index" | "higher_low" | "thrust" | "flags" | "counted" | "rotation";
+export const SORT_LABEL: Record<SortKey, string> = { name: "Industry", state: "State", above_9: "9-day", above_20: "20-day", above_50: "50-day", index: "Index vs 52-week high", higher_low: "Higher-low share", thrust: "Last thrust", flags: "Leader flags", counted: "Stocks counted", rotation: "Rotation rank" };
 const num = (r: GroupRow, k: SortKey): number | string | null =>
   k === "name" ? r.name.toLowerCase() : k === "state" ? STATE_ORDER[r.state_code] ?? 9 : k === "above_9" ? r.breadth.above_9 : k === "above_20" ? r.breadth.above_20 : k === "above_50" ? r.breadth.above_50
-  : k === "index" ? r.index_vs_52w_high : k === "higher_low" ? r.higher_low_share : k === "thrust" ? (r.last_thrust ? r.last_thrust.sessions_ago : null) : k === "flags" ? r.leader_flags : r.stocks_counted;
+  : k === "index" ? r.index_vs_52w_high : k === "higher_low" ? r.higher_low_share : k === "thrust" ? (r.last_thrust ? r.last_thrust.sessions_ago : null) : k === "flags" ? r.leader_flags : k === "rotation" ? r.rotation?.rank ?? null : r.stocks_counted;
 /** Sort a copy of the rows; missing values always go last, whichever way it sorts, and ties keep the board's own order. */
 export function sortRows(rows: GroupRow[], key: SortKey | null, dir: "asc" | "desc"): GroupRow[] {
   const idx = new Map(rows.map((r, i) => [r.slug, i]));

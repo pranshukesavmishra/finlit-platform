@@ -15,7 +15,7 @@ const pts = (v: number | null | undefined) => (v == null ? "—" : (v > 0 ? "+" 
 
 const STEPS = [
   ["Measure breadth", "For each NSE industry, the share of its counted stocks above their 9, 20 and 50-day averages: the short, medium and longer trend."],
-  ["Place it in the cycle", "Washout, then a broad rebound (Thrust), then an established trend (Confirmed), or Fading when breadth breaks. Read it next to the market: is the Nifty 50 above or below its 200-day average?"],
+  ["Place it in the cycle", "Washout, then a broad rebound (Thrust), then an established trend (Confirmed), or Fading when breadth breaks. Read it next to the market: is the Nifty 50 above or below its 200-day exponential average?"],
   ["Look inside the industry", "Which stocks held up or turned first: leader flags, 6-month quarter, bottom timing and the peer label."],
   ["Then the stock itself", "Its own chart trend (the short and long-term scores) and its business (the FinLit health score). Breadth says nothing about either."],
 ];
@@ -157,7 +157,7 @@ export function LearnSectorSignalsPage() {
       <h2>A worked example: Ferrous Metals and SAMBHV</h2>
       <section className="sx-card" style={{ marginTop: 10 }}>
         <p className="sx-note" style={{ marginTop: 0 }}>A fixed illustration, as of 29 Oct 2026. The pages linked below show today's figures.</p>
-        <p>In late October 2026 Ferrous Metals was in a <b>Washout</b>: on some days in the last 30 sessions, none of its 14 counted stocks was above its 50-day average, and its index was 16.9% below its high. Only 2 of the 14 had held a higher low, so a thrust would have counted as CAP. In the year before it had four thrusts, and every one faded, which shows that a thrust is no guarantee. The market around it was weak too: the Nifty 50 was 4.1% below its 200-day average.</p>
+        <p>In late October 2026 Ferrous Metals was in a <b>Washout</b>: on some days in the last 30 sessions, none of its 14 counted stocks was above its 50-day average, and its index was 16.9% below its high. Only 2 of the 14 had held a higher low, so a thrust would have counted as CAP. In the year before it had four thrusts, and every one faded, which shows that a thrust is no guarantee. The market around it was weak too: the Nifty 50 was 4.1% below its 200-day exponential average.</p>
         <p>SAMBHV, a steel-tube maker, sits in NSE's <b>Industrial Products</b> industry, also in a Washout. Inside it, SAMBHV ranked 20th of 105 by 6-month return (top quarter) and had made its low before the industry did. Against its steel peers it was a Leader. So the stock was strong while its industry was weak. The pages describe that contrast; they do not say what to do about it.</p>
         <p style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 0 }}><Link className="sx-link" to="/sectors/ferrous-metals">Open the Ferrous Metals page</Link><Link className="sx-link" to="/stocks/SAMBHV#sector">Open SAMBHV's sector card</Link></p>
       </section>

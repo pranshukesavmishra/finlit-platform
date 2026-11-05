@@ -4,12 +4,14 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { HScroll } from "../components/HScroll";
+import { RotationCard } from "../components/rotation/RotationCard";
+import { SectorTabs } from "../components/rotation/Parts";
 import { BreadthChart } from "../components/sectors/BreadthChart";
 import { Blank, LockedBlock, SectorFooter, StateChip } from "../components/sectors/Parts";
 import { useDocTitle } from "../lib/title";
 import { studyCards } from "../lib/sectorStudy";
 import {
-  QUARTER, count, dayMonth, failureText, flagAge, flagText, fullDate, level, pct, plural, signedPct, stateClass, useSectorBoard, useSectorPage, type IndustryPage, type MarketNow, type RankedStock,
+  QUARTER, averageLabel, count, countedText, dayMonth, failureText, flagAge, flagText, fullDate, level, pct, plural, signedPct, stateClass, useSectorBoard, useSectorPage, type IndustryPage, type MarketNow, type RankedStock,
 } from "../lib/sectors";
 
 /** Which of the four cycle stages is the current one (null for Neutral, which is none of them). */
@@ -21,7 +23,7 @@ function MarketStrip({ m }: { m: MarketNow | null }) {
   return (
     <div className={"sx-strip" + (below ? "" : " above")} role="note">
       <span className="k">The market</span>
-      <span><b>Nifty 50 {level(m.nifty50)}</b>, {Math.abs(m.pct_vs_200d).toFixed(1)}% {below ? "below" : "above"} its 200-day average of {level(m.nifty50_200d_average)}</span>
+      <span><b>Nifty 50 {level(m.nifty50)}</b>, {Math.abs(m.pct_vs_200d).toFixed(1)}% {below ? "below" : "above"} its {averageLabel(m)} of {level(m.nifty50_200d_average)}</span>
       {m.note && <span className="why">{m.note}</span>}
     </div>
   );
@@ -71,6 +73,7 @@ function ChartCard({ p }: { p: IndustryPage }) {
       <h2 id="sx-chart">Breadth over the past year</h2>
       <p className="sx-sub" style={{ marginBottom: 0 }}>Share of counted {p.name} stocks above their own averages, each session{first && last ? ` from ${fullDate(first)} to ${fullDate(last)}` : ""}.</p>
       <BreadthChart page={p} />
+      {(p.history_note || p.averages_note) && <p className="sx-note" data-testid="history-note" style={{ marginTop: 10, marginBottom: 0 }}>{p.history_note}{p.history_note && p.averages_note ? " " : ""}{p.averages_note}</p>}
       <p className="sx-sub" style={{ marginTop: 12, marginBottom: 0 }} data-testid="chart-story">
         {thrusts.length ? `${p.name} had ${thrusts.length === 1 ? "one thrust" : plural(thrusts.length, "thrust")} in the past year: ${listed}.${fades.length ? ` ${quick} of the ${plural(fades.length, "thrust")} that turned Fading did so within 5 sessions.` : ""}` : `${p.name} had no thrust in the past year.`}
         {p.since ? ` Since ${dayMonth(p.since)} the industry has been ${p.state === "Neutral" ? "Neutral" : "in " + (/^[AEIOU]/.test(p.state) ? "an " : "a ") + p.state}.` : ""}
@@ -94,13 +97,13 @@ function Numbers({ p }: { p: IndustryPage }) {
         <div className="sx-kc"><small>Breadth today</small><span className="v">{pct(p.breadth.above_9)} · {pct(p.breadth.above_20)} · {pct(p.breadth.above_50)}</span>
           <p>Share of the {n} counted stocks above their 9, 20 and 50-day averages.{step != null && <> With {n} stocks, one move shifts a reading by about {step.toFixed(step >= 10 ? 0 : 1)} points.</>}</p></div>
         <div className="sx-kc"><small>Lowest 50-day reading, last 30 sessions</small><span className="v">{pct(p.breadth.lowest_50_last_30)}</span>
-          <p>Under 40% at any point in 30 sessions is what makes an industry a Washout.{last5.length ? <> On {zero5} of the last {last5.length} sessions, {zero5 ? "no counted stock was" : "at least one counted stock was"} above its 50-day average.</> : null}</p></div>
+          <p>Under 40% at any point in 30 sessions is what makes an industry a Washout.{last5.length ? <> {zero5 ? ` On ${zero5} of the last ${last5.length} sessions, no counted stock was above its 50-day average.` : ` On all ${last5.length} of the last ${last5.length} sessions, at least one counted stock was above its 50-day average.`}</> : null}</p></div>
         <div className="sx-kc"><small>{p.name} index vs its 52-week high</small><span className={"v" + ((p.index_vs_52w_high ?? 0) < 0 ? " neg" : "")}>{signedPct(p.index_vs_52w_high, 1)}</span>
           <p>The {n} counted stocks averaged with equal weight. At 15% or more below its high, a 52-week closing high by any of them would set a full leader flag.{flags == null ? " Whether any flag is live is part of the Silver plan." : flags === 0 ? " None has one live." : ` ${plural(flags, "stock")} ${flags === 1 ? "has" : "have"} one live.`}</p></div>
         <div className="sx-kc"><small>Index's last 60-day low</small><span className="v">{low ? `${low.sessions_ago} ${low.sessions_ago === 1 ? "session" : "sessions"} ago` : "—"}</span>
           <p>{low ? `The most recent low of the ${p.name} index over the past 60 sessions, on ${dayMonth(low.date)}.` : "No 60-day low is recorded for this group."}</p></div>
         <div className="sx-kc"><small>Higher-low share at that low</small><span className={"v" + (hl != null && hl < 20 ? " neg" : "")}>{pct(hl)}</span>
-          <p>{hl != null && hlN != null ? <>Only {hlN} of the {n} stocks had made their own low at least 10 sessions earlier and stayed 3% or more above it. Under 20% is a capitulation, so a thrust now would count as CAP.</> : "Not available for this group."}</p></div>
+          <p>{hl != null && hlN != null ? <>Only {hlN} of the {n} stocks had made their own low at least 10 sessions earlier and stayed 3% or more above it. Under 20% is a capitulation, so a thrust now would count as CAP.</> : (p.higher_low_note ?? "Not available for this group.")}</p></div>
         <div className="sx-kc"><small>Last thrust</small><span className="v">{lt ? `${lt.type} · ${fullDate(lt.date)}` : "None"}</span>
           <p>{lt ? <>{lt.sessions_ago} {lt.sessions_ago === 1 ? "session" : "sessions"} ago.{fade ? ` It turned Fading ${fade.sessions <= 1 ? "the next session" : `after ${fade.sessions} sessions`}, on ${dayMonth(fade.date)}.` : " It has not turned Fading since."}</> : "No thrust in the past year."}</p></div>
       </div>
@@ -207,15 +210,17 @@ export function SectorIndustryPage() {
   const notCountedN = p?.not_counted?.length;
   return (
     <div className="wrap sx" data-testid="sector-industry">
+      <SectorTabs active="pulse" />
       <p className="sx-back"><Link to="/sectors">Sector Pulse</Link> / {p?.name ?? slug}</p>
       {q.isLoading && <div className="sx-skel" role="status" aria-label="Loading the industry" />}
       {q.isError && <Blank title={q.error?.status === 404 ? "No such industry" : "This industry is not available right now"} reason={failureText(q.error)}><Link className="btn" to="/sectors">Back to Sector Pulse</Link></Blank>}
       {p && (
         <>
           <div className="sx-title"><h1>{p.name}</h1><StateChip state={p.state} big extra={p.since ? `since ${dayMonth(p.since)}` : undefined} /></div>
-          <p className="sx-meta">{p.kind === "sector" ? `NSE sector group of ${p.industries.length} small industries (${p.industries.join(", ")}) in the ${p.sector} sector` : `NSE industry in the ${p.sector} sector`} · {plural(p.stocks_counted, "stock")} counted{notCountedN != null ? `, ${notCountedN} not counted` : `, ${Math.max(0, p.stocks_listed - p.stocks_counted)} listed stocks not counted`} · data as of {fullDate(p.date)}</p>
+          <p className="sx-meta">{p.kind === "sector" ? `NSE sector group of ${p.industries.length} small industries (${p.industries.join(", ")}) in the ${p.sector} sector` : `NSE industry in the ${p.sector} sector`} · {countedText(p)}{notCountedN != null ? `, ${notCountedN} not counted` : `, ${Math.max(0, p.stocks_listed - p.stocks_counted)} listed stocks not counted`} · data as of {fullDate(p.date)}</p>
           <MarketStrip m={p.market} />
           <Happening p={p} />
+          <RotationCard slug={p.slug} groupName={p.name} kindLine={`${p.name} · ${p.kind === "sector" ? `sector group of ${p.industries.length} small NSE industries` : "NSE industry"} · ${countedText(p)}`} />
           <ChartCard p={p} />
           <Numbers p={p} />
           <StudyBox p={p} />

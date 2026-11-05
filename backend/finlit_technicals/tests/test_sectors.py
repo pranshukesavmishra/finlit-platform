@@ -205,6 +205,73 @@ def test_thrust_washout_and_leader_flag(tmp_path):
     assert abs(g.p9[i] - 100 * sum(above) / len(above)) < 1e-9
 
 
+def _states(p9, p20, p50, **kw):
+    n = len(p9)
+    st = SE.group_states(np.array(p9, float), np.array(p20, float), np.array(p50, float), np.full(n, np.nan),
+                         SE.SectorParams(**kw))
+    return [SE.STATE_CODES[int(x)] for x in st[0]], st[5]
+
+
+def test_fading_lasts_20_sessions():
+    # 5 sessions Confirmed, then breadth breaks and stays weak for 70 sessions
+    p9 = [80] * 5 + [40] * 70
+    p20 = [80] * 5 + [40] * 70
+    p50 = [80] * 5 + [35] * 70
+    st, ev_fade = _states(p9, p20, p50)
+    assert st[:5] == ["confirmed"] * 5
+    assert st[5:25] == ["fading"] * 20                                # the printed rule: Fading lasts 20 sessions
+    assert st[25:] == ["washout"] * 50                                # then the state falls back to Washout
+    assert int(ev_fade.sum()) == 1
+    old, _ = _states(p9, p20, p50, fade_once=False)                   # 2.4.0: re-set on every weak session
+    assert old[25:79].count("fading") == 50                           # ... so it lasted 60 + 20 sessions
+
+
+def test_a_new_thrust_ends_fading():
+    # Confirmed, a breakdown and a washout, then a broad 9-day thrust 25 sessions later, inside the 60-session
+    # memory of Confirmed and with the 50-day share still under 50%
+    p9 = [80] * 5 + [10] * 25 + [90] * 25
+    p20 = [80] * 5 + [10] * 25 + [60] * 25
+    p50 = [80] * 5 + [20] * 25 + [45] * 25
+    st, _ = _states(p9, p20, p50)
+    assert st[5:25] == ["fading"] * 20 and st[25:30] == ["washout"] * 5
+    assert st[30:50] == ["thrust_c"] * 20                             # "lasts 20 sessions or until a new thrust"
+    old, _ = _states(p9, p20, p50, fade_once=False)
+    assert old[30] == "thrust_c" and old[31] == "fading"              # the 2.4.0 bug: one session of thrust
+    # a thrust that really fails still turns Fading, once
+    p9b = [80] * 5 + [10] * 25 + [90] * 3 + [20] * 30
+    p20b = [80] * 5 + [10] * 25 + [60] * 3 + [20] * 30
+    p50b = [80] * 5 + [20] * 25 + [45] * 3 + [20] * 30
+    st2, ev2 = _states(p9b, p20b, p50b)
+    assert st2[30:33] == ["thrust_c"] * 3 and st2[33:53] == ["fading"] * 20 and st2[53] == "washout"
+    assert int(ev2[30:].sum()) == 1
+
+
+def test_single_industry_sector_group_and_counts(tmp_path):
+    from finlit_technicals.industries import build_groups
+    keys = [f"S{i}" for i in range(16)]
+    cls = {k: ("Big Industry", "Sector A") for k in keys[:10]}
+    cls.update({k: ("Small One", "Sector B") for k in keys[10:13]})                  # alone in its sector
+    cls.update({k: ("Small Two", "Sector C") for k in keys[13:15]})
+    cls[keys[15]] = ("Small Three", "Sector C")                                       # two small industries
+    groups, meta = build_groups(keys, [True] * 16, cls)
+    assert meta["Small One"]["kind"] == "industry" and "Sector B" not in groups       # named after the industry
+    assert meta["Sector C"]["kind"] == "sector" and meta["Sector C"]["industries"] == ["Small Three", "Small Two"]
+    # a counted stock without a price on the last day is left out of the group count and of the totals alike
+    eng = SectorEngine(NseHistory(folder(tmp_path), chunked=False))        # an in-memory panel: this test edits one close
+    eng._build()
+    j = next(c for c in eng.groups["Ferrous Metals"] if eng.member[-1, c])
+    eng.panel.close[-1, j] = np.nan
+    eng.panel.adj[-1, j] = np.nan
+    b = strict(eng.board())
+    row = next(r for r in b["rows"] if r["name"] == "Ferrous Metals")
+    assert row["members_not_traded_today"] == 1 and row["stocks_counted"] == row["stocks_traded_today"] == 15
+    u = b["universe"]
+    assert u["meet_rules"] == u["counted_in_groups_with_reading"] + sum(x["stocks_counted"] for x in b["too_few_stocks"])
+    assert b["market"]["average_label"] == "200-day exponential average"
+    d = eng.industry("ferrous-metals")
+    assert "exponential" in d["averages_note"] and "grouped" in d["history_note"]
+
+
 def test_other_sources_use_the_same_rules():
     cal, px = F.paths(400)
     stocks = {s: pd.DataFrame({"open": c, "high": c * 1.01, "low": c * 0.99, "close": c, "volume": 1e6}, index=cal)

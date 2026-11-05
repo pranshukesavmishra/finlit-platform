@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "source": "FinLit Glossary, November 2026",
  "topics": [
   "Banks and lenders",
@@ -332,6 +332,22 @@
     "Industry net AUM",
     "Net AUM",
     "Equity AUM"
+   ]
+  },
+  {
+   "term": "Average industry (equal-weighted)",
+   "topic": "FinLit words",
+   "meaning": "The yardstick on FinLit's Rotation page: the daily return of every NSE industry and sector group with a reading, averaged with equal weight.",
+   "why": "Comparing each industry with the typical industry, not with an index of large companies, keeps a few big stocks from setting the bar.",
+   "how": "Because every group counts the same, it leans towards industries with many mid and small companies.",
+   "formula": "Average industry return on a day = mean of that day's returns of all groups with 8 or more counted stocks",
+   "id": "average-industry-equal-weighted",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Average industry",
+    "Average group",
+    "Equal-weighted industry average"
    ]
   },
   {
@@ -5837,6 +5853,41 @@
    ]
   },
   {
+   "term": "Rotation corners (Ahead and gaining, Ahead but slowing, Behind and slipping, Behind but gaining)",
+   "topic": "FinLit words",
+   "meaning": "Where an industry sits on two numbers measured against the average industry: its 6-month return (ahead or behind) and its last month's return (gaining or slowing).",
+   "why": "Together they show the size of a lead and its direction.",
+   "how": "A group moves to a new corner only after two weekly readings there, so corners change slowly. In FinLit's 2017–2026 study, Behind but gaining was usually a bounce: 72% of moves out of it went back to Behind and slipping.",
+   "formula": "Strength = the group's 6-month return − the average industry's 6-month return; Change = the same over the last month (21 sessions)",
+   "id": "rotation-corners",
+   "letter": "R",
+   "finlit": "Readings are taken at each week's last session; the current week uses its latest session.",
+   "aliases": [
+    "Rotation corner",
+    "Ahead and gaining",
+    "Ahead but slowing",
+    "Behind and slipping",
+    "Behind but gaining"
+   ]
+  },
+  {
+   "term": "Rotation rank",
+   "topic": "FinLit words",
+   "meaning": "A weekly 0–100 score that ranks NSE industry groups by how far they have run ahead of the average industry over 3, 6 and 12 months, with breadth added.",
+   "why": "It puts every group on one list, and its weekly moves show which groups are climbing or falling.",
+   "how": "A rank describes past returns. In FinLit's study the top third did 2.8 points better than the bottom third over the next 3 months, but the gap was close to zero in 2025 and 2026.",
+   "formula": "Score = 75% × (0.3 × rank of the 3-month + 0.4 × rank of the 6-month + 0.3 × rank of the 12-month return against the average industry) + 25% × rank of breadth (share above the 50-day average); each rank is a percentile across groups",
+   "id": "rotation-rank",
+   "letter": "R",
+   "finlit": "Each group shows the places it moved in 1 week and in 4 weeks; moves of 3 places or more are highlighted.",
+   "aliases": [
+    "Rotation score",
+    "Rank change",
+    "Places moved",
+    "Climbers and fallers"
+   ]
+  },
+  {
    "term": "RSI (Relative Strength Index)",
    "topic": "Price and technicals",
    "meaning": "A 0–100 gauge of how strongly a stock has risen versus fallen over the last 14 days.",
@@ -6026,11 +6077,28 @@
    ]
   },
   {
+   "term": "Sector rotation",
+   "topic": "FinLit words",
+   "meaning": "Industries taking turns to lead the market. FinLit measures it against the average industry: every NSE industry or sector group with a reading, weighted equally.",
+   "why": "It shows which industries have been pulling ahead of the rest and which have been falling behind, and whether that is speeding up or slowing down.",
+   "how": "It describes the past. In FinLit's 2017–2026 study the pattern held in equal-weighted industry groups but not in NSE's size-weighted sector indices, and it was weaker when the Nifty 50 was below its 200-day exponential average.",
+   "formula": "",
+   "id": "sector-rotation",
+   "letter": "S",
+   "finlit": "The Rotation tab on Sector Pulse places each group in one of four corners and ranks the groups every week.",
+   "aliases": [
+    "Rotation",
+    "Industry rotation",
+    "Rotation map",
+    "Rotation tab"
+   ]
+  },
+  {
    "term": "Sector signal states (Washout, Thrust, Confirmed, Fading)",
    "topic": "FinLit words",
    "meaning": "FinLit's labels for where an NSE industry stands in its breadth cycle: Washout (broad selling), Thrust (a broad rebound), Confirmed (most stocks trending up together) and Fading (breadth breaking down).",
    "why": "They show whether a move in an industry is broad or narrow, and how it has developed.",
-   "how": "Read them with the market: is the Nifty 50 above or below its 200-day average? In FinLit's 2017–2026 study many thrusts faded, and averaged week by week their edge was about zero.",
+   "how": "Read them with the market: is the Nifty 50 above or below its 200-day exponential average? In FinLit's 2017–2026 study many thrusts faded, and averaged week by week their edge was about zero.",
    "formula": "",
    "id": "sector-signal-states-washout-thrust-confirmed-fading",
    "letter": "S",

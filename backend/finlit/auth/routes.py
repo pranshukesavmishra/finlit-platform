@@ -253,6 +253,8 @@ class PrefsIn(BaseModel):
     alerts: bool = True
     screenAlerts: bool = True
     profitGap: bool = True
+    rotationCorner: bool = True      # built-in Sector Rotation alerts (finlit/rotation_alerts.py)
+    rotationRank: bool = False
     digest: bool = False
     dashboard: List[Widget] = Field(default_factory=list, max_length=30)
 

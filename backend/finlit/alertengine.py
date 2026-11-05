@@ -388,6 +388,8 @@ async def evaluate(pool, mailer: Mailer, site_url: str, kind: str = "all") -> in
             fired += await auto_profit_gap(pool, mailer, site_url)
             from .plalerts import auto_pl_flags   # imported here: plalerts uses deliver() from this module
             fired += await auto_pl_flags(pool, mailer, site_url)
+            from .rotation_alerts import auto_rotation_alerts   # the Sector Rotation alerts read the nightly rotation file, not the database
+            fired += await auto_rotation_alerts(pool, mailer, site_url)
         except Exception:
             log.exception("built-in alerts failed")
     return fired

@@ -37,16 +37,16 @@
   "median_sessions_after_low": 30.0
  },
  "Fading": {
-  "cases": 1517,
-  "resolved": 1478,
-  "win_pct": 43.7,
-  "edge_pts": 0.2,
-  "edge_median_pts": -0.2,
+  "cases": 1376,
+  "resolved": 1341,
+  "win_pct": 43.2,
+  "edge_pts": 0.1,
+  "edge_median_pts": -0.3,
   "fwd60_pct": 4.4,
-  "beat_normal_pct": 49.5,
-  "edge_ex2020_pts": -0.2,
-  "cases_ex2020": 1385,
-  "win_ex2020_pct": 41.6
+  "beat_normal_pct": 49.2,
+  "edge_ex2020_pts": -0.1,
+  "cases_ex2020": 1259,
+  "win_ex2020_pct": 41.1
  },
  "any_thrust": {
   "cases": 690,
@@ -218,12 +218,12 @@
  },
  "state_share_pct": {
   "0": 24.1,
-  "1": 11.2,
-  "2": 12.7,
-  "3": 5.2,
-  "4": 1.8,
+  "1": 11.6,
+  "2": 26.5,
+  "3": 6.4,
+  "4": 2.5,
   "5": 9.6,
-  "6": 35.3
+  "6": 19.4
  },
  "C_below_200d": {
   "cases": 130,
