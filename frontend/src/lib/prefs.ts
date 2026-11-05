@@ -6,7 +6,7 @@ import { isPalette, type PaletteId } from "./palettes";
 export type Density = "comfortable" | "compact";
 export type WidgetSize = "third" | "half" | "full";
 export type WidgetPref = { id: string; on: boolean; size: WidgetSize };
-export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; screenAlerts: boolean; profitGap: boolean; digest: boolean; dashboard: WidgetPref[] };
+export type Prefs = { palette: PaletteId; density: Density; alerts: boolean; screenAlerts: boolean; profitGap: boolean; rotationCorner: boolean; rotationRank: boolean; digest: boolean; dashboard: WidgetPref[] };
 
 /** The phone's three tabs, each holding some of the blocks. */
 export type DashTab = "stocks" | "market" | "news";
@@ -36,7 +36,7 @@ export const WIDGETS: { id: string; label: string; blurb: string; min: "basic" |
   { id: "commodities", label: "Gold & silver today", blurb: "MCX gold, silver and crude oil with the day change. Off until a licensed price source is connected.", min: "basic", size: "half", tab: "market", off: true },
 ];
 const defaultLayout = (): WidgetPref[] => WIDGETS.map((w) => ({ id: w.id, on: !w.off, size: w.size }));
-const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, screenAlerts: true, profitGap: true, digest: false, dashboard: defaultLayout() };
+const DEFAULTS: Prefs = { palette: "gold", density: "comfortable", alerts: true, screenAlerts: true, profitGap: true, rotationCorner: true, rotationRank: false, digest: false, dashboard: defaultLayout() };
 
 const KEY = "finlit-prefs-v1";
 /** A saved layout, cleaned: only known blocks, each once, every block present. A layout saved before the refreshed dashboard (it has no "Your stocks today") is replaced by the new default. */
@@ -50,7 +50,7 @@ export function normaliseLayout(saved: WidgetPref[] | undefined | null): WidgetP
   return dash;
 }
 function normalise(raw: Partial<Prefs> | null | undefined): Prefs {
-  return { palette: isPalette(raw?.palette) ? raw!.palette! : "gold", density: raw?.density === "compact" ? "compact" : "comfortable", alerts: raw?.alerts !== false, screenAlerts: raw?.screenAlerts !== false, profitGap: raw?.profitGap !== false, digest: raw?.digest === true, dashboard: normaliseLayout(raw?.dashboard) };
+  return { palette: isPalette(raw?.palette) ? raw!.palette! : "gold", density: raw?.density === "compact" ? "compact" : "comfortable", alerts: raw?.alerts !== false, screenAlerts: raw?.screenAlerts !== false, profitGap: raw?.profitGap !== false, rotationCorner: raw?.rotationCorner !== false, rotationRank: raw?.rotationRank === true, digest: raw?.digest === true, dashboard: normaliseLayout(raw?.dashboard) };
 }
 function read(): Prefs { try { return normalise(JSON.parse(localStorage.getItem(KEY) || "null")); } catch { return normalise(null); } }
 

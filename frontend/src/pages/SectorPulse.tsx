@@ -8,7 +8,7 @@ import { HScroll } from "../components/HScroll";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import {
-  FILTERS, SORT_LABEL, STATES, count, failureText, filterCounts, flagAge, flagText, fullDate, groupKindText, groupsLine, inFilter, level, mergedReasons, pct, plural, signedPct, sortRows, thrustText,
+  AVERAGES_NOTE, FILTERS, SORT_LABEL, averageLabel, STATES, count, failureText, filterCounts, flagAge, flagText, fullDate, groupKindText, groupsLine, inFilter, level, mergedReasons, pct, plural, signedPct, sortRows, thrustText,
   useSectorBoard, type Board, type FilterKey, type GroupRow, type SortKey,
 } from "../lib/sectors";
 import { BreadthBars, Blank, LockedBlock, SectorFooter, StateChip } from "../components/sectors/Parts";
@@ -33,10 +33,10 @@ function Market({ b }: { b: Board }) {
   const below = m.above_200d === false;
   return (
     <section className="sx-card" aria-labelledby="sx-mkt">
-      <div className="sx-mkt-h"><h2 id="sx-mkt">The market behind the industries</h2>{m.above_200d != null && <span className={`sx-chip ${below ? "st-fading" : "st-confirmed"}`}>{below ? "Below its 200-day average" : "Above its 200-day average"}</span>}</div>
+      <div className="sx-mkt-h"><h2 id="sx-mkt">The market behind the industries</h2>{m.above_200d != null && <span className={`sx-chip ${below ? "st-fading" : "st-confirmed"}`}>{below ? "Below its " : "Above its "}{averageLabel(m)}</span>}</div>
       <div className="sx-nums">
         <div className="sx-num"><small>Nifty 50</small><b>{level(m.nifty50)}</b></div>
-        <div className="sx-num"><small>200-day average</small><b>{level(m.nifty50_200d_average)}</b></div>
+        <div className="sx-num"><small>{averageLabel(m)[0].toUpperCase() + averageLabel(m).slice(1)}</small><b>{level(m.nifty50_200d_average)}</b></div>
         <div className="sx-num"><small>Difference</small><b className={m.pct_vs_200d != null ? (m.pct_vs_200d < 0 ? "neg" : "pos") : ""}>{signedPct(m.pct_vs_200d, 1)}</b></div>
       </div>
       {b.study?.market && <p className="sx-sub" style={{ marginBottom: 8 }}>{b.study.market}</p>}
@@ -52,7 +52,7 @@ function HowTo() {
         <h2 id="sx-how">How to read this page</h2>
         <ol className="sx-steps">
           <li><i>1</i><span><b>The coloured state</b> shows where an industry is in its cycle, from a broad sell-off (Washout) through a broad rebound (Thrust) to an established trend (Confirmed).</span></li>
-          <li><i>2</i><span><b>The three bars</b> show the share of its counted stocks above their 9, 20 and 50-day averages: the short, medium and longer trend. Long bars mean most stocks are rising together.</span></li>
+          <li><i>2</i><span><b>The three bars</b> show the share of its counted stocks above their 9, 20 and 50-day averages: the short, medium and longer trend. Long bars mean most stocks are rising together. {AVERAGES_NOTE}</span></li>
           <li><i>3</i><span><b>Industries are NSE's.</b> An industry with fewer than 10 counted stocks is read together with the other small industries of its NSE sector, as a sector group.</span></li>
           <li><i>4</i><span><b>Open an industry</b> to see a year of its history, how each stock compares inside it, which stocks are not counted and why, and what the 2017–2026 study found for its state.</span></li>
         </ol>
@@ -61,7 +61,7 @@ function HowTo() {
       <section className="sx-card" aria-labelledby="sx-cyc">
         <h2 id="sx-cyc">The industry cycle</h2>
         <div className="sx-cycle">
-          <div className="sx-stage st-washout"><b>Washout</b>Fewer than 40% of stocks above their 50-day average</div><span className="arrow" aria-hidden="true">→</span>
+          <div className="sx-stage st-washout"><b>Washout</b>Fewer than 40% of stocks above their 50-day average at some point in the last 30 sessions</div><span className="arrow" aria-hidden="true">→</span>
           <div className="sx-stage st-thrust"><b>Thrust C / CAP</b>A sudden, broad rebound within 5 sessions</div><span className="arrow" aria-hidden="true">→</span>
           <div className="sx-stage st-confirmed"><b>Confirmed</b>70%+ of stocks above all three averages</div>
         </div>
@@ -140,7 +140,7 @@ function Row({ r }: { r: GroupRow }) {
       <td className="l"><StateChip state={r.state} /></td>
       <td className="l"><BreadthBars b={r.breadth} name={r.name} /></td>
       <td>{signedPct(r.index_vs_52w_high, 1)}</td>
-      <td className={r.higher_low_share != null && r.higher_low_share < 20 ? "sx-low" : ""}>{pct(r.higher_low_share)}{r.higher_low_share != null && r.higher_low_share < 20 ? <span className="sx-visually"> (under 20%: a capitulation)</span> : null}</td>
+      <td className={r.higher_low_share != null && r.higher_low_share < 20 ? "sx-low" : ""}>{r.higher_low_share == null ? <span className="sx-na" title={r.higher_low_note ?? undefined}>—<span className="sx-visually"> {r.higher_low_note ?? "No reading"}</span></span> : pct(r.higher_low_share)}{r.higher_low_share != null && r.higher_low_share < 20 ? <span className="sx-visually"> (under 20%: a capitulation)</span> : null}</td>
       <td className="l" style={{ whiteSpace: "normal", minWidth: 118 }}>{thrustText(r.last_thrust)}</td>
       <td className="sx-flagn">{r.leader_flags == null ? <span className="sx-na" title="Leader flags are part of the Silver plan">Silver</span> : r.leader_flags > 0 ? r.leader_flags : <span className="sx-na" aria-label="none">—</span>}</td>
     </tr>
