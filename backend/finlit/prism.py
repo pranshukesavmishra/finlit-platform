@@ -545,7 +545,10 @@ async def latest(request: Request, symbol: str = Query("", max_length=40), state
     if row is None or stale_model(row["report"]):
         return _reply({"status": "none", "detail": f"No current-model {PRISM_NAME} report is available. A fresh calculation is needed."}, 404)
     refreshing = await _refresh_stale_technical(request.app, wanted[0], row)
-    return _reply({"summary": _summary(row, refreshing)} if view == "summary" else _shape(row, cached=True, refreshing=refreshing))
+    from . import scorelive
+    fresh = await scorelive.on_open_prism(request.app, wanted[0], wanted[1], row)    # behind a newer quarter or a completed session: recalculated in the background, the stored one shown with its date
+    body = {"summary": {**_summary(row, refreshing), "freshness": fresh}} if view == "summary" else {**_shape(row, cached=True, refreshing=refreshing), "freshness": fresh}
+    return _reply(body)
 
 
 HISTORY_MAX = 800     # points sent: the newest 800 days (a score is worked out at most once a day, so about three years)
@@ -1141,6 +1144,40 @@ def in_shard(symbols: List[str], shard: Optional[Tuple[int, int]]) -> List[str]:
     return [x for x in symbols if zlib.crc32(x.encode()) % of == part]
 
 
+async def calculate_and_store(app, symbol: str, statement: str, sub: str, *, kept_seconds: float = 0) -> Tuple[bool, int, int]:
+    """One company's rating, calculated through the site backend as a BACKGROUND calculation (it yields to a member who is waiting) and stored the way a
+    member's button stores it. Returns (stored, status code, times it stood aside for a member). Fresh model inputs by default (`kept_seconds` 0): a rating
+    worked out because new results arrived must not be built from yesterday's kept statements. The nightly pre-calculation and the real-time score
+    refresh (scorelive.py) both run exactly this."""
+    store, redis = app.state.store, app.state.store.redis
+    code, r, paused = 0, None, 0
+    for _ in range(PRE_PAUSE_TRIES):
+        try:
+            payload = await _site_payload(app, symbol, statement, background=True, keep=False, kept_seconds=kept_seconds)
+            r = await _call(app, "/api/premium-reports", sub, payload)
+        except httpx.HTTPError as exc:
+            r = None
+            log.warning("prism %s %s did not reach the site backend: %s", sub, symbol, type(exc).__name__)
+        code = r.status_code if r is not None else 0
+        if code == 429 and r is not None and "member is waiting" in (_upstream_detail(r) or ""):
+            paused += 1                    # a member is waiting: let them go first
+            await asyncio.sleep(RETRY_AFTER_BACKGROUND)
+            continue
+        break
+    snapshot = _ready(r)
+    if snapshot is None:
+        log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
+        return False, code, paused
+    cache = snapshot.pop("cache", None)
+    view = reader_view(snapshot)
+    await _save(store, symbol, statement, view, None)
+    if stale_classification(view):
+        # The site backend still runs the old classification rules (not deployed yet): do not calculate this company again tonight.
+        await redis.set(f"prism:pre:fail:{statement}:{symbol}", "stale-model", ex=PRE_FAIL_SECONDS)
+    await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
+    return True, code, paused
+
+
 async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 100.0, days: int = 7, statement: str = "consolidated", client=None, shard: Optional[Tuple[int, int]] = None,
                       stale_not_rated: bool = False) -> Dict[str, Any]:
     """Calculate the rating of every company we hold a full report for that has none yet (or one older than `days`), one at a time (memory),
@@ -1170,32 +1207,11 @@ async def precompute(store, settings, *, limit: int = 800, max_minutes: float = 
     async def one(symbol: str) -> Tuple[bool, int]:
         """Calculate and store one company's rating the way a member's button does. (stored, status code); pauses while a member is waiting."""
         nonlocal paused
-        code, r = 0, None
-        for _ in range(PRE_PAUSE_TRIES):
-            try:
-                payload = await _site_payload(app, symbol, statement, background=True, keep=False, kept_seconds=0)
-                r = await _call(app, "/api/premium-reports", "prism:nightly", payload)
-            except httpx.HTTPError as exc:
-                r = None
-                log.warning("prism nightly %s did not reach the site backend: %s", symbol, type(exc).__name__)
-            code = r.status_code if r is not None else 0
-            if code == 429 and r is not None and "member is waiting" in (_upstream_detail(r) or ""):
-                paused += 1                    # a member is waiting: let them go first
-                await asyncio.sleep(RETRY_AFTER_BACKGROUND)
-                continue
-            break
-        snapshot = _ready(r)
-        if snapshot is None:
+        stored, code, waited = await calculate_and_store(app, symbol, statement, "prism:nightly")
+        paused += waited
+        if not stored:
             failed.append(f"{symbol}:{code}")
-            log.warning("prism precompute %s failed with %s: %s", symbol, code, (r.text or "")[:300] if r is not None else "no answer")
             return False, code
-        cache = snapshot.pop("cache", None)
-        view = reader_view(snapshot)
-        await _save(store, symbol, statement, view, None)
-        if stale_classification(view):
-            # The site backend still runs the old classification rules (not deployed yet): do not calculate this company again tonight.
-            await redis.set(f"prism:pre:fail:{statement}:{symbol}", "stale-model", ex=PRE_FAIL_SECONDS)
-        await _remember(app, symbol, statement, {k: v for k, v in (cache or {}).items() if k != "inputs"}, 0.0)   # 0: not timed, the nightly run has the peers kept
         await asyncio.sleep(STALE_PAUSE if stale_not_rated else 0.2)
         return True, code
 

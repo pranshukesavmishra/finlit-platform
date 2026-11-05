@@ -48,7 +48,8 @@ INPUT_CUT_SQL = ("CASE section "
 VIEWED_KEY = "viewed"   # sorted set: symbol -> last time a member or visitor opened its report (keeps it stored when pruning)
 # What the website lists for every company. The 170 screener numbers (scores.metrics) are left out on purpose: they are ~2 KB a company and only /api/screener/query needs them.
 LIST_COLUMNS = ("symbol, statement, model, overall, band, pillar_quality, pillar_growth, pillar_profitability, pillar_balance, pillar_technical, price, market_cap, "
-                "pe, pb, roe, roce, dividend_yield, debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, sector, name, updated_at")
+                "pe, pb, roe, roce, dividend_yield, debt_to_equity, sales_cagr, profit_cagr, operating_margin, change_pct, return_1m, return_1y, sector, name, updated_at, "
+                "(CASE WHEN live_at > updated_at THEN live_at ELSE updated_at END) AS scored_at")   # scored_at: when the score was last worked out (a full build or a live-price recompute)
 
 # The 52-week and return figures the score screeners can show as optional columns, read from the stored screener numbers (scores.metrics).
 EXTRA_KEYS = ("pct_from_high", "ret_3m", "ret_6m")
@@ -323,6 +324,18 @@ class Store:
                 row["symbol"], row["statement"], row.get("model") or "v1", row["overall"], row.get("pillar_quality"), row.get("pillar_growth"),
                 row.get("pillar_profitability"), row.get("pillar_balance"), row.get("pillar_technical"))
 
+    async def update_live_scores(self, rows: List[dict]) -> int:
+        """The price-driven part of the FinLit IQ worked out again from a live quote (scorelive.py): overall, band and the Technical pillar of the row the
+        screener reads, and today's point of the score history. `updated_at` stays the last full build; `live_at` says when this happened."""
+        if not rows:
+            return 0
+        async with self.pool.acquire() as conn, conn.transaction():
+            args = [(r["symbol"], r["statement"], r["overall"], r["band"], r["pillar_technical"]) for r in rows]
+            await conn.executemany("UPDATE scores SET overall = $3, band = $4, pillar_technical = $5, live_at = now(), changed_at = now() "
+                                   "WHERE symbol = $1 AND statement = $2 AND model = 'v1'", args)
+            await conn.executemany("UPDATE score_history SET overall = $3, pillar_technical = $4 WHERE symbol = $1 AND statement = $2 AND model = 'v1' AND day = CURRENT_DATE", [(a[0], a[1], a[2], a[4]) for a in args])
+        return len(rows)
+
     async def save_score_only(self, symbol: str, statement: str, score_row: dict) -> None:
         """Keep a company's score and screener figures without its report: about 5 KB instead of about 100 KB (report sections and a year and a half of
         daily prices). The screener and alerts read the score row; the report itself is built when somebody opens the company."""
@@ -349,7 +362,7 @@ class Store:
     async def light_rows(self) -> List[dict]:
         """Every listed company that has no score yet: its name and sector from the symbol list and its price figures from the nightly listing
         refresh (the same rows the full screener lists), so a screener counts every company we hold, scored or not."""
-        keys = [k.strip() for k in LIST_COLUMNS.split(",") if k.strip() not in ("statement", "model", "updated_at")] + list(EXTRA_KEYS)
+        keys = [k.strip().split(" AS ")[-1] for k in LIST_COLUMNS.split(",") if k.strip() not in ("statement", "model", "updated_at")] + list(EXTRA_KEYS)
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 "SELECT c.symbol, c.name, c.sector, l.price, l.change_pct, l.market_cap FROM companies c LEFT JOIN listing_quotes l ON l.symbol = c.symbol "

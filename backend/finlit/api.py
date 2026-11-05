@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from . import scorelive
 from . import alertapi, commodities, indices, intraday, leadership_api, notify, premium, prism
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
@@ -210,7 +211,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
             r.update(stored.get(r["symbol"]) or prism_screen.blank())
             r["scored"] = r["symbol"] in scored        # decided before a plan's redaction removes the score, so the page can say how many are scored
             for k, v in list(r.items()):
-                if v is not None and not isinstance(v, (int, str, bool, float)):
+                if hasattr(v, "isoformat"):
+                    r[k] = v.isoformat()    # scored_at: when the score was last worked out
+                elif v is not None and not isinstance(v, (int, str, bool, float)):
                     r[k] = float(v)
                 if isinstance(r[k], float):
                     r[k] = round(r[k], 2)   # two decimals is all any list shows; it roughly halves the download
@@ -493,6 +496,9 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
                     await app.state.store.enqueue(symbol, statement)
                 elif age > 24 * 3600 and await app.state.store.redis.set(f"refresh:{symbol}:{statement}", 1, nx=True, ex=3600):
                     await app.state.store.enqueue(symbol, statement)
+                elif age > 600 and await scorelive.report_behind_filing(app.state.store, symbol, statement, made) \
+                        and await app.state.store.redis.set(f"refresh:{symbol}:{statement}", 1, nx=True, ex=600):
+                    await app.state.store.enqueue(symbol, statement)   # a result was declared that this report does not hold: rebuilt now, not at night
             except Exception:   # nosec B110
                 pass
             return False

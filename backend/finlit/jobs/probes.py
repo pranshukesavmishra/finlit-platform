@@ -26,4 +26,8 @@ def build(store: Any) -> Dict[str, Callable[[], Awaitable[Optional[bool]]]]:
             return bool(await conn.fetchval("SELECT EXISTS (SELECT 1 FROM (SELECT DISTINCT symbol FROM snapshots WHERE section = 'price-MAX') s "
                                             "LEFT JOIN price_history_long h ON h.symbol = s.symbol WHERE h.symbol IS NULL OR h.ath IS NULL)"))
 
-    return {"technicals": technicals, "prism": prism, "ath": ath}
+    async def scores_live() -> Optional[bool]:
+        from .. import scorelive
+        return await scorelive.has_work(store)
+
+    return {"technicals": technicals, "prism": prism, "ath": ath, "scores-live": scores_live}
