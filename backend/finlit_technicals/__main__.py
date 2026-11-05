@@ -7,6 +7,11 @@
   python -m finlit_technicals industry "Ferrous Metals" --nse ./nse           one industry page
   python -m finlit_technicals stock-sector SAMBHV --nse ./nse                 the stock inside its industry
   python -m finlit_technicals batch --nse ./nse --out ./site_data             every stock and industry -> JSON files
+  python -m finlit_technicals stress packs/ASIANPAINT.json --today today.json  Stress Lab: one company, one scenario
+  python -m finlit_technicals stress-batch --packs ./packs --today today.json --out ./site_data/stress
+  python -m finlit_technicals rotation --nse /srv/finlit/nse                Sector rotation: every group, ranked
+  python -m finlit_technicals rotation banks --nse /srv/finlit/nse          one group's rotation card (JSON)
+  python -m finlit_technicals rotation-batch --nse /srv/finlit/nse --out site_data/rotation
 Prices come from --nse (NSE's files, kept by fetch-nse: every stock and index, delisted stocks included) or --data
 (a CsvFolder: stocks/<SYMBOL>.csv, indices/<CODE>.csv). Add --json to print the JSON the website gets.
 """
@@ -114,7 +119,7 @@ def board_text(d: dict) -> str:
          "  " + " · ".join(f"{k} {v}" for k, v in d["counts"].items())]
     if d.get("market"):
         m = d["market"]
-        L.append(f"  Nifty 50 {m['nifty50']:,.2f}, {_p(m['pct_vs_200d'])}% vs its 200-day average. {m['note']}")
+        L.append(f"  Nifty 50 {m['nifty50']:,.2f}, {_p(m['pct_vs_200d'])}% vs its 200-day exponential average. {m['note']}")
     if d["market_note"]:
         L.append(f"  {d['market_note']}")
     L.append("")
@@ -176,12 +181,21 @@ def stock_sector_text(d: dict) -> str:
 
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0].startswith("ownership"):
-        from .ownership import cli as ownership_cli
-        return ownership_cli(argv)
     if argv and argv[0] == "fetch-nse":
         from .fetch import main as fetch_main
         return fetch_main(argv[1:])
+    if argv and argv[0].startswith("brief"):
+        from .company_brief import cli as brief_cli
+        return brief_cli(argv)
+    if argv and argv[0].startswith("ownership"):
+        from .ownership import cli as ownership_cli
+        return ownership_cli(argv)
+    if argv and argv[0].startswith("rotation"):
+        from .rotation import cli as rotation_cli
+        return rotation_cli(argv)
+    if argv and argv[0].startswith("stress"):
+        from .stress import cli as stress_cli
+        return stress_cli(argv)
     ap = argparse.ArgumentParser(prog="finlit_technicals", description="ST/LT scores and leader / laggard vs peers")
     ap.add_argument("command", choices=["score", "peers", "sectors", "industry", "stock-sector", "batch", "fetch-nse"])
     ap.add_argument("symbol", nargs="?", help="stock symbol, or the industry name for `industry` (quote names with spaces)")

@@ -1,7 +1,7 @@
 """The staged nightly job (panel written year by year and memory-mapped, universe in blocks, scoring in separate processes) gives the SAME answers as the
-single-process v2.0.1 code: the panel arrays are equal bit for bit, and every file the job releases is equal byte for byte.
+single-process v2.4.1 code: the panel arrays are equal bit for bit, and every file the job releases is equal byte for byte.
 
-The reference is a frozen copy of the v2.0.1 modules (tests/reference_v201/, taken at commit 80a422e); the data is a seeded synthetic NSE folder (big_fixture.py),
+The reference is a frozen copy of the v2.4.1 modules (tests/reference_v201/); the data is a seeded synthetic NSE folder (big_fixture.py),
 small here and 2,800 stocks / 10 years in the measurements of docs/SECTORS.md (tests/measure_job.py runs the same comparison at that size, with the memory table).
 """
 import gzip
@@ -189,7 +189,7 @@ def test_the_universe_is_the_same_for_any_block_and_when_lean(tmp_path):
 
 # ─── the whole job ────────────────────────────────────────────────────────────────────────────────────────────────
 def run_reference(nse_folder: Path, out: Path) -> list:
-    """The v2.0.1 single process: default_batch of commit 80a422e."""
+    """The v2.4.1 single process (the frozen reference)."""
     src = ref_nse.NseHistory(nse_folder, cache=False)
     eng = ref_sectors.SectorEngine(src)
     return ref_batch.run(ref_batch.nse_symbols(eng), src, out, engine=eng)

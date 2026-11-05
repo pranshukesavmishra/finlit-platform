@@ -8,6 +8,10 @@ Three TradingView indicators in Python, for the FinLit website:
 | `peer_label(symbol, source)` | Leader & Laggard vs Peers v1.0 | Leader / In line / Laggard vs industry peers, rank, relative returns vs the sector and market index, the peers table and the weekly history |
 | `SectorEngine(source)` | Sector & Leaders v2.0, on NSE's industries | `.board()`: every NSE industry's state (Washout, Thrust C / CAP, Confirmed, Fading, Neutral), breadth, the market context and live leader flags. `.industry(name)`: one industry page with a year of breadth history, its counted stocks and why the others are not counted. `.stock(symbol)`: the stock inside its industry (6-month quarter, leader flag, bottom timing) |
 
+Three more modules use FinLit's own company data: the Stress Lab (`stress`, section 7), the Ownership insights
+(`ownership`, section 8) and the Company brief (`company_brief`, section 9). Sector Rotation (`rotation`, section 10)
+builds on the sector engine.
+
 The data can come from NSE itself: `python -m finlit_technicals fetch-nse --dir nse` keeps a folder of NSE's daily
 files (every stock since 2016, delisted ones included, and every index), and `NseHistory("nse")` reads it as a price
 source for all three indicators.
@@ -278,20 +282,21 @@ With a source other than `NseHistory`, the same rules run on close × volume, an
 
 | Field | Meaning |
 |---|---|
-| `name`, `slug`, `kind`, `sector`, `industries` | the group; `kind` is `industry` or `sector` (a group of small industries, listed in `industries`) |
+| `name`, `slug`, `kind`, `sector`, `industries` | the group; `kind` is `industry` or `sector` (a group of small industries, listed in `industries`). A small industry that is alone in its sector is named after the industry and has `kind` `industry` (2.4.1) |
 | `state`, `state_code`, `meaning` | Neutral, Washout, Thrust C, Thrust CAP, Confirmed, Fading (`washout`, `thrust_c` ...) and a one-line meaning |
 | `breadth.above_9 / above_20 / above_50` | share of counted stocks above their 9, 20 and 50-day EMA today |
 | `breadth.lowest_50_last_30` | lowest 50-day reading in the last 30 sessions: under 40 is what makes a Washout |
 | `index_vs_52w_high` | the equal-weighted group index vs its 52-week high, % |
 | `last_60d_low` | when that index made its most recent 60-day low (`sessions_ago`, `date`) |
-| `higher_low_share` | at that low, the share of stocks still above their own earlier lows; under 20 = capitulation |
+| `higher_low_share`, `higher_low_note` | at that low, the share of stocks still above their own earlier lows; under 20 = capitulation. When there is no reading, `higher_low_note` says why (for example, the last low was too long ago) |
 | `last_thrust` | `type` (C / CAP), `date`, `sessions_ago`; `today` flags a thrust, Fading or Confirmed event on the last day |
-| `stocks_counted`, `stocks_listed`, `stocks_traded_today`, `leader_flags` | counted stocks, the group's stocks trading today, counted stocks with a price today, live leader flags |
-| board `counts`, `market`, `market_note` | groups per state; the Nifty 50 vs its 200-day average with a one-line note on what the study found in such markets; a note when more than half the groups are Fading |
+| `stocks_counted`, `members_not_traded_today`, `stocks_listed`, `stocks_traded_today`, `leader_flags` | counted stocks with a price on the last day (the base of the breadth readings and of the `universe` totals); counted stocks that did not trade that day (usually 0); the group's stocks trading today; counted stocks with a price today; live leader flags |
+| board `counts`, `market`, `market_note` | groups per state; the Nifty 50 vs its 200-day exponential average (`average_label`; the key `nifty50_200d_average` is kept) with a one-line note on what the study found in such markets; a note when more than half the groups are Fading |
 | board `universe` | the "which stocks are counted" block: classified stocks that traded on the last day, how many meet the rules, how many are counted in groups with a reading, and `reasons[]` (each reason with its number of stocks; most stocks miss several, so these add up to more than `not_counted`) |
 | board `leader_flags[]`, `too_few_stocks[]` | every live flag (symbol, group, tier 15%+ or 10–15%, `sessions_ago`, `new_today`, 6-month quarter); groups without a reading |
 | board `universe_rules`, `study` | the rules in one paragraph; the study's market and rally findings, limits, and every figure (`study.figures`, the same as `data/sector_study.json`) |
 | industry `summary`, `rule`, `since` | one plain-English paragraph, the state's rule, the day the state began |
+| industry `history_note`, `averages_note` | one line each for the page: past readings use today's grouping; all the averages are exponential |
 | industry `history` | `dates`, `above_9/20/50`, `state_code`, `index_vs_52w_high`, `stocks_counted` for each session (default 260) |
 | industry `bands[]`, `events[]` | runs of one state (`from`, `to`) for the chart's shading; thrust, Fading and Confirmed days for its markers |
 | industry `stocks[]` | each counted stock ranked by 6-month return: `name`, `industry`, `quarter`, `bottom`, `leader_flag`, `amfi_category`, `peer_label` |
@@ -311,10 +316,10 @@ the same group's average 60 sessions.
 |---|---|---|---|---|
 | Thrust C | 476 | 48% | +1.1 | about zero when averaged week by week (132 weeks) |
 | Thrust CAP | 214 | 47% | +4.2 | −0.6 without 2020 |
-| Thrusts, Nifty 50 below its 200-day average | 256 | 67% | +9.4 | 44 separate weeks; +6.5 without 2020 (215 cases, 36 weeks) |
-| Thrusts, Nifty 50 above its 200-day average | 434 | 36% | −2.2 | 123 separate weeks |
+| Thrusts, Nifty 50 below its 200-day exponential average | 256 | 67% | +9.4 | 44 separate weeks; +6.5 without 2020 (215 cases, 36 weeks) |
+| Thrusts, Nifty 50 above its 200-day exponential average | 434 | 36% | −2.2 | 123 separate weeks |
 | Confirmed | 857 | 50% | +0.9 | a median 30 sessions after the low |
-| Fading | 1,517 | 44% | +0.2 | |
+| Fading | 1,376 | 43% | +0.1 | re-run with the 2.4.1 Fading rule (2.4.0: 1,517 cases, +0.2) |
 | Leader flag, 15%+ tier (vs industry, 120 sessions) | 644 | – | +6.0% (median +2.8%, 55% beat) | average member on the same days −0.2% (43%); 2020 −3.9% |
 | Leader flag, 10–15% tier | 837 | – | +0.8% (median −1.5%, 47%) | |
 
@@ -344,7 +349,206 @@ industry as listed today, which left out companies that later failed.
   and checks the data layer, the universe rules and reasons, the breadth engine (washout, thrust, leader flag), the
   three sector views, the downloader's parsers, and the batch, command-line and Flask sector paths.
 
-## 7. Files
+## 7. Stress Lab (v2.1.0)
+
+How a macro shock moves a company's revenue, EBITDA, EPS, interest cover and value over the next 12 months. The full
+method, data map and wording rules are in the spec document ("FinLit Stress Lab: Model and Implementation Spec").
+Pure Python, no extra dependencies. Banks, NBFCs and insurers are excluded.
+
+**Inputs, built every night from FinLit's own API** (one "pack" per company, `stress.pack_from_site()`):
+
+| From | Used for |
+|---|---|
+| `/api/premium/fundamentals?query=SYM&statement_type=consolidated&period=quarterly` and `period=yearly` | revenue, operating profit, cost of goods sold (materials + traded goods + inventory change), employee cost, other expenses, other income, depreciation, interest, tax, EPS |
+| `/api/stocks/SYM/financials` | borrowings, cash, investments; diluted shares |
+| `/api/stocks/SYM` | `profile.sector` (basic industry), `profile.industry`, `dataQuality.isBank`, price |
+| `/api/macro` + EIA Brent + monthly USD/INR | today's scenario (`today.json`, see `stress.load_today`) |
+
+Use the premium endpoint for the income statement: in `/financials`, quarterly `expenses` include depreciation and
+interest, and quarterly `other_income` leaves out the share of associates.
+
+```
+python -m finlit_technicals stress packs/ASIANPAINT.json --today packs/_today.json      # one company, today
+python -m finlit_technicals stress packs/ASIANPAINT.json --preset 2022 --set rate_bp=300
+python -m finlit_technicals stress packs/ASIANPAINT.json --preset oil --compare packs/BERGEPAINT.json
+python -m finlit_technicals stress-backtest packs/ASIANPAINT.json                       # replay FY19 to FY26
+python -m finlit_technicals stress-batch --packs packs --today packs/_today.json --out site_data/stress
+```
+
+```python
+from finlit_technicals import stress as S
+co = S.company_from_pack(pack)                     # TTM base, exposures, calibrated pass-through
+r = S.run(co, S.PRESETS["2022"])                    # base, stressed, change_pct, drivers, score, label, value
+S.compare(co, other, S.load_today("packs/_today.json", co.base_end))
+S.breaking_points(co); S.sensitivities(co); S.stress_page(co)
+```
+
+Scenario units: `crude` % change in Brent (US$), `usdinr` % change in USD/INR (+ = rupee weaker), `cpi` and `wpi`
+percentage points of extra inflation, `rate_bp` basis points, `demand` % change in volumes for the average company,
+`erp_bp` basis points. Labels: Holds up well, Takes a clear hit (EPS -10% to -30%), Hit hard (-30% or worse), Gains
+under this shock (+10% or more), Debt cover at risk (interest cover under 1.5x). Flask endpoints: `/api/stress/...`
+in `examples/flask_app.py`.
+
+## 8. Ownership insights (v2.2.0)
+
+The company report's Ownership tab: one table of who owns the company and how that changed, and three plain sentences
+on what the latest shareholding filing says. The same 21 rules run on every stock. They describe the filing; they
+never say what to do with the stock (a test fails the build on words like "buy now", "avoid" or "target price").
+Design: the "Ownership section redesign" canvas (desktop, phone, and the rules sheet). Pure Python, no extra
+dependencies.
+
+**Input, one pack per stock** (`ownership.pack_from_site(ownership_json, premium_json)`):
+
+| From | Used for |
+|---|---|
+| `/api/stocks/SYM/ownership` | `periods` and `series` (promoters, fii, dii, public, government, others), oldest first |
+| `/api/premium/fundamentals?query=SYM...` `ownershipStructure` | share count, promoter pledge %, locked-in %, number of shareholders (newest first) |
+| same, `shareholdingDetails` | named holders of 1% or more: now (`history[0]`) and a year ago (`history[4]`) |
+
+The premium call can take 40 s or more the first time for a stock, so build packs in the nightly job, not on page
+load. Without the premium part the rules on pledges, lock-in, share count, shareholders and named holders stay silent,
+and a stake change is read from the percentages alone.
+
+```
+python -m finlit_technicals ownership packs/RELIANCE.json            # the card as text (--json for the JSON)
+python -m finlit_technicals ownership-batch --packs packs --out site_data/ownership
+python -m finlit_technicals ownership-rules                          # the 21 rules as JSON
+```
+
+```python
+from finlit_technicals import ownership as O
+v = O.analyse(O.pack_from_site(ownership_json, premium_json))
+v["table"]       # per group: now, change_1q / 1y / 3y / 5y (pts, None when history is short), streak, spark
+v["facts"]       # as_of, compared_with, share count, pledge, lock-in, shareholders, top named holders
+v["cards"]       # up to 3 for "What changed, in short": tone, title (a few words), stat (one number), text
+v["more"]        # the other signals, same shape, behind "Show more"
+v["headline"]    # the same three as full sentences (alerts, tooltips, screen readers)
+v["signals"]     # every signal: id, group, tone (supportive / neutral / watch), priority, title, stat, text, facts
+v["quiet_text"]  # shown instead of the headline when no rule fires
+```
+
+**What the page shows** (details in OWNERSHIP_HANDOVER.md). "What changed, in short": `cards`, a tone, title and one
+number each (`supportive` = Supportive, `neutral` = Worth knowing, `watch` = Watch; always icon and word), with `more`
+behind "Show more". "Owners today": the donut of `table[].now`. "Who bought and who sold": before and after bars for a
+chosen window. "How the shareholding pattern changed": one line chart from `spark`, as share held or change since the
+start of the window. "Also from the filing" and "Largest institutional holders" from `facts`.
+
+**The rules, in short** (full list: `ownership.RULES`, `ownership.rules_table()`):
+
+- Promoters: bought (P1), sold (P2), diluted not sold (P3), steady (P4), just over half (P5), public float below 25%
+  (P6), shares pledged (P7), pledge released (P8), lock-in held or ended (P9).
+- Institutions: foreign (I1) and domestic (I2) trends, rotation between them (I3), five-year high or low (I4), a big
+  quarter (I5), both together (I6), few institutions (I7).
+- Retail moving in as institutions leave (R1), shareholder count up or down 10% (R2), new shares (S1), buyback (S2),
+  named holders moving (H1).
+- A stake change is judged by shares held when the share count moves 0.5% or more, so a share issue is never read as
+  selling and a buyback never as buying. Moves under 0.05 pts are ignored. Thresholds scale for small holdings.
+- Ranking: lock-in ending, promoter sale and pledges first; bigger promoter moves above smaller ones; a sentence that
+  covers others (a rotation covers both trends) hides them from the headline.
+
+Tested on five different filings (`tests/test_ownership.py`): Reliance (rotation from foreign to Indian institutions),
+SBI (share issue, promoters did not sell), Wheels India (promoters took up new shares), Sri Lotus Developers (new
+listing, lock-in ended, public float under 25%) and Asian Paints (pledged promoter shares). Flask endpoints:
+`/api/ownership/...` in `examples/flask_app.py`.
+
+## 9. Company brief (v2.3.0)
+
+The company report's "About" section, written only from the company's own filings: what the company does, how the
+group is held, each business with its latest figures, where the money comes from and recent developments. Every line
+carries citations (document, PDF page and the exact strings it relies on), and a check confirms those strings are on
+that page before anything is published. Design: the "Company brief prototype" canvas (the Reliance brief as it would
+appear on the site, and how it is made). Prototype output: `examples/reliance_brief.json` (65 citations, all checked).
+
+**Steps, for every stock**
+
+1. Collect: `collect_sources(events, feed, annual_report_url)` reads FinLit's `/api/stocks/SYM/events` announcements and
+   `/api/feed?kind=document&symbol=SYM`, keeps results, press releases, investor presentations, call transcripts,
+   annual reports and material events, and drops meeting notices and routine letters. The annual report is not in
+   FinLit's feed today; pass its URL from the company's website.
+2. Read: `pdf_pages(bytes)` gives one text per PDF page (needs `pip install pypdf`). NSE's archive PDFs can be
+   fetched by the server; read them in the nightly job, not on page load.
+3. Pick pages: `pick_pages()` finds the pages each part needs (the subsidiary list for the group table, business
+   reviews, results tables, event filings).
+4. Write: `build_prompt(name, symbol, docs, pages)` makes the AI model's input: rules, the JSON template and the
+   picked pages, fenced so that text inside a filing is treated as data, never as instructions. Connect it to the
+   model behind Ask FinLit AI; the model returns the template filled in.
+5. Gate: `validate(brief)` blocks missing parts, lines without citations, unknown documents and advice words;
+   `check(brief, pages)` confirms each quoted string is on its page and says where it is when the page is wrong.
+6. Review and publish: a person reads the brief and anything flagged. `refresh_plan(brief, new_docs)` says which parts
+   to rewrite after new filings (results rewrite the latest quarter, the businesses' quarterly points, the money mix
+   and recent developments; an annual report rewrites the company, group and businesses); a brief with nothing new
+   for 120 days is marked for review.
+
+```
+python -m finlit_technicals brief-check briefs/RELIANCE.json --pdf AR=ar.pdf --pdf MR=q2_release.pdf ...
+python -m finlit_technicals brief-text briefs/RELIANCE.json
+```
+
+Flask: `GET /api/company-brief/RELIANCE` in `examples/flask_app.py` serves a saved brief only when it passes
+`validate()` and its recorded checks.
+
+**Writing rules** (in the prompt): describe, never judge the stock; every number from a cited page; plans and targets
+are the company's ("management expects"); a period on every figure; rupees in crore; say what is missing instead of
+filling the gap; plain words.
+
+**Before running on every stock:** add annual reports and call transcripts to FinLit's documents feed; read a listed
+subsidiary's offer document for stake changes (Reliance: its share of Jio Platforms after the IPO); connect the
+writing step to the AI model; run on the Nifty 50 with review, then widen.
+
+## 10. Sector Rotation (v2.4.0)
+
+Which NSE industry groups are pulling ahead of the average industry, and how their ranks change week by week. It
+uses the sector engine's groups: the same counted stocks and the same equal-weighted group indices as Sector Pulse.
+
+```python
+from finlit_technicals import NseHistory, SectorEngine, rotation
+eng = SectorEngine(NseHistory("/srv/finlit/nse"))
+rot = rotation.Rotation(eng)
+rot.view()                 # the rotation page: corners, ranking with rank changes, paths, rank history, study
+rot.group_view("banks")    # one group's card (industry page)
+rotation.write_files(rot, "site_data/rotation")
+```
+
+```
+python -m finlit_technicals rotation --nse /srv/finlit/nse                       the ranking as text
+python -m finlit_technicals rotation banks --nse /srv/finlit/nse                 one group's card (JSON)
+python -m finlit_technicals rotation-batch --nse /srv/finlit/nse --out site_data/rotation
+python -m finlit_technicals rotation-study --nse /srv/finlit/nse                 re-run the study (data/rotation_study.json)
+```
+
+`batch` writes `rotation/` by itself and adds a short `rotation` block to every Sector Pulse row
+(`sectors/_board.json`), to every stock's `sector` (`<SYMBOL>.json`) and three fields to `_summary.json`
+(`sector_corner`, `sector_rotation_rank`, `sector_rank_change_1w`).
+
+**Rules.** The average industry is the daily mean return of every group with a reading (8+ counted stocks).
+Strength = the group's 6-month (126-session) return minus the average's; change = the same over the last month (21
+sessions), both in points. Strength above 0 is ahead, change above 0 is gaining: Ahead and gaining, Ahead but slowing,
+Behind and slipping, Behind but gaining. Readings are taken at each week's last session (the current week uses its
+latest session) and a group moves to a new corner only after two weekly readings there (`confirm_weeks`). Breadth is
+the share of counted stocks above their 50-day average: 50%+ broad, under 40% narrow. The rotation rank is a 0-100
+score: the 3, 6 and 12-month returns against the average, ranked across groups and weighted 0.3/0.4/0.3, make up
+0.75; breadth, ranked the same way, 0.25. `rank_change_1w` and `rank_change_4w` are places moved since the previous
+weekly close and since 4 weekly closes ago (positive = climbed). Every setting is in `RotationParams`.
+
+**`view()` fields.** `date`, `week_closed`, `groups`, `average_industry` (`return_1m`, `return_6m`), `market`,
+`counts` (by corner), `corner_meanings`, `rows[]`, `moved_this_week[]`, `climbers_4w[]`, `fallers_4w[]`
+(3+ places), `rank_weeks` (the 26 weekly dates), `method` (plain text for each rule), `params`, `study`, `disclaimer`.
+Each row: `name`, `slug`, `kind`, `sector`, `industries`, `stocks_counted`, `leader_flags`, `corner` (code),
+`corner_name`, `corner_since`, `weeks_in_corner`, `previous_corner(_name)`, `this_week_reading(_name)` (set when the
+latest reading is in another corner: show a hollow dot), `strength_pts`, `change_pts`, `vs_average` (21d, 63d, 126d,
+252d), `breadth_above_50`, `breadth` (broad / between / narrow), `sector_state(_code)`, `rank`, `ranked`, `score`,
+`rank_change_1w`, `rank_change_4w`, `rank_best_26w`, `rank_worst_26w`, `tail[]` (8 weekly points: `date`,
+`strength`, `change`, `corner`), `rank_history[]` (26 weeks: `date`, `rank`, `corner`), `summary` (plain English).
+`group_view()` adds `reading` and the study line for its corner.
+
+**Study.** `data/rotation_study.json`, made by `run_study()` with the same rules on the 46 groups, January 2017 to
+April 2026 (486 weeks): by corner over 1, 3 and 6 months, the corner gap (2.3 points over 3 months, 2.6 with the
+Nifty 50 above its 200-day average and 1.1 below), breadth inside corners, where groups went next, the rank gap (top
+minus bottom third, 2.8 points, positive in 72% of weeks and in every calendar year) and the same rules on 18 NSE
+sector indices (+0.4, no reliable pattern). `text` has the sentences for the page, built from the numbers.
+Describe, never advise: the text has no buy / sell wording, and every study figure is a past average.
+
+## 11. Files
 
 ```
 finlit_technicals/pine.py      TradingView built-ins (ema, rma, rsi, atr, dmi, macd, percentrank, pivots ...)
@@ -362,5 +566,17 @@ finlit_technicals/data/peer_groups.json          the indicators' peer lists (27 
 finlit_technicals/data/nse_industries.json       NSE industry and sector of 2,838 stocks (29 Oct 2026)
 finlit_technicals/data/nse_corporate_actions.txt NSE's splits, bonuses, rights, demergers 2016 - Oct 2026
 finlit_technicals/data/sector_study.json         the study's figures
+finlit_technicals/stress.py    Stress Lab: TTM base from FinLit data, scenarios, model, calibration, back-tests, CLI
+finlit_technicals/data/industry_exposure.json    Stress Lab: exposure of each NSE sector / industry / basic industry
+finlit_technicals/data/macro_fy.json             Stress Lab: FY averages of Brent, USD/INR, CPI, WPI, GDP (calibration)
+tests/test_stress.py, tests/fixtures/            Stress Lab tests on Asian Paints data read from FinLit on 4 Nov 2026
+finlit_technicals/ownership.py Ownership insights: pack from FinLit data, the 21 rules, table, facts, headline, CLI
+tests/test_ownership.py, tests/fixtures/ownership.json  five companies' filings read from FinLit on 4 Nov 2026
+finlit_technicals/company_brief.py Company brief: sources from FinLit, PDF pages, prompt, validate, check, refresh, CLI
+examples/reliance_brief.json   the Reliance brief written from 11 filings, 65 citations checked on 4 Nov 2026
+tests/test_company_brief.py    sources, PDF reading, the gates and the Reliance brief
+finlit_technicals/rotation.py  Sector Rotation: corners, two-week confirmation, rotation rank and changes, study, CLI
+finlit_technicals/data/rotation_study.json       the rotation study's figures (2017 - April 2026)
+tests/test_rotation.py         rotation rules on made-up groups
 examples/flask_app.py          example web API
 ```

@@ -5,6 +5,8 @@
     out/_summary.json            one line per stock (scores, trend alignment, peer label, sector state) for screeners
     out/sectors/_board.json      Sector Pulse: every NSE industry group with a reading (SectorEngine.board)
     out/sectors/<slug>.json      one group page (SectorEngine.industry), peer labels joined in
+    out/rotation/_map.json       Sector rotation: corners, ranking and rank changes for every group (rotation.py)
+    out/rotation/<slug>.json     one group's rotation card
 With an NseHistory source (NSE's own files) the default list is every classified stock that traded on the last
 day (about 2,400), and market caps come from AMFI's latest list. Prices are loaded once per symbol and the peers'
 weekly series are reused across stocks: about half a second per stock on one core.
@@ -20,6 +22,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 import pandas as pd
 
 from .api import canonical, jsonable, peer_db, peer_label, score
+from . import rotation as RT
 from .peers import norm_symbol
 from .sectors import SectorEngine, slug
 from .sources import Cached
@@ -82,9 +85,12 @@ def read_caps(path: str | Path) -> Dict[str, Dict[str, Any]]:
 
 
 def score_stocks(syms: List[str], src, eng: Optional[SectorEngine], out: Path, *, caps: Dict[str, Dict[str, Any]], bench: str = "auto", table: str = "all",
-                 history_weeks: int = 52, groups_file: Optional[str] = None, progress: Optional[Callable[[int, int, str], None]] = None) -> tuple:
+                 history_weeks: int = 52, groups_file: Optional[str] = None, progress: Optional[Callable[[int, int, str], None]] = None,
+                 rot_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> tuple:
     """The per-stock part of `run`: writes <SYMBOL>.json for each of `syms` and returns (summary lines, peer labels, sector homes).
-    `caps` must cover the whole market (the peers' sizes are read from it), whichever stocks are in `syms`."""
+    `caps` must cover the whole market (the peers' sizes are read from it), whichever stocks are in `syms`.
+    `rot_rows` (group name -> rotation.brief) puts the rotation fields into each file and line; the staged job has no
+    rotation yet at this stage and adds them afterwards with `add_rotation` (the same bytes)."""
     peer_caps = {k: v["mcap_cr"] for k, v in caps.items() if "mcap_cr" in v}
     wcache: dict = {}
     summary: List[Dict[str, Any]] = []
@@ -104,6 +110,8 @@ def score_stocks(syms: List[str], src, eng: Optional[SectorEngine], out: Path, *
             if eng is not None:
                 try:
                     sec = jsonable(eng.stock(sym))
+                    if rot_rows is not None:
+                        sec["rotation"] = rot_rows.get(sec["group"]["name"])
                     homes[sym] = (sec["group"]["name"], sec["group"]["kind"])
                 except LookupError:
                     sec = None
@@ -124,6 +132,8 @@ def score_stocks(syms: List[str], src, eng: Optional[SectorEngine], out: Path, *
                              "sector_state_code": g["state_code"], "quarter_6m": sec.get("quarter"),
                              "leader_flag": (sec.get("leader_flag") or {}).get("tier"),
                              "bottomed_before": sec.get("bottom_code") in (1, 2)})
+                if rot_rows is not None:
+                    line.update(_rotation_line(sec.get("rotation")))
         except Exception as e:  # one bad stock must not stop the run
             line["error"] = f"{type(e).__name__}: {e}"[:300]
             log.warning("%s: %s", sym, line["error"])
@@ -133,11 +143,46 @@ def score_stocks(syms: List[str], src, eng: Optional[SectorEngine], out: Path, *
     return summary, labels, homes
 
 
-def write_sector_files(eng: SectorEngine, out: Path, labels: Dict[str, str], homes: Dict[str, tuple], history_sessions: int = 260) -> None:
-    """sectors/_board.json and one page per group (the part of `run` that needs every group and every stock's peer label)."""
+def _rotation_line(rr: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """The three rotation fields of a _summary.json line (the screener's filters)."""
+    rr = rr or {}
+    return {"sector_corner": rr.get("corner"), "sector_rotation_rank": rr.get("rank"),
+            "sector_rank_change_1w": rr.get("rank_change_1w")}
+
+
+def build_rotation(eng: SectorEngine) -> tuple:
+    """(Rotation, {group name: rotation.brief(row)}). Rotation is extra: when it fails the rest of the batch still runs, without it."""
+    try:
+        rot = RT.Rotation(eng)
+        return rot, {g: RT.brief(rot.row(g)) for g in rot.group_names()}
+    except Exception as e:  # noqa: BLE001
+        log.warning("rotation: %s", e)
+        return None, {}
+
+
+def add_rotation(out: Path, summary: List[Dict[str, Any]], rot_rows: Dict[str, Dict[str, Any]]) -> None:
+    """For the staged job, whose score stage cannot see every group: puts `sector.rotation` into each stock file and the
+    rotation fields into each summary line, exactly as `score_stocks(rot_rows=...)` writes them."""
+    for line in summary:
+        if "sector_group" not in line or "error" in line:
+            continue
+        f = out / f"{line['symbol']}.json"
+        doc = json.loads(f.read_text(encoding="utf-8"))
+        if not doc.get("sector"):
+            continue
+        doc["sector"]["rotation"] = rot_rows.get(doc["sector"]["group"]["name"])
+        f.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+        line.update(_rotation_line(doc["sector"]["rotation"]))
+
+
+def write_sector_files(eng: SectorEngine, out: Path, labels: Dict[str, str], homes: Dict[str, tuple], history_sessions: int = 260,
+                       rot: Optional[RT.Rotation] = None, rot_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> None:
+    """sectors/_board.json, one page per group and rotation/ (the part of `run` that needs every group and every stock's peer label)."""
     sdir = out / "sectors"
     sdir.mkdir(exist_ok=True)
     board = eng.board()
+    for r in board["rows"]:
+        r["rotation"] = (rot_rows or {}).get(r["name"])
     (sdir / "_board.json").write_text(json.dumps(jsonable(board), ensure_ascii=False), encoding="utf-8")
     pages = list(dict.fromkeys([r["name"] for r in board["rows"]] + sorted({h[0] for h in homes.values()})))
     for name in pages:
@@ -148,6 +193,8 @@ def write_sector_files(eng: SectorEngine, out: Path, labels: Dict[str, str], hom
             (sdir / f"{slug(name)}.json").write_text(json.dumps(jsonable(view), ensure_ascii=False), encoding="utf-8")
         except LookupError as e:
             log.warning("%s: %s", name, e)
+    if rot is not None:
+        RT.write_files(rot, out / "rotation")
 
 
 def write_summary(out: Path, summary: List[Dict[str, Any]], t0: float) -> None:
@@ -172,10 +219,12 @@ def run(symbols: Iterable[str], source, out_dir: str | Path, *, caps: Optional[D
     caps = caps or {}
     syms = list(symbols)
     t0 = time.time()
+    rot, rot_rows = build_rotation(eng) if eng is not None else (None, {})
     # FinLit patch: the three parts of the run are functions (score_stocks, write_sector_files, write_summary) so finlit_technicals/staged.py can run them in separate processes
     summary, labels, homes = score_stocks(syms, src, eng, out, caps=caps, bench=bench, table=table, history_weeks=history_weeks,
-                                          groups_file=groups_file, progress=progress)
+                                          groups_file=groups_file, progress=progress,
+                                          rot_rows=rot_rows if eng is not None else None)
     if eng is not None:
-        write_sector_files(eng, out, labels, homes, history_sessions)
+        write_sector_files(eng, out, labels, homes, history_sessions, rot, rot_rows)
     write_summary(out, summary, t0)
     return summary

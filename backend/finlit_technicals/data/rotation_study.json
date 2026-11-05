@@ -1,0 +1,179 @@
+{
+ "period": {
+  "from": "2017-01-06",
+  "to": "2026-04-24",
+  "weeks": 486,
+  "groups_per_week_median": 36
+ },
+ "corners": {
+  "ahead_gaining": {
+   "name": "Ahead and gaining",
+   "cases": 4902,
+   "next_1m": 0.59,
+   "next_3m": 1.2,
+   "median_3m": 0.64,
+   "beat_3m": 53.5,
+   "next_6m": 2.73
+  },
+  "ahead_slowing": {
+   "name": "Ahead but slowing",
+   "cases": 2847,
+   "next_1m": 0.08,
+   "next_3m": 0.73,
+   "median_3m": 0.02,
+   "beat_3m": 50.1,
+   "next_6m": 1.98
+  },
+  "behind_slipping": {
+   "name": "Behind and slipping",
+   "cases": 5766,
+   "next_1m": -0.43,
+   "next_3m": -1.06,
+   "median_3m": -1.76,
+   "beat_3m": 39.5,
+   "next_6m": -1.81
+  },
+  "behind_gaining": {
+   "name": "Behind but gaining",
+   "cases": 2713,
+   "next_1m": -0.0,
+   "next_3m": 0.38,
+   "median_3m": -0.08,
+   "beat_3m": 49.3,
+   "next_6m": -0.38
+  }
+ },
+ "spread_3m": {
+  "points": 2.32,
+  "t": 4.5,
+  "without_2020": 2.28,
+  "since_2022": 2.31,
+  "above_200d": 2.58,
+  "below_200d": 1.11
+ },
+ "breadth": {
+  "ahead_gaining": {
+   "broad": {
+    "cases": 3431,
+    "mean": 1.43,
+    "median": 0.85,
+    "beat": 54.9
+   },
+   "narrow": {
+    "cases": 1063,
+    "mean": 0.41,
+    "median": -0.39,
+    "beat": 48.0
+   }
+  },
+  "behind_gaining": {
+   "broad": {
+    "cases": 1649,
+    "mean": 0.46,
+    "median": -0.09,
+    "beat": 49.5
+   },
+   "narrow": {
+    "cases": 831,
+    "mean": 0.44,
+    "median": 0.08,
+    "beat": 50.3
+   }
+  }
+ },
+ "moves": {
+  "median_weeks": 5.0,
+  "mean_weeks": 7.2,
+  "next_corner": {
+   "ahead_gaining": {
+    "ahead_slowing": 79,
+    "behind_gaining": 6,
+    "behind_slipping": 15
+   },
+   "ahead_slowing": {
+    "ahead_gaining": 66,
+    "behind_gaining": 5,
+    "behind_slipping": 29
+   },
+   "behind_slipping": {
+    "ahead_gaining": 17,
+    "ahead_slowing": 5,
+    "behind_gaining": 78
+   },
+   "behind_gaining": {
+    "ahead_gaining": 26,
+    "ahead_slowing": 2,
+    "behind_slipping": 72
+   }
+  }
+ },
+ "rank": {
+  "1m": 1.32,
+  "3m": 2.77,
+  "t_3m": 5.2,
+  "weeks_positive_3m": 72.0,
+  "by_year_3m": {
+   "2017": 4.8,
+   "2018": 1.4,
+   "2019": 1.9,
+   "2020": 3.3,
+   "2021": 4.2,
+   "2022": 2.7,
+   "2023": 6.0,
+   "2024": 1.9,
+   "2025": 0.4,
+   "2026": 0.1
+  },
+  "above_200d": 3.15,
+  "below_200d": 1.06,
+  "6m": 4.4,
+  "climbed_5_in_4w_next_3m": {
+   "cases": 2930,
+   "mean": 1.04,
+   "median": 0.17,
+   "beat": 51.2
+  },
+  "fell_5_in_4w_next_3m": {
+   "cases": 2986,
+   "mean": -0.69,
+   "median": -1.35,
+   "beat": 41.7
+  },
+  "mean_weekly_move_places": 2.6
+ },
+ "sector_indices": {
+  "indices": 18,
+  "benchmark": "Nifty 500",
+  "spread_3m": 0.41,
+  "t": 0.5,
+  "by_year_3m": {
+   "2017": 1.3,
+   "2018": 2.0,
+   "2019": -2.7,
+   "2020": -1.0,
+   "2021": -1.1,
+   "2022": 0.2,
+   "2023": 4.1,
+   "2024": 0.2,
+   "2025": 1.4,
+   "2026": -1.9
+  }
+ },
+ "text": {
+  "ahead_gaining": "4,902 cases: over the next 3 months these groups did +1.2 points against the average industry, and 54% beat it. With broad breadth +1.4; with narrow breadth +0.4.",
+  "ahead_slowing": "2,847 cases: +0.7 points over the next 3 months (50% beat the average). 66% of moves out of this corner went back to Ahead and gaining.",
+  "behind_slipping": "5,766 cases: -1.1 points over the next 3 months; 40% beat the average industry.",
+  "behind_gaining": "2,713 cases: +0.4 points over the next 3 months (49% beat the average). Only 26% of moves out of this corner led to Ahead and gaining; 72% went back to Behind and slipping. It has usually been a bounce, not the start of a lead.",
+  "spread": "Groups Ahead and gaining did 2.3 points better over the next 3 months than groups Behind and slipping, averaged week by week. The gap was 2.6 points when the Nifty 50 was above its 200-day average and 1.1 when it was below.",
+  "rank": "The top third by rotation rank did 2.8 points better over the next 3 months than the bottom third, in 72% of weeks. Groups that climbed 5 or more places in 4 weeks did +1.0 points over the next 3 months; groups that fell 5 or more did -0.7.",
+  "stay": "A group stayed a median of 5 weeks in a corner (mean 7.2).",
+  "limits": [
+   "Groups often move together in the same weeks, so the cases are not independent; averages are taken week by week.",
+   "The same rules on 18 of NSE's own sector indices, which are weighted by company size, against the Nifty 500: +0.4 points over 3 months, with no reliable pattern year to year. The pattern lives in how the typical stock of an industry moves.",
+   "The rules (6 months, 1 month, two weekly closes, the rank weights) were chosen after testing a few versions on this same data, so expect live results to be weaker.",
+   "Each company's NSE industry is today's label, even for earlier years.",
+   "Returns ignore costs and taxes; the groups are equal-weighted, so they lean towards mid and small companies."
+  ],
+  "sector_indices": "The same rules on 18 of NSE's own sector indices, which are weighted by company size, against the Nifty 500: +0.4 points over 3 months, with no reliable pattern year to year. The pattern lives in how the typical stock of an industry moves."
+ }
+}

@@ -6,7 +6,8 @@
     prepare  open the panel (memory-mapped), build the universe month by month for the WHOLE market, choose the stocks and split them into parts by industry group
     score    once per part: the same per-stock work as batch.run (score, peer label, the stock inside its industry), for the part's stocks only. Each part builds
              the whole-market universe itself, so every stock is judged against the full market whichever part it is in; the parts run one after the other
-    merge    the stages that need every group and every stock's peer label: the board (counts, ordering, "too few stocks" lists), the industry pages, _summary.json
+    merge    the stages that need every group and every stock's peer label: the board (counts, ordering, "too few stocks" lists), the industry pages, the rotation
+             files and the rotation fields of every stock file and summary line (rotation ranks every group against the others), _summary.json
 
 Nothing is approximated: every stage calls the functions batch.run calls, on the same inputs, and the files written are byte for byte those of batch.run
 (finlit_technicals/tests/test_staged_equals_single_run.py proves it against a frozen copy of the v2.0.1 code). A stage that dies (killed for memory, say)
@@ -108,7 +109,7 @@ def stage_score(nse: str, work: str, out: str, part: int) -> None:
 
 
 def stage_merge(nse: str, work: str, out: str, t0: float) -> None:
-    from .batch import write_sector_files, write_summary
+    from .batch import add_rotation, build_rotation, write_sector_files, write_summary
     plan = json.loads(Path(work, "plan.json").read_text())
     _, eng = _open(nse)
     lines: List[Any] = [None] * len(plan["symbols"])
@@ -126,7 +127,9 @@ def stage_merge(nse: str, work: str, out: str, t0: float) -> None:
     if missing:
         raise RuntimeError(f"{len(missing)} stocks have no result (for example {plan['symbols'][missing[0]]})")
     out_p = Path(out)
-    write_sector_files(eng, out_p, labels, homes)
+    rot, rot_rows = build_rotation(eng)            # needs every group, so it is worked out here, not in the score parts
+    add_rotation(out_p, lines, rot_rows)
+    write_sector_files(eng, out_p, labels, homes, rot=rot, rot_rows=rot_rows)
     write_summary(out_p, lines, t0)
     Path(work, "summary.pkl").write_bytes(pickle.dumps(lines, protocol=4))
     print(f"merge: board and {len(eng._res)} industry pages written", flush=True)
