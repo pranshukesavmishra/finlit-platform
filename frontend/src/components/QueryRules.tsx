@@ -1,14 +1,19 @@
 import { Link } from "react-router";
 import { RULES } from "../lib/queryRules";
+import { Icon } from "../lib/icons";
 
 /** "Rules for writing a query": golden rules, a syntax table, do and don't, and ten examples that go into the editor with one click. */
-export function QueryRules({ onInsert, onClose }: { onInsert: (query: string) => void; onClose: () => void }) {
+export function QueryRules({ open, onToggle, onInsert }: { open: boolean; onToggle: () => void; onInsert: (query: string) => void }) {
   return (
-    <section id="qb-rules" className="card qr" aria-labelledby="qr-h">
-      <div className="qr-head">
-        <h2 id="qr-h">Rules for writing a query</h2>
-        <button className="btn" onClick={onClose}>Hide the rules</button>
-      </div>
+    <section id="qb-rules" className={"qr-box" + (open ? " is-open" : "")} aria-labelledby="qr-h">
+      <h2 id="qr-h" className="qr-bar">
+        <button type="button" aria-expanded={open} aria-controls="qr-body" onClick={onToggle}>
+          <span className="qr-ico" aria-hidden="true"><Icon name="clipboard" /></span>
+          <span className="qr-title">Rules for writing a query</span>
+          <svg className="qr-chev" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg>
+        </button>
+      </h2>
+      {open && <div id="qr-body" className="card qr">
 
       <h3>The golden rules</h3>
       <ol className="qr-gold">{RULES.golden.map((g) => <li key={g}>{g}</li>)}</ol>
@@ -46,6 +51,7 @@ export function QueryRules({ onInsert, onClose }: { onInsert: (query: string) =>
       </ul>
 
       <p className="qr-foot">When a query has a problem, the message under the editor names the rule that was broken and how to fix it. More answers are in the <Link to="/faq#faq-query-builder-1" className="alx-link">questions for this page</Link>.</p>
+      </div>}
     </section>
   );
 }
