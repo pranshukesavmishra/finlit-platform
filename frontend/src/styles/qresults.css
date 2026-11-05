@@ -242,3 +242,11 @@ abbr.qr-na:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; 
 .qg-side .qg-set { padding: 10px; } .qg-side .qg-cl { display: block; }
 .qg-side .qg-psets { grid-template-columns: 1fr; }
 @media (max-width: 1000px) { .qr-split { grid-template-columns: minmax(0, 1fr); } .qr-side { position: static; max-height: none; } }
+
+/* Wide table: the filter panel can be tucked away so the results have the whole width */
+.qr-split.qr-wide { grid-template-columns: minmax(0, 1fr); }
+.qr-widebtn { white-space: nowrap; }
+.qr-find { display: inline-flex; gap: 8px; align-items: center; flex: 1 1 240px; max-width: 420px; min-width: 0; }
+.qr-find input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--s2); color: var(--text); font-size: 14px; }
+.qr-findnote { margin: 8px 0 0; font-size: 14px; }
+@media (max-width: 1000px) { .qr-widebtn { display: none; } }
