@@ -4,8 +4,9 @@
 // pillars and leaves the price-trend views out) and the tech bands (st, lt), so saved screens and prebuilt screens keep working.
 import { useId, useState, type ReactNode } from "react";
 import { Icon } from "../../lib/icons";
-import { TECH_BANDS, TECH_BAND_ORDER, TECH_KEYS, TECH_NAMES } from "../../lib/scoreScreen";
+import { TECH_BANDS, rangeToBands, TECH_BAND_ORDER, TECH_KEYS, TECH_NAMES } from "../../lib/scoreScreen";
 import { LABEL_WORD, PRISM_LABELS, PRISM_PARTS, type PrismRangeKey } from "../../lib/scorePrism";
+import { BandChips } from "./IqScoreFilter";
 import { Chev, RangeRow } from "./FilterGroup";
 import type { Screener } from "./useScreener";
 
@@ -46,7 +47,7 @@ export function PrismScoreRows({ s }: { s: Screener }) {
         {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{l === "NOT RATED" ? "Not rated" : LABEL_WORD[l]}</button>)}
       </div>
       {FUND_ROWS.map((x) => <div key={x.range} title={x.say}><RangeRow label={x.label} group={x.range === "z" ? `${x.label}, exact range` : `${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} maxExcl={!!draft.ranges[x.range].maxExcl}
-        error={s.problems[x.range]} minPh="Min" maxPh="Max" onChange={(end, v) => s.setRange(x.range, end, v)} /></div>)}
+        chips={<BandChips name={x.label} bands={rangeToBands(draft.ranges[x.range])} onToggle={(b) => s.setRangeBand(x.range, b)} />} error={s.problems[x.range]} minPh="Min" maxPh="Max" onChange={(end, v) => s.setRange(x.range, end, v)} /></div>)}
       <p className="fgx-note">A high Risk score means lower risk.</p>
     </Sub>
     <Sub title={TECH_TITLE} icon="line" active={draft.tech.st.length + draft.tech.lt.length}>
