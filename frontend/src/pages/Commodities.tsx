@@ -1,33 +1,23 @@
-// Commodity prices (public, no sign-in): the MCX futures price, the international USD price and an indicative import parity for gold, silver,
-// platinum, crude oil, natural gas, copper and aluminium. Every price arrives from the server as text already rounded to the digits shown;
+// Commodity prices (public, no sign-in): the MCX futures price and, where a price feed is connected, the international USD price for gold, silver,
+// crude oil, natural gas, copper and aluminium. Every price arrives from the server as text already rounded to the digits shown;
 // this page formats and lays out, it never computes a price (the unit converter is the one exception and uses exact integer arithmetic).
 // Information only, never advice: no calls to act, no outlook.
 import { PageHeader } from "../components/PageHeader";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
-import { Info } from "../components/Info";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
   UNITS, convert, dayMonthYear, direction, group, inr, istStamp, istTime, signedPct, useCommodities, usd,
-  type CommodityIntl, type CommodityItem, type CommodityMcx, type CommodityParity, type Commodities, type UnitId,
+  type CommodityIntl, type CommodityItem, type CommodityMcx, type Commodities, type UnitId,
 } from "../lib/commodities";
 import "../styles/commodities.css";
 
 const TABS = [["all", "All"], ["precious", "Precious metals"], ["energy", "Energy"], ["industrial", "Industrial metals"]] as const;
 type Tab = (typeof TABS)[number][0];
 
-const help = (key: string, label: string, what: string, extra: { formula?: string; read?: string; note?: string } = {}) => ({ key, label, what, ...extra });
-
 const DISCLAIMER = "Prices are for information only and are not investment advice or an invitation to deal in any commodity. MCX prices are futures prices with the contract month shown; they are not what a jeweller or bank will charge. Import parity is an indicative calculation from the international price, the exchange rate and customs duty, not a quote. Figures can be delayed or wrong; check with your broker or jeweller before you transact.";
-
-function useWide() {
-  const q = "(min-width: 640px)";
-  const [w, setW] = useState(() => (typeof matchMedia === "function" ? matchMedia(q).matches : true));
-  useEffect(() => { if (typeof matchMedia !== "function") return; const m = matchMedia(q); const f = () => setW(m.matches); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, []);
-  return w;
-}
 
 function Change({ pct, unitAbs }: { pct: string | null | undefined; unitAbs?: string }) {
   if (pct == null) return null;
@@ -56,7 +46,8 @@ function McxBlock({ m, label }: { m: CommodityMcx; label: string }) {
 }
 
 function IntlBlock({ lines, name }: { lines: CommodityIntl[]; name: string }) {
-  const off = lines.length > 0 && lines.every((l) => l.state === "off");
+  if (!lines.some((l) => l.usd != null)) return null;    // no international price: nothing is shown (not even a "not connected" line)
+  const off = false;
   return (
     <div className="cm-blk cm-intl">
       <div className="cm-lbl"><span>International price</span>{lines[0]?.vendor && <span className="cm-src">via {lines[0].vendor}</span>}</div>
@@ -73,42 +64,13 @@ function IntlBlock({ lines, name }: { lines: CommodityIntl[]; name: string }) {
   );
 }
 
-function ParityBlock({ p, open, onToggle }: { p: CommodityParity; open: boolean; onToggle: (v: boolean) => void }) {
-  return (
-    <details className="cm-par" open={open} onToggle={(e) => onToggle((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary><span>India import parity</span><span className="cm-tag">indicative</span>
-        <Info g={help("parity", "Import parity", "What the metal would cost per gram if bought abroad at the international price, converted to rupees and with Indian customs duty added. It is worked out, not quoted, and leaves out GST, making charges and any local premium.",
-          { formula: "USD per troy oz ÷ 31.1034768 × USD/INR × (1 + BCD + AIDC)", note: "Customs charge duty on a government tariff value rather than the market price, so the real landed cost can differ a little." })} /></summary>
-      {p.state === "ok" && p.duty ? (
-        <div className="cm-parbody">
-          <div className="cm-row"><span className="cm-big">{inr(p.perGram)}</span><span className="cm-unit">per gram, before GST</span></div>
-          <div className="cm-chips" aria-label="Customs duty used"><span className="cm-chip">BCD {p.duty.bcd}%</span><span className="cm-chip">AIDC {p.duty.aidc}%</span><span className="cm-chip alt">GST {p.duty.gst}% separate</span></div>
-          <dl className="cm-extra">
-            <div><dt>With {p.duty.gst}% GST, per gram</dt><dd>{inr(p.withGst)}</dd></div>
-            <div><dt>Before GST, per 10 g</dt><dd>{inr(p.per10g)}</dd></div>
-            <div><dt>Before GST, per kg</dt><dd>{inr(p.perKg)}</dd></div>
-            {p.premiumPct != null && (
-              <div><dt>MCX against parity <Info g={help("prem", "MCX against parity", p.premiumBasis ?? "The MCX price compared with the import parity price.", { formula: "(MCX price ÷ parity price − 1) × 100", note: "A gap is not a signal of anything by itself: MCX is a futures price for one contract month, and parity is a calculation." })} /></dt>
-                <dd><Change pct={p.premiumPct} /></dd></div>)}
-          </dl>
-          <p className="cm-note">Duty rates in force from {dayMonthYear(p.duty.effectiveFrom)}; checked {dayMonthYear(p.duty.checkedOn)}. USD/INR {p.usdinr}.</p>
-        </div>
-      ) : <p className="cm-dash cm-parbody"><span aria-hidden="true">—</span> {p.reason ?? "Not available right now."}</p>}
-    </details>
-  );
-}
-
-function Card({ c, tab }: { c: CommodityItem; tab: Tab }) {
-  const wide = useWide();
-  const [openP, setOpenP] = useState<boolean | null>(null);
-  const open = openP ?? (wide || tab !== "all");
+function Card({ c }: { c: CommodityItem }) {
   const grp = c.group === "precious" ? "Precious metal" : c.group === "energy" ? "Energy" : "Industrial metal";
   return (
     <article className={"card cm-card g-" + c.group} aria-labelledby={"cm-" + c.code}>
       <header><h2 id={"cm-" + c.code}>{c.name}</h2><span className="cm-grp">{grp}</span></header>
       {c.mcx && <McxBlock m={c.mcx} label="MCX futures price (via Dhan)" />}
       <IntlBlock lines={c.intl} name={c.name} />
-      {c.parity && <ParityBlock p={c.parity} open={open} onToggle={setOpenP} />}
     </article>
   );
 }
@@ -132,25 +94,21 @@ function Converter() {
   );
 }
 
-function Explainer({ data }: { data?: Commodities }) {
-  const d = data?.items.find((i) => i.parity?.state === "ok")?.parity?.duty;
+function Explainer() {
   return (
     <details className="cm-acc card"><summary><h2>How this is worked out</h2><span className="faint">sources, formulas and the choices made</span></summary>
       <div className="cm-expl">
         <h3>The MCX price</h3>
         <p>It is the price of an MCX futures contract, not a spot price, and the contract month is on every card. Gold is quoted by the exchange in rupees per 10 grams, so the per-gram figure is the quote divided by 10; silver is quoted per kilogram, so per gram is the quote divided by 1,000. The nearest contract that has not expired is shown, and the next one is used once it trades more. When the contract changes, the day change is hidden for that day. The source is Dhan; the MCX logo and exchange name are not used for anything but this label.</p>
         <h3>The international price</h3>
-        <p>US dollars per troy ounce for gold, silver and platinum, per barrel for crude oil, per mmBtu for natural gas and per tonne for copper and aluminium, from a licensed price feed. The day change is against the last price of the previous international trading day (which ends at 5 pm New York time); it is left out until a full previous day has been recorded.</p>
-        <h3>Import parity</h3>
-        <p>What a gram would cost to bring in at the international price: USD per troy ounce ÷ 31.1034768 grams × the USD/INR rate × (1 + basic customs duty + agriculture infrastructure and development cess).{d ? ` Today that is 1 + ${d.bcd}% + ${d.aidc}% = ${d.total}% on top of the rupee price, in force from ${dayMonthYear(d.effectiveFrom)}.` : ""} GST of 3% is shown as a separate line because MCX prices and the benchmark rates in the trade leave it out. Customs actually charge duty on a government tariff value that is revised about every fortnight, so the landed cost on a real shipment can differ from this simple figure. Rates are kept in a table with the date they came into force and are checked by a person; if the check is more than 120 days old, parity is hidden rather than shown on an old rate. Platinum parity is hidden until its duty rate is confirmed. Crude oil, natural gas and base metals have no parity: their duty and levy rules change often.</p>
+        <p>US dollars per troy ounce for gold, silver and per barrel for crude oil, per mmBtu for natural gas and per tonne for copper and aluminium, from a licensed price feed. The day change is against the last price of the previous international trading day (which ends at 5 pm New York time); it is left out until a full previous day has been recorded.</p>
         <h3>Choices made in these figures</h3>
         <ul>
           <li>22K is worked out as 22/24 of the 24K price (the usual shop convention). The hallmark standard of 916 parts per thousand would give a figure about 0.07% lower.</li>
-          <li>MCX gold is a 995-purity bar and the international price is for fine (999) gold, so the "MCX against parity" line scales the MCX price by 999/995 before comparing. Silver is 999 on both sides.</li>
-          <li>The 22K and 18K lines come from the MCX price, not from import parity.</li>
+          <li>The 22K and 18K lines come from the MCX price.</li>
         </ul>
         <h3>Why none of these is your jeweller's price</h3>
-        <p>MCX and parity figures include import duty but not GST. A jeweller adds 3% GST, making charges (commonly 8% to 25%), wastage and a local premium, sells 22K or 18K rather than 24K, and may quote different rates in different cities. Benchmark rates from the bullion association also leave out GST and making charges.</p>
+        <p>MCX figures include import duty but not GST. A jeweller adds 3% GST, making charges (commonly 8% to 25%), wastage and a local premium, sells 22K or 18K rather than 24K, and may quote different rates in different cities. Benchmark rates from the bullion association also leave out GST and making charges.</p>
       </div>
     </details>
   );
@@ -176,24 +134,23 @@ function Status({ d }: { d: Commodities }) {
 function Notices({ d }: { d: Commodities }) {
   const out: string[] = [];
   if (!d.sources.mcx.connected) out.push("MCX prices are not connected yet.");
-  if (!d.sources.intl.connected) out.push("International prices are not connected yet, so only MCX prices are shown. Import parity and the gold/silver ratio need the international price and the USD/INR rate.");
-  else if (d.fx.state === "none" || d.fx.state === "unavailable") out.push("The USD/INR rate is not available right now, so import parity is hidden.");
+  if (!d.sources.intl.connected) out.push("International prices are not connected yet, so only MCX prices are shown. The gold/silver ratio needs the international price.");
   if (d.status === "waiting" && (d.sources.mcx.connected || d.sources.intl.connected)) out.push("Waiting for the first prices to arrive. This usually takes a minute after the service starts.");
   return out.length ? <div className="cm-notices" role="note">{out.map((t) => <p key={t}><Icon name="info" />{t}</p>)}</div> : null;
 }
 
 export function CommoditiesPage() {
-  useDocTitle("Commodity prices", "Gold, silver, platinum, crude oil, natural gas, copper and aluminium: MCX futures price, international price in US dollars and indicative import parity. Free, no sign-in.");
+  useDocTitle("Commodity prices", "Gold, silver, crude oil, natural gas, copper and aluminium: MCX futures price and international price in US dollars. Free, no sign-in.");
   const q = useCommodities();
   const [sp, setSp] = useSearchParams();
   const tab: Tab = (TABS.find(([id]) => id === sp.get("tab"))?.[0]) ?? "all";
   const setTab = (t: Tab) => setSp(t === "all" ? {} : { tab: t }, { replace: true });
-  const items = useMemo(() => (q.data?.items ?? []).filter((i) => tab === "all" || i.group === tab), [q.data, tab]);
+  const items = useMemo(() => (q.data?.items ?? []).filter((i) => i.code !== "platinum" && (tab === "all" || i.group === tab)), [q.data, tab]);
   return (
     <>
       <PageHeader wrap plan="free" title="Commodity prices" art="macro" links={["/macro", "/fii-dii", "/premium/markets"]}
-        description={<>MCX market price, <b>international (USD) price</b> and import parity for gold, silver, crude and metals.</>}
-        stats={[{ icon: "layers", value: q.data ? q.data.items.length : null, label: "Commodities" }]} />
+        description={<>MCX market price and, where available, the <b>international (USD) price</b> for gold, silver, crude and metals.</>}
+        stats={[{ icon: "layers", value: q.data ? q.data.items.filter((i) => i.code !== "platinum").length : null, label: "Commodities" }]} />
       <div className="wrap cm">
         <p className="cm-disc" role="note"><Icon name="info" /><span>{DISCLAIMER}</span></p>
         {q.data && <Status d={q.data} />}
@@ -203,10 +160,10 @@ export function CommoditiesPage() {
         </div>
         {q.isLoading && <div className="cm-grid" aria-busy="true" aria-label="Loading prices">{[0, 1, 2].map((i) => <div key={i} className="card cm-card"><div className="skeleton" style={{ height: 22, width: "40%" }} /><div className="skeleton" style={{ height: 38, width: "70%", margin: "16px 0" }} /><div className="skeleton" style={{ height: 60 }} /></div>)}</div>}
         {q.isError && !q.data && <div className="card cm-err" role="alert"><p>Commodity prices could not be loaded right now.</p><button className="btn" onClick={() => q.refetch()}>Try again</button></div>}
-        {q.data && <div className="cm-grid">{items.map((c) => <ErrorBoundary key={c.code} message={`${c.name} is not available right now.`}><Card c={c} tab={tab} /></ErrorBoundary>)}</div>}
+        {q.data && <div className="cm-grid">{items.map((c) => <ErrorBoundary key={c.code} message={`${c.name} is not available right now.`}><Card c={c} /></ErrorBoundary>)}</div>}
         {q.data && items.length === 0 && <p className="faint">Nothing to show in this group.</p>}
         <Converter />
-        <Explainer data={q.data} />
+        <Explainer />
         <p className="faint cm-src-note">Sources: MCX futures prices via Dhan{q.data?.sources.intl.metals ? `; international prices and USD/INR via ${q.data.sources.intl.metals}${q.data.sources.intl.energy && q.data.sources.intl.energy !== q.data.sources.intl.metals ? ` and ${q.data.sources.intl.energy}` : ""}` : ""}. Customs duty from the Union Government's notifications. Updated automatically.</p>
       </div>
     </>

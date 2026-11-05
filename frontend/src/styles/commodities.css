@@ -26,10 +26,10 @@
 .cm-seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* cards */
-.cm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.cm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 16px; align-items: stretch; }   /* every card the same size */
 @media (max-width: 959px) { .cm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 639px) { .cm-grid { grid-template-columns: minmax(0, 1fr); } }
-.cm-card { padding: 18px 20px; display: grid; gap: 14px; min-width: 0; }
+.cm-card { padding: 18px 20px; display: grid; gap: 14px; min-width: 0; align-content: start; height: 100%; }
 .cm-card > header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .cm-card h2 { font: 400 24px var(--serif); margin: 0; }
 .cm-grp { font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
