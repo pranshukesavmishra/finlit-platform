@@ -224,6 +224,8 @@ export function QuarterResultsPage() {
   const silver = plan !== "basic";
   const [f, setF] = useState<QParams>({ scope: "all", sort: "date", dir: "desc" });
   const [offset, setOffset] = useState(0);
+  const [wide, setWide] = useState<boolean>(() => { try { return localStorage.getItem("qr-wide") === "1"; } catch { return false; } });
+  const toggleWide = () => setWide((w) => { const n = !w; try { localStorage.setItem("qr-wide", n ? "1" : "0"); } catch { /* the choice just is not remembered */ } return n; });
   const [query, setQuery] = useState("");
   const quarter = sp.get("quarter") || undefined;
   const sel = useMemo(() => dateFromParams(sp), [sp]);
@@ -333,8 +335,8 @@ export function QuarterResultsPage() {
           <button type="button" className="btn primary" onClick={() => need("Quarter results figures are part of the Silver plan.")}>See Silver</button></div>
       )}
 
-      <div className="qr-split">
-      <aside className="qr-side card" aria-label="Filters">
+      <div className={"qr-split" + (wide ? " qr-wide" : "")}>
+      <aside className="qr-side card" aria-label="Filters" id="qr-filters" hidden={wide}>
         <FilterGroup id="qr-date" title="Announcement date" defaultOpen>
         <div className="qr-fd" role="group" aria-label="Announcement date">
           <div className="chips" role="group" aria-label="Quick dates">
@@ -379,6 +381,11 @@ export function QuarterResultsPage() {
       </aside>
       <div className="qr-main">
       <div className="qr-toolbar" role="group" aria-label="Sort and export">
+          <button type="button" className="btn qr-widebtn" aria-pressed={wide} aria-controls="qr-filters" onClick={toggleWide}><Icon name="table" /> {wide ? "Show filters" : "Hide filters, widen table"}</button>
+          <form className="qr-find" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: query.trim() }); }}>
+            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); if (!e.target.value) set({ q: "" }); }} placeholder="Find a company in these results" aria-label="Find a company in these results" maxLength={60} />
+            <button className="btn" type="submit">Find</button>
+          </form>
           <label className="wl-sel"><span>Sort by</span>
             <select value={f.sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">{SORTS.map(([v, l, s]) => <option key={v} value={v}>{l}{s && !silver ? " (Silver)" : ""}</option>)}</select></label>
           <button type="button" className="btn qr-dir" aria-label={f.dir === "desc" ? "Highest first" : "Lowest first"} onClick={() => set({ dir: f.dir === "desc" ? "asc" : "desc" })}>{grouped ? (f.dir === "desc" ? "Newest first" : "Oldest first") : f.dir === "desc" ? "High to low" : "Low to high"}</button>
@@ -386,6 +393,7 @@ export function QuarterResultsPage() {
           <button type="button" className="btn qr-csv" onClick={exportCsv}><Icon name="table" /> CSV{silver ? "" : " (Silver)"}</button>
           {filtersOn && <button type="button" className="alx-link" onClick={clearFilters}>Clear filters</button>}
       </div>
+      {f.q && d && !dateErr && !res.isFetching && <p className="qr-findnote" role="status">{total ? <><b>{nf(total, 0)}</b> {total === 1 ? "company matches" : "companies match"} “{f.q}” among the filtered results.</> : <>“{f.q}” is not in the filtered results. <button type="button" className="alx-link" onClick={() => { setQuery(""); set({ q: "" }); }}>Clear the search</button></>}</p>}
       <GrowthCharts summary={d?.growth} dist={d?.distribution} locked={!silver} />
 
       <section className="card qr-card">
