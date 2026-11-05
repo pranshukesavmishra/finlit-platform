@@ -384,3 +384,15 @@
 
 /* a visually hidden TABLE is still laid out as a table (it ignores width and overflow), so it can widen the page: make it a clipped block */
 table.sr-only { display: block; max-width: 1px; max-height: 1px; contain: strict; }
+
+/* Sign-in / create-account card: compact so the whole form fits a laptop window; the submit button is pinned to the bottom edge of the visible area
+   (it used to fall below the fold when the password hints appeared, and the floating assistant button covered it). */
+.login { padding: 24px 0; }
+.login-card { padding: 22px 26px 0; }
+.login-card h2 { font-size: 24px !important; margin: 12px 0 4px !important; }
+.login-card .muted { margin-bottom: 12px !important; }
+.login-card .form label, .login-card .fld { margin-bottom: 10px; }
+.login-card .pw-h { min-height: 18px; margin-top: 6px; }
+.auth-submit { position: sticky; bottom: 8px; z-index: 2; margin: 10px -26px 0; padding: 14px 26px 20px; background: linear-gradient(to bottom, transparent, var(--s1, var(--bg)) 32%); border-radius: 0 0 var(--r-l, 16px) var(--r-l, 16px); }
+.auth-submit .btn { box-shadow: 0 8px 22px -10px rgba(0,0,0,.5); }
+@media (max-width: 640px) { .login-card { padding: 18px 16px 0; } .auth-submit { margin: 8px -16px 0; padding: 12px 16px 16px; } }

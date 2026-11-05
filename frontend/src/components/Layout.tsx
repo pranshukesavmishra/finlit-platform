@@ -167,6 +167,7 @@ export function Layout() {
   useWarmMyCompanies();
   const [search, setSearch] = useState(false);
   const loc = useLocation();
+  const onAuth = /^\/(login|forgot-password|reset-password|verify-email)(\/|$)/.test(loc.pathname);   // the floating assistant would sit on top of the sign-up form
   useEffect(() => { if (!loc.hash) window.scrollTo({ top: 0 }); }, [loc.pathname, loc.hash]);
   useEffect(() => initDepth(), []);
   useEffect(() => {
@@ -198,7 +199,7 @@ export function Layout() {
         {!bare && <Footer />}
         <SearchPalette open={search} onClose={() => setSearch(false)} />
         <AlertToasts />
-        <Assistant />
+        {!onAuth && <Assistant />}
         {!bare && <MobileTabs onSearch={() => setSearch(true)} />}
       </EnquiryProvider>
     </InfoProvider>

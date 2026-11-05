@@ -21,7 +21,7 @@ export function PasswordField({ label = "Password", value, onChange, autoComplet
         <input id={id} type={show ? "text" : "password"} autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} required maxLength={128} />
         <button type="button" className="pw-t" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}>{show ? "Hide" : "Show"}</button>
       </span>
-      {hint && value && <span className="pw-h">{PW_RULES.map(([t, ok]) => <i key={t} className={ok(value) ? "ok" : ""}><Icon name="check" />{t}</i>)}</span>}
+      {hint && <span className="pw-h" aria-live="polite">{PW_RULES.map(([t, ok]) => <i key={t} className={ok(value) ? "ok" : ""}><Icon name="check" />{t}</i>)}</span>}
     </div>
   );
 }
@@ -115,7 +115,7 @@ export function Login() {
               {needCode && <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} autoFocus required /></label>}
               {mode === "signup" && <label className="chk"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span>I agree to the <Link to="/legal/terms" target="_blank">Terms</Link> and <Link to="/legal/privacy" target="_blank">Privacy Notice</Link>. FinLit research is information, not investment advice.</span></label>}
               {err && <div className="formerr" role="alert">{err}{unverified && <> <button type="button" className="linkbtn" onClick={() => resend.mutate()} disabled={resend.isPending}>Send the link again</button></>}</div>}
-              <button className="btn primary lg" style={{ width: "100%", marginTop: 12 }} disabled={busy}>{busy ? "One moment…" : mode === "signup" ? "Create account" : needCode ? "Verify and sign in" : "Sign in"}</button>
+              <div className="auth-submit"><button className="btn primary lg" style={{ width: "100%" }} disabled={busy}>{busy ? "One moment…" : mode === "signup" ? "Create account" : needCode ? "Verify and sign in" : "Sign in"}</button></div>
               {mode === "signin" && !needCode && <p style={{ margin: "14px 0 0", fontSize: 14 }}><Link to="/forgot-password">Forgot your password?</Link></p>}
             </form>
           )}
