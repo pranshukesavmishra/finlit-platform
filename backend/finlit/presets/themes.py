@@ -3,9 +3,9 @@
 Breadth is now the share of a sector's stocks within 15% of their 52-week high (fields the score tabs may use); the moving-average breadth of the first version is gone.
 It is stored in the `b50` column (`b200` stays empty), and history written by the old definition is ignored, so Emerging and Fading start again from a clean 20 sessions.
 
-Universe: stocks with a market cap of Rs 1,000 Cr or more, grouped by CLEANED industry (the Sector label). Generic industries are left out of theme status; groups with fewer than
+Universe: stocks with a market cap of Rs 1,000 Cr or more, grouped by the Sector LABEL (the merged `sector` label of the company, never its Industry and never the broad macro sector). Generic labels are left out of theme status; groups with fewer than
 8 companies are "small groups" (shown only behind the small-groups chip: spec p11 lists four of them with the label "Small group").
-Per industry and for the whole universe, per night:
+Per sector label and for the whole universe, per night:
     B    breadth: share of members within 15 % of the 52-week high (stored in the `b50` column)
     R3   median 3-month return (even count: the mean of the two middle values)
     RS3  industry R3 minus market R3, in percentage points
@@ -31,6 +31,7 @@ LOOKBACK = 20           # sessions
 KEEP_SESSIONS = 60
 NEAR_HIGH = 15.0        # within 15 % of the 52-week high
 MARKET = "*"
+KEY_PREFIX = "sector:"      # stored rows are keyed "sector:<label>": rows written when themes were grouped by Industry carry no prefix and are ignored, so no history of another grouping is mixed in
 NEVER_EMPTY = 3
 
 IN_PLAY_FLOOR = 40.0
@@ -102,6 +103,11 @@ class ThemeEval:
     closest: List[str] = field(default_factory=list)
 
 
+def by_sector_label(table) -> Callable[[int], Optional[str]]:
+    """The grouping the theme screens use: the company's Sector label (merged spellings). Not its Industry, not the broad macro sector."""
+    return lambda i: table.sector_label[i]
+
+
 def evaluate(table, industry_of: Callable[[int], Optional[str]], history: Sequence[dict], floor: float = FLOOR) -> ThemeEval:
     """`history`: earlier sessions, oldest first; each {industry: {'b50','in_play',...}} with MARKET ('*') for the market."""
     mc = table.cols["market_cap"]
@@ -144,7 +150,7 @@ def stored_rows(as_of, ev: ThemeEval) -> List[tuple]:
     m = ev.market
     rows = [(as_of, MARKET, m.members, m.b50, None, m.r3, m.nh, None, False, None)]
     for ind, v in ev.industries.items():
-        rows.append((as_of, ind, v["members"], v["b50"], None, v["r3"], v["nh"], v["rs3"], v["in_play"], v["state"]))
+        rows.append((as_of, KEY_PREFIX + ind, v["members"], v["b50"], None, v["r3"], v["nh"], v["rs3"], v["in_play"], v["state"]))
     return rows
 
 
@@ -154,7 +160,12 @@ def history_from_rows(rows: Sequence[dict]) -> List[dict]:
     for r in rows:
         if r.get("b200") is not None:
             continue          # written by the first version (moving-average breadth): a different measure, never mixed in
-        by_day.setdefault(r["as_of"], {})[r["industry"]] = {"b50": r["b50"], "b200": r["b200"], "rs3": r["rs3"], "in_play": bool(r["in_play"])}
+        name = r["industry"]
+        if name != MARKET:
+            if not str(name).startswith(KEY_PREFIX):
+                continue          # written when themes were grouped by Industry: a different grouping, never mixed in
+            name = name[len(KEY_PREFIX):]
+        by_day.setdefault(r["as_of"], {})[name] = {"b50": r["b50"], "b200": r["b200"], "rs3": r["rs3"], "in_play": bool(r["in_play"])}
     return [by_day[d] for d in sorted(by_day)]
 
 

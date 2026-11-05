@@ -35,9 +35,9 @@ async def build_frame(store, persist: bool = False, now: Optional[datetime] = No
             "(SELECT DISTINCT as_of FROM industry_breadth_daily WHERE as_of < $1 ORDER BY as_of DESC LIMIT $2)", as_of, themes.KEEP_SESSIONS)]
     clean = ind_mod.derive(zip(table.symbols, table.industry), overrides)
     industry = {s: v[1] for s, v in clean.items()}
-    tags = theme_map.tags_for(table.symbols, table.sector)      # found from the Sector label and the research team's named lists, shown as a column
+    tags = theme_map.tags_for(table.symbols, table.sector_label)      # found from the Sector LABEL (not the broad macro sector) and the research team's named lists, shown as a column
     pos = table.pos
-    ev = themes.evaluate(table, lambda i: industry.get(table.symbols[i]), themes.history_from_rows(hist_rows))
+    ev = themes.evaluate(table, themes.by_sector_label(table), themes.history_from_rows(hist_rows))      # grouped by the Sector label, not the Industry
     fr = engine.Frame(table, prism, as_of, tags, industry, ev, listed=listed)
     if persist:
         await _persist(store, fr, clean, ev, pos)
@@ -170,5 +170,5 @@ async def refresh_presets(store) -> dict:
                 failed.append(f"{p.id}:{type(exc).__name__}")
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM preset_results WHERE registry <> $1", REGISTRY_VERSION)
-    return {"asOf": fr.as_of.isoformat(), "results": done, "failed": failed, "themeTagged": len(fr.tags),
+    return {"asOf": fr.as_of.isoformat(), "results": done, "failed": failed, "themeTagged": len(fr.tags), "themeLabelsUnmatched": theme_map.unmatched_labels(fr.t.sector_label),
             "momentum": len(fr.momentum), "growth": len(fr.growth), "inPlay": len(fr.theme_eval.in_play) if fr.theme_eval else 0}

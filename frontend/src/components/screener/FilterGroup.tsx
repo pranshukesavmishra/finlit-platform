@@ -43,8 +43,8 @@ export function CheckRow({ label, count, checked, onChange, disabled }: { label:
 }
 
 /** A checkbox followed by Min and Max boxes. The boxes are off until the row is ticked; unticking clears them. */
-export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min", maxPh = "Max", step = 1, maxOnly = false }: {
-  label: string; group?: string; min: number | string | null; max: number | string | null; onChange: (end: "min" | "max", v: string) => void; error?: string; minPh?: string; maxPh?: string; step?: number | string; maxOnly?: boolean }) {
+export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min", maxPh = "Max", step = 1, maxOnly = false, maxExcl = false }: {
+  label: string; group?: string; min: number | string | null; max: number | string | null; onChange: (end: "min" | "max", v: string) => void; error?: string; minPh?: string; maxPh?: string; step?: number | string; maxOnly?: boolean; maxExcl?: boolean }) {
   const has = (min != null && min !== "") || (max != null && max !== "");
   const [ticked, setTicked] = useState(has);
   useEffect(() => { if (has) setTicked(true); }, [has]);
@@ -56,7 +56,7 @@ export function RangeRow({ label, group, min, max, onChange, error, minPh = "Min
       <div className={"fgx-mm" + (maxOnly ? " fgx-mx" : "")} id={id}>
         {!maxOnly && <><input type="number" inputMode="decimal" step={step} placeholder={minPh} aria-label="Min" disabled={!on} value={min ?? ""} onChange={(e) => onChange("min", e.target.value)} aria-invalid={!!error} />
         <span aria-hidden="true">&ndash;</span></>}
-        <input type="number" inputMode="decimal" step={step} placeholder={maxPh} aria-label="Max" disabled={!on} value={max ?? ""} onChange={(e) => onChange("max", e.target.value)} aria-invalid={!!error} />
+        <input type="number" inputMode="decimal" step={step} placeholder={maxPh} aria-label={maxExcl ? "Below (the score must be under this number)" : "Max"} title={maxExcl ? "Below this number" : undefined} disabled={!on} value={max ?? ""} onChange={(e) => onChange("max", e.target.value)} aria-invalid={!!error} />
       </div>
       {error && <p className="fgx-err" role="alert">{error}</p>}
     </div>);

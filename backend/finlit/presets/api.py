@@ -42,11 +42,11 @@ def _chips(p: Preset) -> List[dict]:
 
 
 def _list_text(p: Preset, cached: dict | None) -> str | None:
-    """What the card says about its list: "Top 10 of 40 that pass" (the Top 10 screens), "First 25 of 129" (a longer match), else nothing (the count says it all)."""
+    """What the card says about its list: "Top 10 of 40 that pass" (the Top 10 screens), nothing for the others (they page through everything that passes)."""
     if not cached or p.kind in ("themes",):
         return None
     n = cached["count"]
-    return f"Top {p.limit} of {n} that pass" if p.top10 else f"First {p.limit} of {n} that pass" if n > p.limit else None
+    return f"Top {p.limit} of {n} that pass" if p.top10 else None      # the other screens page through everything that passes: the count says it all
 
 
 def _card(p: Preset, gold: bool, cached: dict | None) -> dict:
@@ -127,10 +127,35 @@ async def screens_for(request: Request, symbol: str):
     return _json({"symbol": sym, "screens": screens, "ready": ready, "asOf": as_of})
 
 
+def _int(request: Request, name: str, default: int, lo: int, hi: int) -> int:
+    raw = request.query_params.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        v = int(raw)
+    except ValueError:
+        raise fail(422, "bad_" + name, f"{name} must be a whole number.")
+    if v < lo or v > hi:
+        raise fail(422, "bad_" + name, f"{name} must be between {lo} and {hi}.")
+    return v
+
+
+def _page(request: Request, body: dict) -> dict:
+    """A screen that is not a Top-10 list and not a theme view pages: `offset` (default 0) and `limit` (default 25, at most EXPORT_MAX) pick rows of the ranked list.
+    The answer carries `offset`, `limit`, `available` (rows that can be paged to) and `hasMore`; `count` stays the number of companies that pass."""
+    if "pageSize" not in body:
+        return body
+    avail = body.get("exportRows") or body["rows"]
+    offset = _int(request, "offset", 0, 0, engine.EXPORT_MAX)
+    limit = _int(request, "limit", body["pageSize"], 1, engine.EXPORT_MAX)
+    rows = avail[offset:offset + limit]
+    return {**body, "rows": rows, "shown": len(rows), "offset": offset, "limit": limit, "available": len(avail), "hasMore": offset + len(rows) < len(avail)}
+
+
 @router.get("/{pid}")
 async def detail(request: Request, pid: str):
     p, ctx, active = await _resolve(request, pid)
-    body = await _body(request, p, active)
+    body = _page(request, await _body(request, p, active))
     await service.log_usage(request.app.state.store, p.id, "open")
     return _json({k: v for k, v in body.items() if k not in API_ONLY})
 

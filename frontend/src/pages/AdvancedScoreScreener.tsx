@@ -60,7 +60,7 @@ function Advanced() {
           <div className="fgx-chips" role="group" aria-label="Rating">
             {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{LABEL_WORD[l]}</button>)}
           </div>
-          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={x.label} group={`${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
+          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={x.label} group={`${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} maxExcl={!!draft.ranges[x.range].maxExcl} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
         </FilterGroup>
         <FilterGroup id="tech" title="Technical views" defaultOpen active={draft.tech.st.length + draft.tech.lt.length}>
           {TECH_KEYS.map((k) => (

@@ -79,7 +79,7 @@ export function useScreener(mode: Mode) {
     return () => clearTimeout(t);
   }, [draft]);   // eslint-disable-line react-hooks/exhaustive-deps
   const setBand = (k: BandKey, b: Band) => edit((d) => ({ ...d, bands: { ...d.bands, [k]: toggle(d.bands[k], b) } }));
-  const setRange = (k: RangeKey, end: "min" | "max", v: string) => edit((d) => ({ ...d, ranges: { ...d.ranges, [k]: { ...d.ranges[k], [end]: v.trim() === "" ? null : Number(v) } } }), true);
+  const setRange = (k: RangeKey, end: "min" | "max", v: string) => edit((d) => ({ ...d, ranges: { ...d.ranges, [k]: { ...d.ranges[k], [end]: v.trim() === "" ? null : Number(v), ...(end === "max" ? { maxExcl: false } : {}) } } }), true);
   const setLabel = (l: PrismLabel) => edit((d) => ({ ...d, labels: toggle(d.labels, l) }));
   const setTech = (k: TechKey, b: TechBand) => edit((d) => ({ ...d, tech: { ...d.tech, [k]: toggle(d.tech[k], b) } }));
 

@@ -17,7 +17,8 @@ from . import derive, expr, themes
 from .registry import DISCLAIMER, REGISTRY_VERSION, Preset, render_card
 from .seed import THEME
 
-EXPORT_MAX = 500
+EXPORT_MAX = 2000        # rows kept per screen for paging (25 at a time) and for the CSV export; a screen that passes more says so
+PAGE = 25
 MISS_COUNT = 5
 LEADERS = 5
 LEADER_FLOOR = 1000.0
@@ -65,6 +66,11 @@ class Frame:
     def industry_of(self, i: int) -> Optional[str]:
         return self.industry.get(self.symbols[i])
 
+    def sector_of(self, i: int) -> Optional[str]:
+        """The company's Sector label (merged spellings), the one field every cap, tag and theme group of the prebuilt screens uses. Not the broad macro sector
+        (`Table.sector`, e.g. "Consumer Discretionary") and not the Industry. None when the company has no label."""
+        return self.t.sector_label[i]
+
     def has_prism(self, i: int) -> bool:
         z = self.pz[i]
         return z.get("prism_final") is not None and z.get("prism_status") in SCORED
@@ -90,7 +96,7 @@ class Frame:
         if name == "name":
             return t.name[i]
         if name == "sector":
-            return t.sector[i]
+            return self.sector_of(i)
         if name == "industry":
             return self.industry_of(i)
         if name == "cap_bucket":
@@ -124,7 +130,7 @@ class Frame:
             subs = self.tags.get(sym)
             return ", ".join(subs) if subs else None
         if name == "vs_industry_3m":
-            r3, base = self.get(i, "ret_3m"), self._r3.get(self.industry_of(i) or "")
+            r3, base = self.get(i, "ret_3m"), self._r3.get(self.sector_of(i) or "")
             return None if r3 is None or base is None else round(r3 - base, 4)
         return None
 
@@ -199,6 +205,9 @@ PRISM_PARAMS = {  # filter -> (field, plain words)
 
 def prism_rules(fr: Frame, pf: Dict[str, Any]) -> List[Rule]:
     n, out = fr.t.n, []
+    if "zvbelow" in pf:     # strictly below: with the twin view's "50 or more" every rated company is in exactly one of the two
+        lim = float(pf["zvbelow"])
+        out.append(Rule(f"Prism Valuation below {_n(pf['zvbelow'])}", [(fr.pz[i].get("prism_valuation") is not None and fr.pz[i].get("prism_status") in SCORED and fr.pz[i]["prism_valuation"] < lim) for i in range(n)]))
     if pf.get("rated"):
         out.append(Rule("Rated by Prism", [fr.has_prism(i) for i in range(n)]))
     if pf.get("status"):
@@ -312,13 +321,13 @@ def rank_member(preset: Preset) -> Callable[[Frame], Callable[[int], bool]]:
 
 
 def apply_sector_cap(fr: Frame, order: Sequence[int], cap: int) -> List[int]:
-    """The ordered list with at most `cap` companies from one Sector label (a company with no label counts as one group of its own)."""
+    """The ordered list with at most `cap` companies from one Sector label (the label, never the broad macro sector; a company with no label is a group of its own)."""
     if not cap:
         return list(order)
     seen: Dict[str, int] = {}
     out: List[int] = []
     for i in order:
-        k = fr.t.sector[i] or "(no sector)"
+        k = fr.sector_of(i) or f"(no sector) {fr.symbols[i]}"
         if seen.get(k, 0) >= cap:
             continue
         seen[k] = seen.get(k, 0) + 1
@@ -354,7 +363,7 @@ def _fmt(v: Any, fmt: str) -> Any:
 
 
 def _row(fr: Frame, preset: Preset, i: int, pos: int, extra: Sequence[str] = ()) -> dict:
-    row: Dict[str, Any] = {"symbol": fr.symbols[i], "name": fr.t.name[i], "exchange": fr.listed.get(fr.symbols[i])}
+    row: Dict[str, Any] = {"symbol": fr.symbols[i], "name": fr.t.name[i], "exchange": fr.listed.get(fr.symbols[i]), "position": pos}
     for c in preset.columns:
         if c.key == "rank":
             row["rank"] = pos
@@ -448,8 +457,10 @@ def run(fr: Frame, preset: Preset, requested: Optional[Sequence[str]] = None) ->
     notes = view_notes(fr, rules)
     if notes:
         out["notes"] = notes
-    if preset.limit < len(idx) or preset.top10:
-        out["listText"] = f"Top {preset.limit} of {len(idx)} that pass" if preset.top10 else f"First {preset.limit} of {len(idx)}"
+    if preset.top10:
+        out["listText"] = f"Top {preset.limit} of {len(idx)} that pass"      # the Top 10 lists are ten by rule and never page
+    else:
+        out["pageSize"] = PAGE                                                   # the rest page: the API serves ?offset=25, 50 ... from exportRows
     out["cardText"] = render_card(preset, sum(1 for i in range(n) if fr.t.cap[i] == preset.prism_filters.get("cap") and fr.pz[i].get("prism_status") == "RATED") or None) if "{n}" in preset.card_text else preset.card_text
     out["ratedCount"] = sum(1 for i in idx if fr.has_prism(i))
     if preset.id == "fno-both-positive":
@@ -460,6 +471,8 @@ def run(fr: Frame, preset: Preset, requested: Optional[Sequence[str]] = None) ->
         out["closestMisses"] = closest_misses(fr, rules)
         out["emptyText"] = "No company meets every rule today."
     out["exportRows"] = [_row(fr, preset, i, pos) for pos, i in enumerate(listed[:EXPORT_MAX], 1)]
+    if not preset.top10 and len(listed) > EXPORT_MAX:
+        out["notes"] = out.get("notes", []) + [f"The first {EXPORT_MAX} of {len(listed)} companies are available to page through and export."]
     return out
 
 
@@ -496,7 +509,7 @@ def run_themes(fr: Frame, preset: Preset, cfg: Config, active: Sequence[str]) ->
             cards.append(card(ind, "in_play", lead))
             for i in lead:
                 r = _row(fr, preset, i, len(rows) + 1)
-                r["industry"] = ind
+                r["sector"] = ind
                 r["state"] = "in_play"
                 rows.append(r)
         in_play_n = len(names)

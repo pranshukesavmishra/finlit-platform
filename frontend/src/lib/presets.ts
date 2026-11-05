@@ -30,7 +30,15 @@ export type PresetDetail = {
   howItWorks: string[]; cardText: string; disclaimer: string;
   /** "Top 10 of 40 that pass": what the list shows of the companies that pass. */
   listText?: string; notes?: string[]; rankScoreNote?: string; emptyText?: string; ratedCount?: number;
+  /** Paging (every screen but the Top 10 lists and the theme view): `pageSize` is 25; `offset` the first row's place in the ranked list (0-based); `available` how many rows can be paged to. */
+  pageSize?: number; offset?: number; limit?: number; available?: number; hasMore?: boolean;
 };
+export const PAGE_SIZE = 25;
+/** The rows a page shows, as "26–50 of 76" (the numbers come from the response). */
+export function pageRange(d: Pick<PresetDetail, "count" | "offset" | "shown">): { from: number; to: number; of: number } {
+  const from = (d.offset ?? 0) + 1, to = (d.offset ?? 0) + d.shown;
+  return { from: Math.min(from, to + 1), to, of: d.count };
+}
 
 export const DISCLAIMER = "A screen narrows a list. It is not a recommendation.";
 /** The order the groups are shown in; a group the API adds later follows these, before "Prism basics". */
@@ -85,14 +93,22 @@ export function usePresetList(enabled = true, tab: PresetTab = "advanced") {
     queryFn: async () => { const d = await apiGet<PresetList>("/api/screener/presets" + (tab === "basic" ? "?tab=basic" : "")); return { asOf: d.asOf ?? null, tab, groups: Array.isArray(d.groups) ? d.groups : [] }; },
   });
 }
-export const detailPath = (id: string, chips: string[]) => `/api/screener/presets/${encodeURIComponent(id)}` + (chips.length ? "?" + chips.map((c) => "chip=" + encodeURIComponent(c)).join("&") : "");
-export function usePresetDetail(id: string | null, chips: string[], enabled: boolean) {
+/** `offset` and `limit` page a long screen (the first page leaves them out, so it is the cached answer as sent). */
+export const detailPath = (id: string, chips: string[], offset = 0, limit?: number) => {
+  const q = chips.map((c) => "chip=" + encodeURIComponent(c));
+  if (offset > 0) q.push("offset=" + offset);
+  if (limit != null) q.push("limit=" + limit);
+  return `/api/screener/presets/${encodeURIComponent(id)}` + (q.length ? "?" + q.join("&") : "");
+};
+export function usePresetDetail(id: string | null, chips: string[], enabled: boolean, offset = 0) {
   return useQuery<PresetDetail, ApiError>({
-    queryKey: ["preset", id, [...chips].sort().join(",")], enabled: enabled && !!id, staleTime: 300_000, placeholderData: keepPreviousData,
+    queryKey: ["preset", id, [...chips].sort().join(","), offset], enabled: enabled && !!id, staleTime: 300_000, placeholderData: keepPreviousData,
     retry: (n, e) => !(e instanceof ApiError && e.status >= 400 && e.status < 500) && n < 1,
-    queryFn: () => apiGet<PresetDetail>(detailPath(id!, chips)),
+    queryFn: () => apiGet<PresetDetail>(detailPath(id!, chips, offset)),
   });
 }
+/** Every row that passes (up to the server's export limit), for the CSV: the page on screen holds 25. */
+export const fetchAllRows = (id: string, chips: string[]) => apiGet<PresetDetail>(detailPath(id, chips, 0, 2000));
 
 // ---------- the table ----------
 export type SortState = { key: string; dir: 1 | -1 } | null;

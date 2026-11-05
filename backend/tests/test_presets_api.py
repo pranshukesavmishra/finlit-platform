@@ -147,3 +147,26 @@ async def test_the_screener_rows_carry_the_52_week_and_return_figures_for_the_op
     assert rows["EXTRA2"]["pct_from_high"] is None and rows["EXTRA2"]["ret_6m"] is None            # missing is blank, never zero
     async with store.pool.acquire() as conn:
         await conn.execute("DELETE FROM scores WHERE symbol IN ('EXTRA1', 'EXTRA2')")
+
+
+async def test_results_page_by_25_with_offset_and_limit_and_export_keeps_every_row(app, store):  # noqa: F811
+    await wipe(store)
+    gold = await signed_in(app, "pg@example.com", plan="gold")
+    first = (await gold.get("/api/screener/presets/emerging-tech?chip=none")).json()
+    assert first["count"] == 30 and first["shown"] == 25 and first["offset"] == 0 and first["hasMore"] is True and first["pageSize"] == 25 and "listText" not in first
+    second = (await gold.get("/api/screener/presets/emerging-tech?chip=none&offset=25")).json()
+    assert second["shown"] == 5 and second["offset"] == 25 and second["hasMore"] is False and [r["position"] for r in second["rows"]] == [26, 27, 28, 29, 30]
+    assert {r["symbol"] for r in first["rows"]}.isdisjoint(r["symbol"] for r in second["rows"]) and "exportRows" not in second
+    allrows = (await gold.get("/api/screener/presets/emerging-tech?chip=none&limit=2000")).json()
+    assert allrows["shown"] == 30 and allrows["hasMore"] is False
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=none&offset=x")).status_code == 422
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=none&offset=-1")).status_code == 422
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=none&limit=0")).status_code == 422
+    assert (await gold.get("/api/screener/presets/emerging-tech?chip=none&offset=900")).json()["rows"] == []
+    top = (await gold.get("/api/screener/presets/highest-rated-large?chip=none&offset=25")).json()
+    assert "offset" not in top and top["shown"] == len(top["rows"]) <= 10                      # the Top 10 lists are ten by rule
+    e = await gold.get("/api/screener/presets/emerging-tech/export?chip=none")
+    assert e.text.count("\n") >= 30 + 2
+    card = [c for g in (await gold.get("/api/screener/presets")).json()["groups"] for c in g["presets"] if c["id"] == "emerging-tech"][0]
+    assert card["listText"] is None
+    await gold.aclose()

@@ -463,3 +463,31 @@ describe("Top 10 large / mid / small caps by FinLit IQ", () => {
     expect(parseState(new URLSearchParams("top=10"), "advanced").filters.top).toBeNull();      // the advanced screener does not use it
   });
 });
+
+describe("the two valuation views split at 50 (issue 30.b)", () => {
+  const vals: [string, number | null][] = [["GLAXO", 49.75], ["ICICILIFE", 49.7], ["OFSS", 49.69], ["EDGE", 49.99], ["AT50", 50], ["JUST", 50.01], ["ZERO", 0], ["TOP", 100], ["BLANK", null]];
+  const items = vals.map(([s, v]) => pr(s, 80, "STRONG", { prism_fundamental: 70, prism_valuation: v as number, prism_risk: 60, prism_st_score: 0, prism_lt_score: 0 }));
+  const run = (id: string) => syms(applyFilters(items, withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === id)!)));
+  it("Valuation below 50 is weak (GLAXO 49.75, ICICILIFE 49.70, OFSS 49.69), 50 and above is fair, and 50.0 is on the fair side", () => {
+    expect(run("weakvalue")).toEqual(["GLAXO", "ICICILIFE", "OFSS", "EDGE", "ZERO"]);
+    expect(run("fairvalue")).toEqual(["AT50", "JUST", "TOP"]);
+  });
+  it("no stock with a Valuation score falls into neither view, or into both", () => {
+    const weak = run("weakvalue"), fair = run("fairvalue");
+    items.filter((r) => r.prism_valuation != null).forEach((r) => expect([weak.includes(r.symbol), fair.includes(r.symbol)].filter(Boolean)).toHaveLength(1));
+  });
+  it("the weak view is recognised again from its address and says 'below 50'", () => {
+    const f = withPrismPreset(emptyFilters(), PRISM_PRESETS.find((p) => p.id === "weakvalue")!);
+    expect(activePrismPreset(f)).toBe("weakvalue");
+    const qs = serializeState({ filters: f, sort: DEFAULT_SORT, size: 10, page: 0 }).toString();
+    expect(qs).toContain("zvlt=50"); expect(qs).not.toContain("zvmax");
+    const back = parseState(new URLSearchParams(qs), "advanced").filters;
+    expect(activePrismPreset(back)).toBe("weakvalue"); expect(back.ranges.zv).toEqual({ min: null, max: 50, maxExcl: true });
+    expect(chipsFor(f).map((c) => c.label).find((l) => /below 50/.test(l))).toMatch(/Valuation.*: below 50/);
+    expect(inRange(49.99, back.ranges.zv)).toBe(true); expect(inRange(50, back.ranges.zv)).toBe(false);
+  });
+  it("an exact maximum typed in the boxes stays inclusive", () => expect(inRange(50, { min: null, max: 50 })).toBe(true));
+  it("the score bands leave no gap for a fractional score", () => {
+    for (const v of [44, 44.5, 44.99, 45, 77, 77.4, 77.99, 78, 100]) expect(["low", "mid", "high"].filter((b) => inBands(v, [b as "low" | "mid" | "high"]))).toHaveLength(1);
+  });
+});
