@@ -1,0 +1,95 @@
+{
+ "_comment": "Business-group tag, by NSE symbol (addendum 'Business group': a maintained tag, owned by whoever maintains the PSU flag). A symbol appears under one group only. A company absent from this file has no group tag. Add or correct entries here; no code change is needed. Describes ownership affiliation only.",
+ "asOf": "2026-11-05",
+ "groups": {
+  "Tata": [
+   "TCS",
+   "TATASTEEL",
+   "TATAMOTORS",
+   "TATAPOWER",
+   "TITAN",
+   "TATACONSUM",
+   "TATAELXSI",
+   "TATACOMM",
+   "TATACHEM",
+   "TRENT",
+   "VOLTAS",
+   "INDHOTEL",
+   "TATAINVEST"
+  ],
+  "Reliance": [
+   "RELIANCE",
+   "JIOFIN",
+   "NETWORK18",
+   "TV18BRDCST"
+  ],
+  "Adani": [
+   "ADANIENT",
+   "ADANIPORTS",
+   "ADANIPOWER",
+   "ADANIGREEN",
+   "ADANIENSOL",
+   "ATGL"
+  ],
+  "Bajaj": [
+   "BAJFINANCE",
+   "BAJAJFINSV",
+   "BAJAJ-AUTO",
+   "BAJAJHLDNG",
+   "BAJAJHFL",
+   "MAHSCOOTER"
+  ],
+  "Birla": [
+   "ULTRACEMCO",
+   "GRASIM",
+   "HINDALCO",
+   "ABCAPITAL",
+   "ABFRL",
+   "IDEA"
+  ],
+  "Mahindra": [
+   "M&M",
+   "M&MFIN",
+   "TECHM",
+   "MAHLIFE",
+   "MAHINDCIE",
+   "MAHSEAMLES",
+   "SWARAJENG"
+  ],
+  "Godrej": [
+   "GODREJCP",
+   "GODREJPROP",
+   "GODREJIND"
+  ],
+  "Hinduja": [
+   "ASHOKLEY",
+   "GULFOILLUB"
+  ],
+  "Murugappa": [
+   "CHOLAFIN",
+   "CARBORUNIV",
+   "COROMANDEL",
+   "TIINDIA"
+  ],
+  "Jindal": [
+   "JSWSTEEL",
+   "JSWENERGY",
+   "JSWINFRA",
+   "JINDALSTEL",
+   "JSL",
+   "JINDALSAW"
+  ],
+  "Vedanta": [
+   "VEDL",
+   "HINDZINC"
+  ],
+  "Wadia": [
+   "BRITANNIA",
+   "BOMDYEING"
+  ],
+  "Piramal": [
+   "PEL",
+   "PIRAMALPHARMA"
+  ]
+ }
+}

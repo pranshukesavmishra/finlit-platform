@@ -1,0 +1,500 @@
+{
+ "included": 15,
+ "excluded": [],
+ "spread": {
+  "sectors": [
+   {
+    "name": "Financial services",
+    "count": 6
+   },
+   {
+    "name": "Information technology",
+    "count": 3
+   },
+   {
+    "name": "Oil & gas",
+    "count": 1
+   },
+   {
+    "name": "FMCG",
+    "count": 1
+   },
+   {
+    "name": "Construction",
+    "count": 1
+   },
+   {
+    "name": "Telecom",
+    "count": 1
+   },
+   {
+    "name": "Metals & mining",
+    "count": 1
+   },
+   {
+    "name": "Healthcare",
+    "count": 1
+   }
+  ],
+  "groups": [
+   {
+    "name": "Tata",
+    "symbols": [
+     "TCS",
+     "TATASTEEL"
+    ]
+   }
+  ]
+ },
+ "asOf": {
+  "fromWeek": "2023-W45",
+  "toWeek": "2026-W44",
+  "weeks": 156,
+  "frequency": "weekly"
+ },
+ "scoreVersion": "1",
+ "score": {
+  "value": 72,
+  "unrounded": 71.6,
+  "band": "Fairly spread",
+  "coMovement": 72,
+  "sectorSpread": 71,
+  "effectiveSectors": 4.41
+ },
+ "headline": {
+  "effectiveStocks": 6.99,
+  "effectiveStocksRounded": 7,
+  "avgCorrelation": 0.26
+ },
+ "clusters": [
+  {
+   "symbols": [
+    "TCS",
+    "INFY",
+    "HCLTECH"
+   ],
+   "avgCorrelation": 0.77
+  },
+  {
+   "symbols": [
+    "ICICIBANK",
+    "AXISBANK"
+   ],
+   "avgCorrelation": 0.58
+  },
+  {
+   "symbols": [
+    "SBIN",
+    "LT"
+   ],
+   "avgCorrelation": 0.51
+  }
+ ],
+ "overlap": [
+  {
+   "symbol": "RELIANCE",
+   "avgCorrelation": 0.31
+  },
+  {
+   "symbol": "ICICIBANK",
+   "avgCorrelation": 0.31
+  },
+  {
+   "symbol": "AXISBANK",
+   "avgCorrelation": 0.3
+  },
+  {
+   "symbol": "LT",
+   "avgCorrelation": 0.3
+  },
+  {
+   "symbol": "BAJFINANCE",
+   "avgCorrelation": 0.28
+  },
+  {
+   "symbol": "TCS",
+   "avgCorrelation": 0.28
+  },
+  {
+   "symbol": "HDFCBANK",
+   "avgCorrelation": 0.27
+  },
+  {
+   "symbol": "BHARTIARTL",
+   "avgCorrelation": 0.26
+  },
+  {
+   "symbol": "TATASTEEL",
+   "avgCorrelation": 0.26
+  },
+  {
+   "symbol": "KOTAKBANK",
+   "avgCorrelation": 0.25
+  },
+  {
+   "symbol": "SBIN",
+   "avgCorrelation": 0.24
+  },
+  {
+   "symbol": "HCLTECH",
+   "avgCorrelation": 0.24
+  },
+  {
+   "symbol": "INFY",
+   "avgCorrelation": 0.22
+  },
+  {
+   "symbol": "SUNPHARMA",
+   "avgCorrelation": 0.19
+  },
+  {
+   "symbol": "ITC",
+   "avgCorrelation": 0.18
+  }
+ ],
+ "market": {
+  "benchmark": "NIFTY 50",
+  "stocks": [
+   {
+    "symbol": "RELIANCE",
+    "beta": 1.06
+   },
+   {
+    "symbol": "HDFCBANK",
+    "beta": 0.96
+   },
+   {
+    "symbol": "ICICIBANK",
+    "beta": 0.96
+   },
+   {
+    "symbol": "SBIN",
+    "beta": 0.95
+   },
+   {
+    "symbol": "KOTAKBANK",
+    "beta": 0.77
+   },
+   {
+    "symbol": "AXISBANK",
+    "beta": 1.26
+   },
+   {
+    "symbol": "BAJFINANCE",
+    "beta": 1.18
+   },
+   {
+    "symbol": "TCS",
+    "beta": 0.96
+   },
+   {
+    "symbol": "INFY",
+    "beta": 0.88
+   },
+   {
+    "symbol": "HCLTECH",
+    "beta": 0.94
+   },
+   {
+    "symbol": "ITC",
+    "beta": 0.54
+   },
+   {
+    "symbol": "LT",
+    "beta": 1.25
+   },
+   {
+    "symbol": "BHARTIARTL",
+    "beta": 0.83
+   },
+   {
+    "symbol": "TATASTEEL",
+    "beta": 1.25
+   },
+   {
+    "symbol": "SUNPHARMA",
+    "beta": 0.55
+   }
+  ]
+ },
+ "stress": {
+  "worstWeeks": 10,
+  "benchmarkAvgPct": -3.41,
+  "stocks": [
+   {
+    "symbol": "RELIANCE",
+    "fellMoreThanIndex": 5
+   },
+   {
+    "symbol": "HDFCBANK",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "ICICIBANK",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "SBIN",
+    "fellMoreThanIndex": 5
+   },
+   {
+    "symbol": "KOTAKBANK",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "AXISBANK",
+    "fellMoreThanIndex": 4
+   },
+   {
+    "symbol": "BAJFINANCE",
+    "fellMoreThanIndex": 4
+   },
+   {
+    "symbol": "TCS",
+    "fellMoreThanIndex": 6
+   },
+   {
+    "symbol": "INFY",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "HCLTECH",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "ITC",
+    "fellMoreThanIndex": 2
+   },
+   {
+    "symbol": "LT",
+    "fellMoreThanIndex": 9
+   },
+   {
+    "symbol": "BHARTIARTL",
+    "fellMoreThanIndex": 3
+   },
+   {
+    "symbol": "TATASTEEL",
+    "fellMoreThanIndex": 7
+   },
+   {
+    "symbol": "SUNPHARMA",
+    "fellMoreThanIndex": 3
+   }
+  ]
+ },
+ "basket": {
+  "equal": {
+   "volPct": 12.0,
+   "maxDrawdownPct": -15.1,
+   "beta": 0.96,
+   "stressAvgPct": -3.21,
+   "riskShare": {
+    "stocks": [
+     {
+      "symbol": "HCLTECH",
+      "pct": 8.2
+     },
+     {
+      "symbol": "AXISBANK",
+      "pct": 8.1
+     },
+     {
+      "symbol": "TATASTEEL",
+      "pct": 8.1
+     },
+     {
+      "symbol": "LT",
+      "pct": 8.0
+     },
+     {
+      "symbol": "TCS",
+      "pct": 7.9
+     },
+     {
+      "symbol": "BAJFINANCE",
+      "pct": 7.8
+     },
+     {
+      "symbol": "INFY",
+      "pct": 7.6
+     },
+     {
+      "symbol": "RELIANCE",
+      "pct": 6.8
+     },
+     {
+      "symbol": "SBIN",
+      "pct": 6.2
+     },
+     {
+      "symbol": "ICICIBANK",
+      "pct": 6.1
+     },
+     {
+      "symbol": "BHARTIARTL",
+      "pct": 5.8
+     },
+     {
+      "symbol": "KOTAKBANK",
+      "pct": 5.7
+     },
+     {
+      "symbol": "HDFCBANK",
+      "pct": 5.6
+     },
+     {
+      "symbol": "SUNPHARMA",
+      "pct": 4.1
+     },
+     {
+      "symbol": "ITC",
+      "pct": 3.8
+     }
+    ],
+    "sectors": [
+     {
+      "name": "Financial services",
+      "pct": 39.5
+     },
+     {
+      "name": "Information technology",
+      "pct": 23.7
+     },
+     {
+      "name": "Metals & mining",
+      "pct": 8.1
+     },
+     {
+      "name": "Construction",
+      "pct": 8.0
+     },
+     {
+      "name": "Oil & gas",
+      "pct": 6.8
+     },
+     {
+      "name": "Telecom",
+      "pct": 5.8
+     },
+     {
+      "name": "Healthcare",
+      "pct": 4.1
+     },
+     {
+      "name": "FMCG",
+      "pct": 3.8
+     }
+    ]
+   }
+  },
+  "mcap": {
+   "volPct": 12.1,
+   "maxDrawdownPct": -17.1,
+   "beta": 0.96,
+   "stressAvgPct": -3.18,
+   "riskShare": {
+    "stocks": [
+     {
+      "symbol": "RELIANCE",
+      "pct": 19.1
+     },
+     {
+      "symbol": "BHARTIARTL",
+      "pct": 11.3
+     },
+     {
+      "symbol": "TCS",
+      "pct": 9.4
+     },
+     {
+      "symbol": "HDFCBANK",
+      "pct": 9.2
+     },
+     {
+      "symbol": "ICICIBANK",
+      "pct": 9.2
+     },
+     {
+      "symbol": "SBIN",
+      "pct": 8.1
+     },
+     {
+      "symbol": "BAJFINANCE",
+      "pct": 6.2
+     },
+     {
+      "symbol": "LT",
+      "pct": 5.8
+     },
+     {
+      "symbol": "INFY",
+      "pct": 4.3
+     },
+     {
+      "symbol": "AXISBANK",
+      "pct": 4.1
+     },
+     {
+      "symbol": "HCLTECH",
+      "pct": 3.9
+     },
+     {
+      "symbol": "KOTAKBANK",
+      "pct": 3.4
+     },
+     {
+      "symbol": "SUNPHARMA",
+      "pct": 2.3
+     },
+     {
+      "symbol": "TATASTEEL",
+      "pct": 2.2
+     },
+     {
+      "symbol": "ITC",
+      "pct": 1.6
+     }
+    ],
+    "sectors": [
+     {
+      "name": "Financial services",
+      "pct": 40.1
+     },
+     {
+      "name": "Oil & gas",
+      "pct": 19.1
+     },
+     {
+      "name": "Information technology",
+      "pct": 17.6
+     },
+     {
+      "name": "Telecom",
+      "pct": 11.3
+     },
+     {
+      "name": "Construction",
+      "pct": 5.8
+     },
+     {
+      "name": "Healthcare",
+      "pct": 2.3
+     },
+     {
+      "name": "Metals & mining",
+      "pct": 2.2
+     },
+     {
+      "name": "FMCG",
+      "pct": 1.6
+     }
+    ]
+   }
+  },
+  "benchmark": {
+   "volPct": 12.6,
+   "maxDrawdownPct": -15.5
+  }
+ }
+}
