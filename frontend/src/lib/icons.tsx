@@ -48,6 +48,7 @@ export const ICONS: Record<string, string> = {
   download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  decline: '<path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/>',
   prism: '<path d="M12 3 3 19h18z"/><path d="M12 3v16M7.5 11l9 0"/>',
 };
 
