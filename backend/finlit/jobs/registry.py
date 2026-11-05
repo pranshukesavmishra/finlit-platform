@@ -170,6 +170,7 @@ LIMIT_POLICY: Dict[str, str] = {
     "alerts-daily": "fixed: members' own alerts only; measured about 4 s",
     "screens": "fixed: members' saved screens only; measured about 2 s",
     "digest": "fixed: members who switched the digest on; measured about 6 s",
+    "scores-live": "deadline: stops itself at --max-minutes; at most RT_PRISM_PER_RUN companies a run, what is left stays queued",
     "prune": "database: deletes old rows; measured about 9 s",
     "presets": "database: builds the prebuilt screens from tables already held; measured about 4 s",
     "leadership": "database: weekly labels from stored prices, Saturdays only",
