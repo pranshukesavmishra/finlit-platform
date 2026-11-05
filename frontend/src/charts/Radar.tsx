@@ -18,8 +18,8 @@ export function Radar({ axes, series, size = 360 }: { axes: string[]; series: Ra
       <circle cx={C} cy={C} r={R + 10} fill={`url(#rg${id})`} />
       {[25, 50, 75, 100].map((v) => <polygon key={v} points={ring(v)} fill="none" stroke="var(--border-strong)" strokeDasharray={v === 100 ? "" : "2 5"} opacity={v === 100 ? 0.9 : 0.6} />)}
       {axes.map((a, i) => { const [x, y] = pt(i, 100), [lx, ly] = pt(i, 118), anchor = Math.abs(lx - C) < 6 ? "middle" : lx > C ? "start" : "end"; return (
-        <g key={a}><line x1={C} y1={C} x2={x} y2={y} stroke="var(--border)" /><text x={lx} y={ly + 4} textAnchor={anchor} fontSize="11.5" fontWeight="600" fill="var(--muted)" fontFamily="IBM Plex Sans, sans-serif">{a}</text></g>); })}
-      {[50, 100].map((v) => <text key={v} x={C + 4} y={C - (R * v) / 100 + 11} fontSize="9" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{v}</text>)}
+        <g key={a}><line x1={C} y1={C} x2={x} y2={y} stroke="var(--border)" /><text x={lx} y={ly + 4} textAnchor={anchor} fontSize="12" fontWeight="600" fill="var(--muted)" fontFamily="IBM Plex Sans, sans-serif">{a}</text></g>); })}
+      {[50, 100].map((v) => <text key={v} x={C + 4} y={C - (R * v) / 100 + 11} fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Mono, monospace">{v}</text>)}
       {series.map((s) => (
         <g key={s.key} className={"rs " + s.cls}>
           <polygon className="rs-p" points={s.values.map((v, i) => pt(i, v ?? 0).join(",")).join(" ")} />

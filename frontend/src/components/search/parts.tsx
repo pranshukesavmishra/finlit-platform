@@ -18,7 +18,7 @@ export function Logo({ src, name, kind, size = 40 }: { src?: string | null; name
   if (src && !broken) {
     return <span className="gs-logo gs-logo-img" style={style}><img src={logoSrc(src)} alt="" loading="lazy" decoding="async" width={size} height={size} onError={() => setBroken(true)} referrerPolicy="no-referrer" /></span>;
   }
-  return <span className="gs-logo gs-logo-txt" style={{ ...style, background: `linear-gradient(140deg, ${tint(name)}, color-mix(in srgb, ${tint(name)} 55%, #000))`, fontSize: Math.round(size * 0.34) }} aria-hidden="true">{initials(name.replace(/^the\s+/i, ""))}</span>;
+  return <span className="gs-logo gs-logo-txt" style={{ ...style, background: `linear-gradient(140deg, ${tint(name)}, color-mix(in srgb, ${tint(name)} 55%, #000))`, fontSize: size >= 44 ? 16 : size >= 36 ? 14 : size >= 30 ? 12 : 11 }} aria-hidden="true">{initials(name.replace(/^the\s+/i, ""))}</span>;
 }
 
 /** India's flag, drawn (emoji flags do not show on Windows). */

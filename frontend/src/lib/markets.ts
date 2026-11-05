@@ -41,9 +41,9 @@ export function treemap<T>(items: readonly T[], value: (t: T) => number, w: numb
 }
 
 /** Tile colour for a day's move: a vivid green or red (the same on both themes, so tiles stay bold), deepening from a small move to 2%; slate when flat or unknown.
- *  White text sits on every stop at 3:1 or better. */
-const GAIN: [number, number, number][] = [[38, 166, 98], [8, 112, 56]], LOSS: [number, number, number][] = [[226, 84, 76], [168, 26, 30]];
-export const FLAT_TILE = "#8B95A5";
+ *  Ends are the type-scale sheet's tile colours (#2E7D57 to #17583B greens, #B5473D to #8E2620 reds, #6B6455 flat): white text sits on every stop at 4.5:1 or better. */
+const GAIN: [number, number, number][] = [[46, 125, 87], [23, 88, 59]], LOSS: [number, number, number][] = [[181, 71, 61], [142, 38, 32]];
+export const FLAT_TILE = "#6B6455";
 export function moveColour(c: number | null | undefined): string {
   if (c == null || Math.abs(c) < 0.005) return FLAT_TILE;
   const t = Math.min(Math.abs(c), 2) / 2, [lo, hi] = c > 0 ? GAIN : LOSS;
@@ -174,7 +174,9 @@ export function tileMode(w: number, h: number, minLabel = 64): TileMode {
   if (w >= 26 && h >= 15) return "mini";
   return "none";
 }
-/** The font size that lets `text` fit a tile `w` pixels wide, between 8.5px (the smallest readable) and `max`; where even 8.5px is too wide the text is cut with an ellipsis. */
+/** The largest type-scale size (11, 12, 13, 14) up to `max` that lets `text` fit a tile `w` pixels wide. Never below 11px: where even 11px does not fit it returns 0
+ *  and the tile shows no label (the name and move are in the hover card and the tile's aria-label). */
 export function labelFont(text: string, w: number, max: number): number {
-  return Math.round(Math.max(8.5, Math.min(max, (w - 8) / (Math.max(text.length, 1) * 0.62))) * 10) / 10;
+  const fit = (w - 8) / (Math.max(text.length, 1) * 0.62);
+  return [14, 13, 12, 11].find((s) => s <= max && s <= fit) ?? 0;
 }

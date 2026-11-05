@@ -1,6 +1,6 @@
 /* Mutual Fund Insights (/funds/insights). Built on the site's tokens (--s1..3, --border, --gain/--loss, --k1..--k8, --serif, --mono) so both themes match. */
 .mfi { display: grid; gap: 18px; }
-.mfi-back { margin: 0; font-size: 13.5px; }
+.mfi-back { margin: 0; font-size: var(--fs-14); }
 .mfi-back a { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; }
 .mfi-back a:hover { color: var(--text); }
 .mfi-back svg { width: 15px; height: 15px; transform: rotate(180deg); }
@@ -17,14 +17,14 @@
 .mfi-kpi-top { display: flex; align-items: center; gap: 8px; min-height: 26px; }
 .mfi-kpi-ic { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--s3); color: var(--k1); flex: none; }
 .mfi-kpi-ic svg { width: 15px; height: 15px; }
-.mfi-kpi-l { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mfi-kpi-l { font-size: var(--fs-13); font-weight: 600; letter-spacing: .02em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .mfi-spark { width: 60px; height: 24px; margin-left: auto; flex: none; }
-.mfi-kpi-v { font: 400 30px/1.1 var(--serif); letter-spacing: -.01em; color: var(--text); font-variant-numeric: tabular-nums; }
+.mfi-kpi-v { font: 400 32px/1.1 var(--serif); letter-spacing: -.01em; color: var(--text); font-variant-numeric: tabular-nums; }
 .mfi-kpi-n { font-size: 12px; color: var(--muted); }
-.mfi-kpi-src { font-size: 11.5px; color: var(--faint); }
+.mfi-kpi-src { font-size: var(--fs-12); color: var(--faint); }
 .mfi-delta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .mfi-delta.up { color: var(--gain); } .mfi-delta.down { color: var(--loss); }
-.mfi-pill { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 6px; font-size: 9px; background: var(--s3); }
+.mfi-pill { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 6px; font-size: var(--fs-11); background: var(--s3); }
 .mfi-delta.up .mfi-pill { background: var(--gain-soft); } .mfi-delta.down .mfi-pill { background: var(--loss-soft); }
 .mfi-vs { font-weight: 400; color: var(--faint); }
 
@@ -36,8 +36,8 @@
 .mfi-tabs button:hover { color: var(--text); }
 .mfi-tabs button[aria-pressed="true"] { background: var(--s1); color: var(--text); box-shadow: 0 1px 0 var(--border-strong), 0 4px 14px -8px rgba(0,0,0,.5); }
 .mfi-tabs button:focus-visible, .mfi-toggle:focus-visible, .mfi-legend button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.mfi-latest { margin: 0 0 4px; font-size: 13.5px; color: var(--muted); }
-.mfi-latest b { font: 400 22px var(--serif); color: var(--text); margin-left: 4px; }
+.mfi-latest { margin: 0 0 4px; font-size: var(--fs-14); color: var(--muted); }
+.mfi-latest b { font: 400 20px var(--serif); color: var(--text); margin-left: 4px; }
 .mfi-chart { position: relative; }
 .mfi-draw { animation: mfi-in .45s ease-out both; transform-origin: 50% 100%; }
 @keyframes mfi-in { from { opacity: 0; transform: scaleY(.96); } to { opacity: 1; transform: none; } }
@@ -45,9 +45,9 @@
   border: 1px solid var(--border-strong); border-radius: 10px; background: color-mix(in srgb, var(--s1) 94%, transparent); box-shadow: 0 12px 30px -16px rgba(0,0,0,.65);
   font-size: 12px; color: var(--muted); white-space: nowrap; backdrop-filter: blur(6px); }
 .mfi-tip.left { transform: translate(calc(-100% - 12px), -50%); } .mfi-tip.right { transform: translate(12px, -50%); }
-.mfi-tip b { font: 600 15px var(--mono, inherit); color: var(--text); font-variant-numeric: tabular-nums; }
+.mfi-tip b { font: 600 16px var(--mono, inherit); color: var(--text); font-variant-numeric: tabular-nums; }
 .mfi-tip b.pos, .mfi-tip small.pos { color: var(--gain); } .mfi-tip b.neg, .mfi-tip small.neg { color: var(--loss); }
-.mfi-tip small { font-size: 11.5px; }
+.mfi-tip small { font-size: var(--fs-12); }
 .sr-tip { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---- split and flows */
@@ -56,22 +56,22 @@
 .mfi-donut { width: 100%; height: auto; display: block; }
 .mfi-slice { transition: stroke-width .2s ease, opacity .2s ease; cursor: pointer; }
 .mfi-donut-l { font-size: 11px; fill: var(--muted); font-weight: 600; letter-spacing: .03em; }
-.mfi-donut-v { font: 400 19px var(--serif); fill: var(--text); }
-.mfi-donut-s { font-size: 10.5px; fill: var(--faint); }
+.mfi-donut-v { font: 400 18px var(--serif); fill: var(--text); }
+.mfi-donut-s { font-size: var(--fs-11); fill: var(--faint); }
 .mfi-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .mfi-legend button { width: 100%; display: grid; grid-template-columns: 12px 1fr auto; grid-template-rows: auto auto; column-gap: 9px; align-items: center; text-align: left;
-  padding: 7px 9px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; cursor: default;
+  padding: 7px 9px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); cursor: default;
   transition: background .18s ease, border-color .18s ease; }
 .mfi-legend button:hover, .mfi-legend button.on { background: var(--s2); border-color: var(--border); }
 .mfi-legend i { width: 12px; height: 12px; border-radius: 4px; grid-row: 1 / 3; }
-.mfi-legend b { font: 600 13.5px var(--mono, inherit); font-variant-numeric: tabular-nums; }
+.mfi-legend b { font: 600 14px var(--mono, inherit); font-variant-numeric: tabular-nums; }
 .mfi-legend small { grid-column: 2 / 4; color: var(--faint); font-size: 12px; }
 
 .mfi-flows { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 12px; }
-.mfi-flows li { display: grid; grid-template-columns: minmax(96px, 9.5em) 1fr minmax(92px, auto); gap: 12px; align-items: center; font-size: 13.5px; }
+.mfi-flows li { display: grid; grid-template-columns: minmax(96px, 9.5em) 1fr minmax(92px, auto); gap: 12px; align-items: center; font-size: var(--fs-14); }
 .mfi-flows-l { display: inline-flex; align-items: center; gap: 8px; }
 .mfi-flows-l i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
-.mfi-flows b { font: 600 13.5px var(--mono, inherit); text-align: right; font-variant-numeric: tabular-nums; }
+.mfi-flows b { font: 600 14px var(--mono, inherit); text-align: right; font-variant-numeric: tabular-nums; }
 .mfi-track { position: relative; height: 12px; border-radius: 99px; background: var(--s2); }
 .mfi-track::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--border-strong); }
 .mfi-track i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--muted); transition: width .4s ease; }
@@ -79,9 +79,9 @@
 
 /* ---- category table */
 .mfi-table { padding-bottom: 14px; }
-.mfi-expand { font-size: 12.5px; padding: 6px 12px; }
+.mfi-expand { font-size: var(--fs-13); padding: 6px 12px; }
 .mfi-t { width: 100%; min-width: 640px; }
-.mfi-t thead th { font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+.mfi-t thead th { font-size: var(--fs-12); letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
 .mfi-t td.num, .mfi-t th.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mfi-group th, .mfi-group td { background: var(--s1); border-top: 1px solid var(--border); }
 .mfi-group.open th, .mfi-group.open td { background: var(--s2); }
@@ -92,7 +92,7 @@
 .mfi-toggle[aria-expanded="true"] .mfi-chev { transform: rotate(45deg); }
 .mfi-item th, .mfi-item td { font-size: 13px; animation: mfi-row .25s ease-out both; }
 .mfi-t tbody th { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); background: transparent; }
-.mfi-item th.txt { padding-left: 46px; font-weight: 400; font-size: 13.5px; color: var(--muted); white-space: normal; }
+.mfi-item th.txt { padding-left: 46px; font-weight: 400; font-size: var(--fs-14); color: var(--muted); white-space: normal; }
 .mfi-iname { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 @keyframes mfi-row { from { opacity: 0; } to { opacity: 1; } }
 .mfi-aum, .mfi-flowc { min-width: 150px; }
@@ -109,7 +109,7 @@
 @media (max-width: 1000px) { .mfi-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mfi-two { grid-template-columns: 1fr; } }
 @media (max-width: 560px) {
   .mfi-kpis { grid-template-columns: 1fr; gap: 10px; }
-  .mfi-kpi-v { font-size: 26px; }
+  .mfi-kpi-v { font-size: var(--fs-24); }
   .mfi-card { padding: 14px; }
   .mfi-ctl, .mfi-tabs { width: 100%; } .mfi-tabs button { flex: 1; padding: 7px 6px; }
   .mfi-donut-wrap { grid-template-columns: 1fr; justify-items: center; } .mfi-donut { max-width: 220px; } .mfi-legend { width: 100%; }
@@ -122,7 +122,7 @@
   .mfi-aum, .mfi-flowc { min-width: 0; }
   .mfi-sh { display: block; min-width: 0; }
   .mfi-toggle { font-size: 13px; gap: 6px; flex-wrap: wrap; } .mfi-toggle small { display: none; }
-  .mfi-item th.txt { padding-left: 20px !important; font-size: 12.5px; }
+  .mfi-item th.txt { padding-left: 20px !important; font-size: var(--fs-13); }
   .mfi-card-h .mfi-expand { padding: 5px 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .mfi-draw, .mfi-item th, .mfi-item td { animation: none; } .mfi-kpi, .mfi-slice, .mfi-track i, .mfi-inbar i, .mfi-chev { transition: none; } }

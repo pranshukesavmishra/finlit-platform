@@ -73,7 +73,7 @@ export function Login() {
   const busy = login.isPending || register.isPending;
 
   if (DEMO) return <Navigate to="/dashboard" replace />;
-  if (user && !sent) return <div className="login"><div className="wrap state"><h1 style={{ font: "400 30px var(--serif)" }}>You are signed in</h1><p className="muted">{user.email}</p><Link className="btn primary" to={next}>Continue</Link></div></div>;
+  if (user && !sent) return <div className="login"><div className="wrap state"><h1 style={{ font: "400 32px var(--serif)" }}>You are signed in</h1><p className="muted">{user.email}</p><Link className="btn primary" to={next}>Continue</Link></div></div>;
 
   return (
     <div className="login">
@@ -93,10 +93,10 @@ export function Login() {
           {sent ? (
             <div className="done"><div className="done-ic"><Icon name="check" /></div>
               {created ? (<>
-                <h3 style={{ font: "400 26px var(--serif)" }}>Your account is ready</h3>
+                <h3 style={{ font: "400 24px var(--serif)" }}>Your account is ready</h3>
                 <p className="muted">{sent} is confirmed. Sign in with the password you just chose.</p>
                 <button className="btn primary" onClick={() => { setSent(null); setCreated(false); setPassword(""); setMode("signin"); }}>Sign in</button></>) : (<>
-                <h3 style={{ font: "400 26px var(--serif)" }}>Check your email</h3>
+                <h3 style={{ font: "400 24px var(--serif)" }}>Check your email</h3>
                 <p className="muted">If {sent} can be used, we have sent a link to confirm it. It works once and expires in 24 hours.</p>
                 <button className="btn" onClick={() => { setSent(null); setMode("signin"); }}>Back to sign in</button></>)}</div>
           ) : (

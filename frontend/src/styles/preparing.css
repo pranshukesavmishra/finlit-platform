@@ -3,7 +3,7 @@
 .prep-head { display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center; min-height: 72px; }
 .prep-badge { width: 56px; height: 56px; border-radius: 16px; }
 .prep-id { min-width: 0; }
-.prep-name { font: 300 clamp(24px, 3.4vw, 36px)/1.15 var(--serif); margin: 0; overflow-wrap: anywhere; }
+.prep-name { font: 300 var(--fs-page-title)/1.15 var(--serif); margin: 0; overflow-wrap: anywhere; }
 .prep-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
 .prep-sub b { color: var(--text); font-weight: 600; letter-spacing: .02em; }
 .prep-price { width: 140px; height: 44px; border-radius: 12px; }
@@ -13,7 +13,7 @@
 .prep-card .btn { margin-right: 10px; }
 .prep-bar { height: 6px; border-radius: 6px; background: var(--s3); overflow: hidden; max-width: 520px; }
 .prep-bar span { display: block; height: 100%; background: var(--gold); border-radius: 6px; transition: width .6s ease; }
-.prep-card p.prep-hint { margin: 10px 0 0; font-size: 13.5px; color: var(--text); }
+.prep-card p.prep-hint { margin: 10px 0 0; font-size: var(--fs-14); color: var(--text); }
 .prep-sec { color: var(--faint); }
 .prep-skel { display: grid; gap: 14px; opacity: .85; }
 .prep-chart { height: 260px; border-radius: 16px; }
