@@ -161,7 +161,7 @@
 @media (max-width: 759px) {
   .dsh { gap: 16px; padding-top: 16px; padding-bottom: 104px; }
   .dsh h1 { font-size: 28px !important; line-height: 1.15 !important; } .dsh-card { padding: 16px; } .dsh .dsh-card h2, .dsh-drawer h2 { font-size: 18px !important; }   /* !important: the site-wide phone heading rule in luxe.css is !important too */
-  .dsh-st .nm a { display: flex; align-items: center; min-height: 44px; } .dsh-mv, .dsh-sl { min-height: 44px; align-items: center; }
+  .dsh-st .nm a { display: flex; align-items: center; min-height: 44px; } .dsh-mv, .dsh-sl { min-height: 44px; align-items: center; } .dsh-sl a { display: flex; align-items: center; min-height: 44px; }
   .dsh-head { align-items: flex-start; } .dsh-actions { width: 100%; } .dsh-btn, .dsh-chip { height: 44px; } .dsh-ib { width: 44px; height: 44px; }
   .dsh-seg button, .dsh-chips > button, .dsh-menu > button { height: 44px; padding: 0 14px; }
   .dsh-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--d-tile); border: 1px solid var(--d-line2); }
