@@ -32,5 +32,241 @@
    "id": "C.7.2.1",
    "text": "How have FII and DII holdings in {company} changed over {n} quarters?"
   }
+ ],
+ "groups": [
+  {
+   "n": 1,
+   "title": "Business Snapshot",
+   "items": [
+    {
+     "id": "C.1.Q1",
+     "text": "Which sector, industry and sub-industry does {company} belong to, and which cap bucket is it in?"
+    },
+    {
+     "id": "C.1.Q2",
+     "text": "Where does {company} rank in its sector by market cap, revenue and profit?"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Profit & Loss",
+   "items": [
+    {
+     "id": "C.2.Q3",
+     "text": "What was {company}'s revenue over the last 5 years and the last 8 quarters?"
+    },
+    {
+     "id": "C.2.Q4",
+     "text": "What are {company}'s 3-year, 5-year and 10-year revenue CAGRs?"
+    },
+    {
+     "id": "C.2.Q5",
+     "text": "Is {company}'s revenue growing faster or slower than the sector median?"
+    },
+    {
+     "id": "C.2.Q6",
+     "text": "How have {company}'s operating profit (EBITDA) and operating margin trended over the last 5 years?"
+    },
+    {
+     "id": "C.2.Q7",
+     "text": "What are {company}'s 3-year and 5-year profit CAGRs?"
+    },
+    {
+     "id": "C.2.Q8",
+     "text": "How did {company}'s latest quarter compare with the same quarter last year and with the previous quarter?"
+    },
+    {
+     "id": "C.2.Q9",
+     "text": "What share of {company}'s PBT comes from other income, and did exceptional items affect its profit?"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Balance Sheet",
+   "items": [
+    {
+     "id": "C.3.Q10",
+     "text": "How have {company}'s total borrowings and debt-to-equity ratio changed over the last 5 years?"
+    },
+    {
+     "id": "C.3.Q11",
+     "text": "How has {company}'s net worth grown, and has its share count changed through dilution or buybacks?"
+    },
+    {
+     "id": "C.3.Q12",
+     "text": "Is {company} net debt or net cash, and what is its debt-to-EBITDA ratio?"
+    },
+    {
+     "id": "C.3.Q13",
+     "text": "What are {company}'s receivable, inventory and payable days, and how has its cash conversion cycle changed?"
+    },
+    {
+     "id": "C.3.Q14",
+     "text": "Are {company}'s assets growing faster than its revenue?"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Cash Flow",
+   "items": [
+    {
+     "id": "C.4.Q15",
+     "text": "How has {company}'s operating cash flow trended, and what is its CFO-to-PAT ratio each year?"
+    },
+    {
+     "id": "C.4.Q16",
+     "text": "How much has {company} spent on capex each year, and what is that as a percentage of sales?"
+    },
+    {
+     "id": "C.4.Q17",
+     "text": "What is {company}'s free cash flow trend and FCF yield, and in how many of the last 10 years was FCF positive?"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Ratios",
+   "items": [
+    {
+     "id": "C.5.Q18",
+     "text": "What are {company}'s ROE, ROCE and ROA over the last 5 years, and how do they compare with the sector median?"
+    },
+    {
+     "id": "C.5.Q19",
+     "text": "What are {company}'s interest coverage and current ratio, and are they improving?"
+    },
+    {
+     "id": "C.5.Q20",
+     "text": "How does {company}'s ROE break down into margin, asset turnover and leverage (DuPont)?"
+    },
+    {
+     "id": "C.5.Q21",
+     "text": "For banks and NBFCs only: what are {company}'s NIM, GNPA, NNPA and CASA ratio?",
+     "lendersOnly": true
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Valuation",
+   "items": [
+    {
+     "id": "C.6.Q22",
+     "text": "What are {company}'s current PE, PB, P/S and EV/EBITDA?"
+    },
+    {
+     "id": "C.6.Q23",
+     "text": "How does {company}'s PE compare with its own 3-year, 5-year and 10-year average, and in what percentile of its history is it?"
+    },
+    {
+     "id": "C.6.Q24",
+     "text": "Is {company} cheaper or more expensive than the sector median on PE and PB?"
+    },
+    {
+     "id": "C.6.Q25",
+     "text": "What are {company}'s dividend yield and payout ratio, and for how many consecutive years has it paid a dividend?"
+    },
+    {
+     "id": "C.6.Q26",
+     "text": "How has {company}'s market cap changed over 1, 3 and 5 years?"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "Shareholding",
+   "items": [
+    {
+     "id": "C.7.Q27",
+     "text": "How has promoter holding in {company} changed over the last 8 quarters?"
+    },
+    {
+     "id": "C.7.Q28",
+     "text": "What percentage of {company}'s promoter shares is pledged?"
+    },
+    {
+     "id": "C.7.Q29",
+     "text": "How have FII, DII and mutual fund holdings in {company} changed over the last 4 quarters?"
+    },
+    {
+     "id": "C.7.Q30",
+     "text": "How many shareholders does {company} have, and who are its top holders?"
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "title": "Price & Technicals",
+   "items": [
+    {
+     "id": "C.8.Q31",
+     "text": "How far is {company}'s current price from its 52-week high, 52-week low and all-time high?"
+    },
+    {
+     "id": "C.8.Q32",
+     "text": "What are {company}'s returns over 1 month, 3 months, 1 year, 3 years and 5 years versus its index and sector?"
+    },
+    {
+     "id": "C.8.Q33",
+     "text": "Is {company} trading above or below its 50, 100 and 200 day moving averages, and what is its MACD signal?"
+    },
+    {
+     "id": "C.8.Q34",
+     "text": "What is {company}'s RSI, and is it overbought or oversold?"
+    },
+    {
+     "id": "C.8.Q35",
+     "text": "What are {company}'s volatility, beta and maximum drawdown?"
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "title": "Model Scores",
+   "items": [
+    {
+     "id": "C.9.Q36",
+     "text": "What is {company}'s overall fundamental score and rating, and how do its component scores compare?"
+    },
+    {
+     "id": "C.9.Q37",
+     "text": "How has {company}'s score changed versus last quarter, and which factors drove the change?"
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "title": "Corporate Actions",
+   "items": [
+    {
+     "id": "C.10.Q38",
+     "text": "What is {company}'s dividend, split, bonus and buyback history, and when is its next result date?"
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "title": "Compare",
+   "items": [
+    {
+     "id": "C.11.Q39",
+     "text": "How does {company} compare with {company_2} on growth, margins, returns and valuation?",
+     "needsSecondCompany": true
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "title": "Red Flags",
+   "items": [
+    {
+     "id": "C.12.Q40",
+     "text": "Does {company} show any red flags, such as rising debt with falling margins, high promoter pledge, rising receivable days, CFO below PAT, or declining ROCE for 3+ years?"
+    }
+   ]
+  }
  ]
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { faqForPath } from "../lib/pageFaqs";
-import { bankSuggestions } from "../lib/questionBank";
+import { bankGroups, bankSuggestions, isLenderSector, SECOND } from "../lib/questionBank";
 import { ASSISTANT } from "../content/site";
 import { askAssistant } from "../lib/siteApi";
 import { Icon } from "../lib/icons";
@@ -10,13 +10,17 @@ import { useEnquiry } from "./Enquiry";
 type Msg = { role: "user" | "assistant"; content: string };
 
 /** FinLit AI: guided menus first (instant, no cost), free-text chat via the site backend (Gemini) second. */
-export function Assistant() {
+export function Assistant({ sector }: { sector?: string | null } = {}) {
   const [open, setOpen] = useState(false);
   const [node, setNode] = useState("main");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [more, setMore] = useState(false);          // the "More questions" list is open
+  const [group, setGroup] = useState<number | null>(null);   // which of its groups is open
   const end = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+  const [pick, setPick] = useState(0);                 // bumps when the input must select XYZ
   const nav = useNavigate();
   const enquire = useEnquiry();
   const loc = useLocation();
@@ -27,11 +31,23 @@ export function Assistant() {
     const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k);
   }, [open]);
+  useEffect(() => {   // a question about two companies lands in the input with XYZ selected, ready to be typed over
+    const el = field.current;
+    if (!pick || !el) return;
+    const at = el.value.indexOf(SECOND);
+    el.focus();
+    if (at >= 0) el.setSelectionRange(at, at + SECOND.length);
+  }, [pick]);
   if (loc.pathname.startsWith("/admin")) return null;
 
   const cur = ASSISTANT[node];
   const pageFaq = faqForPath(loc.pathname);   // suggested questions = this page's FAQ set
   const bank = bankSuggestions(loc.pathname);  // on a company page: the question bank's most used questions about that company
+  const groups = bankGroups(loc.pathname, { lender: isLenderSector(sector) });   // the 40 company questions, by group
+  const tapBank = (q: { text: string; needsSecondCompany?: boolean }) => {
+    if (q.needsSecondCompany) { setText(q.text); setPick((n) => n + 1); return; }   // the second company is the user's to name: nothing is sent yet
+    setMore(false); sendText(q.text);
+  };
   const askPage = (q: string, a: string) => setMsgs((m) => [...m, { role: "user", content: q }, { role: "assistant", content: a }]);
   const run = (a: { type: string; to?: string; target?: string; service?: string }, label: string) => {
     if (a.type === "menu" && a.target) { setMsgs((m) => [...m, { role: "user", content: label }]); setNode(a.target); }
@@ -62,6 +78,24 @@ export function Assistant() {
             {node === "main" && bank.length > 0 && <div className="chips" aria-label="Questions you can ask about this company">
               {bank.map((b) => <button key={b.id} onClick={() => sendText(b.text)}>{b.text}</button>)}
             </div>}
+            {node === "main" && groups.length > 0 && <div className="ai-more">
+              <button type="button" className="ai-more-btn" aria-expanded={more} aria-controls="ai-more-list" onClick={() => setMore((v) => !v)}>
+                <span>More questions</span><i aria-hidden="true">{more ? "−" : "+"}</i>
+              </button>
+              {more && <div id="ai-more-list" className="ai-more-list" role="group" aria-label="More questions about this company, by topic">
+                {groups.map((g) => {
+                  const on = group === g.n;
+                  return <div key={g.n} className={"ai-grp" + (on ? " on" : "")}>
+                    <button type="button" className="ai-grp-h" aria-expanded={on} aria-controls={`ai-grp-${g.n}`} onClick={() => setGroup(on ? null : g.n)}>
+                      <span>{g.title}</span><em>{g.items.length}</em>
+                    </button>
+                    {on && <div id={`ai-grp-${g.n}`} className="ai-grp-q">
+                      {g.items.map((q) => <button type="button" key={q.id} onClick={() => tapBank(q)} title={q.needsSecondCompany ? `Replace ${SECOND} with the second company, then send` : undefined}>{q.text}</button>)}
+                    </div>}
+                  </div>;
+                })}
+              </div>}
+            </div>}
             {node === "main" && pageFaq && <div className="chips" aria-label={`Questions about ${pageFaq.title}`}>
               {pageFaq.items.slice(0, 4).map((it) => <button key={it.q} onClick={() => askPage(it.q, it.a)}>{it.q}</button>)}
             </div>}
@@ -72,7 +106,7 @@ export function Assistant() {
             <div ref={end} />
           </div>
           <form onSubmit={send}>
-            <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Ask about investing or our services" aria-label="Your question" />
+            <input ref={field} value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Ask about investing or our services" aria-label="Your question" />
             <button disabled={busy || !text.trim()} aria-label="Send"><Icon name="arrow" /></button>
           </form>
           <p className="ai-fine">General information, not investment advice.</p>

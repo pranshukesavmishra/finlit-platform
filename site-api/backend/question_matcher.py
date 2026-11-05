@@ -230,6 +230,7 @@ class Result:
 class QuestionBank:
     def __init__(self, questions: Sequence[dict]):
         self.q = list(questions)
+        self.by_id = {x["id"]: x for x in self.q}
         self.toks = [tokens(x["text"]) + sorted({IMPLIED[p] for p in x.get("placeholders") or () if p in IMPLIED}) + tokens(" ".join(x.get("path") or ())) for x in self.q]   # the section title is meaning the question sits in   # a {fund} question is about a fund even when the word is not written
         df: Counter = Counter()
         for t in self.toks: df.update(set(t))
@@ -247,6 +248,28 @@ class QuestionBank:
     @staticmethod
     def _bigrams(toks: Sequence[str]) -> frozenset:
         return frozenset(zip(toks, toks[1:]))
+
+    def same_ground(self, a: str, b: str) -> bool:
+        """True when one of the two is a company-set question (set company40) that lists the other as a part of itself ("covers")."""
+        qa, qb = self.by_id.get(a) or {}, self.by_id.get(b) or {}
+        return b in (qa.get("covers") or ()) or a in (qb.get("covers") or ())
+
+    def _cover(self, message: str, i: int) -> float:
+        masked, _ = mask_entities(message, self.idf)
+        words = {w for w in tokens(masked) if w in self.idf}
+        mine = {w for w in tokens(self.q[i]["text"]) if w in self.idf}      # the question's own words, not the section title it sits under
+        return sum(self.idf[w] for w in mine if w in words) / (sum(self.idf[w] for w in mine) or 1.0)
+
+    def _prefer_company_set(self, message: str, ms: List["Match"]) -> List["Match"]:
+        """A company-set question (id C.<section>.Q<n>) holds the older, narrower bank questions it covers. When the message is about the same thing, the one the message fully says wins:
+        the company-set question when the message covers (nearly) all of it, otherwise the narrower older question, so nobody is answered at length about parts they did not ask."""
+        top = ms[0]
+        near = [m for m in ms[:4] if m is top or (self.same_ground(top.id, m.id) and top.score - m.score <= 0.10)]
+        sets = [m for m in near if self.by_id[m.id].get("set") == "company40"]
+        olds = [m for m in near if self.by_id[m.id].get("set") != "company40"]
+        if not sets or not olds: return ms
+        pick = sets[0] if self._cover(message, self.q.index(self.by_id[sets[0].id])) >= 0.8 else olds[0]
+        return [pick] + [m for m in ms if m is not pick]
 
     def score_all(self, message: str) -> List[Tuple[float, int]]:
         masked, n_names = mask_entities(message, self.idf)
@@ -314,7 +337,9 @@ class QuestionBank:
                 res.confidence, res.term, res.best = "related", term, _m(gen, 0.3)
             return res
         ms = [_m(self.q[i], s) for s, i in scored[:top + 2]]
-        best, second = ms[0], (ms[1] if len(ms) > 1 else None)
+        ms = self._prefer_company_set(text, ms)
+        best = ms[0]
+        second = next((m for m in ms[1:] if not self.same_ground(best.id, m.id)), None)    # a founder question and the older narrower question it contains are the same ask: not a rival
         if best.score >= HIGH and (second is None or best.score - second.score >= (SIBLING_MARGIN if second.id.rsplit('.', 1)[0] == best.id.rsplit('.', 1)[0] else MARGIN)):
             res.confidence, res.best, res.related = "high", best, ms[1:top]
         elif best.score >= RELATED:
@@ -353,6 +378,25 @@ def tool_hint(qid: str) -> str:
     return ""
 
 
+NOT_AVAILABLE_RULE = ("DATA LIMITS (strict): for each part listed below say plainly, in the answer itself, that FinLit's data tools do not provide it, and give exactly what is available instead. "
+                      "Never estimate, never recall a figure from memory, never fill the gap with a similar number, never write zero for a missing figure. ")
+DESCRIBE_RULE = ("Describe only: say what the data shows (higher, lower, rising, falling, above, below) with the figures. "
+                 "Give no advice and no instruction to act on a security, no forecast of a future price, and no verdict words (good, bad, cheap, a warning). "
+                 "Words such as overbought, oversold, cheaper, more expensive or red flag in the question are answered as numeric descriptions of the reading. ")
+
+
+def plan_text(q: dict) -> str:
+    """The answer plan of a company-set question: the tools to call, the fields to read, and the parts the data cannot answer."""
+    out = f"Answer plan: {q['plan']} "
+    if q.get("limits"):
+        out += NOT_AVAILABLE_RULE + "Not available or limited: " + " ".join(f"({i}) {t}" for i, t in enumerate(q["limits"], 1)) + " "
+    if q.get("lendersOnly"):
+        out += "This question is for banks and NBFCs only. "
+    if q.get("needsSecondCompany"):
+        out += "It names a second company: use the one the user named. "
+    return out + DESCRIBE_RULE
+
+
 def directive(res: Result) -> str:
     """The instruction added to the assistant's system prompt for one message: answer the matched bank question, completely, from the data tools. Empty when nothing matched."""
     if res.best and res.confidence == "related" and res.best.score >= 0.34 and not res.term:
@@ -365,12 +409,17 @@ def directive(res: Result) -> str:
     b = res.best
     what = f"What is {res.term}?" if res.term else b.text
     hint = tool_hint(b.id)
+    entry = bank().by_id.get(b.id) if _bank is not None else None
+    plan = plan_text(entry) if entry and entry.get("set") == "company40" else ""
+    if plan: hint = ", ".join(entry["tools"])
     n = f" The user named {res.years} years: use that for {{n}}." if res.years and "n" in b.placeholders else ""
     return (f"\n\nFinLit question bank: the user's message is this predefined question ({b.id}, {b.group}, {' > '.join(b.path)}): \"{what}\" "
             f"Answer exactly this question, in full: cover every part of it (each period, each ratio, each comparison it names), and say plainly which part is not available rather than skipping it.{n} "
             + (f"The data tools that answer it: {hint}. " if hint and b.group not in ("FinLit",) else "")
+            + plan
             + ("It is a concept question: explain it simply with an Indian example, and where FinLit shows the metric, say where. " if b.group == "FinLit" else "")
-            + "Keep the figures, the period and the as-of date together. Do not drift to other questions. This question may use up to 170 words and up to 6 lines starting with '- '.")
+            + "Keep the figures, the period and the as-of date together. Do not drift to other questions. "
+            + ("This question may use up to 230 words and up to 9 lines starting with '- ' (it has several parts; give each one its line)." if plan else "This question may use up to 170 words and up to 6 lines starting with '- '."))
 
 
 def related_lines(res: Result, limit: int = 2) -> List[str]:
