@@ -1,12 +1,10 @@
 // Pure logic of the Score screener: scores per company, filters, sorting, paging, presets, summary numbers, URL state and CSV.
 // No score is computed differently here than on the stock page: Business is the average of the four business pillars, Technical is the
 // technical pillar, Overall is the FinLit IQ as stored. A missing score is null and never passes a score filter or counts as zero.
-import { csvText } from "./format";
 import { scoreBand } from "./scoreBands";
 import type { Row } from "./screener";
 import { BANDS as TREND_EDGES, ratingWord, scoreBand as trendTone } from "./prismTechnical";
 import { LABEL_WORD, LABEL_SLUG, PRISM_LABELS, PRISM_NAMES, PRISM_RANGE_KEYS, isLabel, labelFromSlug, prismRangeValue, hasPrism, type PrismCol, type PrismLabel, type PrismRangeKey } from "./scorePrism";
-import { FUND_PART_NAME } from "./prismNames";
 
 export type Cap = "Large" | "Mid" | "Small";
 export type Band = "low" | "mid" | "high";
@@ -334,39 +332,3 @@ export function serializeState(s: State): URLSearchParams {
   return p;
 }
 export const filtersKey = (f: Filters) => serializeState({ filters: f, sort: DEFAULT_SORT, size: 10, page: 0 }).toString();
-
-// ---------- CSV ----------
-const cell = (s: string) => (/[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s);
-const n = (v: number | null | undefined) => (v == null ? "" : String(v));
-/** The filters in words, one line each, for the export header. */
-export function describeFilters(f: Filters): string[] {
-  const c = chipsFor(f);
-  return c.length ? c.map((x) => x.label) : ["None (all companies)"];
-}
-/** Rows as CSV with a commented header (filters, sort, data date, what a blank means). A missing value is a blank cell, never 0.
- *  `mode` "basic" is the FinLit IQ columns (Silver); "advanced" is the FinLit Prism columns only (Gold), with the technical views in the site's descriptive words. */
-export function toCsv(rows: Item[], o: { filters: Filters; sort: Sort; scope: "selected" | "filtered"; total: number; asOf: string | null; exportedOn: string; mode?: "basic" | "advanced"; prismAsOf?: string | null; priceCols?: boolean }): string {
-  const adv = o.mode === "advanced";
-  const head = [
-    adv ? "# FinLit Advanced score screener export (FinLit Prism)" : "# FinLit Basic score screener export",
-    `# Exported on: ${o.exportedOn}`,
-    adv ? `# Prism ratings as of: ${o.prismAsOf ?? "date not available"}` : `# Scores computed on: ${o.asOf ?? "date not available"}`,
-    `# Rows: ${rows.length} (${o.scope === "selected" ? "selected rows only" : "all filtered rows"}; ${o.total} companies match the filters)`,
-    ...describeFilters(o.filters).map((x, i) => `# ${i === 0 ? "Filters: " : "         "}${x}`),
-    `# Sorted by: ${o.sort.key} ${o.sort.dir === 1 ? "ascending" : "descending"}`,
-    `# Blank cell = not available (${adv ? "not rated yet, not enough data" : "not scored, not enough data"}, or not in your plan). It is never zero.`,
-    ...(adv ? ["# Prism = the FinLit Prism rating, 0 to 100, with its label and status; Growth & Profitability, Valuation, Quality and Risk are its four parts, each 0 to 100 (a higher Risk score means lower risk).",
-      "# Technical short term (5 to 20 sessions) and long term (6 to 18 months) are Prism's separate price-trend readings, -100 to +100, with a descriptive word. They are refreshed every trading evening and are as of the last completed trading day (see /api/technicals/status), not as of the Prism date."]
-      : ["# Growth & Profitability = average of the four business pillars (needs 3 of 4). Technical = the technical pillar. Overall = the FinLit IQ."]),
-    "# Describes financial health and price trend from filings and prices. It is information, not a recommendation.",
-  ];
-  const base = ["Symbol", "Name", "Sector", "Size", "Price (Rs)", "Market cap (Rs Cr)"];
-  const cols = adv ? [...base, "Prism", "Prism label", "Prism status", `Prism ${FUND_PART_NAME}`, "Prism Valuation", "Prism Quality", "Prism Risk", "Technical short term", "Technical short term score", "Technical long term", "Technical long term score", "Prism rated on"]
-    : [...base, "Growth & Profitability", "Quality", "Growth", "Profitability", "Balance sheet", "Technical", "Overall"];
-  const extra = o.priceCols ? ["3-month return (%)", "6-month return (%)", "1-year return (%)", "Below 52-week high (%)"] : [];
-  const lines = rows.map((r) => [csvText(r.symbol), csvText(r.name || r.symbol), csvText(r.sector || ""), r.cap ? r.cap + " cap" : "", n(r.price), n(r.market_cap),
-    ...(adv ? [n(r.prism_final), csvText(r.prism_label ? LABEL_WORD[r.prism_label as PrismLabel] ?? r.prism_label : ""), csvText(r.prism_status ?? ""), n(r.prism_fundamental), n(r.prism_valuation), n(r.prism_quality), n(r.prism_risk),
-      csvText(trendWord(r.prism_st_score) ?? ""), n(r.prism_st_score), csvText(trendWord(r.prism_lt_score) ?? ""), n(r.prism_lt_score), r.prism_at ?? ""]
-      : [n(r.f), n(r.pillar_quality), n(r.pillar_growth), n(r.pillar_profitability), n(r.pillar_balance), n(r.t), n(r.overall)]), ...(o.priceCols ? [n(r.ret_3m), n(r.ret_6m), n(r.return_1y), n(r.pct_from_high)] : [])].map(cell).join(","));
-  return [...head, [...cols, ...extra].join(","), ...lines].join("\r\n") + "\r\n";
-}

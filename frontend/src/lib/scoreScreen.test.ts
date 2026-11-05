@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TOP_N, applyTop, rankTop, topPool, withScores as scoresOf } from "./scoreScreen";
 import { PRISM_PRESETS, SORT_KEYS, activePrismPreset, hasPrismParams, techBandOf, trendWord, withPrismPreset, withoutPrismPreset } from "./scoreScreen";
 import { applyFilters, chipsFor, concentration, emptyFilters, facetCounts, inBands, inRange, median, pageList, pageOf, parseState, removeChip, serializeState, sortRows,
-  summarize, toCsv, validate, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
+  summarize, validate, withScores, nextSort, DEFAULT_SORT, type Item } from "./scoreScreen";
 import type { Row } from "./screener";
 
 const row = (symbol: string, o: Partial<Row> = {}): Row => ({
@@ -204,26 +204,6 @@ describe("URL state", () => {
   });
 });
 
-describe("CSV", () => {
-  const f = emptyFilters(); f.sectors = ["IT"]; f.bands.t = ["high"];
-  const rows = [it1("AAA", 80, 90, { name: 'A "Quoted", Ltd', sector: "IT", price: 12.5, market_cap: 5000, overall: 77 }), it1("BBB", null, null, { name: "=SUM(1)", sector: null, price: null, market_cap: null, overall: null })];
-  const csv = toCsv(rows, { filters: f, sort: { key: "f", dir: -1 }, scope: "filtered", total: 2, asOf: "2026-10-26", exportedOn: "2026-10-27" });
-  const lines = csv.split("\r\n");
-  it("lists the filters, data date and meaning of a blank in the header", () => {
-    expect(lines.filter((l) => l.startsWith("#")).join("\n")).toMatch(/Scores computed on: 2026-10-26/);
-    expect(csv).toMatch(/# Filters: IT\r\n#          Technical: 78\+/);
-    expect(csv).toMatch(/Blank cell = not available/);
-    expect(csv).toMatch(/Sorted by: f descending/);
-  });
-  it("quotes text, neutralises formulas and leaves missing values blank (never 0)", () => {
-    const head = lines.findIndex((l) => l.startsWith("Symbol,"));
-    expect(lines[head + 1]).toBe('AAA,"A ""Quoted"", Ltd",IT,Large cap,12.5,5000,80,80,80,80,80,90,77');
-    expect(lines[head + 2]).toBe("BBB,'=SUM(1),,,,,,,,,,,");
-  });
-  it("says when it exports only the selected rows", () => {
-    expect(toCsv([rows[0]], { filters: emptyFilters(), sort: DEFAULT_SORT, scope: "selected", total: 9, asOf: null, exportedOn: "x" })).toMatch(/Rows: 1 \(selected rows only; 9 companies match the filters\)\r\n# Filters: None/);
-  });
-});
 
 
 // ---------- FinLit Prism
@@ -357,7 +337,7 @@ describe("one address, two pages", () => {
 describe("Prism chips, address and summary", () => {
   it("one removable chip each for the labels, the rated switch and each Prism range", () => {
     const f = emptyFilters(); f.labels = ["HEALTHY", "STRONG"]; f.rated = true; f.ranges.z = { min: 60, max: null }; f.ranges.zr = { min: null, max: 40 };
-    expect(chipsFor(f).map((c) => c.label)).toEqual(["Prism score: 60 or more", "Prism Risk: 40 or less", "Prism rating: Strong, Healthy", "Only companies rated by Prism"]);
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Total Fundamental Score: 60 or more", "Prism Risk: 40 or less", "Prism rating: Strong, Healthy", "Only companies rated by Prism"]);
     expect(chipsFor(removeChip(removeChip(f, "labels"), "rated")).map((c) => c.id)).toEqual(["range:z", "range:zr"]);
   });
   it("round-trips through the address and ignores junk", () => {
@@ -375,24 +355,6 @@ describe("Prism chips, address and summary", () => {
   });
 });
 
-describe("Prism CSV", () => {
-  const o = { filters: emptyFilters(), sort: DEFAULT_SORT, scope: "filtered" as const, total: 3, asOf: "2026-10-26", exportedOn: "2026-10-29" };
-  const rows = [pr("S", 85.4, "STRONG", { prism_status: "RATED", prism_st: "Buy", prism_lt: "Hold", prism_at: "2026-10-27", prism_st_score: 22.5, prism_lt_score: -4 }), pr("X", null, null)];
-  it("advanced: only the Prism columns, words from the scores (never the model's), blanks (never 0) and the ratings date", () => {
-    const lines = toCsv(rows, { ...o, mode: "advanced", prismAsOf: "2026-10-27" }).split("\r\n");
-    const head = lines.findIndex((l) => l.startsWith("Symbol,"));
-    expect(lines[head]).toBe("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(lines[head + 1]).toMatch(/,85\.4,Strong,RATED,85\.4,85\.4,85\.4,85\.4,Uptrend,22\.5,Sideways,-4,2026-10-27$/);
-    expect(lines[head + 2]).toMatch(/,,,,,,,,,,,,$/);
-    const all = lines.join("\n");
-    expect(all).toMatch(/Prism ratings as of: 2026-10-27/); expect(all).not.toMatch(/Fundamental,Quality|Overall|\bBuy\b|\bHold\b/);
-  });
-  it("basic: only the FinLit IQ columns and no Prism column at all", () => {
-    const csv = toCsv(rows, { ...o, mode: "basic" });
-    expect(csv).toMatch(/Symbol,Name,Sector,Size,Price \(Rs\),Market cap \(Rs Cr\),Growth & Profitability,Quality,Growth,Profitability,Balance sheet,Technical,Overall\r\n/);
-    expect(csv).not.toMatch(/Prism/i);
-  });
-});
 
 describe("colour rule", () => {
   it("scores are coloured by the site's one rule (70 / 50), while the model's word labels keep their own bands", async () => {

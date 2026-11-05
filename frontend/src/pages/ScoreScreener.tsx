@@ -27,7 +27,7 @@ export function ScoreScreener() {
 }
 
 function Basic() {
-  useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort, compare and export by size, sector and score.");
+  useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort and compare by size, sector and score.");
   const s = useScreener("basic");
   const [priceCols, setPriceCols] = usePriceColumns();
   const { draft, setDraft, locked, upgrade, isLoading, sum, asOf } = s;
@@ -48,7 +48,7 @@ function Basic() {
 
   return (
     <ScreenerFrame s={s} splitKey="score" eyebrow="Score screener" title="Basic score screener" sideLabel="Score screener filters" errorTitle="The score screener is unavailable right now"
-      intro={<>Every listed company with its <b>FinLit IQ</b>, the basic model: Growth & Profitability, its four pillars, Technical and Overall. Filter, sort, compare and export by size, sector and score.</>}
+      intro={<>Every listed company with its <b>FinLit IQ</b>, the basic model: Growth & Profitability, its four pillars, Technical and Overall. Filter, sort and compare by size, sector and score.</>}
       head={{ art: "rating", links: ["/screener", { to: "/advanced-score-screener", primary: true }, "/query-builder"], stats: [{ icon: "building", value: !isLoading && s.items.length > 0 ? nf(s.items.length, 0) : null, label: "Companies" }, { icon: "quality", value: !isLoading && s.items.length > 0 ? nf(s.items.length - s.unscored, 0) : null, label: "Scored" }] }}
       tier="silver" sortChoices={[{ key: "overall", label: "FinLit IQ" }, { key: "f", label: "Growth & Profitability" }, { key: "t", label: "Technical" }, ...PILLARS.map((x) => ({ key: x.col, label: x.label }))]}
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}

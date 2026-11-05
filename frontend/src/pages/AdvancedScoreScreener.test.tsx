@@ -113,15 +113,36 @@ describe("Advanced score screener (Gold)", () => {
     for (const p of ["Growth & Profitability", "Quality"]) expect(screen.getByRole("group", { name: `${p} score, exact range` })).toBeTruthy();
   });
 
+  it("the FinLit Prism Score panel has the Fundamental and Technical parts, five pillar rows and the six rating chips", () => {
+    open();
+    expect(screen.getByRole("button", { name: /^Fundamental Score/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Technical Score/ })).toBeTruthy();
+    expect(screen.queryByText("Financial health")).toBeNull();
+    const rating = screen.getByRole("group", { name: "Rating" });
+    expect(within(rating).getAllByRole("button").map((b) => b.textContent)).toEqual(["Strong", "Healthy", "Average", "Weak", "Poor", "Not rated"]);
+    for (const n of ["Growth & Profitability score", "Valuation score", "Quality score", "Risk score"]) expect(screen.getByRole("group", { name: `${n}, exact range` })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Total Fundamental Score, exact range" })).toBeTruthy();
+  });
+
+  it("Total Fundamental Score filters on the overall Prism figure (zmin / zmax) and never passes a missing value", () => {
+    open();
+    const g = within(screen.getByRole("group", { name: "Total Fundamental Score, exact range" }));
+    fireEvent.change(g.getByLabelText("Min"), { target: { value: "70" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Apply filters" }).closest("form")!);
+    expect(loc()).toBe("/advanced-score-screener?zmin=70");
+    expect(screen.getByRole("button", { name: "Remove filter Total Fundamental Score: 70 or more" })).toBeTruthy();
+    expect(symbols()).not.toContain("EEE");   // EEE is not rated: a blank never counts as a pass
+  });
+
   it("filters each technical view by Positive, Neutral or Negative, using the Prism card's bands", () => {
     open();
     const st = screen.getByRole("group", { name: "Short-term technical view" }), lt = screen.getByRole("group", { name: "Long-term technical view" });
-    expect(within(st).getByRole("checkbox", { name: /^Uptrend \(\+20 and above\)/ })).toBeTruthy();
-    fireEvent.click(within(st).getByRole("checkbox", { name: /^Uptrend/ }));
+    expect(within(st).getByRole("button", { name: /^Uptrend \(\+20 and above\)/ })).toBeTruthy();
+    fireEvent.click(within(st).getByRole("button", { name: /^Uptrend/ }));
     fireEvent.submit(st.closest("form")!);
     expect(symbols()).toEqual(["AAA", "CCC", "FFF"]);                         // +55, +22, +22 are Positive; BBB +5 is Neutral; unrated have no score
     expect(loc()).toBe("/advanced-score-screener?st=pos");
-    fireEvent.click(within(lt).getByRole("checkbox", { name: /^Downtrend/ }));
+    fireEvent.click(within(lt).getByRole("button", { name: /^Downtrend/ }));
     fireEvent.submit(st.closest("form")!);
     expect(symbols()).toEqual([]);                                            // Positive short term and Negative long term: nobody here
     expect(screen.getByRole("button", { name: "Remove filter Long-term technical: Downtrend" })).toBeTruthy();
@@ -176,18 +197,9 @@ describe("Advanced score screener (Gold)", () => {
     expect(watch.has("AAA")).toBe(true);
   });
 
-  it("exports only the Prism columns, with the site's words and blanks for unrated companies", async () => {
+  it("has no export buttons", () => {
     open();
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
-    let blob: Blob | null = null;
-    URL.createObjectURL = vi.fn((b: Blob) => { blob = b; return "blob:x"; }); URL.revokeObjectURL = vi.fn();
-    fireEvent.click(screen.getByRole("button", { name: /Export all 6/ }));
-    const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blob!); });
-    expect(text).toMatch(/Prism ratings as of: 2026-10-27/);
-    expect(text).toContain("Symbol,Name,Sector,Size,Price (Rs),Market cap (Rs Cr),Prism,Prism label,Prism status,Prism Growth & Profitability,Prism Valuation,Prism Quality,Prism Risk,Technical short term,Technical short term score,Technical long term,Technical long term score,Prism rated on");
-    expect(text).toContain("AAA,AAA Limited,Banks,Large cap,100,9000,85,Strong,RATED,85,55,70,70,Strong uptrend,55,Uptrend,30,2026-10-27");
-    expect(text).toContain("EEE,EEE Limited,Auto,Large cap,100,5000,,,,,,,,,,,,");
-    expect(text).not.toMatch(/Overall|Balance sheet|\bBuy\b|\bHold\b/);
+    expect(screen.queryByRole("button", { name: /Export/ })).toBeNull();
   });
 
   it("opens the How scores work dialog with the Prism definitions and the technical bands", () => {

@@ -50,3 +50,31 @@ td[data-flag-cell] { background: color-mix(in srgb, var(--gold) 22%, transparent
 .plf-note h3 { font-size: 14.5px; } .plf-note h4 { margin: 10px 0 6px; font-size: 13px; }
 .plf-in { margin-top: 8px; padding: 10px; border-radius: 12px; } .plf-pane { min-height: 0; padding: 8px 10px; font-size: 13px; line-height: 1.5; }
 .plf-pager { margin-top: 8px; } .plf-pager button, .plf-tabs button { padding: 4px 9px; font-size: 12px; } .plf-f { margin-top: 8px; font-size: 11.5px; }
+
+/* sized to its content: no inner scroll at normal sizes; only a very short screen lets the whole card scroll as a sheet */
+.plf-note { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 16px); top: max(72px, min(100px, calc(100vh - 640px))); overflow: auto; overscroll-behavior: contain; padding: 10px 12px; }
+.plf-tile { padding: 6px 10px; gap: 0; } .plf-tile b { font-size: 20px; } .plf-tile span, .plf-tile em { font-size: 12px; }
+.plf-tiles { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
+.plf-blk .plf-vs { margin: 0 0 6px; line-height: 1.4; font-size: 12.5px; } .plf-blk .plf-vs2 { margin-top: 8px; }
+.plf-sum { margin-top: 6px; font-size: 13px; line-height: 1.4; } .plf-base { margin: 2px 0 6px; } .plf-qoq { margin-top: 6px; }
+.plf-note h4 { margin: 8px 0 6px; } .plf-f { margin-top: 6px; }
+.plf-ico { width: 32px; height: 32px; border-radius: 10px; } .plf-ico svg { width: 17px; height: 17px; } .plf-tt b { font-size: 15px; }
+.plf-explore button { min-height: 30px; font-size: 12.5px; padding: 3px 12px; }
+.plf-explore button.on { background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: var(--warn); color: var(--text); }
+.plf-pane { min-height: 0; padding: 8px 12px; border-radius: 12px; } .plf-pane p + p { margin-top: 6px; } .plf-pane b { color: var(--text); }
+.plf-in { padding: 8px 10px; } .plf-views { margin: 0 0 8px; }
+.plf-pager button, .plf-views button { min-height: 30px; }
+.plf-x { min-height: 32px; }
+
+/* the small tab on the screen edge that brings the alert back */
+.plf-edge { position: fixed; z-index: 59; right: 0; top: 46%; width: 38px; height: 40px; min-height: 40px; padding: 0; display: grid; place-items: center; border: 1px solid var(--gold); border-right: 0; border-radius: 12px 0 0 12px; background: var(--s1); color: var(--gold); cursor: pointer; opacity: .6; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); transition: opacity .15s, width .15s; }
+.plf-edge:hover, .plf-edge:focus-visible { opacity: 1; width: 44px; } .plf-edge:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.plf-edge svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.plf-dot { position: absolute; top: 5px; left: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--s1); }
+@media (prefers-reduced-motion: reduce) { .plf-edge { transition: none; } }
+.plf-tile { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; } .plf-tile span { flex-basis: 100%; }
+.plf-tile em { margin-left: auto; }
+.plf-in h3 { margin-bottom: 6px; }
+.plf-note { width: min(580px, calc(100vw - 24px)); }
+.plf-tile em { margin-left: 0; }
+@media (max-width: 520px) { .plf-tile b { font-size: 18px; } .plf-tile em { margin-left: auto; } }

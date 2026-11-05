@@ -6,7 +6,7 @@ import { useUniverse } from "../../lib/screener";
 import { useUI } from "../../lib/ui";
 import { useWatchlist, watch } from "../../lib/watchlist";
 import {
-  applyTop, isBandList, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, toCsv, validate, withScores,
+  applyTop, isBandList, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, validate, withScores,
   type Band, type BandKey, type Filters, type Item, type RangeKey, type Scope, type Sort, type SortKey, type State, type TechBand, type TechKey,
 } from "../../lib/scoreScreen";
 import { coverageFrom } from "../../lib/scorePrism";
@@ -53,7 +53,6 @@ export function useScreener(mode: Mode) {
   const dirty = filtersKey(draft) !== appliedKey;
   const rowSet = useMemo(() => new Set(rows.map((r) => r.symbol)), [rows]);
   const sel = picked.filter((s) => rowSet.has(s));
-  const selRows = rows.filter((r) => sel.includes(r.symbol));
 
   const withQ = (p: URLSearchParams) => { if (q.trim()) p.set("q", q.trim()); return p; };
   const wantSort = useRef<Sort | null>(null);   // the sort a quick view asked for, kept until the address shows it (the router applies an address change a moment later; a delayed apply must not undo it)
@@ -99,19 +98,12 @@ export function useScreener(mode: Mode) {
     fresh.forEach((s) => watch.add(s));
     toast(fresh.length ? `${fresh.length} ${fresh.length === 1 ? "company" : "companies"} added to your watchlist.` : "These companies are already on your watchlist.");
   };
-  const exportCsv = (which: "selected" | "filtered") => {
-    const list = which === "selected" ? selRows : rows, day = new Date().toISOString().slice(0, 10);
-    const csv = toCsv(list, { filters: applied, sort, scope: which, total: rows.length, asOf, exportedOn: day, mode, prismAsOf, priceCols: (() => { try { return localStorage.getItem("finlit.screener.priceCols") === "1"; } catch { return false; } })() });
-    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a"); a.href = url; a.download = `finlit-${mode}-score-screen-${day}.csv`; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
   const sortBy = (key: SortKey) => go({ sort: nextSort(sort, key), page: 0 });
 
   return {
     mode, data, isLoading, isError, has, upgrade, nav, state, applied, sort, size, draft, setDraft: setDraftLive, secQ, setSecQ, q, setQ, picked, setPicked, how, setHow, drawer, setDrawer,
     silver, locked, gold, maxCompare, items: items as Item[], unscored, asOf, cover, prismAsOf, techAsOf, facets, rows, topOf, sum, mix, pg, chips, problems, bad, dirty, flush: () => apply(draft), sel, filterCount: chips.length,
-    go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, exportCsv, sortBy,
+    go, apply, clear, drop, toggle, setBand, setRange, setLabel, setTech, togglePick, allOnPage, headBox, toggleAll, addWatch, addSelected, sortBy,
   };
 }
 export type Screener = ReturnType<typeof useScreener>;

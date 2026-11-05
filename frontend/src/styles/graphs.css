@@ -23,7 +23,8 @@
 .gx-list { list-style: none; margin: 0; padding: 0; } .gx-list li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: grab; }
 .gx-list li label { display: flex; gap: 8px; align-items: center; flex: 1; cursor: pointer; } .gx-list li > span { flex: 1; } .gx-list small { color: var(--faint); font-size: 11px; white-space: nowrap; } .gx-list .grip { flex: none; color: var(--faint); }
 .gx-hint { font-size: 12px; margin: 4px 0; }
-.gx-bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-bottom: 4px; } .gx-bar .btn { padding: 6px 12px; font-size: 12.5px; }
+.gx-bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-bottom: 4px; } .gx-bar .btn { padding: 0 12px; font-size: 12.5px; min-height: 34px; height: 34px; width: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; line-height: 1; }
+.gx-views input, .gx-views select, .gx-bar select { min-height: 34px; height: 34px; font-size: 12.5px; } .gx-views input { width: 200px; max-width: 100%; }
 .gx-views { margin-bottom: 14px; font-size: 12px; }
 .gx-grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0,1fr)); gap: 14px; }
 .gx-cell { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-width: 0; } .gx-cell.on { border-color: var(--gold); }

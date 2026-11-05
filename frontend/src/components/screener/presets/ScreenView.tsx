@@ -9,7 +9,7 @@ import { cr, dateIN, nf, MINUS } from "../../../lib/format";
 import { useUI } from "../../../lib/ui";
 import { HScroll } from "../../HScroll";
 import {
-  DISCLAIMER, PAGE_SIZE, PLAN_OF, asPct, downloadCsv, fetchAllRows, nextSortState, pageRange, presetCsv, rowsForTheme, sortPresetRows, usePresetDetail,
+  DISCLAIMER, PAGE_SIZE, PLAN_OF, asPct, nextSortState, pageRange, rowsForTheme, sortPresetRows, usePresetDetail,
   type ColFormat, type PresetColumn, type PresetDetail, type PresetRow, type SortState, type Theme,
 } from "../../../lib/presets";
 import type { PresetRoute } from "./usePresetRoute";
@@ -116,7 +116,7 @@ const Disclaimer = ({ text }: { text?: string }) => <p className="psx-disc" role
 /** The screen named in the address. `route` is the shared route state (list, chips, choose, clear). */
 export function ScreenView({ route }: { route: PresetRoute }) {
   const { id, preset, chips, list } = route;
-  const { has, upgrade } = useUI();
+  const { upgrade } = useUI();
   const plan = PLAN_OF[route.tab], planName = plan === "gold" ? "Gold" : "Silver";
   const listReady = list.isSuccess || list.isError;
   const unknown = list.isSuccess && !preset;
@@ -126,7 +126,7 @@ export function ScreenView({ route }: { route: PresetRoute }) {
   const offset = pg.key === pageKey ? pg.offset : 0;                      // a new screen or a new option starts at the first 25
   const q = usePresetDetail(id, chips, listReady && !unknown && !blocked && !lockedList, offset);
   const d = q.data, err = q.error;
-  const top = useRef<HTMLDivElement>(null), [exporting, setExporting] = useState(false);
+  const top = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<string | null>(null), [nseOnly, setNseOnly] = useState(false), [sort, setSortState] = useState<SortState>(null);
   const setSort = (k: string, first: 1 | -1) => setSortState((s) => nextSortState(s, k, first));
   const goTo = (o: number) => { setPg({ key: pageKey, offset: Math.max(0, o) }); window.setTimeout(() => top.current?.scrollIntoView?.({ block: "start" }), 0); };
@@ -154,31 +154,12 @@ export function ScreenView({ route }: { route: PresetRoute }) {
 
   const paged = !!d && d.pageSize != null && d.count > d.pageSize;      // more rows than one page: the pager shows, and the CSV holds all of them
   const range = d ? pageRange(d) : null;
-  const exportCsv = async () => {
-    if (!d || !id || exporting) return;
-    if (!has("silver")) { upgrade("silver", "CSV export comes with the Silver plan."); return; }
-    const labels = Object.fromEntries((preset?.chips ?? []).map((c) => [c.id, c.label]));
-    let src = d, out = rows;
-    if (paged) {      // every row that passes, not only the 25 on screen; the NSE-only choice and the sort still apply
-      setExporting(true);
-      try {
-        const all = await fetchAllRows(id, chips);
-        const allRows = sortPresetRows(all.rows, sort).filter((r) => !nseOnly || !isBseOnly(r));
-        src = { ...all, listText: all.rows.length >= all.count ? `all ${all.count} that pass` : `the first ${all.rows.length} of ${all.count} that pass` };
-        out = allRows;
-      } catch { setExporting(false); return; }
-      setExporting(false);
-    }
-    downloadCsv(presetCsv(src, out, { chips, chipLabels: labels, sort, exportedOn: new Date().toISOString().slice(0, 10), theme: activeTheme?.industry, tab: route.tab }), `finlit-screen-${id}-${new Date().toISOString().slice(0, 10)}.csv`);
-  };
   const meta = d ? (
     <p className="psx-meta"><b>{d.listText || `${nf(d.count, 0)} match`}</b>{!d.listText && !paged && d.shown !== d.count && <span>showing {nf(d.shown, 0)}</span>}{paged && range && <span>showing {nf(range.from, 0)}{"–"}{nf(range.to, 0)}</span>}{d.asOf && <span>as of {dateIN(d.asOf)}</span>}</p>
   ) : preset ? <p className="psx-meta">{preset.count != null && <b>{preset.listText || `${nf(preset.count, 0)} match`}</b>}{preset.asOf && <span>as of {dateIN(preset.asOf)}</span>}</p> : null;
   const how = d?.howItWorks?.length ? d.howItWorks : preset?.howItWorks ?? [];
   return (
-    <Frame route={route} name={name} cardText={d?.cardText ?? preset?.cardText} meta={meta}
-      actions={<button type="button" className="btn" disabled={!d || !rows.length || exporting} aria-busy={exporting} onClick={exportCsv}
-        title={!has("silver") ? "CSV export comes with the Silver plan" : paged ? `Download all ${d!.count} companies that pass as CSV, not only the ${d!.shown} on this page` : "Download the rows shown as CSV"}>{exporting ? "Preparing CSV" : paged ? `Export CSV (all ${nf(d!.count, 0)})` : "Export CSV"}</button>}>
+    <Frame route={route} name={name} cardText={d?.cardText ?? preset?.cardText} meta={meta}>
       {how.length > 0 && <details className="psx-how"><summary>How this screen works</summary><ul>{how.map((h) => <li key={h}>{h}</li>)}</ul></details>}
       {!!preset?.chips.length && (
         <div className="psx-chips" role="group" aria-label="Screen options">

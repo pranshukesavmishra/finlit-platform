@@ -14,7 +14,7 @@ const POINTS = [
   "The FinLit Prism score with its rating word for every listed company",
   "Four financial-health parts, each 0 to 100: Growth & Profitability, Valuation, Quality, Risk",
   "Short-term and long-term technical views, from " + MINUS + "100 to +100",
-  "Filters, quick views, compare, watchlist and CSV export",
+  "Filters, quick views, compare and watchlist",
 ];
 /** Invented companies and numbers, only to show the shape of the page. */
 const SAMPLE: { n: string; sector: string; z: number; w: string; p: [number, number, number, number]; st: [string, string]; lt: [string, string] }[] = [
@@ -31,7 +31,7 @@ export function AdvancedUpgrade() {
   return (
     <>
       <PageHeader wrap plan="gold" title="Screen every company with FinLit Prism." art="rating" links={["/score-screener", "/screener", { to: "/plans", primary: true, label: "See the Gold plan" }]}
-        description={<>The advanced model for the whole market: the <b>Prism score</b>, its four financial-health parts and two technical views, side by side, with filters, quick views, compare and export. It is part of the Gold plan.{" "}
+        description={<>The advanced model for the whole market: the <b>Prism score</b>, its four financial-health parts and two technical views, side by side, with filters, quick views and compare. It is part of the Gold plan.{" "}
           {silver ? <>Your plan includes the <Link to="/score-screener">Basic score screener</Link>, which uses the FinLit IQ.</> : <>The <Link to="/score-screener">Basic score screener</Link> uses the FinLit IQ and comes with Silver.</>}</>} />
       <div className="wrap scr-wrap">
         <div className="sx-up">
