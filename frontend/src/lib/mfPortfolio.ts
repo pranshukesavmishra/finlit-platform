@@ -93,7 +93,7 @@ export const STATUS_WORD: Record<ReviewStatus, string> = { matched: "Matched", c
 
 // ------------------------------------------------------------------------------------------------------------------ the table
 
-export type SortKey = "name" | "score" | "performance" | "risk" | "cost" | "quality" | "invested" | "current" | "gain" | "gainPct" | "xirr" | "r1y" | "r3y" | "r5y" | "ter" | "aum" | "weight";
+export type SortKey = "name" | "score" | "performance" | "risk" | "cost" | "quality" | "nav" | "invested" | "current" | "gain" | "gainPct" | "xirr" | "r1y" | "r3y" | "r5y" | "ter" | "aum" | "weight";
 export function sortValue(h: Holding, k: SortKey): number | string | null {
   switch (k) {
     case "name": return (h.name || "").toLowerCase();
@@ -122,19 +122,17 @@ export const LEVEL_WORD: Record<NonNullable<Concentration["level"]>, string> = {
 const plain = (v: number | null | undefined, d = 2) => (v == null ? "" : v.toFixed(d));
 /** Every blank cell has its reason in the last column, so the file explains itself outside the page. */
 export function toCsv(rows: Holding[], scoreLocked: boolean): string {
-  const head = ["Fund", "Fund house", "Plan", "Option", "Category", "Folio", "Units", "NAV", "NAV date", "Amount invested", "Current value", "Gain", "Gain %", "XIRR %", "1Y return %", "3Y return % a year", "5Y return % a year",
-    "Expense ratio %", "Fund size (Rs crore)", "Weight %", ...(scoreLocked ? [] : ["Health score", "Label", "Performance", "Risk", "Cost", "Quality"]), "Notes"];
+  const head = ["Fund", "Fund house", "Plan", "Option", "Category", "NAV", "NAV date", "1Y return %", "3Y return % a year", "5Y return % a year",
+    "Expense ratio %", "Fund size (Rs crore)", ...(scoreLocked ? [] : ["Health score", "Label", "Performance", "Risk", "Cost", "Quality"]), "Notes"];
   const lines = [head.map(q).join(",")];
   for (const h of rows) {
     const why: string[] = [];
     const note = (label: string, v: unknown, reason: string | null | undefined) => { if (v == null && reason) why.push(`${label}: ${reason}`); };
-    note("Current value", h.current, h.currentWhy); note("Invested", h.invested, h.investedWhy); note("Gain", h.gain, h.gainWhy); note("XIRR", h.xirr, h.xirrWhy);
-    note("Returns", h.returns.r1y ?? h.returns.r3y ?? h.returns.r5y, h.returns.why); note("Expense ratio", h.ter, h.terWhy); note("Fund size", h.aum, h.aumWhy); note("Weight", h.weight, h.weightWhy);
+    note("Returns", h.returns.r1y ?? h.returns.r3y ?? h.returns.r5y, h.returns.why); note("Expense ratio", h.ter, h.terWhy); note("Fund size", h.aum, h.aumWhy);
     if (!scoreLocked) note("Health score", h.score.final, h.score.reason);
     if (h.navNote) why.push(h.navNote);
     const score = scoreLocked ? [] : [plain(h.score.final, 1), h.score.label || "", ...(["performance", "risk", "cost", "quality"] as PartKey[]).map((k) => plain(h.score.parts?.[k], 1))];
-    lines.push([h.name || `Scheme ${h.code}`, h.amc || "", h.plan || "", h.option || "", h.categoryLabel || "", h.folio, plain(h.units, 4), plain(h.nav, 4), h.navDate || "", plain(h.invested), plain(h.current), plain(h.gain), plain(h.gainPct),
-      plain(h.xirr), plain(h.returns.r1y), plain(h.returns.r3y), plain(h.returns.r5y), plain(h.ter), plain(h.aum), plain(h.weight, 1), ...score, why.join(" | ")].map(q).join(","));
+    lines.push([h.name || `Scheme ${h.code}`, h.amc || "", h.plan || "", h.option || "", h.categoryLabel || "", plain(h.nav, 4), h.navDate || "", plain(h.returns.r1y), plain(h.returns.r3y), plain(h.returns.r5y), plain(h.ter), plain(h.aum), ...score, why.join(" | ")].map(q).join(","));
   }
   return lines.join("\r\n") + "\r\n";
 }

@@ -46,11 +46,11 @@ describe("sorting", () => {
 
 describe("CSV export", () => {
   it("writes numbers plainly and explains every blank in Notes; the score columns are absent when locked", () => {
-    const csv = toCsv([H("a", { gain: null, gainPct: null, gainWhy: "The amount paid is not known" }, 82)], false).trim().split("\r\n");
+    const csv = toCsv([H("a", { ter: null, terWhy: "The expense ratio has not been published for this scheme in AMFI's file." }, 82)], false).trim().split("\r\n");
     expect(csv[0]).toContain('"Health score"') ; expect(csv[0].endsWith('"Notes"')).toBe(true);
     expect(csv[1]).toContain('"82.0","Healthy","82.0","50.0","60.0","70.0"');
-    expect(csv[1]).toContain("Gain: The amount paid is not known");
-    expect(csv[1]).toContain("XIRR: Add the purchase date");
+    expect(csv[1]).toContain("Expense ratio: The expense ratio has not been published");
+    for (const gone of ["Units", "Amount invested", "Current value", "Gain", "XIRR", "Weight", "Folio"]) expect(csv[0]).not.toContain(`"${gone}`);   // followed funds only: no holdings figures
     const locked = toCsv([H("a")], true).split("\r\n")[0];
     expect(locked).not.toContain("Health score");
     expect(toCsv([H("x", { name: "=HYPERLINK(1)" })], true)).toContain(`"'=HYPERLINK(1)"`);

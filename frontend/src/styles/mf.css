@@ -401,3 +401,23 @@
 }
 .mfs-card, .mfs-cmpcard, .mf-table, .mfs-method, .mf-cards { --band-hi: #2FBF7F; --band-mid: #F0A030; --band-lo: #E5484D; --band-hi-ink: #5FE0A5; --band-mid-ink: #FFB454; --band-lo-ink: #FF7A7F; }
 :root[data-theme="light"] .mfs-card, :root[data-theme="light"] .mfs-cmpcard, :root[data-theme="light"] .mf-table, :root[data-theme="light"] .mfs-method, :root[data-theme="light"] .mf-cards { --band-hi: #1E9A60; --band-mid: #CC7A00; --band-lo: #D33A3F; --band-hi-ink: #11794D; --band-mid-ink: #8F5400; --band-lo-ink: #B82A30; }
+
+/* MF portfolio: one category filter (group tabs + tick boxes) that drives the single pie chart and the table */
+.mp-cat { display: grid; gap: 12px; }
+.mp-cat-tabs { display: flex; flex-wrap: wrap; gap: 4px 6px; border-bottom: 1px solid var(--border); }
+.mp-cat-tabs button { border: 0; background: none; padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; font: 600 13px var(--sans); color: var(--muted); cursor: pointer; }
+.mp-cat-tabs button:hover { color: var(--text); } .mp-cat-tabs button.on { color: var(--text); border-bottom-color: var(--gold); }
+.mp-cat-all { display: inline-flex; align-items: center; gap: 8px; font: 600 13.5px var(--sans); cursor: pointer; } .mp-cat-all input, .mp-cat-chip input { accent-color: var(--gold); width: 16px; height: 16px; margin: 0; }
+.mp-cat-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.mp-cat-chip { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--s2); font-size: 13px; cursor: pointer; }
+.mp-cat-chip span { flex: 1; min-width: 0; } .mp-cat-chip em { font-style: normal; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mp-cat-chip.off { opacity: .55; } .mp-cat-chip:hover { border-color: var(--gold); }
+.mp-cat-pie { display: grid; gap: 6px; justify-items: center; padding-top: 4px; }
+.mp .mp-cat label.mp-cat-all, .mp .mp-cat label.mp-cat-chip { display: flex !important; align-items: center; flex-direction: row; margin: 0; }
+.mp .mp-cat label.mp-cat-chip { gap: 8px; min-height: 38px; padding: 0 12px; }
+.mp-cat-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 980px) { .mp-cat-body { grid-template-columns: minmax(0, 1fr) 340px; } .mp-cat-chips { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); } }
+.mp-t td.mp-act { width: 1%; padding-left: 4px; padding-right: 8px; white-space: nowrap; } .mp-t td.mp-act .btn { min-width: 0; padding: 0 10px; }
+.mp-t td.l { min-width: 200px; max-width: 300px; }
+.mp-t th, .mp-t td { padding-left: 8px; padding-right: 8px; }
+.mp-t thead th { white-space: normal; line-height: 1.2; } .mp-t thead th .mp-sortb { white-space: normal; text-align: right; }
