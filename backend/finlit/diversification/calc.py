@@ -23,6 +23,7 @@ LOOKBACK_WEEKS = 156       # 3 years of complete weeks
 MIN_WEEKS = 52             # minimum history for co-movement figures
 MIN_STOCKS = 3             # minimum eligible stocks for co-movement figures and the score
 MAX_STOCKS = 100
+MATRIX_MAX = 30           # the pair-correlation grid is sent for lists of up to this many stocks
 CLUSTER_CUT = 0.5          # distance 1 - rho; a group's members average a correlation of 0.5 or more
 WORST_WEEKS = 10           # stress: the benchmark's worst weeks
 SCORE_VERSION = "1"
@@ -277,6 +278,7 @@ def weekly_view(prices: Dict[str, Any], symbols: Sequence[str], sectors: Dict[st
         "headline": {"effectiveStocks": round(n_eff, 2), "effectiveStocksRounded": round_half_up(n_eff), "avgCorrelation": round(float(upper.mean()), 2)},
         "clusters": _clusters(corr, eligible),
         "overlap": _overlap(corr, eligible),
+        "matrix": {"symbols": eligible, "values": [[round(float(v), 2) for v in row] for row in corr]} if n <= MATRIX_MAX else None,
         "market": {"benchmark": "NIFTY 50", "betaEqual": eq["beta"], "betaMcap": mc["beta"] if mc else None,
                    "stocks": [{"symbol": s, "beta": round(float(x[s].cov(m) / m.var()), 2)} for s in eligible]},
         "stress": {"worstWeeks": WORST_WEEKS, "benchmarkAvgPct": round(float(m[worst].mean() * 100), 2), "equalAvgPct": eq["stressAvgPct"],

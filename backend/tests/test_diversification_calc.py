@@ -221,3 +221,9 @@ def test_macro_sector_mapping():
     assert sectors.macro_sector("Services") == sectors.UNMAPPED and sectors.macro_sector("zzz made up") == sectors.UNMAPPED and sectors.macro_sector(None) == sectors.UNMAPPED
     assert sectors.macro_sector("anything", "LT") == "Construction"
     assert sectors.business_group("TCS") == "Tata" and sectors.business_group("TATASTEEL") == "Tata" and sectors.business_group("INFY") is None
+
+
+def test_pair_matrix_is_sent_for_short_lists_only(full):
+    m = full["matrix"]
+    v = np.array(m["values"])
+    assert m["symbols"] == SAMPLE and v.shape == (15, 15) and np.allclose(v, v.T) and np.allclose(np.diag(v), 1.0)
