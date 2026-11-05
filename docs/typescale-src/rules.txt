@@ -1,0 +1,170 @@
+TYPE AND LAYOUT RULES · WHOLE SITE
+
+
+
+One type scale for every FinLit page
+Measured on all 50 pages on 4 Nov 2026. The site's 37 style files set at least 70 different font-size values.
+The company report alone uses 42, from 7.2px to 60px, and 31% of its text is smaller than 12px. Eleven
+sizes replace them all.
+
+
+
+   50                                              70+                                          42                                                  11
+   pages measured, every tab in the                font-size values in the live CSS             sizes on the company report                         sizes after the change
+   menu                                            today                                        alone
+
+
+
+
+   The scale
+   Inter for everything you read and every number; Source Serif 4 only for page, section and card titles. Numbers use tabular figures so columns line up.
+
+
+   Token                    Size / line            Sample                                                                   Use it for
+
+
+   --fs-11                  11 / 16                MARKET BREADTH                                                           Eyebrows, chart axis ticks, legend keys. Labels only.
+
+
+   --fs-12                  12 / 16                Updated 4 Nov 2026 · source NSE                                          Captions, timestamps, table headers, chips, footnotes
+
+
+   --fs-13                  13 / 18                P/E 19.4 · 4 days of buying                                              Secondary text, labels, dense table cells
+
+
+   --fs-14                  14 / 20                Revenue grew 35.4% from a year ago                                       Default: card and table text, menus, buttons
+
+
+   --fs-16                  16 / 24                ₹2,322.60 +3.50%                                                         Reading text, key values, every form input
+
+
+   --fs-18                  18 / 24                Latest quarter results                                                   Card titles
+
+
+   --fs-20                  20 / 28                Market today                                                             Section titles
+
+
+   --fs-24                  24 / 32                23,750.00                                                                Big numbers (KPIs, index level)
+
+
+   --fs-28                  28 / 36                Asian Paints Ltd                                                         Page title on phones, report section titles
+
+
+
+   --fs-32                  32 / 40                Good afternoon                                                           Page title on desktop
+
+
+
+   --fs-40                  40 / 48
+                                                   71 / 100                                                                 Hero numbers (score dial)
+
+
+
+   Rules: nothing under 11px, and 11px only for labels, never sentences. Every form input is 16px (smaller makes phones zoom in). Marketing pages keep their large display
+   headings (44px and up).
+
+
+
+
+   Old size → new size                                                                           Cards, controls and spacing
+   Font-size rules in the live CSS that change (about 960). Another 954 are                      Today there are two card styles and four sizes of card title. One of each from
+   already on the scale.                                                                         now on.
+
+           12.5px →        13px                                                      338         Card                              Radius 16px, 1px border #DDD3BD, background
+           13.5px →        14px                                                      230                                           #FDFBF6, padding 20px 24px (16px on phones)
+
+           11.5px →        12px                                                       83
+                                                                                                 Gap                               16px between cards, 8 / 12 / 16 / 24 for
+             15px →        16px                                                       72                                           everything inside
+
+           14.5px →        14px                                                       57
+                                                                                                 Card title                        Source Serif 4, 18px, 600; section titles 20px;
+           10.5px →        11px                                                       31                                           subtitle 13px muted
+
+             17px →        16px                                                       28
+                                                                                                 Buttons                           40px tall on desktop, 44px on phones, text 14px
+             10px →        11px                                                       27                                           600
+
+             22px →        20px                                                       15
+                                                                                                 Chips and tabs                    36px tall on desktop, 44px on phones, text 13px
+            9.5px →        11px                                                       12
+                                                                                                 Icon buttons                      40px square with a 16px icon; help "?" icons
+           15.5px →        16px                                                       12
+                                                                                                                                   20px, not 22px boxes with 10px glyphs
+             19px →        18px                                                       10
+
+              9px →        11px                                                        9         Tables                            Header 12px 600 muted, cells 14px, numbers
+                                                                                                                                   right-aligned in tabular figures
+             21px →        20px                                                        9
+
+             26px →        24px                                                        7         Colour on tiles                   White text only on tiles that pass 4.5:1 (greens
+                                                                                                                                   #1F6B49 and darker, reds #A12E26 and darker)
+   Smaller ones: 23px, 25px → 24 · 16.5px → 16 · 30px, 34px, 36px → 32 · 38px →
+   40 · 8px, 8.5px → 11.                                                                         Empty and loading                 Grey placeholder blocks while loading; empty-
+                                                                                                                                   state text only after data returns empty
+
+
+
+
+                                                                                                      Card title
+                                                                                                      Subtitle or date
+
+                                                                                                      Body text sits at 14px with 20px lines.
+
+                                                                                                         Chip      Button
+
+
+
+
+   The company report
+   Checked on Asian Paints: 3,938 pieces of text, 42 sizes, 31% under 12px, smallest 7.2px, and a page about 45 screens long. The fonts themselves are right (Inter for
+   text and charts, Source Serif 4 for the 19 section titles at 32px); the sizes are the problem.
+
+   Sections with the most small text (share under 12px)                                      The tiny pieces, and their new size
+
+   Price history, statements and filings                                               74%   Chart axis numbers and years (about 250)                                     9.5–10.5 →
+                                                                                                                                                                                 11
+   How sales, profit and cash have moved                                               73%
+                                                                                             Info "i" icons (72)                                                              10 → 12
+   Sep 2026 quarter against a year ago                                                 59%
+
+   How it compares with its peers                                                      49%   Sort arrows ▲▼ (47)                                                               9 → 11
+
+   Triggers to watch                                                                   44%   "Score" labels (32)                                                              9.5 → 12
+
+   Cash returned to shareholders                                                       37%   Trend chips like "Weakening" (26)                                                10 → 12
+
+   Top of the report (header, score, price)                                            29%   Plan badges "Basic" / "Gold" (21)                                               10.5 → 11
+
+                                                                                             Insight tags like "Strength" (11)                                                9.5 → 12
+
+                                                                                             Dates like "As of 03 Nov 2026"                                                   9.5 → 12
+
+                                                                                             "/ 100" inside the score ring                                                    7.4 → 12
+
+                                                                                             "In simple words" explainers                                                    10.5 → 13
+
+
+
+
+   Every page, today
+   Font sizes in use on each page's main area, worst first. After the change every page uses at most the eleven sizes above and nothing under 11px.
+
+   Company report /stocks/…                               42 sizes   31% <12px min 7.2px     Dashboard /dashboard                                   33 sizes   15% <12px min 8.5px
+
+   Compare /compare                                       20 sizes   23% <12px    min 9px                                                                                          min
+                                                                                             FII / DII /fii-dii                                     20 sizes   11% <12px
+                                                                                                                                                                                10.5px
+   Macro /macro                                           20 sizes   16% <12px min 9.2px     Latest results /results/quarter                        19 sizes   37% <12px      min 10px
+                                                                                      min    Mutual funds /funds                                    18 sizes   27% <12px       min 9px
+   Query builder /query-builder                           18 sizes   13% <12px
+                                                                                   10.1px
+   Fair value (DCF) /dcf                                  17 sizes   16% <12px   min 10px    SIP calculator /sip-calculator                         17 sizes   23% <12px      min 11px
+
+   Commodities /commodities                               17 sizes    7% <12px   min 10px    Watchlist /watchlist                                   16 sizes   15% <12px      min 10px
+
+   Alerts /alerts                                         16 sizes   12% <12px min 9.5px     EPS calculator /eps-calculator                         16 sizes   17% <12px      min 10px
+
+   IPO calendar /ipo                                      16 sizes   40% <12px   min 10px    Option chain /premium/options                          16 sizes   38% <12px min 9.5px
+                                                                                       min                                                                                           min
+
