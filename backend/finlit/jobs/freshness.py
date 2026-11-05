@@ -94,6 +94,36 @@ def judge_age(key: str, label: str, jobs: List[str], newest: Optional[datetime],
     return ds
 
 
+def judge_score_lag(lag: Dict[str, Any], now: datetime, visitors: bool) -> Dataset:
+    """Scores that follow their inputs (scorelive.py). A Prism rating that is behind a quarter the FinLit IQ already holds is late after 6 hours (the real-time
+    job should have caught up within minutes) and stale after 30 (the nightly batch has also missed it). While the market is open and visitors are on the
+    site, the live FinLit IQ recompute must have run within the last hour (the quote job drives it)."""
+    ds = Dataset("score_lag", "Scores following filings and prices", ["scores-live", "prism"], expected="Prism not behind a filed quarter for over 6 h")
+    n, since = int(lag.get("prism_behind") or 0), lag.get("prism_behind_since")
+    worst = 0.0
+    if n and since:
+        s = since if since.tzinfo else since.replace(tzinfo=timezone.utc)
+        worst = (now - s).total_seconds() / 3600
+    ds.lag, ds.lagUnit = n, "companies"
+    ds.actual = f"{n} behind, queue {int(lag.get('queue') or 0)}"
+    if n and worst > 30:
+        ds.status = "stale"
+    elif n and worst > 6:
+        ds.status = "late"
+    ds.detail = f"{n} Prism ratings are behind a filed quarter (oldest wait {worst:.0f} h)" if n else "no Prism rating is behind a filed quarter"
+    live = lag.get("live_newest")
+    if market_open(now) and visitors:
+        if live is None:
+            ds.detail += "; no live IQ recompute recorded yet"
+        else:
+            lv = live if live.tzinfo else live.replace(tzinfo=timezone.utc)
+            age = (now - lv).total_seconds() / 60
+            ds.detail += f"; newest live IQ recompute {age:.0f} min ago"
+            if age > 180 and ds.status == "fresh":
+                ds.status = "late"
+    return ds
+
+
 def judge_quotes(newest: Optional[datetime], now: datetime, found_target: Optional[date], exp: date) -> Dataset:
     """Stock quotes: during market hours the newest quote must be minutes old; outside them the newest quote must be the last close's."""
     jobs = ["listing", "quotes"]
@@ -291,6 +321,12 @@ async def gather(store: Any, now: datetime) -> Dict[str, Any]:
                                                 "FROM prism_reports GROUP BY symbol) t WHERE bar IS NULL OR bar < $1", target.isoformat()) or 0)
         f["tech_newest_bar"] = await _one(conn, "SELECT max(COALESCE(card->>'technicalBarDate', report #>> '{technicalAssessment,asOf}')) FROM prism_reports")
     try:
+        from .. import scorelive
+        f["score_lag"] = await scorelive.facts(store, now)
+    except Exception as exc:
+        log.warning("score-lag fact failed: %s", type(exc).__name__)
+        f["score_lag"] = None
+    try:
         from .. import sector_data
         f["sector_enabled"] = sector_data.enabled()
         f["sector_board_date"] = sector_data.board_date()
@@ -338,6 +374,8 @@ def evaluate_facts(f: Dict[str, Any], now: datetime, credentials: Optional[List[
         ds.append(judge_session("sectors", "Sector pulse", ["sectors"], f.get("sector_board_date"), exp, now, 4.0, 14.0, "board date vs expected session"))
     ds.append(judge_age("prism", "Prism ratings", ["prism"], f.get("prism_newest"), now, 30.0, 60.0))
     ds.append(judge_age("scores", "FinLit IQs", ["score"], f.get("scores_newest"), now, 30.0, 60.0))
+    if f.get("score_lag") is not None:
+        ds.append(judge_score_lag(f["score_lag"], now, bool(f.get("visitors"))))
     if f.get("results_waiting") is not None:
         ds.append(judge_results(f["results_waiting"], today, int(f.get("results_declared") or 0), f.get("results_buckets")))
     ds.append(judge_calendar(int(f.get("results_upcoming") or 0), f.get("calendars_ran"), now))

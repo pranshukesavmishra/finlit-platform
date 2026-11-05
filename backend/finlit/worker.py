@@ -26,7 +26,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import orjson
 
-from . import snapshot, wake
+from . import scorelive, snapshot, wake
 from .calendars import why as fail_reason
 from .config import Settings, get_settings
 from .finedge import ESSENTIAL_KEYS, FinEdgeClient, FinEdgeError, _has_rows, bundle_requests
@@ -308,6 +308,7 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
     items = symbols or await store.quote_symbols()
     updated = 0
     touched: List[Tuple[str, str]] = []
+    live_scores: List[dict] = []
     batch: Dict[str, dict] = {}
     if dhan_client is not None and dhan_client.configured and items:
         from . import dhan
@@ -356,11 +357,20 @@ async def refresh_quotes(client: FinEdgeClient, store: Store, symbols: Optional[
         for k in ("upperCircuit", "lowerCircuit"):   # a price band belongs to the quote it came with: never an older day's band beside a newer price
             if live.get(k) is None:
                 summary["quote"].pop(k, None)
+        if len(live_scores) < scorelive.cohort_max():   # the price-driven part of the FinLit IQ follows the price (same function as the full build)
+            fields = await scorelive.apply_live_price(store, symbol, statement, summary)
+            if fields:
+                live_scores.append(fields)
         await store.save_snapshot(symbol, statement, {"summary": summary})
         updated += 1
         touched.append((symbol, statement))
 
     await asyncio.gather(*(one(s, st) for s, st in items))
+    if live_scores:   # the screener reads the same numbers the stock page now shows
+        try:
+            await store.update_live_scores(live_scores)
+        except Exception:
+            log.exception("live FinLit IQ rows were not stored")
     if touched:  # keep the screener's price-based numbers (P/E, market cap, returns, 52-week position) as fresh as the quote
         try:
             from .screener.jobs import refresh_metrics_for
@@ -690,6 +700,7 @@ async def refresh_results(client: FinEdgeClient, store: Store, limit: int = RESU
             if r["status"] in ("ok", "warnings"):
                 done["ok"] += 1
                 await clear_result_failure(store, r["symbol"])
+                await scorelive.enqueue_prism(store, r["symbol"], "consolidated")   # the FinLit IQ was stored with the rebuild; the Prism rating follows within minutes
                 continue
             # why a rebuild did not store: rejected by the quality gate (which check), or the provider did not answer (which part)
             await failed(r["symbol"], result_failure_reason(r), r["status"])
@@ -897,6 +908,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
     p_ld.add_argument("--as-of", default=None, help="YYYY-MM-DD: the Friday to compute (default: the latest)")
     p_ld.add_argument("--if-stale", action="store_true", help="skip when the latest Friday is already done (a redeploy must not repeat the weekly run)")
+    p_sl = sub.add_parser("refresh-scores-live", help="within minutes of a company's results being stored: recalculate its FinLit Prism rating (queued by refresh-results), one at a time, bounded (docs/REALTIME-SCORES.md)")
+    p_sl.add_argument("--limit", type=int, default=0, help="companies per run (default RT_PRISM_PER_RUN, 20)")
+    p_sl.add_argument("--max-minutes", type=float, default=12.0)
     p_pz = sub.add_parser("precompute-prism", help="nightly: FinLit Prism ratings for every company with a full report that has none (or one older than --days), one at a time, resumable; yields to members")
     p_pz.add_argument("--limit", type=int, default=800, help="companies per run (every company with a full report: about 500 today)")
     p_pz.add_argument("--max-minutes", type=float, default=100.0)
@@ -1311,6 +1325,12 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             res = await prism_audit.audit(store, args.statement)
             print(prism_audit.render(res))
             return 0
+        if args.cmd == "refresh-scores-live":
+            from . import results_run
+            results_run.Stop.install(asyncio.get_running_loop())
+            res = await scorelive.drain_prism(store, settings, max_n=args.limit or None, max_minutes=args.max_minutes, stop=lambda: results_run.Stop.requested)
+            print(res)
+            return 0 if res.get("status") in ("ok", "skipped", "partial") else 1
         if args.cmd == "precompute-prism":
             from . import prism
             shard = None

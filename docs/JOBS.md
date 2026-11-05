@@ -100,6 +100,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | **sectors** (`refresh-sectors`, always on; docs/SECTORS.md) | bulk | 12 | session, 14 h | weekdays from 19:00 IST (AFTER_CLOSE) and MORNING until the session is processed; after technicals; weight 450 MB (staged, peak 364 MB), max 90 min; off by default |
 | ingest-flagship / **ingest** (`ingest-all`) | bulk | 15 / 20 | 26 h | NIGHT (18 h), MORNING (14 h); 90 min per run, resumable |
 | **score** (`score-all`) | bulk | 30 | 26 h | NIGHT, MORNING; after ingest |
+| scores-live (`refresh-scores-live`) | light | 7 | none | probe (queue of just-reported companies), at least 3 min apart; MORNING; docs/REALTIME-SCORES.md |
 | **prism** (`precompute-prism`, 2 shards) | bulk | 40 | 26 h | probe every 10 min + NIGHT + MORNING; after ingest and score |
 | presets (`refresh-presets`) | bulk | 42 | 30 h | NIGHT, MORNING; after prism (docs/PRESETS.md) |
 | earnings-calls (`refresh-earnings-calls`, needs `GEMINI_API_KEY`) | bulk | 44 | 48 h | NIGHT, MORNING; bounded per run, resumable (docs/EARNINGS-CALLS.md) |

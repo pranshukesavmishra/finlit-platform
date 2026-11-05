@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import coverage
 from . import quality as quality_checks
@@ -147,9 +147,8 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
     metrics.update({k: v for k, v in computed.items() if v is not None})
     metrics.update({k: technical.get(k) for k in ("vsEma50Pct", "vsEma200Pct", "rsi14")})
 
-    score = scoring.score(metrics)
-    _explain_gaps(score, lender=lender, annual=len(pl.get("periods") or []), quarterly=len(pl_q.get("periods") or []), days=len(history["t"]))
-    notes = insights.notes(metrics, holding.get("latest") or [])
+    score, notes, thesis = iq_view(metrics, holding.get("latest") or [], lender=lender, annual=len(pl.get("periods") or []),
+                                   quarterly=len(pl_q.get("periods") or []), days=len(history["t"]))
     peers = events.peer_symbols(bundle.get("peers"), symbol)
 
     # ---------------------------------------------------------------- data quality
@@ -213,9 +212,9 @@ def build(bundle: Dict[str, Any], now: Optional[datetime] = None) -> Dict[str, d
         "quote": {**live, "price": price, "asOf": live.get("asOf") or quality["priceAsOf"]},
         "range52": range52,
         "sparkline": {"t": spark["t"], "c": spark["c"]},
-        "score": {"overall": score["overall"], "band": score["band"], "model": score["model"],
-                  "pillars": [{k: p[k] for k in ("key", "label", "score", "band", "coverage", "reason") if k in p} for p in score["pillars"]]},
-        "thesis": insights.thesis(score, metrics),
+        "score": {**score_block(score), "asOf": score_as_of(generated_at, quality.get("fundamentalsAsOf"), live.get("asOf") or quality["priceAsOf"], generated_at, False)},
+        "thesis": thesis,
+        "iqInputs": iq_inputs(metrics, lender=lender, annual=len(pl.get("periods") or []), quarterly=len(pl_q.get("periods") or [])),
         "strengths": notes["strengths"],
         "watchouts": notes["watchouts"],
         "keyMetrics": key_metrics,
@@ -408,6 +407,40 @@ def _adjust_for_discontinued(ratio_view: dict, pl: dict, pl_q: dict, bs: dict, m
 
 
 MATERIAL_DISCONTINUED_PE = 0.15
+
+
+def iq_view(metrics: Dict[str, Optional[float]], holding_latest: list, *, lender: bool, annual: int, quarterly: int, days: int) -> Tuple[dict, dict, Optional[str]]:
+    """The FinLit IQ of one company from its metrics: (score, notes, thesis). The ONE place the score is worked out, used by the full build and by the
+    live-price recompute (scorelive.py), so a number computed at any time is the number the nightly batch computes for the same inputs."""
+    score = scoring.score(metrics)
+    _explain_gaps(score, lender=lender, annual=annual, quarterly=quarterly, days=days)
+    return score, insights.notes(metrics, holding_latest or []), insights.thesis(score, metrics)
+
+
+# What notes() reads beside the score's own inputs (analytics/insights.py): kept with the summary so the live-price recompute works from the very numbers the build used
+# (the ratio table shows them rounded, the build uses them unrounded: a rounded value can sit on the other side of a score threshold).
+NOTE_KEYS = ("roe", "cfo_to_pat", "debt_to_equity", "interest_coverage", "exceptional_share", "sales_cagr", "sales_cagr_years", "profit_cagr", "npm", "pe", "sector_pe",
+             "dividend_yield", "current_ratio")
+PRICE_KEYS = tuple(i[0] for i in scoring.PILLARS["technical"]["inputs"])
+
+
+def iq_inputs(metrics: Dict[str, Optional[float]], *, lender: bool, annual: int, quarterly: int) -> dict:
+    """Everything the FinLit IQ needs besides the price history: the non-price metrics exactly as the build used them, and the three facts the score's gap
+    explanations use. A price move changes only the Technical pillar (price against its 50 and 200 day averages, RSI): scorelive.py works from this."""
+    keys = {i[0] for key, spec in scoring.PILLARS.items() if key != "technical" for i in spec["inputs"]} | set(NOTE_KEYS)
+    return {"metrics": {k: metrics[k] for k in sorted(keys) if metrics.get(k) is not None}, "lender": bool(lender), "annual": annual, "quarterly": quarterly}
+
+
+def score_block(score: dict) -> dict:
+    """The score as the summary stores it (overall, band, model and the pillars)."""
+    return {"overall": score["overall"], "band": score["band"], "model": score["model"],
+            "pillars": [{k: p[k] for k in ("key", "label", "score", "band", "coverage", "reason") if k in p} for p in score["pillars"]]}
+
+
+def score_as_of(fundamentals_checked_at: Optional[str], fundamentals_period: Optional[str], price_as_of: Optional[str], computed_at: str, live: bool) -> dict:
+    """When the score is as of, in the three clocks it depends on: the filings (the report's own build time and its latest annual period), the price
+    (the trade time of the quote the technical pillar used) and the moment it was worked out. `live` is true when only the price part was refreshed since the build."""
+    return {"fundamentalsCheckedAt": fundamentals_checked_at, "fundamentalsPeriod": fundamentals_period, "priceAsOf": price_as_of, "computedAt": computed_at, "live": live}
 
 
 def _explain_gaps(score: dict, lender: bool, annual: int, quarterly: int, days: int) -> None:
