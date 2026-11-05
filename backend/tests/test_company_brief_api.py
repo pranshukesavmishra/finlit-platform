@@ -156,3 +156,60 @@ async def test_the_annual_report_address_is_admin_set_and_checked(app):  # noqa:
     assert (await a.get("/api/admin/company-brief/RELIANCE")).json()["source"]["annual_report_url"] == "https://www.ril.com/ar.pdf"
     miss = (await a.get("/api/admin/company-brief/sources")).json()["missing"]
     assert all(m["symbol"] != "RELIANCE" for m in miss)
+
+
+async def test_an_automatically_published_brief_says_so_and_claims_no_review(app, anon):  # noqa: F811
+    st = app.state.store
+    await put(st, status="published", publish=True)
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE company_briefs SET publish_mode = 'auto', reviewed_by = 'automatic checks'")
+    b = (await anon.get("/api/stocks/RELIANCE/brief")).json()
+    assert b["publishMode"] == "auto" and b["brief"]["status"] == "auto-checked" and b["reviewedAt"] is None
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE company_briefs SET publish_mode = 'person'")
+    assert (await anon.get("/api/stocks/RELIANCE/brief")).json()["brief"]["status"] == "reviewed"
+
+
+async def test_empty_states_for_no_report_found_and_still_looking(app, anon):  # noqa: F811
+    st = app.state.store
+    async with st.pool.acquire() as conn:
+        await conn.execute("INSERT INTO companies (symbol, name) VALUES ('RELIANCE', 'Reliance Industries Ltd') ON CONFLICT DO NOTHING")
+        await conn.execute("DELETE FROM company_briefs"); await conn.execute("DELETE FROM company_brief_sources")
+        await conn.execute("INSERT INTO company_brief_sources (symbol, last_state, ar_state) VALUES ('RELIANCE', 'no_annual_report', 'none')")
+    b = (await anon.get("/api/stocks/RELIANCE/brief")).json()
+    assert b["code"] == "no_annual_report" and "No annual report was found" in b["reason"]
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE company_brief_sources SET last_state = NULL, ar_state = 'blocked'")
+    assert (await anon.get("/api/stocks/RELIANCE/brief")).json()["code"] == "looking"
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE company_brief_sources SET ar_url = 'https://nsearchives.nseindia.com/annual_reports/a.pdf', ar_state = 'blocked'")
+    assert (await anon.get("/api/stocks/RELIANCE/brief")).json()["code"] == "not_written"      # an address is known: the brief just is not written yet
+
+
+async def test_the_auto_publish_setting_is_admin_only_defaults_on_and_is_audited(app, anon):  # noqa: F811
+    st = app.state.store
+    assert (await anon.get("/api/admin/company-brief/settings")).status_code in (401, 403)
+    a = await admin(app)
+    async with st.pool.acquire() as conn:
+        await conn.execute("DELETE FROM company_brief_settings")
+    assert (await a.get("/api/admin/company-brief/settings")).json() == {"auto_publish": True, "max_writes_per_night": 6}
+    r = await a.put("/api/admin/company-brief/settings", json={"auto_publish": False, "max_writes_per_night": 20})
+    assert r.json() == {"auto_publish": False, "max_writes_per_night": 20}
+    assert (await a.put("/api/admin/company-brief/settings", json={"max_writes_per_night": 100000})).status_code == 422
+    from finlit.company_brief.service import auto_publish_on
+    async with st.pool.acquire() as conn:
+        assert await auto_publish_on(conn) is False
+        meta = json.loads(await conn.fetchval("SELECT meta FROM audit_events WHERE action = 'company_brief.settings'"))
+    assert meta["before"]["auto_publish"] is True and meta["after"]["auto_publish"] is False
+
+
+async def test_taking_down_an_automatic_brief_keeps_the_program_from_republishing_it(app, anon):  # noqa: F811
+    st = app.state.store
+    a = await admin(app)
+    await put(st, status="published", publish=True)
+    async with st.pool.acquire() as conn:
+        await conn.execute("UPDATE company_briefs SET publish_mode = 'auto'")
+    assert (await a.post("/api/admin/company-brief/RELIANCE/unpublish", json={"note": "wrong"})).status_code == 200
+    async with st.pool.acquire() as conn:
+        r = await conn.fetchrow("SELECT status, published, publish_mode FROM company_briefs")
+    assert r["status"] == "rejected" and r["published"] is None and r["publish_mode"] is None

@@ -28,11 +28,12 @@ from ..earnings import transcripts as T
 from ..earnings.provider import GeminiProvider, NotConfigured, Pacer, ProviderError, RateLimited
 from . import config as C
 from . import core as B
+from . import discovery as D
 
 log = logging.getLogger("finlit.company_brief")
 
 REASONS = {
-    "no_annual_report": "No annual report is on file for this company yet, so the brief has not been written. An administrator can add the address in the Console.",
+    "no_annual_report": "No annual report was found for this company on the exchanges' listings, so its brief has not been written.",
     "no_filings": "FinLit holds no results, presentation or press release for this company yet.",
     "unreadable": "The annual report could not be read (a scan, a password or an address that no longer works).",
     "failed": "The writer's answer did not pass the checks; it is tried again.",
@@ -61,6 +62,30 @@ class BriefFetcher(T.Fetcher):
             return all(ipaddress.ip_address(a).is_global for a in self._resolve(h))
         except Exception:
             return False
+
+    async def _json(self, url: str, agent: str, headers: dict):
+        r = await self._get(url, agent, headers)
+        if r.status_code != 200:
+            raise T.FetchFailed(f"HTTP {r.status_code}")
+        try:
+            return r.json()
+        except ValueError:
+            raise T.FetchFailed("the listing was not JSON") from None
+
+    async def nse_annual_reports(self, symbol: str):
+        """NSE's public annual-reports listing for one company (needs the cookie NSE's home page sets). UNVERIFIED offline."""
+        hdr = {"Accept": "application/json, text/plain, */*", "Referer": "https://www.nseindia.com/companies-listing/corporate-filings-annual-reports"}
+        if not self._nse_cookie:
+            await self._get(T.NSE_HOME, T.NSE_BROWSER_UA, hdr)
+            self._nse_cookie = True
+        from .discovery import NSE_AR
+        from urllib.parse import quote
+        return await self._json(NSE_AR.format(symbol=quote(symbol, safe="")), T.NSE_BROWSER_UA, hdr)
+
+    async def bse_annual_reports(self, code: str):
+        """BSE's annual-report listing for one scrip code. UNVERIFIED offline."""
+        from .discovery import BSE_AR
+        return await self._json(BSE_AR.format(code=code), T.NSE_BROWSER_UA, {"Accept": "application/json, text/plain, */*", "Referer": "https://www.bseindia.com/"})
 
     async def pdf(self, url: str) -> bytes:   # type: ignore[override]
         r = await self._get(url, T.USER_AGENT, {"Accept": "application/pdf, */*"}, C.MAX_PDF_BYTES)
@@ -235,6 +260,63 @@ def blocked_by_attempts(src: Optional[dict], sig: str, now: datetime) -> Optiona
     return None
 
 
+
+# ------------------------------------------------------------------------------------------------ settings
+async def get_setting(conn, key: str, default: str) -> str:
+    v = await conn.fetchval("SELECT value FROM company_brief_settings WHERE key = $1", key)
+    return default if v is None else v
+
+
+async def auto_publish_on(conn) -> bool:
+    return (await get_setting(conn, "auto_publish", "on")).lower() not in ("off", "0", "false", "no")
+
+
+# ------------------------------------------------------------------------------------------------ annual report discovery
+def discovery_due(src: Optional[dict], now: datetime) -> bool:
+    """Look again: never looked; a blocked or failed lookup after a day; 'none' after a week; a found report once a month (a new year's report is filed in summer)."""
+    if src and src.get("annual_report_url"):
+        return False                                      # the administrator's override: never replaced
+    t = (src or {}).get("ar_checked_at")
+    st = (src or {}).get("ar_state")
+    if not t or not st:
+        return True
+    wait = {"found": 30, "none": 7}.get(st, 1)
+    return now - t >= timedelta(days=wait)
+
+
+async def find_report(store, fetcher, c: dict, src: Optional[dict], report: dict) -> Optional[dict]:
+    """Run the lookup for one company and store the answer. Returns the updated source row (as a dict) or None when nothing was asked."""
+    now = datetime.now(timezone.utc)
+    if not discovery_due(src, now):
+        return src
+    if report.get("lookups", 0) >= C.MAX_LOOKUPS_PER_RUN:
+        return src
+    async with store.pool.acquire() as conn:
+        bse = await conn.fetchval("SELECT bse_code FROM companies WHERE symbol = $1", c["symbol"])
+    res = await D.discover(fetcher, c["symbol"], bse)
+    report["lookups"] = report.get("lookups", 0) + 1
+    if res.get("budget"):
+        report["stopped"] = "request_budget"
+        return src
+    report[f"report_{res['state']}"] = report.get(f"report_{res['state']}", 0) + 1
+    keep = res["state"] == "found" or not (src or {}).get("ar_url")       # a failed lookup never erases an address already found
+    async with store.pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO company_brief_sources (symbol, ar_state, ar_detail, ar_checked_at, ar_url, ar_year, ar_source, ar_found_at) VALUES ($1, $2, $3, now(), $4, $5, $6, CASE WHEN $4::text IS NULL THEN NULL ELSE now() END) "
+            "ON CONFLICT (symbol) DO UPDATE SET ar_state = CASE WHEN $2 = 'found' OR company_brief_sources.ar_url IS NULL THEN $2 ELSE company_brief_sources.ar_state END, ar_detail = $3, ar_checked_at = now(), "
+            "ar_url = CASE WHEN $7 THEN $4 ELSE company_brief_sources.ar_url END, ar_year = CASE WHEN $7 THEN $5 ELSE company_brief_sources.ar_year END, "
+            "ar_source = CASE WHEN $7 THEN $6 ELSE company_brief_sources.ar_source END, ar_found_at = CASE WHEN $7 AND $4::text IS NOT NULL THEN now() ELSE company_brief_sources.ar_found_at END",
+            c["symbol"], res["state"], res.get("detail") or "", res.get("url"), res.get("year"), res.get("source"), keep and res["state"] == "found")
+        if res["state"] == "none":
+            await note_source(conn, c["symbol"], "no_annual_report", REASONS["no_annual_report"])
+        src = await conn.fetchrow("SELECT * FROM company_brief_sources WHERE symbol = $1", c["symbol"])
+    return dict(src) if src else None
+
+
+def report_url(src: Optional[dict]) -> Optional[str]:
+    """The administrator's override, else the address the exchange listings gave."""
+    return (src or {}).get("annual_report_url") or (src or {}).get("ar_url")
+
 # ------------------------------------------------------------------------------------------------ one company
 async def ask_model(provider, pacer: Pacer, prompt: str, report: dict, sleep) -> Tuple[Optional[str], Optional[str]]:
     """(text, stop). `stop` names why the whole run must stop: budget | not_configured | quota; None when only this company failed (text None) or all is well."""
@@ -268,14 +350,14 @@ async def write_one(store, provider, pacer, fetcher, c: dict, report: dict, toda
         src = await conn.fetchrow("SELECT * FROM company_brief_sources WHERE symbol = $1", symbol)
         src = dict(src) if src else None
         feed = await feed_for(conn, symbol, today - timedelta(days=500))
-    docs = B.collect_sources(feed, None, (src or {}).get("annual_report_url"))
+    src = await find_report(store, fetcher, c, src, report)
+    if report.get("stopped") == "request_budget":
+        return "request_budget"
+    docs = B.collect_sources(feed, None, report_url(src))
     parts, why, fresh = plan_parts(row, docs, td)
     if not parts:
         key = "nothing_new" if why == "nothing new" else why
         report[key] = report.get(key, 0) + 1
-        if why == "no_annual_report":
-            async with store.pool.acquire() as conn:
-                await note_source(conn, symbol, "no_annual_report", REASONS["no_annual_report"])
         return None
     first = row is None
     chosen = choose_docs(docs, parts, fresh, first or "about" in parts and "group" in parts, td)
@@ -326,6 +408,7 @@ async def write_one(store, provider, pacer, fetcher, c: dict, report: dict, toda
     report["llm_calls"] = report.get("llm_calls", 0) + 1
     result = parse_json(text or "")
     outcome = evaluate(row, result, parts, read, pages, name, symbol, td, points_only)
+    outcome["parts"] = list(parts)
     if result is not None and outcome["checks"]["failed"]:
         # one repair pass: tell the writer exactly which citations were wrong
         bad = "; ".join(f"{f['path']}: {f['doc']} page {f['page']} lacks {f['missing']}" + (f" (found on page {f['found_on']})" if f["found_on"] else "") for f in outcome["checks"]["failed"][:12])
@@ -338,6 +421,7 @@ async def write_one(store, provider, pacer, fetcher, c: dict, report: dict, toda
             out2 = evaluate(row, result2, parts, read, pages, name, symbol, td, points_only)
             if len(out2["checks"]["failed"]) < len(outcome["checks"]["failed"]):
                 outcome = out2
+                outcome["parts"] = list(parts)
                 outcome["checks"]["fixed"] = [f"{len(bad.split('; '))} citation(s) were corrected on a second pass."]
     if result is None or outcome["merged"] is None:
         report["failed"] = report.get("failed", 0) + 1
@@ -361,7 +445,35 @@ async def write_one(store, provider, pacer, fetcher, c: dict, report: dict, toda
         await note_source(conn, symbol, "written", "", sig, False)
     report["written"] = report.get("written", 0) + 1
     report.setdefault("written_symbols", []).append(symbol)
+    if await maybe_auto_publish(store, symbol, outcome, row):
+        report["auto_published"] = report.get("auto_published", 0) + 1
+    else:
+        report["left_for_review"] = report.get("left_for_review", 0) + 1
     return None
+
+
+def auto_ok(outcome: dict, prior_status: Optional[str]) -> bool:
+    """The automatic-publication rule: no blocking problem, every citation checked and found on its page (none unchecked, none failed), at least one citation, no reviewer flag,
+    and not a brief a person rejected or took down (that decision needs a person)."""
+    c = outcome.get("checks") or {}
+    return bool(outcome.get("merged")) and not outcome.get("problems") and not outcome.get("flags") and bool(c.get("ok")) and not c.get("failed") and not c.get("unchecked") \
+        and c.get("citations", 0) > 0 and c.get("citations") == c.get("passed") and prior_status != "rejected"
+
+
+async def maybe_auto_publish(store, symbol: str, outcome: dict, prior: Optional[dict]) -> bool:
+    async with store.pool.acquire() as conn:
+        if not await auto_publish_on(conn) or not auto_ok(outcome, (prior or {}).get("status")):
+            return False
+        old = (prior or {}).get("published")
+        old = json.loads(old) if isinstance(old, str) else old
+        from .api import changes_note
+        brief = outcome["merged"]
+        snap = {**brief, "changes": changes_note(old, brief, outcome.get("parts"))}
+        await conn.execute("UPDATE company_briefs SET status = 'published', published = $2::jsonb, published_checks = $3::jsonb, published_at = now(), publish_mode = 'auto', "
+                           "reviewed_by = 'automatic checks', reviewed_at = now(), review_note = NULL WHERE symbol = $1", symbol, json.dumps(snap), json.dumps(outcome["checks"]))
+    from ..auth.service import audit
+    await audit(store.pool, None, "company_brief.auto_publish", symbol, "", citations=outcome["checks"].get("citations"), as_of=brief.get("as_of"))
+    return True
 
 
 def evaluate(row, result, parts, read, pages, name, symbol, today, points_only) -> dict:
@@ -403,19 +515,33 @@ async def run(store, settings, provider=None, fetcher=None, env: Optional[Mappin
         report = {"status": "not_configured", "detail": "GEMINI_API_KEY is empty: no brief is written. Nothing was changed."}
         await record(store, report)
         return report
-    cap = C.max_writes(env) if max_writes is None else max_writes
     pacer = BriefPacer(C.llm_per_minute(env), C.llm_per_day(env), store.redis, sleep=sleep)
     own = fetcher is None
     async with store.pool.acquire() as conn:
         hosts = [urlsplit(r["annual_report_url"]).hostname for r in await conn.fetch("SELECT annual_report_url FROM company_brief_sources WHERE annual_report_url IS NOT NULL")]
-        cands = await candidates(conn, int(env.get("BRIEF_TOP_COMPANIES", 500) or 500), symbols)
+        if max_writes is None:
+            max_writes = int(await get_setting(conn, "max_writes_per_night", str(C.max_writes(env))) or 0)
+        cands = await candidates(conn, int(env.get("BRIEF_TOP_COMPANIES", C.TOP_COMPANIES) or C.TOP_COMPANIES), symbols)
     fetcher = fetcher or BriefFetcher(extra_hosts=[h for h in hosts if h], budget=C.REQUEST_BUDGET_PER_RUN)
+    cap = max_writes if max_writes is not None else C.max_writes(env)
     report["companies"] = len(cands)
     try:
         for c in cands:
             if report.get("written", 0) >= cap:
+                # the night's writing budget is spent: nothing blocks, the rest of the list still gets its (cheap) annual-report lookups, then the next night continues
                 report["stopped"] = "write cap"
-                break
+                if report.get("lookups", 0) >= C.MAX_LOOKUPS_PER_RUN or time.monotonic() - started > max_minutes * 60:
+                    break
+                async with store.pool.acquire() as conn:
+                    s0 = await conn.fetchrow("SELECT * FROM company_brief_sources WHERE symbol = $1", c["symbol"])
+                try:
+                    await find_report(store, fetcher, c, dict(s0) if s0 else None, report)
+                except Exception:   # nosec B110 - a lookup failure never stops the night
+                    report["errors"] = report.get("errors", 0) + 1
+                if report.get("stopped") == "request_budget":
+                    break
+                report["stopped"] = "write cap"
+                continue
             if time.monotonic() - started > max_minutes * 60:
                 report["stopped"] = "time"
                 break

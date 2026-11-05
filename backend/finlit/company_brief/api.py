@@ -33,9 +33,10 @@ SYMBOL = re.compile(r"^[A-Z0-9&_.\-]{1,24}$")
 
 REASONS = {
     "not_written": "Not written yet. Briefs are written overnight from each company's own filings, largest companies first.",
-    "no_annual_report": "No annual report is on file for this company yet, so its brief has not been written.",
+    "no_annual_report": "No annual report was found for this company on the exchanges' listings, so its brief has not been written.",
     "in_review": "Written and being reviewed. It is shown here once a person has read it.",
     "held_back": "A reviewer kept this brief back. It is rewritten when the company files something new.",
+    "looking": "Looking for the company's annual report on the exchanges' listings. The brief is written once it is found.",
     "failed_checks": "Its citations are being re-checked, so it is not shown for now.",
 }
 
@@ -56,8 +57,10 @@ def public_view(row: Optional[dict], src: Optional[dict], symbol: str, name: Opt
     """What the page gets. The published copy only, and only when it still passes the gates."""
     today = today or datetime.now(timezone.utc).date()
     if row is None:
-        if src and src.get("last_state") == "no_annual_report":
+        if src and src.get("last_state") == "no_annual_report" and not src.get("annual_report_url") and not src.get("ar_url"):
             return empty(symbol, "no_annual_report", name)
+        if src and src.get("ar_state") in ("blocked", "error") and not src.get("annual_report_url") and not src.get("ar_url"):
+            return empty(symbol, "looking", name)
         return empty(symbol, "not_written", name)
     pub = _obj(row.get("published"))
     if pub is None:
@@ -66,8 +69,9 @@ def public_view(row: Optional[dict], src: Optional[dict], symbol: str, name: Opt
     if not ok:
         return empty(symbol, "failed_checks", name)
     plan = B.refresh_plan(pub, [], today.isoformat())
-    return {"symbol": symbol, "name": name or pub.get("name"), "state": "published", "brief": {**pub, "status": "reviewed"}, "asOf": pub.get("as_of"),
-            "reviewedAt": row["reviewed_at"].isoformat() if row.get("reviewed_at") else None, "stale": plan["stale"], "changes": pub.get("changes"),
+    auto = row.get("publish_mode") == "auto"
+    return {"symbol": symbol, "name": name or pub.get("name"), "state": "published", "brief": {**pub, "status": "auto-checked" if auto else "reviewed"}, "asOf": pub.get("as_of"),
+            "publishMode": "auto" if auto else "person", "reviewedAt": row["reviewed_at"].isoformat() if row.get("reviewed_at") and not auto else None, "stale": plan["stale"], "changes": pub.get("changes"),
             "checks": _public_checks(_obj(row.get("published_checks"))), "chips": {k: B.chip_label(k, d) for k, d in (pub.get("docs") or {}).items()},
             "waiting": row["status"] in ("draft", "reviewed") and row.get("published_at") is not None and row["written_at"] > row["published_at"],
             "disclaimer": pub.get("disclaimer") or B.DISCLAIMER, "compliance": B.STANDARD_COMPLIANCE}
@@ -106,7 +110,7 @@ def _admin_row(r: dict, name: Optional[str]) -> dict:
             "writtenBy": r["written_by"], "parts": list(r["parts_written"] or []), "problems": problems, "flags": flags,
             "citations": checks.get("citations", 0), "passed": checks.get("passed", 0), "failed": len(checks.get("failed") or []), "unchecked": len(checks.get("unchecked") or []),
             "published": r.get("published") is not None, "publishedAt": r["published_at"].isoformat() if r.get("published_at") else None,
-            "reviewedBy": r["reviewed_by"], "rewriteAsked": r["rewrite_asked"], "canPublish": not problems and not checks.get("failed") and bool(checks.get("citations"))}
+            "reviewedBy": r["reviewed_by"], "publishMode": r.get("publish_mode"), "rewriteAsked": r["rewrite_asked"], "canPublish": not problems and not checks.get("failed") and bool(checks.get("citations"))}
 
 
 @admin.get("/drafts")
@@ -123,10 +127,45 @@ async def a_drafts(request: Request, status: str = Query("", max_length=12), lim
 @admin.get("/sources")
 async def a_sources(request: Request, ctx: Ctx = Depends(admin_ctx)):
     async with request.app.state.store.pool.acquire() as conn:
-        rows = await conn.fetch("SELECT c.symbol, c.name, s.annual_report_url, s.last_state, s.last_reason, s.attempts FROM companies c JOIN listing_quotes q ON q.symbol = c.symbol "
-                                "LEFT JOIN company_brief_sources s ON s.symbol = c.symbol WHERE q.market_cap IS NOT NULL AND s.annual_report_url IS NULL "
+        rows = await conn.fetch("SELECT c.symbol, c.name, s.annual_report_url, s.last_state, s.last_reason, s.attempts, s.ar_state, s.ar_detail FROM companies c JOIN listing_quotes q ON q.symbol = c.symbol "
+                                "LEFT JOIN company_brief_sources s ON s.symbol = c.symbol WHERE q.market_cap IS NOT NULL AND s.annual_report_url IS NULL AND s.ar_url IS NULL "
                                 "ORDER BY q.market_cap DESC LIMIT 100")
     return _json({"missing": [dict(r) for r in rows]})
+
+
+class SettingsIn(BaseModel):
+    auto_publish: Optional[bool] = None
+    max_writes_per_night: Optional[int] = Field(default=None, ge=0, le=500)
+
+
+async def _settings(conn) -> dict:
+    from .service import auto_publish_on, get_setting
+    from . import config as C
+    return {"auto_publish": await auto_publish_on(conn), "max_writes_per_night": int(await get_setting(conn, "max_writes_per_night", str(C.MAX_WRITES_PER_RUN)))}
+
+
+@admin.get("/settings")
+async def a_settings(request: Request, ctx: Ctx = Depends(admin_ctx)):
+    async with request.app.state.store.pool.acquire() as conn:
+        return _json(await _settings(conn))
+
+
+@admin.put("/settings")
+async def a_set_settings(request: Request, body: SettingsIn, ctx: Ctx = Depends(admin_ctx)):
+    store = request.app.state.store
+    who = str(getattr(ctx, "email", None) or ctx.user_id)
+    changes = {}
+    if body.auto_publish is not None:
+        changes["auto_publish"] = "on" if body.auto_publish else "off"
+    if body.max_writes_per_night is not None:
+        changes["max_writes_per_night"] = str(body.max_writes_per_night)
+    async with store.pool.acquire() as conn:
+        before = await _settings(conn)
+        for k, v in changes.items():
+            await conn.execute("INSERT INTO company_brief_settings (key, value, updated_by, updated_at) VALUES ($1, $2, $3, now()) ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = now()", k, v, who)
+        after = await _settings(conn)
+    await audit(store.pool, str(ctx.user_id), "company_brief.settings", "settings", ip_of(request), before=before, after=after)
+    return _json(after)
 
 
 @admin.get("/runs")
@@ -167,14 +206,14 @@ async def _act(request: Request, ctx: Ctx, symbol: str, action: str, note: Optio
                     raise fail(409, "not_publishable", "This brief cannot be published: " + ("; ".join(probs[:3]) if probs else "its citations are not all checked and passed."))
                 old = _obj(row["published"])
                 snap = {**brief, "changes": changes_note(old, brief, row["parts_written"])}
-                await conn.execute("UPDATE company_briefs SET status = 'published', published = $2::jsonb, published_checks = $3::jsonb, published_at = now(), reviewed_by = $4, "
+                await conn.execute("UPDATE company_briefs SET status = 'published', published = $2::jsonb, published_checks = $3::jsonb, published_at = now(), publish_mode = 'person', reviewed_by = $4, "
                                    "reviewed_at = now(), review_note = $5 WHERE symbol = $1", sym, json.dumps(snap), json.dumps(checks), who, note)
             elif action == "reviewed":
                 await conn.execute("UPDATE company_briefs SET status = 'reviewed', reviewed_by = $2, reviewed_at = now(), review_note = $3 WHERE symbol = $1 AND status IN ('draft', 'reviewed')", sym, who, note)
             elif action == "reject":
                 await conn.execute("UPDATE company_briefs SET status = 'rejected', reviewed_by = $2, reviewed_at = now(), review_note = $3 WHERE symbol = $1", sym, who, note)
             elif action == "unpublish":
-                await conn.execute("UPDATE company_briefs SET published = NULL, published_checks = NULL, published_at = NULL, status = CASE WHEN status = 'published' THEN 'reviewed' ELSE status END, "
+                await conn.execute("UPDATE company_briefs SET published = NULL, published_checks = NULL, published_at = NULL, status = CASE WHEN status = 'published' THEN 'rejected' ELSE status END, publish_mode = NULL, "
                                    "review_note = $2 WHERE symbol = $1", sym, note)
             elif action == "rewrite":
                 await conn.execute("UPDATE company_briefs SET rewrite_asked = true WHERE symbol = $1", sym)

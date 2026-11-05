@@ -7,12 +7,12 @@ import { BriefBody } from "../../stock/CompanyBrief";
 import type { BriefReply, Brief } from "../../lib/companyBrief";
 
 type Row = { symbol: string; name: string | null; status: string; asOf: string | null; writtenAt: string; writtenBy: string | null; parts: string[]; problems: string[]; flags: string[]; citations: number; passed: number;
-  failed: number; unchecked: number; published: boolean; publishedAt: string | null; rewriteAsked: boolean; canPublish: boolean };
+  failed: number; unchecked: number; published: boolean; publishedAt: string | null; publishMode?: string | null; rewriteAsked: boolean; canPublish: boolean };
 type Run = { id: number; at: string; status: string; detail: Record<string, unknown> };
 type List = { briefs: Row[]; counts: Record<string, number>; runs: Run[] };
 type Failed = { path: string; doc: string; page: number; missing: string[]; found_on: number[]; part?: string };
 type One = Row & { brief: Brief; checks: { failed: Failed[]; date?: string; method?: string }; text: string; publishedBrief: Brief | null; source: { annual_report_url?: string | null; last_reason?: string | null } | null; reviewNote: string | null };
-type Missing = { symbol: string; name: string; annual_report_url: string | null; last_state: string | null; last_reason: string | null };
+type Missing = { symbol: string; name: string; annual_report_url: string | null; last_state: string | null; last_reason: string | null; ar_state: string | null; ar_detail: string | null };
 const msg = (e: unknown) => (e instanceof ApiError ? e.body.detail || e.body.status || "Failed" : "Could not reach the server.");
 const when = (s: string) => new Date(s).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS = ["", "draft", "reviewed", "published", "rejected"] as const;
@@ -67,6 +67,8 @@ export function BriefAdmin() {
   const list = useQuery({ queryKey: ["brief-admin", status], queryFn: () => apiGet<List>(`/api/admin/company-brief/drafts?status=${status}`), retry: false });
   const miss = useQuery({ queryKey: ["brief-admin-missing"], queryFn: () => apiGet<{ missing: Missing[] }>("/api/admin/company-brief/sources"), retry: false });
   const [sym, setSym] = useState(""), [url, setUrl] = useState("");
+  const set = useQuery({ queryKey: ["brief-admin-settings"], queryFn: () => apiGet<{ auto_publish: boolean; max_writes_per_night: number }>("/api/admin/company-brief/settings"), retry: false });
+  const setMut = useMutation({ mutationFn: (b: { auto_publish?: boolean; max_writes_per_night?: number }) => apiSend("PUT", "/api/admin/company-brief/settings", b), onSettled: () => qc.invalidateQueries({ queryKey: ["brief-admin-settings"] }) });
   const save = useMutation({ mutationFn: () => apiSend("PUT", `/api/admin/company-brief/${encodeURIComponent(sym)}/source`, { annual_report_url: url }), onSuccess: () => { setSym(""); setUrl(""); qc.invalidateQueries({ queryKey: ["brief-admin-missing"] }); } });
   if (list.isError) return <div className="formerr">{msg(list.error)}</div>;
   if (!list.data) return <div className="skeleton" style={{ height: 160 }} />;
@@ -78,27 +80,32 @@ export function BriefAdmin() {
         <h2>Company briefs</h2>
         <p className="muted">Written overnight from each company's own filings; nothing is shown on a company page until a person approves it. {Object.entries(d.counts).map(([k, v]) => `${v} ${k}`).join(" · ") || "No briefs yet."}
           {last ? ` Last run ${when(last.at)}: ${last.status === "not_configured" ? "not configured (no writing key on the server; nothing was written)" : `${String(last.detail.written ?? 0)} written, ${String(last.detail.nothing_new ?? 0)} with nothing new${last.detail.stopped ? `, stopped: ${String(last.detail.stopped)}` : ""}`}.` : " The job has not run yet."}</p>
+        {set.data && <div className="row-gap" style={{ marginBottom: 12 }}>
+          <label className="fld"><span><input type="checkbox" checked={set.data.auto_publish} disabled={setMut.isPending} onChange={(e) => setMut.mutate({ auto_publish: e.target.checked })} /> Publish automatically when every automatic check passes and nothing needs a reader's care (shown as "Checked automatically"; changes are logged)</span></label>
+          <label className="fld"><span>Briefs written per night</span><input type="number" min={0} max={500} defaultValue={set.data.max_writes_per_night} onBlur={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n !== set.data!.max_writes_per_night) setMut.mutate({ max_writes_per_night: n }); }} /></label>
+        </div>}
+        {setMut.error && <div className="formerr" role="alert">{msg(setMut.error)}</div>}
         <div className="seg" role="tablist" aria-label="Status" style={{ marginBottom: 12 }}>
           {STATUS.map((s) => <button key={s} role="tab" aria-selected={status === s} onClick={() => setStatus(s)}>{s || "all"}</button>)}
         </div>
         {!d.briefs.length ? <p className="muted">Nothing here.</p> : (
           <div className="tw"><table className="qtt"><thead><tr><th>Company</th><th>Status</th><th>Filings to</th><th>Written</th><th>Citations</th><th>Flags</th><th /></tr></thead>
-            <tbody>{d.briefs.map((r) => <tr key={r.symbol}><td><b>{r.symbol}</b><div className="muted">{r.name}</div></td><td>{r.status}{r.published && r.status !== "published" ? " (older copy live)" : ""}</td><td>{r.asOf ?? "—"}</td><td>{when(r.writtenAt)}</td>
+            <tbody>{d.briefs.map((r) => <tr key={r.symbol}><td><b>{r.symbol}</b><div className="muted">{r.name}</div></td><td>{r.status}{r.publishMode === "auto" ? " (auto-checked)" : ""}{r.published && r.status !== "published" ? " (older copy live)" : ""}</td><td>{r.asOf ?? "—"}</td><td>{when(r.writtenAt)}</td>
               <td>{r.passed}/{r.citations}{r.failed ? <b> · {r.failed} wrong</b> : ""}</td><td>{r.problems.length ? <b>{r.problems.length} blocking</b> : r.flags.length ? `${r.flags.length} to read` : "none"}</td>
               <td><button className="btn" onClick={() => setOpen(r.symbol)}>Review</button></td></tr>)}</tbody></table></div>
         )}
       </section>
       <section className="card acct-c">
-        <h2>Annual report addresses</h2>
-        <p className="muted">A brief needs the company's annual report, and the exchanges' feed does not carry its address. Paste the https address of the PDF on the company's own website. Companies without one show "no annual report on file".</p>
+        <h2>Annual report addresses (override)</h2>
+        <p className="muted">The annual report is found automatically from the exchanges' listings, newest year first. Use this only when a company has none there, or the wrong one: paste the https address of the PDF on the company's own website. It is never replaced by the automatic lookup.</p>
         <div className="row-gap">
           <label className="fld"><span>Symbol</span><input value={sym} onChange={(e) => setSym(e.target.value.toUpperCase())} maxLength={24} /></label>
           <label className="fld"><span>PDF address</span><input value={url} onChange={(e) => setUrl(e.target.value)} maxLength={600} placeholder="https://" /></label>
           <button className="btn" disabled={save.isPending || !sym || !url} onClick={() => save.mutate()}>Save address</button>
         </div>
         {save.error && <div className="formerr" role="alert">{msg(save.error)}</div>}
-        {miss.data && <div className="tw"><table className="qtt"><thead><tr><th>Largest companies without an address</th><th>State</th><th /></tr></thead>
-          <tbody>{miss.data.missing.slice(0, 25).map((m) => <tr key={m.symbol}><td><b>{m.symbol}</b> <span className="muted">{m.name}</span></td><td>{m.last_reason || m.last_state || "not tried yet"}</td><td><button className="btn" onClick={() => setSym(m.symbol)}>Use</button></td></tr>)}</tbody></table></div>}
+        {miss.data && <div className="tw"><table className="qtt"><thead><tr><th>Largest companies where no annual report was found</th><th>State</th><th /></tr></thead>
+          <tbody>{miss.data.missing.slice(0, 25).map((m) => <tr key={m.symbol}><td><b>{m.symbol}</b> <span className="muted">{m.name}</span></td><td>{m.ar_detail || m.last_reason || m.ar_state || "not looked up yet"}</td><td><button className="btn" onClick={() => setSym(m.symbol)}>Use</button></td></tr>)}</tbody></table></div>}
       </section>
     </>
   );
