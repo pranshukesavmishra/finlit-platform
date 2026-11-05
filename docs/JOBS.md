@@ -112,6 +112,7 @@ SLA kinds: `hours` a success within N hours; `active` N hours counted only from 
 | backtest-leadership | bulk | 70 | 100 d | first Sunday of Jan/Apr/Jul/Oct, NIGHT |
 | rebuild-metrics, short-history, history-probe, dhan-check, universe (Sunday) | bulk/light | 71-85 | 8-17 d | weekly NIGHT |
 | indices, coverage, integrity, logos | light | 60-80 | 30 h (logos 60 h) | NIGHT, MORNING |
+| **macro-outlook** (`refresh-macro-outlook`) | light | 22 | 30 h | AFTER_CLOSE from 19:40, MORNING; also every 6 h and as soon as a probe sees changed macro, commodity or company tables; after macro, flows-nse and flows; database only, never calls a source; never switchable off (docs/MACRO-OUTLOOK.md); dataset `macro_outlook` in the status |
 | macro, flows-nse, flows | light | 19-21 | 30 h | AFTER_CLOSE from 19:10; flows twice; MORNING |
 | instruments, mf, facts, industry, etf (funds) | light | 22-26 | 30 h (mf 26, etf 80) | MORNING / AFTER_CLOSE from 21:10 / NIGHT; etf weekdays |
 | drain-queue, commodities | ondemand | - | - | always on (scheduler.sh) |

@@ -16,6 +16,7 @@ import { QuarterSection, TrendsSection } from "./Sections4";
 import { ChartLab } from "./ChartLab";
 import { PlFlagsLayer } from "./PlFlagsLayer";
 import { DiscussionLink } from "../components/DiscussionLink";
+import { MacroOutlookSection } from "./MacroOutlook";
 import { BusinessSection, DividendsSection, MethodSection, OwnershipSection } from "./Sections2";
 import { useLeadership } from "../lib/leadership";
 import { LeadershipSection } from "./Leadership";
@@ -146,6 +147,7 @@ export function StockPage() {
         <div ref={idrow} />
         {/* What the company does comes first: someone who has never heard of it starts here, then the score, then the numbers. */}
         <ErrorBoundary section="This section"><BusinessSection s={s} /></ErrorBoundary>
+        <ErrorBoundary section="Macro outlook"><MacroOutlookSection symbol={symbol} /></ErrorBoundary>
         <ErrorBoundary section="This section"><Notes s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><KeyFindings s={s} f={fin} lender={!!s.dataQuality.isBank} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PriceSection s={s} symbol={symbol} ratios={ratios} /></ErrorBoundary>

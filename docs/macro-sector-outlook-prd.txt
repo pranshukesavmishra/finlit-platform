@@ -1,0 +1,635 @@
+FINLIT VENTURES
+
+
+
+Macro & Sector Outlook
+Product Requirements Document (PRD) & Technical Implementation Specification
+
+
+
+
+Purpose
+A central macroeconomic intelligence engine that translates Indian macro data into explainable, sector-specific outlook
+scores displayed on every listed-company analysis page.
+
+
+ Document control                     Details
+
+ Version                              1.0
+
+ Product area                         Individual Stock / Company Analysis
+
+ Feature                              Macro & Sector Outlook
+
+ Primary market                       Indian listed equities (NSE & BSE)
+
+ Audience                             Software engineers, product, data and QA teams
+
+ Status                               Implementation specification – initial model assumptions require validation
+
+
+
+
+Product principle
+Do not just show investors how a company is performing. Also show them how the economic environment
+surrounding that company is changing.
+
+
+
+
+FinLit Ventures | Clarity Before Capital
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ Document contents
+ • 1. Product objective and scope
+
+ • 2. Placement and user experience
+
+ • 3. Macro data engine and data governance
+
+ • 4. Indicator normalisation
+
+ • 5. Sector sensitivity model
+
+ • 6. Macro score calculation
+
+ • 7. Company-sector mapping
+
+ • 8. Historical intelligence
+
+ • 9. Database schema
+
+ • 10. API specification
+
+ • 11. Automation and refresh schedule
+
+ • 12. Admin panel
+
+ • 13. Error handling, security and performance
+
+ • 14. Acceptance criteria and QA test cases
+
+ • 15. Implementation roadmap
+
+ • 16. Future enhancements and launch checklist
+
+
+ Implementation note: This PRD defines the initial product and engineering requirements. Sector sensitivities, thresholds and model
+ parameters are starting assumptions, not validated investment signals. Calibrate and backtest before exposing scores as reliable outputs.
+
+
+
+
+                                                                                                                  Implementation PRD • Page 2
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ 1. Product objective and scope
+ Build a dedicated Macro & Sector Outlook section on every individual stock/company analysis page. The feature
+ evaluates how the current Indian macroeconomic environment may support or pressure the sector in which a company
+ operates.
+
+ The module must answer: (a) Is the macro environment favourable for this sector? (b) Which indicators are driving the
+ assessment? (c) What external factors should investors monitor? (d) How has the outlook changed over time?
+
+ Out of scope: company-specific financial health, stock valuation, price targets, buy/sell recommendations and
+ technical signals. The Macro Score must remain separate from Fundamental Score and Technical Score.
+
+ Core architecture: one shared macro dataset → normalised indicator signals → sector-specific sensitivity profiles →
+ sector scores → company-page presentation.
+
+
+ 2. Placement and user experience
+ Recommended placement: after Company Overview / Business Profile and before or alongside Fundamental,
+ Technical and Valuation analysis. The section should be available on every supported company page.
+
+ Section heading: MACRO & SECTOR OUTLOOK.
+
+ Component A – Macro Backdrop Summary: compact horizontal summary showing sentiment, mapped sector,
+ score out of 100, two most influential drivers and a “How it works” link.
+
+ Example: MACRO BACKDROP | Strong Headwind | Real Estate | 22/100 | Rate hikes (−), Credit (+). Values are
+ illustrative only.
+
+ Component B – Sector Impact: comparative table showing sector, horizontal score bar, score, sentiment and top
+ reasons. Highlight the currently viewed company’s sector. Sort descending by score by default; allow expansion to all
+ supported sectors. Include a visible midpoint marker at 50.
+
+ Component C – Indicator Signals: grid grouped by Inflation, Monetary Policy, Credit & Banking, Economic Growth,
+ Currency and Commodities. Each tile shows latest value, previous value/change, direction, normalised signal,
+ observation date and source.
+
+ Component D – Sector Interpretation: concise explanation generated from the largest actual score contributions.
+ Show both supporting and adverse factors, plus relevant indicators to monitor.
+
+ Component E – How It Works: expandable methodology covering score meaning, indicators, normalisation,
+ sensitivities, formula, sources, update frequency and limitations.
+
+  Score                    Sentiment
+
+  80–100                   Strong Tailwind
+
+  65–79                    Tailwind
+
+  45–64                    Neutral
+
+  25–44                    Headwind
+
+  0–24                     Strong Headwind
+
+ Visual design: restrained colours, strong readability, compact rows, subtle badges, neutral midpoint, responsive
+ desktop/mobile layout. Suggested palette: dark green for strong positive, muted green for positive, grey for neutral,
+ muted red for negative and dark red for strong negative. Avoid excessive cards and colour saturation.
+
+
+ 3. Macro data engine and data governance
+ Create a central ingestion and scoring service. Do not fetch macroeconomic data independently for each company
+ page. Store raw readings centrally and calculate sector scores once per data/model snapshot; company pages
+ consume cached results.
+
+
+
+                                                                                                  Implementation PRD • Page 3
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ Every raw observation must retain indicator code, value, unit, observation date, publication date, source name/URL,
+ frequency, data status, retrieval timestamp and revision/version metadata.
+
+  Indicator                    Preferred source                                  Expected cadence
+
+  CPI and Food CPI             MoSPI                                             Monthly, after official release
+
+  WPI                          Office of Economic Adviser                        Monthly, after official release
+
+  GDP growth                   MoSPI                                             Quarterly, after official release
+
+  IIP                          MoSPI                                             Monthly, after official release
+
+  Repo rate / policy actions   RBI                                               On announcement
+
+  Bank credit / deposits       RBI                                               On official release
+
+  USD/INR                      RBI or validated market-data provider             Daily
+
+  Brent crude                  Validated commodity-data provider                 Daily
+
+  Unemployment                 Official or validated statistical source          As published
+
+  Other commodities            Validated source relevant to sector               Daily/monthly as available
+
+ Data validation: check presence, valid observation/publication dates, units, acceptable ranges, duplicates, freshness
+ and source revisions. Status values should include Available, Stale, Missing, Invalid and Revised.
+
+ Publication-date rule: distinguish observation date from publication date. The engine must not use information before
+ it was publicly available at the score’s as-of timestamp. This avoids look-ahead bias in historical scores.
+
+ Missing-data rule: never silently replace missing values with zero or neutral. Exclude unavailable inputs, calculate
+ coverage and apply the minimum-coverage rules in Section 6. Serve the last valid snapshot with a stale-data warning
+ if a refresh fails.
+
+
+ 4. Indicator normalisation engine
+ Raw macro indicators use different units and directions. Convert each active indicator into a normalised signal
+ between −1 and +1 before applying sector sensitivities. Higher values are not universally better; direction depends on
+ the indicator and sector context.
+
+ Two-part signal: calculate a Level Signal and a Momentum Signal, each capped to [−1, +1].
+            Indicator Signal = (Level Signal + Momentum Signal) / 2
+
+ Level signal evaluates whether the current reading is favourable relative to configured thresholds, target ranges or
+ historical benchmarks. Momentum signal evaluates whether the indicator is improving or deteriorating over a
+ configured comparison period.
+
+ Supported normalisation methods: threshold/range-based, historical percentile, percentage-change,
+ rate-of-change/momentum and capped z-score methods. Each indicator must specify its method, lookback window,
+ direction, thresholds, units and treatment of extreme values in configuration.
+
+ Examples: inflation may be favourable when easing from an elevated level but adverse if rising sharply; credit growth
+ may be positive up to a healthy range but excessive growth can indicate overheating; repo-rate changes must be
+ distinguished from the current repo-rate level.
+
+
+ 5. Sector sensitivity engine
+ Create a configurable sector-indicator sensitivity matrix. Each sector has a sensitivity coefficient for each relevant
+ indicator, between −1.00 and +1.00. Coefficients represent expected direction and strength of sector sensitivity; they
+ are model assumptions and do not prove causality.
+
+
+
+
+                                                                                                       Implementation PRD • Page 4
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+  Coefficient                     Interpretation
+
+  +1.00                           Strong positive relationship
+
+  +0.75                           High positive relationship
+
+  +0.50                           Moderate positive relationship
+
+  +0.25                           Low positive relationship
+
+  0.00                            No material relationship
+
+  −0.25 to −1.00                  Increasing degrees of negative relationship
+
+
+ Illustrative sector profiles (not production-calibrated):
+
+  Sector                  Potential positive drivers                            Potential negative drivers
+
+  Private banks           Credit demand; healthy funding; selected rate         Funding cost pressure; rising NPAs
+                          conditions
+
+  PSU banks               Credit growth; asset-quality improvement              Funding pressure; rising NPAs
+
+  NBFCs / HFCs            Credit demand; funding availability                   Higher borrowing costs; liquidity stress
+
+  Real estate             Lower rates; credit availability; income growth       Rate hikes; construction-cost inflation
+
+  Automobiles             Lower rates; consumer demand; credit                  High borrowing costs; weak consumption
+
+  FMCG                    Consumption; healthy real income                      Food and input-cost inflation
+
+  Cement                  Infrastructure and construction demand                Energy, freight and financing costs
+
+  Capital goods           IIP; public capex; credit growth                      High financing costs
+
+  Metals & mining         Industrial demand; output prices                      Falling prices; energy costs
+
+  Specialty chemicals     Industrial demand; favourable input-output spread     Input-cost inflation
+
+  Paints                  Demand; lower crude-derived input costs               Crude and raw-material inflation
+
+  Aviation                Passenger demand; lower fuel prices                   Crude prices; currency depreciation
+
+  Oil marketing           Marketing margins; favourable crude conditions        Inventory losses; adverse pricing
+
+  Upstream oil & gas      Higher realised crude prices                          Falling realised crude prices
+
+  Pharma                  Export demand; favourable currency                    Input costs; regulatory issues
+
+  Hotels & QSR            Travel; discretionary demand                          Food inflation; weaker consumption
+
+  IT services             Global technology demand; favourable currency         Global demand slowdown
+
+  Agri inputs             Agricultural activity; farm economics                 Adverse input/commodity conditions
+
+ Sensitivity profiles must be stored in the database/configuration service, not hardcoded in frontend logic. Include
+ effective dates, active status, model version and audit trail. Validate that sector-specific drivers are economically
+ plausible. For banks, distinguish asset yields, deposit repricing, funding costs and credit quality rather than assuming
+ rate hikes are always positive or negative.
+
+ For diversified companies, use segment-level exposures where reliable revenue contribution data exists. Avoid
+ applying one broad sector coefficient to materially different business models.
+
+
+ 6. Final Macro Score calculation
+ Step 1 – Indicator signal: compute the average of level and momentum signals, each capped between −1 and +1.
+             IndicatorSignal■ = (LevelSignal■ + MomentumSignal■) / 2
+
+
+
+
+                                                                                                                 Implementation PRD • Page 5
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ Step 2 – Sector contribution: multiply indicator signal by sector sensitivity. If a separate weight is configured, include
+ it explicitly.
+          Contribution■ = IndicatorSignal■ × Sensitivity■ × Weight■
+
+ Step 3 – Aggregate: sum valid contributions. Use a consistent weight normalisation policy. Recommended: divide the
+ sum by the sum of absolute active weights for the valid indicators, then scale to the model’s configured signal range.
+ The chosen method must be fixed, versioned and documented.
+
+ Step 4 – Convert to score: apply a bounded tanh transformation.
+          MacroScore = 50 + 50 × tanh(WeightedMacroSignal / K)
+
+ K is a configurable normalisation factor. An initial trial value of 3 may be used for calibration, not assumed correct.
+ Score is bounded between 0 and 100; a zero aggregate signal produces 50.
+
+ Important implementation clarification: the earlier illustrative formula used a simple sum divided by 3. For
+ production, the engineering team must implement one explicitly defined aggregation method (including weight
+ normalisation) and validate the resulting distribution on historical data. Do not mix raw sums and normalised weighted
+ averages.
+
+ Coverage: calculate valid active weight divided by total active weight. Recommended initial minimum coverage is
+ 70%, subject to validation. Also define critical indicators per sector; a sector must not receive a confident score if a
+ critical input is missing even when aggregate coverage passes. If coverage fails, return “Insufficient Data” rather than
+ a fabricated score.
+
+ Top drivers: rank valid indicators by absolute contribution. Display the two largest, with sign, latest value and unit. If
+ contributions are close, use a deterministic tie-break rule such as configured priority, then freshness.
+
+ Sentiment bands: 80–100 Strong Tailwind; 65–79 Tailwind; 45–64 Neutral; 25–44 Headwind; 0–24 Strong Headwind.
+
+
+ 7. Company-sector mapping
+ Maintain a standard sector master and company-to-sector mapping table. Initial coverage should include: private
+ banks, PSU banks, NBFCs, housing finance, insurance, real estate, automobiles, auto ancillaries, FMCG, consumer
+ durables, cement, capital goods, infrastructure, metals & mining, specialty chemicals, paints, pharmaceuticals,
+ hospitals, IT services, telecom, aviation, hotels & QSR, oil marketing, upstream oil & gas, power generation, power
+ transmission, renewable energy, agri inputs, textiles, logistics, media & entertainment, paper, sugar, fertilisers and
+ diversified.
+
+ Mapping must be editable by authorised administrators and retain effective dates. Every listed company should have a
+ primary sector mapping. Where segment revenue data is available, use a revenue-weighted company score:
+          CompanyMacroScore = Σ (SegmentRevenueWeight■ × SectorMacroScore■)
+
+ Segment weights must total 100% (or be normalised with an explicit rule). If segment data is unavailable, use the
+ primary business sector and disclose that limitation. Do not invent segment weights.
+
+
+ 8. Historical macro intelligence
+ Persist immutable score snapshots so users can view score history and reproduce past calculations. UI ranges: 1M,
+ 3M, 6M, 1Y and All. Show current score, changes over selected periods, line chart, 50 midpoint reference and dates.
+
+ Store score snapshot, input observations, contributions, sensitivity configuration version, model version and as-of
+ timestamp. If source data is revised, retain the original published snapshot. Optionally calculate a separately labelled
+ revised historical series; never silently overwrite history.
+
+
+
+
+                                                                                                     Implementation PRD • Page 6
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ 9. Database schema
+  Table                                    Purpose / key fields
+
+  macro_indicators                         Current raw readings: indicator_code, value, unit, observation_date, publication_date, source,
+                                           frequency, status.
+
+  macro_indicator_history                  Time series and revisions: indicator_code, value, observation_date, publication_date,
+                                           revision_number.
+
+  macro_indicator_signals                  Normalised signals: level_signal, momentum_signal, final_signal, calculation_date, coverage.
+
+  sector_master                            Sector catalogue: sector_code, name, description, active status.
+
+  sector_sensitivity                       Sector-indicator settings: sector_id, indicator_code, coefficient, weight, normalisation_method,
+                                           effective dates.
+
+  company_sector_mapping                   Company and segment mapping: company_id, sector_id, revenue_weight, primary flag,
+                                           effective dates.
+
+  sector_macro_scores                      Score snapshots: sector_id, score, label, weighted_signal, coverage, top drivers, model
+                                           version, snapshot_date.
+
+  sector_macro_contributions               Per-score inputs: indicator value, signal, sensitivity, weight, contribution and direction.
+
+  macro_model_configuration                Model settings: K, coverage thresholds, score bands, model version, effective date, active flag.
+
+ Use decimal/numeric types for values, scores and coefficients. Add foreign keys, indexes on indicator_code,
+ sector_id, company_id and snapshot_date, and uniqueness constraints to prevent duplicate observations/snapshots.
+ Preserve source provenance and configuration versions.
+
+
+ 10. Backend API specification
+  Method and endpoint                                                  Purpose / response
+
+  GET /api/v1/companies/{company_id}/macro-outlook                     Company mapping, sector score, sentiment, coverage, top drivers,
+                                                                       indicator summary, as-of date and model version.
+
+  GET /api/v1/macro/sector-impact                                      All available sector scores, labels, drivers and updated timestamp;
+                                                                       support sort/filter.
+
+  GET /api/v1/macro/sectors/{sector_id}/indicators                     Indicator values, prior values, signals, sensitivities, contributions,
+                                                                       sources and dates.
+
+  GET /api/v1/macro/sectors/{sector_id}/history?period=3M              Historical score snapshots for 1M/3M/6M/1Y/ALL.
+
+  GET /api/v1/macro/methodology                                        Definitions, formula, score bands, sources, model version and
+                                                                       limitations.
+
+  POST /api/v1/admin/macro/sector-sensitivity                          Authorised admin update of coefficients; validate and audit every
+                                                                       change.
+
+ API responses should include explicit units, observation/publication dates, data status, coverage, calculation
+ timestamp and model version. Return structured errors for unavailable company mappings, stale data and insufficient
+ coverage. Public endpoints should be read-only.
+
+
+ 11. Automation and refresh schedule
+ Recommended cadence: USD/INR and Brent daily; repo rate on RBI announcements; CPI, WPI and IIP monthly after
+ official release; GDP quarterly; credit/deposit growth on official release; unemployment as published. Refresh
+ schedules must follow source publication calendars rather than assumed dates.
+
+ Pipeline: fetch → validate → persist raw observation → detect revisions → normalise signals → apply sector
+ sensitivities → calculate scores → identify drivers → generate explanation → save immutable snapshot →
+ invalidate/refresh cache.
+
+
+
+
+                                                                                                                         Implementation PRD • Page 7
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ Trigger recalculation when a relevant new observation is published or when an authorised administrator activates a
+ new model/sensitivity version. Avoid recalculating all companies independently.
+
+
+ 12. Admin panel requirements
+ • Add, edit, deactivate indicators and configure units, frequency, source and normalisation method.
+
+ • Update sector-indicator sensitivity coefficients, weights and critical-indicator flags.
+
+ • Configure score bands, normalisation factor K and minimum coverage rules.
+
+ • View missing, stale, invalid and revised source data.
+
+ • Manually trigger ingestion, validation and score recalculation.
+
+ • Edit company-sector and segment mapping.
+
+ • Inspect indicator contributions and score calculation logs.
+
+ • Review model versions, effective dates and historical snapshots.
+
+ • Audit every configuration change with user, timestamp, old value and new value.
+
+ Admin configuration must be role-protected, validated and versioned. A model change should create a new effective
+ version; it must not silently alter previously published snapshots.
+
+
+ 13. Error handling, security and performance
+ Error cases: missing data, stale data, source outage, invalid units, duplicate observations, revised data, newly listed
+ companies, diversified companies without segment data, insufficient sector coverage, extreme readings, conflicting
+ indicators and failed score jobs.
+
+ Fallback: serve the last successful snapshot with its original timestamp and a visible stale-data warning. Do not
+ display a stale score as current.
+
+ Security: only authorised admins can change model settings. Public endpoints are read-only. Validate inputs, apply
+ rate limits where appropriate, store secrets securely and audit administrative changes.
+
+ Performance: cache sector scores and indicator payloads; do not call external macro sources during company page
+ rendering. Keep the macro engine independent from fundamental and technical scoring services.
+
+
+
+
+                                                                                                  Implementation PRD • Page 8
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ 14. Acceptance criteria and QA test cases
+  ID              Acceptance requirement
+
+  AC01            Correct company-sector mapping is shown.
+
+  AC02            Raw macro observations retain source, units and both relevant dates.
+
+  AC03            Normalised indicator signals remain between −1 and +1.
+
+  AC04            Correct sector-specific sensitivity and weight are applied.
+
+  AC05            Score remains between 0 and 100 and formula is reproducible.
+
+  AC06            Correct sentiment band is assigned.
+
+  AC07            Top drivers are selected by absolute contribution.
+
+  AC08            Sector comparison table shows all supported sectors and highlights current sector.
+
+  AC09            Indicator breakdown displays actual values, units, signals, dates and sources.
+
+  AC10            Historical snapshots are retrievable and immutable.
+
+  AC11            Missing/stale data is clearly flagged; no artificial neutral values.
+
+  AC12            Diversified companies support revenue-weighted sector exposure.
+
+  AC13            Admin can update sensitivities without a code deployment.
+
+  AC14            Model version and calculation inputs are auditable.
+
+  AC15            Responsive UI works on desktop and mobile.
+
+  AC16            Company page does not independently fetch macro data from external sources.
+
+
+ QA scenarios
+  Scenario                 Input                                                         Expected behaviour
+
+  Real estate              Rising rates; strong credit; higher construction              Rate and construction-cost contributions negative; credit
+                           costs                                                         contribution positive; aggregate calculated from valid
+                                                                                         weighted inputs.
+
+  Private banks            Healthy credit; changing repo; deposit growth                 Credit positive if configured; funding and repricing effects
+                           changes                                                       evaluated separately.
+
+  FMCG                     Food/input inflation rises; consumption weakens               Cost pressure negative; demand signal separately
+                                                                                         assessed.
+
+  Aviation                 Crude rises; rupee depreciates; passenger                     Fuel and FX pressures negative; demand may be positive.
+                           demand improves
+
+  Missing data             CPI missing; credit and GDP available                         CPI excluded; coverage recalculated; score only if
+                                                                                         coverage and critical-input rules pass.
+
+  Zero contributions       All valid contributions equal zero                            Score equals 50; label Neutral, provided coverage is
+                                                                                         sufficient.
+
+  Source outage            Latest refresh fails                                          Serve last successful snapshot with explicit stale warning.
+
+  Revised data             Source revises a prior reading                                Retain original published snapshot; optionally create
+                                                                                         labelled revised series.
+
+
+
+
+                                                                                                                               Implementation PRD • Page 9
+FINLIT VENTURES | MACRO & SECTOR OUTLOOK
+
+
+
+
+ 15. Implementation roadmap
+  Phase                  Deliverables                                                     Exit condition
+
+  1. Foundation          Database, source integrations, validation, raw history           Reliable observations with provenance and
+                                                                                          dates.
+
+  2. Scoring engine      Normalisation, sensitivity matrix, score calculation, mapping,   Reproducible sector scores with unit tests.
+                         drivers
+
+  3. Frontend MVP        Backdrop bar, sector table, indicator grid, explanation,         Company pages render accurate cached
+                         methodology                                                      results.
+
+  4. Historical          Snapshots, score history chart, model versioning                 Historical scores reproducible.
+  intelligence
+
+  5. Admin and QA        Admin controls, audit logs, monitoring, regression tests         Safe configuration and production readiness.
+
+
+ MVP priority: data ingestion, normalisation, sector sensitivity, scoring, company mapping, backdrop bar, sector table,
+ indicator grid and methodology. Historical charts and admin tooling should follow, but configuration/versioning and
+ auditability must exist before production scores are published.
+
+
+ 16. Future enhancements and launch checklist
+ Future enhancements (not MVP blockers): macro score versus sector-index performance; macro event impact;
+ sector rotation intelligence; scenario analysis (e.g. repo ±25 bps, crude ±10%, CPI +1 percentage point); and
+ threshold-based macro alerts.
+
+ Launch checklist:
+
+ • All data sources approved and documented; licensing/usage rights checked.
+
+ • Observation date and publication date stored separately.
+
+ • Normalisation direction and thresholds reviewed by product/data owner.
+
+ • Sector sensitivities reviewed and backtested; model limitations disclosed.
+
+ • Aggregation and missing-data policy finalised and unit-tested.
+
+ • Historical snapshots immutable and reproducible.
+
+ • Company mapping and segment weights reviewed.
+
+ • UI displays as-of date, coverage, source and stale-data warnings.
+
+ • Admin access, audit trail, monitoring and rollback tested.
+
+ • Investment-advice disclaimer and methodology explanation reviewed.
+
+
+ Final product outcome: Every supported stock page should connect Macroeconomic Data → Indicator Signals
+ → Sector Sensitivities → Sector Macro Score → Investor Interpretation. The feature should be scalable,
+ transparent, explainable and independently maintained from Fundamental and Technical scoring.
+
+
+ Disclaimer: The Macro & Sector Outlook is an informational model of sector-level macroeconomic conditions. It is not a company-specific
+ assessment, forecast, or investment recommendation. Sensitivity assumptions and model outputs are subject to uncertainty and must be
+ validated.
+
+
+
+
+                                                                                                                Implementation PRD • Page 10
+

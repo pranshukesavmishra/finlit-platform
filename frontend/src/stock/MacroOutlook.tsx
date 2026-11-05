@@ -1,0 +1,196 @@
+// MACRO & SECTOR OUTLOOK on every company page (PRD section 2): A backdrop bar, B sector impact, C indicator signals, D interpretation (+ history), E how it works.
+// Reads stored results only. Describes the sector's macroeconomic backdrop, never the company and never a recommendation.
+import { useId, useState } from "react";
+import { Icon } from "../lib/icons";
+import { dateIN } from "../lib/format";
+import { SectionHead } from "./Sections";
+import "../styles/macro-outlook.css";
+import { PERIODS, GROUP_ICON, arrow, driverText, insufficientText, pct, shortName, signed, useCompanyMacro, useMacroHistory, useMacroMethod, useSectorImpact,
+  type CompanyMacro, type Driver, type History, type Indicator, type Item, type SectorRow, type Tone } from "../lib/macroOutlook";
+
+
+export function Chip({ label, tone }: { label: string; tone: Tone }) { return <span className={"mo-chip " + tone}>{label}</span>; }
+function Pill({ d }: { d: Driver }) { return <span className={"mo-pill " + (d.sign === "+" ? "pos" : "neg")} title={`${d.name}: ${d.valueText}. ${d.sign === "+" ? "Supports" : "Weighs on"} the score.`}><span aria-hidden="true">{driverText(d)}</span><span className="sr">{d.name}, {d.sign === "+" ? "supports" : "weighs on"} the score</span></span>; }
+function Bar({ score, tone }: { score: number | null; tone: Tone }) {
+  return <span className="mo-bar" role="img" aria-label={score == null ? "No score" : `Score ${Math.round(score)} out of 100, 50 is neutral`}><i className={tone} style={{ width: `${pct(score)}%` }} /><u title="50 = neutral" /></span>;
+}
+const when = (iso?: string | null) => (iso ? dateIN(iso) : "—");
+
+function Meta({ c }: { c: CompanyMacro }) {
+  return <p className="mo-meta">As of <b>{when(c.snapshotDate)}</b>{c.basis === "reconstructed" ? " (reconstructed)" : ""} · coverage <b>{c.coverage != null ? Math.round(c.coverage * 100) : "—"}%</b> · model v{c.modelVersion} · initial assumptions, not validated</p>;
+}
+
+/* A: the backdrop bar */
+function Backdrop({ c, onHow }: { c: CompanyMacro; onHow: () => void }) {
+  const ok = c.status === "ok";
+  return (
+    <div className="mo-bar-a" role="group" aria-label="Macro backdrop summary">
+      <span className="mo-k">Macro backdrop</span>
+      <Chip label={ok ? c.label! : "Insufficient Data"} tone={ok ? c.tone ?? "flat" : "none"} />
+      <span className="mo-sector"><Icon name="layers" />{c.mapping?.sectorName}</span>
+      <span className="mo-score"><b>{ok && c.score != null ? Math.round(c.score) : "—"}</b><small>/100</small><Bar score={ok ? c.score ?? null : null} tone={c.tone ?? "none"} /></span>
+      <span className="mo-drivers">{ok ? (c.drivers?.length ? c.drivers.map((d) => <Pill key={d.code} d={d} />) : <span className="faint">No dominant driver</span>) : <span className="faint">{insufficientText(c)}</span>}</span>
+      <button type="button" className="mo-link" onClick={onHow}>How it works</button>
+    </div>
+  );
+}
+
+/* B: sector impact */
+export function SectorTable({ rows, current, all, setAll }: { rows: SectorRow[]; current: string; all: boolean; setAll: (v: boolean) => void }) {
+  const idx = rows.findIndex((r) => r.sector.code === current);
+  const shown = all ? rows : rows.filter((r, i) => i < 6 || r.sector.code === current);
+  return (
+    <div className="mo-panel">
+      <div className="mo-h"><h3><Icon name="bars" />Sector impact</h3><span className="faint">50 is neutral · sorted by score</span></div>
+      <table className="mo-t"><thead><tr><th scope="col">Sector</th><th scope="col">Score <span className="faint">(line at 50)</span></th><th scope="col" className="num">Score</th><th scope="col">Sentiment</th><th scope="col">Top reasons</th></tr></thead>
+        <tbody>{shown.map((r) => {
+          const me = r.sector.code === current;
+          return (
+            <tr key={r.sector.code} className={me ? "me" : ""} aria-current={me ? "true" : undefined}>
+              <th scope="row">{r.sector.name}{me && <span className="mo-you">This company</span>}</th>
+              <td data-l="Score"><Bar score={r.score} tone={r.tone} /></td>
+              <td className="num" data-l="Score">{r.score == null ? "—" : Math.round(r.score)}</td>
+              <td data-l="Sentiment"><Chip label={r.label} tone={r.tone} /></td>
+              <td data-l="Reasons">{r.status === "ok" ? (r.drivers.length ? r.drivers.map((d) => <Pill key={d.code} d={d} />) : <span className="faint">No dominant driver</span>) : <span className="faint">{(r.reason?.split(";")[0].replace(/^missing critical: /, "missing ") ?? "Insufficient Data")}</span>}</td>
+            </tr>);
+        })}</tbody></table>
+      {rows.length > 7 && <button type="button" className="mo-more" onClick={() => setAll(!all)} aria-expanded={all}>{all ? "Show fewer sectors" : `Show all ${rows.length} sectors`}{!all && idx >= 6 ? "" : ""}</button>}
+    </div>
+  );
+}
+
+/* C: indicator signals */
+function SignalBar({ v }: { v: number | null }) {
+  if (v == null) return <span className="mo-sig none">no signal</span>;
+  return <span className="mo-sig" title={`Normalised signal ${signed(v)} (−1 low or falling, +1 high or rising)`}><i style={{ left: `${(v + 1) * 50}%` }} className={v > 0.05 ? "hi" : v < -0.05 ? "lo" : ""} /><em>{signed(v)}</em></span>;
+}
+function Tile({ i }: { i: Indicator }) {
+  const bad = i.status === "Missing" || i.status === "Stale" || i.status === "Invalid";
+  const s = i.sensitivity;
+  return (
+    <li className={"mo-tile" + (bad ? " bad" : "")}>
+      <div className="mo-tn"><b>{i.name}</b>{s && s.counted && s.contribution != null && Math.abs(s.contribution) > 0 && <span className={"mo-eff " + (s.contribution > 0 ? "pos" : "neg")} title="Effect on this sector's score">{s.contribution > 0 ? "supports" : "weighs"} {signed(s.contribution)}</span>}</div>
+      {bad ? <p className="mo-miss"><Icon name="alert" />{i.status}: {i.detail || "no reading"}</p> : (
+        <>
+          <div className="mo-val"><b>{i.valueText}</b>{i.direction !== "none" && <span className={"mo-ch " + i.direction}>{arrow(i.direction)} <small>vs {i.prevText}</small></span>}</div>
+          <SignalBar v={i.signal} />
+        </>)}
+      <p className="mo-src">{i.observationDate ? `${dateIN(i.observationDate)} · ` : ""}{i.source}{i.status === "Revised" ? " · revised" : ""}</p>
+    </li>);
+}
+function Indicators({ c }: { c: CompanyMacro }) {
+  const by = (g: string) => (c.indicators ?? []).filter((i) => i.group === g);
+  return (
+    <div className="mo-panel">
+      <div className="mo-h"><h3><Icon name="activity" />Indicator signals</h3><span className="faint">signal: −1 low or falling, +1 high or rising</span></div>
+      {(c.groups ?? []).map((g) => by(g.code).length > 0 && (
+        <section key={g.code} className="mo-grp" aria-label={g.name}><h4><Icon name={GROUP_ICON[g.code] ?? "info"} />{g.name}</h4><ul>{by(g.code).map((i) => <Tile key={i.code} i={i} />)}</ul></section>))}
+    </div>);
+}
+
+/* D: interpretation */
+function List({ title, icon, tone, items, empty }: { title: string; icon: string; tone: string; items: Item[]; empty: string }) {
+  return (
+    <div className={"mo-col " + tone}><h4><Icon name={icon} />{title}</h4>
+      {items.length ? <ul>{items.map((x) => <li key={x.code}><b>{shortName(x.code, x.name)}</b>{x.valueText && <span>{x.valueText}</span>}{x.contribution != null && <em>{signed(x.contribution)}</em>}{x.why && <span className="faint">{x.why}</span>}</li>)}</ul> : <p className="faint">{empty}</p>}
+    </div>);
+}
+function Interpretation({ c }: { c: CompanyMacro }) {
+  const e = c.explanation ?? {};
+  return (
+    <div className="mo-panel">
+      <div className="mo-h"><h3><Icon name="notes" />Sector interpretation</h3></div>
+      {e.headline && <p className="mo-lead">{e.headline}</p>}
+      <div className="mo-cols">
+        <List title="Supporting" icon="growth" tone="pos" items={e.supporting ?? []} empty="None at present" />
+        <List title="Weighing" icon="alert" tone="neg" items={e.adverse ?? []} empty="None at present" />
+        <List title="Monitor" icon="search" tone="mon" items={e.monitor ?? []} empty="Nothing flagged" />
+      </div>
+    </div>);
+}
+
+/* history */
+export function Chart({ h }: { h: History }) {
+  const pts = h.points;
+  const W = 520, H = 170, L = 30, R = 10, T = 10, B = 22;
+  const x = (i: number) => L + (pts.length < 2 ? (W - L - R) / 2 : (i / (pts.length - 1)) * (W - L - R));
+  const y = (v: number) => T + (1 - v / 100) * (H - T - B);
+  const valid = pts.map((p, i) => ({ p, i })).filter((q) => q.p.score != null);
+  const path = valid.map((q, k) => `${k ? "L" : "M"}${x(q.i).toFixed(1)},${y(q.p.score!).toFixed(1)}`).join(" ");
+  const last = valid[valid.length - 1];
+  const label = valid.length ? `Score history, ${h.period}: ${when(pts[0].date)} to ${when(pts[pts.length - 1].date)}, latest ${Math.round(last.p.score!)} out of 100; 50 is neutral.` : "No score history yet.";
+  return (
+    <svg className="mo-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
+      {[0, 25, 50, 75, 100].map((g) => <g key={g}><line x1={L} x2={W - R} y1={y(g)} y2={y(g)} className={g === 50 ? "mid" : "grid"} /><text x={L - 5} y={y(g) + 3} textAnchor="end">{g}</text></g>)}
+      <text x={W - R} y={y(50) - 4} textAnchor="end" className="midt">50 neutral</text>
+      {path && <path d={path} className="ln" />}
+      {valid.map((q) => <circle key={q.i} cx={x(q.i)} cy={y(q.p.score!)} r={q === last ? 4 : 2.2} className={q.p.basis === "reconstructed" ? "rc" : "lv"}><title>{`${when(q.p.date)}: ${Math.round(q.p.score!)} (${q.p.label}${q.p.basis === "reconstructed" ? ", reconstructed" : ""})`}</title></circle>)}
+      {pts.length > 0 && <><text x={L} y={H - 6} textAnchor="start">{dateIN(pts[0].date, { month: "short", year: "2-digit" })}</text><text x={W - R} y={H - 6} textAnchor="end">{dateIN(pts[pts.length - 1].date, { month: "short", year: "2-digit" })}</text></>}
+    </svg>);
+}
+function HistoryPanel({ c }: { c: CompanyMacro }) {
+  const [period, setPeriod] = useState<(typeof PERIODS)[number]>("6M");
+  const code = c.mapping?.sector ?? "";
+  const q = useMacroHistory(code, period, c.mapping?.basis === "primary");
+  const d = c.deltas ?? {};
+  return (
+    <div className="mo-panel">
+      <div className="mo-h"><h3><Icon name="line" />Score history</h3>
+        <div className="mo-seg" role="group" aria-label="Period">{PERIODS.map((p) => <button key={p} type="button" aria-pressed={period === p} className={period === p ? "on" : ""} onClick={() => setPeriod(p)}>{p}</button>)}</div></div>
+      {c.mapping?.basis !== "primary" ? <p className="faint">History is shown per sector; this company is weighted across several sectors.</p> : q.data && q.data.points.length ? <Chart h={q.data} /> : <p className="faint">{q.isLoading ? "Loading…" : "No history yet."}</p>}
+      <div className="mo-delta">{["1M", "3M", "6M", "1Y"].map((k) => <span key={k} className={d[k] ? (d[k]!.change > 0 ? "pos" : d[k]!.change < 0 ? "neg" : "") : ""}>{k} <b>{d[k] ? signed(d[k]!.change, 1) : "—"}</b></span>)}</div>
+      {q.data?.points.some((p) => p.basis === "reconstructed") && <p className="mo-foot"><span className="mo-dot rcd" /> reconstructed from stored data; <span className="mo-dot lv" /> calculated on the day.</p>}
+    </div>);
+}
+
+/* E: how it works */
+function How({ open }: { open: boolean }) {
+  const m = useMacroMethod(open);
+  const d = m.data;
+  return (
+    <div className="mo-how">
+      {!d ? <p className="faint">{m.isError ? "The methodology could not be loaded." : "Loading…"}</p> : (
+        <>
+          <p>{d.scoreMeaning}</p>
+          <div className="mo-bands">{d.bands.map((b, i) => <span key={b.label}><Chip label={b.label} tone={(["up2", "up", "flat", "down", "down2"] as Tone[])[i]} /> <small>{b.min}{i === 0 ? "–100" : `–${d.bands[i - 1].min - 1}`}</small></span>)}</div>
+          <h5>Formula</h5><ol className="mo-f">{d.formula.map((f) => <li key={f}>{f}</li>)}</ol>
+          <h5>Indicators and sources</h5><ul className="mo-src2">{d.indicators.map((i) => <li key={i.code}><b>{i.name}</b> <span className="faint">{i.frequency} · {i.source}</span></li>)}</ul>
+          <h5>Normalisation</h5><p>{d.normalisation}</p><h5>Sensitivities</h5><p>{d.sensitivities}</p><h5>Top drivers</h5><p>{d.drivers}</p>
+          <h5>Sources and updates</h5><p>{d.sources} {d.updates}</p>
+          <h5>Limitations</h5><ul>{d.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
+          <p className="mo-assume"><Icon name="info" />{d.assumptionsNote}</p>
+        </>)}
+    </div>);
+}
+
+export function MacroOutlookSection({ symbol }: { symbol: string }) {
+  const q = useCompanyMacro(symbol);
+  const c = q.data;
+  const showImpact = !!c && (c.status === "ok" || c.status === "insufficient_data");
+  const imp = useSectorImpact(showImpact);
+  const [all, setAll] = useState(false);
+  const [how, setHow] = useState(false);
+  const hid = useId();
+  const openHow = () => { setHow(true); requestAnimationFrame(() => document.getElementById(hid)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" })); };
+  const head = <SectionHead id="macro" no="Macro" icon="globe" title="MACRO & SECTOR OUTLOOK" sub="How the economy is moving for this company's sector." color="--p-growth" />;
+  let body: React.ReactNode;
+  if (q.isLoading) body = <div className="mo-skel" aria-busy="true">Loading the macro outlook…</div>;
+  else if (q.isError || !c) body = <p className="mo-note" role="status"><Icon name="alert" />The macro outlook is unavailable right now ({q.error?.status ?? "no answer"}). It reads stored results only; please try again shortly.</p>;
+  else if (c.status === "not_mapped" || c.status === "pending") body = <p className="mo-note" role="status"><Icon name="info" />Macro outlook not available for this company: {c.reason ?? "its sector has not been assigned yet."}</p>;
+  else {
+    body = (
+      <>
+        {c.stale.isStale && <p className="mo-stale" role="alert"><Icon name="alert" /><span><b>Stale data.</b> {c.stale.message}</span></p>}
+        <Backdrop c={c} onHow={openHow} />
+        <Meta c={c} />
+        {c.mapping && <p className="mo-map"><Icon name="layers" />{c.mapping.note} {c.segments && <span>{c.segments.map((s) => `${s.name} ${Math.round(s.weight * 100)}%`).join(" · ")}</span>}</p>}
+        {c.status === "insufficient_data" && <p className="mo-note" role="status"><Icon name="info" />{insufficientText(c)}. No score is shown rather than a guess.</p>}
+        {imp.data && c.mapping && <SectorTable rows={imp.data.sectors} current={c.mapping.sector} all={all} setAll={setAll} />}
+        <Indicators c={c} />
+        <div className="mo-two"><Interpretation c={c} /><HistoryPanel c={c} /></div>
+        <details className="mo-det" id={hid} open={how} onToggle={(e) => setHow((e.target as HTMLDetailsElement).open)}><summary><Icon name="info" />How it works</summary>{how && <How open={how} />}</details>
+        <p className="mo-disc">{c.disclaimer}</p>
+      </>);
+  }
+  return <section className="block mo" aria-label="Macro and sector outlook" style={{ "--sc": "var(--p-growth)" } as React.CSSProperties}>{head}{body}</section>;
+}

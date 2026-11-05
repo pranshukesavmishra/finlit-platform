@@ -8,7 +8,6 @@ import { Spark } from "../charts/Small";
 import { Gate } from "../components/Gate";
 import { PrismCompare, PrismDetail } from "./PrismCompare";
 import { ScreenBadges } from "./ScreenBadges";
-import { MacroBackdrop } from "./MacroBackdrop";
 import { ScoreCard, ScoreDetail } from "./ScoreCard";
 import { DashToggle, useDashOpen } from "./DashToggle";
 import { apiUrl } from "../lib/api";
@@ -54,7 +53,6 @@ export function Hero({ s, ratios, fin, jump }: { s: Summary; ratios?: Ratios; fi
                 <SubLine profile={p} score={s.score} plan={effPlan} admin={isAdmin} prism={prismIn} />
                 <Row label="Listed as"><div className="tags"><span className="tag tk">{p.nse || p.symbol}</span><span className="tag">NSE</span>{p.bse && <span className="tag mono">BSE {p.bse}</span>}</div></Row>
                 <ScreenBadges symbol={p.symbol} />
-                <MacroBackdrop symbol={p.symbol} />
               </div>
               <LeadLine symbol={p.symbol} jump={jump} />
             </div>

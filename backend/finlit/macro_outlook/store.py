@@ -344,7 +344,7 @@ async def sync_mappings(conn, today: date) -> Dict[str, int]:
         else:
             if old:
                 close.append((old["id"],))
-            why = ("the company has no Sector or Industry label" if not (c["sector"] or c["industry"]) else
+            why = ("the company has no Sector or Industry label yet (its report has not been loaded)" if not (c["sector"] or c["industry"]) else
                    f"no label-map rule matches its Sector '{c['sector'] or '-'}' / Industry '{c['industry'] or '-'}'")
             unmapped.append((sym, why, c["sector"], c["industry"]))
     if close:
