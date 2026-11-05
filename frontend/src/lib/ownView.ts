@@ -82,7 +82,7 @@ export function donutArcs(slices: Slice[]): { key: GroupKey; dash: string; offse
 }
 
 // ------------------------------------------------------------------------------------------------ who bought and who sold
-export const CMP_OPTIONS: { q: number; label: string }[] = [{ q: 1, label: "Last quarter" }, { q: 4, label: "1 year" }, { q: 12, label: "3 years" }, { q: 20, label: "5 years" }];
+export const CMP_OPTIONS: { q: number; label: string; short: string }[] = [{ q: 1, label: "Last quarter", short: "1Q" }, { q: 4, label: "1 year", short: "1Y" }, { q: 12, label: "3 years", short: "3Y" }, { q: 20, label: "5 years", short: "5Y" }];
 export const SHARE_RULE_PCT = 0.5;
 
 export type MoveMode = "trade" | "issued" | "unknown";
