@@ -71,3 +71,12 @@ describe("overlay surfaces", () => {
     expect(overlay).toContain("prefers-reduced-transparency");
   });
 });
+
+describe("crisp dialogs", () => {
+  it("centred dialogs are never placed with translate(-50%) and never blur their own content", () => {
+    expect(overlay).toMatch(/:is\(\.alx-modal, \.modal\)\s*\{[^}]*margin: auto;[^}]*transform: none/);
+    expect(overlay).toMatch(/:is\(\.palette, \.gs, \.plf-note\)\s*\{[^}]*transform: none[^}]*backdrop-filter: none/);
+    expect(css("plflags.css")).not.toMatch(/\.plf-note\s*\{[^}]*backdrop-filter/);
+    expect(css("plflags.css")).not.toMatch(/animation:[^;]*\bboth\b/);
+  });
+});
