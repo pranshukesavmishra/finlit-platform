@@ -176,6 +176,9 @@ def stock_sector_text(d: dict) -> str:
 
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0].startswith("ownership"):
+        from .ownership import cli as ownership_cli
+        return ownership_cli(argv)
     if argv and argv[0] == "fetch-nse":
         from .fetch import main as fetch_main
         return fetch_main(argv[1:])
