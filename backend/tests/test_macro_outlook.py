@@ -331,7 +331,7 @@ async def test_indicators_without_a_source_are_missing_with_a_reason(mo):
     await ST.run(mo, "test", today=D(2026, 10, 23), reconstruct_months=0)
     async with mo.pool.acquire() as conn:
         row = await conn.fetchrow("SELECT status, value, detail FROM macro_indicators WHERE indicator_code = 'BRENT'")
-    assert row["status"] == "Missing" and row["value"] is None and "vendor key" in row["detail"]
+    assert row["status"] == "Missing" and row["value"] is None and "source key not set" in row["detail"] and "vendor feed" in row["detail"]
 
 
 @pytest.mark.integration

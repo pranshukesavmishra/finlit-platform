@@ -451,7 +451,38 @@ def _chg(pct: Optional[Decimal], ab: Optional[Decimal], dp_abs: int, unit: str) 
     return None if pct is None or ab is None else {"pct": q(pct, 2), "abs": q(ab, dp_abs), "absUnit": unit}
 
 
-def build(settings, now: datetime, mcx: Optional[dict], intl: Optional[dict], cfg: Optional[dict], hb: Optional[float]) -> Dict[str, Any]:
+EIA_LAG = "U.S. EIA, daily, 1-2 business day lag"
+EIA_STALE_DAYS = 10        # as the Macro Outlook: an older EIA Brent price is shown dimmed with its age, never presented as current
+EIA_FX_DAYS = 7            # the rupee rate behind the conversion must be this recent, or no rupee figure is shown
+
+
+def eia_brent_item(eia: Optional[dict], today: date) -> Dict[str, Any]:
+    """The Brent card built from the stored U.S. EIA daily series (macro series brent_d) when the price vendor carries no usable Brent. `eia` is
+    {"brent": [(day, value), ...] newest last, "usdinr": (day, value) or None, "reason": text or None}. US$ a barrel; the rupee figure is a conversion at the
+    latest FBIL USD/INR and says so, with both dates. Nothing here comes from Dhan."""
+    pts = (eia or {}).get("brent") or []
+    b: Dict[str, Any] = {"state": "none", "usd": None, "date": None, "changePct": None, "prevDate": None, "inr": None, "source": "U.S. EIA", "lag": EIA_LAG, "note": None,
+                         "unit": "$ per barrel"}
+    if not pts:
+        b["note"] = (eia or {}).get("reason") or "Brent: no prices loaded yet."
+    else:
+        d, v = pts[-1]
+        age = (today - d).days
+        b.update(state="stale" if age > EIA_STALE_DAYS else "ok", usd=q(dec(v), 2), date=d.isoformat())
+        if age > EIA_STALE_DAYS:
+            b["note"] = f"The last EIA price is {age} days old."
+        elif len(pts) > 1:
+            c = calc.day_change(dec(v), dec(pts[-2][1]))
+            if c:
+                b.update(changePct=q(c[1], 2), prevDate=pts[-2][0].isoformat())
+        fx = (eia or {}).get("usdinr")
+        if fx and (today - fx[0]).days <= EIA_FX_DAYS and dec(fx[1]):
+            b["inr"] = {"value": q(dec(v) * dec(fx[1]), 0), "unit": "₹ per barrel", "usdinr": q(dec(fx[1]), 4), "usdinrDate": fx[0].isoformat(), "priceDate": d.isoformat(),
+                        "label": "Conversion, not a quote: the EIA price at the FBIL USD/INR rate"}
+    return {"code": "brent", "name": "Brent crude", "group": "energy", "mcx": None, "intl": [], "parity": None, "notes": [], "eia": b}
+
+
+def build(settings, now: datetime, mcx: Optional[dict], intl: Optional[dict], cfg: Optional[dict], hb: Optional[float], eia: Optional[dict] = None) -> Dict[str, Any]:
     """The /api/commodity-prices answer from what the worker saved, at the moment of the request."""
     cfg, mcx, intl = cfg or {}, mcx or {}, intl or {}
     ts = now.timestamp()
@@ -542,6 +573,8 @@ def build(settings, now: datetime, mcx: Optional[dict], intl: Optional[dict], cf
         if card["duty"]:
             item["parity"] = _parity(card, item, cfg, today, values, usdinr, fx, fx_state)
         items.append(item)
+        if card["code"] == "crude" and eia is not None and not any(x["key"] == "brent" and x["usd"] is not None for x in item["intl"]):
+            items.append(eia_brent_item(eia, today))     # the vendor has no Brent: the EIA daily series fills the card beside Crude oil
     ratio = None
     g, s = values.get("gold"), values.get("silver")
     if g and s and all((i["intl"][0]["state"] in ("fresh", "closed")) for i in items if i["code"] in ("gold", "silver")):
@@ -613,13 +646,27 @@ async def _load(app) -> Tuple[Optional[dict], Optional[dict], Optional[dict], Op
     return out[0], out[1], out[2], out[3]
 
 
+async def _load_eia(app) -> Optional[dict]:
+    """The stored EIA Brent days, the latest FBIL USD/INR and the reason when there are none; None when the database cannot be read (the card is then left out)."""
+    try:
+        async with app.state.store.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT d, v FROM macro_points WHERE series = 'brent_d' ORDER BY d DESC LIMIT 2")
+            fx = await conn.fetchrow("SELECT d, v FROM macro_points WHERE series = 'usdinr_d' ORDER BY d DESC LIMIT 1")
+            run = await conn.fetchval("SELECT body FROM macro_meta WHERE key = 'run:eia_brent'")
+        run = json.loads(run) if isinstance(run, str) else (run or {})
+        return {"brent": [(r["d"], float(r["v"])) for r in reversed(rows)], "usdinr": (fx["d"], float(fx["v"])) if fx else None, "reason": run.get("reason") or ("Brent: the last download from the U.S. EIA failed." if run.get("status") == "failed" else None)}
+    except Exception:
+        log.exception("commodity prices: the EIA Brent days could not be read")
+        return None
+
+
 @router.get("")
 async def commodities(request: Request) -> Response:
     """Commodity prices for everyone (no sign-in). Built from what the worker saved in Redis; never calls a provider."""
     app = request.app
     mcx, intl, cfg, hb = await _load(app)
     now = datetime.now(IST)
-    body = build(app.state.settings, now, mcx, intl, cfg, hb)
+    body = build(app.state.settings, now, mcx, intl, cfg, hb, await _load_eia(app))
     age = 10 if body["market"]["mcx"]["open"] else 60
     return Response(json.dumps(body), media_type="application/json", headers={"Cache-Control": f"public, max-age={age}"})
 

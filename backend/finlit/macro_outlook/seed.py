@@ -3,7 +3,7 @@ Written to the database once (ensure_seed, idempotent); from then on the databas
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Optional, Any, Dict, List, Tuple
 
 from .engine import DEFAULT_BANDS
 
@@ -12,6 +12,8 @@ MODEL_NOTE = "Initial assumptions, not validated: sensitivities, thresholds, K a
 GROUPS = [("inflation", "Inflation"), ("monetary", "Monetary Policy"), ("credit", "Credit & Banking"), ("growth", "Economic Growth"), ("currency", "Currency"), ("commodities", "Commodities")]
 
 MOSPI, RBI, FBIL = ("MoSPI", "https://esankhyiki.mospi.gov.in"), ("RBI", "https://www.rbi.org.in"), ("RBI / FBIL", "https://www.fbil.org.in")
+EIA = ("U.S. EIA", "https://www.eia.gov/dnav/pet/hist/RBRTED.htm")
+WB = ("World Bank Commodity Price Data (Pink Sheet), CC BY 4.0", "https://www.worldbank.org/en/research/commodity-markets")
 COMM = ("Commodity price snapshots (metals.dev / MetalpriceAPI via the commodity worker)", "https://www.finlitventures.com/commodities")
 
 
@@ -43,10 +45,10 @@ INDICATORS: List[Tuple] = [
     ("UNEMPLOYMENT", "Unemployment rate", "growth", "%", "Monthly", ("PLFS / MoSPI", MOSPI[1]), 100, 0, 40, {"level": thr(5.0, 1.0), "momentum": mom(91, 0.5)}, "Persons 15+, current weekly status."),
     ("USDINR", "USD/INR", "currency", "₹", "Daily", FBIL, 10, 20, 250, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 3.0, "min_points": 3}, "momentum": mom(91, 3.0, "pct_change")},
      "A high reading is a weaker rupee."),
-    ("BRENT", "Brent crude", "commodities", "$/bbl", "Daily", COMM, 10, 10, 250, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 15.0, "min_points": 20}, "momentum": mom(91, 15.0, "pct_change")}, "Needs a commodity-price key on the server."),
-    ("COPPER", "Copper", "commodities", "$/t", "Daily", COMM, 10, 1000, 30000, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 12.0, "min_points": 20}, "momentum": mom(91, 12.0, "pct_change")}, "Needs a commodity-price key."),
-    ("ALUMINIUM", "Aluminium", "commodities", "$/t", "Daily", COMM, 10, 500, 10000, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 12.0, "min_points": 20}, "momentum": mom(91, 12.0, "pct_change")}, "Needs a commodity-price key."),
-    ("NATGAS", "Natural gas", "commodities", "$/mmBtu", "Daily", COMM, 10, 0.5, 40, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 25.0, "min_points": 20}, "momentum": mom(91, 25.0, "pct_change")}, "Needs a commodity-price key."),
+    ("BRENT", "Brent crude", "commodities", "$/bbl", "Daily", EIA, 10, 10, 250, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 15.0, "min_points": 20}, "momentum": mom(91, 15.0, "pct_change")}, "U.S. EIA daily Europe Brent spot price, published with a lag of 1-2 business days; a commodity-price vendor feed is used instead when one is connected and newer."),
+    ("COPPER", "Copper", "commodities", "$/t", "Monthly", WB, 75, 1000, 30000, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 12.0, "min_points": 6}, "momentum": mom(91, 12.0, "pct_change")}, "World Bank monthly average (a daily vendor feed is used instead when one is connected and newer)."),
+    ("ALUMINIUM", "Aluminium", "commodities", "$/t", "Monthly", WB, 75, 500, 10000, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 12.0, "min_points": 6}, "momentum": mom(91, 12.0, "pct_change")}, "World Bank monthly average (a daily vendor feed is used instead when one is connected and newer)."),
+    ("NATGAS", "Natural gas", "commodities", "$/mmBtu", "Monthly", WB, 75, 0.5, 40, {"level": {"method": "pct_vs_mean", "window_days": 365, "scale_pct": 25.0, "min_points": 6}, "momentum": mom(91, 25.0, "pct_change")}, "US Henry Hub, World Bank monthly average (a daily vendor feed is used instead when one is connected and newer)."),
 ]
 
 # code, name, description
@@ -194,6 +196,37 @@ def indicator_settings() -> Dict[str, Any]:
             for i, (code, _n, _g, _u, _f, _s, stale, lo, hi, norm, _note) in enumerate(INDICATORS)}
 
 
+UPGRADED = ("COPPER", "ALUMINIUM", "NATGAS")      # now read monthly World Bank prices: a monthly series needs fewer points in the year and a longer staleness limit
+
+
+async def upgrade_model(conn) -> Optional[int]:
+    """Bring an already-seeded active model in line with the monthly commodity series. Model versions are immutable, so this writes a NEW version (a copy of the
+    active one with only these indicators' normalisation and staleness changed, every sensitivity copied) and makes it active; the old version and its snapshots
+    stay. Does nothing when the active model already has the new settings, or an administrator has set these indicators themselves (a different min_points)."""
+    row = await conn.fetchrow("SELECT * FROM macro_model_configuration WHERE active")
+    if row is None:
+        return None
+    ind = json.loads(row["indicators"]) if isinstance(row["indicators"], str) else dict(row["indicators"])
+    want = indicator_settings()
+    change = {c: want[c] for c in UPGRADED if c in ind and (ind[c].get("norm") or {}).get("level", {}).get("min_points") == 20 and ind[c].get("stale_after_days") == 10}
+    if not change:
+        return None
+    ind.update({c: {**ind[c], "norm": v["norm"], "stale_after_days": v["stale_after_days"]} for c, v in change.items()})
+    nv = await conn.fetchval("SELECT max(model_version) + 1 FROM macro_model_configuration")
+    async with conn.transaction():
+        await conn.execute("UPDATE macro_model_configuration SET active = false WHERE active")
+        await conn.execute("INSERT INTO macro_model_configuration (model_version, k, signal_scale, min_coverage, stale_after_hours, bands, indicators, active, parent_version, change_note, created_by) "
+                           "VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,true,$8,$9,'system')", nv, row["k"], row["signal_scale"], row["min_coverage"], row["stale_after_hours"],
+                           json.dumps(json.loads(row["bands"]) if isinstance(row["bands"], str) else row["bands"]), json.dumps(ind), row["model_version"],
+                           "Copper, aluminium and natural gas now read the World Bank monthly series: at least 6 monthly readings in the year, stale after 75 days.")
+        await conn.execute("INSERT INTO sector_sensitivity (model_version, sector_id, indicator_code, coefficient, weight, critical, normalisation_method, effective_from, effective_to, active) "
+                           "SELECT $1, sector_id, indicator_code, coefficient, weight, critical, normalisation_method, CURRENT_DATE, NULL, active FROM sector_sensitivity WHERE model_version = $2",
+                           nv, row["model_version"])
+        await conn.execute("INSERT INTO macro_audit_log (actor, action, entity, entity_key, new_value, model_version, note) VALUES ('system','model_upgrade','model',$1,$2::jsonb,$3,$4)",
+                           str(nv), json.dumps({c: v["stale_after_days"] for c, v in change.items()}), nv, "monthly commodity series")
+    return nv
+
+
 async def ensure_seed(conn) -> bool:
     """Write the initial model when the database has none. Idempotent; returns True when it wrote anything. Never touches an existing model."""
     wrote = False
@@ -221,4 +254,5 @@ async def ensure_seed(conn) -> bool:
             await conn.execute("INSERT INTO macro_audit_log (actor, action, entity, entity_key, new_value, model_version, note) VALUES ('system','seed','model','1',$1::jsonb,1,$2)",
                                json.dumps(default_config()), MODEL_NOTE)
         wrote = True
+    wrote = (await upgrade_model(conn) is not None) or wrote
     return wrote

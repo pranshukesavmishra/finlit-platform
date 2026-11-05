@@ -14,8 +14,13 @@ export type CommodityParity = {
   state: "ok" | "hidden"; reason: string | null; perGram?: string; per10g?: string; perKg?: string; withGst?: string; usdinr?: string; asOf?: string;
   duty?: { bcd: string; aidc: string; total: string; gst: string; effectiveFrom: string; checkedOn: string }; premiumPct?: string | null; premiumBasis?: string;
 };
+/** Brent from the U.S. EIA daily series (shown when the price vendor carries no Brent). `inr` is a conversion at the FBIL USD/INR rate, with both dates. */
+export type CommodityEia = {
+  state: "ok" | "stale" | "none"; usd: string | null; unit: string; date: string | null; prevDate: string | null; changePct: string | null; source: string; lag: string; note: string | null;
+  inr: { value: string; unit: string; usdinr: string; usdinrDate: string; priceDate: string; label: string } | null;
+};
 export type CommodityItem = {
-  code: string; name: string; group: "precious" | "energy" | "industrial"; mcx: CommodityMcx | null; intl: CommodityIntl[]; parity: CommodityParity | null; notes: string[];
+  code: string; name: string; group: "precious" | "energy" | "industrial"; mcx: CommodityMcx | null; intl: CommodityIntl[]; parity: CommodityParity | null; notes: string[]; eia?: CommodityEia;
 };
 export type Commodities = {
   asOf: string; status: "ok" | "waiting";

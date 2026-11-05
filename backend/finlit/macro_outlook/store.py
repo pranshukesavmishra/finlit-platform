@@ -18,6 +18,9 @@ from . import seed as SEED
 log = logging.getLogger("finlit.macro_outlook")
 IST = timezone(timedelta(hours=5, minutes=30))
 COMMODITY_CODES = {"brent": "BRENT", "copper": "COPPER", "aluminium": "ALUMINIUM", "natgas": "NATGAS"}
+# indicator code -> (macro series loaded by the macro job, macro job step that loads it): U.S. EIA daily Brent; World Bank Pink Sheet monthly averages (CC BY 4.0)
+PUBLIC_SERIES = {"BRENT": ("brent_d", "eia_brent"), "COPPER": ("copper_m", "worldbank"), "ALUMINIUM": ("aluminium_m", "worldbank"), "NATGAS": ("natgas_m", "worldbank")}
+VENDOR_MIN_POINTS = 20                   # a connected vendor feed replaces the public series only with this many days in the last year (the model's daily window)
 ASSUMED, FIRST_SEEN, SAME_DAY, ANNOUNCED, SOURCE = "assumed_observation_date", "first_seen", "same_day", "derived_from_announcements", "source_publication_date"
 BASIS_TEXT = {ASSUMED: "publication date not recorded: observation date used", FIRST_SEEN: "date first retrieved by FinLit", SAME_DAY: "published the same day",
               ANNOUNCED: "derived from dated RBI announcements", SOURCE: "publication date from the source"}
@@ -72,6 +75,7 @@ class Collected:
     def __init__(self) -> None:
         self.points: Dict[str, Dict[date, Tuple[float, str, Optional[date]]]] = {}
         self.why_missing: Dict[str, str] = {}
+        self.source: Dict[str, str] = {}       # code -> source name when it differs from the indicator's default (e.g. a connected vendor feed instead of the EIA)
 
     def put(self, code: str, pts: Dict[date, float], kind: str, kinds: Optional[Dict[date, str]] = None, pub: Optional[Dict[date, date]] = None) -> None:
         if pts:
@@ -132,9 +136,23 @@ async def collect(conn, today: date) -> Collected:
         by.setdefault(COMMODITY_CODES[r["symbol"]], {})[r["day"]] = float(r["value"])
     for code, pts in by.items():
         out.put(code, pts, SAME_DAY)
-    for code in COMMODITY_CODES.values():
-        if code not in out.points:
-            out.why_missing[code] = "no price history stored: the commodity worker has no vendor key on the server (METALS_DEV_API_KEY / METALPRICE_API_KEY)"
+    # Brent (U.S. EIA, daily) and copper, aluminium, natural gas (World Bank, monthly) are the standing sources. A connected commodity vendor feed is the first choice
+    # only while it holds enough days and is at least as recent as the public series; otherwise the public series is used. Never both mixed in one history.
+    for code, (key, step) in PUBLIC_SERIES.items():
+        pub = raw.get(key, {})
+        vendor = out.points.get(code, {})
+        recent = [d for d in vendor if d > today - timedelta(days=365)]
+        if vendor and (not pub or (len(recent) >= VENDOR_MIN_POINTS and max(vendor) >= max(pub))):
+            out.source[code] = "commodity price vendor feed"
+            continue
+        out.points.pop(code, None)
+        out.put(code, pub, ASSUMED)
+        if not pub:
+            run = await M.get_meta(conn, "run:" + step) or {}
+            who = "U.S. EIA" if step == "eia_brent" else "World Bank"
+            out.why_missing[code] = ((run.get("reason") if run.get("status") == "nokey" else None) or
+                                     (f"no prices loaded yet (the macro job loads them from the {who} each night)" if not run else f"the last download from the {who} failed")) \
+                + "; no commodity vendor feed is connected either"
     for d in SEED.INDICATORS:
         out.why_missing.setdefault(d[0], "the stored macro series for it is empty (the macro job has not loaded it yet)")
     return out
@@ -151,6 +169,7 @@ async def ingest(conn, today: date, col: Collected, defs: Dict[str, Dict[str, An
                                   "ORDER BY observation_date, revision_number DESC", code):
             existing[r["observation_date"]] = (r["revision_number"], float(r["value"]), r["status"])
         has_history = bool(existing)
+        src = col.source.get(code, d["source_name"])
         lo, hi = f(d["valid_min"]), f(d["valid_max"])
         rows = []
         for od, (v, kind, pubd) in sorted(pts.items()):
@@ -161,7 +180,7 @@ async def ingest(conn, today: date, col: Collected, defs: Dict[str, Dict[str, An
                 continue
             if bad:
                 if cur is None or cur[2] != "Invalid":
-                    rows.append((code, od, od, kind if kind != ASSUMED else ASSUMED, v6, d["unit"], (cur[0] + 1) if cur else 1, "Invalid", d["source_name"], d["source_url"], d["frequency"],
+                    rows.append((code, od, od, kind if kind != ASSUMED else ASSUMED, v6, d["unit"], (cur[0] + 1) if cur else 1, "Invalid", src, d["source_url"], d["frequency"],
                                  f"out of the plausible range {lo}..{hi} or dated in the future", now))
                     summary["invalid"] += 1
                 continue
@@ -172,25 +191,26 @@ async def ingest(conn, today: date, col: Collected, defs: Dict[str, Dict[str, An
                     pd_, basis = pubd, SOURCE
                 else:
                     pd_, basis = od, kind
-                rows.append((code, od, pd_, basis, v6, d["unit"], 1, "Available", d["source_name"], d["source_url"], d["frequency"], None, now))
+                rows.append((code, od, pd_, basis, v6, d["unit"], 1, "Available", src, d["source_url"], d["frequency"], None, now))
                 summary["new"] += 1
             else:
-                rows.append((code, od, today, FIRST_SEEN, v6, d["unit"], cur[0] + 1, "Revised", d["source_name"], d["source_url"], d["frequency"], f"was {cur[1]:g}", now))
+                rows.append((code, od, today, FIRST_SEEN, v6, d["unit"], cur[0] + 1, "Revised", src, d["source_url"], d["frequency"], f"was {cur[1]:g}", now))
                 summary["revised"] += 1
         if rows:
             await conn.executemany("INSERT INTO macro_indicator_history (indicator_code, observation_date, publication_date, pub_date_basis, value, unit, revision_number, status, source, source_url, "
                                    "frequency, detail, retrieved_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT DO NOTHING", rows)
-        await refresh_current(conn, code, d, today, col.why_missing.get(code, ""))
+        await refresh_current(conn, code, d, today, col.why_missing.get(code, ""), src)
     return summary
 
 
-async def refresh_current(conn, code: str, d: Dict[str, Any], today: date, why: str) -> None:
+async def refresh_current(conn, code: str, d: Dict[str, Any], today: date, why: str, src: Optional[str] = None) -> None:
+    src = src or d["source_name"]
     rows = await conn.fetch("SELECT DISTINCT ON (observation_date) * FROM macro_indicator_history WHERE indicator_code = $1 AND status <> 'Invalid' ORDER BY observation_date DESC, revision_number DESC LIMIT 2", code)
     bad = await conn.fetchval("SELECT count(*) FROM macro_indicator_history WHERE indicator_code = $1 AND status = 'Invalid' AND observation_date > $2", code, today - timedelta(days=366))
     if not rows:
         await conn.execute("INSERT INTO macro_indicators (indicator_code, unit, source, source_url, frequency, status, detail, retrieved_at) VALUES ($1,$2,$3,$4,$5,'Missing',$6, now()) "
                            "ON CONFLICT (indicator_code) DO UPDATE SET value = NULL, observation_date = NULL, publication_date = NULL, pub_date_basis = NULL, prev_value = NULL, "
-                           "prev_observation_date = NULL, status = 'Missing', detail = EXCLUDED.detail, retrieved_at = now()", code, d["unit"], d["source_name"], d["source_url"], d["frequency"], why or "no data")
+                           "prev_observation_date = NULL, status = 'Missing', detail = EXCLUDED.detail, retrieved_at = now()", code, d["unit"], src, d["source_url"], d["frequency"], why or "no data")
         return
     cur, prev = rows[0], (rows[1] if len(rows) > 1 else None)
     age = (today - cur["observation_date"]).days
@@ -202,7 +222,7 @@ async def refresh_current(conn, code: str, d: Dict[str, Any], today: date, why: 
         "observation_date = EXCLUDED.observation_date, publication_date = EXCLUDED.publication_date, pub_date_basis = EXCLUDED.pub_date_basis, source = EXCLUDED.source, source_url = EXCLUDED.source_url, "
         "frequency = EXCLUDED.frequency, status = EXCLUDED.status, detail = EXCLUDED.detail, prev_value = EXCLUDED.prev_value, prev_observation_date = EXCLUDED.prev_observation_date, "
         "revision_number = EXCLUDED.revision_number, retrieved_at = now()",
-        code, cur["value"], d["unit"], cur["observation_date"], cur["publication_date"], cur["pub_date_basis"], d["source_name"], d["source_url"], d["frequency"], status, detail,
+        code, cur["value"], d["unit"], cur["observation_date"], cur["publication_date"], cur["pub_date_basis"], src, d["source_url"], d["frequency"], status, detail,
         prev["value"] if prev else None, prev["observation_date"] if prev else None, cur["revision_number"])
 
 

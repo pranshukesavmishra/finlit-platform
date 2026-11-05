@@ -13,7 +13,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import io
 import os
+import re
 import ssl
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -37,6 +39,12 @@ RBI_HOME = "https://www.rbi.org.in/"
 RBI_RSS = "https://rbi.org.in/pressreleases_rss.xml"
 EIA_URL = "https://api.eia.gov/v2/petroleum/pri/spt/data/"   # U.S. Energy Information Administration open data, series RBRTE (public domain)
 EIA_NO_KEY = "Brent: source key not set"
+WB_PAGE = "https://www.worldbank.org/en/research/commodity-markets"      # World Bank Commodity Price Data ("Pink Sheet"), CC BY 4.0; the page links the current workbook
+WB_FALLBACK = "https://thedocs.worldbank.org/en/doc/74e8be41ceb20fa0da750cda2f6b9e4e-0050012026/related/CMO-Historical-Data-Monthly.xlsx"
+WB_LINK = re.compile(r"https://thedocs\.worldbank\.org/[^\"'\s<>]*CMO-Historical-Data-Monthly\.xlsx")
+# series -> (column heading in the workbook, text its unit row must contain)
+WB_COLUMNS = {"copper_m": ("Copper", "mt"), "aluminium_m": ("Aluminum", "mt"), "natgas_m": ("Natural gas, US", "mmbtu")}
+WB_LICENCE = "World Bank Commodity Price Data (the Pink Sheet), monthly averages; licence CC BY 4.0 (https://www.worldbank.org/en/about/legal/terms-of-use-for-datasets)."
 USER_AGENT = "FinLit-data/1.0 (+https://finlitventures.com)"
 PAUSE = 0.25                                  # seconds between two MoSPI requests
 KEY = "macro:v1"
@@ -74,17 +82,21 @@ SERIES: Dict[str, dict] = {
     "fx_reserves": {"label": "Forex reserves", "short": "Reserves", "unit": "US$ bn", "freq": "W", "source": "RBI", "what": "Foreign exchange reserves: currency assets, gold, SDRs and the IMF position."},
     "usdinr_d": {"label": "Rupee per US dollar, daily", "unit": "₹", "freq": "D", "source": "RBI / FBIL"},
     "brent_d": {"label": "Brent crude, daily", "unit": "US$/bbl", "freq": "D", "source": "U.S. EIA", "what": "Europe Brent spot price FOB (EIA series RBRTE), US dollars a barrel."},
+    "copper_m": {"label": "Copper, monthly", "unit": "US$/t", "freq": "M", "source": "World Bank", "what": "Copper, London Metal Exchange grade A, monthly average, US dollars a tonne (World Bank Pink Sheet)."},
+    "aluminium_m": {"label": "Aluminium, monthly", "unit": "US$/t", "freq": "M", "source": "World Bank", "what": "Aluminium, LME, monthly average, US dollars a tonne (World Bank Pink Sheet)."},
+    "natgas_m": {"label": "Natural gas (US), monthly", "unit": "US$/mmBtu", "freq": "M", "source": "World Bank", "what": "Natural gas, Henry Hub (US), monthly average, US dollars per mmBtu (World Bank Pink Sheet)."},
     "usdinr": {"label": "Rupee per US dollar", "short": "USD/INR", "unit": "₹", "freq": "M", "source": "RBI / FBIL", "what": "Reference rate, monthly average (latest: today's FBIL reference rate)."},
     "credit_yoy": {"label": "Bank credit growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Scheduled commercial banks' credit in India, year on year."},
     "deposits_yoy": {"label": "Bank deposit growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Aggregate deposits, year on year."},
     "m3_yoy": {"label": "Money supply (M3) growth", "unit": "%", "freq": "F", "source": "RBI", "what": "Broad money, year on year."},
 }
 SOURCE_URL = {"MoSPI": "https://esankhyiki.mospi.gov.in", "NSO / MoSPI": "https://esankhyiki.mospi.gov.in", "PLFS / MoSPI": "https://esankhyiki.mospi.gov.in",
-              "RBI": "https://www.rbi.org.in", "RBI / FBIL": "https://www.fbil.org.in", "U.S. EIA": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"}
-CARDS = ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "real_rate", "fx_reserves", "usdinr", "credit_yoy"]
+              "RBI": "https://www.rbi.org.in", "RBI / FBIL": "https://www.fbil.org.in", "U.S. EIA": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+              "World Bank": "https://www.worldbank.org/en/research/commodity-markets"}
+CARDS = ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "real_rate", "fx_reserves", "usdinr", "brent_d", "copper_m", "aluminium_m", "natgas_m", "credit_yoy"]
 RANGES = {"cpi": (-5, 30), "cpi_rural": (-5, 30), "cpi_urban": (-5, 30), "wpi": (-20, 40), "gdp": (-30, 30), "gdp_nominal": (-30, 40), "iip": (-70, 100),
           "unemployment": (0, 40), "unemployment_youth": (0, 60), "unemployment_urban": (0, 40), "repo": (1, 15), "fx_reserves": (1, 2500),
-          "usdinr": (20, 250), "usdinr_d": (20, 250), "brent_d": (5, 250), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
+          "usdinr": (20, 250), "usdinr_d": (20, 250), "brent_d": (5, 250), "copper_m": (1000, 30000), "aluminium_m": (500, 10000), "natgas_m": (0.5, 40), "credit_yoy": (-20, 50), "deposits_yoy": (-20, 50), "m3_yoy": (-20, 50)}
 
 
 def mospi_ssl() -> ssl.SSLContext:
@@ -337,6 +349,65 @@ async def step_eia_brent(src: Sources, conn, today: date, full: bool) -> dict:
     return {"points": await save_points(conn, "brent_d", pts), "latest": max(pts).isoformat()}
 
 
+def parse_pink_sheet(content: bytes) -> Tuple[Dict[str, S.Points], str]:
+    """(copper, aluminium and US natural gas monthly averages keyed by month end, the workbook's 'Updated on ...' text). A column whose heading or unit row is not the
+    expected one raises: a price is never taken from a column that might be something else. Blank and placeholder cells are skipped, never filled."""
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    try:
+        rows = list(wb["Monthly Prices"].iter_rows(values_only=True))
+    finally:
+        wb.close()
+    head = next((i for i, r in enumerate(rows[:15]) if r and any(isinstance(x, str) and x.strip() == "Copper" for x in r)), None)
+    if head is None:
+        raise RuntimeError("World Bank workbook: no Copper column")
+    updated = next((str(r[0]).strip() for r in rows[:head] if r and isinstance(r[0], str) and r[0].strip().lower().startswith("updated on")), "")
+    cols: Dict[str, int] = {}
+    for key, (name, unit) in WB_COLUMNS.items():
+        idx = next((j for j, x in enumerate(rows[head]) if isinstance(x, str) and x.strip() == name), None)
+        if idx is None or unit not in str(rows[head + 1][idx] or "").lower():
+            raise RuntimeError(f"World Bank workbook: column {name} not as expected")
+        cols[key] = idx
+    out: Dict[str, S.Points] = {k: {} for k in cols}
+    for r in rows[head + 2:]:
+        m = re.fullmatch(r"(\d{4})M(\d{2})", str(r[0] or "").strip())
+        if not m or not 1 <= int(m.group(2)) <= 12 or int(m.group(1)) < 2010:
+            continue
+        d = S.month_end(int(m.group(1)), int(m.group(2)))
+        for key, j in cols.items():
+            v = r[j] if j < len(r) else None
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0:
+                out[key][d] = round(float(v), 2)
+    if not any(out.values()):
+        raise RuntimeError("World Bank workbook: no prices read")
+    return out, updated
+
+
+async def step_worldbank(src: Sources, conn, today: date, full: bool) -> dict:
+    """Copper, aluminium (US$ a tonne) and US natural gas (US$ per mmBtu), monthly averages, from the World Bank's free Pink Sheet workbook (CC BY 4.0; no key).
+    Published about the third working day of the next month, so the latest month is up to about five weeks old."""
+    link = WB_FALLBACK
+    try:
+        src.calls += 1
+        page = await src.web.get(WB_PAGE)
+        found = WB_LINK.search(page.text) if page.status_code == 200 else None
+        link = found.group(0) if found else WB_FALLBACK
+    except httpx.TransportError:
+        pass                                                      # the last known workbook address is tried
+    src.calls += 1
+    try:
+        r = await src.web.get(link)
+    except httpx.TransportError as exc:
+        raise RuntimeError(f"World Bank: {type(exc).__name__}") from exc
+    if r.status_code != 200:
+        raise RuntimeError(f"World Bank answered {r.status_code}")
+    parsed, updated = await asyncio.to_thread(parse_pink_sheet, r.content)
+    n = 0
+    for key, pts in parsed.items():
+        n += await save_points(conn, key, pts)
+    return {"points": n, "latest": max(max(p) for p in parsed.values() if p).isoformat(), "updated": updated}
+
+
 async def step_rbi_wss(src: Sources, conn, today: date, full: bool) -> dict:
     found = S.latest_wss_link(await src.get_text(RBI_RSS))
     if not found:
@@ -355,7 +426,7 @@ async def step_rbi_wss(src: Sources, conn, today: date, full: bool) -> dict:
 
 
 STEPS: List[Tuple[str, Callable]] = [("cpi", step_cpi), ("wpi", step_wpi), ("gdp", step_gdp), ("iip", step_iip), ("plfs", step_plfs),
-                                    ("rbi_tables", step_rbi_tables), ("rbi_home", step_rbi_home), ("rbi_wss", step_rbi_wss), ("eia_brent", step_eia_brent)]
+                                    ("rbi_tables", step_rbi_tables), ("rbi_home", step_rbi_home), ("rbi_wss", step_rbi_wss), ("eia_brent", step_eia_brent), ("worldbank", step_worldbank)]
 
 
 def load_decisions() -> List[S.Decision]:
@@ -465,6 +536,9 @@ def derive(raw: Dict[str, S.Points], decisions: List[S.Decision], today: date) -
                        "rbi.org.in from the day it was first read.")
     out["brent_d"] = dict(raw.get("brent_d", {}))
     notes["brent_d"] = "U.S. Energy Information Administration, Europe Brent spot price FOB (series RBRTE), daily, US dollars a barrel; public-domain data."
+    for key in ("copper_m", "aluminium_m", "natgas_m"):
+        out[key] = dict(raw.get(key, {}))
+        notes[key] = WB_LICENCE + " A monthly average: the latest month is published about the third working day of the next month."
     for key in ("credit_yoy", "deposits_yoy", "m3_yoy"):
         out[key] = raw.get(key, {})
     notes["credit_yoy"] = "Scheduled commercial banks, business in India, as the RBI's weekly statistical supplement states it, from the week it was first read."
@@ -593,7 +667,7 @@ def insights(s: Dict[str, S.Points], wss: Optional[dict]) -> List[dict]:
 
 def coverage(series: Dict[str, S.Points], today: date) -> List[dict]:
     out = []
-    for k in ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "fx_reserves", "usdinr", "credit_yoy"]:
+    for k in ["cpi", "wpi", "gdp", "iip", "unemployment", "repo", "fx_reserves", "usdinr", "brent_d", "copper_m", "aluminium_m", "natgas_m", "credit_yoy"]:
         pts = series.get(k) or {}
         if pts:
             out.append({"key": k, "label": SERIES[k]["label"], "source": SERIES[k]["source"], "from": min(pts).isoformat(), "latest": max(pts).isoformat(),
@@ -620,6 +694,16 @@ def brent_block(pts: S.Points, run: Optional[dict], today: date) -> dict:
         out["reason"] = f"Brent: only {len(win)} days held for the 4-quarter average"
     if (run or {}).get("status") == "failed":
         out["note"] = "The last download failed; showing the last prices held."
+    return out
+
+
+def metals_block(series: Dict[str, S.Points], run: Optional[dict]) -> dict:
+    """Why copper, aluminium or natural gas has no card: the World Bank download has not run, or failed. One entry per missing series."""
+    out: Dict[str, dict] = {}
+    for k in ("copper_m", "aluminium_m", "natgas_m"):
+        if not series.get(k):
+            out[k] = {"label": SERIES[k]["label"], "reason": ("Not loaded yet: the macro job downloads the World Bank price file each night." if not run else
+                                                              "The last download of the World Bank price file failed." if run.get("status") == "failed" else "No price found in the World Bank price file.")}
     return out
 
 
@@ -657,6 +741,10 @@ async def build(store, today: date) -> dict:
             lastd = max(decisions, key=lambda x: x.date)
             c.update(prev=round(lastd.rate - lastd.change_bp / 100, 2), prevPeriod=f"before {lastd.date.strftime('%d %b %Y').lstrip('0')}", change=round(lastd.change_bp / 100, 2),
                      lastDecision={"date": lastd.date.isoformat(), "bp": lastd.change_bp, "url": lastd.source})
+        if k == "brent_d":
+            c["lag"] = "U.S. EIA daily price, published 1-2 business days after the trading day"
+        if k in ("copper_m", "aluminium_m", "natgas_m"):
+            c["lag"] = "World Bank monthly average (CC BY 4.0), published about 3 working days into the next month"
         cards.append(c)
     divisions = [{"key": k, "label": labels.get(k, k), "points": [[d.isoformat(), v] for d, v in series[k].items()][-15:]}
                  for k in sorted([k for k in series if k.startswith("cpi_div_")]) if series[k]]
@@ -669,6 +757,7 @@ async def build(store, today: date) -> dict:
                        "sourceUrl": SOURCE_URL.get(SERIES[k]["source"]), "what": SERIES[k].get("what"), "note": notes.get(k), "breaks": breaks.get(k, []),
                        "points": [[d.isoformat(), v] for d, v in (list(pts.items())[-400:] if k == "brent_d" else pts.items())]} for k, pts in series.items() if k in SERIES and pts},
         "brent": brent_block(series.get("brent_d", {}), runs.get("eia_brent"), today),
+        "metals": metals_block(series, runs.get("worldbank")),
         "cpiDivisions": divisions,
         "rates": rates, "reserves": wss,
         "decisions": [{"date": x.date.isoformat(), "rate": x.rate, "bp": x.change_bp, "url": x.source} for x in sorted(decisions, key=lambda x: x.date)],

@@ -51,6 +51,7 @@
 .cm-note { margin: 0; font-size: var(--fs-13); color: var(--muted); line-height: 1.5; }
 .cm-dash { margin: 0; color: var(--muted); font-size: 14px; }
 .cm-iline { display: grid; gap: 2px; }
+.cm-eia .cm-mid.dim { opacity: .55; }
 .cm-il { font-size: var(--fs-13); color: var(--muted); }
 /* a price that is old or not updating is dimmed, and says why in words beside it */
 .cm-mcx.st-delayed .cm-big, .cm-iline.st-stale .cm-mid { opacity: .55; }

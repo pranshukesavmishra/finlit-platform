@@ -23,6 +23,8 @@
 .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 12px; }
 .mc-card { position: relative; text-align: left; display: grid; gap: 4px; padding: 16px 16px 12px; border-radius: 18px; border: 1px solid var(--border); background: var(--s1); color: var(--text); cursor: pointer; font: inherit; overflow: hidden; transition: transform .15s, border-color .15s, box-shadow .15s; box-shadow: var(--shadow); }
 .mc-card:hover, .mc-card:focus-visible { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 16px 36px -22px var(--gold); }
+.mc-card-empty { cursor: default; } .mc-card-empty:hover { transform: none; border-color: var(--border); box-shadow: var(--shadow); }
+.mc-lag { color: var(--faint); }
 .mc-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .mc-card-h { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-14); color: var(--muted); align-items: baseline; }
 .mc-src { font: 600 11px var(--sans); font-style: normal; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); white-space: nowrap; }

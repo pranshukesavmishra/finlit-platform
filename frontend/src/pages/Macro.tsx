@@ -17,7 +17,7 @@ const TONE = { up: "var(--loss)", down: "var(--gain)", flat: "var(--muted)" } as
 // for these a rise is a worry (prices, joblessness); for the others it is a good sign
 const RISE_IS_BAD = new Set(["cpi", "wpi", "unemployment"]);
 // a move in these is a policy or price setting, not good or bad news in itself: shown without red or green
-const NEUTRAL = new Set(["repo", "real_rate", "usdinr"]);
+const NEUTRAL = new Set(["repo", "real_rate", "usdinr", "brent_d", "copper_m", "aluminium_m", "natgas_m"]);
 const PALETTE = ["var(--gold)", "var(--k1)", "var(--k3)", "var(--k5)", "var(--k7)", "var(--k2)"];
 const ARROW = { up: "M2 11l4-4 3 3 5-6M11 4h4v4", down: "M2 5l4 4 3-3 5 6M11 12h4V8", flat: "M2 8h12M11 5l3 3-3 3" } as const;
 
@@ -42,8 +42,30 @@ function StatCard({ c, onOpen }: { c: Card; onOpen: (k: string) => void }) {
         {c.change != null ? <><Arrow d={d} />{signed(c.change, c.changeUnit)}{c.changePct != null && c.key !== "repo" ? ` (${signed(c.changePct, "%")})` : ""}<em> vs {c.prevPeriod}</em></> : <em>{c.period}</em>}
       </span>
       <span className="mc-per">{c.change != null ? c.period : ""}{c.yearAgo != null ? ` · a year earlier ${fmt(c.yearAgo, c.unit)}` : ""}</span>
+      {c.lag && <span className="mc-per mc-lag">{c.lag}</span>}
       <Spark pts={c.spark} color={color} />
     </button>
+  );
+}
+
+/** Brent has no number yet (no EIA key on the server, or nothing loaded): the card says why instead of leaving a gap. */
+function MetalEmpty({ label, reason }: { label: string; reason: string }) {
+  return (
+    <div className="mc-card mc-card-empty" role="note" aria-label={`${label}: no price yet`}>
+      <span className="mc-card-h"><span>{label}</span><i className="mc-src">World Bank</i></span>
+      <b className="mc-big" aria-hidden="true">—</b>
+      <span className="mc-per">{reason}</span>
+    </div>
+  );
+}
+
+function BrentEmpty({ b }: { b: NonNullable<Macro["brent"]> }) {
+  return (
+    <div className="mc-card mc-card-empty" role="note" aria-label="Brent crude: no price yet">
+      <span className="mc-card-h"><span>Brent crude, daily</span><i className="mc-src">U.S. EIA</i></span>
+      <b className="mc-big" aria-hidden="true">—</b>
+      <span className="mc-per">{b.reason ?? "Brent: no prices loaded yet"}</span>
+    </div>
   );
 }
 
@@ -116,6 +138,9 @@ const TABS: { id: string; label: string; lines: Line[]; step?: boolean; note: st
   { id: "rates", label: "Interest rates", lines: [{ key: "repo", color: PALETTE[0], step: true }, { key: "cpi", color: PALETTE[1], dashed: true }], note: "The RBI repo rate (steps at each MPC decision) against CPI inflation." },
   { id: "real", label: "Real rate", lines: [{ key: "real_rate", color: PALETTE[2] }], note: "Repo rate minus CPI inflation. Below zero, prices are rising faster than the policy rate." },
   { id: "reserves", label: "Reserves and rupee", lines: [{ key: "fx_reserves", color: PALETTE[0] }], note: "Foreign exchange reserves in US$ billion (month end, then weekly)." },
+  { id: "brent", label: "Brent crude", lines: [{ key: "brent_d", color: PALETTE[0] }], note: "Europe Brent spot price in US$ a barrel, daily, from the U.S. Energy Information Administration. It is published with a lag of 1-2 business days, so the latest point is not today's price." },
+  { id: "metals", label: "Copper and aluminium", lines: [{ key: "copper_m", color: PALETTE[0] }, { key: "aluminium_m", color: PALETTE[1], dashed: true }], note: "Monthly average prices in US$ a tonne from the World Bank Pink Sheet (licence CC BY 4.0). They are monthly, so the latest point is the last finished month, published about three working days into the next one." },
+  { id: "gas", label: "Natural gas", lines: [{ key: "natgas_m", color: PALETTE[2] }], note: "US (Henry Hub) natural gas, monthly average in US$ per mmBtu, from the World Bank Pink Sheet (licence CC BY 4.0). Published about three working days into the next month." },
   { id: "rupee", label: "Rupee", lines: [{ key: "usdinr", color: PALETTE[1] }], note: "Rupees per US dollar: monthly average of the RBI reference rate, then the daily FBIL rate." },
 ];
 
@@ -265,7 +290,7 @@ export function MacroPage() {
   const q = useMacro();
   const [tab, setTab] = useState("inflation");
   const open = (k: string) => {
-    const t = ({ cpi: "inflation", wpi: "inflation", gdp: "growth", iip: "industry", unemployment: "industry", repo: "rates", real_rate: "real", fx_reserves: "reserves", usdinr: "rupee", credit_yoy: "inflation" } as Record<string, string>)[k] || "inflation";
+    const t = ({ cpi: "inflation", wpi: "inflation", gdp: "growth", iip: "industry", unemployment: "industry", repo: "rates", real_rate: "real", fx_reserves: "reserves", usdinr: "rupee", brent_d: "brent", copper_m: "metals", aluminium_m: "metals", natgas_m: "gas", credit_yoy: "inflation" } as Record<string, string>)[k] || "inflation";
     setTab(t); document.getElementById("history")?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   };
   const m = q.data;
@@ -280,7 +305,7 @@ export function MacroPage() {
         {q.isError && <div className="mc-panel" role="alert"><h2>The macro data is not available yet</h2><p className="mc-note">It loads every night from MoSPI and the RBI. {(q.error as { status?: number })?.status === 503 ? "The first load has not finished; please check back soon." : "Please try again in a moment."}</p><button type="button" className="btn" onClick={() => q.refetch()}>Try again</button></div>}
         {m && <>
           {m.insights.length > 0 && <section className="mc-ins" aria-label="What the latest numbers say">{m.insights.slice(0, 4).map((i) => <div key={i.key} className={"t-" + i.tone}><h2>{i.title}</h2><p>{i.text}</p></div>)}</section>}
-          <section className="mc-grid" aria-label="Latest figures">{m.cards.map((c) => <StatCard key={c.key} c={c} onOpen={open} />)}</section>
+          <section className="mc-grid" aria-label="Latest figures">{m.cards.map((c) => <StatCard key={c.key} c={c} onOpen={open} />)}{!m.cards.some((c) => c.key === "brent_d") && m.brent && m.brent.status !== "ok" && <BrentEmpty b={m.brent} />}{Object.entries(m.metals ?? {}).map(([k, v]) => <MetalEmpty key={k} label={v.label} reason={v.reason} />)}</section>
           <div id="sector-impact"><MacroSectorImpact /></div>
           <History m={m} openId={tab} setOpenId={setTab} />
           <TargetWatch m={m} />
