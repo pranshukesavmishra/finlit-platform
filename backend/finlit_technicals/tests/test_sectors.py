@@ -55,7 +55,7 @@ def test_history_reads_adjusts_and_links(tmp_path):
     assert len(n) == F.DAYS and list(n.columns) == ["open", "high", "low", "close", "volume"]
     assert nse.index("NSE:CNXMETAL") is None
     assert nse.names()["SAIL"] == "Sail Limited"
-    assert (d / ".finlit_cache" / "panel.pkl").exists()
+    assert (d / ".finlit_cache" / "panel" / "meta.pkl").exists()
     again = NseHistory(d).panel                                     # from the cache
     assert again.keys == p.keys and np.allclose(again.cum, p.cum)
 
@@ -257,7 +257,7 @@ def test_single_industry_sector_group_and_counts(tmp_path):
     assert meta["Small One"]["kind"] == "industry" and "Sector B" not in groups       # named after the industry
     assert meta["Sector C"]["kind"] == "sector" and meta["Sector C"]["industries"] == ["Small Three", "Small Two"]
     # a counted stock without a price on the last day is left out of the group count and of the totals alike
-    eng = SectorEngine(NseHistory(folder(tmp_path)))
+    eng = SectorEngine(NseHistory(folder(tmp_path), chunked=False))        # an in-memory panel: this test edits one close
     eng._build()
     j = next(c for c in eng.groups["Ferrous Metals"] if eng.member[-1, c])
     eng.panel.close[-1, j] = np.nan

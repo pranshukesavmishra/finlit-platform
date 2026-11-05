@@ -14,6 +14,9 @@ import test_fetch_merge  # noqa: E402
 import test_nse_memory  # noqa: E402
 import test_ownership  # noqa: E402
 import test_staged_equals_single_run  # noqa: E402
+import test_stress  # noqa: E402
+import test_company_brief  # noqa: E402
+import test_rotation  # noqa: E402
 
 
 
@@ -44,7 +47,7 @@ class MonkeyPatch:
 
 
 ok = fail = 0
-for mod in (test_core, test_api, test_sectors, test_fetch_merge, test_nse_memory, test_staged_equals_single_run, test_ownership):
+for mod in (test_core, test_api, test_sectors, test_fetch_merge, test_nse_memory, test_staged_equals_single_run, test_ownership, test_stress, test_company_brief, test_rotation):
     for name, fn in sorted(vars(mod).items()):
         if not name.startswith("test_") or not callable(fn):
             continue

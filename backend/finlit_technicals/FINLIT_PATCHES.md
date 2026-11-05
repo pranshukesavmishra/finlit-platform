@@ -1,6 +1,6 @@
-# Changes FinLit made to the vendored finlit_technicals v2.0.1
+# Changes FinLit made to the vendored finlit_technicals (v2.4.1)
 
-The package is the team's delivery (`finlit_technicals-2.0.1`). It is vendored here unchanged except for the small, tested changes below (1 to 5, then the staged job, 6 to 12).
+The package is the team's delivery (`finlit_technicals-2.4.1`, installed over 2.0.1 on 5 Nov 2026: `industries.py`, `rotation.py`, `stress.py`, `company_brief.py`, `__init__.py`, `__main__.py`, `data/` and the package tests are the delivery's own files; `sectors.py` and `batch.py` are the delivery's 2.4.1 code with the patches below re-applied by a three-way merge, and `nse.py`, `universe.py`, `fetch.py` are unchanged from 2.0.1 apart from the patches, because 2.4.1 did not touch them). It is vendored here unchanged except for the small, tested changes below (1 to 5, then the staged job, 6 to 12).
 If a newer version is dropped in, re-apply them (or ask the package authors to take them in) and run `python finlit_technicals/tests/run_tests.py`.
 
 1. `batch.run(..., engine=None)`: accepts the `SectorEngine` the caller already built, so the market panel is held once in memory
@@ -47,3 +47,16 @@ Rule for all of these: **the answers do not change**. The files released are byt
 
 6. `fetch.py`, `fetch_industries`: a new listing for which NSE sends `"secInfo": null` is skipped (it used to raise AttributeError and stop the whole download after the
    prices and indices were saved: seen on the server on 4 Nov 2026). Test: `tests/test_fetch_merge.py::test_a_new_listing_whose_industry_record_is_null_is_skipped_not_fatal`.
+
+
+## Installing 2.4.1 (5 Nov 2026): what was re-applied and what is new
+
+Patches 1 to 12 above are all still in place (1 and 10 in `batch.py`, 2, 3 and 6 in `fetch.py`, 4, 5, 6, 7 in `nse.py`, 8 in `universe.py`, 9 in `sectors.py`, 11 in `staged.py`).
+The frozen reference for the byte-for-byte test (`tests/reference_v201/`, kept under that folder name) is now the delivery's 2.4.1 `sectors.py` and `batch.py` with only the import lines and patch 1 changed.
+
+13. `batch.py` and `staged.py`: rotation needs every group, which a score part does not have. In a single-process run `score_stocks(rot_rows=...)` writes `sector.rotation` and `sector_corner`,
+    `sector_rotation_rank`, `sector_rank_change_1w` as the delivery's `run` does. In the staged job the merge stage builds `Rotation` after the parts' groups are merged and `add_rotation` puts the same fields into
+    every stock file and summary line (the bytes are those of the single-process run: `test_the_staged_job_releases_the_same_files_byte_for_byte` covers it), and `write_sector_files` writes `rotation/` and the board's `rows[].rotation`.
+    If Rotation fails, the run still finishes without it (logged); `finlit/sector_job.py` publishes the set and the Rotation page says why it is blank.
+14. `tests/run_tests.py` runs the delivery's stress, company brief and rotation tests as well as the FinLit ones; `tests/test_sectors.py` is the delivery's with two FinLit changes (the panel cache file name, and an in-memory panel
+    where a test edits a close).

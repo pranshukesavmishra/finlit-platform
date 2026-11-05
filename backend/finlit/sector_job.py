@@ -201,6 +201,38 @@ def peak_rss_mb() -> Optional[float]:
 
 
 # ------------------------------------------------------------------------------------------------ step 3: check
+def clear_orphans(building: Path) -> List[str]:
+    """Delete page files in sectors/ and rotation/ that the new board and map do not list (a group that was renamed or dropped: capital-goods.json after the
+    grouping change). A nightly build starts from an empty folder so it has none; a folder built elsewhere and uploaded (`--import`) can carry them.
+    Returns the names removed. Only <slug>.json files are touched, never the board, the map or any other file."""
+    removed: List[str] = []
+    board = sd.read_json(building / "sectors" / "_board.json") or {}
+    keep = {"_board": sd.board_slugs(board) | {g.get("slug") for g in board.get("too_few_stocks", []) if isinstance(g, dict)}}
+    rmap = sd.read_json(building / "rotation" / "_map.json")
+    if isinstance(rmap, dict):
+        keep["rotation/_map"] = {r.get("slug") for r in rmap.get("rows", []) if isinstance(r, dict)}
+    for folder, listed in (("sectors", keep["_board"]), ("rotation", keep.get("rotation/_map"))):
+        d = building / folder
+        if listed is None or not d.is_dir():
+            continue
+        for f in d.glob("*.json"):
+            if not f.name.startswith("_") and f.stem not in listed:
+                f.unlink()
+                removed.append(f"{folder}/{f.name}")
+    return sorted(removed)
+
+
+def check_rotation(building: Path) -> Optional[str]:
+    """None when there is no rotation map (rotation is extra: the set is still published and the Rotation page says why it is blank) or when every group in it has its file."""
+    rmap = sd.read_json(building / "rotation" / "_map.json")
+    if rmap is None:
+        return None
+    if not isinstance(rmap, dict) or not rmap.get("rows"):
+        return "the rotation map is empty"
+    missing = [r["slug"] for r in rmap["rows"] if not (building / "rotation" / f"{r['slug']}.json").is_file()]
+    return f"{len(missing)} rotation cards were not written (for example {missing[0]})" if missing else None
+
+
 def check_release(building: Path, previous_stocks: Optional[int]) -> Optional[str]:
     """None when the new set may go live, else the reason it may not."""
     board = sd.read_json(building / "sectors" / "_board.json")
@@ -221,7 +253,7 @@ def check_release(building: Path, previous_stocks: Optional[int]) -> Optional[st
         return f"{len(errors)} of {len(stocks)} stocks failed (for example {errors[0].get('symbol')}: {errors[0].get('error', '')[:120]})"
     if previous_stocks and written < MIN_SHARE_OF_PREVIOUS * previous_stocks:
         return f"{written} stock files against {previous_stocks} in the live set: too few to replace it"
-    return None
+    return check_rotation(building)
 
 
 # ------------------------------------------------------------------------------------------------ the run
@@ -302,6 +334,7 @@ async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force:
         import shutil
         shutil.rmtree(building, ignore_errors=True)
         return {**res, "status": "error", "reason": f"The new set was not published ({why}); the previous set keeps serving.", "stocks": len(summary), "errors": len(bad)}
+    clear_orphans(building)
     board = sd.read_json(building / "sectors" / "_board.json")
     new_date = date.fromisoformat(str(board["date"])[:10])
     if live_date and new_date < live_date and not force:
@@ -309,7 +342,7 @@ async def _refresh(store, env, nse: Path, out: Path, res: Dict[str, Any], force:
         shutil.rmtree(building, ignore_errors=True)
         return {**res, "status": "error", "reason": f"The new set is for {new_date}, older than the live set ({live_date}); the live set keeps serving.", "stocks": len(summary), "errors": len(bad)}
     meta = {"data_date": new_date.isoformat(), "built_at": now.strftime("%Y-%m-%d %H:%M IST"), "stocks": len(summary) - len(bad), "errors": len(bad),
-            "groups": board.get("groups"), "stocks_counted": board.get("stocks_counted"), "nse_signature": sig, "package_version": package_version(),
+            "groups": board.get("groups"), "stocks_counted": board.get("stocks_counted"), "rotation": (building / "rotation" / "_map.json").is_file(), "nse_signature": sig, "package_version": package_version(),
             "batch_seconds": round(time.monotonic() - t_batch), "peak_mb": peak_rss_mb()}
     sd.atomic_write(building / sd.META_NAME, json.dumps(meta))
     sd.publish(building, out, stamp)
@@ -340,6 +373,7 @@ async def import_release(store: Any, folder: str, *, env: Optional[Dict[str, str
         why = check_release(building, sd.sector_meta(live).get("stocks"))
         if why:
             raise ValueError(f"the uploaded set was not published ({why}); the previous set keeps serving")
+        clear_orphans(building)
         board = sd.read_json(building / "sectors" / "_board.json")
         new_date = date.fromisoformat(str(board["date"])[:10])
         live_date = sd.board_date(out)
@@ -349,7 +383,7 @@ async def import_release(store: Any, folder: str, *, env: Optional[Dict[str, str
         stocks = summ.get("stocks") or []
         bad = [x for x in stocks if "error" in x]
         meta = {"data_date": new_date.isoformat(), "built_at": "imported " + now.strftime("%Y-%m-%d %H:%M IST"), "stocks": len(stocks) - len(bad), "errors": len(bad),
-                "groups": board.get("groups"), "stocks_counted": board.get("stocks_counted"), "nse_signature": None, "package_version": package_version(),
+                "groups": board.get("groups"), "stocks_counted": board.get("stocks_counted"), "rotation": (building / "rotation" / "_map.json").is_file(), "nse_signature": None, "package_version": package_version(),
                 "source": "import", "batch_meta": summ.get("meta")}
         sd.atomic_write(building / sd.META_NAME, json.dumps(meta))
         sd.publish(building, out, stamp)

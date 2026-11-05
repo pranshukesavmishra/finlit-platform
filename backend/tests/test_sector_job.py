@@ -322,3 +322,53 @@ async def test_the_single_process_batch_is_still_there_and_gives_the_same_files(
     assert all((a / f).read_bytes() == (b / f).read_bytes() for f in files)
     sa, sb = (json.loads((x / "_summary.json").read_text()) for x in (a, b))
     assert sa["stocks"] == sb["stocks"]
+
+
+# ------------------------------------------------------------------------------------------------ rotation files and the clearing of renamed groups
+def stale_page(release: Path, folder: str, slug="capital-goods"):
+    (release / folder).mkdir(exist_ok=True)
+    (release / folder / f"{slug}.json").write_text(json.dumps({"name": "Capital Goods"}))
+
+
+async def test_a_new_build_never_carries_the_files_of_a_renamed_group(tmp_path):
+    """The batch builds into a NEW folder and swaps it in, so capital-goods.json of the old release cannot survive in the live one."""
+    def batch_with_rotation(nse, building, symbols, progress):
+        fakes.make_release(Path(building), rotation=True)
+        return [{"symbol": f"S{i}"} for i in range(3)]
+    first = fakes.make_release(tmp_path / "first", rotation=True)
+    stale_page(first, "sectors")
+    stale_page(first, "rotation")
+    assert (await sj.import_release(Store(), str(first), env=env_for(tmp_path), now=NOW - timedelta(days=1), force=True))["status"] == "ok"
+    out = tmp_path / "out"
+    live1 = sd.live_release(out)
+    assert not (live1 / "sectors" / "capital-goods.json").exists() and not (live1 / "rotation" / "capital-goods.json").exists()   # an uploaded folder is cleared too
+    nse = make_nse(tmp_path / "nse")
+    res = await run(tmp_path, batch_fn=batch_with_rotation)
+    assert res["status"] == "ok", res
+    live = sd.live_release(out)
+    assert live != live1 and (live / "rotation" / "_map.json").is_file() and sd.sector_meta(live)["rotation"] is True
+    assert sorted(p.name for p in (live / "rotation").iterdir()) == sorted(["_map.json"] + [f"{s}.json" for s in fakes.SLUGS])
+    assert not (live / "sectors" / "capital-goods.json").exists() and not (live / "rotation" / "capital-goods.json").exists()
+
+
+def test_clear_orphans_removes_only_unlisted_group_files(tmp_path):
+    rel = fakes.make_release(tmp_path / "rel", rotation=True)
+    stale_page(rel, "sectors")
+    stale_page(rel, "rotation")
+    (rel / "sectors" / "_note.json").write_text("{}")
+    removed = sj.clear_orphans(rel)
+    assert removed == ["rotation/capital-goods.json", "sectors/capital-goods.json"]
+    assert (rel / "sectors" / "banks.json").is_file() and (rel / "sectors" / "_note.json").is_file() and (rel / "rotation" / "banks.json").is_file()
+    plain = fakes.make_release(tmp_path / "plain")           # a set with no rotation folder: nothing to clear there
+    stale_page(plain, "sectors")
+    assert sj.clear_orphans(plain) == ["sectors/capital-goods.json"]
+
+
+async def test_a_rotation_map_with_a_missing_card_is_not_published_but_no_map_is_fine(tmp_path):
+    bad = fakes.make_release(tmp_path / "bad", rotation=True)
+    (bad / "rotation" / "banks.json").unlink()
+    res = await sj.import_release(Store(), str(bad), env=env_for(tmp_path), now=NOW)
+    assert res["status"] == "error" and "rotation cards were not written" in res["reason"] and sd.live_release(tmp_path / "out") is None
+    none = fakes.make_release(tmp_path / "none")
+    assert (await sj.import_release(Store(), str(none), env=env_for(tmp_path), now=NOW))["status"] == "ok"
+    assert sd.sector_meta(sd.live_release(tmp_path / "out"))["rotation"] is False

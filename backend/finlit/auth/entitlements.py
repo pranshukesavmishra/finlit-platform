@@ -151,6 +151,19 @@ def redact_sector_board(board: Dict[str, Any], plan: str) -> Dict[str, Any]:
     return out
 
 
+def redact_rotation_map(rot: Dict[str, Any], plan: str) -> Dict[str, Any]:
+    """The Rotation page for `plan` (a copy). Corners, ranks, paths and the study are open to every plan, like the states and breadth of the board;
+    only the leader-flag count each row carries follows the board's rule (Silver)."""
+    out = dict(rot)
+    if not has(plan, SECTOR_LEADER_FLAGS):
+        out["rows"] = [{**r, "leader_flags": None} for r in rot.get("rows", [])]
+        out["locked"] = {"leader_flags": SECTOR_LEADER_FLAGS}
+    else:
+        out["locked"] = {}
+    out["plan"] = plan
+    return out
+
+
 def redact_sector_industry(page: Dict[str, Any], plan: str) -> Dict[str, Any]:
     """One industry page for `plan` (a copy). Basic loses the stock tables and the leader-flag count; Silver loses the peer label column."""
     out = dict(page)
@@ -175,4 +188,5 @@ def redact_sector_stock(sector: Optional[Dict[str, Any]], symbol: str, plan: str
     g = (sector or {}).get("group") or {}
     return {"symbol": symbol, "name": (sector or {}).get("name"), "industry": (sector or {}).get("industry"),
             "group": {k: g.get(k) for k in ("name", "slug", "kind", "state", "state_code", "meaning", "date")} if g else None,
+            "rotation": (sector or {}).get("rotation"),            # the industry's corner and rank: the same group-level figures every plan sees on the Rotation page
             "disclaimer": (sector or {}).get("disclaimer"), "in_group": None, "locked": {"stock": SECTOR_STOCK_CARDS}, "plan": plan}
