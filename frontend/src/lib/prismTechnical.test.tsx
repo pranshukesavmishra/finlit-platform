@@ -268,7 +268,8 @@ describe("legend, gauge and light-theme contrast", () => {
     // Colours are read the way the browser reads them: the light theme's own block first, then the design system's tokens, following var(--x) references.
     const decls = (text: string) => Object.fromEntries([...text.matchAll(/--([a-z0-9-]+)\s*:\s*([^;}]+)[;}]/gi)].map((m) => [m[1], m[2].trim()]));
     const lightBlock = base.slice(base.indexOf(':root[data-theme="light"]'));
-    const systemLight = system.replace(/:root\[data-theme="dark"\]\s*\{[^}]*\}/, "");   // the design system's own aliases load after the page styles and win for every token they define
+    // Only the page-wide `:root { ... }` blocks count (the design system's later blocks that restyle dark bands and the dark theme do not apply to light surfaces).
+    const systemLight = [...system.matchAll(/(?:^|\n):root\s*\{([^}]*)\}/g)].map((m) => m[1]).join("\n");
     const vars: Record<string, string> = { ...Object.fromEntries(Object.entries(decls(lightBlock)).filter(([, v]) => /^#[0-9A-Fa-f]{6}$/.test(v))), ...decls(systemLight) };
     const resolve = (name: string, depth = 0): string | null => {
       const v = vars[name];
