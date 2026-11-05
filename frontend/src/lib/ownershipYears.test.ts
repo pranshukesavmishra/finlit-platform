@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownershipAt, ownershipYears, parsePeriod } from "./ownershipYears";
+import { ownershipAt, ownershipYears, parsePeriod, selectionInfo } from "./ownershipYears";
 
 const periods = ["Jun 2016", "Sep 2016", "Dec 2016", "Mar 2017", "Jun 2017", "Sep 2017", "Dec 2017", "Mar 2018", "Jun 2018"];
 const series = {
@@ -27,4 +27,13 @@ describe("ownership year picker", () => {
     expect(first.comparedWith).toBeNull(); expect(first.latest[0].change1yPts).toBeNull();
   });
   it("drops groups with no value in the chosen filing", () => { expect(ownershipAt(o, 1)!.latest.map((l) => l.key)).toEqual(["promoters", "fii"]); });
+});
+
+describe("which filing is showing", () => {
+  const periods = ["Mar 2023", "Jun 2024", "Sep 2024", "Dec 2024"];
+  it("says whether it is the latest of its year", () => {
+    expect(selectionInfo(periods, 3)).toEqual({ year: 2024, isYearLatest: true, yearLatest: "Dec 2024" });
+    expect(selectionInfo(periods, 1)).toEqual({ year: 2024, isYearLatest: false, yearLatest: "Dec 2024" });
+    expect(selectionInfo(["x"], 0)).toEqual({ year: null, isYearLatest: true, yearLatest: null });
+  });
 });

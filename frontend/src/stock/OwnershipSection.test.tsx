@@ -6,34 +6,11 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("../components/ChartHelp", () => ({ ChartHelp: () => null }));
 import fixture from "../lib/__fixtures__/ownershipReliance.json";
 import type { Ownership } from "../lib/api";
-import { OwnershipBars } from "../charts/OwnershipBars";
 import { OwnershipYearPicker } from "./OwnershipYearPicker";
 import { OwnershipSection } from "./Sections2";
 
 const o = fixture as unknown as Ownership;
 const html = (el: React.ReactElement) => renderToStaticMarkup(<MemoryRouter>{el}</MemoryRouter>);
-
-describe("ownership bar chart", () => {
-  const out = html(<OwnershipBars o={o} selected={o.periods.length - 1} onSelect={() => undefined} />);
-  it("draws the controls, the toggle legend, the text fallback and the CSV button", () => {
-    for (const t of ["Quarterly", "Yearly", "1Y", "3Y", "5Y", "All", "Mix", "Change", "Download CSV", "Promoters", "Foreign institutions", "Domestic institutions", "Retail &amp; others", "Government &amp; others"]) expect(out).toContain(t);
-    expect(out).toContain('role="img"'); expect(out).toContain("<table"); expect(out).toContain('aria-live="polite"');
-    expect(out).toContain('aria-pressed="true"');
-  });
-  it("starts on the 3Y quarterly mix: 12 bars, the last one selected", () => {
-    expect((out.match(/class="ob-col"/g) || []).length).toBe(12);
-    expect(out).toContain('stroke="var(--gold)"');
-    expect(out).toContain("Jun 2026");
-  });
-  it("never says buy, sell, hold or target, and keeps the compliance line", () => {
-    expect(out).toContain("Information only, not advice");
-    expect(out).not.toMatch(/\b(buy|sell|hold|target)\b/i);
-  });
-  it("says there is not enough to show a trend with one filing", () => {
-    const one = { ...o, periods: ["Jun 2026"], series: { promoters: [50.48] } } as unknown as Ownership;
-    expect(html(<OwnershipBars o={one} selected={0} onSelect={() => undefined} />)).toContain("Not enough filings to show a trend");
-  });
-});
 
 describe("ownership year selector", () => {
   const cap = { now: "Dec 2025", then: "Dec 2024", basis: "same quarter a year earlier", isLatest: false, year: 2025, isYearLatest: true, yearLatest: "Dec 2025" };

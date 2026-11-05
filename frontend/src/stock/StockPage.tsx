@@ -4,6 +4,7 @@ import { canon } from "../lib/aliases";
 import { visits } from "../lib/recentVisits";
 import { recents } from "../lib/mycompanies";
 import { useQueryClient } from "@tanstack/react-query";
+import type { OwnInsights } from "../lib/ownView";
 import { ApiError, useSearchIndex, usePrice, useSection, useSummary, type Events, type Financials, type Ownership, type Peers, type Ratios, type Segments } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { OpenAccess } from "../components/Gate";
@@ -61,6 +62,8 @@ export function StockPage() {
   const ratios = useSection<Ratios>(symbol, "ratios", ready).data;
   const fin = useSection<Financials>(symbol, "financials", ready).data;
   const own = useSection<Ownership>(symbol, "ownership", ready).data;
+  const ownIns = useSection<OwnInsights>(symbol, "ownership-insights", ready);   // the stored ownership insights: this page never calls the slow premium endpoint
+  const ownInsWhy = ownIns.error ? (ownIns.error.status === 404 ? "The shareholding filings for this company have not been loaded yet." : "The short readings could not be loaded just now; the numbers below are unaffected.") : null;
   const peers = useSection<Peers>(symbol, "peers", ready).data;
   const seg = useSection<Segments>(symbol, "segments", ready).data;
   const events = useSection<Events>(symbol, "events", ready).data;
@@ -156,7 +159,7 @@ export function StockPage() {
         <ErrorBoundary section="This section"><TrendsSection f={fin} seg={seg} e={events} r={ratios} /></ErrorBoundary>
         <ErrorBoundary section="This section"><ChartLab s={s} symbol={symbol} f={fin} r={ratios} o={own} e={events} p={peers} /></ErrorBoundary>
         <ErrorBoundary section="This section"><RatiosSection r={ratios} lender={!!s.dataQuality.isBank} sector={s.profile.sector} industry={s.profile.industry} labels={[s.profile.sector, s.profile.industry, s.profile.subIndustry]} /></ErrorBoundary>
-        <ErrorBoundary section="This section"><OwnershipSection o={own} /></ErrorBoundary>
+        <ErrorBoundary section="This section"><OwnershipSection o={own} ins={ownIns.data} insWhy={ownInsWhy} /></ErrorBoundary>
         <ErrorBoundary section="This section"><PeersSection p={peers} self={symbol} s={s} /></ErrorBoundary>
         <ErrorBoundary section="This section"><SectorPeersSection symbol={symbol} name={s.profile.name} tech={tech} score={s.score} jump={jump} /></ErrorBoundary>
         <ErrorBoundary section="This section"><InsightsSection s={s} r={ratios} seg={seg} tech={tech} /></ErrorBoundary>

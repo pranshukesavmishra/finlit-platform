@@ -19,6 +19,7 @@ import "@fontsource/ibm-plex-mono/latin-600.css";
 import "./styles/finlit.css";
 import "./styles/site.css";
 import "./styles/stock2.css";
+import "./styles/ownership.css";
 import "./styles/tools.css";
 import "./styles/charthelp.css";
 import "./styles/premium.css";
