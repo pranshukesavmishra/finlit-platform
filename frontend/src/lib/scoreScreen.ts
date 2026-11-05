@@ -272,6 +272,9 @@ export type State = { filters: Filters; sort: Sort; size: number; page: number }
 export const SORT_KEYS: SortKey[] = ["name", "price", "market_cap", "sector", "f", "t", "overall", "pillar_quality", "pillar_growth", "pillar_profitability", "pillar_balance",
   "prism_final", "prism_fundamental", "prism_valuation", "prism_quality", "prism_risk", "prism_st_score", "prism_lt_score", "ret_3m", "ret_6m", "return_1y", "pct_from_high"];
 const num = (s: string | null) => { if (s == null || s.trim() === "") return null; const n = Number(s); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null; };
+/** The address key of a score's band list. The Quality pillar's old key "q" is also the toolbar search, so it is written as "qual"; an old link with a band list in ?q= is still read. */
+export const BAND_PARAM: Record<BandKey, string> = { f: "f", t: "t", q: "qual", g: "g", p: "p", b: "b" };
+export const isBandList = (s: string | null) => !!s && s.split(",").every((x) => (BAND_ORDER as string[]).includes(x));
 const parseBands = (s: string | null): Band[] => BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
 const parseTech = (s: string | null): TechBand[] => TECH_BAND_ORDER.filter((b) => (s || "").split(",").includes(b));
 /** Which page reads the address: the Basic score screener (FinLit IQ only), the Advanced one (Prism only), or both (the pure logic and its tests). */
@@ -289,7 +292,7 @@ export function parseState(p: URLSearchParams, scope: Scope = "all"): State {
   f.caps = CAPS.filter((c) => caps.includes(c));
   f.sectors = [...new Set(p.getAll("sector").filter(Boolean))];
   const finlit = scope !== "advanced", prism = scope !== "basic";
-  BAND_KEYS.forEach((k) => { f.bands[k] = finlit ? parseBands(p.get(k)) : []; });
+  BAND_KEYS.forEach((k) => { f.bands[k] = finlit ? parseBands(p.get(BAND_PARAM[k]) ?? (k === "q" && isBandList(p.get("q")) ? p.get("q") : null)) : []; });
   RANGE_KEYS.forEach((k) => {
     if (!(PRISM_RANGE_KEYS as string[]).includes(k) ? !finlit : !prism) return;
     let min = num(p.get(k + "min")), max = num(p.get(k + "max"));
@@ -312,7 +315,7 @@ export function serializeState(s: State): URLSearchParams {
   const p = new URLSearchParams(), f = s.filters;
   if (f.caps.length) p.set("cap", CAPS.filter((c) => f.caps.includes(c)).join(","));
   f.sectors.forEach((x) => p.append("sector", x));
-  BAND_KEYS.forEach((k) => { if (f.bands[k].length) p.set(k, BAND_ORDER.filter((b) => f.bands[k].includes(b)).join(",")); });
+  BAND_KEYS.forEach((k) => { if (f.bands[k].length) p.set(BAND_PARAM[k], BAND_ORDER.filter((b) => f.bands[k].includes(b)).join(",")); });
   RANGE_KEYS.forEach((k) => { const r = f.ranges[k]; if (r.min != null) p.set(k + "min", String(r.min)); if (r.max != null) p.set(k + "max", String(r.max)); });
   if (f.labels.length) p.set("pl", PRISM_LABELS.filter((l) => f.labels.includes(l)).map((l) => LABEL_SLUG[l]).join(","));
   if (f.rated) p.set("rated", "1");

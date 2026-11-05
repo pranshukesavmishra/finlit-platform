@@ -1,7 +1,8 @@
 import { Link, Navigate, useSearchParams } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
 import { HowDialog } from "../components/screener/controls";
-import { ChipRow, FilterGroup, RangeRow } from "../components/screener/FilterGroup";
+import { FilterGroup } from "../components/screener/FilterGroup";
+import { IQ_SUB, IQ_TITLE, IqScoreRows, iqActive } from "../components/screener/IqScoreFilter";
 import { Donut } from "../components/screener/PageParts";
 import { Score, med } from "../components/screener/cells";
 import { useScreener } from "../components/screener/useScreener";
@@ -13,7 +14,7 @@ import { TierChip } from "../components/Gate";
 import { Icon } from "../lib/icons";
 import { useDocTitle } from "../lib/title";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { BANDS, BAND_ORDER, PILLARS, type Band, type RangeKey, hasPrismParams } from "../lib/scoreScreen";
+import { PILLARS, hasPrismParams } from "../lib/scoreScreen";
 import { EXPLAIN } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
@@ -24,8 +25,6 @@ export function ScoreScreener() {
   if (hasPrismParams(params)) return <Navigate to={"/advanced-score-screener" + (params.toString() ? "?" + params.toString() : "")} replace />;
   return <Basic />;
 }
-
-const RANGES: [RangeKey, string][] = [["q", "Quality score"], ["g", "Growth score"], ["p", "Profitability score"], ["b", "Balance sheet score"]];   // the four pillars: tick one, then set the lowest and highest value
 
 function Basic() {
   useDocTitle("Basic score screener", "Every listed company with its FinLit IQ, the basic model: filter, sort, compare and export by size, sector and score.");
@@ -55,22 +54,13 @@ function Basic() {
       donut={!isLoading && s.rows.length > 0 ? <Donut part={s.rows.length - notScored} total={s.rows.length} partLabel="Scored" restLabel="Not scored" title={notScored > 0 ? `${nf(notScored, 0)} of ${nf(s.rows.length, 0)} companies in this result are not scored yet.` : `All ${nf(s.rows.length, 0)} companies in this result are scored.`} note="Scoring fills in every night, or open a company's report to score it now." /> : undefined}
       presets={<PresetPanel route={route} />}
       filters={locked ? (
-        <FilterGroup id="score" title="Score filters" defaultOpen>
+        <FilterGroup id="score" icon="bars" title={IQ_TITLE} defaultOpen hint={IQ_SUB}>
           <div className="scr-lock"><b><Icon name="lock" /> Score filters are part of Silver</b><span>See and filter by the Quality, Growth, Profitability and Balance sheet scores.</span>
             <button type="button" className="btn primary" onClick={() => upgrade("silver", "Score filters come with the Silver plan.")}>Unlock with Silver</button></div>
         </FilterGroup>
       ) : (<>
-        <FilterGroup id="score" title="Score filters" defaultOpen active={RANGES.filter(([k]) => draft.ranges[k].min != null || draft.ranges[k].max != null).length} hint="Tick a score, then set the lowest and highest value (0 to 100).">
-          {RANGES.map(([k, label]) => <RangeRow key={k} label={label} group={`${label.replace(" score", "")} score, exact range`} min={draft.ranges[k].min} max={draft.ranges[k].max} error={s.problems[k]} onChange={(end, v) => s.setRange(k, end, v)} />)}
-        </FilterGroup>
-        <FilterGroup id="bands" title="Score bands" defaultOpen active={draft.bands.f.length + draft.bands.t.length}>
-          {(["f", "t"] as const).map((k) => <ChipRow key={k} label={k === "f" ? "Growth & Profitability" : "Technical"} group={`${k === "f" ? "Growth & Profitability" : "Technical"} score`} onToggle={(b) => s.setBand(k, b as Band)}
-            chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[k].includes(b), aria: BANDS[b].label }))} />)}
-        </FilterGroup>
-        <FilterGroup id="pillars" title="Growth & Profitability score by pillar" defaultOpen active={PILLARS.reduce((n, x) => n + draft.bands[x.k].length, 0)} hint="Select a range for each pillar">
-          <button type="button" className={"fgx-chip fgx-all" + (allStrong ? " is-on" : "")} aria-pressed={allStrong} onClick={setAllStrong}>{allStrong && <i aria-hidden="true">&#10003;</i>}Strong on all four (78 and above)</button>
-          {PILLARS.map((x) => <ChipRow key={x.k} label={x.label} title={x.say} onToggle={(b) => s.setBand(x.k, b as Band)}
-            chips={BAND_ORDER.map((b) => ({ key: b, text: BANDS[b].short, on: draft.bands[x.k].includes(b), aria: `${x.label} ${BANDS[b].label}` }))} />)}
+        <FilterGroup id="score" icon="bars" title={IQ_TITLE} defaultOpen active={iqActive(s)} hint={IQ_SUB}>
+          <IqScoreRows s={s} allStrong={allStrong} setAllStrong={setAllStrong} />
         </FilterGroup>
       </>)}
       tiles={tiles}

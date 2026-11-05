@@ -6,7 +6,7 @@ import { useUniverse } from "../../lib/screener";
 import { useUI } from "../../lib/ui";
 import { useWatchlist, watch } from "../../lib/watchlist";
 import {
-  applyTop, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, toCsv, validate, withScores,
+  applyTop, isBandList, topPool, chipsFor, cloneFilters, concentration, emptyFilters, facetCounts, filtersKey, nextSort, pageOf, parseState, removeChip, serializeState, summarize, toCsv, validate, withScores,
   type Band, type BandKey, type Filters, type Item, type RangeKey, type Scope, type Sort, type SortKey, type State, type TechBand, type TechKey,
 } from "../../lib/scoreScreen";
 import { coverageFrom } from "../../lib/scorePrism";
@@ -27,7 +27,7 @@ export function useScreener(mode: Mode) {
   const { filters: applied, sort, size } = state;
   const latest = useRef(state); latest.current = state;   // the newest address state: a delayed apply (the live-filter effect) must not rebuild the address from an older sort
   const [draft, setDraft] = useState<Filters>(() => cloneFilters(applied));
-  const [secQ, setSecQ] = useState(""), [q, setQ] = useState(() => params.get("q") ?? "");   // q: the toolbar search; it narrows the table and is kept in the address as ?q=
+  const [secQ, setSecQ] = useState(""), [q, setQ] = useState(() => (isBandList(params.get("q")) ? "" : params.get("q") ?? ""));   // q: the toolbar search; it narrows the table and is kept in the address as ?q=
   const [picked, setPicked] = useState<string[]>([]);
   const [how, setHow] = useState(false), [drawer, setDrawer] = useState(false);
   const silver = has("silver"), locked = !silver, gold = has("gold"), maxCompare = gold ? 4 : 2;
@@ -62,7 +62,7 @@ export function useScreener(mode: Mode) {
   useEffect(() => {   // keep ?q= in step with the search box (a new search starts again from page 1)
     const t = setTimeout(() => setParams(() => {
       const prev = live.current, cur = prev.get("q") ?? "", want = q.trim();   // the latest address, not the one this render closed over (that would undo a filter applied a moment ago)
-      if (cur === want) return prev;
+      if (cur === want || (!want && isBandList(cur))) return prev;
       const n = new URLSearchParams(prev); if (want) n.set("q", want); else n.delete("q"); n.delete("page"); return n;
     }, { replace: true }), 300);
     return () => clearTimeout(t);

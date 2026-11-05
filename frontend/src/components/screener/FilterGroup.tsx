@@ -1,5 +1,6 @@
 // Shared filter-panel pieces for every screener: a collapsible group (serif heading, "n active" badge, chevron), checkbox rows with counts,
 // a Min - Max row that is enabled by its checkbox, chip rows, radio-style quick views and a search box. Styles: styles/fgx.css (class prefix fgx-).
+import { Icon } from "../../lib/icons";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /** Asking a group to open and scroll into view (the toolbar buttons use this). `n` changes on every request. */
@@ -7,8 +8,8 @@ export const FgxFocus = createContext<{ id: string | null; n: number }>({ id: nu
 
 export const Chev = () => <svg className="fgx-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 
-type GroupProps = { id: string; title: string; active?: number; hint?: ReactNode; meta?: ReactNode; defaultOpen?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; className?: string; children: ReactNode };
-export function FilterGroup({ id, title, active = 0, hint, meta, defaultOpen = false, open: ctl, onOpenChange, className = "", children }: GroupProps) {
+type GroupProps = { id: string; title: string; icon?: string; active?: number; hint?: ReactNode; meta?: ReactNode; defaultOpen?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; className?: string; children: ReactNode };
+export function FilterGroup({ id, title, icon, active = 0, hint, meta, defaultOpen = false, open: ctl, onOpenChange, className = "", children }: GroupProps) {
   const [own, setOwn] = useState(defaultOpen || active > 0);
   const open = ctl ?? own;
   const set = (o: boolean) => { setOwn(o); onOpenChange?.(o); };
@@ -25,6 +26,7 @@ export function FilterGroup({ id, title, active = 0, hint, meta, defaultOpen = f
           if (i < 0 || !all.length) return;
           e.preventDefault(); all[e.key === "Home" ? 0 : e.key === "End" ? all.length - 1 : (i + (e.key === "ArrowDown" ? 1 : -1) + all.length) % all.length].focus();
         }}>
+        {icon && <span className="fgx-gi" aria-hidden="true"><Icon name={icon} /></span>}
         <span className="fgx-t">{title}</span>
         {meta != null && <span className="fgx-meta">{meta}</span>}
         {active > 0 && <span className="fgx-badge">{active} active</span>}
