@@ -20,15 +20,17 @@ export function GlossaryPage() {
       <PageHeader wrap title="Glossary" art="report" links={["/blog", "/faq", "/research"]} stats={[{ icon: "book", value: TERMS.length, label: "Terms" }]}
         description={<>The language of investing in plain words: <b>{TERMS.length} terms from A to Z</b>. Each says what it means, why it matters and how to use it, with the formula where there is a standard one, and how FinLit measures it. For education only; not investment, tax or legal advice.</>} />
       <div className="wrap gx">
-        <label className="gx-s"><Icon name="table" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search terms, e.g. P/E, ROE, EV/CFO…" aria-label="Search the glossary" /></label>
         <div className="gx-bar">
           <div className="gx-az" role="group" aria-label="Letters">
             <button className={!letter ? "on" : ""} aria-pressed={!letter} onClick={() => setLetter("")}>All</button>
             {LETTERS.map((l) => <button key={l} className={letter === l ? "on" : ""} disabled={!counts[l]} aria-pressed={letter === l} onClick={() => setLetter(l)}>{l}</button>)}
           </div>
-          <label className="gx-c"><span className="label">Topic</span><select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Filter by topic"><option value="">All topics</option>{TOPICS.map((c) => <option key={c}>{c}</option>)}</select></label>
         </div>
-        <div className="gx-h"><span>{list.length} term{list.length === 1 ? "" : "s"}</span></div>
+        <div className="gx-tools">
+          <label className="gx-c"><span className="label">Topic</span><select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Filter by topic"><option value="">All topics</option>{TOPICS.map((c) => <option key={c}>{c}</option>)}</select></label>
+          <span className="gx-count">{list.length} term{list.length === 1 ? "" : "s"}</span>
+          <label className="gx-s"><Icon name="table" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search terms, e.g. P/E, ROE, EV/CFO…" aria-label="Search the glossary" /></label>
+        </div>
         <div className="gx-list">{list.map((x) => (
           <article className="gx-card" key={x.id} id={x.id}>
             <header><h3><a href={"#" + x.id}>{x.term}</a></h3><span className="chip gold">{x.topic}</span></header>

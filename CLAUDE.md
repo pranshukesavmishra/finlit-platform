@@ -25,4 +25,4 @@ Report each issue in one message: cause, what changed, test results, what is sti
 - Wording: describe, never advise. Never buy / sell / hold / reduce / avoid / accumulate / target / "best" / multibagger / top pick. Keep the disclaimer "Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice."
 - Everything stays free.
 - Secrets (API keys, tokens, passwords) only in the server's `/opt/finlit/.env.aws` or GitHub/host dashboards; never in chat or in the repo.
-- Never push or deliver until the founder says "send" (unless he says to deliver as you go). No model names in commits or code.
+- Deliver as you go (the founder said so on 5 Nov 2026): after the tests pass, commit, push and deliver without waiting for approval. Tell him what shipped and what he must do. No model names in commits or code.
