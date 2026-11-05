@@ -93,3 +93,4 @@
   .cb-table td[data-l]::before { content: attr(data-l) ": "; color: var(--faint); font-size: var(--fs-12); }
   .cb-table td.num { display: block; }
 }
+.cb-badge.auto { border-color: var(--border-strong); color: var(--muted); background: var(--s2); }

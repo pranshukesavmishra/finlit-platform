@@ -18,10 +18,11 @@ export type Brief = {
 };
 export type Checks = { date?: string | null; citations: number; passed: number; unchecked: number; fixed: string[]; method?: string | null };
 export type BriefReply =
-  | { symbol: string; name?: string | null; state: "published"; brief: Brief; asOf: string; reviewedAt: string | null; stale: boolean; waiting?: boolean; changes?: { since: string | null; now: string | null; parts: string[] } | null;
+  | { symbol: string; name?: string | null; state: "published"; brief: Brief; publishMode?: "auto" | "person"; asOf: string; reviewedAt: string | null; stale: boolean; waiting?: boolean; changes?: { since: string | null; now: string | null; parts: string[] } | null;
       checks: Checks; chips: Record<string, string>; disclaimer: string; compliance: string }
   | { symbol: string; name?: string | null; state: "empty"; code: string; reason: string; disclaimer: string; compliance: string };
 
+export const AUTO_NOTE = "Checked automatically against the filings; every line cites its page.";
 export const COMPLIANCE = "Describes the company's financial health from its filings and prices; not a recommendation. Information only, not investment advice.";
 export const PART_NAMES: Record<string, string> = { about: "what the company does", key_figures: "key figures", group: "the group table", segments: "the businesses", mix: "where the money comes from", recent: "recent developments" };
 

@@ -11,10 +11,12 @@ LLM_REQUESTS_PER_DAY = 60         # BRIEF_LLM_PER_DAY: shared across runs throug
 MAX_DOCS_PER_BRIEF = 8            # PDFs read for one brief
 MAX_PDF_BYTES = 40 * 1024 * 1024  # an annual report is large
 MAX_PAGES = 700
-REQUEST_BUDGET_PER_RUN = 120      # all outbound requests (PDFs and robots.txt) in one run
+REQUEST_BUDGET_PER_RUN = 600      # all outbound requests (PDFs and robots.txt) in one run
 SOURCE_WINDOW_DAYS = 200          # filings older than this are not read for a first brief (the annual report is read whatever its date)
 MAX_ATTEMPTS = 3                  # a company whose output keeps failing the gates is left alone after this many tries on the same filings
 RETRY_AFTER_HOURS = 24
+MAX_LOOKUPS_PER_RUN = 150          # annual-report lookups (NSE, then BSE) in one run: cheap, no model call
+TOP_COMPANIES = 6000              # the whole listed market, in order, over as many nights as the cap needs. BRIEF_TOP_COMPANIES
 PROMPT_VERSION = "brief-1"
 
 

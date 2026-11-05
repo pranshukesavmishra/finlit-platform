@@ -65,6 +65,15 @@ describe("company brief section", () => {
     expect(screen.getByText(/newer draft is waiting for review/)).toBeTruthy();
   });
 
+  it("an automatically checked brief says so and claims no human review", async () => {
+    serve(published({ publishMode: "auto", reviewedAt: null }));
+    mount();
+    await screen.findByText(/About Reliance/);
+    expect(screen.getByText("Checked automatically")).toBeTruthy();
+    expect(screen.getByText("Checked automatically against the filings; every line cites its page.")).toBeTruthy();
+    expect(screen.queryByText(/^Reviewed/)).toBeNull();
+  });
+
   it("a citation without a document address is shown but not linked", async () => {
     const b = JSON.parse(JSON.stringify(brief)) as Brief;
     delete b.docs.AR.url;

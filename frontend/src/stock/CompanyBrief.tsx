@@ -2,7 +2,7 @@
 // developments and what is missing, every line cited to the company's own filings. Shows the PUBLISHED brief only; with none it says why. Describes, never advises.
 import { useState } from "react";
 import { dateIN } from "../lib/format";
-import { COMPLIANCE, PART_NAMES, citeUrl, citedPages, crore, shares, shortName, useCompanyBrief, type Brief, type BriefReply, type Cite, type Doc, type MixSide } from "../lib/companyBrief";
+import { AUTO_NOTE, COMPLIANCE, PART_NAMES, citeUrl, citedPages, crore, shares, shortName, useCompanyBrief, type Brief, type BriefReply, type Cite, type Doc, type MixSide } from "../lib/companyBrief";
 import "../styles/company-brief.css";
 
 type Chips = Record<string, string>;
@@ -65,10 +65,13 @@ export function BriefBody({ r }: { r: Extract<BriefReply, { state: "published" }
           <h2 id="cb-title">About {b.name || r.name}, from its own filings</h2>
         </div>
         <div className="cb-meta">
-          <span className="cb-badge" title="A person at FinLit read this brief and its citation check before it was shown">Reviewed{r.reviewedAt ? ` ${day(r.reviewedAt)}` : ""}</span>
+          {r.publishMode === "auto"
+            ? <span className="cb-badge auto" title="No person has read this brief. A program confirmed that every quoted number and name is on the filing page it cites, and found nothing that needs a reader's care.">Checked automatically</span>
+            : <span className="cb-badge" title="A person at FinLit read this brief and its citation check before it was shown">Reviewed{r.reviewedAt ? ` ${day(r.reviewedAt)}` : ""}</span>}
           <span className="cb-faint">Filings to <b>{day(r.asOf)}</b></span>
         </div>
       </div>
+      {r.publishMode === "auto" && <p className="cb-note-i" role="note">{AUTO_NOTE}</p>}
       {r.stale && <p className="cb-warn" role="status">No newer filing has been read for over four months, so this brief may be behind. Check the dates on each line.</p>}
       {r.waiting && <p className="cb-note-i" role="status">A newer draft is waiting for review. This is the last reviewed version.</p>}
       {ch && ch.parts.length > 0 && <p className="cb-note-i" role="status">Updated{ch.now ? ` to ${day(ch.now)}` : ""}{ch.since ? ` (was ${day(ch.since)})` : ""}: {ch.parts.map((p) => PART_NAMES[p] ?? p).join(", ")} rewritten from newer filings.</p>}
