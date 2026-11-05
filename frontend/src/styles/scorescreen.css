@@ -101,3 +101,7 @@
 .sx-t thead th[data-of]::before { text-align: left; white-space: nowrap; }
 .sx-t thead th[data-of] > button { white-space: normal; text-align: left; line-height: 1.25; overflow: visible; text-overflow: clip; max-width: 112px; }
 .sx-colopt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 10px; } .sx-colopt small { color: var(--muted); font-size: var(--fs-13); }
+
+/* Results table: the tick-box and rank columns hold one small control or number, so they stay narrow */
+.sx-t thead tr:not(.gh) th:first-child, .sx-t tbody td:first-child { width: 40px; min-width: 40px; max-width: 40px; padding-left: 12px; padding-right: 4px; text-align: center; box-sizing: border-box; }
+.sx-t thead tr:not(.gh) th.sx-n, .sx-t tbody td.sx-n { width: 40px; min-width: 40px; max-width: 40px; padding-left: 4px; padding-right: 10px; box-sizing: border-box; }
