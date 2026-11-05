@@ -2,7 +2,9 @@
 Usage: python3 scripts/build_question_bank.py <path to the PDF>
 Every question keeps its own ID (C.1.1.1 ...), its section path, its text and the placeholders it uses; nothing is reworded."""
 import json, re, sys
-from pypdf import PdfReader
+from pathlib import Path
+
+COMPANY40 = Path(__file__).with_name("data") / "company40.json"   # the founder's 40 company questions, with the answer plan and data limits of each
 
 # the company questions the assistant offers as one-tap suggestions on a company page (IDs of the bank; the text is copied from it, never reworded)
 SUGGESTED = ["C.2.1.2", "C.2.1.3", "C.2.2.1", "C.2.5.1", "C.3.5.1", "C.5.1.1", "C.6.1.1", "C.7.2.1"]
@@ -11,7 +13,28 @@ ID = re.compile(r"^([CMEFSPTX])\.(\d+(?:\.\d+)*)\s+(.*)$")
 SECTION = re.compile(r"^\d+\. [A-Z][A-Z ,&/\-]+ \([A-Z]\)$")   # "8. SECTOR-SPECIFIC COMPANY QUESTIONS (X)": what follows until the next ID is prose, not a question
 FOOT = re.compile(r"^(Sena / FinLit Predeﬁned Question Bank|Sena / FinLit Predefined Question Bank|Page \d+ of \d+)$")
 
+def add_company40(bank_path="site-api/backend/question_bank.json", sug_path="frontend/src/content/questionSuggestions.json", src=COMPANY40):
+    """Adds (or refreshes) the founder's 40 company questions: ids C.<section>.Q<n> (n = the question's number 1-40, so they never meet the bank's C.2.1.1 ids),
+    in the bank file for the matcher and the assistant's answer plan, and as the grouped 'More questions' list in the suggestions file. Safe to run again."""
+    data = json.loads(Path(src).read_text(encoding="utf-8"))
+    bank = json.loads(Path(bank_path).read_text(encoding="utf-8"))
+    bank["questions"] = [q for q in bank["questions"] if q.get("set") != "company40"]
+    for d in data["questions"]:
+        q = {"id": d["id"], "text": d["text"], "group": "Company", "path": [d["sectionTitle"]], "placeholders": sorted(set(re.findall(r"\{(\w+)\}", d["text"]))),
+             "set": "company40", "n": d["n"], "section": d["section"], "status": d["status"], "covers": d["covers"], "tools": d["tools"], "plan": d["plan"], "limits": d["limits"]}
+        for flag in ("lendersOnly", "needsSecondCompany"):
+            if d.get(flag): q[flag] = True
+        bank["questions"].append(q)
+    Path(bank_path).write_text(json.dumps(bank, ensure_ascii=False, indent=1), encoding="utf-8")
+    sug = json.loads(Path(sug_path).read_text(encoding="utf-8"))
+    sug["groups"] = [{"n": int(n), "title": title, "items": [{k: v for k, v in {"id": d["id"], "text": d["text"], "lendersOnly": d.get("lendersOnly"), "needsSecondCompany": d.get("needsSecondCompany")}.items() if v}
+                                                              for d in data["questions"] if d["section"] == int(n)]} for n, title in data["sections"].items()]
+    Path(sug_path).write_text(json.dumps(sug, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(len(data["questions"]), "company questions added in", len(sug["groups"]), "groups")
+
+
 def main(pdf, out):
+    from pypdf import PdfReader
     text = "\n".join(p.extract_text() for p in PdfReader(pdf).pages)
     lines = [l.strip() for l in text.splitlines() if l.strip() and not FOOT.match(l.strip())]
     items = []          # (id, text)
@@ -46,6 +69,9 @@ def main(pdf, out):
     by = {}
     for q in qs: by[q["group"]] = by.get(q["group"], 0) + 1
     print(len(qs), "questions", by, "| headings", len(heads))
+    add_company40(out)
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--company40"]:      # only refresh the founder's 40 questions in the existing bank
+        add_company40(); sys.exit()
     main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "site-api/backend/question_bank.json")

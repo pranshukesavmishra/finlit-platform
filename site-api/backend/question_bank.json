@@ -5129,6 +5129,1058 @@
    "placeholders": [
     "company"
    ]
+  },
+  {
+   "id": "C.1.Q1",
+   "text": "Which sector, industry and sub-industry does {company} belong to, and which cap bucket is it in?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 1,
+   "section": 1,
+   "status": "partly",
+   "covers": [
+    "C.1.1.1",
+    "C.1.1.2"
+   ],
+   "tools": [
+    "get_company_profile",
+    "get_stock_quote"
+   ],
+   "plan": "Call get_company_profile for the sector and industry, and get_stock_quote for the market cap. Name the cap bucket only if the profile or screener result gives it, or by the screener's own Large / Mid / Small split.",
+   "limits": [
+    "A separate sub-industry field is not stored: give the sector and industry as the profile states them and say a sub-industry is not available if the profile does not name one.",
+    "The cap bucket (Large / Mid / Small) is stated only when a tool returns it; no bucket is worked out from memory."
+   ]
+  },
+  {
+   "id": "C.1.Q2",
+   "text": "Where does {company} rank in its sector by market cap, revenue and profit?",
+   "group": "Company",
+   "path": [
+    "Business Snapshot"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 2,
+   "section": 1,
+   "status": "partly",
+   "covers": [
+    "C.1.2.2"
+   ],
+   "tools": [
+    "get_company_profile",
+    "screen_stocks"
+   ],
+   "plan": "Get the sector from get_company_profile, then call screen_stocks with that sector sorted by market_cap (limit 25) and report the rank only if the company appears in those rows, together with the as-of date.",
+   "limits": [
+    "The screener returns at most 25 companies and its free metrics do not include revenue or profit: a rank by revenue or by profit is not available, and a market cap rank is given only when the company is inside the 25 rows returned (otherwise say it ranks below 25 or that the rank is not available)."
+   ]
+  },
+  {
+   "id": "C.2.Q3",
+   "text": "What was {company}'s revenue over the last 5 years and the last 8 quarters?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 3,
+   "section": 2,
+   "status": "available",
+   "covers": [
+    "C.2.1.1"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "Call get_financials with period annual limit 5 and again with period quarterly limit 8; read the revenue row of the profit and loss for each period and list every period with its figure in crore rupees.",
+   "limits": []
+  },
+  {
+   "id": "C.2.Q4",
+   "text": "What are {company}'s 3-year, 5-year and 10-year revenue CAGRs?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 4,
+   "section": 2,
+   "status": "partly",
+   "covers": [
+    "C.2.1.3"
+   ],
+   "tools": [
+    "get_ratios",
+    "get_financials"
+   ],
+   "plan": "The 3-year and 5-year revenue CAGRs come from get_ratios (revenue_cagr_3y, revenue_cagr_5y). For 10 years call get_financials annual with limit 11 and compute (last / first) to the power 1/10 minus 1 from the revenue row, stating that it is worked out from the statements.",
+   "limits": [
+    "The 10-year CAGR is given only if the annual statements returned contain 11 fiscal years of revenue; otherwise say the stored history is shorter and name how many years are stored. Never estimate the missing years."
+   ]
+  },
+  {
+   "id": "C.2.Q5",
+   "text": "Is {company}'s revenue growing faster or slower than the sector median?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 5,
+   "section": 2,
+   "status": "partly",
+   "covers": [
+    "C.2.1.4"
+   ],
+   "tools": [
+    "get_ratios",
+    "screen_stocks"
+   ],
+   "plan": "Give the company's own revenue growth from get_ratios and the statements. For the sector, call screen_stocks for its sector with the sales_cagr_5y metric and describe the companies returned as a sample, not as the sector median.",
+   "limits": [
+    "A sector median revenue growth is not stored and the screener returns at most 25 companies: say the sector median is not available, and compare only with the named sample if you give one, labelled as a sample."
+   ]
+  },
+  {
+   "id": "C.2.Q6",
+   "text": "How have {company}'s operating profit (EBITDA) and operating margin trended over the last 5 years?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 6,
+   "section": 2,
+   "status": "available",
+   "covers": [
+    "C.2.2.1"
+   ],
+   "tools": [
+    "get_financials",
+    "get_ratios"
+   ],
+   "plan": "Call get_financials annual limit 5 for the operating profit and revenue rows, and get_ratios for the operating margin history; list each year with the figure and the margin and describe the direction without judging it.",
+   "limits": []
+  },
+  {
+   "id": "C.2.Q7",
+   "text": "What are {company}'s 3-year and 5-year profit CAGRs?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 7,
+   "section": 2,
+   "status": "available",
+   "covers": [
+    "C.2.2.4"
+   ],
+   "tools": [
+    "get_ratios",
+    "get_financials"
+   ],
+   "plan": "Read profit_cagr_3y and profit_cagr_5y from get_ratios; if a figure is missing, work it out from the net profit row of get_financials annual (limit 6) and say it is worked out.",
+   "limits": []
+  },
+  {
+   "id": "C.2.Q8",
+   "text": "How did {company}'s latest quarter compare with the same quarter last year and with the previous quarter?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 8,
+   "section": 2,
+   "status": "available",
+   "covers": [
+    "C.2.5.1",
+    "C.2.5.2"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "Call get_financials with period quarterly limit 6. Compare the latest quarter with the quarter four places earlier (same quarter last year) and with the one just before it, for revenue, operating profit and net profit, giving the change in percent and the quarter names.",
+   "limits": []
+  },
+  {
+   "id": "C.2.Q9",
+   "text": "What share of {company}'s PBT comes from other income, and did exceptional items affect its profit?",
+   "group": "Company",
+   "path": [
+    "Profit & Loss"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 9,
+   "section": 2,
+   "status": "partly",
+   "covers": [
+    "C.2.6.1",
+    "C.2.6.2"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "From get_financials annual limit 5 read other income, profit before tax and exceptional items; the share is other income divided by PBT for each year (say it is worked out). Report exceptional items per year from their row.",
+   "limits": [
+    "If the statements carry no exceptional-items row for a year, say it is not available for that year rather than saying there were none; where PBT is zero or negative, the share is not meaningful and is stated as such."
+   ]
+  },
+  {
+   "id": "C.3.Q10",
+   "text": "How have {company}'s total borrowings and debt-to-equity ratio changed over the last 5 years?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 10,
+   "section": 3,
+   "status": "available",
+   "covers": [
+    "C.3.1.1",
+    "C.3.1.2"
+   ],
+   "tools": [
+    "get_financials",
+    "get_ratios"
+   ],
+   "plan": "Read the borrowings row of the balance sheet from get_financials annual limit 5 and the debt_to_equity history from get_ratios; list both by year.",
+   "limits": []
+  },
+  {
+   "id": "C.3.Q11",
+   "text": "How has {company}'s net worth grown, and has its share count changed through dilution or buybacks?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 11,
+   "section": 3,
+   "status": "partly",
+   "covers": [
+    "C.3.2.2",
+    "C.3.2.3"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "Net worth (share capital plus reserves) from the balance sheet of get_financials annual limit 5. For the share count use a shares-outstanding or share-capital row if the statements have one.",
+   "limits": [
+    "If no share-count row is returned, say the share count history is not available; do not infer dilution or buybacks from EPS or from share capital alone."
+   ]
+  },
+  {
+   "id": "C.3.Q12",
+   "text": "Is {company} net debt or net cash, and what is its debt-to-EBITDA ratio?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 12,
+   "section": 3,
+   "status": "available",
+   "covers": [
+    "C.3.5.1",
+    "C.3.5.2"
+   ],
+   "tools": [
+    "get_financials",
+    "get_ratios"
+   ],
+   "plan": "From the latest annual balance sheet take borrowings and cash and bank balances: net debt is borrowings minus cash (a negative result is net cash). Debt-to-EBITDA is borrowings divided by the operating profit of the same year. State both are worked out from the statements, with the year.",
+   "limits": [
+    "For a bank or NBFC borrowings and EBITDA are not comparable: say the ratio is not meaningful for that kind of company."
+   ]
+  },
+  {
+   "id": "C.3.Q13",
+   "text": "What are {company}'s receivable, inventory and payable days, and how has its cash conversion cycle changed?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 13,
+   "section": 3,
+   "status": "available",
+   "covers": [
+    "C.3.4.1",
+    "C.3.4.2",
+    "C.3.4.3",
+    "C.3.4.4"
+   ],
+   "tools": [
+    "get_ratios"
+   ],
+   "plan": "Read debtor_days, inventory_days, payable_days and cash_conversion_cycle with their history from get_ratios and describe the change over the years returned.",
+   "limits": [
+    "If a company reports no inventory (for example a service company) say the figure is not available for that company."
+   ]
+  },
+  {
+   "id": "C.3.Q14",
+   "text": "Are {company}'s assets growing faster than its revenue?",
+   "group": "Company",
+   "path": [
+    "Balance Sheet"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 14,
+   "section": 3,
+   "status": "available",
+   "covers": [
+    "C.3.3.3"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "From get_financials annual limit 6 take total assets (balance sheet) and revenue (profit and loss), compute the year-on-year growth of each, and describe which grew faster in each year and over the whole span.",
+   "limits": []
+  },
+  {
+   "id": "C.4.Q15",
+   "text": "How has {company}'s operating cash flow trended, and what is its CFO-to-PAT ratio each year?",
+   "group": "Company",
+   "path": [
+    "Cash Flow"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 15,
+   "section": 4,
+   "status": "available",
+   "covers": [
+    "C.4.1.1",
+    "C.4.1.2"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "From get_financials annual limit 8 read cash from operations (cash flow) and net profit (profit and loss); the ratio is CFO divided by net profit for each year (say it is worked out).",
+   "limits": [
+    "Where net profit is zero or negative the ratio is not meaningful: say so for that year."
+   ]
+  },
+  {
+   "id": "C.4.Q16",
+   "text": "How much has {company} spent on capex each year, and what is that as a percentage of sales?",
+   "group": "Company",
+   "path": [
+    "Cash Flow"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 16,
+   "section": 4,
+   "status": "available",
+   "covers": [
+    "C.4.2.1"
+   ],
+   "tools": [
+    "get_financials"
+   ],
+   "plan": "From get_financials annual limit 8 read the capital expenditure line of the cash flow (purchase of fixed assets) and revenue; capex as a percentage of sales is capex divided by revenue.",
+   "limits": [
+    "If no capex line is returned for a year say it is not available for that year."
+   ]
+  },
+  {
+   "id": "C.4.Q17",
+   "text": "What is {company}'s free cash flow trend and FCF yield, and in how many of the last 10 years was FCF positive?",
+   "group": "Company",
+   "path": [
+    "Cash Flow"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 17,
+   "section": 4,
+   "status": "partly",
+   "covers": [
+    "C.4.4.1",
+    "C.4.4.2",
+    "C.4.4.3"
+   ],
+   "tools": [
+    "get_financials",
+    "get_stock_quote",
+    "get_ratios"
+   ],
+   "plan": "Free cash flow is cash from operations minus capex for each year (worked out from get_financials annual limit 10). FCF yield is the latest year's FCF divided by the market cap from get_stock_quote, or the stored fcf_yield if get_ratios returns it; count the positive years among the years returned.",
+   "limits": [
+    "Say how many years are stored: the count of positive years is given out of the years actually available, not out of 10 if fewer are stored."
+   ]
+  },
+  {
+   "id": "C.5.Q18",
+   "text": "What are {company}'s ROE, ROCE and ROA over the last 5 years, and how do they compare with the sector median?",
+   "group": "Company",
+   "path": [
+    "Ratios"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 18,
+   "section": 5,
+   "status": "partly",
+   "covers": [
+    "C.5.1.1",
+    "C.5.1.2"
+   ],
+   "tools": [
+    "get_ratios",
+    "screen_stocks"
+   ],
+   "plan": "Read roe, roce and roa history from get_ratios (last 5 periods). For the sector comparison use screen_stocks on the sector with the roe and roce metrics and present it only as a sample of companies.",
+   "limits": [
+    "A sector median ROE or ROCE is not stored: say it is not available, and name any sample comparison as a sample (at most 25 companies)."
+   ]
+  },
+  {
+   "id": "C.5.Q19",
+   "text": "What are {company}'s interest coverage and current ratio, and are they improving?",
+   "group": "Company",
+   "path": [
+    "Ratios"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 19,
+   "section": 5,
+   "status": "available",
+   "covers": [
+    "C.3.5.3",
+    "C.5.4.1"
+   ],
+   "tools": [
+    "get_ratios"
+   ],
+   "plan": "Read interest_coverage and current_ratio with their history from get_ratios and describe whether each moved up or down across the periods returned.",
+   "limits": []
+  },
+  {
+   "id": "C.5.Q20",
+   "text": "How does {company}'s ROE break down into margin, asset turnover and leverage (DuPont)?",
+   "group": "Company",
+   "path": [
+    "Ratios"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 20,
+   "section": 5,
+   "status": "partly",
+   "covers": [
+    "C.5.5.1"
+   ],
+   "tools": [
+    "get_ratios"
+   ],
+   "plan": "Take net_margin, asset_turnover and financial_leverage from get_ratios for the latest period and a few years back; ROE is approximately their product. Show the three components side by side with the reported ROE.",
+   "limits": [
+    "If any of the three components is missing for a year, say the DuPont split is not available for that year; do not fill the gap by back-solving."
+   ]
+  },
+  {
+   "id": "C.5.Q21",
+   "text": "For banks and NBFCs only: what are {company}'s NIM, GNPA, NNPA and CASA ratio?",
+   "group": "Company",
+   "path": [
+    "Ratios"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 21,
+   "section": 5,
+   "status": "not_available",
+   "covers": [
+    "C.5.6.1",
+    "C.5.6.2",
+    "C.5.6.3"
+   ],
+   "tools": [
+    "get_company_profile",
+    "get_financials"
+   ],
+   "plan": "First confirm from get_company_profile that the company is a bank or NBFC; if it is not, say this question is for banks and NBFCs only. For a lender, say plainly which of NIM, GNPA, NNPA and CASA the tools return (check get_ratios and get_financials) and give only those.",
+   "limits": [
+    "NIM, GNPA, NNPA and CASA ratio are not stored in FinLit's data tools: say they are not available here and where they can be found (the bank's quarterly results and investor presentation); describe only the interest income, interest expense and profit lines the statements do show."
+   ],
+   "lendersOnly": true
+  },
+  {
+   "id": "C.6.Q22",
+   "text": "What are {company}'s current PE, PB, P/S and EV/EBITDA?",
+   "group": "Company",
+   "path": [
+    "Valuation"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 22,
+   "section": 6,
+   "status": "available",
+   "covers": [
+    "C.6.1.1",
+    "C.6.1.2"
+   ],
+   "tools": [
+    "get_ratios",
+    "get_stock_quote"
+   ],
+   "plan": "Read pe, pb, ps and ev_ebitda (latest) from get_ratios and give each with its period or as-of date.",
+   "limits": [
+    "A multiple that is undefined (for example PE when earnings are negative) comes back empty: say it is not meaningful or not available, never zero."
+   ]
+  },
+  {
+   "id": "C.6.Q23",
+   "text": "How does {company}'s PE compare with its own 3-year, 5-year and 10-year average, and in what percentile of its history is it?",
+   "group": "Company",
+   "path": [
+    "Valuation"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 23,
+   "section": 6,
+   "status": "not_available",
+   "covers": [
+    "C.6.2.1",
+    "C.6.2.2"
+   ],
+   "tools": [
+    "get_ratios"
+   ],
+   "plan": "Give the current PE from get_ratios. Then state exactly which historical PE figures the tools returned (get_ratios gives the current PE and ratio history for other ratios only).",
+   "limits": [
+    "The 3-year, 5-year and 10-year average PE and the historical percentile of the PE are not available through FinLit's data tools: say so and do not estimate them, do not use remembered values and do not derive them from the current PE."
+   ]
+  },
+  {
+   "id": "C.6.Q24",
+   "text": "Is {company} cheaper or more expensive than the sector median on PE and PB?",
+   "group": "Company",
+   "path": [
+    "Valuation"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 24,
+   "section": 6,
+   "status": "partly",
+   "covers": [
+    "C.6.3.1"
+   ],
+   "tools": [
+    "get_ratios",
+    "screen_stocks"
+   ],
+   "plan": "Give the company's PE and PB from get_ratios. For the sector call screen_stocks on its sector with the pe metric and describe that sample of companies (at most 25) factually, then state the company's PE relative to those figures in numbers, without calling it good or bad.",
+   "limits": [
+    "A sector median PE and PB is not stored, and PB is not a free screener metric: say the median is not available and that any comparison is against the stated sample only."
+   ]
+  },
+  {
+   "id": "C.6.Q25",
+   "text": "What are {company}'s dividend yield and payout ratio, and for how many consecutive years has it paid a dividend?",
+   "group": "Company",
+   "path": [
+    "Valuation"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 25,
+   "section": 6,
+   "status": "partly",
+   "covers": [
+    "C.6.4.1",
+    "C.6.4.3"
+   ],
+   "tools": [
+    "get_ratios",
+    "get_financials"
+   ],
+   "plan": "Read dividend_yield and dividend_payout from get_ratios. For consecutive years, look for a dividend or dividend-per-share row in get_financials annual (limit 20) and count back from the latest year.",
+   "limits": [
+    "If the statements have no dividend row, the number of consecutive dividend years is not available: say so and give only the yield and payout."
+   ]
+  },
+  {
+   "id": "C.6.Q26",
+   "text": "How has {company}'s market cap changed over 1, 3 and 5 years?",
+   "group": "Company",
+   "path": [
+    "Valuation"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 26,
+   "section": 6,
+   "status": "partly",
+   "covers": [
+    "C.6.5.1"
+   ],
+   "tools": [
+    "get_stock_quote",
+    "get_price_history"
+   ],
+   "plan": "Give the current market cap from get_stock_quote. Call get_price_history (days 1825) and report the price change over 1, 3 and 5 years, clearly labelled as a change in share price.",
+   "limits": [
+    "A history of market cap is not stored: the share price change is given, labelled as price change, and it can differ from the market cap change when the share count changed (split, bonus, issue, buyback)."
+   ]
+  },
+  {
+   "id": "C.7.Q27",
+   "text": "How has promoter holding in {company} changed over the last 8 quarters?",
+   "group": "Company",
+   "path": [
+    "Shareholding"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 27,
+   "section": 7,
+   "status": "available",
+   "covers": [
+    "C.7.1.1"
+   ],
+   "tools": [
+    "get_shareholding"
+   ],
+   "plan": "Call get_shareholding and list the promoter percentage for each of the last 8 quarters returned, with the quarter names.",
+   "limits": [
+    "If fewer than 8 quarters are stored, say how many are available."
+   ]
+  },
+  {
+   "id": "C.7.Q28",
+   "text": "What percentage of {company}'s promoter shares is pledged?",
+   "group": "Company",
+   "path": [
+    "Shareholding"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 28,
+   "section": 7,
+   "status": "not_available",
+   "covers": [
+    "C.7.1.2",
+    "C.12.2"
+   ],
+   "tools": [
+    "get_shareholding"
+   ],
+   "plan": "Call get_shareholding and check whether any pledge field is present in the result.",
+   "limits": [
+    "The percentage of promoter shares pledged is not stored in FinLit's data tools unless get_shareholding returns it: if it is absent say it is not available here and suggest the company's quarterly shareholding filing on the exchange website; never say it is zero."
+   ]
+  },
+  {
+   "id": "C.7.Q29",
+   "text": "How have FII, DII and mutual fund holdings in {company} changed over the last 4 quarters?",
+   "group": "Company",
+   "path": [
+    "Shareholding"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 29,
+   "section": 7,
+   "status": "partly",
+   "covers": [
+    "C.7.2.1",
+    "C.7.2.2",
+    "C.7.2.3"
+   ],
+   "tools": [
+    "get_shareholding"
+   ],
+   "plan": "Call get_shareholding and list the FII and DII percentages for the last 4 quarters returned, with the change over the span.",
+   "limits": [
+    "Mutual funds are part of the domestic institutions (DII) group and are not shown separately: say the mutual fund holding on its own is not available, and give the DII figure."
+   ]
+  },
+  {
+   "id": "C.7.Q30",
+   "text": "How many shareholders does {company} have, and who are its top holders?",
+   "group": "Company",
+   "path": [
+    "Shareholding"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 30,
+   "section": 7,
+   "status": "partly",
+   "covers": [
+    "C.7.3.2",
+    "C.7.4.1"
+   ],
+   "tools": [
+    "get_shareholding"
+   ],
+   "plan": "Call get_shareholding and list the top holders from its latest holdings list, with their percentages and the date.",
+   "limits": [
+    "The number of shareholders is not stored: say it is not available. If no holders list is returned, say the top holders are not available."
+   ]
+  },
+  {
+   "id": "C.8.Q31",
+   "text": "How far is {company}'s current price from its 52-week high, 52-week low and all-time high?",
+   "group": "Company",
+   "path": [
+    "Price & Technicals"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 31,
+   "section": 8,
+   "status": "partly",
+   "covers": [
+    "C.8.1.1",
+    "C.8.1.2"
+   ],
+   "tools": [
+    "get_stock_quote",
+    "get_price_history"
+   ],
+   "plan": "From get_stock_quote read the price and range52 (high and low) and compute the percentage distance from each. For the high point of the stored history call get_price_history (days 1825) and take the highest close.",
+   "limits": [
+    "A true all-time high is not stored: only up to about 5 years of prices are. Give the highest price within the stored history, call it that, and give its date and the span."
+   ]
+  },
+  {
+   "id": "C.8.Q32",
+   "text": "What are {company}'s returns over 1 month, 3 months, 1 year, 3 years and 5 years versus its index and sector?",
+   "group": "Company",
+   "path": [
+    "Price & Technicals"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 32,
+   "section": 8,
+   "status": "partly",
+   "covers": [
+    "C.8.2.1",
+    "C.8.2.2",
+    "C.8.2.3"
+   ],
+   "tools": [
+    "get_price_history",
+    "get_market_overview"
+   ],
+   "plan": "Call get_price_history (days 1825) and compute the price return for 1 month, 3 months, 1 year, 3 years and 5 years from the closes (say they are worked out from stored closes). Report the index level and day change from get_market_overview.",
+   "limits": [
+    "Index and sector returns over those periods are not available through the tools (only index levels and the day change): say the comparison with the index and the sector is not available and give the company's own returns."
+   ]
+  },
+  {
+   "id": "C.8.Q33",
+   "text": "Is {company} trading above or below its 50, 100 and 200 day moving averages, and what is its MACD signal?",
+   "group": "Company",
+   "path": [
+    "Price & Technicals"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 33,
+   "section": 8,
+   "status": "partly",
+   "covers": [
+    "C.8.3.1",
+    "C.8.3.3"
+   ],
+   "tools": [
+    "get_price_history"
+   ],
+   "plan": "Call get_price_history (days 365, daily) and take the average of the last 50, 100 and 200 closes; compare each with the latest close and say above or below, labelled as worked out from stored closes.",
+   "limits": [
+    "The MACD signal is not stored as a figure: say it is not available. Only work it out from the closes if you show the inputs, and label it as worked out; otherwise do not state it."
+   ]
+  },
+  {
+   "id": "C.8.Q34",
+   "text": "What is {company}'s RSI, and is it overbought or oversold?",
+   "group": "Company",
+   "path": [
+    "Price & Technicals"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 34,
+   "section": 8,
+   "status": "partly",
+   "covers": [
+    "C.8.4.1"
+   ],
+   "tools": [
+    "get_price_history",
+    "get_ratios"
+   ],
+   "plan": "Check get_ratios for an RSI figure. If none is stored, work out the 14-day RSI from the last 15 or more daily closes of get_price_history and label it worked out. Describe where the number sits on the usual 0 to 100 scale (above 70 is conventionally called overbought, below 30 oversold) as a description of the reading, not as a signal to act.",
+   "limits": [
+    "If daily closes for at least 15 sessions are not returned, say the RSI is not available. Do not add any suggestion about what to do with the reading."
+   ]
+  },
+  {
+   "id": "C.8.Q35",
+   "text": "What are {company}'s volatility, beta and maximum drawdown?",
+   "group": "Company",
+   "path": [
+    "Price & Technicals"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 35,
+   "section": 8,
+   "status": "partly",
+   "covers": [
+    "C.8.6.1",
+    "C.8.6.2"
+   ],
+   "tools": [
+    "get_price_history"
+   ],
+   "plan": "Work out volatility (standard deviation of daily returns, annualised) and the maximum drawdown (largest fall from a peak to a later low) from get_price_history closes, label both as worked out and state the span used.",
+   "limits": [
+    "Beta needs the index price history, which is not available through the tools: say beta is not available. Beyond about one year only weekly closes are stored, so say which closes the figures use."
+   ]
+  },
+  {
+   "id": "C.9.Q36",
+   "text": "What is {company}'s overall fundamental score and rating, and how do its component scores compare?",
+   "group": "Company",
+   "path": [
+    "Model Scores"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 36,
+   "section": 9,
+   "status": "available",
+   "covers": [
+    "C.9.1.1",
+    "C.9.1.2"
+   ],
+   "tools": [
+    "get_finlit_score"
+   ],
+   "plan": "Call get_finlit_score; give the overall score (0 to 100), its band and every pillar score with its band. Describe the pillars side by side.",
+   "limits": [
+    "If the score is locked (a Silver plan feature on the website) say so and give nothing in its place."
+   ]
+  },
+  {
+   "id": "C.9.Q37",
+   "text": "How has {company}'s score changed versus last quarter, and which factors drove the change?",
+   "group": "Company",
+   "path": [
+    "Model Scores"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 37,
+   "section": 9,
+   "status": "not_available",
+   "covers": [
+    "C.9.3.1",
+    "C.9.3.2"
+   ],
+   "tools": [
+    "get_finlit_score"
+   ],
+   "plan": "Call get_finlit_score for the current score and pillars only.",
+   "limits": [
+    "The previous quarter's score and the history of the score are not available through the tools (score history is a Silver plan feature on the website): say the change and its drivers cannot be given here, give the current score and pillars, and point to the score history on the company page."
+   ]
+  },
+  {
+   "id": "C.10.Q38",
+   "text": "What is {company}'s dividend, split, bonus and buyback history, and when is its next result date?",
+   "group": "Company",
+   "path": [
+    "Corporate Actions"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 38,
+   "section": 10,
+   "status": "partly",
+   "covers": [
+    "C.10.1",
+    "C.10.2",
+    "C.10.3",
+    "C.10.4"
+   ],
+   "tools": [
+    "get_financials",
+    "get_results_calendar"
+   ],
+   "plan": "Dividends: read a dividend or dividend-per-share row from get_financials annual if present. Next result date: call get_results_calendar (days 60) and look for the company.",
+   "limits": [
+    "Splits, bonus issues and buybacks are not available through the tools: say so. The next result date is given only if the company appears in the next 60 days of the calendar; otherwise say no date is announced in that window. Dividend dates (ex-date, record date) are not available."
+   ]
+  },
+  {
+   "id": "C.11.Q39",
+   "text": "How does {company} compare with {company_2} on growth, margins, returns and valuation?",
+   "group": "Company",
+   "path": [
+    "Compare"
+   ],
+   "placeholders": [
+    "company",
+    "company_2"
+   ],
+   "set": "company40",
+   "n": 39,
+   "section": 11,
+   "status": "partly",
+   "covers": [
+    "C.11.1"
+   ],
+   "tools": [
+    "search_stocks",
+    "get_ratios",
+    "get_financials",
+    "get_stock_quote"
+   ],
+   "plan": "Resolve both companies with search_stocks, then call get_ratios for each and place the same figures side by side: revenue and profit CAGR (growth), operating and net margin, ROE and ROCE (returns), PE, PB and EV/EBITDA (valuation), each with its period. Describe differences in numbers only.",
+   "limits": [
+    "Any figure missing for either company is shown as not available for that company. If the second company is not named in the message, ask which company to compare with instead of choosing one."
+   ],
+   "needsSecondCompany": true
+  },
+  {
+   "id": "C.12.Q40",
+   "text": "Does {company} show any red flags, such as rising debt with falling margins, high promoter pledge, rising receivable days, CFO below PAT, or declining ROCE for 3+ years?",
+   "group": "Company",
+   "path": [
+    "Red Flags"
+   ],
+   "placeholders": [
+    "company"
+   ],
+   "set": "company40",
+   "n": 40,
+   "section": 12,
+   "status": "partly",
+   "covers": [
+    "C.12.1",
+    "C.12.2",
+    "C.12.3",
+    "C.12.4",
+    "C.12.6"
+   ],
+   "tools": [
+    "get_ratios",
+    "get_financials",
+    "get_shareholding"
+   ],
+   "plan": "Test each named item against the data and report what the data shows for each: debt and operating margin over 5 years (get_financials, get_ratios), receivable days (get_ratios debtor_days), CFO against net profit each year (get_financials), ROCE over the last years (get_ratios). Report each as observed or not observed, with the figures.",
+   "limits": [
+    "Promoter pledge is not stored: say that item cannot be tested here. Describe what the numbers show only; do not call the result a warning, a verdict or a reason to act, and do not rate the company."
+   ]
   }
  ]
 }

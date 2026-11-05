@@ -47,13 +47,18 @@ PARAPHRASES = [
 NEGATIVES = ["hello", "who will win the world cup", "write me a python function to sort a list", "what is the weather in Mumbai today", "tell me a joke", "thanks", "ok", "how do I cook biryani"]
 
 
+def is_it(got, want):
+    """The matched question is the wanted one, or a company-set question (id C.<n>.Q<k>) that contains it: the founder's 40 questions restate and join the older narrower ones."""
+    return got == want or (got in BY_ID and want in (BY_ID[got].get("covers") or ()))
+
+
 def best_id(msg):
     r = qm.bank().match(msg)
     return r.best.id if r.best else None, r
 
 
 def test_the_bank_is_complete_and_every_question_keeps_its_id_and_placeholders():
-    assert len(BANK.q) == 457 and len(BY_ID) == 457
+    assert len(BANK.q) == 497 and len(BY_ID) == 497      # the 457 of the PDF + the founder's 40 company questions
     groups = {q["group"] for q in BANK.q}
     assert groups == {"Company", "Mutual Fund", "ETF", "FinLit", "Market and Sector", "Screener Presets", "Earnings Call", "Sector-specific"}
     assert BY_ID["C.2.1.2"]["text"].startswith("What is {company}'s YoY and QoQ revenue growth") and BY_ID["C.2.1.2"]["placeholders"] == ["company"]
@@ -71,7 +76,7 @@ def test_words_reach_one_canonical_form():
 @pytest.mark.parametrize("qid,msg", [(q, m) for q, ms in PARAPHRASES for m in ms])
 def test_a_users_own_words_find_the_right_question(qid, msg):
     got, r = best_id(msg)
-    ok = got is not None and (got.startswith(qid[:-1]) if qid.endswith("*") else got == qid)
+    ok = got is not None and (got.startswith(qid[:-1]) if qid.endswith("*") else is_it(got, qid))
     if not ok and r.confidence == "related" and r.related and not qid.endswith("*"):      # a close call between sibling questions: the right one is the runner-up and the assistant is offered both
         ok = r.related[0].id == qid and r.best.score - r.related[0].score <= 0.08 and r.best.id.rsplit(".", 1)[0] == qid.rsplit(".", 1)[0]
         got = qid if ok else got
@@ -84,7 +89,7 @@ def test_how_often_it_is_confident_and_right():
     for qid, ms in PARAPHRASES:
         for m in ms:
             got, r = best_id(m); total += 1
-            right = got is not None and (got.startswith(qid[:-1]) if qid.endswith("*") else got == qid)
+            right = got is not None and (got.startswith(qid[:-1]) if qid.endswith("*") else is_it(got, qid))
             hits += right
             if r.confidence == "high": confident += 1; confident_right += right
     assert hits / total >= 0.92
@@ -113,7 +118,7 @@ def test_the_years_the_user_names_are_kept():
 def test_the_directive_names_the_question_the_tools_and_asks_for_every_part_and_never_for_advice():
     r = qm.bank().match("revenue CAGR of Asian Paints for 3, 5 and 10 years")
     d = qm.directive(r)
-    assert "C.2.1.3" in d and "get_financials" in d and "cover every part" in d and "not available" in d
+    assert ("C.2.1.3" in d or "C.2.Q4" in d) and "get_financials" in d and "cover every part" in d and "not available" in d
     assert not re.search(r"\b(buy|sell|hold|reduce|avoid|accumulate|target)\b", d, re.I)
     assert qm.directive(qm.bank().match("hello")) == ""                       # nothing matched: the assistant behaves as before
 
@@ -137,9 +142,9 @@ def _score(pairs):
     ok = conf = conf_ok = 0
     for qid, m in pairs:
         r = qm.bank().match(m); got = r.best.id if r.best else None
-        right = got == qid or (r.confidence == "related" and bool(r.related) and r.related[0].id == qid and r.best.score - r.related[0].score <= 0.08)
+        right = is_it(got, qid) or (r.confidence == "related" and bool(r.related) and r.related[0].id == qid and r.best.score - r.related[0].score <= 0.08)
         ok += right
-        if r.confidence == "high": conf += 1; conf_ok += got == qid
+        if r.confidence == "high": conf += 1; conf_ok += is_it(got, qid)
     return ok, conf, conf_ok
 
 

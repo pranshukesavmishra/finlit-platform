@@ -46,3 +46,20 @@ def test_a_problem_in_the_bank_never_breaks_the_chat(monkeypatch):
     monkeypatch.setattr(question_matcher, "bank", boom)
     result, system = ask(monkeypatch, "what is EBITDA")
     assert result.response == "An answer." and result.question_id is None and "FinLit question bank" not in system
+
+
+def test_a_company40_question_reaches_the_assistant_with_its_plan_and_its_data_limits(monkeypatch):
+    """With the data tools attached, the data-limited question carries the strict rule: the assistant says what the tools cannot give and never fills the gap."""
+    from backend import mcp_tools
+    from backend.tests.test_chat_tools import FakeGemini, FakeMcp, ok_result, QUOTE, says, use_mcp
+    mcp_tools.reset_cache()
+    use_mcp(monkeypatch, FakeMcp(results={"get_stock_quote": ok_result(QUOTE)}))
+    gem = FakeGemini(lambda n, kw: says("The current PE is available; the history is not."))
+    gem.install(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    server._chat_attempts.clear()
+    result = asyncio.run(server.chat(server.ChatRequest(message="How does the PE of Infosys compare with its own 3-year, 5-year and 10-year average, and in what percentile of its history is it?"), request()))
+    system = gem.calls[0]["config"]["system_instruction"]
+    mcp_tools.reset_cache()
+    assert result.question_id == "C.6.Q23"
+    assert "Answer plan:" in system and "DATA LIMITS (strict)" in system and "Never estimate" in system and "10-year average PE" in system
