@@ -1,8 +1,9 @@
 {
- "version": 1,
- "source": "FinLit Glossary, October 2026",
+ "version": 2,
+ "source": "FinLit Glossary, November 2026",
  "topics": [
   "Banks and lenders",
+  "Charts and statistics",
   "Company statements",
   "Dividends and corporate actions",
   "Economy and business",
@@ -46,7 +47,11 @@
     "near low",
     "pct from high",
     "pct from low",
-    "range pos"
+    "range pos",
+    "Distance from 52-week high",
+    "Distance from 52-week low",
+    "From 52W high",
+    "Near the 52-week high"
    ]
   },
   {
@@ -75,7 +80,9 @@
     "ret 3m",
     "ret 3y",
     "ret 5y",
-    "ret 6m"
+    "ret 6m",
+    "Point-to-point return and CAGR",
+    "Total price change"
    ]
   },
   {
@@ -107,7 +114,8 @@
     "Accounts receivable",
     "Receivables",
     "debtors",
-    "receivables"
+    "receivables",
+    "Receivables growth"
    ]
   },
   {
@@ -138,6 +146,24 @@
    "aliases": []
   },
   {
+   "term": "All-time high",
+   "topic": "Price and technicals",
+   "meaning": "The highest price a share has ever closed at, adjusted for splits and bonuses.",
+   "why": "Distance from the all-time high shows how far the price is from its best level, which a 52-week figure can hide after a long fall.",
+   "how": "A share far below its all-time high may have a weaker business than at its peak, or may have been priced very high at the time. Check which.",
+   "formula": "Distance from high % = (Price ÷ All-time high − 1) × 100",
+   "id": "all-time-high",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "ATH",
+    "Deep below the all-time high",
+    "Distance from all-time high",
+    "Record high",
+    "All-time highs"
+   ]
+  },
+  {
    "term": "Altman Z-score",
    "topic": "Financial health and debt",
    "meaning": "A score combining five ratios to estimate the risk of bankruptcy within two years. It was designed for manufacturing companies.",
@@ -148,6 +174,21 @@
    "letter": "A",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "AMFI",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The Association of Mutual Funds in India, the industry body whose public files publish every scheme's daily NAV.",
+   "why": "Its NAV files are the official source of mutual fund NAVs in India.",
+   "how": "AMFI publishes NAVs after fund houses declare them; some funds report late in the evening.",
+   "formula": "",
+   "id": "amfi",
+   "letter": "A",
+   "finlit": "FinLit builds its mutual fund pages from AMFI's own NAV files and shows the data date on every page.",
+   "aliases": [
+    "AMFI",
+    "Association of Mutual Funds in India"
+   ]
   },
   {
    "term": "Amortization",
@@ -199,6 +240,23 @@
    "letter": "A",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Arbitrage fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A hybrid fund that buys shares in the cash market and sells the same shares in the futures market at the same time, earning the small price gap between the two.",
+   "why": "Its returns are close to those of liquid funds, but it is taxed like an equity fund because at least 65% of it is in shares.",
+   "how": "Returns shrink when the gap between cash and futures prices narrows. Check the exit load before using it for short periods.",
+   "formula": "",
+   "id": "arbitrage-fund",
+   "letter": "A",
+   "finlit": "",
+   "aliases": [
+    "Arbitrage",
+    "Arbitrage funds",
+    "Hybrid: Arbitrage",
+    "Cash-futures arbitrage"
+   ]
   },
   {
    "term": "ASBA (application supported by blocked amount)",
@@ -257,6 +315,43 @@
    "aliases": []
   },
   {
+   "term": "Assets under management (AUM)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The total market value of the money a fund holds for its investors, usually in rupees crore.",
+   "why": "A larger fund is usually easier to trade and tends to have lower running costs per unit; a very small one may be closed down.",
+   "how": "Look at it together with the ETF's daily traded value, since a big fund can still trade thinly on the exchange.",
+   "formula": "",
+   "id": "assets-under-management-aum",
+   "letter": "A",
+   "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
+   "aliases": [
+    "AUM",
+    "fund size",
+    "Fund size (AUM)",
+    "Industry AUM",
+    "Industry net AUM",
+    "Net AUM",
+    "Equity AUM"
+   ]
+  },
+  {
+   "term": "Average true range (ATR)",
+   "topic": "Price and technicals",
+   "meaning": "The average size of a day's full price range, including any gap from the previous close, usually over 14 days. It is in rupees, not percent.",
+   "why": "It measures how much a share typically moves in a day, which helps judge whether a move is unusual.",
+   "how": "A price several ATRs above its moving average has run a long way in a short time.",
+   "formula": "True range = Largest of (High − Low, |High − Previous close|, |Low − Previous close|); ATR = Average of true range",
+   "id": "average-true-range-atr",
+   "letter": "A",
+   "finlit": "FinLit's short-term technical view treats a close 3 ATR or more above EMA 20 as stretched.",
+   "aliases": [
+    "ATR",
+    "Average true range",
+    "True range",
+    "Stretched"
+   ]
+  },
+  {
    "term": "Average volume and volume spike",
    "topic": "Price and technicals",
    "meaning": "Average volume is the typical daily volume over a window such as 20 days. A spike is a day far above that average.",
@@ -286,6 +381,40 @@
    "letter": "B",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Bank credit growth",
+   "topic": "Banks and lenders",
+   "meaning": "The growth in loans given by banks, usually against the same date a year earlier.",
+   "why": "Credit growth supports spending and investment; very fast growth can store up bad loans.",
+   "how": "Read it with deposit growth: loans growing much faster than deposits push banks to raise money at a higher cost.",
+   "formula": "",
+   "id": "bank-credit-growth",
+   "letter": "B",
+   "finlit": "FinLit's macro page shows bank credit from the RBI.",
+   "aliases": [
+    "Bank credit",
+    "Credit growth",
+    "Loan growth",
+    "Non-food credit"
+   ]
+  },
+  {
+   "term": "Base and breakout",
+   "topic": "Price and technicals",
+   "meaning": "A base is a period when the price moves sideways in a range after a rise or a fall. A breakout is a close above the top of that range.",
+   "why": "A breakout on heavy volume shows strong demand at the new price; breakouts on light volume fail more often.",
+   "how": "Many breakouts fall back into the base; read them with volume and the longer trend.",
+   "formula": "",
+   "id": "base-and-breakout",
+   "letter": "B",
+   "finlit": "FinLit's long-term technical view counts +1 when 2 or 3 of the last 3 sessions had heavy volume within 10 sessions of a base breakout, and −0.5 when none did.",
+   "aliases": [
+    "Breakout",
+    "Base breakout",
+    "Breakout volume",
+    "Heavy-volume sessions"
+   ]
   },
   {
    "term": "Base effect",
@@ -326,6 +455,25 @@
    "aliases": []
   },
   {
+   "term": "Basket",
+   "topic": "FinLit words",
+   "meaning": "A saved query from FinLit's Query builder. FinLit shows how many listed companies each basket matches today.",
+   "why": "It lets you run the same rule again later and see how the list has changed.",
+   "how": "Name each basket after the idea behind it, so you remember why you built it.",
+   "formula": "",
+   "id": "basket",
+   "letter": "B",
+   "finlit": "",
+   "aliases": [
+    "Baskets",
+    "My baskets",
+    "Saved query",
+    "Saved queries",
+    "Baskets saved",
+    "Basket limit"
+   ]
+  },
+  {
    "term": "Benchmark",
    "topic": "Market basics",
    "meaning": "A standard you measure performance against, usually an index such as the Nifty 50 or Nifty 500.",
@@ -335,7 +483,9 @@
    "id": "benchmark",
    "letter": "B",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Benchmark index"
+   ]
   },
   {
    "term": "Beta",
@@ -468,6 +618,28 @@
    ]
   },
   {
+   "term": "Breadth thrust (C and CAP)",
+   "topic": "FinLit words",
+   "meaning": "A sudden, broad rebound in an industry after a washout. In a C thrust, the share of counted stocks above their 9-day average jumps from 20% or less to 80% or more within 5 sessions. A CAP thrust is one that comes after a capitulation.",
+   "why": "It marks the point when selling gave way to buying across most of an industry at once.",
+   "how": "A thrust opens a 20-session window, shown with a dotted shade on the industry chart. Many thrusts fade; the industry pages list each one of the past year and when it turned Fading.",
+   "formula": "",
+   "id": "breadth-thrust-c-and-cap",
+   "letter": "B",
+   "finlit": "A CAP thrust also counts when the share above the 20-day average jumps from 30% or less to 70% or more within 10 sessions. The 20-session window is a design choice, not a tested result.",
+   "aliases": [
+    "Thrust",
+    "Thrust C",
+    "Thrust CAP",
+    "C thrust",
+    "CAP thrust",
+    "Breadth thrust",
+    "Fresh thrusts",
+    "Last thrust",
+    "Thrust window"
+   ]
+  },
+  {
    "term": "Break-even point",
    "topic": "Company statements",
    "meaning": "The level of sales at which total revenue equals total costs, so the company makes neither profit nor loss.",
@@ -478,6 +650,24 @@
    "letter": "B",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Broad market indices (Nifty 500, Midcap 150, Smallcap 250)",
+   "topic": "Market basics",
+   "meaning": "Indices that cover a wide slice of the market by size: the Nifty 500 holds the 500 largest companies, the Nifty Midcap 150 the 150 after the top 100, and the Nifty Smallcap 250 the 250 after those.",
+   "why": "They are the fair comparison for mid and small companies, whose returns differ a lot from the Nifty 50's.",
+   "how": "Compare a fund or share with the index for its size group.",
+   "formula": "",
+   "id": "broad-market-indices-nifty-500-midcap-150-smallcap-250",
+   "letter": "B",
+   "finlit": "FinLit's Leader label picks the market index by size: Nifty 50 for companies worth ₹1,07,000 crore or more, Nifty Midcap 150 for ₹32,800 crore or more, Nifty Smallcap 250 for the rest, and Nifty 500 when the size is not known.",
+   "aliases": [
+    "Nifty 500",
+    "Nifty Midcap 150",
+    "Nifty Smallcap 250",
+    "Broad market index",
+    "Market index by company size"
+   ]
   },
   {
    "term": "Broker and trading account",
@@ -495,6 +685,24 @@
    ]
   },
   {
+   "term": "Build-up (long build-up, short build-up, short covering, long unwinding)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Labels that combine the day's price change with the change in open interest: long build-up (price up, OI up), short build-up (price down, OI up), short covering (price up, OI down) and long unwinding (price down, OI down).",
+   "why": "They describe whether a move came with new positions being opened or old ones being closed.",
+   "how": "They label past activity only, and the same pattern can come from traders with very different aims.",
+   "formula": "",
+   "id": "build-up-long-build-up-short-build-up-short-covering-long-unwinding",
+   "letter": "B",
+   "finlit": "FinLit tags each option from its own price change and OI change since the previous close, with no tag when either change is zero or unknown.",
+   "aliases": [
+    "Build-up",
+    "Long build-up",
+    "Short build-up",
+    "Short covering",
+    "Long unwinding"
+   ]
+  },
+  {
    "term": "Bull market and bear market",
    "topic": "Market basics",
    "meaning": "A bull market is a long stretch of rising prices; a bear market is a long stretch of falling prices, often defined as a fall of 20% or more from a peak.",
@@ -507,6 +715,25 @@
    "aliases": [
     "Bull market",
     "bear market"
+   ]
+  },
+  {
+   "term": "Business type (earnings and cash checks)",
+   "topic": "FinLit words",
+   "meaning": "The group FinLit puts a company in before it reads cash-flow warnings: General, Capital-intensive, Project and EPC, Seasonal, or Trading and distribution.",
+   "why": "Some businesses naturally show weak or uneven cash flow; a builder paid in milestones should not be judged like a software company.",
+   "how": "Read each warning with the type: a softened warning has already allowed for the business model.",
+   "formula": "",
+   "id": "business-type-earnings-and-cash-checks",
+   "letter": "B",
+   "finlit": "For capital-intensive businesses, negative free cash flow is shown one level lower. For project and EPC businesses, the receivables, inventory and debtor-day thresholds are softened and those warnings are shown one level lower.",
+   "aliases": [
+    "Business type",
+    "Capital-intensive",
+    "Project and EPC",
+    "EPC",
+    "Seasonal",
+    "Trading and distribution"
    ]
   },
   {
@@ -570,6 +797,26 @@
    ]
   },
   {
+   "term": "Calendar-year return",
+   "topic": "Returns and risk",
+   "meaning": "The return from 1 January to 31 December of one year.",
+   "why": "Year-by-year returns show how a fund or share did in good and bad years, which one long-period figure hides.",
+   "how": "Look at the worst calendar year to see how deep a bad year has been.",
+   "formula": "",
+   "id": "calendar-year-return",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Calendar year",
+    "Calendar-year return, last full year",
+    "Calendar-year return, the year before",
+    "Worst year",
+    "Best year",
+    "Worst calendar month",
+    "Best calendar month"
+   ]
+  },
+  {
    "term": "Candlestick (OHLC)",
    "topic": "Price and technicals",
    "meaning": "A chart symbol showing a day's open, high, low and close. A green candle closed above its open; a red one closed below.",
@@ -581,7 +828,30 @@
    "finlit": "",
    "aliases": [
     "Candlestick",
-    "OHLC"
+    "OHLC",
+    "Day range",
+    "Day's high and low"
+   ]
+  },
+  {
+   "term": "Candlestick patterns",
+   "topic": "Price and technicals",
+   "meaning": "Shapes of one to three daily candles that chart readers give names to, such as a hammer (a long lower wick after a fall), a bullish engulfing candle (an up candle that covers the previous down candle) or an upper-wick rejection (a long upper wick, where the day's highs did not hold).",
+   "why": "They describe how the price was pushed around within a session.",
+   "how": "On their own they are weak signals; they mean more at levels that matter, such as a moving average, and with volume.",
+   "formula": "",
+   "id": "candlestick-patterns",
+   "letter": "C",
+   "finlit": "FinLit's short-term technical view counts patterns near EMA 9: a hammer or bullish engulfing candle +1, a strong bullish bar +0.75, a climax run −1, and an upper-wick rejection or wide bearish bar −1.",
+   "aliases": [
+    "Candlestick pattern",
+    "Hammer",
+    "Bullish engulfing",
+    "Engulfing candle",
+    "Upper-wick rejection",
+    "Climax run",
+    "Small-bodied candle",
+    "Wide bearish bar"
    ]
   },
   {
@@ -631,7 +901,8 @@
    "finlit": "",
    "aliases": [
     "Capital expenditure",
-    "capex"
+    "capex",
+    "Capital spending"
    ]
   },
   {
@@ -659,6 +930,42 @@
    "aliases": [
     "Capital gains tax",
     "STCG and LTCG"
+   ]
+  },
+  {
+   "term": "Capitulation and higher-low share",
+   "topic": "FinLit words",
+   "meaning": "At an industry's latest 60-day low, the higher-low share is the share of counted stocks that had made their own low at least 10 sessions earlier and stayed 3% or more above it. Under 20% is a capitulation: almost every stock was still making new lows.",
+   "why": "It shows whether a fall was ending stock by stock before the industry turned, or all at once.",
+   "how": "It describes how the low formed; on its own it says nothing about timing.",
+   "formula": "",
+   "id": "capitulation-and-higher-low-share",
+   "letter": "C",
+   "finlit": "A stock 'bottomed before the industry' when it made its low at least 10 sessions before the industry's low and held 3% or more above it.",
+   "aliases": [
+    "Capitulation",
+    "Higher-low share",
+    "Higher low",
+    "Bottomed before the industry",
+    "Sessions since low"
+   ]
+  },
+  {
+   "term": "CAS (Consolidated Account Statement)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A single statement, from CAMS and KFintech or from the depositories (NSDL and CDSL), that lists all your mutual fund holdings across fund houses, with transactions.",
+   "why": "It gives the full picture of your fund holdings in one document.",
+   "how": "You can request it by email from the CAMS, KFintech, NSDL or CDSL websites.",
+   "formula": "",
+   "id": "cas-consolidated-account-statement",
+   "letter": "C",
+   "finlit": "FinLit's MF portfolio can read a CAS PDF, Excel or CSV statement to list your funds.",
+   "aliases": [
+    "CAS",
+    "Consolidated Account Statement",
+    "Scheme (CAS)",
+    "CAS PDF",
+    "CAS statement"
    ]
   },
   {
@@ -708,7 +1015,13 @@
     "Cash conversion (CFO/PAT)",
     "FCF / PAT",
     "cfo to pat",
-    "fcf to pat"
+    "fcf to pat",
+    "Profits backed by cash",
+    "Profit backed by cash",
+    "Cash backing",
+    "Weak cash backing",
+    "Cash backing to watch",
+    "Cash backing steady"
    ]
   },
   {
@@ -745,6 +1058,28 @@
    ]
   },
   {
+   "term": "Category median and rank in category",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The category median is the middle figure among funds in the same SEBI category: half did better and half worse. Rank in category orders the category's funds on one measure, such as 3-year return.",
+   "why": "A fund's return means little alone; against its category it shows whether the fund or the market did the work.",
+   "how": "If every fund in a category did badly, the median is a low bar. Compare like with like: the same plan and the same period.",
+   "formula": "",
+   "id": "category-median-and-rank-in-category",
+   "letter": "C",
+   "finlit": "FinLit compares each fund with the active Growth schemes of the same category and plan, leaving the fund itself out, and needs at least 8 of them; index funds and ETFs are compared with funds tracking the same index.",
+   "aliases": [
+    "Category median",
+    "Against category median",
+    "Against category",
+    "Rank in category",
+    "Rank in its category",
+    "Rank in category (3 years)",
+    "Category average",
+    "Fund minus category average",
+    "Peer median"
+   ]
+  },
+  {
    "term": "Circuit limit",
    "topic": "Market basics",
    "meaning": "The maximum a stock's price may rise or fall in one day, set by the exchange (for example 5%, 10% or 20%). A stock 'hits the upper circuit' when it reaches that limit.",
@@ -754,7 +1089,27 @@
    "id": "circuit-limit",
    "letter": "C",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Upper circuit",
+    "Lower circuit",
+    "Upper or lower circuit"
+   ]
+  },
+  {
+   "term": "Coefficient of variation",
+   "topic": "Charts and statistics",
+   "meaning": "The standard deviation divided by the average. It makes variability comparable across measures of different size.",
+   "why": "A margin that swings 2 points around 5% is far less stable than one that swings 2 points around 25%.",
+   "how": "Lower is steadier. It is not meaningful when the average is near zero or negative.",
+   "formula": "Coefficient of variation = Standard deviation ÷ Mean",
+   "id": "coefficient-of-variation",
+   "letter": "C",
+   "finlit": "FinLit's Profit Reality Check uses the coefficient of variation of the net margin to judge margin stability: full points at 0 and none at 0.5 or more.",
+   "aliases": [
+    "CV",
+    "Coefficient of variation (CV)",
+    "Relative standard deviation"
+   ]
   },
   {
    "term": "Commodities",
@@ -766,7 +1121,47 @@
    "id": "commodities",
    "letter": "C",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Commodity",
+    "Commodity prices"
+   ]
+  },
+  {
+   "term": "Common-size statement",
+   "topic": "Company statements",
+   "meaning": "A profit and loss statement shown as a share of revenue, or a balance sheet as a share of total assets, so every line reads per ₹100.",
+   "why": "It makes companies of different sizes, and years of different size, comparable.",
+   "how": "Watch which lines take a growing share of each ₹100 of revenue: a rising share for raw materials or employee costs squeezes margins.",
+   "formula": "Line as % of revenue = Line ÷ Revenue × 100",
+   "id": "common-size-statement",
+   "letter": "C",
+   "finlit": "",
+   "aliases": [
+    "Common-size",
+    "Where each ₹100 of revenue goes",
+    "Per ₹100 of revenue",
+    "Cost structure"
+   ]
+  },
+  {
+   "term": "Company size bands (mega cap to nano cap)",
+   "topic": "Market basics",
+   "meaning": "Size groups based on a company's market value, from the very largest (mega cap) to the very smallest (micro and nano cap).",
+   "why": "Size affects how much a price swings and how easy the shares are to trade.",
+   "how": "The smallest companies often trade thinly, so their prices can move a lot on small orders.",
+   "formula": "",
+   "id": "company-size-bands-mega-cap-to-nano-cap",
+   "letter": "C",
+   "finlit": "FinLit's company size filter uses rupee bands: Mega-cap above ₹2,00,000 crore, Large-cap ₹50,000–2,00,000 crore, Mid-cap ₹10,000–50,000 crore, Small-cap ₹2,000–10,000 crore, Micro-cap ₹500–2,000 crore and Nano-cap below ₹500 crore. Sector pages use AMFI's ranked list instead.",
+   "aliases": [
+    "Mega-cap",
+    "Micro-cap",
+    "Nano-cap",
+    "Company size",
+    "Size band",
+    "Very small",
+    "Very large"
+   ]
   },
   {
    "term": "Compound interest",
@@ -778,7 +1173,9 @@
    "id": "compound-interest",
    "letter": "C",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Compounding"
+   ]
   },
   {
    "term": "Concentration",
@@ -790,7 +1187,10 @@
    "id": "concentration",
    "letter": "C",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Sector concentration",
+    "Where your list is concentrated"
+   ]
   },
   {
    "term": "Conglomerate",
@@ -820,7 +1220,9 @@
     "Years of rising profit (last 5)",
     "q profit up",
     "q sales up",
-    "years profit up"
+    "years profit up",
+    "Revenue growth consistency",
+    "Profit growth consistency"
    ]
   },
   {
@@ -856,6 +1258,59 @@
    ]
   },
   {
+   "term": "Correlation (Pearson and Spearman)",
+   "topic": "Charts and statistics",
+   "meaning": "A number from −1 to +1 that shows how closely two measures move together. +1 means they always move in step, −1 means always in opposite directions, and 0 means no straight-line link. Pearson's r uses the values themselves; Spearman's rho uses their ranks, so a few extreme points matter less.",
+   "why": "It shows whether two things, such as institutional flows and the index, have tended to move together.",
+   "how": "Correlation is not cause: two measures can move together because a third thing drives both. Check how many points it rests on.",
+   "formula": "r = Covariance(X, Y) ÷ (Standard deviation of X × Standard deviation of Y)",
+   "id": "correlation-pearson-and-spearman",
+   "letter": "C",
+   "finlit": "FinLit's correlation charts show Pearson r with its p-value and Spearman rho; the FII/DII and macro pages show the correlation of two series over the range you pick.",
+   "aliases": [
+    "Correlation",
+    "Pearson r",
+    "Pearson correlation",
+    "Spearman rho",
+    "Spearman rank correlation",
+    "Correlation coefficient",
+    "Correlation charts"
+   ]
+  },
+  {
+   "term": "Cost of waiting",
+   "topic": "Loans, tax and planning",
+   "meaning": "How much less a regular investment grows to if it starts later and stops on the same date.",
+   "why": "It shows in rupees what a delay costs, because compounding gets fewer years to work.",
+   "how": "Compare the final value of starting now with starting a year or two later, keeping the end date the same.",
+   "formula": "",
+   "id": "cost-of-waiting",
+   "letter": "C",
+   "finlit": "FinLit's SIP calculator has a cost-of-waiting view.",
+   "aliases": [
+    "Cost of delay",
+    "Delay cost",
+    "Cost of waiting to invest"
+   ]
+  },
+  {
+   "term": "Counted stocks (sector breadth)",
+   "topic": "FinLit words",
+   "meaning": "The stocks of an NSE industry that pass FinLit's counting rules, and so enter its breadth readings and its equal-weighted industry index.",
+   "why": "Thinly traded, very small or newly listed stocks would add noise, so leaving them out makes the readings steadier.",
+   "how": "Small industries are read with their sector: with 10 stocks, one stock moves breadth by 10 points.",
+   "formula": "",
+   "id": "counted-stocks-sector-breadth",
+   "letter": "C",
+   "finlit": "To join, a stock needs, among other rules, a median traded value of ₹2 crore a day over 65 sessions, trades on at least 62 of those 65 sessions, an AMFI six-month average market cap of ₹1,000 crore or more and 6 months of listing; once in, it stays down to ₹1 crore a day and ₹800 crore. The list is rebuilt on the first trading day of each month.",
+   "aliases": [
+    "Counted stocks",
+    "Counting rules",
+    "Not counted",
+    "Which stocks are counted"
+   ]
+  },
+  {
    "term": "Coverage (Prism)",
    "topic": "FinLit words",
    "meaning": "How much of the information a FinLit Prism rating needs was actually found in the company's filings and prices, from 0% to 100%. It is weighted like the rating itself: Growth & Profitability 40%, Valuation 30%, Quality 20% and Risk 10%. A short sales and profit record counts only in part.",
@@ -871,6 +1326,29 @@
    ]
   },
   {
+   "term": "CPI and WPI (consumer and wholesale price indices)",
+   "topic": "Economy and business",
+   "meaning": "The consumer price index (CPI) tracks the prices households pay for a basket of goods and services; the wholesale price index (WPI) tracks prices at the wholesale level. Inflation is usually quoted as the change over the same month a year earlier.",
+   "why": "CPI inflation is what the RBI targets, so it drives interest rate decisions.",
+   "how": "The Government has set the RBI a CPI inflation target of 4%, with a band of 2% to 6%; three quarters in a row outside the band count as missing the target.",
+   "formula": "Inflation % = (Index this month ÷ Index a year earlier − 1) × 100",
+   "id": "cpi-and-wpi-consumer-and-wholesale-price-indices",
+   "letter": "C",
+   "finlit": "FinLit's macro page shows CPI from MoSPI (base 2024 = 100) and CPI by spending group.",
+   "aliases": [
+    "CPI",
+    "WPI",
+    "Consumer price index",
+    "Wholesale price index",
+    "CPI inflation",
+    "WPI inflation",
+    "Retail inflation",
+    "Wholesale inflation",
+    "Inflation target",
+    "CPI by division"
+   ]
+  },
+  {
    "term": "Credit rating",
    "topic": "Funds, bonds and derivatives",
    "meaning": "An agency's grade of a borrower's ability to repay, from AAA (highest) down to D (default). Indian agencies include CRISIL, ICRA, CARE and India Ratings.",
@@ -881,6 +1359,26 @@
    "letter": "C",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Crore and lakh",
+   "topic": "Market basics",
+   "meaning": "Indian units for large numbers: 1 lakh is 1,00,000 (one hundred thousand) and 1 crore is 1,00,00,000 (ten million). 100 lakh make a crore, and 1 lakh crore is ₹1 trillion.",
+   "why": "Indian company figures are reported in lakh or crore, so reading the unit right matters.",
+   "how": "₹10,000 crore is ₹100 billion. Indian grouping puts a comma after the last three digits and then after every two: 1,00,000.",
+   "formula": "1 crore = 100 lakh = 10 million",
+   "id": "crore-and-lakh",
+   "letter": "C",
+   "finlit": "FinLit shows company amounts in ₹ crore. On its flow charts, k means thousand crore and L means lakh crore.",
+   "aliases": [
+    "Crore",
+    "Lakh",
+    "Cr",
+    "Rs Cr",
+    "Lakh crore",
+    "Indian numbering",
+    "Rupees crore"
+   ]
   },
   {
    "term": "Current ratio",
@@ -916,7 +1414,34 @@
    "id": "data-checks",
    "letter": "D",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Data gaps",
+    "Data quality",
+    "Data freshness"
+   ]
+  },
+  {
+   "term": "Debt fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A mutual fund that invests in bonds, government securities and money-market instruments. SEBI's debt categories are set by duration (overnight, liquid, short, medium and long duration), by credit quality (corporate bond, credit risk, banking and PSU) or by issuer (gilt), plus floater and dynamic bond funds.",
+   "why": "Debt funds are usually steadier than equity funds but can still lose money when interest rates rise or a borrower defaults.",
+   "how": "Match the fund's duration to how long you will stay invested, and check the credit quality of what it holds.",
+   "formula": "",
+   "id": "debt-fund",
+   "letter": "D",
+   "finlit": "FinLit's fund data holds no credit ratings, yields or durations, so a credit problem shows up in its scores only once it reaches the NAV.",
+   "aliases": [
+    "Debt funds",
+    "Gilt fund",
+    "Credit risk fund",
+    "Dynamic bond fund",
+    "Floater fund",
+    "Corporate bond fund",
+    "Banking and PSU fund",
+    "Short duration fund",
+    "Long duration fund",
+    "Debt: Credit Risk"
+   ]
   },
   {
    "term": "Debt to assets and liabilities to assets",
@@ -987,6 +1512,26 @@
    ]
   },
   {
+   "term": "Defensive and cyclical sectors",
+   "topic": "Market basics",
+   "meaning": "Defensive sectors sell things people buy in good times and bad, such as food, medicines and power. Cyclical sectors, such as autos, metals, property and capital goods, rise and fall with the economy.",
+   "why": "The two tend to behave differently in slowdowns and recoveries, which matters for how a portfolio holds up.",
+   "how": "Check how much of a portfolio sits in cyclical sectors before a downturn tests it.",
+   "formula": "",
+   "id": "defensive-and-cyclical-sectors",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Defensive sectors",
+    "Defensive sector",
+    "Defensives",
+    "Cyclical sectors",
+    "Cyclical sector",
+    "Cyclicals",
+    "Cyclical stock"
+   ]
+  },
+  {
    "term": "Demat account",
    "topic": "Market basics",
    "meaning": "An electronic account that holds your shares and other securities, like a bank account holds money. It is opened through a broker or bank with a depository (NSDL or CDSL).",
@@ -997,6 +1542,22 @@
    "letter": "D",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Demerger",
+   "topic": "Dividends and corporate actions",
+   "meaning": "When a company separates one of its businesses into a new listed company, and shareholders receive shares of the new company in a set ratio.",
+   "why": "After a demerger the parent's price drops by roughly the value of the business separated out; the two holdings together are what you own.",
+   "how": "Add up the value of both companies before judging how a demerger worked out.",
+   "formula": "",
+   "id": "demerger",
+   "letter": "D",
+   "finlit": "FinLit's portfolio import recognises demerged companies and shows that you now hold all the parts.",
+   "aliases": [
+    "Demerged",
+    "Spin-off",
+    "Demerged: you now hold all its parts"
+   ]
   },
   {
    "term": "Depreciation",
@@ -1052,6 +1613,57 @@
    "letter": "D",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Direct plan",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The version of a mutual fund you buy straight from the fund house, with no distributor in between, so no distribution commission is paid out of the fund.",
+   "why": "Because less is deducted every year, a Direct plan's NAV grows slightly faster than the Regular plan of the same fund holding the same investments.",
+   "how": "Compare Direct with Direct and Regular with Regular. Their NAVs and returns differ even though the fund and its portfolio are the same.",
+   "formula": "",
+   "id": "direct-plan",
+   "letter": "D",
+   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
+   "aliases": [
+    "Direct",
+    "Direct plan growth"
+   ]
+  },
+  {
+   "term": "Discontinued operations",
+   "topic": "Company statements",
+   "meaning": "A business the company has sold, closed or decided to sell. Its profit or loss is shown on a separate line, apart from the continuing operations.",
+   "why": "Profit that includes a business on its way out says little about what the rest will earn.",
+   "how": "Judge margins and growth on continuing operations.",
+   "formula": "",
+   "id": "discontinued-operations",
+   "letter": "D",
+   "finlit": "FinLit points out a year when profit from discontinued operations is large enough to make that year's margin unusual for the business.",
+   "aliases": [
+    "Profit from discontinued operations",
+    "Discontinued profit",
+    "Continuing operations",
+    "… without discontinued operations"
+   ]
+  },
+  {
+   "term": "Discount rate and present value",
+   "topic": "Valuation",
+   "meaning": "The discount rate is the yearly return an investor requires, used to turn future cash into today's money. Present value is what a future amount is worth today, and the discount factor is the multiplier that gets there.",
+   "why": "₹100 in ten years is worth much less than ₹100 today; how much less depends on the discount rate.",
+   "how": "A higher discount rate gives a lower value. Small changes in it can move a DCF value a lot, so try a range.",
+   "formula": "Present value = Future cash ÷ (1 + r)^n; Discount factor = 1 ÷ (1 + r)^n",
+   "id": "discount-rate-and-present-value",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Discount rate",
+    "Discount factor",
+    "Present value",
+    "PV",
+    "Required return",
+    "Present value (₹ Cr)"
+   ]
   },
   {
    "term": "Discounted cash flow (DCF)",
@@ -1111,7 +1723,11 @@
    "finlit": "",
    "aliases": [
     "Dividend payout",
-    "dividend payout"
+    "dividend payout",
+    "Payout",
+    "Payout ratio",
+    "Share of profit paid out",
+    "Payout ratio over time"
    ]
   },
   {
@@ -1163,6 +1779,39 @@
    ]
   },
   {
+   "term": "Downside capture ratio",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "How much of a yardstick's falls a fund went through, in percent, measured over the periods when the yardstick fell. 80% means the fund fell 8% when the yardstick fell 10%.",
+   "why": "It shows how a fund behaved in falling markets, which matters to many investors more than how it did in rising ones.",
+   "how": "Below 100% means the fund fell less than its yardstick. Read it with upside capture, since a fund that falls less often also rises less.",
+   "formula": "Downside capture = Fund return in down periods ÷ Yardstick return in down periods × 100",
+   "id": "downside-capture-ratio",
+   "letter": "D",
+   "finlit": "In FinLit's Mutual Fund Health Score, 'How it behaved when similar funds fell' measures this against similar funds, which stand in for the benchmark.",
+   "aliases": [
+    "Downside capture",
+    "How it behaved when similar funds fell",
+    "Upside capture",
+    "Capture ratio"
+   ]
+  },
+  {
+   "term": "Downside deviation",
+   "topic": "Returns and risk",
+   "meaning": "A measure like volatility that counts only the falls: days with gains count as zero.",
+   "why": "Most investors mind losses more than gains, and this measures only the swings that hurt.",
+   "how": "Compare funds of the same kind: a lower figure means smaller and fewer falls. It is the risk measure in the Sortino ratio.",
+   "formula": "Downside deviation = √(Average of min(Daily return, 0)²) × √252",
+   "id": "downside-deviation",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Downside deviation, a year",
+    "Downside risk",
+    "Semi-deviation"
+   ]
+  },
+  {
    "term": "Drawdown",
    "topic": "Price and technicals",
    "meaning": "The fall from a previous peak to a later low, in percent. FinLit's 'distance from the running high' chart shows it over time.",
@@ -1174,7 +1823,13 @@
    "finlit": "",
    "aliases": [
     "Worst fall (since data starts)",
-    "max drawdown"
+    "max drawdown",
+    "Maximum drawdown",
+    "Maximum drawdown (1 year)",
+    "Maximum one-year drawdown",
+    "Biggest fall",
+    "Biggest fall against similar funds",
+    "Distance from the running high"
    ]
   },
   {
@@ -1193,6 +1848,47 @@
    ]
   },
   {
+   "term": "DuPont analysis",
+   "topic": "Profitability",
+   "meaning": "A way of splitting return on equity into three parts: net margin (profit per ₹100 of sales), asset turnover (sales per ₹1 of assets) and the equity multiplier (assets per ₹1 of equity). The five-step version also splits out the tax burden and the interest burden.",
+   "why": "Two companies with the same ROE can get there differently: one through high margins, another through borrowing.",
+   "how": "An ROE that rises mainly through a higher equity multiplier comes from more leverage, not from better operations.",
+   "formula": "ROE = Net margin × Asset turnover × Equity multiplier; five-step: (PAT ÷ PBT) × (PBT ÷ EBIT) × EBIT margin × Asset turnover × Equity multiplier",
+   "id": "dupont-analysis",
+   "letter": "D",
+   "finlit": "FinLit's DuPont section shows the share of the change in ROE explained by each factor, worked out with logarithms so the three shares add up to 100%.",
+   "aliases": [
+    "DuPont",
+    "ROE bridge",
+    "ROE breakdown",
+    "Tax burden",
+    "Interest burden",
+    "Three-step DuPont",
+    "Five-step DuPont",
+    "Calculated ROE",
+    "Total assets / Total equity"
+   ]
+  },
+  {
+   "term": "Duration (interest-rate sensitivity)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "For a bond or debt fund, roughly how much its price changes when interest rates move: with a modified duration of 4 years, a 1-point rise in rates cuts the price by about 4%. It also reflects the average time until its cash flows are received.",
+   "why": "It is the main measure of how much a debt fund can lose when rates rise.",
+   "how": "A duration longer than the time you plan to stay invested leaves you exposed to rate moves.",
+   "formula": "Price change % ≈ −Modified duration × Change in yield (percentage points)",
+   "id": "duration-interest-rate-sensitivity",
+   "letter": "D",
+   "finlit": "",
+   "aliases": [
+    "Duration",
+    "Modified duration",
+    "Macaulay duration",
+    "Debt maturity band",
+    "Interest-rate risk",
+    "Interest rate sensitivity"
+   ]
+  },
+  {
    "term": "Earnings call (concall) and transcript",
    "topic": "Company statements",
    "meaning": "A call where management presents results and answers questions from analysts and investors. The transcript is the written record, filed with the exchanges.",
@@ -1206,7 +1902,8 @@
     "Earnings call",
     "Earnings call and transcript",
     "concall",
-    "transcript"
+    "transcript",
+    "Call transcripts"
    ]
   },
   {
@@ -1226,7 +1923,27 @@
     "Latest quarter EPS",
     "diluted shares cr",
     "eps",
-    "q eps"
+    "q eps",
+    "Trailing EPS"
+   ]
+  },
+  {
+   "term": "Earnings quality",
+   "topic": "Profitability",
+   "meaning": "How far reported profit reflects the steady, cash-backed earning power of the business, rather than one-offs, accounting choices or borrowing.",
+   "why": "Profit of high quality is more likely to recur; profit built on one-offs or leverage is less reliable.",
+   "how": "Check one-off items, how steady margins are, whether operating cash flow keeps up with profit and how much ROE leans on leverage.",
+   "formula": "",
+   "id": "earnings-quality",
+   "letter": "E",
+   "finlit": "FinLit's Profit Reality Check scores three parts: clean earnings (full points when one-offs are 0% of pre-tax profit, none at 50% or more), margin stability (the net margin's coefficient of variation) and leverage level (full points at an equity multiplier of 2× or lower, none at 6× or higher; not scored for banks and lenders).",
+   "aliases": [
+    "Clean earnings",
+    "Margin stability",
+    "Leverage level",
+    "Earnings sustainability",
+    "Quality of earnings",
+    "Low-quality earnings"
    ]
   },
   {
@@ -1294,7 +2011,46 @@
    "aliases": [
     "Tax",
     "tax",
-    "tax rate"
+    "tax rate",
+    "Tax ratio",
+    "Tax paid on profit"
+   ]
+  },
+  {
+   "term": "Eight core industries index",
+   "topic": "Economy and business",
+   "meaning": "A monthly index of output in eight basic industries: coal, crude oil, natural gas, refinery products, fertilisers, steel, cement and electricity.",
+   "why": "These industries make up about 40% of the IIP, so the index is an early sign of industrial activity.",
+   "how": "Read growth against the same month a year earlier; one industry, such as electricity in a hot summer, can swing the total.",
+   "formula": "",
+   "id": "eight-core-industries-index",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Core industries",
+    "Eight core industries",
+    "Core sector",
+    "Core industry",
+    "Commodity or core industry trend"
+   ]
+  },
+  {
+   "term": "ELSS (equity-linked savings scheme)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An equity mutual fund with a three-year lock-in that qualifies for a tax deduction of up to ₹1.5 lakh a year under Section 80C in the old income tax regime.",
+   "why": "It has the shortest lock-in among the Section 80C options.",
+   "how": "The deduction is not available in the new tax regime. Each SIP instalment is locked for three years from its own date.",
+   "formula": "",
+   "id": "elss-equity-linked-savings-scheme",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "ELSS",
+    "Equity-linked savings scheme",
+    "Tax saver",
+    "Tax saver fund",
+    "ELSS (Tax Savings)",
+    "Tax saver (ELSS)"
    ]
   },
   {
@@ -1341,6 +2097,24 @@
    ]
   },
   {
+   "term": "Equal-weighted index",
+   "topic": "Market basics",
+   "meaning": "An index in which every share counts the same, whatever its size, instead of in proportion to its market value.",
+   "why": "It shows how the typical share did, not just the largest companies.",
+   "how": "Compare it with the usual market-value index: when the two part ways, a move is being carried by a few large companies or by the many small ones.",
+   "formula": "Equal-weighted return = Average of each share's return",
+   "id": "equal-weighted-index",
+   "letter": "E",
+   "finlit": "FinLit's industry index averages the counted stocks with equal weight. 'Index vs 52-wk high' compares it with the highest level it reached in the last 52 weeks.",
+   "aliases": [
+    "Equal-weighted",
+    "Equal weight",
+    "Equal-weighted industry index",
+    "Industry index",
+    "Index vs 52-wk high"
+   ]
+  },
+  {
    "term": "Equity (shareholders' funds)",
    "topic": "Company statements",
    "meaning": "What would be left for shareholders if the company sold all its assets and paid all its liabilities: the owners' stake. The word also means shares in general.",
@@ -1358,7 +2132,10 @@
     "equity",
     "equity capital",
     "shareholders' funds",
-    "total equity"
+    "total equity",
+    "Owners' money",
+    "Book equity",
+    "Latest book equity"
    ]
   },
   {
@@ -1421,9 +2198,12 @@
    "finlit": "",
    "aliases": [
     "One-off items / pre-tax profit",
-    "Profit from discontinued operations",
-    "discontinued profit",
-    "exceptional share"
+    "exceptional share",
+    "One-off items",
+    "One-offs",
+    "One-off share",
+    "One-offs, % of pre-tax profit",
+    "Exceptional item"
    ]
   },
   {
@@ -1438,7 +2218,29 @@
    "finlit": "",
    "aliases": [
     "Exchange filing",
-    "announcement"
+    "announcement",
+    "Announcements",
+    "Filings"
+   ]
+  },
+  {
+   "term": "Exchange rate (rupee per US dollar)",
+   "topic": "Economy and business",
+   "meaning": "The price of one currency in another; for India usually the number of rupees needed to buy one US dollar.",
+   "why": "A weaker rupee raises the cost of imports such as oil and helps exporters such as IT and pharma companies.",
+   "how": "A rise in the rupees-per-dollar figure means the rupee has weakened.",
+   "formula": "",
+   "id": "exchange-rate-rupee-per-us-dollar",
+   "letter": "E",
+   "finlit": "FinLit uses the monthly average of the RBI reference rate, then the daily FBIL rate.",
+   "aliases": [
+    "Exchange rate",
+    "Rupee",
+    "USD/INR",
+    "Rupee per dollar",
+    "Rupees per US dollar",
+    "FBIL rate",
+    "RBI reference rate"
    ]
   },
   {
@@ -1453,7 +2255,39 @@
    "finlit": "",
    "aliases": [
     "Days since last dividend",
-    "div last days"
+    "div last days",
+    "Ex-date"
+   ]
+  },
+  {
+   "term": "Exit load",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A fee a fund charges, as a percentage of the amount, if you sell units within a stated period after buying them.",
+   "why": "It reduces what you receive if you leave early, and it differs from fund to fund.",
+   "how": "Read the fund's offer document for its exit load and period before you invest.",
+   "formula": "Amount received = Units × NAV × (1 − Exit load %)",
+   "id": "exit-load",
+   "letter": "E",
+   "finlit": "FinLit does not show exit loads yet; they are not in AMFI's NAV file.",
+   "aliases": [
+    "Exit load",
+    "Redemption fee"
+   ]
+  },
+  {
+   "term": "Exit multiple",
+   "topic": "Valuation",
+   "meaning": "A way to set a DCF's terminal value by multiplying the last forecast year's cash flow, or profit, by a chosen multiple, instead of assuming growth for ever.",
+   "why": "It ties the end value to the multiples similar businesses trade at.",
+   "how": "A high exit multiple quietly assumes the business will still be valued richly in ten years' time.",
+   "formula": "Terminal value = Final-year FCF × Exit multiple",
+   "id": "exit-multiple",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Exit multiple (× year-10 FCF)",
+    "Terminal multiple",
+    "Exit multiples"
    ]
   },
   {
@@ -1466,7 +2300,13 @@
    "id": "expense-ratio",
    "letter": "E",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Expense ratio (TER)",
+    "TER",
+    "Total expense ratio",
+    "Expense ratio (a year)",
+    "Expense ratio against similar funds"
+   ]
   },
   {
    "term": "Expenses",
@@ -1481,6 +2321,45 @@
    "aliases": []
   },
   {
+   "term": "Expiry (expiry date)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The last day a futures or options contract trades, after which it is settled. Index options in India have weekly and monthly expiries and stock contracts monthly ones, on days set by the exchanges within SEBI's rules.",
+   "why": "Options lose time value as expiry nears, and many positions are closed or rolled over around it.",
+   "how": "Check which expiry an option chain shows: the weekly and monthly contracts on the same index can look very different.",
+   "formula": "",
+   "id": "expiry-expiry-date",
+   "letter": "E",
+   "finlit": "",
+   "aliases": [
+    "Expiry",
+    "Expiry date",
+    "Expiry day",
+    "Weekly expiry",
+    "Monthly expiry"
+   ]
+  },
+  {
+   "term": "Exponential moving average (EMA)",
+   "topic": "Price and technicals",
+   "meaning": "A moving average that gives more weight to recent prices, so it turns sooner than a simple average of the same length. EMA 20 is the 20-day exponential average.",
+   "why": "Technical scores compare the price with EMAs, and EMAs with each other, to describe the trend.",
+   "how": "Price above a rising EMA, and short EMAs above long ones (EMA 9 above 20 above 50), describe an uptrend; the reverse describes a downtrend.",
+   "formula": "EMA today = Price × k + EMA yesterday × (1 − k), where k = 2 ÷ (n + 1)",
+   "id": "exponential-moving-average-ema",
+   "letter": "E",
+   "finlit": "FinLit's short-term technical view uses EMA 9, 20 and 50 on daily prices; the long-term view uses EMA 50, 100 and 200.",
+   "aliases": [
+    "EMA",
+    "EMA 9",
+    "EMA 20",
+    "EMA 50",
+    "EMA 100",
+    "EMA 200",
+    "Exponential moving average",
+    "EMA 9 against EMA 20"
+   ]
+  },
+  {
    "term": "Face value",
    "topic": "Dividends and corporate actions",
    "meaning": "The nominal value of a share printed in the company's records, such as ₹1, ₹2 or ₹10. It has nothing to do with the market price.",
@@ -1493,6 +2372,23 @@
    "aliases": []
   },
   {
+   "term": "Factor ETF (smart-beta or strategy ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that follows an index built by a rule instead of by company size, such as momentum, quality, value, low volatility or equal weight.",
+   "why": "Such an index can behave differently from a plain index like the Nifty 50 for long stretches.",
+   "how": "Read the index rule before comparing: two factor ETFs can hold very different companies even when both are called equity ETFs.",
+   "formula": "",
+   "id": "factor-etf-smart-beta-or-strategy-etf",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "smart beta ETF",
+    "strategy ETF",
+    "momentum ETF",
+    "low volatility ETF"
+   ]
+  },
+  {
    "term": "FCF yield",
    "topic": "Valuation",
    "meaning": "Free cash flow as a percentage of market cap: the spare cash the business generates for each ₹100 of its market value.",
@@ -1503,6 +2399,53 @@
    "letter": "F",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Fibonacci retracement",
+   "topic": "Price and technicals",
+   "meaning": "Horizontal levels drawn at 23.6%, 38.2%, 50%, 61.8% and 78.6% of a price move, which some chart readers use to mark where a pullback might pause.",
+   "why": "Many traders watch these levels, which is why charting tools include them.",
+   "how": "The ratios have no proven power to predict; treat them as reference lines.",
+   "formula": "Level = High − (High − Low) × Ratio",
+   "id": "fibonacci-retracement",
+   "letter": "F",
+   "finlit": "FinLit's chart tools include a Fibonacci retracement you can draw on any price chart.",
+   "aliases": [
+    "Fibonacci",
+    "Fibonacci levels",
+    "Fib retracement",
+    "Fib levels"
+   ]
+  },
+  {
+   "term": "FII and DII flows",
+   "topic": "Market basics",
+   "meaning": "The value of shares foreign institutions (FIIs or FPIs) and domestic institutions (DIIs, such as mutual funds and insurers) bought, minus what they sold, in the cash market each day, in ₹ crore.",
+   "why": "Large, steady flows from either group can move the whole market.",
+   "how": "Look at the running total over weeks rather than one day; the figures released each evening are provisional.",
+   "formula": "Net flow = Buy value − Sell value",
+   "id": "fii-and-dii-flows",
+   "letter": "F",
+   "finlit": "FinLit's FII/DII page shows daily net flows, running totals, streak records and a calendar heat map, with the same-day correlation against the index.",
+   "aliases": [
+    "FII flow",
+    "DII flow",
+    "FII net",
+    "DII net",
+    "FII buy",
+    "FII sell",
+    "DII buy",
+    "DII sell",
+    "FII DII data",
+    "Institutional flows",
+    "FPI flows",
+    "Net buying",
+    "Net selling",
+    "Cumulative net flow",
+    "Streak records",
+    "FII flow vs index",
+    "DII flow vs index"
+   ]
   },
   {
    "term": "Financial leverage (equity multiplier)",
@@ -1533,7 +2476,30 @@
    "aliases": [
     "Score change since last quarter",
     "overall",
-    "score change"
+    "score change",
+    "FinLit health score"
+   ]
+  },
+  {
+   "term": "FinLit Outlook (revenue and profit estimates)",
+   "topic": "FinLit words",
+   "meaning": "FinLit's estimates of a company's revenue and net profit for the next 1, 3 or 5 years, worked out from its own reported growth and its sector's.",
+   "why": "It shows what carrying the past forward would imply, with every input and weight in view.",
+   "how": "Treat it as arithmetic on past results, not a prediction: it applies one growth rate to every year and knows nothing of orders, plans or the economy.",
+   "formula": "Next year = This year × (1 + Weighted growth rate)",
+   "id": "finlit-outlook-revenue-and-profit-estimates",
+   "letter": "F",
+   "finlit": "The weighted growth rate adds the company's own growth (last year, and compound growth over 3 and 5 years), its sector's median growth and, for profit, the change in net margin, with weights that depend on the horizon. Net profit is adjusted for one-off items where shown; banks and lenders use total income as revenue.",
+   "aliases": [
+    "Outlook",
+    "FinLit Outlook",
+    "Profit and revenue outlook",
+    "Weighted growth rate",
+    "Weighted growth rate, per year",
+    "Growth applied",
+    "Weight used",
+    "Revenue estimate",
+    "Profit estimate"
    ]
   },
   {
@@ -1549,7 +2515,9 @@
    "aliases": [
     "Prism",
     "Prism rating",
-    "Prism score"
+    "Prism score",
+    "Rated by Prism",
+    "Prism basics"
    ]
   },
   {
@@ -1564,7 +2532,8 @@
    "finlit": "",
    "aliases": [
     "FY",
-    "Fiscal year"
+    "Fiscal year",
+    "Financial year"
    ]
   },
   {
@@ -1595,6 +2564,40 @@
    "letter": "F",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Folio",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An account number a fund house gives an investor; one person can have several folios. A fund's or category's folio count is the number of such accounts.",
+   "why": "Folio counts give a rough sense of how widely a fund or category is held.",
+   "how": "Folios are not people, since one investor often holds several, so read the trend rather than the level.",
+   "formula": "",
+   "id": "folio",
+   "letter": "F",
+   "finlit": "FinLit's fund industry trends page shows folios by month from AMFI's monthly report.",
+   "aliases": [
+    "Folios",
+    "Folio count",
+    "Folio number",
+    "Folios, month"
+   ]
+  },
+  {
+   "term": "Foreign exchange reserves",
+   "topic": "Economy and business",
+   "meaning": "The foreign currency assets, gold, special drawing rights (SDRs) and IMF reserve position held by the RBI.",
+   "why": "Reserves are the buffer the RBI uses to steady the rupee and pay for imports in a crisis.",
+   "how": "They are often compared with months of imports. A sharp fall can mean the RBI has sold dollars to support the rupee, or that the value of what it holds has changed.",
+   "formula": "",
+   "id": "foreign-exchange-reserves",
+   "letter": "F",
+   "finlit": "FinLit shows them in US$ billion, month-end and then weekly, from the RBI's Weekly Statistical Supplement.",
+   "aliases": [
+    "Forex reserves",
+    "FX reserves",
+    "Total reserves",
+    "Reserves and rupee"
+   ]
   },
   {
    "term": "Foreign institutional investors (FII / FPI)",
@@ -1673,6 +2676,96 @@
    "aliases": []
   },
   {
+   "term": "Fund category (SEBI scheme category)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The group SEBI places a mutual fund scheme in according to what it invests in, such as Large Cap, Mid Cap, Liquid or Gilt. AMFI lists every scheme under its category.",
+   "why": "Funds in the same category follow similar rules, so they are the fair ones to put side by side. Comparing a liquid fund with a small-cap fund is not meaningful.",
+   "how": "Use the category to narrow the list before you compare returns or risk.",
+   "formula": "",
+   "id": "fund-category-sebi-scheme-category",
+   "letter": "F",
+   "finlit": "FinLit shows each scheme under the category AMFI files it in.",
+   "aliases": [
+    "Category",
+    "Scheme category",
+    "Fund category",
+    "Sub-category"
+   ]
+  },
+  {
+   "term": "Fund flows (net inflow and outflow)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Money coming into a fund or category from new investments, minus money going out through redemptions, over a period.",
+   "why": "Steady inflows show investors adding money and outflows show them taking it out; large flows can also force a fund manager to buy or sell.",
+   "how": "Read flows against the fund's size: ₹500 crore is large for a small fund and minor for a big one. Flows tend to follow past returns.",
+   "formula": "Net flow = Money invested − Money redeemed",
+   "id": "fund-flows-net-inflow-and-outflow",
+   "letter": "F",
+   "finlit": "FinLit's fund industry trends page shows net flows by category from AMFI's monthly report; the inflow streak counts the months in a row with more money coming in than going out.",
+   "aliases": [
+    "Net flow",
+    "Net flows",
+    "Net inflow",
+    "Net outflow",
+    "Inflow",
+    "Outflow",
+    "Category net flow",
+    "Category net flow, last month",
+    "Category inflow streak",
+    "Redemptions"
+   ]
+  },
+  {
+   "term": "Fund house (AMC)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The company that sets up and manages mutual fund schemes, called an asset management company (AMC), for example Axis Mutual Fund or HDFC Mutual Fund.",
+   "why": "The same fund house runs many schemes. Knowing it tells you who manages the money and which other schemes it runs.",
+   "how": "A fund house is a company, and schemes of one fund house can behave very differently from each other.",
+   "formula": "",
+   "id": "fund-house-amc",
+   "letter": "F",
+   "finlit": "FinLit groups schemes by the fund house name AMFI gives.",
+   "aliases": [
+    "AMC",
+    "Asset management company",
+    "Fund house",
+    "Mutual fund house"
+   ]
+  },
+  {
+   "term": "Fund manager",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The person or team at a fund house who decides what an actively managed fund holds, within its stated rules.",
+   "why": "In an active fund the manager's decisions drive the results, and a change of manager can change how the fund behaves.",
+   "how": "Check how long the current manager has run the fund before giving them credit for its record.",
+   "formula": "",
+   "id": "fund-manager",
+   "letter": "F",
+   "finlit": "FinLit holds fund manager names for only part of the fund families so far.",
+   "aliases": [
+    "Fund managers",
+    "Portfolio manager",
+    "Scheme manager"
+   ]
+  },
+  {
+   "term": "Fund of funds (FoF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A mutual fund that invests in other mutual funds or ETFs instead of buying shares or bonds directly, for example to hold overseas funds or a ready mix of funds.",
+   "why": "It gives access or a ready mix in one scheme, but there are costs at both levels.",
+   "how": "Check the total expense ratio, which includes the costs of the funds it holds.",
+   "formula": "",
+   "id": "fund-of-funds-fof",
+   "letter": "F",
+   "finlit": "",
+   "aliases": [
+    "Fund of funds",
+    "FoF",
+    "Funds of funds",
+    "Others: Fund of funds and the rest"
+   ]
+  },
+  {
    "term": "Fundamental score and technical score",
    "topic": "FinLit words",
    "meaning": "The fundamental score uses only the business's statements; the technical score uses only the price chart. FinLit never blends the two without showing both.",
@@ -1699,6 +2792,42 @@
    "letter": "F",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Gold and silver units (tola, sovereign, troy ounce)",
+   "topic": "Market basics",
+   "meaning": "Units used to price precious metals. A tola is about 11.66 grams, a sovereign (pavan) is 8 grams, and a troy ounce, the international unit, is about 31.10 grams.",
+   "why": "Indian and international prices are quoted in different units, so they must be converted before comparing.",
+   "how": "To compare a dollar price per troy ounce with an Indian price per 10 grams, convert the unit and the currency, then allow for import duty.",
+   "formula": "1 troy ounce = 31.1034768 g; 1 tola = 11.6638038 g; 1 sovereign = 8 g",
+   "id": "gold-and-silver-units-tola-sovereign-troy-ounce",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "Tola",
+    "Troy ounce",
+    "Troy oz",
+    "Sovereign",
+    "Pavan",
+    "8 g (sovereign)",
+    "Tola (11.6638038 g)",
+    "Troy ounce (31.1034768 g)"
+   ]
+  },
+  {
+   "term": "Gold ETF and silver ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF whose price follows the domestic price of gold or silver, and which holds the metal for its investors.",
+   "why": "It lets someone hold gold or silver exposure through a demat account without storing the metal.",
+   "how": "Its price moves with the metal price and the rupee, not with company profits, and the metal can fall as well as rise.",
+   "formula": "",
+   "id": "gold-etf-and-silver-etf",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "gold ETF",
+    "silver ETF"
+   ]
   },
   {
    "term": "Goodwill",
@@ -1784,7 +2913,10 @@
    "finlit": "",
    "aliases": [
     "GDP",
-    "Gross domestic product"
+    "Gross domestic product",
+    "GDP growth",
+    "Real GDP",
+    "Nominal GDP"
    ]
   },
   {
@@ -1803,6 +2935,21 @@
    ]
   },
   {
+   "term": "Growth option",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The choice under which a fund keeps all its earnings invested, so no money is paid out and the NAV rises as the investments grow.",
+   "why": "With no payouts, the change in NAV tells the whole story of what the fund earned, so returns are simple to measure.",
+   "how": "Growth and IDCW options of the same fund hold the same investments but have different NAVs; compare like with like.",
+   "formula": "",
+   "id": "growth-option",
+   "letter": "G",
+   "finlit": "FinLit works out returns, volatility and drawdown for Growth options from their NAV history.",
+   "aliases": [
+    "Growth Option",
+    "Growth plan"
+   ]
+  },
+  {
    "term": "Growth stock",
    "topic": "Growth",
    "meaning": "Shares of a company expected to grow sales and profit faster than the market, often paying small or no dividends.",
@@ -1813,6 +2960,38 @@
    "letter": "G",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "G-Sec ETF (gilt ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that holds government bonds, for example 5-year or 10-year benchmark G-Secs, and follows a government bond index.",
+   "why": "Its price moves opposite to interest rates: when rates rise, bond prices tend to fall.",
+   "how": "The longer the bonds, the larger the swings in price when rates change.",
+   "formula": "",
+   "id": "g-sec-etf-gilt-etf",
+   "letter": "G",
+   "finlit": "",
+   "aliases": [
+    "gilt ETF",
+    "G-Sec ETF",
+    "government bond ETF"
+   ]
+  },
+  {
+   "term": "Heat map",
+   "topic": "Charts and statistics",
+   "meaning": "A grid in which colour shows the size of each value, such as one square per trading day or one cell per month and year.",
+   "why": "Streaks and seasonal patterns across many periods are easier to see in colour than in a table.",
+   "how": "Check what sets the colour scale: one extreme day can wash out all the others.",
+   "formula": "",
+   "id": "heat-map",
+   "letter": "H",
+   "finlit": "On FinLit's FII/DII calendar the scale is set by each side's 92nd-percentile day, so a few extreme days do not wash out the rest.",
+   "aliases": [
+    "Calendar heat map",
+    "Calendar heat maps",
+    "Monthly returns by year"
+   ]
   },
   {
    "term": "Hedge",
@@ -1827,6 +3006,23 @@
    "aliases": []
   },
   {
+   "term": "Herfindahl index (HHI)",
+   "topic": "Returns and risk",
+   "meaning": "A measure of concentration: the sum of the squared weights of every holding or sector, from close to 0 (spread over many) to 1 (everything in one).",
+   "why": "It puts concentration in one number, counting both how many holdings there are and how unequal they are.",
+   "how": "1 ÷ HHI gives the 'effective number' of equal holdings: an HHI of 0.25 behaves like four equal positions.",
+   "formula": "HHI = Sum of (Weight)², with weights as fractions of 1",
+   "id": "herfindahl-index-hhi",
+   "letter": "H",
+   "finlit": "FinLit's portfolio view works it out on the sector split, treating holdings as equal-weight when quantities are not given, and points out any sector above 40% of the portfolio.",
+   "aliases": [
+    "HHI",
+    "Herfindahl-Hirschman index",
+    "Herfindahl index",
+    "Effective number of holdings"
+   ]
+  },
+  {
    "term": "Holding period return (HPR)",
    "topic": "Returns and risk",
    "meaning": "The total return over the time you held an investment, including income.",
@@ -1838,7 +3034,8 @@
    "finlit": "",
    "aliases": [
     "HPR",
-    "Holding period return"
+    "Holding period return",
+    "Holding period"
    ]
   },
   {
@@ -1852,6 +3049,69 @@
    "letter": "H",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Hybrid fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A mutual fund that holds both shares and debt, and sometimes gold or other assets. SEBI's hybrid categories include conservative, balanced and aggressive hybrid, dynamic asset allocation (balanced advantage), multi-asset allocation, arbitrage and equity savings funds.",
+   "why": "Mixing asset types smooths the ride compared with a pure equity fund.",
+   "how": "The share in equity drives most of the risk: an aggressive hybrid holds 65–80% in shares, a conservative hybrid 10–25%.",
+   "formula": "",
+   "id": "hybrid-fund",
+   "letter": "H",
+   "finlit": "",
+   "aliases": [
+    "Hybrid",
+    "Hybrid funds",
+    "Balanced advantage",
+    "Dynamic asset allocation",
+    "Multi asset",
+    "Multi-asset allocation",
+    "Equity savings",
+    "Aggressive hybrid",
+    "Conservative hybrid",
+    "Hybrid: Dynamic Allocation, Multi Asset",
+    "Hybrid: Conservative, Equity Savings",
+    "Hybrid: Aggressive, Balanced"
+   ]
+  },
+  {
+   "term": "IDCW (Income Distribution cum Capital Withdrawal)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The choice under which a fund pays out part of its value to you from time to time. It replaced the older name 'dividend option'. 'Payout' sends the money to you; 'reinvestment' buys more units with it.",
+   "why": "Each payout is taken out of the NAV, so the NAV falls when it is paid. The payout is not extra profit; it is part of your own money coming back.",
+   "how": "Never compare the NAV change of an IDCW option with a Growth option: the IDCW NAV is lower because of payouts, not because the fund did worse.",
+   "formula": "",
+   "id": "idcw-income-distribution-cum-capital-withdrawal",
+   "letter": "I",
+   "finlit": "FinLit lists IDCW options with their own NAV but does not work out returns for them, since the payouts would be missing from a NAV-to-NAV change.",
+   "aliases": [
+    "IDCW",
+    "Dividend option",
+    "IDCW payout",
+    "IDCW reinvestment",
+    "Income Distribution cum Capital Withdrawal",
+    "Payout option",
+    "Reinvestment option"
+   ]
+  },
+  {
+   "term": "IIP (index of industrial production)",
+   "topic": "Economy and business",
+   "meaning": "A monthly index of output from mining, manufacturing and electricity, published by MoSPI.",
+   "why": "It is one of the earliest monthly readings of how industry is doing.",
+   "how": "Read growth against the same month a year earlier, and expect revisions, which can be large.",
+   "formula": "",
+   "id": "iip-index-of-industrial-production",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "IIP",
+    "Index of industrial production",
+    "Industrial production",
+    "Industrial production growth",
+    "Industry and jobs"
+   ]
   },
   {
    "term": "Implied future price",
@@ -1869,6 +3129,59 @@
    ]
   },
   {
+   "term": "Implied volatility (IV)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The volatility that, put into an option pricing model, gives the option's current market price. It is the market's price for the swings it expects, stated per year.",
+   "why": "Higher implied volatility makes options dearer; it often rises before events such as results.",
+   "how": "Compare an option's implied volatility with its own past and with the volatility the share has actually shown.",
+   "formula": "",
+   "id": "implied-volatility-iv",
+   "letter": "I",
+   "finlit": "",
+   "aliases": [
+    "IV",
+    "Implied volatility",
+    "Option volatility"
+   ]
+  },
+  {
+   "term": "Import parity price",
+   "topic": "Market basics",
+   "meaning": "An estimate of what an imported commodity should cost in India: the international price converted at the exchange rate, plus customs duty.",
+   "why": "It shows whether the local price sits above or below what importing would cost.",
+   "how": "It is an indicative calculation, not a quote; local taxes, making charges and dealer margins come on top.",
+   "formula": "Import parity ≈ International price × Exchange rate × (1 + Customs duty)",
+   "id": "import-parity-price",
+   "letter": "I",
+   "finlit": "FinLit works it out from the international price, the exchange rate and customs duty.",
+   "aliases": [
+    "Import parity",
+    "Indicative import parity",
+    "Import parity value"
+   ]
+  },
+  {
+   "term": "In the money, at the money and out of the money",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A call is in the money when its strike is below the current price, and a put when its strike is above it. At the money means the strike is at or next to the current price; out of the money is the opposite of in the money.",
+   "why": "In-the-money options have intrinsic value; out-of-the-money options are made up only of time value, which falls to zero at expiry.",
+   "how": "Time value shrinks faster as expiry nears.",
+   "formula": "Call intrinsic value = max(Price − Strike, 0); Put intrinsic value = max(Strike − Price, 0)",
+   "id": "in-the-money-at-the-money-and-out-of-the-money",
+   "letter": "I",
+   "finlit": "On FinLit's option chain, in-the-money calls and puts are shaded.",
+   "aliases": [
+    "In the money",
+    "At the money",
+    "Out of the money",
+    "ITM",
+    "ATM",
+    "OTM",
+    "Moneyness",
+    "Time value"
+   ]
+  },
+  {
    "term": "Index",
    "topic": "Market basics",
    "meaning": "A number that tracks the combined price of a chosen basket of stocks, such as the 50 largest companies on the NSE.",
@@ -1878,7 +3191,10 @@
    "id": "index",
    "letter": "I",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Index level",
+    "Index points"
+   ]
   },
   {
    "term": "Index fund",
@@ -1891,6 +3207,27 @@
    "letter": "I",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Index P/E (index valuation)",
+   "topic": "Valuation",
+   "meaning": "The price-to-earnings ratio of a whole index, such as the Nifty 50, from the combined market value and earnings of its companies. An index's P/B and dividend yield work the same way.",
+   "why": "It shows whether the market as a whole is priced high or low against its own history.",
+   "how": "Compare it with the index's own long-run range. A high P/E can last for years, and changes in the index's members also move it.",
+   "formula": "Index P/E = Combined market value of members ÷ Combined earnings of members",
+   "id": "index-p-e-index-valuation",
+   "letter": "I",
+   "finlit": "FinLit's index valuation history marks an upper and a lower usual level around the index's own past readings.",
+   "aliases": [
+    "Index P/E",
+    "Index P/B",
+    "Index dividend yield",
+    "Index valuation",
+    "Index valuation history",
+    "Nifty P/E",
+    "Upper usual",
+    "Lower usual"
+   ]
   },
   {
    "term": "India VIX",
@@ -2048,7 +3385,8 @@
     "Inventories",
     "Inventory",
     "inventories",
-    "stock"
+    "stock",
+    "Inventory growth"
    ]
   },
   {
@@ -2088,6 +3426,21 @@
    "aliases": [
     "IPO",
     "initial public offering"
+   ]
+  },
+  {
+   "term": "ISIN",
+   "topic": "Market basics",
+   "meaning": "International Securities Identification Number: a 12-character code that identifies one security, or one plan and option of a mutual fund, worldwide.",
+   "why": "Different plans and options of a fund have different ISINs and NAVs. The ISIN is the exact way to be sure you mean the same one.",
+   "how": "Match the ISIN, not just the fund name, when you compare data from two places.",
+   "formula": "",
+   "id": "isin",
+   "letter": "I",
+   "finlit": "FinLit shows the ISIN AMFI gives for each scheme's growth units.",
+   "aliases": [
+    "ISIN",
+    "ISIN code"
    ]
   },
   {
@@ -2204,10 +3557,13 @@
    "formula": "",
    "id": "large-cap-mid-cap-and-small-cap",
    "letter": "L",
-   "finlit": "",
+   "finlit": "FinLit's sector pages use AMFI's list for the last half-year: the top 100 companies by average market cap are large caps, the next 150 mid caps. The company size filter uses rupee bands instead (see Company size bands).",
    "aliases": [
     "Large cap, mid cap",
-    "small cap"
+    "small cap",
+    "Large cap",
+    "Mid cap",
+    "Size (AMFI)"
    ]
   },
   {
@@ -2226,7 +3582,9 @@
     "Last traded price and closing price",
     "Share price",
     "closing price",
-    "price"
+    "price",
+    "Previous close",
+    "Latest price"
    ]
   },
   {
@@ -2242,6 +3600,44 @@
    "aliases": [
     "Lead manager",
     "book-running lead manager"
+   ]
+  },
+  {
+   "term": "Leader flag",
+   "topic": "FinLit words",
+   "meaning": "A FinLit flag for a stock that closes at a 52-week high while its industry index is still well below its own high.",
+   "why": "A stock making new highs while its group is still down has held up better than its peers.",
+   "how": "Read it with the business scores: price and breadth flags say nothing about whether a business is sound.",
+   "formula": "",
+   "id": "leader-flag",
+   "letter": "L",
+   "finlit": "The flag is raised when the industry index is 10% or more below its high (15% or more is the full flag), and stays live for 60 sessions after the last such high.",
+   "aliases": [
+    "Leader flags",
+    "With leader flags"
+   ]
+  },
+  {
+   "term": "Leader label (Leader, In line, Laggard)",
+   "topic": "FinLit words",
+   "meaning": "FinLit's plain description of how a share's last 12 months compare with its closest peers, measured against the peer group's sector index: Leader, In line or Laggard.",
+   "why": "Within a sector the best and worst shares are often far apart, so where a share sits in its group adds to how the sector did.",
+   "how": "The label describes the past. FinLit's test on weekly prices back to 2005 found only a small, sector-dependent tendency for leaders to stay ahead, and leaders fell as hard as others in 2008 and 2020.",
+   "formula": "",
+   "id": "leader-label-leader-in-line-laggard",
+   "letter": "L",
+   "finlit": "Leader means the top 30% of peers and ahead of the sector index over 12 months; Laggard the bottom 30% and behind it; everything else is In line. 'Gaining' or 'weakening' marks a 3-month relative return of +5 points or more, or −5 or less. Labels refresh weekly after Friday's close and must come out the same two weeks running.",
+   "aliases": [
+    "Leader",
+    "Laggard",
+    "In line",
+    "Leader label",
+    "Leadership",
+    "Leadership label",
+    "Gaining",
+    "Weakening",
+    "Peer label",
+    "Has leadership held here?"
    ]
   },
   {
@@ -2271,6 +3667,40 @@
     "Total liabilities",
     "other liabilities",
     "total liabilities"
+   ]
+  },
+  {
+   "term": "Liquid ETF (1-day rate or overnight ETF)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that lends money for one day at a time, for example to banks through overnight lending, and so holds very short-term debt.",
+   "why": "Its price barely moves, so it is used to park cash, and the money earned is often paid out as a dividend.",
+   "how": "Because the income is often paid out, its price return can look close to zero. Check how the fund house handles the income.",
+   "formula": "",
+   "id": "liquid-etf-1-day-rate-or-overnight-etf",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "liquid ETF",
+    "overnight ETF",
+    "1D rate ETF"
+   ]
+  },
+  {
+   "term": "Liquid fund and money market fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Debt funds that hold very short-term instruments: liquid funds hold securities maturing in up to 91 days, and money market funds hold money-market instruments maturing in up to a year.",
+   "why": "They are used to park money for days or months with little movement in value.",
+   "how": "They are low-risk, not risk-free: check the credit quality of what they hold. Liquid funds charge a small exit load on redemptions within the first week.",
+   "formula": "",
+   "id": "liquid-fund-and-money-market-fund",
+   "letter": "L",
+   "finlit": "",
+   "aliases": [
+    "Liquid fund",
+    "Liquid funds",
+    "Money market fund",
+    "Money Market",
+    "Overnight fund"
    ]
   },
   {
@@ -2361,6 +3791,42 @@
    ]
   },
   {
+   "term": "Lump sum investment",
+   "topic": "Loans, tax and planning",
+   "meaning": "Investing an amount all at once, instead of in instalments.",
+   "why": "Money invested earlier has longer to compound, but it all goes in at one price.",
+   "how": "The two can be combined: a one-time amount at the start plus a monthly SIP.",
+   "formula": "Future value = Amount × (1 + r)^n",
+   "id": "lump-sum-investment",
+   "letter": "L",
+   "finlit": "FinLit's SIP calculator can add a one-time amount on day one.",
+   "aliases": [
+    "Lump sum",
+    "One-time amount",
+    "One-time amount at the start",
+    "One-time investment"
+   ]
+  },
+  {
+   "term": "MACD (moving average convergence divergence)",
+   "topic": "Price and technicals",
+   "meaning": "The gap between the 12-day and the 26-day EMA of the price. Its own 9-day EMA is the signal line, and the histogram is MACD minus the signal line.",
+   "why": "It summarises the direction of the trend and whether momentum is picking up or fading.",
+   "how": "MACD above its signal line with a rising histogram describes strengthening upward momentum. It lags the price and turns often in sideways markets.",
+   "formula": "MACD = EMA 12 − EMA 26; Signal line = EMA 9 of MACD; Histogram = MACD − Signal line",
+   "id": "macd-moving-average-convergence-divergence",
+   "letter": "M",
+   "finlit": "FinLit's short-term technical view uses the daily MACD against its signal line and whether the histogram is rising; the long-term view uses the weekly MACD against its signal line and against zero.",
+   "aliases": [
+    "MACD",
+    "Moving average convergence divergence",
+    "MACD signal line",
+    "MACD histogram",
+    "Signal line",
+    "Weekly MACD"
+   ]
+  },
+  {
    "term": "Mainboard IPO",
    "topic": "IPOs and new share issues",
    "meaning": "An IPO by a larger company that lists on the main NSE and BSE platforms.",
@@ -2393,8 +3859,13 @@
    "formula": "",
    "id": "market-breadth",
    "letter": "M",
-   "finlit": "",
-   "aliases": []
+   "finlit": "On FinLit's sector pages, breadth is the share of an industry's counted stocks above their own 9, 20 and 50-day averages.",
+   "aliases": [
+    "Breadth",
+    "Industry breadth",
+    "Breadth history",
+    "Share above 9-day average"
+   ]
   },
   {
    "term": "Market capitalisation (market cap)",
@@ -2456,6 +3927,58 @@
    "aliases": []
   },
   {
+   "term": "Max pain",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The strike price at which option buyers, taken together, would receive the smallest total payout if the underlying expired there.",
+   "why": "Some traders watch it because it marks the level where option sellers as a group would pay out least.",
+   "how": "There is little evidence that prices are drawn towards it; read it as a description of open positions.",
+   "formula": "",
+   "id": "max-pain",
+   "letter": "M",
+   "finlit": "FinLit works it out from the open interest at every strike of the expiry.",
+   "aliases": [
+    "Maximum pain",
+    "Max pain strike",
+    "Max pain point"
+   ]
+  },
+  {
+   "term": "MCP (Model Context Protocol)",
+   "topic": "FinLit words",
+   "meaning": "An open standard that lets AI assistants, such as Claude, ChatGPT or Cursor, call outside data sources. FinLit offers a free, read-only MCP connection to its Indian stock, fund and market data.",
+   "why": "An assistant connected this way can look up FinLit's figures instead of relying on what it remembers.",
+   "how": "Check any figure an assistant quotes against the FinLit page; assistants can still misread data.",
+   "formula": "",
+   "id": "mcp-model-context-protocol",
+   "letter": "M",
+   "finlit": "",
+   "aliases": [
+    "MCP",
+    "Model Context Protocol",
+    "Connect AI",
+    "Connect AI assistants",
+    "FinLit MCP",
+    "FinLit MCP address"
+   ]
+  },
+  {
+   "term": "MCX (Multi Commodity Exchange)",
+   "topic": "Market basics",
+   "meaning": "India's main commodity derivatives exchange, where futures on gold, silver, crude oil, natural gas and base metals trade.",
+   "why": "MCX futures prices are the usual Indian reference for commodity prices.",
+   "how": "A futures price is for a contract month and includes carrying costs; it is not what a jeweller or bank will charge.",
+   "formula": "",
+   "id": "mcx-multi-commodity-exchange",
+   "letter": "M",
+   "finlit": "FinLit's commodity page shows the MCX futures price with its contract month, next to the international price in US dollars.",
+   "aliases": [
+    "MCX",
+    "Multi Commodity Exchange",
+    "MCX futures",
+    "MCX futures price"
+   ]
+  },
+  {
    "term": "Median",
    "topic": "Valuation",
    "meaning": "The middle value when numbers are lined up in order; half are above it and half below.",
@@ -2468,6 +3991,23 @@
    "aliases": [
     "Median P/E (5Y)",
     "pe median 5y"
+   ]
+  },
+  {
+   "term": "Median absolute deviation (MAD)",
+   "topic": "Charts and statistics",
+   "meaning": "A robust measure of spread: the median of how far each value is from the median. Unlike the standard deviation, one extreme value hardly changes it.",
+   "why": "It picks out unusual years without letting the unusual year distort the yardstick.",
+   "how": "A value several MADs from the median is unusual; look for a one-off cause before reading a trend into it.",
+   "formula": "MAD = Median of |Value − Median|",
+   "id": "median-absolute-deviation-mad",
+   "letter": "M",
+   "finlit": "In FinLit's ratio tables an 'unusual year' sits far from the row's other years by this measure, and by more than 15% of the median.",
+   "aliases": [
+    "MAD",
+    "Median absolute deviation",
+    "Unusual year",
+    "Unusual year: far from this row's other years"
    ]
   },
   {
@@ -2495,6 +4035,40 @@
    "aliases": []
   },
   {
+   "term": "Monetary Policy Committee (MPC)",
+   "topic": "Economy and business",
+   "meaning": "The six-member committee that sets the RBI's repo rate. It meets at least four times a year, in practice about every two months.",
+   "why": "Its repo rate decisions move loan rates, deposit rates and bond prices.",
+   "how": "Read the statement that comes with each decision: the stance it states, such as neutral, shows how the committee sees the outlook.",
+   "formula": "",
+   "id": "monetary-policy-committee-mpc",
+   "letter": "M",
+   "finlit": "FinLit's macro page lists every repo rate decision of the MPC since April 2016.",
+   "aliases": [
+    "MPC",
+    "MPC decision",
+    "Policy rate",
+    "RBI policy",
+    "Repo rate decisions"
+   ]
+  },
+  {
+   "term": "Months ahead of peers",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The share of months in a period, such as the last 36, in which a fund's return beat the median of its category.",
+   "why": "It shows whether a fund's lead came steadily or from a few strong months.",
+   "how": "About half is what chance alone would give; well above half over three years points to steadiness.",
+   "formula": "Months ahead % = Months above the category median ÷ Months counted × 100",
+   "id": "months-ahead-of-peers",
+   "letter": "M",
+   "finlit": "In FinLit's Mutual Fund Health Score this is 'Months it matched similar funds', part of Performance.",
+   "aliases": [
+    "Months ahead of peers (last 36)",
+    "Months it matched similar funds",
+    "Monthly consistency"
+   ]
+  },
+  {
    "term": "Moving average (50-day, 200-day)",
    "topic": "Price and technicals",
    "meaning": "The average closing price over the last 50 or 200 trading days, redrawn each day. An EMA (exponential moving average) gives recent days more weight.",
@@ -2516,7 +4090,11 @@
     "vs ema200",
     "vs ema50",
     "vsEma200Pct",
-    "vsEma50Pct"
+    "vsEma50Pct",
+    "Price vs 50-day average",
+    "Price vs 200-day average",
+    "50-day average",
+    "200-day average"
    ]
   },
   {
@@ -2530,6 +4108,26 @@
    "letter": "M",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Mutual Fund Health Score",
+   "topic": "FinLit words",
+   "meaning": "FinLit's 0 to 100 score of a mutual fund against funds of the same kind, built from four parts: Performance, Risk, Cost and Quality (age, size and how the portfolio is built), with weights that depend on the fund group.",
+   "why": "Return is only one part of a fund; how bumpy and deep its falls were and what it costs count too.",
+   "how": "Read the group, the rank inside it and the risk-o-meter next to the score: a 75 for a small-cap fund and a 75 for a liquid fund do not mean the same thing. It is not a forecast or advice.",
+   "formula": "Score = Performance × weight + Risk × weight + Cost × weight + Quality × weight",
+   "id": "mutual-fund-health-score",
+   "letter": "M",
+   "finlit": "Each measure earns 0 points at its worst value and 100 at its best, in a straight line between. Performance is capped at 35% of the score. Direct and Regular plans are scored separately. A fund with 12 to 35 months of NAV history is provisional and its label stops at Healthy; under 12 months it is not rated.",
+   "aliases": [
+    "Health score",
+    "MF health score",
+    "Fund health score",
+    "Fund score",
+    "FinLit Mutual Fund Health Score",
+    "The four parts",
+    "Fund score screener"
+   ]
   },
   {
    "term": "NBFC (non-banking financial company)",
@@ -2721,6 +4319,45 @@
    ]
   },
   {
+   "term": "Normalized profit and normalized ROE",
+   "topic": "Profitability",
+   "meaning": "Profit with one-off items taken out, and the return on equity worked out from that profit, to show what the business earns in a usual year.",
+   "why": "A large one-off gain or loss can make one year's profit and ROE misleading.",
+   "how": "Compare reported and normalized figures: a gap that shows up year after year means the one-offs are not really one-off.",
+   "formula": "Normalized profit = Reported net profit − One-off items × (1 − Tax rate on one-offs)",
+   "id": "normalized-profit-and-normalized-roe",
+   "letter": "N",
+   "finlit": "FinLit's Profit Reality Check takes one-off items out after tax, at the tax rate it shows, and works out ROE from the result.",
+   "aliases": [
+    "Normalized",
+    "Normalized net profit",
+    "Normalized ROE",
+    "Normalized earnings",
+    "ROE, normalized",
+    "Normalised profit",
+    "Reported and normalized profit",
+    "Tax rate on one-offs"
+   ]
+  },
+  {
+   "term": "OCF margin (operating cash flow margin)",
+   "topic": "Efficiency and cash flow",
+   "meaning": "Operating cash flow as a percentage of revenue: how many rupees of cash the business brings in from each ₹100 of sales.",
+   "why": "It is harder to dress up than the profit margin, because it counts cash actually received.",
+   "how": "Compare it with the operating margin over several years; a cash margin well below the profit margin year after year is a warning.",
+   "formula": "OCF margin % = Operating cash flow ÷ Revenue × 100",
+   "id": "ocf-margin-operating-cash-flow-margin",
+   "letter": "O",
+   "finlit": "FinLit's earnings and cash checks treat an OCF margin below 5% as weak, or below 3% for project and EPC businesses.",
+   "aliases": [
+    "OCF margin",
+    "Operating cash flow margin",
+    "CFO margin",
+    "Cash margin",
+    "Weak OCF margin"
+   ]
+  },
+  {
    "term": "Offer for sale (OFS)",
    "topic": "IPOs and new share issues",
    "meaning": "Existing shareholders, such as promoters or private-equity funds, selling their shares in an IPO. The money goes to them, not the company. Listed companies' promoters can also sell through a special 'OFS window' on the exchanges.",
@@ -2733,6 +4370,60 @@
    "aliases": [
     "OFS",
     "Offer for sale"
+   ]
+  },
+  {
+   "term": "On-balance volume (OBV)",
+   "topic": "Price and technicals",
+   "meaning": "A running total that adds the day's volume when the price closes up and subtracts it when the price closes down.",
+   "why": "It shows whether volume has been heavier on rising days or on falling days.",
+   "how": "OBV rising with the price shows volume behind the move; OBV falling while the price rises is a divergence worth noting.",
+   "formula": "OBV today = OBV yesterday + Volume (on an up close) or − Volume (on a down close)",
+   "id": "on-balance-volume-obv",
+   "letter": "O",
+   "finlit": "FinLit's 'Volume flow' row scores +1 when OBV is above its 20-day EMA in the short-term view, and when the 50-day EMA of OBV is above its 150-day EMA in the long-term view.",
+   "aliases": [
+    "OBV",
+    "On-balance volume",
+    "Volume flow",
+    "Volume flow (on-balance volume)"
+   ]
+  },
+  {
+   "term": "Open interest (OI)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The number of futures or option contracts that are still open, not yet closed or settled, at the end of a day.",
+   "why": "Rising open interest means new positions are being opened; falling open interest means positions are being closed.",
+   "how": "Read the change in open interest with the change in price to see whether positions are being added or cut (see build-up).",
+   "formula": "OI change = Open interest today − Open interest the day before",
+   "id": "open-interest-oi",
+   "letter": "O",
+   "finlit": "FinLit shows the OI change as a percentage only when the previous day's open interest was above zero.",
+   "aliases": [
+    "OI",
+    "Open interest",
+    "OI change",
+    "Change in OI",
+    "Calls OI",
+    "Puts OI"
+   ]
+  },
+  {
+   "term": "Open-ended and closed-ended funds",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An open-ended fund takes in and pays out money every business day at the NAV. A closed-ended fund raises money once, runs for a fixed term and can be sold only on the stock exchange or when it matures. An interval fund opens only at set times.",
+   "why": "It decides whether and when you can enter or leave. Many closed-ended and interval schemes have stopped publishing NAVs because their term ended.",
+   "how": "Check the scheme type before assuming you can sell at the NAV on any day.",
+   "formula": "",
+   "id": "open-ended-and-closed-ended-funds",
+   "letter": "O",
+   "finlit": "FinLit marks closed-ended and interval schemes from AMFI's headings and hides schemes that stopped publishing NAVs unless you ask to see them.",
+   "aliases": [
+    "Open ended",
+    "Close ended",
+    "Closed ended",
+    "Interval fund",
+    "Scheme type"
    ]
   },
   {
@@ -2821,7 +4512,27 @@
    "finlit": "",
    "aliases": [
     "Option",
-    "call and put"
+    "call and put",
+    "Calls",
+    "Puts",
+    "Call option",
+    "Put option"
+   ]
+  },
+  {
+   "term": "Option chain",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A table of all the call and put options on one underlying for an expiry date, strike by strike, with each option's price, open interest, volume and implied volatility.",
+   "why": "It shows at a glance where positions are concentrated and how options are priced.",
+   "how": "Calls are usually on the left, strikes in the centre and puts on the right. It describes positions already taken; it does not predict where the price will go.",
+   "formula": "",
+   "id": "option-chain",
+   "letter": "O",
+   "finlit": "FinLit's option chain covers Nifty, Bank Nifty, Sensex and F&O stocks, with OI change, the put-call ratio and max pain.",
+   "aliases": [
+    "Options chain",
+    "F&O chain",
+    "Option chain table"
    ]
   },
   {
@@ -2864,6 +4575,21 @@
    "aliases": []
   },
   {
+   "term": "Overseas (international) ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF listed in India that holds shares listed abroad, such as the Nasdaq-100, the S&P 500 or Hang Seng companies.",
+   "why": "Its value depends on foreign share prices and on the rupee against the foreign currency.",
+   "how": "Limits on how much money Indian funds may send abroad can make the exchange price differ widely from the NAV; check the premium or discount.",
+   "formula": "",
+   "id": "overseas-international-etf",
+   "letter": "O",
+   "finlit": "",
+   "aliases": [
+    "international ETF",
+    "foreign ETF"
+   ]
+  },
+  {
    "term": "Oversubscription and undersubscription",
    "topic": "IPOs and new share issues",
    "meaning": "Oversubscription means bids exceed the shares offered; undersubscription means they fall short.",
@@ -2900,7 +4626,11 @@
    "id": "peers",
    "letter": "P",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Peer group",
+    "Peer set",
+    "Peer ranking"
+   ]
   },
   {
    "term": "PEG ratio",
@@ -2914,6 +4644,46 @@
    "finlit": "FinLit divides P/E by the 5-year growth in net profit, not EPS growth.",
    "aliases": [
     "peg"
+   ]
+  },
+  {
+   "term": "Percentage points (pts) and basis points (bp)",
+   "topic": "Market basics",
+   "meaning": "A percentage point is the plain difference between two percentages: a rise from 10% to 12% is 2 percentage points, but a 20% increase. A basis point is one hundredth of a percentage point.",
+   "why": "Mixing the two makes changes look bigger or smaller than they are.",
+   "how": "Rates and shares are usually compared in points: a repo rate cut of 25 bp is 0.25 percentage points.",
+   "formula": "1 percentage point = 100 basis points",
+   "id": "percentage-points-pts-and-basis-points-bp",
+   "letter": "P",
+   "finlit": "FinLit writes 'pts' for percentage points, for example for changes in shareholding.",
+   "aliases": [
+    "Percentage points",
+    "Percentage point",
+    "pts",
+    "pp",
+    "Basis points",
+    "Basis point",
+    "bp",
+    "bps"
+   ]
+  },
+  {
+   "term": "Percentile and rank",
+   "topic": "Charts and statistics",
+   "meaning": "A percentile says what share of a group sits below a value: the 90th percentile is higher than 90% of the group. A rank orders the group from first to last.",
+   "why": "Ranks make figures comparable when their units or spreads differ.",
+   "how": "Check the group: the top of a weak group can still be weak in absolute terms.",
+   "formula": "Percentile = Number of values below ÷ Number of values × 100",
+   "id": "percentile-and-rank",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Percentile",
+    "Percentiles",
+    "Percentile rank",
+    "Quartile",
+    "Quartiles",
+    "Ranked"
    ]
   },
   {
@@ -2980,6 +4750,24 @@
    "aliases": []
   },
   {
+   "term": "Preference shares and preference dividends",
+   "topic": "Company statements",
+   "meaning": "Preference shares pay a fixed dividend that must be paid before ordinary shareholders get anything, and rank ahead of them if the company is wound up. That fixed payout is the preference dividend.",
+   "why": "The profit that belongs to ordinary shareholders is net profit minus preference dividends, and that is the figure EPS uses.",
+   "how": "Few Indian listed companies have them; when one does, take them off net profit before working out EPS.",
+   "formula": "Profit for ordinary shareholders = Net profit − Preference dividends",
+   "id": "preference-shares-and-preference-dividends",
+   "letter": "P",
+   "finlit": "FinLit's EPS calculator has a box for preference dividends, in ₹ crore.",
+   "aliases": [
+    "Preference shares",
+    "Preference dividends",
+    "Preference dividend",
+    "Preference capital",
+    "Preference dividends (₹ crore)"
+   ]
+  },
+  {
    "term": "Pre-IPO placement",
    "topic": "IPOs and new share issues",
    "meaning": "Shares sold privately to selected investors shortly before the IPO, at a negotiated price.",
@@ -2990,6 +4778,22 @@
    "letter": "P",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Premium and discount to NAV",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "How far an ETF's exchange price is above (premium) or below (discount) the net asset value of its underlying holdings on the same day.",
+   "why": "It shows whether people paid more or less on the exchange than the holdings were worth that day.",
+   "how": "Compare the exchange close and the NAV of the same day only; a NAV for a market holiday has no matching exchange price. Wide gaps are common for ETFs that hold overseas shares.",
+   "formula": "Premium / discount = (Exchange close ÷ NAV − 1) × 100",
+   "id": "premium-and-discount-to-nav",
+   "letter": "P",
+   "finlit": "FinLit shows it only when the ETF traded on the day of the NAV published by AMFI.",
+   "aliases": [
+    "premium to NAV",
+    "discount to NAV",
+    "ETF premium"
+   ]
   },
   {
    "term": "Pre-tax margin",
@@ -3018,6 +4822,38 @@
    "aliases": [
     "Price band",
     "floor price and cap price"
+   ]
+  },
+  {
+   "term": "Price gap (breakaway and exhaustion gaps)",
+   "topic": "Price and technicals",
+   "meaning": "A jump in price between two sessions that leaves an empty space on the chart, because the day opened above the previous high or below the previous low. A breakaway gap starts a new move; an exhaustion gap comes late in a long one.",
+   "why": "Gaps often follow news, and where they come in a trend says something about whether a move is starting or tiring.",
+   "how": "Gaps on heavy volume carry more weight. Whether a gap was breakaway or exhaustion is often clear only later.",
+   "formula": "",
+   "id": "price-gap-breakaway-and-exhaustion-gaps",
+   "letter": "P",
+   "finlit": "In FinLit's short-term technical view a breakaway gap up counts +1, an exhaustion gap up −1 and a gap down that closes lower −0.5.",
+   "aliases": [
+    "Gap up",
+    "Gap down",
+    "Breakaway gap",
+    "Exhaustion gap",
+    "Price gap"
+   ]
+  },
+  {
+   "term": "Price return",
+   "topic": "Returns and risk",
+   "meaning": "The change in a price between two dates, as a percentage, without adding dividends or other payouts received in between.",
+   "why": "It is the simplest measure of how a price moved, but it understates what a holder received when the fund pays out income.",
+   "how": "Funds that pay out their income, such as many liquid ETFs, can show a price return near zero while holders still received money. Total return adds those payouts.",
+   "formula": "Price return = (Latest price ÷ Earlier price − 1) × 100",
+   "id": "price-return",
+   "letter": "P",
+   "finlit": "Every return on FinLit's ETF pages is a price return.",
+   "aliases": [
+    "price returns"
    ]
   },
   {
@@ -3168,6 +5004,21 @@
    ]
   },
   {
+   "term": "Profit Reality Check",
+   "topic": "FinLit words",
+   "meaning": "A section of FinLit's company report that tests how far profit and ROE reflect the business: one-off items, normalized profit and ROE, the DuPont breakdown and whether profit is backed by cash.",
+   "why": "Headline profit can flatter or hide what the business really earns.",
+   "how": "Read it before relying on a high ROE or a sudden jump in profit.",
+   "formula": "",
+   "id": "profit-reality-check",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "Profit Reality",
+    "Profit vs Cash Flow"
+   ]
+  },
+  {
    "term": "Promoter",
    "topic": "Ownership",
    "meaning": "The founders, family or parent company that control a listed company.",
@@ -3192,7 +5043,10 @@
    "aliases": [
     "Promoter holding",
     "own promoters",
-    "promoter pledge"
+    "promoter pledge",
+    "Promoter pledged shares",
+    "Pledged shares",
+    "Pledge"
    ]
   },
   {
@@ -3235,6 +5089,57 @@
    "aliases": [
     "Provisional",
     "Not rated"
+   ]
+  },
+  {
+   "term": "Pullback",
+   "topic": "Price and technicals",
+   "meaning": "A short fall within a larger uptrend, or a short rise within a downtrend, before the main trend carries on.",
+   "why": "It separates a pause in a trend from a change of direction.",
+   "how": "A pullback that breaks below the rising moving averages may be more than a pause.",
+   "formula": "",
+   "id": "pullback",
+   "letter": "P",
+   "finlit": "FinLit's short-term technical view looks for an uptrend (close above EMA 50, with EMA 9 above 20 above 50) and a close within 2% above EMA 9.",
+   "aliases": [
+    "Pullbacks",
+    "Dip",
+    "Pullback match",
+    "Dry-volume pullback"
+   ]
+  },
+  {
+   "term": "Put-call ratio (PCR)",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Total open interest in put options divided by total open interest in call options, across every strike of an expiry. PCR by volume uses the day's traded volume instead.",
+   "why": "It sums up how positions are split between puts and calls.",
+   "how": "It is a ratio of positions, not a forecast: the same PCR can come from hedging or from bets on a fall.",
+   "formula": "PCR = Total put open interest ÷ Total call open interest",
+   "id": "put-call-ratio-pcr",
+   "letter": "P",
+   "finlit": "",
+   "aliases": [
+    "PCR",
+    "Put-call ratio",
+    "PCR by volume",
+    "Put share of open interest"
+   ]
+  },
+  {
+   "term": "p-value",
+   "topic": "Charts and statistics",
+   "meaning": "The chance of seeing a link at least as strong as the one measured if there were in fact no link at all. A small p-value means the pattern is unlikely to be pure chance.",
+   "why": "With few points, strong-looking patterns appear by luck; the p-value puts a number on that.",
+   "how": "Below 0.05 is the usual line for 'statistically significant'. A significant link can still be too small to matter, and testing many pairs turns some up by luck.",
+   "formula": "",
+   "id": "p-value",
+   "letter": "P",
+   "finlit": "FinLit's correlation charts draw a regression line only when the link passes statistical tests.",
+   "aliases": [
+    "p-value (Pearson)",
+    "Statistical significance",
+    "Statistically significant",
+    "Curvature test p"
    ]
   },
   {
@@ -3283,6 +5188,23 @@
    ]
   },
   {
+   "term": "Quarter in the industry (6-month rank)",
+   "topic": "FinLit words",
+   "meaning": "Where a stock's 6-month return ranks among the counted stocks of its industry: top quarter, 2nd, 3rd or bottom quarter.",
+   "why": "It places a stock's recent price move against its industry peers.",
+   "how": "It describes the past. In FinLit's study, the median stock in every quarter still trailed the industry index after a C thrust.",
+   "formula": "",
+   "id": "quarter-in-the-industry-6-month-rank",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "Quarter in the industry",
+    "6-month quarter",
+    "Top quarter",
+    "Bottom quarter"
+   ]
+  },
+  {
    "term": "Quarterly results",
    "topic": "Company statements",
    "meaning": "Financial results listed companies publish every three months, within 45 days of the quarter's end (60 days for the full year).",
@@ -3325,6 +5247,21 @@
    ]
   },
   {
+   "term": "Query builder",
+   "topic": "FinLit words",
+   "meaning": "A FinLit tool where you type a screening rule, such as Market cap > 500 AND P/E < 15, and get every listed Indian company that matches.",
+   "why": "It allows rules a menu of filters cannot, such as comparing one ratio with another.",
+   "how": "Amounts are in ₹ crore. Use brackets to group OR conditions, and save a query as a basket to run it again later.",
+   "formula": "",
+   "id": "query-builder",
+   "letter": "Q",
+   "finlit": "",
+   "aliases": [
+    "Queries",
+    "Screening query"
+   ]
+  },
+  {
    "term": "Quick ratio (acid test)",
    "topic": "Financial health and debt",
    "meaning": "Like the current ratio but leaving out inventory, which may be slow to sell.",
@@ -3341,6 +5278,42 @@
    ]
   },
   {
+   "term": "Real interest rate",
+   "topic": "Economy and business",
+   "meaning": "An interest rate minus inflation.",
+   "why": "It shows whether borrowing is really costly once rising prices are allowed for: below zero, prices rise faster than the rate.",
+   "how": "A positive real rate tends to slow borrowing and spending; a negative one tends to encourage them.",
+   "formula": "Real rate ≈ Nominal rate − Inflation",
+   "id": "real-interest-rate",
+   "letter": "R",
+   "finlit": "FinLit's macro page uses the repo rate minus CPI inflation.",
+   "aliases": [
+    "Real rate",
+    "Real repo rate",
+    "Real policy rate"
+   ]
+  },
+  {
+   "term": "Realised profit and loss (realised P&L)",
+   "topic": "Returns and risk",
+   "meaning": "The profit or loss on investments you have actually sold, from the buying and selling prices. Gross P&L is before charges and taxes; net P&L is after them.",
+   "why": "Only realised gains are taxed, and only they turn into cash.",
+   "how": "Read realised and unrealised figures together: selling winners while keeping losers flatters realised P&L.",
+   "formula": "Realised P&L = (Sell price − Buy price) × Quantity − Charges",
+   "id": "realised-profit-and-loss-realised-p-l",
+   "letter": "R",
+   "finlit": "FinLit's portfolio report shows realised P&L from the broker's statement, after all charges.",
+   "aliases": [
+    "Realised P&L",
+    "Realized P&L",
+    "Realised profit",
+    "Gross P&L",
+    "Net P&L",
+    "Cumulative realised P&L",
+    "Monthly realised P&L"
+   ]
+  },
+  {
    "term": "Rebalancing",
    "topic": "Returns and risk",
    "meaning": "Bringing a portfolio back to its target mix by trimming what has grown and adding to what has shrunk.",
@@ -3351,6 +5324,25 @@
    "letter": "R",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Rebased to 100",
+   "topic": "Charts and statistics",
+   "meaning": "A way to chart several series from the same starting point: each is divided by its own first value and multiplied by 100. A reading of 130 means a 30% rise since the start.",
+   "why": "It lets you compare how a ₹50 share and a ₹5,000 share, or two funds, have moved.",
+   "how": "The start date matters: move it and the picture can change.",
+   "formula": "Rebased value = Value ÷ First value × 100",
+   "id": "rebased-to-100",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Rebased",
+    "Rebasing",
+    "Rebased NAV chart",
+    "Index (start = 100)",
+    "Index, first value = 100",
+    "Starts at 100"
+   ]
   },
   {
    "term": "Record date",
@@ -3423,6 +5415,43 @@
    "aliases": []
   },
   {
+   "term": "Regression line (slope and intercept)",
+   "topic": "Charts and statistics",
+   "meaning": "The straight line that best fits a scatter of points. The slope is how much Y changes for each 1-unit rise in X; the intercept is the value of Y where the line crosses X = 0.",
+   "why": "It turns a cloud of points into one readable relationship.",
+   "how": "Read the slope with R² and the p-value: a steep line through scattered points explains little. One influential point can tilt the line, so check whether leaving it out changes the result.",
+   "formula": "Y = Intercept + Slope × X",
+   "id": "regression-line-slope-and-intercept",
+   "letter": "R",
+   "finlit": "FinLit's correlation charts also name the most influential point and run a curvature test before deciding whether to draw the line.",
+   "aliases": [
+    "Regression",
+    "Linear regression",
+    "Line of best fit",
+    "Slope",
+    "Slope (Y per 1 X)",
+    "Intercept",
+    "Most influential point",
+    "Line decision",
+    "Least squares"
+   ]
+  },
+  {
+   "term": "Regular plan",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The version of a mutual fund bought through a distributor or advisor. A commission for them is paid out of the fund, so its yearly cost is higher than the Direct plan's.",
+   "why": "The extra cost lowers the Regular plan's NAV growth against the Direct plan of the same fund, by about the difference in their expense ratios.",
+   "how": "Compare Regular with Regular, and keep in mind what the extra cost pays for (advice or service).",
+   "formula": "",
+   "id": "regular-plan",
+   "letter": "R",
+   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
+   "aliases": [
+    "Regular",
+    "Regular plan growth"
+   ]
+  },
+  {
    "term": "Regulation 30 disclosure",
    "topic": "Company statements",
    "meaning": "A disclosure made under Regulation 30 of SEBI's listing rules (LODR), which requires companies to report material events promptly.",
@@ -3433,6 +5462,27 @@
    "letter": "R",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Relative strength against an index",
+   "topic": "Price and technicals",
+   "meaning": "A share's return minus the return of an index over the same period, in percentage points. Positive means the share did better than the index. It is different from RSI.",
+   "why": "It separates what the share did from what the whole market or sector did.",
+   "how": "Pick a fitting yardstick: the sector index for sector peers, a size index for size. Past relative strength describes the past and can reverse.",
+   "formula": "Relative return = Share's return − Index return",
+   "id": "relative-strength-against-an-index",
+   "letter": "R",
+   "finlit": "FinLit's technical views rank the share's beta-adjusted return above the index over 21 and 63 days (short term) and 63 to 252 days (long term); the Leader label uses 3, 6 and 12-month returns against the sector index.",
+   "aliases": [
+    "Relative strength",
+    "Relative return",
+    "Relative performance",
+    "Return against the index",
+    "Excess return",
+    "Outperformance",
+    "Underperformance",
+    "Strength against the index"
+   ]
   },
   {
    "term": "Relative valuation (versus history and sector)",
@@ -3454,7 +5504,15 @@
     "pb vs sector",
     "pe vs median 5y",
     "pe vs sector",
-    "versus history and sector"
+    "versus history and sector",
+    "P/E vs own history",
+    "Own 5-year P/E median",
+    "Own 5-year P/B median",
+    "Industry P/E median",
+    "Industry P/B median",
+    "Industry EV/EBITDA median",
+    "Cheap against its own history",
+    "Cheaper than its sector"
    ]
   },
   {
@@ -3467,7 +5525,31 @@
    "id": "repo-rate",
    "letter": "R",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "RBI repo rate",
+    "Repo rate decision"
+   ]
+  },
+  {
+   "term": "Results calendar and results season",
+   "topic": "Company statements",
+   "meaning": "The results season is the few weeks after each quarter ends, when most listed companies report. The results calendar lists the board-meeting dates companies have announced for approving their results.",
+   "why": "Prices often move most around results, and knowing the date helps you be ready to read the numbers.",
+   "how": "Listed companies must publish quarterly results within 45 days of the quarter's end, and the year's audited results within 60 days.",
+   "formula": "",
+   "id": "results-calendar-and-results-season",
+   "letter": "R",
+   "finlit": "FinLit's results calendar is built from companies' board-meeting announcements, with recently declared results and their filings.",
+   "aliases": [
+    "Results calendar",
+    "Results season",
+    "Results dates",
+    "Results dates coming up",
+    "Expected result date",
+    "Results declared",
+    "Results due within (days)",
+    "Results-season standouts"
+   ]
   },
   {
    "term": "Retail and public shareholders",
@@ -3566,7 +5648,9 @@
     "ROE, 3-year average",
     "Return on Equity",
     "roe",
-    "roe 3y"
+    "roe 3y",
+    "ROE (reported)",
+    "Return on book equity"
    ]
   },
   {
@@ -3615,6 +5699,24 @@
     "revenue",
     "sales",
     "total income"
+   ]
+  },
+  {
+   "term": "Reverse DCF",
+   "topic": "Valuation",
+   "meaning": "A DCF run backwards: it starts from today's share price and works out the growth that price implies.",
+   "why": "It turns a hard question (what is it worth?) into one you can judge: is that growth realistic?",
+   "how": "Compare the implied growth with the company's past growth and with its industry's.",
+   "formula": "",
+   "id": "reverse-dcf",
+   "letter": "R",
+   "finlit": "FinLit's DCF calculator shows a reverse DCF next to the forward calculation; the EPS calculator shows the growth a target price needs.",
+   "aliases": [
+    "Reverse discounted cash flow",
+    "Implied growth",
+    "Market-implied growth",
+    "Growth the price implies",
+    "Growth needed"
    ]
   },
   {
@@ -3684,6 +5786,57 @@
    "aliases": []
   },
   {
+   "term": "Risk-o-meter",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "SEBI's six-level label of a mutual fund's risk, from Low to Very High, which every fund must show and review each month, next to the risk-o-meter of its benchmark.",
+   "why": "It gives a quick, standard sense of how much a fund's value can swing and how much credit and liquidity risk it takes.",
+   "how": "Compare it with your own risk profile and with the benchmark's level. It describes the portfolio today, not what will happen.",
+   "formula": "",
+   "id": "risk-o-meter",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Risk-o-meter (scheme and benchmark)",
+    "Risk level",
+    "Very High risk"
+   ]
+  },
+  {
+   "term": "Robust (Theil-Sen) slope",
+   "topic": "Charts and statistics",
+   "meaning": "A way of fitting a line that takes the median of the slopes between every pair of points instead of using least squares. A few extreme points barely move it.",
+   "why": "Financial data often has outliers, such as a one-off year, which can tilt an ordinary regression line.",
+   "how": "If the Theil-Sen slope and the ordinary slope differ a lot, a few points are driving the ordinary line.",
+   "formula": "Theil-Sen slope = Median of (Yj − Yi) ÷ (Xj − Xi) over all pairs of points",
+   "id": "robust-theil-sen-slope",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "Theil-Sen slope",
+    "Theil-Sen",
+    "Robust slope",
+    "Theil Sen estimator"
+   ]
+  },
+  {
+   "term": "Rolling returns",
+   "topic": "Returns and risk",
+   "meaning": "Returns measured over every window of a fixed length, for example every one-year period ending on each day, instead of over a single start and end date.",
+   "why": "A single period can flatter or punish a fund depending on the start date; rolling returns show the range of results.",
+   "how": "Look at the worst window and the share of windows with a gain, not only the average.",
+   "formula": "",
+   "id": "rolling-returns",
+   "letter": "R",
+   "finlit": "FinLit's ETF and fund pages show the lowest, median and highest one-year window, and the share of windows with a gain.",
+   "aliases": [
+    "Rolling return",
+    "Windows with a gain",
+    "Worst 1-year rolling return",
+    "Windows measured",
+    "Windows (days)"
+   ]
+  },
+  {
    "term": "RSI (Relative Strength Index)",
    "topic": "Price and technicals",
    "meaning": "A 0–100 gauge of how strongly a stock has risen versus fallen over the last 14 days.",
@@ -3698,6 +5851,23 @@
     "RSI (14)",
     "Relative Strength Index",
     "rsi14"
+   ]
+  },
+  {
+   "term": "R-squared (share of variation explained)",
+   "topic": "Charts and statistics",
+   "meaning": "The share of the ups and downs in one measure that a straight line through another measure accounts for, from 0% to 100%. For a simple line it equals the correlation squared.",
+   "why": "It shows how much a fitted line actually explains, and how much is left unexplained.",
+   "how": "An R² of 0.2 means the line explains a fifth of the variation; most of the movement comes from other things.",
+   "formula": "R² = 1 − (Sum of squared residuals ÷ Total sum of squares)",
+   "id": "r-squared-share-of-variation-explained",
+   "letter": "R",
+   "finlit": "",
+   "aliases": [
+    "R-squared",
+    "Share of variation explained",
+    "Share of variation explained (R²)",
+    "Coefficient of determination"
    ]
   },
   {
@@ -3739,7 +5909,35 @@
     "profit growth",
     "profit growth latest",
     "sales growth",
-    "sales growth latest"
+    "sales growth latest",
+    "Revenue vs profit growth gap",
+    "Profit and sales moved apart",
+    "Sales and profit apart",
+    "Revenue growth",
+    "Net profit growth",
+    "Revenue growth (12 months)",
+    "Profit growth (12 months)"
+   ]
+  },
+  {
+   "term": "Scenario analysis (bear, base and bull cases)",
+   "topic": "Valuation",
+   "meaning": "Working out a value or result under several sets of assumptions, such as a bear, a base and a bull case, sometimes with a probability for each to give a weighted figure.",
+   "why": "One number hides how much the answer depends on the assumptions.",
+   "how": "Make the cases genuinely different. A weighted value is only as good as the probabilities put on it.",
+   "formula": "Weighted value = Sum of (Case value × Probability)",
+   "id": "scenario-analysis-bear-base-and-bull-cases",
+   "letter": "S",
+   "finlit": "FinLit's EPS calculator works out Bear, Base and Bull cases, and its DCF calculator can weight cases by the probability you give each.",
+   "aliases": [
+    "Scenario analysis",
+    "Scenarios",
+    "Bear case",
+    "Base case",
+    "Bull case",
+    "Bear/Base/Bull",
+    "Probability-weighted value",
+    "Probability %"
    ]
   },
   {
@@ -3758,7 +5956,9 @@
     "Score bands",
     "Strong",
     "Strong, Healthy, Mixed, Watch",
-    "Watch"
+    "Watch",
+    "FinLit band",
+    "Watchlist by band"
    ]
   },
   {
@@ -3773,7 +5973,14 @@
    "finlit": "",
    "aliases": [
     "Screener",
-    "filters"
+    "filters",
+    "Stock screener",
+    "Score screener",
+    "Basic score screener",
+    "Advanced score screener",
+    "Ready-made screens",
+    "Saved screens",
+    "My saved screens"
    ]
   },
   {
@@ -3804,6 +6011,99 @@
    ]
   },
   {
+   "term": "Sector and thematic ETF",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "An ETF that follows an index of one sector, such as banks or IT, or one theme, such as defence or manufacturing.",
+   "why": "It puts all of its money into one part of the market, so it moves with that part.",
+   "how": "Compare it with a broad index ETF to see how much of its movement came from that one sector.",
+   "formula": "",
+   "id": "sector-and-thematic-etf",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "sector ETF",
+    "thematic ETF"
+   ]
+  },
+  {
+   "term": "Sector signal states (Washout, Thrust, Confirmed, Fading)",
+   "topic": "FinLit words",
+   "meaning": "FinLit's labels for where an NSE industry stands in its breadth cycle: Washout (broad selling), Thrust (a broad rebound), Confirmed (most stocks trending up together) and Fading (breadth breaking down).",
+   "why": "They show whether a move in an industry is broad or narrow, and how it has developed.",
+   "how": "Read them with the market: is the Nifty 50 above or below its 200-day average? In FinLit's 2017–2026 study many thrusts faded, and averaged week by week their edge was about zero.",
+   "formula": "",
+   "id": "sector-signal-states-washout-thrust-confirmed-fading",
+   "letter": "S",
+   "finlit": "Washout: at some point in the last 30 sessions fewer than 40% of counted stocks were above their 50-day average. Confirmed: 70% or more are above all three averages (9, 20 and 50-day). Fading: a thrust failed, or breadth broke after Confirmed; it lasts 20 sessions or until a new thrust.",
+   "aliases": [
+    "Washout",
+    "Confirmed",
+    "Fading",
+    "Sector states",
+    "Sector signals",
+    "Sector signal",
+    "Breadth cycle",
+    "Industry cycle",
+    "1 · Washout",
+    "3 · Confirmed",
+    "How sector signals work"
+   ]
+  },
+  {
+   "term": "Sectoral and thematic funds",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "Equity funds that invest at least 80% in one sector, such as banking or pharma, or one theme, such as defence, technology or consumption.",
+   "why": "They concentrate on one area, so their returns can be far above or far below the broad market for years.",
+   "how": "Count them as a concentrated position when you look at your overall mix.",
+   "formula": "",
+   "id": "sectoral-and-thematic-funds",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Sectoral fund",
+    "Thematic fund",
+    "Sectoral / Thematic",
+    "Equity: Sectoral / Thematic",
+    "Sector fund",
+    "Defence and aerospace funds",
+    "AI and technology funds"
+   ]
+  },
+  {
+   "term": "Sectoral index (Nifty Bank, Nifty IT and others)",
+   "topic": "Market basics",
+   "meaning": "An index that tracks the shares of one sector or theme, such as Nifty Bank, Nifty IT, Nifty Pharma or Nifty Auto.",
+   "why": "It is the fair yardstick for a company: a bank's year looks different against Nifty Bank than against the Nifty 50.",
+   "how": "A few large companies can dominate a sector index; check its top weights.",
+   "formula": "",
+   "id": "sectoral-index-nifty-bank-nifty-it-and-others",
+   "letter": "S",
+   "finlit": "FinLit's Leader label compares a share with its sector index, such as Nifty IT for IT or Nifty PSU Bank for PSU banks.",
+   "aliases": [
+    "Sectoral index",
+    "Sector index",
+    "Sector indices",
+    "Nifty Bank",
+    "Bank Nifty",
+    "Nifty IT",
+    "Nifty Pharma",
+    "Nifty Auto",
+    "Nifty FMCG",
+    "Nifty Metal",
+    "Nifty Realty",
+    "Nifty Energy",
+    "Nifty Oil & Gas",
+    "Nifty Media",
+    "Nifty Healthcare",
+    "Nifty Infra",
+    "Nifty Commodities",
+    "Nifty PSU Bank",
+    "Nifty Pvt Bank",
+    "Nifty Fin Service",
+    "Fin Nifty"
+   ]
+  },
+  {
    "term": "Securities",
    "topic": "Market basics",
    "meaning": "The umbrella word for financial instruments that can be bought and sold: shares, bonds, mutual fund units and derivatives.",
@@ -3825,7 +6125,28 @@
    "id": "segment-reporting",
    "letter": "S",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Segment",
+    "Segments",
+    "Revenue by segment"
+   ]
+  },
+  {
+   "term": "Sensitivity analysis",
+   "topic": "Valuation",
+   "meaning": "A table that shows how a result changes as one or two inputs change, such as the value per share for each pair of discount rate and growth rate.",
+   "why": "It shows which assumptions the answer depends on most.",
+   "how": "If the value swings from far below to far above the price across reasonable inputs, the calculation cannot settle the question on its own.",
+   "formula": "",
+   "id": "sensitivity-analysis",
+   "letter": "S",
+   "finlit": "FinLit's DCF and EPS calculators each show a sensitivity grid.",
+   "aliases": [
+    "Sensitivity",
+    "Sensitivity table",
+    "Sensitivity grid",
+    "What-if table"
+   ]
   },
   {
    "term": "Settlement (T+1)",
@@ -3884,7 +6205,9 @@
     "own institutions",
     "own promoters chg 1q",
     "own promoters chg 1y",
-    "own public chg 1y"
+    "own public chg 1y",
+    "Promoter holding change",
+    "FII holding change"
    ]
   },
   {
@@ -3897,7 +6220,10 @@
    "id": "sharpe-ratio",
    "letter": "S",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "Sharpe",
+    "Return for each unit of price swing"
+   ]
   },
   {
    "term": "Simple interest",
@@ -3939,6 +6265,23 @@
    "aliases": []
   },
   {
+   "term": "Solution-oriented fund",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "A SEBI category of funds built around a goal, retirement funds and children's funds, with a lock-in of at least five years or until retirement age or the child comes of age, whichever is earlier.",
+   "why": "The lock-in keeps the money invested for the goal.",
+   "how": "Judge it on what it actually holds, which can range from mostly equity to mostly debt, and on its costs.",
+   "formula": "",
+   "id": "solution-oriented-fund",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Solution oriented",
+    "Retirement fund",
+    "Children's fund",
+    "Solution oriented: Retirement, Children's"
+   ]
+  },
+  {
    "term": "Solvency",
    "topic": "Financial health and debt",
    "meaning": "A company's ability to meet all its long-term obligations and keep operating.",
@@ -3961,6 +6304,76 @@
    "letter": "S",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Spider chart (radar chart)",
+   "topic": "Charts and statistics",
+   "meaning": "A chart with one spoke per measure, each running from weaker at the centre to stronger at the edge, joined into a shape. Several companies can be drawn on top of each other.",
+   "why": "It shows at a glance where one company is stronger or weaker than another across many measures.",
+   "how": "Compare spoke by spoke rather than by area, because the area changes with the order of the spokes. Check how each spoke is scaled.",
+   "formula": "",
+   "id": "spider-chart-radar-chart",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Spider chart",
+    "Spider",
+    "Radar chart",
+    "Spider (radar) chart"
+   ]
+  },
+  {
+   "term": "Stage analysis (Stage 1 to Stage 4)",
+   "topic": "Price and technicals",
+   "meaning": "A way of describing where a share is in its price cycle using a long moving average: Stage 1 basing (the average flat), Stage 2 advancing (price above a rising average), Stage 3 topping (flat again after a rise) and Stage 4 declining (price below a falling average).",
+   "why": "It places today's price in the longer cycle.",
+   "how": "Stages are clearer in hindsight than as they happen, and a share can move back and forth between them.",
+   "formula": "",
+   "id": "stage-analysis-stage-1-to-stage-4",
+   "letter": "S",
+   "finlit": "FinLit reads the stage from the slope of the 150-day average (flat within ±1.5%) and the close against it. Stage 2 counts +1 when fresh and +0.5 when established; in Stage 3 or 4 the long-term score is capped at +19.",
+   "aliases": [
+    "Stage analysis",
+    "Stage 1",
+    "Stage 2",
+    "Stage 3",
+    "Stage 4",
+    "Weinstein stage",
+    "Stage 2 fresh advance"
+   ]
+  },
+  {
+   "term": "Standard deviation",
+   "topic": "Charts and statistics",
+   "meaning": "A measure of how spread out values are around their average. In a roughly bell-shaped spread, about two-thirds of values lie within one standard deviation of the average.",
+   "why": "It is the basic yardstick of variability, behind volatility, tracking error and the Sharpe ratio.",
+   "how": "Compare standard deviations only for figures in the same unit and period: a yearly figure from daily returns is the daily one × √252.",
+   "formula": "Standard deviation = √(Average of (Value − Mean)²)",
+   "id": "standard-deviation",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "SD",
+    "Std dev",
+    "Stdev",
+    "Standard deviations"
+   ]
+  },
+  {
+   "term": "Step-up SIP",
+   "topic": "Loans, tax and planning",
+   "meaning": "A SIP whose instalment rises each year, by a fixed amount or a percentage, for example in line with pay rises.",
+   "why": "Raising the instalment over time can make a large difference to the final value.",
+   "how": "A 10% yearly step-up on ₹10,000 a month means ₹11,000 a month in the second year.",
+   "formula": "Instalment in year n = First instalment × (1 + Step-up %)^(n − 1)",
+   "id": "step-up-sip",
+   "letter": "S",
+   "finlit": "",
+   "aliases": [
+    "Step-up",
+    "SIP step-up",
+    "Top-up SIP"
+   ]
   },
   {
    "term": "Stock exchange (NSE, BSE)",
@@ -4041,6 +6454,24 @@
    ]
   },
   {
+   "term": "Strike price",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "The price at which an option lets its buyer buy the underlying (a call) or sell it (a put).",
+   "why": "The strike, against the current price, decides whether an option has any value if exercised now.",
+   "how": "The at-the-money strike is the one nearest the current price.",
+   "formula": "",
+   "id": "strike-price",
+   "letter": "S",
+   "finlit": "FinLit marks the listed strike nearest the underlying's last price; exactly midway between two, the higher one.",
+   "aliases": [
+    "Strike",
+    "Strikes",
+    "Exercise price",
+    "ATM strike",
+    "At-the-money strike"
+   ]
+  },
+  {
    "term": "Subscription (times subscribed)",
    "topic": "IPOs and new share issues",
    "meaning": "How much demand there was compared with shares on offer. '25 times subscribed' means bids for 25 times the shares available.",
@@ -4066,6 +6497,23 @@
    "letter": "S",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Swing failure",
+   "topic": "Price and technicals",
+   "meaning": "When the price pushes past a recent swing high or swing low but cannot hold there and closes back inside the earlier range.",
+   "why": "It shows an attempt to break out that did not stick.",
+   "how": "Treat it as a description of a failed attempt, not as a signal on its own.",
+   "formula": "",
+   "id": "swing-failure",
+   "letter": "S",
+   "finlit": "FinLit's short-term technical view counts an active bullish swing failure +0.75 (+1 once confirmed) and a bearish one −0.75 (−1 once confirmed); the long-term view uses 15-session swings.",
+   "aliases": [
+    "Swing high",
+    "Swing low",
+    "Bullish swing failure",
+    "Bearish swing failure"
+   ]
   },
   {
    "term": "Symbol (ticker) and BSE code",
@@ -4152,6 +6600,72 @@
    "aliases": []
   },
   {
+   "term": "Technical views and trend alignment",
+   "topic": "FinLit words",
+   "meaning": "FinLit's two price-trend scores: a short-term view of recent weeks and a long-term view of the past year. Trend alignment puts the two together in plain words, such as 'Rising on both', 'Dip in an uptrend' or 'Falling on both'.",
+   "why": "A short dip inside a long uptrend reads differently from a fall inside a long downtrend.",
+   "how": "The labels describe past prices only; they do not predict and are not advice. Read them next to the business scores.",
+   "formula": "",
+   "id": "technical-views-and-trend-alignment",
+   "letter": "T",
+   "finlit": "Each score counts as up at +20 or more, down at −20 or less and sideways in between, and the nine combinations give the labels. The short-term view uses daily EMAs, MACD, RSI, volume and price patterns; the long-term view uses the 200-day trend, weekly RSI and MACD, relative strength and the stage.",
+   "aliases": [
+    "Technical views",
+    "Technical view",
+    "Short-term technical",
+    "Long-term technical",
+    "Short-term technical view",
+    "Long-term technical view",
+    "Trend alignment",
+    "Rising on both",
+    "Rising lately",
+    "Bounce in a downtrend",
+    "Uptrend, pausing",
+    "No clear trend",
+    "Downtrend, pausing",
+    "Dip in an uptrend",
+    "Falling lately",
+    "Falling on both",
+    "Uptrend on both technical views",
+    "Technical views over time"
+   ]
+  },
+  {
+   "term": "Terminal value",
+   "topic": "Valuation",
+   "meaning": "In a DCF, the value of all the cash flows after the forecast years, rolled into one figure at the end of the forecast.",
+   "why": "It is often the largest part of a DCF value, so its assumptions matter most.",
+   "how": "The terminal growth rate must stay below the discount rate and is usually kept modest; check what share of the total value the terminal value makes up.",
+   "formula": "Terminal value = Final-year FCF × (1 + g) ÷ (r − g)",
+   "id": "terminal-value",
+   "letter": "T",
+   "finlit": "FinLit's DCF calculator works out the terminal value from a terminal growth rate, which must be below the discount rate, or from an exit multiple of year-10 FCF.",
+   "aliases": [
+    "Terminal growth rate",
+    "Terminal growth",
+    "Perpetuity growth",
+    "Gordon growth",
+    "Terminal value (₹ Cr)"
+   ]
+  },
+  {
+   "term": "Time under water (time below high)",
+   "topic": "Returns and risk",
+   "meaning": "How long a price or NAV stayed below its previous high before getting back to it, or how long it has been below it so far.",
+   "why": "Two funds with the same worst fall can differ a lot in how long they took to recover.",
+   "how": "Read it with the drawdown: the drawdown says how deep, time under water says how long.",
+   "formula": "",
+   "id": "time-under-water-time-below-high",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "Time under water",
+    "Time below high",
+    "Recovery time",
+    "Underwater period"
+   ]
+  },
+  {
    "term": "Total return",
    "topic": "Returns and risk",
    "meaning": "The full gain from an investment: price change plus dividends or interest received.",
@@ -4164,6 +6678,23 @@
    "aliases": [
     "1-year total return",
     "ret 1y total"
+   ]
+  },
+  {
+   "term": "Tracking error",
+   "topic": "Funds, bonds and derivatives",
+   "meaning": "How far an index fund or ETF's returns drift from the returns of the index it follows, usually stated as a yearly percentage.",
+   "why": "A small tracking error means the fund follows its index closely; a large one means it often does not.",
+   "how": "Fees, cash held, and the timing of buying and selling shares all add to it. Compare it between ETFs that follow the same index.",
+   "formula": "Tracking error = Standard deviation of (fund return − index return)",
+   "id": "tracking-error",
+   "letter": "T",
+   "finlit": "FinLit's ETF comparisons work it out from daily price returns against the price index: the standard deviation of the daily differences × √252, shown only with at least 240 overlapping daily returns. Tracking difference, the return gap over the same dates, is shown next to it. Mutual fund pages do not show either yet, because they need index history.",
+   "aliases": [
+    "tracking difference",
+    "Tracking error (a year)",
+    "Tracking error and difference",
+    "Tracking error against the price index"
    ]
   },
   {
@@ -4180,7 +6711,91 @@
     "Traded value",
     "Traded value (latest day)",
     "turnover",
-    "turnover cr"
+    "turnover cr",
+    "Traded value a day",
+    "Traded/day",
+    "Average daily trading value",
+    "Traded value a day (20-session average)"
+   ]
+  },
+  {
+   "term": "Trade-for-trade segment (BE series)",
+   "topic": "Market basics",
+   "meaning": "An exchange segment where every trade must be settled by delivery, so shares bought cannot be sold the same day. Stocks under surveillance or with other concerns are moved into it, marked on NSE by series such as BE.",
+   "why": "Such stocks often trade in bursts, and their prices can be less reliable.",
+   "how": "Check a stock's series before reading its price moves or averages.",
+   "formula": "",
+   "id": "trade-for-trade-segment-be-series",
+   "letter": "T",
+   "finlit": "FinLit leaves trade-for-trade (BE) and suspended stocks out of its sector breadth counts.",
+   "aliases": [
+    "Trade-for-trade",
+    "T2T",
+    "BE series",
+    "Suspended stock",
+    "Suspended stocks"
+   ]
+  },
+  {
+   "term": "Trading charges (brokerage, STT, stamp duty and others)",
+   "topic": "Market basics",
+   "meaning": "The costs of a trade on top of the price: brokerage, securities transaction tax (STT), exchange transaction charges, the SEBI turnover fee, stamp duty, GST on brokerage and charges, and DP charges when shares leave your demat account.",
+   "why": "Frequent trading lets charges eat a large part of returns.",
+   "how": "The contract note for each trade lists every charge; add them up over a year.",
+   "formula": "",
+   "id": "trading-charges-brokerage-stt-stamp-duty-and-others",
+   "letter": "T",
+   "finlit": "FinLit's portfolio report shows profit and loss after all charges, with a breakdown by type.",
+   "aliases": [
+    "Trading charges",
+    "Charges",
+    "Charges breakdown",
+    "Brokerage",
+    "STT",
+    "Securities transaction tax",
+    "Stamp duty",
+    "DP charges",
+    "Exchange transaction charges",
+    "Contract note"
+   ]
+  },
+  {
+   "term": "Trading session",
+   "topic": "Market basics",
+   "meaning": "One trading day on the exchange. NSE and BSE equity trading runs from 9:15 am to 3:30 pm IST on weekdays, after a pre-open session from 9:00 am.",
+   "why": "Many measures count sessions, not calendar days: a 20-session average covers about a month of trading.",
+   "how": "There are about 250 sessions in a year, 63 in a quarter and 21 in a month.",
+   "formula": "",
+   "id": "trading-session",
+   "letter": "T",
+   "finlit": "",
+   "aliases": [
+    "Session",
+    "Sessions",
+    "Trading day",
+    "Trading days",
+    "Market hours"
+   ]
+  },
+  {
+   "term": "Trailing return",
+   "topic": "Returns and risk",
+   "meaning": "How much a fund's NAV changed from a date in the past (one month, six months, one year...) up to the latest NAV.",
+   "why": "It is the standard way to read a fund's past results over different time spans, all ending today.",
+   "how": "Trailing returns depend on the day you stop counting, so a fund can look different a month later. Past results do not guarantee future results.",
+   "formula": "1-year return = (Latest NAV ÷ NAV one year earlier) − 1\nFor more than a year: (Latest NAV ÷ Start NAV)^(365 ÷ days between the two NAV dates) − 1",
+   "id": "trailing-return",
+   "letter": "T",
+   "finlit": "FinLit takes the start NAV from the latest NAV on or before the start date and states for every figure whether it is a plain change (up to 1 year) or a yearly rate (3 and 5 years).",
+   "aliases": [
+    "Trailing returns",
+    "Point-to-point return",
+    "Rolling start return",
+    "1M return",
+    "6M return",
+    "1Y return",
+    "3Y return",
+    "5Y return"
    ]
   },
   {
@@ -4209,6 +6824,22 @@
    "letter": "T",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Trend line",
+   "topic": "Price and technicals",
+   "meaning": "A straight line drawn on a price chart through two or more highs or lows to mark the direction of a trend.",
+   "why": "It makes the slope of a move and its turning points easier to see.",
+   "how": "Lines drawn by hand are subjective: two people can draw different lines on the same chart. Use them to describe the past.",
+   "formula": "",
+   "id": "trend-line",
+   "letter": "T",
+   "finlit": "FinLit's chart tools let you draw trend lines, horizontal and vertical lines, rectangles and notes on a chart.",
+   "aliases": [
+    "Trend lines",
+    "Horizontal line",
+    "Drawing tools"
+   ]
   },
   {
    "term": "TTM (trailing twelve months)",
@@ -4242,6 +6873,23 @@
    "letter": "U",
    "finlit": "",
    "aliases": []
+  },
+  {
+   "term": "Unemployment rate",
+   "topic": "Economy and business",
+   "meaning": "The share of people in the labour force who are looking for work but do not have it. In India it comes from MoSPI's Periodic Labour Force Survey (PLFS).",
+   "why": "Jobs drive household income and spending.",
+   "how": "Compare like with like: the monthly, quarterly and yearly PLFS figures cover different groups.",
+   "formula": "Unemployment rate = Unemployed ÷ Labour force × 100",
+   "id": "unemployment-rate",
+   "letter": "U",
+   "finlit": "FinLit's macro page shows the monthly rate, published from 2025.",
+   "aliases": [
+    "Unemployment",
+    "PLFS",
+    "Periodic Labour Force Survey",
+    "Jobless rate"
+   ]
   },
   {
    "term": "Unrealised gain or loss",
@@ -4341,7 +6989,28 @@
    "letter": "V",
    "finlit": "FinLit's yearly volatility uses the last 60 daily returns scaled by √252.",
    "aliases": [
-    "Volatility (yearly)"
+    "Volatility (yearly)",
+    "Annualised volatility",
+    "Volatility 3Y",
+    "Size of price swings",
+    "How bumpy the ride is",
+    "Volatility vs category"
+   ]
+  },
+  {
+   "term": "Volatility squeeze",
+   "topic": "Price and technicals",
+   "meaning": "A stretch when a share's daily price range narrows well below its usual width. A breakout from a squeeze is the first strong move out of the narrow range.",
+   "why": "Quiet spells are often followed by bigger moves, though not in a predictable direction.",
+   "how": "A squeeze says a larger move may come, not which way it will go.",
+   "formula": "",
+   "id": "volatility-squeeze",
+   "letter": "V",
+   "finlit": "In FinLit's short-term technical view a breakout from a squeeze counts +1, a squeeze with positive momentum +0.5, any other squeeze −0.25 and unusually wide volatility −0.5.",
+   "aliases": [
+    "Squeeze",
+    "Breakout from a squeeze",
+    "Price squeeze"
    ]
   },
   {
@@ -4356,6 +7025,25 @@
    "finlit": "",
    "aliases": [
     "Volume (latest day)"
+   ]
+  },
+  {
+   "term": "Volume profile (value area and point of control)",
+   "topic": "Price and technicals",
+   "meaning": "A count of how much volume traded at each price over a period. The point of control is the price with the most volume; the value area is the band around it where most of the volume, usually about 70%, traded.",
+   "why": "It shows the prices where most trading happened, and where there was little.",
+   "how": "Compare the value area of the latest swing with the one before: a higher value area means trading has moved up to higher prices.",
+   "formula": "",
+   "id": "volume-profile-value-area-and-point-of-control",
+   "letter": "V",
+   "finlit": "FinLit's short-term technical view compares this swing's value area with the previous swing's: entirely higher +1, centre higher +0.5, centre lower −0.5, entirely lower −1.",
+   "aliases": [
+    "Volume profile",
+    "Value area",
+    "Point of control",
+    "POC",
+    "Value area high",
+    "Value area low"
    ]
   },
   {
@@ -4401,6 +7089,23 @@
    ]
   },
   {
+   "term": "Win rate",
+   "topic": "Returns and risk",
+   "meaning": "The share of closed trades that ended in a profit.",
+   "why": "It shows how often trades worked, but not how much was made or lost on each.",
+   "how": "Read it with the average gain and the average loss: a 40% win rate can still make money if the gains are much bigger than the losses.",
+   "formula": "Win rate % = Winning trades ÷ All closed trades × 100",
+   "id": "win-rate",
+   "letter": "W",
+   "finlit": "",
+   "aliases": [
+    "Hit rate",
+    "Strike rate",
+    "Trade outcomes",
+    "Winning trades"
+   ]
+  },
+  {
    "term": "Working capital",
    "topic": "Company statements",
    "meaning": "The money tied up in day-to-day operations: short-term assets (cash, inventory, receivables) minus short-term liabilities (payables, short-term debt).",
@@ -4416,7 +7121,8 @@
     "Working capital to sales",
     "current assets",
     "current liabilities",
-    "working capital to sales"
+    "working capital to sales",
+    "Working capital growth"
    ]
   },
   {
@@ -4441,7 +7147,14 @@
    "id": "xirr",
    "letter": "X",
    "finlit": "",
-   "aliases": []
+   "aliases": [
+    "SIP return",
+    "SIP return (XIRR)",
+    "Monthly-SIP return",
+    "XIRR (a year)",
+    "SIP return, 3 years",
+    "SIP return, 5 years"
+   ]
   },
   {
    "term": "Year-on-year (YoY) growth",
@@ -4518,342 +7231,6 @@
    "letter": "Z",
    "finlit": "",
    "aliases": []
-  },
-  {
-   "term": "Tracking error",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "How far an index fund or ETF's returns drift from the returns of the index it follows, usually stated as a yearly percentage.",
-   "why": "A small tracking error means the fund follows its index closely; a large one means it often does not.",
-   "how": "Fees, cash held, and the timing of buying and selling shares all add to it. Compare it between ETFs that follow the same index.",
-   "formula": "Tracking error = Standard deviation of (fund return − index return)",
-   "id": "tracking-error",
-   "letter": "T",
-   "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
-   "aliases": [
-    "tracking difference"
-   ]
-  },
-  {
-   "term": "Assets under management (AUM)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The total market value of the money a fund holds for its investors, usually in rupees crore.",
-   "why": "A larger fund is usually easier to trade and tends to have lower running costs per unit; a very small one may be closed down.",
-   "how": "Look at it together with the ETF's daily traded value, since a big fund can still trade thinly on the exchange.",
-   "formula": "",
-   "id": "assets-under-management-aum",
-   "letter": "A",
-   "finlit": "FinLit's ETF pages do not show it because our price data source does not publish it.",
-   "aliases": [
-    "AUM",
-    "fund size"
-   ]
-  },
-  {
-   "term": "Premium and discount to NAV",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "How far an ETF's exchange price is above (premium) or below (discount) the net asset value of its underlying holdings on the same day.",
-   "why": "It shows whether people paid more or less on the exchange than the holdings were worth that day.",
-   "how": "Compare the exchange close and the NAV of the same day only; a NAV for a market holiday has no matching exchange price. Wide gaps are common for ETFs that hold overseas shares.",
-   "formula": "Premium / discount = (Exchange close ÷ NAV − 1) × 100",
-   "id": "premium-and-discount-to-nav",
-   "letter": "P",
-   "finlit": "FinLit shows it only when the ETF traded on the day of the NAV published by AMFI.",
-   "aliases": [
-    "premium to NAV",
-    "discount to NAV",
-    "ETF premium"
-   ]
-  },
-  {
-   "term": "Price return",
-   "topic": "Returns and risk",
-   "meaning": "The change in a price between two dates, as a percentage, without adding dividends or other payouts received in between.",
-   "why": "It is the simplest measure of how a price moved, but it understates what a holder received when the fund pays out income.",
-   "how": "Funds that pay out their income, such as many liquid ETFs, can show a price return near zero while holders still received money. Total return adds those payouts.",
-   "formula": "Price return = (Latest price ÷ Earlier price − 1) × 100",
-   "id": "price-return",
-   "letter": "P",
-   "finlit": "Every return on FinLit's ETF pages is a price return.",
-   "aliases": [
-    "price returns"
-   ]
-  },
-  {
-   "term": "Liquid ETF (1-day rate or overnight ETF)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF that lends money for one day at a time, for example to banks through overnight lending, and so holds very short-term debt.",
-   "why": "Its price barely moves, so it is used to park cash, and the money earned is often paid out as a dividend.",
-   "how": "Because the income is often paid out, its price return can look close to zero. Check how the fund house handles the income.",
-   "formula": "",
-   "id": "liquid-etf-1-day-rate-or-overnight-etf",
-   "letter": "L",
-   "finlit": "",
-   "aliases": [
-    "liquid ETF",
-    "overnight ETF",
-    "1D rate ETF"
-   ]
-  },
-  {
-   "term": "Gold ETF and silver ETF",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF whose price follows the domestic price of gold or silver, and which holds the metal for its investors.",
-   "why": "It lets someone hold gold or silver exposure through a demat account without storing the metal.",
-   "how": "Its price moves with the metal price and the rupee, not with company profits, and the metal can fall as well as rise.",
-   "formula": "",
-   "id": "gold-etf-and-silver-etf",
-   "letter": "G",
-   "finlit": "",
-   "aliases": [
-    "gold ETF",
-    "silver ETF"
-   ]
-  },
-  {
-   "term": "G-Sec ETF (gilt ETF)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF that holds government bonds, for example 5-year or 10-year benchmark G-Secs, and follows a government bond index.",
-   "why": "Its price moves opposite to interest rates: when rates rise, bond prices tend to fall.",
-   "how": "The longer the bonds, the larger the swings in price when rates change.",
-   "formula": "",
-   "id": "g-sec-etf-gilt-etf",
-   "letter": "G",
-   "finlit": "",
-   "aliases": [
-    "gilt ETF",
-    "G-Sec ETF",
-    "government bond ETF"
-   ]
-  },
-  {
-   "term": "Factor ETF (smart-beta or strategy ETF)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF that follows an index built by a rule instead of by company size, such as momentum, quality, value, low volatility or equal weight.",
-   "why": "Such an index can behave differently from a plain index like the Nifty 50 for long stretches.",
-   "how": "Read the index rule before comparing: two factor ETFs can hold very different companies even when both are called equity ETFs.",
-   "formula": "",
-   "id": "factor-etf-smart-beta-or-strategy-etf",
-   "letter": "F",
-   "finlit": "",
-   "aliases": [
-    "smart beta ETF",
-    "strategy ETF",
-    "momentum ETF",
-    "low volatility ETF"
-   ]
-  },
-  {
-   "term": "Overseas (international) ETF",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF listed in India that holds shares listed abroad, such as the Nasdaq-100, the S&P 500 or Hang Seng companies.",
-   "why": "Its value depends on foreign share prices and on the rupee against the foreign currency.",
-   "how": "Limits on how much money Indian funds may send abroad can make the exchange price differ widely from the NAV; check the premium or discount.",
-   "formula": "",
-   "id": "overseas-international-etf",
-   "letter": "O",
-   "finlit": "",
-   "aliases": [
-    "international ETF",
-    "foreign ETF"
-   ]
-  },
-  {
-   "term": "Sector and thematic ETF",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An ETF that follows an index of one sector, such as banks or IT, or one theme, such as defence or manufacturing.",
-   "why": "It puts all of its money into one part of the market, so it moves with that part.",
-   "how": "Compare it with a broad index ETF to see how much of its movement came from that one sector.",
-   "formula": "",
-   "id": "sector-and-thematic-etf",
-   "letter": "S",
-   "finlit": "",
-   "aliases": [
-    "sector ETF",
-    "thematic ETF"
-   ]
-  },
-  {
-   "term": "Direct plan",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The version of a mutual fund you buy straight from the fund house, with no distributor in between, so no distribution commission is paid out of the fund.",
-   "why": "Because less is deducted every year, a Direct plan's NAV grows slightly faster than the Regular plan of the same fund holding the same investments.",
-   "how": "Compare Direct with Direct and Regular with Regular. Their NAVs and returns differ even though the fund and its portfolio are the same.",
-   "formula": "",
-   "id": "direct-plan",
-   "letter": "D",
-   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
-   "aliases": [
-    "Direct",
-    "Direct plan growth"
-   ]
-  },
-  {
-   "term": "Regular plan",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The version of a mutual fund bought through a distributor or advisor. A commission for them is paid out of the fund, so its yearly cost is higher than the Direct plan's.",
-   "why": "The extra cost lowers the Regular plan's NAV growth against the Direct plan of the same fund, by about the difference in their expense ratios.",
-   "how": "Compare Regular with Regular, and keep in mind what the extra cost pays for (advice or service).",
-   "formula": "",
-   "id": "regular-plan",
-   "letter": "R",
-   "finlit": "On FinLit every scheme shows its plan, and the other plans of the same fund are linked on its page.",
-   "aliases": [
-    "Regular",
-    "Regular plan growth"
-   ]
-  },
-  {
-   "term": "Growth option",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The choice under which a fund keeps all its earnings invested, so no money is paid out and the NAV rises as the investments grow.",
-   "why": "With no payouts, the change in NAV tells the whole story of what the fund earned, so returns are simple to measure.",
-   "how": "Growth and IDCW options of the same fund hold the same investments but have different NAVs; compare like with like.",
-   "formula": "",
-   "id": "growth-option",
-   "letter": "G",
-   "finlit": "FinLit works out returns, volatility and drawdown for Growth options from their NAV history.",
-   "aliases": [
-    "Growth Option",
-    "Growth plan"
-   ]
-  },
-  {
-   "term": "IDCW (Income Distribution cum Capital Withdrawal)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The choice under which a fund pays out part of its value to you from time to time. It replaced the older name 'dividend option'. 'Payout' sends the money to you; 'reinvestment' buys more units with it.",
-   "why": "Each payout is taken out of the NAV, so the NAV falls when it is paid. The payout is not extra profit; it is part of your own money coming back.",
-   "how": "Never compare the NAV change of an IDCW option with a Growth option: the IDCW NAV is lower because of payouts, not because the fund did worse.",
-   "formula": "",
-   "id": "idcw-income-distribution-cum-capital-withdrawal",
-   "letter": "I",
-   "finlit": "FinLit lists IDCW options with their own NAV but does not work out returns for them, since the payouts would be missing from a NAV-to-NAV change.",
-   "aliases": [
-    "IDCW",
-    "Dividend option",
-    "IDCW payout",
-    "IDCW reinvestment",
-    "Income Distribution cum Capital Withdrawal",
-    "Payout option",
-    "Reinvestment option"
-   ]
-  },
-  {
-   "term": "Fund category (SEBI scheme category)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The group SEBI places a mutual fund scheme in according to what it invests in, such as Large Cap, Mid Cap, Liquid or Gilt. AMFI lists every scheme under its category.",
-   "why": "Funds in the same category follow similar rules, so they are the fair ones to put side by side. Comparing a liquid fund with a small-cap fund is not meaningful.",
-   "how": "Use the category to narrow the list before you compare returns or risk.",
-   "formula": "",
-   "id": "fund-category-sebi-scheme-category",
-   "letter": "F",
-   "finlit": "FinLit shows each scheme under the category AMFI files it in.",
-   "aliases": [
-    "Category",
-    "Scheme category",
-    "Fund category",
-    "Sub-category"
-   ]
-  },
-  {
-   "term": "Open-ended and closed-ended funds",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "An open-ended fund takes in and pays out money every business day at the NAV. A closed-ended fund raises money once, runs for a fixed term and can be sold only on the stock exchange or when it matures. An interval fund opens only at set times.",
-   "why": "It decides whether and when you can enter or leave. Many closed-ended and interval schemes have stopped publishing NAVs because their term ended.",
-   "how": "Check the scheme type before assuming you can sell at the NAV on any day.",
-   "formula": "",
-   "id": "open-ended-and-closed-ended-funds",
-   "letter": "O",
-   "finlit": "FinLit marks closed-ended and interval schemes from AMFI's headings and hides schemes that stopped publishing NAVs unless you ask to see them.",
-   "aliases": [
-    "Open ended",
-    "Close ended",
-    "Closed ended",
-    "Interval fund",
-    "Scheme type"
-   ]
-  },
-  {
-   "term": "Exit load",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "A fee a fund charges, as a percentage of the amount, if you sell units within a stated period after buying them.",
-   "why": "It reduces what you receive if you leave early, and it differs from fund to fund.",
-   "how": "Read the fund's offer document for its exit load and period before you invest.",
-   "formula": "Amount received = Units × NAV × (1 − Exit load %)",
-   "id": "exit-load",
-   "letter": "E",
-   "finlit": "FinLit does not show exit loads yet; they are not in AMFI's NAV file.",
-   "aliases": [
-    "Exit load",
-    "Redemption fee"
-   ]
-  },
-  {
-   "term": "Fund house (AMC)",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The company that sets up and manages mutual fund schemes, called an asset management company (AMC), for example Axis Mutual Fund or HDFC Mutual Fund.",
-   "why": "The same fund house runs many schemes. Knowing it tells you who manages the money and which other schemes it runs.",
-   "how": "A fund house is a company, and schemes of one fund house can behave very differently from each other.",
-   "formula": "",
-   "id": "fund-house-amc",
-   "letter": "F",
-   "finlit": "FinLit groups schemes by the fund house name AMFI gives.",
-   "aliases": [
-    "AMC",
-    "Asset management company",
-    "Fund house",
-    "Mutual fund house"
-   ]
-  },
-  {
-   "term": "Trailing return",
-   "topic": "Returns and risk",
-   "meaning": "How much a fund's NAV changed from a date in the past (one month, six months, one year...) up to the latest NAV.",
-   "why": "It is the standard way to read a fund's past results over different time spans, all ending today.",
-   "how": "Trailing returns depend on the day you stop counting, so a fund can look different a month later. Past results do not guarantee future results.",
-   "formula": "1-year return = (Latest NAV ÷ NAV one year earlier) − 1\nFor more than a year: (Latest NAV ÷ Start NAV)^(365 ÷ days between the two NAV dates) − 1",
-   "id": "trailing-return",
-   "letter": "T",
-   "finlit": "FinLit takes the start NAV from the latest NAV on or before the start date and states for every figure whether it is a plain change (up to 1 year) or a yearly rate (3 and 5 years).",
-   "aliases": [
-    "Trailing returns",
-    "Point-to-point return",
-    "Rolling start return",
-    "1M return",
-    "6M return",
-    "1Y return",
-    "3Y return",
-    "5Y return"
-   ]
-  },
-  {
-   "term": "ISIN",
-   "topic": "Market basics",
-   "meaning": "International Securities Identification Number: a 12-character code that identifies one security, or one plan and option of a mutual fund, worldwide.",
-   "why": "Different plans and options of a fund have different ISINs and NAVs. The ISIN is the exact way to be sure you mean the same one.",
-   "how": "Match the ISIN, not just the fund name, when you compare data from two places.",
-   "formula": "",
-   "id": "isin",
-   "letter": "I",
-   "finlit": "FinLit shows the ISIN AMFI gives for each scheme's growth units.",
-   "aliases": [
-    "ISIN",
-    "ISIN code"
-   ]
-  },
-  {
-   "term": "AMFI",
-   "topic": "Funds, bonds and derivatives",
-   "meaning": "The Association of Mutual Funds in India, the industry body whose public files publish every scheme's daily NAV.",
-   "why": "Its NAV files are the official source of mutual fund NAVs in India.",
-   "how": "AMFI publishes NAVs after fund houses declare them; some funds report late in the evening.",
-   "formula": "",
-   "id": "amfi",
-   "letter": "A",
-   "finlit": "FinLit builds its mutual fund pages from AMFI's own NAV files and shows the data date on every page.",
-   "aliases": [
-    "AMFI",
-    "Association of Mutual Funds in India"
-   ]
   }
  ]
 }
