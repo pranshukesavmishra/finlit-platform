@@ -825,6 +825,21 @@ class Store:
                 "WHERE ($2::text[] IS NULL OR symbol = ANY($2::text[])) ORDER BY symbol, (statement = $1) DESC, generated_at DESC", statement, symbols)
         return [dict(r) for r in rows]
 
+    async def diversification_facts(self, symbols: List[str]) -> List[dict]:
+        """For the Diversification card: each listed company's name, Sector label, market value (Rs crore, the nightly listing first, else the stored
+        score) and its market-value rank among all listed companies (1 = largest). Companies the list does not hold are simply absent."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT c.symbol, COALESCE(NULLIF(sc.name, ''), c.name) AS name, COALESCE(NULLIF(sc.sector, ''), NULLIF(c.sector, '')) AS sector, m.mcap,
+                          CASE WHEN m.mcap IS NULL THEN NULL ELSE (SELECT count(*) + 1 FROM listing_quotes x WHERE x.market_cap > m.mcap) END AS rank
+                   FROM companies c
+                   LEFT JOIN LATERAL (SELECT name, sector, market_cap FROM scores WHERE symbol = c.symbol AND model = 'v1'
+                                      ORDER BY (statement = 'consolidated') DESC, updated_at DESC LIMIT 1) sc ON true
+                   LEFT JOIN listing_quotes l ON l.symbol = c.symbol
+                   CROSS JOIN LATERAL (SELECT COALESCE(NULLIF(l.market_cap, 0), NULLIF(sc.market_cap, 0))::float8 AS mcap) m
+                   WHERE c.symbol = ANY($1::text[])""", symbols)
+        return [dict(r) for r in rows]
+
     async def prism_coverage(self, statement: str = "consolidated") -> List[dict]:
         """symbol and status of every company's newest rating (no json read): the counts behind 'rated X of Y'."""
         async with self.pool.acquire() as conn:
