@@ -10,7 +10,7 @@ def test_the_package_suite_passes():
     r = subprocess.run([sys.executable, str(PKG / "tests" / "run_tests.py")], capture_output=True, text=True, timeout=600, cwd=str(PKG.parent))
     last = r.stdout.strip().splitlines()[-1]
     assert r.returncode == 0 and last.endswith("0 failed"), r.stdout[-2000:] + r.stderr[-1000:]
-    assert int(last.split()[0]) >= 47
+    assert int(last.split()[0]) >= 58
 
 
 def test_the_website_process_never_imports_numpy_or_pandas_for_the_sector_pages():

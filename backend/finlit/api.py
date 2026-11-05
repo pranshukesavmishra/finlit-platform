@@ -27,7 +27,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from . import scorelive
-from . import alertapi, commodities, indices, intraday, leadership_api, notify, premium, prism
+from . import alertapi, commodities, indices, intraday, leadership_api, notify, ownership_insights, premium, prism
 from .aliases import SYMBOL_ALIASES
 from . import results as results_api
 from . import prism_screen
@@ -422,6 +422,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
         register_stock_admin(app, settings.site_api_url)  # must come before the /api/stocks/{symbol}/{section} routes
     app.include_router(intraday.router)   # /api/stocks/{symbol}/intraday: also before the /api/stocks/{symbol}/{section} route
     app.include_router(leadership_api.router)   # /api/stocks/{symbol}/leadership and /leadership-history: likewise
+    app.include_router(ownership_insights.router)   # /api/stocks/{symbol}/ownership-insights: likewise
 
     @app.get("/api/ping")
     async def ping():
