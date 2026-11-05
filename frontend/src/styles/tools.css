@@ -145,7 +145,15 @@ main#main { min-height: 90vh; }
 /* ---- score screener ---- */
 .ss-fs { border: 0; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; } .ss-fs legend { padding: 0; font: 600 13px var(--sans); color: var(--muted); margin-bottom: 4px; }
 .ss-fs label { display: flex; align-items: center; gap: 10px; padding: 5px 2px; font-size: 14px; cursor: pointer; }
-.ss-actions { display: flex; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); } .ss-actions .btn { flex: 1; justify-content: center; }
+/* the apply / clear row of the screener filter panel: never scrolls, never clips; the two buttons share a line when they fit and stack when the panel is narrow */
+:root { --mint: #A7E8C8; --mint-hover: #93DDB9; --on-mint: #0B2B1D; }
+.ss-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); overflow: visible; min-width: 0; position: sticky; bottom: -16px; z-index: 2; background: var(--s1); padding-bottom: 16px; margin-bottom: -16px; }
+.ss-actions .btn { flex: 1 1 5.5rem; min-width: 0; height: auto; min-height: 46px; padding: 8px 12px; line-height: 1.25; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+:root:root .ss-actions .btn.primary { flex: 1 1 auto; border: 0; border-radius: 12px; background: var(--mint); background-image: none; color: var(--on-mint); font-weight: 700; box-shadow: none; filter: none; }
+:root:root .ss-actions .btn.primary:hover:not(:disabled) { background: var(--mint-hover); transform: none; }
+:root:root .ss-actions .btn.primary::after { display: none; }
+:root:root .ss-actions .btn.primary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.ss-actions .btn:not(.primary) { background: transparent; border: 1px solid var(--border-strong); border-radius: 12px; }
 .bandc small { margin-left: 6px; color: var(--faint); font-weight: 500; } .bandc.on { border-color: color-mix(in srgb, var(--gold) 60%, var(--border)); }
 .ss-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; } .ss-stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--s2); display: grid; gap: 2px; }
 .ss-stat b { font: 400 26px var(--serif); } .ss-stat small { color: var(--muted); font-size: 12.5px; }
