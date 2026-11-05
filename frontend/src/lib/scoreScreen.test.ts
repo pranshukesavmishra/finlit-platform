@@ -337,7 +337,7 @@ describe("one address, two pages", () => {
 describe("Prism chips, address and summary", () => {
   it("one removable chip each for the labels, the rated switch and each Prism range", () => {
     const f = emptyFilters(); f.labels = ["HEALTHY", "STRONG"]; f.rated = true; f.ranges.z = { min: 60, max: null }; f.ranges.zr = { min: null, max: 40 };
-    expect(chipsFor(f).map((c) => c.label)).toEqual(["Prism score: 60 or more", "Prism Risk: 40 or less", "Prism rating: Strong, Healthy", "Only companies rated by Prism"]);
+    expect(chipsFor(f).map((c) => c.label)).toEqual(["Total Fundamental Score: 60 or more", "Prism Risk: 40 or less", "Prism rating: Strong, Healthy", "Only companies rated by Prism"]);
     expect(chipsFor(removeChip(removeChip(f, "labels"), "rated")).map((c) => c.id)).toEqual(["range:z", "range:zr"]);
   });
   it("round-trips through the address and ignores junk", () => {

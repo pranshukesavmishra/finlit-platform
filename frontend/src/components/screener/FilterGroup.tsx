@@ -8,7 +8,7 @@ export const FgxFocus = createContext<{ id: string | null; n: number }>({ id: nu
 
 export const Chev = () => <svg className="fgx-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>;
 
-type GroupProps = { id: string; title: string; icon?: string; active?: number; hint?: ReactNode; meta?: ReactNode; defaultOpen?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; className?: string; children: ReactNode };
+type GroupProps = { id: string; title: ReactNode; icon?: string; active?: number; hint?: ReactNode; meta?: ReactNode; defaultOpen?: boolean; open?: boolean; onOpenChange?: (o: boolean) => void; className?: string; children: ReactNode };
 export function FilterGroup({ id, title, icon, active = 0, hint, meta, defaultOpen = false, open: ctl, onOpenChange, className = "", children }: GroupProps) {
   const [own, setOwn] = useState(defaultOpen || active > 0);
   const open = ctl ?? own;

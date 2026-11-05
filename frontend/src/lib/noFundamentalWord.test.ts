@@ -9,7 +9,8 @@ const ROOT = new URL("..", import.meta.url).pathname;
 const files = (dir: string): string[] => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? (n === "__fixtures__" ? [] : files(p)) : /\.(tsx?)$/.test(n) && !/\.test\./.test(n) ? [p] : []; });
 // a quoted string or a JSX text run that holds the word
 const VISIBLE = /(["'`>])([^"'`<>\n]*\b[Ff]undamentals?\b[^"'`<>\n]*)(?=["'`<])/g;
-const ALLOWED = /^(fundamentals?|prism_fundamental|stock-fundamentals|cmp-fundamentals|\/premium\/fundamentals.*|premium\/fundamentals|\/fundamentals.*|\.\/pages\/Fundamentals|.*\$\{.*|= \{ fundamental:.*)$/;
+// The founder named the FinLit Prism Score panel himself (Nov 2026): "Fundamental Score", "Total Fundamental Score" and its subtitle are the only visible uses.
+const ALLOWED = /^(Fundamental Score|Total Fundamental Score|Filter stocks using our fundamental and technical scoring model\.|fundamentals?|prism_fundamental|stock-fundamentals|cmp-fundamentals|\/premium\/fundamentals.*|premium\/fundamentals|\/fundamentals.*|\.\/pages\/Fundamentals|.*\$\{.*|= \{ fundamental:.*)$/;
 
 describe("no 'Fundamental' on any page", () => {
   it("no visible string uses the word (only routes, ids and data keys keep it)", () => {

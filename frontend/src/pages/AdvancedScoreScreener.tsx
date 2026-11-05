@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import { ScreenerFrame, SortTh } from "../components/screener/ScreenerFrame";
 import { HowDialog } from "../components/screener/controls";
-import { CheckRow, FilterGroup, QuickRow, RangeRow } from "../components/screener/FilterGroup";
+import { FilterGroup, QuickRow } from "../components/screener/FilterGroup";
+import { PRISM_SUB, PRISM_TITLE, PrismScoreRows, prismActive } from "../components/screener/PrismScoreFilter";
 import { Donut } from "../components/screener/PageParts";
 import { PrismPart, PrismScore, PrismTrend, med } from "../components/screener/cells";
 import { AdvancedUpgrade } from "../components/screener/AdvancedUpgrade";
@@ -13,8 +14,8 @@ import { usePresetRoute } from "../components/screener/presets/usePresetRoute";
 import { useDocTitle } from "../lib/title";
 import { useUI } from "../lib/ui";
 import { nf, dateIN, MINUS } from "../lib/format";
-import { PRISM_PRESETS, TECH_BANDS, TECH_BAND_ORDER, TECH_KEYS, TECH_NAMES, activePrismPreset, withPrismPreset, withoutPrismPreset } from "../lib/scoreScreen";
-import { EXPLAIN, LABEL_WORD, PRISM_LABELS, PRISM_PARTS, coverageLine } from "../lib/scorePrism";
+import { PRISM_PRESETS, TECH_BANDS, activePrismPreset, withPrismPreset, withoutPrismPreset } from "../lib/scoreScreen";
+import { EXPLAIN, PRISM_PARTS, coverageLine } from "../lib/scorePrism";
 import "../styles/scorescreen.css";
 
 /** Advanced score screener (Gold only): the whole company universe with the FinLit Prism rating, its four parts and its two technical views.
@@ -50,23 +51,14 @@ function Advanced() {
 
   return (
     <ScreenerFrame s={s} splitKey="score-adv" eyebrow="Advanced score screener" title="Every listed company, rated by FinLit Prism." sideLabel="Advanced score screener filters" errorTitle="The advanced score screener is unavailable right now"
-      intro={<>The advanced model for the whole market: the <b>Prism score</b>, its four financial-health parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort, compare and export.</>}
+      intro={<>The advanced model for the whole market: the <b>Prism score</b>, its four financial-health parts (Growth & Profitability, Valuation, Quality, Risk) and two technical views, short term and long term. Filter, sort and compare.</>}
       head={{ art: "rating", links: ["/score-screener", "/screener", "/query-builder"], stats: [{ icon: "building", value: cover && cover.total > 0 ? nf(cover.total, 0) : null, label: "Companies" }, { icon: "layers", value: cover && cover.total > 0 ? nf(cover.rated + cover.provisional, 0) : null, label: "Rated by Prism" }] }}
       tier="gold" sortChoices={[{ key: "prism_final", label: "Prism" }, ...PRISM_PARTS.map((x) => ({ key: x.col, label: x.label })), { key: "prism_st_score", label: "Short-term technical" }, { key: "prism_lt_score", label: "Long-term technical" }]}
       donut={!isLoading && sum.found > 0 ? <Donut part={sum.nZ} total={sum.found} partLabel="Rated" restLabel="Not rated yet" title={`${nf(sum.found - sum.nZ, 0)} of ${nf(sum.found, 0)} companies in this result are not rated yet.`} note="More are added every night, largest first." /> : undefined}
       presets={<PresetPanel route={route} basics={basics} basicsActive={!!prismPreset} />}
       filters={<>
-        <FilterGroup id="score" title="Financial health" defaultOpen active={draft.labels.length + PRISM_PARTS.filter((x) => draft.ranges[x.range].min != null || draft.ranges[x.range].max != null).length} hint="Pick the ratings you want, then set the lowest and highest value (0 to 100) for any of the four pillars. A high Risk score means lower risk.">
-          <div className="fgx-chips" role="group" aria-label="Rating">
-            {PRISM_LABELS.map((l) => <button key={l} type="button" className={"fgx-chip" + (draft.labels.includes(l) ? " is-on" : "")} aria-pressed={draft.labels.includes(l)} onClick={() => s.setLabel(l)}>{draft.labels.includes(l) && <i aria-hidden="true">&#10003;</i>}{LABEL_WORD[l]}</button>)}
-          </div>
-          {PRISM_PARTS.map((x) => <RangeRow key={x.range} label={x.label} group={`${x.label} score, exact range`} min={draft.ranges[x.range].min} max={draft.ranges[x.range].max} maxExcl={!!draft.ranges[x.range].maxExcl} error={s.problems[x.range]} onChange={(end, v) => s.setRange(x.range, end, v)} />)}
-        </FilterGroup>
-        <FilterGroup id="tech" title="Technical views" defaultOpen active={draft.tech.st.length + draft.tech.lt.length}>
-          {TECH_KEYS.map((k) => (
-            <div key={k} role="group" aria-label={`${TECH_NAMES[k]} view`}><div className="fgx-note">{TECH_NAMES[k]} view</div>
-              {TECH_BAND_ORDER.map((b) => <CheckRow key={b} label={TECH_BANDS[b].label} checked={draft.tech[k].includes(b)} onChange={() => s.setTech(k, b)} />)}
-            </div>))}
+        <FilterGroup id="score" icon="bars" title={PRISM_TITLE} defaultOpen active={prismActive(s)} hint={PRISM_SUB}>
+          <PrismScoreRows s={s} />
         </FilterGroup>
       </>}
       tiles={tiles}

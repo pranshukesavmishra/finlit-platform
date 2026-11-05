@@ -25,7 +25,7 @@ export const PRISM_PARTS: { range: PrismRangeKey; col: PrismCol; label: string; 
   { range: "zq", col: "prism_quality", label: "Quality", say: "Financial strength: borrowing, interest cover, returns and cash backing for profit." },
   { range: "zr", col: "prism_risk", label: "Risk", say: "Market risk: price swings, largest fall, trading activity and pledged shares. Higher means lower risk." },
 ];
-export const PRISM_NAMES: Record<PrismRangeKey, string> = { z: "Prism score", zf: `Prism ${FUND_PART_NAME}`, zv: "Prism Valuation", zq: "Prism Quality", zr: "Prism Risk" };
+export const PRISM_NAMES: Record<PrismRangeKey, string> = { z: "Total Fundamental Score", zf: `Prism ${FUND_PART_NAME}`, zv: "Prism Valuation", zq: "Prism Quality", zr: "Prism Risk" };
 export const PRISM_RANGE_KEYS: PrismRangeKey[] = ["z", "zf", "zv", "zq", "zr"];
 export const prismRangeValue = (r: Row, k: PrismRangeKey): number | null | undefined =>
   k === "z" ? r.prism_final : k === "zf" ? r.prism_fundamental : k === "zv" ? r.prism_valuation : k === "zq" ? r.prism_quality : r.prism_risk;
