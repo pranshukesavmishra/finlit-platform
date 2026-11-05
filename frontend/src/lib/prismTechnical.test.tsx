@@ -263,9 +263,20 @@ describe("legend, gauge and light-theme contrast", () => {
     const { readFileSync } = await import("node:fs");
     const css = readFileSync(new URL("../styles/prism-technical.css", import.meta.url), "utf8");
     const base = readFileSync(new URL("../styles/finlit.css", import.meta.url), "utf8");
+    const system = readFileSync(new URL("../styles/design-system.css", import.meta.url), "utf8");
     expect(css).not.toMatch(/\.pzt-rn small \{[^}]*opacity/);
-    const block = base.slice(base.indexOf(':root[data-theme="light"]'));
-    const hex = (name: string) => new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(block)![1];
+    // Colours are read the way the browser reads them: the light theme's own block first, then the design system's tokens, following var(--x) references.
+    const decls = (text: string) => Object.fromEntries([...text.matchAll(/--([a-z0-9-]+)\s*:\s*([^;}]+)[;}]/gi)].map((m) => [m[1], m[2].trim()]));
+    const lightBlock = base.slice(base.indexOf(':root[data-theme="light"]'));
+    const systemLight = system.replace(/:root\[data-theme="dark"\]\s*\{[^}]*\}/, "");   // the design system's own aliases load after the page styles and win for every token they define
+    const vars: Record<string, string> = { ...Object.fromEntries(Object.entries(decls(lightBlock)).filter(([, v]) => /^#[0-9A-Fa-f]{6}$/.test(v))), ...decls(systemLight) };
+    const resolve = (name: string, depth = 0): string | null => {
+      const v = vars[name];
+      if (!v || depth > 6) return null;
+      const ref = /^var\(--([a-z0-9-]+)\)$/i.exec(v);
+      return ref ? resolve(ref[1], depth + 1) : /^#[0-9A-Fa-f]{6}$/.test(v) ? v : null;
+    };
+    const hex = (name: string) => { const h = resolve(name); if (!h) throw new Error(`light-theme token --${name} is not a 6-digit hex colour (directly or through var())`); return h; };
     const lum = (h: string) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const ratio = (a: string, b: string) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
     for (const surface of ["bg", "s1", "s2", "s3"]) expect(ratio(hex("muted"), hex(surface))).toBeGreaterThanOrEqual(4.5);
