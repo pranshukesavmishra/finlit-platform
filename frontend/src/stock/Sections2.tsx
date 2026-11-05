@@ -1,15 +1,9 @@
 import { useState } from "react";
 import { Icon } from "../lib/icons";
-import { arcPath } from "../lib/svg";
 
 import { LineChart } from "../charts/LineChart";
-import { OwnershipBars } from "../charts/OwnershipBars";
-import { OwnershipYearPicker } from "./OwnershipYearPicker";
-import { selectionInfo } from "../lib/ownershipBars";
 import { cr, dateIN, initials, nf, pct, signed } from "../lib/format";
-import type { Events, Ownership, Ratios, Segments, Summary } from "../lib/api";
-import { OWN_COLOR } from "./derive";
-import { ownershipAt, ownershipYears } from "../lib/ownershipYears";
+import type { Events, Ratios, Segments, Summary } from "../lib/api";
 import { SectionHead } from "./Sections";
 import { Plain } from "../components/Plain";
 import { ChartHelp } from "../components/ChartHelp";
@@ -19,90 +13,8 @@ import { OTHERS_COLOR, segmentColors, segmentNames } from "../lib/segmentMix";
 
 const v = (n: string) => `var(${n})`;
 
-/* ---------------- Ownership ---------------- */
-const OWN_WORDS: Record<string, string> = { promoters: "Founders and their group", fii: "Foreign funds", dii: "Indian mutual funds, insurers and banks", public: "Everyday investors and others", government: "Government" };
-
-/** Gradient donut with a gap between slices; hover or focus a slice to read it in the centre. */
-function OwnDonut({ items, hl, setHl }: { items: { key: string; label: string; value: number }[]; hl: string | null; setHl: (k: string | null) => void }) {
-  if (!items.length) return null;
-  const tot = items.reduce((a, i) => a + i.value, 0) || 1, R = 92, W = 30, C = 130;
-  let ang = 0;
-  const arcs = items.map((i) => { const sweep = (i.value / tot) * 360, a0 = ang + 1.6, a1 = ang + sweep - 1.6; ang += sweep; return { ...i, a0, a1: Math.max(a1, a0 + 0.5) }; });
-  const cur = items.find((i) => i.key === hl) || items[0];
-  return (
-    <div className="odn">
-      <svg viewBox="0 0 260 260" role="img" aria-label="Who owns the company">
-        <defs>
-          {items.map((i) => { const col = v(OWN_COLOR[i.key] || "--faint"); return <linearGradient key={i.key} id={`og-${i.key}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" style={{ stopColor: `color-mix(in srgb, ${col} 55%, #fff)` }} /><stop offset="1" style={{ stopColor: `color-mix(in srgb, ${col} 82%, #000)` }} /></linearGradient>; })}
-          <filter id="og-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" /></filter>
-        </defs>
-        <circle cx={C} cy={C} r={R + W / 2 + 14} fill="none" stroke="var(--border)" strokeDasharray="1 6" />
-        <circle cx={C} cy={C} r={R - W / 2 - 12} fill="none" stroke="var(--border)" />
-        {arcs.map((a) => {
-          const on = !hl || hl === a.key, big = hl === a.key;
-          return (
-            <g key={a.key} opacity={on ? 1 : 0.25} style={{ transition: "opacity .25s" }}>
-              {big && <path d={arcPath(C, C, R, a.a0, a.a1)} fill="none" stroke={`url(#og-${a.key})`} strokeWidth={W} strokeLinecap="round" filter="url(#og-glow)" opacity=".55" />}
-              <path className="odn-a" d={arcPath(C, C, R, a.a0, a.a1)} fill="none" stroke={`url(#og-${a.key})`} strokeWidth={big ? W + 8 : W} strokeLinecap="round" tabIndex={0} role="button" aria-label={`${a.label} ${nf(a.value, 1)}%`} onMouseEnter={() => setHl(a.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(a.key)} onBlur={() => setHl(null)} style={{ cursor: "pointer", transition: "stroke-width .2s", outline: "none" }} />
-            </g>
-          );
-        })}
-        <text x={C} y={C - 12} textAnchor="middle" fontSize="11" letterSpacing="2" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif" fontWeight="600">{cur.label.replace(/\s*\(.*\)/, "").toUpperCase().slice(0, 22)}</text>
-        <text x={C} y={C + 28} textAnchor="middle" fontSize="50" fontFamily="Newsreader Variable, Newsreader, Georgia, serif" fill="var(--text)">{nf(cur.value, 1)}<tspan fontSize="24" fill="var(--muted)">%</tspan></text>
-        <text x={C} y={C + 50} textAnchor="middle" fontSize="11" fill="var(--faint)" fontFamily="IBM Plex Sans, sans-serif">of all shares</text>
-      </svg>
-    </div>
-  );
-}
-
-export function OwnershipSection({ o }: { o?: Ownership }) {
-  const [hl, setHl] = useState<string | null>(null);
-  const [pick, setPick] = useState<number | null>(null);
-  if (!o) return <section className="block"><SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><div className="skeleton" style={{ height: 260 }} /></section>;
-  if (!o.latest?.length) return <section className="block"><SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" color="--p-balance" /><p className="faint">Shareholding data for this company has not been loaded yet.</p></section>;
-  const years = ownershipYears(o.periods), idx = pick != null && pick < o.periods.length ? pick : o.periods.length - 1;
-  const view = ownershipAt(o, idx) ?? { asOf: o.asOf ?? "", index: idx, year: null, comparedWith: o.comparedWith, basis: null, latest: o.latest.map((l) => ({ ...l, before: null })) };
-  const sel = view.year ?? years.find((y) => y.index === idx)?.year;
-  const prom = view.latest.find((l) => l.key === "promoters"), fii = view.latest.find((l) => l.key === "fii");
-  const items = view.latest.filter((l) => (l.value ?? 0) >= 1).map((l) => ({ key: l.key, label: l.label, value: l.value as number }));
-  const label = (l: { label: string }) => l.label.replace(/\s*\(.*\)/, "");
-  const rows = view.latest.filter((l) => (l.value ?? 0) >= 0.5 || (l.before ?? 0) >= 0.5);
-  const scale = Math.max(...rows.flatMap((r) => [r.value ?? 0, r.before ?? 0]), 1);
-  const then = view.comparedWith, now = view.asOf, isLatest = idx === o.periods.length - 1;
-  const selInfo = selectionInfo(o.periods, idx);
-  return (
-    <section className="block" style={{ "--sc": "var(--p-balance)" } as React.CSSProperties}>
-      <SectionHead id="ownership" no="11 · Ownership" icon="pie" tier="basic" title="Who owns the company" sub={`Shareholding pattern, ${now}${then ? `, with the change since ${then}` : ""}.`} color="--p-balance" />
-      {years.length > 0 && <OwnershipYearPicker years={years.map((y) => y.year)} selected={sel ?? null} onPick={(y) => { const f = years.find((q) => q.year === y); if (f) setPick(f.index); }} cap={{ now, then, basis: view.basis, isLatest, year: selInfo.year, isYearLatest: selInfo.isYearLatest, yearLatest: selInfo.yearLatest }} />}
-      {prom?.value != null && <Plain>{prom.value >= 50 ? "The founders and their group hold more than half the shares, so they control big decisions." : prom.value >= 30 ? "The founders hold a large share but not outright control." : "The founders hold a small share; the company is run more by professional managers and outside investors."} {fii?.change1yPts != null && fii.change1yPts < 0 ? "Foreign funds have been selling a little, which can weigh on the price." : fii?.change1yPts != null && fii.change1yPts > 0 ? "Foreign funds have been buying, which is a vote of confidence." : ""}</Plain>}
-      <div className="own4">
-        <div className="card acc own-d" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="pie" /></span>Owners {isLatest ? "today" : `in ${now}`}<ChartHelp id="own-donut" /></h3><span className="s">Hover a slice</span></div>
-          <OwnDonut items={items} hl={hl} setHl={setHl} />
-          <div className="odl">{view.latest.map((l) => { const c = v(OWN_COLOR[l.key] || "--faint"); return (
-            <button key={l.key} className={"odl-r" + (hl === l.key ? " on" : "")} style={{ "--oc": c } as React.CSSProperties} onMouseEnter={() => setHl(l.key)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(l.key)} onBlur={() => setHl(null)}>
-              <i /><span><b>{label(l)}</b><small>{OWN_WORDS[l.key] || ""}</small></span><em>{pct(l.value, 1)}</em>
-            </button>); })}</div>
-        </div>
-        <div className="card acc own-c" style={{ "--ac": "var(--p-balance)" } as React.CSSProperties}>
-          <div className="card-h"><h3><span className="ci"><Icon name="growth" /></span>Who bought and who sold<ChartHelp id="own-bought-sold" /></h3><span className="s">{then ? `${then} compared with ${now}` : `${now}, no earlier filing to compare`}</span></div>
-          <div className="cmpk"><span><i className="k-then" />{then ?? "Earlier"}</span><span><i className="k-now" />{now}</span></div>
-          <div className="cmpl">{rows.map((r) => {
-            const c = v(OWN_COLOR[r.key] || "--faint"), d = r.before == null ? null : (r.value as number) - r.before, flat = d != null && Math.abs(d) < 0.05;
-            return (
-              <div className="cmp-r" key={r.key} style={{ "--oc": c } as React.CSSProperties}>
-                <div className="cr-h"><b>{label(r)}</b><span className={"cmp-d " + (d == null || flat ? "" : d > 0 ? "up" : "down")}>{d == null ? "No earlier figure" : flat ? "Unchanged" : d > 0 ? `▲ Bought ${nf(d, 1)} pts` : `▼ Sold ${nf(Math.abs(d), 1)} pts`}</span></div>
-                <div className="cmp-b"><span className="cmp-lbl">{then ?? "Earlier"}</span><div className="cmp-trk"><i className="cmp-fill then" style={{ width: `${((r.before ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{r.before == null ? "—" : nf(r.before, 1) + "%"}</span></div>
-                <div className="cmp-b now"><span className="cmp-lbl">{now}</span><div className="cmp-trk"><i className="cmp-fill" style={{ width: `${((r.value ?? 0) / scale) * 100}%` }} /></div><span className="cmp-val">{nf(r.value ?? 0, 1)}%</span></div>
-              </div>
-            );
-          })}</div>
-        </div>
-      </div>
-      <OwnershipBars o={o} selected={idx} onSelect={setPick} />
-    </section>
-  );
-}
+/* Ownership (section 11) lives in ./own/OwnershipSection.tsx */
+export { OwnershipSection } from "./own/OwnershipSection";
 
 /* ---------------- Company ---------------- */
 export function BusinessSection({ s }: { s: Summary }) {

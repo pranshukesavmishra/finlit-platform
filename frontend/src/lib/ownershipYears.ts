@@ -52,3 +52,11 @@ export function ownershipAt(o: Pick<Ownership, "periods" | "series" | "latest">,
   }).filter((l) => l.value != null);
   return { asOf: o.periods[index], index, year: cur?.year ?? null, comparedWith: cmp >= 0 ? o.periods[cmp] : null, basis: cmp >= 0 ? basis : null, latest };
 }
+
+/** Which filing is showing, and whether it is the latest one of its year. */
+export function selectionInfo(periods: string[], index: number): { year: number | null; isYearLatest: boolean; yearLatest: string | null } {
+  const cur = parsePeriod(periods[index] ?? "");
+  if (!cur) return { year: null, isYearLatest: true, yearLatest: null };
+  const yl = ownershipYears(periods).find((x) => x.year === cur.year);
+  return { year: cur.year, isYearLatest: !yl || yl.index === index, yearLatest: yl ? periods[yl.index] : null };
+}

@@ -903,6 +903,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("refresh-indices", help="download NIFTY index constituent lists for the screener")
     p_ec = sub.add_parser("refresh-earnings-calls", help="nightly: find the latest earnings-call transcripts of the largest companies, extract their text and answer the fixed questions with the language model (docs/EARNINGS-CALLS.md; needs GEMINI_API_KEY)")
     p_ec.add_argument("--max-calls", type=int, default=None, help="summarise at most this many calls in this run")
+    p_oi = sub.add_parser("refresh-ownership", help="nightly: ownership insights of every company (docs/OWNERSHIP.md): a row from the stored shareholding, then the premium filing details (shareholders, pledge, share count, lock-in, named holders) for the companies that lack them, bounded")
+    p_oi.add_argument("--max-minutes", type=float, default=20.0, help="start no new premium call after this many minutes")
+    p_oi.add_argument("--limit", type=int, default=120, help="premium calls per run")
+    p_oi.add_argument("--concurrency", type=int, default=3, help="premium calls at the same time")
+    p_oi.add_argument("symbols", nargs="*", help="only these companies")
     sub.add_parser("refresh-presets", help="nightly, after the Prism batch: momentum and growth scores, industry breadth and theme states, theme-tag top-up, and every prebuilt screen into the cache (database only)")
     p_ld = sub.add_parser("refresh-leadership", help="weekly: Leader / In line / Laggard labels from the stored weekly prices and the sector and market indices (database and cached index levels only)")
     p_ld.add_argument("--backfill-from", default=None, help="YYYY-MM-DD: also compute every 4th Friday back to this date, so the rank-history chart starts with points")
@@ -1361,6 +1366,14 @@ async def main(argv: Optional[List[str]] = None, settings: Optional[Settings] = 
             from .earnings.config import MAX_CALLS_PER_RUN
             from .mf import record_run
             res = await earnings_service.run(store, settings, max_calls=args.max_calls or MAX_CALLS_PER_RUN)
+            await record_run(store, args.cmd, res)
+            print(json.dumps(res, default=str)[:3000])
+            return 0
+        if args.cmd == "refresh-ownership":
+            from . import ownership_insights
+            from .mf import record_run
+            res = await ownership_insights.refresh(store, settings, max_minutes=args.max_minutes, limit=args.limit, concurrency=args.concurrency,
+                                                   symbols=[x.upper() for x in args.symbols] or None)
             await record_run(store, args.cmd, res)
             print(json.dumps(res, default=str)[:3000])
             return 0
