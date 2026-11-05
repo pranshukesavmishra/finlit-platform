@@ -14,6 +14,7 @@ import { BAND_LABEL, METRICS, distOf, fmt, percentile, useUniverse, type Dist, t
 import { ChartHelp } from "../components/ChartHelp";
 import { CompareCustom } from "../components/CompareCustom";
 import { decodeKeys, encodeKeys } from "../lib/compareSets";
+import { DiversificationCard } from "../components/diversification/DiversificationCard";
 
 type TabDef = { id: string; label: string; model?: boolean; blurb: string; groups: { title: string; keys: NumKey[] }[] };
 const TABS: TabDef[] = [
@@ -179,6 +180,7 @@ export function Compare() {
             </div>
           </Gate>
         )}
+        {picked.length >= 2 && !data?.sample && <DiversificationCard symbols={picked.map((r) => r.symbol)} listLabel="Compared companies" candidates={rows.map((r) => [r.symbol, r.name || r.symbol] as [string, string])} />}
         <p className="faint cmp-foot">A comparison shows differences; it is not advice to buy or sell. For the full story behind any number, open the company's report{picked[0] && !picked[0].sample ? <> — start with <Link to={`/stocks/${picked[0].symbol}`}>{picked[0].name}</Link></> : null}.</p>
       </div>
     </>

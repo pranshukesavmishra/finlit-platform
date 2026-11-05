@@ -190,7 +190,7 @@ def spread_by_count(symbols: Sequence[str], sectors: Dict[str, str], groups: Dic
             size[b] += 1
         else:
             unknown_size.append(s)
-    grp = [{"name": g, "symbols": [s for s in symbols if groups.get(s) == g]} for g in sorted({groups[s] for s in symbols if s in groups})]
+    grp = [{"name": g, "symbols": m} for g in sorted({groups[s] for s in symbols if s in groups}) for m in [[s for s in symbols if groups.get(s) == g]] if len(m) >= 2]   # a group matters when it holds 2 or more of the stocks
     top = sec[0] if sec else None
     return {"sectors": sec, "size": size, "sizeUnknown": unknown_size, "groups": grp,
             "unclassified": [s for s in symbols if not sectors.get(s)],

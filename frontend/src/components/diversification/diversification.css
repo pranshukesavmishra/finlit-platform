@@ -1,5 +1,5 @@
 /* Diversification card. Scoped to .dv; reads the site's tokens, defines none globally. Sizes: 11 12 13 14 16 18 20 24 28 32 40 only.
-   One neutral hue for every bar and the band scale; no green or red anywhere (the card describes, it never judges). */
+   One neutral hue for every bar and the band scale; no verdict colours anywhere (the card describes, it never judges). */
 .dv { --dv-hue: #2F5496; --dv-hue-soft: color-mix(in srgb, var(--dv-hue) 16%, transparent); --dv-line: var(--border-subtle, #D6DCE4);
   background: var(--bg-surface, #fff); color: var(--text-body, #334155); border: 1px solid var(--dv-line); border-radius: 12px; padding: 24px; margin: 24px 0; font-size: 14px; line-height: 1.5; min-width: 0; }
 :root[data-theme="dark"] .dv { --dv-hue: #8DB0E8; }

@@ -74,7 +74,7 @@ export function sizeLine(d: Diversification): string {
 }
 export function groupLine(d: Diversification): string {
   const g = d.spread.groups;
-  if (!g.length) return "Business groups: none of these stocks is in a tagged group.";
+  if (!g.length) return "Business groups: no business group has more than one of these stocks.";
   return "Business groups: " + g.map((x) => `${x.name} ${x.symbols.length} (${x.symbols.map((s) => nameOf(d, s)).join(", ")})`).join(" · ");
 }
 export const unclassifiedNote = (d: Diversification) => (d.spread.unclassified.length ? `${plural(d.spread.unclassified.length, "stock has", "stocks have")} no sector label yet (${d.spread.unclassified.join(", ")}); they are counted together as one group named "Not classified".` : "");
