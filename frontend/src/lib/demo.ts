@@ -28,6 +28,18 @@ async function demoFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (/^\/api\/screener\/presets\/for\//.test(path)) return json({ symbol: path.split("/").pop(), screens: [{ id: "emerging-tech", name: "Emerging tech", group: "themes", asOf: "2026-10-30" }, { id: "highest-rated-large", name: "Highest-rated large caps", group: "top-rated", asOf: "2026-10-30" }], ready: true, asOf: "2026-10-30" });
   if (/^\/api\/stocks\/[^/]+\/leadership$/.test(path)) return json(sampleLeadership());
   if (path === "/api/prism/history") return json(sampleHistory(url.searchParams.get("symbol") || "RELIANCE", url.searchParams.get("statement") || "consolidated"));
+  if (/^\/api\/(stocks|companies)\/[^/]+\/macro-outlook$/.test(path) || path === "/api/macro/sector-impact" || path === "/api/macro/methodology" || /^\/api\/macro\/sectors\/[a-z_]+\/history$/.test(path)) {
+    // Macro & Sector Outlook: real responses of the engine on the recorded fixtures (public/demo/macro). ?macro=insufficient | stale picks the state shown.
+    const variant = new URLSearchParams(location.search).get("macro") || "";
+    const g = async (f: string) => JSON.parse(await (await file(`macro/${f}`)).text());
+    if (path === "/api/macro/methodology") return json(await g("method.json"));
+    if (path === "/api/macro/sector-impact") { const b = await g("impact.json"); if (variant === "stale") b.stale = { isStale: true, message: "Not refreshed for 61 hours. Showing the last successful snapshot.", reason: "overdue" }; return json(b); }
+    if (path.endsWith("/history")) return json(await g(`history-${url.searchParams.get("period") || "6M"}.json`));
+    const b = await g(variant === "insufficient" ? "company-insufficient.json" : "company-ok.json");
+    b.symbol = "RELIANCE"; b.company = "Reliance Industries Ltd";
+    if (variant === "stale") b.stale = { isStale: true, since: b.asOf, message: "Not refreshed for 61 hours. Showing the last successful snapshot from " + String(b.snapshotDate) + ".", reason: "overdue" };
+    return json(b);
+  }
   if (path === "/api/macro/sectors") return json(sampleMacroSectors(url.searchParams.get("symbol") || ""));
   if (path === "/api/macro") return file("macro.json");
   if (path === "/api/flows") return file("flows.json");

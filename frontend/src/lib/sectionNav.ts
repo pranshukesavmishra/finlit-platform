@@ -5,6 +5,7 @@ export type NavItem = [id: string, label: string, icon: string, hint: string];
 export const NAV: NavItem[] = [
   ["prism", "Scores", "gauge", "The FinLit IQ and the FinLit Prism score, side by side"],
   ["business", "Company", "building", "What the company does and how it earns"],
+  ["macro", "Macro outlook", "globe", "How the economy is moving for the sector: score, drivers and indicators"],
   ["notes", "Strengths & watch-outs", "notes", "Plain-language findings and what lifts or weighs on the score"],
   ["findings", "Key findings", "notes", "Every red flag, watch item and strength, each linking to its section"],
   ["price", "Price", "line", "Price chart, returns and technical levels"],

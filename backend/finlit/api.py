@@ -423,6 +423,8 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(intraday.router)   # /api/stocks/{symbol}/intraday: also before the /api/stocks/{symbol}/{section} route
     app.include_router(leadership_api.router)   # /api/stocks/{symbol}/leadership and /leadership-history: likewise
     app.include_router(ownership_insights.router)   # /api/stocks/{symbol}/ownership-insights: likewise
+    from .macro_outlook import api as _mo
+    app.include_router(_mo.router)   # /api/stocks/{symbol}/macro-outlook: before the generic section route too
 
     @app.get("/api/ping")
     async def ping():
@@ -679,6 +681,7 @@ def create_app(settings: Optional[Settings] = None, store: Optional[Store] = Non
     app.include_router(logos_api.router)
     app.include_router(amfi_import_api.router)
     app.include_router(macro_api.router)
+    app.include_router(_mo.admin)   # /api/admin/macro/*
     app.include_router(__import__("finlit.macro_sectors", fromlist=["router"]).router)   # /api/macro/sectors: the macro backdrop per sector (Gold, switched on in the Console)
     app.include_router(markets_api.router)
     app.include_router(clienterrors_api.router)
